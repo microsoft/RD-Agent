@@ -45,6 +45,10 @@ from rdagent.scenarios.data_science.proposal.exp_gen.sota_exp_select import (
 )
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 
+# add for runner parallel
+import queue
+from multiprocessing import Pool
+
 CKP_SELECTOR_NAME_MAP = {
     "latest": LatestCKPSelector,
     "sota_jump": SOTAJumpCKPSelector,
@@ -60,6 +64,8 @@ SOTA_EXP_SELECTOR_NAME_MAP = {
 
 class DataScienceRDLoop(RDLoop):
     skip_loop_error = (CoderError, RunnerError)
+    # add for runner parallel
+    queue = queue.Queue(maxsize=1000)
 
     def __init__(self, PROP_SETTING: BasePropSetting):
         logger.log_object(PROP_SETTING.competition, tag="competition")
@@ -98,20 +104,31 @@ class DataScienceRDLoop(RDLoop):
                 path=DS_RD_SETTING.knowledge_base_path, idea_pool_json_path=DS_RD_SETTING.idea_pool_json_path
             )
             self.trace = DSTrace(scen=scen, knowledge_base=knowledge_base)
+            self.trace_next = DSTrace(scen=scen, knowledge_base=knowledge_base)
         else:
             self.trace = DSTrace(scen=scen)
+            self.trace_next = DSTrace(scen=scen)
         self.summarizer = DSExperiment2Feedback(scen)
+
+        # add for runner parallel
+        self.direct_exp_gen_next_res = None
+        self.coding_next_res = None
         super(RDLoop, self).__init__()
 
     def direct_exp_gen(self, prev_out: dict[str, Any]):
+        tmp = self.trace_next
+        self.trace_next = self.trace
+        self.trace = tmp
+        if self.direct_exp_gen_next_res is not None:
+            exp = self.direct_exp_gen_next_res
+        else:
+            # set the SOTA experiment to submit
+            sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace)
+            self.trace.set_sota_exp_to_submit(sota_exp_to_submit)
 
-        # set the SOTA experiment to submit
-        sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace)
-        self.trace.set_sota_exp_to_submit(sota_exp_to_submit)
-
-        # set the checkpoint to start from
-        selection = self.ckp_selector.get_selection(self.trace)
-        exp = self.exp_gen.gen(self.trace, selection)
+            # set the checkpoint to start from
+            selection = self.ckp_selector.get_selection(self.trace)
+            exp = self.exp_gen.gen(self.trace, selection)
         logger.log_object(exp)
 
         # FIXME: this is for LLM debug webapp, remove this when the debugging is done.
@@ -119,36 +136,89 @@ class DataScienceRDLoop(RDLoop):
         return exp
 
     def coding(self, prev_out: dict[str, Any]):
-        exp = prev_out["direct_exp_gen"]
-        for tasks in exp.pending_tasks_list:
-            exp.sub_tasks = tasks
-            with logger.tag(f"{exp.sub_tasks[0].__class__.__name__}"):
-                if isinstance(exp.sub_tasks[0], DataLoaderTask):
-                    exp = self.data_loader_coder.develop(exp)
-                elif isinstance(exp.sub_tasks[0], FeatureTask):
-                    exp = self.feature_coder.develop(exp)
-                elif isinstance(exp.sub_tasks[0], ModelTask):
-                    exp = self.model_coder.develop(exp)
-                elif isinstance(exp.sub_tasks[0], EnsembleTask):
-                    exp = self.ensemble_coder.develop(exp)
-                elif isinstance(exp.sub_tasks[0], WorkflowTask):
-                    exp = self.workflow_coder.develop(exp)
-                elif isinstance(exp.sub_tasks[0], PipelineTask):
-                    exp = self.pipeline_coder.develop(exp)
-                else:
-                    raise NotImplementedError(f"Unsupported component in DataScienceRDLoop: {exp.hypothesis.component}")
-            exp.sub_tasks = []
+        if self.coding_next_res is not None:
+            exp = self.coding_next_res
+        else:
+            exp = prev_out["direct_exp_gen"]
+            for tasks in exp.pending_tasks_list:
+                exp.sub_tasks = tasks
+                with logger.tag(f"{exp.sub_tasks[0].__class__.__name__}"):
+                    if isinstance(exp.sub_tasks[0], DataLoaderTask):
+                        exp = self.data_loader_coder.develop(exp)
+                    elif isinstance(exp.sub_tasks[0], FeatureTask):
+                        exp = self.feature_coder.develop(exp)
+                    elif isinstance(exp.sub_tasks[0], ModelTask):
+                        exp = self.model_coder.develop(exp)
+                    elif isinstance(exp.sub_tasks[0], EnsembleTask):
+                        exp = self.ensemble_coder.develop(exp)
+                    elif isinstance(exp.sub_tasks[0], WorkflowTask):
+                        exp = self.workflow_coder.develop(exp)
+                    elif isinstance(exp.sub_tasks[0], PipelineTask):
+                        exp = self.pipeline_coder.develop(exp)
+                    else:
+                        raise NotImplementedError(f"Unsupported component in DataScienceRDLoop: {exp.hypothesis.component}")
+                exp.sub_tasks = []
         logger.log_object(exp)
+        self.queue.put(exp)
         return exp
-
-    def running(self, prev_out: dict[str, Any]):
-        exp: DSExperiment = prev_out["coding"]
+    
+    def run_R(self, prev_out, exp):
         if exp.is_ready_to_run():
             new_exp = self.runner.develop(exp)
             logger.log_object(new_exp)
             exp = new_exp
         if DS_RD_SETTING.enable_doc_dev:
             self.docdev.develop(exp)
+        return exp
+    
+    def running(self, prev_out: dict[str, Any]):
+        exp: DSExperiment = self.queue.get(block=True) 
+
+        def direct_exp_gen_next(self):
+            # set the SOTA experiment to submit
+            sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace_next)
+            self.trace.set_sota_exp_to_submit(sota_exp_to_submit)
+
+            # set the checkpoint to start from
+            selection = self.ckp_selector.get_selection(self.trace_next)
+            exp = self.exp_gen.gen(self.trace_next, selection)
+            logger.log_object(exp)
+
+            # FIXME: this is for LLM debug webapp, remove this when the debugging is done.
+            logger.log_object(exp, tag="debug_exp_gen")
+            return exp
+
+        def coding_next(self, exp):
+            for tasks in exp.pending_tasks_list:
+                exp.sub_tasks = tasks
+                with logger.tag(f"{exp.sub_tasks[0].__class__.__name__}"):
+                    if isinstance(exp.sub_tasks[0], DataLoaderTask):
+                        exp = self.data_loader_coder.develop(exp)
+                    elif isinstance(exp.sub_tasks[0], FeatureTask):
+                        exp = self.feature_coder.develop(exp)
+                    elif isinstance(exp.sub_tasks[0], ModelTask):
+                        exp = self.model_coder.develop(exp)
+                    elif isinstance(exp.sub_tasks[0], EnsembleTask):
+                        exp = self.ensemble_coder.develop(exp)
+                    elif isinstance(exp.sub_tasks[0], WorkflowTask):
+                        exp = self.workflow_coder.develop(exp)
+                    elif isinstance(exp.sub_tasks[0], PipelineTask):
+                        exp = self.pipeline_coder.develop(exp)
+                    else:
+                        raise NotImplementedError(f"Unsupported component in DataScienceRDLoop: {exp.hypothesis.component}")
+                exp.sub_tasks = []
+            logger.log_object(exp)
+            return exp
+
+        with Pool() as pool:
+
+            r_async = pool.apply_async(self.run_R, (self, exp,))
+
+            self.direct_exp_gen_next_res = direct_exp_gen_next(self)
+            self.coding_next_res = coding_next(self, self.direct_exp_gen_next_res)
+            
+            # 可能导致主进程无限等待
+            exp = r_async.get()
         return exp
 
     def feedback(self, prev_out: dict[str, Any]) -> ExperimentFeedback:
