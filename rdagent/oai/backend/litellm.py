@@ -120,7 +120,7 @@ class LiteLLMAPIBackend(APIBackend):
                 if finish_reason and finish_reason != "stop"
                 else ""
             )
-            logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}", tag="llm_messages")
+            logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\ncontent: {content}\ntools: {response_msg.tool_calls}", tag="llm_messages")
         elif LITELLM_SETTINGS.chat_stream:
             logger.info(f"{LogColors.BLUE}assistant:{LogColors.END}", tag="llm_messages")
             content = ""

@@ -178,13 +178,13 @@ class PipelineMultiProcessEvolvingStrategyV3(PipelineMultiProcessEvolvingStrateg
                 return patch
 
         try:
-            result = process_patch(
+            process_patch(
                 bash_patch_to_patch(patch),
                 open_file,
                 write_file,
                 remove_file,
             )
-            return result
+            return main_py
         except DiffError as exc:
             logger.error(f"Apply patch error: {exc}")
             return main_py
@@ -298,6 +298,7 @@ class PipelineMultiProcessEvolvingStrategyV3(PipelineMultiProcessEvolvingStrateg
             if main_py != workspace.file_dict.get("main.py"):
                 break
             else:
+                raise CoderError("The generated code is the same as the previous one.")
                 user_prompt = user_prompt + "\nPlease avoid generating same code to former code!"
         else:
             raise CoderError("Failed to generate a new pipeline code.")

@@ -343,7 +343,7 @@ class PipelineCoSTEEREvaluatorV3(PipelineCoSTEEREvaluator):
         if score_ret_code != 0:
             wfb_post_updated = wfb_post_updated or wfb.final_decision
             wfb.final_decision = False
-            wfb.return_checking = score_check_text + "[Scores File Checker] scores.csv is problematic.\n\n---------------\n\n" + (wfb.return_checking or "")
+            wfb.return_checking = score_check_text + "\n[Scores File Checker] scores.csv is problematic.\n\n---------------\n\n" + (wfb.return_checking or "")
         if wfb_post_updated:
             logger.warning(f"Pipeline single feedback is set to false by rule, not by LLM:\n{wfb.return_checking}")
         return wfb
