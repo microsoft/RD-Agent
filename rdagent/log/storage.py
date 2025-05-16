@@ -65,44 +65,55 @@ class FileStorage(Storage):
         r"(?P<caller>.+:.+:\d+) - "
     )
 
-    def iter_msg(self, watch: bool = False) -> Generator[Message, None, None]:
+    def iter_msg(self, common: bool = False, tag: str | None = None) -> Generator[Message, None, None]:
         msg_l = []
-        for file in self.path.glob("**/*.log"):
-            tag = ".".join(file.relative_to(self.path).as_posix().replace("/", ".").split(".")[:-3])
-            pid = file.parent.name
+        if common:  # return string logs in common_logs.log
+            for file in self.path.glob("**/*.log"):
+                common_log_tag = ".".join(file.relative_to(self.path).as_posix().replace("/", ".").split(".")[:-3])
 
-            with file.open("r", encoding="utf-8") as f:
-                content = f.read()
-
-            matches, next_matches = self.log_pattern.finditer(content), self.log_pattern.finditer(content)
-            next_match = next(next_matches, None)
-            # NOTE: the content will be the text between `match` and `next_match`
-            for match in matches:
-                next_match = next(next_matches, None)
-
-                timestamp_str = match.group("timestamp")
-                timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=timezone.utc)
-                level: LOG_LEVEL = cast(LOG_LEVEL, match.group("level"))
-                caller = match.group("caller")
-
-                # Extract the message content
-                message_start = match.end()
-                message_end = next_match.start() if next_match else len(content)
-                message_content = content[message_start:message_end].strip()
-
-                if "Logging object in" in message_content:
+                if tag is not None and tag not in common_log_tag:
                     continue
 
-                m = Message(
-                    tag=tag, level=level, timestamp=timestamp, caller=caller, pid_trace=pid, content=message_content
-                )
+                pid = file.parent.name
 
-                msg_l.append(m)
+                with file.open("r", encoding="utf-8") as f:
+                    content = f.read()
 
-        for file in self.path.glob("**/*.pkl"):
+                matches, next_matches = self.log_pattern.finditer(content), self.log_pattern.finditer(content)
+                next_match = next(next_matches, None)
+                # NOTE: the content will be the text between `match` and `next_match`
+                for match in matches:
+                    next_match = next(next_matches, None)
+
+                    timestamp_str = match.group("timestamp")
+                    timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=timezone.utc)
+                    level: LOG_LEVEL = cast(LOG_LEVEL, match.group("level"))
+                    caller = match.group("caller")
+
+                    # Extract the message content
+                    message_start = match.end()
+                    message_end = next_match.start() if next_match else len(content)
+                    message_content = content[message_start:message_end].strip()
+
+                    if "Logging object in" in message_content:
+                        continue
+
+                    m = Message(
+                        tag=common_log_tag,
+                        level=level,
+                        timestamp=timestamp,
+                        caller=caller,
+                        pid_trace=pid,
+                        content=message_content,
+                    )
+
+                    msg_l.append(m)
+
+        pkl_files = "**/*.pkl" if tag is None else f"**/{tag.replace('.','/')}/**/*.pkl"
+        for file in self.path.glob(pkl_files):
             if file.name == "debug_llm.pkl":
                 continue
-            tag = ".".join(file.relative_to(self.path).as_posix().replace("/", ".").split(".")[:-3])
+            pkl_log_tag = ".".join(file.relative_to(self.path).as_posix().replace("/", ".").split(".")[:-3])
             pid = file.parent.name
 
             with file.open("rb") as f:
@@ -110,7 +121,7 @@ class FileStorage(Storage):
 
             timestamp = datetime.strptime(file.stem, "%Y-%m-%d_%H-%M-%S-%f").replace(tzinfo=timezone.utc)
 
-            m = Message(tag=tag, level="INFO", timestamp=timestamp, caller="", pid_trace=pid, content=content)
+            m = Message(tag=pkl_log_tag, level="INFO", timestamp=timestamp, caller="", pid_trace=pid, content=content)
 
             msg_l.append(m)
 
