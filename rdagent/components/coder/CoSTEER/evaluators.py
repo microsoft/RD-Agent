@@ -73,14 +73,17 @@ class CoSTEERSingleFeedback(Feedback):
         return data
 
     def __str__(self) -> str:
-        return f"""------------------Execution------------------
+        return f"""### Code Execution ###
 {self.execution}
-------------------Return Checking------------------
-{self.return_checking if self.return_checking is not None else 'No return checking'}
-------------------Code------------------
+
+### Checker's Output ###
+{self.return_checking if self.return_checking is not None else 'Checker did not produce any output.'}
+
+### Major Issues ###
 {self.code}
-------------------Final Decision------------------
-This implementation is {'SUCCESS' if self.final_decision else 'FAIL'}.
+
+### Final Decision ###
+This implementation is {'SUCCESSFUL' if self.final_decision else 'UNSUCCESSFUL'}.
 """
 
     def __bool__(self):
