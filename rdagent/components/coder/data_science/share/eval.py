@@ -21,6 +21,9 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 PipelineSingleFeedback = CoSTEERSingleFeedback
 PipelineMultiFeedback = CoSTEERMultiFeedback
 
+NO_SUB = "<No submission.csv file found.>"
+NO_SCORE = "<No scores.csv file found.>"
+
 
 class ModelDumpEvaluator(CoSTEEREvaluator):
     """This evaluator assumes that it runs after the model"""
@@ -43,6 +46,7 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
                 code=err_msg,
                 final_decision=False,
             )
+
         data_source_path = (
             f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}"
             if self.data_type == "full"
@@ -61,12 +65,12 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
         submission_content_before = (
             (implementation.workspace_path / "submission.csv").read_text()
             if (implementation.workspace_path / "submission.csv").exists()
-            else None
+            else NO_SUB
         )
         scores_content_before = (
             (implementation.workspace_path / "scores.csv").read_text()
             if (implementation.workspace_path / "scores.csv").exists()
-            else None
+            else NO_SCORE
         )
 
         # Remove the files submission.csv and scores.csv
@@ -103,11 +107,16 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        assert submission_content_before is not None
-        assert scores_content_before is not None
-
-        submission_content_after = (implementation.workspace_path / "submission.csv").read_text()
-        scores_content_after = (implementation.workspace_path / "scores.csv").read_text()
+        submission_content_after = (
+            (implementation.workspace_path / "submission.csv").read_text()
+            if (implementation.workspace_path / "submission.csv").exists()
+            else NO_SUB
+        )
+        scores_content_after = (
+            (implementation.workspace_path / "scores.csv").read_text()
+            if (implementation.workspace_path / "scores.csv").exists()
+            else NO_SCORE
+        )
 
         system_prompt = T(".prompts:dump_model_eval.system").r()
         user_prompt = T(".prompts:dump_model_eval.user").r(
