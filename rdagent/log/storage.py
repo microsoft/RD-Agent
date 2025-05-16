@@ -99,7 +99,12 @@ class FileStorage(Storage):
                         continue
 
                     m = Message(
-                        tag=common_log_tag, level=level, timestamp=timestamp, caller=caller, pid_trace=pid, content=message_content
+                        tag=common_log_tag,
+                        level=level,
+                        timestamp=timestamp,
+                        caller=caller,
+                        pid_trace=pid,
+                        content=message_content,
                     )
 
                     msg_l.append(m)
