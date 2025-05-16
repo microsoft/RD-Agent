@@ -69,7 +69,11 @@ class FileStorage(Storage):
         msg_l = []
         if common:  # return string logs in common_logs.log
             for file in self.path.glob("**/*.log"):
-                tag = ".".join(file.relative_to(self.path).as_posix().replace("/", ".").split(".")[:-3])
+                common_log_tag = ".".join(file.relative_to(self.path).as_posix().replace("/", ".").split(".")[:-3])
+
+                if tag is not None and tag not in common_log_tag:
+                    continue
+
                 pid = file.parent.name
 
                 with file.open("r", encoding="utf-8") as f:
@@ -95,16 +99,16 @@ class FileStorage(Storage):
                         continue
 
                     m = Message(
-                        tag=tag, level=level, timestamp=timestamp, caller=caller, pid_trace=pid, content=message_content
+                        tag=common_log_tag, level=level, timestamp=timestamp, caller=caller, pid_trace=pid, content=message_content
                     )
 
                     msg_l.append(m)
 
-        pkl_files = "**/*.pkl" if tag is None else f"**/{tag}/**/*.pkl"
+        pkl_files = "**/*.pkl" if tag is None else f"**/{tag.replace('.','/')}/**/*.pkl"
         for file in self.path.glob(pkl_files):
             if file.name == "debug_llm.pkl":
                 continue
-            tag = ".".join(file.relative_to(self.path).as_posix().replace("/", ".").split(".")[:-3])
+            pkl_log_tag = ".".join(file.relative_to(self.path).as_posix().replace("/", ".").split(".")[:-3])
             pid = file.parent.name
 
             with file.open("rb") as f:
@@ -112,7 +116,7 @@ class FileStorage(Storage):
 
             timestamp = datetime.strptime(file.stem, "%Y-%m-%d_%H-%M-%S-%f").replace(tzinfo=timezone.utc)
 
-            m = Message(tag=tag, level="INFO", timestamp=timestamp, caller="", pid_trace=pid, content=content)
+            m = Message(tag=pkl_log_tag, level="INFO", timestamp=timestamp, caller="", pid_trace=pid, content=content)
 
             msg_l.append(m)
 
