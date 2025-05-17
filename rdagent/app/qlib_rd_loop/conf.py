@@ -54,6 +54,45 @@ class FactorBasePropSetting(BasePropSetting):
     evolving_n: int = 10
     """Number of evolutions"""
 
+class QuantBasePropSetting(BasePropSetting):
+    model_config = SettingsConfigDict(env_prefix="QLIB_QUANT_", protected_namespaces=())
+
+    # 1) override base settings
+    scen: str = "rdagent.scenarios.qlib.experiment.quant_experiment.QlibQuantScenario"
+    """Scenario class for Qlib Model"""
+
+    quant_hypothesis_gen: str = "rdagent.scenarios.qlib.proposal.quant_proposal.QlibQuantHypothesisGen"
+    """Hypothesis generation class"""
+
+    model_hypothesis2experiment: str = "rdagent.scenarios.qlib.proposal.model_proposal.QlibModelHypothesis2Experiment"
+    """Hypothesis to experiment class"""
+
+    model_coder: str = "rdagent.scenarios.qlib.developer.model_coder.QlibModelCoSTEER"
+    """Coder class"""
+
+    model_runner: str = "rdagent.scenarios.qlib.developer.model_runner.QlibModelRunner"
+    """Runner class"""
+
+    model_summarizer: str = "rdagent.scenarios.qlib.developer.feedback.QlibModelExperiment2Feedback"
+    """Summarizer class"""
+
+    # scen: str = "rdagent.scenarios.qlib.experiment.factor_experiment.QlibFactorScenario"
+    # """Scenario class for Qlib Factor"""
+
+    factor_hypothesis2experiment: str = "rdagent.scenarios.qlib.proposal.factor_proposal.QlibFactorHypothesis2Experiment"
+    """Hypothesis to experiment class"""
+
+    factor_coder: str = "rdagent.scenarios.qlib.developer.factor_coder.QlibFactorCoSTEER"
+    """Coder class"""
+
+    factor_runner: str = "rdagent.scenarios.qlib.developer.factor_runner.QlibFactorRunner"
+    """Runner class"""
+
+    factor_summarizer: str = "rdagent.scenarios.qlib.developer.feedback.QlibFactorExperiment2Feedback"
+    """Summarizer class"""
+
+    evolving_n: int = 10
+    """Number of evolutions"""
 
 class FactorFromReportPropSetting(FactorBasePropSetting):
     # 1) override the scen attribute
@@ -74,3 +113,4 @@ class FactorFromReportPropSetting(FactorBasePropSetting):
 FACTOR_PROP_SETTING = FactorBasePropSetting()
 FACTOR_FROM_REPORT_PROP_SETTING = FactorFromReportPropSetting()
 MODEL_PROP_SETTING = ModelBasePropSetting()
+QUANT_PROP_SETTING = QuantBasePropSetting()

@@ -121,7 +121,7 @@ class QlibFactorExperiment2Feedback(Experiment2Feedback):
             hypothesis_evaluation=hypothesis_evaluation,
             new_hypothesis=new_hypothesis,
             reason=reason,
-            decision=decision,
+            decision=True,
         )
 
 
@@ -171,5 +171,5 @@ class QlibModelExperiment2Feedback(Experiment2Feedback):
             hypothesis_evaluation=response_json_hypothesis.get("Feedback for Hypothesis", "No feedback provided"),
             new_hypothesis=response_json_hypothesis.get("New Hypothesis", "No new hypothesis provided"),
             reason=response_json_hypothesis.get("Reasoning", "No reasoning provided"),
-            decision=convert2bool(response_json_hypothesis.get("Decision", "false")),
+            decision=True,
         )

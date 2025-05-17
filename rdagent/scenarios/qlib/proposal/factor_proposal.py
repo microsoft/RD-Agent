@@ -4,6 +4,7 @@ from typing import List, Tuple
 
 from jinja2 import Environment, StrictUndefined
 
+from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
 from rdagent.components.coder.factor_coder.factor import FactorExperiment, FactorTask
 from rdagent.components.proposal import FactorHypothesis2Experiment, FactorHypothesisGen
 from rdagent.core.prompts import Prompts
@@ -105,6 +106,8 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
         for task in tasks:
             duplicate = False
             for based_exp in exp.based_experiments:
+                if isinstance(based_exp, QlibModelExperiment):
+                    continue
                 for sub_task in based_exp.sub_tasks:
                     if task.factor_name == sub_task.factor_name:
                         duplicate = True
