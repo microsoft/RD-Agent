@@ -19,6 +19,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: env | sort
       - run: make dev
+      - name: CI Dependency Patch
+        run: pip install cryptography==44.0.2
       - name: lint test docs and build
         run: make lint docs-gen test-offline # test docs build
     strategy:
