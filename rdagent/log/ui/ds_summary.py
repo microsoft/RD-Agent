@@ -61,7 +61,6 @@ def get_sota_exp_stat(log_path: Path):
         final_trace = pickle.load(f)
 
     if hasattr(final_trace, "sota_exp_to_submit"):
-        st.toast("Using sota_exp_to_submit")
         sota_exp = final_trace.sota_exp_to_submit
     else:
         sota_exp = final_trace.sota_experiment()
@@ -258,7 +257,10 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
     base_df["SOTA Exp"] = base_df["SOTA Exp"].replace("", pd.NA)
 
     base_df["SOTA Exp Score (valid)"] = (
-        base_df["SOTA Exp Score (valid)"].replace("Not Calculated", 0).replace("Not Computed", 0)
+        base_df["SOTA Exp Score (valid)"]
+        .replace("Not Calculated", 0)
+        .replace("Not Computed", 0)
+        .infer_objects(copy=False)
     )
     base_df = base_df.astype(
         {
