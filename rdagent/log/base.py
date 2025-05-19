@@ -66,12 +66,9 @@ class Storage:
         ...
 
     @abstractmethod
-    def iter_msg(self, watch: bool = False) -> Generator[Message, None, None]:
+    def iter_msg(self) -> Generator[Message, None, None]:
         """
-        Parameters
-        ----------
-        watch : bool
-            should we watch the new content and display them
+        Iterate the message in the storage.
         """
         ...
 
