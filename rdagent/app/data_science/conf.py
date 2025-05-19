@@ -96,7 +96,5 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     merge_hours: int = 2
     """The time for merge"""
 
-    
-
 
 DS_RD_SETTING = DataScienceBasePropSetting()
