@@ -229,6 +229,7 @@ def get_summary_df(log_folders: list[str], sn: str = "summary.pkl") -> tuple[dic
     base_df["SOTA Exp"] = base_df["SOTA Exp"].replace("", pd.NA)
 
     base_df["SOTA Exp Score (valid)"] = base_df["SOTA Exp Score (valid)"].replace("Not Calculated", 0)
+    base_df["SOTA Exp Score (valid)"] = base_df["SOTA Exp Score (valid)"].replace("Not Computed", 0)
     base_df = base_df.astype(
         {
             "Total Loops": int,

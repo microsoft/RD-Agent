@@ -76,7 +76,35 @@ def plot_metric_improvement_and_distribution_grid(df, save_prefix='metric_summar
 
 def main():
     df = read_all_stat()
-    df = df[~df.index.get_level_values(0).str.contains("V03|V04")]
+    df = df[~df.index.get_level_values(0).str.contains("V03|V04") & ~df.index.get_level_values(0).str.contains("o1-")]
+    print(df)
+    # Group by the second index level (experiment), and compute mean and std for each metric/experiment/method
+    summary = df.groupby(level=1).agg(['mean', 'std'])
+    print("\n===== Summary Table: Mean and Std by Experiment/Metric/Method =====")
+    print(summary)
+    
+    combs = df.index.get_level_values(0).unique()
+    cases = []
+    for cb in combs:
+        exp1, exp2 = cb.split("_")
+        cases.extend([exp1, exp2])
+    cases = list(set(cases))
+    import itertools
+    perms = list(itertools.permutations(cases))
+    stds = {}
+    for p in perms:
+        names = [f"{p[i]}_{p[i+1]}" for i in range(0, len(p)-1, 2)]
+        mask = df.index.get_level_values(0).isin(names)
+        idx = list(sorted(df[mask].groupby(level=0).size().index.values))
+        if idx == names:
+            summary = df[mask].groupby(level=1).agg(['mean', 'std'])
+            print("\n===== Summary Table: Mean and Std by Experiment/Metric/Method =====")
+            print(f"Found grouping case: {names}")
+            print(summary)
+            stds[",".join(names)] = (summary.loc[:, ("merge_12h", "std")])
+    std_df = pd.DataFrame(stds)
+    print(std_df)
+    print(std_df.mean(axis=1))
     plot_metric_improvement_and_distribution_grid(df)
 
 if __name__ == "__main__":
