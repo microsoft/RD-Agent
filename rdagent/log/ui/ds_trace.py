@@ -720,7 +720,7 @@ def get_state_data_range(state_data):
 
 
 # UI - Main
-if isinstance(state.data["competition"], str):
+if state.data["competition"]:
     st.title(state.data["competition"])
     st.markdown(f"[share_link](/ds_trace?log_folder={state.log_folder}&selection={state.log_path})")
     summarize_data()

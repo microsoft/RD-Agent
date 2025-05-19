@@ -117,4 +117,5 @@ class LLMSettings(ExtendedBaseSettings):
 
     chat_model_map: dict[str, dict[str, str]] = {}
 
+
 LLM_SETTINGS = LLMSettings()

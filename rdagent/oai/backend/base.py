@@ -343,7 +343,7 @@ class APIBackend(ABC):
                 if hasattr(e, "message") and (
                     "'messages' must contain the word 'json' in some form" in e.message
                     or "\\'messages\\' must contain the word \\'json\\' in some form" in e.message
-            ):
+                ):
                     kwargs["add_json_in_prompt"] = True
                 elif hasattr(e, "message") and embedding and "maximum context length" in e.message:
                     kwargs["input_content_list"] = [

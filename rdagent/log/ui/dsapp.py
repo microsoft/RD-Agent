@@ -3,7 +3,7 @@ from pathlib import Path
 import streamlit as st
 from streamlit import session_state as state
 
-# from rdagent.app.data_science.loop import DataScienceRDLoop
+from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.ui.conf import UI_SETTING
 
 
@@ -27,9 +27,9 @@ if "log_folders" not in state:
 
 summary_page = st.Page("ds_summary.py", title="Summary", icon="📊")
 trace_page = st.Page("ds_trace.py", title="Trace", icon="📈")
-# aide_page = st.Page("aide.py", title="Aide", icon="🧑‍🏫")
+aide_page = st.Page("aide.py", title="Aide", icon="🧑‍🏫")
 st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initial_sidebar_state="expanded")
-st.navigation([summary_page, trace_page]).run()
+st.navigation([summary_page, trace_page, aide_page]).run()
 
 
 # UI - Sidebar
@@ -37,7 +37,7 @@ with st.sidebar:
     st.subheader("Pages", divider="rainbow")
     st.page_link(summary_page, icon="📊")
     st.page_link(trace_page, icon="📈")
-    # st.page_link(aide_page, icon="🧑‍🏫")
+    st.page_link(aide_page, icon="🧑‍🏫")
 
     st.subheader("Settings", divider="rainbow")
     with st.form("log_folder_form", border=False):
