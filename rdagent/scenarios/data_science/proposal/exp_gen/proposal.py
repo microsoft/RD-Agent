@@ -37,24 +37,18 @@ class ScenarioChallengeDetail(BaseModel):
             "specifically led to identifying THIS challenge."
         )
     )
-    category: ScenarioChallengeCategory = Field(
-        description="The category of the improvement challenge."
-    )
+    category: ScenarioChallengeCategory = Field(description="The category of the improvement challenge.")
     statement: str = Field(
         description="Description of the challenge in no more than three sentences, outlining the specific area for improvement."
     )
     metric_impact: str = Field(
         description="Brief explanation in no more than two sentences of why addressing this challenge is expected to improve the target metric."
     )
-    caption: str = Field(
-        description="Summarize the challenge in around 5-15 words."
-    )
+    caption: str = Field(description="Summarize the challenge in around 5-15 words.")
 
 
 class ScenarioAnalysis(BaseModel):
-    sota_alignment_analysis: str = Field(
-        description="Comparing SOTA to data/domain insights; 'N/A' if not available."
-    )
+    sota_alignment_analysis: str = Field(description="Comparing SOTA to data/domain insights; 'N/A' if not available.")
     gap_identification: str = Field(
         description="Unaddressed challenges or workarounds in successful solutions; 'N/A' if none."
     )
@@ -68,9 +62,13 @@ class ScenarioAnalysis(BaseModel):
 
 class ScenarioChallenges(BaseModel):
 
-    analysis: ScenarioAnalysis = Field(description="Analysis of provided information following the Core Analysis Dimensions.")
-    challenges: List[ScenarioChallengeDetail] = Field(description="At most five challenges, prioritizing \"FEWER BUT BETTER\": "
-                          "select the most valuable and potentially unexplored avenues. Each challenge must be tightly relevant to the improvement of the target metric.")
+    analysis: ScenarioAnalysis = Field(
+        description="Analysis of provided information following the Core Analysis Dimensions."
+    )
+    challenges: List[ScenarioChallengeDetail] = Field(
+        description='At most five challenges, prioritizing "FEWER BUT BETTER": '
+        "select the most valuable and potentially unexplored avenues. Each challenge must be tightly relevant to the improvement of the target metric."
+    )
 
 
 class TraceAnalysisDetail(BaseModel):
@@ -120,9 +118,7 @@ class TraceChallengeDetail(BaseModel):
             "or leveraging the observation) is expected to improve the target metric or future iterations."
         )
     )
-    caption: str = Field(
-        description="Summarize the challenge concisely in around 5-15 words."
-    )
+    caption: str = Field(description="Summarize the challenge concisely in around 5-15 words.")
 
 
 class TraceChallenges(BaseModel):
@@ -149,7 +145,9 @@ class HypothesisComponent(str, Enum):
 
 
 class HypothesisEvaluationReasoningScore(BaseModel):
-    reasoning: str = Field(description="What is the quality of the hypothesis under this criteria? Answer in 1-2 sentence.")
+    reasoning: str = Field(
+        description="What is the quality of the hypothesis under this criteria? Answer in 1-2 sentence."
+    )
     score: float = Field(description="The score of the hypothesis under this criteria between 1 and 10.")
 
 
@@ -172,9 +170,7 @@ class HypothesisEvaluation(BaseModel):
 
 
 class HypothesisDetail(BaseModel):
-    caption: str = Field(
-        description="The caption of the challenge it is based on."
-    )
+    caption: str = Field(description="The caption of the challenge it is based on.")
     challenge: str = Field(
         description="Reaffirm the challenge within the current context (e.g., trace history, domain principles, or competition constraints). It should be no more than 2-3 sentences."
     )
@@ -186,12 +182,8 @@ class HypothesisDetail(BaseModel):
             "Brief explanation (max 2 sentences) of the expected impact of the hypothesis on the target metric."
         )
     )
-    component: HypothesisComponent = Field(
-        description="The component tag of the hypothesis."
-    )
-    evaluation: HypothesisEvaluation = Field(
-        description="Evaluate the quality of the hypothesis."
-    )
+    component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
+    evaluation: HypothesisEvaluation = Field(description="Evaluate the quality of the hypothesis.")
 
 
 class HypothesisList(BaseModel):
@@ -209,22 +201,22 @@ class CodingSketch(BaseModel):
     )
     modifications: List[str] = Field(
         description="A list of specific, targeted changes to be applied to the existing code identified in `current_state`. Each string in the list should concisely describe (in 3-4 sentences): "
-                    "(a) the specific part of the code to be altered (e.g., a function name, a class, or a logical block); "
-                    "(b) the nature of the modification (e.g., bug fix, feature addition, refactoring of a small section, performance optimization, deletion); and "
-                    "(c) a brief explanation or high-level sketch of the new logic or change. "
-                    "If no direct modifications to existing code are planned (e.g., if creating an entirely new `main.py` as detailed in `structure`), this list should be empty."
+        "(a) the specific part of the code to be altered (e.g., a function name, a class, or a logical block); "
+        "(b) the nature of the modification (e.g., bug fix, feature addition, refactoring of a small section, performance optimization, deletion); and "
+        "(c) a brief explanation or high-level sketch of the new logic or change. "
+        "If no direct modifications to existing code are planned (e.g., if creating an entirely new `main.py` as detailed in `structure`), this list should be empty."
     )
     structure: List[str] = Field(
         description="An outline of the new high-level architectural components (primarily functions and classes) if a new `main.py` script is being created from scratch, or if the existing `main.py` is undergoing a major refactor that fundamentally alters or replaces its core structure. "
-                    "Each string in the list should define a planned function or class, detailing its name, primary responsibility, key parameters (if applicable), return values (if applicable), and core functionality in 2-3 sentences. "
-                    "This field is typically used when `current_state` is 'N/A' or when the scope of change requires a new architectural blueprint rather than just targeted `modifications`. "
-                    "Leave empty if the plan only involves direct `modifications` to the existing structure in `current_state`."
+        "Each string in the list should define a planned function or class, detailing its name, primary responsibility, key parameters (if applicable), return values (if applicable), and core functionality in 2-3 sentences. "
+        "This field is typically used when `current_state` is 'N/A' or when the scope of change requires a new architectural blueprint rather than just targeted `modifications`. "
+        "Leave empty if the plan only involves direct `modifications` to the existing structure in `current_state`."
     )
     sketch: str = Field(
         description="A detailed, step-by-step narrative that elaborates on how to implement the planned code. "
-                    "This section should synthesize the information from `modifications` (if any) and/or `structure` (if any) into a comprehensive and actionable coding plan for `main.py`. "
-                    "The content **must** be formatted using Markdown, with logical sections, key decision points, or implementation steps clearly organized by level-3 headings (i.e., `###`). "
-                    "This field should provide sufficient detail for a developer to understand the implementation flow, algorithms, data handling, and key logic points without ambiguity."
+        "This section should synthesize the information from `modifications` (if any) and/or `structure` (if any) into a comprehensive and actionable coding plan for `main.py`. "
+        "The content **must** be formatted using Markdown, with logical sections, key decision points, or implementation steps clearly organized by level-3 headings (i.e., `###`). "
+        "This field should provide sufficient detail for a developer to understand the implementation flow, algorithms, data handling, and key logic points without ambiguity."
     )
 
 
@@ -791,13 +783,13 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=ScenarioChallenges
+            response_format=ScenarioChallenges,
             # json_mode=True,
             # json_target_type=Dict[str, Dict[str, str]],
         )
         challenges = ScenarioChallenges(**json.loads(response))
         # Translate to problems
-        problems = { o.caption: { "problem": o.statement, "reason": o.reasoning } for o in challenges.challenges }
+        problems = {o.caption: {"problem": o.statement, "reason": o.reasoning} for o in challenges.challenges}
         logger.info(f"Identified scenario problems:\n" + json.dumps(problems))
         return problems
 
@@ -811,13 +803,13 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=TraceChallenges
+            response_format=TraceChallenges,
             # json_mode=True,
             # json_target_type=Dict[str, Dict[str, str]],
         )
         challenges = TraceChallenges(**json.loads(response))
         # Translate to problems
-        problems = { o.caption: { "problem": o.statement, "reason": o.reasoning } for o in challenges.challenges }
+        problems = {o.caption: {"problem": o.statement, "reason": o.reasoning} for o in challenges.challenges}
         logger.info(f"Identified feedback problems:\n" + json.dumps(problems))
         return problems
 
@@ -866,9 +858,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             enable_idea_pool=enable_idea_pool,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt,
-            system_prompt=sys_prompt,
-            response_format=HypothesisList
+            user_prompt=user_prompt, system_prompt=sys_prompt, response_format=HypothesisList
         )
         hypotheses = HypothesisList(**json.loads(response))
         resp_dict = {
@@ -882,8 +872,10 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
                     "novelty_score": h.evaluation.novelty.score,
                     "feasibility_score": h.evaluation.feasibility.score,
                     "risk_reward_balance_score": h.evaluation.risk_reward_balance.score,
-                }
-            } for h in hypotheses.hypotheses }
+                },
+            }
+            for h in hypotheses.hypotheses
+        }
 
         logger.info(f"Generated hypotheses:\n" + json.dumps(resp_dict, indent=2))
 
@@ -924,7 +916,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=CodingSketch
+            response_format=CodingSketch,
             # json_mode=True,
             # json_target_type=Dict[str, str | Dict[str, str]],
         )
@@ -1076,8 +1068,9 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
-            hypotheses=[new_hypothesis] if len(trace.hist) > 0
-                else self.get_all_hypotheses(all_problems, hypothesis_dict),
+            hypotheses=(
+                [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(all_problems, hypothesis_dict)
+            ),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
         )
