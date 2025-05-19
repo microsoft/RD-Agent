@@ -1,7 +1,7 @@
 import json
 import pprint
 from enum import Enum
-from typing import List, Dict, Tuple
+from typing import Dict, List, Tuple
 
 import pandas as pd
 from pydantic import BaseModel, Field
