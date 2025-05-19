@@ -51,20 +51,6 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_doc_dev: bool = False
     model_dump_check_level: Literal["medium", "high"] = "medium"
 
-    ### selector related
-
-    #### checkpoint selector related
-    # selector_name: str = "latest"
-    selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.ckp_select.LatestCKPSelector"
-    """The name of the selector to use"""
-    sota_count_window: int = 5
-    """The number of trials to consider for SOTA count"""
-    sota_count_threshold: int = 1
-    """The threshold for SOTA count"""
-
-    #### SOTA experiment selector related
-    sota_exp_selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.sota_exp_select.GlobalSOTASelector"
-    """The name of the SOTA experiment selector to use"""
     ### knowledge base
     enable_knowledge_base: bool = False
     knowledge_base_version: str = "v1"
@@ -83,8 +69,34 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """We'll use f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.eval_sub_dir}/{competition}"
     to find the scriipt to evaluate the submission on test"""
 
-    ### inject diverse
+    """---below are the settings for multi-trace---"""
+
+    ### multi-trace related
+    max_trace_num: int = 3
+    """The maximum number of traces to grow before merging"""
+
+    #### multi-trace:checkpoint selector
+    selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.ckp_select.LatestCKPSelector"
+    """The name of the selector to use"""
+    sota_count_window: int = 5
+    """The number of trials to consider for SOTA count"""
+    sota_count_threshold: int = 1
+    """The threshold for SOTA count"""
+
+    #### multi-trace: SOTA experiment selector
+    sota_exp_selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.sota_exp_select.GlobalSOTASelector"
+    """The name of the SOTA experiment selector to use"""
+
+    ### multi-trace:inject optimals for multi-trace
+    # inject diverse when start a new sub-trace
     enable_inject_diverse: bool = False
+
+    # inject diverse at the root of the trace
+    enable_inject_knowledge_at_root: bool = False
+
+    #### multi-trace: time for final multi-trace merge
+    merge_hours: int = 2
+    """The time for merge"""
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()
