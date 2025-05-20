@@ -1,6 +1,4 @@
 import json
-import os
-import platform
 from pathlib import Path
 from typing import Dict
 
@@ -18,7 +16,7 @@ from rdagent.scenarios.data_science.scen.utils import (
 from rdagent.scenarios.kaggle.kaggle_crawler import (
     crawl_descriptions,
     download_data,
-    leaderboard_scores,
+    get_metric_direction,
 )
 from rdagent.utils.agent.tpl import T
 
@@ -188,8 +186,7 @@ class KaggleScen(DataScienceScen):
         return crawl_descriptions(self.competition, DS_RD_SETTING.local_data_path)
 
     def _get_direction(self):
-        leaderboard = leaderboard_scores(self.competition)
-        return float(leaderboard[0]) > float(leaderboard[-1])
+        return get_metric_direction(self.competition)
 
     @property
     def rich_style_description(self) -> str:
