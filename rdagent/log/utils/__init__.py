@@ -77,7 +77,7 @@ def get_caller_info() -> CallerInfo:
     return info
 
 
-def extract_loopid_func_name(tag: str) -> tuple[str | None, str | None]:
+def extract_loopid_func_name(tag: str) -> tuple[str, str] | tuple[None, None]:
     """extract loop id and function name from the tag in Message"""
     match = re.search(r"Loop_(\d+)\.([^.]+)", tag)
     return match.groups() if match else (None, None)
