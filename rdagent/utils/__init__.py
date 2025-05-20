@@ -18,6 +18,8 @@ from typing import Union
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.utils.agent.tpl import T
+import time
+from multiprocessing import Process, Queue
 
 
 def get_module_by_module_path(module_path: Union[str, ModuleType]) -> ModuleType:
@@ -74,6 +76,38 @@ def remove_ansi_codes(s: str) -> str:
     ansi_escape = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
     return ansi_escape.sub("", s)
 
+def safe_sub(pattern, text, queue):
+    try:
+        result = re.sub(pattern, "", text)
+        queue.put(result)
+    except Exception as e:
+        queue.put(e)
+
+def apply_regex_with_timeout(pattern, text, timeout=120):
+    queue = Queue()
+    p = Process(target=safe_sub, args=(pattern, text, queue))
+    p.start()
+    p.join(timeout)
+    
+    if p.is_alive():
+        p.terminate()
+        p.join()
+        logger.warning(f"Pattern {pattern} timed out after {timeout} seconds, skipping it.")
+        return text
+    else:
+        result = queue.get()
+        if isinstance(result, Exception):
+            logger.warning(f"Pattern {pattern} raised an error: {result}")
+            return text
+        return result
+
+def filter_with_time_limit(regex_patterns, filtered_stdout):
+    if isinstance(regex_patterns, list):
+        for pattern in regex_patterns:
+            filtered_stdout = apply_regex_with_timeout(pattern, filtered_stdout)
+    else:
+        filtered_stdout = re.sub(regex_patterns, "", filtered_stdout)
+    return filtered_stdout
 
 def filter_redundant_text(stdout: str) -> str:
     """
@@ -97,11 +131,12 @@ def filter_redundant_text(stdout: str) -> str:
     filtered_stdout = re.sub(r"\s*\n\s*", "\n", filtered_stdout)
 
     needs_sub = True
-    # Attempt further filtering up to 5 times
-    for _ in range(5):
+    # Attempt further filtering up to 3 times
+    for _ in range(3):
         filtered_stdout_shortened = filtered_stdout
         system_prompt = T(".prompts:filter_redundant_text.system").r()
 
+        # Check if all regex patterns have been collected
         for __ in range(10):
             user_prompt = T(".prompts:filter_redundant_text.user").r(
                 stdout=filtered_stdout_shortened,
@@ -131,15 +166,27 @@ def filter_redundant_text(stdout: str) -> str:
         needs_sub = response.get("needs_sub", True)
         regex_patterns = response.get("regex_patterns", [])
         try:
-            if isinstance(regex_patterns, list):
-                for pattern in regex_patterns:
-                    filtered_stdout = re.sub(pattern, "", filtered_stdout)
-            else:
-                filtered_stdout = re.sub(regex_patterns, "", filtered_stdout)
+            filter_with_time_limit(regex_patterns, filtered_stdout)
+            # if isinstance(regex_patterns, list):
+            #     for pattern in regex_patterns:
+            #         filtered_stdout = re.sub(pattern, "", filtered_stdout)
+            # else:
+            #     filtered_stdout = re.sub(regex_patterns, "", filtered_stdout)
 
             if not needs_sub:
                 break
             filtered_stdout = re.sub(r"\s*\n\s*", "\n", filtered_stdout)
+            filtered_stdout_token_size = APIBackend().build_messages_and_calculate_token(
+                user_prompt=filtered_stdout,
+                system_prompt=None,
+            )
+            if filtered_stdout_token_size < LLM_SETTINGS.chat_token_limit * 0.1:
+                return filtered_stdout
+            elif filtered_stdout_token_size > LLM_SETTINGS.chat_token_limit * 0.6:
+                filtered_stdout = (
+                    filtered_stdout[: int(LLM_SETTINGS.chat_token_limit * 0.3)]
+                    + filtered_stdout[-int(LLM_SETTINGS.chat_token_limit * 0.3) :]
+                )
         except Exception as e:
             logger.error(f"Error in filtering progress bar: due to {e}")
     return filtered_stdout
