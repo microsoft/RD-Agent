@@ -2,18 +2,15 @@ import json
 import pickle
 import re
 from collections import defaultdict
-from datetime import timedelta
 from pathlib import Path
 
 import fire
 import pandas as pd
 
-from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.app.data_science.loop import DataScienceRDLoop
-from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
+from rdagent.log.utils import extract_loopid_func_name
 from rdagent.log.utils.folder import get_first_session_file_after_duration
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.test_eval import (
@@ -34,12 +31,6 @@ def extract_mle_json(log_content: str) -> dict | None:
     if match:
         return json.loads(match.group(0))
     return None
-
-
-def extract_loopid_func_name(tag):
-    """提取 Loop ID 和函数名称"""
-    match = re.search(r"Loop_(\d+)\.([^.]+)", tag)
-    return match.groups() if match else (None, None)
 
 
 def save_grade_info(log_trace_path: Path):

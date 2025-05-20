@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from datetime import timedelta
 from rdagent.utils.workflow import LoopBase
 
 
