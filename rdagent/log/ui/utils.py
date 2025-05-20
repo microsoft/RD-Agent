@@ -392,3 +392,123 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
         }
     )
     return summary, base_df
+
+
+def percent_df(summary_df: pd.DataFrame, show_origin=True) -> pd.DataFrame:
+    """
+    Convert the summary DataFrame to a percentage format.
+    """
+    new_df = summary_df.copy(deep=True)
+
+    # Convert columns to object dtype so we can store strings like "14 (53.85%)" without warnings
+    columns_to_convert = [
+        "Successful Final Decision",
+        "Made Submission",
+        "Valid Submission",
+        "Above Median",
+        "Bronze",
+        "Silver",
+        "Gold",
+        "Any Medal",
+    ]
+    new_df[columns_to_convert] = new_df[columns_to_convert].astype(object)
+
+    def num2percent(num: int, total: int, show_origin=True) -> str:
+        num = int(num)
+        total = int(total)
+        if show_origin:
+            return f"{num} ({round(num / total * 100, 2)}%)"
+        return f"{round(num / total * 100, 2)}%"
+
+    for k in new_df.index:
+        loop_num = int(new_df.loc[k, "Total Loops"])
+        if loop_num != 0:
+            new_df.loc[k, "Successful Final Decision"] = num2percent(
+                new_df.loc[k, "Successful Final Decision"], loop_num, show_origin
+            )
+            if new_df.loc[k, "Made Submission"] != 0:
+                new_df.loc[k, "V/M"] = (
+                    f"{round(new_df.loc[k, 'Valid Submission'] / new_df.loc[k, 'Made Submission'] * 100, 2)}%"
+                )
+            else:
+                new_df.loc[k, "V/M"] = "N/A"
+            new_df.loc[k, "Made Submission"] = num2percent(new_df.loc[k, "Made Submission"], loop_num, show_origin)
+            new_df.loc[k, "Valid Submission"] = num2percent(new_df.loc[k, "Valid Submission"], loop_num, show_origin)
+            new_df.loc[k, "Above Median"] = num2percent(new_df.loc[k, "Above Median"], loop_num, show_origin)
+            new_df.loc[k, "Bronze"] = num2percent(new_df.loc[k, "Bronze"], loop_num, show_origin)
+            new_df.loc[k, "Silver"] = num2percent(new_df.loc[k, "Silver"], loop_num, show_origin)
+            new_df.loc[k, "Gold"] = num2percent(new_df.loc[k, "Gold"], loop_num, show_origin)
+            new_df.loc[k, "Any Medal"] = num2percent(new_df.loc[k, "Any Medal"], loop_num, show_origin)
+
+    return new_df
+
+
+def get_statistics_df(summary_df: pd.DataFrame) -> pd.DataFrame:
+    if summary_df["Any Medal"].dtype == int:
+        check_value = 0
+    else:
+        sample_val = summary_df["Any Medal"].dropna().iloc[0]
+        if "(" in sample_val:
+            check_value = "0 (0.0%)"
+        else:
+            check_value = "0.0%"
+    total_stat = (
+        summary_df[
+            [
+                "Made Submission",
+                "Valid Submission",
+                "Above Median",
+                "Bronze",
+                "Silver",
+                "Gold",
+                "Any Medal",
+            ]
+        ]
+        != check_value
+    ).sum()
+    total_stat.name = "总体统计(%)"
+    total_stat.loc["Bronze"] = summary_df["Best Result"].value_counts().get("bronze", 0)
+    total_stat.loc["Silver"] = summary_df["Best Result"].value_counts().get("silver", 0)
+    total_stat.loc["Gold"] = summary_df["Best Result"].value_counts().get("gold", 0)
+    total_stat = total_stat / summary_df.shape[0] * 100
+
+    # SOTA Exp 统计
+    se_counts = summary_df["SOTA Exp"].value_counts(dropna=True)
+    se_counts.loc["made_submission"] = se_counts.sum()
+    se_counts.loc["Any Medal"] = se_counts.get("gold", 0) + se_counts.get("silver", 0) + se_counts.get("bronze", 0)
+    se_counts.loc["above_median"] = se_counts.get("above_median", 0) + se_counts.get("Any Medal", 0)
+    se_counts.loc["valid_submission"] = se_counts.get("valid_submission", 0) + se_counts.get("above_median", 0)
+
+    sota_exp_stat = pd.Series(index=total_stat.index, dtype=int, name="SOTA Exp 统计(%)")
+    sota_exp_stat.loc["Made Submission"] = se_counts.get("made_submission", 0)
+    sota_exp_stat.loc["Valid Submission"] = se_counts.get("valid_submission", 0)
+    sota_exp_stat.loc["Above Median"] = se_counts.get("above_median", 0)
+    sota_exp_stat.loc["Bronze"] = se_counts.get("bronze", 0)
+    sota_exp_stat.loc["Silver"] = se_counts.get("silver", 0)
+    sota_exp_stat.loc["Gold"] = se_counts.get("gold", 0)
+    sota_exp_stat.loc["Any Medal"] = se_counts.get("Any Medal", 0)
+    sota_exp_stat = sota_exp_stat / summary_df.shape[0] * 100
+
+    # SOTA Exp (trace.sota_exp_to_submit) 统计
+    se_counts_new = summary_df["SOTA Exp (_to_submit)"].value_counts(dropna=True)
+    se_counts_new.loc["made_submission"] = se_counts_new.sum()
+    se_counts_new.loc["Any Medal"] = (
+        se_counts_new.get("gold", 0) + se_counts_new.get("silver", 0) + se_counts_new.get("bronze", 0)
+    )
+    se_counts_new.loc["above_median"] = se_counts_new.get("above_median", 0) + se_counts_new.get("Any Medal", 0)
+    se_counts_new.loc["valid_submission"] = se_counts_new.get("valid_submission", 0) + se_counts_new.get(
+        "above_median", 0
+    )
+
+    sota_exp_stat_new = pd.Series(index=total_stat.index, dtype=int, name="SOTA Exp (_to_submit) 统计(%)")
+    sota_exp_stat_new.loc["Made Submission"] = se_counts_new.get("made_submission", 0)
+    sota_exp_stat_new.loc["Valid Submission"] = se_counts_new.get("valid_submission", 0)
+    sota_exp_stat_new.loc["Above Median"] = se_counts_new.get("above_median", 0)
+    sota_exp_stat_new.loc["Bronze"] = se_counts_new.get("bronze", 0)
+    sota_exp_stat_new.loc["Silver"] = se_counts_new.get("silver", 0)
+    sota_exp_stat_new.loc["Gold"] = se_counts_new.get("gold", 0)
+    sota_exp_stat_new.loc["Any Medal"] = se_counts_new.get("Any Medal", 0)
+    sota_exp_stat_new = sota_exp_stat_new / summary_df.shape[0] * 100
+
+    stat_df = pd.concat([total_stat, sota_exp_stat, sota_exp_stat_new], axis=1)
+    return stat_df

@@ -7,55 +7,8 @@ import plotly.graph_objects as go
 import streamlit as st
 from streamlit import session_state as state
 
-from rdagent.log.ui.utils import ALL, HIGH, LITE, MEDIUM, get_summary_df
+from rdagent.log.ui.utils import ALL, HIGH, LITE, MEDIUM, get_summary_df, percent_df, get_statistics_df
 from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
-
-
-def num2percent(num: int, total: int, show_origin=True) -> str:
-    num = int(num)
-    total = int(total)
-    if show_origin:
-        return f"{num} ({round(num / total * 100, 2)}%)"
-    return f"{round(num / total * 100, 2)}%"
-
-
-def percent_df(df: pd.DataFrame, show_origin=True) -> pd.DataFrame:
-    base_df = df.copy(deep=True)
-
-    # Convert columns to object dtype so we can store strings like "14 (53.85%)" without warnings
-    columns_to_convert = [
-        "Successful Final Decision",
-        "Made Submission",
-        "Valid Submission",
-        "Above Median",
-        "Bronze",
-        "Silver",
-        "Gold",
-        "Any Medal",
-    ]
-    base_df[columns_to_convert] = base_df[columns_to_convert].astype(object)
-
-    for k in base_df.index:
-        loop_num = int(base_df.loc[k, "Total Loops"])
-        if loop_num != 0:
-            base_df.loc[k, "Successful Final Decision"] = num2percent(
-                base_df.loc[k, "Successful Final Decision"], loop_num, show_origin
-            )
-            if base_df.loc[k, "Made Submission"] != 0:
-                base_df.loc[k, "V/M"] = (
-                    f"{round(base_df.loc[k, 'Valid Submission'] / base_df.loc[k, 'Made Submission'] * 100, 2)}%"
-                )
-            else:
-                base_df.loc[k, "V/M"] = "N/A"
-            base_df.loc[k, "Made Submission"] = num2percent(base_df.loc[k, "Made Submission"], loop_num, show_origin)
-            base_df.loc[k, "Valid Submission"] = num2percent(base_df.loc[k, "Valid Submission"], loop_num, show_origin)
-            base_df.loc[k, "Above Median"] = num2percent(base_df.loc[k, "Above Median"], loop_num, show_origin)
-            base_df.loc[k, "Bronze"] = num2percent(base_df.loc[k, "Bronze"], loop_num, show_origin)
-            base_df.loc[k, "Silver"] = num2percent(base_df.loc[k, "Silver"], loop_num, show_origin)
-            base_df.loc[k, "Gold"] = num2percent(base_df.loc[k, "Gold"], loop_num, show_origin)
-            base_df.loc[k, "Any Medal"] = num2percent(base_df.loc[k, "Any Medal"], loop_num, show_origin)
-
-    return base_df
 
 
 def days_summarize_win():
@@ -189,73 +142,15 @@ def all_summarize_win():
     # 统计选择的比赛
     base_df = base_df[base_df["Select"]]
     st.markdown(f"**统计的比赛数目: :red[{base_df.shape[0]}]**")
-    total_stat = (
-        base_df[
-            [
-                "Made Submission",
-                "Valid Submission",
-                "Above Median",
-                "Bronze",
-                "Silver",
-                "Gold",
-                "Any Medal",
-            ]
-        ]
-        != "0 (0.0%)"
-    ).sum()
-    total_stat.name = "总体统计(%)"
-    total_stat.loc["Bronze"] = base_df["Best Result"].value_counts().get("bronze", 0)
-    total_stat.loc["Silver"] = base_df["Best Result"].value_counts().get("silver", 0)
-    total_stat.loc["Gold"] = base_df["Best Result"].value_counts().get("gold", 0)
-    total_stat = total_stat / base_df.shape[0] * 100
-
-    # SOTA Exp 统计
-    se_counts = base_df["SOTA Exp"].value_counts(dropna=True)
-    se_counts.loc["made_submission"] = se_counts.sum()
-    se_counts.loc["Any Medal"] = se_counts.get("gold", 0) + se_counts.get("silver", 0) + se_counts.get("bronze", 0)
-    se_counts.loc["above_median"] = se_counts.get("above_median", 0) + se_counts.get("Any Medal", 0)
-    se_counts.loc["valid_submission"] = se_counts.get("valid_submission", 0) + se_counts.get("above_median", 0)
-
-    sota_exp_stat = pd.Series(index=total_stat.index, dtype=int, name="SOTA Exp 统计(%)")
-    sota_exp_stat.loc["Made Submission"] = se_counts.get("made_submission", 0)
-    sota_exp_stat.loc["Valid Submission"] = se_counts.get("valid_submission", 0)
-    sota_exp_stat.loc["Above Median"] = se_counts.get("above_median", 0)
-    sota_exp_stat.loc["Bronze"] = se_counts.get("bronze", 0)
-    sota_exp_stat.loc["Silver"] = se_counts.get("silver", 0)
-    sota_exp_stat.loc["Gold"] = se_counts.get("gold", 0)
-    sota_exp_stat.loc["Any Medal"] = se_counts.get("Any Medal", 0)
-    sota_exp_stat = sota_exp_stat / base_df.shape[0] * 100
-
-    # SOTA Exp (trace.sota_exp_to_submit) 统计
-    se_counts_new = base_df["SOTA Exp (_to_submit)"].value_counts(dropna=True)
-    se_counts_new.loc["made_submission"] = se_counts_new.sum()
-    se_counts_new.loc["Any Medal"] = (
-        se_counts_new.get("gold", 0) + se_counts_new.get("silver", 0) + se_counts_new.get("bronze", 0)
-    )
-    se_counts_new.loc["above_median"] = se_counts_new.get("above_median", 0) + se_counts_new.get("Any Medal", 0)
-    se_counts_new.loc["valid_submission"] = se_counts_new.get("valid_submission", 0) + se_counts_new.get(
-        "above_median", 0
-    )
-
-    sota_exp_stat_new = pd.Series(index=total_stat.index, dtype=int, name="SOTA Exp (_to_submit) 统计(%)")
-    sota_exp_stat_new.loc["Made Submission"] = se_counts_new.get("made_submission", 0)
-    sota_exp_stat_new.loc["Valid Submission"] = se_counts_new.get("valid_submission", 0)
-    sota_exp_stat_new.loc["Above Median"] = se_counts_new.get("above_median", 0)
-    sota_exp_stat_new.loc["Bronze"] = se_counts_new.get("bronze", 0)
-    sota_exp_stat_new.loc["Silver"] = se_counts_new.get("silver", 0)
-    sota_exp_stat_new.loc["Gold"] = se_counts_new.get("gold", 0)
-    sota_exp_stat_new.loc["Any Medal"] = se_counts_new.get("Any Medal", 0)
-    sota_exp_stat_new = sota_exp_stat_new / base_df.shape[0] * 100
-
-    stat_df = pd.concat([total_stat, sota_exp_stat, sota_exp_stat_new], axis=1)
-    stat_t0, stat_t1 = st.columns(2)
-    with stat_t0:
+    stat_win_left, stat_win_right = st.columns(2)
+    with stat_win_left:
+        stat_df = get_statistics_df(base_df)
         st.dataframe(stat_df.round(2))
         markdown_table = f"""
 | xxx | {stat_df.iloc[0,1]:.1f} | {stat_df.iloc[1,1]:.1f} | {stat_df.iloc[2,1]:.1f} | {stat_df.iloc[3,1]:.1f} | {stat_df.iloc[4,1]:.1f} | {stat_df.iloc[5,1]:.1f} | {stat_df.iloc[6,1]:.1f}   |
 """
         st.text(markdown_table)
-    with stat_t1:
+    with stat_win_right:
         Loop_counts = base_df["Total Loops"]
         fig = px.histogram(Loop_counts, nbins=10, title="Total Loops Histogram (nbins=10)")
         mean_value = Loop_counts.mean()
