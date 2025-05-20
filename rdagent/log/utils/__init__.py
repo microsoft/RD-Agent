@@ -82,6 +82,7 @@ def extract_loopid_func_name(tag):
     match = re.search(r"Loop_(\d+)\.([^.]+)", tag)
     return match.groups() if match else (None, None)
 
+
 def extract_evoid(tag):
     """extract evo id from the tag in Message"""
     match = re.search(r"\.evo_loop_(\d+)\.", tag)

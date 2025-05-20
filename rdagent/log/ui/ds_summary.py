@@ -7,7 +7,15 @@ import plotly.graph_objects as go
 import streamlit as st
 from streamlit import session_state as state
 
-from rdagent.log.ui.utils import ALL, HIGH, LITE, MEDIUM, get_summary_df, percent_df, get_statistics_df
+from rdagent.log.ui.utils import (
+    ALL,
+    HIGH,
+    LITE,
+    MEDIUM,
+    get_statistics_df,
+    get_summary_df,
+    percent_df,
+)
 from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 
 

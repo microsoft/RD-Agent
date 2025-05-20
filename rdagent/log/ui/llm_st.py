@@ -7,7 +7,8 @@ from pathlib import Path
 
 import streamlit as st
 from streamlit import session_state
-from rdagent.log.utils import extract_loopid_func_name, extract_evoid
+
+from rdagent.log.utils import extract_evoid, extract_loopid_func_name
 
 st.set_page_config(layout="wide", page_title="debug_llm", page_icon="🎓", initial_sidebar_state="expanded")
 

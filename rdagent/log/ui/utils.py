@@ -1,15 +1,17 @@
-from collections import deque
-import re
-from pathlib import Path
-from datetime import datetime, timedelta
-import pandas as pd
-import pickle
 import math
+import pickle
+import re
+from collections import deque
+from datetime import datetime, timedelta
+from pathlib import Path
+
+import pandas as pd
+
+from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.core.utils import cache_with_pickle
-from rdagent.oai.llm_utils import md5_hash
 from rdagent.log.mle_summary import extract_mle_json
 from rdagent.log.ui.conf import UI_SETTING
-from rdagent.app.data_science.loop import DataScienceRDLoop
+from rdagent.oai.llm_utils import md5_hash
 
 LITE = [
     "aerial-cactus-identification",
@@ -97,6 +99,7 @@ MEDIUM = [
 
 ALL = HIGH + MEDIUM + LITE
 
+
 def get_script_time(stdout_p: Path):
     with stdout_p.open("r") as f:
         first_line = next(f).strip()
@@ -112,6 +115,7 @@ def get_script_time(stdout_p: Path):
             return pd.Timedelta(last_time - first_time)
 
     return None
+
 
 def _log_path_hash_func(log_path: Path):
     hash_str = str(log_path) + str(log_path.stat().st_mtime)
@@ -206,6 +210,7 @@ def _log_folders_summary_hash_func(log_folders: list[str], hours: int | None = N
         else:
             hash_str += f"{summary_p} not exists"
     return md5_hash(hash_str)
+
 
 @cache_with_pickle(_log_folders_summary_hash_func, force=True)
 def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[dict, pd.DataFrame]:

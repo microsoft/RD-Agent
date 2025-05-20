@@ -13,10 +13,10 @@ from streamlit import session_state as state
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.mle_summary import extract_mle_json, is_valid_session
 from rdagent.log.storage import FileStorage
+from rdagent.log.ui.utils import load_times
+from rdagent.log.utils import extract_evoid, extract_loopid_func_name
 from rdagent.utils import remove_ansi_codes
 from rdagent.utils.repo.diff import generate_diff_from_dict
-from rdagent.log.ui.utils import load_times
-from rdagent.log.utils import extract_loopid_func_name, extract_evoid
 
 if "show_stdout" not in state:
     state.show_stdout = False
