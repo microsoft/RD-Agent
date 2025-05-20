@@ -77,13 +77,13 @@ def get_caller_info() -> CallerInfo:
     return info
 
 
-def extract_loopid_func_name(tag):
+def extract_loopid_func_name(tag: str) -> tuple[str | None, str | None]:
     """extract loop id and function name from the tag in Message"""
     match = re.search(r"Loop_(\d+)\.([^.]+)", tag)
     return match.groups() if match else (None, None)
 
 
-def extract_evoid(tag):
+def extract_evoid(tag: str) -> str | None:
     """extract evo id from the tag in Message"""
     match = re.search(r"\.evo_loop_(\d+)\.", tag)
     return match.group(1) if match else None
