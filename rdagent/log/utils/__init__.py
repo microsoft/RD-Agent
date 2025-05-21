@@ -1,6 +1,8 @@
 import inspect
+import json
 import re
-from typing import Dict, Optional, TypedDict, Union
+from pathlib import Path
+from typing import Optional, TypedDict, cast
 
 
 class LogColors:
@@ -75,3 +77,26 @@ def get_caller_info() -> CallerInfo:
         "function": frame.f_code.co_name,  # Get the caller's function name
     }
     return info
+
+
+def is_valid_session(log_path: Path) -> bool:
+    return log_path.is_dir() and log_path.joinpath("__session__").exists()
+
+
+def extract_loopid_func_name(tag: str) -> tuple[str, str] | tuple[None, None]:
+    """extract loop id and function name from the tag in Message"""
+    match = re.search(r"Loop_(\d+)\.([^.]+)", tag)
+    return cast(tuple[str, str], match.groups()) if match else (None, None)
+
+
+def extract_evoid(tag: str) -> str | None:
+    """extract evo id from the tag in Message"""
+    match = re.search(r"\.evo_loop_(\d+)\.", tag)
+    return cast(str, match.group(1)) if match else None
+
+
+def extract_json(log_content: str) -> dict | None:
+    match = re.search(r"\{.*\}", log_content, re.DOTALL)
+    if match:
+        return cast(dict, json.loads(match.group(0)))
+    return None

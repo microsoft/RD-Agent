@@ -11,8 +11,14 @@ import streamlit as st
 from streamlit import session_state as state
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
-from rdagent.log.mle_summary import extract_mle_json, is_valid_session
 from rdagent.log.storage import FileStorage
+from rdagent.log.ui.utils import load_times
+from rdagent.log.utils import (
+    extract_evoid,
+    extract_json,
+    extract_loopid_func_name,
+    is_valid_session,
+)
 from rdagent.utils import remove_ansi_codes
 from rdagent.utils.repo.diff import generate_diff_from_dict
 
@@ -30,18 +36,6 @@ if "log_folder" not in state:
     state.log_folder = Path("./log")
 
 
-def extract_loopid_func_name(tag):
-    """提取 Loop ID 和函数名称"""
-    match = re.search(r"Loop_(\d+)\.([^.]+)", tag)
-    return match.groups() if match else (None, None)
-
-
-def extract_evoid(tag):
-    """提取 EVO ID"""
-    match = re.search(r"\.evo_loop_(\d+)\.", tag)
-    return match.group(1) if match else None
-
-
 def convert_defaultdict_to_dict(d):
     if isinstance(d, defaultdict):
         d = {k: convert_defaultdict_to_dict(v) for k, v in d.items()}
@@ -49,43 +43,49 @@ def convert_defaultdict_to_dict(d):
 
 
 @st.cache_data(persist=True)
-def load_times(log_path: Path):
-    """加载时间数据"""
-    try:
-        session_path = log_path / "__session__"
-        max_li = max(int(p.name) for p in session_path.iterdir() if p.is_dir() and p.name.isdigit())
-        max_step = max(int(p.name.split("_")[0]) for p in (session_path / str(max_li)).iterdir() if p.is_file())
-        rdloop_obj_p = next((session_path / str(max_li)).glob(f"{max_step}_*"))
-
-        rd_times = DataScienceRDLoop.load(rdloop_obj_p, do_truncate=False).loop_trace
-    except Exception as e:
-        # st.toast(f"Error loading times: {e}", icon="🟡")
-        rd_times = {}
-    return rd_times
-
-
-@st.cache_data(persist=True)
 def load_data(log_path: Path):
     data = defaultdict(lambda: defaultdict(dict))
+    llm_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+
     for msg in FileStorage(log_path).iter_msg():
-        if msg.tag and "llm" not in msg.tag and "session" not in msg.tag and "batch embedding" not in msg.tag:
+        if not msg.tag:
+            continue
+        li, fn = extract_loopid_func_name(msg.tag)
+        ei = extract_evoid(msg.tag)
+        if li:
+            li = int(li)
+        if ei is not None:
+            ei = int(ei)
+        if "debug_" in msg.tag:
+            if "debug_tpl" in msg.tag and "filter_" in msg.content["uri"]:
+                continue
+            if ei is not None:
+                llm_data[li][fn][ei].append(
+                    {
+                        "tag": msg.tag,
+                        "obj": msg.content,
+                    }
+                )
+            else:
+                llm_data[li][fn]["no_tag"].append(
+                    {
+                        "tag": msg.tag,
+                        "obj": msg.content,
+                    }
+                )
+        elif "llm" not in msg.tag and "session" not in msg.tag and "batch embedding" not in msg.tag:
             if msg.tag == "competition":
                 data["competition"] = msg.content
                 continue
 
-            li, fn = extract_loopid_func_name(msg.tag)
-            if li:
-                li = int(li)
-
-            ei = extract_evoid(msg.tag)
             msg.tag = re.sub(r"\.evo_loop_\d+", "", msg.tag)
             msg.tag = re.sub(r"Loop_\d+\.[^.]+\.?", "", msg.tag)
             msg.tag = msg.tag.strip()
 
-            if ei:
-                if int(ei) not in data[li][fn]:
-                    data[li][fn][int(ei)] = {}
-                data[li][fn][int(ei)][msg.tag] = msg.content
+            if ei is not None:
+                if ei not in data[li][fn]:
+                    data[li][fn][ei] = {}
+                data[li][fn][ei][msg.tag] = msg.content
             else:
                 if msg.tag:
                     data[li][fn][msg.tag] = msg.content
@@ -93,35 +93,34 @@ def load_data(log_path: Path):
                     if not isinstance(msg.content, str):
                         data[li][fn]["no_tag"] = msg.content
 
-    # debug_llm data
-    llm_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+    # To be compatible with old version log trace, keep this
     llm_log_p = log_path / "debug_llm.pkl"
-    try:
-        rd = pickle.loads(llm_log_p.read_bytes())
-    except:
-        rd = []
-    for d in rd:
-        t = d["tag"]
-        if "debug_exp_gen" in t:
-            continue
-        if "debug_tpl" in t and "filter_" in d["obj"]["uri"]:
-            continue
-        lid, fn = extract_loopid_func_name(t)
-        ei = extract_evoid(t)
-        if lid:
-            lid = int(lid)
-        if ei:
-            ei = int(ei)
+    if llm_log_p.exists():
+        try:
+            rd = pickle.loads(llm_log_p.read_bytes())
+        except:
+            rd = []
+        for d in rd:
+            t = d["tag"]
+            if "debug_exp_gen" in t:
+                continue
+            if "debug_tpl" in t and "filter_" in d["obj"]["uri"]:
+                continue
+            lid, fn = extract_loopid_func_name(t)
+            ei = extract_evoid(t)
+            if lid:
+                lid = int(lid)
+            if ei is not None:
+                ei = int(ei)
 
-        if ei is not None:
-            llm_data[lid][fn][ei].append(d)
-        else:
-            llm_data[lid][fn]["no_tag"].append(d)
+            if ei is not None:
+                llm_data[lid][fn][ei].append(d)
+            else:
+                llm_data[lid][fn]["no_tag"].append(d)
 
     return convert_defaultdict_to_dict(data), convert_defaultdict_to_dict(llm_data)
 
 
-@st.cache_data
 def load_stdout(stdout_path: Path):
     if stdout_path.exists():
         stdout = stdout_path.read_text()
@@ -477,7 +476,7 @@ def summarize_data():
                 if "mle_score" not in state.data[loop]:
                     if "mle_score" in loop_data["running"]:
                         mle_score_txt = loop_data["running"]["mle_score"]
-                        state.data[loop]["mle_score"] = extract_mle_json(mle_score_txt)
+                        state.data[loop]["mle_score"] = extract_json(mle_score_txt)
                         if (
                             state.data[loop]["mle_score"] is not None
                             and state.data[loop]["mle_score"]["score"] is not None
@@ -493,7 +492,7 @@ def summarize_data():
                         )
                         try:
                             mle_score_txt = mle_score_path.read_text()
-                            state.data[loop]["mle_score"] = extract_mle_json(mle_score_txt)
+                            state.data[loop]["mle_score"] = extract_json(mle_score_txt)
                             if state.data[loop]["mle_score"]["score"] is not None:
                                 df.loc[loop, "Running Score (test)"] = str(state.data[loop]["mle_score"]["score"])
                             else:
@@ -652,7 +651,7 @@ with st.sidebar:
             st.radio(
                 f"Select :blue[**one log folder**]",
                 state.log_folders,
-                format_func=lambda x: x[x.rfind("amlt") + 5 :].split("/")[0],
+                format_func=lambda x: x[x.rfind("amlt") + 5 :].split("/")[0] if "amlt" in x else x,
             )
         )
     if not state.log_folder.exists():
@@ -702,11 +701,11 @@ if state.data["competition"]:
     st.title(state.data["competition"])
     st.markdown(f"[share_link](/ds_trace?log_folder={state.log_folder}&selection={state.log_path})")
     summarize_data()
-    if len(state.data) > 2:
-        min_id, max_id = get_state_data_range(state.data)
+    min_id, max_id = get_state_data_range(state.data)
+    if max_id > min_id:
         loop_id = st.slider("Loop", min_id, max_id, min_id)
     else:
-        loop_id = 0
+        loop_id = min_id
     if state.show_stdout:
         stdout_win(loop_id)
     main_win(loop_id, state.llm_data[loop_id] if loop_id in state.llm_data else None)

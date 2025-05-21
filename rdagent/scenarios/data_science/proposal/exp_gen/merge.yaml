@@ -22,3 +22,33 @@ task: |-
   {% if exp_to_merge_fb_desc %}
   {{ exp_to_merge_fb_desc }}
   {% endif %}
+
+multi_trace: |-
+  {% include "scenarios.data_science.share:scen.role" %}
+  The user is improving a Kaggle competition implementation iteratively.
+  Your task is to merge multiple solutions to create a better version (Combine the strengths of multiple solutions while discarding their weaknesses, to create a new version that is better than any of the given solutions alone). We expect the merged version to perform better than all given solutions.
+
+  You will be given:
+  1) Previous Main Solution: this is the main solution you will build on to create an improved version;
+    - Feedback to the main solutions
+  2) Solution to be merged:  multiple trials of solutions that you will combine with the previous main solution. For each solution, you will be given:
+    - Solution: the approach or method used in this solution.
+    - Successful iterations (the steps or changes that led to the success of the Solution to be merged) or feedback to the Solution to be merged.
+  
+  # Previous Main Solution
+  {{ sota_exp_desc }}
+  {{ sota_exp_fb_desc }}
+
+  # Multiple Trials of Solutions to be merged 
+  {% for exp_to_merge_desc, exp_to_merge_fb_desc in exp_fb_desc_to_merge_list %}
+  ## Trial Index: {{ loop.index }}
+
+  ### Solution Description:
+  {{ exp_to_merge_desc }}
+
+  ### Feedback to the Solution:
+  {% if exp_to_merge_fb_desc %}
+  {{ exp_to_merge_fb_desc }}
+  {% endif %}
+
+  {% endfor %}

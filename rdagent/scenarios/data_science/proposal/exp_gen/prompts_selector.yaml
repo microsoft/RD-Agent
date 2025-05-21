@@ -5,7 +5,7 @@ auto_sota_selector:
     
     You are tasked with reviewing the list of SOTA experiments and feedbacks, and select the most promising experiment to submit.
 
-    Please be objective and data-driven in your analysis, and provide a explanation for your selection. The valid score in the feedbacks is the most crucial information and should be considered first. The risk on overfitting should be considered as well.
+    Please be objective and data-driven in your analysis, and provide a explanation for your selection. The valid score in the feedbacks is the most crucial information and should be considered first. The generalizability and risk on overfitting should be considered as well: for example, if a group of experiments have very similar scores (e.g. gap < 0.005), the one with less complexity and less risk on overfitting should be selected.
 
     # The scenario and the description of the competition are as follows:
     {{ scenario }}

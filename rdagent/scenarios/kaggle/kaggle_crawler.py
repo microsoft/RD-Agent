@@ -198,6 +198,14 @@ def leaderboard_scores(competition: str) -> list[float]:
     return [float(x.score) for x in ll]
 
 
+def get_metric_direction(competition: str) -> bool:
+    """
+    Return **True** if the metric is *bigger is better*, **False** if *smaller is better*.
+    """
+    leaderboard = leaderboard_scores(competition)
+    return float(leaderboard[0]) > float(leaderboard[-1])
+
+
 def score_rank(competition: str, score: float) -> tuple[int, float]:
     """
     Return
