@@ -15,8 +15,8 @@ from rdagent.log.storage import FileStorage
 from rdagent.log.ui.utils import load_times
 from rdagent.log.utils import (
     extract_evoid,
-    extract_loopid_func_name,
     extract_json,
+    extract_loopid_func_name,
     is_valid_session,
 )
 from rdagent.utils import remove_ansi_codes
