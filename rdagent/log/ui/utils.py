@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
+import typer
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.core.utils import cache_with_pickle
@@ -517,3 +518,27 @@ def get_statistics_df(summary_df: pd.DataFrame) -> pd.DataFrame:
 
     stat_df = pd.concat([total_stat, sota_exp_stat, sota_exp_stat_new], axis=1)
     return stat_df
+
+
+def compare(
+    exp_list: list[str] = typer.Option(..., "--exp-list", help="List of experiment names.", show_default=False),
+    output: str = typer.Option("merge_base_df.h5", help="Output summary file name."),
+    hours: int | None = typer.Option(None, help="if None, use summary.pkl, else summary_{hours}h.pkl"),
+):
+    """
+    Generate summary and base dataframe for given experiment list, and save to a summary file.
+    """
+    typer.secho(f"exp_list: {exp_list}", fg=typer.colors.GREEN)
+    log_folders = [f"{UI_SETTING.amlt_path}/{exp}/combined_logs" for exp in exp_list]
+    summary, base_df = get_summary_df(log_folders, hours=hours)
+    typer.secho(f"Summary keys: {list(summary.keys())}", fg=typer.colors.CYAN)
+    typer.secho("Summary DataFrame:", fg=typer.colors.MAGENTA)
+    typer.secho(str(base_df), fg=typer.colors.YELLOW)
+    base_df.to_hdf(output, "data")
+    typer.secho(f"Summary saved to {output}", fg=typer.colors.GREEN)
+
+
+if __name__ == "__main__":
+    app = typer.Typer()
+    app.command()(compare)
+    app()
