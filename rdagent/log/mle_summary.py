@@ -10,7 +10,7 @@ import pandas as pd
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
-from rdagent.log.utils import extract_loopid_func_name
+from rdagent.log.utils import extract_loopid_func_name, is_valid_session, extract_mle_json
 from rdagent.log.utils.folder import get_first_session_file_after_duration
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.test_eval import (
@@ -24,13 +24,6 @@ from rdagent.utils.workflow import LoopBase
 test_eval = get_test_eval()
 
 is_mle = isinstance(test_eval, MLETestEval)
-
-
-def extract_mle_json(log_content: str) -> dict | None:
-    match = re.search(r"\{.*\}", log_content, re.DOTALL)
-    if match:
-        return json.loads(match.group(0))
-    return None
 
 
 def save_grade_info(log_trace_path: Path):
@@ -50,10 +43,6 @@ def save_grade_info(log_trace_path: Path):
                     )
                 except Exception as e:
                     print(f"Error in {log_trace_path}: {e}")
-
-
-def is_valid_session(p: Path) -> bool:
-    return p.is_dir() and p.joinpath("__session__").exists()
 
 
 def save_all_grade_info(log_folder):

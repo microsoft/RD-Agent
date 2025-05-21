@@ -9,7 +9,7 @@ import pandas as pd
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.core.utils import cache_with_pickle
-from rdagent.log.mle_summary import extract_mle_json
+from rdagent.log.utils import extract_mle_json
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.oai.llm_utils import md5_hash
 
