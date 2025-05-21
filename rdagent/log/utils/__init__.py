@@ -1,8 +1,10 @@
 import inspect
-import re
-from typing import Optional, TypedDict, cast
-from pathlib import Path
 import json
+import re
+from pathlib import Path
+from typing import Optional, TypedDict, cast
+
+
 class LogColors:
     """
     ANSI color codes for use in console output.
@@ -96,5 +98,5 @@ def extract_evoid(tag: str) -> str | None:
 def extract_mle_json(log_content: str) -> dict | None:
     match = re.search(r"\{.*\}", log_content, re.DOTALL)
     if match:
-        return json.loads(match.group(0))
+        return cast(dict, json.loads(match.group(0)))
     return None

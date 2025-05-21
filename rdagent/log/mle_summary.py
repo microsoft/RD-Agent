@@ -10,7 +10,11 @@ import pandas as pd
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
-from rdagent.log.utils import extract_loopid_func_name, is_valid_session, extract_mle_json
+from rdagent.log.utils import (
+    extract_loopid_func_name,
+    extract_mle_json,
+    is_valid_session,
+)
 from rdagent.log.utils.folder import get_first_session_file_after_duration
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.test_eval import (
