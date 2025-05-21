@@ -100,7 +100,7 @@ class LiteLLMAPIBackend(APIBackend):
         response = completion(
             model=model,
             messages=messages,
-            stream=LITELLM_SETTINGS.chat_stream,
+            stream=LITELLM_SETTINGS.chat_stream and "tools" not in kwargs,
             temperature=temperature,
             max_tokens=max_tokens,
             reasoning_effort=reasoning_effort,
@@ -109,7 +109,19 @@ class LiteLLMAPIBackend(APIBackend):
         )
         logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {model}", tag="llm_messages")
 
-        if LITELLM_SETTINGS.chat_stream:
+        if "tools" in kwargs:
+            # NOTE(yuge): I don't know how to stream tools yet.
+            logger.info(f"{LogColors.GREEN}Using tools{LogColors.END} {kwargs['tools']}", tag="llm_messages")
+            response_msg = response.choices[0].message  # do not pack content
+            content = str(response_msg.content)
+            finish_reason = response.choices[0].finish_reason
+            finish_reason_str = (
+                f"({LogColors.RED}Finish reason: {finish_reason}{LogColors.END})"
+                if finish_reason and finish_reason != "stop"
+                else ""
+            )
+            logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\ncontent: {content}\ntools: {response_msg.tool_calls}", tag="llm_messages")
+        elif LITELLM_SETTINGS.chat_stream:
             logger.info(f"{LogColors.BLUE}assistant:{LogColors.END}", tag="llm_messages")
             content = ""
             finish_reason = None
@@ -122,10 +134,11 @@ class LiteLLMAPIBackend(APIBackend):
                     )  # when finish_reason is "stop", content is None
                     content += chunk
                     logger.info(LogColors.CYAN + chunk + LogColors.END, raw=True, tag="llm_messages")
+            response_msg = content
 
             logger.info("\n", raw=True, tag="llm_messages")
         else:
-            content = str(response.choices[0].message.content)
+            response_msg = content = str(response.choices[0].message.content)
             finish_reason = response.choices[0].finish_reason
             finish_reason_str = (
                 f"({LogColors.RED}Finish reason: {finish_reason}{LogColors.END})"
@@ -152,4 +165,4 @@ class LiteLLMAPIBackend(APIBackend):
             },
             tag="token_cost",
         )
-        return content, finish_reason
+        return response_msg, finish_reason

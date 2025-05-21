@@ -23,6 +23,8 @@ class DSCoderCoSTEERSettings(CoSTEERSettings):
     env_type: str = "docker"
     # TODO: extract a function for env and conf.
 
+    prompt_version: str = "v1"
+
 
 def get_ds_env(
     conf_type: Literal["kaggle", "mlebench"] = "kaggle",
