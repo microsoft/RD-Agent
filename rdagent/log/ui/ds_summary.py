@@ -42,6 +42,68 @@ def days_summarize_win():
         st.dataframe(df)
 
 
+def curves_win(summary: dict):
+    for k, v in summary.items():
+        with st.container(border=True):
+            st.markdown(f"**:blue[{k}] - :violet[{v['competition']}]**")
+            try:
+                tscores = {f"loop {k-1}": v for k, v in v["test_scores"].items()}
+                vscores = {}
+                for k, vs in v["valid_scores"].items():
+                    if not vs.index.is_unique:
+                        st.warning(
+                            f"Loop {k}'s valid scores index are not unique, only the last one will be kept to show."
+                        )
+                        st.write(vs)
+                    vscores[k] = vs[~vs.index.duplicated(keep="last")].iloc[:, 0]
+
+                if len(vscores) > 0:
+                    metric_name = list(vscores.values())[0].name
+                else:
+                    metric_name = "None"
+
+                tdf = pd.Series(tscores, name="score")
+                vdf = pd.DataFrame(vscores)
+                if "ensemble" in vdf.index:
+                    ensemble_row = vdf.loc[["ensemble"]]
+                    vdf = pd.concat([ensemble_row, vdf.drop("ensemble")])
+                vdf.columns = [f"loop {i}" for i in vdf.columns]
+                fig = go.Figure()
+                # Add test scores trace from tdf
+                fig.add_trace(
+                    go.Scatter(
+                        x=tdf.index,
+                        y=tdf,
+                        mode="lines+markers",
+                        name="Test scores",
+                        marker=dict(symbol="diamond"),
+                        line=dict(shape="linear", dash="dash"),
+                    )
+                )
+                # Add valid score traces from vdf (transposed to have loops on x-axis)
+                for column in vdf.T.columns:
+                    fig.add_trace(
+                        go.Scatter(
+                            x=vdf.T.index,
+                            y=vdf.T[column],
+                            mode="lines+markers",
+                            name=f"{column}",
+                            visible=("legendonly" if column != "ensemble" else None),
+                        )
+                    )
+                fig.update_layout(title=f"Test and Valid scores (metric: {metric_name})")
+
+                st.plotly_chart(fig)
+            except Exception as e:
+                import traceback
+
+                st.markdown("- Error: " + str(e))
+                st.code(traceback.format_exc())
+                st.markdown("- Valid Scores: ")
+                # st.write({k: type(v) for k, v in v["valid_scores"].items()})
+                st.json(v["valid_scores"])
+
+
 def all_summarize_win():
     def shorten_folder_name(folder: str) -> str:
         if "amlt" in folder:
@@ -174,65 +236,7 @@ def all_summarize_win():
     # write curve
     st.subheader("Curves", divider="rainbow")
     if st.toggle("Show Curves", key="show_curves"):
-        for k, v in summary.items():
-            with st.container(border=True):
-                st.markdown(f"**:blue[{k}] - :violet[{v['competition']}]**")
-                try:
-                    tscores = {f"loop {k-1}": v for k, v in v["test_scores"].items()}
-                    vscores = {}
-                    for k, vs in v["valid_scores"].items():
-                        if not vs.index.is_unique:
-                            st.warning(
-                                f"Loop {k}'s valid scores index are not unique, only the last one will be kept to show."
-                            )
-                            st.write(vs)
-                        vscores[k] = vs[~vs.index.duplicated(keep="last")].iloc[:, 0]
-
-                    if len(vscores) > 0:
-                        metric_name = list(vscores.values())[0].name
-                    else:
-                        metric_name = "None"
-
-                    tdf = pd.Series(tscores, name="score")
-                    vdf = pd.DataFrame(vscores)
-                    if "ensemble" in vdf.index:
-                        ensemble_row = vdf.loc[["ensemble"]]
-                        vdf = pd.concat([ensemble_row, vdf.drop("ensemble")])
-                    vdf.columns = [f"loop {i}" for i in vdf.columns]
-                    fig = go.Figure()
-                    # Add test scores trace from tdf
-                    fig.add_trace(
-                        go.Scatter(
-                            x=tdf.index,
-                            y=tdf,
-                            mode="lines+markers",
-                            name="Test scores",
-                            marker=dict(symbol="diamond"),
-                            line=dict(shape="linear", dash="dash"),
-                        )
-                    )
-                    # Add valid score traces from vdf (transposed to have loops on x-axis)
-                    for column in vdf.T.columns:
-                        fig.add_trace(
-                            go.Scatter(
-                                x=vdf.T.index,
-                                y=vdf.T[column],
-                                mode="lines+markers",
-                                name=f"{column}",
-                                visible=("legendonly" if column != "ensemble" else None),
-                            )
-                        )
-                    fig.update_layout(title=f"Test and Valid scores (metric: {metric_name})")
-
-                    st.plotly_chart(fig)
-                except Exception as e:
-                    import traceback
-
-                    st.markdown("- Error: " + str(e))
-                    st.code(traceback.format_exc())
-                    st.markdown("- Valid Scores: ")
-                    # st.write({k: type(v) for k, v in v["valid_scores"].items()})
-                    st.json(v["valid_scores"])
+        curves_win(summary)
 
 
 with st.container(border=True):
