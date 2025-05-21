@@ -3,6 +3,7 @@ This module provides some useful functions for working with logger folders.
 """
 
 import pickle
+from datetime import timedelta
 from pathlib import Path
 
 import pandas as pd
