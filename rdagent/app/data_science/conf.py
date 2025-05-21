@@ -98,5 +98,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     merge_hours: int = 2
     """The time for merge"""
 
+    #### multi-trace: max SOTA-retrieved number, used in AutoSOTAexpSelector and ExpGen2TraceAndMergeV2
+    # constrains the number of SOTA experiments to retrieve, otherwise too many SOTA experiments to retrieve will cause the exceed of the context window of LLM
+    max_sota_retrieved_num: int = 15
+    """The maximum number of SOTA experiments to retrieve per trace when AutoSOTAexpSelector is used"""
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()

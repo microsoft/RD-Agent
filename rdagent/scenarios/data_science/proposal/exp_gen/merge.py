@@ -150,6 +150,12 @@ class MergeExpGen_MultiTrace(ExpGen):
                 return_type="sota", search_type="ancestors", selection=(leaves[i],)
             )
             if len(success_fb_list) > 0:
+
+                # constrains the number of successful iterations to retrieve from each trace 
+                max_success_retrieved_num_per_trace = DS_RD_SETTING.max_success_retrieved_num // len(leaves)
+                num_success_retrieved_from_trace = min(max_success_retrieved_num_per_trace, len(success_fb_list))
+                success_fb_list = success_fb_list[-num_success_retrieved_from_trace :]
+
                 exp_to_merge_fb_desc = T("scenarios.data_science.share:describe.trace").r(
                     exp_and_feedback_list=success_fb_list,
                     type="success",

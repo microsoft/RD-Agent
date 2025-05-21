@@ -62,6 +62,30 @@ class AutoSOTAexpSelector(SOTAexpSelector):
 
             SOAT_exp_with_desc_and_scores = "Historical SOTA experiments:\n\n"
 
+            if len(sota_exp_fb_list) > DS_RD_SETTING.max_sota_retrieved_num:
+                # constrains the number of SOTA experiments to retrieve
+                logger.info(
+                    f"Auto SOTA selector: Too many SOTA in trace, only using the latest {DS_RD_SETTING.max_sota_retrieved_num} SOTA experiments"
+                )
+
+                leaves: list[int] = trace.get_leaves()
+                if len(leaves) < 2:
+                    # only one trace, using latest SOTA experiments 
+                    sota_exp_fb_list = sota_exp_fb_list[-DS_RD_SETTING.max_sota_retrieved_num :]
+                else:
+                    # multiple traces, using the latest SOTA experiments from each trace
+                    new_sota_exp_fb_list: list[tuple[DSExperiment, ExperimentFeedback]] = []
+                    # calculate the number of SOTA experiments to retrieve from each trace  
+                    max_sota_retrieved_num_per_trace = DS_RD_SETTING.max_sota_retrieved_num // len(leaves)
+                    for leaf in leaves:
+                        sota_exp_fb_list_per_trace = trace.experiment_and_feedback_list_after_init(
+                            return_type="sota", search_type="ancestors", selection=(leaf,)
+                        )
+                        num_sota_retrieved_from_trace = min(max_sota_retrieved_num_per_trace, len(sota_exp_fb_list_per_trace))
+                        new_sota_exp_fb_list.extend(sota_exp_fb_list_per_trace[-num_sota_retrieved_from_trace :])
+
+                    sota_exp_fb_list = new_sota_exp_fb_list
+
             for i, (exp, ef) in enumerate(sota_exp_fb_list):
                 if exp:
                     current_final_score = pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
