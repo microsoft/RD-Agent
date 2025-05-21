@@ -11,8 +11,14 @@ import streamlit as st
 from streamlit import session_state as state
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
-from rdagent.log.mle_summary import extract_mle_json, is_valid_session
 from rdagent.log.storage import FileStorage
+from rdagent.log.ui.utils import load_times
+from rdagent.log.utils import (
+    extract_evoid,
+    extract_json,
+    extract_loopid_func_name,
+    is_valid_session,
+)
 from rdagent.utils import remove_ansi_codes
 from rdagent.utils.repo.diff import generate_diff_from_dict
 
@@ -30,38 +36,10 @@ if "log_folder" not in state:
     state.log_folder = Path("./log")
 
 
-def extract_loopid_func_name(tag):
-    """提取 Loop ID 和函数名称"""
-    match = re.search(r"Loop_(\d+)\.([^.]+)", tag)
-    return match.groups() if match else (None, None)
-
-
-def extract_evoid(tag):
-    """提取 EVO ID"""
-    match = re.search(r"\.evo_loop_(\d+)\.", tag)
-    return match.group(1) if match else None
-
-
 def convert_defaultdict_to_dict(d):
     if isinstance(d, defaultdict):
         d = {k: convert_defaultdict_to_dict(v) for k, v in d.items()}
     return d
-
-
-@st.cache_data(persist=True)
-def load_times(log_path: Path):
-    """加载时间数据"""
-    try:
-        session_path = log_path / "__session__"
-        max_li = max(int(p.name) for p in session_path.iterdir() if p.is_dir() and p.name.isdigit())
-        max_step = max(int(p.name.split("_")[0]) for p in (session_path / str(max_li)).iterdir() if p.is_file())
-        rdloop_obj_p = next((session_path / str(max_li)).glob(f"{max_step}_*"))
-
-        rd_times = DataScienceRDLoop.load(rdloop_obj_p, do_truncate=False).loop_trace
-    except Exception as e:
-        # st.toast(f"Error loading times: {e}", icon="🟡")
-        rd_times = {}
-    return rd_times
 
 
 @st.cache_data(persist=True)
@@ -143,7 +121,6 @@ def load_data(log_path: Path):
     return convert_defaultdict_to_dict(data), convert_defaultdict_to_dict(llm_data)
 
 
-@st.cache_data
 def load_stdout(stdout_path: Path):
     if stdout_path.exists():
         stdout = stdout_path.read_text()
@@ -499,7 +476,7 @@ def summarize_data():
                 if "mle_score" not in state.data[loop]:
                     if "mle_score" in loop_data["running"]:
                         mle_score_txt = loop_data["running"]["mle_score"]
-                        state.data[loop]["mle_score"] = extract_mle_json(mle_score_txt)
+                        state.data[loop]["mle_score"] = extract_json(mle_score_txt)
                         if (
                             state.data[loop]["mle_score"] is not None
                             and state.data[loop]["mle_score"]["score"] is not None
@@ -515,7 +492,7 @@ def summarize_data():
                         )
                         try:
                             mle_score_txt = mle_score_path.read_text()
-                            state.data[loop]["mle_score"] = extract_mle_json(mle_score_txt)
+                            state.data[loop]["mle_score"] = extract_json(mle_score_txt)
                             if state.data[loop]["mle_score"]["score"] is not None:
                                 df.loc[loop, "Running Score (test)"] = str(state.data[loop]["mle_score"]["score"])
                             else:

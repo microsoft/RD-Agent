@@ -8,6 +8,8 @@ from pathlib import Path
 import streamlit as st
 from streamlit import session_state
 
+from rdagent.log.utils import extract_evoid, extract_loopid_func_name
+
 st.set_page_config(layout="wide", page_title="debug_llm", page_icon="🎓", initial_sidebar_state="expanded")
 
 # 获取 log_path 参数
@@ -88,18 +90,6 @@ def highlight_prompts_uri(uri):
     """高亮 URI 的格式"""
     parts = uri.split(":")
     return f"**{parts[0]}:**:green[**{parts[1]}**]"
-
-
-def extract_loopid_func_name(tag):
-    """提取 Loop ID 和函数名称"""
-    match = re.search(r"Loop_(\d+)\.(\w+)\.", tag)
-    return match.groups() if match else (None, None)
-
-
-def extract_evoid(tag):
-    """提取 EVO ID"""
-    match = re.search(r"\.evo_loop_(\d+)\.", tag)
-    return match.group(1) if match else None
 
 
 # Display Data
