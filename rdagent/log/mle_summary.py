@@ -12,7 +12,7 @@ from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
 from rdagent.log.utils import (
     extract_loopid_func_name,
-    extract_mle_json,
+    extract_json,
     is_valid_session,
 )
 from rdagent.log.utils.folder import get_first_session_file_after_duration
@@ -133,7 +133,7 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
                             env=test_eval.env,
                             entry=f"mlebench grade-sample None {stat[log_trace_path.name]['competition']} --data-dir /mle/data",
                         )
-                        grade_output = extract_mle_json(stdout)
+                        grade_output = extract_json(stdout)
                         if grade_output:
                             bronze_threshold = grade_output["bronze_threshold"]
                             silver_threshold = grade_output["silver_threshold"]
@@ -148,7 +148,7 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
                         if msg.content.result is not None:
                             valid_scores[loop_id] = msg.content.result
                     elif "mle_score" in msg.tag:
-                        grade_output = extract_mle_json(msg.content)
+                        grade_output = extract_json(msg.content)
                         if grade_output:
                             if grade_output["submission_exists"]:
                                 made_submission_num += 1

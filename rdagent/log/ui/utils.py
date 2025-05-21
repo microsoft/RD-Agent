@@ -11,7 +11,7 @@ import typer
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.core.utils import cache_with_pickle
 from rdagent.log.ui.conf import UI_SETTING
-from rdagent.log.utils import extract_mle_json
+from rdagent.log.utils import extract_json
 from rdagent.oai.llm_utils import md5_hash
 
 LITE = [
@@ -169,7 +169,7 @@ def get_sota_exp_stat(log_path: Path):
         # sota exp is not evaluated by mle_score
         return None
     with sota_mle_score_paths[0].open("rb") as f:
-        sota_mle_score = extract_mle_json(pickle.load(f))
+        sota_mle_score = extract_json(pickle.load(f))
 
     sota_exp_stat = None
     if sota_mle_score:  # sota exp's grade output

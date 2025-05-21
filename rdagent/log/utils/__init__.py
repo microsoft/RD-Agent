@@ -95,7 +95,7 @@ def extract_evoid(tag: str) -> str | None:
     return cast(str, match.group(1)) if match else None
 
 
-def extract_mle_json(log_content: str) -> dict | None:
+def extract_json(log_content: str) -> dict | None:
     match = re.search(r"\{.*\}", log_content, re.DOTALL)
     if match:
         return cast(dict, json.loads(match.group(0)))

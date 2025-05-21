@@ -16,7 +16,7 @@ from rdagent.log.ui.utils import load_times
 from rdagent.log.utils import (
     extract_evoid,
     extract_loopid_func_name,
-    extract_mle_json,
+    extract_json,
     is_valid_session,
 )
 from rdagent.utils import remove_ansi_codes
@@ -476,7 +476,7 @@ def summarize_data():
                 if "mle_score" not in state.data[loop]:
                     if "mle_score" in loop_data["running"]:
                         mle_score_txt = loop_data["running"]["mle_score"]
-                        state.data[loop]["mle_score"] = extract_mle_json(mle_score_txt)
+                        state.data[loop]["mle_score"] = extract_json(mle_score_txt)
                         if (
                             state.data[loop]["mle_score"] is not None
                             and state.data[loop]["mle_score"]["score"] is not None
@@ -492,7 +492,7 @@ def summarize_data():
                         )
                         try:
                             mle_score_txt = mle_score_path.read_text()
-                            state.data[loop]["mle_score"] = extract_mle_json(mle_score_txt)
+                            state.data[loop]["mle_score"] = extract_json(mle_score_txt)
                             if state.data[loop]["mle_score"]["score"] is not None:
                                 df.loc[loop, "Running Score (test)"] = str(state.data[loop]["mle_score"]["score"])
                             else:
