@@ -199,6 +199,10 @@ class ExpGen2TraceAndMergeV2(ExpGen):
         self.MAX_TRACE_NUM = DS_RD_SETTING.max_trace_num  # maximum number of traces to grow before merging
         self.flag_start_merge = False
 
+    def reset_exp_gen_version(self,version: str = "v2"):
+        DS_RD_SETTING.proposal_version = version
+
+
     def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
         logger.info(f"Remain time: {timer.remain_time_duration}")
@@ -206,14 +210,20 @@ class ExpGen2TraceAndMergeV2(ExpGen):
         if timer.remain_time_duration >= timedelta(hours=DS_RD_SETTING.merge_hours):
 
             if DS_RD_SETTING.enable_inject_knowledge_at_root:
+                if DS_RD_SETTING.knowledge_base_path is not None and DS_RD_SETTING.idea_pool_json_path is not None:
+                    if len(trace.hist) == 0:
+                        # set the knowledge base option to True for the first trace
+                        DS_RD_SETTING.enable_knowledge_base = True
 
+            if DS_RD_SETTING.enable_multi_version_exp_gen:
+                
                 if len(trace.hist) == 0:
-                    # set the knowledge base option to True for the first trace
-                    DS_RD_SETTING.enable_knowledge_base = True
+                    # set the proposal version to v3 for the first trace
+                    self.reset_exp_gen_version(version="v3")
+                elif len(trace.get_current_selection()) == 0 and trace.sub_trace_count > 0:
+                    # reset the proposal version to v2 at the start of other sub-trace
+                    self.reset_exp_gen_version(version="v2")
 
-                else:
-                    # set the knowledge base option back to False for the other traces
-                    DS_RD_SETTING.enable_knowledge_base = False
 
             return self.exp_gen.gen(trace, selection)
 
