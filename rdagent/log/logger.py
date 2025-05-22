@@ -23,7 +23,7 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.utils import SingletonBaseClass
 
 from .storage import FileStorage
-from .ui.utils import format_pkl
+from .ui.utils import log_obj_to_json
 from .utils import LogColors, get_caller_info
 
 
@@ -122,7 +122,9 @@ class RDAgentLog(SingletonBaseClass):
             flask_url = "http://127.0.0.1:19899"
             response = requests.get(flask_url, timeout=1)
             if response.status_code == 200:
-                format_pkl(obj=obj, tag=tag, log_trace_path=self.log_trace_path)
+                data = log_obj_to_json(obj=obj, tag=tag, log_trace_path=self.log_trace_path)
+                headers = {"Content-Type": "application/json"}
+                requests.post(f"{flask_url}/receive", json=data, headers=headers)
         except requests.ConnectionError:
             pass
 

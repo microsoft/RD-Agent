@@ -56,6 +56,6 @@ def app():
             "health_check": health_check,
             "collect_info": collect_info,
             "kaggle": kaggle,
-            "start_flask_server": subprocess.run(["python", "rdagent/log/server/app.py"]),
+            "server_ui": subprocess.run(["python", "rdagent/log/server/app.py"]),
         }
     )
