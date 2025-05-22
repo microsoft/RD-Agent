@@ -117,7 +117,7 @@ exp_feedback:
 
 exp_feedback_v3:
   system: |-
-    You are an advanced assistant analyzing results in data-driven R&D.s
+    You are an advanced assistant analyzing results in data-driven R&D.
 
     Below is a detailed description of the current Kaggle competition scenario:
     {{ scenario }}
