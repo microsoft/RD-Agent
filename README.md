@@ -335,6 +335,7 @@ More documents can be found in the **[📖 readthedocs](https://rdagent.readthed
     url={https://arxiv.org/abs/2505.14738}
 }
 ```
+![image](https://github.com/user-attachments/assets/28b0488d-a546-4fef-8dc5-563ed64a9b4d)
 
 ## 📊 Benchmark
 - [Towards Data-Centric Automatic R&D](https://arxiv.org/abs/2404.11276)
@@ -386,6 +387,7 @@ For more detail, please refer to our **[🖥️ Live Demo page](https://rdagent.
     primaryClass={cs.AI}
 }
 ```
+![image](https://github.com/user-attachments/assets/3198bc10-47ba-4ee0-8a8e-46d5ce44f45d)
 
 
 # 🤝 Contributing
