@@ -125,6 +125,7 @@ def log_obj_to_json(
             "msg": {
                 "tag": "research.hypothesis",
                 "timestamp": ts,
+                "loop_id": li,
                 "content": {
                     "hypothesis": h.hypothesis,
                     "concise_justification": h.concise_justification,
@@ -150,6 +151,7 @@ def log_obj_to_json(
                 "msg": {
                     "tag": "research.tasks",
                     "timestamp": ts,
+                    "loop_id": li,
                     "content": [
                         {
                             "name": t.factor_name,
@@ -167,6 +169,7 @@ def log_obj_to_json(
                 "msg": {
                     "tag": "research.tasks",
                     "timestamp": ts,
+                    "loop_id": li,
                     "content": [
                         {
                             "name": t.name,
@@ -197,6 +200,7 @@ def log_obj_to_json(
                 "msg": {
                     "tag": "evolving.codes",
                     "timestamp": ts,
+                    "loop_id": li,
                     "content": [
                         {
                             "target_task_name": (
@@ -217,6 +221,7 @@ def log_obj_to_json(
                 "msg": {
                     "tag": "evolving.codes",
                     "timestamp": ts,
+                    "loop_id": li,
                     "content": [
                         ws[0].file_dict,
                     ],
@@ -235,6 +240,7 @@ def log_obj_to_json(
             "msg": {
                 "tag": "evolving.feedbacks",
                 "timestamp": ts,
+                "loop_id": li,
                 "content": [
                     {
                         "final_decision": f.final_decision,
@@ -252,7 +258,14 @@ def log_obj_to_json(
     elif "scenario" in tag:
         data = {
             "id": str(log_trace_path),
-            "msg": {"tag": "feedback.config", "timestamp": ts, "content": {"config": obj.experiment_setting}},
+            "msg": {
+                "tag": "feedback.config",
+                "timestamp": ts,
+                "loop_id": li,
+                "content": {
+                    "config": obj.experiment_setting
+                }
+            },
         }
 
     elif "ef.Quantitative Backtesting Chart" in tag:
@@ -263,7 +276,10 @@ def log_obj_to_json(
             "msg": {
                 "tag": "feedback.return_chart",
                 "timestamp": ts,
-                "content": {"chart_html": plotly.io.to_html(report_figure(obj))},
+                "loop_id": li,
+                "content": {
+                    "chart_html": plotly.io.to_html(report_figure(obj))
+                },
             },
         }
 
@@ -273,7 +289,14 @@ def log_obj_to_json(
         if isinstance(obj, Experiment):
             data = {
                 "id": str(log_trace_path),
-                "msg": {"tag": "feedback.metric", "timestamp": ts, "content": {"result": obj.result.iloc[0]}},
+                "msg": {
+                    "tag": "feedback.metric",
+                    "timestamp": ts,
+                    "loop_id": li,
+                    "content": {
+                        "result": obj.result.iloc[0]
+                    }
+                },
             }
 
     elif "ef.feedback" in tag:
@@ -285,6 +308,7 @@ def log_obj_to_json(
             "msg": {
                 "tag": "feedback.hypothesis_feedback",
                 "timestamp": ts,
+                "loop_id": li,
                 "content": {
                     "observations": hf.observations,
                     "hypothesis_evaluation": hf.hypothesis_evaluation,
@@ -296,6 +320,7 @@ def log_obj_to_json(
         }
 
     return data
+
 
 def get_script_time(stdout_p: Path):
     with stdout_p.open("r") as f:
