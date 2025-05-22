@@ -188,6 +188,7 @@ def log_obj_to_json(
                         "tag": "research.hypothesis",
                         "old_tag": tag,
                         "timestamp": ts,
+                        "loop_id": li,
                         "content": {
                             "name_map": {
                                 "hypothesis": "RD-Agent proposes the hypothesis⬇️",
@@ -212,6 +213,7 @@ def log_obj_to_json(
                         "tag": "research.tasks",
                         "old_tag": tag,
                         "timestamp": ts,
+                        "loop_id": li,
                         "content": [
                             (
                                 {
@@ -339,6 +341,7 @@ def log_obj_to_json(
                         "tag": "feedback.metric",
                         "old_tag": tag,
                         "timestamp": ts,
+                        "loop_id": li,
                         "content": {
                             "result": result_str,
                         },
