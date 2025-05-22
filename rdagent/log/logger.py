@@ -1,7 +1,6 @@
 import json
 import os
 import pickle
-import requests
 import sys
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -12,6 +11,7 @@ from multiprocessing.connection import Connection
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Generator, Union
 
+import requests
 from loguru import logger
 
 if TYPE_CHECKING:
@@ -22,8 +22,8 @@ from psutil import Process
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.utils import SingletonBaseClass
 
-from .ui.utils import format_pkl
 from .storage import FileStorage
+from .ui.utils import format_pkl
 from .utils import LogColors, get_caller_info
 
 
@@ -117,7 +117,7 @@ class RDAgentLog(SingletonBaseClass):
         caller_info = get_caller_info()
         tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
         logp = self.storage.log(obj, name=tag, save_type="pkl")
-        
+
         try:
             flask_url = "http://127.0.0.1:19899"
             response = requests.get(flask_url, timeout=1)

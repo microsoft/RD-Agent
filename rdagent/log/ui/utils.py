@@ -3,8 +3,8 @@ from datetime import datetime, timezone
 
 import plotly
 import requests
-from rdagent.log.utils import extract_evoid, extract_loopid_func_name
 
+from rdagent.log.utils import extract_evoid, extract_loopid_func_name
 
 
 def format_pkl(
@@ -223,6 +223,8 @@ def format_pkl(
         response = requests.post(url, json=data, headers=headers)
 
     return
+
+
 import math
 import pickle
 import re
