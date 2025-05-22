@@ -73,6 +73,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                 new_sota_exp_fb_list: list[tuple[DSExperiment, ExperimentFeedback]] = []
                 # calculate the number of SOTA experiments to retrieve from each trace
                 max_sota_retrieved_num_per_trace = DS_RD_SETTING.max_sota_retrieved_num // len(leaves)
+                # recall, due to the integer division, the final number of SOTA experiments to retrieve may be different
                 for leaf in leaves:
                     sota_exp_fb_list_per_trace = trace.experiment_and_feedback_list_after_init(
                         return_type="sota",
