@@ -212,11 +212,15 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         return_type: Literal["sota", "failed", "all"],
         search_type: Literal["all", "ancestors"] = "all",
         selection: tuple[int, ...] | None = None,
+        max_retrieve_num: int | None = None,
     ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
         """
         Retrieve a list of experiments and feedbacks based on the return_type.
         """
         search_list = self.retrieve_search_list(search_type, selection=selection)
+        if max_retrieve_num is not None and len(search_list) > 0:
+            retrieve_num = min(max_retrieve_num, len(search_list))
+            search_list = search_list[:retrieve_num]
 
         final_component = self.COMPLETE_ORDER[-1]
         has_final_component = True if DS_RD_SETTING.coder_on_whole_pipeline else False

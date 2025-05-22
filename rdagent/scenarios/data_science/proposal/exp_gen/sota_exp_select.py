@@ -44,7 +44,9 @@ class AutoSOTAexpSelector(SOTAexpSelector):
     def get_sota_exp_to_submit(self, trace: Trace) -> DSExperiment | None:
         # retrieve all SOTA experiments from the trace
 
-        sota_exp_fb_list = trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="all")
+        sota_exp_fb_list = trace.experiment_and_feedback_list_after_init(
+            return_type="sota", search_type="all", max_retrieve_num=DS_RD_SETTING.max_sota_retrieved_num
+        )
 
         if len(sota_exp_fb_list) == 0:
             logger.info("Auto SOTA selector: No SOTA in trace yet")
@@ -58,9 +60,31 @@ class AutoSOTAexpSelector(SOTAexpSelector):
             return sota_exp_fb_list[0][0]
 
         else:
-            logger.info("Auto SOTA selector: Multiple SOTA in trace, calling LLM to select the best one")
+            logger.info(
+                f"Auto SOTA selector: Multiple SOTA in trace, calling LLM to select the best one in {DS_RD_SETTING.max_sota_retrieved_num} SOTA experiments"
+            )
 
             SOAT_exp_with_desc_and_scores = "Historical SOTA experiments:\n\n"
+
+            leaves: list[int] = trace.get_leaves()
+
+            if len(leaves) >= 2:
+                # multiple trace case, collect the latest SOTA experiments from each trace
+                new_sota_exp_fb_list: list[tuple[DSExperiment, ExperimentFeedback]] = []
+                # calculate the number of SOTA experiments to retrieve from each trace
+                max_sota_retrieved_num_per_trace = DS_RD_SETTING.max_sota_retrieved_num // len(leaves)
+                # recall, due to the integer division, the final number of SOTA experiments to retrieve may be different
+                for leaf in leaves:
+                    sota_exp_fb_list_per_trace = trace.experiment_and_feedback_list_after_init(
+                        return_type="sota",
+                        search_type="ancestors",
+                        selection=(leaf,),
+                        max_retrieve_num=max_sota_retrieved_num_per_trace,
+                    )
+
+                    new_sota_exp_fb_list.extend(sota_exp_fb_list_per_trace)
+
+                sota_exp_fb_list = new_sota_exp_fb_list
 
             for i, (exp, ef) in enumerate(sota_exp_fb_list):
                 if exp:
