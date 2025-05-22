@@ -113,7 +113,11 @@ def receive_msgs():
     except Exception as e:
         return jsonify({"error": "Internal Server Error"}), 500
 
-    msgs_for_frontend[data["id"]].append(data["msg"])
+    if isinstance(data, list):
+        for d in data:
+            msgs_for_frontend[d["id"]].append(d["msg"])
+    else:
+        msgs_for_frontend[data["id"]].append(data["msg"])
 
     return jsonify({"status": "success"}), 200
 

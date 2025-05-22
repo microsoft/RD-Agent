@@ -107,7 +107,7 @@ def log_obj_to_json(
     obj: object,
     tag: str = "",
     log_trace_path: str = None,
-) -> dict:
+) -> list[dict] | dict:
     ts = datetime.now(timezone.utc).isoformat()
     li, fn = extract_loopid_func_name(tag)
     ei = extract_evoid(tag)
@@ -179,51 +179,58 @@ def log_obj_to_json(
         if isinstance(obj, DSExperiment):
             from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis
             h: DSHypothesis = obj.hypothesis
-            data ={
-                "tag": "research.hypothesis",
-                "old_tag": tag,
-                "timestamp": ts,
-                "content": {
-                    "name_map": {
-                        "hypothesis": "RD-Agent proposes the hypothesis⬇️",
-                        "concise_justification": "because the reason⬇️",
-                        "concise_observation": "based on the observation⬇️",
-                        "concise_knowledge": "Knowledge⬇️ gained after practice",
-                        "no_hypothesis": f"No hypothesis available. Trying to construct the first runnable {h.component} component.",
-                    },
-                    "hypothesis": h.hypothesis,
-                    "reason": h.reason,
-                    "component": h.component,
-                    "concise_reason": h.concise_reason,
-                    "concise_justification": h.concise_justification,
-                    "concise_observation": h.concise_observation,
-                    "concise_knowledge": h.concise_knowledge,
-                },
-            }
-
             tasks = [t[0] for t in obj.pending_tasks_list]
             t = tasks[0]
-            data = {
-                "tag": "research.tasks",
-                "old_tag": tag,
-                "timestamp": ts,
-                "content": [
-                    (
-                        {
-                            "name": t.name,
-                            "description": t.description,
-                        }
-                        if not hasattr(t, "architecture")
-                        else {
-                            "name": t.name,
-                            "description": t.description,
-                            "model_type": t.model_type,
-                            "architecture": t.architecture,
-                            "hyperparameters": t.hyperparameters,
-                        }
-                    )
-                ],
-            }
+            data = [
+                {
+                    "id": str(log_trace_path),
+                    "msg":{
+                        "tag": "research.hypothesis",
+                        "old_tag": tag,
+                        "timestamp": ts,
+                        "content": {
+                            "name_map": {
+                                "hypothesis": "RD-Agent proposes the hypothesis⬇️",
+                                "concise_justification": "because the reason⬇️",
+                                "concise_observation": "based on the observation⬇️",
+                                "concise_knowledge": "Knowledge⬇️ gained after practice",
+                                "no_hypothesis": f"No hypothesis available. Trying to construct the first runnable {h.component} component.",
+                            },
+                            "hypothesis": h.hypothesis,
+                            "reason": h.reason,
+                            "component": h.component,
+                            "concise_reason": h.concise_reason,
+                            "concise_justification": h.concise_justification,
+                            "concise_observation": h.concise_observation,
+                            "concise_knowledge": h.concise_knowledge,
+                        },
+                    }
+                },
+                {
+                    "id": str(log_trace_path),
+                    "msg":{
+                        "tag": "research.tasks",
+                        "old_tag": tag,
+                        "timestamp": ts,
+                        "content": [
+                            (
+                                {
+                                    "name": t.name,
+                                    "description": t.description,
+                                }
+                                if not hasattr(t, "architecture")
+                                else {
+                                    "name": t.name,
+                                    "description": t.description,
+                                    "model_type": t.model_type,
+                                    "architecture": t.architecture,
+                                    "hyperparameters": t.hyperparameters,
+                                }
+                            )
+                        ],
+                    }
+                }
+            ]
     elif f"evo_loop_{ei}.evolving code" in tag:
         from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
         from rdagent.components.coder.model_coder.model import (
@@ -268,7 +275,20 @@ def log_obj_to_json(
                     ],
                 },
             }
-
+    elif f"evo_loop_{ei}.evolving code" in tag and "coding" in tag:
+        ws: FBWorkspace = obj[0]
+        data = {
+            "id": str(log_trace_path),
+            "msg":{
+                "tag": "evolving.codes",
+                "old_tag": tag,
+                "timestamp": ts,
+                "content": {
+                    "evo_id": ei,
+                    "workspace": ws.file_dict,
+                },
+            }
+        }
     elif f"evo_loop_{ei}.evolving feedback" in tag:
         from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedback
         from rdagent.components.coder.factor_coder.evaluators import (
@@ -295,22 +315,13 @@ def log_obj_to_json(
                 ],
             },
         }
-    elif f"evo_loop_{ei}.evolving code" in tag and "coding" in tag:
-        ws: FBWorkspace = obj[0]
-        data = {
-                "tag": "evolving.codes",
-                "old_tag": tag,
-                "timestamp": ts,
-                "content": {
-                    "evo_id": ei,
-                    "workspace": ws.file_dict,
-                },
-            }
     elif f"evo_loop_{ei}.evolving feedback" in tag and "coding" in tag:
         from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedback
 
         f: CoSTEERSingleFeedback = obj[0]
-        data ={
+        data = {
+            "id": str(log_trace_path),
+            "msg": {
                 "tag": "evolving.feedbacks",
                 "old_tag": tag,
                 "timestamp": ts,
@@ -322,6 +333,7 @@ def log_obj_to_json(
                     "return_checking": f.return_checking,
                 },
             }
+        }
     elif "scenario" in tag:
         data = {
             "id": str(log_trace_path),
@@ -371,13 +383,16 @@ def log_obj_to_json(
         if isinstance(obj, DSExperiment):
             if obj.result is not None:
                 result_str = obj.result.to_json()
-                data ={
-                    "tag": "feedback.metric",
-                    "old_tag": tag,
-                    "timestamp": ts,
-                    "content": {
-                        "result": result_str,
-                    },
+                data = {
+                    "id": str(log_trace_path),
+                    "msg":{
+                        "tag": "feedback.metric",
+                        "old_tag": tag,
+                        "timestamp": ts,
+                        "content": {
+                            "result": result_str,
+                        },
+                    }
                 }
     elif "feedback" in tag:
         from rdagent.core.proposal import ExperimentFeedback, HypothesisFeedback
