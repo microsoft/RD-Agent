@@ -295,28 +295,25 @@ def log_obj_to_json(
                 ],
             },
         }
-    elif f"evo_loop_{ei}.evolving code" in m.tag and "coding" in m.tag:
-        ws: FBWorkspace = m.content[0]
-        msgs_for_frontend[trace_id].append(
-            {
+    elif f"evo_loop_{ei}.evolving code" in tag and "coding" in tag:
+        ws: FBWorkspace = obj[0]
+        data = {
                 "tag": "evolving.codes",
-                "old_tag": m.tag,
-                "timestamp": m.timestamp.isoformat(),
+                "old_tag": tag,
+                "timestamp": ts,
                 "content": {
                     "evo_id": ei,
                     "workspace": ws.file_dict,
                 },
             }
-        )
-    elif f"evo_loop_{ei}.evolving feedback" in m.tag and "coding" in m.tag:
+    elif f"evo_loop_{ei}.evolving feedback" in tag and "coding" in tag:
         from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedback
 
-        f: CoSTEERSingleFeedback = m.content[0]
-        msgs_for_frontend[trace_id].append(
-            {
+        f: CoSTEERSingleFeedback = obj[0]
+        data ={
                 "tag": "evolving.feedbacks",
-                "old_tag": m.tag,
-                "timestamp": m.timestamp.isoformat(),
+                "old_tag": tag,
+                "timestamp": ts,
                 "content": {
                     "evo_id": ei,
                     "final_decision": f.final_decision,
@@ -325,7 +322,6 @@ def log_obj_to_json(
                     "return_checking": f.return_checking,
                 },
             }
-        )
     elif "scenario" in tag:
         data = {
             "id": str(log_trace_path),
