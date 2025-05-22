@@ -231,7 +231,7 @@ def log_obj_to_json(
                     }
                 }
             ]
-    elif f"evo_loop_{ei}.evolving code" in tag:
+    elif f"evo_loop_{ei}.evolving code" in tag and "coding" in tag:
         from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
         from rdagent.components.coder.model_coder.model import (
             ModelFBWorkspace,
@@ -249,59 +249,28 @@ def log_obj_to_json(
                     "tag": "evolving.codes",
                     "timestamp": ts,
                     "loop_id": li,
+                    "evo_id": ei,
                     "content": [
                         {
-                            "target_task_name": (
-                                w.target_task.name
-                                if isinstance(w.target_task, ModelTask)
-                                else w.target_task.factor_name
-                            ),
-                            "code": w.file_dict,
+                            "target_task_name": w.target_task.name,
+                            "codes": w.file_dict,
                         }
                         for w in ws
                         if w
                     ],
                 },
             }
-        elif isinstance(ws[0], FBWorkspace):
-            data = {
-                "id": str(log_trace_path),
-                "msg": {
-                    "tag": "evolving.codes",
-                    "timestamp": ts,
-                    "loop_id": li,
-                    "content": [
-                        ws[0].file_dict,
-                    ],
-                },
-            }
-    elif f"evo_loop_{ei}.evolving code" in tag and "coding" in tag:
-        ws: FBWorkspace = obj[0]
-        data = {
-            "id": str(log_trace_path),
-            "msg":{
-                "tag": "evolving.codes",
-                "old_tag": tag,
-                "timestamp": ts,
-                "content": {
-                    "evo_id": ei,
-                    "workspace": ws.file_dict,
-                },
-            }
-        }
-    elif f"evo_loop_{ei}.evolving feedback" in tag:
+    elif f"evo_loop_{ei}.evolving feedback" in tag and "coding" in tag:
         from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedback
-        from rdagent.components.coder.factor_coder.evaluators import (
-            FactorSingleFeedback,
-        )
 
-        fl: list[FactorSingleFeedback | CoSTEERSingleFeedback] = [i for i in obj]
+        fl: list[CoSTEERSingleFeedback] = [i for i in obj]
         data = {
             "id": str(log_trace_path),
             "msg": {
                 "tag": "evolving.feedbacks",
                 "timestamp": ts,
                 "loop_id": li,
+                "evo_id": ei,
                 "content": [
                     {
                         "final_decision": f.final_decision,
@@ -314,25 +283,6 @@ def log_obj_to_json(
                     if f
                 ],
             },
-        }
-    elif f"evo_loop_{ei}.evolving feedback" in tag and "coding" in tag:
-        from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedback
-
-        f: CoSTEERSingleFeedback = obj[0]
-        data = {
-            "id": str(log_trace_path),
-            "msg": {
-                "tag": "evolving.feedbacks",
-                "old_tag": tag,
-                "timestamp": ts,
-                "content": {
-                    "evo_id": ei,
-                    "final_decision": f.final_decision,
-                    "execution": f.execution,
-                    "code": f.code,
-                    "return_checking": f.return_checking,
-                },
-            }
         }
     elif "scenario" in tag:
         data = {
