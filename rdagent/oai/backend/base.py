@@ -22,6 +22,7 @@ from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.utils import md5_hash
 
 try:
+    import litellm
     import openai
 
     openai_imported = True
@@ -332,6 +333,7 @@ class APIBackend(ABC):
         assert not (chat_completion and embedding), "chat_completion and embedding cannot be True at the same time"
         max_retry = LLM_SETTINGS.max_retry if LLM_SETTINGS.max_retry is not None else max_retry
         timeout_count = 0
+        violation_count = 0
         for i in range(max_retry):
             API_start_time = datetime.now()
             try:
@@ -352,6 +354,21 @@ class APIBackend(ABC):
                 else:
                     RD_Agent_TIMER_wrapper.api_fail_count += 1
                     RD_Agent_TIMER_wrapper.latest_api_fail_time = datetime.now(pytz.timezone("Asia/Shanghai"))
+
+                    if (
+                        openai_imported
+                        and isinstance(e, litellm.BadRequestError)
+                        and (
+                            isinstance(e.__cause__, litellm.ContentPolicyViolationError)
+                            or "The response was filtered due to the prompt triggering Azure OpenAI's content management policy"
+                            in str(e)
+                        )
+                    ):
+                        violation_count += 1
+                        if violation_count >= LLM_SETTINGS.violation_fail_limit:
+                            logger.warning("Content policy violation detected.")
+                            raise e
+
                     if (
                         openai_imported
                         and isinstance(e, openai.APITimeoutError)
