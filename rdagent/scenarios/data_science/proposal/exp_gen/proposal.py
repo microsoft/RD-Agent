@@ -1,7 +1,10 @@
 import json
-from typing import Dict, Tuple
+import pprint
+from enum import Enum
+from typing import Dict, List, Tuple
 
 import pandas as pd
+from pydantic import BaseModel, Field
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
@@ -19,6 +22,203 @@ from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
+
+
+class ScenarioChallengeCategory(str, Enum):
+    DATASET_DRIVEN = "dataset-driven"
+    DOMAIN_INFORMED = "domain-informed"
+
+
+class ScenarioChallengeDetail(BaseModel):
+    reasoning: str = Field(
+        description=(
+            "Explanation (max 3 sentences) of how the Core Analysis Dimensions "
+            "(SOTA Alignment Analysis, Gap Identification, Domain-Implementation Coherence Check, Scenario-First Focus) "
+            "specifically led to identifying THIS challenge."
+        )
+    )
+    category: ScenarioChallengeCategory = Field(description="The category of the improvement challenge.")
+    statement: str = Field(
+        description="Description of the challenge in no more than three sentences, outlining the specific area for improvement."
+    )
+    metric_impact: str = Field(
+        description="Brief explanation in no more than two sentences of why addressing this challenge is expected to improve the target metric."
+    )
+    caption: str = Field(description="Summarize the challenge in around 5-15 words.")
+
+
+class ScenarioAnalysis(BaseModel):
+    sota_alignment_analysis: str = Field(description="Comparing SOTA to data/domain insights; 'N/A' if not available.")
+    gap_identification: str = Field(
+        description="Unaddressed challenges or workarounds in successful solutions; 'N/A' if none."
+    )
+    domain_implementation_coherence_check: str = Field(
+        description="Technical methods conflicting with domain rules or oversimplifying; 'N/A' if none."
+    )
+    scenario_first_focus: str = Field(
+        description="Foundational scenario strategies, key if no SOTA exists; 'N/A' if SOTA already exists."
+    )
+
+
+class ScenarioChallenges(BaseModel):
+
+    analysis: ScenarioAnalysis = Field(
+        description="Analysis of provided information following the Core Analysis Dimensions."
+    )
+    challenges: List[ScenarioChallengeDetail] = Field(
+        description='At most five challenges, prioritizing "FEWER BUT BETTER": '
+        "select the most valuable and potentially unexplored avenues. Each challenge must be tightly relevant to the improvement of the target metric."
+    )
+
+
+class TraceAnalysisDetail(BaseModel):
+
+    category: str = Field(
+        description="Describe the specific area of this analysis in a few words, such as 'Explicit Suggestions', 'Feature Engineering', 'Presistent Issues'"
+    )
+    statement: str = Field(
+        description="Description of the analysis in no more than three sentences, outlining the specific problem."
+    )
+
+
+class TraceAnalysis(BaseModel):
+
+    feedback: List[TraceAnalysisDetail] = Field(
+        description="Analysis points derived from feedback on previous experiments."
+    )
+    implementation_review: List[TraceAnalysisDetail] = Field(
+        description="Analysis points from reviewing previous code implementations."
+    )
+    trace_history: List[TraceAnalysisDetail] = Field(
+        description="Analysis points identified from the history of experiment traces."
+    )
+
+
+class TraceChallengeDetail(BaseModel):
+    reasoning: str = Field(
+        description=(
+            "Explanation (max 3 sentences) of how the previous analysis specifically led to identifying THIS challenge."
+        )
+    )
+    category: str = Field(
+        description=(
+            "The specific category of the challenge, reflecting its origin or nature (e.g., 'Feedback - Explicit Suggestion', "
+            "'Implementation - Feature Engineering Flaw', 'Trace - Recurring Error'). This should align with and be more specific than the source analysis group (feedback, implementation_review, trace_history)."
+        )
+    )
+    statement: str = Field(
+        description=(
+            "Description of the challenge in no more than three sentences, outlining the specific issue, "
+            "observation, or area for improvement derived from past experiments or feedback."
+        )
+    )
+    metric_impact: str = Field(
+        description=(
+            "Brief explanation (max 2 sentences) of why acting on this challenge (e.g., addressing the identified issue "
+            "or leveraging the observation) is expected to improve the target metric or future iterations."
+        )
+    )
+    caption: str = Field(description="Summarize the challenge concisely in around 5-15 words.")
+
+
+class TraceChallenges(BaseModel):
+    analysis: TraceAnalysis = Field(
+        description=(
+            "A structured summary of the analysis performed on feedback, implementation reviews, "
+            "and experiment traces, which forms the basis for the challenges."
+        )
+    )
+    challenges: List[TraceChallengeDetail] = Field(
+        description=(
+            "A list of challenges and learnings (e.g., at most five, prioritizing 'FEWER BUT BETTER') derived from the analysis. "
+            "Each challenge should represent a valuable learning point aimed at guiding improvements for the target metric in subsequent experiments."
+        )
+    )
+
+
+class HypothesisComponent(str, Enum):
+    DataLoadSpec = "DataLoadSpec"
+    FeatureEng = "FeatureEng"
+    Model = "Model"
+    Ensemble = "Ensemble"
+    Workflow = "Workflow"
+
+
+class HypothesisEvaluationReasoningScore(BaseModel):
+    reasoning: str = Field(
+        description="What is the quality of the hypothesis under this criteria? Answer in 1-2 sentence."
+    )
+    score: float = Field(description="The score of the hypothesis under this criteria between 1 and 10.")
+
+
+class HypothesisEvaluation(BaseModel):
+    alignment: HypothesisEvaluationReasoningScore = Field(
+        description="The alignment of the proposed hypothesis with the identified challenge."
+    )
+    impact: HypothesisEvaluationReasoningScore = Field(
+        description="The expected impact of the proposed hypothesis on the current SOTA implementation."
+    )
+    novelty: HypothesisEvaluationReasoningScore = Field(
+        description="The novelty of the proposed hypothesis compared to existing solutions."
+    )
+    feasibility: HypothesisEvaluationReasoningScore = Field(
+        description="The feasibility of implementing the proposed hypothesis in the current SOTA implementation."
+    )
+    risk_reward_balance: HypothesisEvaluationReasoningScore = Field(
+        description="The risk-reward balance of implementing the proposed hypothesis."
+    )
+
+
+class HypothesisDetail(BaseModel):
+    caption: str = Field(description="The caption of the challenge it is based on.")
+    challenge: str = Field(
+        description="Reaffirm the challenge within the current context (e.g., trace history, domain principles, or competition constraints). It should be no more than 2-3 sentences."
+    )
+    hypothesis: str = Field(
+        description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
+    )
+    metric_impact: str = Field(
+        description=(
+            "Brief explanation (max 2 sentences) of the expected impact of the hypothesis on the target metric."
+        )
+    )
+    component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
+    evaluation: HypothesisEvaluation = Field(description="Evaluate the quality of the hypothesis.")
+
+
+class HypothesisList(BaseModel):
+    deduplicated_challenges: List[str] = Field(
+        description="A list of deduplicated challenge captions. Each must retain its original wording. If multiple captions are semantically identical, keep the first one."
+    )
+    hypotheses: List[HypothesisDetail] = Field(
+        description="A non-empty list of hypotheses proposed for the next iteration, each corresponding to one challenge. The list length should match the number of challenges."
+    )
+
+
+class CodingSketch(BaseModel):
+    current_state: str = Field(
+        description="A summary of the current `main.py` script that serves as the baseline for the planned changes. Focusing on parts that are related to the hypothesis. If `main.py` does not yet exist (i.e., it will be created from scratch based on this sketch), use the string 'N/A'."
+    )
+    modifications: List[str] = Field(
+        description="A list of specific, targeted changes to be applied to the existing code identified in `current_state`. Each string in the list should concisely describe (in 3-4 sentences): "
+        "(a) the specific part of the code to be altered (e.g., a function name, a class, or a logical block); "
+        "(b) the nature of the modification (e.g., bug fix, feature addition, refactoring of a small section, performance optimization, deletion); and "
+        "(c) a brief explanation or high-level sketch of the new logic or change. "
+        "If no direct modifications to existing code are planned (e.g., if creating an entirely new `main.py` as detailed in `structure`), this list should be empty."
+    )
+    structure: List[str] = Field(
+        description="An outline of the new high-level architectural components (primarily functions and classes) if a new `main.py` script is being created from scratch, or if the existing `main.py` is undergoing a major refactor that fundamentally alters or replaces its core structure. "
+        "Each string in the list should define a planned function or class, detailing its name, primary responsibility, key parameters (if applicable), return values (if applicable), and core functionality in 2-3 sentences. "
+        "This field is typically used when `current_state` is 'N/A' or when the scope of change requires a new architectural blueprint rather than just targeted `modifications`. "
+        "Leave empty if the plan only involves direct `modifications` to the existing structure in `current_state`."
+    )
+    sketch: str = Field(
+        description="A detailed, step-by-step narrative that elaborates on how to implement the planned code. "
+        "This section should synthesize the information from `modifications` (if any) and/or `structure` (if any) into a comprehensive and actionable coding plan for `main.py`. "
+        "The content **must** be formatted using Markdown, with logical sections, key decision points, or implementation steps clearly organized by level-3 headings (i.e., `###`). "
+        "This field should provide sufficient detail for a developer to understand the implementation flow, algorithms, data handling, and key logic points without ambiguity."
+    )
+
 
 COMPONENT_TASK_MAPPING = {
     "DataLoadSpec": {
@@ -568,6 +768,309 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
             hypothesis=new_hypothesis,
+            pipeline=pipeline,
+            failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
+        )
+
+
+class DSProposalV3ExpGen(DSProposalV2ExpGen):
+    def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
+        sys_prompt = T(".prompts_v3:scenario_problem.system").r()
+        user_prompt = T(".prompts_v3:scenario_problem.user").r(
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format=ScenarioChallenges,
+            # json_mode=True,
+            # json_target_type=Dict[str, Dict[str, str]],
+        )
+        challenges = ScenarioChallenges(**json.loads(response))
+        # Translate to problems
+        problems = {o.caption: {"problem": o.statement, "reason": o.reasoning} for o in challenges.challenges}
+        logger.info(f"Identified scenario problems:\n" + json.dumps(problems))
+        return problems
+
+    def identify_feedback_problem(self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str) -> Dict:
+        sys_prompt = T(".prompts_v3:feedback_problem.system").r()
+        user_prompt = T(".prompts_v3:feedback_problem.user").r(
+            scenario_desc=scenario_desc,
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format=TraceChallenges,
+            # json_mode=True,
+            # json_target_type=Dict[str, Dict[str, str]],
+        )
+        challenges = TraceChallenges(**json.loads(response))
+        # Translate to problems
+        problems = {o.caption: {"problem": o.statement, "reason": o.reasoning} for o in challenges.challenges}
+        logger.info(f"Identified feedback problems:\n" + json.dumps(problems))
+        return problems
+
+    def get_scenario_all_desc_v3(self, trace: DSTrace, eda_output=None) -> str:
+        return T(".prompts_v3:scenario_description").r(
+            background=trace.scen.background,
+            submission_specifications=trace.scen.submission_specifications,
+            evaluation=trace.scen.metric_description,
+            metric_name=trace.scen.metric_name,
+            metric_direction=trace.scen.metric_direction,
+            raw_description=trace.scen.raw_description,
+            use_raw_description=DS_RD_SETTING.use_raw_description,
+            time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
+            eda_output=eda_output,
+        )
+
+    @wait_retry(retry_n=5)
+    def hypothesis_gen(
+        self,
+        component_desc: str,
+        scenario_desc: str,
+        exp_feedback_list_desc: str,
+        sota_exp_desc: str,
+        problems: dict,
+        pipeline: bool,
+        enable_idea_pool: bool,
+    ) -> Dict:
+        problem_formatted_str = ""
+        for i, (problem_name, problem_dict) in enumerate(problems.items()):
+            problem_formatted_str += f"## {i+1}. {problem_name}\n"
+            problem_formatted_str += f"{problem_dict['problem']}\n"
+            if "idea" in problem_dict:
+                idea_formatted_str = DSIdea(problem_dict["idea"]).to_formatted_str()
+                problem_formatted_str += f"Sampled Idea by user: \n{idea_formatted_str}\n"
+            problem_formatted_str += "\n\n"
+
+        sys_prompt = T(".prompts_v3:hypothesis_gen.system").r(
+            pipeline=pipeline,
+            enable_idea_pool=enable_idea_pool,
+        )
+        user_prompt = T(".prompts_v3:hypothesis_gen.user").r(
+            scenario_desc=scenario_desc,
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+            problems=problem_formatted_str,
+            enable_idea_pool=enable_idea_pool,
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt, system_prompt=sys_prompt, response_format=HypothesisList
+        )
+        hypotheses = HypothesisList(**json.loads(response))
+        resp_dict = {
+            h.caption: {
+                "reason": h.challenge,
+                "component": h.component,
+                "hypothesis": h.hypothesis,
+                "evaluation": {
+                    "alignment_score": h.evaluation.alignment.score,
+                    "impact_score": h.evaluation.impact.score,
+                    "novelty_score": h.evaluation.novelty.score,
+                    "feasibility_score": h.evaluation.feasibility.score,
+                    "risk_reward_balance_score": h.evaluation.risk_reward_balance.score,
+                },
+            }
+            for h in hypotheses.hypotheses
+        }
+
+        logger.info(f"Generated hypotheses:\n" + json.dumps(resp_dict, indent=2))
+
+        if len(resp_dict) == 0:
+            logger.error("No hypothesis generated. Retrying...")
+            raise ValueError("No hypothesis generated.")
+
+        return resp_dict
+
+    def task_gen(
+        self,
+        component_desc: str,
+        scenario_desc: str,
+        sota_exp_desc: str,
+        sota_exp: DSExperiment,
+        hypotheses: list[DSHypothesis],
+        pipeline: bool,
+        failed_exp_feedback_list_desc: str,
+    ) -> DSExperiment:
+        if pipeline:
+            component_info = COMPONENT_TASK_MAPPING["Pipeline"]
+        else:
+            component_info = COMPONENT_TASK_MAPPING.get(hypotheses[0].component)
+        data_folder_info = self.scen.processed_data_folder_description
+        sys_prompt = T(".prompts_v3:task_gen.system").r(
+            # targets=component_info["target_name"],
+            # task_output_format=component_info["task_output_format"],
+            # component_desc=component_desc,
+            # workflow_check=not pipeline and hypothesis.component != "Workflow",
+        )
+        user_prompt = T(".prompts_v3:task_gen.user").r(
+            scenario_desc=scenario_desc,
+            data_folder_info=data_folder_info,
+            sota_exp_desc=sota_exp_desc,
+            hypotheses=hypotheses,
+            failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format=CodingSketch,
+            # json_mode=True,
+            # json_target_type=Dict[str, str | Dict[str, str]],
+        )
+        task_dict = json.loads(response)
+        task_design = task_dict.get("sketch", {})
+        logger.info("Task design:\n" + task_design)
+        task_name = hypotheses[0].component
+        description = (
+            task_design
+            if isinstance(task_design, str)
+            else task_design.get("description", f"{component_info['target_name']} description not provided")
+        )
+        task_class = component_info["task_class"]
+        task = task_class(
+            name=task_name,
+            description=description,
+        )
+        new_workflow_desc = task_dict.get("workflow_update", "No update needed")
+        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypotheses[0])
+        # exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
+        if sota_exp is not None:
+            exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
+        if not pipeline and new_workflow_desc != "No update needed":
+            workflow_task = WorkflowTask(
+                name="Workflow",
+                description=new_workflow_desc,
+            )
+            exp.pending_tasks_list.append([workflow_task])
+        return exp
+
+    def get_all_hypotheses(self, problem_dict: dict, hypothesis_dict: dict) -> list[DSHypothesis]:
+        result = []
+        for name, data in hypothesis_dict.items():
+            problem_data = problem_dict.get(name, {})
+            result.append(
+                DSHypothesis(
+                    component=data.get("component", "Model"),
+                    hypothesis=data.get("hypothesis", "Hypothesis not provided"),
+                    reason=data.get("reason", "Reason not provided"),
+                    problem_name=name,
+                    problem_desc=problem_data.get("problem", "Problem description not provided"),
+                    problem_label=problem_data.get("label", "FEEDBACK_PROBLEM"),
+                )
+            )
+        return result
+
+    def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
+        if pipeline:
+            component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
+        else:
+            component_desc = "\n".join(
+                [
+                    f"[{key}] {value}"
+                    for key, value in T("scenarios.data_science.share:component_description").template.items()
+                ]
+            )
+
+        sota_exp = trace.sota_experiment()
+        if not isinstance(sota_exp, DSExperiment):
+            eda_output = None
+        else:
+            eda_output = sota_exp.experiment_workspace.file_dict.get("EDA.md", None)
+        scenario_desc = self.get_scenario_all_desc_v3(trace, eda_output=eda_output)
+
+        sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
+            exp=sota_exp, heading="Best of previous exploration of the scenario"
+        )
+
+        exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
+            type="all",
+            pipeline=pipeline,
+        )
+        failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
+            type="failed",
+            pipeline=pipeline,
+        )
+
+        # Step 1: Identify problems
+        all_problems = {}
+        if len(trace.hist) >= 3:
+            fb_problems = self.identify_feedback_problem(
+                scenario_desc=scenario_desc,
+                exp_feedback_list_desc=exp_feedback_list_desc,
+                sota_exp_desc=sota_exp_desc,
+            )
+            for problem_name in fb_problems:
+                fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
+                all_problems[problem_name] = fb_problems[problem_name]
+
+        if len(trace.hist) < 9:
+            scen_problems = self.identify_scenario_problem(
+                scenario_desc=scenario_desc,
+                sota_exp_desc=sota_exp_desc,
+            )
+            for problem_name in scen_problems:
+                scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
+                all_problems[problem_name] = scen_problems[problem_name]
+
+        # Step 1.5: Sample ideas from idea pool
+        if DS_RD_SETTING.enable_knowledge_base:
+            all_problems = trace.knowledge_base.sample_ideas(
+                problems=all_problems,
+                scenario_desc=scenario_desc,
+                exp_feedback_list_desc=exp_feedback_list_desc,
+                sota_exp_desc=sota_exp_desc,
+                competition_desc=self.scen.get_competition_full_desc(),
+            )
+
+        # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
+        hypothesis_dict = self.hypothesis_gen(
+            component_desc=component_desc,
+            scenario_desc=scenario_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+            problems=all_problems,
+            pipeline=pipeline,
+            enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
+        )
+        if not pipeline:
+            sota_exp_model_file_count = len(
+                [
+                    k
+                    for k in sota_exp.experiment_workspace.file_dict.keys()
+                    if k.endswith(".py") and "test" not in k and k.startswith("model")
+                ]
+            )
+            if sota_exp_model_file_count <= 1:
+                pop_names = []
+                for problem_name in hypothesis_dict:
+                    if hypothesis_dict[problem_name].get("component", "") == "Ensemble":
+                        pop_names.append(problem_name)
+                for name in pop_names:
+                    hypothesis_dict.pop(name)
+
+        # Step 3: Select the best hypothesis
+        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+            hypothesis_dict=hypothesis_dict,
+            problem_dict=all_problems,
+            trace=trace,
+        )
+        # Step 3.5: Update knowledge base with the picked problem
+        if DS_RD_SETTING.enable_knowledge_base:
+            trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
+
+        return self.task_gen(
+            component_desc=component_desc,
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            sota_exp=sota_exp,
+            hypotheses=(
+                [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(all_problems, hypothesis_dict)
+            ),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
         )
