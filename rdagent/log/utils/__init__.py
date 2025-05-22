@@ -314,25 +314,9 @@ def log_obj_to_json(
                 },
             },
         }
-
-    elif "runner result" in tag:
-        from rdagent.core.experiment import Experiment
-
-        if isinstance(obj, Experiment):
-            data = {
-                "id": str(log_trace_path),
-                "msg": {
-                    "tag": "feedback.metric",
-                    "timestamp": ts,
-                    "loop_id": li,
-                    "content": {
-                        "result": obj.result.iloc[0]
-                    }
-                },
-            }
     elif "running" in tag:
-        from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-        if isinstance(obj, DSExperiment):
+        from rdagent.core.experiment import Experiment
+        if isinstance(obj, Experiment):
             if obj.result is not None:
                 result_str = obj.result.to_json()
                 data = {
