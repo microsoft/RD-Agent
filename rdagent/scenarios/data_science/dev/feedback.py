@@ -89,16 +89,29 @@ class DSExperiment2Feedback(Experiment2Feedback):
                     )
 
         eda_output = exp.experiment_workspace.file_dict.get("EDA.md", None)
-        system_prompt = T(".prompts:exp_feedback.system").r(
-            scenario=self.scen.get_scenario_all_desc(eda_output=eda_output)
-        )
-        user_prompt = T(".prompts:exp_feedback.user").r(
-            sota_desc=sota_desc,
-            cur_exp=exp,
-            diff_edition=diff_edition,
-            feedback_desc=feedback_desc,
-            cur_vs_sota_score=cur_vs_sota_score,
-        )
+        if DS_RD_SETTING.proposal_version == "v3":
+            # FIXME: Some minor changes. Did not have time to test the full.
+            system_prompt = T(".prompts:exp_feedback_v3.system").r(
+                scenario=self.scen.get_scenario_all_desc(eda_output=eda_output)
+            )
+            user_prompt = T(".prompts:exp_feedback_v3.user").r(
+                sota_desc=sota_desc,
+                cur_exp=exp,
+                diff_edition=diff_edition,
+                feedback_desc=feedback_desc,
+                cur_vs_sota_score=cur_vs_sota_score,
+            )
+        else:
+            system_prompt = T(".prompts:exp_feedback.system").r(
+                scenario=self.scen.get_scenario_all_desc(eda_output=eda_output)
+            )
+            user_prompt = T(".prompts:exp_feedback.user").r(
+                sota_desc=sota_desc,
+                cur_exp=exp,
+                diff_edition=diff_edition,
+                feedback_desc=feedback_desc,
+                cur_vs_sota_score=cur_vs_sota_score,
+            )
 
         resp_dict = json.loads(
             APIBackend().build_messages_and_create_chat_completion(
