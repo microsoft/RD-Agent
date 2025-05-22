@@ -10,12 +10,13 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiFeedback,
     CoSTEERSingleFeedback,
 )
+from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
+from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
-from rdagent.oai.llm_utils import APIBackend
+from rdagent.log import rdagent_logger as logger
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
-from rdagent.utils.env import DockerEnv, DSDockerConf, MLEBDockerConf
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -54,12 +55,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        # DockerEnv for Kaggle Competition
-        ds_docker_conf = DSDockerConf()
-        ds_docker_conf.extra_volumes = {
-            f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"
-        }
-        de = DockerEnv(conf=ds_docker_conf)
+        env = get_ds_env(extra_volumes={self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()})
 
         # # DockerEnv for MLEBench submission validation
         # mle_de_conf = MLEBDockerConf()
@@ -70,10 +66,12 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         # mde.prepare()
 
         # Clean the scores.csv & submission.csv.
-        implementation.execute(env=de, entry=f"rm submission.csv scores.csv")
+        implementation.execute(env=env, entry=get_clear_ws_cmd())
 
-        stdout = implementation.execute(env=de, entry=f"python main.py")
-        stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", stdout)
+        stdout = implementation.execute(env=env, entry=f"python -m coverage run main.py")
+
+        # remove EDA part
+        stdout = remove_eda_part(stdout)
 
         # Check score file
         score_fp = implementation.workspace_path / "scores.csv"
@@ -82,57 +80,76 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         if not score_fp.exists():
             score_check_text = "[Error] Metrics file (scores.csv) is not generated!"
             score_ret_code = 1
+            implementation.execute(env=env, entry="python -m coverage json -o coverage.json")
+            coverage_report_path = implementation.workspace_path / "coverage.json"
+            if coverage_report_path.exists():
+                used_files = set(json.loads(coverage_report_path.read_text())["files"].keys())
+                coverage_report_path.unlink()
+                logger.info(f"All used scripts: {used_files}")
+                if len(used_files) == 1:
+                    score_check_text += f"\n[Error] The only used script is {used_files}.\nPlease check if you have implemented entry point in 'main.py'."
         else:
             try:
                 score_df = pd.read_csv(score_fp, index_col=0)
                 model_set_in_scores = set(score_df.index)
+                # We assume that model names in `score_df` are stored without the '.py' file extension.
                 model_set_in_folder = set(
                     f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_(?!test)\w+\.py$", f)
                 )
-                for model in model_set_in_folder:
-                    if model not in model_set_in_scores:
-                        score_check_text += f"\nModel {model} is not evaluated in the scores.csv. The scores.csv has {model_set_in_scores}."
-                        score_ret_code = 1
+
+                # Check model names (index)
+                if model_set_in_scores != model_set_in_folder.union({"ensemble"}):
+                    score_check_text += f"\n[Error] The scores dataframe does not contain the correct model names as index.\ncorrect model names are: {model_set_in_folder.union({'ensemble'})}\nscore_df is:\n{score_df}"
+                    score_ret_code = 1
+
+                # Check metric name (columns)
+                if score_df.columns.tolist() != [self.scen.metric_name]:
+                    score_check_text += f"\n[Error] The scores dataframe does not contain the correct column names.\nCorrect columns is: ['{self.scen.metric_name}']\nBut got: {score_df.columns.tolist()}"
+                    score_ret_code = 1
+
+                # Check if scores contain NaN (values)
+                if score_df.isnull().values.any():
+                    nan_locations = score_df[score_df.isnull().any(axis=1)]
+                    score_check_text += f"\n[Error] The scores dataframe contains NaN values at the following locations:\n{nan_locations}"
+                    score_ret_code = 1
+
             except Exception as e:
-                score_check_text += f"\nError in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
+                score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
                 score_ret_code = 1
 
         # Check submission file
-        base_check_code = (DIRNAME / "eval_tests" / "submission_format_test.txt").read_text()
+        base_check_code = T(".eval_tests.submission_format_test", ftype="txt").r()
         implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
         # stdout += "----Submission Check 1-----\n"
         submission_check_out, submission_ret_code = implementation.execute_ret_code(
-            env=de, entry="python test/submission_format_test.py"
+            env=env, entry="python test/submission_format_test.py"
         )
         stdout += "\n" + submission_check_out
 
-        # MLEBench Check
-        # !!! Since we are running on a sampled dataset, mlebench check is not required.
-        # mle_check_code = (
-        #     (DIRNAME / "eval_tests" / "mle_submission_format_test.txt")
-        #     .read_text()
-        #     .replace("<competition_id>", self.scen.competition)
-        # )
-        # implementation.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
-        # stdout += "----Submission Check 2-----\n"
-        # stdout += implementation.execute(env=mde, entry=f"python test/mle_submission_format_test.py")
-
         system_prompt = T(".prompts:workflow_eval.system").r(
-            scenario=self.scen.get_scenario_all_desc(),
+            # here we pass `None` to `eda_output` because we do not have nor need EDA output for workflow.
+            scenario=self.scen.get_scenario_all_desc(eda_output=None),
             task_desc=target_task.get_task_information(),
-            spec=implementation.file_dict["spec/workflow.md"],
+            spec=(
+                implementation.file_dict["spec/workflow.md"]
+                if DS_RD_SETTING.spec_enabled
+                else T("scenarios.data_science.share:component_spec.Workflow").r()
+            ),
         )
         user_prompt = T(".prompts:workflow_eval.user").r(
             stdout=stdout.strip(),
             code=implementation.file_dict["main.py"],
         )
         wfb = build_cls_from_json_with_retry(
-            WorkflowSingleFeedback, system_prompt=system_prompt, user_prompt=user_prompt
+            WorkflowSingleFeedback,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            init_kwargs_update_func=WorkflowSingleFeedback.val_and_update_init_dict,
         )
         if score_ret_code != 0:
             wfb.final_decision = False
-            wfb.execution += "\n" + score_check_text
+            wfb.return_checking += "\n" + score_check_text
         if submission_ret_code != 0:
             wfb.final_decision = False
-            wfb.execution += "\nSubmission file check failed."
+            wfb.return_checking += "\nSubmission file check failed."
         return wfb

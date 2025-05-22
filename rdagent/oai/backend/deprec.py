@@ -152,7 +152,7 @@ class DeprecBackend(APIBackend):
             self.gcr_endpoint_max_token = LLM_SETTINGS.gcr_endpoint_max_token
             if not os.environ.get("PYTHONHTTPSVERIFY", "") and hasattr(ssl, "_create_unverified_context"):
                 ssl._create_default_https_context = ssl._create_unverified_context  # noqa: SLF001
-            self.chat_model_map = json.loads(LLM_SETTINGS.chat_model_map)
+            self.chat_model_map = LLM_SETTINGS.chat_model_map
             self.chat_model = LLM_SETTINGS.chat_model
             self.encoder = None
         elif LLM_SETTINGS.chat_use_azure_deepseek:
@@ -160,7 +160,7 @@ class DeprecBackend(APIBackend):
                 endpoint=LLM_SETTINGS.chat_azure_deepseek_endpoint,
                 credential=AzureKeyCredential(LLM_SETTINGS.chat_azure_deepseek_key),
             )
-            self.chat_model_map = json.loads(LLM_SETTINGS.chat_model_map)
+            self.chat_model_map = LLM_SETTINGS.chat_model_map
             self.encoder = None
             self.chat_model = "deepseek-R1"
             self.chat_stream = LLM_SETTINGS.chat_stream
@@ -181,7 +181,7 @@ class DeprecBackend(APIBackend):
             )
 
             self.chat_model = LLM_SETTINGS.chat_model
-            self.chat_model_map = json.loads(LLM_SETTINGS.chat_model_map)
+            self.chat_model_map = LLM_SETTINGS.chat_model_map
             self.encoder = self._get_encoder()
             self.chat_openai_base_url = LLM_SETTINGS.chat_openai_base_url
             self.embedding_openai_base_url = LLM_SETTINGS.embedding_openai_base_url
@@ -283,17 +283,6 @@ class DeprecBackend(APIBackend):
 
         return [content_to_embedding_dict[content] for content in input_content_list]
 
-    def _build_log_messages(self, messages: list[dict[str, Any]]) -> str:
-        log_messages = ""
-        for m in messages:
-            log_messages += (
-                f"\n{LogColors.MAGENTA}{LogColors.BOLD}Role:{LogColors.END}"
-                f"{LogColors.CYAN}{m['role']}{LogColors.END}\n"
-                f"{LogColors.MAGENTA}{LogColors.BOLD}Content:{LogColors.END} "
-                f"{LogColors.CYAN}{m['content']}{LogColors.END}\n"
-            )
-        return log_messages
-
     def _create_chat_completion_inner_function(  # type: ignore[no-untyped-def] # noqa: C901, PLR0912, PLR0915
         self,
         messages: list[dict[str, Any]],
@@ -314,19 +303,20 @@ class DeprecBackend(APIBackend):
             logger.info(self._build_log_messages(messages), tag="llm_messages")
         # TODO: fail to use loguru adaptor due to stream response
 
+        model = LLM_SETTINGS.chat_model
         temperature = LLM_SETTINGS.chat_temperature
         max_tokens = LLM_SETTINGS.chat_max_tokens
         frequency_penalty = LLM_SETTINGS.chat_frequency_penalty
         presence_penalty = LLM_SETTINGS.chat_presence_penalty
 
-        # Use index 4 to skip the current function and intermediate calls,
-        # and get the locals of the caller's frame.
-        caller_locals = inspect.stack()[4].frame.f_locals
-        if "self" in caller_locals:
-            tag = caller_locals["self"].__class__.__name__
-        else:
-            tag = inspect.stack()[4].function
-        model = self.chat_model_map.get(tag, self.chat_model)
+        if self.chat_model_map:
+            for t, mc in self.chat_model_map.items():
+                if t in logger._tag:
+                    model = mc.get("model", model)
+                    temperature = float(mc.get("temperature", temperature))
+                    if "max_tokens" in mc:
+                        max_tokens = int(mc["max_tokens"])
+                    break
 
         finish_reason = None
         if self.use_llama2:
@@ -405,7 +395,7 @@ class DeprecBackend(APIBackend):
                 logger.info(f"{LogColors.CYAN}Think:{think_part}{LogColors.END}", tag="llm_messages")
                 logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
         else:
-            call_kwargs = dict(
+            call_kwargs: dict[str, Any] = dict(
                 model=model,
                 messages=messages,
                 max_tokens=max_tokens,
@@ -454,7 +444,6 @@ class DeprecBackend(APIBackend):
                     logger.info(
                         json.dumps(
                             {
-                                "tag": tag,
                                 "total_tokens": response.usage.total_tokens,
                                 "prompt_tokens": response.usage.prompt_tokens,
                                 "completion_tokens": response.usage.completion_tokens,

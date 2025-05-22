@@ -6,9 +6,25 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 import shutil
 
-from rdagent.utils.env import LocalConf, LocalEnv, QlibDockerConf, QTDockerEnv
+from rdagent.utils.env import (
+    CondaConf,
+    LocalConf,
+    LocalEnv,
+    QlibDockerConf,
+    QTDockerEnv,
+)
 
 DIRNAME = Path(__file__).absolute().resolve().parent
+
+
+class QlibLocalEnv(LocalEnv):
+    def prepare(self) -> None:
+        if not (Path("~/.qlib/qlib_data/cn_data").expanduser().resolve().exists()):
+            self.run(
+                entry="python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn",
+            )
+        else:
+            print("Data already exists. Download skipped.")
 
 
 class EnvUtils(unittest.TestCase):
@@ -24,15 +40,34 @@ class EnvUtils(unittest.TestCase):
     # NOTE: Because you need to download the data during the prepare process. So you need to have pyqlib in your environment.
     def test_local(self):
         local_conf = LocalConf(
-            py_bin="/home/v-linlanglv/miniconda3/envs/RD-Agent-310/bin",
+            bin_path="/home/v-linlanglv/miniconda3/envs/RD-Agent-310/bin",
             default_entry="qrun conf.yaml",
         )
-        qle = LocalEnv(conf=local_conf)
+        qle = QlibLocalEnv(conf=local_conf)
         qle.prepare()
         conf_path = str(DIRNAME / "env_tpl" / "conf.yaml")
         qle.run(entry="qrun " + conf_path)
         mlrun_p = DIRNAME / "env_tpl" / "mlruns"
         self.assertTrue(mlrun_p.exists(), f"Expected output file {mlrun_p} not found")
+
+    def test_local_simple(self):
+        local_conf = LocalConf(bin_path="/home/xiaoyang/miniconda3/bin/", default_entry="which python")
+        le = LocalEnv(conf=local_conf)
+        print(local_conf)
+        le.prepare()
+        code_path = DIRNAME / "tmp_code"
+        code_path.mkdir(exist_ok=True)
+        res, code = le.run_ret_code(local_path=str(code_path))
+        print(res, code)
+
+    def test_conda_simple(self):
+        conda_conf = CondaConf(default_entry="which python", conda_env_name="MLE")
+        le = LocalEnv(conf=conda_conf)
+        le.prepare()
+        code_path = DIRNAME / "tmp_code"
+        code_path.mkdir(exist_ok=True)
+        res, code = le.run_ret_code(local_path=str(code_path))
+        print(res, code)
 
     def test_docker(self):
         """We will mount `env_tpl` into the docker image.

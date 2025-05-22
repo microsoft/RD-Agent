@@ -3,6 +3,7 @@ from typing import Dict
 
 import pandas as pd
 
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.proposal import (
     Experiment2Feedback,
     ExperimentFeedback,
@@ -11,6 +12,7 @@ from rdagent.core.proposal import (
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
 from rdagent.utils import convert2bool
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
@@ -29,21 +31,22 @@ class DSExperiment2Feedback(Experiment2Feedback):
             exp=sota_exp, heading="SOTA of previous exploration of the scenario"
         )
 
+        last_exp = trace.last_exp()
+
         # Get feedback description using shared template
         feedback_desc = T("scenarios.data_science.share:describe.feedback").r(
-            exp_and_feedback=(trace.hist[-1] if trace.hist else None), heading="Previous Trial Feedback"
+            exp_and_feedback=trace.hist[-1] if trace.hist else None, heading="Previous Trial Feedback"
         )
 
         # TODO:
         # -  Should we choose between the diff from last experiment or last sota ?
 
         # Retrieve the last experiment from the history
-        last_exp = trace.hist[-1][0] if trace.hist else None
-        if last_exp and last_exp.experiment_workspace and exp.experiment_workspace:
+        if sota_exp and sota_exp.experiment_workspace and exp.experiment_workspace:
             # Generate a diff between the two workspaces
-            last_exp_files = last_exp.experiment_workspace.file_dict
+            sota_exp_files = sota_exp.experiment_workspace.file_dict
             current_exp_files = exp.experiment_workspace.file_dict
-            diff_edition = generate_diff_from_dict(last_exp_files, current_exp_files)
+            diff_edition = generate_diff_from_dict(sota_exp_files, current_exp_files)
         else:
             diff_edition = []
 
@@ -58,8 +61,37 @@ class DSExperiment2Feedback(Experiment2Feedback):
                 f"The current score is {cur_score}, while the SOTA score is {sota_score}. "
                 f"{'In this competition, higher is better.' if self.scen.metric_direction else 'In this competition, lower is better.'}"
             )
+        if DS_RD_SETTING.rule_base_eval:
+            if sota_exp:
+                if cur_score > sota_score:
+                    return HypothesisFeedback(
+                        observations="The current score bigger than the SOTA score.",
+                        hypothesis_evaluation="The current score is bigger than the SOTA score.",
+                        new_hypothesis="No new hypothesis provided",
+                        reason="The current score is bigger than the SOTA score.",
+                        decision=True if self.scen.metric_direction else False,
+                    )
+                elif cur_score < sota_score:
+                    return HypothesisFeedback(
+                        observations="The current score smaller than the SOTA score.",
+                        hypothesis_evaluation="The current score is smaller than the SOTA score.",
+                        new_hypothesis="No new hypothesis provided",
+                        reason="The current score is smaller than the SOTA score.",
+                        decision=False if self.scen.metric_direction else True,
+                    )
+                else:
+                    return HypothesisFeedback(
+                        observations="The current score equals to the SOTA score.",
+                        hypothesis_evaluation="The current score equals to the SOTA score.",
+                        new_hypothesis="No new hypothesis provided",
+                        reason="The current score equals to the SOTA score.",
+                        decision=False,
+                    )
 
-        system_prompt = T(".prompts:exp_feedback.system").r(scenario=self.scen.get_scenario_all_desc())
+        eda_output = exp.experiment_workspace.file_dict.get("EDA.md", None)
+        system_prompt = T(".prompts:exp_feedback.system").r(
+            scenario=self.scen.get_scenario_all_desc(eda_output=eda_output)
+        )
         user_prompt = T(".prompts:exp_feedback.user").r(
             sota_desc=sota_desc,
             cur_exp=exp,
@@ -77,10 +109,28 @@ class DSExperiment2Feedback(Experiment2Feedback):
             )
         )
 
-        return HypothesisFeedback(
+        if resp_dict.get("Evaluation Aligned With Task", "no") == "no":
+            exp.result = None
+
+        # Currently, we do not use `observations`, `hypothesis_evaluation`, and `new_hypothesis` in the framework.
+        # `new_hypothesis` should not exist in the feedback.
+        hypothesis_feedback = HypothesisFeedback(
             observations=resp_dict.get("Observations", "No observations provided"),
             hypothesis_evaluation=resp_dict.get("Feedback for Hypothesis", "No feedback provided"),
             new_hypothesis=resp_dict.get("New Hypothesis", "No new hypothesis provided"),
             reason=resp_dict.get("Reasoning", "No reasoning provided"),
             decision=convert2bool(resp_dict.get("Replace Best Result", "no")),
         )
+
+        if hypothesis_feedback and DS_RD_SETTING.enable_knowledge_base:
+            ds_idea = DSIdea(
+                {
+                    "competition": self.scen.get_competition_full_desc(),
+                    "idea": exp.hypothesis.hypothesis,
+                    "method": exp.pending_tasks_list[0][0].get_task_information(),
+                    "hypothesis": {exp.hypothesis.problem_label: exp.hypothesis.problem_desc},
+                }
+            )
+            trace.knowledge_base.add_idea(idea=ds_idea)
+
+        return hypothesis_feedback

@@ -9,6 +9,7 @@ Postscripts:
 """
 
 import datetime
+import os
 import pickle
 import time
 from collections import defaultdict
@@ -16,9 +17,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Optional, TypeVar, Union, cast
 
+import pytz
 from tqdm.auto import tqdm
 
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
+
+if RD_AGENT_SETTINGS.enable_mlflow:
+    import mlflow
 
 
 class LoopMeta(type):
@@ -36,7 +43,7 @@ class LoopMeta(type):
         steps = []
         for base in bases:
             for step in LoopMeta._get_steps(base.__bases__) + getattr(base, "steps", []):
-                if step not in steps:
+                if step not in steps and step not in ["load", "dump"]:  # incase user override the load/dump method
                     steps.append(step)
         return steps
 
@@ -55,7 +62,7 @@ class LoopMeta(type):
         steps = LoopMeta._get_steps(bases)  # all the base classes of parents
         for name, attr in attrs.items():
             if not name.startswith("_") and callable(attr):
-                if name not in steps:
+                if name not in steps and name not in ["load", "dump"]:  # incase user override the load/dump method
                     # NOTE: if we override the step in the subclass
                     # Then it is not the new step. So we skip it.
                     steps.append(name)
@@ -90,8 +97,9 @@ class LoopBase:
         self.loop_prev_out: dict[str, Any] = {}  # the step results of current loop
         self.loop_trace = defaultdict(list[LoopTrace])  # the key is the number of loop
         self.session_folder = logger.log_trace_path / "__session__"
+        self.timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
 
-    def run(self, step_n: int | None = None, loop_n: int | None = None) -> None:
+    def run(self, step_n: int | None = None, loop_n: int | None = None, all_duration: str | None = None) -> None:
         """
 
         Parameters
@@ -103,6 +111,10 @@ class LoopBase:
             How many steps to run; if current loop is incomplete, it will be counted as the first loop for completion
             `None` indicates to run forever until error or KeyboardInterrupt
         """
+
+        if all_duration is not None and not self.timer.started:
+            self.timer.reset(all_duration=all_duration)
+
         with tqdm(total=len(self.steps), desc="Workflow Progress", unit="step") as pbar:
             while True:
                 if step_n is not None:
@@ -112,6 +124,47 @@ class LoopBase:
                 if loop_n is not None:
                     if loop_n <= 0:
                         break
+
+                if RD_AGENT_SETTINGS.enable_mlflow:
+                    mlflow.log_metric("loop_index", self.loop_idx)
+                    mlflow.log_metric("step_index", self.step_idx)
+                    current_local_datetime = datetime.datetime.now(pytz.timezone("Asia/Shanghai"))
+                    float_like_datetime = (
+                        current_local_datetime.second
+                        + current_local_datetime.minute * 1e2
+                        + current_local_datetime.hour * 1e4
+                        + current_local_datetime.day * 1e6
+                        + current_local_datetime.month * 1e8
+                        + current_local_datetime.year * 1e10
+                    )
+                    mlflow.log_metric("current_datetime", float_like_datetime)
+                    mlflow.log_metric("api_fail_count", RD_Agent_TIMER_wrapper.api_fail_count)
+                    lastest_api_fail_time = RD_Agent_TIMER_wrapper.latest_api_fail_time
+                    if lastest_api_fail_time is not None:
+                        mlflow.log_metric(
+                            "lastest_api_fail_time",
+                            (
+                                lastest_api_fail_time.second
+                                + lastest_api_fail_time.minute * 1e2
+                                + lastest_api_fail_time.hour * 1e4
+                                + lastest_api_fail_time.day * 1e6
+                                + lastest_api_fail_time.month * 1e8
+                                + lastest_api_fail_time.year * 1e10
+                            ),
+                        )
+
+                if self.timer.started:
+                    if RD_AGENT_SETTINGS.enable_mlflow:
+                        mlflow.log_metric("remain_time", self.timer.remain_time().seconds)  # type: ignore[union-attr]
+                        mlflow.log_metric(
+                            "remain_percent", self.timer.remain_time() / self.timer.all_duration * 100  # type: ignore[operator]
+                        )
+
+                    if self.timer.is_timeout():
+                        logger.warning("Timeout, exiting the loop.")
+                        break
+                    else:
+                        logger.info(f"Timer remaining time: {self.timer.remain_time()}")
 
                 li, si = self.loop_idx, self.step_idx
                 name = self.steps[si]
@@ -155,6 +208,8 @@ class LoopBase:
                 self.dump(self.session_folder / f"{li}" / f"{si}_{name}")  # save a snapshot after the session
 
     def dump(self, path: str | Path) -> None:
+        if RD_Agent_TIMER_wrapper.timer.started:
+            RD_Agent_TIMER_wrapper.timer.update_remain_time()
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("wb") as f:
@@ -162,17 +217,24 @@ class LoopBase:
 
     @classmethod
     def load(
-        cls, path: Union[str, Path], output_path: Optional[Union[str, Path]] = None, do_truncate: bool = True
+        cls,
+        path: Union[str, Path],
+        output_path: Optional[Union[str, Path]] = None,
+        do_truncate: bool = False,
+        replace_timer: bool = True,
     ) -> "LoopBase":
         path = Path(path)
         with path.open("rb") as f:
             session = cast(LoopBase, pickle.load(f))
 
         # set session folder
-        if output_path:
-            output_path = Path(output_path)
-            output_path.mkdir(parents=True, exist_ok=True)
-            session.session_folder = output_path / "__session__"
+        # - P1: if output_path explicitly specified.
+        # - P2: RD_AGENT_SETTINGS.log_trace_path
+        output_path_value = output_path if output_path is not None else RD_AGENT_SETTINGS.log_trace_path
+        if output_path_value is not None:
+            output_path_path = Path(output_path_value)
+            output_path_path.mkdir(parents=True, exist_ok=True)
+            session.session_folder = output_path_path / "__session__"
 
         # set trace path
         logger.set_trace_path(session.session_folder.parent)
@@ -181,6 +243,15 @@ class LoopBase:
         if do_truncate:
             max_loop = max(session.loop_trace.keys())
             logger.storage.truncate(time=session.loop_trace[max_loop][-1].end)
+
+        if session.timer.started:
+            if replace_timer:
+                RD_Agent_TIMER_wrapper.replace_timer(session.timer)
+                RD_Agent_TIMER_wrapper.timer.restart_by_remain_time()
+            else:
+                # Use the default timer to replace the session timer
+                session.timer = RD_Agent_TIMER_wrapper.timer
+
         return session
 
 

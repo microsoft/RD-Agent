@@ -48,33 +48,15 @@ spec:
           - `test_ids` (DT): Identifiers for the test data.
         - Docstring Requirements:
           - Describe the purpose of the function.
-          - Specify the data source location (`/kaggle/input/`).
+          - Specify the data source location (`{% include "scenarios.data_science.share:scen.input_path" %}`).
           - Clearly define the structure and type of the output.
           - Inferred data shape to each input and output data variables. To uncertain dimension, use -1.
-
-      2. Precautions for Data Loading and Preprocessing:
-        - File Handling:
-          - Ensure proper file encoding and delimiters.
-          - Combine or process multiple files if necessary.
-        - Data Preprocessing:
-          - Convert data types correctly (e.g., numeric, categorical, date parsing).
-          - Handle missing values appropriately.
-          - Optimize memory usage for large datasets using techniques like downcasting or reading data in chunks if necessary.
-        - Domain-Specific Handling: 
-          - Apply competition-specific preprocessing steps as needed (e.g., text tokenization, image resizing).
-
-      3. Code Standards:
-        - Avoid using progress bars (e.g., `tqdm`) in the implementation.
-
-      4. Notes:
+      2. Notes:
         - Update `DT` (data type) based on the specific competition dataset. This can include `pd.DataFrame`, `np.array`, `torch.Tensor`, etc.
-        - Never use sample submission as the test index, as it may not be the same as the test data. Use the test index file or test data source to get the test index.
         - Only set the DT of variables without inferring the shape of these variables since you don't know the shape of the data.
-      
-      5. Exploratory Data Analysis (EDA) part(Required):
-        - Before returning the data, you should always add an EDA part describing the data to help the following steps understand the data better.
-        - The EDA part should be drafted in plain text with certain format schema with no more than ten thousand characters.
-        - An evaluation agent will help to check whether the EDA part is added correctly.
+
+      Responsibilities and notes of an implemented data loader that aligns with the generated specification.
+      {% include "scenarios.data_science.share:component_spec.DataLoadSpec" %}
 
       {% if latest_spec %}
       6. Former Specification:
@@ -82,10 +64,8 @@ spec:
         You should follow the provided specifications to improve this task.
       {% endif %}
 
-      Please respond with a JSON structure as follows:
-      {
-          "spec": "The function definition in code format, tailored to the Competition Information, with detailed explanations provided in the docstring."
-      }
+      ## Output Format
+      You should return the specification in markdown format directly, while the **function definition** within it should be in code format, tailored to the Competition Information, with detailed explanations provided in the docstring.
 
     feature: |-
       Feature engineering specification text should adhere to the following requirements:
@@ -106,18 +86,19 @@ spec:
           - Inferred data shape to each input and output data variables. To uncertain dimension, use -1.
 
       2. Precautions for Feature Engineering:
-        - Well handle the shape of the data
+        - Well handle the shape of the data:
           - The sample size of the train data and the test data should be the same in all scenarios.
-          - To most of the scenario, the input shape and the output shape should be exactly the same.
-          - To some tabular data, you may add or remove some columns so your inferred column number may be unsure.
-        - Integration with Model Pipeline
-          - If feature engineering is strictly part of the model pipeline, state explicitly that it will be handled at the model stage.
-          - If integrated here, ensure this function applies all required transformations while avoiding data leakage.
+          - To some tabular or time-series data, you may add or remove some columns so your inferred column number may be unsure.
+          - For scenarios where each dimension does not have a special meaning (like image, audio, and so on), the input shape and the output shape should be exactly the same in most cases unless there is a compelling reason to change them.
+        - Integration with the Model Pipeline:
+          - If feature engineering is deferred to the model pipeline for better overall performance, state explicitly that it will be handled at the model stage.
+            - Model-related operations should not be implemented in this step. (e.g., it uses tools combined with models like torch.Dataset with rich data transformation/augmentation)
+          - Otherwise, ensure this function applies all required transformations while avoiding data leakage.
         - General Considerations:
           - Ensure scalability for large datasets.
           - Handle missing values and outliers appropriately (e.g., impute, remove, or replace).
           - Ensure consistency between feature data types and transformations.
-          - Avoid data leakage: Only use features derived from training data, excluding information from test or validation sets.
+          - Prevent data leakage: Do not use information derived from the test set when transforming training data.
         - Domain-Specific Features:
           - Apply logic for competition-specific features (e.g., text vectorization, image augmentations, categorical encoding).
 
@@ -126,9 +107,7 @@ spec:
 
       4. Notes:
         - Align `DT` (data type) definitions with those in the Data Loader specification.
-        - Extend or adjust domain-specific transformations based on competition requirements.
-        - The device has GPU support, so you can use it for feature engineering if necessary to accelerate the process.
-        - Multi processing or parallel processing can be used to speed up the feature engineering process.
+        - GPU and multiprocessing are available and are encouraged to use for accelerating transformations.
         - Only set the DT of variables without inferring the shape of these variables since you don't know the shape of the data.
       
       {% if latest_spec %}
@@ -137,10 +116,8 @@ spec:
         You should follow the provided specifications to improve this task.
       {% endif %}
 
-      Please respond with a JSON structure as follows:
-      {
-          "spec": "The function definition in code format, tailored to the Competition Information, with detailed explanations provided in the docstring."
-      }
+      ## Output Format
+      You should return the specification in markdown format directly, while the **function definition** within it should be in code format, tailored to the Competition Information, with detailed explanations provided in the docstring.
 
     model: |-
       Model building specification text should adhere to the following requirements:
@@ -176,7 +153,8 @@ spec:
 
       4. Notes:
         - Align `DT` (data type) with the definitions used in Feature Engineering specifications.
-        - The device has GPU support, so you can use it for training if necessary to accelerate the process.
+        - The device has GPU support, so you are encouraged to use it for training if necessary to accelerate the process.
+        - Some data transformations/augmentations can be included in this step (e.g., data tools provided by TensorFlow and Torch)
 
       {% if latest_spec %}
       5. Former Specification:
@@ -184,10 +162,8 @@ spec:
         You should follow the provided specifications to improve this task.
       {% endif %}
 
-      Please respond in the following JSON format:
-      {
-          "spec": "The function definition in code format, tailored to the Competition Information, with detailed explanations provided in the docstring."
-      }
+      ## Output Format
+      You should return the specification in markdown format directly, while the **function definition** within it should be in code format, tailored to the Competition Information, with detailed explanations provided in the docstring.
 
     ensemble: |-
       Ensemble specification text adhere to the following requirements:
@@ -206,7 +182,7 @@ spec:
           - Inferred data shape to each input and output data variables. To uncertain dimension, use -1.
 
       2. Precautions:
-        - Validation of Inputs:
+        - Input Validation:
           - Ensure all predictions in `test_preds_dict` and `val_preds_dict` have consistent shapes and dimensions.
           - Verify that `val_label` is provided and matches the length of `val_preds_dict` predictions.
           - Handle empty or invalid inputs gracefully with appropriate error messages.
@@ -228,7 +204,7 @@ spec:
             scores_df = pd.DataFrame(scores.items(), columns=["Model", <metric_name>])
             scores_df.to_csv("scores.csv", index=False)
             ```
-          - If there is only one model, still compute the ensemble score and store it under "ensemble".
+          - Even if only one model is present, compute the ensemble score and store it under `"ensemble"`.
         
       3. Code Standards:
         - Do not use progress bars (e.g., tqdm) in the code.
@@ -244,70 +220,21 @@ spec:
         You should follow the provided specifications to improve this task.
       {% endif %}
 
-      Please respond in the following JSON format:
-      {
-          "spec": "The function definition in code format, tailored to the Competition Information, with detailed explanations provided in the docstring."
-      }
+      ## Output Format
+      You should return the specification in markdown format directly, while the **function definition** within it should be in code format, tailored to the Competition Information, with detailed explanations provided in the docstring.
 
     workflow: |-
-      Your task is to implement the main workflow script (`main.py`) for a Kaggle-style machine learning competition project. 
-      Follow the provided project structure and specifications to ensure consistency and maintainability:
-        1. Workflow Integration:
-          - Integrate the following components into the workflow:
-            - Data loading (`load_data.py`).
-            - Feature engineering (`feature.py`).
-            - Model workflow for training and testing (`model_*.py`). 
-            - Ensemble workflow that combines results from the model workflow to obtain the final prediction (`ensemble.py`).
-          - Treat each component as a modular and callable Python function.
-          - The workflow script should be flexible enough to handle either a single model or multiple models, with filenames (model_*.py) that are not determined at the outset.
-            For multiple model selection, utilize Python code to identify eligible models based on filenames, for example:
-            ```python
-            available_models = [f for f in os.listdir('.') if f.startswith('model_') and 'test' not in f]
-            ```
-        2. Feature Engineering
-          - The feature engineering should be called only once. For example:
-            `X_transformed, y_transformed, X_test_transformed = feat_eng(X, y, X_test)`
-          - It should be called before dataset splitting.
+      {% include "scenarios.data_science.share:component_spec.Workflow" %}
 
-        3. Dataset Splitting
-          - The dataset returned by `load_data` is not pre-split. After calling `feat_eng`, split the data into training and test sets.
-          - If feasible, apply cross-validation on the training set (`X_transformed`, `y_transformed`) to ensure a reliable assessment of model performance.
-          - Keep the test set (`X_test_transformed`) unchanged, as it is only used for generating the final predictions.
+      {% if latest_spec %}
+      7. Former Specification:
+        {{ latest_spec }}
+        You should follow the provided specifications to improve this task.
+      {% endif %}
 
-        4. Submission File:
-          - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements (refer to `sample_submission` in the Folder Description for the correct structure).
-          - Present the required submission format explicitly and ensure the output adheres to it.
-
-        5. Code Standards:
-          - Do not use progress bars (e.g., tqdm) in the code.
-
-        6. Ensemble Strategy:
-          Put all the model's return into a dict, using the model file name as key, and the return as value.
-          Sample code:
-          {% raw %}
-          {% for mn in model_names %}
-          from {{mn}} import model_workflow as {{mn}}_workflow
-          val_preds_dict["{{mn}}"], test_preds_dict["{{mn}}"], _ = {{mn}}_workflow(
-              X=train_X,
-              y=train_y,
-              val_X=val_X,
-              val_y=val_y,
-              test_X=test_X
-          )
-          {% endfor %}
-          final_pred = ensemble_workflow(test_preds_dict, val_preds_dict, val_y)
-          {% endraw %}
-
-        {% if latest_spec %}
-        7. Former Specification:
-          {{ latest_spec }}
-          You should follow the provided specifications to improve this task.
-        {% endif %}
-
-        Please response the specification in the following json format. Here is an example structure for the JSON output:
-        {
-            "spec": "The corresponding specification string as described above. You should create the rules based on the competition information instead of copying the requirements."
-        }
+      ## Output Format
+      You should return the specification in markdown format directly.
+      You should create the rules based on the competition information instead of copying the requirements.
 
 data_loader_coder:
   system: |-
@@ -322,8 +249,8 @@ data_loader_coder:
     {% endif %}
     
     {% if queried_similar_successful_knowledge|length != 0 %}
-    --------- Successful Implementations for Similar Models ---------
-    ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{ loop.index }}:=====
+    --------- Successful Implementation Examples for Similar Task ---------
+    ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Example {{ loop.index }}:=====
     {{ similar_successful_knowledge.target_task.get_task_information() }}
     =====Code:=====
     {{ similar_successful_knowledge.implementation.all_codes }}
@@ -341,8 +268,14 @@ data_loader_coder:
     {% endif %}
 
     ## Guidelines
-    1. Ensure that the dataset is loaded strictly from `/kaggle/input/`, following the exact folder structure described in the **Data Folder Description**, and do not attempt to load data from the current directory (`./`).
+    1. Ensure that the dataset is loaded strictly from `{% include "scenarios.data_science.share:scen.input_path" %}`, following the exact folder structure described in the **Data Folder Description**, and do not attempt to load data from the current directory (`./`).
     2. You should avoid using logging module to output information in your generated code, and instead use the print() function.
+    3. You should use the following cache decorator to cache the results of the function:
+    ```python
+    from joblib import Memory
+    memory = Memory(location='/tmp/cache', verbose=0)
+    @memory.cache```
+    {% include "scenarios.data_science.share:guidelines.coding" %}
     
     ## Exploratory Data Analysis (EDA) part(Required):
     - Before returning the data, you should always add an EDA part describing the data to help the following steps understand the data better.
@@ -363,17 +296,21 @@ data_loader_coder:
     - During the EDA part, you should try to avoid any irrelevant information sending to the standard output.
 
     ## Output Format
+    {% if out_spec %}
+    {{ out_spec }}
+    {% else %}
     Please response the code in the following json format. Here is an example structure for the JSON output:
     {
         "code": "The Python code as a string."
     }
+    {% endif %}
 
   user: |-
     --------- Competition Information ---------
     {{ competition_info }}
 
-    --------- Data Loader Specification ---------
-    {{ data_loader_spec }}
+    --------- Code Specification ---------
+    {{ code_spec }}
 
     --------- Data Folder Description (All path are relative to the data folder) ---------
     {{ folder_spec }}
@@ -388,7 +325,7 @@ data_loader_coder:
     The former code contains errors. You should correct the code based on the provided information, ensuring you do not repeat the same mistakes.
     {% endif %} 
 
-    You should strictly follow the function interface specifications provided by the specification to implement the function.
+    You should strictly follow the code specifications provided by the specification to implement the function.
 
 
 data_loader_eval:
@@ -415,9 +352,7 @@ data_loader_eval:
     The data loader is part of the whole workflow. The user has executed the entire pipeline and provided additional stdout.
 
     **Workflow Code:**
-    ```python
     {{ workflow_code }}
-    ```
 
     You should evaluate both the data loader test results and the overall workflow execution. **Approve the code only if both tests pass.**
     {% endif %}
@@ -440,7 +375,7 @@ data_loader_eval:
       - The number of unique values in each column.
       - The distribution of the target variable.
       - Any other information that you think is important for the following steps.
-     You will be given the EDA output, your job is to check whether the output contains the required and sufficient information. If no EDA output is provided, you should consider it as a failure. Put this evaluation result in the return_checking part.
+    You will be given the EDA output, your job is to check whether the output contains the required and sufficient information. If no EDA output is provided, you should consider it as a failure. Put this evaluation result in the return_checking part.
     
     Your response must follow this structured JSON format:
     ```json

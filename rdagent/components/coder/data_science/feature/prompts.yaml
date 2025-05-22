@@ -39,20 +39,33 @@ feature_coder:
     ```python
     {{ data_loader_code }}
     ```
-    3. **Additional Guidance:**
+    4. **Additional Guidance:**
       - If a previous attempt exists, improve upon it without repeating mistakes.
       - If errors indicate a missing file, find a way to download it or implement an alternative solution.
       - You should avoid using logging module to output information in your generated code, and instead use the print() function.
+    5. You should use the following cache decorator to cache the results of the function:
+    ```python
+    from joblib import Memory
+    memory = Memory(location='/tmp/cache', verbose=0)
+    @memory.cache```
+    6. Coding tricks:
+      - If the input consists of a batch of file paths and you need to modify the file contents to complete your feature engineering task, you can accomplish your feature engineering task by modifying these files and creating new files in a subfolder within "/tmp/cache" (this path is persistent, otherwise you may lose your created file). Then the new file paths are returned.
+
+    {% include "scenarios.data_science.share:guidelines.coding" %}
 
     ## Output Format
+    {% if out_spec %}
+    {{ out_spec }}
+    {% else %}
     Please response the code in the following json format. Here is an example structure for the JSON output:
     {
         "code": "The Python code as a string."
     }
+    {% endif %}
   
   user: |-
-    --------- Feature Processing Specification ---------
-    {{ feature_spec }}
+    --------- Code Specification ---------
+    {{ code_spec }}
 
     {% if latest_code %}
     --------- Former code ---------

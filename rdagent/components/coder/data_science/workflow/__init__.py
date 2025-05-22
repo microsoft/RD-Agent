@@ -1,6 +1,7 @@
 import json
 from typing import Dict
 
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
@@ -21,6 +22,7 @@ from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.utils.agent.ret import PythonAgentOut
 from rdagent.utils.agent.tpl import T
 
 
@@ -57,9 +59,10 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         # 2. code
         system_prompt = T(".prompts:workflow_coder.system").r(
             task_desc=workflow_information_str,
-            competition_info=self.scen.get_scenario_all_desc(),
+            competition_info=self.scen.get_scenario_all_desc(eda_output=workspace.file_dict.get("EDA.md", None)),
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
+            out_spec=PythonAgentOut.get_spec(),
         )
         user_prompt = T(".prompts:workflow_coder.user").r(
             load_data_code=workspace.file_dict["load_data.py"],
@@ -67,19 +70,21 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             model_codes=workspace.get_codes(r"^model_(?!test)\w+\.py$"),
             ensemble_code=workspace.file_dict["ensemble.py"],
             latest_code=workspace.file_dict.get("main.py"),
-            workflow_spec=workspace.file_dict["spec/workflow.md"],
+            code_spec=(
+                workspace.file_dict["spec/workflow.md"]
+                if DS_RD_SETTING.spec_enabled
+                else T("scenarios.data_science.share:component_spec.Workflow").r()
+            ),
             latest_code_feedback=prev_task_feedback,
         )
 
         for _ in range(5):
-            workflow_code = json.loads(
+            workflow_code = PythonAgentOut.extract_output(
                 APIBackend().build_messages_and_create_chat_completion(
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
-                    json_mode=True,
-                    json_target_type=Dict[str, str],
                 )
-            )["code"]
+            )
             if workflow_code != workspace.file_dict.get("main.py"):
                 break
             else:
@@ -118,4 +123,13 @@ class WorkflowCoSTEER(CoSTEER):
             WorkflowGeneralCaseSpecEvaluator(scen=scen), scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
         es = WorkflowMultiProcessEvolvingStrategy(scen=scen, settings=settings)
-        super().__init__(*args, settings=settings, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
+        super().__init__(
+            *args,
+            settings=settings,
+            eva=eva,
+            es=es,
+            evolving_version=2,
+            scen=scen,
+            max_loop=DS_RD_SETTING.coder_max_loop,
+            **kwargs,
+        )

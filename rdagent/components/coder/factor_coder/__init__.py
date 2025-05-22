@@ -26,6 +26,7 @@ class FactorCoSTEER(CoSTEER):
         try:
             exp = super().develop(exp)
         finally:
-            es = self.evolve_agent.evolving_trace[-1]
-            exp.prop_dev_feedback = es.feedback
+            if hasattr(self, "evolve_agent") and self.evolve_agent.evolving_trace:
+                es = self.evolve_agent.evolving_trace[-1]
+                exp.prop_dev_feedback = es.feedback
         return exp

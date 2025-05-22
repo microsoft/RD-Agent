@@ -1,6 +1,8 @@
 import json
+from pathlib import Path
 from typing import Dict
 
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
@@ -19,7 +21,10 @@ from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.utils.agent.ret import PythonAgentOut
 from rdagent.utils.agent.tpl import T
+
+DIRNAME = Path(__file__).absolute().resolve().parent
 
 
 class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
@@ -56,27 +61,34 @@ class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # 2. code
         system_prompt = T(".prompts:feature_coder.system").r(
-            competition_info=self.scen.get_scenario_all_desc(),
+            competition_info=self.scen.get_scenario_all_desc(eda_output=workspace.file_dict.get("EDA.md", None)),
             task_desc=feature_information_str,
             data_loader_code=workspace.file_dict.get("load_data.py"),
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
+            out_spec=PythonAgentOut.get_spec(),
+        )
+        code_spec = (
+            workspace.file_dict["spec/feature.md"]
+            if DS_RD_SETTING.spec_enabled
+            else T("scenarios.data_science.share:component_spec.general").r(
+                spec=T("scenarios.data_science.share:component_spec.FeatureEng").r(),
+                test_code=(DIRNAME / "eval_tests" / "feature_test.txt").read_text(),
+            )
         )
         user_prompt = T(".prompts:feature_coder.user").r(
-            feature_spec=workspace.file_dict["spec/feature.md"],
+            code_spec=code_spec,
             latest_code=workspace.file_dict.get("feature.py"),
             latest_code_feedback=prev_task_feedback,
         )
 
         for _ in range(5):
-            feature_code = json.loads(
+            feature_code = PythonAgentOut.extract_output(
                 APIBackend().build_messages_and_create_chat_completion(
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
-                    json_mode=True,
-                    json_target_type=Dict[str, str],
                 )
-            )["code"]
+            )
             if feature_code != workspace.file_dict.get("feature.py"):
                 break
             else:
@@ -118,4 +130,13 @@ class FeatureCoSTEER(CoSTEER):
         )  # Please specify whether you agree running your eva in parallel or not
         es = FeatureMultiProcessEvolvingStrategy(scen=scen, settings=settings)
 
-        super().__init__(*args, settings=settings, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
+        super().__init__(
+            *args,
+            settings=settings,
+            eva=eva,
+            es=es,
+            evolving_version=2,
+            scen=scen,
+            max_loop=DS_RD_SETTING.coder_max_loop,
+            **kwargs,
+        )

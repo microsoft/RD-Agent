@@ -112,6 +112,7 @@ celerybeat.pid
 
 # Environments
 .env*
+*.env
 .venv
 ^env/
 venv/
@@ -170,7 +171,7 @@ mlruns/
 
 # shell script
 *.out
-*.sh
+/*.sh
 .aider*
 rdagent/app/benchmark/factor/example.json
 

@@ -1,9 +1,11 @@
 """
-A qualified ensemble implementation should:
-- Successfully run
+Tests for `ensemble_workflow` in ensemble.py
+
+A qualified ensemble_workflow implementation should:
 - Return predictions
 - Have correct shapes for inputs and outputs
 - Use validation data appropriately
+- Generate a scores.csv file
 """
 
 import numpy as np
@@ -22,14 +24,18 @@ def print_preds_info(model_name, data_type, preds):
     else:
         print(f"Model {model_name} {data_type} predictions shape: {preds.shape}")
 
-        if isinstance(preds, pd.DataFrame):
+        print("Showing a preview of the predictions (first few entries only):")
+        if isinstance(preds, (pd.DataFrame, pd.Series)):
             print(preds.head())
         elif isinstance(preds, (np.ndarray, torch.Tensor, tf.Tensor)):
-            print(pd.DataFrame(preds).head())
+            print(preds[:2])
         elif isinstance(preds, list):
             print(pd.DataFrame(preds[:5]))
         else:
             print(f"Unknown prediction type: {type(preds)}")
+
+def get_length(data):
+    return data.shape[0] if hasattr(data, 'shape') else len(data)
 
 X, y, test_X, test_ids = load_data()
 X, y, test_X = feat_eng(X, y, test_X)
@@ -106,9 +112,9 @@ assert isinstance(final_pred, pred_type), (
 
 # Check shape
 if isinstance(final_pred, (list, np.ndarray, pd.DataFrame, torch.Tensor, tf.Tensor)):
-    assert len(final_pred) == len(test_X), (
-        f"Wrong output sample size: len(final_pred)={len(final_pred)} "
-        f"vs. len(test_X)={len(test_X)}"
+    assert get_length(final_pred) == get_length(test_X), (
+        f"Wrong output sample size: get_length(final_pred)={get_length(final_pred)} "
+        f"vs. get_length(test_X)={get_length(test_X)}"
     )
 
 # check scores.csv
@@ -120,6 +126,12 @@ assert model_set_in_scores == set({{model_names}}).union({"ensemble"}), (
     f"The scores dataframe does not contain the correct model names as index.\ncorrect model names are: {{model_names}} + ['ensemble']\nscore_df is:\n{score_df}"
 )
 assert score_df.index.is_unique, "The scores dataframe has duplicate model names."
-assert len(score_df.columns) == 1, f"The scores dataframe should have exactly one column for the scores of the evaluation indicator, but has these columns: {score_df.columns.tolist()}"
+assert score_df.columns.tolist() == ["{{metric_name}}"], f"The column names of the scores dataframe should be ['{{metric_name}}'], but is '{score_df.columns.tolist()}'"
+
+# Check for NaN values in score_df
+assert not score_df.isnull().values.any(), (
+    f"The scores dataframe contains NaN values at the following locations:\n{score_df[score_df.isnull().any(axis=1)]}"
+)
+
 
 print("Ensemble test end.")

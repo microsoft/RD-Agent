@@ -12,13 +12,14 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
 )
+from rdagent.components.coder.data_science.conf import get_ds_env
+from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
-from rdagent.utils.env import DockerEnv, DSDockerConf
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 ModelSingleFeedback = CoSTEERSingleFeedback
@@ -56,41 +57,62 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        ds_docker_conf = DSDockerConf()
-        ds_docker_conf.extra_volumes = {
-            f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"
-        }
-        de = DockerEnv(conf=ds_docker_conf)
+        env = get_ds_env(extra_volumes={self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()})
 
-        fname = "test/model_test.py"
-        test_code = (
-            (DIRNAME / "eval_tests" / "model_test.txt").read_text().replace("model01", target_task.name)
-        )  # only check the model changed this time
-        implementation.inject_files(**{fname: test_code})
-        stdout = implementation.execute(env=de, entry=f"python {fname}")
+        if_model_removed = False
 
-        if stdout is None:
-            raise CoderError(
-                "The execution output contains too many progress bars and results in the LLM's token size exceeding the limit."
-            )
+        if f"{target_task.name}.py" in implementation.file_dict:
+            fname = "test/model_test.py"
+            test_code = (
+                (DIRNAME / "eval_tests" / "model_test.txt").read_text().replace("model01", target_task.name)
+            )  # only check the model changed this time
+            implementation.inject_files(**{fname: test_code})
+            stdout, ret_code = implementation.execute_ret_code(env=env, entry=f"python {fname}")
 
-        if "main.py" in implementation.file_dict:
-            workflow_stdout = implementation.execute(env=de, entry="python main.py")
-            workflow_stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", workflow_stdout)
+            if stdout is None:
+                raise CoderError(
+                    "The execution output contains too many progress bars and results in the LLM's token size exceeding the limit."
+                )
+        else:
+            ret_code = 0
+            if_model_removed = True
+            stdout = f"Model {target_task.name} removal succeeded."
+
+        if "main.py" in implementation.file_dict and ret_code == 0:
+            workflow_stdout = implementation.execute(env=env, entry="python main.py")
+            workflow_stdout = remove_eda_part(workflow_stdout)
         else:
             workflow_stdout = None
 
-        system_prompt = T(".prompts:model_eval.system").r(
-            task_desc=target_task.get_task_information(),
-            test_code=test_code,
-            code=implementation.file_dict[f"{target_task.name}.py"],
-            scenario=self.scen.get_scenario_all_desc(),
-            spec=implementation.file_dict["spec/model.md"],
-            workflow_stdout=workflow_stdout,
-            workflow_code=implementation.all_codes,
+        if if_model_removed:
+            system_prompt = T(".prompts:model_eval_rm.system").r(
+                task_desc=target_task.get_task_information(),
+                workflow_stdout=workflow_stdout,
+                workflow_code=implementation.all_codes,
+            )
+            user_prompt = T(".prompts:model_eval_rm.user").r(
+                stdout=stdout,
+                workflow_stdout=workflow_stdout,
+            )
+        else:
+            system_prompt = T(".prompts:model_eval.system").r(
+                task_desc=target_task.get_task_information(),
+                test_code=test_code,
+                code=implementation.file_dict[f"{target_task.name}.py"],
+                workflow_stdout=workflow_stdout,
+                workflow_code=implementation.all_codes,
+            )
+            user_prompt = T(".prompts:model_eval.user").r(
+                stdout=stdout,
+                workflow_stdout=workflow_stdout,
+            )
+
+        fb = build_cls_from_json_with_retry(
+            ModelSingleFeedback,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            init_kwargs_update_func=ModelSingleFeedback.val_and_update_init_dict,
         )
-        user_prompt = T(".prompts:model_eval.user").r(
-            stdout=stdout,
-            workflow_stdout=workflow_stdout,
-        )
-        return build_cls_from_json_with_retry(ModelSingleFeedback, system_prompt=system_prompt, user_prompt=user_prompt)
+        fb.final_decision = fb.final_decision and ret_code == 0
+
+        return fb

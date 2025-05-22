@@ -18,7 +18,7 @@ from selenium.webdriver.common.by import By
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.exception import KaggleError
-from rdagent.core.prompts import Prompts
+from rdagent.core.utils import cache_with_pickle
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.debug.data import create_debug_data
@@ -108,15 +108,17 @@ def crawl_descriptions(
     return descriptions
 
 
-def download_data(competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPLEMENT_SETTING) -> None:
+def download_data(
+    competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPLEMENT_SETTING, enable_create_debug_data: bool = True
+) -> None:
     local_path = settings.local_data_path
     if settings.if_using_mle_data:
         zipfile_path = f"{local_path}/zip_files"
         zip_competition_path = Path(zipfile_path) / competition
 
-        mleb_env = MLEBDockerEnv()
-        mleb_env.prepare()
         if not zip_competition_path.exists():
+            mleb_env = MLEBDockerEnv()
+            mleb_env.prepare()
             (Path(zipfile_path)).mkdir(parents=True, exist_ok=True)
             mleb_env.run(
                 f"mlebench prepare -c {competition} --data-dir ./zip_files",
@@ -127,6 +129,8 @@ def download_data(competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPL
         if not (Path(local_path) / competition).exists() or list((Path(local_path) / competition).iterdir()) == []:
             (Path(local_path) / competition).mkdir(parents=True, exist_ok=True)
 
+            mleb_env = MLEBDockerEnv()
+            mleb_env.prepare()
             mleb_env.run(f"cp -r ./zip_files/{competition}/prepared/public/* ./{competition}", local_path=local_path)
 
             for zip_path in (Path(local_path) / competition).rglob("*.zip"):
@@ -175,7 +179,7 @@ def download_data(competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPL
                     unzip_data(sub_zip_file, unzip_target_path=unzip_path)
 
     # sample data
-    if not Path(f"{local_path}/sample/{competition}").exists():
+    if enable_create_debug_data and not Path(f"{local_path}/sample/{competition}").exists():
         create_debug_data(competition, dataset_path=local_path)
 
 
@@ -184,6 +188,7 @@ def unzip_data(unzip_file_path: str, unzip_target_path: str) -> None:
         zip_ref.extractall(unzip_target_path)
 
 
+@cache_with_pickle(hash_func=lambda x: x, force=True)
 def leaderboard_scores(competition: str) -> list[float]:
     from kaggle.api.kaggle_api_extended import KaggleApi
 
@@ -191,6 +196,14 @@ def leaderboard_scores(competition: str) -> list[float]:
     api.authenticate()
     ll = api.competition_leaderboard_view(competition)
     return [float(x.score) for x in ll]
+
+
+def get_metric_direction(competition: str) -> bool:
+    """
+    Return **True** if the metric is *bigger is better*, **False** if *smaller is better*.
+    """
+    leaderboard = leaderboard_scores(competition)
+    return float(leaderboard[0]) > float(leaderboard[-1])
 
 
 def score_rank(competition: str, score: float) -> tuple[int, float]:

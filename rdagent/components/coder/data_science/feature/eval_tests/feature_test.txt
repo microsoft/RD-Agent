@@ -1,37 +1,49 @@
 """
-A qualified data loader should support following features
-- successfully run
-- len(test) == len(test_ids) == submission length
-- len(train) == len(y)
-
-Please make sure the stdout is rich enough to support informative feedback
+Tests for `feat_eng` in feature.py
 """
 
-import pickle
-from copy import deepcopy
 
+from copy import deepcopy
+import sys
 import numpy as np
 import pandas as pd
 from feature import feat_eng
 from load_data import load_data
+import reprlib
+aRepr = reprlib.Repr()
+aRepr.maxother=300
 
 X, y, X_test, test_ids = load_data()
-print(f"X.shape: {X.shape}")
-print(f"y.shape: {y.shape}" if not isinstance(y, list) else f"y(list)'s length: {len(y)}")
-print(f"X_test.shape: {X_test.shape}")
+print("X:", aRepr.repr(X))
+print("y:", aRepr.repr(y))
+print("X_test:", aRepr.repr(X_test))
+print("test_ids", aRepr.repr(test_ids))
+
+print(f"X.shape: {X.shape}" if hasattr(X, 'shape') else f"X length: {len(X)}")
+print(f"y.shape: {y.shape}" if hasattr(y, 'shape') else f"y length: {len(y)}")
+print(f"X_test.shape: {X_test.shape}" if hasattr(X_test, 'shape') else f"X_test length: {len(X_test)}")
 print(f"test_ids length: {len(test_ids)}")
+
 X_loaded = deepcopy(X)
 y_loaded = deepcopy(y)
 X_test_loaded = deepcopy(X_test)
 
 import sys
 import reprlib
+from joblib.memory import MemorizedFunc
+
+
+def get_original_code(func):
+    if isinstance(func, MemorizedFunc):
+        return func.func.__code__
+    return func.__code__
+
+
 def debug_info_print(func):
-    aRepr = reprlib.Repr()
-    aRepr.maxother=300
     def wrapper(*args, **kwargs):
+        original_code = get_original_code(func)
         def local_trace(frame, event, arg):
-            if event == "return" and frame.f_code == func.__code__:
+            if event == "return" and frame.f_code == original_code:
                 print("\n" + "="*20 + "Running feat_eng code, local variable values:" + "="*20)
                 for k, v in frame.f_locals.items():
                     printed = aRepr.repr(v)
@@ -49,7 +61,7 @@ X, y, X_test = debug_info_print(feat_eng)(X, y, X_test)
 
 
 def get_length(data):
-    return len(data) if isinstance(data, list) else data.shape[0]
+    return data.shape[0] if hasattr(data, 'shape') else len(data)
 
 
 def get_width(data):

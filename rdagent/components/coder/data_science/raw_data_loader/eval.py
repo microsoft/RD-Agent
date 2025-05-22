@@ -12,11 +12,11 @@ from rdagent.components.coder.CoSTEER.evaluators import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledgeV2,
 )
+from rdagent.components.coder.data_science.conf import get_ds_env
+from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.core.experiment import FBWorkspace, Task
-from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
-from rdagent.utils.env import DockerEnv, DSDockerConf
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -24,7 +24,6 @@ DataLoaderEvalFeedback = CoSTEERSingleFeedback
 
 
 class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
-
     def evaluate(
         self,
         target_task: Task,
@@ -33,7 +32,6 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
         queried_knowledge: CoSTEERQueriedKnowledgeV2 = None,
         **kwargs,
     ) -> DataLoaderEvalFeedback:
-
         target_task_information = target_task.get_task_information()
         if (
             queried_knowledge is not None
@@ -48,26 +46,22 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        ds_docker_conf = DSDockerConf()
-        ds_docker_conf.extra_volumes = {
-            f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"
-        }
-        de = DockerEnv(conf=ds_docker_conf)
+        env = get_ds_env(extra_volumes={self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()})
 
         # TODO: do we need to clean the generated temporary content?
         fname = "test/data_loader_test.py"
         test_code = (DIRNAME / "eval_tests" / "data_loader_test.txt").read_text()
         implementation.inject_files(**{fname: test_code})
-        stdout = implementation.execute(env=de, entry=f"python {fname}")
+        stdout, ret_code = implementation.execute_ret_code(env=env, entry=f"python {fname}")
         match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===(.*)", stdout, re.DOTALL)
         stdout_part_1, eda_output, stdout_part_2 = match.groups() if match else (stdout, None, "")
         stdout = stdout_part_1 + stdout_part_2
         if eda_output is not None and len(eda_output.split(" ")) > 10000:
             eda_output += "Length of EDA output is too long, truncated. Please reject this implementation and motivate it to reduce the length of EDA output."
 
-        if "main.py" in implementation.file_dict:
-            workflow_stdout = implementation.execute(env=de, entry="python main.py")
-            workflow_stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", workflow_stdout)
+        if "main.py" in implementation.file_dict and ret_code == 0:
+            workflow_stdout = implementation.execute(env=env, entry="python main.py")
+            workflow_stdout = remove_eda_part(workflow_stdout)
         else:
             workflow_stdout = None
 
@@ -84,6 +78,12 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
             workflow_stdout=workflow_stdout,
         )
 
-        return build_cls_from_json_with_retry(
-            DataLoaderEvalFeedback, system_prompt=system_prompt, user_prompt=user_prompt
+        fb = build_cls_from_json_with_retry(
+            DataLoaderEvalFeedback,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            init_kwargs_update_func=DataLoaderEvalFeedback.val_and_update_init_dict,
         )
+        fb.final_decision = fb.final_decision and ret_code == 0
+
+        return fb

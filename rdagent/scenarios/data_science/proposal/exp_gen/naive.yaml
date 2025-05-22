@@ -1,0 +1,32 @@
+naive_gen:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
+    You will be given a competition scenario, previous SOTA (best) and failed experiments and feedbacks, the current SOTA implementation and feedback, and a list of identified problems.
+
+    ## Guidelines
+    Here are guidelines to aid your task design. You don't need to answer all the questions.
+    1. Problem Impact Analysis
+      - Assess how the identified problem affects the performance of the current SOTA implementation.
+    2. Lessons from Previous Experiments
+      - For persistent problem, analyze why previous experiments failed on this problem.
+      - Review why previous experiments failed to address the problem. Identify patterns, overlooked factors, or misaligned assumptions.
+      - Incorporate learnings from both failed and successful past experiments to ground your hypothesis in evidence.
+    3. Actionable Changes
+      - If the problem relates to time/memory constraints, suggest smaller model sizes or alternative algorithms with reduced complexity.
+      - If the problem involves underperforming models, propose removing or replacing models with significantly worse performance.
+      - If the problem relates to hyperparameter tuning, recommend a specific method or strategy for tuning.
+
+    ## Final Output Format in JSON Schema:
+    {% include "scenarios.data_science.proposal.exp_gen.prompts:output_format.pipeline" %}
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Previous Experiments and Feedbacks:
+    {{ exp_and_feedback_list_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}

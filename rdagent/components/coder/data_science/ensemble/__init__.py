@@ -12,8 +12,12 @@ File structure
 """
 
 import json
+from pathlib import Path
 from typing import Dict
 
+from jinja2 import Environment, StrictUndefined
+
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
@@ -32,7 +36,10 @@ from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.utils.agent.ret import PythonAgentOut
 from rdagent.utils.agent.tpl import T
+
+DIRNAME = Path(__file__).absolute().resolve().parent
 
 
 class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
@@ -67,7 +74,7 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         # Generate code with knowledge integration
-        competition_info = self.scen.get_scenario_all_desc()
+        competition_info = self.scen.get_scenario_all_desc(eda_output=workspace.file_dict.get("EDA.md", None))
         system_prompt = T(".prompts:ensemble_coder.system").r(
             task_desc=ensemble_information_str,
             competition_info=competition_info,
@@ -76,22 +83,38 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 queried_former_failed_knowledge[0] if queried_former_failed_knowledge else None
             ),
             all_code=workspace.all_codes,
+            out_spec=PythonAgentOut.get_spec(),
         )
+
+        if DS_RD_SETTING.spec_enabled:
+            code_spec = workspace.file_dict["spec/ensemble.md"]
+        else:
+            test_code = (
+                Environment(undefined=StrictUndefined)
+                .from_string((DIRNAME / "eval_tests" / "ensemble_test.txt").read_text())
+                .render(
+                    model_names=[
+                        fn[:-3] for fn in workspace.file_dict.keys() if fn.startswith("model_") and "test" not in fn
+                    ],
+                    metric_name=self.scen.metric_name,
+                )
+            )
+            code_spec = T("scenarios.data_science.share:component_spec.general").r(
+                spec=T("scenarios.data_science.share:component_spec.Ensemble").r(), test_code=test_code
+            )
         user_prompt = T(".prompts:ensemble_coder.user").r(
-            ensemble_spec=workspace.file_dict["spec/ensemble.md"],
+            code_spec=code_spec,
             latest_code=workspace.file_dict.get("ensemble.py"),
             latest_code_feedback=prev_task_feedback,
         )
 
         for _ in range(5):
-            ensemble_code = json.loads(
+            ensemble_code = PythonAgentOut.extract_output(
                 APIBackend().build_messages_and_create_chat_completion(
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
-                    json_mode=True,
-                    json_target_type=Dict[str, str],
                 )
-            )["code"]
+            )
             if ensemble_code != workspace.file_dict.get("ensemble.py"):
                 break
             else:
@@ -131,4 +154,13 @@ class EnsembleCoSTEER(CoSTEER):
         eva = CoSTEERMultiEvaluator(EnsembleCoSTEEREvaluator(scen=scen), scen=scen)
         es = EnsembleMultiProcessEvolvingStrategy(scen=scen, settings=settings)
 
-        super().__init__(*args, settings=settings, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
+        super().__init__(
+            *args,
+            settings=settings,
+            eva=eva,
+            es=es,
+            evolving_version=2,
+            scen=scen,
+            max_loop=DS_RD_SETTING.coder_max_loop,
+            **kwargs,
+        )

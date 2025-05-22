@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field
 
@@ -10,6 +11,11 @@ from rdagent.core.conf import ExtendedBaseSettings
 class LLMSettings(ExtendedBaseSettings):
     # backend
     backend: str = "rdagent.oai.backend.DeprecBackend"
+
+    chat_model: str = "gpt-4-turbo"
+    embedding_model: str = "text-embedding-3-small"
+
+    reasoning_effort: Literal["low", "medium", "high"] | None = None
 
     # TODO: most of the settings are only used on deprec.DeprecBackend.
     # So they should move the settings to that folder.
@@ -31,6 +37,7 @@ class LLMSettings(ExtendedBaseSettings):
     use_embedding_cache: bool = False
     prompt_cache_path: str = str(Path.cwd() / "prompt_cache.db")
     max_past_message_include: int = 10
+    timeout_fail_limit: int = 10
 
     # Behavior of returning answers to the same question when caching is enabled
     use_auto_chat_cache_seed_gen: bool = False
@@ -48,8 +55,7 @@ class LLMSettings(ExtendedBaseSettings):
     chat_openai_base_url: str | None = None  #
     chat_azure_api_base: str = ""
     chat_azure_api_version: str = ""
-    chat_model: str = "gpt-4-turbo"
-    chat_max_tokens: int = 3000
+    chat_max_tokens: int | None = None
     chat_temperature: float = 0.5
     chat_stream: bool = True
     chat_seed: int | None = None
@@ -68,7 +74,6 @@ class LLMSettings(ExtendedBaseSettings):
     embedding_openai_base_url: str = ""
     embedding_azure_api_base: str = ""
     embedding_azure_api_version: str = ""
-    embedding_model: str = ""
     embedding_max_str_num: int = 50
 
     # offline llama2 related config
@@ -110,7 +115,7 @@ class LLMSettings(ExtendedBaseSettings):
     chat_azure_deepseek_endpoint: str = ""
     chat_azure_deepseek_key: str = ""
 
-    chat_model_map: str = "{}"
+    chat_model_map: dict[str, dict[str, str]] = {}
 
 
 LLM_SETTINGS = LLMSettings()

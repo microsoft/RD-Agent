@@ -7,16 +7,26 @@ import time
 import uuid
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional, cast
 
+import pytz
 from pydantic import TypeAdapter
 
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.timer import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.utils import md5_hash
+
+try:
+    import openai
+
+    openai_imported = True
+except ImportError:
+    openai_imported = False
 
 
 class SQliteLazyCache(SingletonBaseClass):
@@ -242,6 +252,17 @@ class APIBackend(ABC):
         )
         return messages
 
+    def _build_log_messages(self, messages: list[dict[str, Any]]) -> str:
+        log_messages = ""
+        for m in messages:
+            log_messages += (
+                f"\n{LogColors.MAGENTA}{LogColors.BOLD}Role:{LogColors.END}"
+                f"{LogColors.CYAN}{m['role']}{LogColors.END}\n"
+                f"{LogColors.MAGENTA}{LogColors.BOLD}Content:{LogColors.END} "
+                f"{LogColors.CYAN}{m['content']}{LogColors.END}\n"
+            )
+        return log_messages
+
     def build_messages_and_create_chat_completion(  # type: ignore[no-untyped-def]
         self,
         user_prompt: str,
@@ -273,7 +294,7 @@ class APIBackend(ABC):
         logger.log_object({"system": system_prompt, "user": user_prompt, "resp": resp}, tag="debug_llm")
         return resp
 
-    def create_embedding(self, input_content: str | list[str], *args, **kwargs) -> list[list[float]]:  # type: ignore[no-untyped-def]
+    def create_embedding(self, input_content: str | list[str], *args, **kwargs) -> list[float] | list[list[float]]:  # type: ignore[no-untyped-def]
         input_content_list = [input_content] if isinstance(input_content, str) else input_content
         resp = self._try_create_chat_completion_or_embedding(  # type: ignore[misc]
             input_content_list=input_content_list,
@@ -281,6 +302,8 @@ class APIBackend(ABC):
             *args,
             **kwargs,
         )
+        if isinstance(input_content, str):
+            return resp[0]  # type: ignore[return-value]
         return resp  # type: ignore[return-value]
 
     def build_messages_and_calculate_token(
@@ -308,7 +331,9 @@ class APIBackend(ABC):
     ) -> str | list[list[float]]:
         assert not (chat_completion and embedding), "chat_completion and embedding cannot be True at the same time"
         max_retry = LLM_SETTINGS.max_retry if LLM_SETTINGS.max_retry is not None else max_retry
+        timeout_count = 0
         for i in range(max_retry):
+            API_start_time = datetime.now()
             try:
                 if embedding:
                     return self._create_embedding_with_cache(*args, **kwargs)
@@ -325,7 +350,31 @@ class APIBackend(ABC):
                         content[: len(content) // 2] for content in kwargs.get("input_content_list", [])
                     ]
                 else:
-                    time.sleep(self.retry_wait_seconds)
+                    RD_Agent_TIMER_wrapper.api_fail_count += 1
+                    RD_Agent_TIMER_wrapper.latest_api_fail_time = datetime.now(pytz.timezone("Asia/Shanghai"))
+                    if (
+                        openai_imported
+                        and isinstance(e, openai.APITimeoutError)
+                        or (
+                            isinstance(e, openai.APIError)
+                            and hasattr(e, "message")
+                            and "Your resource has been temporarily blocked because we detected behavior that may violate our content policy."
+                            in e.message
+                        )
+                    ):
+                        timeout_count += 1
+                        if timeout_count >= LLM_SETTINGS.timeout_fail_limit:
+                            logger.warning("Timeout error, please check your network connection.")
+                            raise e
+
+                    recommended_wait_seconds = self.retry_wait_seconds
+                    if openai_imported and isinstance(e, openai.RateLimitError) and hasattr(e, "message"):
+                        match = re.search(r"Please retry after (\d+) seconds\.", e.message)
+                        if match:
+                            recommended_wait_seconds = int(match.group(1))
+                    time.sleep(recommended_wait_seconds)
+                    if RD_Agent_TIMER_wrapper.timer.started and not isinstance(e, json.decoder.JSONDecodeError):
+                        RD_Agent_TIMER_wrapper.timer.add_duration(datetime.now() - API_start_time)
                 logger.warning(str(e))
                 logger.warning(f"Retrying {i+1}th time...")
         error_message = f"Failed to create chat completion after {max_retry} retries."
@@ -373,12 +422,14 @@ class APIBackend(ABC):
             cache_result = self.cache.chat_get(input_content_json)
             if cache_result is not None:
                 if LLM_SETTINGS.log_llm_chat_content:
+                    logger.info(self._build_log_messages(messages), tag="llm_messages")
                     logger.info(f"{LogColors.CYAN}Response:{cache_result}{LogColors.END}", tag="llm_messages")
                 return cache_result
 
         all_response = ""
         new_messages = deepcopy(messages)
-        for _ in range(6):  # for some long code, 3 times may not enough for reasoning models
+        try_n = 6
+        for _ in range(try_n):  # for some long code, 3 times may not enough for reasoning models
             if "json_mode" in kwargs:
                 del kwargs["json_mode"]
             response, finish_reason = self._create_chat_completion_add_json_in_prompt(
@@ -390,7 +441,7 @@ class APIBackend(ABC):
                     try:
                         json.loads(all_response)
                     except:
-                        match = re.search(r"```json(.*?)```", all_response, re.DOTALL)
+                        match = re.search(r"```json(.*)```", all_response, re.DOTALL)
                         all_response = match.groups()[0] if match else all_response
                         json.loads(all_response)
                 if json_target_type is not None:
@@ -399,7 +450,7 @@ class APIBackend(ABC):
                     self.cache.chat_set(input_content_json, all_response)
                 return all_response
             new_messages.append({"role": "assistant", "content": response})
-        raise RuntimeError("Failed to continue the conversation after 3 retries.")
+        raise RuntimeError(f"Failed to continue the conversation after {try_n} retries.")
 
     def _create_embedding_with_cache(
         self, input_content_list: list[str], *args: Any, **kwargs: Any

@@ -1,0 +1,91 @@
+dump_model_coder:
+  guideline: |-
+    Please dump the model in a "models/" subfolder in the first running, and the script rerun performs inference without needing to retrain the model when running the code again.
+    If there are parameters generated from the training data that might be needed for inference on test data, please save them in the "models/" subfolder as well.
+    If no test set is provided, reserve a portion of the data as your test set and save the generated test files in the models/ subfolder for use in submission and inference.
+    Make sure that the required files, like submission.csv and scores.csv, are created without model training step through loading the saved model and test data file directly.
+
+dump_model_eval:
+  system: |-
+    You are a data scientist tasked with evaluating code generation. You've developed a Kaggle competition code that can produce a submission file.
+    The code should follow the guideline below:
+    {% include "components.coder.data_science.share.prompts:dump_model_coder.guideline" %}
+
+    You will receive the following information:
+    - The implemented code
+    - The stdout from running the code
+    - The file list in "models/" subfolder
+    - The scores.csv file generated during both training and inference (if it exists)
+
+    Focus on these aspects:
+    - Check if the code saves the model in the "models/" subfolder.
+    - Check if the code saves the test data in the "models/" subfolder when there is no test data specified.
+    - Ensure that when the code is rerun, it skips the training process and loads the model from the "models/" subfolder for direct inference.
+      - Verify that there is no training activity in the output.
+    - Ensure that even if you skip the model training by loading saved models, the files like scores.csv and submission.csv are still correctly created.
+    - The model's performance should remain consistent and not vary unreasonably between training and inference.
+
+    Please respond with your feedback in the following JSON format and order
+    ```json
+    {
+        "execution": "Describe whether the code executed successfully. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information. Carefully check the stdout to ensure that when the code is rerun, it skips the training process and loads the model from the 'models/' subfolder for direct inference. Append the information that makes you think that the model is still being retrained when rerunning the code."
+        "return_checking": "Verify the generated files include necessary files. Make sure scores.csv file does not change unreasonably between training and inference",
+        "code": "The code has explicity dump the model into 'models/' subfolder; When the modes files are already in 'models/' subfolder, the code will explicity skip the training process.",
+        "final_decision": <true or false in boolean type; only return true when ensuring that the code saves the model in a 'models/' subfolder, and the script rerun performs inference without needing to retrain the model.>
+    }
+    ```
+
+  user: |-
+    ------------ The implemented code ------------ 
+    {{code}}
+
+    ------------ The stdout from running the code ------------ 
+    {{stdout}}
+
+    ------------ The file list in "models/" subfolder ------------
+    {% for f in model_folder_files %}
+    - {{ f }}
+    {% endfor %}
+
+    ------------ The scores.csv file generated ------------
+    # Training:
+    {{scores_content_before}}
+
+    # Inference:
+    {{scores_content_after}}
+
+
+docdev:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}  Your task is to create documentation for a data science solution.
+
+    You will be given:
+    - a list of files in the folder.
+    - content from some important files.
+
+    Please explain the trained models in the "models/" folder. The training and inference processes are detailed in the `main.py` file. The models' evaluation results are in `scores.csv`. Please respond with a markdown file that includes the following information:
+    - Explain the purpose of each model. If some models are part of a group (like those from cross-validation), describe them together.
+    - Provide key details for each model group:
+      - Important training parameters
+      - Model details
+      - Performance of each model
+
+    Be brief. Mention the file path when you introduce files.
+    Don't introduce anything other than models.
+
+    {% include "utils.agent.tpl:MarkdownOut" %}
+
+  user: |-
+    --------------- The file list in the workspace ---------------
+    {% for f in file_li %}
+    - {{ f }}
+    {% endfor %}
+
+    --------------- File content of each file ---------------
+    {% for fname, content in key_files.items() %}
+    File Path: {{fname}}
+    ```
+    {{content}}
+    ```
+    {% endfor %}
+
