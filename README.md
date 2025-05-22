@@ -330,7 +330,7 @@ More documents can be found in the **[📖 readthedocs](https://rdagent.readthed
 @misc{yang2024rdagent,
     title={R\&D-Agent: Automating Data-Driven AI Solution Building Through LLM-Powered Automated Research, Development, and Evolution},
     author={Xu Yang and Xiao Yang and Shikai Fang and Bowen Xian and Yuante Li and Jian Wang and Minrui Xu and Haoran Pan and Xinpeng Hong and Weiqing Liu and Yelong Shen and Weizhu Chen and Jiang Bian},
-    year={2024},
+    year={2025},
     eprint={2505.14738},
     archivePrefix={arXiv},
     primaryClass={cs.AI},
