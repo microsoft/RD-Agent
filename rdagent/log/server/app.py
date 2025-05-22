@@ -66,7 +66,7 @@ def upload_file():
                 p.mkdir(parents=True, exist_ok=True)
             file.save(f'./uploads/{scenario}/{file.filename}')
 
-    log_trace_path = f"{scenario.replace(' ', '_')}/test"
+    log_trace_path = Path(f"{scenario.replace(' ', '_')}/test").absolute()
 
     if scenario == "Finance Data Building":
         cmds = ["rdagent", "fin_factor"]
@@ -95,12 +95,12 @@ def upload_file():
         stdout=sys.stdout,
         stderr=sys.stderr,
         env={
-            "LOG_TRACE_PATH": log_trace_path,
+            "LOG_TRACE_PATH": str(log_trace_path),
         }
     )
 
     return jsonify({
-        'id': log_trace_path,
+        'id': str(log_trace_path),
     }), 200
 
 
@@ -115,8 +115,7 @@ def receive_msgs():
 
     msgs_for_frontend[data["id"]].append(data["msg"])
 
-    print(msgs_for_frontend)
-    return jsonify({"status": "success", "received": data}), 200
+    return jsonify({"status": "success"}), 200
 
 
 @app.route("/pause", methods=["GET"])
