@@ -23,8 +23,7 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.utils import SingletonBaseClass
 
 from .storage import FileStorage
-from .ui.utils import log_obj_to_json
-from .utils import LogColors, get_caller_info
+from .utils import LogColors, get_caller_info, log_obj_to_json
 
 
 class RDAgentLog(SingletonBaseClass):
@@ -120,12 +119,10 @@ class RDAgentLog(SingletonBaseClass):
 
         try:
             flask_url = "http://127.0.0.1:19899"
-            response = requests.get(flask_url, timeout=1)
-            if response.status_code == 200:
-                data = log_obj_to_json(obj=obj, tag=tag, log_trace_path=self.log_trace_path)
-                headers = {"Content-Type": "application/json"}
-                requests.post(f"{flask_url}/receive", json=data, headers=headers)
-        except requests.ConnectionError:
+            data = log_obj_to_json(obj=obj, tag=tag, log_trace_path=self.log_trace_path)
+            headers = {"Content-Type": "application/json"}
+            requests.post(f"{flask_url}/receive", json=data, headers=headers, timeout=1)
+        except (requests.ConnectionError, requests.Timeout):
             pass
 
         file_handler_id = logger.add(

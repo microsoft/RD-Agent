@@ -44,6 +44,10 @@ def ui(port=19899, log_dir="", debug=False):
         subprocess.run(cmds)
 
 
+def server_ui():
+    subprocess.run(["python", "rdagent/log/server/app.py"])
+
+
 def app():
     fire.Fire(
         {
@@ -56,6 +60,6 @@ def app():
             "health_check": health_check,
             "collect_info": collect_info,
             "kaggle": kaggle,
-            "server_ui": subprocess.run(["python", "rdagent/log/server/app.py"]),
+            "server_ui": server_ui,
         }
     )
