@@ -96,7 +96,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     # enable different version of DSExpGen for multi-trace
     enable_multi_version_exp_gen: bool = False
-    
+    exp_gen_version_list: str = "v3,v2"
+
     #### multi-trace: time for final multi-trace merge
     merge_hours: int = 2
     """The time for merge"""

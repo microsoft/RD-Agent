@@ -198,9 +198,11 @@ class ExpGen2TraceAndMergeV2(ExpGen):
         self.exp_gen = DSExpGen(self.scen)
         self.MAX_TRACE_NUM = DS_RD_SETTING.max_trace_num  # maximum number of traces to grow before merging
         self.flag_start_merge = False
+        
 
     def reset_exp_gen_version(self,version: str = "v2"):
         DS_RD_SETTING.proposal_version = version
+        logger.info(f"ExpGen2TraceAndMergeV2: Resetting proposal version to {version}")
 
 
     def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
@@ -216,13 +218,19 @@ class ExpGen2TraceAndMergeV2(ExpGen):
                         DS_RD_SETTING.enable_knowledge_base = True
 
             if DS_RD_SETTING.enable_multi_version_exp_gen:
-                
+                exp_gen_version_list = DS_RD_SETTING.exp_gen_version_list.split(",")
+                for version in exp_gen_version_list:
+                    assert version in ["v3","v2","v1"]
+
                 if len(trace.hist) == 0:
-                    # set the proposal version to v3 for the first trace
-                    self.reset_exp_gen_version(version="v3")
+                    # set the proposal version for the first sub-trace
+                    self.reset_exp_gen_version(version=exp_gen_version_list[0])
                 elif len(trace.get_current_selection()) == 0 and trace.sub_trace_count > 0:
-                    # reset the proposal version to v2 at the start of other sub-trace
-                    self.reset_exp_gen_version(version="v2")
+                    # reset the proposal version at the start of other sub-trace
+                    if trace.sub_trace_count<len(exp_gen_version_list):
+                        self.reset_exp_gen_version(version=exp_gen_version_list[trace.sub_trace_count])
+                    else:
+                        self.reset_exp_gen_version(version=exp_gen_version_list[-1])
 
 
             return self.exp_gen.gen(trace, selection)
