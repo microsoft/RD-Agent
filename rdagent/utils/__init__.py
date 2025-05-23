@@ -166,27 +166,11 @@ def filter_redundant_text(stdout: str) -> str:
         needs_sub = response.get("needs_sub", True)
         regex_patterns = response.get("regex_patterns", [])
         try:
-            filter_with_time_limit(regex_patterns, filtered_stdout)
-            # if isinstance(regex_patterns, list):
-            #     for pattern in regex_patterns:
-            #         filtered_stdout = re.sub(pattern, "", filtered_stdout)
-            # else:
-            #     filtered_stdout = re.sub(regex_patterns, "", filtered_stdout)
+            filter_with_time_limit(regex_patterns, filtered_stdout_shortened)
 
             if not needs_sub:
                 break
             filtered_stdout = re.sub(r"\s*\n\s*", "\n", filtered_stdout)
-            filtered_stdout_token_size = APIBackend().build_messages_and_calculate_token(
-                user_prompt=filtered_stdout,
-                system_prompt=None,
-            )
-            if filtered_stdout_token_size < LLM_SETTINGS.chat_token_limit * 0.1:
-                return filtered_stdout
-            elif filtered_stdout_token_size > LLM_SETTINGS.chat_token_limit * 0.6:
-                filtered_stdout = (
-                    filtered_stdout[: int(LLM_SETTINGS.chat_token_limit * 0.3)]
-                    + filtered_stdout[-int(LLM_SETTINGS.chat_token_limit * 0.3) :]
-                )
         except Exception as e:
             logger.error(f"Error in filtering progress bar: due to {e}")
     return filtered_stdout
