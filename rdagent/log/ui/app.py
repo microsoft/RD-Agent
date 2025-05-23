@@ -159,11 +159,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                 if should_display(msg):
                     tags = msg.tag.split(".")
                     if "r" not in state.current_tags and "r" in tags:
-                        if state.lround > 29:
-                            st.toast(":red[**Only display the first 30 exps!**]", icon="🛑")
-                            break
-                        else:
-                            state.lround += 1
+                        state.lround += 1
                     if "evolving code" not in state.current_tags and "evolving code" in tags:
                         state.erounds[state.lround] += 1
 
@@ -411,12 +407,11 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
     st.plotly_chart(fig)
 
     from io import BytesIO
-    # 添加下载按钮
     buffer = BytesIO()
     df.to_csv(buffer)
     buffer.seek(0)
     st.download_button(
-        label="下载数据 (CSV)",
+        label="download the metrics (csv)",
         data=buffer,
         file_name="metrics.csv",
         mime="text/csv"
@@ -437,7 +432,6 @@ def summary_window():
                 with cc:
                     show_true_only = st.toggle("successful hypotheses", value=False)
 
-            # st.write(state.metric_series)
             # hypotheses_c, chart_c = st.columns([2, 3])
             chart_c = st.container()
             hypotheses_c = st.container()
@@ -592,40 +586,39 @@ def research_window():
 
 
 def feedback_window():
-    # st.write(state.msgs[round])
-    st.write(round)
-    # Check if metric series exists and has the matching round
-    if state.all_metric_series:
-        for metric in state.all_metric_series:
-            if metric.name == f"Round {round}":
-                # Select specific metrics with cost
-                selected_metrics_with_cost = {
-                    'IC': float(f"{metric['IC']:.4f}"),
-                    'ICIR': float(f"{metric['ICIR']:.4f}"),
-                    'Rank IC': float(f"{metric['Rank IC']:.4f}"),
-                    'Rank ICIR': float(f"{metric['Rank ICIR']:.4f}"),
-                    'ARR': float(f"{metric['1day.excess_return_with_cost.annualized_return']:.4f}"),
-                    'IR': float(f"{metric['1day.excess_return_with_cost.information_ratio']:.4f}"),
-                    'MDD': float(f"{metric['1day.excess_return_with_cost.max_drawdown']:.4f}"),
-                    'Sharpe': float(f"{metric['1day.excess_return_with_cost.annualized_return'] / abs(metric['1day.excess_return_with_cost.max_drawdown']):.4f}")
-                }
-                st.write("With Cost Metrics:")
-                st.write(pd.Series(selected_metrics_with_cost))
+    # st.write(round)
+    # # Check if metric series exists and has the matching round
+    # if state.all_metric_series:
+    #     for metric in state.all_metric_series:
+    #         if metric.name == f"Round {round}":
+    #             # Select specific metrics with cost
+    #             selected_metrics_with_cost = {
+    #                 'IC': float(f"{metric['IC']:.4f}"),
+    #                 'ICIR': float(f"{metric['ICIR']:.4f}"),
+    #                 'Rank IC': float(f"{metric['Rank IC']:.4f}"),
+    #                 'Rank ICIR': float(f"{metric['Rank ICIR']:.4f}"),
+    #                 'ARR': float(f"{metric['1day.excess_return_with_cost.annualized_return']:.4f}"),
+    #                 'IR': float(f"{metric['1day.excess_return_with_cost.information_ratio']:.4f}"),
+    #                 'MDD': float(f"{metric['1day.excess_return_with_cost.max_drawdown']:.4f}"),
+    #                 'Sharpe': float(f"{metric['1day.excess_return_with_cost.annualized_return'] / abs(metric['1day.excess_return_with_cost.max_drawdown']):.4f}")
+    #             }
+    #             st.write("With Cost Metrics:")
+    #             st.write(pd.Series(selected_metrics_with_cost))
                 
-                # Select specific metrics without cost
-                selected_metrics_without_cost = {
-                    'IC': float(f"{metric['IC']:.4f}"),
-                    'ICIR': float(f"{metric['ICIR']:.4f}"),
-                    'Rank IC': float(f"{metric['Rank IC']:.4f}"),
-                    'Rank ICIR': float(f"{metric['Rank ICIR']:.4f}"),
-                    'ARR': float(f"{metric['1day.excess_return_without_cost.annualized_return']:.4f}"),
-                    'IR': float(f"{metric['1day.excess_return_without_cost.information_ratio']:.4f}"),
-                    'MDD': float(f"{metric['1day.excess_return_without_cost.max_drawdown']:.4f}"),
-                    'Sharpe': float(f"{metric['1day.excess_return_without_cost.annualized_return'] / abs(metric['1day.excess_return_without_cost.max_drawdown']):.4f}")
-                }
-                st.write("Without Cost Metrics:")
-                st.write(pd.Series(selected_metrics_without_cost))
-                break
+    #             # Select specific metrics without cost
+    #             selected_metrics_without_cost = {
+    #                 'IC': float(f"{metric['IC']:.4f}"),
+    #                 'ICIR': float(f"{metric['ICIR']:.4f}"),
+    #                 'Rank IC': float(f"{metric['Rank IC']:.4f}"),
+    #                 'Rank ICIR': float(f"{metric['Rank ICIR']:.4f}"),
+    #                 'ARR': float(f"{metric['1day.excess_return_without_cost.annualized_return']:.4f}"),
+    #                 'IR': float(f"{metric['1day.excess_return_without_cost.information_ratio']:.4f}"),
+    #                 'MDD': float(f"{metric['1day.excess_return_without_cost.max_drawdown']:.4f}"),
+    #                 'Sharpe': float(f"{metric['1day.excess_return_without_cost.annualized_return'] / abs(metric['1day.excess_return_without_cost.max_drawdown']):.4f}")
+    #             }
+    #             st.write("Without Cost Metrics:")
+    #             st.write(pd.Series(selected_metrics_without_cost))
+    #             break
     if isinstance(state.scenario, SIMILAR_SCENARIOS):
         with st.container(border=True):
             st.subheader("Feedback📝", divider="orange", anchor="_feedback")
@@ -1029,7 +1022,7 @@ def analyze_task_completion():
             st.metric(
                 label="Final Completion", 
                 value=f"{total_passed_final/total_tasks_across_loops:.0%}", 
-                delta=f"{(total_passed_final-total_passed_r3)/total_tasks_across_loops:.0%}",
+                delta=f"{(total_passed_final-total_passed_r5)/total_tasks_across_loops:.0%}",
                 help=f"{total_passed_final}/{total_tasks_across_loops} tasks"
             )
                 
@@ -1086,7 +1079,7 @@ def analyze_task_completion():
 
 if state.scenario is not None:
     summary_window()
-    analyze_task_completion()
+    # analyze_task_completion()
 
     # R&D Loops Window
     if isinstance(state.scenario, SIMILAR_SCENARIOS):

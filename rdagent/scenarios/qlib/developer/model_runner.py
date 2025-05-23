@@ -30,11 +30,6 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
 
     @cache_with_pickle(CachedRunner.get_cache_key, CachedRunner.assign_cached_result)
     def develop(self, exp: QlibModelExperiment) -> QlibModelExperiment:
-        """
-        # TODO: is this necessary?
-        if exp.based_experiments and exp.based_experiments[-1].result is None:
-            exp.based_experiments[-1] = self.develop(exp.based_experiments[-1])
-        """
         if exp.based_experiments and exp.based_experiments[-1].result is None:
             exp.based_experiments[-1] = self.develop(exp.based_experiments[-1])
 
@@ -56,8 +51,7 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
                 combined_factors = combined_factors.loc[:, ~combined_factors.columns.duplicated(keep="last")]
                 new_columns = pd.MultiIndex.from_product([["feature"], combined_factors.columns])
                 combined_factors.columns = new_columns
-                # TODO: put 20 into config
-                num_features = str(20 + len(combined_factors.columns))
+                num_features = str(RD_AGENT_SETTINGS.initial_fator_library_size + len(combined_factors.columns))
 
                 target_path = exp.experiment_workspace.workspace_path / "combined_factors_df.parquet"
 

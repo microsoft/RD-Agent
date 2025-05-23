@@ -14,7 +14,7 @@ class Metrics:
     rank_icir: float = 0.0
     arr: float = 0.0
     ir: float = 0.0
-    mdd: float = 0.0     # 正数
+    mdd: float = 0.0
     sharpe: float = 0.0
 
     def as_vector(self) -> np.ndarray:
@@ -25,7 +25,7 @@ class Metrics:
             self.rank_icir,
             self.arr,
             self.ir,
-            -self.mdd,      # 越大越好
+            -self.mdd,
             self.sharpe,
         ])
 
@@ -95,7 +95,6 @@ class LinearThompsonTwoArm:
 
 class EnvController:
     def __init__(self, weights: Tuple[float, ...] = None) -> None:
-        # TODO
         self.weights = np.asarray(weights or (0.1, 0.1, 0.05, 0.05, 0.25, 0.15, 0.1, 0.2))
         self.bandit = LinearThompsonTwoArm(dim=8, prior_var=10.0, noise_var=0.5)
 

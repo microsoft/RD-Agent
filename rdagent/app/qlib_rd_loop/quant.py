@@ -18,7 +18,6 @@ from rdagent.core.proposal import (
     Experiment2Feedback,
     Hypothesis2Experiment,
     HypothesisGen,
-    Trace,
     HypothesisFeedback,
 )
 from rdagent.core.developer import Developer
@@ -61,7 +60,6 @@ class QuantRDLoop(RDLoop):
     def direct_exp_gen(self, prev_out: dict[str, Any]):
         with logger.tag("r"):  # research
             hypo = self._propose()
-            # exp = self._exp_gen(hypo)
             assert hypo.action in ["factor", "model"]
             if hypo.action == "factor":
                 exp = self.factor_hypothesis2experiment.convert(hypo, self.trace)
@@ -71,7 +69,7 @@ class QuantRDLoop(RDLoop):
         return {"propose": hypo, "exp_gen": exp}
 
     def coding(self, prev_out: dict[str, Any]):
-        with logger.tag("d"):
+        with logger.tag("d"):  # development
             if prev_out["direct_exp_gen"]["propose"].action == "factor":
                 exp = self.factor_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
             elif prev_out["direct_exp_gen"]["propose"].action == "model":
@@ -118,7 +116,7 @@ def main(path=None, step_n=None):
     Auto R&D Evolving loop for fintech factors.
     You can continue running session by
     .. code-block:: python
-        dotenv run -- python rdagent/app/qlib_rd_loop/factor.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
+        dotenv run -- python rdagent/app/qlib_rd_loop/quant.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
     """
     if path is None:
         quant_loop = QuantRDLoop(QUANT_PROP_SETTING)

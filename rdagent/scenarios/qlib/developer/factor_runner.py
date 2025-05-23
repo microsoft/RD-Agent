@@ -69,9 +69,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             .mean()
         )
         IC_max.index = pd.MultiIndex.from_product([range(SOTA_feature.shape[1]), range(new_feature.shape[1])])
-        logger.info(f"IC_max1: {IC_max}")
         IC_max = IC_max.unstack().max(axis=0)
-        logger.info(f"IC_max2: {IC_max}")
         return new_feature.iloc[:, IC_max[IC_max < 0.99].index]
 
     @cache_with_pickle(CachedRunner.get_cache_key, CachedRunner.assign_cached_result)
@@ -115,8 +113,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             combined_factors = combined_factors.loc[:, ~combined_factors.columns.duplicated(keep="last")]
             new_columns = pd.MultiIndex.from_product([["feature"], combined_factors.columns])
             combined_factors.columns = new_columns
-            # TODO: put 20 into config
-            num_features = 20 + len(combined_factors.columns)
+            num_features = RD_AGENT_SETTINGS.initial_fator_library_size + len(combined_factors.columns)
             logger.info(f"Factor data processing completed.")
 
             # Due to the rdagent and qlib docker image in the numpy version of the difference,
@@ -127,10 +124,6 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             # Save the combined factors to the workspace
             combined_factors.to_parquet(target_path, engine="pyarrow")
 
-            # If all previous experiments are about writing factors
-            # result = exp.experiment_workspace.execute(
-            #     qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
-            # )
             # If model exp exists in the previous experiment
             exist_sota_model_exp = False
             for base_exp in reversed(exp.based_experiments):

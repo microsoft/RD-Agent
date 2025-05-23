@@ -15,8 +15,8 @@ class QlibFBWorkspace(FBWorkspace):
         self.inject_code_from_folder(template_folder_path)
 
     def execute(self, qlib_config_name: str = "conf.yaml", run_env: dict = {}, *args, **kwargs) -> str:
-        # qtde = QTDockerEnv()  # This is for the docker environment
-        qtde = LocalEnv(conf=QlibCondaConf())  # This is for the local environment
+        qtde = QTDockerEnv()  # This is for the docker environment
+        # qtde = LocalEnv(conf=QlibCondaConf())  # This is for the local environment
         qtde.prepare()
 
         # Run the Qlib backtest
