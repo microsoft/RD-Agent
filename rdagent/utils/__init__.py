@@ -11,6 +11,8 @@ import importlib
 import json
 import re
 import sys
+import time
+from multiprocessing import Process, Queue
 from pathlib import Path
 from types import ModuleType
 from typing import Union
@@ -18,8 +20,6 @@ from typing import Union
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.utils.agent.tpl import T
-import time
-from multiprocessing import Process, Queue
 
 
 def get_module_by_module_path(module_path: Union[str, ModuleType]) -> ModuleType:
@@ -76,6 +76,7 @@ def remove_ansi_codes(s: str) -> str:
     ansi_escape = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
     return ansi_escape.sub("", s)
 
+
 def safe_sub(pattern, text, queue):
     try:
         result = re.sub(pattern, "", text)
@@ -83,12 +84,13 @@ def safe_sub(pattern, text, queue):
     except Exception as e:
         queue.put(e)
 
+
 def apply_regex_with_timeout(pattern, text, timeout=120):
     queue = Queue()
     p = Process(target=safe_sub, args=(pattern, text, queue))
     p.start()
     p.join(timeout)
-    
+
     if p.is_alive():
         p.terminate()
         p.join()
@@ -101,6 +103,7 @@ def apply_regex_with_timeout(pattern, text, timeout=120):
             return text
         return result
 
+
 def filter_with_time_limit(regex_patterns, filtered_stdout):
     if isinstance(regex_patterns, list):
         for pattern in regex_patterns:
@@ -108,6 +111,7 @@ def filter_with_time_limit(regex_patterns, filtered_stdout):
     else:
         filtered_stdout = re.sub(regex_patterns, "", filtered_stdout)
     return filtered_stdout
+
 
 def filter_redundant_text(stdout: str) -> str:
     """
