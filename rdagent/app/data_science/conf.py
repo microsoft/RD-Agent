@@ -108,5 +108,4 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """The maximum number of SOTA experiments to retrieve in a LLM call"""
 
 
-
 DS_RD_SETTING = DataScienceBasePropSetting()
