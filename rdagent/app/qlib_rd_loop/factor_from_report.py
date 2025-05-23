@@ -154,7 +154,7 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
         return exp
 
 
-def main(report_folder=None, path=None, step_n=None):
+def main(report_folder=None, path=None, step_n=None, loop_n=None, all_duration=None):
     """
     Auto R&D Evolving loop for fintech factors (the factors are extracted from finance reports).
 
@@ -170,7 +170,7 @@ def main(report_folder=None, path=None, step_n=None):
     else:
         model_loop = FactorReportLoop(report_folder=report_folder)
 
-    model_loop.run(step_n=step_n)
+    model_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration)
 
 
 if __name__ == "__main__":

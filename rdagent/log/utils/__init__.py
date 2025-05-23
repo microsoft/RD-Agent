@@ -1,6 +1,7 @@
 import inspect
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, TypedDict, cast
 
@@ -100,3 +101,268 @@ def extract_json(log_content: str) -> dict | None:
     if match:
         return cast(dict, json.loads(match.group(0)))
     return None
+
+
+def log_obj_to_json(
+    obj: object,
+    tag: str = "",
+    log_trace_path: str = None,
+) -> list[dict] | dict:
+    ts = datetime.now(timezone.utc).isoformat()
+    li, fn = extract_loopid_func_name(tag)
+    ei = extract_evoid(tag)
+    data = {}
+    if "hypothesis generation" in tag:
+        from rdagent.core.proposal import Hypothesis
+
+        h: Hypothesis = obj
+        data = {
+            "id": str(log_trace_path),
+            "msg": {
+                "tag": "research.hypothesis",
+                "timestamp": ts,
+                "loop_id": li,
+                "content": {
+                    "hypothesis": h.hypothesis,
+                    "reason": h.reason,
+                    "concise_reason": h.concise_reason,
+                    "concise_justification": h.concise_justification,
+                    "concise_observation": h.concise_observation,
+                    "concise_knowledge": h.concise_knowledge,
+                },
+            },
+        }
+
+    elif "experiment generation" in tag:
+        from rdagent.components.coder.factor_coder.factor import FactorTask
+        from rdagent.components.coder.model_coder.model import ModelTask
+        from rdagent.core.experiment import Experiment
+
+        tasks: list[FactorTask | ModelTask] = obj
+        if isinstance(tasks[0], FactorTask):
+            data = {
+                "id": str(log_trace_path),
+                "msg": {
+                    "tag": "research.tasks",
+                    "timestamp": ts,
+                    "loop_id": li,
+                    "content": [
+                        {
+                            "name": t.factor_name,
+                            "description": t.factor_description,
+                            "formulation": t.factor_formulation,
+                            "variables": t.variables,
+                        }
+                        for t in tasks
+                    ],
+                },
+            }
+        elif isinstance(tasks[0], ModelTask):
+            data = {
+                "id": str(log_trace_path),
+                "msg": {
+                    "tag": "research.tasks",
+                    "timestamp": ts,
+                    "loop_id": li,
+                    "content": [
+                        {
+                            "name": t.name,
+                            "description": t.description,
+                            "model_type": t.model_type,
+                            "formulation": t.formulation,
+                            "variables": t.variables,
+                        }
+                        for t in tasks
+                    ],
+                },
+            }
+    elif "direct_exp_gen" in tag:
+        from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+
+        if isinstance(obj, DSExperiment):
+            from rdagent.scenarios.data_science.proposal.exp_gen.base import (
+                DSHypothesis,
+            )
+
+            h: DSHypothesis = obj.hypothesis
+            tasks = [t[0] for t in obj.pending_tasks_list]
+            t = tasks[0]
+            data = [
+                {
+                    "id": str(log_trace_path),
+                    "msg": {
+                        "tag": "research.hypothesis",
+                        "old_tag": tag,
+                        "timestamp": ts,
+                        "loop_id": li,
+                        "content": {
+                            "name_map": {
+                                "hypothesis": "RD-Agent proposes the hypothesis⬇️",
+                                "concise_justification": "because the reason⬇️",
+                                "concise_observation": "based on the observation⬇️",
+                                "concise_knowledge": "Knowledge⬇️ gained after practice",
+                                "no_hypothesis": f"No hypothesis available. Trying to construct the first runnable {h.component} component.",
+                            },
+                            "hypothesis": h.hypothesis,
+                            "reason": h.reason,
+                            "component": h.component,
+                            "concise_reason": h.concise_reason,
+                            "concise_justification": h.concise_justification,
+                            "concise_observation": h.concise_observation,
+                            "concise_knowledge": h.concise_knowledge,
+                        },
+                    },
+                },
+                {
+                    "id": str(log_trace_path),
+                    "msg": {
+                        "tag": "research.tasks",
+                        "old_tag": tag,
+                        "timestamp": ts,
+                        "loop_id": li,
+                        "content": [
+                            (
+                                {
+                                    "name": t.name,
+                                    "description": t.description,
+                                }
+                                if not hasattr(t, "architecture")
+                                else {
+                                    "name": t.name,
+                                    "description": t.description,
+                                    "model_type": t.model_type,
+                                    "architecture": t.architecture,
+                                    "hyperparameters": t.hyperparameters,
+                                }
+                            )
+                        ],
+                    },
+                },
+            ]
+    elif f"evo_loop_{ei}.evolving code" in tag and "coding" in tag:
+        from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
+        from rdagent.components.coder.model_coder.model import (
+            ModelFBWorkspace,
+            ModelTask,
+        )
+        from rdagent.core.experiment import FBWorkspace
+
+        ws: list[FactorFBWorkspace | ModelFBWorkspace] = [i for i in obj]
+        if all(isinstance(item, FactorFBWorkspace) for item in ws) or all(
+            isinstance(item, ModelFBWorkspace) for item in ws
+        ):
+            data = {
+                "id": str(log_trace_path),
+                "msg": {
+                    "tag": "evolving.codes",
+                    "timestamp": ts,
+                    "loop_id": li,
+                    "evo_id": ei,
+                    "content": [
+                        {
+                            "target_task_name": w.target_task.name,
+                            "codes": w.file_dict,
+                        }
+                        for w in ws
+                        if w
+                    ],
+                },
+            }
+    elif f"evo_loop_{ei}.evolving feedback" in tag and "coding" in tag:
+        from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedback
+
+        fl: list[CoSTEERSingleFeedback] = [i for i in obj]
+        data = {
+            "id": str(log_trace_path),
+            "msg": {
+                "tag": "evolving.feedbacks",
+                "timestamp": ts,
+                "loop_id": li,
+                "evo_id": ei,
+                "content": [
+                    {
+                        "final_decision": f.final_decision,
+                        # "final_feedback": f.final_feedback,
+                        "execution": f.execution,
+                        "code": f.code,
+                        "return_checking": f.return_checking,
+                    }
+                    for f in fl
+                    if f
+                ],
+            },
+        }
+    elif "scenario" in tag:
+        data = {
+            "id": str(log_trace_path),
+            "msg": {
+                "tag": "feedback.config",
+                "timestamp": ts,
+                "loop_id": li,
+                "content": {"config": obj.experiment_setting},
+            },
+        }
+
+    elif "Quantitative Backtesting Chart" in tag:
+        import plotly
+
+        from rdagent.log.ui.qlib_report_figure import report_figure
+
+        data = {
+            "id": str(log_trace_path),
+            "msg": {
+                "tag": "feedback.return_chart",
+                "timestamp": ts,
+                "loop_id": li,
+                "content": {"chart_html": plotly.io.to_html(report_figure(obj))},
+            },
+        }
+    elif "running" in tag:
+        from rdagent.core.experiment import Experiment
+
+        if isinstance(obj, Experiment):
+            if obj.result is not None:
+                result_str = obj.result.to_json()
+                data = {
+                    "id": str(log_trace_path),
+                    "msg": {
+                        "tag": "feedback.metric",
+                        "old_tag": tag,
+                        "timestamp": ts,
+                        "loop_id": li,
+                        "content": {
+                            "result": result_str,
+                        },
+                    },
+                }
+    elif "feedback" in tag:
+        from rdagent.core.proposal import ExperimentFeedback, HypothesisFeedback
+
+        ef: ExperimentFeedback = obj
+        content = (
+            {
+                "observations": ef.observations,
+                "hypothesis_evaluation": ef.hypothesis_evaluation,
+                "new_hypothesis": ef.new_hypothesis,
+                "decision": ef.decision,
+                "reason": ef.reason,
+                "exception": ef.exception,
+            }
+            if isinstance(ef, HypothesisFeedback)
+            else {
+                "decision": ef.decision,
+                "reason": ef.reason,
+                "exception": ef.exception,
+            }
+        )
+        data = {
+            "id": str(log_trace_path),
+            "msg": {
+                "tag": "feedback.hypothesis_feedback",
+                "timestamp": ts,
+                "loop_id": li,
+                "content": content,
+            },
+        }
+
+    return data

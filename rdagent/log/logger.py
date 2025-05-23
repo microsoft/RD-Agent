@@ -11,6 +11,7 @@ from multiprocessing.connection import Connection
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Generator, Union
 
+import requests
 from loguru import logger
 
 if TYPE_CHECKING:
@@ -22,7 +23,7 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.utils import SingletonBaseClass
 
 from .storage import FileStorage
-from .utils import LogColors, get_caller_info
+from .utils import LogColors, get_caller_info, log_obj_to_json
 
 
 class RDAgentLog(SingletonBaseClass):
@@ -115,6 +116,14 @@ class RDAgentLog(SingletonBaseClass):
         caller_info = get_caller_info()
         tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
         logp = self.storage.log(obj, name=tag, save_type="pkl")
+
+        try:
+            flask_url = "http://localhost:19899"
+            data = log_obj_to_json(obj=obj, tag=tag, log_trace_path=self.log_trace_path)
+            headers = {"Content-Type": "application/json"}
+            requests.post(f"{flask_url}/receive", json=data, headers=headers, timeout=1)
+        except (requests.ConnectionError, requests.Timeout):
+            pass
 
         file_handler_id = logger.add(
             self.log_trace_path / tag.replace(".", "/") / "common_logs.log", format=self.file_format
