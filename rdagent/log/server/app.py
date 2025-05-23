@@ -66,7 +66,7 @@ def upload_file():
                 p.mkdir(parents=True, exist_ok=True)
             file.save(f"./uploads/{scenario}/{file.filename}")
 
-    log_trace_path = Path(f"{scenario.replace(' ', '_')}/test").absolute()
+    log_trace_path = Path(f"./RD-Agent_server_trace/{scenario.replace(' ', '_')}/test").absolute()
 
     if scenario == "Finance Data Building":
         cmds = ["rdagent", "fin_factor"]
@@ -127,60 +127,42 @@ def receive_msgs():
     return jsonify({"status": "success"}), 200
 
 
-@app.route("/pause", methods=["GET"])
-def pause_process():
+@app.route("/control", methods=["POST"])
+def control_process():
     global rdagent_processes
-    id = request.get_json().get("id")
-    if rdagent_processes[id] is None:
-        return jsonify({"error": "No running process to pause"}), 400
+    data = request.get_json()
+    if not data or "id" not in data or "action" not in data:
+        return jsonify({"error": "Missing 'id' or 'action' in request"}), 400
 
-    if rdagent_processes[id].poll() is not None:
+    id = data["id"]
+    action = data["action"]
+
+    if id not in rdagent_processes or rdagent_processes[id] is None:
+        return jsonify({"error": "No running process for given id"}), 400
+
+    process = rdagent_processes[id]
+
+    if process.poll() is not None:
         msgs_for_frontend[id].append({"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}})
-        return jsonify({"error": "Process is not running"}), 400
+        return jsonify({"error": "Process has already terminated"}), 400
 
     try:
-        os.kill(rdagent_processes[id].pid, signal.SIGSTOP)
-        return jsonify({"status": "paused"}), 200
+        if action == "pause":
+            os.kill(process.pid, signal.SIGSTOP)
+            return jsonify({"status": "paused"}), 200
+        elif action == "resume":
+            os.kill(process.pid, signal.SIGCONT)
+            return jsonify({"status": "resumed"}), 200
+        elif action == "stop":
+            process.terminate()
+            process.wait()
+            del rdagent_processes[id]
+            msgs_for_frontend[id].append({"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}})
+            return jsonify({"status": "stopped"}), 200
+        else:
+            return jsonify({"error": "Unknown action"}), 400
     except Exception as e:
-        return jsonify({"error": "Failed to pause process"}), 500
-
-
-@app.route("/resume", methods=["GET"])
-def resume_process():
-    global rdagent_processes
-    id = request.get_json().get("id")
-    if rdagent_processes[id] is None:
-        return jsonify({"error": "No running process to resume"}), 400
-
-    if rdagent_processes[id].poll() is not None:
-        msgs_for_frontend[id].append({"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}})
-        return jsonify({"error": "Process is not running"}), 400
-
-    try:
-        os.kill(rdagent_processes[id].pid, signal.SIGCONT)
-        return jsonify({"status": "resumed"}), 200
-    except Exception as e:
-        return jsonify({"error": "Failed to resume process"}), 500
-
-
-@app.route("/stop", methods=["GET"])
-def stop_process():
-    global rdagent_processes
-    id = request.get_json().get("id")
-    if rdagent_processes[id] is None:
-        return jsonify({"error": "No running process to stop"}), 400
-
-    if rdagent_processes[id].poll() is not None:
-        return jsonify({"error": "Process is not running"}), 400
-
-    try:
-        rdagent_processes[id].terminate()
-        rdagent_processes[id].wait()
-        del rdagent_processes[id]
-        msgs_for_frontend[id].append({"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}})
-        return jsonify({"status": "stoped"}), 200
-    except Exception as e:
-        return jsonify({"error": "Failed to stop process"}), 500
+        return jsonify({"error": f"Failed to {action} process"}), 500
 
 
 @app.route("/", methods=["GET"])
