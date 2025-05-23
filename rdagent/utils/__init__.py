@@ -83,7 +83,7 @@ def safe_sub(pattern: str, text: str, queue: Queue) -> None:
         queue.put(e)
 
 def apply_regex_with_timeout(pattern: str, text: str, timeout: int = 120) -> str:
-    queue = Queue()
+    queue: Queue[str | Exception] = Queue()
     p = Process(target=safe_sub, args=(pattern, text, queue))
     p.start()
     p.join(timeout)
