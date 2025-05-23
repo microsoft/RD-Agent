@@ -57,7 +57,7 @@ The Data Science Agent is an agent that can automatically perform feature engine
       - ``ds_data/eval/custom_data/submission_test.csv:`` (Optional) Competition test label file.
 
 🔍 MLE-bench Guide: Running ML Engineering via MLE-bench
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - 📝 **MLE-bench Overview**
 
@@ -122,7 +122,6 @@ The Data Science Agent is an agent that can automatically perform feature engine
       # This example sets the model to "o3-mini". For some models, the reasoning effort shoule be set to "None".
       dotenv set LITELLM_CHAT_MODEL_MAP '{"coding":{"model":"o3-mini","reasoning_effort":"high"},"running":{"model":"o3-mini","reasoning_effort":"high"}}'
 
---------------------------------------------------
 
 
 
