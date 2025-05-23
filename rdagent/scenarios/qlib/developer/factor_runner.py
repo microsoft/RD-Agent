@@ -103,7 +103,9 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             if SOTA_factor is not None and not SOTA_factor.empty:
                 new_factors = self.deduplicate_new_factors(SOTA_factor, new_factors)
                 if new_factors.empty:
-                    raise FactorEmptyError("The factors generated in this round are highly similar to the previous factors. Please change the direction for creating new factors.")
+                    raise FactorEmptyError(
+                        "The factors generated in this round are highly similar to the previous factors. Please change the direction for creating new factors."
+                    )
                 combined_factors = pd.concat([SOTA_factor, new_factors], axis=1).dropna()
             else:
                 combined_factors = new_factors
@@ -139,26 +141,32 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
                 env_to_use = {"PYTHONPATH": "./"}
                 sota_training_hyperparameters = sota_model_exp.sub_tasks[0].training_hyperparameters
                 if sota_training_hyperparameters:
-                    env_to_use.update({
-                        "n_epochs": str(sota_training_hyperparameters.get("n_epochs", "100")),
-                        "lr": str(sota_training_hyperparameters.get("lr", "2e-4")),
-                        "early_stop": str(sota_training_hyperparameters.get("early_stop", 10)),
-                        "batch_size": str(sota_training_hyperparameters.get("batch_size", 256)),
-                        "weight_decay": str(sota_training_hyperparameters.get("weight_decay", 0.0)),
-                    })
+                    env_to_use.update(
+                        {
+                            "n_epochs": str(sota_training_hyperparameters.get("n_epochs", "100")),
+                            "lr": str(sota_training_hyperparameters.get("lr", "2e-4")),
+                            "early_stop": str(sota_training_hyperparameters.get("early_stop", 10)),
+                            "batch_size": str(sota_training_hyperparameters.get("batch_size", 256)),
+                            "weight_decay": str(sota_training_hyperparameters.get("weight_decay", 0.0)),
+                        }
+                    )
                 sota_model_type = sota_model_exp.sub_tasks[0].model_type
                 if sota_model_type == "TimeSeries":
-                    env_to_use.update({"dataset_cls": "TSDatasetH", "num_features": num_features, "step_len": 20, "num_timesteps": 20})
+                    env_to_use.update(
+                        {"dataset_cls": "TSDatasetH", "num_features": num_features, "step_len": 20, "num_timesteps": 20}
+                    )
                 elif sota_model_type == "Tabular":
                     env_to_use.update({"dataset_cls": "DatasetH", "num_features": num_features})
 
                 # model + combined factors
-                result, stdout = exp.experiment_workspace.execute(qlib_config_name="conf_model_combined.yaml", run_env=env_to_use)
+                result, stdout = exp.experiment_workspace.execute(
+                    qlib_config_name="conf_model_combined.yaml", run_env=env_to_use
+                )
             else:
                 # LGBM + combined factors
                 result, stdout = exp.experiment_workspace.execute(
-                qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
-            )
+                    qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
+                )
         else:
             logger.info(f"Experiment execution ...")
             result, stdout = exp.experiment_workspace.execute(
@@ -210,15 +218,21 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
                         time_diff = df.index.get_level_values("datetime").to_series().diff().dropna().unique()
                         if pd.Timedelta(minutes=1) not in time_diff:
                             factor_dfs.append(df)
-                            logger.info(f"Factor data from {exp.hypothesis.concise_justification} is successfully generated.")
+                            logger.info(
+                                f"Factor data from {exp.hypothesis.concise_justification} is successfully generated."
+                            )
                         else:
                             logger.warning(f"Factor data from {exp.hypothesis.concise_justification} is not generated.")
                     else:
                         error_message += f"Factor data from {exp.hypothesis.concise_justification} is not generated because of {message}"
-                        logger.warning(f"Factor data from {exp.hypothesis.concise_justification} is not generated because of {message}")
+                        logger.warning(
+                            f"Factor data from {exp.hypothesis.concise_justification} is not generated because of {message}"
+                        )
 
         # Combine all successful factor data
         if factor_dfs:
             return pd.concat(factor_dfs, axis=1)
         else:
-            raise FactorEmptyError(f"No valid factor data found to merge (in process_factor_data) because of {error_message}.")
+            raise FactorEmptyError(
+                f"No valid factor data found to merge (in process_factor_data) because of {error_message}."
+            )

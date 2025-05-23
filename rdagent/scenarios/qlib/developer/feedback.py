@@ -47,7 +47,7 @@ def process_results(current_result, sota_result):
 
     # Filter the combined DataFrame to retain only the important metrics
     filtered_combined_df = combined_df.loc[important_metrics]
-    
+
     def format_filtered_combined_df(filtered_combined_df: pd.DataFrame) -> str:
         results = []
         for metric, row in filtered_combined_df.iterrows():
@@ -55,7 +55,6 @@ def process_results(current_result, sota_result):
             sota = row["SOTA Result"]
             results.append(f"{metric} of Current Result is {current:.6f}, of SOTA Result is {sota:.6f}")
         return "; ".join(results)
-    
 
     return format_filtered_combined_df(filtered_combined_df)
 
@@ -87,7 +86,7 @@ class QlibFactorExperiment2Feedback(Experiment2Feedback):
         sys_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(feedback_prompts["factor_feedback_generation"]["system"])
-            .render(scenario=self.scen.get_scenario_all_desc(action = "factor"))
+            .render(scenario=self.scen.get_scenario_all_desc(action="factor"))
         )
 
         # Generate the user prompt
@@ -148,7 +147,7 @@ class QlibModelExperiment2Feedback(Experiment2Feedback):
         sys_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(feedback_prompts["model_feedback_generation"]["system"])
-            .render(scenario=self.scen.get_scenario_all_desc(action = "model"))
+            .render(scenario=self.scen.get_scenario_all_desc(action="model"))
         )
 
         important_metrics = [

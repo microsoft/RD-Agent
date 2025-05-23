@@ -2,18 +2,17 @@ import pickle
 from pathlib import Path
 from typing import List
 
-from rdagent.components.runner import CachedRunner
-from rdagent.core.exception import ModelEmptyError,FactorEmptyError
-from rdagent.core.utils import cache_with_pickle
-from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
-from rdagent.log import rdagent_logger as logger
-from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiFeedback
-from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.utils import cache_with_pickle, multiprocessing_wrapper
-
-from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
-from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 import pandas as pd
+
+from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiFeedback
+from rdagent.components.runner import CachedRunner
+from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.exception import FactorEmptyError, ModelEmptyError
+from rdagent.core.utils import cache_with_pickle, multiprocessing_wrapper
+from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
+from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
+
 
 class QlibModelRunner(CachedRunner[QlibModelExperiment]):
     """
@@ -67,33 +66,41 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
 
         training_hyperparameters = exp.sub_tasks[0].training_hyperparameters
         if training_hyperparameters:
-            env_to_use.update({
-                "n_epochs": str(training_hyperparameters.get("n_epochs", "100")),
-                "lr": str(training_hyperparameters.get("lr", "1e-3")),
-                "early_stop": str(training_hyperparameters.get("early_stop", 10)),
-                "batch_size": str(training_hyperparameters.get("batch_size", 256)),
-                "weight_decay": str(training_hyperparameters.get("weight_decay", 0.0001)),
-            })
-        
+            env_to_use.update(
+                {
+                    "n_epochs": str(training_hyperparameters.get("n_epochs", "100")),
+                    "lr": str(training_hyperparameters.get("lr", "1e-3")),
+                    "early_stop": str(training_hyperparameters.get("early_stop", 10)),
+                    "batch_size": str(training_hyperparameters.get("batch_size", 256)),
+                    "weight_decay": str(training_hyperparameters.get("weight_decay", 0.0001)),
+                }
+            )
+
         logger.info(f"start to run {exp.sub_tasks[0].name} model")
         if exp.sub_tasks[0].model_type == "TimeSeries":
             if exist_sota_factor_exp:
-                env_to_use.update({"dataset_cls": "TSDatasetH", "num_features": num_features, "step_len": 20, "num_timesteps": 20})
-                result, stdout = exp.experiment_workspace.execute(qlib_config_name="conf_model_combined.yaml", run_env=env_to_use)
+                env_to_use.update(
+                    {"dataset_cls": "TSDatasetH", "num_features": num_features, "step_len": 20, "num_timesteps": 20}
+                )
+                result, stdout = exp.experiment_workspace.execute(
+                    qlib_config_name="conf_model_combined.yaml", run_env=env_to_use
+                )
             else:
                 env_to_use.update({"dataset_cls": "TSDatasetH", "step_len": 20, "num_timesteps": 20})
                 result, stdout = exp.experiment_workspace.execute(qlib_config_name="conf.yaml", run_env=env_to_use)
         elif exp.sub_tasks[0].model_type == "Tabular":
             if exist_sota_factor_exp:
                 env_to_use.update({"dataset_cls": "DatasetH", "num_features": num_features})
-                result, stdout = exp.experiment_workspace.execute(qlib_config_name="conf_model_combined.yaml", run_env=env_to_use)
+                result, stdout = exp.experiment_workspace.execute(
+                    qlib_config_name="conf_model_combined.yaml", run_env=env_to_use
+                )
             else:
                 env_to_use.update({"dataset_cls": "DatasetH"})
                 result, stdout = exp.experiment_workspace.execute(qlib_config_name="conf.yaml", run_env=env_to_use)
 
         exp.result = result
         exp.stdout = stdout
-        
+
         if result is None:
             logger.error(f"Failed to run {exp.sub_tasks[0].name}, because {stdout}")
             raise ModelEmptyError(f"Failed to run {exp.sub_tasks[0].name} model, because {stdout}")
@@ -137,15 +144,23 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
                             time_diff = df.index.get_level_values("datetime").to_series().diff().dropna().unique()
                             if pd.Timedelta(minutes=1) not in time_diff:
                                 factor_dfs.append(df)
-                                logger.info(f"Factor data from {exp.hypothesis.concise_justification} is successfully generated.")
+                                logger.info(
+                                    f"Factor data from {exp.hypothesis.concise_justification} is successfully generated."
+                                )
                             else:
-                                logger.warning(f"Factor data from {exp.hypothesis.concise_justification} is not generated.")
+                                logger.warning(
+                                    f"Factor data from {exp.hypothesis.concise_justification} is not generated."
+                                )
                         else:
                             error_message += f"Factor data from {exp.hypothesis.concise_justification} is not generated because of {message}"
-                            logger.warning(f"Factor data from {exp.hypothesis.concise_justification} is not generated because of {message}")
+                            logger.warning(
+                                f"Factor data from {exp.hypothesis.concise_justification} is not generated because of {message}"
+                            )
 
         # Combine all successful factor data
         if factor_dfs:
             return pd.concat(factor_dfs, axis=1)
         else:
-            raise FactorEmptyError(f"No valid factor data found to merge (in process_factor_data) because of {error_message}.")
+            raise FactorEmptyError(
+                f"No valid factor data found to merge (in process_factor_data) because of {error_message}."
+            )

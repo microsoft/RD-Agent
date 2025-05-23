@@ -7,24 +7,27 @@ from typing import Any
 import fire
 
 from rdagent.app.qlib_rd_loop.conf import QUANT_PROP_SETTING
-from rdagent.components.workflow.rd_loop import RDLoop
-from rdagent.core.exception import FactorEmptyError
-from rdagent.core.exception import ModelEmptyError
-from rdagent.log import rdagent_logger as logger
 from rdagent.components.workflow.conf import BasePropSetting
-from rdagent.core.scenario import Scenario
-from rdagent.core.utils import import_class
+from rdagent.components.workflow.rd_loop import RDLoop
+from rdagent.core.developer import Developer
+from rdagent.core.exception import FactorEmptyError, ModelEmptyError
 from rdagent.core.proposal import (
     Experiment2Feedback,
     Hypothesis2Experiment,
-    HypothesisGen,
     HypothesisFeedback,
+    HypothesisGen,
 )
-from rdagent.core.developer import Developer
+from rdagent.core.scenario import Scenario
+from rdagent.core.utils import import_class
+from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.qlib.proposal.quant_proposal import QuantTrace
 
+
 class QuantRDLoop(RDLoop):
-    skip_loop_error = (FactorEmptyError,ModelEmptyError, )
+    skip_loop_error = (
+        FactorEmptyError,
+        ModelEmptyError,
+    )
 
     def __init__(self, PROP_SETTING: BasePropSetting):
         with logger.tag("init"):
@@ -34,9 +37,13 @@ class QuantRDLoop(RDLoop):
             self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.quant_hypothesis_gen)(scen)
             logger.log_object(self.hypothesis_gen, tag="quant hypothesis generator")
 
-            self.factor_hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.factor_hypothesis2experiment)()
+            self.factor_hypothesis2experiment: Hypothesis2Experiment = import_class(
+                PROP_SETTING.factor_hypothesis2experiment
+            )()
             logger.log_object(self.factor_hypothesis2experiment, tag="factor hypothesis2experiment")
-            self.model_hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.model_hypothesis2experiment)()
+            self.model_hypothesis2experiment: Hypothesis2Experiment = import_class(
+                PROP_SETTING.model_hypothesis2experiment
+            )()
             logger.log_object(self.model_hypothesis2experiment, tag="model hypothesis2experiment")
 
             self.factor_coder: Developer = import_class(PROP_SETTING.factor_coder)(scen)
@@ -110,6 +117,7 @@ class QuantRDLoop(RDLoop):
             with logger.tag("ef"):
                 logger.log_object(feedback, tag="feedback")
             self.trace.hist.append((prev_out["running"], feedback))
+
 
 def main(path=None, step_n=None):
     """

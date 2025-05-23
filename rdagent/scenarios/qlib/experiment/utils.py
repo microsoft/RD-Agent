@@ -1,7 +1,7 @@
 import io
+import random
 import re
 import shutil
-import random
 from pathlib import Path
 
 import pandas as pd
@@ -87,18 +87,22 @@ def get_file_desc(p: Path, variable_list=[]) -> str:
         pd.set_option("display.max_colwidth", None)
 
         df_info = "### Data Structure\n"
-        df_info += f"- Index: MultiIndex with levels {df.index.names}\n" if isinstance(df.index, pd.MultiIndex) else f"- Index: {df.index.name}\n"
+        df_info += (
+            f"- Index: MultiIndex with levels {df.index.names}\n"
+            if isinstance(df.index, pd.MultiIndex)
+            else f"- Index: {df.index.name}\n"
+        )
 
         df_info += "\n### Columns\n"
         columns = df.dtypes.to_dict()
         grouped_columns = {}
 
         for col in columns:
-            if col.startswith('$'):
-                prefix = col.split('_')[0] if '_' in col else col
+            if col.startswith("$"):
+                prefix = col.split("_")[0] if "_" in col else col
                 grouped_columns.setdefault(prefix, []).append(col)
             else:
-                grouped_columns.setdefault('other', []).append(col)
+                grouped_columns.setdefault("other", []).append(col)
 
         if variable_list:
             df_info += "#### Relevant Columns:\n"
@@ -141,7 +145,6 @@ def get_file_desc(p: Path, variable_list=[]) -> str:
         raise NotImplementedError(
             f"file type {p.name} is not supported. Please implement its description function.",
         )
-
 
 
 def get_data_folder_intro(fname_reg: str = ".*", flags=0, variable_mapping=None) -> str:

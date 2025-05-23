@@ -49,8 +49,7 @@ class DMModelHypothesisGen(ModelHypothesisGen):
             (
                 Environment(undefined=StrictUndefined)
                 .from_string(prompt_dict["last_hypothesis_and_feedback"])
-                .render(experiment=trace.hist[-1][0],
-                        feedback=trace.hist[-1][1])
+                .render(experiment=trace.hist[-1][0], feedback=trace.hist[-1][1])
             )
             if len(trace.hist) > 0
             else "No previous hypothesis and feedback available since it's the first round."

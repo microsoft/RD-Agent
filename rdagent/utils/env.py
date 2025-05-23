@@ -384,7 +384,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
 
         # Convert any integer values in env to strings
         env = {k: str(v) if isinstance(v, int) else v for k, v in env.items()}
-        
+
         # Use Popen for real-time output
         process = subprocess.Popen(
             entry,
@@ -395,29 +395,29 @@ class LocalEnv(Env[ASpecificLocalConf]):
             text=True,
             shell=True,
             bufsize=1,  # Line buffered
-            universal_newlines=True
+            universal_newlines=True,
         )
 
         combined_output = ""
         # Read both stdout and stderr in real-time
         import select
         import sys
-        
+
         # Create file descriptors for stdout and stderr
         stdout_fd = process.stdout.fileno()
         stderr_fd = process.stderr.fileno()
-        
+
         # Set up polling
         poller = select.poll()
         poller.register(stdout_fd, select.POLLIN)
         poller.register(stderr_fd, select.POLLIN)
-        
+
         # Read until process ends
         while True:
             # Check if process has ended
             if process.poll() is not None:
                 break
-                
+
             # Poll for output
             events = poller.poll(100)  # 100ms timeout
             for fd, event in events:
@@ -502,6 +502,7 @@ class QlibCondaConf(CondaConf):
     enable_cache: bool = False
     default_entry: str = "qrun conf.yaml"
     # extra_volumes: dict = {str(Path("~/.qlib/").expanduser().resolve().absolute()): "/root/.qlib/"}
+
 
 class QlibDockerConf(DockerConf):
     model_config = SettingsConfigDict(env_prefix="QLIB_DOCKER_")

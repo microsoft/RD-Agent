@@ -1,9 +1,10 @@
 import json
 import math
-from pathlib import Path
-from typing import List, Tuple, Literal
-import numpy as np
 from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Literal, Tuple
+
+import numpy as np
 
 
 @dataclass
@@ -18,35 +19,34 @@ class Metrics:
     sharpe: float = 0.0
 
     def as_vector(self) -> np.ndarray:
-        return np.array([
-            self.ic,
-            self.icir,
-            self.rank_ic,
-            self.rank_icir,
-            self.arr,
-            self.ir,
-            -self.mdd,
-            self.sharpe,
-        ])
+        return np.array(
+            [
+                self.ic,
+                self.icir,
+                self.rank_ic,
+                self.rank_icir,
+                self.arr,
+                self.ir,
+                -self.mdd,
+                self.sharpe,
+            ]
+        )
 
 
 def extract_metrics_from_experiment(experiment) -> Metrics:
     """Extract metrics from experiment feedback"""
     try:
         result = experiment.result
-        ic = result.get('IC', 0.0)
-        icir = result.get('ICIR', 0.0)
-        rank_ic = result.get('Rank IC', 0.0)
-        rank_icir = result.get('Rank ICIR', 0.0)
-        arr = result.get('1day.excess_return_with_cost.annualized_return ', 0.0)
+        ic = result.get("IC", 0.0)
+        icir = result.get("ICIR", 0.0)
+        rank_ic = result.get("Rank IC", 0.0)
+        rank_icir = result.get("Rank ICIR", 0.0)
+        arr = result.get("1day.excess_return_with_cost.annualized_return ", 0.0)
         ir = result.get("1day.excess_return_with_cost.information_ratio", 0.0)
-        mdd = result.get('1day.excess_return_with_cost.max_drawdown', 1.0)  # Avoid division by zero
+        mdd = result.get("1day.excess_return_with_cost.max_drawdown", 1.0)  # Avoid division by zero
         sharpe = arr / -mdd if mdd != 0 else 0.0
-        
-        return Metrics(
-            ic=ic, icir=icir, rank_ic=rank_ic, rank_icir=rank_icir,
-            arr=arr, ir=ir, mdd=mdd, sharpe=sharpe
-        )
+
+        return Metrics(ic=ic, icir=icir, rank_ic=rank_ic, rank_icir=rank_icir, arr=arr, ir=ir, mdd=mdd, sharpe=sharpe)
     except Exception as e:
         print(f"Error extracting metrics: {e}")
         return Metrics()
@@ -85,8 +85,7 @@ class LinearThompsonTwoArm:
         P = self.precision[arm]
         P += np.outer(x, x) / self.noise_var
         self.precision[arm] = P
-        self.mean[arm] = np.linalg.solve(P,
-                                         P @ self.mean[arm] + (r / self.noise_var) * x)
+        self.mean[arm] = np.linalg.solve(P, P @ self.mean[arm] + (r / self.noise_var) * x)
 
     def next_arm(self, x: np.ndarray) -> str:
         scores = {arm: self.sample_reward(arm, x) for arm in ("factor", "model")}

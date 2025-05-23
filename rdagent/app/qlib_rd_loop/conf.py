@@ -93,7 +93,9 @@ class QuantBasePropSetting(BasePropSetting):
     model_summarizer: str = "rdagent.scenarios.qlib.developer.feedback.QlibModelExperiment2Feedback"
     """Summarizer class"""
 
-    factor_hypothesis2experiment: str = "rdagent.scenarios.qlib.proposal.factor_proposal.QlibFactorHypothesis2Experiment"
+    factor_hypothesis2experiment: str = (
+        "rdagent.scenarios.qlib.proposal.factor_proposal.QlibFactorHypothesis2Experiment"
+    )
     """Hypothesis to experiment class"""
 
     factor_coder: str = "rdagent.scenarios.qlib.developer.factor_coder.QlibFactorCoSTEER"

@@ -31,12 +31,11 @@ from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorScenar
 from rdagent.scenarios.qlib.experiment.factor_from_report_experiment import (
     QlibFactorFromReportScenario,
 )
-from rdagent.scenarios.qlib.experiment.quant_experiment import QlibQuantScenario
-
 from rdagent.scenarios.qlib.experiment.model_experiment import (
     QlibModelExperiment,
     QlibModelScenario,
 )
+from rdagent.scenarios.qlib.experiment.quant_experiment import QlibQuantScenario
 
 st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initial_sidebar_state="expanded")
 
@@ -62,7 +61,14 @@ QLIB_SELECTED_METRICS = [
     "1day.excess_return_with_cost.max_drawdown",
 ]
 
-SIMILAR_SCENARIOS = (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, QlibQuantScenario, KGScenario)
+SIMILAR_SCENARIOS = (
+    QlibModelScenario,
+    DMModelScenario,
+    QlibFactorScenario,
+    QlibFactorFromReportScenario,
+    QlibQuantScenario,
+    KGScenario,
+)
 
 
 def filter_log_folders(main_log_path):
@@ -169,7 +175,10 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     # Update Summary Info
                     if "model runner result" in tags or "factor runner result" in tags or "runner result" in tags:
                         # factor baseline exp metrics
-                        if isinstance(state.scenario, (QlibFactorScenario, QlibQuantScenario)) and state.alpha158_metrics is None:
+                        if (
+                            isinstance(state.scenario, (QlibFactorScenario, QlibQuantScenario))
+                            and state.alpha158_metrics is None
+                        ):
                             sms = msg.content.based_experiments[0].result.loc[QLIB_SELECTED_METRICS]
                             sms.name = "alpha158"
                             state.alpha158_metrics = sms
@@ -183,7 +192,13 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             if isinstance(state.scenario, DMModelScenario):
                                 sms.index = ["AUROC"]
                             elif isinstance(
-                                state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario, QlibQuantScenario)
+                                state.scenario,
+                                (
+                                    QlibModelScenario,
+                                    QlibFactorFromReportScenario,
+                                    QlibFactorScenario,
+                                    QlibQuantScenario,
+                                ),
                             ):
                                 sms_all = sms
                                 sms = sms.loc[QLIB_SELECTED_METRICS]
@@ -202,7 +217,13 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             if isinstance(state.scenario, DMModelScenario):
                                 sms.index = ["AUROC"]
                             elif isinstance(
-                                state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario, QlibQuantScenario)
+                                state.scenario,
+                                (
+                                    QlibModelScenario,
+                                    QlibFactorFromReportScenario,
+                                    QlibFactorScenario,
+                                    QlibQuantScenario,
+                                ),
                             ):
                                 sms_all = sms
                                 sms = sms.loc[QLIB_SELECTED_METRICS]
@@ -363,6 +384,7 @@ def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, b
 
 def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, colors: list[str] = None):
     fig = make_subplots(rows=R, cols=C, subplot_titles=df.columns)
+
     def hypothesis_hover_text(h: Hypothesis, d: bool = False):
         color = "green" if d else "black"
         text = h.hypothesis
@@ -407,15 +429,11 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
     st.plotly_chart(fig)
 
     from io import BytesIO
+
     buffer = BytesIO()
     df.to_csv(buffer)
     buffer.seek(0)
-    st.download_button(
-        label="download the metrics (csv)",
-        data=buffer,
-        file_name="metrics.csv",
-        mime="text/csv"
-    )
+    st.download_button(label="download the metrics (csv)", data=buffer, file_name="metrics.csv", mime="text/csv")
 
 
 def summary_window():
@@ -604,7 +622,7 @@ def feedback_window():
     #             }
     #             st.write("With Cost Metrics:")
     #             st.write(pd.Series(selected_metrics_with_cost))
-                
+
     #             # Select specific metrics without cost
     #             selected_metrics_without_cost = {
     #                 'IC': float(f"{metric['IC']:.4f}"),
@@ -624,7 +642,8 @@ def feedback_window():
             st.subheader("Feedback📝", divider="orange", anchor="_feedback")
 
             if state.lround > 0 and isinstance(
-                state.scenario, (QlibModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, QlibQuantScenario, KGScenario)
+                state.scenario,
+                (QlibModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, QlibQuantScenario, KGScenario),
             ):
                 try:
                     st.write("workspace")
@@ -874,57 +893,58 @@ def show_times(round: int):
         minutes = total_seconds // 60
         st.markdown(f"**:blue[{k}]**: :red[**{minutes}**] minutes :orange[**{seconds}**] seconds")
 
+
 def analyze_task_completion():
     st.header("Task Completion Analysis", divider="orange")
-    
+
     # Dictionary to store results for all loops
     completion_stats = {}
-    
+
     # Iterate through all loops
     for loop_round in state.msgs.keys():
         if loop_round == 0:  # Skip initialization round
             continue
-            
+
         max_evolving_round = state.erounds[loop_round]
         if max_evolving_round == 0:
             continue
-            
+
         # Track tasks that pass in each evolving round
         tasks_passed_by_round = {}
         cumulative_passed = set()
-        
+
         # For each evolving round in this loop
         for e_round in range(1, max_evolving_round + 1):
             if len(state.msgs[loop_round]["d.evolving feedback"]) >= e_round:
                 # Get feedback for this evolving round
                 feedback = state.msgs[loop_round]["d.evolving feedback"][e_round - 1].content
-                
+
                 # Count passed tasks and track their indices
                 passed_tasks = set()
                 for j, task_feedback in enumerate(feedback):
                     if task_feedback.final_decision:
                         passed_tasks.add(j)
                         cumulative_passed.add(j)
-                
+
                 # Store both individual round results and cumulative results
                 tasks_passed_by_round[e_round] = {
                     "count": len(passed_tasks),
                     "indices": passed_tasks,
                     "cumulative_count": len(cumulative_passed),
-                    "cumulative_indices": cumulative_passed.copy()
+                    "cumulative_indices": cumulative_passed.copy(),
                 }
-        
+
         completion_stats[loop_round] = {
             "total_tasks": len(state.msgs[loop_round]["d.evolving feedback"][0].content),
             "rounds": tasks_passed_by_round,
-            "max_round": max_evolving_round
+            "max_round": max_evolving_round,
         }
-    
+
     # Display results
     if completion_stats:
         # Add an aggregate view at the top
         st.subheader("🔄 Aggregate Completion Across All Loops")
-        
+
         # Create summary data for comparison
         summary_data = []
         total_tasks_across_loops = 0
@@ -933,15 +953,15 @@ def analyze_task_completion():
         total_passed_r5 = 0
         total_passed_r10 = 0
         total_passed_final = 0
-        
+
         for loop_round, stats in completion_stats.items():
             total_tasks = stats["total_tasks"]
             total_tasks_across_loops += total_tasks
-            
+
             # Find data for specific rounds
             r1_passed = stats["rounds"].get(1, {}).get("cumulative_count", 0)
             total_passed_r1 += r1_passed
-            
+
             # For round 3, use the closest round if exactly 3 doesn't exist
             if 3 in stats["rounds"]:
                 r3_passed = stats["rounds"][3]["cumulative_count"]
@@ -961,121 +981,146 @@ def analyze_task_completion():
             else:
                 r5_passed = stats["rounds"][stats["max_round"]]["cumulative_count"] if stats["rounds"] else 0
             total_passed_r5 += r5_passed
-            
+
             # For round 10
             if 10 in stats["rounds"]:
                 r10_passed = stats["rounds"][10]["cumulative_count"]
             else:
                 r10_passed = stats["rounds"][stats["max_round"]]["cumulative_count"] if stats["rounds"] else 0
             total_passed_r10 += r10_passed
-            
+
             # Final round completion
             final_passed = stats["rounds"][stats["max_round"]]["cumulative_count"] if stats["rounds"] else 0
             total_passed_final += final_passed
-            
+
             # Add to summary table
-            summary_data.append({
-                "Loop": f"Loop {loop_round}",
-                "Total Tasks": total_tasks,
-                "Passed (Round 1)": f"{r1_passed}/{total_tasks} ({r1_passed/total_tasks:.0%})" if total_tasks > 0 else "N/A",
-                "Passed (Round 3)": f"{r3_passed}/{total_tasks} ({r3_passed/total_tasks:.0%})" if total_tasks > 0 else "N/A",
-                "Passed (Round 5)": f"{r5_passed}/{total_tasks} ({r5_passed/total_tasks:.0%})" if total_tasks > 0 else "N/A",
-                "Passed (Final)": f"{final_passed}/{total_tasks} ({final_passed/total_tasks:.0%})" if total_tasks > 0 else "N/A"
-            })
-        
+            summary_data.append(
+                {
+                    "Loop": f"Loop {loop_round}",
+                    "Total Tasks": total_tasks,
+                    "Passed (Round 1)": (
+                        f"{r1_passed}/{total_tasks} ({r1_passed/total_tasks:.0%})" if total_tasks > 0 else "N/A"
+                    ),
+                    "Passed (Round 3)": (
+                        f"{r3_passed}/{total_tasks} ({r3_passed/total_tasks:.0%})" if total_tasks > 0 else "N/A"
+                    ),
+                    "Passed (Round 5)": (
+                        f"{r5_passed}/{total_tasks} ({r5_passed/total_tasks:.0%})" if total_tasks > 0 else "N/A"
+                    ),
+                    "Passed (Final)": (
+                        f"{final_passed}/{total_tasks} ({final_passed/total_tasks:.0%})" if total_tasks > 0 else "N/A"
+                    ),
+                }
+            )
+
         if total_tasks_across_loops > 0:
-            summary_data.append({
-                "Loop": "**TOTAL**",
-                "Total Tasks": total_tasks_across_loops,
-                "Passed (Round 1)": f"**{total_passed_r1}/{total_tasks_across_loops} ({total_passed_r1/total_tasks_across_loops:.0%})**",
-                "Passed (Round 3)": f"**{total_passed_r3}/{total_tasks_across_loops} ({total_passed_r3/total_tasks_across_loops:.0%})**",
-                "Passed (Round 5)": f"**{total_passed_r5}/{total_tasks_across_loops} ({total_passed_r5/total_tasks_across_loops:.0%})**",
-                "Passed (Final)": f"**{total_passed_final}/{total_tasks_across_loops} ({total_passed_final/total_tasks_across_loops:.0%})**"
-            })
-            
+            summary_data.append(
+                {
+                    "Loop": "**TOTAL**",
+                    "Total Tasks": total_tasks_across_loops,
+                    "Passed (Round 1)": f"**{total_passed_r1}/{total_tasks_across_loops} ({total_passed_r1/total_tasks_across_loops:.0%})**",
+                    "Passed (Round 3)": f"**{total_passed_r3}/{total_tasks_across_loops} ({total_passed_r3/total_tasks_across_loops:.0%})**",
+                    "Passed (Round 5)": f"**{total_passed_r5}/{total_tasks_across_loops} ({total_passed_r5/total_tasks_across_loops:.0%})**",
+                    "Passed (Final)": f"**{total_passed_final}/{total_tasks_across_loops} ({total_passed_final/total_tasks_across_loops:.0%})**",
+                }
+            )
+
         st.table(pd.DataFrame(summary_data))
-        
+
         # Summary statistics
         st.markdown("### 📊 Overall Completion Progress:")
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric(
-                label="After Round 1", 
-                value=f"{total_passed_r1/total_tasks_across_loops:.0%}", 
-                help=f"{total_passed_r1}/{total_tasks_across_loops} tasks"
+                label="After Round 1",
+                value=f"{total_passed_r1/total_tasks_across_loops:.0%}",
+                help=f"{total_passed_r1}/{total_tasks_across_loops} tasks",
             )
         with col2:
             st.metric(
-                label="After Round 3", 
-                value=f"{total_passed_r3/total_tasks_across_loops:.0%}", 
+                label="After Round 3",
+                value=f"{total_passed_r3/total_tasks_across_loops:.0%}",
                 delta=f"{(total_passed_r3-total_passed_r1)/total_tasks_across_loops:.0%}",
-                help=f"{total_passed_r3}/{total_tasks_across_loops} tasks"
+                help=f"{total_passed_r3}/{total_tasks_across_loops} tasks",
             )
         with col3:
             st.metric(
-                label="After Round 5", 
-                value=f"{total_passed_r5/total_tasks_across_loops:.0%}", 
+                label="After Round 5",
+                value=f"{total_passed_r5/total_tasks_across_loops:.0%}",
                 delta=f"{(total_passed_r5-total_passed_r3)/total_tasks_across_loops:.0%}",
-                help=f"{total_passed_r5}/{total_tasks_across_loops} tasks"
+                help=f"{total_passed_r5}/{total_tasks_across_loops} tasks",
             )
         with col4:
             st.metric(
-                label="Final Completion", 
-                value=f"{total_passed_final/total_tasks_across_loops:.0%}", 
+                label="Final Completion",
+                value=f"{total_passed_final/total_tasks_across_loops:.0%}",
                 delta=f"{(total_passed_final-total_passed_r5)/total_tasks_across_loops:.0%}",
-                help=f"{total_passed_final}/{total_tasks_across_loops} tasks"
+                help=f"{total_passed_final}/{total_tasks_across_loops} tasks",
             )
-                
+
         # Show detailed results by loop
         st.markdown("---")
         st.subheader("Detailed Results by Loop")
-        
+
         for loop_round, stats in completion_stats.items():
             with st.expander(f"Loop {loop_round} Details"):
                 total_tasks = stats["total_tasks"]
-                
+
                 # Create a results table
                 data = []
                 for e_round in range(1, min(11, stats["max_round"] + 1)):
                     if e_round in stats["rounds"]:
                         round_data = stats["rounds"][e_round]
-                        data.append({
-                            "Evolving Round": e_round,
-                            "Tasks Passed": f"{round_data['count']}/{total_tasks} ({round_data['count']/total_tasks:.0%})",
-                            "Cumulative Passed": f"{round_data['cumulative_count']}/{total_tasks} ({round_data['cumulative_count']/total_tasks:.0%})"
-                        })
+                        data.append(
+                            {
+                                "Evolving Round": e_round,
+                                "Tasks Passed": f"{round_data['count']}/{total_tasks} ({round_data['count']/total_tasks:.0%})",
+                                "Cumulative Passed": f"{round_data['cumulative_count']}/{total_tasks} ({round_data['cumulative_count']/total_tasks:.0%})",
+                            }
+                        )
                     else:
-                        data.append({
-                            "Evolving Round": e_round,
-                            "Tasks Passed": "N/A",
-                            "Cumulative Passed": "N/A"
-                        })
-                
+                        data.append({"Evolving Round": e_round, "Tasks Passed": "N/A", "Cumulative Passed": "N/A"})
+
                 df = pd.DataFrame(data)
                 st.table(df)
 
                 st.markdown("### Summary:")
                 if 1 in stats["rounds"]:
-                    st.markdown(f"- After round 1: **{stats['rounds'][1]['cumulative_count']}/{total_tasks}** tasks passed ({stats['rounds'][1]['cumulative_count']/total_tasks:.0%})")
-                
+                    st.markdown(
+                        f"- After round 1: **{stats['rounds'][1]['cumulative_count']}/{total_tasks}** tasks passed ({stats['rounds'][1]['cumulative_count']/total_tasks:.0%})"
+                    )
+
                 if 3 in stats["rounds"]:
-                    st.markdown(f"- After round 3: **{stats['rounds'][3]['cumulative_count']}/{total_tasks}** tasks passed ({stats['rounds'][3]['cumulative_count']/total_tasks:.0%})")
+                    st.markdown(
+                        f"- After round 3: **{stats['rounds'][3]['cumulative_count']}/{total_tasks}** tasks passed ({stats['rounds'][3]['cumulative_count']/total_tasks:.0%})"
+                    )
                 elif stats["max_round"] >= 3:
                     max_round_below_3 = max([r for r in stats["rounds"].keys() if r <= 3])
-                    st.markdown(f"- After round 3: **{stats['rounds'][max_round_below_3]['cumulative_count']}/{total_tasks}** tasks passed ({stats['rounds'][max_round_below_3]['cumulative_count']/total_tasks:.0%})")
-                
+                    st.markdown(
+                        f"- After round 3: **{stats['rounds'][max_round_below_3]['cumulative_count']}/{total_tasks}** tasks passed ({stats['rounds'][max_round_below_3]['cumulative_count']/total_tasks:.0%})"
+                    )
+
                 if 5 in stats["rounds"]:
-                    st.markdown(f"- After round 5: **{stats['rounds'][5]['cumulative_count']}/{total_tasks}** tasks passed ({stats['rounds'][5]['cumulative_count']/total_tasks:.0%})")
+                    st.markdown(
+                        f"- After round 5: **{stats['rounds'][5]['cumulative_count']}/{total_tasks}** tasks passed ({stats['rounds'][5]['cumulative_count']/total_tasks:.0%})"
+                    )
                 elif stats["max_round"] >= 5:
                     max_round_below_5 = max([r for r in stats["rounds"].keys() if r <= 5])
-                    st.markdown(f"- After round 5: **{stats['rounds'][max_round_below_5]['cumulative_count']}/{total_tasks}** tasks passed ({stats['rounds'][max_round_below_5]['cumulative_count']/total_tasks:.0%})")
+                    st.markdown(
+                        f"- After round 5: **{stats['rounds'][max_round_below_5]['cumulative_count']}/{total_tasks}** tasks passed ({stats['rounds'][max_round_below_5]['cumulative_count']/total_tasks:.0%})"
+                    )
 
                 if 10 in stats["rounds"]:
-                    st.markdown(f"- After round 10: **{stats['rounds'][10]['cumulative_count']}/{total_tasks}** tasks passed ({stats['rounds'][10]['cumulative_count']/total_tasks:.0%})")
+                    st.markdown(
+                        f"- After round 10: **{stats['rounds'][10]['cumulative_count']}/{total_tasks}** tasks passed ({stats['rounds'][10]['cumulative_count']/total_tasks:.0%})"
+                    )
                 elif stats["max_round"] >= 1:
-                    st.markdown(f"- After final round ({stats['max_round']}): **{stats['rounds'][stats['max_round']]['cumulative_count']}/{total_tasks}** tasks passed ({stats['rounds'][stats['max_round']]['cumulative_count']/total_tasks:.0%})")
+                    st.markdown(
+                        f"- After final round ({stats['max_round']}): **{stats['rounds'][stats['max_round']]['cumulative_count']}/{total_tasks}** tasks passed ({stats['rounds'][stats['max_round']]['cumulative_count']/total_tasks:.0%})"
+                    )
     else:
         st.info("No task completion data available.")
+
 
 if state.scenario is not None:
     summary_window()

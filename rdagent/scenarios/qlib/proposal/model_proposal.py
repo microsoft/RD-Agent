@@ -34,8 +34,7 @@ class QlibModelHypothesisGen(ModelHypothesisGen):
             (
                 Environment(undefined=StrictUndefined)
                 .from_string(prompt_dict["last_hypothesis_and_feedback"])
-                .render(experiment=trace.hist[-1][0],
-                        feedback=trace.hist[-1][1])
+                .render(experiment=trace.hist[-1][0], feedback=trace.hist[-1][1])
             )
             if len(trace.hist) > 0
             else "No previous hypothesis and feedback available since it's the first round."
@@ -50,15 +49,13 @@ class QlibModelHypothesisGen(ModelHypothesisGen):
                     sota_hypothesis_and_feedback = (
                         Environment(undefined=StrictUndefined)
                         .from_string(prompt_dict["sota_hypothesis_and_feedback"])
-                        .render(
-                            experiment=trace.hist[i][0],
-                            feedback=trace.hist[i][1]
-                        )
+                        .render(experiment=trace.hist[i][0], feedback=trace.hist[i][1])
                     )
                     break
             else:
-                sota_hypothesis_and_feedback = "No SOTA hypothesis and feedback available since previous experiments were not accepted."
-        
+                sota_hypothesis_and_feedback = (
+                    "No SOTA hypothesis and feedback available since previous experiments were not accepted."
+                )
 
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
@@ -120,8 +117,7 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
             (
                 Environment(undefined=StrictUndefined)
                 .from_string(prompt_dict["last_hypothesis_and_feedback"])
-                .render(experiment=last_experiment,
-                        feedback=last_feedback)
+                .render(experiment=last_experiment, feedback=last_feedback)
             )
             if last_experiment is not None
             else "No previous hypothesis and feedback available since it's the first round."
@@ -131,8 +127,7 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
             (
                 Environment(undefined=StrictUndefined)
                 .from_string(prompt_dict["sota_hypothesis_and_feedback"])
-                .render(experiment=sota_experiment,
-                        feedback=sota_feedback)
+                .render(experiment=sota_experiment, feedback=sota_feedback)
             )
             if sota_experiment is not None
             else "No SOTA hypothesis and feedback available since previous experiments were not accepted."
