@@ -124,6 +124,8 @@ def log_obj_to_json(
                 "loop_id": li,
                 "content": {
                     "hypothesis": h.hypothesis,
+                    "reason": h.reason,
+                    "concise_reason": h.concise_reason,
                     "concise_justification": h.concise_justification,
                     "concise_observation": h.concise_observation,
                     "concise_knowledge": h.concise_knowledge,

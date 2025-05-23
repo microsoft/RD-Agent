@@ -45,7 +45,7 @@ def update_trace():
     returned_msgs = msgs_for_frontend[trace_id][pointers[trace_id] : end_pointer]
 
     pointers[trace_id] = end_pointer
-    return jsonify(returned_msgs) if len(returned_msgs) > 0 else jsonify([{"tag": "END", "content": {}}]), 200
+    return jsonify(returned_msgs), 200
 
 
 @app.route("/upload", methods=["GET"])
