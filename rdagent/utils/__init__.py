@@ -18,7 +18,6 @@ from typing import Union
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.utils.agent.tpl import T
-import time
 from multiprocessing import Process, Queue
 
 
