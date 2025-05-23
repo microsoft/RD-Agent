@@ -56,7 +56,7 @@ Returns the sequence of Messages generated for the current id on the backend tha
 
 ### Research
 
-Only **2** Message
+Only **2** Message in one loop
 
 1. hypothesis
 
