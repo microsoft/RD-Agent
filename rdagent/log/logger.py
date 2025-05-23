@@ -118,7 +118,7 @@ class RDAgentLog(SingletonBaseClass):
         logp = self.storage.log(obj, name=tag, save_type="pkl")
 
         try:
-            flask_url = "http://127.0.0.1:19899"
+            flask_url = "http://localhost:19899"
             data = log_obj_to_json(obj=obj, tag=tag, log_trace_path=self.log_trace_path)
             headers = {"Content-Type": "application/json"}
             requests.post(f"{flask_url}/receive", json=data, headers=headers, timeout=1)
