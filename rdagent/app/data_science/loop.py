@@ -32,9 +32,30 @@ from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
 from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.ckp_select import (
+    BackJumpCKPSelector,
+    LatestCKPSelector,
+    SOTAJumpCKPSelector,
+)
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
-from rdagent.scenarios.data_science.proposal.exp_gen.select import LatestCKPSelector
+from rdagent.scenarios.data_science.proposal.exp_gen.sota_exp_select import (
+    AutoSOTAexpSelector,
+    BestValidSelector,
+    GlobalSOTASelector,
+)
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
+
+CKP_SELECTOR_NAME_MAP = {
+    "latest": LatestCKPSelector,
+    "sota_jump": SOTAJumpCKPSelector,
+    "back_jump": BackJumpCKPSelector,
+}
+
+SOTA_EXP_SELECTOR_NAME_MAP = {
+    "global_sota": GlobalSOTASelector,
+    "auto_sota": AutoSOTAexpSelector,
+    "best_valid_sota": BestValidSelector,
+}
 
 
 class DataScienceRDLoop(RDLoop):
@@ -49,8 +70,15 @@ class DataScienceRDLoop(RDLoop):
 
         # 2) task generation from a complete solution
         # self.exp_gen: ExpGen = import_class(PROP_SETTING.exp_gen)(scen)
-        self.ckp_selector = LatestCKPSelector()
-        self.exp_gen = DSExpGen(scen)
+
+        # self.ckp_selector = CKP_SELECTOR_NAME_MAP[DS_RD_SETTING.selector_name]()
+        # self.sota_exp_selector = SOTA_EXP_SELECTOR_NAME_MAP[DS_RD_SETTING.sota_exp_selector_name]()
+        self.ckp_selector = import_class(PROP_SETTING.selector_name)()
+        self.sota_exp_selector = import_class(PROP_SETTING.sota_exp_selector_name)()
+
+        self.exp_gen = import_class(PROP_SETTING.hypothesis_gen)(scen)
+
+        # coders
         self.data_loader_coder = DataLoaderCoSTEER(scen)
         self.feature_coder = FeatureCoSTEER(scen)
         self.model_coder = ModelCoSTEER(scen)
@@ -76,6 +104,12 @@ class DataScienceRDLoop(RDLoop):
         super(RDLoop, self).__init__()
 
     def direct_exp_gen(self, prev_out: dict[str, Any]):
+
+        # set the SOTA experiment to submit
+        sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace)
+        self.trace.set_sota_exp_to_submit(sota_exp_to_submit)
+
+        # set the checkpoint to start from
         selection = self.ckp_selector.get_selection(self.trace)
         exp = self.exp_gen.gen(self.trace, selection)
         logger.log_object(exp)
@@ -137,7 +171,6 @@ class DataScienceRDLoop(RDLoop):
         return feedback
 
     def record(self, prev_out: dict[str, Any]):
-
         # set the DAG parent for the trace
         self.trace.sync_dag_parent_and_hist()
 
@@ -151,21 +184,34 @@ class DataScienceRDLoop(RDLoop):
                     ExperimentFeedback.from_exception(e),
                 )
             )
-            if (
-                self.trace.sota_experiment() is None
-                and len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors
-                and not DS_RD_SETTING.coder_on_whole_pipeline
-            ):
-                # if {in inital/drafting stage} and {tried enough times}
-                for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]:
-                    if fb:
-                        break  # any success will stop restarting.
-                else:  # otherwise restart it
-                    logger.error("Consecutive errors reached the limit. Dumping trace.")
-                    logger.log_object(self.trace, tag="trace before restart")
-                    self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
+            if self.trace.sota_experiment() is None:
+                if DS_RD_SETTING.coder_on_whole_pipeline:
+                    #  check if feedback is not generated
+                    if len(self.trace.hist) >= DS_RD_SETTING.coding_fail_reanalyze_threshold:
+                        recent_hist = self.trace.hist[-DS_RD_SETTING.coding_fail_reanalyze_threshold :]
+                        if all(isinstance(fb.exception, (CoderError, RunnerError)) for _, fb in recent_hist):
+                            new_scen = self.trace.scen
+                            if hasattr(new_scen, "reanalyze_competition_description"):
+                                logger.info(
+                                    "Reanalyzing the competition description after three consecutive coding failures."
+                                )
+                                new_scen.reanalyze_competition_description()
+                                self.trace.scen = new_scen
+                            else:
+                                logger.info("Can not reanalyze the competition description.")
+                elif len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors:
+                    # if {in inital/drafting stage} and {tried enough times}
+                    for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]:
+                        if fb:
+                            break  # any success will stop restarting.
+                    else:  # otherwise restart it
+                        logger.error("Consecutive errors reached the limit. Dumping trace.")
+                        logger.log_object(self.trace, tag="trace before restart")
+                        self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
+
         logger.log_object(self.trace, tag="trace")
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
+
         if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
             logger.log_object(self.trace.knowledge_base, tag="knowledge_base")
             self.trace.knowledge_base.dump()
@@ -221,16 +267,18 @@ class DataScienceRDLoop(RDLoop):
 
     @classmethod
     def load(
-        cls, path: Union[str, Path], output_path: Optional[Union[str, Path]] = None, do_truncate: bool = False
+        cls,
+        path: Union[str, Path],
+        output_path: Optional[Union[str, Path]] = None,
+        do_truncate: bool = False,
+        replace_timer: bool = True,
     ) -> "LoopBase":
-        session = super().load(path, output_path, do_truncate)
-        if (
-            DS_RD_SETTING.enable_knowledge_base
-            and DS_RD_SETTING.knowledge_base_version == "v1"
-            and Path(DS_RD_SETTING.knowledge_base_path).exists()
-        ):
-            knowledge_base = DSKnowledgeBase(path=DS_RD_SETTING.knowledge_base_path)
-            session.trace.knowledge_base = knowledge_base
+        session = super().load(path, output_path, do_truncate, replace_timer)
+        logger.log_object(DS_RD_SETTING.competition, tag="competition")  # NOTE: necessary to make mle_summary work.
+        if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
+            session.trace.knowledge_base = DSKnowledgeBase(
+                path=DS_RD_SETTING.knowledge_base_path, idea_pool_json_path=DS_RD_SETTING.idea_pool_json_path
+            )
         return session
 
     def dump(self, path: str | Path) -> None:
@@ -255,6 +303,8 @@ def main(
     competition="bms-molecular-translation",
     do_truncate=True,
     timeout=None,
+    replace_timer=True,
+    exp_gen_cls: str | None = None,
 ):
     """
 
@@ -273,6 +323,10 @@ def main(
     competition :
     do_truncate :
         If set to True, the logger will truncate the future log messages by calling `logger.storage.truncate`.
+    replace_timer :
+        If session is loaded, should we replace the timer with session.timer
+    exp_gen_cls :
+        When we have different stages, we can replace the exp_gen with the new proposal
 
 
     Auto R&D Evolving loop for models in a Kaggle scenario.
@@ -284,20 +338,18 @@ def main(
     if competition is not None:
         DS_RD_SETTING.competition = competition
 
-    if DS_RD_SETTING.competition:
-
-        if DS_RD_SETTING.scen.endswith("KaggleScen"):
-            download_data(competition=DS_RD_SETTING.competition, settings=DS_RD_SETTING)
-        else:
-            if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
-                logger.error(f"Please prepare data for competition {competition} first.")
-                return
-    else:
+    if not DS_RD_SETTING.competition:
         logger.error("Please specify competition name.")
+
     if path is None:
         kaggle_loop = DataScienceRDLoop(DS_RD_SETTING)
     else:
-        kaggle_loop = DataScienceRDLoop.load(path, output_path, do_truncate)
+        kaggle_loop = DataScienceRDLoop.load(path, output_path, do_truncate, replace_timer)
+
+    # replace exp_gen if we have new class
+    if exp_gen_cls is not None:
+        kaggle_loop.exp_gen = import_class(exp_gen_cls)(kaggle_loop.exp_gen.scen)
+
     kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout)
 
 

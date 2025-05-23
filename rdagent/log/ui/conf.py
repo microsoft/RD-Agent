@@ -10,5 +10,9 @@ class UIBasePropSetting(ExtendedBaseSettings):
 
     baseline_result_path: str = "./baseline.csv"
 
+    aide_path: str = "./aide"
+
+    amlt_path: str = "/data/share_folder_local/amlt"
+
 
 UI_SETTING = UIBasePropSetting()

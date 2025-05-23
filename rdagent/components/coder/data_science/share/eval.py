@@ -21,6 +21,9 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 PipelineSingleFeedback = CoSTEERSingleFeedback
 PipelineMultiFeedback = CoSTEERMultiFeedback
 
+NO_SUB = "<No submission.csv file found.>"
+NO_SCORE = "<No scores.csv file found.>"
+
 
 class ModelDumpEvaluator(CoSTEEREvaluator):
     """This evaluator assumes that it runs after the model"""
@@ -43,14 +46,32 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
                 code=err_msg,
                 final_decision=False,
             )
-        env = get_ds_env()
-        env.conf.extra_volumes = {
-            f"{DS_RD_SETTING.local_data_path}/{'sample/' if self.data_type == 'sample' else ''}{self.scen.competition}": T(
-                "scenarios.data_science.share:scen.input_path"
-            ).r()
-        }
+
+        data_source_path = (
+            f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}"
+            if self.data_type == "full"
+            else self.scen.debug_path
+        )
+        env = get_ds_env(
+            extra_volumes={data_source_path: T("scenarios.data_science.share:scen.input_path").r()},
+            running_timeout_period=(
+                DS_RD_SETTING.full_timeout if self.data_type == "full" else DS_RD_SETTING.debug_timeout
+            ),
+        )
 
         # 2) check the result and stdout after reruning the model.
+
+        # Read the content of files submission.csv and scores.csv before execution
+        submission_content_before = (
+            (implementation.workspace_path / "submission.csv").read_text()
+            if (implementation.workspace_path / "submission.csv").exists()
+            else NO_SUB
+        )
+        scores_content_before = (
+            (implementation.workspace_path / "scores.csv").read_text()
+            if (implementation.workspace_path / "scores.csv").exists()
+            else NO_SCORE
+        )
 
         # Remove the files submission.csv and scores.csv
         implementation.execute(env=env, entry=get_clear_ws_cmd(stage="before_inference"))
@@ -74,23 +95,28 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
                     final_decision=False,
                 )
 
-        # Read the content of files submission.csv and scores.csv before execution
-        submission_content_before = (
+        # Check if scores contain NaN (values)
+        score_df = pd.read_csv((implementation.workspace_path / "scores.csv"), index_col=0)
+        if score_df.isnull().values.any():
+            nan_locations = score_df[score_df.isnull().any(axis=1)]
+            err_msg = f"\n[Error] The scores dataframe contains NaN values at the following locations:\n{nan_locations}"
+            return CoSTEERSingleFeedback(
+                execution=err_msg,
+                return_checking=err_msg,
+                code=err_msg,
+                final_decision=False,
+            )
+
+        submission_content_after = (
             (implementation.workspace_path / "submission.csv").read_text()
             if (implementation.workspace_path / "submission.csv").exists()
-            else None
+            else NO_SUB
         )
-        scores_content_before = (
+        scores_content_after = (
             (implementation.workspace_path / "scores.csv").read_text()
             if (implementation.workspace_path / "scores.csv").exists()
-            else None
+            else NO_SCORE
         )
-
-        assert submission_content_before is not None
-        assert scores_content_before is not None
-
-        submission_content_after = (implementation.workspace_path / "submission.csv").read_text()
-        scores_content_after = (implementation.workspace_path / "scores.csv").read_text()
 
         system_prompt = T(".prompts:dump_model_eval.system").r()
         user_prompt = T(".prompts:dump_model_eval.user").r(

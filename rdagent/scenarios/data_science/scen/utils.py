@@ -244,16 +244,37 @@ def get_file_len_size(f: Path) -> tuple[int, str]:
 def file_tree(path: Path, depth=0) -> str:
     """Generate a tree structure of files in a directory"""
     result = []
+
     files = [p for p in Path(path).iterdir() if not p.is_dir()]
-    dirs = [p for p in Path(path).iterdir() if p.is_dir()]
+
     max_n = 4 if len(files) > 30 else 8
     for p in sorted(files)[:max_n]:
         result.append(f"{' '*depth*4}{p.name} ({get_file_len_size(p)[1]})")
     if len(files) > max_n:
         result.append(f"{' '*depth*4}... and {len(files)-max_n} other files")
 
+    dirs = [p for p in Path(path).iterdir() if p.is_dir() or (p.is_symlink() and p.resolve().is_dir())]
+
+    # Calculate base_path (the top-level resolved absolute directory)
+    base_path = Path(path).resolve()
+    # Find the top-level base_path when in recursion (depth>0)
+    if depth > 0:
+        # The top-level base_path is the ancestor at depth==0
+        ancestor = Path(path)
+        for _ in range(depth):
+            ancestor = ancestor.parent
+        base_path = ancestor.resolve()
+
     for p in sorted(dirs):
-        result.append(f"{' '*depth*4}{p.name}/")
+        if p.is_symlink():
+            target = p.resolve()
+            if str(target).startswith(str(base_path)):
+                # avoid recursing into symlinks pointing inside base path
+                result.append(
+                    f"{' ' * depth * 4}{p.name}@ -> {os.path.relpath(target, base_path)} (symlinked dir, not expanded)"
+                )
+                continue
+        result.append(f"{' ' * depth * 4}{p.name}/")
         result.append(file_tree(p, depth + 1))
 
     return "\n".join(result)
@@ -263,12 +284,19 @@ def _walk(path: Path):
     """Recursively walk a directory (analogous to os.walk but for pathlib.Path)"""
     for p in sorted(Path(path).iterdir()):
         if p.is_dir():
+            # If this is a symlinked dir to a parent/ancestor, do not expand it
+            if p.is_symlink():
+                target = p.resolve()
+                cur_path = p.parent.resolve()
+                if target == cur_path or str(cur_path).startswith(str(target)):
+                    yield p
+                    continue
             yield from _walk(p)
-            continue
-        yield p
+        else:
+            yield p
 
 
-def preview_csv(p: Path, file_name: str, simple=True) -> str:
+def preview_csv(p: Path, file_name: str, simple=True, show_nan_columns=False) -> str:
     """Generate a textual preview of a csv file
 
     Args:
@@ -287,7 +315,7 @@ def preview_csv(p: Path, file_name: str, simple=True) -> str:
 
     if simple:
         cols = df.columns.tolist()
-        sel_cols = 15
+        sel_cols = min(len(cols), 100)
         cols_str = ", ".join(cols[:sel_cols])
         res = f"The columns are: {cols_str}"
         if len(cols) > sel_cols:
@@ -312,6 +340,10 @@ def preview_csv(p: Path, file_name: str, simple=True) -> str:
                 out.append(
                     f"{name} has {df[col].nunique()} unique values. Some example values: {df[col].value_counts().head(4).index.tolist()}"
                 )
+    if show_nan_columns:
+        nan_cols = [col for col in df.columns.tolist() if df[col].isnull().any()]
+        if nan_cols:
+            out.append(f"Columns containing NaN values: {', '.join(nan_cols)}")
 
     return "\n".join(out)
 
@@ -346,7 +378,7 @@ def preview_json(p: Path, file_name: str):
     return f"-> {file_name} has auto-generated json schema:\n" + builder.to_json(indent=2)
 
 
-def describe_data_folder_v2(base_path, include_file_details=True, simple=False):
+def describe_data_folder_v2(base_path, include_file_details=True, simple=False, show_nan_columns=False):
     """
     Generate a textual preview of a directory, including an overview of the directory
     structure and previews of individual files
@@ -359,7 +391,7 @@ def describe_data_folder_v2(base_path, include_file_details=True, simple=False):
             file_name = str(fn.relative_to(base_path))
 
             if fn.suffix == ".csv":
-                out.append(preview_csv(fn, file_name, simple=simple))
+                out.append(preview_csv(fn, file_name, simple=simple, show_nan_columns=show_nan_columns))
             elif fn.suffix == ".json":
                 out.append(preview_json(fn, file_name))
             elif fn.suffix in plaintext_files:
@@ -374,7 +406,9 @@ def describe_data_folder_v2(base_path, include_file_details=True, simple=False):
 
     # if the result is very long we generate a simpler version
     if len(result) > 6_000 and not simple:
-        return describe_data_folder_v2(base_path, include_file_details=include_file_details, simple=True)
+        return describe_data_folder_v2(
+            base_path, include_file_details=include_file_details, simple=True, show_nan_columns=show_nan_columns
+        )
     # if still too long, we truncate
     if len(result) > 6_000 and simple:
         return result[:6_000] + "\n... (truncated)"

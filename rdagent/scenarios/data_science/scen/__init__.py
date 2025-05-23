@@ -16,7 +16,7 @@ from rdagent.scenarios.data_science.scen.utils import (
 from rdagent.scenarios.kaggle.kaggle_crawler import (
     crawl_descriptions,
     download_data,
-    leaderboard_scores,
+    get_metric_direction,
 )
 from rdagent.utils.agent.tpl import T
 
@@ -32,8 +32,12 @@ class DataScienceScen(Scenario):
             raise FileNotFoundError(f"Cannot find {competition} in {DS_RD_SETTING.local_data_path}")
 
         local_path = DS_RD_SETTING.local_data_path
-        if not Path(f"{local_path}/sample/{competition}").exists():
-            create_debug_data(competition, dataset_path=local_path)
+        if DS_RD_SETTING.sample_data:
+            self.debug_path = f"{local_path}/sample/{competition}"
+            if not Path(self.debug_path).exists():
+                create_debug_data(competition, dataset_path=local_path)
+        else:
+            self.debug_path = f"{local_path}/{competition}"
 
         # 2) collect information of competition.
         self.metric_name: str | None = (
@@ -48,8 +52,15 @@ class DataScienceScen(Scenario):
             self._get_direction()
         )  # True indicates higher is better, False indicates lower is better
 
+    def reanalyze_competition_description(self):
+        self.raw_description = self._get_description()
+        self.processed_data_folder_description = self._get_data_folder_description()
+        self._analysis_competition_description()
+        self.metric_direction: bool = self._get_direction()
+
     def _get_description(self):
         if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}/description.md")).exists():
+            logger.info(f"{self.competition}/Found description.md, loading from local file.")
             return fp.read_text()
         elif (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}.json")).exists():
             logger.info(f"Found {self.competition}.json, loading from local file.")
@@ -119,6 +130,8 @@ class DataScienceScen(Scenario):
             evaluation=self.metric_description,
             metric_name=self.metric_name,
             metric_direction=self.metric_direction,
+            raw_description=self.raw_description,
+            use_raw_description=DS_RD_SETTING.use_raw_description,
             time_limit=None,
             eda_output=None,
         )
@@ -133,6 +146,8 @@ class DataScienceScen(Scenario):
             evaluation=self.metric_description,
             metric_name=self.metric_name,
             metric_direction=self.metric_direction,
+            raw_description=self.raw_description,
+            use_raw_description=DS_RD_SETTING.use_raw_description,
             time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
             eda_output=eda_output,
         )
@@ -149,7 +164,9 @@ class DataScienceScen(Scenario):
         return stdout
 
     def _get_data_folder_description(self) -> str:
-        return describe_data_folder_v2(Path(DS_RD_SETTING.local_data_path) / self.competition)
+        return describe_data_folder_v2(
+            Path(DS_RD_SETTING.local_data_path) / self.competition, show_nan_columns=DS_RD_SETTING.show_nan_columns
+        )
 
 
 class KaggleScen(DataScienceScen):
@@ -169,8 +186,7 @@ class KaggleScen(DataScienceScen):
         return crawl_descriptions(self.competition, DS_RD_SETTING.local_data_path)
 
     def _get_direction(self):
-        leaderboard = leaderboard_scores(self.competition)
-        return float(leaderboard[0]) > float(leaderboard[-1])
+        return get_metric_direction(self.competition)
 
     @property
     def rich_style_description(self) -> str:

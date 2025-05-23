@@ -1,7 +1,11 @@
 <h4 align="center">
   <img src="docs/_static/logo.png" alt="RA-Agent logo" style="width:70%; ">
   
-  <a href="https://rdagent.azurewebsites.net" target="_blank">🖥️ Live Demo</a> | <a href="https://rdagent.azurewebsites.net/factor_loop" target="_blank">🎥 Demo Video</a> <a href="https://www.youtube.com/watch?v=JJ4JYO3HscM&list=PLALmKB0_N3_i52fhUmPQiL4jsO354uopR" target="_blank">▶️YouTube</a>   | <a href="https://rdagent.readthedocs.io/en/latest/index.html" target="_blank">📖 Documentation</a> | <a href="#-paperwork-list"> 📃 Papers </a>
+  <a href="https://rdagent.azurewebsites.net" target="_blank">🖥️ Live Demo</a> |
+  <a href="https://rdagent.azurewebsites.net/factor_loop" target="_blank">🎥 Demo Video</a> <a href="https://www.youtube.com/watch?v=JJ4JYO3HscM&list=PLALmKB0_N3_i52fhUmPQiL4jsO354uopR" target="_blank">▶️YouTube</a>   |
+  <a href="https://rdagent.readthedocs.io/en/latest/index.html" target="_blank">📖 Documentation</a> |
+  <a href="https://aka.ms/RD-Agent-Tech-Report" target="_blank">📄 Tech Report</a> |
+  <a href="#-paperwork-list"> 📃 Papers </a>
 </h3>
 
 
@@ -21,35 +25,65 @@
 [![Chat](https://img.shields.io/badge/chat-discord-blue)](https://discord.gg/ybQ97B6Jjy)
 [![Documentation Status](https://readthedocs.org/projects/rdagent/badge/?version=latest)](https://rdagent.readthedocs.io/en/latest/?badge=latest)
 [![Readthedocs Preview](https://github.com/microsoft/RD-Agent/actions/workflows/readthedocs-preview.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/readthedocs-preview.yml) <!-- this badge is too long, please place it in the last one to make it pretty --> 
+[![arXiv](https://img.shields.io/badge/arXiv-2505.14738-00ff00.svg)](https://arxiv.org/abs/2505.14738)
+
+
+
+# 🏆 The Best Machine Learning Engineering Agent!
+
+[MLE-bench](https://github.com/openai/mle-bench) is a comprehensive benchmark evaluating the performance of AI agents on machine learning engineering tasks. Utilizing datasets from 75 Kaggle competitions, MLE-bench provides robust assessments of AI systems' capabilities in real-world ML engineering scenarios.
+
+R&D-Agent currently leads as the top-performing machine learning engineering agent on MLE-bench:
+
+| Agent | Low == Lite (%) | Medium (%) | High (%) | All (%) |
+|---------|--------|-----------|---------|----------|
+| R&D-Agent o1-preview | 48.18 ± 2.49 | 8.95 ± 2.36 | 18.67 ± 2.98 | 22.4 ± 1.1 |
+| R&D-Agent o3(R)+GPT-4.1(D) | 51.52 ± 6.21 | 7.89 ± 3.33 | 16.67 ± 3.65 | 22.45 ± 2.45 |
+| AIDE o1-preview | 34.3 ± 2.4 | 8.8 ± 1.1 | 10.0 ± 1.9 | 16.9 ± 1.1 |
+
+**Notes:**
+- **O3(R)+GPT-4.1(D)**: This version is designed to both reduce average time per loop and leverage a cost-effective combination of backend LLMs by seamlessly integrating Research Agent (o3) with Development Agent (GPT-4.1).
+- **AIDE o1-preview**: Represents the previously best public result on MLE-bench as reported in the original MLE-bench paper.
+- Average and standard deviation results for R&D-Agent o1-preview is based on a independent of 5 seeds and for R&D-Agent o3(R)+GPT-4.1(D) is based on 6 seeds.
+- According to MLE-Bench, the 75 competitions are categorized into three levels of complexity: **Low==Lite** if we estimate that an experienced ML engineer can produce a sensible solution in under 2 hours, excluding the time taken to train any models; **Medium** if it takes between 2 and 10 hours; and **High** if it takes more than 10 hours.
+
+You can inspect the detailed runs of the above results online.
+- [R&D-Agent o1-preview detailed runs](https://aka.ms/RD-Agent_MLE-Bench_O1-preview)
+- [R&D-Agent o3(R)+GPT-4.1(D) detailed runs](https://aka.ms/RD-Agent_MLE-Bench_O3_GPT41)
+
+
+# 📰 News
+| 🗞️ News        | 📝 Description                 |
+| --            | ------      |
+| [Technical Report Release](#overall-technical-report) | Overall framework description and results on MLE-bench | 
+| [R&D-Agent-Quant Release](#deep-application-in-diverse-scenarios) | Apply R&D-Agent to quant trading | 
+| MLE-Bench Results Released | R&D-Agent currently leads as the [top-performing machine learning engineering agent](#-the-best-machine-learning-engineering-agent) on MLE-bench |
+| Support LiteLLM Backend | We now fully support **[LiteLLM](https://github.com/BerriAI/litellm)** as a backend for integration with multiple LLM providers. |
+| More General Data Science Agent | 🚀Coming soon! |
+| Kaggle Scenario release | We release **[Kaggle Agent](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html)**, try the new features!                  |
+| Official WeChat group release  | We created a WeChat group, welcome to join! (🗪[QR Code](https://github.com/microsoft/RD-Agent/issues/880)) |
+| Official Discord release  | We launch our first chatting channel in Discord (🗪[![Chat](https://img.shields.io/badge/chat-discord-blue)](https://discord.gg/ybQ97B6Jjy)) |
+| First release | **R&D-Agent** is released on GitHub |
+
+
 
 # Data Science Agent Preview
 Check out our demo video showcasing the current progress of our Data Science Agent under development:
 
 https://github.com/user-attachments/assets/3eccbecb-34a4-4c81-bce4-d3f8862f7305
 
-# 📰 News
-| 🗞️ News        | 📝 Description                 |
-| --            | ------      |
-| Support LiteLLM Backend | We now fully support **[LiteLLM](https://github.com/BerriAI/litellm)** as a backend for integration with multiple LLM providers. |
-| More General Data Science Agent | 🚀Coming soon! |
-| Kaggle Scenario release | We release **[Kaggle Agent](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html)**, try the new features!                  |
-| Official WeChat group release  | We created a WeChat group, welcome to join! (🗪[QR Code](docs/WeChat_QR_code.jpg)) |
-| Official Discord release  | We launch our first chatting channel in Discord (🗪[![Chat](https://img.shields.io/badge/chat-discord-blue)](https://discord.gg/ybQ97B6Jjy)) |
-| First release | **RDAgent** is released on GitHub |
-
-
 # 🌟 Introduction
 <div align="center">
       <img src="docs/_static/scen.png" alt="Our focused scenario" style="width:80%; ">
 </div>
 
-RDAgent aims to automate the most critical and valuable aspects of the industrial R&D process, and we begin with focusing on the data-driven scenarios to streamline the development of models and data. 
+R&D-Agent aims to automate the most critical and valuable aspects of the industrial R&D process, and we begin with focusing on the data-driven scenarios to streamline the development of models and data. 
 Methodologically, we have identified a framework with two key components: 'R' for proposing new ideas and 'D' for implementing them.
 We believe that the automatic evolution of R&D will lead to solutions of significant industrial value.
 
 
 <!-- Tag Cloud -->
-R&D is a very general scenario. The advent of RDAgent can be your
+R&D is a very general scenario. The advent of R&D-Agent can be your
 - 💰 **Automatic Quant Factory** ([🎥Demo Video](https://rdagent.azurewebsites.net/factor_loop)|[▶️YouTube](https://www.youtube.com/watch?v=X4DK2QZKaKY&t=6s))
 - 🤖 **Data Mining Agent:** Iteratively proposing data & models ([🎥Demo Video 1](https://rdagent.azurewebsites.net/model_loop)|[▶️YouTube](https://www.youtube.com/watch?v=dm0dWL49Bc0&t=104s)) ([🎥Demo Video 2](https://rdagent.azurewebsites.net/dmm)|[▶️YouTube](https://www.youtube.com/watch?v=VIaSTZuoZg4))  and implementing them by gaining knowledge from data.
 - 🦾 **Research Copilot:** Auto read research papers ([🎥Demo Video](https://rdagent.azurewebsites.net/report_model)|[▶️YouTube](https://www.youtube.com/watch?v=BiA2SfdKQ7o)) / financial reports ([🎥Demo Video](https://rdagent.azurewebsites.net/report_factor)|[▶️YouTube](https://www.youtube.com/watch?v=ECLTXVcSx-c)) and implement model structures or building datasets.
@@ -85,8 +119,8 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   conda activate rdagent
   ```
 
-### 🛠️ Install the RDAgent
-- You can directly install the RDAgent package from PyPI:
+### 🛠️ Install the R&D-Agent
+- You can directly install the R&D-Agent package from PyPI:
   ```sh
   pip install rdagent
   ```
@@ -233,7 +267,7 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
 
 # 🏭 Scenarios
 
-We have applied RD-Agent to multiple valuable data-driven industrial scenarios.
+We have applied R&D-Agent to multiple valuable data-driven industrial scenarios.
 
 
 ## 🎯 Goal: Agent for Data-driven R&D
@@ -290,6 +324,21 @@ More documents can be found in the **[📖 readthedocs](https://rdagent.readthed
 
 # 📃 Paper/Work list
 
+## Overall Technical Report
+- [R&D-Agent: Automating Data-Driven AI Solution Building Through LLM-Powered Automated Research, Development, and Evolution](https://arxiv.org/abs/2505.14738)
+```BibTeX
+@misc{yang2024rdagent,
+    title={R\&D-Agent: Automating Data-Driven AI Solution Building Through LLM-Powered Automated Research, Development, and Evolution},
+    author={Xu Yang and Xiao Yang and Shikai Fang and Bowen Xian and Yuante Li and Jian Wang and Minrui Xu and Haoran Pan and Xinpeng Hong and Weiqing Liu and Yelong Shen and Weizhu Chen and Jiang Bian},
+    year={2025},
+    eprint={2505.14738},
+    archivePrefix={arXiv},
+    primaryClass={cs.AI},
+    url={https://arxiv.org/abs/2505.14738}
+}
+```
+![image](https://github.com/user-attachments/assets/28b0488d-a546-4fef-8dc5-563ed64a9b4d)
+
 ## 📊 Benchmark
 - [Towards Data-Centric Automatic R&D](https://arxiv.org/abs/2404.11276)
 ```BibTeX
@@ -327,16 +376,31 @@ For more detail, please refer to our **[🖥️ Live Demo page](https://rdagent.
 ```
 ![image](https://github.com/user-attachments/assets/75d9769b-0edd-4caf-9d45-57d1e577054b)
 
+## Deep Application in Diverse Scenarios
+
+- [R&D-Agent-Quant: A Multi-Agent Framework for Data-Centric Factors and Model Joint Optimization](https://arxiv.org/abs/2505.15155)
+```BibTeX
+@misc{li2025rdagentquant,
+    title={R\&D-Agent-Quant: A Multi-Agent Framework for Data-Centric Factors and Model Joint Optimization},
+    author={Yuante Li and Xu Yang and Xiao Yang and Minrui Xu and Xisen Wang and Weiqing Liu and Jiang Bian},
+    year={2025},
+    eprint={2505.15155},
+    archivePrefix={arXiv},
+    primaryClass={cs.AI}
+}
+```
+![image](https://github.com/user-attachments/assets/3198bc10-47ba-4ee0-8a8e-46d5ce44f45d)
+
 
 # 🤝 Contributing
 
-We welcome contributions and suggestions to improve RD-Agent. Please refer to the [Contributing Guide](CONTRIBUTING.md) for more details on how to contribute.
+We welcome contributions and suggestions to improve R&D-Agent. Please refer to the [Contributing Guide](CONTRIBUTING.md) for more details on how to contribute.
 
 Before submitting a pull request, ensure that your code passes the automatic CI checks.
 
 ## 📝 Guidelines
 This project welcomes contributions and suggestions.
-Contributing to this project is straightforward and rewarding. Whether it's solving an issue, addressing a bug, enhancing documentation, or even correcting a typo, every contribution is valuable and helps improve RDAgent.
+Contributing to this project is straightforward and rewarding. Whether it's solving an issue, addressing a bug, enhancing documentation, or even correcting a typo, every contribution is valuable and helps improve R&D-Agent.
 
 To get started, you can explore the issues list, or search for `TODO:` comments in the codebase by running the command `grep -r "TODO:"`.
 
@@ -346,7 +410,7 @@ To get started, you can explore the issues list, or search for `TODO:` comments 
   <img src="https://contrib.rocks/image?repo=microsoft/RD-Agent&max=100&columns=15" />
 </a>
 
-Before we released RD-Agent as an open-source project on GitHub, it was an internal project within our group. Unfortunately, the internal commit history was not preserved when we removed some confidential code. As a result, some contributions from our group members, including Haotian Chen, Wenjun Feng, Haoxue Wang, Zeqi Ye, Xinjie Shen, and Jinhui Li, were not included in the public commits.
+Before we released R&D-Agent as an open-source project on GitHub, it was an internal project within our group. Unfortunately, the internal commit history was not preserved when we removed some confidential code. As a result, some contributions from our group members, including Haotian Chen, Wenjun Feng, Haoxue Wang, Zeqi Ye, Xinjie Shen, and Jinhui Li, were not included in the public commits.
 
 # ⚖️ Legal disclaimer
 <p style="line-height: 1; font-style: italic;">The RD-agent is provided “as is”, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. The RD-agent is aimed to facilitate research and development process in the financial industry and not ready-to-use for any financial investment or advice. Users shall independently assess and test the risks of the RD-agent in a specific use scenario, ensure the responsible use of AI technology, including but not limited to developing and integrating risk mitigation measures, and comply with all applicable laws and regulations in all applicable jurisdictions. The RD-agent does not provide financial opinions or reflect the opinions of Microsoft, nor is it designed to replace the role of qualified financial professionals in formulating, assessing, and approving finance products. The inputs and outputs of the RD-agent belong to the users and users shall assume all liability under any theory of liability, whether in contract, torts, regulatory, negligence, products liability, or otherwise, associated with use of the RD-agent and any inputs and outputs thereof.</p>

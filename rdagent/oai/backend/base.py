@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional, cast
 
+import pytz
 from pydantic import TypeAdapter
 
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass
@@ -21,6 +22,7 @@ from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.utils import md5_hash
 
 try:
+    import litellm
     import openai
 
     openai_imported = True
@@ -331,6 +333,7 @@ class APIBackend(ABC):
         assert not (chat_completion and embedding), "chat_completion and embedding cannot be True at the same time"
         max_retry = LLM_SETTINGS.max_retry if LLM_SETTINGS.max_retry is not None else max_retry
         timeout_count = 0
+        violation_count = 0
         for i in range(max_retry):
             API_start_time = datetime.now()
             try:
@@ -348,22 +351,45 @@ class APIBackend(ABC):
                     kwargs["input_content_list"] = [
                         content[: len(content) // 2] for content in kwargs.get("input_content_list", [])
                     ]
-                elif (
-                    openai_imported
-                    and isinstance(e, openai.APITimeoutError)
-                    or (
-                        isinstance(e, openai.APIError)
-                        and hasattr(e, "message")
-                        and "Your resource has been temporarily blocked because we detected behavior that may violate our content policy."
-                        in e.message
-                    )
-                ):
-                    timeout_count += 1
-                    if timeout_count >= 3:
-                        logger.warning("Timeout error, please check your network connection.")
-                        raise e
                 else:
-                    time.sleep(self.retry_wait_seconds)
+                    RD_Agent_TIMER_wrapper.api_fail_count += 1
+                    RD_Agent_TIMER_wrapper.latest_api_fail_time = datetime.now(pytz.timezone("Asia/Shanghai"))
+
+                    if (
+                        openai_imported
+                        and isinstance(e, litellm.BadRequestError)
+                        and (
+                            isinstance(e.__cause__, litellm.ContentPolicyViolationError)
+                            or "The response was filtered due to the prompt triggering Azure OpenAI's content management policy"
+                            in str(e)
+                        )
+                    ):
+                        violation_count += 1
+                        if violation_count >= LLM_SETTINGS.violation_fail_limit:
+                            logger.warning("Content policy violation detected.")
+                            raise e
+
+                    if (
+                        openai_imported
+                        and isinstance(e, openai.APITimeoutError)
+                        or (
+                            isinstance(e, openai.APIError)
+                            and hasattr(e, "message")
+                            and "Your resource has been temporarily blocked because we detected behavior that may violate our content policy."
+                            in e.message
+                        )
+                    ):
+                        timeout_count += 1
+                        if timeout_count >= LLM_SETTINGS.timeout_fail_limit:
+                            logger.warning("Timeout error, please check your network connection.")
+                            raise e
+
+                    recommended_wait_seconds = self.retry_wait_seconds
+                    if openai_imported and isinstance(e, openai.RateLimitError) and hasattr(e, "message"):
+                        match = re.search(r"Please retry after (\d+) seconds\.", e.message)
+                        if match:
+                            recommended_wait_seconds = int(match.group(1))
+                    time.sleep(recommended_wait_seconds)
                     if RD_Agent_TIMER_wrapper.timer.started and not isinstance(e, json.decoder.JSONDecodeError):
                         RD_Agent_TIMER_wrapper.timer.add_duration(datetime.now() - API_start_time)
                 logger.warning(str(e))

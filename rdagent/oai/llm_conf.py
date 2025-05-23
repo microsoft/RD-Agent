@@ -37,6 +37,8 @@ class LLMSettings(ExtendedBaseSettings):
     use_embedding_cache: bool = False
     prompt_cache_path: str = str(Path.cwd() / "prompt_cache.db")
     max_past_message_include: int = 10
+    timeout_fail_limit: int = 10
+    violation_fail_limit: int = 1
 
     # Behavior of returning answers to the same question when caching is enabled
     use_auto_chat_cache_seed_gen: bool = False
@@ -114,7 +116,7 @@ class LLMSettings(ExtendedBaseSettings):
     chat_azure_deepseek_endpoint: str = ""
     chat_azure_deepseek_key: str = ""
 
-    chat_model_map: str = "{}"
+    chat_model_map: dict[str, dict[str, str]] = {}
 
 
 LLM_SETTINGS = LLMSettings()

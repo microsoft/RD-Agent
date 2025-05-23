@@ -46,9 +46,11 @@ class KaggleBasePropSetting(ExtendedBaseSettings):
     local_data_path: str = ""
     """Folder storing Kaggle competition data"""
 
+    # Evaluation on Test related
     if_using_mle_data: bool = False
     auto_submit: bool = False
     """Automatically upload and submit each experiment result to Kaggle platform"""
+
     # Conditionally set the knowledge_base based on the use of graph RAG
     knowledge_base: str = ""
     """Knowledge base class, uses 'KGKnowledgeGraph' when advanced graph-based RAG is enabled, otherwise empty."""
