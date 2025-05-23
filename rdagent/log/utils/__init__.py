@@ -1,9 +1,9 @@
 import inspect
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, TypedDict, cast
-from datetime import datetime, timezone
 
 
 class LogColors:
@@ -176,15 +176,19 @@ def log_obj_to_json(
             }
     elif "direct_exp_gen" in tag:
         from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+
         if isinstance(obj, DSExperiment):
-            from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis
+            from rdagent.scenarios.data_science.proposal.exp_gen.base import (
+                DSHypothesis,
+            )
+
             h: DSHypothesis = obj.hypothesis
             tasks = [t[0] for t in obj.pending_tasks_list]
             t = tasks[0]
             data = [
                 {
                     "id": str(log_trace_path),
-                    "msg":{
+                    "msg": {
                         "tag": "research.hypothesis",
                         "old_tag": tag,
                         "timestamp": ts,
@@ -205,11 +209,11 @@ def log_obj_to_json(
                             "concise_observation": h.concise_observation,
                             "concise_knowledge": h.concise_knowledge,
                         },
-                    }
+                    },
                 },
                 {
                     "id": str(log_trace_path),
-                    "msg":{
+                    "msg": {
                         "tag": "research.tasks",
                         "old_tag": tag,
                         "timestamp": ts,
@@ -230,8 +234,8 @@ def log_obj_to_json(
                                 }
                             )
                         ],
-                    }
-                }
+                    },
+                },
             ]
     elif f"evo_loop_{ei}.evolving code" in tag and "coding" in tag:
         from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
@@ -293,15 +297,14 @@ def log_obj_to_json(
                 "tag": "feedback.config",
                 "timestamp": ts,
                 "loop_id": li,
-                "content": {
-                    "config": obj.experiment_setting
-                }
+                "content": {"config": obj.experiment_setting},
             },
         }
 
     elif "Quantitative Backtesting Chart" in tag:
-        from rdagent.log.ui.qlib_report_figure import report_figure
         import plotly
+
+        from rdagent.log.ui.qlib_report_figure import report_figure
 
         data = {
             "id": str(log_trace_path),
@@ -309,19 +312,18 @@ def log_obj_to_json(
                 "tag": "feedback.return_chart",
                 "timestamp": ts,
                 "loop_id": li,
-                "content": {
-                    "chart_html": plotly.io.to_html(report_figure(obj))
-                },
+                "content": {"chart_html": plotly.io.to_html(report_figure(obj))},
             },
         }
     elif "running" in tag:
         from rdagent.core.experiment import Experiment
+
         if isinstance(obj, Experiment):
             if obj.result is not None:
                 result_str = obj.result.to_json()
                 data = {
                     "id": str(log_trace_path),
-                    "msg":{
+                    "msg": {
                         "tag": "feedback.metric",
                         "old_tag": tag,
                         "timestamp": ts,
@@ -329,10 +331,11 @@ def log_obj_to_json(
                         "content": {
                             "result": result_str,
                         },
-                    }
+                    },
                 }
     elif "feedback" in tag:
         from rdagent.core.proposal import ExperimentFeedback, HypothesisFeedback
+
         ef: ExperimentFeedback = obj
         content = (
             {

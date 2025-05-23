@@ -4,17 +4,19 @@ import signal
 import subprocess
 import sys
 from collections import defaultdict
+from datetime import datetime, timezone
 from pathlib import Path
+
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
-
 
 msgs_for_frontend = defaultdict(list)
 
 app = Flask(__name__, static_folder="./docs/_static")
 CORS(app)
 
-fin_factor_report_proc = None
+rdagent_processes = defaultdict()
+
 
 @app.route("/favicon.ico")
 def favicon():
@@ -49,22 +51,20 @@ def update_trace():
 @app.route("/upload", methods=["GET"])
 def upload_file():
     # 获取请求体中的字段
-    global fin_factor_report_proc
-    if fin_factor_report_proc is not None:
-        return jsonify({"error": "fin_factor_report is already running"}), 400
-    scenario = request.form.get('scenario')
-    files = request.files.getlist('files')
-    competition = request.form.get('competition')
+    global rdagent_processes
+    scenario = request.form.get("scenario")
+    files = request.files.getlist("files")
+    competition = request.form.get("competition")
 
     # scenario = "Data Science Loop"
 
     # save files
     for file in files:
         if file:
-            p = Path(f'./uploads/{scenario}')
+            p = Path(f"./uploads/{scenario}")
             if not p.exists():
                 p.mkdir(parents=True, exist_ok=True)
-            file.save(f'./uploads/{scenario}/{file.filename}')
+            file.save(f"./uploads/{scenario}/{file.filename}")
 
     log_trace_path = Path(f"{scenario.replace(' ', '_')}/test").absolute()
 
@@ -88,7 +88,7 @@ def upload_file():
         cmds = ["rdagent", "kaggle", "--competition", competition]
 
     # subprocess.run(cmds)
-    fin_factor_report_proc = subprocess.Popen(
+    rdagent_processes[str(log_trace_path)] = subprocess.Popen(
         cmds,
         # stdout=subprocess.PIPE,
         # stderr=subprocess.PIPE,
@@ -96,12 +96,17 @@ def upload_file():
         stderr=sys.stderr,
         env={
             "LOG_TRACE_PATH": str(log_trace_path),
-        }
+        },
     )
 
-    return jsonify({
-        'id': str(log_trace_path),
-    }), 200
+    return (
+        jsonify(
+            {
+                "id": str(log_trace_path),
+            }
+        ),
+        200,
+    )
 
 
 @app.route("/receive", methods=["POST"])
@@ -124,15 +129,17 @@ def receive_msgs():
 
 @app.route("/pause", methods=["GET"])
 def pause_process():
-    global fin_factor_report_proc
-    if fin_factor_report_proc is None:
+    global rdagent_processes
+    id = request.get_json().get("id")
+    if rdagent_processes[id] is None:
         return jsonify({"error": "No running process to pause"}), 400
 
-    if fin_factor_report_proc.poll() is not None:
+    if rdagent_processes[id].poll() is not None:
+        msgs_for_frontend[id].append({"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}})
         return jsonify({"error": "Process is not running"}), 400
 
     try:
-        os.kill(fin_factor_report_proc.pid, signal.SIGSTOP)
+        os.kill(rdagent_processes[id].pid, signal.SIGSTOP)
         return jsonify({"status": "paused"}), 200
     except Exception as e:
         return jsonify({"error": "Failed to pause process"}), 500
@@ -140,15 +147,17 @@ def pause_process():
 
 @app.route("/resume", methods=["GET"])
 def resume_process():
-    global fin_factor_report_proc
-    if fin_factor_report_proc is None:
+    global rdagent_processes
+    id = request.get_json().get("id")
+    if rdagent_processes[id] is None:
         return jsonify({"error": "No running process to resume"}), 400
 
-    if fin_factor_report_proc.poll() is not None:
+    if rdagent_processes[id].poll() is not None:
+        msgs_for_frontend[id].append({"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}})
         return jsonify({"error": "Process is not running"}), 400
 
     try:
-        os.kill(fin_factor_report_proc.pid, signal.SIGCONT)
+        os.kill(rdagent_processes[id].pid, signal.SIGCONT)
         return jsonify({"status": "resumed"}), 200
     except Exception as e:
         return jsonify({"error": "Failed to resume process"}), 500
@@ -156,17 +165,19 @@ def resume_process():
 
 @app.route("/stop", methods=["GET"])
 def stop_process():
-    global fin_factor_report_proc
-    if fin_factor_report_proc is None:
+    global rdagent_processes
+    id = request.get_json().get("id")
+    if rdagent_processes[id] is None:
         return jsonify({"error": "No running process to stop"}), 400
 
-    if fin_factor_report_proc.poll() is not None:
+    if rdagent_processes[id].poll() is not None:
         return jsonify({"error": "Process is not running"}), 400
 
     try:
-        fin_factor_report_proc.terminate()
-        fin_factor_report_proc.wait()
-        fin_factor_report_proc = None
+        rdagent_processes[id].terminate()
+        rdagent_processes[id].wait()
+        del rdagent_processes[id]
+        msgs_for_frontend[id].append({"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}})
         return jsonify({"status": "stoped"}), 200
     except Exception as e:
         return jsonify({"error": "Failed to stop process"}), 500
