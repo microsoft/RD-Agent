@@ -3,12 +3,9 @@ Tools that support generating better formats.
 """
 
 
-def shrink_text(text: str,
-                context_lines: int = 200,
-                line_len: int = 5000,
-                *,
-                row_shrink: bool = True,
-                col_shrink: bool = True) -> str:
+def shrink_text(
+    text: str, context_lines: int = 200, line_len: int = 5000, *, row_shrink: bool = True, col_shrink: bool = True
+) -> str:
     """
     When the context is too long, hide the part in the middle.
 
