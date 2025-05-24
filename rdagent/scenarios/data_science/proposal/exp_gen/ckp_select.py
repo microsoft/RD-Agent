@@ -25,6 +25,36 @@ class LatestCKPSelector(CheckpointSelector):
         return (-1,)
 
 
+class BestCKPSelector(CheckpointSelector):
+    """
+    -`(-1, )` represents starting from the best trial in the trace
+    """
+
+    def __init__(
+        self,
+    ):
+        logger.info(f"Using best selector")
+
+    def get_selection(self, trace: Trace) -> tuple[int, ...]:
+        leaves: list[int] = trace.get_leaves()
+        sota_exp_fb = trace.sota_experiment_fb(selection=(leaves[0],))
+        if sota_exp_fb is None:
+            sota_exp_fb = trace.hist[leaves[0]]
+        try:
+            if (
+                trace.sota_exp_to_submit is not None
+                and sota_exp_fb[0].result is not None
+                and trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0]
+                != sota_exp_fb[0].result.loc["ensemble"].iloc[0]
+            ):
+                return (leaves[1],)
+
+            return (leaves[0],)
+        except Exception as e:
+            logger.error(f"Get best selection failed: {e}")
+        return (-1,)
+
+
 class LimitTimeCKPSelector(CheckpointSelector):
     """
     recore the time of current sub-trace, and jump to a new sub-trace if the time is up
