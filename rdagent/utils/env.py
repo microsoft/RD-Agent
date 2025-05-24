@@ -397,15 +397,22 @@ class LocalEnv(Env[ASpecificLocalConf]):
             bufsize=1,  # Line buffered
             universal_newlines=True,
         )
-
-        combined_output = ""
         # Read both stdout and stderr in real-time
         import select
         import sys
+        from subprocess import Popen, PIPE
+        import select
+        from rich.console import Console
+
+        process = Popen(["your", "command"], stdout=PIPE, stderr=PIPE, text=True)
+        combined_output = ""
 
         # Create file descriptors for stdout and stderr
         stdout_fd = process.stdout.fileno()
         stderr_fd = process.stderr.fileno()
+
+        if process.stdout is None or process.stderr is None:
+            raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
 
         # Set up polling
         poller = select.poll()
