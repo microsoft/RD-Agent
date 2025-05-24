@@ -16,6 +16,7 @@ from rdagent.core.proposal import (
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils import convert2bool
+from rdagent.scenarios.qlib.experiment.quant_experiment import QlibQuantScenario
 
 feedback_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
@@ -83,11 +84,18 @@ class QlibFactorExperiment2Feedback(Experiment2Feedback):
         combined_result = process_results(current_result, sota_result)
 
         # Generate the system prompt
-        sys_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(feedback_prompts["factor_feedback_generation"]["system"])
-            .render(scenario=self.scen.get_scenario_all_desc(action="factor"))
-        )
+        if isinstance(self.scen, QlibQuantScenario):
+            sys_prompt = (
+                Environment(undefined=StrictUndefined)
+                .from_string(feedback_prompts["factor_feedback_generation"]["system"])
+                .render(scenario=self.scen.get_scenario_all_desc(action="factor"))
+            )
+        else:
+            sys_prompt = (
+                Environment(undefined=StrictUndefined)
+                .from_string(feedback_prompts["factor_feedback_generation"]["system"])
+                .render(scenario=self.scen.get_scenario_all_desc())
+            )
 
         # Generate the user prompt
         usr_prompt = (
@@ -144,11 +152,18 @@ class QlibModelExperiment2Feedback(Experiment2Feedback):
         logger.info("Generating feedback...")
 
         # Generate the system prompt
-        sys_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(feedback_prompts["model_feedback_generation"]["system"])
-            .render(scenario=self.scen.get_scenario_all_desc(action="model"))
-        )
+        if isinstance(self.scen, QlibQuantScenario):
+            sys_prompt = (
+                Environment(undefined=StrictUndefined)
+                .from_string(feedback_prompts["model_feedback_generation"]["system"])
+                .render(scenario=self.scen.get_scenario_all_desc(action="model"))
+            )
+        else:
+            sys_prompt = (
+                Environment(undefined=StrictUndefined)
+                .from_string(feedback_prompts["factor_feedback_generation"]["system"])
+                .render(scenario=self.scen.get_scenario_all_desc())
+            )
 
         important_metrics = [
             "IC",

@@ -9,6 +9,7 @@ from rdagent.components.proposal import ModelHypothesis2Experiment, ModelHypothe
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
 from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
+from rdagent.scenarios.qlib.experiment.quant_experiment import QlibQuantScenario
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
@@ -82,7 +83,10 @@ class QlibModelHypothesisGen(ModelHypothesisGen):
 
 class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
     def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]:
-        scenario = trace.scen.get_scenario_all_desc(action="model")
+        if isinstance(trace.scen, QlibQuantScenario):
+            scenario = trace.scen.get_scenario_all_desc(action="model")
+        else:
+            scenario = trace.scen.get_scenario_all_desc()
         experiment_output_format = prompt_dict["model_experiment_output_format"]
 
         last_experiment = None
@@ -95,7 +99,7 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
         else:
             specific_trace = Trace(trace.scen)
             for i in range(len(trace.hist) - 1, -1, -1):  # Reverse iteration
-                if trace.hist[i][0].hypothesis.action == "model":
+                if not hasattr(trace.hist[i][0].hypothesis, "action") or trace.hist[i][0].hypothesis.action == "model":
                     if last_experiment is None:
                         last_experiment = trace.hist[i][0]
                         last_feedback = trace.hist[i][1]

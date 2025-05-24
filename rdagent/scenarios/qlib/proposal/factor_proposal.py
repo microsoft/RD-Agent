@@ -10,6 +10,7 @@ from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
+from rdagent.scenarios.qlib.experiment.quant_experiment import QlibQuantScenario
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
@@ -69,7 +70,10 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
 
 class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
     def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict | bool]:
-        scenario = trace.scen.get_scenario_all_desc(action="factor")
+        if isinstance(trace.scen, QlibQuantScenario):
+            scenario = trace.scen.get_scenario_all_desc(action="factor")
+        else:
+            scenario = trace.scen.get_scenario_all_desc()
         experiment_output_format = prompt_dict["factor_experiment_output_format"]
 
         if len(trace.hist) == 0:
@@ -77,7 +81,7 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
         else:
             specific_trace = Trace(trace.scen)
             for i in range(len(trace.hist) - 1, -1, -1):  # Reverse iteration
-                if trace.hist[i][0].hypothesis.action == "factor":
+                if not hasattr(trace.hist[i][0].hypothesis, "action") or trace.hist[i][0].hypothesis.action == "factor":
                     specific_trace.hist.insert(0, trace.hist[i])
             if len(specific_trace.hist) > 0:
                 specific_trace.hist.reverse()
