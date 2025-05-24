@@ -42,12 +42,7 @@ class Hypothesis:
 
     def __str__(self) -> str:
         return f"""Hypothesis: {self.hypothesis}
-                Reason: {self.reason}
-                Concise Reason & Knowledge: {self.concise_reason}
-                Concise Observation: {self.concise_observation}
-                Concise Justification: {self.concise_justification}
-                Concise Knowledge: {self.concise_knowledge}
-                """
+Reason: {self.reason}"""
 
     # source: data_ana | model_nan = None
 

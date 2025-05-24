@@ -18,6 +18,7 @@ class QlibModelExperiment(ModelExperiment[ModelTask, QlibFBWorkspace, ModelFBWor
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.experiment_workspace = QlibFBWorkspace(template_folder_path=Path(__file__).parent / "model_template")
+        self.stdout = ""
 
 
 class QlibModelScenario(Scenario):

@@ -9,6 +9,8 @@ from rdagent.components.proposal import FactorHypothesis2Experiment, FactorHypot
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
+from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
+from rdagent.scenarios.qlib.experiment.quant_experiment import QlibQuantScenario
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
@@ -29,10 +31,26 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
             if len(trace.hist) > 0
             else "No previous hypothesis and feedback available since it's the first round."
         )
+
+        last_hypothesis_and_feedback = (
+            (
+                Environment(undefined=StrictUndefined)
+                .from_string(prompt_dict["last_hypothesis_and_feedback"])
+                .render(experiment=trace.hist[-1][0], feedback=trace.hist[-1][1])
+            )
+            if len(trace.hist) > 0
+            else "No previous hypothesis and feedback available since it's the first round."
+        )
+
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
-            "RAG": None,
-            "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
+            "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
+            "RAG": (
+                "Try the easiest and fastest factors to experiment with from various perspectives first."
+                if len(trace.hist) < 15
+                else "Now, you need to try factors that can achieve high IC (e.g., machine learning-based factors)."
+            ),
+            "hypothesis_output_format": prompt_dict["factor_hypothesis_output_format"],
             "hypothesis_specification": prompt_dict["factor_hypothesis_specification"],
         }
         return context_dict, True
@@ -40,30 +58,40 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
     def convert_response(self, response: str) -> Hypothesis:
         response_dict = json.loads(response)
         hypothesis = QlibFactorHypothesis(
-            hypothesis=response_dict["hypothesis"],
-            reason=response_dict["reason"],
-            concise_reason=response_dict["concise_reason"],
-            concise_observation=response_dict["concise_observation"],
-            concise_justification=response_dict["concise_justification"],
-            concise_knowledge=response_dict["concise_knowledge"],
+            hypothesis=response_dict.get("hypothesis"),
+            reason=response_dict.get("reason"),
+            concise_reason=response_dict.get("concise_reason"),
+            concise_observation=response_dict.get("concise_observation"),
+            concise_justification=response_dict.get("concise_justification"),
+            concise_knowledge=response_dict.get("concise_knowledge"),
         )
         return hypothesis
 
 
 class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
     def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict | bool]:
-        scenario = trace.scen.get_scenario_all_desc()
+        if isinstance(trace.scen, QlibQuantScenario):
+            scenario = trace.scen.get_scenario_all_desc(action="factor")
+        else:
+            scenario = trace.scen.get_scenario_all_desc()
         experiment_output_format = prompt_dict["factor_experiment_output_format"]
 
-        hypothesis_and_feedback = (
-            (
-                Environment(undefined=StrictUndefined)
-                .from_string(prompt_dict["hypothesis_and_feedback"])
-                .render(trace=trace)
-            )
-            if len(trace.hist) > 0
-            else "No previous hypothesis and feedback available since it's the first round."
-        )
+        if len(trace.hist) == 0:
+            hypothesis_and_feedback = "No previous hypothesis and feedback available since it's the first round."
+        else:
+            specific_trace = Trace(trace.scen)
+            for i in range(len(trace.hist) - 1, -1, -1):  # Reverse iteration
+                if not hasattr(trace.hist[i][0].hypothesis, "action") or trace.hist[i][0].hypothesis.action == "factor":
+                    specific_trace.hist.insert(0, trace.hist[i])
+            if len(specific_trace.hist) > 0:
+                specific_trace.hist.reverse()
+                hypothesis_and_feedback = (
+                    Environment(undefined=StrictUndefined)
+                    .from_string(prompt_dict["hypothesis_and_feedback"])
+                    .render(trace=specific_trace)
+                )
+            else:
+                hypothesis_and_feedback = "No previous hypothesis and feedback available."
 
         experiment_list: List[FactorExperiment] = [t[0] for t in trace.hist]
 
@@ -105,6 +133,8 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
         for task in tasks:
             duplicate = False
             for based_exp in exp.based_experiments:
+                if isinstance(based_exp, QlibModelExperiment):
+                    continue
                 for sub_task in based_exp.sub_tasks:
                     if task.factor_name == sub_task.factor_name:
                         duplicate = True

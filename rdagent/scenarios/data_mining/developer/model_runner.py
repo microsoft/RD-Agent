@@ -14,7 +14,7 @@ class DMModelRunner(CachedRunner[DMModelExperiment]):
 
         env_to_use = {"PYTHONPATH": "./"}
 
-        result = exp.experiment_workspace.execute(run_env=env_to_use)
+        result, stdout = exp.experiment_workspace.execute(run_env=env_to_use)
 
         exp.result = result
 

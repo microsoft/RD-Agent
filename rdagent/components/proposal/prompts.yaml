@@ -1,48 +1,64 @@
 hypothesis_gen:
   system_prompt: |-
-    The user is working on generating new hypotheses for the {{targets}} in a data-driven research and development process. 
-    The {{targets}} are used in the following scenario:
-    {{scenario}}
-    The user has already proposed several hypotheses and conducted evaluations on them. This information will be provided to you. Your task is to check whether a similar hypothesis has already been generated. 
+    The user is working on generating new hypotheses for the {{ targets }} in a data-driven research and development process. 
+    The {{ targets }} are used in the following scenario:
+    {{ scenario }}
+    The user has already proposed several hypotheses and conducted evaluations on them. This information will be provided to you. Your task is to analyze previous experiments, reflect on the decision made in each experiment, and consider why experiments with a decision of true were successful while those with a decision of false failed. Then, think about how to improve further — either by refining the existing approach or by exploring an entirely new direction.
     If one exists and you agree with it, feel free to use it. If you disagree, please generate an improved version.
     {% if hypothesis_specification %}
-    To assist you in formulating new hypotheses, the user has provided some additional information: {{hypothesis_specification}}.
+    To assist you in formulating new hypotheses, the user has provided some additional information: {{ hypothesis_specification }}.
     **Important:** If the hypothesis_specification outlines the next steps you need to follow, ensure you adhere to those instructions.
     {% endif %}
     Please generate the output using the following format and specifications:
     {{ hypothesis_output_format }}
 
   user_prompt: |-
-    {% if hypothesis_and_feedback|length == 0 %}It is the first round of hypothesis generation. The user has no hypothesis on this scenario yet.
-    {% else %}It is not the first round, the user has made several hypothesis on this scenario and did several evaluation on them.
-    The former hypothesis and the corresponding feedbacks are as follows (focus on the last one & the new hypothesis that it provides and reasoning to see if you agree):
+    {% if hypothesis_and_feedback|length == 0 %}
+    It is the first round of hypothesis generation. The user has no hypothesis on this scenario yet.
+    {% else %}
+    The former hypothesis and the corresponding feedbacks are as follows:
     {{ hypothesis_and_feedback }}
     {% endif %}
-    {% if RAG %}
-    To assist you in generating new {{targets}}, we have provided the following information: {{RAG}}.
-    **Note:** The provided RAG is for reference only. 
-    You must carefully assess whether the RAG aligns with the {{targets}}. 
-    If it does not, it should not be used. Exercise caution and make your own judgment.
+    {% if last_hypothesis_and_feedback %}
+    Here is the last trial's hypothesis and the corresponding feedback (The main feedback contains a new hypothesis for your reference only. You need to evaluate the complete trace chain to decide whether to adopt it or propose a more appropriate hypothesis):
+    {{ last_hypothesis_and_feedback }}
     {% endif %}
-    Also generate the relevant keys for the reasoning and the distilled knowledge that follows. For those keys, in particular for knowledge, explain in the context of the specific scenario to build up domain knowledge in the specific field rather than general knowledge.
+    {% if sota_hypothesis_and_feedback != "" %}
+    Here is the SOTA trail's hypothesis and the corresponding feedback:
+    {{ sota_hypothesis_and_feedback }}
+    {% endif %}
+    {% if RAG %}
+    To assist you in generating new {{ targets }}, we have provided the following information: {{ RAG }}.
+    {% endif %}
 
 hypothesis2experiment:
   system_prompt: |-
-    The user is trying to generate new {{targets}} based on the hypothesis generated in the previous step. 
-    The {{targets}} are used in certain scenario, the scenario is as follows:
+    The user is trying to generate new {{ targets }} based on the hypothesis generated in the previous step. 
+    The {{ targets }} are used in certain scenario, the scenario is as follows:
     {{ scenario }}
-    The user will use the {{targets}} generated to do some experiments. The user will provide this information to you:
-    1. The target hypothesis you are targeting to generate {{targets}} for.
+    The user will use the {{ targets }} generated to do some experiments. The user will provide this information to you:
+    1. The target hypothesis you are targeting to generate {{ targets }} for.
     2. The hypothesis generated in the previous steps and their corresponding feedbacks.
-    3. Former proposed {{targets}} on similar hypothesis.
-    4. Some additional information to help you generate new {{targets}}.
+    3. Former proposed {{ targets }} on similar hypothesis.
+    4. Some additional information to help you generate new {{ targets }}.
     Please generate the output following the format below:
     {{ experiment_output_format }}
     
   user_prompt: |-
     The user has made several hypothesis on this scenario and did several evaluation on them.
-    The target hypothesis you are targeting to generate {{targets}} for is as follows:
+    The target hypothesis you are targeting to generate {{ targets }} for is as follows:
     {{ target_hypothesis }}
+    {% if hypothesis_and_feedback %}
     The former hypothesis and the corresponding feedbacks are as follows:
     {{ hypothesis_and_feedback }}
-    Please generate the new {{targets}} based on the information above.
+    {% endif %}
+    {% if last_hypothesis_and_feedback %}
+    The latest hypothesis and the corresponding feedback are as follows:
+    {{ last_hypothesis_and_feedback }}
+    {% endif %}
+    {% if sota_hypothesis_and_feedback %}
+    The SOTA hypothesis and the corresponding feedback are as follows:
+    {{ sota_hypothesis_and_feedback }}
+    {% endif %}
+
+    Please generate the new {{ targets }} based on the information above.

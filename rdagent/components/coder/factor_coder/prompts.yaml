@@ -65,6 +65,8 @@ evolving_strategy_factor_implementation_v1_system: |-
 evolving_strategy_factor_implementation_v2_user: |-
   --------------Target factor information:---------------
   {{ factor_information_str }}
+  [NOTE]
+  1. When processing data, avoid time leakage.
 
   {% if queried_similar_error_knowledge|length != 0 %}
   {% if error_summary_critics is none %}
