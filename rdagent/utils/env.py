@@ -407,12 +407,12 @@ class LocalEnv(Env[ASpecificLocalConf]):
         process = Popen(["your", "command"], stdout=PIPE, stderr=PIPE, text=True)
         combined_output = ""
 
+        if process.stdout is None or process.stderr is None:
+            raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
+
         # Create file descriptors for stdout and stderr
         stdout_fd = process.stdout.fileno()
         stderr_fd = process.stderr.fileno()
-
-        if process.stdout is None or process.stderr is None:
-            raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
 
         # Set up polling
         poller = select.poll()
