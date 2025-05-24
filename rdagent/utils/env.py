@@ -400,8 +400,8 @@ class LocalEnv(Env[ASpecificLocalConf]):
         # Read both stdout and stderr in real-time
         import select
         import sys
-        from subprocess import Popen, PIPE
-        import select
+        from subprocess import PIPE, Popen
+
         from rich.console import Console
 
         process = Popen(["your", "command"], stdout=PIPE, stderr=PIPE, text=True)
