@@ -315,3 +315,13 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             if ef.exception is None:
                 return exp, ef
         return None
+
+    def get_sub_trace_count(self) -> int:
+        """Get the count of sub-traces in the current trace. Only count the sub-traces with successful experiments."""
+        count = 0
+        for idx, parents in enumerate(self.dag_parent):
+            if len(parents) == 0:
+                _, feedback = self.hist[idx]
+                if feedback.decision:
+                    count += 1
+        return count

@@ -477,7 +477,7 @@ class DSProposalV2ExpGen(ExpGen):
     ) -> Dict:
         problem_formatted_str = ""
         for problem_name, problem_dict in problems.items():
-            problem_formatted_str += f"# Problem Name: {problem_name}\n"
+            problem_formatted_str += f"Problem Name: {problem_name}\n"
             problem_formatted_str += f"- Problem Description: {problem_dict['problem']}\n"
             if "idea" in problem_dict:
                 idea_formatted_str = DSIdea(problem_dict["idea"]).to_formatted_str()
@@ -515,6 +515,7 @@ class DSProposalV2ExpGen(ExpGen):
         hypothesis_dict: dict,
         problem_dict: dict,
         trace: DSTrace,
+        scen_prob_weight: float,
     ) -> Tuple[str, DSHypothesis]:
         weights = {
             "alignment_score": 0.2,
@@ -548,11 +549,11 @@ class DSProposalV2ExpGen(ExpGen):
         index_to_pick_pool_list = []
         for j, problem_name in enumerate(scores_sorted.index):
             if hypothesis_dict[problem_name].get("inspired", False):
-                index_to_pick_pool_list.extend([j] * 4)
-            elif problem_dict.get(problem_name, {}).get("label", "") == "SCENARIO_PROBLEM":
-                index_to_pick_pool_list.extend([j] * (3 - len(trace.hist) // 3))
-            else:
                 index_to_pick_pool_list.extend([j] * 2)
+            if problem_dict.get(problem_name, {}).get("label", "") == "SCENARIO_PROBLEM":
+                index_to_pick_pool_list.extend([j] * int(4 * scen_prob_weight))
+            else:
+                index_to_pick_pool_list.extend([j] * int(4 * (1-scen_prob_weight)))
         logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
 
         # Create a random but reproducible integer
@@ -683,20 +684,24 @@ class DSProposalV2ExpGen(ExpGen):
         else:
             inject_diverse = False
 
-        if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
-            if len(trace.current_selection) == 0:
-                # start a new sub-trace, and inject diverse problems.
-                inject_diverse = True
-                logger.info("Start a new sub-trace, and inject diverse problems.")
-            else:
-                inject_diverse = False
-        else:
-            inject_diverse = False
-
         # Step 1: Identify problems
-        current_sub_trace = trace.collect_all_ancestors(selection=(-1,))
         all_problems = {}
-        if len(current_sub_trace) >= 3:
+        current_sub_trace = trace.collect_all_ancestors(selection=(-1,)) # depth -> feedback problems
+        sub_trace_count = trace.get_sub_trace_count() # diversity -> scenario problems
+        depth, diversity = len(current_sub_trace), sub_trace_count
+        scen_prob_weight = 1 if depth < 3 else 1-0.1 * (depth-3-0.5*diversity)
+        scen_prob_weight = min(0, max(1, scen_prob_weight))
+
+        if sub_trace_count == 0 or scen_prob_weight > 0:
+            scen_problems = self.identify_scenario_problem(
+                scenario_desc=scenario_desc,
+                sota_exp_desc=sota_exp_desc,
+            )
+            for problem_name in scen_problems:
+                scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
+                all_problems[problem_name] = scen_problems[problem_name] 
+
+        if scen_prob_weight < 1:
             fb_problems = self.identify_feedback_problem(
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
@@ -706,15 +711,6 @@ class DSProposalV2ExpGen(ExpGen):
             for problem_name in fb_problems:
                 fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
                 all_problems[problem_name] = fb_problems[problem_name]
-
-        if len(current_sub_trace) < 9:
-            scen_problems = self.identify_scenario_problem(
-                scenario_desc=scenario_desc,
-                sota_exp_desc=sota_exp_desc,
-            )
-            for problem_name in scen_problems:
-                scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
-                all_problems[problem_name] = scen_problems[problem_name]
 
         # Step 1.5: Sample ideas from idea pool
         if DS_RD_SETTING.enable_knowledge_base:
@@ -758,6 +754,7 @@ class DSProposalV2ExpGen(ExpGen):
             hypothesis_dict=hypothesis_dict,
             problem_dict=all_problems,
             trace=trace,
+            scen_prob_weight=scen_prob_weight,
         )
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
