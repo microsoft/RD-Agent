@@ -523,8 +523,7 @@ class DSProposalV2ExpGen(ExpGen):
         self,
         hypothesis_dict: dict,
         problem_dict: dict,
-        trace: DSTrace,
-        scen_prob_weight: float,
+        scen_prob_factor: int,
     ) -> Tuple[str, DSHypothesis]:
         weights = {
             "alignment_score": 0.2,
@@ -560,9 +559,9 @@ class DSProposalV2ExpGen(ExpGen):
             if hypothesis_dict[problem_name].get("inspired", False):
                 index_to_pick_pool_list.extend([j] * 2)
             if problem_dict.get(problem_name, {}).get("label", "") == "SCENARIO_PROBLEM":
-                index_to_pick_pool_list.extend([j] * int(4 * scen_prob_weight))
+                index_to_pick_pool_list.extend([j] * scen_prob_factor)
             else:
-                index_to_pick_pool_list.extend([j] * int(4 * (1-scen_prob_weight)))
+                index_to_pick_pool_list.extend([j] * (3-scen_prob_factor))
         logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
 
         # Create a random but reproducible integer
@@ -696,13 +695,13 @@ class DSProposalV2ExpGen(ExpGen):
 
         # Step 1: Identify problems
         all_problems = {}
-        current_sub_trace = trace.collect_all_ancestors(selection=(-1,)) # depth -> feedback problems
-        sub_trace_count = trace.get_sub_trace_count() # diversity -> scenario problems
-        depth, diversity = len(current_sub_trace), sub_trace_count
-        scen_prob_weight = 1 if depth < 3 else 1-0.1 * (depth-3-0.5*diversity)
-        scen_prob_weight = min(0, max(1, scen_prob_weight))
+        current_sub_trace = trace.collect_all_ancestors()
+        sota_exp_num = sum(1 for _, fb in current_sub_trace if fb.decision)
+        failed_exp_num = len(current_sub_trace) - sota_exp_num
+        exp_num = sota_exp_num * 1.5 + failed_exp_num
+        scen_prob_factor = max(0, 3-exp_num//4)
 
-        if sub_trace_count == 0 or scen_prob_weight > 0:
+        if scen_prob_factor > 0:
             scen_problems = self.identify_scenario_problem(
                 scenario_desc=scenario_desc,
                 sota_exp_desc=sota_exp_desc,
@@ -711,7 +710,7 @@ class DSProposalV2ExpGen(ExpGen):
                 scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
                 all_problems[problem_name] = scen_problems[problem_name] 
 
-        if scen_prob_weight < 1:
+        if 3-scen_prob_factor > 0:
             fb_problems = self.identify_feedback_problem(
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
@@ -764,7 +763,7 @@ class DSProposalV2ExpGen(ExpGen):
             hypothesis_dict=hypothesis_dict,
             problem_dict=all_problems,
             trace=trace,
-            scen_prob_weight=scen_prob_weight,
+            scen_prob_factor=scen_prob_factor,
         )
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
