@@ -980,7 +980,9 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
-
+        if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
+            return draft_exp
+        
         if pipeline:
             component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
         else:
