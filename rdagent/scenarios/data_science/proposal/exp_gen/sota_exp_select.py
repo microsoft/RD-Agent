@@ -115,7 +115,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
 
             sota_submit_idx = response_dict.get("selected_SOTA_idx", None)
 
-            if sota_submit_idx is not None:
+            if sota_submit_idx is not None and int(sota_submit_idx) - 1 < len(sota_exp_fb_list):
                 sota_submit = sota_exp_fb_list[int(sota_submit_idx) - 1]
                 sota_idx_in_trace = trace.hist.index(sota_submit)
                 logger.info(
