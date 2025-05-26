@@ -159,12 +159,14 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
     def collect_all_ancestors(
         self,
-        selection: tuple[int, ...] = (-1,),
+        selection: tuple[int, ...] | None = None,
     ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
         """
         Collect all ancestors of the given selection.
         The return list follows the order of [root->...->parent->current_node].
         """
+        if selection is None:
+            selection = self.get_current_selection()
 
         if len(self.dag_parent) == 0:
             return []
@@ -321,13 +323,3 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             if ef.exception is None:
                 return exp, ef
         return None
-
-    def get_sub_trace_count(self) -> int:
-        """Get the count of sub-traces in the current trace. Only count the sub-traces with successful experiments."""
-        count = 0
-        for idx, parents in enumerate(self.dag_parent):
-            if len(parents) == 0:
-                _, feedback = self.hist[idx]
-                if feedback.decision:
-                    count += 1
-        return count
