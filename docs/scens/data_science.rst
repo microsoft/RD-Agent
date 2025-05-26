@@ -76,6 +76,24 @@ The Data Science Agent is an agent that can automatically perform feature engine
         dotenv set DS_LOCAL_DATA_PATH <your local directory>/ds_data
         dotenv set DS_IF_USING_MLE_DATA True
 
+- 🔨 **Configuring the Kaggle API**
+
+  - Downloading Kaggle competition data requires the Kaggle API. You can set up the Kaggle API by following these steps:
+  
+    - Register and login on the `Kaggle <https://www.kaggle.com/>`_ website.
+
+    - Click on the avatar (usually in the top right corner of the page) -> ``Settings`` -> ``Create New Token``, A file called ``kaggle.json`` will be downloaded.
+
+    - Move ``kaggle.json`` to ``~/.config/kaggle/``
+
+    - Modify the permissions of the ``kaggle.json`` file.
+
+      .. code-block:: sh
+
+        chmod 600 ~/.config/kaggle/kaggle.json
+
+  - For more information about Kaggle API Settings, refer to the `Kaggle API <https://github.com/Kaggle/kaggle-api>`_.
+
 
 - 🔩 **Setting the Environment Variables for MLE-bench**
 
