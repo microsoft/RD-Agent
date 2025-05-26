@@ -14,6 +14,7 @@ from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen
+from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -259,16 +260,21 @@ COMPONENT_TASK_MAPPING = {
     },
 }
 
+def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None|DSDraftExpGen:
+    next_missing_component = trace.next_incomplete_component()
+    if next_missing_component is not None:
+        return DSDraftExpGen(scen=scen).gen(
+            component=next_missing_component,
+            trace=trace,
+        )
+    else:
+        return None
 
 class DSProposalV1ExpGen(ExpGen):
     def gen(self, trace: DSTrace) -> DSExperiment:
         # Drafting Stage
-        next_missing_component = trace.next_incomplete_component()
-        if next_missing_component is not None:
-            return DSDraftExpGen(scen=self.scen).gen(
-                component=next_missing_component,
-                trace=trace,
-            )
+        if (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
+            return draft_exp
 
         # Guidelines:
         # System prompts: Shared condition you are facing
@@ -682,6 +688,8 @@ class DSProposalV2ExpGen(ExpGen):
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
+        if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
+            return draft_exp
 
         if pipeline:
             component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
@@ -984,7 +992,9 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
-
+        if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
+            return draft_exp
+        
         if pipeline:
             component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
         else:
