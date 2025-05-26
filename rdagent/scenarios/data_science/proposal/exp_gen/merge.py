@@ -8,7 +8,7 @@ from rdagent.core.proposal import ExpGen
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen
+from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.utils.agent.tpl import T
 
@@ -87,7 +87,7 @@ class ExpGen2TraceAndMerge(ExpGen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.merge_exp_gen = MergeExpGen(self.scen)
-        self.exp_gen = DSExpGen(self.scen)
+        self.exp_gen = DataScienceRDLoop._get_exp_gen("rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen)
 
     def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
@@ -195,7 +195,7 @@ class ExpGen2TraceAndMergeV2(ExpGen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.merge_exp_gen = MergeExpGen_MultiTrace(self.scen)
-        self.exp_gen = DSExpGen(self.scen)
+        self.exp_gen = DataScienceRDLoop._get_exp_gen("rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen)
         self.MAX_TRACE_NUM = DS_RD_SETTING.max_trace_num  # maximum number of traces to grow before merging
         self.flag_start_merge = False
 

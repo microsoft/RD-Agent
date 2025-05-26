@@ -18,6 +18,7 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.draft import DSDraftExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
@@ -261,6 +262,14 @@ COMPONENT_TASK_MAPPING = {
 
 class DSProposalV1ExpGen(ExpGen):
     def gen(self, trace: DSTrace) -> DSExperiment:
+        # Drafting Stage
+        next_missing_component = trace.next_incomplete_component()
+        if next_missing_component is not None:
+            return DSDraftExpGen(scen=self.scen).gen(
+                component=next_missing_component,
+                trace=trace,
+            )
+
         # Guidelines:
         # System prompts: Shared condition you are facing
         # - scenario description: `scenario_desc`
@@ -640,7 +649,8 @@ class DSProposalV2ExpGen(ExpGen):
             exp.pending_tasks_list.append([workflow_task])
         return exp
 
-    def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
+    def gen(self, trace: DSTrace) -> DSExperiment:
+        pipeline = DS_RD_SETTING.coder_on_whole_pipeline
 
         if pipeline:
             component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
@@ -961,7 +971,9 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             )
         return result
 
-    def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
+    def gen(self, trace: DSTrace) -> DSExperiment:
+        pipeline = DS_RD_SETTING.coder_on_whole_pipeline
+
         if pipeline:
             component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
         else:
