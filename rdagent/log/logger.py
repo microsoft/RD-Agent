@@ -131,46 +131,31 @@ class RDAgentLog(SingletonBaseClass):
         logger.patch(lambda r: r.update(caller_info)).info(f"Logging object in {Path(logp).absolute()}")
         logger.remove(file_handler_id)
 
-    def info(self, msg: str, *, tag: str = "", raw: bool = False) -> None:
-        # TODO: too much duplicated. due to we have no logger with stream context;
+    def _log(self, level: str, msg: str, *, tag: str = "", raw: bool = False) -> None:
         caller_info = get_caller_info()
+        tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
+        log_file_path = self.log_trace_path / tag.replace(".", "/") / "common_logs.log"
+
         if raw:
             logger.remove()
             logger.add(sys.stderr, format=lambda r: "{message}")
-
-        tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
-        log_file_path = self.log_trace_path / tag.replace(".", "/") / "common_logs.log"
-        if raw:
             file_handler_id = logger.add(log_file_path, format=partial(self.file_format, raw=True))
         else:
             file_handler_id = logger.add(log_file_path, format=self.file_format)
 
-        logger.patch(lambda r: r.update(caller_info)).info(msg)
+        log_func = getattr(logger.patch(lambda r: r.update(caller_info)), level)
+        log_func(msg)
         logger.remove(file_handler_id)
 
         if raw:
             logger.remove()
             logger.add(sys.stderr)
 
-    def warning(self, msg: str, *, tag: str = "") -> None:
-        # TODO: reuse code
-        # _log(self, msg: str, *, tag: str = "", level=Literal["warning", "error", ..]) -> None:
-        # getattr(logger.patch(lambda r: r.update(caller_info)), level)(msg)
-        caller_info = get_caller_info()
+    def info(self, msg: str, *, tag: str = "", raw: bool = False) -> None:
+        self._log("info", msg, tag=tag, raw=raw)
 
-        tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
-        file_handler_id = logger.add(
-            self.log_trace_path / tag.replace(".", "/") / "common_logs.log", format=self.file_format
-        )
-        logger.patch(lambda r: r.update(caller_info)).warning(msg)
-        logger.remove(file_handler_id)
+    def warning(self, msg: str, *, tag: str = "", raw: bool = False) -> None:
+        self._log("warning", msg, tag=tag, raw=raw)
 
-    def error(self, msg: str, *, tag: str = "") -> None:
-        caller_info = get_caller_info()
-
-        tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
-        file_handler_id = logger.add(
-            self.log_trace_path / tag.replace(".", "/") / "common_logs.log", format=self.file_format
-        )
-        logger.patch(lambda r: r.update(caller_info)).error(msg)
-        logger.remove(file_handler_id)
+    def error(self, msg: str, *, tag: str = "", raw: bool = False) -> None:
+        self._log("error", msg, tag=tag, raw=raw)
