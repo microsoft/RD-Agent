@@ -552,7 +552,9 @@ class DSProposalV2ExpGen(ExpGen):
             if hypothesis_dict[problem_name].get("inspired", False):
                 index_to_pick_pool_list.extend([j] * 4)
             elif problem_dict.get(problem_name, {}).get("label", "") == "SCENARIO_PROBLEM":
-                index_to_pick_pool_list.extend([j] * (3 - len(current_sub_trace) // 3))
+                scenario_problem_weight = 3 - len(current_sub_trace) // 3
+                scenario_problem_weight = max(scenario_problem_weight, 1)
+                index_to_pick_pool_list.extend([j] * scenario_problem_weight)
             else:
                 index_to_pick_pool_list.extend([j] * 2)
         logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
@@ -1002,7 +1004,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
 
         # Step 1: Identify problems
         all_problems = {}
-        if len(trace.hist) >= 3:
+        if len(trace.hist) > 3:
             fb_problems = self.identify_feedback_problem(
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
