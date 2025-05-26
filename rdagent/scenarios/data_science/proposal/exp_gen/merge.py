@@ -101,7 +101,7 @@ class ExpGen2TraceAndMerge(ExpGen):
                 selection = (
                     leaves[0],
                 )  # continue the first trace. This will result in the interleaving of two traces expansion.
-            return self.exp_gen.gen(trace, selection)
+            return self.exp_gen.gen(trace)
         else:
             # disable reset in merging stage
             DS_RD_SETTING.coding_fail_reanalyze_threshold = 100000
@@ -109,9 +109,9 @@ class ExpGen2TraceAndMerge(ExpGen):
 
             leaves: list[int] = trace.get_leaves()
             if len(leaves) < 2:
-                return self.exp_gen.gen(trace, selection)
+                return self.exp_gen.gen(trace)
             else:
-                return self.merge_exp_gen.gen(trace, selection)
+                return self.merge_exp_gen.gen(trace)
 
 
 class MergeExpGen_MultiTrace(ExpGen):
@@ -215,7 +215,7 @@ class ExpGen2TraceAndMergeV2(ExpGen):
                     # set the knowledge base option back to False for the other traces
                     DS_RD_SETTING.enable_knowledge_base = False
 
-            return self.exp_gen.gen(trace, selection)
+            return self.exp_gen.gen(trace)
 
         else:
             # disable reset in merging stage
@@ -224,15 +224,15 @@ class ExpGen2TraceAndMergeV2(ExpGen):
 
             leaves: list[int] = trace.get_leaves()
             if len(leaves) < 2:
-                return self.exp_gen.gen(trace, selection=(-1,))
+                return self.exp_gen.gen(trace)
             else:
 
                 if not self.flag_start_merge:  # root node of the merge trace
                     self.flag_start_merge = True
                     selection = tuple()
-                    return self.merge_exp_gen.gen(trace, selection)
+                    return self.merge_exp_gen.gen(trace)
                 else:
-                    # return self.merge_exp_gen.gen(trace, selection)
+                    # return self.merge_exp_gen.gen(trace)
                     return self.exp_gen.gen(
-                        trace, selection=(-1,)
+                        trace
                     )  # continue the last trace, to polish the merged solution

@@ -109,7 +109,7 @@ class DataScienceRDLoop(RDLoop):
         # handy design:dynamically change the "current selection" attribute of the trace, and we donot need to pass selection as an argument to other functions
         self.trace.set_current_selection(selection)
 
-        exp = self.exp_gen.gen(self.trace)  # TODO: selection paramter removed
+        exp = self.exp_gen.gen(self.trace)
         logger.log_object(exp)
 
         # FIXME: this is for LLM debug webapp, remove this when the debugging is done.
