@@ -546,9 +546,7 @@ class DSProposalV2ExpGen(ExpGen):
         # Increase the weight of the hypothesis that is inspired by the idea pool to 3x.
         # Linear decay the weight of the scenario problem from 3x to 1x.
 
-        # TODO: to update in the next version
-        # current_sub_trace = trace.get_current_sub_trace() # to update in the future
-        current_sub_trace = trace.collect_all_ancestors(selection=trace.current_selection)
+        current_sub_trace = trace.get_current_sub_trace()
         index_to_pick_pool_list = []
         for j, problem_name in enumerate(scores_sorted.index):
             if hypothesis_dict[problem_name].get("inspired", False):
@@ -699,9 +697,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         # Step 1: Identify problems
 
-        # TODO: to update in the next version
-        # current_sub_trace = trace.get_current_sub_trace() # to update in the future
-        current_sub_trace = trace.collect_all_ancestors(selection=trace.current_selection)
+        current_sub_trace = trace.get_current_sub_trace()
         all_problems = {}
         if len(current_sub_trace) >= 3:
             fb_problems = self.identify_feedback_problem(
