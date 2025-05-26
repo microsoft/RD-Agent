@@ -472,6 +472,36 @@ class DSProposalV2ExpGen(ExpGen):
         )
         return json.loads(response)
 
+    def identify_problem(
+            self, current_sub_trace, scenario_desc, sota_exp_desc, exp_feedback_list_desc, inject_diverse
+    ) -> Dict:
+        all_problems = {}
+        sota_exp_num = sum(1 for _, fb in current_sub_trace if fb.decision)
+        failed_exp_num = len(current_sub_trace) - sota_exp_num
+        exp_num = sota_exp_num * 1.5 + failed_exp_num
+        self.scen_prob_multiplier = max(0, 3-exp_num//4)
+
+        if self.scen_prob_multiplier > 0:
+            scen_problems = self.identify_scenario_problem(
+                scenario_desc=scenario_desc,
+                sota_exp_desc=sota_exp_desc,
+            )
+            for problem_name in scen_problems:
+                scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
+                all_problems[problem_name] = scen_problems[problem_name] 
+
+        if self.scen_prob_multiplier < 3:
+            fb_problems = self.identify_feedback_problem(
+                scenario_desc=scenario_desc,
+                exp_feedback_list_desc=exp_feedback_list_desc,
+                sota_exp_desc=sota_exp_desc,
+                inject_diverse=inject_diverse,
+            )
+            for problem_name in fb_problems:
+                fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
+                all_problems[problem_name] = fb_problems[problem_name]
+        return all_problems
+
     @wait_retry(retry_n=5)
     def hypothesis_gen(
         self,
@@ -523,8 +553,10 @@ class DSProposalV2ExpGen(ExpGen):
         self,
         hypothesis_dict: dict,
         problem_dict: dict,
-        scen_prob_factor: int,
     ) -> Tuple[str, DSHypothesis]:
+        """
+        This function depends on the `identify_problem` function.
+        """
         weights = {
             "alignment_score": 0.2,
             "impact_score": 0.4,
@@ -553,15 +585,15 @@ class DSProposalV2ExpGen(ExpGen):
         scores_sorted = scores_sorted[:5]  # Select top 5 hypotheses
 
         # Increase the weight of the hypothesis that is inspired by the idea pool to 3x.
-        # Linear decay the weight of the scenario problem from 3x to 1x.
+        # Linear decay the weight of the scenario problem from 3x to 0x.
         index_to_pick_pool_list = []
         for j, problem_name in enumerate(scores_sorted.index):
             if hypothesis_dict[problem_name].get("inspired", False):
                 index_to_pick_pool_list.extend([j] * 2)
             if problem_dict.get(problem_name, {}).get("label", "") == "SCENARIO_PROBLEM":
-                index_to_pick_pool_list.extend([j] * scen_prob_factor)
+                index_to_pick_pool_list.extend([j] * self.scen_prob_multiplier)
             else:
-                index_to_pick_pool_list.extend([j] * (3-scen_prob_factor))
+                index_to_pick_pool_list.extend([j] * (3-self.scen_prob_multiplier))
         logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
 
         # Create a random but reproducible integer
@@ -694,32 +726,13 @@ class DSProposalV2ExpGen(ExpGen):
             inject_diverse = False
 
         # Step 1: Identify problems
-        all_problems = {}
-        current_sub_trace = trace.collect_all_ancestors()
-        sota_exp_num = sum(1 for _, fb in current_sub_trace if fb.decision)
-        failed_exp_num = len(current_sub_trace) - sota_exp_num
-        exp_num = sota_exp_num * 1.5 + failed_exp_num
-        scen_prob_factor = max(0, 3-exp_num//4)
-
-        if scen_prob_factor > 0:
-            scen_problems = self.identify_scenario_problem(
-                scenario_desc=scenario_desc,
-                sota_exp_desc=sota_exp_desc,
-            )
-            for problem_name in scen_problems:
-                scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
-                all_problems[problem_name] = scen_problems[problem_name] 
-
-        if 3-scen_prob_factor > 0:
-            fb_problems = self.identify_feedback_problem(
-                scenario_desc=scenario_desc,
-                exp_feedback_list_desc=exp_feedback_list_desc,
-                sota_exp_desc=sota_exp_desc,
-                inject_diverse=inject_diverse,
-            )
-            for problem_name in fb_problems:
-                fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
-                all_problems[problem_name] = fb_problems[problem_name]
+        all_problems = self.identify_problem(
+            current_sub_trace=trace.collect_all_ancestors(),
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+            inject_diverse=inject_diverse,
+        )
 
         # Step 1.5: Sample ideas from idea pool
         if DS_RD_SETTING.enable_knowledge_base:
@@ -763,7 +776,6 @@ class DSProposalV2ExpGen(ExpGen):
             hypothesis_dict=hypothesis_dict,
             problem_dict=all_problems,
             trace=trace,
-            scen_prob_factor=scen_prob_factor,
         )
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
