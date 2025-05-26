@@ -545,12 +545,13 @@ class DSProposalV2ExpGen(ExpGen):
 
         # Increase the weight of the hypothesis that is inspired by the idea pool to 3x.
         # Linear decay the weight of the scenario problem from 3x to 1x.
+        current_sub_trace = trace.collect_all_ancestors(selection=trace.current_selection())
         index_to_pick_pool_list = []
         for j, problem_name in enumerate(scores_sorted.index):
             if hypothesis_dict[problem_name].get("inspired", False):
                 index_to_pick_pool_list.extend([j] * 4)
             elif problem_dict.get(problem_name, {}).get("label", "") == "SCENARIO_PROBLEM":
-                index_to_pick_pool_list.extend([j] * (3 - len(trace.hist) // 3))
+                index_to_pick_pool_list.extend([j] * (3 - len(current_sub_trace) // 3))
             else:
                 index_to_pick_pool_list.extend([j] * 2)
         logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
@@ -694,7 +695,7 @@ class DSProposalV2ExpGen(ExpGen):
             inject_diverse = False
 
         # Step 1: Identify problems
-        current_sub_trace = trace.collect_all_ancestors(selection=(-1,))
+        current_sub_trace = trace.collect_all_ancestors(selection=trace.current_selection())
         all_problems = {}
         if len(current_sub_trace) >= 3:
             fb_problems = self.identify_feedback_problem(
