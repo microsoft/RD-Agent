@@ -31,13 +31,6 @@ class DataScienceScen(Scenario):
             logger.error(f"Please prepare data for competition {competition} first.")
             raise FileNotFoundError(f"Cannot find {competition} in {DS_RD_SETTING.local_data_path}")
 
-        local_path = DS_RD_SETTING.local_data_path
-        if DS_RD_SETTING.sample_data:
-            self.debug_path = f"{local_path}/sample/{competition}"
-            if not Path(self.debug_path).exists():
-                create_debug_data(competition, dataset_path=local_path)
-        else:
-            self.debug_path = f"{local_path}/{competition}"
 
         # 2) collect information of competition.
         self.metric_name: str | None = (
@@ -51,6 +44,18 @@ class DataScienceScen(Scenario):
         self.metric_direction: bool = (
             self._get_direction()
         )  # True indicates higher is better, False indicates lower is better
+
+    @property
+    def debug_path(self) -> str:
+        local_path = DS_RD_SETTING.local_data_path
+        competition = self.competition
+        if DS_RD_SETTING.sample_data:
+            debug_path = f"{local_path}/sample/{competition}"
+            if not Path(debug_path).exists():
+                create_debug_data(competition, dataset_path=local_path)
+        else:
+            debug_path = f"{local_path}/{competition}"
+        return debug_path
 
     def reanalyze_competition_description(self):
         self.raw_description = self._get_description()
