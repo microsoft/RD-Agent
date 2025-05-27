@@ -1,3 +1,33 @@
+"""Data Science Experiment Summary Dashboard.
+
+A Streamlit dashboard that visualizes and analyzes machine learning experiment results. 
+Key features:
+
+* Recent 3-day average performance metrics across competitions
+* Detailed experiment curves showing test and validation scores over time
+* Comprehensive experiment statistics with filtering by competition difficulty
+* Visualizations of experiment metrics with color-coded categories
+
+The dashboard provides insights into experiment performance through customizable views
+and interactive data exploration capabilities.
+
+Key metrics explained:
+
+* Successful Final Decision: Percentage of experiment loops where code executed correctly 
+  and produced expected output, as determined by evaluation feedback
+  
+* Best Result: The highest achievement level reached by any experiment throughout the entire 
+  process, ranging from lowest to highest: made_submission, valid_submission, above_median,
+  bronze, silver, gold
+  
+* SOTA Exp: Version found by working backward from the last attempt to find the most recent 
+  successful experiment
+  
+* SOTA Exp (_to_submit): Version selected by LLM from all successful experiments for 
+  competition submission, considering not only scores but also generalization ability
+  and overfitting risk, totally decided by LLM
+"""
+
 import re
 from pathlib import Path
 
