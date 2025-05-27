@@ -36,14 +36,8 @@ def days_summarize_win():
 
     def mean_func(x: pd.DataFrame):
         numeric_cols = x.select_dtypes(include=["int", "float"]).mean()
-        string_cols = x.select_dtypes(include=["object"]).agg(
-            lambda col: ", ".join(col.fillna("none").astype(str))
-        )
-        return (
-            pd.concat([numeric_cols, string_cols], axis=0)
-            .reindex(x.columns)
-            .drop("Competition")
-        )
+        string_cols = x.select_dtypes(include=["object"]).agg(lambda col: ", ".join(col.fillna("none").astype(str)))
+        return pd.concat([numeric_cols, string_cols], axis=0).reindex(x.columns).drop("Competition")
 
     df = df.groupby("Competition").apply(mean_func)
     if st.toggle("Show Percent", key="show_percent"):
@@ -101,9 +95,7 @@ def curves_win(summary: dict):
                             visible=("legendonly" if column != "ensemble" else None),
                         )
                     )
-                fig.update_layout(
-                    title=f"Test and Valid scores (metric: {metric_name})"
-                )
+                fig.update_layout(title=f"Test and Valid scores (metric: {metric_name})")
 
                 st.plotly_chart(fig)
             except Exception as e:
@@ -224,15 +216,11 @@ def all_summarize_win():
             axis=0,
         ),
         column_config={
-            "Select": st.column_config.CheckboxColumn(
-                "Select", help="Stat this trace.", disabled=False
-            ),
+            "Select": st.column_config.CheckboxColumn("Select", help="Stat this trace.", disabled=False),
         },
         disabled=(col for col in base_df.columns if col not in ["Select"]),
     )
-    st.markdown(
-        "Ours vs Base: `math.exp(abs(math.log(sota_exp_score / baseline_score)))`"
-    )
+    st.markdown("Ours vs Base: `math.exp(abs(math.log(sota_exp_score / baseline_score)))`")
 
     # 统计选择的比赛
     base_df = base_df[base_df["Select"]]
@@ -247,9 +235,7 @@ def all_summarize_win():
         st.text(markdown_table)
     with stat_win_right:
         Loop_counts = base_df["Total Loops"]
-        fig = px.histogram(
-            Loop_counts, nbins=10, title="Total Loops Histogram (nbins=10)"
-        )
+        fig = px.histogram(Loop_counts, nbins=10, title="Total Loops Histogram (nbins=10)")
         mean_value = Loop_counts.mean()
         median_value = Loop_counts.median()
         fig.add_vline(

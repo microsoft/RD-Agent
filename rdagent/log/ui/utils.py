@@ -108,12 +108,8 @@ def get_script_time(stdout_p: Path):
         last_line = deque(f, maxlen=1).pop().strip()
 
         # Extract timestamps from the lines
-        first_time_match = re.search(
-            r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}:\d{2})", first_line
-        )
-        last_time_match = re.search(
-            r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}:\d{2})", last_line
-        )
+        first_time_match = re.search(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}:\d{2})", first_line)
+        last_time_match = re.search(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}:\d{2})", last_line)
 
         if first_time_match and last_time_match:
             first_time = datetime.fromisoformat(first_time_match.group(1))
@@ -140,9 +136,7 @@ def get_final_sota_exp(log_path: Path):
     sota_exp_paths = [i for i in log_path.rglob(f"**/SOTA experiment/**/*.pkl")]
     if len(sota_exp_paths) == 0:
         return None
-    final_sota_exp_path = max(
-        sota_exp_paths, key=lambda x: int(re.match(r".*Loop_(\d+).*", str(x))[1])
-    )
+    final_sota_exp_path = max(sota_exp_paths, key=lambda x: int(re.match(r".*Loop_(\d+).*", str(x))[1]))
     with final_sota_exp_path.open("rb") as f:
         final_sota_exp = pickle.load(f)
     return final_sota_exp
@@ -153,9 +147,7 @@ def get_sota_exp_stat(log_path: Path):
     trace_paths = [i for i in log_path.rglob(f"**/trace/**/*.pkl")]
     if len(trace_paths) == 0:
         return None
-    final_trace_path = max(
-        trace_paths, key=lambda x: int(re.match(r".*Loop_(\d+).*", str(x))[1])
-    )
+    final_trace_path = max(trace_paths, key=lambda x: int(re.match(r".*Loop_(\d+).*", str(x))[1]))
     with final_trace_path.open("rb") as f:
         final_trace = pickle.load(f)
 
@@ -173,9 +165,7 @@ def get_sota_exp_stat(log_path: Path):
             sota_loop_id = i
             break
 
-    sota_mle_score_paths = [
-        i for i in log_path.rglob(f"Loop_{sota_loop_id}/running/mle_score/**/*.pkl")
-    ]
+    sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{sota_loop_id}/running/mle_score/**/*.pkl")]
     if len(sota_mle_score_paths) == 0:
         # sota exp is not evaluated by mle_score
         return None
@@ -203,16 +193,8 @@ def get_sota_exp_stat(log_path: Path):
 def load_times(log_path: Path):
     try:
         session_path = log_path / "__session__"
-        max_li = max(
-            int(p.name)
-            for p in session_path.iterdir()
-            if p.is_dir() and p.name.isdigit()
-        )
-        max_step = max(
-            int(p.name.split("_")[0])
-            for p in (session_path / str(max_li)).iterdir()
-            if p.is_file()
-        )
+        max_li = max(int(p.name) for p in session_path.iterdir() if p.is_dir() and p.name.isdigit())
+        max_step = max(int(p.name.split("_")[0]) for p in (session_path / str(max_li)).iterdir() if p.is_file())
         rdloop_obj_p = next((session_path / str(max_li)).glob(f"{max_step}_*"))
 
         rd_times = DataScienceRDLoop.load(rdloop_obj_p, do_truncate=False).loop_trace
@@ -224,9 +206,7 @@ def load_times(log_path: Path):
 def _log_folders_summary_hash_func(log_folders: list[str], hours: int | None = None):
     hash_str = ""
     for lf in log_folders:
-        summary_p = Path(lf) / (
-            f"summary.pkl" if hours is None else f"summary_{hours}h.pkl"
-        )
+        summary_p = Path(lf) / (f"summary.pkl" if hours is None else f"summary_{hours}h.pkl")
         if summary_p.exists():
             hash_str += str(summary_p) + str(summary_p.stat().st_mtime)
         else:
@@ -235,9 +215,7 @@ def _log_folders_summary_hash_func(log_folders: list[str], hours: int | None = N
 
 
 @cache_with_pickle(_log_folders_summary_hash_func, force=True)
-def get_summary_df(
-    log_folders: list[str], hours: int | None = None
-) -> tuple[dict, pd.DataFrame]:
+def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[dict, pd.DataFrame]:
     """Process experiment logs and generate summary DataFrame.
 
     Several key metrics that need explanation:
@@ -297,9 +275,7 @@ def get_summary_df(
 
             final_sota_exp = get_final_sota_exp(Path(lf) / k)
             if final_sota_exp is not None and final_sota_exp.result is not None:
-                v["sota_exp_score_valid"] = final_sota_exp.result.loc["ensemble"].iloc[
-                    0
-                ]
+                v["sota_exp_score_valid"] = final_sota_exp.result.loc["ensemble"].iloc[0]
             else:
                 v["sota_exp_score_valid"] = None
             v["sota_exp_stat_new"] = get_sota_exp_stat(Path(lf) / k)
@@ -398,30 +374,18 @@ def get_summary_df(
 
             baseline_score = None
             if Path(baseline_result_path).exists():
-                baseline_score = baseline_df.loc[
-                    baseline_df["competition_id"] == v["competition"], "score"
-                ].item()
+                baseline_score = baseline_df.loc[baseline_df["competition_id"] == v["competition"], "score"].item()
 
             base_df.loc[k, "SOTA Exp"] = v.get("sota_exp_stat", None)
             base_df.loc[k, "SOTA Exp (_to_submit)"] = v["sota_exp_stat_new"]
             if baseline_score is not None and v.get("sota_exp_score", None) is not None:
                 base_df.loc[k, "Ours - Base"] = v["sota_exp_score"] - baseline_score
-            base_df.loc[k, "Ours vs Base"] = compare_score(
-                v["sota_exp_score"], baseline_score
-            )
-            base_df.loc[k, "Ours vs Bronze"] = compare_score(
-                v["sota_exp_score"], v.get("bronze_threshold", None)
-            )
-            base_df.loc[k, "Ours vs Silver"] = compare_score(
-                v["sota_exp_score"], v.get("silver_threshold", None)
-            )
-            base_df.loc[k, "Ours vs Gold"] = compare_score(
-                v["sota_exp_score"], v.get("gold_threshold", None)
-            )
+            base_df.loc[k, "Ours vs Base"] = compare_score(v["sota_exp_score"], baseline_score)
+            base_df.loc[k, "Ours vs Bronze"] = compare_score(v["sota_exp_score"], v.get("bronze_threshold", None))
+            base_df.loc[k, "Ours vs Silver"] = compare_score(v["sota_exp_score"], v.get("silver_threshold", None))
+            base_df.loc[k, "Ours vs Gold"] = compare_score(v["sota_exp_score"], v.get("gold_threshold", None))
             base_df.loc[k, "SOTA Exp Score"] = v.get("sota_exp_score", None)
-            base_df.loc[k, "SOTA Exp Score (valid)"] = v.get(
-                "sota_exp_score_valid", None
-            )
+            base_df.loc[k, "SOTA Exp Score (valid)"] = v.get("sota_exp_score_valid", None)
             base_df.loc[k, "Baseline Score"] = baseline_score
             base_df.loc[k, "Bronze Threshold"] = v.get("bronze_threshold", None)
             base_df.loc[k, "Silver Threshold"] = v.get("silver_threshold", None)
@@ -497,27 +461,13 @@ def percent_df(summary_df: pd.DataFrame, show_origin=True) -> pd.DataFrame:
                 )
             else:
                 new_df.loc[k, "V/M"] = "N/A"
-            new_df.loc[k, "Made Submission"] = num2percent(
-                new_df.loc[k, "Made Submission"], loop_num, show_origin
-            )
-            new_df.loc[k, "Valid Submission"] = num2percent(
-                new_df.loc[k, "Valid Submission"], loop_num, show_origin
-            )
-            new_df.loc[k, "Above Median"] = num2percent(
-                new_df.loc[k, "Above Median"], loop_num, show_origin
-            )
-            new_df.loc[k, "Bronze"] = num2percent(
-                new_df.loc[k, "Bronze"], loop_num, show_origin
-            )
-            new_df.loc[k, "Silver"] = num2percent(
-                new_df.loc[k, "Silver"], loop_num, show_origin
-            )
-            new_df.loc[k, "Gold"] = num2percent(
-                new_df.loc[k, "Gold"], loop_num, show_origin
-            )
-            new_df.loc[k, "Any Medal"] = num2percent(
-                new_df.loc[k, "Any Medal"], loop_num, show_origin
-            )
+            new_df.loc[k, "Made Submission"] = num2percent(new_df.loc[k, "Made Submission"], loop_num, show_origin)
+            new_df.loc[k, "Valid Submission"] = num2percent(new_df.loc[k, "Valid Submission"], loop_num, show_origin)
+            new_df.loc[k, "Above Median"] = num2percent(new_df.loc[k, "Above Median"], loop_num, show_origin)
+            new_df.loc[k, "Bronze"] = num2percent(new_df.loc[k, "Bronze"], loop_num, show_origin)
+            new_df.loc[k, "Silver"] = num2percent(new_df.loc[k, "Silver"], loop_num, show_origin)
+            new_df.loc[k, "Gold"] = num2percent(new_df.loc[k, "Gold"], loop_num, show_origin)
+            new_df.loc[k, "Any Medal"] = num2percent(new_df.loc[k, "Any Medal"], loop_num, show_origin)
 
     return new_df
 
@@ -554,21 +504,11 @@ def get_statistics_df(summary_df: pd.DataFrame) -> pd.DataFrame:
     # SOTA Exp 统计
     se_counts = summary_df["SOTA Exp"].value_counts(dropna=True)
     se_counts.loc["made_submission"] = se_counts.sum()
-    se_counts.loc["Any Medal"] = (
-        se_counts.get("gold", 0)
-        + se_counts.get("silver", 0)
-        + se_counts.get("bronze", 0)
-    )
-    se_counts.loc["above_median"] = se_counts.get("above_median", 0) + se_counts.get(
-        "Any Medal", 0
-    )
-    se_counts.loc["valid_submission"] = se_counts.get(
-        "valid_submission", 0
-    ) + se_counts.get("above_median", 0)
+    se_counts.loc["Any Medal"] = se_counts.get("gold", 0) + se_counts.get("silver", 0) + se_counts.get("bronze", 0)
+    se_counts.loc["above_median"] = se_counts.get("above_median", 0) + se_counts.get("Any Medal", 0)
+    se_counts.loc["valid_submission"] = se_counts.get("valid_submission", 0) + se_counts.get("above_median", 0)
 
-    sota_exp_stat = pd.Series(
-        index=total_stat.index, dtype=int, name="SOTA Exp 统计(%)"
-    )
+    sota_exp_stat = pd.Series(index=total_stat.index, dtype=int, name="SOTA Exp 统计(%)")
     sota_exp_stat.loc["Made Submission"] = se_counts.get("made_submission", 0)
     sota_exp_stat.loc["Valid Submission"] = se_counts.get("valid_submission", 0)
     sota_exp_stat.loc["Above Median"] = se_counts.get("above_median", 0)
@@ -582,20 +522,14 @@ def get_statistics_df(summary_df: pd.DataFrame) -> pd.DataFrame:
     se_counts_new = summary_df["SOTA Exp (_to_submit)"].value_counts(dropna=True)
     se_counts_new.loc["made_submission"] = se_counts_new.sum()
     se_counts_new.loc["Any Medal"] = (
-        se_counts_new.get("gold", 0)
-        + se_counts_new.get("silver", 0)
-        + se_counts_new.get("bronze", 0)
+        se_counts_new.get("gold", 0) + se_counts_new.get("silver", 0) + se_counts_new.get("bronze", 0)
     )
-    se_counts_new.loc["above_median"] = se_counts_new.get(
+    se_counts_new.loc["above_median"] = se_counts_new.get("above_median", 0) + se_counts_new.get("Any Medal", 0)
+    se_counts_new.loc["valid_submission"] = se_counts_new.get("valid_submission", 0) + se_counts_new.get(
         "above_median", 0
-    ) + se_counts_new.get("Any Medal", 0)
-    se_counts_new.loc["valid_submission"] = se_counts_new.get(
-        "valid_submission", 0
-    ) + se_counts_new.get("above_median", 0)
-
-    sota_exp_stat_new = pd.Series(
-        index=total_stat.index, dtype=int, name="SOTA Exp (_to_submit) 统计(%)"
     )
+
+    sota_exp_stat_new = pd.Series(index=total_stat.index, dtype=int, name="SOTA Exp (_to_submit) 统计(%)")
     sota_exp_stat_new.loc["Made Submission"] = se_counts_new.get("made_submission", 0)
     sota_exp_stat_new.loc["Valid Submission"] = se_counts_new.get("valid_submission", 0)
     sota_exp_stat_new.loc["Above Median"] = se_counts_new.get("above_median", 0)
@@ -610,16 +544,10 @@ def get_statistics_df(summary_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def compare(
-    exp_list: list[str] = typer.Option(
-        ..., "--exp-list", help="List of experiment names.", show_default=False
-    ),
+    exp_list: list[str] = typer.Option(..., "--exp-list", help="List of experiment names.", show_default=False),
     output: str = typer.Option("merge_base_df.h5", help="Output summary file name."),
-    hours: int | None = typer.Option(
-        None, help="if None, use summary.pkl, else summary_{hours}h.pkl"
-    ),
-    select_best: bool = typer.Option(
-        False, help="Select best experiment for each competition."
-    ),
+    hours: int | None = typer.Option(None, help="if None, use summary.pkl, else summary_{hours}h.pkl"),
+    select_best: bool = typer.Option(False, help="Select best experiment for each competition."),
 ):
     """
     Generate summary and base dataframe for given experiment list, and save to a summary file.
