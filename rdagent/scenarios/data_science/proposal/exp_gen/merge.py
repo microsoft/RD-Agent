@@ -14,7 +14,7 @@ from rdagent.utils.agent.tpl import T
 
 
 class MergeExpGen(ExpGen):
-    def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
+    def gen(self, trace: DSTrace) -> DSExperiment:
         # Ignore the selection argument and use all leaves instead.
         leaves: list[int] = trace.get_leaves()
         trace.set_current_selection((leaves[0],))  # override the current selection.
@@ -91,7 +91,7 @@ class ExpGen2TraceAndMerge(ExpGen):
             "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
         )
 
-    def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
+    def gen(self, trace: DSTrace) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
         logger.info(f"Remain time: {timer.remain_time_duration}")
 
@@ -110,19 +110,16 @@ class ExpGen2TraceAndMerge(ExpGen):
             DS_RD_SETTING.coding_fail_reanalyze_threshold = 100000
             DS_RD_SETTING.consecutive_errors = 100000
 
-            leaves: list[int] = trace.get_leaves()
-            if len(leaves) < 2:
-                trace.set_current_selection(selection)
+            if trace.sub_trace_count < 2:
                 return self.exp_gen.gen(trace)
             else:
-                return self.merge_exp_gen.gen(trace, selection)
+                return self.merge_exp_gen.gen(trace)
 
 
 class MergeExpGen_MultiTrace(ExpGen):
-    def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
+    def gen(self, trace: DSTrace) -> DSExperiment:
         # Ignore the selection argument and use all leaves instead.
         leaves: list[int] = trace.get_leaves()
-        trace.set_current_selection(selection)  #
 
         # assuming merging the first and sencond trace.
         sota_exp_fb = trace.sota_experiment_fb(selection=(leaves[0],))
@@ -205,7 +202,7 @@ class ExpGen2TraceAndMergeV2(ExpGen):
         self.MAX_TRACE_NUM = DS_RD_SETTING.max_trace_num  # maximum number of traces to grow before merging
         self.flag_start_merge = False
 
-    def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
+    def gen(self, trace: DSTrace) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
         logger.info(f"Remain time: {timer.remain_time_duration}")
 
@@ -220,7 +217,6 @@ class ExpGen2TraceAndMergeV2(ExpGen):
                 else:
                     # set the knowledge base option back to False for the other traces
                     DS_RD_SETTING.enable_knowledge_base = False
-            trace.set_current_selection(selection)
             return self.exp_gen.gen(trace)
 
         else:
@@ -235,8 +231,8 @@ class ExpGen2TraceAndMergeV2(ExpGen):
             else:
                 if not self.flag_start_merge:  # root node of the merge trace
                     self.flag_start_merge = True
-                    selection = tuple()
-                    return self.merge_exp_gen.gen(trace, selection)
+                    trace.set_current_selection(tuple())
+                    return self.merge_exp_gen.gen(trace)
                 else:
                     # return self.merge_exp_gen.gen(trace)
                     trace.set_current_selection(selection=(-1,))
