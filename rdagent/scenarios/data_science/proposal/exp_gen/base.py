@@ -168,6 +168,9 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
         if len(self.dag_parent) == 0:
             return []
+        
+        elif len(selection) == 0:
+            return []
 
         else:
             all_ancestors = []

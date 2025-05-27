@@ -223,7 +223,7 @@ class ExpGen2TraceAndMergeV2(ExpGen):
                 if len(trace.hist) == 0:
                     # set the proposal version for the first sub-trace
                     self.reset_exp_gen_version(version=exp_gen_version_list[0])
-                elif len(trace.get_current_selection()) == 0 and trace.get_sub_trace_count() > 1:
+                elif len(trace.get_current_selection()) == 0 and trace.get_sub_trace_count() > 0:
                     # reset the proposal version at the start of other sub-trace
                     if trace.get_sub_trace_count() - 1 < len(exp_gen_version_list):
                         self.reset_exp_gen_version(version=exp_gen_version_list[trace.get_sub_trace_count() - 1])
