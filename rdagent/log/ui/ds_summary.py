@@ -1,3 +1,7 @@
+"""
+Please refer to rdagent/log/ui/utils.py:get_summary_df for more detailed documents about metrics
+"""
+
 import re
 from pathlib import Path
 
@@ -113,7 +117,10 @@ def all_summarize_win():
         return folder
 
     selected_folders = st.multiselect(
-        "Show these folders", state.log_folders, state.log_folders, format_func=shorten_folder_name
+        "Show these folders",
+        state.log_folders,
+        state.log_folders,
+        format_func=shorten_folder_name,
     )
     for lf in selected_folders:
         if not (Path(lf) / "summary.pkl").exists():
@@ -166,7 +173,13 @@ def all_summarize_win():
     base_df = st.data_editor(
         base_df.style.apply(
             lambda col: col.map(lambda val: "background-color: #F0F8FF"),
-            subset=["Baseline Score", "Bronze Threshold", "Silver Threshold", "Gold Threshold", "Medium Threshold"],
+            subset=[
+                "Baseline Score",
+                "Bronze Threshold",
+                "Silver Threshold",
+                "Gold Threshold",
+                "Medium Threshold",
+            ],
             axis=0,
         )
         .apply(
@@ -226,10 +239,18 @@ def all_summarize_win():
         mean_value = Loop_counts.mean()
         median_value = Loop_counts.median()
         fig.add_vline(
-            x=mean_value, line_color="orange", annotation_text="Mean", annotation_position="top right", line_width=3
+            x=mean_value,
+            line_color="orange",
+            annotation_text="Mean",
+            annotation_position="top right",
+            line_width=3,
         )
         fig.add_vline(
-            x=median_value, line_color="red", annotation_text="Median", annotation_position="top right", line_width=3
+            x=median_value,
+            line_color="red",
+            annotation_text="Median",
+            annotation_position="top right",
+            line_width=3,
         )
         st.plotly_chart(fig)
 

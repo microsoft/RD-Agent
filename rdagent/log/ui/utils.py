@@ -216,6 +216,25 @@ def _log_folders_summary_hash_func(log_folders: list[str], hours: int | None = N
 
 @cache_with_pickle(_log_folders_summary_hash_func, force=True)
 def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[dict, pd.DataFrame]:
+    """Process experiment logs and generate summary DataFrame.
+
+    Several key metrics that need explanation:
+
+    * Successful Final Decision: Percentage of experiment loops where code executed correctly
+      and produced expected output, as determined by evaluation feedback
+
+    * Best Result: The highest achievement level reached by any experiment throughout the entire
+      process, ranging from lowest to highest: made_submission, valid_submission, above_median,
+      bronze, silver, gold
+
+    * SOTA Exp: Version found by working backward from the last attempt to find the most recent
+      successful experiment
+
+    * SOTA Exp (_to_submit): Version selected by LLM from all successful experiments for
+      competition submission, considering not only scores but also generalization ability
+      and overfitting risk, totally decided by LLM
+
+    """
     summarys = {}
     if hours is None:
         sn = "summary.pkl"
@@ -260,7 +279,7 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             else:
                 v["sota_exp_score_valid"] = None
             v["sota_exp_stat_new"] = get_sota_exp_stat(Path(lf) / k)
-            # 调整实验名字
+            # change experiment name
             if "amlt" in lf:
                 summary[f"{lf[lf.rfind('amlt')+5:].split('/')[0]} - {k}"] = v
             elif "ep" in lf:
@@ -375,7 +394,10 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
 
     base_df["SOTA Exp"] = base_df["SOTA Exp"].replace("", pd.NA)
 
-    base_df.loc[base_df["SOTA Exp Score (valid)"].apply(lambda x: isinstance(x, str)), "SOTA Exp Score (valid)"] = 0.0
+    base_df.loc[
+        base_df["SOTA Exp Score (valid)"].apply(lambda x: isinstance(x, str)),
+        "SOTA Exp Score (valid)",
+    ] = 0.0
     base_df = base_df.astype(
         {
             "Total Loops": int,
