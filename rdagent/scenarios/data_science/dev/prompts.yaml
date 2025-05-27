@@ -24,8 +24,9 @@ exp_feedback:
       - Consistent prediction methodologies between validation and test datasets.
       - No shortcuts or fold-specific strategies applied inconsistently.
       - Rigorous checks for corner-case consistency.
+      - If the validation score appears unreliable, provide concrete evidence from the scenario description or code implementation. Do not rely on assumptions without direct supporting evidence.
     - Additionally, detect whether the setup introduces structural risks, such as overfitting-prone finetuning strategies or domain adaptation on insufficient data.
-      - If overfitting is detected, provide a detailed analysis explaining how and why it occurs, referencing both code implementation and data handling practices—not just validation scores.
+      - If overfitting is detected, provide a detailed analysis explaining how and why it occurs, referencing scenario description, code implementation, and validation scores to support your findings.
     - If such discrepancies or risks are found:
       - Clearly document these issues in `Reasoning`, referencing both scenario description and code implementation—not just validation scores.
       - Set `"Evaluation Aligned With Task": "no"` and `"Replace Best Result": "no"`.
