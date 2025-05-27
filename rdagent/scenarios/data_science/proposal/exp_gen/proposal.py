@@ -260,7 +260,8 @@ COMPONENT_TASK_MAPPING = {
     },
 }
 
-def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None|DSDraftExpGen:
+
+def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None | DSDraftExpGen:
     next_missing_component = trace.next_incomplete_component()
     if next_missing_component is not None:
         return DSDraftExpGen(scen=scen).gen(
@@ -270,10 +271,11 @@ def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None|DSDraftEx
     else:
         return None
 
+
 class DSProposalV1ExpGen(ExpGen):
     def gen(self, trace: DSTrace) -> DSExperiment:
         # Drafting Stage
-        if (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
+        if draft_exp := draft_exp_in_decomposition(self.scen, trace):
             return draft_exp
 
         # Guidelines:
@@ -479,13 +481,13 @@ class DSProposalV2ExpGen(ExpGen):
         return json.loads(response)
 
     def identify_problem(
-            self, current_sub_trace, scenario_desc, sota_exp_desc, exp_feedback_list_desc, inject_diverse
+        self, current_sub_trace, scenario_desc, sota_exp_desc, exp_feedback_list_desc, inject_diverse
     ) -> Dict:
         all_problems = {}
         sota_exp_num = sum(1 for _, fb in current_sub_trace if fb.decision)
         failed_exp_num = len(current_sub_trace) - sota_exp_num
         exp_num = (sota_exp_num * 3 + failed_exp_num * 2) // 2
-        self.scen_prob_multiplier = max(0, 3-exp_num//4)
+        self.scen_prob_multiplier = max(0, 3 - exp_num // 4)
 
         if self.scen_prob_multiplier > 0:
             scen_problems = self.identify_scenario_problem(
@@ -494,7 +496,7 @@ class DSProposalV2ExpGen(ExpGen):
             )
             for problem_name in scen_problems:
                 scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
-                all_problems[problem_name] = scen_problems[problem_name] 
+                all_problems[problem_name] = scen_problems[problem_name]
 
         if self.scen_prob_multiplier < 3:
             fb_problems = self.identify_feedback_problem(
@@ -599,7 +601,7 @@ class DSProposalV2ExpGen(ExpGen):
             if problem_dict.get(problem_name, {}).get("label", "") == "SCENARIO_PROBLEM":
                 index_to_pick_pool_list.extend([j] * self.scen_prob_multiplier)
             else:
-                index_to_pick_pool_list.extend([j] * (3-self.scen_prob_multiplier))
+                index_to_pick_pool_list.extend([j] * (3 - self.scen_prob_multiplier))
         logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
 
         # Create a random but reproducible integer
@@ -993,7 +995,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
         if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
             return draft_exp
-        
+
         if pipeline:
             component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
         else:

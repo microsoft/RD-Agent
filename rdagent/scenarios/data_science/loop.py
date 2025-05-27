@@ -4,7 +4,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional, Union
 
-
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble import EnsembleCoSTEER
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
@@ -23,7 +22,7 @@ from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.exception import CoderError, RunnerError
-from rdagent.core.proposal import ExpGen, ExperimentFeedback
+from rdagent.core.proposal import ExperimentFeedback, ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
@@ -45,7 +44,12 @@ class DataScienceRDLoop(RDLoop):
         """
         # TODO: remove me in the future. I don't have to be this complicated.
         # It is just for compatibility with the old version of the code and configuration.
-        from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV1ExpGen, DSProposalV2ExpGen, DSProposalV3ExpGen
+        from rdagent.scenarios.data_science.proposal.exp_gen.proposal import (
+            DSProposalV1ExpGen,
+            DSProposalV2ExpGen,
+            DSProposalV3ExpGen,
+        )
+
         if class_uri == "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen":
             if DS_RD_SETTING.proposal_version not in ["v1", "v2", "v3"]:
                 return import_class(DS_RD_SETTING.proposal_version)(scen=scen)
@@ -290,4 +294,3 @@ class DataScienceRDLoop(RDLoop):
         super().dump(path)
         if backup_knowledge_base is not None:
             self.trace.knowledge_base = backup_knowledge_base
-
