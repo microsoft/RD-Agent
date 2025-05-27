@@ -55,6 +55,9 @@ def upload_file():
     scenario = request.form.get("scenario")
     files = request.files.getlist("files")
     competition = request.form.get("competition")
+    loop_n = request.form.get("loops")
+    all_duration = request.form.get("all_duration")
+
 
     # scenario = "Data Science Loop"
 
@@ -86,6 +89,11 @@ def upload_file():
         cmds = ["rdagent", "med_model"]
     if scenario == "Data Science Loop":
         cmds = ["rdagent", "kaggle", "--competition", competition]
+
+    if loop_n:
+        cmds += ["--loop_n", loop_n]
+    if all_duration:
+        cmds += ["--all_duration", all_duration]
 
     # subprocess.run(cmds)
     rdagent_processes[str(log_trace_path)] = subprocess.Popen(
