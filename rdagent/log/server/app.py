@@ -6,6 +6,7 @@ import sys
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+import randomname
 
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -60,42 +61,43 @@ def upload_file():
 
 
     # scenario = "Data Science Loop"
+    trace_name = randomname.get_name()
+    log_folder_path = Path("./RD-Agent_server_trace").absolute()
+    log_trace_path = (log_folder_path / scenario / trace_name).absolute()
+    trace_files_path = log_folder_path / scenario / "uploads" / trace_name
 
     # save files
     for file in files:
         if file:
-            p = Path(f"./uploads/{scenario}")
+            p = log_folder_path / scenario / "uploads" / trace_name
             if not p.exists():
                 p.mkdir(parents=True, exist_ok=True)
-            file.save(f"./uploads/{scenario}/{file.filename}")
+            file.save(p / file.filename)
 
-    log_trace_path = Path(f"./RD-Agent_server_trace/{scenario.replace(' ', '_')}/test").absolute()
 
     if scenario == "Finance Data Building":
         cmds = ["rdagent", "fin_factor"]
-        # fin_factor()
-        # cmds.append("fin_factor")
     if scenario == "Finance Data Building (Reports)":
-        # fin_factor_report(report_folder="git_ignore_folder/reports")
-        cmds = ["rdagent", "fin_factor_report", "--report_folder=git_ignore_folder/reports"]
+        cmds = ["rdagent", "fin_factor_report", "--report_folder", str(trace_files_path)]
     if scenario == "Finance Model Implementation":
-        # fin_model()
         cmds = ["rdagent", "fin_model"]
     if scenario == "General Model Implementation":
-        # general_model("https://arxiv.org/pdf/2210.09789")
-        cmds = ["rdagent", "general_model", "'https://arxiv.org/pdf/2210.09789'"]
+        if len(files) == 0: # files is one link
+            rfp = request.form.get("files")[0]
+        else: # one file is uploaded
+            rfp = str(trace_files_path / files[0].filename)
+        cmds = ["rdagent", "general_model", "--report_file_path", rfp]
     if scenario == "Medical Model Implementation":
-        # med_model()
         cmds = ["rdagent", "med_model"]
     if scenario == "Data Science Loop":
         cmds = ["rdagent", "kaggle", "--competition", competition]
 
+    # time control parameters
     if loop_n:
         cmds += ["--loop_n", loop_n]
     if all_duration:
         cmds += ["--all_duration", all_duration]
 
-    # subprocess.run(cmds)
     rdagent_processes[str(log_trace_path)] = subprocess.Popen(
         cmds,
         # stdout=subprocess.PIPE,
