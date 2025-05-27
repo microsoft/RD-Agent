@@ -484,7 +484,7 @@ class DSProposalV2ExpGen(ExpGen):
         all_problems = {}
         sota_exp_num = sum(1 for _, fb in current_sub_trace if fb.decision)
         failed_exp_num = len(current_sub_trace) - sota_exp_num
-        exp_num = sota_exp_num * 1.5 + failed_exp_num
+        exp_num = (sota_exp_num * 3 + failed_exp_num * 2) // 2
         self.scen_prob_multiplier = max(0, 3-exp_num//4)
 
         if self.scen_prob_multiplier > 0:
@@ -783,7 +783,6 @@ class DSProposalV2ExpGen(ExpGen):
         pickled_problem_name, new_hypothesis = self.hypothesis_rank(
             hypothesis_dict=hypothesis_dict,
             problem_dict=all_problems,
-            trace=trace,
         )
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
