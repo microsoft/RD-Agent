@@ -483,12 +483,12 @@ class DSProposalV2ExpGen(ExpGen):
     def identify_problem(
         self, current_sub_trace, scenario_desc, sota_exp_desc, exp_feedback_list_desc, inject_diverse
     ) -> Dict:
-        all_problems = {}
         sota_exp_num = sum(1 for _, fb in current_sub_trace if fb.decision)
         failed_exp_num = len(current_sub_trace) - sota_exp_num
-        exp_num = (sota_exp_num * 3 + failed_exp_num * 2) // 2
-        self.scen_prob_multiplier = max(0, 3 - exp_num // 4)
+        weighted_exp_num = (sota_exp_num * 3 + failed_exp_num * 2) // 2
+        self.scen_prob_multiplier = max(0, 3 - weighted_exp_num // 4)
 
+        all_problems = {}
         if self.scen_prob_multiplier > 0:
             scen_problems = self.identify_scenario_problem(
                 scenario_desc=scenario_desc,
