@@ -230,15 +230,14 @@ class ExpGen2TraceAndMergeV2(ExpGen):
 
             leaves: list[int] = trace.get_leaves()
             if len(leaves) < 2:
-                trace.set_current_selection(selection)
+                trace.set_current_selection(selection=(-1,))
                 return self.exp_gen.gen(trace)
             else:
-
                 if not self.flag_start_merge:  # root node of the merge trace
                     self.flag_start_merge = True
                     selection = tuple()
                     return self.merge_exp_gen.gen(trace, selection)
                 else:
                     # return self.merge_exp_gen.gen(trace)
-                    trace.set_current_selection(selection)
+                    trace.set_current_selection(selection=(-1,))
                     return self.exp_gen.gen(trace)  # continue the last trace, to polish the merged solution
