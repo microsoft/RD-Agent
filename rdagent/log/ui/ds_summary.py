@@ -1,31 +1,5 @@
-"""Data Science Experiment Summary Dashboard.
-
-A Streamlit dashboard that visualizes and analyzes machine learning experiment results. 
-Key features:
-
-* Recent 3-day average performance metrics across competitions
-* Detailed experiment curves showing test and validation scores over time
-* Comprehensive experiment statistics with filtering by competition difficulty
-* Visualizations of experiment metrics with color-coded categories
-
-The dashboard provides insights into experiment performance through customizable views
-and interactive data exploration capabilities.
-
-Key metrics explained:
-
-* Successful Final Decision: Percentage of experiment loops where code executed correctly 
-  and produced expected output, as determined by evaluation feedback
-  
-* Best Result: The highest achievement level reached by any experiment throughout the entire 
-  process, ranging from lowest to highest: made_submission, valid_submission, above_median,
-  bronze, silver, gold
-  
-* SOTA Exp: Version found by working backward from the last attempt to find the most recent 
-  successful experiment
-  
-* SOTA Exp (_to_submit): Version selected by LLM from all successful experiments for 
-  competition submission, considering not only scores but also generalization ability
-  and overfitting risk, totally decided by LLM
+"""
+Please refer to rdagent/log/ui/utils.py:get_summary_df for more detailed documents about metrics
 """
 
 import re
@@ -62,8 +36,14 @@ def days_summarize_win():
 
     def mean_func(x: pd.DataFrame):
         numeric_cols = x.select_dtypes(include=["int", "float"]).mean()
-        string_cols = x.select_dtypes(include=["object"]).agg(lambda col: ", ".join(col.fillna("none").astype(str)))
-        return pd.concat([numeric_cols, string_cols], axis=0).reindex(x.columns).drop("Competition")
+        string_cols = x.select_dtypes(include=["object"]).agg(
+            lambda col: ", ".join(col.fillna("none").astype(str))
+        )
+        return (
+            pd.concat([numeric_cols, string_cols], axis=0)
+            .reindex(x.columns)
+            .drop("Competition")
+        )
 
     df = df.groupby("Competition").apply(mean_func)
     if st.toggle("Show Percent", key="show_percent"):
@@ -121,7 +101,9 @@ def curves_win(summary: dict):
                             visible=("legendonly" if column != "ensemble" else None),
                         )
                     )
-                fig.update_layout(title=f"Test and Valid scores (metric: {metric_name})")
+                fig.update_layout(
+                    title=f"Test and Valid scores (metric: {metric_name})"
+                )
 
                 st.plotly_chart(fig)
             except Exception as e:
@@ -143,7 +125,10 @@ def all_summarize_win():
         return folder
 
     selected_folders = st.multiselect(
-        "Show these folders", state.log_folders, state.log_folders, format_func=shorten_folder_name
+        "Show these folders",
+        state.log_folders,
+        state.log_folders,
+        format_func=shorten_folder_name,
     )
     for lf in selected_folders:
         if not (Path(lf) / "summary.pkl").exists():
@@ -196,7 +181,13 @@ def all_summarize_win():
     base_df = st.data_editor(
         base_df.style.apply(
             lambda col: col.map(lambda val: "background-color: #F0F8FF"),
-            subset=["Baseline Score", "Bronze Threshold", "Silver Threshold", "Gold Threshold", "Medium Threshold"],
+            subset=[
+                "Baseline Score",
+                "Bronze Threshold",
+                "Silver Threshold",
+                "Gold Threshold",
+                "Medium Threshold",
+            ],
             axis=0,
         )
         .apply(
@@ -233,11 +224,15 @@ def all_summarize_win():
             axis=0,
         ),
         column_config={
-            "Select": st.column_config.CheckboxColumn("Select", help="Stat this trace.", disabled=False),
+            "Select": st.column_config.CheckboxColumn(
+                "Select", help="Stat this trace.", disabled=False
+            ),
         },
         disabled=(col for col in base_df.columns if col not in ["Select"]),
     )
-    st.markdown("Ours vs Base: `math.exp(abs(math.log(sota_exp_score / baseline_score)))`")
+    st.markdown(
+        "Ours vs Base: `math.exp(abs(math.log(sota_exp_score / baseline_score)))`"
+    )
 
     # 统计选择的比赛
     base_df = base_df[base_df["Select"]]
@@ -252,14 +247,24 @@ def all_summarize_win():
         st.text(markdown_table)
     with stat_win_right:
         Loop_counts = base_df["Total Loops"]
-        fig = px.histogram(Loop_counts, nbins=10, title="Total Loops Histogram (nbins=10)")
+        fig = px.histogram(
+            Loop_counts, nbins=10, title="Total Loops Histogram (nbins=10)"
+        )
         mean_value = Loop_counts.mean()
         median_value = Loop_counts.median()
         fig.add_vline(
-            x=mean_value, line_color="orange", annotation_text="Mean", annotation_position="top right", line_width=3
+            x=mean_value,
+            line_color="orange",
+            annotation_text="Mean",
+            annotation_position="top right",
+            line_width=3,
         )
         fig.add_vline(
-            x=median_value, line_color="red", annotation_text="Median", annotation_position="top right", line_width=3
+            x=median_value,
+            line_color="red",
+            annotation_text="Median",
+            annotation_position="top right",
+            line_width=3,
         )
         st.plotly_chart(fig)
 
