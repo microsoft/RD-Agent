@@ -36,7 +36,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledg
 class DataScienceRDLoop(RDLoop):
     # NOTE: we move the DataScienceRDLoop here to be easier to be imported
     skip_loop_error = (CoderError, RunnerError)
-    withdraw_loop_error = PolicyError
+    withdraw_loop_error = (PolicyError,)
 
     @staticmethod
     def _get_exp_gen(class_uri: str, scen: Scenario):
