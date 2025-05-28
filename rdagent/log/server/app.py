@@ -18,7 +18,7 @@ app = Flask(__name__, static_folder="./docs/_static")
 CORS(app)
 
 rdagent_processes = defaultdict()
-
+port = 19899
 
 @app.route("/favicon.ico")
 def favicon():
@@ -53,7 +53,7 @@ def update_trace():
 @app.route("/upload", methods=["GET"])
 def upload_file():
     # 获取请求体中的字段
-    global rdagent_processes
+    global rdagent_processes, port
     scenario = request.form.get("scenario")
     files = request.files.getlist("files")
     competition = request.form.get("competition")
@@ -107,6 +107,7 @@ def upload_file():
         stderr=sys.stderr,
         env={
             "LOG_TRACE_PATH": str(log_trace_path),
+            "UI_SERVER_PORT": port,
         },
     )
 
@@ -187,7 +188,9 @@ def server_static_files(fn):
     return send_from_directory(app.static_folder, fn)
 
 
-def main(port: int = 19899):
+def main(p: int = 19899):
+    global port
+    port = p
     app.run(debug=False, host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
