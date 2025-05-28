@@ -1,13 +1,10 @@
-import pickle
 from pathlib import Path
-from typing import List
 
 import pandas as pd
 from pandarallel import pandarallel
 
-from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiFeedback
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.utils import cache_with_pickle, multiprocessing_wrapper
+from rdagent.core.utils import cache_with_pickle
 
 pandarallel.initialize(verbose=1)
 
@@ -16,6 +13,7 @@ from rdagent.core.exception import FactorEmptyError
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
+from rdagent.scenarios.qlib.experiment.utils import process_factor_data
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 DIRNAME_local = Path.cwd()
@@ -90,11 +88,11 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             ]
             if len(sota_factor_experiments_list) > 1:
                 logger.info(f"SOTA factor processing ...")
-                SOTA_factor = self.process_factor_data(sota_factor_experiments_list)
+                SOTA_factor = process_factor_data(sota_factor_experiments_list)
 
             logger.info(f"New factor processing ...")
             # Process the new factors data
-            new_factors = self.process_factor_data(exp)
+            new_factors = process_factor_data(exp)
 
             if new_factors.empty:
                 raise FactorEmptyError("Factors failed to run on the full sample, this round of experiment failed.")
@@ -181,58 +179,3 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         exp.stdout = stdout
 
         return exp
-
-    def process_factor_data(self, exp_or_list: List[QlibFactorExperiment] | QlibFactorExperiment) -> pd.DataFrame:
-        """
-        Process and combine factor data from experiment implementations.
-
-        Args:
-            exp (ASpecificExp): The experiment containing factor data.
-
-        Returns:
-            pd.DataFrame: Combined factor data without NaN values.
-        """
-        if isinstance(exp_or_list, QlibFactorExperiment):
-            exp_or_list = [exp_or_list]
-        factor_dfs = []
-
-        # Collect all exp's dataframes
-        for exp in exp_or_list:
-            if len(exp.sub_tasks) > 0:
-                # if it has no sub_tasks, the experiment is results from template project.
-                # otherwise, it is developed with designed task. So it should have feedback.
-                assert isinstance(exp.prop_dev_feedback, CoSTEERMultiFeedback)
-                # Iterate over sub-implementations and execute them to get each factor data
-                message_and_df_list = multiprocessing_wrapper(
-                    [
-                        (implementation.execute, ("All",))
-                        for implementation, fb in zip(exp.sub_workspace_list, exp.prop_dev_feedback)
-                        if implementation and fb
-                    ],  # only execute successfully feedback
-                    n=RD_AGENT_SETTINGS.multi_proc_n,
-                )
-                error_message = ""
-                for message, df in message_and_df_list:
-                    # Check if factor generation was successful
-                    if df is not None and "datetime" in df.index.names:
-                        time_diff = df.index.get_level_values("datetime").to_series().diff().dropna().unique()
-                        if pd.Timedelta(minutes=1) not in time_diff:
-                            factor_dfs.append(df)
-                            logger.info(
-                                f"Factor data from {exp.hypothesis.concise_justification} is successfully generated."
-                            )
-                        else:
-                            logger.warning(f"Factor data from {exp.hypothesis.concise_justification} is not generated.")
-                    else:
-                        error_message += f"Factor data from {exp.hypothesis.concise_justification} is not generated because of {message}"
-                        logger.warning(
-                            f"Factor data from {exp.hypothesis.concise_justification} is not generated because of {message}"
-                        )
-
-        # Combine all successful factor data
-        if factor_dfs:
-            return pd.concat(factor_dfs, axis=1)
-        else:
-            raise FactorEmptyError(
-                f"No valid factor data found to merge (in process_factor_data) because of {error_message}."
-            )

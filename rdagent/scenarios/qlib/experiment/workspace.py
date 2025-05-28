@@ -4,6 +4,7 @@ from typing import Any
 
 import pandas as pd
 
+from rdagent.app.qlib_rd_loop.conf import QLIB_RUNNER_SETTINGS
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import LocalEnv, QlibCondaConf, QTDockerEnv
@@ -15,8 +16,13 @@ class QlibFBWorkspace(FBWorkspace):
         self.inject_code_from_folder(template_folder_path)
 
     def execute(self, qlib_config_name: str = "conf.yaml", run_env: dict = {}, *args, **kwargs) -> str:
-        qtde = QTDockerEnv()  # This is for the docker environment
-        # qtde = LocalEnv(conf=QlibCondaConf())  # This is for the local environment
+        if QLIB_RUNNER_SETTINGS.env_type == "docker":
+            qtde = QTDockerEnv()
+        elif QLIB_RUNNER_SETTINGS.env_type == "conda":
+            qtde = LocalEnv(conf=QlibCondaConf())
+        else:
+            logger.error(f"Unknown env_type: {QLIB_RUNNER_SETTINGS.env_type}")
+            return None, "Unknown environment type"
         qtde.prepare()
 
         # Run the Qlib backtest

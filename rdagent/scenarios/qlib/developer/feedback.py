@@ -21,6 +21,12 @@ from rdagent.utils import convert2bool
 feedback_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
 
+IMPORTANT_METRICS = [
+    "IC",
+    "1day.excess_return_with_cost.annualized_return",
+    "1day.excess_return_with_cost.max_drawdown",
+]
+
 
 def process_results(current_result, sota_result):
     # Convert the results to dataframes
@@ -38,16 +44,8 @@ def process_results(current_result, sota_result):
     # Combine the dataframes on the Metric index
     combined_df = pd.concat([current_df, sota_df], axis=1)
 
-    # Select important metrics for comparison
-    important_metrics = [
-        "IC",
-        "1day.excess_return_without_cost.annualized_return",
-        "1day.excess_return_without_cost.max_drawdown",
-        # "1day.excess_return_without_cost.information_ratio",
-    ]
-
     # Filter the combined DataFrame to retain only the important metrics
-    filtered_combined_df = combined_df.loc[important_metrics]
+    filtered_combined_df = combined_df.loc[IMPORTANT_METRICS]
 
     def format_filtered_combined_df(filtered_combined_df: pd.DataFrame) -> str:
         results = []
@@ -165,13 +163,6 @@ class QlibModelExperiment2Feedback(Experiment2Feedback):
                 .render(scenario=self.scen.get_scenario_all_desc())
             )
 
-        important_metrics = [
-            "IC",
-            "1day.excess_return_without_cost.annualized_return",
-            "1day.excess_return_without_cost.max_drawdown",
-            # "1day.excess_return_without_cost.information_ratio",
-        ]
-
         # Generate the user prompt
         SOTA_hypothesis, SOTA_experiment = trace.get_sota_hypothesis_and_experiment()
         user_prompt = (
@@ -181,10 +172,10 @@ class QlibModelExperiment2Feedback(Experiment2Feedback):
                 sota_hypothesis=SOTA_hypothesis,
                 sota_task=SOTA_experiment.sub_tasks[0].get_task_information() if SOTA_hypothesis else None,
                 sota_code=SOTA_experiment.sub_workspace_list[0].file_dict.get("model.py") if SOTA_hypothesis else None,
-                sota_result=SOTA_experiment.result.loc[important_metrics] if SOTA_hypothesis else None,
+                sota_result=SOTA_experiment.result.loc[IMPORTANT_METRICS] if SOTA_hypothesis else None,
                 hypothesis=hypothesis,
                 exp=exp,
-                exp_result=exp.result.loc[important_metrics] if exp.result is not None else "execution failed",
+                exp_result=exp.result.loc[IMPORTANT_METRICS] if exp.result is not None else "execution failed",
             )
         )
 

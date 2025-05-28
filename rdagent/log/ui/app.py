@@ -1124,7 +1124,8 @@ def analyze_task_completion():
 
 if state.scenario is not None:
     summary_window()
-    # analyze_task_completion()
+    if st.toggle("show analyse_task_competition"):
+        analyze_task_completion()
 
     # R&D Loops Window
     if isinstance(state.scenario, SIMILAR_SCENARIOS):

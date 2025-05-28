@@ -65,8 +65,6 @@ evolving_strategy_factor_implementation_v1_system: |-
 evolving_strategy_factor_implementation_v2_user: |-
   --------------Target factor information:---------------
   {{ factor_information_str }}
-  [NOTE]
-  1. When processing data, avoid time leakage.
 
   {% if queried_similar_error_knowledge|length != 0 %}
   {% if error_summary_critics is none %}
@@ -117,6 +115,9 @@ evolving_strategy_error_summary_v2_system: |-
   Please refer to these similar errors and their solutions, provide some clear, short and accurate critics that might help you solve the issues in your code.
 
   You suggestion should not include any code, just some clear and short suggestions. Please point out very critical issues in your response, ignore non-important issues to avoid confusion. If no big issue found in the code, you can response "No critics found".
+
+  [NOTE]
+  1. When processing data, avoid time leakage.
 
   Please response the critic in the following format. Here is an example structure for the output:
   critic 1: The critic message to critic 1
