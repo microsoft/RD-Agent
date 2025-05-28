@@ -4,7 +4,6 @@ import shutil
 from pathlib import Path
 
 import pandas as pd
-
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.factor_coder.config import FACTOR_COSTEER_SETTINGS
