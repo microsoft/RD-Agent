@@ -152,12 +152,12 @@ class QlibModelExperiment2Feedback(Experiment2Feedback):
         SOTA_hypothesis, SOTA_experiment = trace.get_sota_hypothesis_and_experiment()
         user_prompt = T("scenarios.qlib.prompts:model_feedback_generation.user").r(
             sota_hypothesis=SOTA_hypothesis,
-                sota_task=SOTA_experiment.sub_tasks[0].get_task_information() if SOTA_hypothesis else None,
-                sota_code=SOTA_experiment.sub_workspace_list[0].file_dict.get("model.py") if SOTA_hypothesis else None,
-                sota_result=SOTA_experiment.result.loc[IMPORTANT_METRICS] if SOTA_hypothesis else None,
-                hypothesis=hypothesis,
-                exp=exp,
-                exp_result=exp.result.loc[IMPORTANT_METRICS] if exp.result is not None else "execution failed",
+            sota_task=SOTA_experiment.sub_tasks[0].get_task_information() if SOTA_hypothesis else None,
+            sota_code=SOTA_experiment.sub_workspace_list[0].file_dict.get("model.py") if SOTA_hypothesis else None,
+            sota_result=SOTA_experiment.result.loc[IMPORTANT_METRICS] if SOTA_hypothesis else None,
+            hypothesis=hypothesis,
+            exp=exp,
+            exp_result=exp.result.loc[IMPORTANT_METRICS] if exp.result is not None else "execution failed",
         )
 
         # Call the APIBackend to generate the response for hypothesis feedback

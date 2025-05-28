@@ -2,7 +2,6 @@ import json
 import math
 from typing import List, Tuple
 
-
 from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.components.coder.model_coder.model import ModelExperiment, ModelTask
 from rdagent.components.proposal import (
@@ -17,18 +16,16 @@ from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
     KGFactorExperiment,
     KGModelExperiment,
 )
-from rdagent.scenarios.kaggle.experiment.scenario import KGScenario
-from rdagent.scenarios.kaggle.knowledge_management.graph import KGKnowledgeGraph
-from rdagent.utils.agent.tpl import T
-
-
 from rdagent.scenarios.kaggle.experiment.scenario import (
     KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,
     KG_ACTION_LIST,
     KG_ACTION_MODEL_FEATURE_SELECTION,
     KG_ACTION_MODEL_TUNING,
+    KGScenario,
 )
+from rdagent.scenarios.kaggle.knowledge_management.graph import KGKnowledgeGraph
+from rdagent.utils.agent.tpl import T
 
 
 class KGHypothesis(Hypothesis):

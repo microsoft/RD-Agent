@@ -1,7 +1,6 @@
 from abc import abstractmethod
 from typing import Tuple
 
-
 from rdagent.core.experiment import Experiment
 from rdagent.core.proposal import (
     Hypothesis,
