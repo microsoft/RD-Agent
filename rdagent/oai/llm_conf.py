@@ -17,6 +17,9 @@ class LLMSettings(ExtendedBaseSettings):
 
     reasoning_effort: Literal["low", "medium", "high"] | None = None
 
+    # Handling format
+    reasoning_think_rm: bool = False
+
     # TODO: most of the settings are only used on deprec.DeprecBackend.
     # So they should move the settings to that folder.
 
