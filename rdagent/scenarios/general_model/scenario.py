@@ -1,21 +1,18 @@
 from copy import deepcopy
-from pathlib import Path
 
 from rdagent.core.experiment import Task
-from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
-
-prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+from rdagent.utils.agent.tpl import T
 
 
 class GeneralModelScenario(Scenario):
     def __init__(self) -> None:
         super().__init__()
-        self._background = deepcopy(prompt_dict["general_model_background"])
-        self._output_format = deepcopy(prompt_dict["general_model_output_format"])
-        self._interface = deepcopy(prompt_dict["general_model_interface"])
-        self._simulator = deepcopy(prompt_dict["general_model_simulator"])
-        self._rich_style_description = deepcopy(prompt_dict["general_model_rich_style_description"])
+        self._background = deepcopy(T(".prompts:general_model_background").r())
+        self._output_format = deepcopy(T(".prompts:general_model_output_format").r())
+        self._interface = deepcopy(T(".prompts:general_model_interface").r())
+        self._simulator = deepcopy(T(".prompts:general_model_simulator").r())
+        self._rich_style_description = deepcopy(T(".prompts:general_model_rich_style_description").r())
 
     @property
     def background(self) -> str:

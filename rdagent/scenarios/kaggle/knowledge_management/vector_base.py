@@ -1,18 +1,16 @@
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Union
 
 import pandas as pd
-from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.knowledge_management.vector_base import Document, PDVectorBase
-from rdagent.core.prompts import Prompts
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.kaggle.knowledge_management.extract_knowledge import (
     extract_knowledge_from_feedback,
 )
+from rdagent.utils.agent.tpl import T
 
 
 class KGKnowledgeDocument(Document):
@@ -270,17 +268,8 @@ class KaggleExperienceBase(PDVectorBase):
         return kaggle_docs, similarities
 
     def refine_with_LLM(self, target: str, text: str) -> str:
-        prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
-
-        sys_prompt = (
-            Environment(undefined=StrictUndefined).from_string(prompt_dict["refine_with_LLM"]["system"]).render()
-        )
-
-        user_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["refine_with_LLM"]["user"])
-            .render(target=target, text=text)
-        )
+        sys_prompt = T(".prompts:refine_with_LLM.system").r()
+        user_prompt = T(".prompts:refine_with_LLM.user").r(target=target, text=text)
 
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,

@@ -1,5 +1,3 @@
-import json
-import pickle
 import shutil
 from pathlib import Path
 
@@ -8,15 +6,12 @@ import pandas as pd
 from rdagent.components.runner import CachedRunner
 from rdagent.core.exception import CoderError, FactorEmptyError, ModelEmptyError
 from rdagent.core.experiment import ASpecificExp, Experiment
-from rdagent.core.prompts import Prompts
 from rdagent.core.utils import cache_with_pickle
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
     KGFactorExperiment,
     KGModelExperiment,
 )
-
-prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
 
 class KGCachedRunner(CachedRunner[ASpecificExp]):

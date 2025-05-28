@@ -1,14 +1,10 @@
 from __future__ import annotations
 
 import json
-import multiprocessing as mp
-import re
-from pathlib import Path
 from typing import Mapping
 
 import numpy as np
 import pandas as pd
-from jinja2 import Environment, StrictUndefined
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import normalize
@@ -19,7 +15,6 @@ from rdagent.components.document_reader.document_reader import (
 )
 from rdagent.components.loader.experiment_loader import FactorExperimentLoader
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
@@ -27,8 +22,7 @@ from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.factor_experiment_loader.json_loader import (
     FactorExperimentLoaderFromDict,
 )
-
-document_process_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+from rdagent.utils.agent.tpl import T
 
 
 def classify_report_from_dict(
@@ -62,7 +56,7 @@ def classify_report_from_dict(
     #     )
 
     res_dict = {}
-    classify_prompt = document_process_prompts["classify_system"]
+    classify_prompt = T(".prompts:classify_system").r()
 
     for key, value in tqdm(report_dict.items()):
         if not key.endswith(".pdf"):
@@ -121,7 +115,7 @@ def __extract_factors_name_and_desc_from_content(
     content: str,
 ) -> dict[str, dict[str, str]]:
     session = APIBackend().build_chat_session(
-        session_system_prompt=document_process_prompts["extract_factors_system"],
+        session_system_prompt=T(".prompts:extract_factors_system").r(),
     )
 
     extracted_factor_dict = {}
@@ -138,7 +132,7 @@ def __extract_factors_name_and_desc_from_content(
             break
         for factor_name, factor_description in factors.items():
             extracted_factor_dict[factor_name] = factor_description
-        current_user_prompt = document_process_prompts["extract_factors_follow_user"]
+        current_user_prompt = T(".prompts:extract_factors_follow_user").r()
 
     return extracted_factor_dict
 
@@ -152,13 +146,10 @@ def __extract_factors_formulation_from_content(
         columns=["factor_name", "factor_description"],
     )
 
-    system_prompt = document_process_prompts["extract_factor_formulation_system"]
-    current_user_prompt = (
-        Environment(undefined=StrictUndefined)
-        .from_string(
-            document_process_prompts["extract_factor_formulation_user"],
-        )
-        .render(report_content=content, factor_dict=factor_dict_df.to_string())
+    system_prompt = T(".prompts:extract_factor_formulation_system").r()
+    current_user_prompt = T(".prompts:extract_factor_formulation_user").r(
+        report_content=content,
+        factor_dict=factor_dict_df.to_string(),
     )
 
     session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
@@ -279,7 +270,7 @@ def __check_factor_dict_relevance(
     factor_df_string: str,
 ) -> dict[str, dict[str, str]]:
     extract_result_resp = APIBackend().build_messages_and_create_chat_completion(
-        system_prompt=document_process_prompts["factor_relevance_system"],
+        system_prompt=T(".prompts:factor_relevance_system").r(),
         user_prompt=factor_df_string,
         json_mode=True,
     )
@@ -322,7 +313,7 @@ def __check_factor_dict_viability_simulate_json_mode(
     factor_df_string: str,
 ) -> dict[str, dict[str, str]]:
     extract_result_resp = APIBackend().build_messages_and_create_chat_completion(
-        system_prompt=document_process_prompts["factor_viability_system"],
+        system_prompt=T(".prompts:factor_viability_system").r(),
         user_prompt=factor_df_string,
         json_mode=True,
     )
@@ -373,7 +364,7 @@ def __check_factor_duplication_simulate_json_mode(
         current_df = working_list.pop(0)
         if (
             APIBackend().build_messages_and_calculate_token(
-                user_prompt=current_df.to_string(), system_prompt=document_process_prompts["factor_duplicate_system"]
+                user_prompt=current_df.to_string(), system_prompt=T(".prompts:factor_duplicate_system").r()
             )
             > LLM_SETTINGS.chat_token_limit
         ):
@@ -386,7 +377,7 @@ def __check_factor_duplication_simulate_json_mode(
     for current_df in final_list:
         current_factor_to_string = current_df.to_string()
         session = APIBackend().build_chat_session(
-            session_system_prompt=document_process_prompts["factor_duplicate_system"],
+            session_system_prompt=T(".prompts:factor_duplicate_system").r(),
         )
         for _ in range(10):
             extract_result_resp = session.build_chat_completion(

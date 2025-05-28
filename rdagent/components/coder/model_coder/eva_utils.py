@@ -1,18 +1,14 @@
 import json
-from pathlib import Path
 from typing import Dict, Tuple
 
 import numpy as np
-from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.CoSTEER.evaluators import CoSTEEREvaluator
 from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
 from rdagent.core.experiment import Task, Workspace
-from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
-
-evaluate_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+from rdagent.utils.agent.tpl import T
 
 
 # This shape evaluator is also used in data_science
@@ -70,32 +66,21 @@ class ModelCodeEvaluator(CoSTEEREvaluator):
         model_task_information = target_task.get_task_information()
         code = implementation.all_codes
 
-        system_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(evaluate_prompts["evaluator_code_feedback"]["system"])
-            .render(
-                scenario=(
-                    self.scen.get_scenario_all_desc(target_task, filtered_tag=target_task.model_type)
-                    if self.scen is not None
-                    else "No scenario description."
-                )
+        system_prompt = T(".prompts:evaluator_code_feedback.system").r(
+            scenario=(
+                self.scen.get_scenario_all_desc(target_task, filtered_tag=target_task.model_type)
+                if self.scen is not None
+                else "No scenario description."
             )
         )
-
         execution_feedback_to_render = model_execution_feedback
         for _ in range(10):  # 10 times to split the content is enough
-            user_prompt = (
-                Environment(undefined=StrictUndefined)
-                .from_string(
-                    evaluate_prompts["evaluator_code_feedback"]["user"],
-                )
-                .render(
-                    model_information=model_task_information,
-                    code=code,
-                    model_execution_feedback=execution_feedback_to_render,
-                    model_value_feedback=model_value_feedback,
-                    gt_code=gt_implementation.all_codes if gt_implementation else None,
-                )
+            user_prompt = T(".prompts:evaluator_code_feedback.user").r(
+                model_information=model_task_information,
+                code=code,
+                model_execution_feedback=execution_feedback_to_render,
+                model_value_feedback=model_value_feedback,
+                gt_code=gt_implementation.all_codes if gt_implementation else None,
             )
             if (
                 APIBackend().build_messages_and_calculate_token(
@@ -133,34 +118,25 @@ class ModelFinalEvaluator(CoSTEEREvaluator):
         if gt_implementation is not None:
             assert isinstance(gt_implementation, ModelFBWorkspace)
 
-        system_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(evaluate_prompts["evaluator_final_feedback"]["system"])
-            .render(
-                scenario=(
-                    self.scen.get_scenario_all_desc(target_task, filtered_tag=target_task.model_type)
-                    if self.scen is not None
-                    else "No scenario description."
-                )
+        system_prompt = T(".prompts:evaluator_final_feedback.system").r(
+            scenario=(
+                self.scen.get_scenario_all_desc(target_task, filtered_tag=target_task.model_type)
+                if self.scen is not None
+                else "No scenario description."
             )
         )
 
         execution_feedback_to_render = model_execution_feedback
 
         for _ in range(10):  # 10 times to split the content is enough
-            user_prompt = (
-                Environment(undefined=StrictUndefined)
-                .from_string(
-                    evaluate_prompts["evaluator_final_feedback"]["user"],
-                )
-                .render(
-                    model_information=target_task.get_task_information(),
-                    model_execution_feedback=execution_feedback_to_render,
-                    model_shape_feedback=model_shape_feedback,
-                    model_code_feedback=model_code_feedback,
-                    model_value_feedback=model_value_feedback,
-                )
+            user_prompt = T(".prompts:evaluator_final_feedback.user").r(
+                model_information=target_task.get_task_information(),
+                model_execution_feedback=execution_feedback_to_render,
+                model_shape_feedback=model_shape_feedback,
+                model_code_feedback=model_code_feedback,
+                model_value_feedback=model_value_feedback,
             )
+
             if (
                 APIBackend().build_messages_and_calculate_token(
                     user_prompt=user_prompt,
