@@ -3,13 +3,10 @@ from pathlib import Path
 from typing import Dict
 
 import pandas as pd
-from jinja2 import Environment, StrictUndefined
 
 from rdagent.core.experiment import Experiment
-from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import (
     Experiment2Feedback,
-    Hypothesis,
     HypothesisFeedback,
     Trace,
 )
@@ -17,8 +14,8 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.experiment.quant_experiment import QlibQuantScenario
 from rdagent.utils import convert2bool
+from rdagent.utils.agent.tpl import T
 
-feedback_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 IMPORTANT_METRICS = [
@@ -83,27 +80,19 @@ class QlibFactorExperiment2Feedback(Experiment2Feedback):
 
         # Generate the system prompt
         if isinstance(self.scen, QlibQuantScenario):
-            sys_prompt = (
-                Environment(undefined=StrictUndefined)
-                .from_string(feedback_prompts["factor_feedback_generation"]["system"])
-                .render(scenario=self.scen.get_scenario_all_desc(action="factor"))
+            sys_prompt = T("scenarios.qlib.prompts:factor_feedback_generation.system").r(
+                scenario=self.scen.get_scenario_all_desc(action="factor")
             )
         else:
-            sys_prompt = (
-                Environment(undefined=StrictUndefined)
-                .from_string(feedback_prompts["factor_feedback_generation"]["system"])
-                .render(scenario=self.scen.get_scenario_all_desc())
+            sys_prompt = T("scenarios.qlib.prompts:factor_feedback_generation.system").r(
+                scenario=self.scen.get_scenario_all_desc()
             )
 
         # Generate the user prompt
-        usr_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(feedback_prompts["factor_feedback_generation"]["user"])
-            .render(
-                hypothesis_text=hypothesis_text,
-                task_details=tasks_factors,
-                combined_result=combined_result,
-            )
+        usr_prompt = T("scenarios.qlib.prompts:factor_feedback_generation.user").r(
+            hypothesis_text=hypothesis_text,
+            task_details=tasks_factors,
+            combined_result=combined_result,
         )
 
         # Call the APIBackend to generate the response for hypothesis feedback
@@ -151,32 +140,24 @@ class QlibModelExperiment2Feedback(Experiment2Feedback):
 
         # Generate the system prompt
         if isinstance(self.scen, QlibQuantScenario):
-            sys_prompt = (
-                Environment(undefined=StrictUndefined)
-                .from_string(feedback_prompts["model_feedback_generation"]["system"])
-                .render(scenario=self.scen.get_scenario_all_desc(action="model"))
+            sys_prompt = T("scenarios.qlib.prompts:model_feedback_generation.system").r(
+                scenario=self.scen.get_scenario_all_desc(action="model")
             )
         else:
-            sys_prompt = (
-                Environment(undefined=StrictUndefined)
-                .from_string(feedback_prompts["factor_feedback_generation"]["system"])
-                .render(scenario=self.scen.get_scenario_all_desc())
+            sys_prompt = T("scenarios.qlib.prompts:factor_feedback_generation.system").r(
+                scenario=self.scen.get_scenario_all_desc()
             )
 
         # Generate the user prompt
         SOTA_hypothesis, SOTA_experiment = trace.get_sota_hypothesis_and_experiment()
-        user_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(feedback_prompts["model_feedback_generation"]["user"])
-            .render(
-                sota_hypothesis=SOTA_hypothesis,
+        user_prompt = T("scenarios.qlib.prompts:model_feedback_generation.user").r(
+            sota_hypothesis=SOTA_hypothesis,
                 sota_task=SOTA_experiment.sub_tasks[0].get_task_information() if SOTA_hypothesis else None,
                 sota_code=SOTA_experiment.sub_workspace_list[0].file_dict.get("model.py") if SOTA_hypothesis else None,
                 sota_result=SOTA_experiment.result.loc[IMPORTANT_METRICS] if SOTA_hypothesis else None,
                 hypothesis=hypothesis,
                 exp=exp,
                 exp_result=exp.result.loc[IMPORTANT_METRICS] if exp.result is not None else "execution failed",
-            )
         )
 
         # Call the APIBackend to generate the response for hypothesis feedback

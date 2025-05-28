@@ -1,26 +1,16 @@
 import json
-import math
 import random
-from pathlib import Path
-from typing import List, Tuple
-
-from jinja2 import Environment, StrictUndefined
+from typing import Tuple
 
 from rdagent.app.qlib_rd_loop.conf import QUANT_PROP_SETTING
-from rdagent.components.proposal import (
-    FactorAndModelHypothesis2Experiment,
-    FactorAndModelHypothesisGen,
-)
-from rdagent.core.prompts import Prompts
+from rdagent.components.proposal import FactorAndModelHypothesisGen
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.proposal.bandit import (
     EnvController,
-    Metrics,
     extract_metrics_from_experiment,
 )
-
-prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
+from rdagent.utils.agent.tpl import T
 
 
 class QuantTrace(Trace):
@@ -71,35 +61,23 @@ class QlibQuantHypothesisGen(FactorAndModelHypothesisGen):
         # ========= LLM ==========
         elif QUANT_PROP_SETTING.action_selection == "llm":
             hypothesis_and_feedback = (
-                (
-                    Environment(undefined=StrictUndefined)
-                    .from_string(prompt_dict["hypothesis_and_feedback"])
-                    .render(trace=trace)
-                )
+                T("scenarios.qlib.prompts:hypothesis_and_feedback").render(trace=trace)
                 if len(trace.hist) > 0
                 else "No previous hypothesis and feedback available since it's the first round."
             )
 
             last_hypothesis_and_feedback = (
-                (
-                    Environment(undefined=StrictUndefined)
-                    .from_string(prompt_dict["last_hypothesis_and_feedback"])
-                    .render(experiment=trace.hist[-1][0], feedback=trace.hist[-1][1])
+                T("scenarios.qlib.prompts:last_hypothesis_and_feedback").r(
+                    experiment=trace.hist[-1][0], feedback=trace.hist[-1][1]
                 )
                 if len(trace.hist) > 0
                 else "No previous hypothesis and feedback available since it's the first round."
             )
 
-            system_prompt = (
-                Environment(undefined=StrictUndefined).from_string(prompt_dict["action_gen"]["system"]).render()
-            )
-            user_prompt = (
-                Environment(undefined=StrictUndefined)
-                .from_string(prompt_dict["action_gen"]["user"])
-                .render(
-                    hypothesis_and_feedback=hypothesis_and_feedback,
-                    last_hypothesis_and_feedback=last_hypothesis_and_feedback,
-                )
+            system_prompt = T("scenarios.qlib.prompts:action_gen.system").r()
+            user_prompt = T("scenarios.qlib.prompts:action_gen.user").r(
+                hypothesis_and_feedback=hypothesis_and_feedback,
+                last_hypothesis_and_feedback=last_hypothesis_and_feedback,
             )
             resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
 
@@ -150,10 +128,8 @@ class QlibQuantHypothesisGen(FactorAndModelHypothesisGen):
                         factor_inserted = True
             if len(specific_trace.hist) > 0:
                 specific_trace.hist.reverse()
-                hypothesis_and_feedback = (
-                    Environment(undefined=StrictUndefined)
-                    .from_string(prompt_dict["hypothesis_and_feedback"])
-                    .render(trace=specific_trace)
+                hypothesis_and_feedback = T("scenarios.qlib.prompts:hypothesis_and_feedback").r(
+                    trace=specific_trace,
                 )
             else:
                 hypothesis_and_feedback = "No previous hypothesis and feedback available."
@@ -161,10 +137,8 @@ class QlibQuantHypothesisGen(FactorAndModelHypothesisGen):
         last_hypothesis_and_feedback = None
         for i in range(len(trace.hist) - 1, -1, -1):
             if trace.hist[i][0].hypothesis.action == action:
-                last_hypothesis_and_feedback = (
-                    Environment(undefined=StrictUndefined)
-                    .from_string(prompt_dict["last_hypothesis_and_feedback"])
-                    .render(experiment=trace.hist[i][0], feedback=trace.hist[i][1])
+                last_hypothesis_and_feedback = T("scenarios.qlib.prompts:last_hypothesis_and_feedback").r(
+                    experiment=trace.hist[i][0], feedback=trace.hist[i][1]
                 )
                 break
 
@@ -172,10 +146,8 @@ class QlibQuantHypothesisGen(FactorAndModelHypothesisGen):
         if action == "model":
             for i in range(len(trace.hist) - 1, -1, -1):
                 if trace.hist[i][0].hypothesis.action == "model" and trace.hist[i][1].decision is True:
-                    sota_hypothesis_and_feedback = (
-                        Environment(undefined=StrictUndefined)
-                        .from_string(prompt_dict["sota_hypothesis_and_feedback"])
-                        .render(experiment=trace.hist[i][0], feedback=trace.hist[i][1])
+                    sota_hypothesis_and_feedback = T("scenarios.qlib.prompts:sota_hypothesis_and_feedback").r(
+                        experiment=trace.hist[i][0], feedback=trace.hist[i][1]
                     )
                     break
 
@@ -184,11 +156,11 @@ class QlibQuantHypothesisGen(FactorAndModelHypothesisGen):
             "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
             "SOTA_hypothesis_and_feedback": sota_hypothesis_and_feedback,
             "RAG": qaunt_rag,
-            "hypothesis_output_format": prompt_dict["hypothesis_output_format_with_action"],
+            "hypothesis_output_format": T("scenarios.qlib.prompts:hypothesis_output_format_with_action").r(),
             "hypothesis_specification": (
-                prompt_dict["factor_hypothesis_specification"]
+                T("scenarios.qlib.prompts:factor_hypothesis_specification").r()
                 if action == "factor"
-                else prompt_dict["model_hypothesis_specification"]
+                else T("scenarios.qlib.prompts:model_hypothesis_specification").r()
             ),
         }
         return context_dict, True

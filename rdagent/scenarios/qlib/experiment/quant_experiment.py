@@ -15,12 +15,10 @@ from rdagent.components.coder.model_coder.model import (
     ModelTask,
 )
 from rdagent.core.experiment import Task
-from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.scenarios.qlib.experiment.utils import get_data_folder_intro
 from rdagent.scenarios.qlib.experiment.workspace import QlibFBWorkspace
-
-prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+from rdagent.utils.agent.tpl import T
 
 
 class QlibFactorExperiment(FactorExperiment[FactorTask, QlibFBWorkspace, FactorFBWorkspace]):
@@ -40,19 +38,19 @@ class QlibQuantScenario(Scenario):
         super().__init__()
         self._source_data = deepcopy(get_data_folder_intro())
 
-        self._rich_style_description = deepcopy(prompt_dict["qlib_factor_rich_style_description"])
-        self._experiment_setting = deepcopy(prompt_dict["qlib_factor_experiment_setting"])
+        self._rich_style_description = deepcopy(T(".prompts:qlib_factor_rich_style_description").r())
+        self._experiment_setting = deepcopy(T(".prompts:qlib_factor_experiment_setting").r())
 
     def background(self, tag=None) -> str:
         assert tag in [None, "factor", "model"]
-        quant_background = "The background of the scenario is as follows:\n" + prompt_dict["qlib_quant_background"]
+        quant_background = "The background of the scenario is as follows:\n" + T(".prompts:qlib_quant_background").r()
         factor_background = (
             "This time, I need your help with the research and development of the factor. The background of the factor scenario is as follows:\n"
-            + prompt_dict["qlib_factor_background"]
+            + T(".prompts:qlib_factor_background").r()
         )
         model_background = (
             "This time, I need your help with the research and development of the model. The background of the model scenario is as follows:\n"
-            + prompt_dict["qlib_model_background"]
+            + T(".prompts:qlib_model_background").r()
         )
 
         # TODO: There are some issues here
@@ -69,10 +67,10 @@ class QlibQuantScenario(Scenario):
     def output_format(self, tag=None) -> str:
         assert tag in [None, "factor", "model"]
         factor_output_format = (
-            "The factor code should output the following format:\n" + prompt_dict["qlib_factor_output_format"]
+            "The factor code should output the following format:\n" + T(".prompts:qlib_factor_output_format").r()
         )
         model_output_format = (
-            "The model code should output the following format:\n" + prompt_dict["qlib_model_output_format"]
+            "The model code should output the following format:\n" + T(".prompts:qlib_model_output_format").r()
         )
 
         if tag is None:
@@ -85,10 +83,10 @@ class QlibQuantScenario(Scenario):
     def interface(self, tag=None) -> str:
         assert tag in [None, "factor", "model"]
         factor_interface = (
-            "The factor code should be written in the following interface:\n" + prompt_dict["qlib_factor_interface"]
+            "The factor code should be written in the following interface:\n" + T(".prompts:qlib_factor_interface").r()
         )
         model_interface = (
-            "The model code should be written in the following interface:\n" + prompt_dict["qlib_model_interface"]
+            "The model code should be written in the following interface:\n" + T(".prompts:qlib_model_interface").r()
         )
 
         if tag is None:
@@ -100,8 +98,8 @@ class QlibQuantScenario(Scenario):
 
     def simulator(self, tag=None) -> str:
         assert tag in [None, "factor", "model"]
-        factor_simulator = "The factor code will be sent to the simulator:\n" + prompt_dict["qlib_factor_simulator"]
-        model_simulator = "The model code will be sent to the simulator:\n" + prompt_dict["qlib_model_simulator"]
+        factor_simulator = "The factor code will be sent to the simulator:\n" + T(".prompts:qlib_factor_simulator").r()
+        model_simulator = "The model code will be sent to the simulator:\n" + T(".prompts:qlib_model_simulator").r()
 
         if tag is None:
             return factor_simulator + "\n" + model_simulator

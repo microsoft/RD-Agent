@@ -6,11 +6,9 @@ from pathlib import Path
 from typing import Dict
 
 import pandas as pd
-from jinja2 import Environment, StrictUndefined
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.core.experiment import Task
-from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.kaggle.experiment.kaggle_experiment import KGFactorExperiment
@@ -21,8 +19,7 @@ from rdagent.scenarios.kaggle.kaggle_crawler import (
 from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
     KaggleExperienceBase,
 )
-
-prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+from rdagent.utils.agent.tpl import T
 
 KG_ACTION_FEATURE_PROCESSING = "Feature processing"
 KG_ACTION_FEATURE_ENGINEERING = "Feature engineering"
@@ -74,20 +71,11 @@ class KGScenario(Scenario):
         self.initial_performance = 0.0
 
     def _analysis_competition_description(self):
-        sys_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["kg_description_template"]["system"])
-            .render()
-        )
-
-        user_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["kg_description_template"]["user"])
-            .render(
-                competition_descriptions=self.competition_descriptions,
-                raw_data_information=self.source_data,
-                evaluation_metric_direction=self.evaluation_metric_direction,
-            )
+        sys_prompt = T(".prompts:kg_description_template.system").r()
+        user_prompt = T(".prompts:kg_description_template.user").r(
+            competition_descriptions=self.competition_descriptions,
+            raw_data_information=self.source_data,
+            evaluation_metric_direction=self.evaluation_metric_direction,
         )
 
         response_analysis = APIBackend().build_messages_and_create_chat_completion(
@@ -124,26 +112,22 @@ class KGScenario(Scenario):
 
     @property
     def background(self) -> str:
-        background_template = prompt_dict["kg_background"]
 
         train_script = (
             Path(__file__).parent / "templates" / KAGGLE_IMPLEMENT_SETTING.competition / "train.py"
         ).read_text()
 
-        background_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(background_template)
-            .render(
-                train_script=train_script,
-                competition_type=self.competition_type,
-                competition_description=self.competition_description,
-                target_description=self.target_description,
-                competition_features=self.competition_features,
-                submission_specifications=self.submission_specifications,
-                evaluation_desc=self.evaluation_desc,
-                evaluate_bool=self.evaluation_metric_direction,
-            )
+        background_prompt = T(".prompts:kg_background").r(
+            train_script=train_script,
+            competition_type=self.competition_type,
+            competition_description=self.competition_description,
+            target_description=self.target_description,
+            competition_features=self.competition_features,
+            submission_specifications=self.submission_specifications,
+            evaluation_desc=self.evaluation_desc,
+            evaluate_bool=self.evaluation_metric_direction,
         )
+
         return background_prompt
 
     @property
@@ -183,12 +167,11 @@ class KGScenario(Scenario):
     def output_format(self, tag=None) -> str:
         assert tag in [None, "feature", "model"]
         feature_output_format = f"""The feature code should output following the format:
-{prompt_dict['kg_feature_output_format']}"""
-        model_output_format = f"""The model code should output following the format:\n""" + (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["kg_model_output_format"])
-            .render(channel=self.model_output_channel)
-        )
+{T(".prompts:kg_feature_output_format").r()}"""
+        model_output_format = f"""The model code should output following the format:\n""" + T(
+            ".prompts:kg_model_output_format"
+        ).r(channel=self.model_output_channel)
+
         if tag is None:
             return feature_output_format + "\n" + model_output_format
         elif tag == "feature":
@@ -199,12 +182,12 @@ class KGScenario(Scenario):
     def interface(self, tag=None) -> str:
         assert tag in [None, "feature", "XGBoost", "RandomForest", "LightGBM", "NN"]
         feature_interface = f"""The feature code should follow the interface:
-{prompt_dict['kg_feature_interface']}"""
+{T(".prompts:kg_feature_interface").r()}"""
         if tag == "feature":
             return feature_interface
 
-        model_interface = "The model code should follow the interface:\n" + (
-            Environment(undefined=StrictUndefined).from_string(prompt_dict["kg_model_interface"]).render(tag=tag)
+        model_interface = "The model code should follow the interface:\n" + T(".prompts:kg_model_interface").r(
+            tag=tag,
         )
         if tag is None:
             return feature_interface + "\n" + model_interface
@@ -213,13 +196,14 @@ class KGScenario(Scenario):
 
     def simulator(self, tag=None) -> str:
         assert tag in [None, "feature", "model"]
-        kg_feature_simulator = "The feature code will be sent to the simulator:\n" + prompt_dict["kg_feature_simulator"]
 
-        kg_model_simulator = "The model code will be sent to the simulator:\n" + (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["kg_model_simulator"])
-            .render(submission_specifications=self.submission_specifications)
+        kg_feature_simulator = (
+            "The feature code will be sent to the simulator:\n" + T(".prompts:kg_feature_simulator").r()
         )
+        kg_model_simulator = "The model code will be sent to the simulator:\n" + T(".prompts:kg_model_simulator").r(
+            submission_specifications=self.submission_specifications,
+        )
+
         if tag is None:
             return kg_feature_simulator + "\n" + kg_model_simulator
         elif tag == "feature":
