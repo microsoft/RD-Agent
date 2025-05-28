@@ -339,8 +339,9 @@ class LocalEnv(Env[ASpecificLocalConf]):
         running_extra_volume: Mapping = MappingProxyType({}),
         **kwargs: dict,
     ) -> tuple[str, int]:
-        from rich.console import Console
         import select
+
+        from rich.console import Console
 
         # Handle volume links
         volumes = {}
