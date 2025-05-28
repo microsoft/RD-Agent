@@ -7,7 +7,7 @@ from rdagent.core.utils import cache_with_pickle
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
-from rdagent.scenarios.qlib.experiment.utils import process_factor_data
+from rdagent.scenarios.qlib.developer.utils import process_factor_data
 
 
 class QlibModelRunner(CachedRunner[QlibModelExperiment]):
