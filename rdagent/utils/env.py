@@ -1,3 +1,141 @@
+
+import shlex
+from typing import List, Dict, Any, Optional
+
+def validate_container_name(name: str) -> bool:
+    """Validate container name follows Docker naming conventions."""
+    if not name or len(name) > 63:
+        return False
+    # Docker container names must match: [a-zA-Z0-9][a-zA-Z0-9_.-]*
+    return bool(re.match(r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$', name))
+
+def validate_image_name(image: str) -> bool:
+    """Validate Docker image name."""
+    if not image or len(image) > 255:
+        return False
+    # Basic validation for image names
+    return bool(re.match(r'^[a-zA-Z0-9][a-zA-Z0-9._/-]*(?::[a-zA-Z0-9._-]+)?$', image))
+
+def sanitize_command(command: str) -> List[str]:
+    """Sanitize and split command into safe arguments."""
+    if not command:
+        return []
+    try:
+        # Use shlex to properly split the command
+        return shlex.split(command)
+    except ValueError:
+        raise ValueError("Invalid command format")
+
+def validate_mount_path(path: str) -> bool:
+    """Validate mount paths to prevent directory traversal."""
+    if not path:
+        return False
+    # Prevent directory traversal and ensure absolute paths
+    normalized = os.path.normpath(path)
+    return normalized == path and os.path.isabs(path) and '..' not in path
+
+def secure_docker_run(client, image: str, command: Optional[str] = None, 
+                     name: Optional[str] = None, volumes: Optional[Dict[str, Dict[str, str]]] = None,
+                     environment: Optional[Dict[str, str]] = None, **kwargs) -> Any:
+    """Securely run a Docker container with input validation."""
+    
+    # Validate image name
+    if not validate_image_name(image):
+        raise ValueError(f"Invalid image name: {image}")
+    
+    # Validate container name if provided
+    if name and not validate_container_name(name):
+        raise ValueError(f"Invalid container name: {name}")
+    
+    # Validate and sanitize command if provided
+    if command:
+        try:
+            command_args = sanitize_command(command)
+        except ValueError as e:
+            raise ValueError(f"Invalid command: {e}")
+    else:
+        command_args = None
+    
+    # Validate volume mounts if provided
+    if volumes:
+        for host_path, mount_config in volumes.items():
+            if not validate_mount_path(host_path):
+                raise ValueError(f"Invalid host path: {host_path}")
+            if 'bind' in mount_config and not validate_mount_path(mount_config['bind']):
+                raise ValueError(f"Invalid container path: {mount_config['bind']}")
+    
+    # Validate environment variables
+    if environment:
+        for key, value in environment.items():
+            if not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', key):
+                raise ValueError(f"Invalid environment variable name: {key}")
+            if len(str(value)) > 1024:  # Reasonable limit
+                raise ValueError(f"Environment variable value too long: {key}")
+    
+    # Use structured parameters for Docker API call
+    run_params = {
+        'image': image,
+        'detach': kwargs.get('detach', True),
+        'remove': kwargs.get('remove', False),
+    }
+    
+    if command_args:
+        run_params['command'] = command_args
+    if name:
+        run_params['name'] = name
+    if volumes:
+        run_params['volumes'] = volumes
+    if environment:
+        run_params['environment'] = environment
+    
+    # Add any other safe parameters
+    safe_params = ['ports', 'working_dir', 'user', 'mem_limit', 'cpu_count']
+    for param in safe_params:
+        if param in kwargs:
+            run_params[param] = kwargs[param]
+    
+    return client.containers.run(**run_params)
+
+def secure_docker_create(client, image: str, command: Optional[str] = None,
+                        name: Optional[str] = None, **kwargs) -> Any:
+    """Securely create a Docker container with input validation."""
+    
+    # Validate image name
+    if not validate_image_name(image):
+        raise ValueError(f"Invalid image name: {image}")
+    
+    # Validate container name if provided
+    if name and not validate_container_name(name):
+        raise ValueError(f"Invalid container name: {name}")
+    
+    # Validate and sanitize command if provided
+    if command:
+        try:
+            command_args = sanitize_command(command)
+        except ValueError as e:
+            raise ValueError(f"Invalid command: {e}")
+    else:
+        command_args = None
+    
+    # Use structured parameters for Docker API call
+    create_params = {
+        'image': image,
+    }
+    
+    if command_args:
+        create_params['command'] = command_args
+    if name:
+        create_params['name'] = name
+    
+    # Add any other safe parameters
+    safe_params = ['ports', 'working_dir', 'user', 'environment', 'volumes']
+    for param in safe_params:
+        if param in kwargs:
+            create_params[param] = kwargs[param]
+    
+    return client.containers.create(**create_params)
+
+
 """
 The motivation of the utils is for environment management
 
@@ -663,7 +801,7 @@ class DockerEnv(Env[DockerConf]):
         log_output = ""
 
         try:
-            container: docker.models.containers.Container = client.containers.run(  # type: ignore[no-any-unimported]
+                        container: docker.models.containers.Container = secure_docker_run(client(  # type: ignore[no-any-unimported])
                 image=self.conf.image,
                 command=entry,
                 volumes=volumes,
