@@ -9,11 +9,15 @@ Postscripts:
 """
 
 import datetime
+import multiprocessing as mp
 import os
 import pickle
 import time
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
+from contextlib import nullcontext
 from dataclasses import dataclass
+from multiprocessing import Process
 from pathlib import Path
 from typing import Any, Callable, Optional, TypeVar, Union, cast
 
@@ -112,100 +116,156 @@ class LoopBase:
             `None` indicates to run forever until error or KeyboardInterrupt
         """
 
+        function_name_to_process_list: dict[str, list[Process]] = defaultdict(
+            list[tuple[Process, dict]]
+        )  # a mapping from function name to running process list
+        function_name_to_wait_process_list: dict[str, list[Process]] = defaultdict(
+            list[tuple[Process, dict]]
+        )  # a mapping from function name to waiting process list
         if all_duration is not None and not self.timer.started:
             self.timer.reset(all_duration=all_duration)
 
         with tqdm(total=len(self.steps), desc="Workflow Progress", unit="step") as pbar:
-            while True:
-                if step_n is not None:
-                    if step_n <= 0:
-                        break
-                    step_n -= 1
-                if loop_n is not None:
-                    if loop_n <= 0:
-                        break
-
-                if RD_AGENT_SETTINGS.enable_mlflow:
-                    mlflow.log_metric("loop_index", self.loop_idx)
-                    mlflow.log_metric("step_index", self.step_idx)
-                    current_local_datetime = datetime.datetime.now(pytz.timezone("Asia/Shanghai"))
-                    float_like_datetime = (
-                        current_local_datetime.second
-                        + current_local_datetime.minute * 1e2
-                        + current_local_datetime.hour * 1e4
-                        + current_local_datetime.day * 1e6
-                        + current_local_datetime.month * 1e8
-                        + current_local_datetime.year * 1e10
-                    )
-                    mlflow.log_metric("current_datetime", float_like_datetime)
-                    mlflow.log_metric("api_fail_count", RD_Agent_TIMER_wrapper.api_fail_count)
-                    lastest_api_fail_time = RD_Agent_TIMER_wrapper.latest_api_fail_time
-                    if lastest_api_fail_time is not None:
-                        mlflow.log_metric(
-                            "lastest_api_fail_time",
-                            (
-                                lastest_api_fail_time.second
-                                + lastest_api_fail_time.minute * 1e2
-                                + lastest_api_fail_time.hour * 1e4
-                                + lastest_api_fail_time.day * 1e6
-                                + lastest_api_fail_time.month * 1e8
-                                + lastest_api_fail_time.year * 1e10
-                            ),
-                        )
-
-                if self.timer.started:
-                    if RD_AGENT_SETTINGS.enable_mlflow:
-                        mlflow.log_metric("remain_time", self.timer.remain_time().seconds)  # type: ignore[union-attr]
-                        mlflow.log_metric(
-                            "remain_percent", self.timer.remain_time() / self.timer.all_duration * 100  # type: ignore[operator]
-                        )
-
-                    if self.timer.is_timeout():
-                        logger.warning("Timeout, exiting the loop.")
-                        break
-                    else:
-                        logger.info(f"Timer remaining time: {self.timer.remain_time()}")
-
-                li, si = self.loop_idx, self.step_idx
-                name = self.steps[si]
-                logger.info(f"Start Loop {li}, Step {si}: {name}")
-                with logger.tag(f"Loop_{li}.{name}"):
-                    start = datetime.datetime.now(datetime.timezone.utc)
-                    func: Callable[..., Any] = cast(Callable[..., Any], getattr(self, name))
-                    try:
-                        self.loop_prev_out[name] = func(self.loop_prev_out)
-                        # TODO: Fix the error logger.exception(f"Skip loop {li} due to {e}")
-                    except Exception as e:
-                        if isinstance(e, self.skip_loop_error):
-                            # FIXME: This does not support previous demo (due to their last step is not for recording)
-                            logger.warning(f"Skip loop {li} due to {e}")
-                            # NOTE: strong assumption!  The last step is responsible for recording information
-                            self.step_idx = len(self.steps) - 1  # directly jump to the last step.
-                            self.loop_prev_out[self.EXCEPTION_KEY] = e
-                            continue
-                        else:
-                            raise
-                    finally:
-                        # make sure failure steps are displayed correclty
-                        end = datetime.datetime.now(datetime.timezone.utc)
-                        self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
-
-                        # Update tqdm progress bar directly to step_idx
-                        pbar.n = si + 1
-                        pbar.set_postfix(
-                            loop_index=li, step_index=si + 1, step_name=name
-                        )  # step_name indicate  last finished step_name
-
-                # index increase and save session
-                self.step_idx = (self.step_idx + 1) % len(self.steps)
-                if self.step_idx == 0:  # reset to step 0 in next round
-                    self.loop_idx += 1
+            with nullcontext() if RD_AGENT_SETTINGS.loop_parallel_dict is None else ProcessPoolExecutor() as executor:
+                while True:
+                    if step_n is not None:
+                        if step_n <= 0:
+                            break
+                        step_n -= 1
                     if loop_n is not None:
-                        loop_n -= 1
-                    self.loop_prev_out = {}
-                    pbar.reset()  # reset the progress bar for the next loop
+                        if loop_n <= 0:
+                            break
 
-                self.dump(self.session_folder / f"{li}" / f"{si}_{name}")  # save a snapshot after the session
+                    if RD_AGENT_SETTINGS.enable_mlflow:
+                        mlflow.log_metric("loop_index", self.loop_idx)
+                        mlflow.log_metric("step_index", self.step_idx)
+                        current_local_datetime = datetime.datetime.now(pytz.timezone("Asia/Shanghai"))
+                        float_like_datetime = (
+                            current_local_datetime.second
+                            + current_local_datetime.minute * 1e2
+                            + current_local_datetime.hour * 1e4
+                            + current_local_datetime.day * 1e6
+                            + current_local_datetime.month * 1e8
+                            + current_local_datetime.year * 1e10
+                        )
+                        mlflow.log_metric("current_datetime", float_like_datetime)
+                        mlflow.log_metric("api_fail_count", RD_Agent_TIMER_wrapper.api_fail_count)
+                        lastest_api_fail_time = RD_Agent_TIMER_wrapper.latest_api_fail_time
+                        if lastest_api_fail_time is not None:
+                            mlflow.log_metric(
+                                "lastest_api_fail_time",
+                                (
+                                    lastest_api_fail_time.second
+                                    + lastest_api_fail_time.minute * 1e2
+                                    + lastest_api_fail_time.hour * 1e4
+                                    + lastest_api_fail_time.day * 1e6
+                                    + lastest_api_fail_time.month * 1e8
+                                    + lastest_api_fail_time.year * 1e10
+                                ),
+                            )
+
+                    if self.timer.started:
+                        if RD_AGENT_SETTINGS.enable_mlflow:
+                            mlflow.log_metric("remain_time", self.timer.remain_time().seconds)  # type: ignore[union-attr]
+                            mlflow.log_metric(
+                                "remain_percent", self.timer.remain_time() / self.timer.all_duration * 100  # type: ignore[operator]
+                            )
+
+                        if self.timer.is_timeout():
+                            logger.warning("Timeout, exiting the loop.")
+                            break
+                        else:
+                            logger.info(f"Timer remaining time: {self.timer.remain_time()}")
+
+                    li, si = self.loop_idx, self.step_idx
+                    name = self.steps[si]
+                    logger.info(f"Start Loop {li}, Step {si}: {name}")
+                    with logger.tag(f"Loop_{li}.{name}"):
+                        start = datetime.datetime.now(datetime.timezone.utc)
+                        func: Callable[..., Any] = cast(Callable[..., Any], getattr(self, name))
+                        try:
+                            if (
+                                self.loop_prev_out is not None
+                            ):  # don't use continue here, because it will be considered as a failure step
+                                if RD_AGENT_SETTINGS.loop_parallel_dict is None:
+                                    # run the function in the current process
+                                    self.loop_prev_out[name] = func(self.loop_prev_out)
+                                else:
+                                    func_input = self.loop_prev_out
+                                    function_name_to_wait_process_list.setdefault(name, []).append((func, func_input))
+                                    self.loop_prev_out = {}
+
+                                    if name not in RD_AGENT_SETTINGS.loop_parallel_dict:
+                                        while function_name_to_wait_process_list[name]:
+                                            func, func_input = function_name_to_wait_process_list[name].pop(0)
+                                            process = executor.submit(func, func_input)
+                                            self.loop_prev_out = None
+                                            function_name_to_process_list.setdefault(name, []).append(
+                                                (process, func_input)
+                                            )
+                                    else:
+                                        while (
+                                            len(function_name_to_process_list.get(name, []))
+                                            < RD_AGENT_SETTINGS.loop_parallel_dict[name]["parallel_process"]
+                                        ) and len(function_name_to_wait_process_list[name]) > 0:
+                                            func, func_input = function_name_to_wait_process_list[name].pop(0)
+                                            process = executor.submit(func, func_input)
+                                            function_name_to_process_list.setdefault(name, []).append(
+                                                (process, func_input)
+                                            )
+
+                                    # search for at least one process to finish
+                                    found_finished_process = False
+                                    while not found_finished_process:
+                                        for p_index in range(len(function_name_to_process_list[name])):
+                                            p, self.loop_prev_out = function_name_to_process_list[name][p_index]
+                                            if p.done():
+                                                self.loop_prev_out[name] = p.result()
+                                                function_name_to_process_list[name].pop(p_index)
+                                                found_finished_process = True
+                                                break
+                                        if (
+                                            found_finished_process
+                                            or name not in RD_AGENT_SETTINGS.loop_parallel_dict
+                                            or len(function_name_to_process_list[name])
+                                            < RD_AGENT_SETTINGS.loop_parallel_dict[name]["parallel_process"]
+                                            or len(function_name_to_wait_process_list[name])
+                                            < RD_AGENT_SETTINGS.loop_parallel_dict[name]["wait_process"]
+                                        ):
+                                            break
+
+                            # TODO: Fix the error logger.exception(f"Skip loop {li} due to {e}")
+                        except Exception as e:
+                            if isinstance(e, self.skip_loop_error):
+                                # FIXME: This does not support previous demo (due to their last step is not for recording)
+                                logger.warning(f"Skip loop {li} due to {e}")
+                                # NOTE: strong assumption!  The last step is responsible for recording information
+                                self.step_idx = len(self.steps) - 1  # directly jump to the last step.
+                                self.loop_prev_out[self.EXCEPTION_KEY] = e
+                                continue
+                            else:
+                                raise
+                        finally:
+                            # make sure failure steps are displayed correclty
+                            end = datetime.datetime.now(datetime.timezone.utc)
+                            self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
+
+                            # Update tqdm progress bar directly to step_idx
+                            pbar.n = si + 1
+                            pbar.set_postfix(
+                                loop_index=li, step_index=si + 1, step_name=name
+                            )  # step_name indicate  last finished step_name
+
+                    # index increase and save session
+                    self.step_idx = (self.step_idx + 1) % len(self.steps)
+                    if self.step_idx == 0:  # reset to step 0 in next round
+                        self.loop_idx += 1
+                        if loop_n is not None:
+                            loop_n -= 1
+                        self.loop_prev_out = {}
+                        pbar.reset()  # reset the progress bar for the next loop
+
+                    self.dump(self.session_folder / f"{li}" / f"{si}_{name}")  # save a snapshot after the session
 
     def dump(self, path: str | Path) -> None:
         if RD_Agent_TIMER_wrapper.timer.started:
