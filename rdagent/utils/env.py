@@ -339,7 +339,10 @@ class LocalEnv(Env[ASpecificLocalConf]):
         running_extra_volume: Mapping = MappingProxyType({}),
         **kwargs: dict,
     ) -> tuple[str, int]:
-        # mocking the volumes
+        from rich.console import Console
+        import select
+
+        # Handle volume links
         volumes = {}
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
@@ -349,7 +352,6 @@ class LocalEnv(Env[ASpecificLocalConf]):
             volumes[cache_path] = "/tmp/cache"
         for lp, rp in running_extra_volume.items():
             volumes[lp] = rp
-
         for rp, lp in volumes.items():
             link_path = Path(lp)
             real_path = Path(rp)
@@ -359,9 +361,9 @@ class LocalEnv(Env[ASpecificLocalConf]):
                 link_path.unlink()
             link_path.symlink_to(real_path)
 
+        # Setup environment
         if env is None:
             env = {}
-
         path = [*self.conf.bin_path.split(":"), "/bin/", "/usr/bin/", *env.get("PATH", "").split(":")]
         env["PATH"] = ":".join(path)
 
@@ -373,19 +375,14 @@ class LocalEnv(Env[ASpecificLocalConf]):
         table.add_column("Key", style="bold cyan")
         table.add_column("Value", style="bold magenta")
         table.add_row("Entry", entry)
-        table.add_row("Local Path", local_path)
+        table.add_row("Local Path", local_path or "")
         table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
         table.add_row("Volumes", "\n".join(f"{k}:{v}" for k, v in volumes.items()))
         print(table)
 
-        cwd = None
-        if local_path:
-            cwd = Path(local_path).resolve()
-
-        # Convert any integer values in env to strings
+        cwd = Path(local_path).resolve() if local_path else None
         env = {k: str(v) if isinstance(v, int) else v for k, v in env.items()}
 
-        # Use Popen for real-time output
         process = subprocess.Popen(
             entry,
             cwd=cwd,
@@ -394,39 +391,26 @@ class LocalEnv(Env[ASpecificLocalConf]):
             stderr=subprocess.PIPE,
             text=True,
             shell=True,
-            bufsize=1,  # Line buffered
+            bufsize=1,
             universal_newlines=True,
         )
-        # Read both stdout and stderr in real-time
-        import select
-        import sys
-        from subprocess import PIPE, Popen
 
-        from rich.console import Console
-
-        process = Popen(["your", "command"], stdout=PIPE, stderr=PIPE, text=True)
-        combined_output = ""
-
+        # Setup polling
         if process.stdout is None or process.stderr is None:
             raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
 
-        # Create file descriptors for stdout and stderr
         stdout_fd = process.stdout.fileno()
         stderr_fd = process.stderr.fileno()
 
-        # Set up polling
         poller = select.poll()
         poller.register(stdout_fd, select.POLLIN)
         poller.register(stderr_fd, select.POLLIN)
 
-        # Read until process ends
+        combined_output = ""
         while True:
-            # Check if process has ended
             if process.poll() is not None:
                 break
-
-            # Poll for output
-            events = poller.poll(100)  # 100ms timeout
+            events = poller.poll(100)
             for fd, event in events:
                 if event & select.POLLIN:
                     if fd == stdout_fd:
@@ -440,7 +424,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
                             Console().print(error.strip(), markup=False)
                             combined_output += error
 
-        # Get any remaining output
+        # Capture any final output
         remaining_output, remaining_error = process.communicate()
         if remaining_output:
             Console().print(remaining_output.strip(), markup=False)
