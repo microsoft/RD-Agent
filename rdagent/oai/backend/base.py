@@ -14,6 +14,7 @@ from typing import Any, Optional, cast
 import pytz
 from pydantic import TypeAdapter
 
+from rdagent.core.exception import PolicyError
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
@@ -367,7 +368,7 @@ class APIBackend(ABC):
                         violation_count += 1
                         if violation_count >= LLM_SETTINGS.violation_fail_limit:
                             logger.warning("Content policy violation detected.")
-                            raise e
+                            raise PolicyError(e)
 
                     if (
                         openai_imported

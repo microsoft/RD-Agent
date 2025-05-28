@@ -88,6 +88,9 @@ class LoopBase:
     loop_trace: dict[int, list[LoopTrace]]
 
     skip_loop_error: tuple[type[BaseException], ...] = ()  # you can define a list of error that will skip current loop
+    withdraw_loop_error: tuple[
+        type[BaseException], ...
+    ] = ()  # you can define a list of error that will withdraw current loop
 
     EXCEPTION_KEY = "_EXCEPTION"
 
@@ -183,6 +186,34 @@ class LoopBase:
                             self.step_idx = len(self.steps) - 1  # directly jump to the last step.
                             self.loop_prev_out[self.EXCEPTION_KEY] = e
                             continue
+                        elif isinstance(e, self.withdraw_loop_error):
+                            logger.warning(f"Withdraw loop {li} due to {e}")
+                            # Reload the last successful state for this step
+                            # Construct the path to the last dump
+                            prev_session_dir = self.session_folder / str(li - 1)
+                            prev_path = min(
+                                (
+                                    (int(p.name.split("_", 1)[0]), p)
+                                    for p in prev_session_dir.glob("*_*")
+                                    if p.is_file()
+                                ),
+                                key=lambda item: item[0],
+                                default=(None, None),
+                            )[1]
+                            if prev_path:
+                                loaded = type(self).load(
+                                    prev_path,
+                                    output_path=self.session_folder.parent,
+                                    do_truncate=False,
+                                    replace_timer=True,
+                                )
+                                # Overwrite current instance state
+                                self.__dict__.update(loaded.__dict__)
+                                # Continue to next iteration (will restart current loop)
+                                continue
+                            else:
+                                logger.error(f"No previous dump found at {prev_session_dir}, cannot withdraw loop {li}")
+                                raise
                         else:
                             raise
                     finally:
