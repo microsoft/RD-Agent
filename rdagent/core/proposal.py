@@ -171,7 +171,7 @@ class ExpGen(ABC):
         self.scen = scen
 
     @abstractmethod
-    def gen(self, trace: Trace, selection: tuple[int, ...] = (-1,)) -> Experiment:
+    def gen(self, trace: Trace) -> Experiment:
         """
         Generate the experiment based on the trace.
 

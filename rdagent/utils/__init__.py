@@ -11,6 +11,7 @@ import importlib
 import json
 import re
 import sys
+from multiprocessing import Process, Queue
 from pathlib import Path
 from types import ModuleType
 from typing import Union
@@ -75,6 +76,42 @@ def remove_ansi_codes(s: str) -> str:
     return ansi_escape.sub("", s)
 
 
+def safe_sub(pattern: str, text: str, queue: Queue) -> None:
+    try:
+        result = re.sub(pattern, "", text)
+        queue.put(result)
+    except Exception as e:
+        queue.put(e)
+
+
+def apply_regex_with_timeout(pattern: str, text: str, timeout: int = 120) -> str:
+    queue: Queue[str | Exception] = Queue()
+    p = Process(target=safe_sub, args=(pattern, text, queue))
+    p.start()
+    p.join(timeout)
+
+    if p.is_alive():
+        p.terminate()
+        p.join()
+        logger.warning(f"Pattern {pattern} timed out after {timeout} seconds, skipping it.")
+        return text
+    else:
+        result = queue.get()
+        if isinstance(result, Exception):
+            logger.warning(f"Pattern {pattern} raised an error: {result}")
+            return text
+        return result
+
+
+def filter_with_time_limit(regex_patterns: Union[str, list[str]], filtered_stdout: str) -> str:
+    if isinstance(regex_patterns, list):
+        for pattern in regex_patterns:
+            filtered_stdout = apply_regex_with_timeout(pattern, filtered_stdout)
+    else:
+        filtered_stdout = re.sub(regex_patterns, "", filtered_stdout)
+    return filtered_stdout
+
+
 def filter_redundant_text(stdout: str) -> str:
     """
     Filter out progress bars from stdout using regex.
@@ -97,11 +134,12 @@ def filter_redundant_text(stdout: str) -> str:
     filtered_stdout = re.sub(r"\s*\n\s*", "\n", filtered_stdout)
 
     needs_sub = True
-    # Attempt further filtering up to 5 times
-    for _ in range(5):
+    # Attempt further filtering up to 3 times
+    for _ in range(3):
         filtered_stdout_shortened = filtered_stdout
         system_prompt = T(".prompts:filter_redundant_text.system").r()
 
+        # Check if all regex patterns have been collected
         for __ in range(10):
             user_prompt = T(".prompts:filter_redundant_text.user").r(
                 stdout=filtered_stdout_shortened,
@@ -131,11 +169,7 @@ def filter_redundant_text(stdout: str) -> str:
         needs_sub = response.get("needs_sub", True)
         regex_patterns = response.get("regex_patterns", [])
         try:
-            if isinstance(regex_patterns, list):
-                for pattern in regex_patterns:
-                    filtered_stdout = re.sub(pattern, "", filtered_stdout)
-            else:
-                filtered_stdout = re.sub(regex_patterns, "", filtered_stdout)
+            filter_with_time_limit(regex_patterns, filtered_stdout_shortened)
 
             if not needs_sub:
                 break

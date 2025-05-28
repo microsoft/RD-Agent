@@ -34,6 +34,8 @@ The supported scenarios are listed below:
         :ref:`🤖Auto Kaggle Model Tuning <kaggle_agent>`
       - :ref:`🤖Auto Kaggle feature Engineering <kaggle_agent>`
 
+        :ref:`🤖 Data Science <data_science_agent>`
+
 
 .. toctree::
     :maxdepth: 1
