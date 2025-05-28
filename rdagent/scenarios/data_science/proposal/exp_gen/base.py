@@ -61,8 +61,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
         self.knowledge_base = knowledge_base
 
-        self.sub_trace_count: int = 0
-
         self.current_selection: tuple[int, ...] = (-1,)
 
         self.sota_exp_to_submit: DSExperiment | None = None  # grab the global best exp to submit
@@ -78,6 +76,10 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
     def set_current_selection(self, selection: tuple[int, ...]) -> None:
         self.current_selection = selection
 
+    @property
+    def sub_trace_count(self) -> int:
+        return len(self.get_leaves())
+
     def get_leaves(self) -> list[int, ...]:
         """
         Get the indices of nodes (in hist) that have no children—i.e., "leaves" of current DAG.
@@ -85,6 +87,10 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             tuple of ints: Indices of leaf nodes.
             - Leaves with lower index comes first.
         """
+        # BUG: potential BUG:
+        # If we implement the most correct merging logic,  merge 2 traces, will result in a single trace(2 traces currently).
+        # So user may get unexpected results when he want to know ho many branches are created.
+
         # Build a set of all parent indices found in dag_parent (skip empty tuples which represent roots)
         parent_indices = set(idx for parents in self.dag_parent for idx in parents)
         # All node indices
@@ -153,12 +159,14 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
     def collect_all_ancestors(
         self,
-        selection: tuple[int, ...] = (-1,),
+        selection: tuple[int, ...] | None = None,
     ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
         """
         Collect all ancestors of the given selection.
         The return list follows the order of [root->...->parent->current_node].
         """
+        if selection is None:
+            selection = self.get_current_selection()
 
         if len(self.dag_parent) == 0:
             return []
