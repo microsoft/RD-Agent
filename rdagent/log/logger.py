@@ -117,13 +117,14 @@ class RDAgentLog(SingletonBaseClass):
         tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
         logp = self.storage.log(obj, name=tag, save_type="pkl")
 
-        try:
-            flask_url = "http://localhost:19899"
-            data = log_obj_to_json(obj=obj, tag=tag, log_trace_path=self.log_trace_path)
-            headers = {"Content-Type": "application/json"}
-            requests.post(f"{flask_url}/receive", json=data, headers=headers, timeout=1)
-        except (requests.ConnectionError, requests.Timeout):
-            pass
+        if RD_AGENT_SETTINGS.ui_server_port:
+            try:
+                ui_server_url = f"http://localhost:{RD_AGENT_SETTINGS.ui_server_port}"
+                data = log_obj_to_json(obj=obj, tag=tag, log_trace_path=self.log_trace_path)
+                headers = {"Content-Type": "application/json"}
+                requests.post(f"{ui_server_url}/receive", json=data, headers=headers, timeout=1)
+            except (requests.ConnectionError, requests.Timeout) as e:
+                self._log("warning", f"Send log object to UI server failed. Error: {e}", tag=tag)
 
         file_handler_id = logger.add(
             self.log_trace_path / tag.replace(".", "/") / "common_logs.log", format=self.file_format

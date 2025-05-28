@@ -7,6 +7,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 import randomname
+import typer
 
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -186,5 +187,8 @@ def server_static_files(fn):
     return send_from_directory(app.static_folder, fn)
 
 
+def main(port: int = 19899):
+    app.run(debug=False, host="0.0.0.0", port=port)
+
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=19899)
+    typer.run(main)
