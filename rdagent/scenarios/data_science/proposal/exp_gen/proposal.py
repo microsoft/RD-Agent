@@ -14,10 +14,12 @@ from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen
+from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.draft import DSDraftExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
@@ -259,8 +261,23 @@ COMPONENT_TASK_MAPPING = {
 }
 
 
+def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None | DSDraftExpGen:
+    next_missing_component = trace.next_incomplete_component()
+    if next_missing_component is not None:
+        return DSDraftExpGen(scen=scen).gen(
+            component=next_missing_component,
+            trace=trace,
+        )
+    else:
+        return None
+
+
 class DSProposalV1ExpGen(ExpGen):
     def gen(self, trace: DSTrace) -> DSExperiment:
+        # Drafting Stage
+        if draft_exp := draft_exp_in_decomposition(self.scen, trace):
+            return draft_exp
+
         # Guidelines:
         # System prompts: Shared condition you are facing
         # - scenario description: `scenario_desc`
@@ -463,6 +480,36 @@ class DSProposalV2ExpGen(ExpGen):
         )
         return json.loads(response)
 
+    def identify_problem(
+        self, current_sub_trace, scenario_desc, sota_exp_desc, exp_feedback_list_desc, inject_diverse
+    ) -> Dict:
+        sota_exp_num = sum(1 for _, fb in current_sub_trace if fb.decision)
+        failed_exp_num = len(current_sub_trace) - sota_exp_num
+        weighted_exp_num = (sota_exp_num * 3 + failed_exp_num * 2) // 2
+        self.scen_prob_multiplier = max(0, 3 - weighted_exp_num // 4)
+
+        all_problems = {}
+        if self.scen_prob_multiplier > 0:
+            scen_problems = self.identify_scenario_problem(
+                scenario_desc=scenario_desc,
+                sota_exp_desc=sota_exp_desc,
+            )
+            for problem_name in scen_problems:
+                scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
+                all_problems[problem_name] = scen_problems[problem_name]
+
+        if self.scen_prob_multiplier < 3:
+            fb_problems = self.identify_feedback_problem(
+                scenario_desc=scenario_desc,
+                exp_feedback_list_desc=exp_feedback_list_desc,
+                sota_exp_desc=sota_exp_desc,
+                inject_diverse=inject_diverse,
+            )
+            for problem_name in fb_problems:
+                fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
+                all_problems[problem_name] = fb_problems[problem_name]
+        return all_problems
+
     @wait_retry(retry_n=5)
     def hypothesis_gen(
         self,
@@ -477,7 +524,7 @@ class DSProposalV2ExpGen(ExpGen):
     ) -> Dict:
         problem_formatted_str = ""
         for problem_name, problem_dict in problems.items():
-            problem_formatted_str += f"# Problem Name: {problem_name}\n"
+            problem_formatted_str += f"Problem Name: {problem_name}\n"
             problem_formatted_str += f"- Problem Description: {problem_dict['problem']}\n"
             if "idea" in problem_dict:
                 idea_formatted_str = DSIdea(problem_dict["idea"]).to_formatted_str()
@@ -514,8 +561,10 @@ class DSProposalV2ExpGen(ExpGen):
         self,
         hypothesis_dict: dict,
         problem_dict: dict,
-        trace: DSTrace,
     ) -> Tuple[str, DSHypothesis]:
+        """
+        This function depends on the `identify_problem` function.
+        """
         weights = {
             "alignment_score": 0.2,
             "impact_score": 0.4,
@@ -544,15 +593,15 @@ class DSProposalV2ExpGen(ExpGen):
         scores_sorted = scores_sorted[:5]  # Select top 5 hypotheses
 
         # Increase the weight of the hypothesis that is inspired by the idea pool to 3x.
-        # Linear decay the weight of the scenario problem from 3x to 1x.
+        # Linear decay the weight of the scenario problem from 3x to 0x.
         index_to_pick_pool_list = []
         for j, problem_name in enumerate(scores_sorted.index):
             if hypothesis_dict[problem_name].get("inspired", False):
-                index_to_pick_pool_list.extend([j] * 4)
-            elif problem_dict.get(problem_name, {}).get("label", "") == "SCENARIO_PROBLEM":
-                index_to_pick_pool_list.extend([j] * (3 - len(trace.hist) // 3))
-            else:
                 index_to_pick_pool_list.extend([j] * 2)
+            if problem_dict.get(problem_name, {}).get("label", "") == "SCENARIO_PROBLEM":
+                index_to_pick_pool_list.extend([j] * self.scen_prob_multiplier)
+            else:
+                index_to_pick_pool_list.extend([j] * (3 - self.scen_prob_multiplier))
         logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
 
         # Create a random but reproducible integer
@@ -639,7 +688,10 @@ class DSProposalV2ExpGen(ExpGen):
             exp.pending_tasks_list.append([workflow_task])
         return exp
 
-    def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
+    def gen(self, trace: DSTrace) -> DSExperiment:
+        pipeline = DS_RD_SETTING.coder_on_whole_pipeline
+        if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
+            return draft_exp
 
         if pipeline:
             component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
@@ -683,38 +735,14 @@ class DSProposalV2ExpGen(ExpGen):
         else:
             inject_diverse = False
 
-        if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
-            if len(trace.current_selection) == 0:
-                # start a new sub-trace, and inject diverse problems.
-                inject_diverse = True
-                logger.info("Start a new sub-trace, and inject diverse problems.")
-            else:
-                inject_diverse = False
-        else:
-            inject_diverse = False
-
         # Step 1: Identify problems
-        current_sub_trace = trace.collect_all_ancestors(selection=(-1,))
-        all_problems = {}
-        if len(current_sub_trace) >= 3:
-            fb_problems = self.identify_feedback_problem(
-                scenario_desc=scenario_desc,
-                exp_feedback_list_desc=exp_feedback_list_desc,
-                sota_exp_desc=sota_exp_desc,
-                inject_diverse=inject_diverse,
-            )
-            for problem_name in fb_problems:
-                fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
-                all_problems[problem_name] = fb_problems[problem_name]
-
-        if len(current_sub_trace) < 9:
-            scen_problems = self.identify_scenario_problem(
-                scenario_desc=scenario_desc,
-                sota_exp_desc=sota_exp_desc,
-            )
-            for problem_name in scen_problems:
-                scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
-                all_problems[problem_name] = scen_problems[problem_name]
+        all_problems = self.identify_problem(
+            current_sub_trace=trace.collect_all_ancestors(),
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+            inject_diverse=inject_diverse,
+        )
 
         # Step 1.5: Sample ideas from idea pool
         if DS_RD_SETTING.enable_knowledge_base:
@@ -757,7 +785,6 @@ class DSProposalV2ExpGen(ExpGen):
         pickled_problem_name, new_hypothesis = self.hypothesis_rank(
             hypothesis_dict=hypothesis_dict,
             problem_dict=all_problems,
-            trace=trace,
         )
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
@@ -964,7 +991,11 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             )
         return result
 
-    def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
+    def gen(self, trace: DSTrace) -> DSExperiment:
+        pipeline = DS_RD_SETTING.coder_on_whole_pipeline
+        if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
+            return draft_exp
+
         if pipeline:
             component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
         else:

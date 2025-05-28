@@ -24,9 +24,11 @@ exp_feedback:
       - Consistent prediction methodologies between validation and test datasets.
       - No shortcuts or fold-specific strategies applied inconsistently.
       - Rigorous checks for corner-case consistency.
+      - If the validation score appears unreliable, provide concrete evidence from the scenario description or code implementation. Do not rely on assumptions without direct supporting evidence.
     - Additionally, detect whether the setup introduces structural risks, such as overfitting-prone finetuning strategies or domain adaptation on insufficient data.
+      - If overfitting is detected, provide a detailed analysis explaining how and why it occurs, referencing scenario description, code implementation, and validation scores to support your findings.
     - If such discrepancies or risks are found:
-      - Clearly document these issues in `Reasoning`.
+      - Clearly document these issues in `Reasoning`, referencing both scenario description and code implementation—not just validation scores.
       - Set `"Evaluation Aligned With Task": "no"` and `"Replace Best Result": "no"`.
       - Begin your `reasoning` with `[Evaluation error]`, explicitly stating the evaluation alignment issues causing experiment failure.
     - If evaluation alignment passes, set `"Evaluation Aligned With Task": "yes"`, and then proceed to Step 3.
@@ -42,6 +44,7 @@ exp_feedback:
     - NOTES:
       - The experiments focus on the comparison of the final ensemble results (Don't reject the results because they are still not perfect)
       - If the `ensemble` score does not exceed the best individual mode or single fold, it is still acceptable unless the gap is significant.
+    
     Step 4: Analyze Code With Similar validation Results
     - If the current `ensemble` validation score is similar to the SOTA `ensemble` validation score, give the decision based on the comparison between the current experiment and SOTA.
     - The current code should replace the best result if the code is:
@@ -50,13 +53,13 @@ exp_feedback:
       - Interpretable and domain alignment. The code should be tied to solid domain knowledge and be interpretable.
       - More resource efficiency. The code should be more efficient in terms of time and space complexity.
     - Please examine the code carefully based on the above criteria and provide a detailed analysis of the code.
-    - Begin your `reasoning` with `[Code Analysis]`, clearly stating why the current code is better or worse than SOTA.
+    - Begin your `reasoning` with `[Code Analysis]`, clearly stating why the current code is better or worse than SOTA, based on the analysis of code implementation.
     - If the current code is not better than SOTA, set `"Replace Best Result": "no"`. Otherwise, set `"Replace Best Result": "yes"`.
  
     Provide detailed and constructive feedback structured as follows:
     Example JSON Structure for Result Analysis:
     {
-      "Observations": "Clearly summarize current and SOTA ensemble results with exact scores and notable patterns. Limit to no more than three concise, data-focused sentences.",
+      "Observations": "Clearly summarize current and SOTA ensemble results with exact scores and notable patterns. Limit to no more than three concise, data-focused sentences. Your observation must be grounded by explicit evidence from scenario description or code implementation, not just validation scores.",
       "Feedback for Hypothesis": Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences.",
       "Evaluation Aligned With Task": "yes or no",
       "Replace Best Result": "yes or no",

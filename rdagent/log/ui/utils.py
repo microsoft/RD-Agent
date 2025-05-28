@@ -13,6 +13,7 @@ from rdagent.core.utils import cache_with_pickle
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.utils import extract_json
 from rdagent.oai.llm_utils import md5_hash
+from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 
 LITE = [
     "aerial-cactus-identification",
@@ -215,6 +216,25 @@ def _log_folders_summary_hash_func(log_folders: list[str], hours: int | None = N
 
 @cache_with_pickle(_log_folders_summary_hash_func, force=True)
 def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[dict, pd.DataFrame]:
+    """Process experiment logs and generate summary DataFrame.
+
+    Several key metrics that need explanation:
+
+    * Successful Final Decision: Percentage of experiment loops where code executed correctly
+      and produced expected output, as determined by evaluation feedback
+
+    * Best Result: The highest achievement level reached by any experiment throughout the entire
+      process, ranging from lowest to highest: made_submission, valid_submission, above_median,
+      bronze, silver, gold
+
+    * SOTA Exp: Version found by working backward from the last attempt to find the most recent
+      successful experiment
+
+    * SOTA Exp (_to_submit): Version selected by LLM from all successful experiments for
+      competition submission, considering not only scores but also generalization ability
+      and overfitting risk, totally decided by LLM
+
+    """
     summarys = {}
     if hours is None:
         sn = "summary.pkl"
@@ -259,7 +279,7 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             else:
                 v["sota_exp_score_valid"] = None
             v["sota_exp_stat_new"] = get_sota_exp_stat(Path(lf) / k)
-            # 调整实验名字
+            # change experiment name
             if "amlt" in lf:
                 summary[f"{lf[lf.rfind('amlt')+5:].split('/')[0]} - {k}"] = v
             elif "ep" in lf:
@@ -374,7 +394,10 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
 
     base_df["SOTA Exp"] = base_df["SOTA Exp"].replace("", pd.NA)
 
-    base_df.loc[base_df["SOTA Exp Score (valid)"].apply(lambda x: isinstance(x, str)), "SOTA Exp Score (valid)"] = 0.0
+    base_df.loc[
+        base_df["SOTA Exp Score (valid)"].apply(lambda x: isinstance(x, str)),
+        "SOTA Exp Score (valid)",
+    ] = 0.0
     base_df = base_df.astype(
         {
             "Total Loops": int,
@@ -524,6 +547,7 @@ def compare(
     exp_list: list[str] = typer.Option(..., "--exp-list", help="List of experiment names.", show_default=False),
     output: str = typer.Option("merge_base_df.h5", help="Output summary file name."),
     hours: int | None = typer.Option(None, help="if None, use summary.pkl, else summary_{hours}h.pkl"),
+    select_best: bool = typer.Option(False, help="Select best experiment for each competition."),
 ):
     """
     Generate summary and base dataframe for given experiment list, and save to a summary file.
@@ -531,6 +555,23 @@ def compare(
     typer.secho(f"exp_list: {exp_list}", fg=typer.colors.GREEN)
     log_folders = [f"{UI_SETTING.amlt_path}/{exp}/combined_logs" for exp in exp_list]
     summary, base_df = get_summary_df(log_folders, hours=hours)
+    if select_best:
+
+        def apply_func(cdf: pd.DataFrame):
+            cp = cdf["Competition"].values[0]
+            md = get_metric_direction(cp)
+            # If SOTA Exp Score (valid) column is empty, return the first index
+            if cdf["SOTA Exp Score (valid)"].dropna().empty:
+                return cdf.index[0]
+            if md:
+                best_idx = cdf["SOTA Exp Score (valid)"].idxmax()
+            else:
+                best_idx = cdf["SOTA Exp Score (valid)"].idxmin()
+            return best_idx
+
+        best_idxs = base_df.groupby("Competition").apply(apply_func)
+        base_df = base_df[base_df.index.isin(best_idxs.values)]
+        summary = {k: v for k, v in summary.items() if k in best_idxs.values.tolist()}
     typer.secho(f"Summary keys: {list(summary.keys())}", fg=typer.colors.CYAN)
     typer.secho("Summary DataFrame:", fg=typer.colors.MAGENTA)
     typer.secho(str(base_df), fg=typer.colors.YELLOW)
