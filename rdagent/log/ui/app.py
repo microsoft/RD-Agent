@@ -368,6 +368,9 @@ def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, b
         df.drop(["concise_reason"], axis=1, inplace=True)
 
     df.columns = df.columns.map(lambda x: name_dict.get(x, x))
+    for col in list(df.columns):
+        if all([value is None for value in df[col]]):
+            df.drop([col], axis=1, inplace=True)
 
     def style_rows(row):
         if decisions[row.name]:
