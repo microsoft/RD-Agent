@@ -119,11 +119,10 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
         resp_dict = json.loads(response)
         return resp_dict
 
-    def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
+    def gen(self, trace: DSTrace) -> DSExperiment:
         # Ignore the selection argument and use all leaves instead.
         leaves: list[int] = trace.get_leaves()
-        sota_exp_fb = trace.sota_experiment_fb(selection=selection)
-        trace.set_current_selection(selection)  # override the current selection.
+        sota_exp_fb = trace.sota_experiment_fb(selection=trace.current_selection)
         exp_index = leaves[1] if selection[0] == leaves[0] else leaves[0]
 
         exp_to_merge_fb = trace.sota_experiment_fb(selection=(exp_index,))
@@ -368,7 +367,6 @@ class ExpGen2TraceAndMergeV3(ExpGen):
                     # set the knowledge base option back to False for the other traces
                     DS_RD_SETTING.enable_knowledge_base = False
             return self.exp_gen.gen(trace)
-
         else:
             # disable reset in merging stage
             DS_RD_SETTING.coding_fail_reanalyze_threshold = 100000
