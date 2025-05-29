@@ -53,7 +53,7 @@ You can inspect the detailed runs of the above results online.
 
 For running R&D-Agent on MLE-bench, refer to **[MLE-bench Guide: Running ML Engineering via MLE-bench](https://rdagent.readthedocs.io/en/latest/scens/data_science.html)**
 
-# 🥇 The First Data-Centric Quant Multi-Agent!
+# 🥇 The First Data-Centric Quant Multi-Agent Framework!
 
 R&D-Agent for Quantitative Finance, in short **RD-Agent(Q)**, is the first data-centric, multi-agent framework designed to automate the full-stack research and development of quantitative strategies via coordinated factor-model co-optimization.
 
