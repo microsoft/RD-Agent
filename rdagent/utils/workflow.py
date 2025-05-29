@@ -197,7 +197,7 @@ class LoopBase:
                                     for p in prev_session_dir.glob("*_*")
                                     if p.is_file()
                                 ),
-                                key=lambda item: item[0],
+                                key=lambda item: int(p.name.split("_", 1)[0]),
                                 default=(None, None),
                             )[1]
                             if prev_path:
@@ -208,7 +208,7 @@ class LoopBase:
                                     replace_timer=True,
                                 )
                                 # Overwrite current instance state
-                                self.__dict__.update(loaded.__dict__)
+                                self.__dict__ = loaded.__dict__
                                 # Continue to next iteration (will restart current loop)
                                 continue
                             else:
