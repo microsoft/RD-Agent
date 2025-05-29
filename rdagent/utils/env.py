@@ -826,7 +826,7 @@ class QTDockerEnv(DockerEnv):
     def __init__(self, conf: DockerConf = QlibDockerConf()):
         super().__init__(conf)
 
-    def prepare(self, *args, **kwargs) -> None:  # type: ignore[explicit-override, no-untyped-def]
+    def prepare(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
         """
         Download image & data if it doesn't exist
         """
