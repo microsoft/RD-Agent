@@ -16,8 +16,8 @@ from typing import Any, Optional, cast
 
 import numpy as np
 import openai
-from openai.types.chat import ChatCompletion
 import tiktoken
+from openai.types.chat import ChatCompletion
 
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass, import_class
 from rdagent.log import LogColors
