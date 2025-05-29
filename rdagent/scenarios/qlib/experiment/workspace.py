@@ -7,7 +7,7 @@ import pandas as pd
 from rdagent.app.qlib_rd_loop.conf import QLIB_RUNNER_SETTINGS
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
-from rdagent.utils.env import QlibCondaEnv, QTDockerEnv
+from rdagent.utils.env import QlibCondaEnv, QTDockerEnv, QlibCondaConf
 
 
 class QlibFBWorkspace(FBWorkspace):
@@ -19,7 +19,7 @@ class QlibFBWorkspace(FBWorkspace):
         if QLIB_RUNNER_SETTINGS.env_type == "docker":
             qtde = QTDockerEnv()
         elif QLIB_RUNNER_SETTINGS.env_type == "conda":
-            qtde = QlibCondaEnv()
+            qtde = QlibCondaEnv(conf=QlibCondaConf())
         else:
             logger.error(f"Unknown env_type: {QLIB_RUNNER_SETTINGS.env_type}")
             return None, "Unknown environment type"
