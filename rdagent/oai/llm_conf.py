@@ -19,6 +19,10 @@ class LLMSettings(ExtendedBaseSettings):
 
     # Handling format
     reasoning_think_rm: bool = False
+    """
+    Some LLMs include <think>...</think> tags in their responses, which can interfere with the main output.
+    Set reasoning_think_rm to True to remove any <think>...</think> content from responses.
+    """
 
     # TODO: most of the settings are only used on deprec.DeprecBackend.
     # So they should move the settings to that folder.
