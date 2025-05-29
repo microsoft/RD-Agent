@@ -21,7 +21,7 @@ from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.exception import CoderError, RunnerError
+from rdagent.core.exception import CoderError, PolicyError, RunnerError
 from rdagent.core.proposal import ExperimentFeedback, ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
@@ -36,6 +36,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledg
 class DataScienceRDLoop(RDLoop):
     # NOTE: we move the DataScienceRDLoop here to be easier to be imported
     skip_loop_error = (CoderError, RunnerError)
+    withdraw_loop_error = (PolicyError,)
 
     @staticmethod
     def _get_exp_gen(class_uri: str, scen: Scenario):
