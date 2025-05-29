@@ -535,7 +535,7 @@ class QlibCondaConf(CondaConf):
                 shell=True,
             )
             if result.returncode == 0:
-                self.bin_path = result.stdout.strip().split(":")[0]
+                self.bin_path = result.stdout.strip().split(":")[1]
             else:
                 self.bin_path = ""
         except Exception as e:
