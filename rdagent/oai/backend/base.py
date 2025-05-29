@@ -411,7 +411,6 @@ class APIBackend(ABC):
     def _create_chat_completion_auto_continue(
         self,
         messages: list[dict[str, Any]],
-        *args: Any,
         json_mode: bool = False,
         chat_cache_prefix: str = "",
         seed: Optional[int] = None,
@@ -449,7 +448,6 @@ class APIBackend(ABC):
             response, finish_reason = self._create_chat_completion_inner_function(
                 messages=new_messages,
                 json_mode=json_mode,
-                *args,
                 **kwargs,
             )
             all_response += response

@@ -139,7 +139,6 @@ class LiteLLMAPIBackend(APIBackend):
             cost = completion_cost(model=model, messages=messages, completion=content)
         except Exception as e:
             logger.warning(f"Cost calculation failed for model {model}: {e}. Skip cost statistics.")
-            cost = None
         else:
             ACC_COST += cost
             logger.info(
