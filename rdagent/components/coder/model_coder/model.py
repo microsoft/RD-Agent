@@ -5,10 +5,11 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from rdagent.components.coder.CoSTEER.task import CoSTEERTask
+from rdagent.components.coder.model_coder.conf import MODEL_COSTEER_SETTINGS
 from rdagent.core.experiment import Experiment, FBWorkspace
 from rdagent.core.utils import cache_with_pickle
 from rdagent.oai.llm_utils import md5_hash
-from rdagent.utils.env import KGDockerEnv, QTDockerEnv
+from rdagent.utils.env import KGDockerEnv, QlibCondaConf, QlibCondaEnv, QTDockerEnv
 
 
 class ModelTask(CoSTEERTask):
@@ -112,7 +113,15 @@ class ModelFBWorkspace(FBWorkspace):
     ):
         self.before_execute()
         try:
-            qtde = QTDockerEnv() if self.target_task.version == 1 else KGDockerEnv()
+            if self.target_task.version == 1:
+                if MODEL_COSTEER_SETTINGS.env_type == "docker":
+                    qtde = QTDockerEnv()
+                elif MODEL_COSTEER_SETTINGS.env_type == "conda":
+                    qtde = QlibCondaEnv(conf=QlibCondaConf())
+                else:
+                    raise ValueError(f"Unknown env_type: {MODEL_COSTEER_SETTINGS.env_type}")
+            else:
+                qtde = KGDockerEnv()
             qtde.prepare()
 
             if self.target_task.version == 1:

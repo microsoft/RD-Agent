@@ -114,17 +114,7 @@ class QuantBasePropSetting(BasePropSetting):
     """Action selection strategy: 'bandit' for bandit-based selection, 'llm' for LLM-based selection, 'random' for random selection"""
 
 
-class QlibRunnerSettings(BasePropSetting):
-    """Qlib runner settings"""
-
-    model_config = SettingsConfigDict(env_prefix="QLIB_RUNNER_", protected_namespaces=())
-
-    env_type: str = "conda"  # or "docker"
-    """Environment to run the runner: 'conda' for local conda env, 'docker' for Docker container"""
-
-
 FACTOR_PROP_SETTING = FactorBasePropSetting()
 FACTOR_FROM_REPORT_PROP_SETTING = FactorFromReportPropSetting()
 MODEL_PROP_SETTING = ModelBasePropSetting()
 QUANT_PROP_SETTING = QuantBasePropSetting()
-QLIB_RUNNER_SETTINGS = QlibRunnerSettings()

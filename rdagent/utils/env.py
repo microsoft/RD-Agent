@@ -308,6 +308,32 @@ class Env(Generic[ASpecificEnvConf]):
         """
         pass
 
+    def dump_python_code_run_and_get_results(
+        self,
+        code: str,
+        dump_file_names: list[str],
+        local_path: str,
+        env: dict | None = None,
+        running_extra_volume: Mapping = MappingProxyType({}),
+        code_dump_file_py_name: Optional[str] = None,
+    ) -> tuple[str, list]:
+        """
+        Dump the code into the local path and run the code.
+        """
+        random_file_name = f"{uuid.uuid4()}.py" if code_dump_file_py_name is None else f"{code_dump_file_py_name}.py"
+        with open(os.path.join(local_path, random_file_name), "w") as f:
+            f.write(code)
+        entry = f"python {random_file_name}"
+        log_output = self.run(entry, local_path, env, running_extra_volume=dict(running_extra_volume))
+        results = []
+        os.remove(os.path.join(local_path, random_file_name))
+        for name in dump_file_names:
+            if os.path.exists(os.path.join(local_path, f"{name}")):
+                results.append(pickle.load(open(os.path.join(local_path, f"{name}"), "rb")))
+                os.remove(os.path.join(local_path, f"{name}"))
+            else:
+                return log_output, []
+        return log_output, results
 
 # class EnvWithCache
 #
@@ -791,33 +817,6 @@ class DockerEnv(Env[DockerConf]):
             raise RuntimeError("Docker image not found.")
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while running the container: {e}")
-
-    def dump_python_code_run_and_get_results(
-        self,
-        code: str,
-        dump_file_names: list[str],
-        local_path: str,
-        env: dict | None = None,
-        running_extra_volume: Mapping = MappingProxyType({}),
-        code_dump_file_py_name: Optional[str] = None,
-    ) -> tuple[str, list]:
-        """
-        Dump the code into the local path and run the code.
-        """
-        random_file_name = f"{uuid.uuid4()}.py" if code_dump_file_py_name is None else f"{code_dump_file_py_name}.py"
-        with open(os.path.join(local_path, random_file_name), "w") as f:
-            f.write(code)
-        entry = f"python {random_file_name}"
-        log_output = self.run(entry, local_path, env, running_extra_volume=dict(running_extra_volume))
-        results = []
-        os.remove(os.path.join(local_path, random_file_name))
-        for name in dump_file_names:
-            if os.path.exists(os.path.join(local_path, f"{name}")):
-                results.append(pickle.load(open(os.path.join(local_path, f"{name}"), "rb")))
-                os.remove(os.path.join(local_path, f"{name}"))
-            else:
-                return log_output, []
-        return log_output, results
 
 
 class QTDockerEnv(DockerEnv):
