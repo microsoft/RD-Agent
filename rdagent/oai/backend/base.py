@@ -330,6 +330,7 @@ class APIBackend(ABC):
         *args,
         **kwargs,
     ) -> str | list[list[float]]:
+        """This function to share operation between embedding and chat completion"""
         assert not (chat_completion and embedding), "chat_completion and embedding cannot be True at the same time"
         max_retry = LLM_SETTINGS.max_retry if LLM_SETTINGS.max_retry is not None else max_retry
         timeout_count = 0
@@ -397,38 +398,31 @@ class APIBackend(ABC):
         error_message = f"Failed to create chat completion after {max_retry} retries."
         raise RuntimeError(error_message)
 
-    def _create_chat_completion_add_json_in_prompt(
-        self,
-        messages: list[dict[str, Any]],
-        add_json_in_prompt: bool = False,
-        json_mode: bool = False,
-        *args: Any,
-        **kwargs: Any,
-    ) -> tuple[str, str | None]:
+    def _add_json_in_prompt(self, messages: list[dict[str, Any]]) -> None:
         """
         add json related content in the prompt if add_json_in_prompt is True
         """
-        if json_mode and add_json_in_prompt:
-            for message in messages[::-1]:
-                message["content"] = message["content"] + "\nPlease respond in json format."
-                if message["role"] == LLM_SETTINGS.system_prompt_role:
-                    # NOTE: assumption: systemprompt is always the first message
-                    break
-        return self._create_chat_completion_inner_function(messages=messages, json_mode=json_mode, *args, **kwargs)  # type: ignore[misc]
+        for message in messages[::-1]:
+            message["content"] = message["content"] + "\nPlease respond in json format."
+            if message["role"] == LLM_SETTINGS.system_prompt_role:
+                # NOTE: assumption: systemprompt is always the first message
+                break
 
     def _create_chat_completion_auto_continue(
         self,
         messages: list[dict[str, Any]],
-        *args: Any,
         json_mode: bool = False,
         chat_cache_prefix: str = "",
         seed: Optional[int] = None,
         json_target_type: Optional[str] = None,
+        add_json_in_prompt: bool = False,
         **kwargs: Any,
     ) -> str:
         """
         Call the chat completion function and automatically continue the conversation if the finish_reason is length.
         """
+
+        # 0) return directly if cache is hit
         if seed is None and LLM_SETTINGS.use_auto_chat_cache_seed_gen:
             seed = LLM_CACHE_SEED_GEN.get_next_seed()
         input_content_json = json.dumps(messages)
@@ -443,31 +437,43 @@ class APIBackend(ABC):
                     logger.info(f"{LogColors.CYAN}Response:{cache_result}{LogColors.END}", tag="llm_messages")
                 return cache_result
 
+        # 1) get a full response
         all_response = ""
         new_messages = deepcopy(messages)
+        # Loop to get a full response
         try_n = 6
         for _ in range(try_n):  # for some long code, 3 times may not enough for reasoning models
-            if "json_mode" in kwargs:
-                del kwargs["json_mode"]
-            response, finish_reason = self._create_chat_completion_add_json_in_prompt(
-                new_messages, json_mode=json_mode, *args, **kwargs
-            )  # type: ignore[misc]
+            if json_mode and add_json_in_prompt:
+                self._add_json_in_prompt(new_messages)
+            response, finish_reason = self._create_chat_completion_inner_function(
+                messages=new_messages,
+                json_mode=json_mode,
+                **kwargs,
+            )
             all_response += response
             if finish_reason is None or finish_reason != "length":
-                if json_mode:
-                    try:
-                        json.loads(all_response)
-                    except:
-                        match = re.search(r"```json(.*)```", all_response, re.DOTALL)
-                        all_response = match.groups()[0] if match else all_response
-                        json.loads(all_response)
-                if json_target_type is not None:
-                    TypeAdapter(json_target_type).validate_json(all_response)
-                if self.dump_chat_cache:
-                    self.cache.chat_set(input_content_json, all_response)
-                return all_response
+                break  # we get a full response now.
             new_messages.append({"role": "assistant", "content": response})
-        raise RuntimeError(f"Failed to continue the conversation after {try_n} retries.")
+        else:
+            raise RuntimeError(f"Failed to continue the conversation after {try_n} retries.")
+
+        # 2) refine the response and return
+        if LLM_SETTINGS.reasoning_think_rm:
+            match = re.search(r"<think>(.*?)</think>(.*)", all_response, re.DOTALL)
+            _, all_response = match.groups() if match else ("", all_response)
+
+        if json_mode:
+            try:
+                json.loads(all_response)
+            except json.decoder.JSONDecodeError:
+                match = re.search(r"```json(.*)```", all_response, re.DOTALL)
+                all_response = match.groups()[0] if match else all_response
+                json.loads(all_response)
+        if json_target_type is not None:
+            TypeAdapter(json_target_type).validate_json(all_response)
+        if self.dump_chat_cache:
+            self.cache.chat_set(input_content_json, all_response)
+        return all_response
 
     def _create_embedding_with_cache(
         self, input_content_list: list[str], *args: Any, **kwargs: Any
