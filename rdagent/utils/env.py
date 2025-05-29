@@ -514,7 +514,7 @@ class QlibCondaEnv(LocalEnv[QlibCondaConf]):
                     shell=True,
                 )
                 subprocess.check_call(
-                    f"conda run -n {self.conf.conda_env_name} bash -c 'cd qlib && git reset --hard 3e72593b8c985f01979bebcf646658002ac43b00 && pip install -e .'",
+                    f"conda run -n {self.conf.conda_env_name} bash -c 'cd qlib && git reset --hard 3e72593b8c985f01979bebcf646658002ac43b00 && make dev .'",
                     shell=True,
                 )
                 subprocess.check_call(
@@ -523,21 +523,6 @@ class QlibCondaEnv(LocalEnv[QlibCondaConf]):
                 )
         except Exception as e:
             print(f"[red]Failed to prepare conda env: {e}[/red]")
-
-        try:
-            result = subprocess.run(
-                f"conda run -n {self.conf.conda_env_name} python -c \"import os; print(os.environ['PATH'])\"",
-                capture_output=True,
-                text=True,
-                shell=True,
-            )
-            if result.returncode == 0:
-                self.conf.bin_path = result.stdout.strip().split(":")[0]
-            else:
-                self.conf.bin_path = ""
-        except Exception as e:
-            print(f"[red]Failed to get env PATH: {e}[/red]")
-            self.conf.bin_path = ""
 
 
 class QlibDockerConf(DockerConf):

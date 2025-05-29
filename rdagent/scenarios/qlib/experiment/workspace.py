@@ -7,7 +7,7 @@ import pandas as pd
 from rdagent.app.qlib_rd_loop.conf import QLIB_RUNNER_SETTINGS
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
-from rdagent.utils.env import QlibCondaEnv, QTDockerEnv, QlibCondaConf
+from rdagent.utils.env import QlibCondaConf, QlibCondaEnv, QTDockerEnv
 
 
 class QlibFBWorkspace(FBWorkspace):
