@@ -447,11 +447,14 @@ class APIBackend(ABC):
             if json_mode and add_json_in_prompt:
                 self._add_json_in_prompt(new_messages)
             response, finish_reason = self._create_chat_completion_inner_function(
-                messages=new_messages, json_mode=json_mode, *args, **kwargs,
+                messages=new_messages,
+                json_mode=json_mode,
+                *args,
+                **kwargs,
             )
             all_response += response
             if finish_reason is None or finish_reason != "length":
-                break # we get a full response now.
+                break  # we get a full response now.
             new_messages.append({"role": "assistant", "content": response})
         else:
             raise RuntimeError(f"Failed to continue the conversation after {try_n} retries.")

@@ -140,15 +140,12 @@ class LiteLLMAPIBackend(APIBackend):
         except Exception as e:
             logger.warning(f"Cost calculation failed for model {model}: {e}. Skip cost statistics.")
             cost = None
-
-        if cost is not None:
+        else:
             ACC_COST += cost
             logger.info(
                 f"Current Cost: ${float(cost):.10f}; Accumulated Cost: ${float(ACC_COST):.10f}; {finish_reason=}",
             )
-        else:
-            logger.info(f"This model {model} cannot calculate cost, skip cost statistics.")
-        
+
         prompt_tokens = token_counter(model=model, messages=messages)
         completion_tokens = token_counter(model=model, text=content)
         logger.log_object(
