@@ -1,7 +1,6 @@
+import qlib
 from mlflow.entities import ViewType
 from mlflow.tracking import MlflowClient
-
-import qlib
 
 qlib.init()
 
