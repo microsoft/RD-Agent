@@ -189,31 +189,9 @@ class LoopBase:
                         elif isinstance(e, self.withdraw_loop_error):
                             logger.warning(f"Withdraw loop {li} due to {e}")
                             # Reload the last successful state for this step
-                            # Construct the path to the last dump
-                            prev_session_dir = self.session_folder / str(li - 1)
-                            prev_path = min(
-                                (
-                                    (int(p.name.split("_", 1)[0]), p)
-                                    for p in prev_session_dir.glob("*_*")
-                                    if p.is_file()
-                                ),
-                                key=lambda item: int(p.name.split("_", 1)[0]),
-                                default=(None, None),
-                            )[1]
-                            if prev_path:
-                                loaded = type(self).load(
-                                    prev_path,
-                                    output_path=self.session_folder.parent,
-                                    do_truncate=False,
-                                    replace_timer=True,
-                                )
-                                # Overwrite current instance state
-                                self.__dict__ = loaded.__dict__
-                                # Continue to next iteration (will restart current loop)
-                                continue
-                            else:
-                                logger.error(f"No previous dump found at {prev_session_dir}, cannot withdraw loop {li}")
-                                raise
+                            self.step_backward(li - 1)
+                            # Continue to next iteration (will restart current loop)
+                            continue
                         else:
                             raise
                     finally:
@@ -237,6 +215,27 @@ class LoopBase:
                     pbar.reset()  # reset the progress bar for the next loop
 
                 self.dump(self.session_folder / f"{li}" / f"{si}_{name}")  # save a snapshot after the session
+
+    def step_backward(self, li: int) -> None:
+        prev_session_dir = self.session_folder / str(li)
+        prev_path = min(
+            (p for p in prev_session_dir.glob("*_*") if p.is_file()),
+            key=lambda item: int(item.name.split("_", 1)[0]),
+            default=None,
+        )
+        if prev_path:
+            loaded = type(self).load(
+                prev_path,
+                output_path=self.session_folder.parent,
+                do_truncate=False,
+                replace_timer=True,
+            )
+            logger.info(f"Load previous session from {prev_path}")
+            # Overwrite current instance state
+            self.__dict__ = loaded.__dict__
+        else:
+            logger.error(f"No previous dump found at {prev_session_dir}, cannot withdraw loop {li}")
+            raise
 
     def dump(self, path: str | Path) -> None:
         if RD_Agent_TIMER_wrapper.timer.started:
