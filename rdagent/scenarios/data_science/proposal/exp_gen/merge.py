@@ -252,7 +252,9 @@ class MergeExpGen_MultiTrace(ExpGen):
             )
 
             success_fb_list = trace.experiment_and_feedback_list_after_init(
-                return_type="sota", search_type="ancestors", selection=(leaves[i],)
+                return_type="sota",
+                search_type="ancestors",
+                selection=(leaves[i],),
             )
             if len(success_fb_list) > 0:
                 exp_to_merge_fb_desc = T("scenarios.data_science.share:describe.trace").r(
@@ -401,7 +403,9 @@ class ExpGen2TraceAndMergeV3(ExpGen):
                         if abs(current_exp_value - sota_submit_value) < abs(current_exp_value - sota_feedback_value):
                             selection = (leaves[1],)
                     if sota_exp_fb[0].result is None and exp_to_merge_fb[0].result is not None:
-                        logger.info(f"{leaves[0]} result is None, change selection to {leaves[1]}, result is {exp_to_merge_fb[0].result}")
+                        logger.info(
+                            f"{leaves[0]} result is None, change selection to {leaves[1]}, result is {exp_to_merge_fb[0].result}"
+                        )
                         selection = (leaves[1],)
                 except Exception as e:
                     logger.error(f"Get best selection failed: {e}")

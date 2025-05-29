@@ -25,36 +25,6 @@ class LatestCKPSelector(CheckpointSelector):
         return (-1,)
 
 
-class BestCKPSelector(CheckpointSelector):
-    """
-    -`(-1, )` represents starting from the best trial in the trace
-    """
-
-    def __init__(
-        self,
-    ):
-        logger.info(f"Using best selector")
-
-    def get_selection(self, trace: Trace) -> tuple[int, ...]:
-        leaves: list[int] = trace.get_leaves()
-        sota_exp_fb = trace.sota_experiment_fb(selection=(leaves[0],))
-        if sota_exp_fb is None:
-            sota_exp_fb = trace.hist[leaves[0]]
-        try:
-            if (
-                trace.sota_exp_to_submit is not None
-                and sota_exp_fb[0].result is not None
-                and trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0]
-                != sota_exp_fb[0].result.loc["ensemble"].iloc[0]
-            ):
-                return (leaves[1],)
-
-            return (leaves[0],)
-        except Exception as e:
-            logger.error(f"Get best selection failed: {e}")
-        return (-1,)
-
-
 class LimitTimeCKPSelector(CheckpointSelector):
     """
     recore the time of current sub-trace, and jump to a new sub-trace if the time is up
@@ -119,11 +89,11 @@ class LimitTimeCKPSelector(CheckpointSelector):
                 return (-1,)
 
             # Time limit exceeded, start a new sub-trace
-            self.sub_trace_start_times[trace.sub_trace_count + 1] = current_time
+            self.sub_trace_start_times[trace.sub_trace_count] = current_time
             logger.info(
                 f"Elapsed time {elapsed_time} exceeds time limit {self.time_limit_pre_trace}, jump to a new sub-trace"
             )
-            logger.info(f"current sub-trace count: {trace.sub_trace_count + 1}")
+            logger.info(f"current sub-trace count: {trace.sub_trace_count}")
             return tuple()  # Empty tuple signals starting a new sub-trace
 
 
@@ -169,7 +139,7 @@ class SOTAJumpCKPSelector(CheckpointSelector):
                 logger.info(
                     f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump to a new sub-trace"
                 )
-                logger.info(f"current sub-trace count: {trace.sub_trace_count + 1}")
+                logger.info(f"current sub-trace count: {trace.sub_trace_count}")
                 return ()
             else:
                 logger.info(
@@ -256,7 +226,7 @@ class BackJumpCKPSelector(CheckpointSelector):
                         logger.info(
                             f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump a new sub-trace"
                         )
-                        logger.info(f"current sub-trace count: {trace.sub_trace_count + 1}")
+                        logger.info(f"current sub-trace count: {trace.sub_trace_count}")
                         return ()  # reboot a new sub-trace
 
             else:
