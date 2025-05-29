@@ -3,22 +3,26 @@ from pathlib import Path
 from typing import Dict
 
 import pandas as pd
-from jinja2 import Environment, StrictUndefined
 
 from rdagent.core.experiment import Experiment
-from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import (
     Experiment2Feedback,
-    Hypothesis,
     HypothesisFeedback,
     Trace,
 )
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.qlib.experiment.quant_experiment import QlibQuantScenario
 from rdagent.utils import convert2bool
+from rdagent.utils.agent.tpl import T
 
-feedback_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
+
+IMPORTANT_METRICS = [
+    "IC",
+    "1day.excess_return_with_cost.annualized_return",
+    "1day.excess_return_with_cost.max_drawdown",
+]
 
 
 def process_results(current_result, sota_result):
@@ -37,24 +41,18 @@ def process_results(current_result, sota_result):
     # Combine the dataframes on the Metric index
     combined_df = pd.concat([current_df, sota_df], axis=1)
 
-    # Select important metrics for comparison
-    important_metrics = [
-        "1day.excess_return_without_cost.max_drawdown",
-        "1day.excess_return_without_cost.information_ratio",
-        "1day.excess_return_without_cost.annualized_return",
-        "IC",
-    ]
-
     # Filter the combined DataFrame to retain only the important metrics
-    filtered_combined_df = combined_df.loc[important_metrics]
+    filtered_combined_df = combined_df.loc[IMPORTANT_METRICS]
 
-    filtered_combined_df[
-        "Bigger columns name (Didn't consider the direction of the metric, you should judge it by yourself that bigger is better or smaller is better)"
-    ] = filtered_combined_df.apply(
-        lambda row: "Current Result" if row["Current Result"] > row["SOTA Result"] else "SOTA Result", axis=1
-    )
+    def format_filtered_combined_df(filtered_combined_df: pd.DataFrame) -> str:
+        results = []
+        for metric, row in filtered_combined_df.iterrows():
+            current = row["Current Result"]
+            sota = row["SOTA Result"]
+            results.append(f"{metric} of Current Result is {current:.6f}, of SOTA Result is {sota:.6f}")
+        return "; ".join(results)
 
-    return filtered_combined_df.to_string()
+    return format_filtered_combined_df(filtered_combined_df)
 
 
 class QlibFactorExperiment2Feedback(Experiment2Feedback):
@@ -81,21 +79,20 @@ class QlibFactorExperiment2Feedback(Experiment2Feedback):
         combined_result = process_results(current_result, sota_result)
 
         # Generate the system prompt
-        sys_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(feedback_prompts["factor_feedback_generation"]["system"])
-            .render(scenario=self.scen.get_scenario_all_desc())
-        )
+        if isinstance(self.scen, QlibQuantScenario):
+            sys_prompt = T("scenarios.qlib.prompts:factor_feedback_generation.system").r(
+                scenario=self.scen.get_scenario_all_desc(action="factor")
+            )
+        else:
+            sys_prompt = T("scenarios.qlib.prompts:factor_feedback_generation.system").r(
+                scenario=self.scen.get_scenario_all_desc()
+            )
 
         # Generate the user prompt
-        usr_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(feedback_prompts["factor_feedback_generation"]["user"])
-            .render(
-                hypothesis_text=hypothesis_text,
-                task_details=tasks_factors,
-                combined_result=combined_result,
-            )
+        usr_prompt = T("scenarios.qlib.prompts:factor_feedback_generation.user").r(
+            hypothesis_text=hypothesis_text,
+            task_details=tasks_factors,
+            combined_result=combined_result,
         )
 
         # Call the APIBackend to generate the response for hypothesis feedback
@@ -126,40 +123,58 @@ class QlibFactorExperiment2Feedback(Experiment2Feedback):
 
 
 class QlibModelExperiment2Feedback(Experiment2Feedback):
-    """Generated feedbacks on the hypothesis from **Executed** Implementations of different tasks & their comparisons with previous performances"""
-
     def generate_feedback(self, exp: Experiment, trace: Trace) -> HypothesisFeedback:
         """
-        The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
-        For example: `mlflow` of Qlib will be included.
+        Generate feedback for the given experiment and hypothesis.
+
+        Args:
+            exp (QlibModelExperiment): The experiment to generate feedback for.
+            hypothesis (QlibModelHypothesis): The hypothesis to generate feedback for.
+            trace (Trace): The trace of the experiment.
+
+        Returns:
+            HypothesisFeedback: The feedback generated for the given experiment and hypothesis.
         """
         hypothesis = exp.hypothesis
         logger.info("Generating feedback...")
-        # Define the system prompt for hypothesis feedback
-        system_prompt = feedback_prompts["model_feedback_generation"]["system"]
 
-        # Define the user prompt for hypothesis feedback
-        context = trace.scen
-        SOTA_hypothesis, SOTA_experiment = trace.get_sota_hypothesis_and_experiment()
-
-        user_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(feedback_prompts["model_feedback_generation"]["user"])
-            .render(
-                context=context,
-                last_hypothesis=SOTA_hypothesis,
-                last_task=SOTA_experiment.sub_tasks[0].get_task_information() if SOTA_hypothesis else None,
-                last_code=SOTA_experiment.sub_workspace_list[0].file_dict.get("model.py") if SOTA_hypothesis else None,
-                last_result=SOTA_experiment.result if SOTA_hypothesis else None,
-                hypothesis=hypothesis,
-                exp=exp,
+        # Generate the system prompt
+        if isinstance(self.scen, QlibQuantScenario):
+            sys_prompt = T("scenarios.qlib.prompts:model_feedback_generation.system").r(
+                scenario=self.scen.get_scenario_all_desc(action="model")
             )
+        else:
+            sys_prompt = T("scenarios.qlib.prompts:factor_feedback_generation.system").r(
+                scenario=self.scen.get_scenario_all_desc()
+            )
+
+        # Generate the user prompt
+        SOTA_hypothesis, SOTA_experiment = trace.get_sota_hypothesis_and_experiment()
+        user_prompt = T("scenarios.qlib.prompts:model_feedback_generation.user").r(
+            sota_hypothesis=SOTA_hypothesis,
+            sota_task=SOTA_experiment.sub_tasks[0].get_task_information() if SOTA_hypothesis else None,
+            sota_code=SOTA_experiment.sub_workspace_list[0].file_dict.get("model.py") if SOTA_hypothesis else None,
+            sota_result=SOTA_experiment.result.loc[IMPORTANT_METRICS] if SOTA_hypothesis else None,
+            hypothesis=hypothesis,
+            exp=exp,
+            exp_result=exp.result.loc[IMPORTANT_METRICS] if exp.result is not None else "execution failed",
         )
+
+        # Call the APIBackend to generate the response for hypothesis feedback
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, str | bool | int],
+        )
+
+        # Parse the JSON response to extract the feedback
+        response_json_hypothesis = json.loads(response)
 
         # Call the APIBackend to generate the response for hypothesis feedback
         response_hypothesis = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
-            system_prompt=system_prompt,
+            system_prompt=sys_prompt,
             json_mode=True,
             json_target_type=Dict[str, str | bool | int],
         )

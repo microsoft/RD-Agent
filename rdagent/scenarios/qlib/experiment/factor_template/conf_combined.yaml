@@ -19,6 +19,18 @@ data_handler_config: &data_handler_config
                         label: 
                             - ["Ref($close, -2)/Ref($close, -1) - 1"]
                             - ["LABEL0"]
+                        feature:
+                            - ["Resi($close, 5)/$close", "Std(Abs($close/Ref($close, 1)-1)*$volume, 5)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 5)+1e-12)",
+                               "Rsquare($close, 5)", "($high-$low)/$open", "Rsquare($close, 10)", "Corr($close, Log($volume+1), 5)",
+                               "Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), 5)", "Corr($close, Log($volume+1), 10)",
+                               "Ref($close, 60)/$close", "Resi($close, 10)/$close", "Std($volume, 5)/($volume+1e-12)",
+                               "Rsquare($close, 60)", "Corr($close, Log($volume+1), 60)", "Std(Abs($close/Ref($close, 1)-1)*$volume, 60)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 60)+1e-12)",
+                               "Std($close, 5)/$close", "Rsquare($close, 20)", "Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), 60)",
+                               "Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), 10)", "Corr($close, Log($volume+1), 20)",
+                               "(Less($open, $close)-$low)/$open"]
+                            - ["RESI5", "WVMA5", "RSQR5", "KLEN", "RSQR10", "CORR5", "CORD5", "CORR10", 
+                               "ROC60", "RESI10", "VSTD5", "RSQR60", "CORR60", "WVMA60", "STD5", 
+                               "RSQR20", "CORD60", "CORD10", "CORR20", "KLOW"]
                 - class: qlib.data.dataset.loader.StaticDataLoader
                   kwargs:
                     config: "combined_factors_df.parquet"

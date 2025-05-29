@@ -11,6 +11,7 @@ import json
 import os
 import pickle
 import re
+import select
 import shutil
 import subprocess
 import time
@@ -69,7 +70,7 @@ def pull_image_with_progress(image: str) -> None:
 class EnvConf(ExtendedBaseSettings):
     default_entry: str
     extra_volumes: dict = {}
-    running_timeout_period: int = 600  # 10 minutes
+    running_timeout_period: int = 3600  # 10 minutes
     # helper settings to support transparent;
     enable_cache: bool = True
     retry_count: int = 5  # retry count for the docker run
@@ -307,6 +308,33 @@ class Env(Generic[ASpecificEnvConf]):
         """
         pass
 
+    def dump_python_code_run_and_get_results(
+        self,
+        code: str,
+        dump_file_names: list[str],
+        local_path: str,
+        env: dict | None = None,
+        running_extra_volume: Mapping = MappingProxyType({}),
+        code_dump_file_py_name: Optional[str] = None,
+    ) -> tuple[str, list]:
+        """
+        Dump the code into the local path and run the code.
+        """
+        random_file_name = f"{uuid.uuid4()}.py" if code_dump_file_py_name is None else f"{code_dump_file_py_name}.py"
+        with open(os.path.join(local_path, random_file_name), "w") as f:
+            f.write(code)
+        entry = f"python {random_file_name}"
+        log_output = self.run(entry, local_path, env, running_extra_volume=dict(running_extra_volume))
+        results = []
+        os.remove(os.path.join(local_path, random_file_name))
+        for name in dump_file_names:
+            if os.path.exists(os.path.join(local_path, f"{name}")):
+                results.append(pickle.load(open(os.path.join(local_path, f"{name}"), "rb")))
+                os.remove(os.path.join(local_path, f"{name}"))
+            else:
+                return log_output, []
+        return log_output, results
+
 
 # class EnvWithCache
 #
@@ -339,7 +367,8 @@ class LocalEnv(Env[ASpecificLocalConf]):
         running_extra_volume: Mapping = MappingProxyType({}),
         **kwargs: dict,
     ) -> tuple[str, int]:
-        # mocking the volumes
+
+        # Handle volume links
         volumes = {}
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
@@ -349,7 +378,6 @@ class LocalEnv(Env[ASpecificLocalConf]):
             volumes[cache_path] = "/tmp/cache"
         for lp, rp in running_extra_volume.items():
             volumes[lp] = rp
-
         for rp, lp in volumes.items():
             link_path = Path(lp)
             real_path = Path(rp)
@@ -359,9 +387,9 @@ class LocalEnv(Env[ASpecificLocalConf]):
                 link_path.unlink()
             link_path.symlink_to(real_path)
 
+        # Setup environment
         if env is None:
             env = {}
-
         path = [*self.conf.bin_path.split(":"), "/bin/", "/usr/bin/", *env.get("PATH", "").split(":")]
         env["PATH"] = ":".join(path)
 
@@ -373,21 +401,68 @@ class LocalEnv(Env[ASpecificLocalConf]):
         table.add_column("Key", style="bold cyan")
         table.add_column("Value", style="bold magenta")
         table.add_row("Entry", entry)
-        table.add_row("Local Path", local_path)
+        table.add_row("Local Path", local_path or "")
         table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
         table.add_row("Volumes", "\n".join(f"{k}:{v}" for k, v in volumes.items()))
         print(table)
 
-        cwd = None
-        if local_path:
-            cwd = Path(local_path).resolve()
+        cwd = Path(local_path).resolve() if local_path else None
+        env = {k: str(v) if isinstance(v, int) else v for k, v in env.items()}
 
-        result = subprocess.run(entry, cwd=cwd, env={**os.environ, **env}, capture_output=True, text=True, shell=True)
-        combined_output = result.stderr + result.stdout  # Combine stdout and stderr
-        Console().print(combined_output, markup=False)
+        process = subprocess.Popen(
+            entry,
+            cwd=cwd,
+            env={**os.environ, **env},
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            shell=True,
+            bufsize=1,
+            universal_newlines=True,
+        )
+
+        # Setup polling
+        if process.stdout is None or process.stderr is None:
+            raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
+
+        stdout_fd = process.stdout.fileno()
+        stderr_fd = process.stderr.fileno()
+
+        poller = select.poll()
+        poller.register(stdout_fd, select.POLLIN)
+        poller.register(stderr_fd, select.POLLIN)
+
+        combined_output = ""
+        while True:
+            if process.poll() is not None:
+                break
+            events = poller.poll(100)
+            for fd, event in events:
+                if event & select.POLLIN:
+                    if fd == stdout_fd:
+                        output = process.stdout.readline()
+                        if output:
+                            Console().print(output.strip(), markup=False)
+                            combined_output += output
+                    elif fd == stderr_fd:
+                        error = process.stderr.readline()
+                        if error:
+                            Console().print(error.strip(), markup=False)
+                            combined_output += error
+
+        # Capture any final output
+        remaining_output, remaining_error = process.communicate()
+        if remaining_output:
+            Console().print(remaining_output.strip(), markup=False)
+            combined_output += remaining_output
+        if remaining_error:
+            Console().print(remaining_error.strip(), markup=False)
+            combined_output += remaining_error
+
+        return_code = process.returncode
         print(Rule("[bold green]LocalEnv Logs End[/bold green]", style="dark_orange"))
 
-        return combined_output, result.returncode
+        return combined_output, return_code
 
 
 class CondaConf(LocalConf):
@@ -437,6 +512,44 @@ class DockerConf(EnvConf):
 
     retry_count: int = 5  # retry count for the docker run
     retry_wait_seconds: int = 10  # retry wait seconds for the docker run
+
+
+class QlibCondaConf(CondaConf):
+    conda_env_name: str = "rdagent4qlib"
+    enable_cache: bool = False
+    default_entry: str = "qrun conf.yaml"
+    # extra_volumes: dict = {str(Path("~/.qlib/").expanduser().resolve().absolute()): "/root/.qlib/"}
+
+
+class QlibCondaEnv(LocalEnv[QlibCondaConf]):
+    def prepare(self) -> None:
+        """Prepare the conda environment if not already created."""
+        try:
+            envs = subprocess.run("conda env list", capture_output=True, text=True, shell=True)
+            if self.conf.conda_env_name not in envs.stdout:
+                print(f"[yellow]Conda env '{self.conf.conda_env_name}' not found, creating...[/yellow]")
+                subprocess.check_call(
+                    f"conda create -y -n {self.conf.conda_env_name} python=3.10",
+                    shell=True,
+                )
+                subprocess.check_call(
+                    f"conda run -n {self.conf.conda_env_name} pip install --upgrade pip cython",
+                    shell=True,
+                )
+                subprocess.check_call(
+                    f"conda run -n {self.conf.conda_env_name} rm -rf qlib; git clone https://github.com/microsoft/qlib.git",
+                    shell=True,
+                )
+                subprocess.check_call(
+                    f"conda run -n {self.conf.conda_env_name} bash -c 'cd qlib && git reset --hard 3e72593b8c985f01979bebcf646658002ac43b00 && make dev .'",
+                    shell=True,
+                )
+                subprocess.check_call(
+                    f"conda run -n {self.conf.conda_env_name} pip install catboost xgboost scipy==1.11.4 tables torch",
+                    shell=True,
+                )
+        except Exception as e:
+            print(f"[red]Failed to prepare conda env: {e}[/red]")
 
 
 class QlibDockerConf(DockerConf):
@@ -705,33 +818,6 @@ class DockerEnv(Env[DockerConf]):
             raise RuntimeError("Docker image not found.")
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while running the container: {e}")
-
-    def dump_python_code_run_and_get_results(
-        self,
-        code: str,
-        dump_file_names: list[str],
-        local_path: str,
-        env: dict | None = None,
-        running_extra_volume: Mapping = MappingProxyType({}),
-        code_dump_file_py_name: Optional[str] = None,
-    ) -> tuple[str, list]:
-        """
-        Dump the code into the local path and run the code.
-        """
-        random_file_name = f"{uuid.uuid4()}.py" if code_dump_file_py_name is None else f"{code_dump_file_py_name}.py"
-        with open(os.path.join(local_path, random_file_name), "w") as f:
-            f.write(code)
-        entry = f"python {random_file_name}"
-        log_output = self.run(entry, local_path, env, running_extra_volume=dict(running_extra_volume))
-        results = []
-        os.remove(os.path.join(local_path, random_file_name))
-        for name in dump_file_names:
-            if os.path.exists(os.path.join(local_path, f"{name}")):
-                results.append(pickle.load(open(os.path.join(local_path, f"{name}"), "rb")))
-                os.remove(os.path.join(local_path, f"{name}"))
-            else:
-                return log_output, []
-        return log_output, results
 
 
 class QTDockerEnv(DockerEnv):

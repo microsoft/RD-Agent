@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
 
-from jinja2 import Environment, StrictUndefined
 from tqdm import tqdm
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
@@ -12,12 +11,10 @@ from rdagent.components.knowledge_management.graph import (
     UndirectedNode,
 )
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.kaggle.experiment.scenario import KGScenario
-
-PROMPT_DICT = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+from rdagent.utils.agent.tpl import T
 
 
 class KGKnowledgeGraph(UndirectedGraph):
@@ -42,19 +39,15 @@ class KGKnowledgeGraph(UndirectedGraph):
         self.dump()  # Each valid experiment will overwrite this file once again.
 
     def analyze_one_document(self, document_content: str, scenario: KGScenario | None) -> list:
-        session_system_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(PROMPT_DICT["extract_knowledge_graph_from_document"]["system"])
-            .render(scenario=scenario.get_scenario_all_desc() if scenario is not None else "")
+        session_system_prompt = T(".prompts:extract_knowledge_graph_from_document.system").r(
+            scenario=scenario.get_scenario_all_desc() if scenario is not None else ""
         )
 
         session = APIBackend().build_chat_session(
             session_system_prompt=session_system_prompt,
         )
-        user_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(PROMPT_DICT["extract_knowledge_graph_from_document"]["user"])
-            .render(document_content=document_content)
+        user_prompt = T(".prompts:extract_knowledge_graph_from_document.user").r(
+            document_content=document_content,
         )
         knowledge_list = []
         for _ in range(10):

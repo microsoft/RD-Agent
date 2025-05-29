@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 from typing import Dict, List
 
 from jinja2 import Environment, StrictUndefined
@@ -7,7 +6,6 @@ from jinja2 import Environment, StrictUndefined
 from rdagent.components.coder.factor_coder import FactorCoSTEER
 from rdagent.components.coder.model_coder import ModelCoSTEER
 from rdagent.core.developer import Developer
-from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
     KG_SELECT_MAPPING,
@@ -16,8 +14,7 @@ from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
 
 KGModelCoSTEER = ModelCoSTEER
 KGFactorCoSTEER = FactorCoSTEER
-
-prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
+from rdagent.utils.agent.tpl import T
 
 DEFAULT_SELECTION_CODE = """
 import pandas as pd
@@ -46,15 +43,12 @@ class KGModelFeatureSelectionCoder(Developer[KGModelExperiment]):
                 .render(feature_index_list=None)
             )
         else:
-            system_prompt = (
-                Environment(undefined=StrictUndefined)
-                .from_string(prompt_dict["model_feature_selection"]["system"])
-                .render(scenario=self.scen.get_scenario_all_desc(), model_type=exp.sub_tasks[0].model_type)
+            system_prompt = T("scenarios.kaggle.prompts:model_feature_selection.system").r(
+                scenario=exp.scen.get_scenario_all_desc(),
+                model_type=exp.sub_tasks[0].model_type,
             )
-            user_prompt = (
-                Environment(undefined=StrictUndefined)
-                .from_string(prompt_dict["model_feature_selection"]["user"])
-                .render(feature_groups=[desc[0] for desc in exp.experiment_workspace.data_description])
+            user_prompt = T("scenarios.kaggle.prompts:model_feature_selection.user").r(
+                feature_groups=[desc[0] for desc in exp.experiment_workspace.data_description]
             )
 
             chosen_index = json.loads(

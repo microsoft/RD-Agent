@@ -1,8 +1,5 @@
 import json
-from pathlib import Path
 from typing import List, Tuple
-
-from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.model_coder.model import ModelExperiment, ModelTask
 from rdagent.components.proposal import (
@@ -10,11 +7,9 @@ from rdagent.components.proposal import (
     ModelHypothesis2Experiment,
     ModelHypothesisGen,
 )
-from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
 from rdagent.scenarios.data_mining.experiment.model_experiment import DMModelExperiment
-
-prompt_dict = Prompts(file_path=Path(__file__).parent.parent.parent / "qlib" / "prompts.yaml")
+from rdagent.utils.agent.tpl import T
 
 DMModelHypothesis = Hypothesis
 
@@ -36,19 +31,27 @@ class DMModelHypothesisGen(ModelHypothesisGen):
 
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
         hypothesis_and_feedback = (
-            (
-                Environment(undefined=StrictUndefined)
-                .from_string(prompt_dict["hypothesis_and_feedback"])
-                .render(trace=trace)
+            T("scenarios.qlib.prompts:hypothesis_and_feedback").r(
+                trace=trace,
             )
             if len(trace.hist) > 0
             else "No previous hypothesis and feedback available since it's the first round."
         )
+
+        last_hypothesis_and_feedback = (
+            T("scenarios.qlib.prompts:last_hypothesis_and_feedback").r(
+                experiment=trace.hist[-1][0], feedback=trace.hist[-1][1]
+            )
+            if len(trace.hist) > 0
+            else "No previous hypothesis and feedback available since it's the first round."
+        )
+
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
+            "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
             "RAG": None,
-            "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
-            "hypothesis_specification": prompt_dict["model_hypothesis_specification"],
+            "hypothesis_output_format": T("scenarios.qlib.prompts:hypothesis_output_format").r(),
+            "hypothesis_specification": T("scenarios.qlib.prompts:model_hypothesis_specification").r(),
         }
         return context_dict, True
 
@@ -68,13 +71,11 @@ class DMModelHypothesisGen(ModelHypothesisGen):
 class DMModelHypothesis2Experiment(ModelHypothesis2Experiment):
     def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]:
         scenario = trace.scen.get_scenario_all_desc()
-        experiment_output_format = prompt_dict["model_experiment_output_format"]
+        experiment_output_format = T("scenarios.qlib.prompts:model_experiment_output_format").r()
 
         hypothesis_and_feedback = (
-            (
-                Environment(undefined=StrictUndefined)
-                .from_string(prompt_dict["hypothesis_and_feedback"])
-                .render(trace=trace)
+            T("scenarios.qlib.prompts:hypothesis_and_feedback").r(
+                trace=trace,
             )
             if len(trace.hist) > 0
             else "No previous hypothesis and feedback available since it's the first round."

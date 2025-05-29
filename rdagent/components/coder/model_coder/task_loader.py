@@ -2,19 +2,16 @@ from __future__ import annotations
 
 import json
 import re
-from pathlib import Path
 
-from rdagent.components.coder.model_coder.model import ModelExperiment, ModelTask
+from rdagent.components.coder.model_coder.model import ModelTask
 from rdagent.components.document_reader.document_reader import (
     load_and_process_pdfs_by_langchain,
 )
 from rdagent.components.loader.task_loader import ModelTaskLoader
-from rdagent.core.prompts import Prompts
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
-
-document_process_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+from rdagent.utils.agent.tpl import T
 
 
 def extract_model_from_doc(doc_content: str) -> dict:
@@ -32,7 +29,7 @@ def extract_model_from_doc(doc_content: str) -> dict:
         {model_name: dict{description, formulation, variables}}
     """
     session = APIBackend().build_chat_session(
-        session_system_prompt=document_process_prompts["extract_model_formulation_system"],
+        session_system_prompt=T(".prompts:extract_model_formulation_system").r(),
     )
     current_user_prompt = doc_content
 

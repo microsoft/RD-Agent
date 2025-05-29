@@ -116,6 +116,9 @@ evolving_strategy_error_summary_v2_system: |-
 
   You suggestion should not include any code, just some clear and short suggestions. Please point out very critical issues in your response, ignore non-important issues to avoid confusion. If no big issue found in the code, you can response "No critics found".
 
+  [NOTE]
+  1. When processing data, avoid time leakage.
+
   Please response the critic in the following format. Here is an example structure for the output:
   critic 1: The critic message to critic 1
   critic 2: The critic message to critic 2

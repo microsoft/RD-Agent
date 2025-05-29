@@ -8,8 +8,6 @@ from itertools import combinations
 from pathlib import Path
 from typing import List, Union
 
-from jinja2 import Environment, StrictUndefined
-
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
 from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedback
 from rdagent.components.knowledge_management.graph import (
@@ -26,12 +24,12 @@ from rdagent.core.evolving_framework import (
     RAGStrategy,
 )
 from rdagent.core.experiment import FBWorkspace, Task
-from rdagent.core.prompts import Prompts
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import (
     APIBackend,
     calculate_embedding_distance_between_str_list,
 )
+from rdagent.utils.agent.tpl import T
 
 
 class CoSTEERKnowledge(Knowledge):
@@ -216,8 +214,6 @@ class CoSTEERQueriedKnowledgeV2(CoSTEERQueriedKnowledgeV1):
 
 
 class CoSTEERRAGStrategyV2(RAGStrategy):
-    prompt = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
-
     def __init__(self, knowledgebase: CoSTEERKnowledgeBaseV2, settings: CoSTEERSettings) -> None:
         super().__init__(knowledgebase)
         self.current_generated_trace_count = 0
@@ -324,12 +320,8 @@ class CoSTEERRAGStrategyV2(RAGStrategy):
         all_component_content = ""
         for _, component_node in enumerate(all_component_nodes):
             all_component_content += f"{component_node.content}, \n"
-        analyze_component_system_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(self.prompt["analyze_component_prompt_v1_system"])
-            .render(
-                all_component_content=all_component_content,
-            )
+        analyze_component_system_prompt = T(".prompts:analyze_component_prompt_v1_system").r(
+            all_component_content=all_component_content,
         )
 
         analyze_component_user_prompt = target_task_information

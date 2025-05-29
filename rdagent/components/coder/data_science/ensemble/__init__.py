@@ -11,9 +11,7 @@ File structure
     - Each coder could be tested.
 """
 
-import json
 from pathlib import Path
-from typing import Dict
 
 from jinja2 import Environment, StrictUndefined
 
