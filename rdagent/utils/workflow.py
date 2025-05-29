@@ -188,9 +188,8 @@ class LoopBase:
                             continue
                         elif isinstance(e, self.withdraw_loop_error):
                             logger.warning(f"Withdraw loop {li} due to {e}")
-                            # Reload the last successful state for this step
+                            # Back to previous loop
                             self.step_backward(li - 1)
-                            # Continue to next iteration (will restart current loop)
                             continue
                         else:
                             raise
