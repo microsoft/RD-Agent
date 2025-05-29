@@ -11,6 +11,7 @@ import json
 import os
 import pickle
 import re
+import select
 import shutil
 import subprocess
 import time
@@ -339,9 +340,6 @@ class LocalEnv(Env[ASpecificLocalConf]):
         running_extra_volume: Mapping = MappingProxyType({}),
         **kwargs: dict,
     ) -> tuple[str, int]:
-        import select
-
-        from rich.console import Console
 
         # Handle volume links
         volumes = {}
@@ -490,58 +488,56 @@ class DockerConf(EnvConf):
 
 
 class QlibCondaConf(CondaConf):
-    conda_env_name: str = "qlib4rdagent"
+    conda_env_name: str = "rdagent4qlib"
     enable_cache: bool = False
     default_entry: str = "qrun conf.yaml"
     # extra_volumes: dict = {str(Path("~/.qlib/").expanduser().resolve().absolute()): "/root/.qlib/"}
 
-    @model_validator(mode="after")
-    def ensure_qlib_env(self, **data: Any) -> "QlibCondaConf":
+
+class QlibCondaEnv(LocalEnv[QlibCondaConf]):
+    def prepare(self) -> None:
+        """Prepare the conda environment if not already created."""
         try:
             envs = subprocess.run("conda env list", capture_output=True, text=True, shell=True)
-            if self.conda_env_name not in envs.stdout:
-                print(f"[yellow]Conda env '{self.conda_env_name}' not found, creating...[/yellow]")
+            if self.conf.conda_env_name not in envs.stdout:
+                print(f"[yellow]Conda env '{self.conf.conda_env_name}' not found, creating...[/yellow]")
                 subprocess.check_call(
-                    f"conda create -y -n {self.conda_env_name} python=3.10",
-                    shell=True,
-                )
-
-                subprocess.check_call(
-                    f"conda run -n {self.conda_env_name} pip install --upgrade pip cython",
-                    shell=True,
-                )
-
-                subprocess.check_call(
-                    f"conda run -n {self.conda_env_name} git clone https://github.com/microsoft/qlib.git",
+                    f"conda create -y -n {self.conf.conda_env_name} python=3.10",
                     shell=True,
                 )
                 subprocess.check_call(
-                    f"conda run -n {self.conda_env_name} bash -c 'cd qlib && git reset --hard 3e72593b8c985f01979bebcf646658002ac43b00 && pip install -e .'",
+                    f"conda run -n {self.conf.conda_env_name} pip install --upgrade pip cython",
                     shell=True,
                 )
-
                 subprocess.check_call(
-                    f"conda run -n {self.conda_env_name} pip install catboost xgboost scipy==1.11.4 tables",
+                    f"conda run -n {self.conf.conda_env_name} git clone https://github.com/microsoft/qlib.git",
+                    shell=True,
+                )
+                subprocess.check_call(
+                    f"conda run -n {self.conf.conda_env_name} bash -c 'cd qlib && git reset --hard 3e72593b8c985f01979bebcf646658002ac43b00 && pip install -e .'",
+                    shell=True,
+                )
+                subprocess.check_call(
+                    f"conda run -n {self.conf.conda_env_name} pip install catboost xgboost scipy==1.11.4 tables",
                     shell=True,
                 )
         except Exception as e:
-            print(f"[red]Failed to ensure conda env: {e}[/red]")
+            print(f"[red]Failed to prepare conda env: {e}[/red]")
 
         try:
             result = subprocess.run(
-                f"conda run -n {self.conda_env_name} python -c \"import os; print(os.environ['PATH'])\"",
+                f"conda run -n {self.conf.conda_env_name} python -c \"import os; print(os.environ['PATH'])\"",
                 capture_output=True,
                 text=True,
                 shell=True,
             )
             if result.returncode == 0:
-                self.bin_path = result.stdout.strip().split(":")[1]
+                self.conf.bin_path = result.stdout.strip().split(":")[0]
             else:
-                self.bin_path = ""
+                self.conf.bin_path = ""
         except Exception as e:
             print(f"[red]Failed to get env PATH: {e}[/red]")
-            self.bin_path = ""
-        return self
+            self.conf.bin_path = ""
 
 
 class QlibDockerConf(DockerConf):

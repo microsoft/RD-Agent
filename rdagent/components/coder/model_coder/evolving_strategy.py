@@ -47,7 +47,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             else queried_former_failed_knowledge
         )
         system_prompt = T(".prompts:evolving_strategy_model_coder.system").r(
-            scenario=self.scen.get_scenario_all_desc(filtered_tag=target_task.model_type),
+            scenario=self.scen.get_scenario_all_desc(filtered_tag="model"),
             queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
             current_code=workspace.file_dict.get("model.py"),
         )
