@@ -1,11 +1,9 @@
-import io
+import random
 import re
 import shutil
 from pathlib import Path
 
 import pandas as pd
-
-# render it with jinja
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.factor_coder.config import FACTOR_COSTEER_SETTINGS
@@ -69,53 +67,77 @@ def get_file_desc(p: Path, variable_list=[]) -> str:
 
     JJ_TPL = Environment(undefined=StrictUndefined).from_string(
         """
-{{file_name}}
-```{{type_desc}}
+# {{file_name}}
+
+## File Type
+{{type_desc}}
+
+## Content Overview
 {{content}}
-```
 """
     )
 
     if p.name.endswith(".h5"):
         df = pd.read_hdf(p)
-        # get df.head() as string with full width
-        pd.set_option("display.max_columns", None)  # or 1000
-        pd.set_option("display.max_rows", None)  # or 1000
-        pd.set_option("display.max_colwidth", None)  # or 199
+        pd.set_option("display.max_columns", None)
+        pd.set_option("display.max_rows", None)
+        pd.set_option("display.max_colwidth", None)
 
-        if isinstance(df.index, pd.MultiIndex):
-            df_info = f"MultiIndex names:, {df.index.names})\n"
-        else:
-            df_info = f"Index name: {df.index.name}\n"
+        df_info = "### Data Structure\n"
+        df_info += (
+            f"- Index: MultiIndex with levels {df.index.names}\n"
+            if isinstance(df.index, pd.MultiIndex)
+            else f"- Index: {df.index.name}\n"
+        )
+
+        df_info += "\n### Columns\n"
         columns = df.dtypes.to_dict()
-        filtered_columns = [f"{i, j}" for i, j in columns.items() if i in variable_list]
-        if filtered_columns:
-            df_info += "Related Data columns: \n"
-            df_info += ",".join(filtered_columns)
+        grouped_columns = {}
+
+        for col in columns:
+            if col.startswith("$"):
+                prefix = col.split("_")[0] if "_" in col else col
+                grouped_columns.setdefault(prefix, []).append(col)
+            else:
+                grouped_columns.setdefault("other", []).append(col)
+
+        if variable_list:
+            df_info += "#### Relevant Columns:\n"
+            relevant_line = ", ".join(f"{col}: {columns[col]}" for col in variable_list if col in columns)
+            df_info += relevant_line + "\n"
         else:
-            df_info += "Data columns: \n"
-            df_info += ",".join(columns)
-        df_info += "\n"
+            df_info += "#### All Columns:\n"
+            grouped_items = list(grouped_columns.items())
+            random.shuffle(grouped_items)
+            for prefix, cols in grouped_items:
+                header = "Other Columns" if prefix == "other" else f"{prefix} Related Columns"
+                df_info += f"\n#### {header}:\n"
+                random.shuffle(cols)
+                line = ", ".join(f"{col}: {columns[col]}" for col in cols)
+                df_info += line + "\n"
+
         if "REPORT_PERIOD" in df.columns:
             one_instrument = df.index.get_level_values("instrument")[0]
             df_on_one_instrument = df.loc[pd.IndexSlice[:, one_instrument], ["REPORT_PERIOD"]]
-            df_info += f"""
-A snapshot of one instrument, from which you can tell the distribution of the data:
-{df_on_one_instrument.head(5)}
-"""
+            df_info += "\n### Sample Data\n"
+            df_info += f"Showing data for instrument {one_instrument}:\n"
+            df_info += str(df_on_one_instrument.head(5))
+
         return JJ_TPL.render(
             file_name=p.name,
-            type_desc="h5 info",
+            type_desc="HDF5 Data File",
             content=df_info,
         )
+
     elif p.name.endswith(".md"):
         with open(p) as f:
             content = f.read()
             return JJ_TPL.render(
                 file_name=p.name,
-                type_desc="markdown",
+                type_desc="Markdown Documentation",
                 content=content,
             )
+
     else:
         raise NotImplementedError(
             f"file type {p.name} is not supported. Please implement its description function.",

@@ -1,20 +1,16 @@
 import io
 import json
 from abc import abstractmethod
-from pathlib import Path
 from typing import Dict, Tuple
 
 import pandas as pd
-from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.factor_coder.config import FACTOR_COSTEER_SETTINGS
 from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.core.experiment import Task, Workspace
-from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
-
-evaluate_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+from rdagent.utils.agent.tpl import T
 
 
 class FactorEvaluator:
@@ -81,36 +77,26 @@ class FactorCodeEvaluator(FactorEvaluator):
         factor_information = target_task.get_task_information()
         code = implementation.all_codes
 
-        system_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(evaluate_prompts["evaluator_code_feedback_v1_system"])
-            .render(
-                scenario=(
-                    self.scen.get_scenario_all_desc(
-                        target_task,
-                        filtered_tag="feature",
-                        simple_background=FACTOR_COSTEER_SETTINGS.simple_background,
-                    )
-                    if self.scen is not None
-                    else "No scenario description."
+        system_prompt = T(".prompts:evaluator_code_feedback_v1_system").r(
+            scenario=(
+                self.scen.get_scenario_all_desc(
+                    target_task,
+                    filtered_tag="feature",
+                    simple_background=FACTOR_COSTEER_SETTINGS.simple_background,
                 )
+                if self.scen is not None
+                else "No scenario description."
             )
         )
 
         execution_feedback_to_render = execution_feedback
         for _ in range(10):  # 10 times to split the content is enough
-            user_prompt = (
-                Environment(undefined=StrictUndefined)
-                .from_string(
-                    evaluate_prompts["evaluator_code_feedback_v1_user"],
-                )
-                .render(
-                    factor_information=factor_information,
-                    code=code,
-                    execution_feedback=execution_feedback_to_render,
-                    value_feedback=value_feedback,
-                    gt_code=gt_implementation.code if gt_implementation else None,
-                )
+            user_prompt = T(".prompts:evaluator_code_feedback_v1_user").r(
+                factor_information=factor_information,
+                code=code,
+                execution_feedback=execution_feedback_to_render,
+                value_feedback=value_feedback,
+                gt_code=gt_implementation.code if gt_implementation else None,
             )
             if (
                 APIBackend().build_messages_and_calculate_token(
@@ -189,17 +175,11 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
         buffer = io.StringIO()
         gen_df.info(buf=buffer)
         gen_df_info_str = f"The user is currently working on a feature related task.\nThe output dataframe info is:\n{buffer.getvalue()}"
-        system_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(
-                evaluate_prompts["evaluator_output_format_system"],
-            )
-            .render(
-                scenario=(
-                    self.scen.get_scenario_all_desc(implementation.target_task, filtered_tag="feature")
-                    if self.scen is not None
-                    else "No scenario description."
-                )
+        system_prompt = T(".prompts:evaluator_output_format_system").r(
+            scenario=(
+                self.scen.get_scenario_all_desc(implementation.target_task, filtered_tag="feature")
+                if self.scen is not None
+                else "No scenario description."
             )
         )
 
@@ -504,35 +484,25 @@ class FactorFinalDecisionEvaluator(FactorEvaluator):
         code_feedback: str,
         **kwargs,
     ) -> Tuple:
-        system_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(evaluate_prompts["evaluator_final_decision_v1_system"])
-            .render(
-                scenario=(
-                    self.scen.get_scenario_all_desc(target_task, filtered_tag="feature")
-                    if self.scen is not None
-                    else "No scenario description."
-                )
+        system_prompt = T(".prompts:evaluator_final_decision_v1_system").r(
+            scenario=(
+                self.scen.get_scenario_all_desc(target_task, filtered_tag="feature")
+                if self.scen is not None
+                else "No scenario description."
             )
         )
         execution_feedback_to_render = execution_feedback
 
         for _ in range(10):  # 10 times to split the content is enough
-            user_prompt = (
-                Environment(undefined=StrictUndefined)
-                .from_string(
-                    evaluate_prompts["evaluator_final_decision_v1_user"],
-                )
-                .render(
-                    factor_information=target_task.get_task_information(),
-                    execution_feedback=execution_feedback_to_render,
-                    code_feedback=code_feedback,
-                    value_feedback=(
-                        value_feedback
-                        if value_feedback is not None
-                        else "No Ground Truth Value provided, so no evaluation on value is performed."
-                    ),
-                )
+            user_prompt = T(".prompts:evaluator_final_decision_v1_user").r(
+                factor_information=target_task.get_task_information(),
+                execution_feedback=execution_feedback_to_render,
+                code_feedback=code_feedback,
+                value_feedback=(
+                    value_feedback
+                    if value_feedback is not None
+                    else "No Ground Truth Value provided, so no evaluation on value is performed."
+                ),
             )
             if (
                 APIBackend().build_messages_and_calculate_token(

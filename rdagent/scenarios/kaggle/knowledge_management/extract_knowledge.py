@@ -1,27 +1,13 @@
 import json
-import os
 from pathlib import Path
 
-from jinja2 import Environment, StrictUndefined
-
-from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import APIBackend
-
-prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+from rdagent.utils.agent.tpl import T
 
 
 def extract_knowledge_from_high_score_answers(content: str):
-    sys_prompt = (
-        Environment(undefined=StrictUndefined)
-        .from_string(prompt_dict["extract_kaggle_knowledge_prompts"]["system"])
-        .render()
-    )
-
-    user_prompt = (
-        Environment(undefined=StrictUndefined)
-        .from_string(prompt_dict["extract_kaggle_knowledge_prompts"]["user"])
-        .render(file_content=content)
-    )
+    sys_prompt = T(".prompts:extract_kaggle_knowledge_prompts.system").r()
+    user_prompt = T(".prompts:extract_kaggle_knowledge_prompts.user").r(file_content=content)
 
     response_analysis = APIBackend().build_messages_and_create_chat_completion(
         user_prompt=user_prompt,
@@ -41,16 +27,9 @@ def extract_knowledge_from_feedback(feedback_response: dict) -> dict:
     """
     Extracts knowledge from LLM-generated feedback and structures it.
     """
-    sys_prompt = (
-        Environment(undefined=StrictUndefined)
-        .from_string(prompt_dict["extract_kaggle_knowledge_from_feedback_prompts"]["system"])
-        .render()
-    )
-
-    user_prompt = (
-        Environment(undefined=StrictUndefined)
-        .from_string(prompt_dict["extract_kaggle_knowledge_from_feedback_prompts"]["user"])
-        .render(experiment_strategy=feedback_response)
+    sys_prompt = T(".prompts:extract_kaggle_knowledge_from_feedback_prompts.system").r()
+    user_prompt = T(".prompts:extract_kaggle_knowledge_from_feedback_prompts.user").r(
+        experiment_strategy=feedback_response
     )
 
     response_analysis = APIBackend().build_messages_and_create_chat_completion(

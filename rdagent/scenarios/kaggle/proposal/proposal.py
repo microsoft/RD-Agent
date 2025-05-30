@@ -1,20 +1,14 @@
 import json
 import math
-from pathlib import Path
 from typing import List, Tuple
 
-from jinja2 import Environment, StrictUndefined
-
-from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.components.coder.model_coder.model import ModelExperiment, ModelTask
-from rdagent.components.knowledge_management.vector_base import VectorBase
 from rdagent.components.proposal import (
     FactorAndModelHypothesis2Experiment,
     FactorAndModelHypothesisGen,
 )
 from rdagent.core.exception import ModelEmptyError
-from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
 from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
     KG_MODEL_MAPPING,
@@ -22,22 +16,16 @@ from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
     KGFactorExperiment,
     KGModelExperiment,
 )
-from rdagent.scenarios.kaggle.experiment.scenario import KGScenario
-from rdagent.scenarios.kaggle.knowledge_management.graph import KGKnowledgeGraph
-from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
-    KaggleExperienceBase,
-)
-
-prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
-
-
 from rdagent.scenarios.kaggle.experiment.scenario import (
     KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,
     KG_ACTION_LIST,
     KG_ACTION_MODEL_FEATURE_SELECTION,
     KG_ACTION_MODEL_TUNING,
+    KGScenario,
 )
+from rdagent.scenarios.kaggle.knowledge_management.graph import KGKnowledgeGraph
+from rdagent.utils.agent.tpl import T
 
 
 class KGHypothesis(Hypothesis):
@@ -187,10 +175,9 @@ def generate_RAG_content(
                 insight["conclusion"] = "No conclusion information available."
             insights.append(insight)
 
-    RAG_content = (
-        Environment(undefined=StrictUndefined)
-        .from_string(prompt_dict["KG_hypothesis_gen_RAG"])
-        .render(insights=insights, experiences=experiences)
+    RAG_content = T("scenarios.kaggle.prompts:KG_hypothesis_gen_RAG").r(
+        insights=insights,
+        experiences=experiences,
     )
     return RAG_content
 
@@ -262,10 +249,8 @@ class KGHypothesisGen(FactorAndModelHypothesisGen):
 
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
         hypothesis_and_feedback = (
-            (
-                Environment(undefined=StrictUndefined)
-                .from_string(prompt_dict["hypothesis_and_feedback"])
-                .render(trace=trace)
+            T("scenarios.kaggle.prompts:hypothesis_and_feedback").r(
+                trace=trace,
             )
             if len(trace.hist) > 0
             else "No previous hypothesis and feedback available since it's the first round."
@@ -287,7 +272,7 @@ class KGHypothesisGen(FactorAndModelHypothesisGen):
                 "\n\nNext experiment action is "
                 + action
                 + "\nspecification: "
-                + prompt_dict["hypothesis_specification"][action]
+                + T(f"scenarios.kaggle.prompts:hypothesis_specification.{action}").r()
             )
 
         context_dict = {
@@ -298,7 +283,7 @@ class KGHypothesisGen(FactorAndModelHypothesisGen):
                 hypothesis_and_feedback=hypothesis_and_feedback,
                 target=action if self.scen.if_action_choosing_based_on_UCB else None,
             ),
-            "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
+            "hypothesis_output_format": T("scenarios.kaggle.prompts:hypothesis_output_format").r(),
             "hypothesis_specification": hypothesis_specification,
         }
         return context_dict, True
@@ -324,17 +309,15 @@ class KGHypothesis2Experiment(FactorAndModelHypothesis2Experiment):
         scenario = trace.scen.get_scenario_all_desc(filtered_tag="hypothesis_and_experiment")
         assert isinstance(hypothesis, KGHypothesis)
         experiment_output_format = (
-            prompt_dict["feature_experiment_output_format"]
+            T("scenarios.kaggle.prompts:feature_experiment_output_format").r()
             if hypothesis.action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]
-            else prompt_dict["model_experiment_output_format"]
+            else T("scenarios.kaggle.prompts:model_experiment_output_format").r()
         )
         self.current_action = hypothesis.action
 
         hypothesis_and_feedback = (
-            (
-                Environment(undefined=StrictUndefined)
-                .from_string(prompt_dict["hypothesis_and_feedback"])
-                .render(trace=trace)
+            T("scenarios.kaggle.prompts:hypothesis_and_feedback").r(
+                trace=trace,
             )
             if len(trace.hist) > 0
             else "No previous hypothesis and feedback available since it's the first round."

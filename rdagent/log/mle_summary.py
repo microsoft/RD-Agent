@@ -1,6 +1,4 @@
-import json
 import pickle
-import re
 from collections import defaultdict
 from pathlib import Path
 
@@ -115,12 +113,12 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
             loop_id, fn = extract_loopid_func_name(msg.tag)
             if loop_id:
                 loop_id = int(loop_id)
+                loop_num = max(loop_id + 1, loop_num)
             if hours and loop_id == stop_li and fn == stop_fn:
                 break
             if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
                 if "competition" in msg.tag:
                     stat[log_trace_path.name]["competition"] = msg.content
-                    start_time = msg.timestamp
 
                     # get threshold scores
                     workflowexp = FBWorkspace()
@@ -135,9 +133,6 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
                             silver_threshold = grade_output["silver_threshold"]
                             gold_threshold = grade_output["gold_threshold"]
                             median_threshold = grade_output["median_threshold"]
-
-                if "direct_exp_gen" in msg.tag and isinstance(msg.content, DSExperiment):
-                    loop_num += 1
 
                 if "running" in msg.tag:
                     if isinstance(msg.content, DSExperiment):
