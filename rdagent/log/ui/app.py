@@ -231,8 +231,6 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             state.all_metric_series.append(sms_all)
                     elif "hypothesis generation" in tags:
                         state.hypotheses[state.lround] = msg.content
-                    elif "ef" in tags and "feedback" in tags:
-                        state.h_decisions[state.lround] = msg.content.decision
                     elif "evolving code" in tags:
                         msg.content = [i for i in msg.content if i]
                     elif "evolving feedback" in tags:
@@ -248,6 +246,8 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             wrong_num,
                             none_num,
                         )
+                    elif "feedback" in tags:
+                        state.h_decisions[state.lround] = msg.content.decision
 
                     state.msgs[state.lround][msg.tag].append(msg)
 
@@ -629,7 +629,7 @@ def feedback_window():
                 state.scenario,
                 (QlibModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, QlibQuantScenario, KGScenario),
             ):
-                if fbr := state.msgs[round]["ef.runner result"]:
+                if fbr := state.msgs[round]["runner result"]:
                     try:
                         st.write("workspace")
                         st.write(fbr[0].content.experiment_workspace.workspace_path)
@@ -639,11 +639,11 @@ def feedback_window():
                 with st.expander("**Config⚙️**", expanded=True):
                     st.markdown(state.scenario.experiment_setting, unsafe_allow_html=True)
 
-            if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
+            if fbr := state.msgs[round]["Quantitative Backtesting Chart"]:
                 st.markdown("**Returns📈**")
                 fig = report_figure(fbr[0].content)
                 st.plotly_chart(fig)
-            if fb := state.msgs[round]["ef.feedback"]:
+            if fb := state.msgs[round]["feedback"]:
                 st.markdown("**Hypothesis Feedback🔍**")
                 h: HypothesisFeedback = fb[0].content
                 st.markdown(
@@ -656,7 +656,7 @@ def feedback_window():
                 )
 
             if isinstance(state.scenario, KGScenario):
-                if fbe := state.msgs[round]["ef.runner result"]:
+                if fbe := state.msgs[round]["runner result"]:
                     submission_path = fbe[0].content.experiment_workspace.workspace_path / "submission.csv"
                     st.markdown(
                         f":green[**Exp Workspace**]: {str(fbe[0].content.experiment_workspace.workspace_path.absolute())}"
@@ -784,7 +784,7 @@ with st.sidebar:
         if st.button(":green[Next Loop]", use_container_width=True):
             if not state.fs:
                 refresh()
-            get_msgs_until(lambda m: "ef.feedback" in m.tag)
+            get_msgs_until(lambda m: "feedback" in m.tag and "evolving feedback" not in m.tag)
 
         if st.button("Next Step", use_container_width=True):
             if not state.fs:

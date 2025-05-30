@@ -67,9 +67,8 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         return exp
 
     def running(self, prev_out: dict[str, Any]):
-        with logger.tag("ef"):  # evaluate and feedback
-            exp = self.runner.develop(prev_out["coding"])
-            logger.log_object(exp, tag="runner result")
+        exp = self.runner.develop(prev_out["coding"])
+        logger.log_object(exp, tag="runner result")
         return exp
 
     def feedback(self, prev_out: dict[str, Any]):
@@ -82,11 +81,9 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
                 reason="",
                 decision=False,
             )
-            with logger.tag("ef"):  # evaluate and feedback
-                logger.log_object(feedback, tag="feedback")
+            logger.log_object(feedback, tag="feedback")
             self.trace.hist.append((prev_out["direct_exp_gen"]["exp_gen"], feedback))
         else:
             feedback = self.summarizer.generate_feedback(prev_out["running"], self.trace)
-            with logger.tag("ef"):  # evaluate and feedback
-                logger.log_object(feedback, tag="feedback")
+            logger.log_object(feedback, tag="feedback")
             self.trace.hist.append((prev_out["running"], feedback))

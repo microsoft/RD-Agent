@@ -83,15 +83,14 @@ class QuantRDLoop(RDLoop):
         return exp
 
     def running(self, prev_out: dict[str, Any]):
-        with logger.tag("ef"):
-            if prev_out["direct_exp_gen"]["propose"].action == "factor":
-                exp = self.factor_runner.develop(prev_out["coding"])
-                if exp is None:
-                    logger.error(f"Factor extraction failed.")
-                    raise FactorEmptyError("Factor extraction failed.")
-            elif prev_out["direct_exp_gen"]["propose"].action == "model":
-                exp = self.model_runner.develop(prev_out["coding"])
-            logger.log_object(exp, tag="runner result")
+        if prev_out["direct_exp_gen"]["propose"].action == "factor":
+            exp = self.factor_runner.develop(prev_out["coding"])
+            if exp is None:
+                logger.error(f"Factor extraction failed.")
+                raise FactorEmptyError("Factor extraction failed.")
+        elif prev_out["direct_exp_gen"]["propose"].action == "model":
+            exp = self.model_runner.develop(prev_out["coding"])
+        logger.log_object(exp, tag="runner result")
         return exp
 
     def feedback(self, prev_out: dict[str, Any]):
@@ -104,16 +103,14 @@ class QuantRDLoop(RDLoop):
                 reason="",
                 decision=False,
             )
-            with logger.tag("ef"):  # evaluate and feedback
-                logger.log_object(feedback, tag="feedback")
+            logger.log_object(feedback, tag="feedback")
             self.trace.hist.append((prev_out["direct_exp_gen"]["exp_gen"], feedback))
         else:
             if prev_out["direct_exp_gen"]["propose"].action == "factor":
                 feedback = self.factor_summarizer.generate_feedback(prev_out["running"], self.trace)
             elif prev_out["direct_exp_gen"]["propose"].action == "model":
                 feedback = self.model_summarizer.generate_feedback(prev_out["running"], self.trace)
-            with logger.tag("ef"):
-                logger.log_object(feedback, tag="feedback")
+            logger.log_object(feedback, tag="feedback")
             self.trace.hist.append((prev_out["running"], feedback))
 
 
