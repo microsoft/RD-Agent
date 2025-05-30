@@ -149,6 +149,18 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         else:
             raise ValueError(f"Invalid search type: {search_type}")
 
+    def is_selection_new_tree(self, selection: tuple[int, ...] | None = None) -> bool:
+        """
+        Check if the current trace is a new tree.
+        """
+        if selection is None:
+            selection = self.get_current_selection()
+
+        if len(selection) == 0 or len(self.dag_parent) == 0:
+            return True
+
+        return False
+
     def collect_all_ancestors(
         self,
         selection: tuple[int, ...] | None = None,
@@ -160,7 +172,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         if selection is None:
             selection = self.get_current_selection()
 
-        if len(selection) == 0  or len(self.dag_parent) == 0:
+        if self.is_selection_new_tree(selection):
             return []
 
         else:
