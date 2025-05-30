@@ -242,7 +242,7 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
         sn = f"summary_{hours}h.pkl"
     for lf in log_folders:
         if (Path(lf) / sn).exists():
-            summarys[lf] = pd.read_pickle(Path(lf) / sn)
+            summarys[lf] = pd.read_json(Path(lf) / sn)
 
     if len(summarys) == 0:
         return {}, pd.DataFrame()
