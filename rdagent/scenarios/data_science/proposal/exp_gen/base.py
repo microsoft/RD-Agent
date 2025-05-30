@@ -160,7 +160,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         if selection is None:
             selection = self.get_current_selection()
 
-        if len(selection) == 0:
+        if len(selection) == 0  or len(self.dag_parent) == 0:
             return []
 
         else:
