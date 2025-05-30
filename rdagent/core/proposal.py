@@ -105,7 +105,7 @@ ASpecificKB = TypeVar("ASpecificKB", bound=KnowledgeBase)
 
 class Trace(Generic[ASpecificScen, ASpecificKB]):
     NodeType = tuple[Experiment, ExperimentFeedback]  # Define NodeType as a new type representing the tuple
-    NEW_ROOT = tuple()
+    NEW_ROOT: Tuple = tuple()
 
     def __init__(self, scen: ASpecificScen, knowledge_base: ASpecificKB | None = None) -> None:
         self.scen: ASpecificScen = scen
