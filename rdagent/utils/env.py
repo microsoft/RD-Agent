@@ -373,7 +373,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
                 volumes[lp] = rp
-            cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
+            cache_path = "/tmp/sample-$USER" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full-$USER"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
             volumes[cache_path] = "/tmp/cache"
         for lp, rp in running_extra_volume.items():
@@ -767,9 +767,9 @@ class DockerEnv(Env[DockerConf]):
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
                 volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
-            cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
+            cache_path = "{{}}/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "{{}}/full"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
-            volumes[cache_path] = {"bind": "/tmp/cache", "mode": "rw"}
+            volumes[cache_path] = {"bind": "/tmp/cache-{{USER}}", "mode": "rw"}
         for lp, rp in running_extra_volume.items():
             volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
 

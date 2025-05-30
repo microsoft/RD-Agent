@@ -113,6 +113,10 @@ class RDAT:
         """
         # loader=FunctionLoader(load_conent) is for supporting grammar like below.
         # `{% include "scenarios.data_science.share:component_spec.DataLoadSpec" %}`
+        import os
+        context.update({
+            "USER": os.environ.get("USER"),
+        })  # we use upper case to distinguish global variables and local variables
         rendered = (
             Environment(undefined=StrictUndefined, loader=FunctionLoader(load_content))
             .from_string(self.template)
