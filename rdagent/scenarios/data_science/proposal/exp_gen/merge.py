@@ -167,7 +167,6 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
         pickled_problem_name, new_hypothesis = self.hypothesis_rank(
             hypothesis_dict=hypothesis_dict,
             problem_dict=all_problems,
-            trace=trace,
         )
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
