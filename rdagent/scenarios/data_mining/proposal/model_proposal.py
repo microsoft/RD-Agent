@@ -50,7 +50,7 @@ class DMModelHypothesisGen(ModelHypothesisGen):
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
             "RAG": None,
-            "hypothesis_output_format": T("scenarios.qlib.prompts:hypothesis_output_format").r(),
+            "hypothesis_output_format": T("scenarios.qlib.prompts:hypothesis_output_format").r(),  # 1) create a individual prompts.yaml for that scenario.
             "hypothesis_specification": T("scenarios.qlib.prompts:model_hypothesis_specification").r(),
         }
         return context_dict, True
