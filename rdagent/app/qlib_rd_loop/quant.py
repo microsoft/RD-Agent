@@ -30,39 +30,38 @@ class QuantRDLoop(RDLoop):
     )
 
     def __init__(self, PROP_SETTING: BasePropSetting):
-        with logger.tag("init"):
-            scen: Scenario = import_class(PROP_SETTING.scen)()
-            logger.log_object(scen, tag="scenario")
+        scen: Scenario = import_class(PROP_SETTING.scen)()
+        logger.log_object(scen, tag="scenario")
 
-            self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.quant_hypothesis_gen)(scen)
-            logger.log_object(self.hypothesis_gen, tag="quant hypothesis generator")
+        self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.quant_hypothesis_gen)(scen)
+        logger.log_object(self.hypothesis_gen, tag="quant hypothesis generator")
 
-            self.factor_hypothesis2experiment: Hypothesis2Experiment = import_class(
-                PROP_SETTING.factor_hypothesis2experiment
-            )()
-            logger.log_object(self.factor_hypothesis2experiment, tag="factor hypothesis2experiment")
-            self.model_hypothesis2experiment: Hypothesis2Experiment = import_class(
-                PROP_SETTING.model_hypothesis2experiment
-            )()
-            logger.log_object(self.model_hypothesis2experiment, tag="model hypothesis2experiment")
+        self.factor_hypothesis2experiment: Hypothesis2Experiment = import_class(
+            PROP_SETTING.factor_hypothesis2experiment
+        )()
+        logger.log_object(self.factor_hypothesis2experiment, tag="factor hypothesis2experiment")
+        self.model_hypothesis2experiment: Hypothesis2Experiment = import_class(
+            PROP_SETTING.model_hypothesis2experiment
+        )()
+        logger.log_object(self.model_hypothesis2experiment, tag="model hypothesis2experiment")
 
-            self.factor_coder: Developer = import_class(PROP_SETTING.factor_coder)(scen)
-            logger.log_object(self.factor_coder, tag="factor coder")
-            self.model_coder: Developer = import_class(PROP_SETTING.model_coder)(scen)
-            logger.log_object(self.model_coder, tag="model coder")
+        self.factor_coder: Developer = import_class(PROP_SETTING.factor_coder)(scen)
+        logger.log_object(self.factor_coder, tag="factor coder")
+        self.model_coder: Developer = import_class(PROP_SETTING.model_coder)(scen)
+        logger.log_object(self.model_coder, tag="model coder")
 
-            self.factor_runner: Developer = import_class(PROP_SETTING.factor_runner)(scen)
-            logger.log_object(self.factor_runner, tag="factor runner")
-            self.model_runner: Developer = import_class(PROP_SETTING.model_runner)(scen)
-            logger.log_object(self.model_runner, tag="model runner")
+        self.factor_runner: Developer = import_class(PROP_SETTING.factor_runner)(scen)
+        logger.log_object(self.factor_runner, tag="factor runner")
+        self.model_runner: Developer = import_class(PROP_SETTING.model_runner)(scen)
+        logger.log_object(self.model_runner, tag="model runner")
 
-            self.factor_summarizer: Experiment2Feedback = import_class(PROP_SETTING.factor_summarizer)(scen)
-            logger.log_object(self.factor_summarizer, tag="factor summarizer")
-            self.model_summarizer: Experiment2Feedback = import_class(PROP_SETTING.model_summarizer)(scen)
-            logger.log_object(self.model_summarizer, tag="model summarizer")
+        self.factor_summarizer: Experiment2Feedback = import_class(PROP_SETTING.factor_summarizer)(scen)
+        logger.log_object(self.factor_summarizer, tag="factor summarizer")
+        self.model_summarizer: Experiment2Feedback = import_class(PROP_SETTING.model_summarizer)(scen)
+        logger.log_object(self.model_summarizer, tag="model summarizer")
 
-            self.trace = QuantTrace(scen=scen)
-            super(RDLoop, self).__init__()
+        self.trace = QuantTrace(scen=scen)
+        super(RDLoop, self).__init__()
 
     def direct_exp_gen(self, prev_out: dict[str, Any]):
         hypo = self._propose()
