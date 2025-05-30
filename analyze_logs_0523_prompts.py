@@ -12,12 +12,11 @@ competition_names = [
     "text-normalization-challenge-english-language"
 ]
 
+for COMPETITION_NAME in competition_names:
 
-COMPETITION_NAME = "text-normalization-challenge-english-language"
+    STATISTICS = open(f"logs_0523/{COMPETITION_NAME}.csv").read()
 
-STATISTICS = open(f"logs_0523/{COMPETITION_NAME}.csv").read()
-
-USER_PROMPT = f"""
+    USER_PROMPT = f"""
 You are an expert data scientist specializing in analyzing and improving automated machine learning systems, particularly focusing on the decision-making processes driven by Large Language Models (LLMs).
 
 ## System Overview: RD-Agent ##
@@ -65,7 +64,7 @@ Please structure your response to include the following sections:
 * Keep in mind that when LLM makes decisions, it does not have access to the "Running Score (test)" but only to the "Running Score (valid)", although the former is visible in the logs/statistics you have.
 
 ### 2. Root Cause Analysis of LLM Decisions ###
-For the misjudgments identified above, thoroughly analyze the provided logs (LLM prompt and response) to determine the most likely reasons for the LLM's decisions. Consider factors such as:
+For the misjudgments identified above, find the corresponding iteration (by iteration/loop number) in the provided logs (LLM prompt and response) to determine the most likely reasons for the LLM's decisions. Consider factors such as:
 * Ambiguity or misinterpretation of instructions within the **Decision Prompt Template**.
 * Incorrect weighting or focus on specific evaluation criteria by the LLM.
 * Missing or insufficient contextual information in the prompt provided to the LLM.
@@ -78,16 +77,16 @@ For the misjudgments identified above, thoroughly analyze the provided logs (LLM
 * Focus on enhancing clarity, ensuring comprehensive context, refining evaluation criteria, improving instruction precision, and optimizing the overall structure of the **Decision Prompt Template**. Your goal is to make this template more robust against future misjudgments.
 
 Please begin your detailed analysis.
-"""
+""".strip()
 
-LOGS_COMBINED = ""
-for file in sorted(glob.glob(f"logs_0523/feedback_{COMPETITION_NAME}_loop*.log")):
-    with open(file, "r") as f:
-        header = "### " + os.path.basename(file).upper() + " ###"
-        LOGS_COMBINED += "#" * len(header) + "\n" + header + "\n" + "#" * len(header) + "\n\n" + f.read() + "\n\n\n"
+    LOGS_COMBINED = ""
+    for file in sorted(glob.glob(f"logs_0523/feedback_{COMPETITION_NAME}_loop*.log")):
+        with open(file, "r") as f:
+            header = "### " + os.path.basename(file).upper() + " ###"
+            LOGS_COMBINED += "#" * len(header) + "\n" + header + "\n" + "#" * len(header) + "\n\n" + f.read() + "\n\n\n"
 
 
-with open(f"logs_0523/prompt_user_{COMPETITION_NAME}.txt", "w") as f:
-    f.write(USER_PROMPT)
-with open(f"logs_0523/prompt_logs_{COMPETITION_NAME}.log", "w") as f:
-    f.write(LOGS_COMBINED)
+    with open(f"logs_0523/prompt_user_{COMPETITION_NAME}.txt", "w") as f:
+        f.write(USER_PROMPT)
+    with open(f"logs_0523/prompt_logs_{COMPETITION_NAME}.log", "w") as f:
+        f.write(LOGS_COMBINED)
