@@ -33,7 +33,7 @@ def extract_models_and_implement(report_file_path: str) -> None:
     with logger.tag("init"):
         scenario = GeneralModelScenario()
         logger.log_object(scenario, tag="scenario")
-    with logger.tag("r"):
+    with logger.tag("direct_exp_gen"):
         # Save Relevant Images
         img = extract_first_page_screenshot_from_pdf(report_file_path)
         logger.log_object(img, tag="pdf_image")

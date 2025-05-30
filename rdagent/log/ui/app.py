@@ -152,17 +152,17 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
         while True:
             try:
                 msg = next(state.fs)
-
-                # new scenario gen this tags, old version UI not have these tags.
-                msg.tag = re.sub(r"\.evo_loop_\d+", "", msg.tag)
-                msg.tag = re.sub(r"Loop_\d+\.[^.]+", "", msg.tag)
-                msg.tag = re.sub(r"\.\.", ".", msg.tag)
-                msg.tag = msg.tag.strip(".")
-
                 if should_display(msg):
                     tags = msg.tag.split(".")
-                    if "r" not in state.current_tags and "r" in tags:
+                    if "direct_exp_gen" not in state.current_tags and "direct_exp_gen" in tags:
                         state.lround += 1
+
+                    # new scenario gen this tags, old version UI not have these tags.
+                    msg.tag = re.sub(r"\.evo_loop_\d+", "", msg.tag)
+                    msg.tag = re.sub(r"Loop_\d+\.[^.]+", "", msg.tag)
+                    msg.tag = re.sub(r"\.\.", ".", msg.tag)
+                    msg.tag = msg.tag.strip(".")
+
                     if "evolving code" not in state.current_tags and "evolving code" in tags:
                         state.erounds[state.lround] += 1
 
@@ -170,7 +170,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     state.last_msg = msg
 
                     # Update Summary Info
-                    if "model runner result" in tags or "factor runner result" in tags or "runner result" in tags:
+                    if "runner result" in tags:
                         # factor baseline exp metrics
                         if (
                             isinstance(state.scenario, (QlibFactorScenario, QlibQuantScenario))
@@ -556,12 +556,12 @@ def research_window():
         st.subheader(title, divider="blue", anchor="_research")
         if isinstance(state.scenario, SIMILAR_SCENARIOS):
             # pdf image
-            if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
+            if pim := state.msgs[round]["extract_factors_and_implement.load_pdf_screenshot"]:
                 for i in range(min(2, len(pim))):
                     st.image(pim[i].content, use_container_width=True)
 
             # Hypothesis
-            if hg := state.msgs[round]["r.hypothesis generation"]:
+            if hg := state.msgs[round]["hypothesis generation"]:
                 st.markdown("**Hypothesis💡**")  # 🧠
                 h: Hypothesis = hg[0].content
                 st.markdown(
@@ -570,14 +570,14 @@ def research_window():
 - **Reason**: {h.reason}"""
                 )
 
-            if eg := state.msgs[round]["r.experiment generation"]:
+            if eg := state.msgs[round]["experiment generation"]:
                 tasks_window(eg[0].content)
 
         elif isinstance(state.scenario, GeneralModelScenario):
             # pdf image
             c1, c2 = st.columns([2, 3])
             with c1:
-                if pim := state.msgs[round]["r.pdf_image"]:
+                if pim := state.msgs[round]["pdf_image"]:
                     for i in range(len(pim)):
                         st.image(pim[i].content, use_container_width=True)
 
@@ -588,7 +588,7 @@ def research_window():
                     # TODO: modify the way to get one message with a specific tag like 'load_experiment' in the future
                     me: QlibModelExperiment = mem[0].content
                     tasks_window(me.sub_tasks)
-                elif mem := state.msgs[round]["r.load_experiment"]:
+                elif mem := state.msgs[round]["load_experiment"]:
                     me: QlibModelExperiment = mem[0].content
                     tasks_window(me.sub_tasks)
 

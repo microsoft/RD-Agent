@@ -57,9 +57,8 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
 
     # included steps
     def direct_exp_gen(self, prev_out: dict[str, Any]):
-        with logger.tag("r"):  # research
-            hypo = self._propose()
-            exp = self._exp_gen(hypo)
+        hypo = self._propose()
+        exp = self._exp_gen(hypo)
         return {"propose": hypo, "exp_gen": exp}
 
     def coding(self, prev_out: dict[str, Any]):
