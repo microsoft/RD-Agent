@@ -200,7 +200,7 @@ class ExpGen2TraceAndMerge(ExpGen):
         if timer.remain_time_duration >= timedelta(hours=DS_RD_SETTING.merge_hours):
             leaves: list[int] = trace.get_leaves()
             if len(leaves) < 2:
-                selection = tuple()  # create new trace
+                selection = trace.NEW_ROOT  # create new trace
             else:
                 selection = (
                     leaves[0],
@@ -332,7 +332,7 @@ class ExpGen2TraceAndMergeV2(ExpGen):
             else:
                 if not self.flag_start_merge:  # root node of the merge trace
                     self.flag_start_merge = True
-                    trace.set_current_selection(tuple())
+                    trace.set_current_selection(trace.NEW_ROOT)
                     return self.merge_exp_gen.gen(trace)
                 else:
                     # return self.merge_exp_gen.gen(trace)
