@@ -389,17 +389,19 @@ class ExpGen2TraceAndMergeV3(ExpGen):
                         and sota_exp_fb[0].result is not None
                         and exp_to_merge_fb[0].result is not None
                     ):
-                        current_exp_value = exp_to_merge_fb[0].result.loc["ensemble"].iloc[0]
                         sota_submit_value = trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0]
-                        sota_feedback_value = sota_exp_fb[0].result.loc["ensemble"].iloc[0]
-
+                        sota_exp_value = sota_exp_fb[0].result.loc["ensemble"].iloc[0]
+                        exp_to_merge_value = exp_to_merge_fb[0].result.loc["ensemble"].iloc[0]
                         # SOTA experiment value may not be the last value in the trace
                         logger.info(
-                            f"{leaves[0]} score: {current_exp_value}, {leaves[1]} score: {current_exp_value}, Sota score: {sota_submit_value}"
+                            f"{leaves[0]} score: {sota_exp_value}, {leaves[1]} score: {exp_to_merge_value}, Sota score: {sota_submit_value}"
                         )
-                        if abs(current_exp_value - sota_submit_value) < abs(current_exp_value - sota_feedback_value):
+                        if abs(exp_to_merge_value - sota_submit_value) < abs(sota_exp_value - sota_submit_value):
                             selection = (leaves[1],)
-                    if sota_exp_fb[0].result is None and exp_to_merge_fb[0].result is not None:
+                            logger.info(
+                                f"Change selection from {leaves[0]} to {leaves[1]}, since {exp_to_merge_value} is better than {sota_exp_value}"
+                            )
+                    elif sota_exp_fb[0].result is None and exp_to_merge_fb[0].result is not None:
                         logger.info(
                             f"{leaves[0]} result is None, change selection to {leaves[1]}, result is {exp_to_merge_fb[0].result}"
                         )
