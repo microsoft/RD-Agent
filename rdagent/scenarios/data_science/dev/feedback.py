@@ -22,7 +22,7 @@ from rdagent.utils.repo.diff import generate_diff_from_dict
 
 class AspectDecision(BaseModel):
     reasoning: str = Field(
-        description="A concise 2-3 sentence (unless otherwise specified) explanation supporting the decision for this aspect. Reference specific data or code elements where applicable."
+        description="A concise 3-5 sentence (unless otherwise specified) explanation supporting the decision for this aspect. Reference specific data or code elements where applicable."
     )
     decision: bool = Field(
         description="Boolean flag indicating if the current experiment passes the check or meets the criteria for this specific aspect."
@@ -47,8 +47,11 @@ class ExperimentFeedbackInAspects(BaseModel):
     code_quality_and_robustness_superior_or_establishes_sota: AspectDecision = Field(
         description="Detailed analysis of the current experiment's code quality (less overfitting risk, best practices, interpretability, efficiency) compared to SOTA. This is especially crucial if performance_exceeds_sota.decision is true due to similar performance. If this is the first SOTA, then code quality establishes the baseline. Only evaluate if performance_exceeds_sota.decision is true."
     )
+    inherent_risk_assessment: AspectDecision = Field(
+        description="Assesses the inherent risks of the current experiment, such as overfitting, evaluation soundness that could undermine the validity of the evaluation results."
+    )
     overall_recommendation_to_submit: AspectDecision = Field(
-        description="Final recommendation on whether to submit this experiment's results and potentially replace the SOTA. The 'decision' is based on a cascade of the previous checks. The 'reasoning' MUST summarize the primary basis for this decision, starting with a specific tag: [Submission format error], [Evaluation alignment error], [Performance regression], [Quality or robustness inferior], [Accepted new SOTA performance], [Accepted code improvement], or [Accepted first SOTA]. Whether the hypothesis was supported by the result should also be included in the reasoning of the overall recommendation, although it's not a direct factor in the decision. The reasoning can be longer than other aspects (e.g., up to 10 sentences), but still concise."
+        description="Final recommendation on whether to submit this experiment's results and potentially replace the SOTA. The 'decision' is based on a cascade of the previous checks. The 'reasoning' MUST summarize the primary basis for this decision, starting with a specific tag: [Submission format error], [Evaluation alignment error], [Performance regression], [Quality or robustness inferior], [High inherent risk], [Accepted new SOTA performance], [Accepted code improvement], or [Accepted first SOTA]. Whether the hypothesis was supported by the result should also be included in the reasoning of the overall recommendation, although it's not a direct factor in the decision. The reasoning can be longer than other aspects (e.g., up to 10 sentences), but still concise."
     )
 
 

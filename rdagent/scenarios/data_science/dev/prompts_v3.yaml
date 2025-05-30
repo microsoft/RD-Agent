@@ -17,7 +17,7 @@ exp_feedback:
     Carefully follow this sequence. Populate each field of the `ExperimentFeedback` schema in order. The decision for one step often gates evaluation of subsequent steps.
 
     ## 1. `submission_format_valid`
-    - **Reasoning**: Check the format check of "Current Solution", identify and clearly specify the issues
+    - **Reasoning**: Check the format check of "Current Solution", identify and clearly specify the issues.
     - **Decision Logic**:
       - If format check fails (e.g., errors reported): decision = false.
       - If format check passes: decision = true.
@@ -39,21 +39,23 @@ exp_feedback:
         - No shortcuts or fold-specific strategies applied inconsistently.
         - Rigorous checks for corner-case consistency.
         - Potential data leakage indicated by code diffs or solution sketch.
-        - Risks of overfitting-prone finetuning or domain adaptation on insufficient data.
+        - Risks of overfitting-prone finetuning or domain adaptation on insufficient data due to the experimental setup itself.
+      - If the SOTA experiment had a misaligned evaluation (e.g., data leakage impacting validation scores), and the Current Experiment corrects this alignment, prioritize the reliability of the Current Experiment's evaluation. Note this explicitly.
     - **Decision Logic**:
-      - If discrepancies or significant risks are found: decision = false.
+      - If discrepancies or significant risks (like clear leakage or misalignment in the setup) are found: decision = false.
       - If evaluation alignment passes: decision = true.
 
     ## 4. `performance_exceeds_sota`
     - **Prerequisite**: `evaluation_aligned_with_competition.decision` MUST be `true`. If not, set decision = false and reasoning to "Not applicable due to prior errors."
-    - **Reasoning**: Compare current result (specifically `ensemble` score) with SOTA result (if SOTA experiment exists and is valid). Quantify the comparison. State if it's better, worse, similar, or first SOTA. Mention if individual models outperform ensemble significantly as a point of note, but base decision on ensemble.
     - **Decision Logic**:
       - If `is_first_valid_submission.decision` is `true` (and this step is reached): decision = true (as it establishes the first SOTA).
       - If SOTA exists:
-        - Current `ensemble` obviously better than SOTA `ensemble`: decision = true.
-        - Current `ensemble` obviously worse than SOTA `ensemble`: decision = false.
-        - Current `ensemble` similar to SOTA `ensemble` (or both at ceiling): decision = true, but reasoning must note the similarity and that final acceptance will heavily depend on code quality.
-    - **Reasoning**: Quantify the comparison. State if it's better, worse, similar, or first SOTA. Mention if individual models outperform ensemble significantly as a point of note, but base decision on ensemble.
+        - Current `ensemble` **obviously better** than SOTA `ensemble` (e.g., an absolute improvement of >0.01 for AUC/MAP, or >2% relative gain for accuracy/LogLoss, adjust threshold based on metric sensitivity and baseline): decision = true.
+        - Current `ensemble` **obviously worse** than SOTA `ensemble` (e.g., an absolute decrease of >0.005 for AUC/MAP, or >1% relative drop for accuracy/LogLoss, adjust threshold): decision = false.
+        - Current `ensemble` is **marginally better** (e.g., improvement between a minimal threshold like 0.0005 and the "obviously better" threshold for AUC/MAP) OR **similar** (e.g., within +/- 0.0005 AUC of SOTA, numerically identical, or if both current and SOTA validation `ensemble` scores are at a clear floor like 0.0 or ceiling like 0.9999+ where gains are hard to measure and the metric may have lost discriminative power): decision = true.
+    - **Reasoning**: Quantify the comparison. State if it's obviously better, obviously worse, marginally better, or similar, or if it's the first SOTA. Mention if individual models outperform ensemble significantly as a point of note, but base decision on ensemble.
+      - If performance is **obviously better**, acknowledge the gain. Note that the implications of this gain regarding complexity or generalization will be assessed in subsequent steps.
+      - If performance is **marginally better** or **similar**, explicitly state: "Performance is [marginally better/similar]. Final acceptance will heavily depend on *demonstrably superior* code quality and robustness (Step 6) and a low risk profile (Step 7), especially if the SOTA is already strong or if the validation metric might be saturated/uninformative."
 
     ## 5. `hypothesis_supported`
     - **Reasoning**: Review current hypothesis and the current result (trends, specific data points from individual models or ablation if available, ensemble score changes). Explain how the data supports or refutes the hypothesis. This is for learning, not direct SOTA replacement.
@@ -63,29 +65,43 @@ exp_feedback:
 
     ## 6. `code_quality_and_robustness_superior_or_establishes_sota`
     - **Prerequisite**: `performance_exceeds_sota.decision` MUST be `true`. If not, set decision = false and reasoning to "Not applicable due to prior errors or performance regression."
-    - **Reasoning**:
-      - If `is_first_valid_submission.decision` is `true`, the current code establishes the SOTA. Analyze its inherent quality based on the criteria below.
-      - If SOTA exists and `performance_exceeds_sota.reasoning` indicates "similar" performance: This step is CRITICAL. Compare codes of current experiment with SOTA experiment (if available).
-      - If SOTA exists and `performance_exceeds_sota.reasoning` indicates "obviously better" performance: Still review current code for major regressions in quality, but the bar for rejection is higher.
-      - Criteria for comparison/evaluation:
-        - [IMPORTANT] Resource efficiency (time/space complexity improvements or justification for increases).
-        - Reduced potential for overfitting and no data leakage (no modification of validation/test distributions unless explicitly part of a sound strategy described in scenario).
-        - Use of best practices and sound modeling techniques (reasonable, efficient choice of components based on scenario).
-        - Interpretability and domain alignment (code tied to solid domain knowledge, if applicable).
+    - **Reasoning**: Focus on the intrinsic quality of the current experiment's code and methodological design.
+      - If `is_first_valid_submission.decision` is `true`, the current code establishes the SOTA. Analyze its inherent quality.
+      - If SOTA exists, compare the current experiment's code and design against the SOTA.
+      - Criteria for evaluation:
+        - **Resource Efficiency**: Assess changes in computational requirements (time/memory) from a code/algorithmic perspective.
+        - **Inherent Overfitting Potential & Robustness of Design**: Evaluate if the code/methodology (e.g., model architecture, regularization techniques, cross-validation strategy if part of the code, data augmentation use) is designed to be robust and minimize overfitting. This is about the *design choices*, not the observed validation score.
+        - **Best Practices & Sound Modeling Techniques**: Is the code well-structured, maintainable, and does it employ reasonable and efficient components and techniques correctly?
+        - **Interpretability and Domain Alignment**: Is the code understandable? Does it leverage domain knowledge appropriately in its design?
+        - **Fidelity of Implementation to Hypothesis**: Does the code accurately and effectively implement the stated hypothesis?
     - **Decision Logic**:
-      - If establishing first SOTA: decision = true if code quality is reasonable.
-      - If SOTA exists and performance is similar: decision = true ONLY IF current code is demonstrably better on the above criteria. Otherwise decision = false.
-      - If SOTA exists and performance is obviously better: decision = true unless current code introduces severe quality regressions.
+      - If establishing first SOTA: decision = true if code quality and methodological design are reasonable.
+      - If SOTA exists and performance is **marginally better** or **similar**: decision = true ONLY IF current code/design is demonstrably superior in terms of significantly improved **inherent robustness of design**, substantially better resource efficiency, critical bug fixes in SOTA's code, or major improvements in maintainability/clarity. Minor stylistic improvements are insufficient.
+      - If SOTA exists and performance is **obviously better**: decision = true unless the current code/design introduces **severe** regressions in quality (e.g., new critical bugs, clear data leakage introduced in this iteration's code, removal of essential robustness features present in SOTA) or adds complexity that is not justified even by the performance gain (this justification will be weighed in Step 7).
 
-    ## 7. `overall_recommendation_to_submit`
-    - **This is the final output decision, based on the cascade of previous decisions.**
-    - **Reasoning**: Summarize the key factors from the step that determined this final outcome. `hypothesis_supported` is not a direct factor in the decision but should be noted here for learning purposes. Even if the decision is negative, you can still provide highlights of the current experiment that could be useful for future experiments.
+    ## 7. `inherent_risk_assessment`
+    - **Prerequisite**: `code_quality_and_robustness_superior_or_establishes_sota.decision` MUST be `true`. If not, set decision = false and reasoning to "Not applicable as solution is already non-viable based on performance or intrinsic code/design quality."
+    - **Reasoning**: Evaluate the overall risk of adopting the current experiment as the new SOTA, given its *observed performance* and the *nature of its changes* relative to the SOTA and competition context.
+      - **SOTA Stability vs. Change Risk**: If the current SOTA is already high-performing, simple, and believed to be robust, do the new experiment's changes (even if code is well-written per Step 6) introduce significant new complexity or fragility for a gain that might be marginal, within noise levels, or uncertain to generalize?
+      - **Metric Reliability Impact**: If the validation metric is known to be noisy, saturated, or uninformative, how does this affect confidence in the observed performance change as a true indicator for SOTA replacement?
+      - **Overall Complexity vs. Benefit/Risk Trade-off**: Considering the resource changes and complexity introduced (noted in Step 6), and the observed performance (Step 4), does the potential benefit warrant the risks of this change, including potential for regressions on unseen data?
+    - **Decision Logic**:
+      - If significant, unmitigated risks are identified that undermine confidence in the current experiment's true generalizable improvement over SOTA, or suggest the change is not worth the potential downsides: decision = true (indicating high risk).
+      - If risks are deemed low, manageable, or clearly justified by the benefits and the robustness of the solution: decision = false (indicating low/acceptable risk).
+
+    ## 8. `overall_recommendation_to_submit`
+    - **This is the final output decision, based on the cascade of previous decisions, including risk.**
+    - **Reasoning**: Summarize the key factors from the step that determined this final outcome. Explicitly state how `inherent_risk_assessment.decision` (i.e., whether high risk was found) influenced this.
+      - If `inherent_risk_assessment.decision` is `true` (high risk identified), this is a strong factor to recommend **against** submission, unless the performance gains are exceptionally large AND the SOTA had critical flaws that this solution demonstrably fixes AND the risk is acknowledged as a calculated gamble.
+      - If `inherent_risk_assessment.decision` is `false` (low/acceptable risk), proceed with recommendation based on performance and code quality.
+      - `hypothesis_supported` is not a direct gating factor if performance is significantly superior and risks are low. However, if the decision is borderline (e.g., performance is 'similar' or 'marginally better', code quality offers some but not overwhelming benefits, and risks are moderate/low), a strongly supported hypothesis that points to better generalization or addresses a known SOTA flaw can be a positive factor. Conversely, a refuted hypothesis in such a scenario might weigh against acceptance.
+      - Even if the decision is negative, you can still provide highlights of the current experiment that could be useful for future experiments.
 
     # Final Instructions
     - Ensure your reasoning for each aspect is concise (2-3 sentences) and data-driven.
     - The `overall_recommendation_to_submit.reasoning` MUST begin with the specified tag.
     - Focus on ensemble scores for performance unless anomalies are highly significant.
-    - The hypothesis evaluation (`hypothesis_supported`) is for learning and does not directly determine if a solution is the new SOTA if the code/results are otherwise superior.
+    - The hypothesis evaluation (`hypothesis_supported`) is for learning and does not directly determine if a solution is the new SOTA if the code/results are otherwise superior, but it can add weight in borderline cases.
 
   user: |-
     # Competition Scenario Description
