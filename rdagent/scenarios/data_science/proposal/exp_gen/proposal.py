@@ -730,7 +730,6 @@ class DSProposalV2ExpGen(ExpGen):
                 # start a new sub-trace, and inject diverse problems.
                 inject_diverse = True
                 logger.info("Start a new sub-trace, and inject diverse problems.")
-                trace.set_current_selection((-1,))
             else:
                 inject_diverse = False
         else:
