@@ -233,22 +233,21 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                         state.hypotheses[state.lround] = msg.content
                     elif "ef" in tags and "feedback" in tags:
                         state.h_decisions[state.lround] = msg.content.decision
-                    elif "d" in tags:
-                        if "evolving code" in tags:
-                            msg.content = [i for i in msg.content if i]
-                        if "evolving feedback" in tags:
-                            total_len = len(msg.content)
-                            none_num = total_len - len(msg.content)
-                            right_num = 0
-                            for wsf in msg.content:
-                                if wsf.final_decision:
-                                    right_num += 1
-                            wrong_num = len(msg.content) - right_num
-                            state.e_decisions[state.lround][state.erounds[state.lround]] = (
-                                right_num,
-                                wrong_num,
-                                none_num,
-                            )
+                    elif "evolving code" in tags:
+                        msg.content = [i for i in msg.content if i]
+                    elif "evolving feedback" in tags:
+                        total_len = len(msg.content)
+                        none_num = total_len - len(msg.content)
+                        right_num = 0
+                        for wsf in msg.content:
+                            if wsf.final_decision:
+                                right_num += 1
+                        wrong_num = len(msg.content) - right_num
+                        state.e_decisions[state.lround][state.erounds[state.lround]] = (
+                            right_num,
+                            wrong_num,
+                            none_num,
+                        )
 
                     state.msgs[state.lround][msg.tag].append(msg)
 
@@ -474,9 +473,9 @@ def summary_window():
     elif isinstance(state.scenario, GeneralModelScenario):
         with st.container(border=True):
             st.subheader("Summary📊", divider="rainbow", anchor="_summary")
-            if len(state.msgs[state.lround]["d.evolving code"]) > 0:
+            if len(state.msgs[state.lround]["evolving code"]) > 0:
                 # pass
-                ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[state.lround]["d.evolving code"][-1].content
+                ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[state.lround]["evolving code"][-1].content
                 # All Tasks
 
                 tab_names = [
@@ -484,7 +483,7 @@ def summary_window():
                     for w in ws
                 ]
                 for j in range(len(ws)):
-                    if state.msgs[state.lround]["d.evolving feedback"][-1].content[j].final_decision:
+                    if state.msgs[state.lround]["evolving feedback"][-1].content[j].final_decision:
                         tab_names[j] += "✔️"
                     else:
                         tab_names[j] += "❌"
@@ -498,7 +497,7 @@ def summary_window():
                                 st.code(v, language="python")
 
                         # Evolving Feedback
-                        evolving_feedback_window(state.msgs[state.lround]["d.evolving feedback"][-1].content[j])
+                        evolving_feedback_window(state.msgs[state.lround]["evolving feedback"][-1].content[j])
 
 
 def tabs_hint():
@@ -583,12 +582,7 @@ def research_window():
 
             # loaded model exp
             with c2:
-                if mem := state.msgs[round]["d.load_experiment"]:
-                    # 'load_experiment' should in 'r' now, but old version trace may in 'd', so we need to check both
-                    # TODO: modify the way to get one message with a specific tag like 'load_experiment' in the future
-                    me: QlibModelExperiment = mem[0].content
-                    tasks_window(me.sub_tasks)
-                elif mem := state.msgs[round]["load_experiment"]:
+                if mem := state.msgs[round]["load_experiment"]:
                     me: QlibModelExperiment = mem[0].content
                     tasks_window(me.sub_tasks)
 
@@ -709,7 +703,7 @@ def evolving_window():
         else:
             evolving_round = 1
 
-        ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[round]["d.evolving code"][
+        ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[round]["evolving code"][
             evolving_round - 1
         ].content
         # All Tasks
@@ -717,9 +711,9 @@ def evolving_window():
         tab_names = [
             w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws
         ]
-        if len(state.msgs[round]["d.evolving feedback"]) >= evolving_round:
+        if len(state.msgs[round]["evolving feedback"]) >= evolving_round:
             for j in range(len(ws)):
-                if state.msgs[round]["d.evolving feedback"][evolving_round - 1].content[j].final_decision:
+                if state.msgs[round]["evolving feedback"][evolving_round - 1].content[j].final_decision:
                     tab_names[j] += "✔️"
                 else:
                     tab_names[j] += "❌"
@@ -735,8 +729,8 @@ def evolving_window():
                         st.code(v, language="python")
 
                 # Evolving Feedback
-                if len(state.msgs[round]["d.evolving feedback"]) >= evolving_round:
-                    evolving_feedback_window(state.msgs[round]["d.evolving feedback"][evolving_round - 1].content[j])
+                if len(state.msgs[round]["evolving feedback"]) >= evolving_round:
+                    evolving_feedback_window(state.msgs[round]["evolving feedback"][evolving_round - 1].content[j])
 
 
 toc = """
@@ -795,7 +789,7 @@ with st.sidebar:
         if st.button("Next Step", use_container_width=True):
             if not state.fs:
                 refresh()
-            get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
+            get_msgs_until(lambda m: "evolving feedback" in m.tag)
 
     with st.popover(":orange[**Config⚙️**]", use_container_width=True):
         st.multiselect("excluded log tags", ["llm_messages"], ["llm_messages"], key="excluded_tags")
@@ -894,9 +888,9 @@ def analyze_task_completion():
 
         # For each evolving round in this loop
         for e_round in range(1, max_evolving_round + 1):
-            if len(state.msgs[loop_round]["d.evolving feedback"]) >= e_round:
+            if len(state.msgs[loop_round]["evolving feedback"]) >= e_round:
                 # Get feedback for this evolving round
-                feedback = state.msgs[loop_round]["d.evolving feedback"][e_round - 1].content
+                feedback = state.msgs[loop_round]["evolving feedback"][e_round - 1].content
 
                 # Count passed tasks and track their indices
                 passed_tasks = set()
@@ -914,7 +908,7 @@ def analyze_task_completion():
                 }
 
         completion_stats[loop_round] = {
-            "total_tasks": len(state.msgs[loop_round]["d.evolving feedback"][0].content),
+            "total_tasks": len(state.msgs[loop_round]["evolving feedback"][0].content),
             "rounds": tasks_passed_by_round,
             "max_round": max_evolving_round,
         }

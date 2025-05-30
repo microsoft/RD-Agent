@@ -65,23 +65,21 @@ class QuantRDLoop(RDLoop):
             super(RDLoop, self).__init__()
 
     def direct_exp_gen(self, prev_out: dict[str, Any]):
-        with logger.tag("r"):  # research
-            hypo = self._propose()
-            assert hypo.action in ["factor", "model"]
-            if hypo.action == "factor":
-                exp = self.factor_hypothesis2experiment.convert(hypo, self.trace)
-            else:
-                exp = self.model_hypothesis2experiment.convert(hypo, self.trace)
-            logger.log_object(exp.sub_tasks, tag="experiment generation")
+        hypo = self._propose()
+        assert hypo.action in ["factor", "model"]
+        if hypo.action == "factor":
+            exp = self.factor_hypothesis2experiment.convert(hypo, self.trace)
+        else:
+            exp = self.model_hypothesis2experiment.convert(hypo, self.trace)
+        logger.log_object(exp.sub_tasks, tag="experiment generation")
         return {"propose": hypo, "exp_gen": exp}
 
     def coding(self, prev_out: dict[str, Any]):
-        with logger.tag("d"):  # development
-            if prev_out["direct_exp_gen"]["propose"].action == "factor":
-                exp = self.factor_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
-            elif prev_out["direct_exp_gen"]["propose"].action == "model":
-                exp = self.model_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
-            logger.log_object(exp, tag="coder result")
+        if prev_out["direct_exp_gen"]["propose"].action == "factor":
+            exp = self.factor_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
+        elif prev_out["direct_exp_gen"]["propose"].action == "model":
+            exp = self.model_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
+        logger.log_object(exp, tag="coder result")
         return exp
 
     def running(self, prev_out: dict[str, Any]):

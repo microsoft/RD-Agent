@@ -62,9 +62,8 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         return {"propose": hypo, "exp_gen": exp}
 
     def coding(self, prev_out: dict[str, Any]):
-        with logger.tag("d"):  # develop
-            exp = self.coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
-            logger.log_object(exp.sub_workspace_list, tag="coder result")
+        exp = self.coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
+        logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
 
     def running(self, prev_out: dict[str, Any]):
