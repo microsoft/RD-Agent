@@ -161,6 +161,13 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     msg.tag = re.sub(r"\.evo_loop_\d+", "", msg.tag)
                     msg.tag = re.sub(r"Loop_\d+\.[^.]+", "", msg.tag)
                     msg.tag = re.sub(r"\.\.", ".", msg.tag)
+
+                    # remove old redundant tags
+                    msg.tag = re.sub(r"init\.", "", msg.tag)
+                    msg.tag = re.sub(r"r\.", "", msg.tag)
+                    msg.tag = re.sub(r"d\.", "", msg.tag)
+                    msg.tag = re.sub(r"ef\.", "", msg.tag)
+
                     msg.tag = msg.tag.strip(".")
 
                     if "evolving code" not in state.current_tags and "evolving code" in tags:
