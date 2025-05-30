@@ -24,25 +24,24 @@ from rdagent.utils.workflow import LoopBase, LoopMeta
 class RDLoop(LoopBase, metaclass=LoopMeta):
 
     def __init__(self, PROP_SETTING: BasePropSetting):
-        with logger.tag("init"):
-            scen: Scenario = import_class(PROP_SETTING.scen)()
-            logger.log_object(scen, tag="scenario")
+        scen: Scenario = import_class(PROP_SETTING.scen)()
+        logger.log_object(scen, tag="scenario")
 
-            self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
-            logger.log_object(self.hypothesis_gen, tag="hypothesis generator")
+        self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
+        logger.log_object(self.hypothesis_gen, tag="hypothesis generator")
 
-            self.hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.hypothesis2experiment)()
-            logger.log_object(self.hypothesis2experiment, tag="hypothesis2experiment")
+        self.hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.hypothesis2experiment)()
+        logger.log_object(self.hypothesis2experiment, tag="hypothesis2experiment")
 
-            self.coder: Developer = import_class(PROP_SETTING.coder)(scen)
-            logger.log_object(self.coder, tag="coder")
-            self.runner: Developer = import_class(PROP_SETTING.runner)(scen)
-            logger.log_object(self.runner, tag="runner")
+        self.coder: Developer = import_class(PROP_SETTING.coder)(scen)
+        logger.log_object(self.coder, tag="coder")
+        self.runner: Developer = import_class(PROP_SETTING.runner)(scen)
+        logger.log_object(self.runner, tag="runner")
 
-            self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
-            logger.log_object(self.summarizer, tag="summarizer")
-            self.trace = Trace(scen=scen)
-            super().__init__()
+        self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
+        logger.log_object(self.summarizer, tag="summarizer")
+        self.trace = Trace(scen=scen)
+        super().__init__()
 
     # excluded steps
     def _propose(self):
@@ -57,21 +56,18 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
 
     # included steps
     def direct_exp_gen(self, prev_out: dict[str, Any]):
-        with logger.tag("r"):  # research
-            hypo = self._propose()
-            exp = self._exp_gen(hypo)
+        hypo = self._propose()
+        exp = self._exp_gen(hypo)
         return {"propose": hypo, "exp_gen": exp}
 
     def coding(self, prev_out: dict[str, Any]):
-        with logger.tag("d"):  # develop
-            exp = self.coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
-            logger.log_object(exp.sub_workspace_list, tag="coder result")
+        exp = self.coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
+        logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
 
     def running(self, prev_out: dict[str, Any]):
-        with logger.tag("ef"):  # evaluate and feedback
-            exp = self.runner.develop(prev_out["coding"])
-            logger.log_object(exp, tag="runner result")
+        exp = self.runner.develop(prev_out["coding"])
+        logger.log_object(exp, tag="runner result")
         return exp
 
     def feedback(self, prev_out: dict[str, Any]):
@@ -84,11 +80,9 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
                 reason="",
                 decision=False,
             )
-            with logger.tag("ef"):  # evaluate and feedback
-                logger.log_object(feedback, tag="feedback")
+            logger.log_object(feedback, tag="feedback")
             self.trace.hist.append((prev_out["direct_exp_gen"]["exp_gen"], feedback))
         else:
             feedback = self.summarizer.generate_feedback(prev_out["running"], self.trace)
-            with logger.tag("ef"):  # evaluate and feedback
-                logger.log_object(feedback, tag="feedback")
+            logger.log_object(feedback, tag="feedback")
             self.trace.hist.append((prev_out["running"], feedback))
