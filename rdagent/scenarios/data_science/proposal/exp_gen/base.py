@@ -144,14 +144,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             return self.hist
 
         elif search_type == "ancestors":
-
-            if selection is None:
-                selection = self.get_current_selection()
-
-            if len(selection) == 0:
-                # selection is (), which means we switch to a new trace
-                return []
-
             return self.collect_all_ancestors(selection)
 
         else:
@@ -168,7 +160,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         if selection is None:
             selection = self.get_current_selection()
 
-        if not selection or len(self.dag_parent) == 0:
+        if len(selection) == 0:
             return []
 
         else:

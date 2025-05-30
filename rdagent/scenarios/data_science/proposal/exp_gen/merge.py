@@ -123,7 +123,7 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
         # Ignore the selection argument and use all leaves instead.
         leaves: list[int] = trace.get_leaves()
         sota_exp_fb = trace.sota_experiment_fb(selection=trace.current_selection)
-        exp_index = leaves[1] if selection[0] == leaves[0] else leaves[0]
+        exp_index = leaves[1] if trace.current_selection[0] == leaves[0] else leaves[0]
 
         exp_to_merge_fb = trace.sota_experiment_fb(selection=(exp_index,))
         if exp_to_merge_fb is None:
