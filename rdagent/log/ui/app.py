@@ -703,9 +703,7 @@ def evolving_window():
         else:
             evolving_round = 1
 
-        ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[round]["evolving code"][
-            evolving_round - 1
-        ].content
+        ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[round]["evolving code"][evolving_round - 1].content
         # All Tasks
 
         tab_names = [

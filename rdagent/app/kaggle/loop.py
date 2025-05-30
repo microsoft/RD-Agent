@@ -42,9 +42,7 @@ class KaggleRDLoop(RDLoop):
         logger.log_object(self.hypothesis2experiment, tag="hypothesis2experiment")
         self.feature_coder: Developer = import_class(PROP_SETTING.feature_coder)(scen)
         logger.log_object(self.feature_coder, tag="feature coder")
-        self.model_feature_selection_coder: Developer = import_class(PROP_SETTING.model_feature_selection_coder)(
-            scen
-        )
+        self.model_feature_selection_coder: Developer = import_class(PROP_SETTING.model_feature_selection_coder)(scen)
         logger.log_object(self.model_feature_selection_coder, tag="model feature selection coder")
         self.model_coder: Developer = import_class(PROP_SETTING.model_coder)(scen)
         logger.log_object(self.model_coder, tag="model coder")
@@ -84,9 +82,7 @@ class KaggleRDLoop(RDLoop):
             "covid19-global-forecasting-week-1",
         ]:
             try:
-                python_files_to_notebook(
-                    KAGGLE_IMPLEMENT_SETTING.competition, exp.experiment_workspace.workspace_path
-                )
+                python_files_to_notebook(KAGGLE_IMPLEMENT_SETTING.competition, exp.experiment_workspace.workspace_path)
             except Exception as e:
                 logger.error(f"Merge python files to one file failed: {e}")
         if KAGGLE_IMPLEMENT_SETTING.auto_submit:
