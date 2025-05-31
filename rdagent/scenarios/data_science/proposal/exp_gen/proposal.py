@@ -524,6 +524,8 @@ class DSProposalV2ExpGen(ExpGen):
     ) -> Dict:
         problem_formatted_str = ""
         for problem_name, problem_dict in problems.items():
+            if "problem" not in problem_dict:
+                continue
             problem_formatted_str += f"Problem Name: {problem_name}\n"
             problem_formatted_str += f"- Problem Description: {problem_dict['problem']}\n"
             if "idea" in problem_dict:
@@ -599,9 +601,9 @@ class DSProposalV2ExpGen(ExpGen):
             if hypothesis_dict[problem_name].get("inspired", False):
                 index_to_pick_pool_list.extend([j] * 2)
             if problem_dict.get(problem_name, {}).get("label", "") == "SCENARIO_PROBLEM":
-                index_to_pick_pool_list.extend([j] * self.scen_prob_multiplier)
+                index_to_pick_pool_list.extend([j] * getattr(self, "scen_prob_multiplier", 0))
             else:
-                index_to_pick_pool_list.extend([j] * (3 - self.scen_prob_multiplier))
+                index_to_pick_pool_list.extend([j] * (3 - getattr(self, "scen_prob_multiplier", 0)))
         logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
 
         # Create a random but reproducible integer

@@ -144,18 +144,22 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             return self.hist
 
         elif search_type == "ancestors":
-
-            if selection is None:
-                selection = self.get_current_selection()
-
-            if len(selection) == 0:
-                # selection is (), which means we switch to a new trace
-                return []
-
             return self.collect_all_ancestors(selection)
 
         else:
             raise ValueError(f"Invalid search type: {search_type}")
+
+    def is_selection_new_tree(self, selection: tuple[int, ...] | None = None) -> bool:
+        """
+        Check if the current trace is a new tree.
+        """
+        if selection is None:
+            selection = self.get_current_selection()
+
+        if selection == self.NEW_ROOT or len(self.dag_parent) == 0:
+            return True
+
+        return False
 
     def collect_all_ancestors(
         self,
@@ -168,7 +172,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         if selection is None:
             selection = self.get_current_selection()
 
-        if len(self.dag_parent) == 0:
+        if self.is_selection_new_tree(selection):
             return []
 
         else:
@@ -226,10 +230,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         Retrieve a list of experiments and feedbacks based on the return_type.
         """
         search_list = self.retrieve_search_list(search_type, selection=selection)
-        if max_retrieve_num is not None and len(search_list) > 0:
-            retrieve_num = min(max_retrieve_num, len(search_list))
-            search_list = search_list[:retrieve_num]
-
         final_component = self.COMPLETE_ORDER[-1]
         has_final_component = True if DS_RD_SETTING.coder_on_whole_pipeline else False
         SOTA_exp_and_feedback_list = []
@@ -243,6 +243,13 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
                     failed_exp_and_feedback_list.append((exp, fb))
             if exp.hypothesis.component == final_component and fb:
                 has_final_component = True
+        if max_retrieve_num is not None and (SOTA_exp_and_feedback_list or failed_exp_and_feedback_list):
+            SOTA_exp_and_feedback_list = SOTA_exp_and_feedback_list[
+                -min(max_retrieve_num, len(SOTA_exp_and_feedback_list)) :
+            ]
+            failed_exp_and_feedback_list = failed_exp_and_feedback_list[
+                -min(max_retrieve_num, len(failed_exp_and_feedback_list)) :
+            ]
         if return_type == "all":
             return SOTA_exp_and_feedback_list + failed_exp_and_feedback_list
         elif return_type == "failed":

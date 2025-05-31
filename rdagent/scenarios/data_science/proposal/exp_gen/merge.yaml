@@ -22,6 +22,72 @@ task: |-
   {% if exp_to_merge_fb_desc %}
   {{ exp_to_merge_fb_desc }}
   {% endif %}
+trace: |-
+    {% if exp_and_feedback_list|length <= 1 %}
+    No previous {% if type == "success" %}SOTA{% elif type == "failure" %}failed{% endif %} experiments available.
+    {% else %}
+    {% for exp_and_feedback in exp_and_feedback_list[1:] %}
+    ## Experiment Index: {{ loop.index }}
+    Target Problem: {{ exp_and_feedback[0].hypothesis.problem_desc }}
+    {% if not pipeline %}Chosen Component: {{ exp_and_feedback[0].hypothesis.component }}{% endif %}
+    Proposed Hypothesis: {{ exp_and_feedback[0].hypothesis.hypothesis }}
+    Surpass Previous SOTA: {{ exp_and_feedback[1].decision }}
+    {% if exp_and_feedback[0].result is none %}
+    Experiment Score: Running buggy
+    Experiment Error: {{ exp_and_feedback[1].reason }}
+    {% else %}
+    Experiment Score: {{ exp_and_feedback[0].result.loc["ensemble"].iloc[0] }}
+    Experiment Feedback: {{ exp_and_feedback[1].reason }}
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+hypothesis_gen:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace. If new trace surpasses the current SOTA, it will be the new SOTA. If not, it will be a failed experiment.
+    You will be provided with: 
+      1. A detailed competition scenario description;
+      2. Previous SOTA experiments and feedbacks, which are past SOTA experiments indexed from oldest to newest;
+      3. The current SOTA implementation and feedback, which is the latest SOTA experiments from the previous experiments;
+      4. Extra implementations from another users' experiments;
+    Your task is to:
+      1. **Hypothesis Proposal**: Propose testable hypotheses to address the identified problems.
+      2. **Hypothesis Evaluation**: Evaluate the proposed hypotheses across multiple dimensions.
+
+    # Task 1: Hypothesis Proposal
+    For each identified problem, propose a hypothesis to improve the current SOTA implementation.
+
+    ## Hypothesis Guidelines
+    Here are few guidelines to help you formulate hypotheses:
+    1. Previous Experiments Analysis
+      - For previous SOTA experiments, analyze insights and implicit patterns that can be leveraged to improve the current SOTA implementation.
+      - For failed experiments, think about the persistent problems they facing. If these experiments consistently failed due to time/memory constraints, prioritize changes on efficiency.
+    2. Note on Time/Memory Constraints
+      - If prior experiments failed due to time/memory limitations, assume your new hypothesis will face the same constraints. In this case, prioritize efficiency and **ONLY** response to the problems related to time/memory constraints in your response dictionary.
+      - Besides, do not compromise performance merely for efficiency since the current SOTA implementation do not encounter the constraints. You should think about how to balance the efficiency and performance so that your new hypothesis can be executed successfully and achieve satisfactory performance. 
+
+    # Task 2: Hypothesis Evaluation
+    ## Evaluation Instruction
+    Firstly, you should tag the hypothesis with one of the following components. If the hypothesis is related to multiple components, you should choose the most relevant one.
+    {{ component_desc }}
+    After proposing the hypothesis, your second task is to evaluate the hypothesis from multiple dimensions.
+
+    Secondly, please score the proposed hypothesis from 1 to 10 for each of the following dimensions (where 1 means lowest and 10 means highest):
+    1. Problem-Hypothesis Alignment: How well the hypothesis addresses the identified problem.
+    2. Expected Impact: The estimated improvement after applying the hypothesis to current SOTA implementation.
+    3. Novelty: Degree of innovation compared to previous attempts. If the proposed hypothesis is similar to previous experiments' hypothesis, assign novelty score to one.
+    4. Feasibility: The ease of implementing the proposed hypothesis in the current SOTA implementation.
+    5. Risk-Reward Balance: The exploration-exploitation balance of the proposed hypothesis.
+
+    ## Final Output Format in JSON Schema:
+    {{ hypothesis_output_format }}
+    
+  user: |-
+    # Ertra Experiments and Feedbacks
+    {{ exp_and_feedback_list_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
 
 multi_trace: |-
   {% include "scenarios.data_science.share:scen.role" %}
@@ -52,3 +118,4 @@ multi_trace: |-
   {% endif %}
 
   {% endfor %}
+ 

@@ -11,14 +11,17 @@ import importlib
 import json
 import re
 import sys
-from multiprocessing import Process, Queue
 from pathlib import Path
 from types import ModuleType
 from typing import Union
 
+import regex  # Use the `regex` module for timeout support
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.utils.agent.tpl import T
+
+# Default timeout (in seconds) for all regex operations
+REGEX_TIMEOUT = 120.0
 
 
 def get_module_by_module_path(module_path: Union[str, ModuleType]) -> ModuleType:
@@ -72,110 +75,132 @@ def remove_ansi_codes(s: str) -> str:
     """
     It is for removing ansi ctrl characters in the string(e.g. colored text)
     """
-    ansi_escape = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
-    return ansi_escape.sub("", s)
-
-
-def safe_sub(pattern: str, text: str, queue: Queue) -> None:
+    ansi_pattern = regex.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
     try:
-        result = re.sub(pattern, "", text)
-        queue.put(result)
+        return ansi_pattern.sub("", s, timeout=REGEX_TIMEOUT)
+    except TimeoutError:
+        logger.warning(f"ANSI‐removal pattern timed out after {REGEX_TIMEOUT} seconds; returning original string.")
+        return s
     except Exception as e:
-        queue.put(e)
+        logger.warning(f"ANSI‐removal pattern raised an exception: {e}; returning original string.")
+        return s
 
 
-def apply_regex_with_timeout(pattern: str, text: str, timeout: int = 120) -> str:
-    queue: Queue[str | Exception] = Queue()
-    p = Process(target=safe_sub, args=(pattern, text, queue))
-    p.start()
-    p.join(timeout)
-
-    if p.is_alive():
-        p.terminate()
-        p.join()
-        logger.warning(f"Pattern {pattern} timed out after {timeout} seconds, skipping it.")
-        return text
-    else:
-        result = queue.get()
-        if isinstance(result, Exception):
-            logger.warning(f"Pattern {pattern} raised an error: {result}")
-            return text
-        return result
-
-
-def filter_with_time_limit(regex_patterns: Union[str, list[str]], filtered_stdout: str) -> str:
+def filter_with_time_limit(regex_patterns: Union[str, list[str]], text: str) -> str:
+    """
+    Apply one or more regex patterns to filter `text`, using a timeout for each substitution.
+    If `regex_patterns` is a list, they are applied sequentially; if a single string, only that pattern is applied.
+    """
     if isinstance(regex_patterns, list):
+        filtered = text
         for pattern in regex_patterns:
-            filtered_stdout = apply_regex_with_timeout(pattern, filtered_stdout)
+            try:
+                filtered = regex.sub(pattern, "", filtered, timeout=REGEX_TIMEOUT)
+            except TimeoutError:
+                logger.warning(f"Pattern '{pattern}' timed out after {REGEX_TIMEOUT} seconds; skipping it.")
+            except Exception as e:
+                logger.warning(f"Pattern '{pattern}' raised an error: {e}; skipping it.")
+        return filtered
     else:
-        filtered_stdout = re.sub(regex_patterns, "", filtered_stdout)
-    return filtered_stdout
+        try:
+            return regex.sub(regex_patterns, "", text, timeout=REGEX_TIMEOUT)
+        except TimeoutError:
+            logger.warning(f"Pattern '{regex_patterns}' timed out after {REGEX_TIMEOUT} seconds; returning original text.")
+            return text
+        except Exception as e:
+            logger.warning(f"Pattern '{regex_patterns}' raised an error: {e}; returning original text.")
+            return text
 
 
 def filter_redundant_text(stdout: str) -> str:
     """
-    Filter out progress bars from stdout using regex.
+    Filter out progress bars and other redundant patterns from stdout using regex-based trimming.
     """
     from rdagent.oai.llm_utils import APIBackend  # avoid circular import
 
-    # Initial progress bar regex pattern
-    progress_bar_re = (
-        r"(\d+/\d+\s+[━]+\s+\d+s?\s+\d+ms/step.*?\u0008+|"
-        r"\d+/\d+\s+[━]+\s+\d+s?\s+\d+ms/step|"
-        r"\d+/\d+\s+[━]+\s+\d+s?\s+\d+ms/step.*|"
-        r"\d+/\d+\s+[━]+.*?\u0008+|"
-        r"\d+/\d+\s+[━]+.*|[ ]*\u0008+|"
-        r"\d+%\|[█▏▎▍▌▋▊▉]+\s+\|\s+\d+/\d+\s+\[\d{2}:\d{2}<\d{2}:\d{2},\s+\d+\.\d+it/s\]|"
-        r"\d+%\|[█]+\|\s+\d+/\d+\s+\[\d{2}:\d{2}<\d{2}:\d{2},\s*\d+\.\d+it/s\])"
-    )
+    # Compile a regex that matches common progress‐bar patterns
+    progress_bar_pattern = r"""(
+        \d+/\d+\s+[━]+\s+\d+s?\s+\d+ms/step.*?\u0008+ |  # e.g. "10/100 ━━━━━━ 3s 50ms/step"
+        \d+/\d+\s+[━]+\s+\d+s?\s+\d+ms/step |            # e.g. "10/100 ━━━━━━ 3s 50ms/step" (no backspaces)
+        \d+/\d+\s+[━]+\s+\d+s?\s+\d+ms/step.* |           # e.g. partial lines
+        \d+/\d+\s+[━]+.*?\u0008+ |                       # e.g. with backspaces
+        \d+/\d+\s+[━]+.* |                                # e.g. partial bars
+        [ ]*\u0008+ |                                     # stray backspaces
+        \d+%\|[█▏▎▍▌▋▊▉]+\s+\|\s+\d+/\d+\s+\[\d{2}:\d{2}<\d{2}:\d{2},\s+\d+\.\d+it/s\] |  # tqdm‐style
+        \d+%\|[█]+\|\s+\d+/\d+\s+\[\d{2}:\d{2}<\d{2}:\d{2},\s*\d+\.\d+it/s\]
+    )"""
 
     filtered_stdout = remove_ansi_codes(stdout)
-    filtered_stdout = re.sub(progress_bar_re, "", filtered_stdout)
-    filtered_stdout = re.sub(r"\s*\n\s*", "\n", filtered_stdout)
 
-    needs_sub = True
-    # Attempt further filtering up to 3 times
+    try:
+        filtered_stdout = regex.sub(progress_bar_pattern, "", filtered_stdout, flags=regex.VERBOSE, timeout=REGEX_TIMEOUT)
+    except TimeoutError:
+        logger.warning(f"Progress‐bar removal pattern timed out after {REGEX_TIMEOUT} seconds; skipping it.")
+    except Exception as e:
+        logger.warning(f"Progress‐bar removal raised an error: {e}; skipping it.")
+
+    # Collapse any excessive blank lines/spaces
+    try:
+        filtered_stdout = regex.sub(r"\s*\n\s*", "\n", filtered_stdout, timeout=REGEX_TIMEOUT)
+    except TimeoutError:
+        logger.warning(f"Whitespace normalization timed out after {REGEX_TIMEOUT} seconds; leaving as is.")
+    except Exception as e:
+        logger.warning(f"Whitespace normalization raised an error: {e}; leaving as is.")
+
+    # Iteratively ask the LLM for additional filtering patterns (up to 3 rounds)
     for _ in range(3):
-        filtered_stdout_shortened = filtered_stdout
+        truncated_stdout = filtered_stdout
         system_prompt = T(".prompts:filter_redundant_text.system").r()
 
-        # Check if all regex patterns have been collected
+        # Try to shrink the stdout so its token count is manageable
         for __ in range(10):
-            user_prompt = T(".prompts:filter_redundant_text.user").r(
-                stdout=filtered_stdout_shortened,
-            )
+            user_prompt = T(".prompts:filter_redundant_text.user").r(stdout=truncated_stdout)
             stdout_token_size = APIBackend().build_messages_and_calculate_token(
                 user_prompt=user_prompt,
                 system_prompt=system_prompt,
             )
             if stdout_token_size < LLM_SETTINGS.chat_token_limit * 0.1:
-                return filtered_stdout_shortened
+                return truncated_stdout
             elif stdout_token_size > LLM_SETTINGS.chat_token_limit * 0.6:
-                filtered_stdout_shortened = (
-                    filtered_stdout_shortened[: int(LLM_SETTINGS.chat_token_limit * 0.3)]
-                    + filtered_stdout_shortened[-int(LLM_SETTINGS.chat_token_limit * 0.3) :]
-                )
+                head = truncated_stdout[: int(LLM_SETTINGS.chat_token_limit * 0.3)]
+                tail = truncated_stdout[-int(LLM_SETTINGS.chat_token_limit * 0.3) :]
+                truncated_stdout = head + tail
             else:
                 break
 
-        response = json.loads(
-            APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
-                json_mode=True,
-                json_target_type=dict,
+        try:
+            response = json.loads(
+                APIBackend().build_messages_and_create_chat_completion(
+                    user_prompt=user_prompt,
+                    system_prompt=system_prompt,
+                    json_mode=True,
+                    json_target_type=dict,
+                )
             )
-        )
+        except Exception as e:
+            logger.error(f"LLM filtering request failed: {e}")
+            break
+
         needs_sub = response.get("needs_sub", True)
         regex_patterns = response.get("regex_patterns", [])
-        try:
-            filter_with_time_limit(regex_patterns, filtered_stdout_shortened)
 
-            if not needs_sub:
-                break
-            filtered_stdout = re.sub(r"\s*\n\s*", "\n", filtered_stdout)
+        try:
+            new_filtered = filter_with_time_limit(regex_patterns, truncated_stdout)
         except Exception as e:
-            logger.error(f"Error in filtering progress bar: due to {e}")
+            logger.error(f"Error applying LLM‐suggested patterns: {e}")
+            break
+
+        if not needs_sub:
+            return new_filtered
+
+        filtered_stdout = new_filtered
+        try:
+            filtered_stdout = regex.sub(r"\s*\n\s*", "\n", filtered_stdout, timeout=REGEX_TIMEOUT)
+        except TimeoutError:
+            logger.warning(f"Whitespace normalization timed out after {REGEX_TIMEOUT} seconds; leaving as is.")
+        except Exception as e:
+            logger.warning(f"Whitespace normalization raised an error: {e}; leaving as is.")
+
     return filtered_stdout
 
 
