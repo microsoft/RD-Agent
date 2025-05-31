@@ -524,6 +524,8 @@ class DSProposalV2ExpGen(ExpGen):
     ) -> Dict:
         problem_formatted_str = ""
         for problem_name, problem_dict in problems.items():
+            if "problem" not in problem_dict:
+                continue
             problem_formatted_str += f"Problem Name: {problem_name}\n"
             problem_formatted_str += f"- Problem Description: {problem_dict['problem']}\n"
             if "idea" in problem_dict:
