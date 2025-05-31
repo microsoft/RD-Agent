@@ -134,8 +134,10 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
                 exp=sota_exp_fb[0],
                 heading="Best previous exploration of the scenario",
             )
+            eda_output = sota_exp_fb[0].experiment_workspace.file_dict.get("EDA.md", None)
         else:
             sota_exp_desc = ""
+            eda_output = None
 
         success_fb_list = trace.experiment_and_feedback_list_after_init(
             return_type="sota", search_type="ancestors", selection=(exp_index,)
@@ -171,14 +173,13 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
 
-        eda_output = sota_exp_fb[0].experiment_workspace.file_dict.get("EDA.md", None)
         scenario_desc = trace.scen.get_scenario_all_desc(eda_output=eda_output)
 
         return self.task_gen(
             component_desc=component_desc,
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
-            sota_exp=sota_exp_fb[0],
+            sota_exp=sota_exp_fb[0] if sota_exp_fb else None,
             hypothesis=new_hypothesis,
             pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
             failed_exp_feedback_list_desc="",
