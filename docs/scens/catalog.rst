@@ -21,6 +21,7 @@ The supported scenarios are listed below:
       - Model Implementation
       - Data Building
     * - 💹 Finance
+      - :ref:`🥇The First Data-Centric Quant Multi-Agent Framework <quant_agent>`
       - :ref:`🤖Iteratively Proposing Ideas & Evolving <model_agent_fin>`
       - :ref:`🦾Auto reports reading & implementation <data_copilot_fin>`
 
@@ -42,6 +43,7 @@ The supported scenarios are listed below:
     :caption: Doctree:
     :hidden:
 
+    quant_agent
     data_agent_fin
     data_copilot_fin
     model_agent_fin
