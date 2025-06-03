@@ -376,36 +376,13 @@ class ExpGen2TraceAndMergeV3(ExpGen):
                 return self.exp_gen.gen(trace)
             else:
                 selection = (leaves[0],)
-                sota_exp_fb = trace.sota_experiment_fb(selection=selection)
-                if sota_exp_fb is None:
-                    sota_exp_fb = trace.hist[leaves[0]]
-                exp_to_merge_fb = trace.sota_experiment_fb(selection=(leaves[1],))
-                if exp_to_merge_fb is None:
-                    exp_to_merge_fb = trace.hist[leaves[1]]
-                try:
-                    if (
-                        trace.sota_exp_to_submit is not None
-                        and sota_exp_fb[0].result is not None
-                        and exp_to_merge_fb[0].result is not None
-                    ):
-                        sota_submit_value = trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0]
-                        sota_exp_value = sota_exp_fb[0].result.loc["ensemble"].iloc[0]
-                        exp_to_merge_value = exp_to_merge_fb[0].result.loc["ensemble"].iloc[0]
-                        # SOTA experiment value may not be the last value in the trace
-                        logger.info(
-                            f"{leaves[0]} score: {sota_exp_value}, {leaves[1]} score: {exp_to_merge_value}, Sota score: {sota_submit_value}"
-                        )
-                        if abs(exp_to_merge_value - sota_submit_value) < abs(sota_exp_value - sota_submit_value):
+                if trace.sota_exp_to_submit is not None:
+                    sota_idx = next(
+                        (i for i, (exp, _) in enumerate(self.hist) if exp is trace.sota_exp_to_submit), None
+                    )
+                    if sota_idx is not None:
+                        ancestors = self.collect_all_ancestors((leaves[1],))
+                        if any(exp is sota_exp for exp, _ in ancestors):
                             selection = (leaves[1],)
-                            logger.info(
-                                f"Change selection from {leaves[0]} to {leaves[1]}, since {exp_to_merge_value} is better than {sota_exp_value}"
-                            )
-                    elif sota_exp_fb[0].result is None and exp_to_merge_fb[0].result is not None:
-                        logger.info(
-                            f"{leaves[0]} result is None, change selection to {leaves[1]}, result is {exp_to_merge_fb[0].result}"
-                        )
-                        selection = (leaves[1],)
-                except Exception as e:
-                    logger.error(f"Get best selection failed: {e}")
                 trace.set_current_selection(selection)
                 return self.merge_exp_gen.gen(trace)
