@@ -221,8 +221,10 @@ class LoopBase:
                                             p, tmp_loop_prev_out = function_name_to_process_list[name][p_index]
                                             if p.done():
                                                 self.loop_prev_out = tmp_loop_prev_out
+                                                function_name_to_process_list[name].pop(
+                                                    p_index
+                                                )  # pop first since result might raise an error
                                                 self.loop_prev_out[name] = p.result()
-                                                function_name_to_process_list[name].pop(p_index)
                                                 found_finished_process = True
                                                 break
                                         if (
@@ -243,7 +245,6 @@ class LoopBase:
                                             )
                                         ):
                                             break
-
                             # TODO: Fix the error logger.exception(f"Skip loop {li} due to {e}")
                         except Exception as e:
                             if isinstance(e, self.skip_loop_error):
