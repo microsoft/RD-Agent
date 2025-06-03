@@ -1030,7 +1030,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
 
         # Step 1: Identify problems
         all_problems = {}
-        if len(trace.hist) >= 3:
+        if len(trace.hist) > 3:
             fb_problems = self.identify_feedback_problem(
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,

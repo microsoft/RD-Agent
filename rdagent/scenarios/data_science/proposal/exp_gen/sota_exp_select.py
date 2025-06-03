@@ -47,7 +47,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
         sota_exp_fb_list = trace.experiment_and_feedback_list_after_init(
             return_type="sota", search_type="all", max_retrieve_num=DS_RD_SETTING.max_sota_retrieved_num
         )
-
+        logger.info(f"Auto SOTA selector: Found {len(sota_exp_fb_list)} SOTA experiments")
         if len(sota_exp_fb_list) == 0:
             logger.info("Auto SOTA selector: No SOTA in trace yet")
             return None
@@ -69,6 +69,8 @@ class AutoSOTAexpSelector(SOTAexpSelector):
             leaves: list[int] = trace.get_leaves()
 
             if len(leaves) >= 2:
+
+                logger.info(f"Auto SOTA selector: Multiple traces found, collecting SOTA experiments from each trace")
                 # multiple trace case, collect the latest SOTA experiments from each trace
                 new_sota_exp_fb_list: list[tuple[DSExperiment, ExperimentFeedback]] = []
                 # calculate the number of SOTA experiments to retrieve from each trace
@@ -81,10 +83,25 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                         selection=(leaf,),
                         max_retrieve_num=max_sota_retrieved_num_per_trace,
                     )
+                    logger.info(
+                        f"Auto SOTA selector: Collected {len(sota_exp_fb_list_per_trace)} SOTA experiments from trace with leaf #. {leaf}"
+                    )
 
                     new_sota_exp_fb_list.extend(sota_exp_fb_list_per_trace)
 
                 sota_exp_fb_list = new_sota_exp_fb_list
+
+                if len(sota_exp_fb_list) == 0:
+                    logger.info("Auto SOTA selector: No SOTA in trace yet")
+                    return None
+
+                elif len(sota_exp_fb_list) == 1:
+                    logger.info("Auto SOTA selector: Only one SOTA in trace, using it")
+                    return sota_exp_fb_list[0][0]
+                else:
+                    logger.info(
+                        f"Auto SOTA selector: {len(sota_exp_fb_list)} SOTA experiments found in all traces, calling LLM to select the best one"
+                    )
 
             for i, (exp, ef) in enumerate(sota_exp_fb_list):
                 if exp:
@@ -115,7 +132,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
 
             sota_submit_idx = response_dict.get("selected_SOTA_idx", None)
 
-            if sota_submit_idx is not None:
+            if sota_submit_idx and int(sota_submit_idx) - 1 < len(sota_exp_fb_list):
                 sota_submit = sota_exp_fb_list[int(sota_submit_idx) - 1]
                 sota_idx_in_trace = trace.hist.index(sota_submit)
                 logger.info(
@@ -124,8 +141,12 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                 return sota_submit[0]
             else:
                 # no SOTA experiment to submit, using the latest SOTA experiment
-                logger.info("Auto SOTA selector: No SOTA experiment to submit, using the latest SOTA experiment")
-                return sota_exp_fb_list[-1][0]
+                if len(sota_exp_fb_list) > 0:
+                    logger.info("Auto SOTA selector: No SOTA experiment to submit, using the latest SOTA experiment")
+                    return sota_exp_fb_list[-1][0]
+                else:
+                    logger.info("Auto SOTA selector: No SOTA experiment in trace yet")
+                    return None
 
 
 class BestValidSelector(SOTAexpSelector):
