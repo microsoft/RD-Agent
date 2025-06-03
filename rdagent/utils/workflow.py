@@ -191,13 +191,12 @@ class LoopBase:
                                 else:
                                     func_input = self.loop_prev_out
                                     function_name_to_wait_process_list.setdefault(name, []).append((func, func_input))
-                                    self.loop_prev_out = {}
+                                    self.loop_prev_out = None
 
                                     if name not in RD_AGENT_SETTINGS.loop_parallel_dict:
                                         while function_name_to_wait_process_list[name]:
                                             func, func_input = function_name_to_wait_process_list[name].pop(0)
                                             process = executor.submit(func, func_input)
-                                            self.loop_prev_out = None
                                             function_name_to_process_list.setdefault(name, []).append(
                                                 (process, func_input)
                                             )
