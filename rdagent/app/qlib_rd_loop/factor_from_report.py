@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Any, Dict, Tuple
 
 import fire
-from jinja2 import Environment, StrictUndefined
 
 from rdagent.app.qlib_rd_loop.conf import FACTOR_FROM_REPORT_PROP_SETTING
 from rdagent.app.qlib_rd_loop.factor import FactorRDLoop
@@ -11,7 +10,6 @@ from rdagent.components.document_reader.document_reader import (
     extract_first_page_screenshot_from_pdf,
     load_and_process_pdfs_by_langchain,
 )
-from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
@@ -19,10 +17,8 @@ from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperi
 from rdagent.scenarios.qlib.factor_experiment_loader.pdf_loader import (
     FactorExperimentLoaderFromPDFfiles,
 )
+from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import LoopMeta
-
-prompts_path = Path(__file__).parent / "prompts.yaml"
-prompts = Prompts(file_path=prompts_path)
 
 
 def generate_hypothesis(factor_result: dict, report_content: str) -> str:
@@ -36,13 +32,9 @@ def generate_hypothesis(factor_result: dict, report_content: str) -> str:
     Returns:
         str: The generated hypothesis.
     """
-    system_prompt = (
-        Environment(undefined=StrictUndefined).from_string(prompts["hypothesis_generation"]["system"]).render()
-    )
-    user_prompt = (
-        Environment(undefined=StrictUndefined)
-        .from_string(prompts["hypothesis_generation"]["user"])
-        .render(factor_descriptions=json.dumps(factor_result), report_content=report_content)
+    system_prompt = T(".prompts:hypothesis_generation.system").r()
+    user_prompt = T(".prompts:hypothesis_generation.user").r(
+        factor_descriptions=json.dumps(factor_result), report_content=report_content
     )
 
     response = APIBackend().build_messages_and_create_chat_completion(

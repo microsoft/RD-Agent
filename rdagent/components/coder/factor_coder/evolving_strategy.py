@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Dict
-
-from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedback
 from rdagent.components.coder.CoSTEER.evolving_strategy import (
@@ -17,11 +14,9 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 from rdagent.components.coder.factor_coder.config import FACTOR_COSTEER_SETTINGS
 from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
 from rdagent.core.experiment import FBWorkspace
-from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
-
-implement_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+from rdagent.utils.agent.tpl import T
 
 
 class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
@@ -36,24 +31,14 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         queried_former_failed_knowledge_to_render: list,
         queried_similar_error_knowledge_to_render: list,
     ) -> str:
-        error_summary_system_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(implement_prompts["evolving_strategy_error_summary_v2_system"])
-            .render(
-                scenario=self.scen.get_scenario_all_desc(target_task),
-                factor_information_str=target_task.get_task_information(),
-                code_and_feedback=queried_former_failed_knowledge_to_render[-1].get_implementation_and_feedback_str(),
-            )
-            .strip("\n")
+        error_summary_system_prompt = T(".prompts:evolving_strategy_error_summary_v2_system").r(
+            scenario=self.scen.get_scenario_all_desc(target_task),
+            factor_information_str=target_task.get_task_information(),
+            code_and_feedback=queried_former_failed_knowledge_to_render[-1].get_implementation_and_feedback_str(),
         )
         for _ in range(10):  # max attempt to reduce the length of error_summary_user_prompt
-            error_summary_user_prompt = (
-                Environment(undefined=StrictUndefined)
-                .from_string(implement_prompts["evolving_strategy_error_summary_v2_user"])
-                .render(
-                    queried_similar_error_knowledge=queried_similar_error_knowledge_to_render,
-                )
-                .strip("\n")
+            error_summary_user_prompt = T(".prompts:evolving_strategy_error_summary_v2_user").r(
+                queried_similar_error_knowledge=queried_similar_error_knowledge_to_render,
             )
             if (
                 APIBackend().build_messages_and_calculate_token(
@@ -106,16 +91,9 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         latest_attempt_to_latest_successful_execution = queried_knowledge.task_to_former_failed_traces[
             target_factor_task_information
         ][1]
-
-        system_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(
-                implement_prompts["evolving_strategy_factor_implementation_v1_system"],
-            )
-            .render(
-                scenario=self.scen.get_scenario_all_desc(target_task, filtered_tag="feature"),
-                queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
-            )
+        system_prompt = T(".prompts:evolving_strategy_factor_implementation_v1_system").r(
+            scenario=self.scen.get_scenario_all_desc(target_task, filtered_tag="feature"),
+            queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
         )
         queried_similar_successful_knowledge_to_render = queried_similar_successful_knowledge
         queried_similar_error_knowledge_to_render = queried_similar_error_knowledge
@@ -136,19 +114,12 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             else:
                 error_summary_critics = None
             # 构建user_prompt。开始写代码
-            user_prompt = (
-                Environment(undefined=StrictUndefined)
-                .from_string(
-                    implement_prompts["evolving_strategy_factor_implementation_v2_user"],
-                )
-                .render(
-                    factor_information_str=target_factor_task_information,
-                    queried_similar_successful_knowledge=queried_similar_successful_knowledge_to_render,
-                    queried_similar_error_knowledge=queried_similar_error_knowledge_to_render,
-                    error_summary_critics=error_summary_critics,
-                    latest_attempt_to_latest_successful_execution=latest_attempt_to_latest_successful_execution,
-                )
-                .strip("\n")
+            user_prompt = T(".prompts:evolving_strategy_factor_implementation_v2_user").r(
+                factor_information_str=target_factor_task_information,
+                queried_similar_successful_knowledge=queried_similar_successful_knowledge_to_render,
+                queried_similar_error_knowledge=queried_similar_error_knowledge_to_render,
+                error_summary_critics=error_summary_critics,
+                latest_attempt_to_latest_successful_execution=latest_attempt_to_latest_successful_execution,
             )
             if (
                 APIBackend().build_messages_and_calculate_token(user_prompt=user_prompt, system_prompt=system_prompt)

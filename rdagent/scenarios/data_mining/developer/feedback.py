@@ -5,21 +5,13 @@ import json
 from pathlib import Path
 from typing import Dict
 
-from jinja2 import Environment, StrictUndefined
-
 from rdagent.core.experiment import Experiment
-from rdagent.core.prompts import Prompts
-from rdagent.core.proposal import (
-    Experiment2Feedback,
-    Hypothesis,
-    HypothesisFeedback,
-    Trace,
-)
+from rdagent.core.proposal import Experiment2Feedback, HypothesisFeedback, Trace
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils import convert2bool
+from rdagent.utils.agent.tpl import T
 
-feedback_prompts = Prompts(file_path=Path(__file__).parent.parent.parent / "qlib" / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
@@ -35,24 +27,20 @@ class DMModelExperiment2Feedback(Experiment2Feedback):
 
         logger.info("Generating feedback...")
         # Define the system prompt for hypothesis feedback
-        system_prompt = feedback_prompts["model_feedback_generation"]["system"]
+        system_prompt = T("scenarios.qlib.prompts:model_feedback_generation.system").r()
 
         # Define the user prompt for hypothesis feedback
         context = trace.scen
         SOTA_hypothesis, SOTA_experiment = trace.get_sota_hypothesis_and_experiment()
 
-        user_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(feedback_prompts["model_feedback_generation"]["user"])
-            .render(
-                context=context,
-                last_hypothesis=SOTA_hypothesis,
-                last_task=SOTA_experiment.sub_tasks[0].get_task_information() if SOTA_hypothesis else None,
-                last_code=SOTA_experiment.sub_workspace_list[0].file_dict.get("model.py") if SOTA_hypothesis else None,
-                last_result=SOTA_experiment.result if SOTA_hypothesis else None,
-                hypothesis=hypothesis,
-                exp=exp,
-            )
+        user_prompt = T("scenarios.qlib.prompts:model_feedback_generation.user").r(
+            context=context,
+            last_hypothesis=SOTA_hypothesis,
+            last_task=SOTA_experiment.sub_tasks[0].get_task_information() if SOTA_hypothesis else None,
+            last_code=SOTA_experiment.sub_workspace_list[0].file_dict.get("model.py") if SOTA_hypothesis else None,
+            last_result=SOTA_experiment.result if SOTA_hypothesis else None,
+            hypothesis=hypothesis,
+            exp=exp,
         )
 
         # Call the APIBackend to generate the response for hypothesis feedback

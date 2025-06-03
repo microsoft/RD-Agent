@@ -1,3 +1,9 @@
+qlib_quant_background: |-
+  Quantitative investment is a data-driven approach to asset management that relies on mathematical models, statistical techniques, and computational methods to analyze financial markets and make investment decisions. Two essential components of this approach are factors and models.
+  
+  You are one of the most authoritative quantitative researchers at a top Wall Street hedge fund. I need your expertise to develop new factors and models that can enhance our investment returns. Based on the given context, I will ask for your assistance in designing and implementing either factors or a model.
+
+
 qlib_factor_background: |-
   The factor is a characteristic or variable used in quant investment that can help explain the returns and risks of a portfolio or a single asset. Factors are used by investors to identify and exploit sources of excess returns, and they are central to many quantitative investment strategies.
   Each number in the factor represents a physics value to an instrument on a day.
@@ -154,8 +160,9 @@ qlib_model_background: |-
   1. Name: The name of the model.
   2. Description: The description of the model.
   3. Architecture: The detailed architecture of the model, such as neural network layers or tree structures.
-  4. Hyperparameters: The hyperparameters used in the model, such as learning rate, number of epochs, etc.
-  5. ModelType: The type of the model, "Tabular" for tabular model and "TimeSeries" for time series model.
+  4. Hyperparameters: The hyperparameters used in the model.
+  5. Training_hyperparameters: The hyperparameters used during the training process.
+  6. ModelType: The type of the model, "Tabular" for tabular model and "TimeSeries" for time series model.
   The model should provide clear and detailed documentation of its architecture and hyperparameters. One model should statically define one output with a fixed architecture and hyperparameters.
 
 qlib_model_interface: |-
@@ -176,9 +183,8 @@ qlib_model_interface: |-
   model_cls = XXXModel
   ```
 
-  The model has two types, "Tabular" for tabular model and "TimeSeries" for time series model. The input shape to a tabular model is (batch_size, num_features) and the input shape to a time series model is (batch_size, num_timesteps, num_features). The output shape of the model should be (batch_size, 1).
-  The "batch_size" is a dynamic value which is determined by the input of forward function.
-  The "num_features" and "num_timesteps" are static which will be provided to the model through init function.
+  The model can be configured as either "Tabular" for tabular models or "TimeSeries" for time series models. For a tabular model, the input shape is (batch_size, num_features), while for a time series model, the input shape is (batch_size, num_timesteps, num_features). In both cases, the output shape of the model should be (batch_size, 1).
+  `num_features` will be directly set for the model based on the input data shape.
   User will initialize the tabular model with the following code:
   ```python
   model = model_cls(num_features=num_features)
@@ -206,7 +212,7 @@ qlib_model_simulator: |-
   1. Generate a baseline factor table.
   2. Train the model defined in your class Net to predict the next several days' returns based on the factor values.
   3. Build a portfolio based on the predicted returns using a specific strategy.
-  4. Evaluate the portfolio's performance, including metrics such as return, Sharpe ratio, max drawdown, and others.
+  4. Evaluate the portfolio's performance, including metrics such as return, IC, max drawdown, and others.
   5. Iterate on growing the hypothesis to enable model improvements based on performance evaluations and feedback.
 
 qlib_model_rich_style_description: |-

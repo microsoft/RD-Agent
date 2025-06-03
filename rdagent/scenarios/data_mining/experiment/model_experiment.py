@@ -6,11 +6,9 @@ from rdagent.components.coder.model_coder.model import (
     ModelTask,
 )
 from rdagent.core.experiment import Task
-from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.scenarios.data_mining.experiment.workspace import DMFBWorkspace
-
-prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+from rdagent.utils.agent.tpl import T
 
 
 class DMModelExperiment(ModelExperiment[ModelTask, DMFBWorkspace, ModelFBWorkspace]):
@@ -22,7 +20,7 @@ class DMModelExperiment(ModelExperiment[ModelTask, DMFBWorkspace, ModelFBWorkspa
 class DMModelScenario(Scenario):
     @property
     def background(self) -> str:
-        return prompt_dict["dm_model_background"]
+        return T(".prompts:dm_model_background").r()
 
     @property
     def source_data(self) -> str:
@@ -30,15 +28,15 @@ class DMModelScenario(Scenario):
 
     @property
     def output_format(self) -> str:
-        return prompt_dict["dm_model_output_format"]
+        return T(".prompts:dm_model_output_format").r()
 
     @property
     def interface(self) -> str:
-        return prompt_dict["dm_model_interface"]
+        return T(".prompts:dm_model_interface").r()
 
     @property
     def simulator(self) -> str:
-        return prompt_dict["dm_model_simulator"]
+        return T(".prompts:dm_model_simulator").r()
 
     @property
     def rich_style_description(self) -> str:

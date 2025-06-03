@@ -1,8 +1,5 @@
 import json
-from pathlib import Path
 from typing import Dict
-
-from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
 from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedback
@@ -14,16 +11,13 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledgeV2,
 )
 from rdagent.components.coder.model_coder.model import (
-    ModelExperiment,
     ModelFBWorkspace,
     ModelTask,
 )
 from rdagent.core.experiment import FBWorkspace
-from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
-
-coder_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+from rdagent.utils.agent.tpl import T
 
 
 class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
@@ -52,31 +46,18 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if isinstance(queried_knowledge, CoSTEERQueriedKnowledgeV2)
             else queried_former_failed_knowledge
         )
-        system_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(
-                coder_prompts["evolving_strategy_model_coder"]["system"],
-            )
-            .render(
-                scenario=self.scen.get_scenario_all_desc(filtered_tag=target_task.model_type),
-                queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
-                current_code=workspace.file_dict.get("model.py"),
-            )
+        system_prompt = T(".prompts:evolving_strategy_model_coder.system").r(
+            scenario=self.scen.get_scenario_all_desc(filtered_tag="model"),
+            queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
+            current_code=workspace.file_dict.get("model.py"),
         )
 
         queried_similar_successful_knowledge_to_render = queried_similar_successful_knowledge
         for _ in range(10):  # max attempt to reduce the length of user_prompt
-            user_prompt = (
-                Environment(undefined=StrictUndefined)
-                .from_string(
-                    coder_prompts["evolving_strategy_model_coder"]["user"],
-                )
-                .render(
-                    model_information_str=model_information_str,
-                    queried_similar_successful_knowledge=queried_similar_successful_knowledge_to_render,
-                    queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
-                )
-                .strip("\n")
+            user_prompt = T(".prompts:evolving_strategy_model_coder.user").r(
+                model_information_str=model_information_str,
+                queried_similar_successful_knowledge=queried_similar_successful_knowledge_to_render,
+                queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
             )
             if (
                 APIBackend().build_messages_and_calculate_token(

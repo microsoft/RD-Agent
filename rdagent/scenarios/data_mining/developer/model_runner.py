@@ -1,6 +1,7 @@
 from rdagent.components.runner import CachedRunner
 from rdagent.core.exception import ModelEmptyError
 from rdagent.core.utils import cache_with_pickle
+from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_mining.experiment.model_experiment import DMModelExperiment
 
 
@@ -14,7 +15,11 @@ class DMModelRunner(CachedRunner[DMModelExperiment]):
 
         env_to_use = {"PYTHONPATH": "./"}
 
-        result = exp.experiment_workspace.execute(run_env=env_to_use)
+        result, stdout = exp.experiment_workspace.execute(run_env=env_to_use)
+
+        if result is None:
+            logger.error(f"Experiment failed to run, stdout: {stdout}")
+            raise ModelEmptyError(f"Failed to run this experiment, because {stdout}")
 
         exp.result = result
 

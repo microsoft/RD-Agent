@@ -7,31 +7,30 @@ from rdagent.components.coder.factor_coder.factor import (
     FactorTask,
 )
 from rdagent.core.experiment import Task
-from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.scenarios.qlib.experiment.utils import get_data_folder_intro
 from rdagent.scenarios.qlib.experiment.workspace import QlibFBWorkspace
-
-prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+from rdagent.utils.agent.tpl import T
 
 
 class QlibFactorExperiment(FactorExperiment[FactorTask, QlibFBWorkspace, FactorFBWorkspace]):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.experiment_workspace = QlibFBWorkspace(template_folder_path=Path(__file__).parent / "factor_template")
+        self.stdout = ""
 
 
 class QlibFactorScenario(Scenario):
     def __init__(self) -> None:
         super().__init__()
-        self._background = deepcopy(prompt_dict["qlib_factor_background"])
+        self._background = deepcopy(T(".prompts:qlib_factor_background").r())
         self._source_data = deepcopy(get_data_folder_intro())
-        self._output_format = deepcopy(prompt_dict["qlib_factor_output_format"])
-        self._interface = deepcopy(prompt_dict["qlib_factor_interface"])
-        self._strategy = deepcopy(prompt_dict["qlib_factor_strategy"])
-        self._simulator = deepcopy(prompt_dict["qlib_factor_simulator"])
-        self._rich_style_description = deepcopy(prompt_dict["qlib_factor_rich_style_description"])
-        self._experiment_setting = deepcopy(prompt_dict["qlib_factor_experiment_setting"])
+        self._output_format = deepcopy(T(".prompts:qlib_factor_output_format").r())
+        self._interface = deepcopy(T(".prompts:qlib_factor_interface").r())
+        self._strategy = deepcopy(T(".prompts:qlib_factor_strategy").r())
+        self._simulator = deepcopy(T(".prompts:qlib_factor_simulator").r())
+        self._rich_style_description = deepcopy(T(".prompts:qlib_factor_rich_style_description").r())
+        self._experiment_setting = deepcopy(T(".prompts:qlib_factor_experiment_setting").r())
 
     @property
     def background(self) -> str:

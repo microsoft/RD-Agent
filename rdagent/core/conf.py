@@ -82,7 +82,10 @@ class RDAgentSettings(ExtendedBaseSettings):
 
     enable_mlflow: bool = False
 
+    initial_fator_library_size: int = 20
+    
     # ui server
     ui_server_port: int | None = None
+
 
 RD_AGENT_SETTINGS = RDAgentSettings()

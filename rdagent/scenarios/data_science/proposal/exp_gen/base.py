@@ -304,10 +304,20 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         """
         Access the last experiment
         """
-        search_list = self.retrieve_search_list(search_type)
+        if (last_exp_fb := self.last_exp_fb(search_type=search_type)) is not None:
+            return last_exp_fb[0]
+        return None
 
+    def last_exp_fb(
+        self,
+        search_type: Literal["all", "ancestors"] = "ancestors",
+    ) -> tuple[DSExperiment, ExperimentFeedback] | None:
+        """
+        Access the last experiment and feedback
+        """
+        search_list = self.retrieve_search_list(search_type)
         for exp, ef in search_list[::-1]:
-            return exp
+            return exp, ef
         return None
 
     def last_runnable_exp_fb(

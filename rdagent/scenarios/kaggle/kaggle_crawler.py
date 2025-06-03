@@ -9,7 +9,6 @@ from itertools import chain
 from pathlib import Path
 
 import nbformat
-from jinja2 import Environment, StrictUndefined
 from rich import print
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
