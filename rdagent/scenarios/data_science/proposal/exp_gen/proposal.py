@@ -2,7 +2,7 @@ import json
 import pprint
 from enum import Enum
 from typing import Dict, List, Tuple
-
+import math
 import pandas as pd
 from pydantic import BaseModel, Field
 
@@ -589,8 +589,11 @@ class DSProposalV2ExpGen(ExpGen):
                         scores_dict[problem_name][score_key] = 0
 
         scores = pd.DataFrame(scores_dict)
-        scores_sorted = scores.sum().sort_values(ascending=False)
-        scores_sorted = scores_sorted[:5]  # Select top 5 hypotheses
+        summed_scores = scores.sum()
+        num_hypotheses = len(summed_scores)
+        top_n = int(min(5, math.ceil(num_hypotheses / 2.0)))
+        scores_sorted = summed_scores.sort_values(ascending=False)
+        scores_sorted = scores_sorted[:top_n]  # Select top N hypotheses
 
         # Increase the weight of the hypothesis that is inspired by the idea pool to 3x.
         # Linear decay the weight of the scenario problem from 3x to 0x.
