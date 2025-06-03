@@ -82,7 +82,7 @@ class RDAgentSettings(ExtendedBaseSettings):
 
     enable_mlflow: bool = False
 
-    loop_parallel_dict: dict[str, dict[Literal["parallel_process", "wait_process"], int]] | None = (
+    loop_parallel_dict: dict[str, int | dict[Literal["parallel_process", "wait_process"], int]] | None = (
         None  # to enable parallel execution in loop, e.g. {"function_name": {"parallel_process": 4, "wait_process": 8}}, the sum of "parallel" and "wait" should be the same in all loop names, if not, smallest sum will be used. Once you set one function name, all other functions will be set to parallel with maximum parallel (no wait processes).
     )
 

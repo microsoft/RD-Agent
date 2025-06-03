@@ -218,19 +218,29 @@ class LoopBase:
                                     found_finished_process = False
                                     while not found_finished_process:
                                         for p_index in range(len(function_name_to_process_list[name])):
-                                            p, self.loop_prev_out = function_name_to_process_list[name][p_index]
+                                            p, tmp_loop_prev_out = function_name_to_process_list[name][p_index]
                                             if p.done():
+                                                self.loop_prev_out = tmp_loop_prev_out
                                                 self.loop_prev_out[name] = p.result()
                                                 function_name_to_process_list[name].pop(p_index)
                                                 found_finished_process = True
                                                 break
                                         if (
                                             found_finished_process
-                                            or name not in RD_AGENT_SETTINGS.loop_parallel_dict
-                                            or len(function_name_to_process_list[name])
-                                            < RD_AGENT_SETTINGS.loop_parallel_dict[name]["parallel_process"]
-                                            or len(function_name_to_wait_process_list[name])
-                                            < RD_AGENT_SETTINGS.loop_parallel_dict[name]["wait_process"]
+                                            or (
+                                                name not in RD_AGENT_SETTINGS.loop_parallel_dict
+                                                and len(function_name_to_process_list[name])
+                                                < RD_AGENT_SETTINGS.loop_parallel_dict["max_parallel"]
+                                            )
+                                            or (
+                                                name in RD_AGENT_SETTINGS.loop_parallel_dict
+                                                and (
+                                                    len(function_name_to_process_list[name])
+                                                    < RD_AGENT_SETTINGS.loop_parallel_dict[name]["parallel_process"]
+                                                    or len(function_name_to_wait_process_list[name])
+                                                    < RD_AGENT_SETTINGS.loop_parallel_dict[name]["wait_process"]
+                                                )
+                                            )
                                         ):
                                             break
 
