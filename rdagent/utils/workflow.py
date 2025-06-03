@@ -9,8 +9,6 @@ Postscripts:
 """
 
 import datetime
-import multiprocessing as mp
-import os
 import pickle
 import time
 from collections import defaultdict
