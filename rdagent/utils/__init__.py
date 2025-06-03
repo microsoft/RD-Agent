@@ -15,7 +15,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Union
 
-import regex  # Use the `regex` module for timeout support
+import regex  # type: ignore[import-untyped]
 
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
@@ -72,7 +72,7 @@ def convert2bool(value: Union[str, bool]) -> bool:
         raise ValueError(f"Unknown value type {value} to bool")
 
 
-def try_regex_sub(pattern: str, text: str, replace_with: str = "", flag: int = 0) -> str:
+def try_regex_sub(pattern: str, text: str, replace_with: str = "", flags: int = 0) -> str:
     """
     Try to sub a regex pattern against a text string.
     """
