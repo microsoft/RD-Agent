@@ -94,12 +94,14 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                 if len(sota_exp_fb_list) == 0:
                     logger.info("Auto SOTA selector: No SOTA in trace yet")
                     return None
-                
+
                 elif len(sota_exp_fb_list) == 1:
                     logger.info("Auto SOTA selector: Only one SOTA in trace, using it")
                     return sota_exp_fb_list[0][0]
                 else:
-                    logger.info(f"Auto SOTA selector: {len(sota_exp_fb_list)} SOTA experiments found in all traces, calling LLM to select the best one")
+                    logger.info(
+                        f"Auto SOTA selector: {len(sota_exp_fb_list)} SOTA experiments found in all traces, calling LLM to select the best one"
+                    )
 
             for i, (exp, ef) in enumerate(sota_exp_fb_list):
                 if exp:
