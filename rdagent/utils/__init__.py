@@ -71,19 +71,17 @@ def convert2bool(value: Union[str, bool]) -> bool:
         raise ValueError(f"Unknown value type {value} to bool")
 
 
-def remove_ansi_codes(s: str) -> str:
+def try_regex_sub(pattern: str, text: str, replace_with: str = "", flag: int = 0) -> None:
     """
-    It is for removing ansi ctrl characters in the string(e.g. colored text)
+    Try to sub a regex pattern against a text string.
     """
-    ansi_pattern = regex.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
     try:
-        return ansi_pattern.sub("", s, timeout=REGEX_TIMEOUT)
+        return regex.sub(pattern, replace_with, text, timeout=REGEX_TIMEOUT, flags=flags)
     except TimeoutError:
-        logger.warning(f"ANSI‐removal pattern timed out after {REGEX_TIMEOUT} seconds; returning original string.")
-        return s
+        logger.warning(f"Pattern '{pattern}' timed out after {REGEX_TIMEOUT} seconds; skipping it.")
     except Exception as e:
-        logger.warning(f"ANSI‐removal pattern raised an exception: {e}; returning original string.")
-        return s
+        logger.warning(f"Pattern '{pattern}' raised an error: {e}; skipping it.")
+    return text
 
 
 def filter_with_time_limit(regex_patterns: Union[str, list[str]], text: str) -> str:
@@ -91,25 +89,11 @@ def filter_with_time_limit(regex_patterns: Union[str, list[str]], text: str) -> 
     Apply one or more regex patterns to filter `text`, using a timeout for each substitution.
     If `regex_patterns` is a list, they are applied sequentially; if a single string, only that pattern is applied.
     """
-    if isinstance(regex_patterns, list):
-        filtered = text
-        for pattern in regex_patterns:
-            try:
-                filtered = regex.sub(pattern, "", filtered, timeout=REGEX_TIMEOUT)
-            except TimeoutError:
-                logger.warning(f"Pattern '{pattern}' timed out after {REGEX_TIMEOUT} seconds; skipping it.")
-            except Exception as e:
-                logger.warning(f"Pattern '{pattern}' raised an error: {e}; skipping it.")
-        return filtered
-    else:
-        try:
-            return regex.sub(regex_patterns, "", text, timeout=REGEX_TIMEOUT)
-        except TimeoutError:
-            logger.warning(f"Pattern '{regex_patterns}' timed out after {REGEX_TIMEOUT} seconds; returning original text.")
-            return text
-        except Exception as e:
-            logger.warning(f"Pattern '{regex_patterns}' raised an error: {e}; returning original text.")
-            return text
+    if not isinstance(regex_patterns, list):
+        regex_patterns = [regex_patterns]
+    for pattern in regex_patterns:
+        text = try_regex_sub(pattern, text)
+    return text
 
 
 def filter_redundant_text(stdout: str) -> str:
@@ -130,22 +114,11 @@ def filter_redundant_text(stdout: str) -> str:
         \d+%\|[█]+\|\s+\d+/\d+\s+\[\d{2}:\d{2}<\d{2}:\d{2},\s*\d+\.\d+it/s\]
     )"""
 
-    filtered_stdout = remove_ansi_codes(stdout)
-
-    try:
-        filtered_stdout = regex.sub(progress_bar_pattern, "", filtered_stdout, flags=regex.VERBOSE, timeout=REGEX_TIMEOUT)
-    except TimeoutError:
-        logger.warning(f"Progress‐bar removal pattern timed out after {REGEX_TIMEOUT} seconds; skipping it.")
-    except Exception as e:
-        logger.warning(f"Progress‐bar removal raised an error: {e}; skipping it.")
+    filtered_stdout = try_regex_sub(r"\x1B\[[0-?]*[ -/]*[@-~]", stdout)
+    filtered_stdout = try_regex_sub(progress_bar_pattern, filtered_stdout, flags=regex.VERBOSE)
 
     # Collapse any excessive blank lines/spaces
-    try:
-        filtered_stdout = regex.sub(r"\s*\n\s*", "\n", filtered_stdout, timeout=REGEX_TIMEOUT)
-    except TimeoutError:
-        logger.warning(f"Whitespace normalization timed out after {REGEX_TIMEOUT} seconds; leaving as is.")
-    except Exception as e:
-        logger.warning(f"Whitespace normalization raised an error: {e}; leaving as is.")
+    filtered_stdout = try_regex_sub(r"\s*\n\s*", filtered_stdout, replace_with="\n")
 
     # Iteratively ask the LLM for additional filtering patterns (up to 3 rounds)
     for _ in range(3):
@@ -193,13 +166,7 @@ def filter_redundant_text(stdout: str) -> str:
         if not needs_sub:
             return new_filtered
 
-        filtered_stdout = new_filtered
-        try:
-            filtered_stdout = regex.sub(r"\s*\n\s*", "\n", filtered_stdout, timeout=REGEX_TIMEOUT)
-        except TimeoutError:
-            logger.warning(f"Whitespace normalization timed out after {REGEX_TIMEOUT} seconds; leaving as is.")
-        except Exception as e:
-            logger.warning(f"Whitespace normalization raised an error: {e}; leaving as is.")
+        filtered_stdout = try_regex_sub(r"\s*\n\s*", new_filtered, replace_with="\n")
 
     return filtered_stdout
 
