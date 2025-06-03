@@ -152,6 +152,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
     def is_selection_new_tree(self, selection: tuple[int, ...] | None = None) -> bool:
         """
         Check if the current trace is a new tree.
+        - selection maybe (-1,) when the dag_parent is empty.
         """
         if selection is None:
             selection = self.get_current_selection()
