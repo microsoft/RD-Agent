@@ -31,7 +31,7 @@ class DMModelHypothesisGen(ModelHypothesisGen):
 
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
         hypothesis_and_feedback = (
-            T("scenarios.qlib.prompts:hypothesis_and_feedback").r(
+            T("scenarios.data_mining.prompts:hypothesis_and_feedback").r(
                 trace=trace,
             )
             if len(trace.hist) > 0
@@ -39,7 +39,7 @@ class DMModelHypothesisGen(ModelHypothesisGen):
         )
 
         last_hypothesis_and_feedback = (
-            T("scenarios.qlib.prompts:last_hypothesis_and_feedback").r(
+            T("scenarios.data_mining.prompts:last_hypothesis_and_feedback").r(
                 experiment=trace.hist[-1][0], feedback=trace.hist[-1][1]
             )
             if len(trace.hist) > 0
@@ -50,8 +50,10 @@ class DMModelHypothesisGen(ModelHypothesisGen):
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
             "RAG": None,
-            "hypothesis_output_format": T("scenarios.qlib.prompts:hypothesis_output_format").r(),  # 1) create a individual prompts.yaml for that scenario.
-            "hypothesis_specification": T("scenarios.qlib.prompts:model_hypothesis_specification").r(),
+            "hypothesis_output_format": T(
+                "scenarios.data_mining.prompts:hypothesis_output_format"
+            ).r(),  # 1) create a individual prompts.yaml for that scenario.
+            "hypothesis_specification": T("scenarios.data_mining.prompts:model_hypothesis_specification").r(),
         }
         return context_dict, True
 
@@ -71,10 +73,10 @@ class DMModelHypothesisGen(ModelHypothesisGen):
 class DMModelHypothesis2Experiment(ModelHypothesis2Experiment):
     def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]:
         scenario = trace.scen.get_scenario_all_desc()
-        experiment_output_format = T("scenarios.qlib.prompts:model_experiment_output_format").r()
+        experiment_output_format = T("scenarios.data_mining.prompts:model_experiment_output_format").r()
 
         hypothesis_and_feedback = (
-            T("scenarios.qlib.prompts:hypothesis_and_feedback").r(
+            T("scenarios.data_mining.prompts:hypothesis_and_feedback").r(
                 trace=trace,
             )
             if len(trace.hist) > 0

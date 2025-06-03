@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 # TODO: use pydantic for other modules in Qlib
+import os
 from pathlib import Path
 from typing import cast
 
@@ -83,6 +84,8 @@ class RDAgentSettings(ExtendedBaseSettings):
     enable_mlflow: bool = False
 
     initial_fator_library_size: int = 20
+
+    local_cache_path: str = "/tmp/"
 
 
 RD_AGENT_SETTINGS = RDAgentSettings()

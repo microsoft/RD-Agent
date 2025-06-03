@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pydantic import BaseModel, Field
 import re
 
 from rdagent.components.coder.model_coder.model import ModelTask
@@ -12,6 +13,7 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.workflow import wait_retry
 
 
 def extract_model_from_doc(doc_content: str) -> dict:
@@ -87,6 +89,7 @@ def merge_file_to_model_dict_to_model_dict(
     return model_dict_simple_deduplication
 
 
+@wait_retry(retry_n=5)
 def extract_model_from_docs(docs_dict):
     model_dict = {}
     for doc_name, doc_content in docs_dict.items():
