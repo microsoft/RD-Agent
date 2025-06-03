@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Generic, Tuple, TypeVar
+from typing import Generic, List, Tuple, TypeVar
 
 from rdagent.core.evaluation import Feedback
 from rdagent.core.experiment import ASpecificExp, Experiment
 from rdagent.core.knowledge_base import KnowledgeBase
 from rdagent.core.scenario import Scenario
-
-# class data_ana: XXX
 
 
 class Hypothesis:
@@ -117,6 +115,7 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
 
         # TODO: self.hist is 2-tuple now, remove hypothesis from it, change old code for this later.
         self.knowledge_base: ASpecificKB | None = knowledge_base
+        self.current_selection: tuple[int, ...] = (-1,)
 
     def get_sota_hypothesis_and_experiment(self) -> tuple[Hypothesis | None, Experiment | None]:
         """Access the last experiment result, sub-task, and the corresponding hypothesis."""
@@ -126,6 +125,84 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
                 return experiment.hypothesis, experiment
 
         return None, None
+
+    def is_selection_new_tree(self, selection: tuple[int, ...] | None = None) -> bool:
+        """
+        Check if the current trace is a new tree.
+        - selection maybe (-1,) when the dag_parent is empty.
+        """
+        if selection is None:
+            selection = self.get_current_selection()
+
+        if selection == self.NEW_ROOT or len(self.dag_parent) == 0:
+            return True
+
+        return False
+
+    def get_current_selection(self) -> tuple[int, ...]:
+        return self.current_selection
+
+    def set_current_selection(self, selection: tuple[int, ...]) -> None:
+        self.current_selection = selection
+
+    def collect_all_ancestors(
+        self,
+        selection: tuple[int, ...] | None = None,
+    ) -> list[Trace.NodeType]:
+        """
+        Collect all ancestors of the given selection.
+        The return list follows the order of [root->...->parent->current_node].
+        """
+        if selection is None:
+            selection = self.get_current_selection()
+
+        if self.is_selection_new_tree(selection):
+            return []
+
+        else:
+            all_ancestors: list[Trace.NodeType] = []
+
+            # start from the latest selection
+            current_node_idx = selection[0]
+
+            # add the current node to the list
+            all_ancestors.insert(0, self.hist[current_node_idx])
+
+            parent_idx = self.dag_parent[current_node_idx]
+
+            while len(parent_idx) > 0:
+                all_ancestors.insert(0, self.hist[parent_idx[0]])
+                parent_idx = self.dag_parent[parent_idx[0]]
+
+        return all_ancestors
+
+    def exp2idx(self, exp: Experiment | List[Experiment]) -> int | List[int] | None:
+        if isinstance(exp, list):
+            exps: List[Experiment] = exp
+            return [i for i, (_exp, _) in enumerate(self.hist) if _exp in exps]
+        else:
+            for i, (_exp, _) in enumerate(self.hist):
+                if _exp == exp:
+                    return i
+        return None
+
+    def idx2exp(self, idx: int | List[int]) -> Experiment | List[Experiment]:
+        if isinstance(idx, list):
+            idxs: List[int] = idx
+            return [self.hist[_idx][0] for _idx in idxs]
+        else:
+            return self.hist[idx][0]
+
+    def is_parent(self, parent_idx: int, child_idx: int) -> bool:
+        ancestors = self.get_parents(child_idx)
+        return parent_idx in ancestors
+
+    def get_parents(self, child_idx: int) -> List[int]:
+        ancestors = self.collect_all_ancestors((child_idx,))
+        ancestor_exps = [exp for exp, _ in ancestors]
+        parent_idxs = self.exp2idx(ancestor_exps)
+        assert isinstance(parent_idxs, list)
+        return parent_idxs
 
 
 class CheckpointSelector:
