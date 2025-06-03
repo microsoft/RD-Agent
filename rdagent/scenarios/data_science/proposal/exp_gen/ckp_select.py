@@ -69,7 +69,7 @@ class LimitTimeCKPSelector(CheckpointSelector):
             logger.info(f"Starting initial sub-trace {trace.sub_trace_count} at {current_time}")
             return (-1,)  # Continue with latest trial for new sub-trace
 
-        # Calculate elapsed time for current sub-trace
+        # Calculate elapsed time for current sub-trace, Trace count may be larger than MAX_TRACE_NUM druing merge process
         elapsed_time = current_time - self.sub_trace_start_times[min(trace.sub_trace_count, self.MAX_TRACE_NUM) - 1]
 
         if elapsed_time < self.time_limit_pre_trace:
