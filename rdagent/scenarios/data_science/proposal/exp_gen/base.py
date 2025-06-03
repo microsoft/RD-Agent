@@ -3,6 +3,7 @@ from typing import List, Literal
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.evolving_framework import KnowledgeBase
+from rdagent.core.experiment import ASpecificExp, Experiment
 from rdagent.core.proposal import ExperimentFeedback, Hypothesis, Trace
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
