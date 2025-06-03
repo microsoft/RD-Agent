@@ -134,10 +134,7 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
         if selection is None:
             selection = self.get_current_selection()
 
-        if selection == self.NEW_ROOT or len(self.dag_parent) == 0:
-            return True
-
-        return False
+        return selection == self.NEW_ROOT or len(self.dag_parent) == 0
 
     def get_current_selection(self) -> tuple[int, ...]:
         return self.current_selection
