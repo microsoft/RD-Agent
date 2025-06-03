@@ -377,12 +377,14 @@ class ExpGen2TraceAndMergeV3(ExpGen):
             else:
                 selection = (leaves[0],)
                 if trace.sota_exp_to_submit is not None:
-                    sota_idx = next(
-                        (i for i, (exp, _) in enumerate(self.hist) if exp is trace.sota_exp_to_submit), None
-                    )
-                    if sota_idx is not None:
-                        ancestors = self.collect_all_ancestors((leaves[1],))
-                        if any(exp is sota_exp for exp, _ in ancestors):
-                            selection = (leaves[1],)
+                    if trace.is_parent(trace.exp2idx(trace.sota_exp_to_submit), leaves[1]):
+                        selection = (leaves[1],)
+                    # sota_idx = next(
+                    #     (i for i, (exp, _) in enumerate(self.hist) if exp is trace.sota_exp_to_submit), None
+                    # )
+                    # if sota_idx is not None:
+                    #     ancestors = self.collect_all_ancestors((leaves[1],))
+                    #     if any(exp is sota_exp for exp, _ in ancestors):
+                    #         selection = (leaves[1],)
                 trace.set_current_selection(selection)
                 return self.merge_exp_gen.gen(trace)

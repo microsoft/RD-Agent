@@ -127,6 +127,20 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
 
         return None, None
 
+    # mapping 
+    # from index to experiment
+    def exp2idx(self, exp: Experiment | List[Experiment]) -> int | List[int]:
+        ...
+
+    def idx2exp(self, idx: int | List[int]) -> Experiment | List[Experiment]:
+        ...
+
+    def is_parent(self, parent_idx: int, child_idx: int) -> bool:
+        ...
+
+    def get_parents(self, child_idx: int) -> List[int]:
+        ...
+
 
 class CheckpointSelector:
     """
