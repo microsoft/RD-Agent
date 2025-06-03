@@ -14,7 +14,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     scen: str = "rdagent.scenarios.data_science.scen.KaggleScen"
     """Scenario class for data mining model"""
 
-    hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen"
+    hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.proposal.DSProposalV2ExpGen"
     """Hypothesis generation class"""
 
     ## Workflow Related

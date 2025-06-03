@@ -1,26 +1,16 @@
 import json
-from pathlib import Path
 from typing import Dict
 
 import pandas as pd
-from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.knowledge_management.graph import UndirectedNode
 from rdagent.core.experiment import Experiment
-from rdagent.core.prompts import Prompts
-from rdagent.core.proposal import (
-    Experiment2Feedback,
-    Hypothesis,
-    HypothesisFeedback,
-    Trace,
-)
+from rdagent.core.proposal import Experiment2Feedback, HypothesisFeedback, Trace
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.kaggle.experiment.kaggle_experiment import KG_SELECT_MAPPING
 from rdagent.utils import convert2bool
-
-prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
-DIRNAME = Path(__file__).absolute().resolve().parent
+from rdagent.utils.agent.tpl import T
 
 
 class KGExperiment2Feedback(Experiment2Feedback):
@@ -87,10 +77,8 @@ class KGExperiment2Feedback(Experiment2Feedback):
             prompt_key = "factor_feedback_generation"
 
         # Generate the system prompt
-        sys_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict[prompt_key]["system"])
-            .render(scenario=self.scen.get_scenario_all_desc(filtered_tag="feedback"))
+        sys_prompt = T(f"scenarios.kaggle.prompts:{prompt_key}.system").r(
+            scenario=self.scen.get_scenario_all_desc(filtered_tag="feedback")
         )
 
         sota_exp = exp.based_experiments[-1] if exp.based_experiments else None
@@ -139,11 +127,7 @@ class KGExperiment2Feedback(Experiment2Feedback):
             "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
         }
 
-        usr_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["kg_feedback_generation_user"])
-            .render(**render_dict)
-        )
+        usr_prompt = T(f"scenarios.kaggle.prompts:kg_feedback_generation_user").r(**render_dict)
 
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=usr_prompt,

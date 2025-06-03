@@ -57,3 +57,9 @@ class KaggleError(Exception):
     """
     Exceptions raised when calling Kaggle API
     """
+
+
+class PolicyError(Exception):
+    """
+    Exceptions raised due to content management policy
+    """

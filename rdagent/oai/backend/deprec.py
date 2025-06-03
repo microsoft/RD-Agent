@@ -17,6 +17,7 @@ from typing import Any, Optional, cast
 import numpy as np
 import openai
 import tiktoken
+from openai.types.chat import ChatCompletion
 
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass, import_class
 from rdagent.log import LogColors
@@ -385,6 +386,7 @@ class DeprecBackend(APIBackend):
                     if len(chunk.choices) > 0 and chunk.choices[0].finish_reason is not None:
                         finish_reason = chunk.choices[0].finish_reason
             else:
+                response = cast(ChatCompletion, response)
                 resp = response.choices[0].message.content
                 finish_reason = response.choices[0].finish_reason
                 if LLM_SETTINGS.log_llm_chat_content:

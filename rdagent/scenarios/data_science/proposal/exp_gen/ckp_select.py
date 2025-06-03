@@ -65,13 +65,12 @@ class LimitTimeCKPSelector(CheckpointSelector):
         current_time = datetime.now()
 
         if len(trace.hist) == 0:
-            trace.sub_trace_count = 0
             self.sub_trace_start_times[trace.sub_trace_count] = current_time
             logger.info(f"Starting initial sub-trace {trace.sub_trace_count} at {current_time}")
             return (-1,)  # Continue with latest trial for new sub-trace
 
         # Calculate elapsed time for current sub-trace
-        elapsed_time = current_time - self.sub_trace_start_times[trace.sub_trace_count]
+        elapsed_time = current_time - self.sub_trace_start_times[trace.sub_trace_count - 1]
 
         if elapsed_time < self.time_limit_pre_trace:
             # Continue with current sub-trace
@@ -82,7 +81,7 @@ class LimitTimeCKPSelector(CheckpointSelector):
             return (-1,)
         else:
             # Check if we've reached the maximum number of traces
-            if trace.sub_trace_count + 1 >= self.MAX_TRACE_NUM:
+            if trace.sub_trace_count >= self.MAX_TRACE_NUM:
                 logger.info(
                     f"Reached maximum trace count ({self.MAX_TRACE_NUM}), continuing with the current sub-trace"
                 )
@@ -90,7 +89,6 @@ class LimitTimeCKPSelector(CheckpointSelector):
                 return (-1,)
 
             # Time limit exceeded, start a new sub-trace
-            trace.sub_trace_count += 1
             self.sub_trace_start_times[trace.sub_trace_count] = current_time
             logger.info(
                 f"Elapsed time {elapsed_time} exceeds time limit {self.time_limit_pre_trace}, jump to a new sub-trace"
@@ -131,14 +129,13 @@ class SOTAJumpCKPSelector(CheckpointSelector):
                     sota_count += 1
             if sota_count < self.SOTA_COUNT_THRESHOLD:
                 # Check if we've reached the maximum number of traces
-                if trace.sub_trace_count + 1 >= self.MAX_TRACE_NUM:
+                if trace.sub_trace_count >= self.MAX_TRACE_NUM:
                     logger.info(
                         f"Reached maximum trace count ({self.MAX_TRACE_NUM}), continuing with the current sub-trace"
                     )
                     logger.info(f"current sub-trace count: {trace.sub_trace_count}")
                     return (-1,)
 
-                trace.sub_trace_count += 1
                 logger.info(
                     f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump to a new sub-trace"
                 )
@@ -192,7 +189,7 @@ class BackJumpCKPSelector(CheckpointSelector):
 
             if sota_count < self.SOTA_COUNT_THRESHOLD:
                 # Check if we've reached the maximum number of traces before creating a new one
-                if trace.sub_trace_count + 1 >= self.MAX_TRACE_NUM:
+                if trace.sub_trace_count >= self.MAX_TRACE_NUM:
                     logger.info(
                         f"Reached maximum trace count ({self.MAX_TRACE_NUM}), continuing with the current sub-trace"
                     )
@@ -201,7 +198,6 @@ class BackJumpCKPSelector(CheckpointSelector):
 
                 random_choice = random.random()
                 if random_choice < 0.5:
-                    trace.sub_trace_count += 1
                     logger.info(
                         f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump a new sub-trace"
                     )
@@ -220,14 +216,13 @@ class BackJumpCKPSelector(CheckpointSelector):
                         return (last_second_sota_idx,)
                     else:
                         # Check max trace limit again before creating a new trace
-                        if trace.sub_trace_count + 1 >= self.MAX_TRACE_NUM:
+                        if trace.sub_trace_count >= self.MAX_TRACE_NUM:
                             logger.info(
                                 f"Reached maximum trace count ({self.MAX_TRACE_NUM}), continuing with the current sub-trace"
                             )
                             logger.info(f"current sub-trace count: {trace.sub_trace_count}")
                             return (-1,)
 
-                        trace.sub_trace_count += 1
                         logger.info(
                             f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump a new sub-trace"
                         )

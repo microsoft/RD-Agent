@@ -1,5 +1,6 @@
 from typing import Any, Literal, cast
 
+import numpy as np
 from litellm import (
     completion,
     completion_cost,
@@ -135,11 +136,17 @@ class LiteLLMAPIBackend(APIBackend):
             logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}", tag="llm_messages")
 
         global ACC_COST
-        cost = completion_cost(model=model, messages=messages, completion=content)
-        ACC_COST += cost
-        logger.info(
-            f"Current Cost: ${float(cost):.10f}; Accumulated Cost: ${float(ACC_COST):.10f}; {finish_reason=}",
-        )
+        try:
+            cost = completion_cost(model=model, messages=messages, completion=content)
+        except Exception as e:
+            logger.warning(f"Cost calculation failed for model {model}: {e}. Skip cost statistics.")
+            cost = np.nan
+        else:
+            ACC_COST += cost
+            logger.info(
+                f"Current Cost: ${float(cost):.10f}; Accumulated Cost: ${float(ACC_COST):.10f}; {finish_reason=}",
+            )
+
         prompt_tokens = token_counter(model=model, messages=messages)
         completion_tokens = token_counter(model=model, text=content)
         logger.log_object(

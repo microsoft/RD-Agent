@@ -25,6 +25,7 @@ from rdagent.app.general_model.general_model import (
 from rdagent.app.qlib_rd_loop.factor import main as fin_factor
 from rdagent.app.qlib_rd_loop.factor_from_report import main as fin_factor_report
 from rdagent.app.qlib_rd_loop.model import main as fin_model
+from rdagent.app.qlib_rd_loop.quant import main as fin_quant
 from rdagent.app.utils.health_check import health_check
 from rdagent.app.utils.info import collect_info
 
@@ -50,6 +51,7 @@ def app():
             "fin_factor": fin_factor,
             "fin_factor_report": fin_factor_report,
             "fin_model": fin_model,
+            "fin_quant": fin_quant,
             "med_model": med_model,
             "general_model": general_model,
             "ui": ui,

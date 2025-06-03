@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from pathlib import Path
 
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
 from rdagent.components.coder.CoSTEER.evaluators import (
@@ -15,11 +14,8 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evolving_framework import EvolvingStrategy, EvoStep, QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
-from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import multiprocessing_wrapper
-
-implement_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
 
 class MultiProcessEvolvingStrategy(EvolvingStrategy):

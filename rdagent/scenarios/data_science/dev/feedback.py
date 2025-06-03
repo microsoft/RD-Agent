@@ -31,11 +31,9 @@ class DSExperiment2Feedback(Experiment2Feedback):
             exp=sota_exp, heading="SOTA of previous exploration of the scenario"
         )
 
-        last_exp = trace.last_exp()
-
         # Get feedback description using shared template
         feedback_desc = T("scenarios.data_science.share:describe.feedback").r(
-            exp_and_feedback=trace.hist[-1] if trace.hist else None, heading="Previous Trial Feedback"
+            exp_and_feedback=trace.last_exp_fb(), heading="Previous Trial Feedback"
         )
 
         # TODO:

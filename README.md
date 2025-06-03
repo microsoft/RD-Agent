@@ -53,6 +53,15 @@ You can inspect the detailed runs of the above results online.
 
 For running R&D-Agent on MLE-bench, refer to **[MLE-bench Guide: Running ML Engineering via MLE-bench](https://rdagent.readthedocs.io/en/latest/scens/data_science.html)**
 
+# 🥇 The First Data-Centric Quant Multi-Agent Framework!
+
+R&D-Agent for Quantitative Finance, in short **RD-Agent(Q)**, is the first data-centric, multi-agent framework designed to automate the full-stack research and development of quantitative strategies via coordinated factor-model co-optimization.
+
+![image](https://github.com/user-attachments/assets/3198bc10-47ba-4ee0-8a8e-46d5ce44f45d)
+
+Extensive experiments in real stock markets show that, at a cost under $10, RD-Agent(Q) achieves approximately 2× higher ARR than benchmark factor libraries while using over 70% fewer factors. It also surpasses state-of-the-art deep time-series models under smaller resource budgets. Its alternating factor–model optimization further delivers excellent trade-off between predictive accuracy and strategy robustness.
+
+You can learn more details about **RD-Agent(Q)** through the [paper](https://arxiv.org/abs/2505.15155).
 
 # 📰 News
 | 🗞️ News        | 📝 Description                 |
@@ -391,7 +400,7 @@ For more detail, please refer to our **[🖥️ Live Demo page](https://rdagent.
     primaryClass={cs.AI}
 }
 ```
-![image](https://github.com/user-attachments/assets/3198bc10-47ba-4ee0-8a8e-46d5ce44f45d)
+![image](https://github.com/user-attachments/assets/3186f67a-c2f8-4b6b-8bb9-a9b959c13866)
 
 
 # 🤝 Contributing
