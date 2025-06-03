@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Literal, List
+from typing import List, Literal
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.evolving_framework import KnowledgeBase
@@ -215,7 +215,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         return parent_idx in ancestors
 
     def get_parents(self, child_idx: int) -> List[int]:
-        ancestors = self.collect_all_ancestors((child_idx,)) 
+        ancestors = self.collect_all_ancestors((child_idx,))
         ancestor_exps = [exp for exp, _ in ancestors]
         return self.exp2idx(ancestor_exps)
 
