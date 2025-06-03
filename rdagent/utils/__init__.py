@@ -77,7 +77,7 @@ def try_regex_sub(pattern: str, text: str, replace_with: str = "", flags: int = 
     Try to sub a regex pattern against a text string.
     """
     try:
-        return regex.sub(pattern, replace_with, text, timeout=REGEX_TIMEOUT, flags=flags)
+        text = regex.sub(pattern, replace_with, text, timeout=REGEX_TIMEOUT, flags=flags)
     except TimeoutError:
         logger.warning(f"Pattern '{pattern}' timed out after {REGEX_TIMEOUT} seconds; skipping it.")
     except Exception as e:

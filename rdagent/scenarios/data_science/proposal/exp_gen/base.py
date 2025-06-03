@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Literal
+from typing import Literal, List
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.evolving_framework import KnowledgeBase
@@ -192,6 +192,32 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
                 parent_idx = self.dag_parent[parent_idx[0]]
 
         return all_ancestors
+
+    def exp2idx(self, exp: Experiment | List[Experiment]) -> int | List[int]:
+        single_input = not isinstance(exp, list)
+        exps = [exp] if single_input else exp
+        idxs = [i for i, (_exp, _) in enumerate(self.hist) if _exp in exps]
+        if single_input:
+            return idxs[0]
+        else:
+            return idxs
+
+    def idx2exp(self, idx: int | List[int]) -> Experiment | List[Experiment]:
+        single_input = not isinstance(idx, list)
+        idxs = [idx] if single_input else idx
+        if single_input:
+            return self.hist[idxs[0]][0]
+        else:
+            return [self.hist[_idx][0] for _idx in idxs]
+
+    def is_parent(self, parent_idx: int, child_idx: int) -> bool:
+        ancestors = self.get_parents(child_idx)
+        return parent_idx in ancestors
+
+    def get_parents(self, child_idx: int) -> List[int]:
+        ancestors = self.collect_all_ancestors((child_idx,)) 
+        ancestor_exps = [exp for exp, _ in ancestors]
+        return self.exp2idx(ancestor_exps)
 
     def next_incomplete_component(
         self,
