@@ -5,7 +5,8 @@ Pipfile
 public
 release-notes.md
 typescript*
-qlib
+/qlib/
+!**/qlib/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
