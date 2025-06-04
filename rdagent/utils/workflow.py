@@ -233,7 +233,7 @@ class LoopBase:
             # Overwrite current instance state
             self.__dict__ = loaded.__dict__
         else:
-            logger.error(f"No previous dump found at {prev_session_dir}, cannot withdraw loop {li}")
+            logger.error(f"No previous dump found at {prev_session_dir}, cannot withdraw loop {loop_idx}")
             raise
 
     def dump(self, path: str | Path) -> None:
