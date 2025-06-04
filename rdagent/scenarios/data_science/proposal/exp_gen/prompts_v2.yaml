@@ -178,6 +178,52 @@ hypothesis_gen:
     # Identified Problems{% if enable_idea_pool %} with Sampled Ideas{% endif %}
     {{ problems }}
 
+hypothesis_draft:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace. If new trace surpasses the current SOTA, it will be the new SOTA. If not, it will be a failed experiment.
+    This will be the first trace of the competition implementation.
+    You will be provided with: 
+      1. A detailed competition scenario description;
+      2. Previous failed experiments and feedbacks, which are ordered attempts that failed;
+      4. An idea, which are extracted methods or techniques from previous SOTA implementations of other competitions. This idea is sample based on the similarity of the problem current. 
+    Your task is to propose testable hypotheses to draft the first implementation of the competition.
+
+    # Hypothesis Proposal
+
+    ## Hypothesis Guidelines
+    Here are few guidelines to help you formulate hypotheses:
+    1. Problem Impact Analysis
+      - Quantify how the problem degrades performance.
+    2. Previous Experiments Analysis
+      - For previous SOTA experiments, analyze insights and implicit patterns that can be leveraged to improve the current SOTA implementation.
+      - For failed experiments, think about the persistent problems they facing. If these experiments consistently failed due to time/memory constraints, prioritize changes on efficiency.
+    3. Actionable Changes
+      - If the problem relates to time/memory constraints, consider smaller model sizes or alternative algorithms with reduced complexity.
+      - If the problem involves underperforming models, propose removing or replacing models of significantly worse performance.
+      - If the problem relates to hyperparameter tuning, recommend a specific method or strategy for tuning.
+    4. Note on Time/Memory Constraints
+      - If prior experiments failed due to time/memory limitations, assume your new hypothesis will face the same constraints. In this case, prioritize efficiency and **ONLY** response to the problems related to time/memory constraints in your response dictionary.
+      - Besides, do not compromise performance merely for efficiency since the current SOTA implementation do not encounter the constraints. You should think about how to balance the efficiency and performance so that your new hypothesis can be executed successfully and achieve satisfactory performance. 
+    5. Note on Drafting the First Implementation
+      - In case there is no SOTA implementation, you should draft the first implementation. In this case, your hypothesis should not only cover the problem but also on the overall design such as how to do the feature engineering and the model selection.
+
+    ## Hypothesis Specification
+    {{ hypothesis_spec }}
+
+    ## Final Output Format in JSON Schema:
+    {{ hypothesis_output_format }}
+    
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Previous Experiments and Feedbacks
+    {{ exp_and_feedback_list_desc }}
+
+    # Identified Problems{% if enable_idea_pool %} with Sampled Ideas{% endif %}
+    {{ problems }}
+
 task_gen:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
