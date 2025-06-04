@@ -9,26 +9,23 @@ Postscripts:
 """
 
 import datetime
-import os
 import pickle
-import time
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Optional, TypeVar, Union, cast
+from typing import Any, Callable, Optional, Union, cast
 
-import pytz
 from tqdm.auto import tqdm
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
 
-if RD_AGENT_SETTINGS.enable_mlflow:
-    import mlflow
+from rdagent.utils.workflow.tracking import WorkflowTracker
 
 
 class LoopMeta(type):
+
     @staticmethod
     def _get_steps(bases: tuple[type, ...]) -> list[str]:
         """
@@ -88,9 +85,8 @@ class LoopBase:
     loop_trace: dict[int, list[LoopTrace]]
 
     skip_loop_error: tuple[type[BaseException], ...] = ()  # you can define a list of error that will skip current loop
-    withdraw_loop_error: tuple[
-        type[BaseException], ...
-    ] = ()  # you can define a list of error that will withdraw current loop
+    withdraw_loop_error: tuple[type[BaseException],
+                               ...] = ()  # you can define a list of error that will withdraw current loop
 
     EXCEPTION_KEY = "_EXCEPTION"
 
@@ -101,6 +97,7 @@ class LoopBase:
         self.loop_trace = defaultdict(list[LoopTrace])  # the key is the number of loop
         self.session_folder = logger.log_trace_path / "__session__"
         self.timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
+        self.tracker = WorkflowTracker(self)  # Initialize tracker with this LoopBase instance
 
     def run(self, step_n: int | None = None, loop_n: int | None = None, all_duration: str | None = None) -> None:
         """
@@ -128,41 +125,10 @@ class LoopBase:
                     if loop_n <= 0:
                         break
 
-                if RD_AGENT_SETTINGS.enable_mlflow:
-                    mlflow.log_metric("loop_index", self.loop_idx)
-                    mlflow.log_metric("step_index", self.step_idx)
-                    current_local_datetime = datetime.datetime.now(pytz.timezone("Asia/Shanghai"))
-                    float_like_datetime = (
-                        current_local_datetime.second
-                        + current_local_datetime.minute * 1e2
-                        + current_local_datetime.hour * 1e4
-                        + current_local_datetime.day * 1e6
-                        + current_local_datetime.month * 1e8
-                        + current_local_datetime.year * 1e10
-                    )
-                    mlflow.log_metric("current_datetime", float_like_datetime)
-                    mlflow.log_metric("api_fail_count", RD_Agent_TIMER_wrapper.api_fail_count)
-                    lastest_api_fail_time = RD_Agent_TIMER_wrapper.latest_api_fail_time
-                    if lastest_api_fail_time is not None:
-                        mlflow.log_metric(
-                            "lastest_api_fail_time",
-                            (
-                                lastest_api_fail_time.second
-                                + lastest_api_fail_time.minute * 1e2
-                                + lastest_api_fail_time.hour * 1e4
-                                + lastest_api_fail_time.day * 1e6
-                                + lastest_api_fail_time.month * 1e8
-                                + lastest_api_fail_time.year * 1e10
-                            ),
-                        )
+                # Track all workflow metrics with a single function call
+                self.tracker.log_workflow_state()
 
                 if self.timer.started:
-                    if RD_AGENT_SETTINGS.enable_mlflow:
-                        mlflow.log_metric("remain_time", self.timer.remain_time().seconds)  # type: ignore[union-attr]
-                        mlflow.log_metric(
-                            "remain_percent", self.timer.remain_time() / self.timer.all_duration * 100  # type: ignore[operator]
-                        )
-
                     if self.timer.is_timeout():
                         logger.warning("Timeout, exiting the loop.")
                         break
@@ -200,9 +166,8 @@ class LoopBase:
 
                         # Update tqdm progress bar directly to step_idx
                         pbar.n = si + 1
-                        pbar.set_postfix(
-                            loop_index=li, step_index=si + 1, step_name=name
-                        )  # step_name indicate  last finished step_name
+                        pbar.set_postfix(loop_index=li, step_index=si + 1,
+                                         step_name=name)  # step_name indicate  last finished step_name
 
                 # index increase and save session
                 self.step_idx = (self.step_idx + 1) % len(self.steps)
@@ -282,55 +247,3 @@ class LoopBase:
                 session.timer = RD_Agent_TIMER_wrapper.timer
 
         return session
-
-
-ASpecificRet = TypeVar("ASpecificRet")
-
-
-def wait_retry(
-    retry_n: int = 3, sleep_time: int = 1, transform_args_fn: Callable[[tuple, dict], tuple[tuple, dict]] | None = None
-) -> Callable[[Callable[..., ASpecificRet]], Callable[..., ASpecificRet]]:
-    """Decorator to wait and retry the function for retry_n times.
-
-    Example:
-    >>> import time
-    >>> @wait_retry(retry_n=2, sleep_time=1)
-    ... def test_func():
-    ...     global counter
-    ...     counter += 1
-    ...     if counter < 3:
-    ...         raise ValueError("Counter is less than 3")
-    ...     return counter
-    >>> counter = 0
-    >>> try:
-    ...     test_func()
-    ... except ValueError as e:
-    ...     print(f"Caught an exception: {e}")
-    Error: Counter is less than 3
-    Error: Counter is less than 3
-    Caught an exception: Counter is less than 3
-    >>> counter
-    2
-    """
-    assert retry_n > 0, "retry_n should be greater than 0"
-
-    def decorator(f: Callable[..., ASpecificRet]) -> Callable[..., ASpecificRet]:
-        def wrapper(*args: Any, **kwargs: Any) -> ASpecificRet:
-            for i in range(retry_n + 1):
-                try:
-                    return f(*args, **kwargs)
-                except Exception as e:
-                    print(f"Error: {e}")
-                    time.sleep(sleep_time)
-                    if i == retry_n:
-                        raise
-                    # Update args and kwargs using the transform function if provided.
-                    if transform_args_fn is not None:
-                        args, kwargs = transform_args_fn(args, kwargs)
-            else:
-                # just for passing mypy CI.
-                return f(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
