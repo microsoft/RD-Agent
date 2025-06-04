@@ -1,8 +1,10 @@
 import json
+import math
 import pprint
 from enum import Enum
 from typing import Dict, List, Tuple
 
+import numpy as np
 import pandas as pd
 from pydantic import BaseModel, Field
 
@@ -304,7 +306,10 @@ class DSProposalV1ExpGen(ExpGen):
             exp=sota_exp, heading="Best of previous exploration of the scenario"
         )
         last_exp_diff = "\n".join(
-            generate_diff_from_dict(sota_exp.experiment_workspace.file_dict, last_exp.experiment_workspace.file_dict)
+            generate_diff_from_dict(
+                sota_exp.experiment_workspace.file_dict,
+                last_exp.experiment_workspace.file_dict,
+            )
         )  # we use file_dict for hitting the cache when replicate the experiment in another machine.
 
         all_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="all")
@@ -333,7 +338,10 @@ class DSProposalV1ExpGen(ExpGen):
 
         resp_dict_component: dict = json.loads(
             APIBackend().build_messages_and_create_chat_completion(
-                component_user_prompt, component_sys_prompt, json_mode=True, json_target_type=Dict[str, str]
+                component_user_prompt,
+                component_sys_prompt,
+                json_mode=True,
+                json_target_type=Dict[str, str],
             )
         )
 
@@ -414,7 +422,8 @@ class DSProposalV1ExpGen(ExpGen):
                 task_design = resp_dict.get("task_design", {})
                 task_name = task_design["model_name"] if component == "Model" else component
                 description = task_design.get(
-                    "description", f"{component_info['target_name']} description not provided"
+                    "description",
+                    f"{component_info['target_name']} description not provided",
                 )
                 task = task_class(
                     name=task_name,
@@ -460,7 +469,11 @@ class DSProposalV2ExpGen(ExpGen):
         return json.loads(response)
 
     def identify_feedback_problem(
-        self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str, inject_diverse: bool = False
+        self,
+        scenario_desc: str,
+        exp_feedback_list_desc: str,
+        sota_exp_desc: str,
+        inject_diverse: bool = False,
     ) -> Dict:
         sys_prompt = T(".prompts_v2:feedback_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
@@ -481,7 +494,12 @@ class DSProposalV2ExpGen(ExpGen):
         return json.loads(response)
 
     def identify_problem(
-        self, current_sub_trace, scenario_desc, sota_exp_desc, exp_feedback_list_desc, inject_diverse
+        self,
+        current_sub_trace,
+        scenario_desc,
+        sota_exp_desc,
+        exp_feedback_list_desc,
+        inject_diverse,
     ) -> Dict:
         sota_exp_num = sum(1 for _, fb in current_sub_trace if fb.decision)
         failed_exp_num = len(current_sub_trace) - sota_exp_num
@@ -589,28 +607,58 @@ class DSProposalV2ExpGen(ExpGen):
                         scores_dict[problem_name][score_key] = 0
 
         scores = pd.DataFrame(scores_dict)
-        scores_sorted = scores.sum().sort_values(ascending=False)
-        scores_sorted = scores_sorted[:5]  # Select top 5 hypotheses
+        summed_scores = scores.sum()
+        num_hypotheses = len(summed_scores)
+        top_n = int(min(5, math.ceil(num_hypotheses / 2.0)))
+        scores_sorted = summed_scores.sort_values(ascending=False)
+        scores_sorted = scores_sorted[:top_n]  # Select top N hypotheses
 
         # Increase the weight of the hypothesis that is inspired by the idea pool to 3x.
         # Linear decay the weight of the scenario problem from 3x to 0x.
-        index_to_pick_pool_list = []
-        for j, problem_name in enumerate(scores_sorted.index):
-            if hypothesis_dict[problem_name].get("inspired", False):
-                index_to_pick_pool_list.extend([j] * 2)
-            if problem_dict.get(problem_name, {}).get("label", "") == "SCENARIO_PROBLEM":
-                index_to_pick_pool_list.extend([j] * self.scen_prob_multiplier)
-            else:
-                index_to_pick_pool_list.extend([j] * (3 - self.scen_prob_multiplier))
-        logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
+        scenario_bias = self.scen_prob_multiplier + 1
+        feedback_bias = 5 - scenario_bias
 
-        # Create a random but reproducible integer
-        reproducible_int = int.from_bytes(bytes.fromhex(md5_hash(scores_sorted.to_string())), byteorder="big") % len(
-            index_to_pick_pool_list
-        )
-        selected_idx = index_to_pick_pool_list[reproducible_int]
+        bias_values = []
+        problem_types = []
+        for problem_name in scores_sorted.index:
+            is_scenario_problem = problem_dict.get(problem_name, {}).get("label", "") == "SCENARIO_PROBLEM"
+            bias = scenario_bias if is_scenario_problem else feedback_bias
+
+            if hypothesis_dict[problem_name].get("inspired", False):
+                bias += 2
+
+            bias_values.append(bias)
+            problem_types.append("Scenario" if is_scenario_problem else "Feedback")
+
+        def stable_softmax(x: np.array, temp: float = 0.8) -> np.array:
+            x = np.asarray(x, dtype=float)
+            shift = np.max(x)
+            exps = np.exp((x - shift) / temp)
+            return exps / np.sum(exps)
+
+        raw_probs = stable_softmax(scores_sorted.values, temp=0.8)
+        biased_probs = raw_probs * np.array(bias_values)
+
+        bias_sum = np.sum(biased_probs)
+        if bias_sum <= 1e-8:
+            logger.warning("Sum of biased probabilities is 0, using uniform distribution")
+            final_probs = np.ones(len(biased_probs)) / len(biased_probs)
+        else:
+            final_probs = biased_probs / bias_sum
+
+        try:
+            seed = int.from_bytes(bytes.fromhex(md5_hash(scores_sorted.to_string())), byteorder="big") % (2**32)
+        except Exception as e:
+            logger.warning(f"Failed to create seed from hash: {str(e)}")
+            seed = hash(str(scores_sorted.values)) % (2**32)
+
+        rng = np.random.default_rng(seed)
+        logger.info(f"scenario_bias: {scenario_bias}, feedback_bias: {feedback_bias}")
+
+        selected_idx = rng.choice(len(scores_sorted), p=final_probs)
         max_score_problem_name = scores_sorted.index[selected_idx]
         problem_dict = problem_dict.get(max_score_problem_name, {})
+        logger.info(f"Selected Hypothesis: {max_score_problem_name}, Selected Type: {problem_types[selected_idx]}")
 
         return max_score_problem_name, DSHypothesis(
             component=hypothesis_dict[max_score_problem_name].get("component", "Model"),
@@ -668,7 +716,10 @@ class DSProposalV2ExpGen(ExpGen):
         description = (
             task_design
             if isinstance(task_design, str)
-            else task_design.get("description", f"{component_info['target_name']} description not provided")
+            else task_design.get(
+                "description",
+                f"{component_info['target_name']} description not provided",
+            )
         )
         task_class = component_info["task_class"]
         task = task_class(
@@ -886,7 +937,9 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             enable_idea_pool=enable_idea_pool,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt, system_prompt=sys_prompt, response_format=HypothesisList
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format=HypothesisList,
         )
         hypotheses = HypothesisList(**json.loads(response))
         resp_dict = {
@@ -955,7 +1008,10 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         description = (
             task_design
             if isinstance(task_design, str)
-            else task_design.get("description", f"{component_info['target_name']} description not provided")
+            else task_design.get(
+                "description",
+                f"{component_info['target_name']} description not provided",
+            )
         )
         task_class = component_info["task_class"]
         task = task_class(
