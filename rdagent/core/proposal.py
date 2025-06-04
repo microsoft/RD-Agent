@@ -164,7 +164,7 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
 
             # keep the order
             exp_to_index: dict[Experiment, int] = {_exp: i for i, (_exp, _) in enumerate(self.hist)}
-            return [exp_to_index[_exp] for _exp in exps if _exp in exp_to_index]
+            return [exp_to_index[_exp] for _exp in exps]
         else:
             for i, (_exp, _) in enumerate(self.hist):
                 if _exp == exp:
