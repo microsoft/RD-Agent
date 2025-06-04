@@ -41,9 +41,7 @@ class ScenarioChallengeDetail(BaseModel):
             "specifically led to identifying THIS challenge."
         )
     )
-    category: ScenarioChallengeCategory = Field(
-        description="The category of the improvement challenge."
-    )
+    category: ScenarioChallengeCategory = Field(description="The category of the improvement challenge.")
     statement: str = Field(
         description="Description of the challenge in no more than three sentences, outlining the specific area for improvement."
     )
@@ -54,9 +52,7 @@ class ScenarioChallengeDetail(BaseModel):
 
 
 class ScenarioAnalysis(BaseModel):
-    sota_alignment_analysis: str = Field(
-        description="Comparing SOTA to data/domain insights; 'N/A' if not available."
-    )
+    sota_alignment_analysis: str = Field(description="Comparing SOTA to data/domain insights; 'N/A' if not available.")
     gap_identification: str = Field(
         description="Unaddressed challenges or workarounds in successful solutions; 'N/A' if none."
     )
@@ -126,9 +122,7 @@ class TraceChallengeDetail(BaseModel):
             "or leveraging the observation) is expected to improve the target metric or future iterations."
         )
     )
-    caption: str = Field(
-        description="Summarize the challenge concisely in around 5-15 words."
-    )
+    caption: str = Field(description="Summarize the challenge concisely in around 5-15 words.")
 
 
 class TraceChallenges(BaseModel):
@@ -158,9 +152,7 @@ class HypothesisEvaluationReasoningScore(BaseModel):
     reasoning: str = Field(
         description="What is the quality of the hypothesis under this criteria? Answer in 1-2 sentence."
     )
-    score: float = Field(
-        description="The score of the hypothesis under this criteria between 1 and 10."
-    )
+    score: float = Field(description="The score of the hypothesis under this criteria between 1 and 10.")
 
 
 class HypothesisEvaluation(BaseModel):
@@ -194,12 +186,8 @@ class HypothesisDetail(BaseModel):
             "Brief explanation (max 2 sentences) of the expected impact of the hypothesis on the target metric."
         )
     )
-    component: HypothesisComponent = Field(
-        description="The component tag of the hypothesis."
-    )
-    evaluation: HypothesisEvaluation = Field(
-        description="Evaluate the quality of the hypothesis."
-    )
+    component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
+    evaluation: HypothesisEvaluation = Field(description="Evaluate the quality of the hypothesis.")
 
 
 class HypothesisList(BaseModel):
@@ -324,9 +312,7 @@ class DSProposalV1ExpGen(ExpGen):
             )
         )  # we use file_dict for hitting the cache when replicate the experiment in another machine.
 
-        all_exp_feedback_list = trace.experiment_and_feedback_list_after_init(
-            return_type="all"
-        )
+        all_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="all")
 
         exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
             exp_and_feedback_list=all_exp_feedback_list,
@@ -341,9 +327,7 @@ class DSProposalV1ExpGen(ExpGen):
             component_desc="\n".join(
                 [
                     f"[{key}] {value}"
-                    for key, value in T(
-                        "scenarios.data_science.share:component_description"
-                    ).template.items()
+                    for key, value in T("scenarios.data_science.share:component_description").template.items()
                 ]
             ),
         )
@@ -381,13 +365,9 @@ class DSProposalV1ExpGen(ExpGen):
 
         if component_info:
             if DS_RD_SETTING.spec_enabled:
-                task_spec = sota_exp.experiment_workspace.file_dict[
-                    component_info["spec_file"]
-                ]
+                task_spec = sota_exp.experiment_workspace.file_dict[component_info["spec_file"]]
             else:
-                task_spec = T(
-                    f"scenarios.data_science.share:component_spec.{component}"
-                ).r()
+                task_spec = T(f"scenarios.data_science.share:component_spec.{component}").r()
             system_prompt = T(".prompts:direct_exp_gen.system").r(
                 targets=component_info["target_name"],
                 component=component,
@@ -425,32 +405,22 @@ class DSProposalV1ExpGen(ExpGen):
                         json_target_type=dict[str, dict[str, str | dict] | str],
                     )
                 )
-                assert (
-                    "hypothesis_proposal" in resp_dict
-                ), "Hypothesis proposal not provided."
+                assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."
                 assert "task_design" in resp_dict, "Task design not provided."
                 task_class = component_info["task_class"]
                 hypothesis_proposal = resp_dict.get("hypothesis_proposal", {})
                 hypothesis = DSHypothesis(
                     component=component,
                     hypothesis=hypothesis_proposal.get("hypothesis", ""),
-                    reason=component_reason
-                    + "\n"
-                    + hypothesis_proposal.get("reason", ""),
+                    reason=component_reason + "\n" + hypothesis_proposal.get("reason", ""),
                     concise_reason=hypothesis_proposal.get("concise_reason", ""),
-                    concise_observation=hypothesis_proposal.get(
-                        "concise_observation", ""
-                    ),
-                    concise_justification=hypothesis_proposal.get(
-                        "concise_justification", ""
-                    ),
+                    concise_observation=hypothesis_proposal.get("concise_observation", ""),
+                    concise_justification=hypothesis_proposal.get("concise_justification", ""),
                     concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
                 )
 
                 task_design = resp_dict.get("task_design", {})
-                task_name = (
-                    task_design["model_name"] if component == "Model" else component
-                )
+                task_name = task_design["model_name"] if component == "Model" else component
                 description = task_design.get(
                     "description",
                     f"{component_info['target_name']} description not provided",
@@ -458,10 +428,7 @@ class DSProposalV1ExpGen(ExpGen):
                 task = task_class(
                     name=task_name,
                     description=description,
-                    **{
-                        k: task_design.get(k, v)
-                        for k, v in component_info.get("extra_params", {}).items()
-                    },
+                    **{k: task_design.get(k, v) for k, v in component_info.get("extra_params", {}).items()},
                 )
                 new_workflow_desc = resp_dict.get("workflow_update", "No update needed")
                 return hypothesis, task, new_workflow_desc
@@ -470,9 +437,7 @@ class DSProposalV1ExpGen(ExpGen):
 
             exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis)
             # exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
-            exp.experiment_workspace.inject_code_from_file_dict(
-                sota_exp.experiment_workspace
-            )
+            exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
 
             if new_workflow_desc != "No update needed":
                 workflow_task = WorkflowTask(
@@ -578,21 +543,15 @@ class DSProposalV2ExpGen(ExpGen):
         problem_formatted_str = ""
         for problem_name, problem_dict in problems.items():
             problem_formatted_str += f"Problem Name: {problem_name}\n"
-            problem_formatted_str += (
-                f"- Problem Description: {problem_dict['problem']}\n"
-            )
+            problem_formatted_str += f"- Problem Description: {problem_dict['problem']}\n"
             if "idea" in problem_dict:
                 idea_formatted_str = DSIdea(problem_dict["idea"]).to_formatted_str()
-                problem_formatted_str += (
-                    f"- Sampled Idea by user: \n{idea_formatted_str}\n"
-                )
+                problem_formatted_str += f"- Sampled Idea by user: \n{idea_formatted_str}\n"
             problem_formatted_str += "\n\n"
 
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             component_desc=component_desc,
-            hypothesis_spec=T(".prompts_v2:specification.hypothesis").r(
-                pipeline=pipeline
-            ),
+            hypothesis_spec=T(".prompts_v2:specification.hypothesis").r(pipeline=pipeline),
             hypothesis_output_format=T(".prompts_v2:output_format.hypothesis").r(
                 pipeline=pipeline, enable_idea_pool=enable_idea_pool
             ),
@@ -642,10 +601,7 @@ class DSProposalV2ExpGen(ExpGen):
                 else:
                     try:
                         scores_dict[problem_name][score_key] = (
-                            float(
-                                hypothesis_dict[problem_name]["evaluation"][score_key]
-                            )
-                            * weights[score_key]
+                            float(hypothesis_dict[problem_name]["evaluation"][score_key]) * weights[score_key]
                         )
                     except (ValueError, TypeError):
                         scores_dict[problem_name][score_key] = 0
@@ -665,10 +621,7 @@ class DSProposalV2ExpGen(ExpGen):
         bias_values = []
         problem_types = []
         for problem_name in scores_sorted.index:
-            is_scenario_problem = (
-                problem_dict.get(problem_name, {}).get("label", "")
-                == "SCENARIO_PROBLEM"
-            )
+            is_scenario_problem = problem_dict.get(problem_name, {}).get("label", "") == "SCENARIO_PROBLEM"
             bias = scenario_bias if is_scenario_problem else feedback_bias
 
             if hypothesis_dict[problem_name].get("inspired", False):
@@ -688,17 +641,13 @@ class DSProposalV2ExpGen(ExpGen):
 
         bias_sum = np.sum(biased_probs)
         if bias_sum <= 1e-8:
-            logger.warning(
-                "Sum of biased probabilities is 0, using uniform distribution"
-            )
+            logger.warning("Sum of biased probabilities is 0, using uniform distribution")
             final_probs = np.ones(len(biased_probs)) / len(biased_probs)
         else:
             final_probs = biased_probs / bias_sum
 
         try:
-            seed = int.from_bytes(
-                bytes.fromhex(md5_hash(scores_sorted.to_string())), byteorder="big"
-            ) % (2**32)
+            seed = int.from_bytes(bytes.fromhex(md5_hash(scores_sorted.to_string())), byteorder="big") % (2**32)
         except Exception as e:
             logger.warning(f"Failed to create seed from hash: {str(e)}")
             seed = hash(str(scores_sorted.values)) % (2**32)
@@ -709,22 +658,14 @@ class DSProposalV2ExpGen(ExpGen):
         selected_idx = rng.choice(len(scores_sorted), p=final_probs)
         max_score_problem_name = scores_sorted.index[selected_idx]
         problem_dict = problem_dict.get(max_score_problem_name, {})
-        logger.info(
-            f"Selected Hypothesis: {max_score_problem_name}, Selected Type: {problem_types[selected_idx]}"
-        )
+        logger.info(f"Selected Hypothesis: {max_score_problem_name}, Selected Type: {problem_types[selected_idx]}")
 
         return max_score_problem_name, DSHypothesis(
             component=hypothesis_dict[max_score_problem_name].get("component", "Model"),
-            hypothesis=hypothesis_dict[max_score_problem_name].get(
-                "hypothesis", "Hypothesis not provided"
-            ),
-            reason=hypothesis_dict[max_score_problem_name].get(
-                "reason", "Reason not provided"
-            ),
+            hypothesis=hypothesis_dict[max_score_problem_name].get("hypothesis", "Hypothesis not provided"),
+            reason=hypothesis_dict[max_score_problem_name].get("reason", "Reason not provided"),
             problem_name=max_score_problem_name,
-            problem_desc=problem_dict.get(
-                "problem", "Problem description not provided"
-            ),
+            problem_desc=problem_dict.get("problem", "Problem description not provided"),
             problem_label=problem_dict.get("label", "FEEDBACK_PROBLEM"),
         )
 
@@ -745,13 +686,9 @@ class DSProposalV2ExpGen(ExpGen):
         if pipeline:
             task_spec = T(f"scenarios.data_science.share:component_spec.Pipeline").r()
         elif DS_RD_SETTING.spec_enabled and sota_exp is not None:
-            task_spec = sota_exp.experiment_workspace.file_dict[
-                component_info["spec_file"]
-            ]
+            task_spec = sota_exp.experiment_workspace.file_dict[component_info["spec_file"]]
         else:
-            task_spec = T(
-                f"scenarios.data_science.share:component_spec.{hypothesis.component}"
-            ).r()
+            task_spec = T(f"scenarios.data_science.share:component_spec.{hypothesis.component}").r()
         sys_prompt = T(".prompts_v2:task_gen.system").r(
             targets=component_info["target_name"],
             task_specification=task_spec,
@@ -774,9 +711,7 @@ class DSProposalV2ExpGen(ExpGen):
         task_dict = json.loads(response)
         task_design = task_dict.get("task_design", {})
         task_name = (
-            task_design["model_name"]
-            if (hypothesis.component == "Model" and not pipeline)
-            else hypothesis.component
+            task_design["model_name"] if (hypothesis.component == "Model" and not pipeline) else hypothesis.component
         )
         description = (
             task_design
@@ -795,9 +730,7 @@ class DSProposalV2ExpGen(ExpGen):
         exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis)
         # exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
         if sota_exp is not None:
-            exp.experiment_workspace.inject_code_from_file_dict(
-                sota_exp.experiment_workspace
-            )
+            exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
         if not pipeline and new_workflow_desc != "No update needed":
             workflow_task = WorkflowTask(
                 name="Workflow",
@@ -812,16 +745,12 @@ class DSProposalV2ExpGen(ExpGen):
             return draft_exp
 
         if pipeline:
-            component_desc = T(
-                "scenarios.data_science.share:component_description_in_pipeline"
-            ).r()
+            component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
         else:
             component_desc = "\n".join(
                 [
                     f"[{key}] {value}"
-                    for key, value in T(
-                        "scenarios.data_science.share:component_description"
-                    ).template.items()
+                    for key, value in T("scenarios.data_science.share:component_description").template.items()
                 ]
             )
 
@@ -837,18 +766,12 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(
-                return_type="all"
-            ),
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
             type="all",
             pipeline=pipeline,
         )
-        failed_exp_feedback_list_desc = T(
-            "scenarios.data_science.share:describe.trace"
-        ).r(
-            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(
-                return_type="failed"
-            ),
+        failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
             type="failed",
             pipeline=pipeline,
         )
@@ -916,9 +839,7 @@ class DSProposalV2ExpGen(ExpGen):
         )
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
-            trace.knowledge_base.update_pickled_problem(
-                all_problems, pickled_problem_name
-            )
+            trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
 
         return self.task_gen(
             component_desc=component_desc,
@@ -947,16 +868,11 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         )
         challenges = ScenarioChallenges(**json.loads(response))
         # Translate to problems
-        problems = {
-            o.caption: {"problem": o.statement, "reason": o.reasoning}
-            for o in challenges.challenges
-        }
+        problems = {o.caption: {"problem": o.statement, "reason": o.reasoning} for o in challenges.challenges}
         logger.info(f"Identified scenario problems:\n" + json.dumps(problems))
         return problems
 
-    def identify_feedback_problem(
-        self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str
-    ) -> Dict:
+    def identify_feedback_problem(self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v3:feedback_problem.system").r()
         user_prompt = T(".prompts_v3:feedback_problem.user").r(
             scenario_desc=scenario_desc,
@@ -972,10 +888,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         )
         challenges = TraceChallenges(**json.loads(response))
         # Translate to problems
-        problems = {
-            o.caption: {"problem": o.statement, "reason": o.reasoning}
-            for o in challenges.challenges
-        }
+        problems = {o.caption: {"problem": o.statement, "reason": o.reasoning} for o in challenges.challenges}
         logger.info(f"Identified feedback problems:\n" + json.dumps(problems))
         return problems
 
@@ -1009,9 +922,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             problem_formatted_str += f"{problem_dict['problem']}\n"
             if "idea" in problem_dict:
                 idea_formatted_str = DSIdea(problem_dict["idea"]).to_formatted_str()
-                problem_formatted_str += (
-                    f"Sampled Idea by user: \n{idea_formatted_str}\n"
-                )
+                problem_formatted_str += f"Sampled Idea by user: \n{idea_formatted_str}\n"
             problem_formatted_str += "\n\n"
 
         sys_prompt = T(".prompts_v3:hypothesis_gen.system").r(
@@ -1111,9 +1022,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypotheses[0])
         # exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
         if sota_exp is not None:
-            exp.experiment_workspace.inject_code_from_file_dict(
-                sota_exp.experiment_workspace
-            )
+            exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
         if not pipeline and new_workflow_desc != "No update needed":
             workflow_task = WorkflowTask(
                 name="Workflow",
@@ -1122,9 +1031,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             exp.pending_tasks_list.append([workflow_task])
         return exp
 
-    def get_all_hypotheses(
-        self, problem_dict: dict, hypothesis_dict: dict
-    ) -> list[DSHypothesis]:
+    def get_all_hypotheses(self, problem_dict: dict, hypothesis_dict: dict) -> list[DSHypothesis]:
         result = []
         for name, data in hypothesis_dict.items():
             problem_data = problem_dict.get(name, {})
@@ -1134,9 +1041,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
                     hypothesis=data.get("hypothesis", "Hypothesis not provided"),
                     reason=data.get("reason", "Reason not provided"),
                     problem_name=name,
-                    problem_desc=problem_data.get(
-                        "problem", "Problem description not provided"
-                    ),
+                    problem_desc=problem_data.get("problem", "Problem description not provided"),
                     problem_label=problem_data.get("label", "FEEDBACK_PROBLEM"),
                 )
             )
@@ -1148,16 +1053,12 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             return draft_exp
 
         if pipeline:
-            component_desc = T(
-                "scenarios.data_science.share:component_description_in_pipeline"
-            ).r()
+            component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
         else:
             component_desc = "\n".join(
                 [
                     f"[{key}] {value}"
-                    for key, value in T(
-                        "scenarios.data_science.share:component_description"
-                    ).template.items()
+                    for key, value in T("scenarios.data_science.share:component_description").template.items()
                 ]
             )
 
@@ -1173,18 +1074,12 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         )
 
         exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(
-                return_type="all"
-            ),
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
             type="all",
             pipeline=pipeline,
         )
-        failed_exp_feedback_list_desc = T(
-            "scenarios.data_science.share:describe.trace"
-        ).r(
-            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(
-                return_type="failed"
-            ),
+        failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
             type="failed",
             pipeline=pipeline,
         )
@@ -1254,9 +1149,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         )
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
-            trace.knowledge_base.update_pickled_problem(
-                all_problems, pickled_problem_name
-            )
+            trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
 
         return self.task_gen(
             component_desc=component_desc,
@@ -1264,9 +1157,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
             hypotheses=(
-                [new_hypothesis]
-                if len(trace.hist) > 0
-                else self.get_all_hypotheses(all_problems, hypothesis_dict)
+                [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(all_problems, hypothesis_dict)
             ),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
