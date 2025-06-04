@@ -1,3 +1,4 @@
+import asyncio
 import fire
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -61,7 +62,7 @@ def main(
     if exp_gen_cls is not None:
         kaggle_loop.exp_gen = import_class(exp_gen_cls)(kaggle_loop.exp_gen.scen)
 
-    kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout)
+    asyncio.run(kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout))
 
 
 if __name__ == "__main__":

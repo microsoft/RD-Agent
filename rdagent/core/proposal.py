@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+import asyncio
 from typing import Generic, TypeVar
 
 from rdagent.core.evaluation import Feedback
 from rdagent.core.experiment import ASpecificExp, Experiment
 from rdagent.core.knowledge_base import KnowledgeBase
 from rdagent.core.scenario import Scenario
+from rdagent.utils.workflow.loop import LoopBase
 
 # class data_ana: XXX
 
@@ -176,6 +178,15 @@ class ExpGen(ABC):
                 HypothesisGen().gen(trace)
             )
         """
+
+    async def async_gen(self, trace: Trace, loop: LoopBase) -> Experiment:
+        """
+        generate the experiment and decide whether to stop yield generation and give up control to other routines.
+        """
+        # we give a default implementation here.
+        while loop.get_unfinished_loop_cnt(loop.loop_idx) > 0:
+            await asyncio.sleep(1)
+        return self.gen(trace)
 
 
 class HypothesisGen(ABC):

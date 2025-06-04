@@ -84,5 +84,11 @@ class RDAgentSettings(ExtendedBaseSettings):
 
     initial_fator_library_size: int = 20
 
+    # parallel loop
+    max_loop_worker: int = 10  # this is not very important due to the limitation of steps are the semaphore
+    step_semaphore: int | dict[str, int] = 1
+    """the semaphore for each step;  you can specify a overall semaphore
+    or a step-wise semaphore like {"coding": 3, "running": 2}"""
+
 
 RD_AGENT_SETTINGS = RDAgentSettings()

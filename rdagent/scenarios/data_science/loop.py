@@ -1,3 +1,4 @@
+import asyncio
 import shutil
 import subprocess
 from datetime import datetime
@@ -102,7 +103,7 @@ class DataScienceRDLoop(RDLoop):
         self.summarizer = DSExperiment2Feedback(scen)
         super(RDLoop, self).__init__()
 
-    def direct_exp_gen(self, prev_out: dict[str, Any]):
+    async def direct_exp_gen(self, prev_out: dict[str, Any]):
 
         # set the SOTA experiment to submit
         sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace)
@@ -112,8 +113,7 @@ class DataScienceRDLoop(RDLoop):
         selection = self.ckp_selector.get_selection(self.trace)
         # set the current selection for the trace
         self.trace.set_current_selection(selection)
-
-        exp = self.exp_gen.gen(self.trace)
+        exp = await self.exp_gen.async_gen(self.trace, self)
         logger.log_object(exp)
 
         # FIXME: this is for LLM debug webapp, remove this when the debugging is done.

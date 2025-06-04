@@ -65,7 +65,7 @@ class WorkflowTracker:
 
         # Log workflow progress
         mlflow.log_metric("loop_index", self.loop_base.loop_idx)
-        mlflow.log_metric("step_index", self.loop_base.step_idx)
+        mlflow.log_metric("step_index", self.loop_base.step_idx[self.loop_base.loop_idx])
 
         current_local_datetime = datetime.datetime.now(pytz.timezone("Asia/Shanghai"))
         float_like_datetime = self._datetime_to_float(current_local_datetime)

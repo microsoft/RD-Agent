@@ -8,6 +8,8 @@ Postscripts:
 
 """
 
+import asyncio
+import concurrent.futures
 import datetime
 import pickle
 from collections import defaultdict
@@ -79,6 +81,10 @@ class LoopBase:
     """
     Assumption:
     - The last step is responsible for recording information!!!!
+
+    Unsolved problem:
+    - Global variable synchronization when `force_subproc` is True
+        - Timer
     """
 
     steps: list[str]  # a list of steps to work on
@@ -90,95 +96,225 @@ class LoopBase:
 
     EXCEPTION_KEY = "_EXCEPTION"
 
+    class LoopTerminationError(Exception):
+        """Exception raised when loop conditions indicate the loop should terminate"""
+
+    class LoopResumeError(Exception):
+        """Exception raised when loop conditions indicate the loop should stop all coroutines and resume"""
+
     def __init__(self) -> None:
-        self.loop_idx = 0  # current loop index
-        self.step_idx = 0  # the index of next step to be run
-        self.loop_prev_out: dict[str, Any] = {}  # the step results of current loop
+        # progress control
+        self.loop_idx = 0  # current loop index / next loop index to kickoff
+        self.step_idx = defaultdict(int)  # dict from loop index to next step index
+        self.queue = asyncio.Queue()
+
+        # Store step results for all loops in a nested dictionary: loop_prev_out[loop_index][step_name]
+        self.loop_prev_out: dict[int, dict[str, Any]] = defaultdict(dict)
         self.loop_trace = defaultdict(list[LoopTrace])  # the key is the number of loop
         self.session_folder = logger.log_trace_path / "__session__"
         self.timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
         self.tracker = WorkflowTracker(self)  # Initialize tracker with this LoopBase instance
 
-    def run(self, step_n: int | None = None, loop_n: int | None = None, all_duration: str | None = None) -> None:
+        # progress control
+        self._pbar = None  # progress bar instance
+        self.loop_n = None  # remain loop count
+        self.step_n = None  # remain step count
+
+        self.semaphores: dict[str, asyncio.Semaphore] = {}
+
+    def get_unfinished_loop_cnt(self, next_loop: int) -> int:
+        n = 0
+        for li in range(next_loop):
+            if self.step_idx[li] < len(self.steps):  # unfinished loop
+                n += 1
+        return n
+
+    def get_semaphore(self, step_name: str) -> asyncio.Semaphore:
+        if isinstance(limit := RD_AGENT_SETTINGS.step_semaphore, dict):
+            limit = limit[step_name]
+
+        if step_name not in self.semaphores:
+            self.semaphores[step_name] = asyncio.Semaphore(limit)
+        return self.semaphores[step_name]
+
+    @property
+    def pbar(self) -> tqdm:
+        """Progress bar property that initializes itself if it doesn't exist."""
+        if self._pbar is None:
+            self._pbar = tqdm(total=len(self.steps), desc="Workflow Progress", unit="step")
+        return self._pbar
+
+    def close_pbar(self) -> None:
+        if self._pbar is not None:
+            self._pbar.close()
+            self._pbar = None
+
+    def _check_exit_conditions_on_step(self):
+        """Check if the loop should continue or terminate.
+
+        Raises
+        ------
+        LoopTerminationException
+            When conditions indicate that the loop should terminate
         """
+        # Check step count limitation
+        if self.step_n is not None:
+            if self.step_n <= 0:
+                raise self.LoopTerminationError("Step count reached")
+            self.step_n -= 1
+
+        # Check timer timeout
+        if self.timer.started:
+            if self.timer.is_timeout():
+                logger.warning("Timeout, exiting the loop.")
+                raise self.LoopTerminationError("Timer timeout")
+            else:
+                logger.info(f"Timer remaining time: {self.timer.remain_time()}")
+
+    async def _run_step(self, li: int, force_subproc: bool = False) -> bool:
+        """Execute a single step (next unrun step) in the workflow (async version with force_subproc option).
 
         Parameters
         ----------
-        step_n : int | None
-            How many steps to run;
-            `None` indicates to run forever until error or KeyboardInterrupt
-        loop_n: int | None
-            How many steps to run; if current loop is incomplete, it will be counted as the first loop for completion
-            `None` indicates to run forever until error or KeyboardInterrupt
-        """
+        li : int
+            Loop index
 
+        force_subproc : bool
+            Whether to force the step to run in a subprocess in asyncio
+
+        Returns
+        -------
+        Any
+            The result of the step function
+        """
+        si = self.step_idx[li]
+        name = self.steps[si]
+
+        semaphore = self.get_semaphore(name)
+        await semaphore.acquire()
+
+        logger.info(f"Start Loop {li}, Step {si}: {name}")
+        self.tracker.log_workflow_state()
+
+        with logger.tag(f"Loop_{li}.{name}"):
+            start = datetime.datetime.now(datetime.timezone.utc)
+            func: Callable[..., Any] = cast(Callable[..., Any], getattr(self, name))
+
+            try:
+                # Call function with current loop's output, await if coroutine or use ProcessPoolExecutor for sync if required
+                if force_subproc:
+                    curr_loop = asyncio.get_running_loop()
+                    with concurrent.futures.ProcessPoolExecutor() as pool:
+                        # import pickle
+                        # pickle.dumps([func, self.loop_prev_out[li]])
+                        # from IPython import embed; embed()
+                        result = await curr_loop.run_in_executor(pool, func, self.loop_prev_out[li])
+                else:
+                    # auto determine whether to run async or sync
+                    if asyncio.iscoroutinefunction(func):
+                        result = await func(self.loop_prev_out[li])
+                    else:
+                        # Default: run sync function directly
+                        result = func(self.loop_prev_out[li])
+                # Store result in the nested dictionary
+                self.loop_prev_out[li][name] = result
+                # Save snapshot after completing the step
+                self.dump(self.session_folder / f"{li}" / f"{si}_{name}")
+            except Exception as e:
+                if isinstance(e, self.skip_loop_error):
+                    logger.warning(f"Skip loop {li} due to {e}")
+                    # Jump to the last step (assuming last step is for recording)
+                    self.step_idx[li] = len(self.steps) - 1
+                    self.loop_prev_out[li][self.EXCEPTION_KEY] = e
+                elif isinstance(e, self.withdraw_loop_error):
+                    logger.warning(f"Withdraw loop {li} due to {e}")
+                    # Back to previous loop
+                    self.step_backward(li - 1)
+
+                    msg = "We have reset the loop instance, stop all the routines and resume."
+                    raise self.LoopResumeError(msg) from e
+                else:
+                    raise  # re-raise unhandled exceptions
+            finally:
+                # Record execution trace and update progress bar
+                end = datetime.datetime.now(datetime.timezone.utc)
+                self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
+
+                # Increment step index
+                self.step_idx[li] = self.step_idx[li] + 1
+
+                # Update progress bar
+                current_step = self.step_idx[li]
+                self.pbar.n = current_step
+                next_step = self.step_idx[li] % len(self.steps)
+                self.pbar.set_postfix(loop_index=li, step_index=next_step, step_name=self.steps[next_step])
+                self._check_exit_conditions_on_step()
+
+    async def kickoff_loop(self):
+        while True:
+            li = self.loop_idx
+
+            # exit on loop limitation
+            if self.loop_n is not None:
+                if  self.loop_n <= 0:
+                    break
+                self.loop_n -= 1
+
+            # NOTE:
+            # Try best to kick off the first step; the first step is always the ExpGen;
+            # it have the right to decide when to stop yield new Experiment
+            if self.step_idx[li] == 0:
+                # Assume the first step is ExpGen
+                # Only kick off ExpGen when it is never kicked off before
+                await self._run_step(li)
+            self.queue.put_nowait(li)  # the loop `li` has been kicked off, waiting for workers to pick it up
+            self.loop_idx += 1
+
+    async def execute_loop(self):
+        while True:
+            # 1) get the tasks to goon loop `li`
+            li = await self.queue.get()
+            # 2) run the unfinished steps
+            while self.step_idx[li] < len(self.steps):
+                if self.step_idx[li] == len(self.steps) - 1:
+                    # NOTE: assume the last step is record, it will be fast and affect the global environment
+                    # if it is the last step, run it directly ()
+                    await self._run_step(li)
+                else:
+                    # await the step; parallel running happens here!
+                    await self._run_step(li, force_subproc=True)
+
+    async def run(self,step_n: int | None = None, loop_n: int | None = None, all_duration: str | None = None) -> None:
+        """Run the workflow loop.
+
+        Parameters
+        ----------
+        loop_n: int | None
+            How many loops to run; if current loop is incomplete, it will be counted as the first loop for completion
+            `None` indicates to run forever until error or KeyboardInterrupt
+        all_duration : str | None
+            Maximum duration to run, in format accepted by the timer
+        """
+        # Initialize timer if duration is provided
         if all_duration is not None and not self.timer.started:
             self.timer.reset(all_duration=all_duration)
 
-        with tqdm(total=len(self.steps), desc="Workflow Progress", unit="step") as pbar:
-            while True:
-                if step_n is not None:
-                    if step_n <= 0:
-                        break
-                    step_n -= 1
-                if loop_n is not None:
-                    if loop_n <= 0:
-                        break
+        self.step_n, self.loop_n = step_n, loop_n
 
-                # Track all workflow metrics with a single function call
-                self.tracker.log_workflow_state()
+        # empty the queue when restarting
+        while not self.queue.empty():
+            self.queue.get_nowait()
 
-                if self.timer.started:
-                    if self.timer.is_timeout():
-                        logger.warning("Timeout, exiting the loop.")
-                        break
-                    else:
-                        logger.info(f"Timer remaining time: {self.timer.remain_time()}")
-
-                li, si = self.loop_idx, self.step_idx
-                name = self.steps[si]
-                logger.info(f"Start Loop {li}, Step {si}: {name}")
-                with logger.tag(f"Loop_{li}.{name}"):
-                    start = datetime.datetime.now(datetime.timezone.utc)
-                    func: Callable[..., Any] = cast(Callable[..., Any], getattr(self, name))
-                    try:
-                        self.loop_prev_out[name] = func(self.loop_prev_out)
-                        # TODO: Fix the error logger.exception(f"Skip loop {li} due to {e}")
-                    except Exception as e:
-                        if isinstance(e, self.skip_loop_error):
-                            # FIXME: This does not support previous demo (due to their last step is not for recording)
-                            logger.warning(f"Skip loop {li} due to {e}")
-                            # NOTE: strong assumption!  The last step is responsible for recording information
-                            self.step_idx = len(self.steps) - 1  # directly jump to the last step.
-                            self.loop_prev_out[self.EXCEPTION_KEY] = e
-                            continue
-                        elif isinstance(e, self.withdraw_loop_error):
-                            logger.warning(f"Withdraw loop {li} due to {e}")
-                            # Back to previous loop
-                            self.step_backward(li - 1)
-                            continue
-                        else:
-                            raise
-                    finally:
-                        # make sure failure steps are displayed correclty
-                        end = datetime.datetime.now(datetime.timezone.utc)
-                        self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
-
-                        # Update tqdm progress bar directly to step_idx
-                        pbar.n = si + 1
-                        pbar.set_postfix(loop_index=li, step_index=si + 1,
-                                         step_name=name)  # step_name indicate  last finished step_name
-
-                # index increase and save session
-                self.step_idx = (self.step_idx + 1) % len(self.steps)
-                if self.step_idx == 0:  # reset to step 0 in next round
-                    self.loop_idx += 1
-                    if loop_n is not None:
-                        loop_n -= 1
-                    self.loop_prev_out = {}
-                    pbar.reset()  # reset the progress bar for the next loop
-
-                self.dump(self.session_folder / f"{li}" / f"{si}_{name}")  # save a snapshot after the session
+        while True:
+            try:
+                # run one kickoff_loop and execute_loop
+                await asyncio.gather(self.kickoff_loop(),
+                                    *[self.execute_loop() for _ in range(RD_AGENT_SETTINGS.max_loop_worker)])
+                break
+            except self.LoopResumeError as e:
+                logger.warning(f"Stop all the routines and resume loop: {e}")
+            finally:
+                self.close_pbar()
 
     def step_backward(self, li: int) -> None:
         prev_session_dir = self.session_folder / str(li)
