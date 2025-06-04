@@ -189,7 +189,7 @@ class LoopBase:
                         elif isinstance(e, self.withdraw_loop_error):
                             logger.warning(f"Withdraw loop {li} due to {e}")
                             # Back to previous loop
-                            self.step_backward(li - 1)
+                            self.withdraw_loop(li)
                             continue
                         else:
                             raise
@@ -215,8 +215,8 @@ class LoopBase:
 
                 self.dump(self.session_folder / f"{li}" / f"{si}_{name}")  # save a snapshot after the session
 
-    def step_backward(self, li: int) -> None:
-        prev_session_dir = self.session_folder / str(li)
+    def withdraw_loop(self, loop_idx: int) -> None:
+        prev_session_dir = self.session_folder / str(loop_idx - 1)
         prev_path = min(
             (p for p in prev_session_dir.glob("*_*") if p.is_file()),
             key=lambda item: int(item.name.split("_", 1)[0]),
@@ -233,7 +233,7 @@ class LoopBase:
             # Overwrite current instance state
             self.__dict__ = loaded.__dict__
         else:
-            logger.error(f"No previous dump found at {prev_session_dir}, cannot withdraw loop {li}")
+            logger.error(f"No previous dump found at {prev_session_dir}, cannot withdraw loop {loop_idx}")
             raise
 
     def dump(self, path: str | Path) -> None:
