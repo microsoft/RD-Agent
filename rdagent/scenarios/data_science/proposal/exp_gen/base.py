@@ -136,7 +136,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             return self.hist
 
         elif search_type == "ancestors":
-            return self.collect_all_ancestors(selection)
+            return self.get_parent_exps(selection)
 
         else:
             raise ValueError(f"Invalid search type: {search_type}")

@@ -763,7 +763,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         # Step 1: Identify problems
         all_problems = self.identify_problem(
-            current_sub_trace=trace.collect_all_ancestors(),
+            current_sub_trace=trace.get_parent_exps(),
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,

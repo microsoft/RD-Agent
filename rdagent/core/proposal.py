@@ -142,7 +142,7 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
     def set_current_selection(self, selection: tuple[int, ...]) -> None:
         self.current_selection = selection
 
-    def collect_all_ancestors(
+    def get_parent_exps(
         self,
         selection: tuple[int, ...] | None = None,
     ) -> list[Trace.NodeType]:
@@ -156,27 +156,15 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
         if self.is_selection_new_tree(selection):
             return []
 
-        else:
-            all_ancestors: list[Trace.NodeType] = []
-
-            # start from the latest selection
-            current_node_idx = selection[0]
-
-            # add the current node to the list
-            all_ancestors.insert(0, self.hist[current_node_idx])
-
-            parent_idx = self.dag_parent[current_node_idx]
-
-            while len(parent_idx) > 0:
-                all_ancestors.insert(0, self.hist[parent_idx[0]])
-                parent_idx = self.dag_parent[parent_idx[0]]
-
-        return all_ancestors
+        return [self.hist[i] for i in self.get_parents(selection[0])]
 
     def exp2idx(self, exp: Experiment | List[Experiment]) -> int | List[int] | None:
         if isinstance(exp, list):
             exps: List[Experiment] = exp
-            return [i for i, (_exp, _) in enumerate(self.hist) if _exp in exps]
+
+            # keep the order
+            exp_to_index: dict[Experiment, int] = {_exp: i for i, (_exp, _) in enumerate(self.hist)}
+            return [exp_to_index[_exp] for _exp in exps if _exp in exp_to_index]
         else:
             for i, (_exp, _) in enumerate(self.hist):
                 if _exp == exp:
@@ -195,11 +183,19 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
         return parent_idx in ancestors
 
     def get_parents(self, child_idx: int) -> List[int]:
-        ancestors = self.collect_all_ancestors((child_idx,))
-        ancestor_exps = [exp for exp, _ in ancestors]
-        parent_idxs = self.exp2idx(ancestor_exps)
-        assert isinstance(parent_idxs, list)
-        return parent_idxs
+        if self.is_selection_new_tree((child_idx,)):
+            return []
+
+        ancestors: List[int] = []
+        curr = child_idx
+        while True:
+            ancestors.insert(0, curr)
+            parent_tuple = self.dag_parent[curr]
+            if not parent_tuple or parent_tuple[0] == curr:
+                break
+            curr = parent_tuple[0]
+
+        return ancestors
 
 
 class CheckpointSelector:
