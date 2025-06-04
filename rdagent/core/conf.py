@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 # TODO: use pydantic for other modules in Qlib
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 from pydantic_settings import (
     BaseSettings,
@@ -89,7 +89,7 @@ class RDAgentSettings(ExtendedBaseSettings):
     # ui server
     ui_server_port: int | None = None
 
-    def model_post_init(self) -> None:
+    def model_post_init(self, _context: Any, /) -> None:
         if not self.log_trace_path:
             timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S-%f")
             self.log_trace_path = str(Path.cwd() / "log" / timestamp)
