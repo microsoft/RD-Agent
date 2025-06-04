@@ -3,9 +3,9 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Generator
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal, Optional, Union
+from typing import Literal, Optional
 
 
 @dataclass
@@ -43,8 +43,7 @@ class Storage:
     def log(
         self,
         obj: object,
-        name: str = "",
-        save_type: Literal["json", "text", "pkl"] = "text",
+        tag: str = "",
         timestamp: datetime | None = None,
         **kwargs: dict,
     ) -> str | Path:
@@ -66,11 +65,24 @@ class Storage:
         ...
 
     @abstractmethod
-    def iter_msg(self) -> Generator[Message, None, None]:
+    def iter_msg(self, **kwargs: dict) -> Generator[Message, None, None]:
         """
         Iterate the message in the storage.
         """
         ...
+
+    def _gen_datetime(self, dt: datetime | None = None) -> datetime:
+        """
+        Generate a datetime object in UTC timezone.
+        - If `dt` is None, it will return the current time in UTC.
+        - If `dt` is provided, it will convert it to UTC timezone.
+        """
+        if dt is None:
+            return datetime.now(timezone.utc)
+        return dt.astimezone(timezone.utc)
+
+    def __str__(self) -> str:
+        return self.__class__.__name__
 
 
 class View:

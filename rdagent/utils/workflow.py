@@ -99,7 +99,7 @@ class LoopBase:
         self.step_idx = 0  # the index of next step to be run
         self.loop_prev_out: dict[str, Any] = {}  # the step results of current loop
         self.loop_trace = defaultdict(list[LoopTrace])  # the key is the number of loop
-        self.session_folder = logger.log_trace_path / "__session__"
+        self.session_folder = Path(RD_AGENT_SETTINGS.log_trace_path) / "__session__"
         self.timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
 
     def run(self, step_n: int | None = None, loop_n: int | None = None, all_duration: str | None = None) -> None:
@@ -226,7 +226,6 @@ class LoopBase:
             loaded = type(self).load(
                 prev_path,
                 output_path=self.session_folder.parent,
-                do_truncate=False,
                 replace_timer=True,
             )
             logger.info(f"Load previous session from {prev_path}")
@@ -249,7 +248,6 @@ class LoopBase:
         cls,
         path: Union[str, Path],
         output_path: Optional[Union[str, Path]] = None,
-        do_truncate: bool = False,
         replace_timer: bool = True,
     ) -> "LoopBase":
         path = Path(path)
@@ -266,12 +264,12 @@ class LoopBase:
             session.session_folder = output_path_path / "__session__"
 
         # set trace path
-        logger.set_trace_path(session.session_folder.parent)
+        # logger.set_trace_path(session.session_folder.parent)
 
         # truncate future message
-        if do_truncate:
-            max_loop = max(session.loop_trace.keys())
-            logger.storage.truncate(time=session.loop_trace[max_loop][-1].end)
+        # if do_truncate:
+        #     max_loop = max(session.loop_trace.keys())
+        #     logger.storage.truncate(time=session.loop_trace[max_loop][-1].end)
 
         if session.timer.started:
             if replace_timer:

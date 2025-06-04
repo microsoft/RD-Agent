@@ -6,9 +6,9 @@ import sys
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+
 import randomname
 import typer
-
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
@@ -19,6 +19,7 @@ CORS(app)
 
 rdagent_processes = defaultdict()
 server_port = 19899
+
 
 @app.route("/favicon.ico")
 def favicon():
@@ -60,7 +61,6 @@ def upload_file():
     loop_n = request.form.get("loops")
     all_duration = request.form.get("all_duration")
 
-
     # scenario = "Data Science Loop"
     trace_name = randomname.get_name()
     log_folder_path = Path("./RD-Agent_server_trace").absolute()
@@ -75,7 +75,6 @@ def upload_file():
                 p.mkdir(parents=True, exist_ok=True)
             file.save(p / file.filename)
 
-
     if scenario == "Finance Data Building":
         cmds = ["rdagent", "fin_factor"]
     if scenario == "Finance Data Building (Reports)":
@@ -83,9 +82,9 @@ def upload_file():
     if scenario == "Finance Model Implementation":
         cmds = ["rdagent", "fin_model"]
     if scenario == "General Model Implementation":
-        if len(files) == 0: # files is one link
+        if len(files) == 0:  # files is one link
             rfp = request.form.get("files")[0]
-        else: # one file is uploaded
+        else:  # one file is uploaded
             rfp = str(trace_files_path / files[0].filename)
         cmds = ["rdagent", "general_model", "--report_file_path", rfp]
     if scenario == "Medical Model Implementation":
@@ -169,7 +168,9 @@ def control_process():
             process.terminate()
             process.wait()
             del rdagent_processes[id]
-            msgs_for_frontend[id].append({"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}})
+            msgs_for_frontend[id].append(
+                {"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}}
+            )
             return jsonify({"status": "stopped"}), 200
         else:
             return jsonify({"error": "Unknown action"}), 400
@@ -192,6 +193,7 @@ def main(port: int = 19899):
     global server_port
     server_port = port
     app.run(debug=False, host="0.0.0.0", port=port)
+
 
 if __name__ == "__main__":
     typer.run(main)
