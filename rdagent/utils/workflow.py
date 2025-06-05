@@ -260,10 +260,6 @@ class LoopBase:
             output_path.mkdir(parents=True, exist_ok=True)
             session.session_folder = output_path / "__session__"
             logger.set_storages_path(output_path)
-        else:
-            # if output_path is not provided, use the original session folder, remove logs after the loop of the session
-            max_loop = max(session.loop_trace.keys())
-            logger.truncate_storages(session.loop_trace[max_loop][-1].end)
 
         if session.timer.started:
             if replace_timer:
