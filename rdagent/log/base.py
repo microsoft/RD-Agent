@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Generator
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Literal, Optional
 
@@ -68,6 +68,13 @@ class Storage:
     def iter_msg(self, **kwargs: dict) -> Generator[Message, None, None]:
         """
         Iterate the message in the storage.
+        """
+        ...
+
+    @abstractmethod
+    def truncate(self, time: datetime) -> None:
+        """
+        Remove all log entries after the specified time.
         """
         ...
 

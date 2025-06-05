@@ -17,7 +17,6 @@ class LogSettings(ExtendedBaseSettings):
     storages: dict[str, list[int | str]] = {}
 
     def model_post_init(self, _context: Any, /) -> None:
-        self.storages["rdagent.log.storage.FileStorage"] = [self.trace_path]
         if self.ui_server_port is not None:
             self.storages["rdagent.log.storage.WebStorage"] = [self.ui_server_port, self.trace_path]
 

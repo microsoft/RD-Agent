@@ -130,15 +130,15 @@ class WebStorage(Storage):
     It is used to provide the data for the web app.
     """
 
-    def __init__(self, port: int, id: str) -> None:
+    def __init__(self, port: int, path: str) -> None:
         """
         Initializes the storage object with the specified port and identifier.
         Args:
             port (int): The port number to use for the storage service.
-            id (str): The unique identifier for local storage, usually the log path.
+            path (str): The unique identifier for local storage, the log path.
         """
         self.url = f"http://localhost:{port}"
-        self.id = id
+        self.path = path
         self.msgs = []
 
     def __str__(self):
@@ -148,30 +148,28 @@ class WebStorage(Storage):
         timestamp = _gen_datetime(timestamp)
 
         try:
-            data = self._obj_to_json(obj=obj, tag=tag, id=self.id, timestamp=timestamp.isoformat())
-            self.msgs.append(data)
+            data = self._obj_to_json(obj=obj, tag=tag, id=self.path, timestamp=timestamp.isoformat())
+            if isinstance(data, list):
+                for d in data:
+                    self.msgs.append(d)
+            else:
+                self.msgs.append(data)
             headers = {"Content-Type": "application/json"}
             requests.post(f"{self.url}/receive", json=data, headers=headers, timeout=1)
         except (requests.ConnectionError, requests.Timeout) as e:
             pass
 
+    def truncate(self, time: datetime) -> None:
+        self.msgs = [m for m in self.msgs if datetime.fromisoformat(m["msg"]["timestamp"]) <= time]
+
     def iter_msg(self, **kwargs: Any) -> Generator[Message, None, None]:
         for msg in self.msgs:
-            if isinstance(msg, list):
-                for m in msg:
-                    yield Message(
-                        tag=m["msg"]["tag"],
-                        level="INFO",
-                        timestamp=datetime.fromisoformat(m["msg"]["timestamp"]),
-                        content=m,
-                    )
-            else:
-                yield Message(
-                    tag=msg["msg"]["tag"],
-                    level="INFO",
-                    timestamp=datetime.fromisoformat(msg["msg"]["timestamp"]),
-                    content=msg,
-                )
+            yield Message(
+                tag=msg["msg"]["tag"],
+                level="INFO",
+                timestamp=datetime.fromisoformat(msg["msg"]["timestamp"]),
+                content=msg,
+            )
 
     def _obj_to_json(
         obj: object,

@@ -1,6 +1,8 @@
 import os
 import sys
 from contextlib import contextmanager
+from datetime import datetime
+from pathlib import Path
 from typing import Generator
 
 from loguru import logger
@@ -8,7 +10,9 @@ from psutil import Process
 
 from rdagent.core.utils import SingletonBaseClass, import_class
 
+from .base import Storage
 from .conf import LOG_SETTINGS
+from .storage import FileStorage
 from .utils import get_caller_info
 
 
@@ -45,10 +49,11 @@ class RDAgentLog(SingletonBaseClass):
     _tag: str = ""
 
     def __init__(self) -> None:
-        self.storages = []
+        self.storage = FileStorage(LOG_SETTINGS.trace_path)
+        self.other_storages: list[Storage] = []
         for storage, args in LOG_SETTINGS.storages.items():
             storage_cls = import_class(storage)
-            self.storages.append(storage_cls(*args))
+            self.other_storages.append(storage_cls(*args))
 
         self.main_pid = os.getpid()
 
@@ -65,6 +70,15 @@ class RDAgentLog(SingletonBaseClass):
             yield
         finally:
             self._tag = self._tag[: -len(tag)]
+
+    def set_storages_path(self, path: str | Path) -> None:
+        for storage in [self.storage] + self.other_storages:
+            if hasattr(storage, "path"):
+                storage.path = path
+
+    def truncate_storages(self, time: datetime) -> None:
+        for storage in [self.storage] + self.other_storages:
+            storage.truncate(time=time)
 
     def get_pids(self) -> str:
         """
@@ -86,7 +100,7 @@ class RDAgentLog(SingletonBaseClass):
         caller_info = get_caller_info()
         tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
 
-        for storage in self.storages:
+        for storage in [self.storage] + self.other_storages:
             logp = storage.log(obj, tag=tag)
             logger.patch(lambda r: r.update(caller_info)).info(f"Log object to [{storage}], uri: {logp}")
 
