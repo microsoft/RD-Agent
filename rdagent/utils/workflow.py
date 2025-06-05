@@ -9,7 +9,6 @@ Postscripts:
 """
 
 import datetime
-import os
 import pickle
 import time
 from collections import defaultdict
@@ -22,6 +21,7 @@ from tqdm.auto import tqdm
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.conf import LOG_SETTINGS
 from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
 
 if RD_AGENT_SETTINGS.enable_mlflow:
@@ -99,7 +99,7 @@ class LoopBase:
         self.step_idx = 0  # the index of next step to be run
         self.loop_prev_out: dict[str, Any] = {}  # the step results of current loop
         self.loop_trace = defaultdict(list[LoopTrace])  # the key is the number of loop
-        self.session_folder = Path(RD_AGENT_SETTINGS.log_trace_path) / "__session__"
+        self.session_folder = Path(LOG_SETTINGS.trace_path) / "__session__"
         self.timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
 
     def run(self, step_n: int | None = None, loop_n: int | None = None, all_duration: str | None = None) -> None:
@@ -246,8 +246,8 @@ class LoopBase:
     @classmethod
     def load(
         cls,
-        path: Union[str, Path],
-        output_path: Optional[Union[str, Path]] = None,
+        path: str | Path,
+        output_path: str | Path | None = None,
         replace_timer: bool = True,
     ) -> "LoopBase":
         path = Path(path)
@@ -255,21 +255,13 @@ class LoopBase:
             session = cast(LoopBase, pickle.load(f))
 
         # set session folder
-        # - P1: if output_path explicitly specified.
-        # - P2: RD_AGENT_SETTINGS.log_trace_path
-        output_path_value = output_path if output_path is not None else RD_AGENT_SETTINGS.log_trace_path
-        if output_path_value is not None:
-            output_path_path = Path(output_path_value)
-            output_path_path.mkdir(parents=True, exist_ok=True)
-            session.session_folder = output_path_path / "__session__"
-
-        # set trace path
-        # logger.set_trace_path(session.session_folder.parent)
-
-        # truncate future message
-        # if do_truncate:
-        #     max_loop = max(session.loop_trace.keys())
-        #     logger.storage.truncate(time=session.loop_trace[max_loop][-1].end)
+        if output_path is not None:
+            output_path = Path(output_path)
+            output_path.mkdir(parents=True, exist_ok=True)
+            session.session_folder = output_path / "__session__"
+        else:
+            max_loop = max(session.loop_trace.keys())
+            logger.storages[0].truncate(time=session.loop_trace[max_loop][-1].end)
 
         if session.timer.started:
             if replace_timer:

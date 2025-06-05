@@ -3,7 +3,7 @@ import pickle
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Generator, Literal, cast
+from typing import Any, Generator, Literal
 
 import requests
 
@@ -11,6 +11,31 @@ from .base import Message, Storage
 from .utils import extract_evoid, extract_loopid_func_name
 
 LOG_LEVEL = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+
+
+def _gen_datetime(dt: datetime | None = None) -> datetime:
+    """
+    Generate a datetime object in UTC timezone.
+    - If `dt` is None, it will return the current time in UTC.
+    - If `dt` is provided, it will convert it to UTC timezone.
+    """
+    if dt is None:
+        return datetime.now(timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _remove_empty_dir(path: Path):
+    """
+    Recursively remove empty directories.
+    This function will remove the directory if it is empty after removing its subdirectories.
+    """
+    if path.is_dir():
+        sub_dirs = [sub for sub in path.iterdir() if sub.is_dir()]
+        for sub in sub_dirs:
+            _remove_empty_dir(sub)
+
+        if not any(path.iterdir()):
+            path.rmdir()
 
 
 class FileStorage(Storage):
@@ -22,7 +47,6 @@ class FileStorage(Storage):
 
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
-        self.path.mkdir(parents=True, exist_ok=True)
 
     def log(
         self,
@@ -33,7 +57,7 @@ class FileStorage(Storage):
         **kwargs: Any,
     ) -> str | Path:
         # TODO: We can remove the timestamp after we implement PipeLog
-        timestamp = self._gen_datetime(timestamp)
+        timestamp = _gen_datetime(timestamp)
 
         cur_p = self.path / tag.replace(".", "/")
         cur_p.mkdir(parents=True, exist_ok=True)
@@ -65,49 +89,8 @@ class FileStorage(Storage):
         r"(?P<caller>.+:.+:\d+) - "
     )
 
-    def iter_msg(self, common: bool = False, tag: str | None = None) -> Generator[Message, None, None]:
+    def iter_msg(self, tag: str | None = None) -> Generator[Message, None, None]:
         msg_l = []
-        if common:  # return string logs in common_logs.log
-            for file in self.path.glob("**/*.log"):
-                common_log_tag = ".".join(file.relative_to(self.path).as_posix().replace("/", ".").split(".")[:-3])
-
-                if tag is not None and tag not in common_log_tag:
-                    continue
-
-                pid = file.parent.name
-
-                with file.open("r", encoding="utf-8") as f:
-                    content = f.read()
-
-                matches, next_matches = self.log_pattern.finditer(content), self.log_pattern.finditer(content)
-                next_match = next(next_matches, None)
-                # NOTE: the content will be the text between `match` and `next_match`
-                for match in matches:
-                    next_match = next(next_matches, None)
-
-                    timestamp_str = match.group("timestamp")
-                    timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=timezone.utc)
-                    level: LOG_LEVEL = cast(LOG_LEVEL, match.group("level"))
-                    caller = match.group("caller")
-
-                    # Extract the message content
-                    message_start = match.end()
-                    message_end = next_match.start() if next_match else len(content)
-                    message_content = content[message_start:message_end].strip()
-
-                    if "Logging object in" in message_content:
-                        continue
-
-                    m = Message(
-                        tag=common_log_tag,
-                        level=level,
-                        timestamp=timestamp,
-                        caller=caller,
-                        pid_trace=pid,
-                        content=message_content,
-                    )
-
-                    msg_l.append(m)
 
         pkl_files = "**/*.pkl" if tag is None else f"**/{tag.replace('.','/')}/**/*.pkl"
         for file in self.path.glob(pkl_files):
@@ -130,38 +113,12 @@ class FileStorage(Storage):
             yield m
 
     def truncate(self, time: datetime) -> None:
-        # any message later than `time` will be removed
-        for file in self.path.glob("**/*.log"):
-            with file.open("r") as f:
-                content = f.read()
+        for file in self.path.glob("**/*.pkl"):
+            timestamp = datetime.strptime(file.stem, "%Y-%m-%d_%H-%M-%S-%f").replace(tzinfo=timezone.utc)
+            if timestamp > time:
+                file.unlink()
 
-            new_content = ""
-
-            matches, next_matches = self.log_pattern.finditer(content), self.log_pattern.finditer(content)
-
-            next_match = next(next_matches, None)
-            for match in matches:
-                next_match = next(next_matches, None)
-                timestamp_str = match.group("timestamp")
-                timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=timezone.utc)
-
-                log_start = match.start()
-                log_end = next_match.start() if next_match else len(content)
-                msg = content[match.end() : log_end].strip()
-
-                if timestamp > time:
-                    if "Logging object in" in msg:
-                        absolute_p = msg.split("Logging object in ")[1]
-                        p = Path(absolute_p)
-                        if p.exists():
-                            p.unlink()
-                        else:
-                            print(f"Missing pickle object: {p}.")
-                    continue
-
-                new_content += content[log_start:log_end]
-            with file.open("w") as f:
-                f.write(new_content)
+        _remove_empty_dir(self.path)
 
     def __str__(self) -> str:
         return f"FileStorage({self.path})"
@@ -188,7 +145,7 @@ class WebStorage(Storage):
         return f"WebStorage({self.url})"
 
     def log(self, obj: object, tag: str, timestamp: datetime | None = None, **kwargs: Any) -> str | Path:
-        timestamp = self._gen_datetime(timestamp)
+        timestamp = _gen_datetime(timestamp)
 
         try:
             data = self._obj_to_json(obj=obj, tag=tag, id=self.id, timestamp=timestamp.isoformat())

@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
-# TODO: use pydantic for other modules in Qlib
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 from pydantic_settings import (
     BaseSettings,
@@ -47,11 +44,6 @@ class ExtendedBaseSettings(BaseSettings):
 
 
 class RDAgentSettings(ExtendedBaseSettings):
-    # TODO: (xiao) I think LLMSetting may be a better name.
-    # TODO: (xiao) I think most of the config should be in oai.config
-    # Log configs
-    # TODO: (xiao) think it can be a separate config.
-    log_trace_path: str = ""
 
     # azure document intelligence configs
     azure_document_intelligence_key: str = ""
@@ -85,14 +77,6 @@ class RDAgentSettings(ExtendedBaseSettings):
     enable_mlflow: bool = False
 
     initial_fator_library_size: int = 20
-
-    # ui server
-    ui_server_port: int | None = None
-
-    def model_post_init(self, _context: Any, /) -> None:
-        if not self.log_trace_path:
-            timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S-%f")
-            self.log_trace_path = str(Path.cwd() / "log" / timestamp)
 
 
 RD_AGENT_SETTINGS = RDAgentSettings()

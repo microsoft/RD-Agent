@@ -71,16 +71,6 @@ class Storage:
         """
         ...
 
-    def _gen_datetime(self, dt: datetime | None = None) -> datetime:
-        """
-        Generate a datetime object in UTC timezone.
-        - If `dt` is None, it will return the current time in UTC.
-        - If `dt` is provided, it will convert it to UTC timezone.
-        """
-        if dt is None:
-            return datetime.now(timezone.utc)
-        return dt.astimezone(timezone.utc)
-
     def __str__(self) -> str:
         return self.__class__.__name__
 

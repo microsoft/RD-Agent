@@ -3,9 +3,9 @@ from pathlib import Path
 import fire
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.conf import LOG_SETTINGS
 from rdagent.log.storage import FileStorage, WebStorage
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 
@@ -16,7 +16,6 @@ def main(
     step_n: int | None = None,
     loop_n: int | None = None,
     competition="bms-molecular-translation",
-    do_truncate=True,
     timeout=None,
     replace_timer=True,
     exp_gen_cls: str | None = None,
@@ -57,21 +56,9 @@ def main(
         logger.error("Please specify competition name.")
 
     if path is None:
-        logger.storages.append(FileStorage(RD_AGENT_SETTINGS.log_trace_path))
         kaggle_loop = DataScienceRDLoop(DS_RD_SETTING)
-        trace_id = RD_AGENT_SETTINGS.log_trace_path
     else:
         kaggle_loop: DataScienceRDLoop = DataScienceRDLoop.load(path, output_path, replace_timer)
-
-        existing_storage = FileStorage(Path(path).parent.parent.parent)
-        if do_truncate:
-            max_loop = max(kaggle_loop.loop_trace.keys())
-            existing_storage.truncate(time=kaggle_loop.loop_trace[max_loop][-1].end)
-        logger.storages.append(existing_storage)
-        trace_id = str(existing_storage.path)
-
-    if RD_AGENT_SETTINGS.ui_server_port:
-        logger.storages.append(WebStorage(RD_AGENT_SETTINGS.ui_server_port, id=trace_id))
 
     # replace exp_gen if we have new class
     if exp_gen_cls is not None:

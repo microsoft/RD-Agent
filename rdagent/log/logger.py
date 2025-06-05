@@ -1,28 +1,14 @@
-import json
 import os
-import pickle
 import sys
 from contextlib import contextmanager
-from datetime import datetime, timezone
-from functools import partial
-from logging import LogRecord
-from multiprocessing import Pipe
-from multiprocessing.connection import Connection
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Generator, Union
+from typing import Generator
 
-import requests
 from loguru import logger
-
-if TYPE_CHECKING:
-    from loguru import Record
-
 from psutil import Process
 
-from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.utils import SingletonBaseClass
+from rdagent.core.utils import SingletonBaseClass, import_class
 
-from .base import Storage
+from .conf import LOG_SETTINGS
 from .utils import get_caller_info
 
 
@@ -58,13 +44,13 @@ class RDAgentLog(SingletonBaseClass):
     #   feedback = logger.get_reps()
     _tag: str = ""
 
-    def __init__(self, storages: list[Storage] = []) -> None:
-        self.storages = storages
-        self.main_pid = os.getpid()
+    def __init__(self) -> None:
+        self.storages = []
+        for storage, args in LOG_SETTINGS.storages.items():
+            storage_cls = import_class(storage)
+            self.storages.append(storage_cls(*args))
 
-    # def set_trace_path(self, log_trace_path: str | Path) -> None:
-    #     self.log_trace_path = Path(log_trace_path)
-    #     self.storage = FileStorage(log_trace_path)
+        self.main_pid = os.getpid()
 
     @contextmanager
     def tag(self, tag: str) -> Generator[None, None, None]:
