@@ -225,7 +225,7 @@ class LoopBase:
         if prev_path:
             loaded = type(self).load(
                 prev_path,
-                output_path=self.session_folder.parent,
+                checkout=True,
                 replace_timer=True,
             )
             logger.info(f"Load previous session from {prev_path}")
@@ -247,19 +247,43 @@ class LoopBase:
     def load(
         cls,
         path: str | Path,
-        output_path: str | Path | None = None,
+        checkout: bool | Path | str = False,
         replace_timer: bool = True,
     ) -> "LoopBase":
+        """
+        Load a session from a given path.
+        Parameters
+        ----------
+        path : str | Path
+            The path to the session file.
+        checkout : bool | Path | str
+            If True, the new loop will use the existing folder and clear logs for sessions after the one corresponding to the given path.
+            If False, the new loop will use the existing folder but keep the logs for sessions after the one corresponding to the given path.
+            If a path (or a str like Path) is provided, the new loop will be saved to that path, leaving the original path unchanged.
+        replace_timer : bool
+            If a session is loaded, determines whether to replace the timer with session.timer.
+            Default is True, which means the session timer will be replaced with the current timer.
+            If False, the session timer will not be replaced.
+        Returns
+        ------- 
+        LoopBase
+            An instance of LoopBase with the loaded session.
+        """
         path = Path(path)
         with path.open("rb") as f:
             session = cast(LoopBase, pickle.load(f))
 
         # set session folder
-        if output_path is not None:
-            output_path = Path(output_path)
-            output_path.mkdir(parents=True, exist_ok=True)
-            session.session_folder = output_path / "__session__"
-            logger.set_storages_path(output_path)
+        if checkout:
+            if checkout == True:
+                logger.set_storages_path(session.session_folder.parent)
+                max_loop = max(session.loop_trace.keys())
+                logger.truncate_storages(session.loop_trace[max_loop][-1].end)
+            else:
+                checkout = Path(checkout)
+                checkout.mkdir(parents=True, exist_ok=True)
+                session.session_folder = checkout / "__session__"
+                logger.set_storages_path(checkout)
 
         if session.timer.started:
             if replace_timer:
