@@ -843,9 +843,13 @@ if debug:
                 st.write(state.last_msg)
                 if isinstance(state.last_msg.content, list):
                     st.write(state.last_msg.content[0])
+                elif isinstance(state.last_msg.content, dict):
+                    st.write(state.last_msg.content)
                 elif not isinstance(state.last_msg.content, str):
-                    st.write(state.last_msg.content.__dict__)
-
+                    try:
+                        st.write(state.last_msg.content.__dict__)
+                    except:
+                        st.write(type(state.last_msg.content))
 
 if state.log_path and state.fs is None:
     refresh()
