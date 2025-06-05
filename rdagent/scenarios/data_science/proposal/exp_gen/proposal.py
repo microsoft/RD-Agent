@@ -1,7 +1,7 @@
 import json
 import pprint
 from enum import Enum
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -524,6 +524,8 @@ class DSProposalV2ExpGen(ExpGen):
     ) -> Dict:
         problem_formatted_str = ""
         for problem_name, problem_dict in problems.items():
+            if "problem" not in problem_dict:
+                continue
             problem_formatted_str += f"Problem Name: {problem_name}\n"
             problem_formatted_str += f"- Problem Description: {problem_dict['problem']}\n"
             if "idea" in problem_dict:
@@ -557,13 +559,12 @@ class DSProposalV2ExpGen(ExpGen):
         resp_dict = json.loads(response)
         return resp_dict
 
-    def hypothesis_rank(
+    def compute_top_scores(
         self,
         hypothesis_dict: dict,
-        problem_dict: dict,
-    ) -> Tuple[str, DSHypothesis]:
+    ) -> pd.Series:
         """
-        This function depends on the `identify_problem` function.
+        Compute weighted total scores for each hypothesis and return the top five.
         """
         weights = {
             "alignment_score": 0.2,
@@ -590,8 +591,19 @@ class DSProposalV2ExpGen(ExpGen):
 
         scores = pd.DataFrame(scores_dict)
         scores_sorted = scores.sum().sort_values(ascending=False)
-        scores_sorted = scores_sorted[:5]  # Select top 5 hypotheses
+        return scores_sorted[:5]
 
+    def select_hypothesis(
+        self,
+        scores_sorted: pd.Series,
+        hypothesis_dict: dict,
+        problem_dict: dict,
+    ) -> int:
+        """
+        From the top five hypotheses (by weighted score), select one based on additional weighting rules
+        for 'inspired' flag and 'SCENARIO_PROBLEM' label. Returns the chosen hypothesis name and a
+        DSHypothesis instance.
+        """
         # Increase the weight of the hypothesis that is inspired by the idea pool to 3x.
         # Linear decay the weight of the scenario problem from 3x to 0x.
         index_to_pick_pool_list = []
@@ -608,7 +620,21 @@ class DSProposalV2ExpGen(ExpGen):
         reproducible_int = int.from_bytes(bytes.fromhex(md5_hash(scores_sorted.to_string())), byteorder="big") % len(
             index_to_pick_pool_list
         )
-        selected_idx = index_to_pick_pool_list[reproducible_int]
+        return index_to_pick_pool_list[reproducible_int]
+
+    def hypothesis_rank(
+        self, hypothesis_dict: dict, problem_dict: dict, selected_idx: Optional[int] = None
+    ) -> Tuple[str, DSHypothesis]:
+        """
+        Wrapper method that computes the top five hypotheses by weighted scoring and then selects one
+        according to additional weighting rules.
+        """
+        scores_sorted = self.compute_top_scores(hypothesis_dict)
+        if selected_idx is None:
+            selected_idx = self.select_hypothesis(
+                scores_sorted=scores_sorted, hypothesis_dict=hypothesis_dict, problem_dict=problem_dict
+            )
+
         max_score_problem_name = scores_sorted.index[selected_idx]
         problem_dict = problem_dict.get(max_score_problem_name, {})
 
@@ -737,7 +763,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         # Step 1: Identify problems
         all_problems = self.identify_problem(
-            current_sub_trace=trace.collect_all_ancestors(),
+            current_sub_trace=trace.get_parent_exps(),
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
