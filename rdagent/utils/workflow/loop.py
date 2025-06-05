@@ -7,11 +7,13 @@ Postscripts:
   However, Python generator is not picklable (dill does not support pickle as well)
 
 """
+from joblib import Parallel, delayed
 
 import asyncio
 import concurrent.futures
 import datetime
 import pickle
+import dill
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -75,6 +77,10 @@ class LoopTrace:
     end: datetime.datetime  # the end time of the trace
     step_idx: int
     # TODO: more information about the trace
+
+
+def joblib_wrapper(func, loop_prev_out):
+    return Parallel(n_jobs=1)([delayed(func)(loop_prev_out)])[0]
 
 
 class LoopBase:
@@ -204,11 +210,12 @@ class LoopBase:
                 # Call function with current loop's output, await if coroutine or use ProcessPoolExecutor for sync if required
                 if force_subproc:
                     curr_loop = asyncio.get_running_loop()
-                    with concurrent.futures.ProcessPoolExecutor() as pool:
-                        # import pickle
-                        # pickle.dumps([func, self.loop_prev_out[li]])
-                        # from IPython import embed; embed()
-                        result = await curr_loop.run_in_executor(pool, func, self.loop_prev_out[li])
+                    # with concurrent.futures.ProcessPoolExecutor() as pool:
+                    #     # import pickle
+                    #     # pickle.dumps([func, self.loop_prev_out[li]])
+                    #     # from IPython import embed; embed()
+                    #     result = await curr_loop.run_in_executor(pool, func, self.loop_prev_out[li])
+                    result = await curr_loop.run_in_executor(None, joblib_wrapper, func, self.loop_prev_out[li])
                 else:
                     # auto determine whether to run async or sync
                     if asyncio.iscoroutinefunction(func):
@@ -343,7 +350,7 @@ class LoopBase:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("wb") as f:
-            pickle.dump(self, f)
+            dill.dump(self, f)
 
     @classmethod
     def load(
@@ -355,7 +362,7 @@ class LoopBase:
     ) -> "LoopBase":
         path = Path(path)
         with path.open("rb") as f:
-            session = cast(LoopBase, pickle.load(f))
+            session = cast(LoopBase, dill.load(f))
 
         # set session folder
         # - P1: if output_path explicitly specified.
@@ -383,3 +390,15 @@ class LoopBase:
                 session.timer = RD_Agent_TIMER_wrapper.timer
 
         return session
+
+    def __getstate__(self):
+        res = {}
+        for k, v in self.__dict__.items():
+            if k not in ['queue', 'semaphores']:
+                res[k] = v
+        return res
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.queue = asyncio.Queue()
+        self.semaphores = {}
