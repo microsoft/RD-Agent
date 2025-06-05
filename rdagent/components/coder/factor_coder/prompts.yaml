@@ -49,6 +49,8 @@ evolving_strategy_factor_implementation_v1_system: |-
   
   Your must write your code based on your former latest attempt below which consists of your former code and code feedback, you should read the former attempt carefully and must not modify the right part of your former code.
 
+  Notice that you should not add any other text before or after the json format.
+
   {% if queried_former_failed_knowledge|length != 0 %}
   --------------Your former latest attempt:---------------
   =====Code to the former implementation=====
@@ -61,7 +63,6 @@ evolving_strategy_factor_implementation_v1_system: |-
   {
       "code": "The Python code as a string."
   }
-  Notice that you should not add any other text before or after the json format.
 
 evolving_strategy_factor_implementation_v2_user: |-
   --------------Target factor information:---------------
