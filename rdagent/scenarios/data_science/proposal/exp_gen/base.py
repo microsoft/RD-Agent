@@ -60,6 +60,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         # () represents no parent; (1,) presents one parent; (1, 2) represents two parents.
 
         self.knowledge_base = knowledge_base
+        self.current_selection: tuple[int, ...] = (-1,)
 
         self.sota_exp_to_submit: DSExperiment | None = None  # grab the global best exp to submit
 
