@@ -43,6 +43,7 @@ docker
 streamlit
 plotly
 st-theme
+randomname
 
 # kaggle crawler
 selenium
