@@ -265,7 +265,7 @@ class LoopBase:
             Default is True, which means the session timer will be replaced with the current timer.
             If False, the session timer will not be replaced.
         Returns
-        ------- 
+        -------
         LoopBase
             An instance of LoopBase with the loaded session.
         """
@@ -278,12 +278,12 @@ class LoopBase:
             if checkout == True:
                 logger.set_storages_path(session.session_folder.parent)
                 max_loop = max(session.loop_trace.keys())
-                
+
                 # clear session folders after the max loop
                 for session_folder in session.session_folder.iterdir():
                     if session_folder.is_dir() and int(session_folder.name) > max_loop:
                         session_folder.rmdir()
-                
+
                 # clear step session objects in the max loop
                 max_loop_session_folder = session.session_folder / str(max_loop)
                 max_loop_steps = len(session.loop_trace[max_loop])
@@ -292,7 +292,7 @@ class LoopBase:
                         step_id = int(step_session.name.split("_", 1)[0])
                         if step_id >= max_loop_steps:
                             step_session.unlink()
-                
+
                 # truncate log storages after the max loop
                 logger.truncate_storages(session.loop_trace[max_loop][-1].end)
             else:

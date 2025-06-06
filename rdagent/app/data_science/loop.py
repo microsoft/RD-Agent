@@ -1,10 +1,12 @@
+from pathlib import Path
+
 import fire
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
-from pathlib import Path
+
 
 def main(
     path: str | None = None,
@@ -17,7 +19,7 @@ def main(
     exp_gen_cls: str | None = None,
 ):
     """
-    
+
     Parameters
     ----------
     path :
@@ -41,8 +43,8 @@ def main(
         If a session is loaded, determines whether to replace the timer with session.timer.
     exp_gen_cls :
         When there are different stages, the exp_gen can be replaced with the new proposal.
-    
-    
+
+
     Auto R&D Evolving loop for models in a Kaggle scenario.
     You can continue running a session by using the command:
     .. code-block:: bash
