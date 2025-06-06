@@ -78,10 +78,6 @@ class LoopTrace:
     # TODO: more information about the trace
 
 
-def joblib_wrapper(func, loop_prev_out):
-    return Parallel(n_jobs=1)([delayed(func)(loop_prev_out)])[0]
-
-
 class LoopBase:
     """
     Assumption:
@@ -136,7 +132,7 @@ class LoopBase:
 
     def get_semaphore(self, step_name: str) -> asyncio.Semaphore:
         if isinstance(limit := RD_AGENT_SETTINGS.step_semaphore, dict):
-            limit = limit[step_name]
+            limit = limit.get(step_name, 1)  # default to 1 if not specified
 
         if step_name not in self.semaphores:
             self.semaphores[step_name] = asyncio.Semaphore(limit)
@@ -283,7 +279,8 @@ class LoopBase:
                     await self._run_step(li)
                 else:
                     # await the step; parallel running happens here!
-                    await self._run_step(li, force_subproc=True)
+                    # Only trigger subprocess if we have more than one process.
+                    await self._run_step(li, force_subproc=RD_AGENT_SETTINGS.get_max_parallel() > 1)
 
     async def run(self,step_n: int | None = None, loop_n: int | None = None, all_duration: str | None = None) -> None:
         """Run the workflow loop.
