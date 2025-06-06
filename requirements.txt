@@ -45,6 +45,8 @@ streamlit
 plotly
 st-theme
 randomname
+flask
+flask-cors
 
 # kaggle crawler
 selenium
