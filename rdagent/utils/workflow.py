@@ -243,6 +243,23 @@ class LoopBase:
         with path.open("wb") as f:
             pickle.dump(self, f)
 
+    def truncate_session_folder(self, li: int, si: int) -> None:
+        """
+        Clear the session folder by removing all session objects after the given loop index (li) and step index (si).
+        """
+        # clear session folders after the li
+        for sf in self.session_folder.iterdir():
+            if sf.is_dir() and int(sf.name) > li:
+                sf.rmdir()
+
+        # clear step session objects in the li
+        final_loop_session_folder = self.session_folder / str(li)
+        for step_session in final_loop_session_folder.glob("*_*"):
+            if step_session.is_file():
+                step_id = int(step_session.name.split("_", 1)[0])
+                if step_id > si:
+                    step_session.unlink()
+
     @classmethod
     def load(
         cls,
@@ -279,21 +296,8 @@ class LoopBase:
                 logger.set_storages_path(session.session_folder.parent)
                 max_loop = max(session.loop_trace.keys())
 
-                # clear session folders after the max loop
-                for session_folder in session.session_folder.iterdir():
-                    if session_folder.is_dir() and int(session_folder.name) > max_loop:
-                        session_folder.rmdir()
-
-                # clear step session objects in the max loop
-                max_loop_session_folder = session.session_folder / str(max_loop)
-                max_loop_steps = len(session.loop_trace[max_loop])
-                for step_session in max_loop_session_folder.glob("*_*"):
-                    if step_session.is_file():
-                        step_id = int(step_session.name.split("_", 1)[0])
-                        if step_id >= max_loop_steps:
-                            step_session.unlink()
-
                 # truncate log storages after the max loop
+                session.truncate_session_folder(max_loop, len(session.loop_trace[max_loop]) - 1)
                 logger.truncate_storages(session.loop_trace[max_loop][-1].end)
             else:
                 checkout = Path(checkout)
