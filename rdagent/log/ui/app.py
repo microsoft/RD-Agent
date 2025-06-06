@@ -285,7 +285,7 @@ def refresh(same_trace: bool = False):
 
     # detect scenario
     if not same_trace:
-        get_msgs_until(lambda m: "debug_" not in m.tag and not isinstance(m.content, str))
+        get_msgs_until(lambda m: isinstance(m.content, Scenario))
         if state.last_msg is None or not isinstance(state.last_msg.content, Scenario):
             st.write(state.msgs)
             st.toast(":red[**No Scenario Info detected**]", icon="❗")
@@ -843,9 +843,13 @@ if debug:
                 st.write(state.last_msg)
                 if isinstance(state.last_msg.content, list):
                     st.write(state.last_msg.content[0])
+                elif isinstance(state.last_msg.content, dict):
+                    st.write(state.last_msg.content)
                 elif not isinstance(state.last_msg.content, str):
-                    st.write(state.last_msg.content.__dict__)
-
+                    try:
+                        st.write(state.last_msg.content.__dict__)
+                    except:
+                        st.write(type(state.last_msg.content))
 
 if state.log_path and state.fs is None:
     refresh()

@@ -270,12 +270,11 @@ class DataScienceRDLoop(RDLoop):
     @classmethod
     def load(
         cls,
-        path: Union[str, Path],
-        output_path: Optional[Union[str, Path]] = None,
-        do_truncate: bool = False,
+        path: str | Path,
+        checkout: bool | str | Path = False,
         replace_timer: bool = True,
     ) -> "LoopBase":
-        session = super().load(path, output_path, do_truncate, replace_timer)
+        session = super().load(path, checkout, replace_timer)
         logger.log_object(DS_RD_SETTING.competition, tag="competition")  # NOTE: necessary to make mle_summary work.
         if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
             session.trace.knowledge_base = DSKnowledgeBase(

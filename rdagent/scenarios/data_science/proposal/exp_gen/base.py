@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Literal
+from typing import List, Literal
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.evolving_framework import KnowledgeBase
@@ -61,20 +61,12 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
         self.knowledge_base = knowledge_base
 
-        self.current_selection: tuple[int, ...] = (-1,)
-
         self.sota_exp_to_submit: DSExperiment | None = None  # grab the global best exp to submit
 
     COMPLETE_ORDER = ("DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow")
 
     def set_sota_exp_to_submit(self, exp: DSExperiment) -> None:
         self.sota_exp_to_submit = exp
-
-    def get_current_selection(self) -> tuple[int, ...]:
-        return self.current_selection
-
-    def set_current_selection(self, selection: tuple[int, ...]) -> None:
-        self.current_selection = selection
 
     @property
     def sub_trace_count(self) -> int:
@@ -144,49 +136,10 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             return self.hist
 
         elif search_type == "ancestors":
-
-            if selection is None:
-                selection = self.get_current_selection()
-
-            if len(selection) == 0:
-                # selection is (), which means we switch to a new trace
-                return []
-
-            return self.collect_all_ancestors(selection)
+            return self.get_parent_exps(selection)
 
         else:
             raise ValueError(f"Invalid search type: {search_type}")
-
-    def collect_all_ancestors(
-        self,
-        selection: tuple[int, ...] | None = None,
-    ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
-        """
-        Collect all ancestors of the given selection.
-        The return list follows the order of [root->...->parent->current_node].
-        """
-        if selection is None:
-            selection = self.get_current_selection()
-
-        if len(self.dag_parent) == 0:
-            return []
-
-        else:
-            all_ancestors = []
-
-            # start from the latest selection
-            current_node_idx = selection[0]
-
-            # add the current node to the list
-            all_ancestors.insert(0, self.hist[current_node_idx])
-
-            parent_idx = self.dag_parent[current_node_idx]
-
-            while len(parent_idx) > 0:
-                all_ancestors.insert(0, self.hist[parent_idx[0]])
-                parent_idx = self.dag_parent[parent_idx[0]]
-
-        return all_ancestors
 
     def next_incomplete_component(
         self,
@@ -226,10 +179,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         Retrieve a list of experiments and feedbacks based on the return_type.
         """
         search_list = self.retrieve_search_list(search_type, selection=selection)
-        if max_retrieve_num is not None and len(search_list) > 0:
-            retrieve_num = min(max_retrieve_num, len(search_list))
-            search_list = search_list[:retrieve_num]
-
         final_component = self.COMPLETE_ORDER[-1]
         has_final_component = True if DS_RD_SETTING.coder_on_whole_pipeline else False
         SOTA_exp_and_feedback_list = []
@@ -243,6 +192,13 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
                     failed_exp_and_feedback_list.append((exp, fb))
             if exp.hypothesis.component == final_component and fb:
                 has_final_component = True
+        if max_retrieve_num is not None and (SOTA_exp_and_feedback_list or failed_exp_and_feedback_list):
+            SOTA_exp_and_feedback_list = SOTA_exp_and_feedback_list[
+                -min(max_retrieve_num, len(SOTA_exp_and_feedback_list)) :
+            ]
+            failed_exp_and_feedback_list = failed_exp_and_feedback_list[
+                -min(max_retrieve_num, len(failed_exp_and_feedback_list)) :
+            ]
         if return_type == "all":
             return SOTA_exp_and_feedback_list + failed_exp_and_feedback_list
         elif return_type == "failed":
