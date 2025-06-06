@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Generic, List, Tuple, TypeVar
+from typing import TYPE_CHECKING, Generic, List, Tuple, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
 from rdagent.core.experiment import ASpecificExp, Experiment
 from rdagent.core.knowledge_base import KnowledgeBase
 from rdagent.core.scenario import Scenario
-from rdagent.utils.workflow.loop import LoopBase
+
+if TYPE_CHECKING:
+    from rdagent.utils.workflow.loop import LoopBase
 
 
 class Hypothesis:
