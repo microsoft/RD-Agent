@@ -447,8 +447,8 @@ class LocalEnv(Env[ASpecificLocalConf]):
                     elif fd == stderr_fd:
                         chunk = os.read(stderr_fd, 4096)
                         if chunk:
-                            error = chunk.decode(errors='replace') 
-                            Console().print(error, end='', markup=False)
+                            error = chunk.decode(errors="replace")
+                            Console().print(error, end="", markup=False)
                             combined_output += error
 
         # Capture any final output

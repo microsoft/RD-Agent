@@ -76,7 +76,7 @@ class EnvUtils(unittest.TestCase):
         le.prepare()
         file_name = f"{time.time()}.py"
         with open(self.test_workspace / file_name, "w") as f:
-            f.write("import json \njson.loads(b'{\"name\": \"\xa1\"}')")
+            f.write('import json \njson.loads(b\'{"name": "\xa1"}\')')
         res, code = le.run_ret_code(local_path=str(self.test_workspace), entry=f"python {file_name}")
         assert code == 1
         assert "bytes can only contain ASCII literal characters" in res
