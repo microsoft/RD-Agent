@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import unittest
 from pathlib import Path
 
@@ -68,6 +69,17 @@ class EnvUtils(unittest.TestCase):
         code_path.mkdir(exist_ok=True)
         res, code = le.run_ret_code(local_path=str(code_path))
         print(res, code)
+
+    def test_conda_error(self):
+        conda_conf = CondaConf(conda_env_name="MLE")
+        le = LocalEnv(conf=conda_conf)
+        le.prepare()
+        file_name = f"{time.time()}.py"
+        with open(self.test_workspace / file_name, "w") as f:
+            f.write('import json \njson.loads(b\'{"name": "\xa1"}\')')
+        res, code = le.run_ret_code(local_path=str(self.test_workspace), entry=f"python {file_name}")
+        assert code == 1
+        assert "bytes can only contain ASCII literal characters" in res
 
     def test_docker(self):
         """We will mount `env_tpl` into the docker image.
