@@ -146,7 +146,7 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
         return exp
 
 
-def main(report_folder=None, path=None, step_n=None, loop_n=None, all_duration=None):
+def main(report_folder=None, path=None, step_n=None, loop_n=None, all_duration=None, checkout=True):
     """
     Auto R&D Evolving loop for fintech factors (the factors are extracted from finance reports).
 
@@ -158,7 +158,7 @@ def main(report_folder=None, path=None, step_n=None, loop_n=None, all_duration=N
     if path is None and report_folder is None:
         model_loop = FactorReportLoop()
     elif path is not None:
-        model_loop = FactorReportLoop.load(path)
+        model_loop = FactorReportLoop.load(path, checkout=checkout)
     else:
         model_loop = FactorReportLoop(report_folder=report_folder)
 
