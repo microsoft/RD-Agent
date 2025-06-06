@@ -105,9 +105,9 @@ class LoopBase:
 
     def __init__(self) -> None:
         # progress control
-        self.loop_idx = 0  # current loop index / next loop index to kickoff
-        self.step_idx = defaultdict(int)  # dict from loop index to next step index
-        self.queue = asyncio.Queue()
+        self.loop_idx: int = 0  # current loop index / next loop index to kickoff
+        self.step_idx: defaultdict[int, int] = defaultdict(int)  # dict from loop index to next step index
+        self.queue: asyncio.Queue[Any] = asyncio.Queue()
 
         # Store step results for all loops in a nested dictionary: loop_prev_out[loop_index][step_name]
         self.loop_prev_out: dict[int, dict[str, Any]] = defaultdict(dict)
@@ -117,9 +117,9 @@ class LoopBase:
         self.tracker = WorkflowTracker(self)  # Initialize tracker with this LoopBase instance
 
         # progress control
-        self._pbar = None  # progress bar instance
-        self.loop_n = None  # remain loop count
-        self.step_n = None  # remain step count
+        self._pbar: Optional[tqdm] = None  # progress bar instance
+        self.loop_n: Optional[int] = None  # remain loop count
+        self.step_n: Optional[int] = None  # remain step count
 
         self.semaphores: dict[str, asyncio.Semaphore] = {}
 
@@ -150,7 +150,7 @@ class LoopBase:
             self._pbar.close()
             self._pbar = None
 
-    def _check_exit_conditions_on_step(self):
+    def _check_exit_conditions_on_step(self) -> None:
         """Check if the loop should continue or terminate.
 
         Raises
@@ -172,7 +172,7 @@ class LoopBase:
             else:
                 logger.info(f"Timer remaining time: {self.timer.remain_time()}")
 
-    async def _run_step(self, li: int, force_subproc: bool = False):
+    async def _run_step(self, li: int, force_subproc: bool = False) -> None:
         """Execute a single step (next unrun step) in the workflow (async version with force_subproc option).
 
         Parameters
@@ -247,7 +247,7 @@ class LoopBase:
                     self.pbar.set_postfix(loop_index=li, step_index=next_step, step_name=self.steps[next_step])
                     self._check_exit_conditions_on_step()
 
-    async def kickoff_loop(self):
+    async def kickoff_loop(self) -> None:
         while True:
             li = self.loop_idx
 
@@ -267,7 +267,7 @@ class LoopBase:
             self.queue.put_nowait(li)  # the loop `li` has been kicked off, waiting for workers to pick it up
             self.loop_idx += 1
 
-    async def execute_loop(self):
+    async def execute_loop(self) -> None:
         while True:
             # 1) get the tasks to goon loop `li`
             li = await self.queue.get()
@@ -417,14 +417,14 @@ class LoopBase:
 
         return session
 
-    def __getstate__(self):
+    def __getstate__(self) -> dict[str, Any]:
         res = {}
         for k, v in self.__dict__.items():
             if k not in ["queue", "semaphores", "_pbar"]:
                 res[k] = v
         return res
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: dict[str, Any]) -> None:
         self.__dict__.update(state)
         self.queue = asyncio.Queue()
         self.semaphores = {}

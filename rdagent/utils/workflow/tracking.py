@@ -25,7 +25,7 @@ mlflow = None
 # Conditional import to make MLflow optional
 if RD_AGENT_SETTINGS.enable_mlflow:
     try:
-        import mlflow
+        import mlflow  # type: ignore[assignment]
     except ImportError:
         logger.warning("MLflow is enabled in settings but could not be imported.")
         RD_AGENT_SETTINGS.enable_mlflow = False
@@ -82,10 +82,12 @@ class WorkflowTracker:
 
         # Log timer status if timer is started
         if self.loop_base.timer.started:
-            mlflow.log_metric("remain_time", self.loop_base.timer.remain_time().seconds)  # type: ignore[union-attr]
+            remain_time = self.loop_base.timer.remain_time()
+            assert remain_time is not None
+            mlflow.log_metric("remain_time", remain_time.seconds)
             mlflow.log_metric(
                 "remain_percent",
-                self.loop_base.timer.remain_time() / self.loop_base.timer.all_duration * 100,  # type: ignore[operator]
+                remain_time / self.loop_base.timer.all_duration * 100,
             )
 
     # Keep only the log_workflow_state method as it's the primary entry point now
