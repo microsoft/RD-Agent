@@ -7,7 +7,6 @@ Postscripts:
   However, Python generator is not picklable (dill does not support pickle as well)
 
 """
-from joblib import Parallel, delayed
 
 import asyncio
 import concurrent.futures
@@ -22,6 +21,7 @@ from tqdm.auto import tqdm
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.conf import LOG_SETTINGS
 from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
 
 from rdagent.utils.workflow.tracking import WorkflowTracker
@@ -112,7 +112,7 @@ class LoopBase:
         # Store step results for all loops in a nested dictionary: loop_prev_out[loop_index][step_name]
         self.loop_prev_out: dict[int, dict[str, Any]] = defaultdict(dict)
         self.loop_trace = defaultdict(list[LoopTrace])  # the key is the number of loop
-        self.session_folder = logger.log_trace_path / "__session__"
+        self.session_folder = Path(LOG_SETTINGS.trace_path) / "__session__"
         self.timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
         self.tracker = WorkflowTracker(self)  # Initialize tracker with this LoopBase instance
 
@@ -324,8 +324,7 @@ class LoopBase:
         if prev_path:
             loaded = type(self).load(
                 prev_path,
-                output_path=self.session_folder.parent,
-                do_truncate=False,
+                checkout=True,
                 replace_timer=True,
             )
             logger.info(f"Load previous session from {prev_path}")
@@ -343,34 +342,69 @@ class LoopBase:
         with path.open("wb") as f:
             pickle.dump(self, f)
 
+    def truncate_session_folder(self, li: int, si: int) -> None:
+        """
+        Clear the session folder by removing all session objects after the given loop index (li) and step index (si).
+        """
+        # clear session folders after the li
+        for sf in self.session_folder.iterdir():
+            if sf.is_dir() and int(sf.name) > li:
+                for file in sf.iterdir():
+                    file.unlink()
+                sf.rmdir()
+
+        # clear step session objects in the li
+        final_loop_session_folder = self.session_folder / str(li)
+        for step_session in final_loop_session_folder.glob("*_*"):
+            if step_session.is_file():
+                step_id = int(step_session.name.split("_", 1)[0])
+                if step_id > si:
+                    step_session.unlink()
+
     @classmethod
     def load(
         cls,
-        path: Union[str, Path],
-        output_path: Optional[Union[str, Path]] = None,
-        do_truncate: bool = False,
+        path: str | Path,
+        checkout: bool | Path | str = False,
         replace_timer: bool = True,
     ) -> "LoopBase":
+        """
+        Load a session from a given path.
+        Parameters
+        ----------
+        path : str | Path
+            The path to the session file.
+        checkout : bool | Path | str
+            If True, the new loop will use the existing folder and clear logs for sessions after the one corresponding to the given path.
+            If False, the new loop will use the existing folder but keep the logs for sessions after the one corresponding to the given path.
+            If a path (or a str like Path) is provided, the new loop will be saved to that path, leaving the original path unchanged.
+        replace_timer : bool
+            If a session is loaded, determines whether to replace the timer with session.timer.
+            Default is True, which means the session timer will be replaced with the current timer.
+            If False, the session timer will not be replaced.
+        Returns
+        -------
+        LoopBase
+            An instance of LoopBase with the loaded session.
+        """
         path = Path(path)
         with path.open("rb") as f:
             session = cast(LoopBase, pickle.load(f))
 
         # set session folder
-        # - P1: if output_path explicitly specified.
-        # - P2: RD_AGENT_SETTINGS.log_trace_path
-        output_path_value = output_path if output_path is not None else RD_AGENT_SETTINGS.log_trace_path
-        if output_path_value is not None:
-            output_path_path = Path(output_path_value)
-            output_path_path.mkdir(parents=True, exist_ok=True)
-            session.session_folder = output_path_path / "__session__"
+        if checkout:
+            if checkout is True:
+                logger.set_storages_path(session.session_folder.parent)
+                max_loop = max(session.loop_trace.keys())
 
-        # set trace path
-        logger.set_trace_path(session.session_folder.parent)
-
-        # truncate future message
-        if do_truncate:
-            max_loop = max(session.loop_trace.keys())
-            logger.storage.truncate(time=session.loop_trace[max_loop][-1].end)
+                # truncate log storages after the max loop
+                session.truncate_session_folder(max_loop, len(session.loop_trace[max_loop]) - 1)
+                logger.truncate_storages(session.loop_trace[max_loop][-1].end)
+            else:
+                checkout = Path(checkout)
+                checkout.mkdir(parents=True, exist_ok=True)
+                session.session_folder = checkout / "__session__"
+                logger.set_storages_path(checkout)
 
         if session.timer.started:
             if replace_timer:
