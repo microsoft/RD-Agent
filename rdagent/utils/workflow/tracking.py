@@ -5,16 +5,18 @@ This module provides a clean interface for tracking metrics and parameters
 while keeping the MLflow dependency optional based on configuration.
 """
 
-import pytz
 import datetime
 from typing import TYPE_CHECKING
-from rdagent.log.timer import RD_Agent_TIMER_wrapper
+
+import pytz
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.log.timer import RD_Agent_TIMER_wrapper
 
 if TYPE_CHECKING:
     # Import here to avoid circular dependency
     from rdagent.utils.workflow.loop import LoopBase
+
 from rdagent.log import rdagent_logger as logger
 
 # Define a placeholder for mlflow if it's not available
@@ -32,7 +34,7 @@ if RD_AGENT_SETTINGS.enable_mlflow:
 class WorkflowTracker:
     """
     A workflow-specific tracking system that logs metrics related to workflow execution.
-    
+
     This class handles metric logging while keeping the MLflow dependency optional.
     If MLflow is not enabled in settings, tracking calls become no-ops.
     """
@@ -40,7 +42,7 @@ class WorkflowTracker:
     def __init__(self, loop_base: "LoopBase"):
         """
         Initialize a WorkflowTracker with a LoopBase instance.
-        
+
         Args:
             loop_base: The LoopBase instance to track metrics for
         """
@@ -54,7 +56,7 @@ class WorkflowTracker:
     @staticmethod
     def _datetime_to_float(dt: datetime.datetime) -> float:
         """Convert datetime to a structured float representation."""
-        return (dt.second + dt.minute * 1e2 + dt.hour * 1e4 + dt.day * 1e6 + dt.month * 1e8 + dt.year * 1e10)
+        return dt.second + dt.minute * 1e2 + dt.hour * 1e4 + dt.day * 1e6 + dt.month * 1e8 + dt.year * 1e10
 
     def log_workflow_state(self) -> None:
         """
@@ -83,7 +85,7 @@ class WorkflowTracker:
             mlflow.log_metric("remain_time", self.loop_base.timer.remain_time().seconds)  # type: ignore[union-attr]
             mlflow.log_metric(
                 "remain_percent",
-                self.loop_base.timer.remain_time() / self.loop_base.timer.all_duration * 100  # type: ignore[operator]
+                self.loop_base.timer.remain_time() / self.loop_base.timer.all_duration * 100,  # type: ignore[operator]
             )
 
     # Keep only the log_workflow_state method as it's the primary entry point now

@@ -23,7 +23,6 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.conf import LOG_SETTINGS
 from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
-
 from rdagent.utils.workflow.tracking import WorkflowTracker
 
 
@@ -92,8 +91,9 @@ class LoopBase:
     loop_trace: dict[int, list[LoopTrace]]
 
     skip_loop_error: tuple[type[BaseException], ...] = ()  # you can define a list of error that will skip current loop
-    withdraw_loop_error: tuple[type[BaseException],
-                               ...] = ()  # you can define a list of error that will withdraw current loop
+    withdraw_loop_error: tuple[
+        type[BaseException], ...
+    ] = ()  # you can define a list of error that will withdraw current loop
 
     EXCEPTION_KEY = "_EXCEPTION"
 
@@ -253,7 +253,7 @@ class LoopBase:
 
             # exit on loop limitation
             if self.loop_n is not None:
-                if  self.loop_n <= 0:
+                if self.loop_n <= 0:
                     break
                 self.loop_n -= 1
 
@@ -282,7 +282,7 @@ class LoopBase:
                     # Only trigger subprocess if we have more than one process.
                     await self._run_step(li, force_subproc=RD_AGENT_SETTINGS.get_max_parallel() > 1)
 
-    async def run(self,step_n: int | None = None, loop_n: int | None = None, all_duration: str | None = None) -> None:
+    async def run(self, step_n: int | None = None, loop_n: int | None = None, all_duration: str | None = None) -> None:
         """Run the workflow loop.
 
         Parameters
@@ -306,8 +306,9 @@ class LoopBase:
         while True:
             try:
                 # run one kickoff_loop and execute_loop
-                await asyncio.gather(self.kickoff_loop(),
-                                    *[self.execute_loop() for _ in range(RD_AGENT_SETTINGS.get_max_parallel())])
+                await asyncio.gather(
+                    self.kickoff_loop(), *[self.execute_loop() for _ in range(RD_AGENT_SETTINGS.get_max_parallel())]
+                )
                 break
             except self.LoopResumeError as e:
                 logger.warning(f"Stop all the routines and resume loop: {e}")
@@ -419,7 +420,7 @@ class LoopBase:
     def __getstate__(self):
         res = {}
         for k, v in self.__dict__.items():
-            if k not in ['queue', 'semaphores', '_pbar']:
+            if k not in ["queue", "semaphores", "_pbar"]:
                 res[k] = v
         return res
 

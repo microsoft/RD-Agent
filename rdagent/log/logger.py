@@ -75,7 +75,7 @@ class RDAgentLog(SingletonBaseClass):
         try:
             yield
         finally:
-            self._tag = self._tag[:-len(tag)]
+            self._tag = self._tag[: -len(tag)]
 
     def set_storages_path(self, path: str | Path) -> None:
         for storage in [self.storage] + self.other_storages:
