@@ -211,12 +211,12 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
         )
 
     # Save the summary
-    save_name = f"summary_{hours}h.pkl" if hours else "summary.pkl"
+    save_name = f"summary_{hours}h.parquet" if hours else "summary.parquet"
     save_p = log_folder / save_name
     if save_p.exists():
         save_p.unlink()
         print(f"Old {save_name} removed.")
-    pd.to_pickle(stat, save_p)
+    pd.to_parquet(stat, save_p)
 
 
 # {
