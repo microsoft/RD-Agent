@@ -18,7 +18,7 @@ class LogSettings(ExtendedBaseSettings):
 
     def model_post_init(self, _context: Any, /) -> None:
         if self.ui_server_port is not None:
-            self.storages["rdagent.log.storage.WebStorage"] = [self.ui_server_port, self.trace_path]
+            self.storages["rdagent.log.ui.storage.WebStorage"] = [self.ui_server_port, self.trace_path]
 
 
 LOG_SETTINGS = LogSettings()
