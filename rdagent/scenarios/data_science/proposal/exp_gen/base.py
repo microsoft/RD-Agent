@@ -47,7 +47,6 @@ class DSHypothesis(Hypothesis):
 
 
 class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
-
     def __init__(self, scen: DataScienceScen, knowledge_base: KnowledgeBase | None = None) -> None:
         self.scen: DataScienceScen = scen
         self.hist: list[tuple[DSExperiment, ExperimentFeedback]] = []
@@ -215,7 +214,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         selection: tuple[int, ...] | None = None,
     ) -> tuple[DSExperiment, ExperimentFeedback] | None:
         """
-
         Returns
         -------
         Experiment or None

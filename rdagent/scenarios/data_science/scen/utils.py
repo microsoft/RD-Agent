@@ -227,7 +227,7 @@ code_files = {".py", ".sh", ".yaml", ".yml", ".md", ".html", ".xml", ".log", ".r
 # we treat these files as text (rather than binary) files
 plaintext_files = {".txt", ".csv", ".json", ".tsv"} | code_files
 # system-generated directories/files to filter out
-system_names = {'__MACOSX', '.DS_Store', 'Thumbs.db'}
+system_names = {"__MACOSX", ".DS_Store", "Thumbs.db"}
 
 
 def get_file_len_size(f: Path) -> tuple[int, str]:
@@ -255,9 +255,11 @@ def file_tree(path: Path, depth=0) -> str:
     if len(files) > max_n:
         result.append(f"{' '*depth*4}... and {len(files)-max_n} other files")
 
-    dirs = [p for p in Path(path).iterdir() 
-            if (p.is_dir() or (p.is_symlink() and p.resolve().is_dir())) 
-            and p.name not in system_names]
+    dirs = [
+        p
+        for p in Path(path).iterdir()
+        if (p.is_dir() or (p.is_symlink() and p.resolve().is_dir())) and p.name not in system_names
+    ]
 
     # Calculate base_path (the top-level resolved absolute directory)
     base_path = Path(path).resolve()
@@ -290,7 +292,7 @@ def _walk(path: Path):
         # Filter out system-generated directories/files
         if p.name in system_names:
             continue
-            
+
         if p.is_dir():
             # If this is a symlinked dir to a parent/ancestor, do not expand it
             if p.is_symlink():
