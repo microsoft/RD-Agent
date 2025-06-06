@@ -61,7 +61,7 @@ R&D-Agent for Quantitative Finance, in short **RD-Agent(Q)**, is the first data-
 
 Extensive experiments in real stock markets show that, at a cost under $10, RD-Agent(Q) achieves approximately 2× higher ARR than benchmark factor libraries while using over 70% fewer factors. It also surpasses state-of-the-art deep time-series models under smaller resource budgets. Its alternating factor–model optimization further delivers excellent trade-off between predictive accuracy and strategy robustness.
 
-You can learn more details about **RD-Agent(Q)** through the [paper](https://arxiv.org/abs/2505.15155).
+You can learn more details about **RD-Agent(Q)** through the [paper](https://arxiv.org/abs/2505.15155) and reproduce it through the [documentation](https://rdagent.readthedocs.io/en/latest/scens/quant_agent_fin.html).
 
 # 📰 News
 | 🗞️ News        | 📝 Description                 |
