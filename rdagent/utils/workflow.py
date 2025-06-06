@@ -250,6 +250,8 @@ class LoopBase:
         # clear session folders after the li
         for sf in self.session_folder.iterdir():
             if sf.is_dir() and int(sf.name) > li:
+                for file in sf.iterdir():
+                    file.unlink()
                 sf.rmdir()
 
         # clear step session objects in the li
