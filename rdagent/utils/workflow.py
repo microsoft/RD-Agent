@@ -275,7 +275,7 @@ class LoopBase:
 
         # set session folder
         if checkout:
-            if checkout == True:
+            if checkout is True:
                 logger.set_storages_path(session.session_folder.parent)
                 max_loop = max(session.loop_trace.keys())
 
