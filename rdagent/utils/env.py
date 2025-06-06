@@ -445,9 +445,10 @@ class LocalEnv(Env[ASpecificLocalConf]):
                             Console().print(output.strip(), markup=False)
                             combined_output += output
                     elif fd == stderr_fd:
-                        error = process.stderr.readline()
-                        if error:
-                            Console().print(error.strip(), markup=False)
+                        chunk = os.read(stderr_fd, 4096)
+                        if chunk:
+                            error = chunk.decode(errors="replace")
+                            Console().print(error, end="", markup=False)
                             combined_output += error
 
         # Capture any final output
