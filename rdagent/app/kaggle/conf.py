@@ -34,9 +34,6 @@ class KaggleBasePropSetting(ExtendedBaseSettings):
     summarizer: str = "rdagent.scenarios.kaggle.developer.feedback.KGExperiment2Feedback"
     """Summarizer class"""
 
-    evolving_n: int = 10
-    """Number of evolutions"""
-
     competition: str = ""
     """Kaggle competition name, e.g., 'sf-crime'"""
 

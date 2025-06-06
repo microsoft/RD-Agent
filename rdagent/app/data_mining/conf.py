@@ -27,11 +27,6 @@ class MedBasePropSetting(BasePropSetting):
     summarizer: str = "rdagent.scenarios.data_mining.developer.feedback.DMModelExperiment2Feedback"
     """Summarizer class"""
 
-    evolving_n: int = 10
-    """Number of evolutions"""
-
-    evolving_n: int = 10
-
     # 2) Extra config for the scenario
     # physionet account
     # NOTE: You should apply the account in https://physionet.org/
