@@ -1,28 +1,19 @@
-import json
 import os
-import pickle
 import sys
 from contextlib import contextmanager
-from datetime import datetime, timezone
-from functools import partial
-from logging import LogRecord
-from multiprocessing import Pipe
-from multiprocessing.connection import Connection
+from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Generator, Union
+from typing import Generator
 
 from loguru import logger
-
-if TYPE_CHECKING:
-    from loguru import Record
-
 from psutil import Process
 
-from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.utils import SingletonBaseClass
+from rdagent.core.utils import SingletonBaseClass, import_class
 
+from .base import Storage
+from .conf import LOG_SETTINGS
 from .storage import FileStorage
-from .utils import LogColors, get_caller_info
+from .utils import get_caller_info
 
 
 class RDAgentLog(SingletonBaseClass):
@@ -57,22 +48,14 @@ class RDAgentLog(SingletonBaseClass):
     #   feedback = logger.get_reps()
     _tag: str = ""
 
-    def __init__(self, log_trace_path: Union[str, None] = RD_AGENT_SETTINGS.log_trace_path) -> None:
-        if log_trace_path is None:
-            timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S-%f")
-            self.log_trace_path = Path.cwd() / "log" / timestamp
-        else:
-            self.log_trace_path = Path(log_trace_path)
-
-        self.log_trace_path.mkdir(parents=True, exist_ok=True)
-
-        self.storage = FileStorage(self.log_trace_path)
+    def __init__(self) -> None:
+        self.storage = FileStorage(LOG_SETTINGS.trace_path)
+        self.other_storages: list[Storage] = []
+        for storage, args in LOG_SETTINGS.storages.items():
+            storage_cls = import_class(storage)
+            self.other_storages.append(storage_cls(*args))
 
         self.main_pid = os.getpid()
-
-    def set_trace_path(self, log_trace_path: str | Path) -> None:
-        self.log_trace_path = Path(log_trace_path)
-        self.storage = FileStorage(log_trace_path)
 
     @contextmanager
     def tag(self, tag: str) -> Generator[None, None, None]:
@@ -87,6 +70,15 @@ class RDAgentLog(SingletonBaseClass):
             yield
         finally:
             self._tag = self._tag[: -len(tag)]
+
+    def set_storages_path(self, path: str | Path) -> None:
+        for storage in [self.storage] + self.other_storages:
+            if hasattr(storage, "path"):
+                storage.path = path
+
+    def truncate_storages(self, time: datetime) -> None:
+        for storage in [self.storage] + self.other_storages:
+            storage.truncate(time=time)
 
     def get_pids(self) -> str:
         """
@@ -103,65 +95,35 @@ class RDAgentLog(SingletonBaseClass):
             process = parent_process
         return pid_chain
 
-    def file_format(self, record: "Record", raw: bool = False) -> str:
-        # FIXME: the formmat is tightly coupled with the message reading in storage.
-        record["message"] = LogColors.remove_ansi_codes(record["message"])
-        if raw:
-            return "{message}"
-        return "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}\n"
-
     def log_object(self, obj: object, *, tag: str = "") -> None:
         # TODO: I think we can merge the log_object function with other normal log methods to make the interface simpler.
         caller_info = get_caller_info()
         tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
-        logp = self.storage.log(obj, name=tag, save_type="pkl")
 
-        file_handler_id = logger.add(
-            self.log_trace_path / tag.replace(".", "/") / "common_logs.log", format=self.file_format
-        )
-        logger.patch(lambda r: r.update(caller_info)).info(f"Logging object in {Path(logp).absolute()}")
-        logger.remove(file_handler_id)
+        for storage in [self.storage] + self.other_storages:
+            logp = storage.log(obj, tag=tag)
+            logger.patch(lambda r: r.update(caller_info)).info(f"Log object to [{storage}], uri: {logp}")
 
-    def info(self, msg: str, *, tag: str = "", raw: bool = False) -> None:
-        # TODO: too much duplicated. due to we have no logger with stream context;
+    def _log(self, level: str, msg: str, *, tag: str = "", raw: bool = False) -> None:
         caller_info = get_caller_info()
+        tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
+
         if raw:
             logger.remove()
             logger.add(sys.stderr, format=lambda r: "{message}")
 
-        tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
-        log_file_path = self.log_trace_path / tag.replace(".", "/") / "common_logs.log"
-        if raw:
-            file_handler_id = logger.add(log_file_path, format=partial(self.file_format, raw=True))
-        else:
-            file_handler_id = logger.add(log_file_path, format=self.file_format)
-
-        logger.patch(lambda r: r.update(caller_info)).info(msg)
-        logger.remove(file_handler_id)
+        log_func = getattr(logger.patch(lambda r: r.update(caller_info)), level)
+        log_func(msg)
 
         if raw:
             logger.remove()
             logger.add(sys.stderr)
 
-    def warning(self, msg: str, *, tag: str = "") -> None:
-        # TODO: reuse code
-        # _log(self, msg: str, *, tag: str = "", level=Literal["warning", "error", ..]) -> None:
-        # getattr(logger.patch(lambda r: r.update(caller_info)), level)(msg)
-        caller_info = get_caller_info()
+    def info(self, msg: str, *, tag: str = "", raw: bool = False) -> None:
+        self._log("info", msg, tag=tag, raw=raw)
 
-        tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
-        file_handler_id = logger.add(
-            self.log_trace_path / tag.replace(".", "/") / "common_logs.log", format=self.file_format
-        )
-        logger.patch(lambda r: r.update(caller_info)).warning(msg)
-        logger.remove(file_handler_id)
+    def warning(self, msg: str, *, tag: str = "", raw: bool = False) -> None:
+        self._log("warning", msg, tag=tag, raw=raw)
 
-    def error(self, msg: str, *, tag: str = "") -> None:
-        caller_info = get_caller_info()
-
-        tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
-        file_handler_id = logger.add(
-            self.log_trace_path / tag.replace(".", "/") / "common_logs.log", format=self.file_format
-        )
-        logger.patch(lambda r: r.update(caller_info)).error(msg)
-        logger.remove(file_handler_id)
+    def error(self, msg: str, *, tag: str = "", raw: bool = False) -> None:
+        self._log("error", msg, tag=tag, raw=raw)

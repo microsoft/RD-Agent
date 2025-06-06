@@ -1,5 +1,4 @@
 import json
-import pprint
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
@@ -222,45 +221,6 @@ class CodingSketch(BaseModel):
     )
 
 
-COMPONENT_TASK_MAPPING = {
-    "DataLoadSpec": {
-        "target_name": "Data loader and specification generation",
-        "spec_file": "spec/data_loader.md",
-        "task_output_format": T(".prompts:output_format.data_loader").r(),
-        "task_class": DataLoaderTask,
-    },
-    "FeatureEng": {
-        "target_name": "Feature engineering",
-        "spec_file": "spec/feature.md",
-        "task_output_format": T(".prompts:output_format.feature").r(),
-        "task_class": FeatureTask,
-    },
-    "Model": {
-        "target_name": "Model",
-        "spec_file": "spec/model.md",
-        "task_output_format": T(".prompts:output_format.model").r(),
-        "task_class": ModelTask,
-    },
-    "Ensemble": {
-        "target_name": "Ensemble",
-        "spec_file": "spec/ensemble.md",
-        "task_output_format": T(".prompts:output_format.ensemble").r(),
-        "task_class": EnsembleTask,
-    },
-    "Workflow": {
-        "target_name": "Workflow",
-        "spec_file": "spec/workflow.md",
-        "task_output_format": T(".prompts:output_format.workflow").r(),
-        "task_class": WorkflowTask,
-    },
-    "Pipeline": {
-        "target_name": "Pipeline",
-        "task_output_format": T(".prompts:output_format.pipeline").r(),
-        "task_class": PipelineTask,
-    },
-}
-
-
 def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None | DSDraftExpGen:
     next_missing_component = trace.next_incomplete_component()
     if next_missing_component is not None:
@@ -273,6 +233,44 @@ def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None | DSDraft
 
 
 class DSProposalV1ExpGen(ExpGen):
+    COMPONENT_TASK_MAPPING = {
+        "DataLoadSpec": {
+            "target_name": "Data loader and specification generation",
+            "spec_file": "spec/data_loader.md",
+            "task_output_format": T(".prompts:output_format.data_loader").r(),
+            "task_class": DataLoaderTask,
+        },
+        "FeatureEng": {
+            "target_name": "Feature engineering",
+            "spec_file": "spec/feature.md",
+            "task_output_format": T(".prompts:output_format.feature").r(),
+            "task_class": FeatureTask,
+        },
+        "Model": {
+            "target_name": "Model",
+            "spec_file": "spec/model.md",
+            "task_output_format": T(".prompts:output_format.model").r(),
+            "task_class": ModelTask,
+        },
+        "Ensemble": {
+            "target_name": "Ensemble",
+            "spec_file": "spec/ensemble.md",
+            "task_output_format": T(".prompts:output_format.ensemble").r(),
+            "task_class": EnsembleTask,
+        },
+        "Workflow": {
+            "target_name": "Workflow",
+            "spec_file": "spec/workflow.md",
+            "task_output_format": T(".prompts:output_format.workflow").r(),
+            "task_class": WorkflowTask,
+        },
+        "Pipeline": {
+            "target_name": "Pipeline",
+            "task_output_format": T(".prompts:output_format.pipeline").r(),
+            "task_class": PipelineTask,
+        },
+    }
+
     def gen(self, trace: DSTrace) -> DSExperiment:
         # Drafting Stage
         if draft_exp := draft_exp_in_decomposition(self.scen, trace):
@@ -353,7 +351,7 @@ class DSProposalV1ExpGen(ExpGen):
         # - after we know the selected component, we can use RAG.
 
         # Step 2: Generate the rest of the hypothesis & task
-        component_info = COMPONENT_TASK_MAPPING.get(component)
+        component_info = self.COMPONENT_TASK_MAPPING.get(component)
 
         if component_info:
             if DS_RD_SETTING.spec_enabled:
@@ -658,9 +656,9 @@ class DSProposalV2ExpGen(ExpGen):
         failed_exp_feedback_list_desc: str,
     ) -> DSExperiment:
         if pipeline:
-            component_info = COMPONENT_TASK_MAPPING["Pipeline"]
+            component_info = self.COMPONENT_TASK_MAPPING["Pipeline"]
         else:
-            component_info = COMPONENT_TASK_MAPPING.get(hypothesis.component)
+            component_info = self.COMPONENT_TASK_MAPPING.get(hypothesis.component)
         if pipeline:
             task_spec = T(f"scenarios.data_science.share:component_spec.Pipeline").r()
         elif DS_RD_SETTING.spec_enabled and sota_exp is not None:
@@ -950,9 +948,9 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         failed_exp_feedback_list_desc: str,
     ) -> DSExperiment:
         if pipeline:
-            component_info = COMPONENT_TASK_MAPPING["Pipeline"]
+            component_info = self.COMPONENT_TASK_MAPPING["Pipeline"]
         else:
-            component_info = COMPONENT_TASK_MAPPING.get(hypotheses[0].component)
+            component_info = self.COMPONENT_TASK_MAPPING.get(hypotheses[0].component)
         data_folder_info = self.scen.processed_data_folder_description
         sys_prompt = T(".prompts_v3:task_gen.system").r(
             # targets=component_info["target_name"],

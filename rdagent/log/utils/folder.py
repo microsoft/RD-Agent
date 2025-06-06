@@ -51,7 +51,7 @@ def first_li_si_after_one_time(log_path: Path, hours: int = 12) -> tuple[int, in
     max_step = max(int(p.name.split("_")[0]) for p in (session_path / str(max_li)).iterdir() if p.is_file())
     rdloop_obj_p = next((session_path / str(max_li)).glob(f"{max_step}_*"))
 
-    rdloop_obj = DataScienceRDLoop.load(rdloop_obj_p, do_truncate=False)
+    rdloop_obj = DataScienceRDLoop.load(rdloop_obj_p)
     loop_trace = rdloop_obj.loop_trace
     si2fn = rdloop_obj.steps
 
