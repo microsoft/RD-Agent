@@ -45,7 +45,6 @@ class Storage:
         obj: object,
         tag: str = "",
         timestamp: datetime | None = None,
-        **kwargs: dict,
     ) -> str | Path:
         """
 
@@ -65,7 +64,7 @@ class Storage:
         ...
 
     @abstractmethod
-    def iter_msg(self, **kwargs: dict) -> Generator[Message, None, None]:
+    def iter_msg(self) -> Generator[Message, None, None]:
         """
         Iterate the message in the storage.
         """
