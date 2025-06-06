@@ -12,8 +12,8 @@ class LogSettings(ExtendedBaseSettings):
 
     trace_path: str = str(Path.cwd() / "log" / datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S-%f"))
 
-    # FIXME: use me!!!
-    format_console: str | None = None  # If it is None, leave it as the default
+    format_console: str | None = None
+    """"If it is None, leave it as the default"""
 
     ui_server_port: int | None = None
 

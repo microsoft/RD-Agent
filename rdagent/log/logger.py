@@ -7,16 +7,17 @@ from typing import Generator
 
 from loguru import logger
 
-# FIXME: remove me!!!
-logger.remove()
-logger.add(sys.stdout, format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | <cyan>{process}</cyan> | {name}:{function}:{line} - {message}\n")
+from .conf import LOG_SETTINGS
+
+if LOG_SETTINGS.format_console is not None:
+    logger.remove()
+    logger.add(sys.stdout, format=LOG_SETTINGS.format_console)
 
 from psutil import Process
 
 from rdagent.core.utils import SingletonBaseClass, import_class
 
 from .base import Storage
-from .conf import LOG_SETTINGS
 from .storage import FileStorage
 from .utils import get_caller_info
 
@@ -74,7 +75,7 @@ class RDAgentLog(SingletonBaseClass):
         try:
             yield
         finally:
-            self._tag = self._tag[: -len(tag)]
+            self._tag = self._tag[:-len(tag)]
 
     def set_storages_path(self, path: str | Path) -> None:
         for storage in [self.storage] + self.other_storages:
