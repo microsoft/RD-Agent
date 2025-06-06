@@ -13,7 +13,6 @@ import asyncio
 import concurrent.futures
 import datetime
 import pickle
-import dill
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -196,66 +195,61 @@ class LoopBase:
         si = self.step_idx[li]
         name = self.steps[si]
 
-        semaphore = self.get_semaphore(name)
-        await semaphore.acquire()
+        async with self.get_semaphore(name):
 
-        logger.info(f"Start Loop {li}, Step {si}: {name}")
-        self.tracker.log_workflow_state()
+            logger.info(f"Start Loop {li}, Step {si}: {name}")
+            self.tracker.log_workflow_state()
 
-        with logger.tag(f"Loop_{li}.{name}"):
-            start = datetime.datetime.now(datetime.timezone.utc)
-            func: Callable[..., Any] = cast(Callable[..., Any], getattr(self, name))
+            with logger.tag(f"Loop_{li}.{name}"):
+                start = datetime.datetime.now(datetime.timezone.utc)
+                func: Callable[..., Any] = cast(Callable[..., Any], getattr(self, name))
 
-            try:
-                # Call function with current loop's output, await if coroutine or use ProcessPoolExecutor for sync if required
-                if force_subproc:
-                    curr_loop = asyncio.get_running_loop()
-                    # with concurrent.futures.ProcessPoolExecutor() as pool:
-                    #     # import pickle
-                    #     # pickle.dumps([func, self.loop_prev_out[li]])
-                    #     # from IPython import embed; embed()
-                    #     result = await curr_loop.run_in_executor(pool, func, self.loop_prev_out[li])
-                    result = await curr_loop.run_in_executor(None, joblib_wrapper, func, self.loop_prev_out[li])
-                else:
-                    # auto determine whether to run async or sync
-                    if asyncio.iscoroutinefunction(func):
-                        result = await func(self.loop_prev_out[li])
+                try:
+                    # Call function with current loop's output, await if coroutine or use ProcessPoolExecutor for sync if required
+                    if force_subproc:
+                        curr_loop = asyncio.get_running_loop()
+                        with concurrent.futures.ProcessPoolExecutor() as pool:
+                            result = await curr_loop.run_in_executor(pool, func, self.loop_prev_out[li])
                     else:
-                        # Default: run sync function directly
-                        result = func(self.loop_prev_out[li])
-                # Store result in the nested dictionary
-                self.loop_prev_out[li][name] = result
-                # Save snapshot after completing the step
-                self.dump(self.session_folder / f"{li}" / f"{si}_{name}")
-            except Exception as e:
-                if isinstance(e, self.skip_loop_error):
-                    logger.warning(f"Skip loop {li} due to {e}")
-                    # Jump to the last step (assuming last step is for recording)
-                    self.step_idx[li] = len(self.steps) - 1
-                    self.loop_prev_out[li][self.EXCEPTION_KEY] = e
-                elif isinstance(e, self.withdraw_loop_error):
-                    logger.warning(f"Withdraw loop {li} due to {e}")
-                    # Back to previous loop
-                    self.step_backward(li - 1)
+                        # auto determine whether to run async or sync
+                        if asyncio.iscoroutinefunction(func):
+                            result = await func(self.loop_prev_out[li])
+                        else:
+                            # Default: run sync function directly
+                            result = func(self.loop_prev_out[li])
+                    # Store result in the nested dictionary
+                    self.loop_prev_out[li][name] = result
+                    # Save snapshot after completing the step
+                    self.dump(self.session_folder / f"{li}" / f"{si}_{name}")
+                except Exception as e:
+                    if isinstance(e, self.skip_loop_error):
+                        logger.warning(f"Skip loop {li} due to {e}")
+                        # Jump to the last step (assuming last step is for recording)
+                        self.step_idx[li] = len(self.steps) - 1
+                        self.loop_prev_out[li][self.EXCEPTION_KEY] = e
+                    elif isinstance(e, self.withdraw_loop_error):
+                        logger.warning(f"Withdraw loop {li} due to {e}")
+                        # Back to previous loop
+                        self.step_backward(li - 1)
 
-                    msg = "We have reset the loop instance, stop all the routines and resume."
-                    raise self.LoopResumeError(msg) from e
-                else:
-                    raise  # re-raise unhandled exceptions
-            finally:
-                # Record execution trace and update progress bar
-                end = datetime.datetime.now(datetime.timezone.utc)
-                self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
+                        msg = "We have reset the loop instance, stop all the routines and resume."
+                        raise self.LoopResumeError(msg) from e
+                    else:
+                        raise  # re-raise unhandled exceptions
+                finally:
+                    # Record execution trace and update progress bar
+                    end = datetime.datetime.now(datetime.timezone.utc)
+                    self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
 
-                # Increment step index
-                self.step_idx[li] = self.step_idx[li] + 1
+                    # Increment step index
+                    self.step_idx[li] = self.step_idx[li] + 1
 
-                # Update progress bar
-                current_step = self.step_idx[li]
-                self.pbar.n = current_step
-                next_step = self.step_idx[li] % len(self.steps)
-                self.pbar.set_postfix(loop_index=li, step_index=next_step, step_name=self.steps[next_step])
-                self._check_exit_conditions_on_step()
+                    # Update progress bar
+                    current_step = self.step_idx[li]
+                    self.pbar.n = current_step
+                    next_step = self.step_idx[li] % len(self.steps)
+                    self.pbar.set_postfix(loop_index=li, step_index=next_step, step_name=self.steps[next_step])
+                    self._check_exit_conditions_on_step()
 
     async def kickoff_loop(self):
         while True:
@@ -316,7 +310,7 @@ class LoopBase:
             try:
                 # run one kickoff_loop and execute_loop
                 await asyncio.gather(self.kickoff_loop(),
-                                    *[self.execute_loop() for _ in range(RD_AGENT_SETTINGS.max_loop_worker)])
+                                    *[self.execute_loop() for _ in range(RD_AGENT_SETTINGS.get_max_parallel())])
                 break
             except self.LoopResumeError as e:
                 logger.warning(f"Stop all the routines and resume loop: {e}")
@@ -350,7 +344,7 @@ class LoopBase:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("wb") as f:
-            dill.dump(self, f)
+            pickle.dump(self, f)
 
     @classmethod
     def load(
@@ -362,7 +356,7 @@ class LoopBase:
     ) -> "LoopBase":
         path = Path(path)
         with path.open("rb") as f:
-            session = cast(LoopBase, dill.load(f))
+            session = cast(LoopBase, pickle.load(f))
 
         # set session folder
         # - P1: if output_path explicitly specified.
@@ -394,7 +388,7 @@ class LoopBase:
     def __getstate__(self):
         res = {}
         for k, v in self.__dict__.items():
-            if k not in ['queue', 'semaphores']:
+            if k not in ['queue', 'semaphores', '_pbar']:
                 res[k] = v
         return res
 

@@ -13,6 +13,10 @@ from typing import TYPE_CHECKING, Any, Dict, Generator, Union
 
 from loguru import logger
 
+# FIXME: remove me!!!
+logger.remove()
+logger.add(sys.stdout, format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | <cyan>{process}</cyan> | {name}:{function}:{line} - {message}\n")
+
 if TYPE_CHECKING:
     from loguru import Record
 
@@ -108,7 +112,7 @@ class RDAgentLog(SingletonBaseClass):
         record["message"] = LogColors.remove_ansi_codes(record["message"])
         if raw:
             return "{message}"
-        return "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}\n"
+        return RD_AGENT_SETTINGS.log_format_file
 
     def log_object(self, obj: object, *, tag: str = "") -> None:
         # TODO: I think we can merge the log_object function with other normal log methods to make the interface simpler.

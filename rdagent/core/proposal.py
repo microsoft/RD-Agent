@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 import asyncio
 from typing import Generic, TypeVar
 
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
 from rdagent.core.experiment import ASpecificExp, Experiment
 from rdagent.core.knowledge_base import KnowledgeBase
@@ -184,9 +185,11 @@ class ExpGen(ABC):
         generate the experiment and decide whether to stop yield generation and give up control to other routines.
         """
         # we give a default implementation here.
-        # while loop.get_unfinished_loop_cnt(loop.loop_idx) > 0:
-        #     await asyncio.sleep(1)
-        return self.gen(trace)
+        # The proposal is set to try best to generate the experiment in max-parallel level.
+        while True:
+            if loop.get_unfinished_loop_cnt(loop.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
+                return self.gen(trace)
+            await asyncio.sleep(1)
 
 
 class HypothesisGen(ABC):

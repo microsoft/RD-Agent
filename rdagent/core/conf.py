@@ -50,6 +50,9 @@ class RDAgentSettings(ExtendedBaseSettings):
     # Log configs
     # TODO: (xiao) think it can be a separate config.
     log_trace_path: str | None = None
+    log_format_file: str = "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}\n"
+    log_format_console: str | None = None  # If it is None, leave it as the default
+
 
     # azure document intelligence configs
     azure_document_intelligence_key: str = ""
@@ -85,10 +88,16 @@ class RDAgentSettings(ExtendedBaseSettings):
     initial_fator_library_size: int = 20
 
     # parallel loop
-    max_loop_worker: int = 10  # this is not very important due to the limitation of steps are the semaphore
     step_semaphore: int | dict[str, int] = 1
     """the semaphore for each step;  you can specify a overall semaphore
     or a step-wise semaphore like {"coding": 3, "running": 2}"""
+
+    def get_max_parallel(self) -> int:
+        """Based on the setting of semaphore, return the maximum number of parallel loops"""
+        if isinstance(self.step_semaphore, int):
+            return self.step_semaphore
+        else:
+            return max(self.step_semaphore.values())
 
 
 RD_AGENT_SETTINGS = RDAgentSettings()
