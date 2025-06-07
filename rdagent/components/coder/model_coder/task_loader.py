@@ -89,7 +89,6 @@ def merge_file_to_model_dict_to_model_dict(
     return model_dict_simple_deduplication
 
 
-@wait_retry(retry_n=5)
 def extract_model_from_docs(docs_dict):
     model_dict = {}
     for doc_name, doc_content in docs_dict.items():
@@ -117,6 +116,7 @@ class ModelExperimentLoaderFromDict(ModelTaskLoader):
 
 
 class ModelExperimentLoaderFromPDFfiles(ModelTaskLoader):
+    @wait_retry(retry_n=5)
     def load(self, file_or_folder_path: str) -> dict:
         docs_dict = load_and_process_pdfs_by_langchain(file_or_folder_path)  # dict{file_path:content}
         # wait_retry

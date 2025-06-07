@@ -108,6 +108,7 @@ class DMModelHypothesis2Experiment(ModelHypothesis2Experiment):
             variables = response_dict[model_name]["variables"]
             hyperparameters = response_dict[model_name]["hyperparameters"]
             model_type = response_dict[model_name]["model_type"]
+            training_hyperparameters = response_dict[model_name]["training_hyperparameters"]
             tasks.append(
                 ModelTask(
                     name=model_name,
@@ -117,6 +118,7 @@ class DMModelHypothesis2Experiment(ModelHypothesis2Experiment):
                     variables=variables,
                     hyperparameters=hyperparameters,
                     model_type=model_type,
+                    training_hyperparameters=training_hyperparameters,
                 )
             )
         exp = DMModelExperiment(tasks, hypothesis=hypothesis)

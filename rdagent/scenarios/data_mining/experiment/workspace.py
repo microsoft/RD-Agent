@@ -27,5 +27,5 @@ class DMFBWorkspace(FBWorkspace):
 
         if not csv_path.exists():
             logger.error(f"File {csv_path} does not exist.")
-            return None
-        return pd.read_csv(csv_path, index_col=0).iloc[:, 0]
+            return None, execute_log
+        return pd.read_csv(csv_path, index_col=0).iloc[:, 0], execute_log
