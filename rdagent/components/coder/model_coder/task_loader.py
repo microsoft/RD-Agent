@@ -44,7 +44,6 @@ def extract_model_from_doc(doc_content: str) -> dict:
             user_prompt=current_user_prompt,
             json_mode=False,
         )
-        # 1) please reference: response_format=TraceChallenges,
         re_search_res = re.search(r"```json(.*)```", extract_result_resp, re.S)
         ret_json_str = re_search_res.group(1) if re_search_res is not None else ""
         try:
@@ -119,7 +118,6 @@ class ModelExperimentLoaderFromPDFfiles(ModelTaskLoader):
     @wait_retry(retry_n=5)
     def load(self, file_or_folder_path: str) -> dict:
         docs_dict = load_and_process_pdfs_by_langchain(file_or_folder_path)  # dict{file_path:content}
-        # wait_retry
         model_dict = extract_model_from_docs(
             docs_dict
         )  # dict{file_name: dict{model_name: dict{description, formulation, variables}}}

@@ -52,7 +52,7 @@ class DMModelHypothesisGen(ModelHypothesisGen):
             "RAG": None,
             "hypothesis_output_format": T(
                 "scenarios.data_mining.prompts:hypothesis_output_format"
-            ).r(),  # 1) create a individual prompts.yaml for that scenario.
+            ).r(),
             "hypothesis_specification": T("scenarios.data_mining.prompts:model_hypothesis_specification").r(),
         }
         return context_dict, True
