@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import fire
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -7,12 +9,11 @@ from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 
 
 def main(
-    path=None,
-    output_path=None,
-    step_n=None,
-    loop_n=None,
+    path: str | None = None,
+    checkout: bool | str | Path = True,
+    step_n: int | None = None,
+    loop_n: int | None = None,
     competition="bms-molecular-translation",
-    do_truncate=True,
     timeout=None,
     replace_timer=True,
     exp_gen_cls: str | None = None,
@@ -22,29 +23,33 @@ def main(
     Parameters
     ----------
     path :
-        path like `$LOG_PATH/__session__/1/0_propose`. It indicates that we restore the state that after finish the step 0 in loop 1
-    output_path :
-        path like `$LOG_PATH`. It indicates that where we want to save our session and log information.
+        A path like `$LOG_PATH/__session__/1/0_propose`. This indicates that we restore the state after finishing step 0 in loop 1.
+    checkout :
+        Used only when a path is provided.
+        Can be True, False, or a path.
+        Default is True.
+        - If True, the new loop will use the existing folder and clear logs for sessions after the one corresponding to the given path.
+        - If False, the new loop will use the existing folder but keep the logs for sessions after the one corresponding to the given path.
+        - If a path (or a str like Path) is provided, the new loop will be saved to that path, leaving the original path unchanged.
     step_n :
-        How many steps to run; if None, it will run forever until error or KeyboardInterrupt
+        Number of steps to run; if None, the process will run indefinitely until an error or KeyboardInterrupt occurs.
     loop_n :
-        How many loops to run; if None, it will run forever until error or KeyboardInterrupt
-        - if current loop is incomplete, it will be counted as the first loop for completion.
-        - if both step_n and loop_n are provided, the process will stop as soon as either condition is met.
+        Number of loops to run; if None, the process will run indefinitely until an error or KeyboardInterrupt occurs.
+        - If the current loop is incomplete, it will be counted as the first loop for completion.
+        - If both step_n and loop_n are provided, the process will stop as soon as either condition is met.
     competition :
-    do_truncate :
-        If set to True, the logger will truncate the future log messages by calling `logger.storage.truncate`.
+        Competition name.
     replace_timer :
-        If session is loaded, should we replace the timer with session.timer
+        If a session is loaded, determines whether to replace the timer with session.timer.
     exp_gen_cls :
-        When we have different stages, we can replace the exp_gen with the new proposal
+        When there are different stages, the exp_gen can be replaced with the new proposal.
 
 
     Auto R&D Evolving loop for models in a Kaggle scenario.
-    You can continue running session by
+    You can continue running a session by using the command:
     .. code-block:: bash
-        dotenv run -- python rdagent/app/data_science/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
-        rdagent kaggle --competition playground-series-s4e8  # You are encouraged to use this one.
+        dotenv run -- python rdagent/app/data_science/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is an optional parameter
+        rdagent kaggle --competition playground-series-s4e8  # This command is recommended.
     """
     if competition is not None:
         DS_RD_SETTING.competition = competition
@@ -55,7 +60,7 @@ def main(
     if path is None:
         kaggle_loop = DataScienceRDLoop(DS_RD_SETTING)
     else:
-        kaggle_loop = DataScienceRDLoop.load(path, output_path, do_truncate, replace_timer)
+        kaggle_loop: DataScienceRDLoop = DataScienceRDLoop.load(path, checkout=checkout, replace_timer=replace_timer)
 
     # replace exp_gen if we have new class
     if exp_gen_cls is not None:
