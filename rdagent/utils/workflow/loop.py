@@ -312,6 +312,9 @@ class LoopBase:
                 break
             except self.LoopResumeError as e:
                 logger.warning(f"Stop all the routines and resume loop: {e}")
+            except self.LoopTerminationError as e:
+                logger.warning(f"Reach stop criterion and stop loop: {e}")
+                break
             finally:
                 self.close_pbar()
 
