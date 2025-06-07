@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import json
-from pydantic import BaseModel, Field
 import re
+
+from pydantic import BaseModel, Field
 
 from rdagent.components.coder.model_coder.model import ModelTask
 from rdagent.components.document_reader.document_reader import (
