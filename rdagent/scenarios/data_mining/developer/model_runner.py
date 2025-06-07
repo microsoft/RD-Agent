@@ -22,5 +22,6 @@ class DMModelRunner(CachedRunner[DMModelExperiment]):
             raise ModelEmptyError(f"Failed to run this experiment, because {stdout}")
 
         exp.result = result
+        exp.stdout = stdout
 
         return exp

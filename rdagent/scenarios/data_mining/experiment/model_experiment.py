@@ -15,6 +15,7 @@ class DMModelExperiment(ModelExperiment[ModelTask, DMFBWorkspace, ModelFBWorkspa
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.experiment_workspace = DMFBWorkspace(template_folder_path=Path(__file__).parent / "model_template")
+        self.stdout = ""
 
 
 class DMModelScenario(Scenario):
