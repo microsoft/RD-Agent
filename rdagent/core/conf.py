@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import tempfile
 from typing import cast
 
 from pydantic_settings import (
@@ -79,7 +80,7 @@ class RDAgentSettings(ExtendedBaseSettings):
 
     initial_fator_library_size: int = 20
 
-    local_cache_path: str = "/tmp/"
+    local_cache_path: str = tempfile.gettempdir()
 
 
 RD_AGENT_SETTINGS = RDAgentSettings()
