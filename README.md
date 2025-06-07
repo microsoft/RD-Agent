@@ -151,7 +151,24 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   - json_mode
   - embedding query
 
-- For example: If you are using the `OpenAI API`, you have to configure your GPT model in the `.env` file like this.
+  You can set your Chat Model and Embedding Model in the following ways:
+
+- **Using LiteLLM (Recommended)**: We now support LiteLLM as a backend for integration with multiple LLM providers. You can configure as follows:
+  ```bash
+  cat << EOF  > .env
+  BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
+  # Set to any model supported by LiteLLM.
+  CHAT_MODEL=gpt-4o 
+  EMBEDDING_MODEL=text-embedding-3-small
+  # Then configure the environment variables required by your chosen model in the convention of LiteLLM here.
+  OPENAI_API_KEY=<replace_with_your_openai_api_key>
+  ```
+  Notice: If you are using reasoning models that include thought processes in their responses (such as \<think> tags), you need to set the following environment variable:
+  ```bash
+  REASONING_THINK_RM=True
+  ```
+
+- **Using OpenAI API Directly**: If you are using the `OpenAI API`, you can configure your GPT model in the `.env` file like this without setting LiteLLM Backend.
   ```bash
   cat << EOF  > .env
   OPENAI_API_KEY=<replace_with_your_openai_api_key>
@@ -159,7 +176,7 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   CHAT_MODEL=gpt-4-turbo
   EOF
   ```
-- However, not every API services support these features by default. For example: `AZURE OpenAI`, you have to configure your GPT model in the `.env` file like this.
+- **Using Azure OpenAI Directly**: You can configure your Azure GPT model in the `.env` file like this.
   ```bash
   cat << EOF  > .env
   USE_AZURE=True
@@ -174,16 +191,6 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   EOF
   ```
 
-- We now support LiteLLM as a backend for integration with multiple LLM providers. If you use LiteLLM Backend to use models, you can configure as follows:
-  ```bash
-  cat << EOF  > .env
-  BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
-  # It can be modified to any model supported by LiteLLM.
-  CHAT_MODEL=gpt-4o
-  EMBEDDING_MODEL=text-embedding-3-small
-  # The backend api_key fully follow the convention of litellm.
-  OPENAI_API_KEY=<replace_with_your_openai_api_key>
-  ```
   
 - For more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html).
 
