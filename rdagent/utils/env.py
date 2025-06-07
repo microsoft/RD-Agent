@@ -778,7 +778,7 @@ class DockerEnv(Env[DockerConf]):
                 else local_cache_path.joinpath("full")
             )
             Path(cache_path).mkdir(parents=True, exist_ok=True)
-            volumes[cache_path] = {"bind": f"/tmp/cache-{os.environ.get('USER')}", "mode": "rw"}
+            volumes[str(cache_path)] = {"bind": f"/tmp/cache-{os.environ.get('USER')}", "mode": "rw"}
         for lp, rp in running_extra_volume.items():
             volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
 
