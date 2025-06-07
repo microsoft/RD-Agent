@@ -47,7 +47,6 @@ class DSHypothesis(Hypothesis):
 
 
 class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
-
     def __init__(self, scen: DataScienceScen, knowledge_base: KnowledgeBase | None = None) -> None:
         self.scen: DataScienceScen = scen
         self.hist: list[tuple[DSExperiment, ExperimentFeedback]] = []
@@ -60,6 +59,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         # () represents no parent; (1,) presents one parent; (1, 2) represents two parents.
 
         self.knowledge_base = knowledge_base
+        self.current_selection: tuple[int, ...] = (-1,)
 
         self.sota_exp_to_submit: DSExperiment | None = None  # grab the global best exp to submit
 
@@ -214,7 +214,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         selection: tuple[int, ...] | None = None,
     ) -> tuple[DSExperiment, ExperimentFeedback] | None:
         """
-
         Returns
         -------
         Experiment or None
