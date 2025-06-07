@@ -15,5 +15,3 @@ class BasePropSetting(ExtendedBaseSettings):
     coder: str = ""
     runner: str = ""
     summarizer: str = ""
-
-    evolving_n: int = 10
