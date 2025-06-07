@@ -19,7 +19,7 @@ import copyreg
 
 # NOTE: Patching! Otherwise, the exception will call the constructor and with following error:
 # `BadRequestError.__init__() missing 2 required positional arguments: 'model' and 'llm_provider'`
-def _reduce_no_init(exc):
+def _reduce_no_init(exc: Exception) -> tuple:
     cls = exc.__class__
     return (cls.__new__, (cls,), exc.__dict__)
 
