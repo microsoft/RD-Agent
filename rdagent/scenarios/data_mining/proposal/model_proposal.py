@@ -50,9 +50,7 @@ class DMModelHypothesisGen(ModelHypothesisGen):
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
             "RAG": None,
-            "hypothesis_output_format": T(
-                "scenarios.data_mining.prompts:hypothesis_output_format"
-            ).r(),
+            "hypothesis_output_format": T("scenarios.data_mining.prompts:hypothesis_output_format").r(),
             "hypothesis_specification": T("scenarios.data_mining.prompts:model_hypothesis_specification").r(),
         }
         return context_dict, True
