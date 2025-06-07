@@ -30,18 +30,16 @@ def extract_models_and_implement(report_file_path: str) -> None:
     Returns:
     None
     """
-    with logger.tag("init"):
-        scenario = GeneralModelScenario()
-        logger.log_object(scenario, tag="scenario")
-    with logger.tag("r"):
+    scenario = GeneralModelScenario()
+    logger.log_object(scenario, tag="scenario")
+    with logger.tag("direct_exp_gen"):
         # Save Relevant Images
         img = extract_first_page_screenshot_from_pdf(report_file_path)
         logger.log_object(img, tag="pdf_image")
         exp = ModelExperimentLoaderFromPDFfiles().load(report_file_path)
         logger.log_object(exp, tag="load_experiment")
-    with logger.tag("d"):
-        exp = QlibModelCoSTEER(scenario).develop(exp)
-        logger.log_object(exp, tag="developed_experiment")
+    exp = QlibModelCoSTEER(scenario).develop(exp)
+    logger.log_object(exp, tag="developed_experiment")
 
 
 if __name__ == "__main__":
