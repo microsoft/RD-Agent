@@ -378,6 +378,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
             volumes[cache_path] = "/tmp/cache"
         for lp, rp in running_extra_volume.items():
             volumes[lp] = rp
+
         for rp, lp in volumes.items():
             link_path = Path(lp)
             real_path = Path(rp)
