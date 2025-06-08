@@ -439,7 +439,7 @@ class DSProposalV1ExpGen(ExpGen):
             raise ValueError(f"Unknown component: {component}")
 
 
-class DSProposalV2ExpGen(ExpGen):
+class DSProposalV2ExpGen(DSProposalV1ExpGen):
     def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
