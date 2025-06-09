@@ -43,17 +43,26 @@ from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils.workflow import wait_retry
 
 
-# Normalize all bind paths in volumes to absolute paths based on a given working directory (mount_path).
-def normalize_volumes(vols: dict, working_dir: str) -> dict:
+# Normalize all bind paths in volumes to absolute paths using the workspace (working_dir).
+def normalize_volumes(vols: dict[str, str] | dict[str, dict[str, str]], working_dir: str) -> dict:
     abs_vols = {}
+    def to_abs(path: str) -> str:
+        # Converts a relative path to an absolute path using the workspace (working_dir).
+        return os.path.abspath(os.path.join(working_dir, path)) if not os.path.isabs(path) else path
+
     for lp, vinfo in vols.items():
-        bind_path = vinfo["bind"]
-        if not os.path.isabs(bind_path):
-            # If bind path is not absolute, treat it as relative to the working dir (mount_path)
-            abs_path = os.path.abspath(os.path.join(working_dir, bind_path))
+        # Support both:
+        # 1. {'host_path': {'bind': 'container_path', ...}}
+        # 2. {'host_path': 'container_path'}
+        if isinstance(vinfo, dict):
+            bind_path = vinfo["bind"]
+            abs_bind_path = to_abs(bind_path)
             vinfo = vinfo.copy()
-            vinfo["bind"] = abs_path
-        abs_vols[lp] = vinfo
+            vinfo["bind"] = abs_bind_path
+            abs_vols[lp] = vinfo
+        else:
+            bind_path = vinfo
+            abs_vols[lp] = to_abs(bind_path)
     return abs_vols
 
 
@@ -464,6 +473,13 @@ class LocalEnv(Env[ASpecificLocalConf]):
             # Setup polling
             if process.stdout is None or process.stderr is None:
                 raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
+
+            stdout_fd = process.stdout.fileno()
+            stderr_fd = process.stderr.fileno()
+
+            poller = select.poll()
+            poller.register(stdout_fd, select.POLLIN)
+            poller.register(stderr_fd, select.POLLIN)
 
             combined_output = ""
             while True:
