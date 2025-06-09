@@ -247,7 +247,10 @@ class DataScienceRDLoop(RDLoop):
             for workspace_id in Path(RD_AGENT_SETTINGS.workspace_path).iterdir():
                 for file_and_folder in workspace_id.iterdir():
                     if file_and_folder.is_dir():
-                        shutil.rmtree(file_and_folder)
+                        if file_and_folder.is_symlink():
+                            file_and_folder.unlink()
+                        else:
+                            shutil.rmtree(file_and_folder)
                     elif file_and_folder.is_file() and file_and_folder.suffix not in [".py", ".md", ".csv"]:
                         file_and_folder.unlink()
 
