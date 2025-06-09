@@ -671,7 +671,7 @@ class DSProposalV2ExpGen(ExpGen):
         failed_exp_feedback_list_desc: str,
     ) -> DSExperiment:
         if pipeline:
-            component_info = COMPONENT_TASK_MAPPING["Pipeline"]
+            component_info = get_component("Pipeline")
         else:
             component_info = get_component(hypothesis.component)
         if pipeline:
@@ -963,7 +963,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         failed_exp_feedback_list_desc: str,
     ) -> DSExperiment:
         if pipeline:
-            component_info = COMPONENT_TASK_MAPPING["Pipeline"]
+            component_info = get_component("Pipeline")
         else:
             component_info = get_component(hypotheses[0].component)
         data_folder_info = self.scen.processed_data_folder_description
