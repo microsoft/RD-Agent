@@ -228,10 +228,11 @@ class Env(Generic[ASpecificEnvConf]):
                 "the last command in the pipeline.",
             )
 
+        # FIXME: the input path and cache path is hard coded here.
         entry_add_timeout = (
             f"/bin/sh -c 'timeout --kill-after=10 {self.conf.running_timeout_period} {entry}; "
             + "entry_exit_code=$?; "
-            + (f"chmod -R 777 {self.conf.mount_path}; " if hasattr(self.conf, "mount_path") else "")
+            + (f"chmod -R 777 $(find {self.conf.mount_path} -type d ! -name 'cache' ! -name 'input' -print); " if hasattr(self.conf, "mount_path") else "")
             + "exit $entry_exit_code'"
         )
 
