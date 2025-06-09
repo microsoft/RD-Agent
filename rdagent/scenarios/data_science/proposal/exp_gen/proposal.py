@@ -24,7 +24,6 @@ from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
 
-
 _COMPONENT_META: Dict[str, Dict[str, Any]] = {
     "DataLoadSpec": {
         "target_name": "Data loader and specification generation",
