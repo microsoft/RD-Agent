@@ -52,12 +52,16 @@ class EnvUtils(unittest.TestCase):
         self.assertTrue(mlrun_p.exists(), f"Expected output file {mlrun_p} not found")
 
     def test_local_simple(self):
-        local_conf = LocalConf(bin_path="/home/xiaoyang/miniconda3/bin/", default_entry="which python")
-        le = LocalEnv(conf=local_conf)
-        print(local_conf)
-        le.prepare()
         code_path = DIRNAME / "tmp_code"
         code_path.mkdir(exist_ok=True)
+        # Get user home dynamically
+        home_bin = str(Path.home() / "miniconda3/bin/")
+        local_conf = LocalConf(bin_path=home_bin, default_entry="which python")
+
+        local_conf.extra_volumes = {str(code_path): "./code"}
+        print(local_conf)
+        le = LocalEnv(conf=local_conf)
+        le.prepare()
         res, code = le.run_ret_code(local_path=str(code_path))
         print(res, code)
 
