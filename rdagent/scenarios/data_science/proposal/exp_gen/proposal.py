@@ -25,43 +25,57 @@ from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
 
 
-COMPONENT_TASK_MAPPING = {
+_COMPONENT_META: Dict[str, Dict[str, Any]] = {
     "DataLoadSpec": {
         "target_name": "Data loader and specification generation",
         "spec_file": "spec/data_loader.md",
-        "task_output_format": T(".prompts:output_format.data_loader").r(),
+        "output_format_key": ".prompts:output_format.data_loader",
         "task_class": DataLoaderTask,
     },
     "FeatureEng": {
         "target_name": "Feature engineering",
         "spec_file": "spec/feature.md",
-        "task_output_format": T(".prompts:output_format.feature").r(),
+        "output_format_key": ".prompts:output_format.feature",
         "task_class": FeatureTask,
     },
     "Model": {
         "target_name": "Model",
         "spec_file": "spec/model.md",
-        "task_output_format": T(".prompts:output_format.model").r(),
+        "output_format_key": ".prompts:output_format.model",
         "task_class": ModelTask,
     },
     "Ensemble": {
         "target_name": "Ensemble",
         "spec_file": "spec/ensemble.md",
-        "task_output_format": T(".prompts:output_format.ensemble").r(),
+        "output_format_key": ".prompts:output_format.ensemble",
         "task_class": EnsembleTask,
     },
     "Workflow": {
         "target_name": "Workflow",
         "spec_file": "spec/workflow.md",
-        "task_output_format": T(".prompts:output_format.workflow").r(),
+        "output_format_key": ".prompts:output_format.workflow",
         "task_class": WorkflowTask,
     },
     "Pipeline": {
         "target_name": "Pipeline",
-        "task_output_format": T(".prompts:output_format.pipeline").r(),
+        "spec_file": None,
+        "output_format_key": ".prompts:output_format.pipeline",
         "task_class": PipelineTask,
     },
 }
+
+
+def get_component(name: str) -> Dict[str, Any]:
+    meta = _COMPONENT_META.get(name)
+    if meta is None:
+        raise KeyError(f"Unknown component: {name!r}")
+
+    return {
+        "target_name": meta["target_name"],
+        "spec_file": meta["spec_file"],
+        "task_output_format": T(meta["output_format_key"]).r(),
+        "task_class": meta["task_class"],
+    }
 
 
 class ScenarioChallengeCategory(str, Enum):
@@ -353,7 +367,7 @@ class DSProposalV1ExpGen(ExpGen):
         # - after we know the selected component, we can use RAG.
 
         # Step 2: Generate the rest of the hypothesis & task
-        component_info = self.COMPONENT_TASK_MAPPING.get(component)
+        component_info = get_component(component)
 
         if component_info:
             if DS_RD_SETTING.spec_enabled:
@@ -658,9 +672,9 @@ class DSProposalV2ExpGen(ExpGen):
         failed_exp_feedback_list_desc: str,
     ) -> DSExperiment:
         if pipeline:
-            component_info = self.COMPONENT_TASK_MAPPING["Pipeline"]
+            component_info = COMPONENT_TASK_MAPPING["Pipeline"]
         else:
-            component_info = self.COMPONENT_TASK_MAPPING.get(hypothesis.component)
+            component_info = get_component(hypothesis.component)
         if pipeline:
             task_spec = T(f"scenarios.data_science.share:component_spec.Pipeline").r()
         elif DS_RD_SETTING.spec_enabled and sota_exp is not None:
@@ -950,9 +964,9 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         failed_exp_feedback_list_desc: str,
     ) -> DSExperiment:
         if pipeline:
-            component_info = self.COMPONENT_TASK_MAPPING["Pipeline"]
+            component_info = COMPONENT_TASK_MAPPING["Pipeline"]
         else:
-            component_info = self.COMPONENT_TASK_MAPPING.get(hypotheses[0].component)
+            component_info = get_component(hypotheses[0].component)
         data_folder_info = self.scen.processed_data_folder_description
         sys_prompt = T(".prompts_v3:task_gen.system").r(
             # targets=component_info["target_name"],
