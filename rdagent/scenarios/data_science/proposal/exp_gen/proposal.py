@@ -25,6 +25,45 @@ from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
 
 
+COMPONENT_TASK_MAPPING = {
+    "DataLoadSpec": {
+        "target_name": "Data loader and specification generation",
+        "spec_file": "spec/data_loader.md",
+        "task_output_format": T(".prompts:output_format.data_loader").r(),
+        "task_class": DataLoaderTask,
+    },
+    "FeatureEng": {
+        "target_name": "Feature engineering",
+        "spec_file": "spec/feature.md",
+        "task_output_format": T(".prompts:output_format.feature").r(),
+        "task_class": FeatureTask,
+    },
+    "Model": {
+        "target_name": "Model",
+        "spec_file": "spec/model.md",
+        "task_output_format": T(".prompts:output_format.model").r(),
+        "task_class": ModelTask,
+    },
+    "Ensemble": {
+        "target_name": "Ensemble",
+        "spec_file": "spec/ensemble.md",
+        "task_output_format": T(".prompts:output_format.ensemble").r(),
+        "task_class": EnsembleTask,
+    },
+    "Workflow": {
+        "target_name": "Workflow",
+        "spec_file": "spec/workflow.md",
+        "task_output_format": T(".prompts:output_format.workflow").r(),
+        "task_class": WorkflowTask,
+    },
+    "Pipeline": {
+        "target_name": "Pipeline",
+        "task_output_format": T(".prompts:output_format.pipeline").r(),
+        "task_class": PipelineTask,
+    },
+}
+
+
 class ScenarioChallengeCategory(str, Enum):
     DATASET_DRIVEN = "dataset-driven"
     DOMAIN_INFORMED = "domain-informed"
@@ -233,43 +272,6 @@ def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None | DSDraft
 
 
 class DSProposalV1ExpGen(ExpGen):
-    COMPONENT_TASK_MAPPING = {
-        "DataLoadSpec": {
-            "target_name": "Data loader and specification generation",
-            "spec_file": "spec/data_loader.md",
-            "task_output_format": T(".prompts:output_format.data_loader").r(),
-            "task_class": DataLoaderTask,
-        },
-        "FeatureEng": {
-            "target_name": "Feature engineering",
-            "spec_file": "spec/feature.md",
-            "task_output_format": T(".prompts:output_format.feature").r(),
-            "task_class": FeatureTask,
-        },
-        "Model": {
-            "target_name": "Model",
-            "spec_file": "spec/model.md",
-            "task_output_format": T(".prompts:output_format.model").r(),
-            "task_class": ModelTask,
-        },
-        "Ensemble": {
-            "target_name": "Ensemble",
-            "spec_file": "spec/ensemble.md",
-            "task_output_format": T(".prompts:output_format.ensemble").r(),
-            "task_class": EnsembleTask,
-        },
-        "Workflow": {
-            "target_name": "Workflow",
-            "spec_file": "spec/workflow.md",
-            "task_output_format": T(".prompts:output_format.workflow").r(),
-            "task_class": WorkflowTask,
-        },
-        "Pipeline": {
-            "target_name": "Pipeline",
-            "task_output_format": T(".prompts:output_format.pipeline").r(),
-            "task_class": PipelineTask,
-        },
-    }
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         # Drafting Stage
@@ -439,7 +441,7 @@ class DSProposalV1ExpGen(ExpGen):
             raise ValueError(f"Unknown component: {component}")
 
 
-class DSProposalV2ExpGen(DSProposalV1ExpGen):
+class DSProposalV2ExpGen(ExpGen):
     def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
