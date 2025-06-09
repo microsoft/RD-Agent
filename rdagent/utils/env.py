@@ -10,6 +10,7 @@ Tries to create uniform environment for the agent to run;
 import json
 import os
 import pickle
+import contextlib
 import re
 import select
 import shutil
@@ -40,6 +41,20 @@ from rdagent.core.experiment import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils.workflow import wait_retry
+
+
+# Normalize all bind paths in volumes to absolute paths based on a given working directory (mount_path).
+def normalize_volumes(vols: dict, working_dir: str) -> dict:
+    abs_vols = {}
+    for lp, vinfo in vols.items():
+        bind_path = vinfo["bind"]
+        if not os.path.isabs(bind_path):
+            # If bind path is not absolute, treat it as relative to the working dir (mount_path)
+            abs_path = os.path.abspath(os.path.join(working_dir, bind_path))
+            vinfo = vinfo.copy()
+            vinfo["bind"] = abs_path
+        abs_vols[lp] = vinfo
+    return abs_vols
 
 
 def pull_image_with_progress(image: str) -> None:
@@ -375,96 +390,113 @@ class LocalEnv(Env[ASpecificLocalConf]):
                 volumes[lp] = rp
             cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
-            volumes[cache_path] = "/tmp/cache"
+            volumes[cache_path] = "./cache"
         for lp, rp in running_extra_volume.items():
             volumes[lp] = rp
 
-        for rp, lp in volumes.items():
-            link_path = Path(lp)
-            real_path = Path(rp)
-            if not link_path.parent.exists():
-                link_path.parent.mkdir(parents=True, exist_ok=True)
-            if link_path.exists() or link_path.is_symlink():
-                link_path.unlink()
-            link_path.symlink_to(real_path)
+        assert local_path is not None, "local_path should not be None"
+        volumes = normalize_volumes(volumes, local_path)
 
-        # Setup environment
-        if env is None:
-            env = {}
-        path = [*self.conf.bin_path.split(":"), "/bin/", "/usr/bin/", *env.get("PATH", "").split(":")]
-        env["PATH"] = ":".join(path)
+        @contextlib.contextmanager
+        def _symlink_ctx(vol_map: Mapping[str, str]):
+            created_links: list[Path] = []
+            try:
+                for real, link in vol_map.items():
+                    link_path = Path(link)
+                    real_path = Path(real)
+                    if not link_path.parent.exists():
+                        link_path.parent.mkdir(parents=True, exist_ok=True)
+                    if link_path.exists() or link_path.is_symlink():
+                        link_path.unlink()
+                    link_path.symlink_to(real_path)
+                    created_links.append(link_path)
+                yield
+            finally:
+                for p in created_links:
+                    try:
+                        if p.is_symlink() or p.exists():
+                            p.unlink()
+                    except FileNotFoundError:
+                        pass
 
-        if entry is None:
-            entry = self.conf.default_entry
+        with _symlink_ctx(volumes):
+            # Setup environment
+            if env is None:
+                env = {}
+            path = [*self.conf.bin_path.split(":"), "/bin/", "/usr/bin/", *env.get("PATH", "").split(":")]
+            env["PATH"] = ":".join(path)
 
-        print(Rule("[bold green]LocalEnv Logs Begin[/bold green]", style="dark_orange"))
-        table = Table(title="Run Info", show_header=False)
-        table.add_column("Key", style="bold cyan")
-        table.add_column("Value", style="bold magenta")
-        table.add_row("Entry", entry)
-        table.add_row("Local Path", local_path or "")
-        table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
-        table.add_row("Volumes", "\n".join(f"{k}:{v}" for k, v in volumes.items()))
-        print(table)
+            if entry is None:
+                entry = self.conf.default_entry
 
-        cwd = Path(local_path).resolve() if local_path else None
-        env = {k: str(v) if isinstance(v, int) else v for k, v in env.items()}
+            print(Rule("[bold green]LocalEnv Logs Begin[/bold green]", style="dark_orange"))
+            table = Table(title="Run Info", show_header=False)
+            table.add_column("Key", style="bold cyan")
+            table.add_column("Value", style="bold magenta")
+            table.add_row("Entry", entry)
+            table.add_row("Local Path", local_path or "")
+            table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
+            table.add_row("Volumes", "\n".join(f"{k}:{v}" for k, v in volumes.items()))
+            print(table)
 
-        process = subprocess.Popen(
-            entry,
-            cwd=cwd,
-            env={**os.environ, **env},
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            shell=True,
-            bufsize=1,
-            universal_newlines=True,
-        )
+            cwd = Path(local_path).resolve() if local_path else None
+            env = {k: str(v) if isinstance(v, int) else v for k, v in env.items()}
 
-        # Setup polling
-        if process.stdout is None or process.stderr is None:
-            raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
+            process = subprocess.Popen(
+                entry,
+                cwd=cwd,
+                env={**os.environ, **env},
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                shell=True,
+                bufsize=1,
+                universal_newlines=True,
+            )
 
-        stdout_fd = process.stdout.fileno()
-        stderr_fd = process.stderr.fileno()
+            # Setup polling
+            if process.stdout is None or process.stderr is None:
+                raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
 
-        poller = select.poll()
-        poller.register(stdout_fd, select.POLLIN)
-        poller.register(stderr_fd, select.POLLIN)
+            stdout_fd = process.stdout.fileno()
+            stderr_fd = process.stderr.fileno()
 
-        combined_output = ""
-        while True:
-            if process.poll() is not None:
-                break
-            events = poller.poll(100)
-            for fd, event in events:
-                if event & select.POLLIN:
-                    if fd == stdout_fd:
-                        output = process.stdout.readline()
-                        if output:
-                            Console().print(output.strip(), markup=False)
-                            combined_output += output
-                    elif fd == stderr_fd:
-                        chunk = os.read(stderr_fd, 4096)
-                        if chunk:
-                            error = chunk.decode(errors="replace")
-                            Console().print(error, end="", markup=False)
-                            combined_output += error
+            poller = select.poll()
+            poller.register(stdout_fd, select.POLLIN)
+            poller.register(stderr_fd, select.POLLIN)
 
-        # Capture any final output
-        remaining_output, remaining_error = process.communicate()
-        if remaining_output:
-            Console().print(remaining_output.strip(), markup=False)
-            combined_output += remaining_output
-        if remaining_error:
-            Console().print(remaining_error.strip(), markup=False)
-            combined_output += remaining_error
+            combined_output = ""
+            while True:
+                if process.poll() is not None:
+                    break
+                events = poller.poll(100)
+                for fd, event in events:
+                    if event & select.POLLIN:
+                        if fd == stdout_fd:
+                            output = process.stdout.readline()
+                            if output:
+                                Console().print(output.strip(), markup=False)
+                                combined_output += output
+                        elif fd == stderr_fd:
+                            chunk = os.read(stderr_fd, 4096)
+                            if chunk:
+                                error = chunk.decode(errors="replace")
+                                Console().print(error, end="", markup=False)
+                                combined_output += error
 
-        return_code = process.returncode
-        print(Rule("[bold green]LocalEnv Logs End[/bold green]", style="dark_orange"))
+            # Capture any final output
+            remaining_output, remaining_error = process.communicate()
+            if remaining_output:
+                Console().print(remaining_output.strip(), markup=False)
+                combined_output += remaining_output
+            if remaining_error:
+                Console().print(remaining_error.strip(), markup=False)
+                combined_output += remaining_error
 
-        return combined_output, return_code
+            return_code = process.returncode
+            print(Rule("[bold green]LocalEnv Logs End[/bold green]", style="dark_orange"))
+
+            return combined_output, return_code
 
 
 class CondaConf(LocalConf):
@@ -767,9 +799,11 @@ class DockerEnv(Env[DockerConf]):
                 volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
             cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
-            volumes[cache_path] = {"bind": "/tmp/cache", "mode": "rw"}
+            volumes[cache_path] = {"bind": "./cache", "mode": "rw"}
         for lp, rp in running_extra_volume.items():
             volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
+
+        volumes = normalize_volumes(volumes, self.conf.mount_path)
 
         log_output = ""
 
