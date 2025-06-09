@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Literal
+from typing import List, Literal
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.evolving_framework import KnowledgeBase
@@ -47,7 +47,6 @@ class DSHypothesis(Hypothesis):
 
 
 class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
-
     def __init__(self, scen: DataScienceScen, knowledge_base: KnowledgeBase | None = None) -> None:
         self.scen: DataScienceScen = scen
         self.hist: list[tuple[DSExperiment, ExperimentFeedback]] = []
@@ -60,7 +59,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         # () represents no parent; (1,) presents one parent; (1, 2) represents two parents.
 
         self.knowledge_base = knowledge_base
-
         self.current_selection: tuple[int, ...] = (-1,)
 
         self.sota_exp_to_submit: DSExperiment | None = None  # grab the global best exp to submit
@@ -69,12 +67,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
     def set_sota_exp_to_submit(self, exp: DSExperiment) -> None:
         self.sota_exp_to_submit = exp
-
-    def get_current_selection(self) -> tuple[int, ...]:
-        return self.current_selection
-
-    def set_current_selection(self, selection: tuple[int, ...]) -> None:
-        self.current_selection = selection
 
     @property
     def sub_trace_count(self) -> int:
@@ -144,15 +136,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             return self.hist
 
         elif search_type == "ancestors":
-
-            if selection is None:
-                selection = self.get_current_selection()
-
-            if len(selection) == 0:
-                # selection is (), which means we switch to a new trace
-                return []
-
-            return self.collect_all_ancestors(selection)
+            return self.get_parent_exps(selection)
 
         else:
             raise ValueError(f"Invalid search type: {search_type}")
@@ -218,15 +202,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
                 return True
         return False
 
-    def _filter_search_list_with_max_retrieve_num(
-        self,
-        search_list: list[tuple[DSExperiment, ExperimentFeedback]],
-        max_retrieve_num: int | None = None,
-    ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
-        if max_retrieve_num is not None and len(search_list) > 0:
-            retrieve_num = min(max_retrieve_num, len(search_list))
-            search_list = search_list[-retrieve_num:]
-        return search_list
 
     def experiment_and_feedback_list_after_init(
         self,
@@ -239,7 +214,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         Retrieve a list of experiments and feedbacks based on the return_type.
         """
         search_list = self.retrieve_search_list(search_type, selection=selection)
-
         final_component = self.COMPLETE_ORDER[-1]
         has_final_component = True if DS_RD_SETTING.coder_on_whole_pipeline else False
         SOTA_exp_and_feedback_list = []
@@ -253,21 +227,22 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
                     failed_exp_and_feedback_list.append((exp, fb))
             if exp.hypothesis.component == final_component and fb:
                 has_final_component = True
+        if max_retrieve_num is not None and (SOTA_exp_and_feedback_list or failed_exp_and_feedback_list):
+            SOTA_exp_and_feedback_list = SOTA_exp_and_feedback_list[
+                -min(max_retrieve_num, len(SOTA_exp_and_feedback_list)) :
+            ]
+            failed_exp_and_feedback_list = failed_exp_and_feedback_list[
+                -min(max_retrieve_num, len(failed_exp_and_feedback_list)) :
+            ]
         if return_type == "all":
-            result = SOTA_exp_and_feedback_list + failed_exp_and_feedback_list
-            result = self._filter_search_list_with_max_retrieve_num(result, max_retrieve_num)
-            return result
-
+            return SOTA_exp_and_feedback_list + failed_exp_and_feedback_list
         elif return_type == "failed":
-            result = failed_exp_and_feedback_list
-            result = self._filter_search_list_with_max_retrieve_num(result, max_retrieve_num)
-            return result
+            return failed_exp_and_feedback_list
         elif return_type == "sota":
-            result = SOTA_exp_and_feedback_list
-            result = self._filter_search_list_with_max_retrieve_num(result, max_retrieve_num)
-            return result
+            return SOTA_exp_and_feedback_list
         else:
             raise ValueError("Invalid return_type. Must be 'sota', 'failed', or 'all'.")
+
 
     def sota_experiment_fb(
         self,
@@ -275,7 +250,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         selection: tuple[int, ...] | None = None,
     ) -> tuple[DSExperiment, ExperimentFeedback] | None:
         """
-
         Returns
         -------
         Experiment or None

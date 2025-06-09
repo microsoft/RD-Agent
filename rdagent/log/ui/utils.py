@@ -197,7 +197,7 @@ def load_times(log_path: Path):
         max_step = max(int(p.name.split("_")[0]) for p in (session_path / str(max_li)).iterdir() if p.is_file())
         rdloop_obj_p = next((session_path / str(max_li)).glob(f"{max_step}_*"))
 
-        rd_times = DataScienceRDLoop.load(rdloop_obj_p, do_truncate=False).loop_trace
+        rd_times = DataScienceRDLoop.load(rdloop_obj_p).loop_trace
     except Exception as e:
         rd_times = {}
     return rd_times

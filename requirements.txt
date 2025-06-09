@@ -13,6 +13,7 @@ azure.identity
 pyarrow
 rich
 tqdm
+typer
 
 numpy # we use numpy as default data format. So we have to install numpy
 pandas # we use pandas as default data format. So we have to install pandas
@@ -43,6 +44,9 @@ docker
 streamlit
 plotly
 st-theme
+randomname
+flask
+flask-cors
 
 # kaggle crawler
 selenium

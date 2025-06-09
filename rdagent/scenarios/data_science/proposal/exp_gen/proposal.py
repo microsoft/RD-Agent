@@ -1,7 +1,6 @@
 import json
-import pprint
 from enum import Enum
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -222,45 +221,6 @@ class CodingSketch(BaseModel):
     )
 
 
-COMPONENT_TASK_MAPPING = {
-    "DataLoadSpec": {
-        "target_name": "Data loader and specification generation",
-        "spec_file": "spec/data_loader.md",
-        "task_output_format": T(".prompts:output_format.data_loader").r(),
-        "task_class": DataLoaderTask,
-    },
-    "FeatureEng": {
-        "target_name": "Feature engineering",
-        "spec_file": "spec/feature.md",
-        "task_output_format": T(".prompts:output_format.feature").r(),
-        "task_class": FeatureTask,
-    },
-    "Model": {
-        "target_name": "Model",
-        "spec_file": "spec/model.md",
-        "task_output_format": T(".prompts:output_format.model").r(),
-        "task_class": ModelTask,
-    },
-    "Ensemble": {
-        "target_name": "Ensemble",
-        "spec_file": "spec/ensemble.md",
-        "task_output_format": T(".prompts:output_format.ensemble").r(),
-        "task_class": EnsembleTask,
-    },
-    "Workflow": {
-        "target_name": "Workflow",
-        "spec_file": "spec/workflow.md",
-        "task_output_format": T(".prompts:output_format.workflow").r(),
-        "task_class": WorkflowTask,
-    },
-    "Pipeline": {
-        "target_name": "Pipeline",
-        "task_output_format": T(".prompts:output_format.pipeline").r(),
-        "task_class": PipelineTask,
-    },
-}
-
-
 def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None | DSDraftExpGen:
     next_missing_component = trace.next_incomplete_component()
     if next_missing_component is not None:
@@ -273,6 +233,44 @@ def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None | DSDraft
 
 
 class DSProposalV1ExpGen(ExpGen):
+    COMPONENT_TASK_MAPPING = {
+        "DataLoadSpec": {
+            "target_name": "Data loader and specification generation",
+            "spec_file": "spec/data_loader.md",
+            "task_output_format": T(".prompts:output_format.data_loader").r(),
+            "task_class": DataLoaderTask,
+        },
+        "FeatureEng": {
+            "target_name": "Feature engineering",
+            "spec_file": "spec/feature.md",
+            "task_output_format": T(".prompts:output_format.feature").r(),
+            "task_class": FeatureTask,
+        },
+        "Model": {
+            "target_name": "Model",
+            "spec_file": "spec/model.md",
+            "task_output_format": T(".prompts:output_format.model").r(),
+            "task_class": ModelTask,
+        },
+        "Ensemble": {
+            "target_name": "Ensemble",
+            "spec_file": "spec/ensemble.md",
+            "task_output_format": T(".prompts:output_format.ensemble").r(),
+            "task_class": EnsembleTask,
+        },
+        "Workflow": {
+            "target_name": "Workflow",
+            "spec_file": "spec/workflow.md",
+            "task_output_format": T(".prompts:output_format.workflow").r(),
+            "task_class": WorkflowTask,
+        },
+        "Pipeline": {
+            "target_name": "Pipeline",
+            "task_output_format": T(".prompts:output_format.pipeline").r(),
+            "task_class": PipelineTask,
+        },
+    }
+
     def gen(self, trace: DSTrace) -> DSExperiment:
         # Drafting Stage
         if draft_exp := draft_exp_in_decomposition(self.scen, trace):
@@ -353,7 +351,7 @@ class DSProposalV1ExpGen(ExpGen):
         # - after we know the selected component, we can use RAG.
 
         # Step 2: Generate the rest of the hypothesis & task
-        component_info = COMPONENT_TASK_MAPPING.get(component)
+        component_info = self.COMPONENT_TASK_MAPPING.get(component)
 
         if component_info:
             if DS_RD_SETTING.spec_enabled:
@@ -524,6 +522,8 @@ class DSProposalV2ExpGen(ExpGen):
     ) -> Dict:
         problem_formatted_str = ""
         for problem_name, problem_dict in problems.items():
+            if "problem" not in problem_dict:
+                continue
             problem_formatted_str += f"Problem Name: {problem_name}\n"
             problem_formatted_str += f"- Problem Description: {problem_dict['problem']}\n"
             if "idea" in problem_dict:
@@ -557,13 +557,12 @@ class DSProposalV2ExpGen(ExpGen):
         resp_dict = json.loads(response)
         return resp_dict
 
-    def hypothesis_rank(
+    def compute_top_scores(
         self,
         hypothesis_dict: dict,
-        problem_dict: dict,
-    ) -> Tuple[str, DSHypothesis]:
+    ) -> pd.Series:
         """
-        This function depends on the `identify_problem` function.
+        Compute weighted total scores for each hypothesis and return the top five.
         """
         weights = {
             "alignment_score": 0.2,
@@ -590,8 +589,19 @@ class DSProposalV2ExpGen(ExpGen):
 
         scores = pd.DataFrame(scores_dict)
         scores_sorted = scores.sum().sort_values(ascending=False)
-        scores_sorted = scores_sorted[:5]  # Select top 5 hypotheses
+        return scores_sorted[:5]
 
+    def select_hypothesis(
+        self,
+        scores_sorted: pd.Series,
+        hypothesis_dict: dict,
+        problem_dict: dict,
+    ) -> int:
+        """
+        From the top five hypotheses (by weighted score), select one based on additional weighting rules
+        for 'inspired' flag and 'SCENARIO_PROBLEM' label. Returns the chosen hypothesis name and a
+        DSHypothesis instance.
+        """
         # Increase the weight of the hypothesis that is inspired by the idea pool to 3x.
         # Linear decay the weight of the scenario problem from 3x to 0x.
         index_to_pick_pool_list = []
@@ -608,7 +618,21 @@ class DSProposalV2ExpGen(ExpGen):
         reproducible_int = int.from_bytes(bytes.fromhex(md5_hash(scores_sorted.to_string())), byteorder="big") % len(
             index_to_pick_pool_list
         )
-        selected_idx = index_to_pick_pool_list[reproducible_int]
+        return index_to_pick_pool_list[reproducible_int]
+
+    def hypothesis_rank(
+        self, hypothesis_dict: dict, problem_dict: dict, selected_idx: Optional[int] = None
+    ) -> Tuple[str, DSHypothesis]:
+        """
+        Wrapper method that computes the top five hypotheses by weighted scoring and then selects one
+        according to additional weighting rules.
+        """
+        scores_sorted = self.compute_top_scores(hypothesis_dict)
+        if selected_idx is None:
+            selected_idx = self.select_hypothesis(
+                scores_sorted=scores_sorted, hypothesis_dict=hypothesis_dict, problem_dict=problem_dict
+            )
+
         max_score_problem_name = scores_sorted.index[selected_idx]
         problem_dict = problem_dict.get(max_score_problem_name, {})
 
@@ -632,9 +656,9 @@ class DSProposalV2ExpGen(ExpGen):
         failed_exp_feedback_list_desc: str,
     ) -> DSExperiment:
         if pipeline:
-            component_info = COMPONENT_TASK_MAPPING["Pipeline"]
+            component_info = self.COMPONENT_TASK_MAPPING["Pipeline"]
         else:
-            component_info = COMPONENT_TASK_MAPPING.get(hypothesis.component)
+            component_info = self.COMPONENT_TASK_MAPPING.get(hypothesis.component)
         if pipeline:
             task_spec = T(f"scenarios.data_science.share:component_spec.Pipeline").r()
         elif DS_RD_SETTING.spec_enabled and sota_exp is not None:
@@ -737,7 +761,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         # Step 1: Identify problems
         all_problems = self.identify_problem(
-            current_sub_trace=trace.collect_all_ancestors(),
+            current_sub_trace=trace.get_parent_exps(),
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
@@ -924,9 +948,9 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         failed_exp_feedback_list_desc: str,
     ) -> DSExperiment:
         if pipeline:
-            component_info = COMPONENT_TASK_MAPPING["Pipeline"]
+            component_info = self.COMPONENT_TASK_MAPPING["Pipeline"]
         else:
-            component_info = COMPONENT_TASK_MAPPING.get(hypotheses[0].component)
+            component_info = self.COMPONENT_TASK_MAPPING.get(hypotheses[0].component)
         data_folder_info = self.scen.processed_data_folder_description
         sys_prompt = T(".prompts_v3:task_gen.system").r(
             # targets=component_info["target_name"],
