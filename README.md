@@ -168,31 +168,7 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   REASONING_THINK_RM=True
   ```
 
-- **Using OpenAI API Directly**: If you are using the `OpenAI API`, you can configure your GPT model in the `.env` file like this without setting LiteLLM Backend.
-  ```bash
-  cat << EOF  > .env
-  OPENAI_API_KEY=<replace_with_your_openai_api_key>
-  # EMBEDDING_MODEL=text-embedding-3-small
-  CHAT_MODEL=gpt-4-turbo
-  EOF
-  ```
-- **Using Azure OpenAI Directly**: You can configure your Azure GPT model in the `.env` file like this.
-  ```bash
-  cat << EOF  > .env
-  USE_AZURE=True
-  EMBEDDING_OPENAI_API_KEY=<replace_with_your_azure_openai_api_key>
-  EMBEDDING_AZURE_API_BASE=<replace_with_your_azure_endpoint>
-  EMBEDDING_AZURE_API_VERSION=<replace_with_the_version_of_your_azure_openai_api>
-  EMBEDDING_MODEL=text-embedding-3-small
-  CHAT_OPENAI_API_KEY=<replace_with_your_azure_openai_api_key>
-  CHAT_AZURE_API_BASE=<replace_with_your_azure_endpoint>
-  CHAT_AZURE_API_VERSION=<replace_with_the_version_of_your_azure_openai_api>
-  CHAT_MODEL=<replace_it_with_the_name_of_your_azure_chat_model>
-  EOF
-  ```
-
-  
-- For more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html).
+- You can also use a deprecated backend if you only use `OpenAI API` or `Azure OpenAI` directly. For this deprecated setting and more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html).
 
 ### 🚀 Run the Application
 
