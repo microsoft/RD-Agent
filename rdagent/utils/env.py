@@ -440,13 +440,17 @@ class LocalEnv(Env[ASpecificLocalConf]):
             for fd, event in events:
                 if event & select.POLLIN:
                     if fd == stdout_fd:
-                        output = process.stdout.readline()
-                        if output:
+                        while True:
+                            output = process.stdout.readline()
+                            if output == "":
+                                break
                             Console().print(output.strip(), markup=False)
                             combined_output += output
                     elif fd == stderr_fd:
-                        error = process.stderr.readline()
-                        if error:
+                        while True:
+                            error = process.stderr.readline()
+                            if error == "":
+                                break
                             Console().print(error.strip(), markup=False)
                             combined_output += error
 
@@ -537,11 +541,7 @@ class QlibCondaEnv(LocalEnv[QlibCondaConf]):
                     shell=True,
                 )
                 subprocess.check_call(
-                    f"conda run -n {self.conf.conda_env_name} rm -rf qlib; git clone https://github.com/microsoft/qlib.git",
-                    shell=True,
-                )
-                subprocess.check_call(
-                    f"conda run -n {self.conf.conda_env_name} bash -c 'cd qlib && git reset --hard 3e72593b8c985f01979bebcf646658002ac43b00 && make dev .'",
+                    f"conda run -n {self.conf.conda_env_name} pip install git+https://github.com/microsoft/qlib.git@3e72593b8c985f01979bebcf646658002ac43b00",
                     shell=True,
                 )
                 subprocess.check_call(
