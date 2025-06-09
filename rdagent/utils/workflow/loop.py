@@ -280,7 +280,7 @@ class LoopBase:
                 else:
                     # await the step; parallel running happens here!
                     # Only trigger subprocess if we have more than one process.
-                    await self._run_step(li, force_subproc=RD_AGENT_SETTINGS.get_max_parallel() > 1)
+                    await self._run_step(li, force_subproc=RD_AGENT_SETTINGS.is_force_subproc())
 
     async def run(self, step_n: int | None = None, loop_n: int | None = None, all_duration: str | None = None) -> None:
         """Run the workflow loop.

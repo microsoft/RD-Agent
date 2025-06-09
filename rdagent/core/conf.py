@@ -90,5 +90,11 @@ class RDAgentSettings(ExtendedBaseSettings):
         else:
             return max(self.step_semaphore.values())
 
+    # NOTE: for debug
+    # the following function only serves as debugging and is necessary in main logic.
+    subproc_step: bool = False
+    def is_force_subproc(self) -> bool:
+        return self.subproc_step or self.get_max_parallel() > 1
+
 
 RD_AGENT_SETTINGS = RDAgentSettings()
