@@ -458,13 +458,6 @@ class LocalEnv(Env[ASpecificLocalConf]):
             if process.stdout is None or process.stderr is None:
                 raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
 
-            stdout_fd = process.stdout.fileno()
-            stderr_fd = process.stderr.fileno()
-
-            poller = select.poll()
-            poller.register(stdout_fd, select.POLLIN)
-            poller.register(stderr_fd, select.POLLIN)
-
             combined_output = ""
             while True:
                 if process.poll() is not None:
@@ -473,15 +466,18 @@ class LocalEnv(Env[ASpecificLocalConf]):
                 for fd, event in events:
                     if event & select.POLLIN:
                         if fd == stdout_fd:
-                            output = process.stdout.readline()
-                            if output:
+                            while True:
+                                output = process.stdout.readline()
+                                if output == "":
+                                    break
                                 Console().print(output.strip(), markup=False)
                                 combined_output += output
                         elif fd == stderr_fd:
-                            chunk = os.read(stderr_fd, 4096)
-                            if chunk:
-                                error = chunk.decode(errors="replace")
-                                Console().print(error, end="", markup=False)
+                            while True:
+                                error = process.stderr.readline()
+                                if error == "":
+                                    break
+                                Console().print(error.strip(), markup=False)
                                 combined_output += error
 
             # Capture any final output
