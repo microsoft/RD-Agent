@@ -230,12 +230,14 @@ class Env(Generic[ASpecificEnvConf]):
 
         # FIXME: the input path and cache path is hard coded here.
         # We don't want to change the content in input and cache path.
+        # Otherwise, it may produce large amount of warnings.
         entry_add_timeout = (
             f"/bin/sh -c 'timeout --kill-after=10 {self.conf.running_timeout_period} {entry}; "
             + "entry_exit_code=$?; "
             + (f"chmod -R 777 $(find {self.conf.mount_path} -mindepth 1 -maxdepth 1 ! -name cache ! -name input); "
-               + f"if [ -d {self.conf.mount_path}/cache ]; then chmod 777 {self.conf.mount_path}/cache; fi; " +
-                   f"if [ -d {self.conf.mount_path}/input ]; then chmod 777 {self.conf.mount_path}/input; fi; "
+               # We don't have to change the permission of the cache and input folder to remove it
+               # + f"if [ -d {self.conf.mount_path}/cache ]; then chmod 777 {self.conf.mount_path}/cache; fi; " +
+               #     f"if [ -d {self.conf.mount_path}/input ]; then chmod 777 {self.conf.mount_path}/input; fi; "
                if hasattr(self.conf, "mount_path") else "")
             + "exit $entry_exit_code'"
         )
