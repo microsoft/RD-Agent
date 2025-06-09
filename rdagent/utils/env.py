@@ -234,7 +234,8 @@ class Env(Generic[ASpecificEnvConf]):
             f"/bin/sh -c 'timeout --kill-after=10 {self.conf.running_timeout_period} {entry}; "
             + "entry_exit_code=$?; "
             + (f"chmod -R 777 $(find {self.conf.mount_path} -mindepth 1 -maxdepth 1 ! -name 'cache' ! -name 'input'); "
-               + "if [ -d cache ]; then chmod 777 cache; fi; if [ -d input ]; then chmod 777 input; fi; "
+               + f"if [ -d {self.conf.mount_path}/cache ]; then chmod 777 {self.conf.mount_path}/cache; fi; " +
+                   f"if [ -d {self.conf.mount_path}/input ]; then chmod 777 {self.conf.mount_path}/input; fi; "
                if hasattr(self.conf, "mount_path") else "")
             + "exit $entry_exit_code'"
         )
