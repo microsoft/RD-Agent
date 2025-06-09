@@ -335,7 +335,7 @@ class ExpGen2TraceAndMergeV2(ExpGen):
                     else:
                         self.reset_exp_gen_version(version=exp_gen_version_list[-1])
 
-            return self.exp_gen.gen(trace, selection)
+            return self.exp_gen.gen(trace)
 
         else:
             # disable reset in merging stage
