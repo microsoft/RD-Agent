@@ -1,6 +1,112 @@
 """
 The motivation of the utils is for environment management
 
+import re
+from typing import List, Dict, Any, Optional
+
+class SecureDockerRunner:
+    """Secure Docker container runner with input validation"""
+    
+    # Allowlist of permitted base images
+    ALLOWED_BASE_IMAGES = {
+        'python', 'ubuntu', 'alpine', 'node', 'nginx', 'redis', 'postgres'
+    }
+    
+    # Allowlist of permitted container names pattern
+    CONTAINER_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$')
+    
+    @staticmethod
+    def validate_image_name(image_name: str) -> bool:
+        """Validate Docker image name against allowlist"""
+        if not image_name or not isinstance(image_name, str):
+            return False
+        
+        # Extract base image name (before : or /)
+        base_name = image_name.split(':')[0].split('/')[-1]
+        return base_name in SecureDockerRunner.ALLOWED_BASE_IMAGES
+    
+    @staticmethod
+    def validate_container_name(name: str) -> bool:
+        """Validate container name format"""
+        if not name or not isinstance(name, str):
+            return False
+        return bool(SecureDockerRunner.CONTAINER_NAME_PATTERN.match(name))
+    
+    @staticmethod
+    def sanitize_environment_vars(env_vars: Dict[str, str]) -> Dict[str, str]:
+        """Sanitize environment variables"""
+        if not env_vars:
+            return {}
+        
+        sanitized = {}
+        for key, value in env_vars.items():
+            # Only allow alphanumeric keys with underscores
+            if re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', key):
+                # Sanitize value by removing potentially dangerous characters
+                sanitized_value = re.sub(r'[;&|`$(){}[\]<>]', '', str(value))
+                sanitized[key] = sanitized_value
+        
+        return sanitized
+    
+    @staticmethod
+    def secure_docker_run(
+        image_name: str,
+        container_name: Optional[str] = None,
+        command: Optional[List[str]] = None,
+        environment: Optional[Dict[str, str]] = None,
+        volumes: Optional[Dict[str, str]] = None,
+        **kwargs
+    ) -> Any:
+        """Securely run Docker container with validation"""
+        
+        # Validate image name
+        if not SecureDockerRunner.validate_image_name(image_name):
+            raise ValueError(f"Invalid or unauthorized image name: {image_name}")
+        
+        # Validate container name if provided
+        if container_name and not SecureDockerRunner.validate_container_name(container_name):
+            raise ValueError(f"Invalid container name format: {container_name}")
+        
+        # Sanitize environment variables
+        safe_env = SecureDockerRunner.sanitize_environment_vars(environment or {})
+        
+        # Validate and sanitize command
+        safe_command = []
+        if command:
+            for cmd_part in command:
+                if isinstance(cmd_part, str):
+                    # Remove potentially dangerous characters
+                    sanitized_cmd = re.sub(r'[;&|`$(){}[\]<>]', '', cmd_part)
+                    safe_command.append(sanitized_cmd)
+        
+        # Restrict volumes to safe paths only
+        safe_volumes = {}
+        if volumes:
+            for host_path, container_path in volumes.items():
+                # Only allow specific safe directories
+                if host_path.startswith(('/tmp/', '/var/tmp/', os.getcwd())):
+                    safe_volumes[host_path] = container_path
+        
+        # Use docker client with restricted parameters
+        import docker
+        client = docker.from_env()
+        
+        try:
+            # Create container with security restrictions
+            container = secure_run_container if k in ['working_dir', 'user']}
+            )
+            return container
+        except Exception as e:
+            raise RuntimeError(f"Failed to run container securely: {str(e)}")
+
+# Replace insecure Docker operations
+def secure_run_container(*args, **kwargs):
+    """Secure wrapper for container execution"""
+    runner = SecureDockerRunner()
+    return runner.secure_docker_run(*args, **kwargs)
+
+
+
 Tries to create uniform environment for the agent to run;
 - All the code and data is expected included in one folder
 """
@@ -728,7 +834,7 @@ class DockerEnv(Env[DockerConf]):
         def _f() -> dict:
             try:
                 get_image(self.conf.image)
-                client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
+                secure_run_container
                 logger.info("GPU Devices are available.")
             except docker.errors.APIError:
                 return {}
@@ -776,19 +882,7 @@ class DockerEnv(Env[DockerConf]):
         log_output = ""
 
         try:
-            container: docker.models.containers.Container = client.containers.run(  # type: ignore[no-any-unimported]
-                image=self.conf.image,
-                command=entry,
-                volumes=volumes,
-                environment=env,
-                detach=True,
-                working_dir=self.conf.mount_path,
-                # auto_remove=True, # remove too fast might cause the logs not to be get
-                network=self.conf.network,
-                shm_size=self.conf.shm_size,
-                mem_limit=self.conf.mem_limit,  # Set memory limit
-                cpu_count=self.conf.cpu_count,  # Set CPU limit
-                **self._gpu_kwargs(client),
+            container: docker.models.containers.Container = secure_run_container,
             )
             logs = container.logs(stream=True)
             print(Rule("[bold green]Docker Logs Begin[/bold green]", style="dark_orange"))
