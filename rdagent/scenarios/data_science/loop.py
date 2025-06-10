@@ -272,7 +272,7 @@ class DataScienceRDLoop(RDLoop):
             if workspace_bak_path.exists():
                 shutil.rmtree(workspace_bak_path)
             subprocess.run([
-                "rsync", "-a", "--delete", str(workspace_path) + "/", str(workspace_bak_path) + "/"
+                "cp", "-r", "-P", str(workspace_path), str(workspace_bak_path)
             ], check=True)
 
             # - Step 2: Clean .bak package
