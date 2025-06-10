@@ -200,6 +200,8 @@ class LoopBase:
                 start = datetime.datetime.now(datetime.timezone.utc)
                 func: Callable[..., Any] = cast(Callable[..., Any], getattr(self, name))
 
+                next_step_idx = si + 1
+                step_forward = True
                 try:
                     # Call function with current loop's output, await if coroutine or use ProcessPoolExecutor for sync if required
                     if force_subproc:
@@ -221,31 +223,35 @@ class LoopBase:
                     if isinstance(e, self.skip_loop_error):
                         logger.warning(f"Skip loop {li} due to {e}")
                         # Jump to the last step (assuming last step is for recording)
-                        self.step_idx[li] = len(self.steps) - 1
+                        next_step_idx = len(self.steps) - 1
                         self.loop_prev_out[li][self.EXCEPTION_KEY] = e
                     elif isinstance(e, self.withdraw_loop_error):
                         logger.warning(f"Withdraw loop {li} due to {e}")
                         # Back to previous loop
                         self.withdraw_loop(li)
+                        step_forward = False
 
                         msg = "We have reset the loop instance, stop all the routines and resume."
                         raise self.LoopResumeError(msg) from e
                     else:
                         raise  # re-raise unhandled exceptions
                 finally:
-                    # Record execution trace and update progress bar
-                    end = datetime.datetime.now(datetime.timezone.utc)
-                    self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
+                    if step_forward:
+                        # Record execution trace and update progress bar
+                        end = datetime.datetime.now(datetime.timezone.utc)
+                        self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
 
-                    # Increment step index
-                    self.step_idx[li] = self.step_idx[li] + 1
+                        # Increment step index
+                        self.step_idx[li] = next_step_idx
 
-                    # Update progress bar
-                    current_step = self.step_idx[li]
-                    self.pbar.n = current_step
-                    next_step = self.step_idx[li] % len(self.steps)
-                    self.pbar.set_postfix(loop_index=li, step_index=next_step, step_name=self.steps[next_step])
-                    self._check_exit_conditions_on_step()
+                        # Update progress bar
+                        current_step = self.step_idx[li]
+                        self.pbar.n = current_step
+                        next_step = self.step_idx[li] % len(self.steps)
+                        self.pbar.set_postfix(loop_index=li, step_index=next_step, step_name=self.steps[next_step])
+                        self._check_exit_conditions_on_step()
+                    else:
+                        logger.warning(f"Step forward {si} of loop {li} is skipped.")
 
     async def kickoff_loop(self) -> None:
         while True:
