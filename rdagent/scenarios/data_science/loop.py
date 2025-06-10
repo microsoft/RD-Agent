@@ -257,7 +257,7 @@ class DataScienceRDLoop(RDLoop):
                 )
                 / "mid_workspace.tar"
             )
-            subprocess.run(["tar", "-cf", str(mid_log_tar_path), "-C", (Path().cwd() / "log"), "."], check=True)
+            subprocess.run(["tar", "-cf", str(mid_log_tar_path), "-C", str(Path().cwd() / "log"), "."], check=True)
 
             # only clean current workspace without affecting other loops.
             for k in "direct_exp_gen", "coding", "running":
