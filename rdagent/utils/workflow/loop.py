@@ -141,12 +141,12 @@ class LoopBase:
     @property
     def pbar(self) -> tqdm:
         """Progress bar property that initializes itself if it doesn't exist."""
-        if self._pbar is None:
+        if getattr(self, "_pbar") is None:
             self._pbar = tqdm(total=len(self.steps), desc="Workflow Progress", unit="step")
         return self._pbar
 
     def close_pbar(self) -> None:
-        if self._pbar is not None:
+        if getattr(self, "_pbar") is not None:
             self._pbar.close()
             self._pbar = None
 
