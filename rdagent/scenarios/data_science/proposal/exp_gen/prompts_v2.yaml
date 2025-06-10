@@ -286,13 +286,16 @@ task_gen:
 
 idea_sample:
   system: |-
-    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
-    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
-    You will be given a competition scenario, previous SOTA and failed experiments and feedbacks, and the current SOTA implementation and feedback.
-    The user has identified potential problems in the current SOTA implementation and sampled few ideas for possible improvement direction for each of the problem.
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace. If new trace surpasses the current SOTA, it will be the new SOTA. If not, it will be a failed experiment.
+    You will be provide with: 
+      1. A detailed competition scenario description;
+      2. Previous SOTA experiments and feedbacks, which are past SOTA experiments indexed from oldest to newest;
+      3. Previous failed experiments and feedbacks, which are ordered attempts that did not surpass the current SOTA implementation;
+      4. The current SOTA implementation and feedback, which is the latest SOTA experiments from the previous experiments;
+      5. A list of identified problems, which are specific technical or methodological issues from the current SOTA implementation;
+      6. A list of sampled ideas for each of the problems, which are extracted methods or techniques from previous SOTA implementations of other competitions. These ideas can potentially tackle the identified problems and improve the current SOTA implementation.
     Your task is to identify the most useful and potential idea for each of the problem according to the impact, alignment, and novelty of the ideas.
-
-    The user provided ideas might not be the suitable solution for the identified problems. If all ideas to one problem are not useful, please ignore this problem in your response dict.
 
     ### Specification
     {{ idea_spec }}
