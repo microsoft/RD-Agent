@@ -19,21 +19,20 @@ class DSIdea:
     def __init__(self, raw_knowledge: Dict | str) -> None:
         """
         {
-            "idea label": {
-                "problem": "The scenario problem that the idea addresses, described without referencing the method itself.",
-                "method": "A specific method used in this idea, described in a general and implementable way (e.g., 'applied a stacking ensemble method to combine predictions from multiple base models'). Avoid mentioning dataset-specific details to ensure better generalization",
-                "context": "A detailed example of how the notebook implements this idea (e.g., 'the notebook used XGBoost, Random Forest, and LightGBM as base models and logistic regression as the meta-model').",
-            }
+            "idea": "A concise label for the idea.",
+            "problem": "The scenario problem that the idea addresses, described without referencing the method itself.",
+            "method": "A specific method used in this idea, described in a general and implementable way (e.g., 'applied a stacking ensemble method to combine predictions from multiple base models'). Avoid mentioning dataset-specific details to ensure better generalization",
+            "context": "A detailed example of how the notebook implements this idea (e.g., 'the notebook used XGBoost, Random Forest, and LightGBM as base models and logistic regression as the meta-model').",
         }
         """
         if isinstance(raw_knowledge, str):
             raw_knowledge = json.loads(raw_knowledge)
     
-        self.idea = next(iter(raw_knowledge.keys()))
-        self.competition = raw_knowledge[self.idea].get("competition", None)
-        self.problem = raw_knowledge[self.idea].get("problem", None)
-        self.method = raw_knowledge[self.idea].get("method", None)
-        self.context = raw_knowledge[self.idea].get("context", None)
+        self.idea = raw_knowledge.get("idea", None)
+        self.competition = raw_knowledge.get("competition", None)
+        self.problem = raw_knowledge.get("problem", None)
+        self.method = raw_knowledge.get("method", None)
+        self.context = raw_knowledge.get("context", None)
 
     def __str__(self) -> str:
         return json.dumps(
@@ -97,9 +96,10 @@ class DSKnowledgeBase(UndirectedGraph):
             idea_pool_dict = json.load(f)
 
         to_add_ideas = []
-        for i, raw_idea in tqdm(enumerate(idea_pool_dict), desc="Building Knowledge Graph from Ideas"):
+        for i, (idea_label, idea_content) in tqdm(enumerate(idea_pool_dict.items()), desc="Building Knowledge Graph from Ideas"):
+            idea_content.update({"idea": idea_label})
             try:
-                idea = DSIdea(raw_idea)
+                idea = DSIdea(idea_content)
                 to_add_ideas.append(idea)
             except Exception as e:
                 print(f"The {i}-th idea process failed due to error {e}")

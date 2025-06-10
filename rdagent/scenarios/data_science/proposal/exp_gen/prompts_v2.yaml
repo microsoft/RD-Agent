@@ -335,7 +335,7 @@ specification:
     {% endif %}
 
   idea: |-
-    1. Alignment: The idea should be aligned with the identified problem. It should be a potential solution to the problem.
+    1. Alignment: The idea should be aligned with the identified problem. It must be a potential solution to the problem.
     2. Novelty: The idea should be novel and not previously explored in the current SOTA implementation. Avoid ideas that have already been tried and failed.
     3. Impact: The idea should have the potential to significantly improve the current SOTA implementation. It should be a promising direction for further exploration.
     4. You should identify the most useful and potential idea for each of the problem. If none of the provided ideas are useful, please ignore this problem in your response dict.
@@ -374,11 +374,10 @@ output_format:
     }
   idea: |-
     For each of the problems, you should identified the most useful and potential idea strictly following to the JSON schema.
-    Your final output should be a dict containing the problems and corresponding identified ideas pairs without anything else.
-    Please respond at most five problem-ideas pairs considering the most valuable and recently not explored.
+    Your final output should be a dict containing the problems name and corresponding identified ideas index without anything else.
     {
-      "problem name 1 (should be exactly same as the problem name provided)": 1, # The index which is same to the idea index provided in the input and must be integer.
-      "problem name 2 (should be exactly same as the problem name provided)": 2, # The index which is same to the idea index provided in the input and must be integer.
+      "problem name 1 (should be exactly same as the problem name provided)": 1 (The index which is same to the idea index provided in the input and must be integer),
+      "problem name 2 (should be exactly same as the problem name provided)": 2 (The index which is same to the idea index provided in the input and must be integer),
     }
 
 
