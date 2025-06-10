@@ -34,6 +34,22 @@ from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 
 
+def clean_workspace(workspace_root: Path) -> None:
+    """
+    Clean the workspace folder and only keep the essential files to save more space.
+
+    # remove all files and folders in the workspace except for .py, .md, and .csv files to avoid large workspace dump
+    """
+    for file_and_folder in workspace_root.iterdir():
+        if file_and_folder.is_dir():
+            if file_and_folder.is_symlink():
+                file_and_folder.unlink()
+            else:
+                shutil.rmtree(file_and_folder)
+        elif file_and_folder.is_file() and file_and_folder.suffix not in [".py", ".md", ".csv"]:
+            file_and_folder.unlink()
+
+
 class DataScienceRDLoop(RDLoop):
     # NOTE: we move the DataScienceRDLoop here to be easier to be imported
     skip_loop_error = (CoderError, RunnerError)
@@ -243,20 +259,30 @@ class DataScienceRDLoop(RDLoop):
             )
             subprocess.run(["tar", "-cf", str(mid_log_tar_path), "-C", (Path().cwd() / "log"), "."], check=True)
 
-            # remove all files and folders in the workspace except for .py, .md, and .csv files to avoid large workspace dump
-            for workspace_id in Path(RD_AGENT_SETTINGS.workspace_path).iterdir():
-                for file_and_folder in workspace_id.iterdir():
-                    if file_and_folder.is_dir():
-                        if file_and_folder.is_symlink():
-                            file_and_folder.unlink()
-                        else:
-                            shutil.rmtree(file_and_folder)
-                    elif file_and_folder.is_file() and file_and_folder.suffix not in [".py", ".md", ".csv"]:
-                        file_and_folder.unlink()
+            # only clean current workspace without affecting other loops.
+            for k in "direct_exp_gen", "coding", "running":
+                if k in prev_out:
+                    assert isinstance(prev_out[k], DSExperiment)
+                    clean_workspace(prev_out[k].experiment_workspace.workspace_path)
 
-            subprocess.run(
-                ["tar", "-cf", str(mid_workspace_tar_path), "-C", (RD_AGENT_SETTINGS.workspace_path), "."], check=True
-            )
+            # Backup the workspace (only necessary files are included)
+            # - Step 1: Copy the workspace to a .bak package
+            workspace_path = Path(RD_AGENT_SETTINGS.workspace_path)
+            workspace_bak_path = workspace_path.with_name(workspace_path.name + ".bak")
+            if workspace_bak_path.exists():
+                shutil.rmtree(workspace_bak_path)
+            shutil.copytree(workspace_path, workspace_bak_path)
+
+            # - Step 2: Clean .bak package
+            for bak_workspace in workspace_bak_path.iterdir():
+                clean_workspace(bak_workspace)
+
+            # - Step 3: Create tarball from the cleaned .bak workspace
+            subprocess.run(["tar", "-cf", str(mid_workspace_tar_path), "-C", str(workspace_bak_path), "."], check=True)
+
+            # - Step 4: Remove .bak package
+            shutil.rmtree(workspace_bak_path)
+
             if DS_RD_SETTING.log_archive_temp_path is not None:
                 shutil.move(mid_log_tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar")
                 mid_log_tar_path = Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar"
