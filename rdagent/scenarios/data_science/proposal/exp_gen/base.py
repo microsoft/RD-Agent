@@ -141,6 +141,22 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         else:
             raise ValueError(f"Invalid search type: {search_type}")
 
+    def get_parent_exp_fbs(
+        self,
+        selection: tuple[int, ...] | None = None,
+    ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
+        """
+        Collect all ancestors of the given selection.
+        The return list follows the order of [root->...->parent->current_node].
+        """
+        if selection is None:
+            selection = self.get_current_selection()
+
+        if len(self.dag_parent) == 0:
+            return []
+
+        return self.hist[self.dag_parent[selection[0]]]
+
     def collect_all_ancestors(
         self,
         selection: tuple[int, ...] | None = None,

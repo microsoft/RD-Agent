@@ -307,6 +307,9 @@ class ExpGen2TraceAndMergeV2(ExpGen):
     def reset_exp_gen_version(self, version: str = "v2"):
         DS_RD_SETTING.proposal_version = version
         logger.info(f"ExpGen2TraceAndMergeV2: Resetting proposal version to {version}")
+        self.exp_gen = DataScienceRDLoop._get_exp_gen(
+            f"rdagent.scenarios.data_science.proposal.exp_gen.{version}", self.scen
+        )
 
     def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
