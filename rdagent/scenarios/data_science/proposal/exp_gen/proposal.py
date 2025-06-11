@@ -1067,8 +1067,26 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             pipeline=pipeline,
         )
 
+        if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
+            if len(trace.current_selection) == 0:
+                # start a new sub-trace, and inject diverse problems.
+                inject_diverse = True
+                logger.info("Start a new sub-trace, and inject diverse problems.")
+            else:
+                inject_diverse = False
+        else:
+            inject_diverse = False
         # Step 1: Identify problems
         all_problems = {}
+        # FIXME: remove this 
+        self.scen_prob_multiplier = 1
+        # all_problems = self.identify_problem(
+        #     current_sub_trace=trace.get_parent_exps(),
+        #     scenario_desc=scenario_desc,
+        #     sota_exp_desc=sota_exp_desc,
+        #     exp_feedback_list_desc=exp_feedback_list_desc,
+        #     inject_diverse=inject_diverse,
+        # )
         if len(trace.hist) > 3:
             fb_problems = self.identify_feedback_problem(
                 scenario_desc=scenario_desc,
