@@ -61,6 +61,7 @@ def backup_folder(path: str | Path) -> Path:
     try:
         # `cp` may raise error if the workspace is beiing modified.
         # rsync is more robust choice, but it is not installed in some docker images.
+        # use shutil.copytree(..., symlinks=True) should be more elegant, but it has more changes to raise error.
         subprocess.run(
             ["cp", "-r", "-P", str(path), str(workspace_bak_path)],
             check=True,
@@ -70,6 +71,7 @@ def backup_folder(path: str | Path) -> Path:
         logger.error(f"Error copying {path} to {workspace_bak_path}: {e}")
         logger.error(f"Stdout: {e.stdout.decode() if e.stdout else ''}")
         logger.error(f"Stderr: {e.stderr.decode() if e.stderr else ''}")
+        raise
     return workspace_bak_path
 
 
