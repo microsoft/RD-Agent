@@ -97,6 +97,8 @@ class LoopBase:
 
     EXCEPTION_KEY = "_EXCEPTION"
 
+    _pbar: tqdm  # progress bar instance
+
     class LoopTerminationError(Exception):
         """Exception raised when loop conditions indicate the loop should terminate"""
 
@@ -117,7 +119,6 @@ class LoopBase:
         self.tracker = WorkflowTracker(self)  # Initialize tracker with this LoopBase instance
 
         # progress control
-        self._pbar: Optional[tqdm] = None  # progress bar instance
         self.loop_n: Optional[int] = None  # remain loop count
         self.step_n: Optional[int] = None  # remain step count
 
@@ -148,7 +149,7 @@ class LoopBase:
     def close_pbar(self) -> None:
         if getattr(self, "_pbar", None) is not None:
             self._pbar.close()
-            self._pbar = None
+            del self._pbar
 
     def _check_exit_conditions_on_step(self) -> None:
         """Check if the loop should continue or terminate.

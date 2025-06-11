@@ -21,7 +21,7 @@ import zipfile
 from abc import abstractmethod
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Generic, Mapping, Optional, TypeVar
+from typing import Any, Generic, Mapping, Optional, TypeVar, cast, Generator
 
 import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
@@ -44,8 +44,8 @@ from rdagent.utils.workflow import wait_retry
 
 
 # Normalize all bind paths in volumes to absolute paths using the workspace (working_dir).
-def normalize_volumes(vols: dict[str, str] | dict[str, dict[str, str]], working_dir: str) -> dict:
-    abs_vols = {}
+def normalize_volumes(vols: dict[str, str | dict[str, str]], working_dir: str) -> dict:
+    abs_vols: dict[str, str | dict[str, str]] = {}
 
     def to_abs(path: str) -> str:
         # Converts a relative path to an absolute path using the workspace (working_dir).
@@ -56,14 +56,13 @@ def normalize_volumes(vols: dict[str, str] | dict[str, dict[str, str]], working_
         # 1. {'host_path': {'bind': 'container_path', ...}}
         # 2. {'host_path': 'container_path'}
         if isinstance(vinfo, dict):
-            bind_path = vinfo["bind"]
-            abs_bind_path = to_abs(bind_path)
+            # abs_vols = cast(dict[str, dict[str, str]], abs_vols)
             vinfo = vinfo.copy()
-            vinfo["bind"] = abs_bind_path
+            vinfo["bind"] = to_abs(vinfo["bind"])
             abs_vols[lp] = vinfo
         else:
-            bind_path = vinfo
-            abs_vols[lp] = to_abs(bind_path)
+            # abs_vols = cast(dict[str, str], abs_vols)
+            abs_vols[lp] = to_abs(vinfo)
     return abs_vols
 
 
@@ -418,7 +417,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
         volumes = normalize_volumes(volumes, local_path)
 
         @contextlib.contextmanager
-        def _symlink_ctx(vol_map: Mapping[str, str]):
+        def _symlink_ctx(vol_map: Mapping[str, str]) -> Generator[None, None, None]:
             created_links: list[Path] = []
             try:
                 for real, link in vol_map.items():
@@ -826,7 +825,7 @@ class DockerEnv(Env[DockerConf]):
         for lp, rp in running_extra_volume.items():
             volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
 
-        volumes = normalize_volumes(volumes, self.conf.mount_path)
+        volumes = normalize_volumes(cast(dict[str, str | dict[str, str]], volumes), self.conf.mount_path)
 
         log_output = ""
 
