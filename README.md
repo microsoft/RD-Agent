@@ -151,41 +151,24 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   - json_mode
   - embedding query
 
-- For example: If you are using the `OpenAI API`, you have to configure your GPT model in the `.env` file like this.
-  ```bash
-  cat << EOF  > .env
-  OPENAI_API_KEY=<replace_with_your_openai_api_key>
-  # EMBEDDING_MODEL=text-embedding-3-small
-  CHAT_MODEL=gpt-4-turbo
-  EOF
-  ```
-- However, not every API services support these features by default. For example: `AZURE OpenAI`, you have to configure your GPT model in the `.env` file like this.
-  ```bash
-  cat << EOF  > .env
-  USE_AZURE=True
-  EMBEDDING_OPENAI_API_KEY=<replace_with_your_azure_openai_api_key>
-  EMBEDDING_AZURE_API_BASE=<replace_with_your_azure_endpoint>
-  EMBEDDING_AZURE_API_VERSION=<replace_with_the_version_of_your_azure_openai_api>
-  EMBEDDING_MODEL=text-embedding-3-small
-  CHAT_OPENAI_API_KEY=<replace_with_your_azure_openai_api_key>
-  CHAT_AZURE_API_BASE=<replace_with_your_azure_endpoint>
-  CHAT_AZURE_API_VERSION=<replace_with_the_version_of_your_azure_openai_api>
-  CHAT_MODEL=<replace_it_with_the_name_of_your_azure_chat_model>
-  EOF
-  ```
+  You can set your Chat Model and Embedding Model in the following ways:
 
-- We now support LiteLLM as a backend for integration with multiple LLM providers. If you use LiteLLM Backend to use models, you can configure as follows:
+- **Using LiteLLM (Recommended)**: We now support LiteLLM as a backend for integration with multiple LLM providers. You can configure as follows:
   ```bash
   cat << EOF  > .env
   BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
-  # It can be modified to any model supported by LiteLLM.
-  CHAT_MODEL=gpt-4o
+  # Set to any model supported by LiteLLM.
+  CHAT_MODEL=gpt-4o 
   EMBEDDING_MODEL=text-embedding-3-small
-  # The backend api_key fully follow the convention of litellm.
+  # Then configure the environment variables required by your chosen model in the convention of LiteLLM here.
   OPENAI_API_KEY=<replace_with_your_openai_api_key>
   ```
-  
-- For more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html).
+  Notice: If you are using reasoning models that include thought processes in their responses (such as \<think> tags), you need to set the following environment variable:
+  ```bash
+  REASONING_THINK_RM=True
+  ```
+
+- You can also use a deprecated backend if you only use `OpenAI API` or `Azure OpenAI` directly. For this deprecated setting and more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html).
 
 ### 🚀 Run the Application
 
