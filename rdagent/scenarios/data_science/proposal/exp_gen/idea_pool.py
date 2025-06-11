@@ -151,8 +151,8 @@ class DSKnowledgeBase(UndirectedGraph):
                     text += f"- Idea Name: {idea.idea}\n"
                     text += f"- Idea Method: {idea.method}\n"
                     text += f"- Idea Context: {idea.context}\n\n"
-                # if len(problem_to_sampled_idea_node_id[problem_name]) >= 5:
-                #     break
+                if len(problem_to_sampled_idea_node_id[problem_name]) >= 5:
+                    break
             text += "\n\n"
 
         # select ideas by LLM
