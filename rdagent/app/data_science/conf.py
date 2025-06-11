@@ -57,6 +57,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     knowledge_base_path: str | None = None
     idea_pool_json_path: str | None = None
 
+
     ### archive log folder after each loop
     enable_log_archive: bool = True
     log_archive_path: str | None = None

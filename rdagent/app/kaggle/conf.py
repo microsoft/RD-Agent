@@ -75,5 +75,10 @@ class KaggleBasePropSetting(ExtendedBaseSettings):
     mini_case: bool = False
     """Enable mini-case study for experiments"""
 
+    # used for no sota case in hypothesis draft
+    no_sota_idea_path: str | None = None
+    """Path to the idea pool for no-SOTA case in hypothesis draft"""
+
+    enable_no_sota_rag: bool = True
 
 KAGGLE_IMPLEMENT_SETTING = KaggleBasePropSetting()

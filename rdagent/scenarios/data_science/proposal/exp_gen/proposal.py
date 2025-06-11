@@ -1,10 +1,12 @@
 import json
 import pprint
 from enum import Enum
-from typing import Dict, List, Tuple
-
+from typing import Dict, List, Tuple, Optional
+import math
 import pandas as pd
 from pydantic import BaseModel, Field
+import os 
+from pathlib import Path
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
@@ -24,6 +26,8 @@ from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
+from rdagent.core.exception import CoderError
+from rdagent.scenarios.data_science.proposal.exp_gen.rag_hybrid_2 import HybridRAGSystem
 
 
 class ScenarioChallengeCategory(str, Enum):
@@ -513,6 +517,7 @@ class DSProposalV2ExpGen(ExpGen):
     @wait_retry(retry_n=5)
     def hypothesis_gen(
         self,
+        no_sota: bool,  #TODO
         component_desc: str,
         scenario_desc: str,
         exp_feedback_list_desc: str,
@@ -556,6 +561,27 @@ class DSProposalV2ExpGen(ExpGen):
         )
         resp_dict = json.loads(response)
         return resp_dict
+    
+    def hypothesis_draft(
+        self,
+        no_sota_idea_path: str | None,
+        component_desc: str,
+        scenario_desc: str,
+        exp_and_feedback_list_desc: str,
+        problems: Dict[str, Dict[str, str]],
+    ) -> Dict:
+        """
+        使用HybridRAGSystem（BM25+向量混合检索）生成假设。
+        """
+        if not hasattr(self, "_rag_system"):
+            self._rag_system = HybridRAGSystem(APIBackend(), cache_dir="./hypothesis_rag_cache")
+        return self._rag_system.hypothesis_draft(
+            no_sota_idea_path=no_sota_idea_path,
+            component_desc=component_desc,
+            scenario_desc=scenario_desc,
+            exp_and_feedback_list_desc=exp_and_feedback_list_desc,
+            problems=problems
+        )
 
     def hypothesis_rank(
         self,
@@ -589,8 +615,11 @@ class DSProposalV2ExpGen(ExpGen):
                         scores_dict[problem_name][score_key] = 0
 
         scores = pd.DataFrame(scores_dict)
-        scores_sorted = scores.sum().sort_values(ascending=False)
-        scores_sorted = scores_sorted[:5]  # Select top 5 hypotheses
+        summed_scores = scores.sum()
+        num_hypotheses = len(summed_scores)
+        top_n = int(min(5, math.ceil(num_hypotheses / 2.0)))
+        scores_sorted = summed_scores.sort_values(ascending=False)
+        scores_sorted = scores_sorted[:top_n]  # Select top N hypothesesz
 
         # Increase the weight of the hypothesis that is inspired by the idea pool to 3x.
         # Linear decay the weight of the scenario problem from 3x to 0x.
@@ -744,43 +773,55 @@ class DSProposalV2ExpGen(ExpGen):
             inject_diverse=inject_diverse,
         )
 
-        # Step 1.5: Sample ideas from idea pool
-        if DS_RD_SETTING.enable_knowledge_base:
-            all_problems = trace.knowledge_base.sample_ideas(
+        # Step 1.5: Sample ideas from idea pool add the 'idea' and 'idea_node_id' to the problems
+        # if DS_RD_SETTING.enable_knowledge_base:
+        #     all_problems = trace.knowledge_base.sample_ideas(
+        #         problems=all_problems,
+        #         scenario_desc=scenario_desc,
+        #         exp_feedback_list_desc=exp_feedback_list_desc,
+        #         sota_exp_desc=sota_exp_desc,
+        #         competition_desc=self.scen.get_competition_full_desc(),
+        #     )
+
+        # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
+        if sota_exp is None and DS_RD_SETTING.enable_no_sota_rag:
+            hypothesis_dict = self.hypothesis_draft(
+                component_desc=component_desc,
+                scenario_desc=scenario_desc,
+                exp_and_feedback_list_desc=exp_feedback_list_desc,
                 problems=all_problems,
+                no_sota_idea_path=DS_RD_SETTING.no_sota_idea_path,
+            )
+        else: #TODO
+            hypothesis_dict = self.hypothesis_gen(
+                no_sota = sota_exp is None, # FIXME 
+                component_desc=component_desc,
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
                 sota_exp_desc=sota_exp_desc,
-                competition_desc=self.scen.get_competition_full_desc(),
+                problems=all_problems,
+                pipeline=pipeline,
+                enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
+                inject_diverse=inject_diverse,
             )
+            if not pipeline:
+                sota_exp_model_file_count = len(
+                    [
+                        k
+                        for k in sota_exp.experiment_workspace.file_dict.keys()
+                        if k.endswith(".py") and "test" not in k and k.startswith("model")
+                    ]
+                )
+                if sota_exp_model_file_count <= 1:
+                    pop_names = []
+                    for problem_name in hypothesis_dict:
+                        if hypothesis_dict[problem_name].get("component", "") == "Ensemble":
+                            pop_names.append(problem_name)
+                    for name in pop_names:
+                        hypothesis_dict.pop(name)
 
-        # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
-        hypothesis_dict = self.hypothesis_gen(
-            component_desc=component_desc,
-            scenario_desc=scenario_desc,
-            exp_feedback_list_desc=exp_feedback_list_desc,
-            sota_exp_desc=sota_exp_desc,
-            problems=all_problems,
-            pipeline=pipeline,
-            enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
-            inject_diverse=inject_diverse,
-        )
-        if not pipeline:
-            sota_exp_model_file_count = len(
-                [
-                    k
-                    for k in sota_exp.experiment_workspace.file_dict.keys()
-                    if k.endswith(".py") and "test" not in k and k.startswith("model")
-                ]
-            )
-            if sota_exp_model_file_count <= 1:
-                pop_names = []
-                for problem_name in hypothesis_dict:
-                    if hypothesis_dict[problem_name].get("component", "") == "Ensemble":
-                        pop_names.append(problem_name)
-                for name in pop_names:
-                    hypothesis_dict.pop(name)
 
+        
         # Step 3: Select the best hypothesis
         pickled_problem_name, new_hypothesis = self.hypothesis_rank(
             hypothesis_dict=hypothesis_dict,
@@ -800,6 +841,7 @@ class DSProposalV2ExpGen(ExpGen):
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
         )
 
+    
 
 class DSProposalV3ExpGen(DSProposalV2ExpGen):
     def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
@@ -821,11 +863,11 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         logger.info(f"Identified scenario problems:\n" + json.dumps(problems))
         return problems
 
-    def identify_feedback_problem(self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str) -> Dict:
+    def identify_feedback_problem(self, scenario_desc: str, exp_and_feedback_list_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v3:feedback_problem.system").r()
         user_prompt = T(".prompts_v3:feedback_problem.user").r(
             scenario_desc=scenario_desc,
-            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            exp_and_feedback_list_desc=exp_and_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
@@ -859,7 +901,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         self,
         component_desc: str,
         scenario_desc: str,
-        exp_feedback_list_desc: str,
+        exp_and_feedback_list_desc: str,
         sota_exp_desc: str,
         problems: dict,
         pipeline: bool,
@@ -880,7 +922,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         )
         user_prompt = T(".prompts_v3:hypothesis_gen.user").r(
             scenario_desc=scenario_desc,
-            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            exp_and_feedback_list_desc=exp_and_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
             problems=problem_formatted_str,
             enable_idea_pool=enable_idea_pool,
@@ -1017,7 +1059,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             exp=sota_exp, heading="Best of previous exploration of the scenario"
         )
 
-        exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+        exp_and_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
             exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
             type="all",
             pipeline=pipeline,
@@ -1033,7 +1075,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         if len(trace.hist) >= 3:
             fb_problems = self.identify_feedback_problem(
                 scenario_desc=scenario_desc,
-                exp_feedback_list_desc=exp_feedback_list_desc,
+                exp_and_feedback_list_desc=exp_and_feedback_list_desc,
                 sota_exp_desc=sota_exp_desc,
             )
             for problem_name in fb_problems:
@@ -1054,7 +1096,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             all_problems = trace.knowledge_base.sample_ideas(
                 problems=all_problems,
                 scenario_desc=scenario_desc,
-                exp_feedback_list_desc=exp_feedback_list_desc,
+                exp_and_feedback_list_desc=exp_and_feedback_list_desc,
                 sota_exp_desc=sota_exp_desc,
                 competition_desc=self.scen.get_competition_full_desc(),
             )
@@ -1063,7 +1105,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         hypothesis_dict = self.hypothesis_gen(
             component_desc=component_desc,
             scenario_desc=scenario_desc,
-            exp_feedback_list_desc=exp_feedback_list_desc,
+            exp_and_feedback_list_desc=exp_and_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
             problems=all_problems,
             pipeline=pipeline,

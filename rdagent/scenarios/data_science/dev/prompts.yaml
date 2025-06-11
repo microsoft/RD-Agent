@@ -67,8 +67,8 @@ exp_feedback:
     }
 
   user: |-
-    We are currently in a process of validating hypotheses to iteratively improve our models for Kaggle competitions. Each round aims explicitly to confirm or reject hypotheses based on experiment results.
-
+   We are currently in a process of validating hypotheses to iteratively improve our models for Kaggle competitions. Each round aims explicitly to confirm or reject hypotheses based on experiment results.
+ 
     ## SOTA Solution
     {{ sota_desc }}
 

@@ -1,0 +1,734 @@
+id,anchor,target,context,score
+506f8d0a6feae789,abatement,abatement apparatus,F24,0.5
+4d0b732250d2940d,abnormal position,open condition,B23,0.25
+028faac1cefe4f7d,absorbent properties,properties,D01,0.5
+ba0d2831300d9b37,acan,proteoglycans,C07,0.25
+cfe4a53278917f5b,accept information,receiving information,A45,0.5
+63ae5e20e8e310dd,achieve authentication,failed authorization request,H04,0.25
+57ce3adc96d82fca,acid absorption,acid oxide distillation,B08,0.25
+753de89863b03020,ack,data network,G04,0.25
+717a132db3aa625b,acoustooptic modulator,electrooptical modulator,H01,0.5
+e75fc86dbafdb7c7,acrylate groups,methacrylate units,D21,0.5
+6e29a7d9311fffe0,activating position,distal state,A61,0.5
+a61fe22304f0c51e,acylate with acids,acidity,C07,0.0
+0190edb4d1662971,adapt for learning,provided learning,G16,0.75
+7db0ebfad1012d8f,adaptive linear,self adaptive linear,G01,0.75
+d1130bfa30d4c963,adhesive mounting,releasable mounting,A47,0.5
+e6751ed66a5bae84,adjacent laterally,lateral communication,B23,0.0
+d85609c0e24aa26d,adjust gas flow,transferring processing gas,C23,0.5
+7dfcf553d2713a19,adjustable multiple,multiple cancer,B23,0.0
+64c35e1bc5428ab4,aesthetic effects,anesthesia course,D03,0.0
+bf90483c5f4ee4e6,agitate means,agitating technology,B01,0.25
+16f081b7f11c18f7,air flow line,air supply path,B63,0.75
+69ada1a615c3801d,air vent openings,air hole,B60,0.75
+d9b75e91231b2a80,align with input shaft,shaft system,F16,0.5
+5c40073c6d8e589c,alpha gypsum,alpha brain waves,B32,0.0
+ba5b915c2ba0164d,alphatic,alps mountain,C09,0.0
+1bcb74c78ee23f9d,aluminium compounds,aluminium trichloride,C08,0.5
+0026816015f16f2e,alumino silicates,hydrous silicates,G03,0.5
+25a5ace565ab1269,ammonia recovery,ammonium recovery,C01,0.5
+c869f4bcd70de059,androgen receptor modulators,sports club,C07,0.0
+eb3e900a54c19290,angular contact bearing,angular contact,G01,0.5
+e27480361424507f,animal fats,liver metabolism,A23,0.25
+883ac9f5424d001e,annular ends,segments,B60,0.25
+60174cac75975a96,annular neck,neck,B29,0.5
+f8586bf7a1ac53d3,antiatherosclerotic,reduce arteries hardening,C07,0.5
+5da3704d05b3f4e7,antidiuretic,opposing action,C07,0.0
+5aad931ed6349085,antigen composition,fragment,A61,0.25
+f211c90f7e7976ae,apart elongated,apart stretched,B64,0.75
+870e8c4a588b3b89,application messaging,application development,G06,0.0
+7b8eb04464c1e1e7,apply on tube,test tube,F16,0.0
+a95709d9e6380bb0,apply to anode electrode,oxidation,H01,0.25
+fd2316deb896c359,apply to muscle,apply for food stamp,A61,0.0
+eebbed12f31039a4,apply to requests,request apparatus,H04,0.25
+c549567548898d62,appropriate adjustment,suitable changes,B24,0.75
+d1fff777a45421c9,aralkynyl,heroaralkyl,C09,0.5
+cc3c82b711fc5bfb,arc type,long arc type,B65,0.5
+8c575c84ec5fa40f,arcade,entertainment machine,A63,0.5
+19f05d1679dbebb1,arcuate means,light,H04,0.25
+dd940ce1fdd36abb,arm design,human arm pain,F16,0.0
+b88feca6f5986ab6,arm roller,road roller,E04,0.0
+61e9eb369b8e41a8,arrange in fashion,arrange books,B41,0.0
+cd7c09704bd162af,associated log,saddle brown wheat straws,B27,0.25
+2e1810059f0ef745,automatic coffee,cup size,A47,0.25
+e3cd66616167232a,auxiliary water,tap repair,F24,0.25
+e44732cd03d79ba9,average impact,average impact force,G01,0.5
+5f0d395f77bc01db,average pore size,average size,C04,0.5
+ce9d3db9c5952680,average power ratio reduction,power optimisation,H04,0.25
+26f9b382f1af83dd,axial extension,direction of a body,A61,0.25
+78a30dbdf33acc0b,axle boxes,side members,G01,0.5
+919743ac60d2b29c,azabicyclo,bicyclic compounds,C07,0.25
+2552099f508ad04b,bandedge,short wavelength edge,H01,0.5
+cd8189ba92ded972,base fuels,based distillates,C10,0.25
+5ea3cf788731e516,based interpolation,known good component,H04,0.25
+d5690d12fb5dd423,based method,loss without basis,G01,0.25
+cba9a7fbbbcdacb2,based propellant,carburettor system,F02,0.25
+e11c67c988c738f1,based writing,width control,G11,0.25
+1a44692d07ff6ef6,battery cell assembly,cell reference,H01,0.0
+980b5ebcc014162c,battery heater,reverse osmosis,H01,0.0
+d50976b4cbf04017,battery monitoring circuit,state monitoring circuit,G01,0.5
+15f414f0b7fd9259,beam traveling direction,light beam direction,H05,0.5
+48c0cf29ea818a7e,belt shifting,belt shifting mechanism,D06,0.5
+0fef2d3d226f0fac,biocytin,biocytin hydrazide,A61,0.5
+da14cf066d0767a9,biomimetic,bio inspired,C07,0.25
+fb2fc2744b9172c6,block selection signal,block control,B41,0.5
+907e3816ceed06f9,blooming drains,blooming high doped region,H04,0.5
+9876ee68d990c13e,board id,information,H05,0.25
+ed9914d1f738c40f,board manufacture,semi finished,C04,0.0
+eb480b61360f7339,boom hydraulic cylinder,hydraulic cylinder valve,E02,0.5
+574290fc21b8f246,brake arms,housing,D01,0.25
+7989e6dcae6cccb8,breech mechanism,tool locking system,B25,0.25
+940c5f5988492d6e,broadband information,dial up connection,H04,0.25
+858a43c2601e33e4,browsers,internet service provider,H04,0.5
+39bdd309e7f4cb58,brush guard,protecting guard,B60,0.5
+468aa1ee64ae902e,buck converter circuit,buck control signal,H05,0.5
+16192dfd3808e3ee,buffer strip,sheet material,F16,0.25
+d5300e18824c26c9,cable securing,binding cable,H01,0.5
+fd5731d40bcac68b,cache segments,segment register,G06,0.0
+9a58b605359ac5ed,calibration status,pointing accuracy,G01,0.5
+6eeae5a497887292,calling card,credit,G07,0.25
+0d547b2711091906,cap component,outer cap component,B65,0.5
+59889174afd20996,carburization,thermal printer,C01,0.0
+6853992df2b1022c,carpet tiles,tile system,B41,0.5
+01be0f71c04839ef,carrier transportation,electron transport mobility,H01,0.5
+5659f14c7962c6e3,carry by platform,transport by platform,E04,0.75
+5c11ad38aa4732c5,catalyst paste,organometallic compound paste,B01,0.5
+e057d06336106d9b,catching surface,catching surfaces,B65,1.0
+fe723809fd93c748,catheter distal end,sheet processing apparatus,B65,0.25
+eb3d583543f140a7,cathode layer,cathode conductive layer,G02,0.5
+684a933b68b1cd15,cement composite,composite,C04,0.25
+4c5910a7766276e2,central communication unit,communications terminal devices,G08,0.5
+32074619438f7a64,central flow path,center side flow path,G05,0.75
+4ba83e98fae6f1e8,central nucleus,structural group,C09,0.25
+794a3d6e788efc53,cervical support,neck injury,A61,0.25
+3f18408bfe0eeb51,chagas disease,change colour,A61,0.0
+ae935f33fafdd638,channel vectors,predictive motion vector,H04,0.25
+e1fc9fc1310804e8,chemical activity,reactivity,G21,0.25
+fe73f26742e7a8bb,chemically modified polymers,modified bases,C08,0.0
+495e3200e8c7de90,chip form,pulp,D21,0.25
+bc7abf9a5bbcf2e3,chirped optical,pulse ratio,G06,0.0
+05f5c30065fb5c07,churned,peeved,A01,0.0
+719297b02e40e6a4,circumferential clamp,dc value,H01,0.25
+ad234e0f47828986,cleaner system,cleaning adapted,B07,0.5
+9e3eca9780ed955c,clear buffer,polymer,G02,0.0
+32c3eba68832bbcf,clock input,flip flop,G07,0.25
+9ec6d89d61cd9a12,clocked storage,clock device,H03,0.5
+1b5b28f346d80156,clods,stones,B07,0.25
+326484a86aa4e6e8,close gate,close call,B65,0.0
+1d56f85b5de24e10,coat with conducting layer,rain coat,C25,0.0
+c1cbaf42f789129d,coaxial cable transmission,electrical transmission cable,H02,0.5
+9ed9c43c856f78f9,cochineal,sulphuric acid,C13,0.0
+b86fde918512d779,cold state,state,H01,0.5
+33756136ce7a0d73,collator,copy sheet,G11,0.25
+d6cd5ae82bb98b83,color difference signal,chrominance signal component,H04,0.75
+d53e10f31b883455,combination function,transport protocol,H04,0.0
+909c577ac3b9649e,combine with optical elements,combine with elements,G11,0.5
+243c98c5194124d7,combustion elements,steam,F22,0.25
+7bd78cf2718908c8,come into relation,relation system,B65,0.5
+7ce63937d1962af9,comfortability,intelligent comfort liquid,B62,0.0
+3c88a8bba4cce1f1,committee,internal review board,G06,0.5
+ad71953acaf8b5cb,communicate through cavity,injection moulding,F01,0.25
+5e540bb6508b3b33,component composite coating,layered film forming,C08,0.5
+b4d84320894332dc,component control,feedback system,B60,0.25
+6fba7478124abf23,composite slurry,composite dispersion,C04,0.75
+8356eb5b948eebd0,composite tile,insulatin material,F27,0.25
+ed1caecc7b20513e,compression loss,compression system,F04,0.5
+018e68b106129a7e,comprise in refinement,provide in refinement,H02,0.75
+79bbe90f3685e9d3,conduct cables,disc brake,F16,0.25
+22337fd3dde51665,conduct conducting material,conduct material,C04,0.5
+08601b2672f22183,conductive position,position shunt signal,B23,0.0
+76ebe04c2605bc64,conductor particles,micron conductive whiskers,H05,0.25
+f28cb8cc430af7bc,congruency,same size,C02,0.75
+593e34529336179c,conh2,protein chain,C09,0.5
+607d3e53fb38c58c,conical path,plane,G04,0.25
+f324a7be09a7a3c7,connect to common conductor,circuit board,H03,0.25
+d75f0d5561c5fc7e,connect to electrode structure,connect to vehicle structure,H01,0.0
+9c01eb6db405bdd5,connect with conduits,conduit system,F16,0.5
+99acd0208a512d3d,connected means,epicyclic gearing,B23,0.25
+f80370628b73e240,connecting lines,power,H01,0.25
+e9ca40b6b68e8fc4,connection speeds,speed of sound,A63,0.0
+48633e039af97fc7,consist of oxalic acid,oxen,C04,0.0
+30f133666127dec9,consist of selection,not selecting,A63,0.25
+05971f8e3e680bf9,contact cable,cable system,B61,0.5
+ddc14f9a52e3d851,contain bacterial cells,cultures,C12,0.25
+f9c4ced5cf6e7e6d,contain based resin,contain based compound,B29,0.5
+bb022027ad8f1c03,contain elastomer,comprise silica,C08,0.0
+bbc431d4186a38eb,contain sulfur compounds,comprise nacl,C07,0.0
+8a35af7219a87e5c,container opener,tool for opening,B65,0.75
+03108c72f5d863dc,container section,vessel section,B02,0.5
+31a37299970f23f6,content analysis,content detection test,H04,0.5
+199b80506ab1e7fc,control in steps,control approach game,B24,0.0
+1c5bd3b3020e29f7,cooled reaction,release heat,C09,0.5
+89c92295d245e52e,corresponding toothed,corresponding person,G06,0.0
+93ecd935aef85f41,coupling arms,inputs,H03,0.25
+f910e86f283c883f,coupling factor,net inductance,H02,0.25
+a90c5757a5b45fc9,crank,drive shaft,F42,0.5
+538eb83cf0f38ff0,crystal thin,crystal molecular,H01,0.5
+ea081ed1ea909d68,curing resin composition,curable coating composition,C08,0.5
+28bef25997e9d96f,cut from stack,product stacking,A01,0.25
+feb725db056e2ede,cyanoacrylate polymer,family of strong fast acting adhesives,B41,0.5
+a779e4125d167932,cyclic alcohols,saturates alcohols,C10,0.5
+34ab8c4696be7f98,dac system,ad conversion system,H03,0.25
+1f781d36daf83442,data output circuit,data storage memory,H03,0.5
+1c7b331da9f583ea,data tree,hierarchical data structure,G06,0.5
+615dc77bf9f62bcd,decompressor,decompressor device,H04,0.75
+ed42e89a27a489ff,decoy oligonucleotide,transcription factor,C12,0.25
+823a422d4cd524e1,decreased power,minimum,H01,0.25
+0ed92a213114ef3c,define by memory,internal storage,G06,0.25
+7b88e8d0a69b7e2d,define panel,display surface,C02,0.25
+bcc535b3748d458c,deflect light,shoppingi,H01,0.0
+3cbb4951c699cc1b,demodulator,power unit,H02,0.25
+532f633addf70976,dental aligners,orthodontic apparatus,A61,0.5
+16d72da656909f8f,derived class,derived old classes,G06,0.5
+9f0c2979ffc30a96,descriptive term,phrase,G01,0.25
+2528729ac869abe6,deteriorated,improved,G06,0.25
+5a29ebba74561d4f,determine from analysis,determine using analysis,H04,0.75
+d4316353226069d5,dicy,cyanamide dimer,C08,0.75
+456b96869db387a1,diesel fuel tank,gas,F02,0.25
+6acfe91c784a6e4d,different circumferential positions,geometric locations,G01,0.5
+b97042e773d485ef,different conductivity,rate difference,H03,0.0
+28e5c2e4e0e23a36,diffuse in substrate,mushroom substrate,A61,0.0
+0b09a1a184809195,digital multimeters,current rating,G01,0.25
+cd2896b2c31c2a8d,dihalo compound,dichloro compound,C07,0.5
+d3ce948a0bd9228f,dimensional location,point,G01,0.25
+5683743751f5d50e,dimple arrangement,function arrangements,A63,0.0
+b77faddcde01d351,direct received light,received award,H04,0.0
+be2d4e59037620ec,disk type recording medium,disc structure recording unit,G11,0.75
+829c5e0ec5f9d2bf,disperse in plastic material,inorganic particles,C01,0.25
+c8db59b532c0bb48,dispersed powder,ground particles,B29,0.25
+de2a6dab6f23fb80,displacement mechanism,means operatively,B41,0.25
+2ddaab1fec4b69a5,display different pictures,different display,H04,0.25
+96a059a18c2adebc,display object,determine flag,G04,0.5
+5fcaefd6bd72b88c,dissolve in addition,solubility,B08,0.5
+768dc40c5405a524,dissolve in glycol,computer system,C09,0.0
+cf4f60b176ca090c,dissolve in solvent system,solar system,C09,0.0
+e86ff03b56826319,dissolving,disadvantage,C22,0.0
+6efe8698fbd6361b,distributor pipe,drain tubes,F24,0.75
+d78b43aff8b1f911,dna strand,genome,C07,0.25
+b36283718bc54a35,donor plasmid,designated,C12,0.0
+1a09140a0b930c2e,double planetary gear,planetary reduction gear,B60,0.5
+6919b475ddc9680c,drainage,drain pipe,B21,0.25
+d149f5d9288b29fe,drive balls,drive balls,F16,1.0
+3a20f8d3a1f35c7e,dry coating composition1,food composition,A23,0.25
+b99911aa94232e68,dry corn,pop corn,C12,0.5
+ee16cc5dd5455132,dual clutch,planetary shaft,F16,0.5
+74b5e5cce2012a21,duplex device,antipodal finline structures,H04,0.25
+b3255b4c9ecb7f5f,ecn,water mixture,G01,0.25
+a2ef25014e899131,effective storage,effective storage strategies,G01,0.75
+f83b76a50b414af9,el display,organic image emitting,G02,0.5
+e2aa3451796aec39,elastic assembly,eye tube shunt assembly,F16,0.0
+349164afa66f1b40,elastic repulsive,shape restoring force,H01,0.75
+712defbbf4372fda,electric field intensities,frequency temperature field,A61,0.0
+a70942a592602c6b,electric starter,starting device,A01,0.5
+d92ec8859975e746,electrical current distribution,current field signal,G01,0.5
+14323797b3527330,electromagnetic input,frequency,G01,0.5
+dd78094a405eb227,electromagnetic radiation source,microwaves,G02,0.5
+81e725add1f6f325,elevation view,elevation perspective view,F24,0.5
+ee1bdfbbe70bae45,embedding groove,embedding,F23,0.25
+76b01e9b1e105548,embossing portion,embossing segment,B44,0.75
+f339e0abeaa9f3ea,encapsulated pigment,aqueous pigment,C09,0.25
+c3d5e60fed151ec1,enclose with openings,openings with enclose,F21,0.75
+0c6387e5f1c3402c,encode form,predetermined encode form,H04,0.5
+0ab9ce35015e1ddd,end of bars,gold end bars,D03,0.5
+6ada737d9e53540d,end pins,safety pin,G10,0.0
+b8020ea78599a2a5,energy storage spring,escapement mechanism,G04,0.5
+d5e64fb4e292e870,engage clamp,clamp,H01,0.5
+d8e79f8af4951fa7,engage in guide slot,target materials,B23,0.25
+ddb3ef67887813ce,equip with blocks,carving machine,B23,0.25
+008a2c855983c1c8,equipment unit,terminal unit,H02,0.75
+922ce9824f0df303,equivalent molar,atomic molar,B01,0.25
+adf175c98574f43e,estimated amount,specified threshold amount,G06,0.5
+1fe244024b4ff8e9,exclusion limit,size exclusion chromatography,C07,0.5
+f2d7ae3e2b15ccc8,exhibit symmetry,axial symmetry,H01,0.5
+ea5784f670431c29,exit electrode,landing bag shape control,B64,0.25
+155a9880471d9b5c,expandable intraluminal,expansion within the lumen,A61,0.5
+be0192d2539bc962,expandable scaffold,expandable framework,E04,0.75
+571661b9d4d14535,extend areas,army area,A24,0.0
+172ed550cbf87383,extend arrangement,data arrangement,B23,0.0
+8fe838a0fb1f27be,extend from groove bottom,retract from groove,B60,0.25
+28c5a1fa1d8b665e,external boundary,perimeter,C12,0.75
+6fedadf92e0693a8,extracting process,separation process,C13,0.75
+1f7b7c88acdf0976,extraction location,spleen location,B29,0.0
+53e32e039bbaf814,fall to low value,low value resistor,B60,0.5
+97197820d3297c0f,fan,air duct,G03,0.5
+e6d070c167001949,fan rotation speed,fan twisting speed,F16,0.75
+283831c1ea353efc,faucet assembly,dispensing assembly,G05,0.5
+9eea69325664011c,fdi,standard device integration,G01,0.5
+ac5c69d57293430c,feed control valve,heart valve,B24,0.0
+830543afa99a7e83,fence post,ceiling structure light,F21,0.25
+34dba249fd511eb0,fiber slack,spun yarn,H04,0.25
+87e8bd2976cc0fc7,fidelity,inaccuracy,H02,0.25
+0639b6e858c6fbbe,filled interior,fill up inside,A61,0.75
+a5b1fbabec9c98ab,final roll,paper sheet,B41,0.25
+4d0232eaac4bfcbe,finger actuator,actuator system,E05,0.5
+1d530dd94bc9ad30,fire cartridges,centerfire cartridge,C06,0.5
+2cb6317319de0aa6,fire ring,valve cover gasket,E04,0.25
+7d16b8ad68f0ba7e,fit within perimeter,outline,B01,0.25
+1a733980da3e5926,flexible belt,drive chain,B65,0.25
+9bd7b9831ae00c60,flexible glass substrate,flexible substrate layer,B65,0.5
+8213a08ba205a216,flexible membrane,rigid membrane,C12,0.25
+c67e0fb0e0f3604e,flexible shunt,bridge road,H01,0.0
+4e22c045703f1c18,flow openings,flow sections,F24,0.5
+50a5650b9633e713,fluid flow source,sample system,G01,0.25
+ffe33cc0dd6c1af8,fluorinated olefin,oled,C08,0.0
+b2cf3911851019c7,flux regulator,regular hexagon,H01,0.0
+5327067d214a609b,foot side,side effect,A43,0.0
+d57f211589eabbc0,form as body,form as plate,G02,0.5
+a9c93422470b1457,form between direction,full form,H03,0.0
+5decccbad6db7bc0,form by electroforming,formation,D01,0.0
+793c33516321458f,form cutter,cutters,B22,0.5
+49e640393bacc174,form rivets,steel production machining technology,B21,0.25
+6149a64b33c36363,form tables,registration form,B41,0.0
+1d0bc4b8a4040461,form trench isolation,isolation forming process,H01,0.5
+1c3e59af8019f4e9,fountain head,fountain pen,B67,0.0
+3f0cdde133edd809,fractionate portion,separate into different portion,C13,0.5
+f90b7923cbb2e387,frame handle,frame assembly,A41,0.5
+308995858b647871,free diameter,free energy,B21,0.0
+1fb2448b21b177d0,free fatty acid,palmitoleic acid,B01,0.5
+dc990f010b21d61c,friction lock,sectioning reducing ball socket,E21,0.25
+bd91395e3cdb26c1,ftir spectrometer,detection,G02,0.25
+6271e08920146622,further additional elements,sacrificial layer,B81,0.25
+a85ddab223110fb8,fused layer,layer,B29,0.5
+55511dcde3e90417,gas leak,gas cylinder,F17,0.0
+c9a41d0327f62ce7,gasoline blend,refinery gasoline blend,C10,0.5
+b3900a90422a0e21,gate insulator film,oxide film,H01,0.5
+4ccc3d126714b883,gate location,selected gate location,G01,0.5
+5c8a4a5e58ec8fe2,general anesthesia,systemic anesthetic,A61,0.5
+1ae826fc79feb923,generate control signal,make control signal,B60,0.75
+87f86718e4bb3b88,generate in layer,cake layer,H01,0.0
+8f47e1adc9fc8511,generated electrical power,induced electrical signal,H02,0.5
+ebf19e1fafa84b94,glass part,glass,G04,0.5
+844a5a2b2bc8150e,glycitin,angiogenesis inhibitor,B01,0.25
+e9afea7dd3487baa,gnd,ground,H01,0.75
+98b78cbd8e7ce9fe,gold alloy,silver,C22,0.25
+b616d179eefb1c0f,gripping layer,gripping substrate,G03,0.75
+bda2195608f8ea12,guided projectiles,space,G05,0.25
+6cfb003e3be15f41,guiding elements,sign boards,E01,0.25
+d0bfec4589bed633,gutter hanger,eaves shoot hanger,A47,0.5
+4f1e0858e90bc7ff,gutters,optics body,G02,0.25
+2713fe66765e9dbe,halocarbyl,chloro compound,C08,0.25
+9bb8f91f1f0705fa,hanging ring,round metal rings,A47,0.5
+590d49b1e76bff49,hardware blocks,hardware engine,G06,0.0
+d50f1f859cf21809,hear aid parameters,speaker,H04,0.25
+e9053172e826ba8a,heart pacemaker,implantable patient,H01,0.25
+76ccea4f7fa76942,heighth,width,E04,0.5
+f1b6b1c101d05d3e,helicase activity,affinity,C12,0.25
+37e4b7aba2d2455b,her2 targeted,receptor tyrosine protein kinase erbb 2,A61,0.5
+2c7b17d584ccf2dc,herpes,viral,C12,0.5
+8c5a00a034967ae0,hexahydro,h23,C09,0.75
+d339c98f85fcc3ec,high frequency welding,high frequency plastic welding,B65,0.5
+912f87a25840f1ba,high gradient magnetic separators,hazardous metals,B03,0.25
+c6ecc0daa4d345f8,hinge mechanisms,pcb connector,H01,0.25
+2b5934a373448812,hot heat transfer,radiation,F22,0.25
+f18518f79665c429,hrb,hardware acceleration,H04,0.0
+c8fea4679cf97340,hybrid bearing,sealed bearing,F16,0.5
+d1623279bea3baba,hybrid system,cross paths,H01,0.0
+4022692f11d34f0f,hydrocarbyl substituted succinic,substituted succinic acids,C10,0.5
+fc8a7dde66030c11,idle mixture,mixture,F02,0.5
+dd15f18a5a746ec2,illumination condition,lighting condition,G03,0.5
+1b7f092b86e8e3a3,image signal generation,image generation,H04,0.5
+f6d8d8ece50ef025,imaging axis,optical of direction,G02,0.0
+aa090eb55c464dca,imidazo,disorder,A61,0.25
+1093c19d417fc625,implant pellets,subcutaneous implant pellets,A61,0.5
+ebe6f410beddb84a,implement with plurality,plurality embodiments,A01,0.25
+aa326a6dcf493f71,include contact switch,manual application,E04,0.25
+6afe56f6918ab1c2,include displacement,displacement of water,B23,0.0
+e255ad221fa79f4a,include retaining elements,include retention elements,A45,0.75
+355cbe99166e5a70,increase hardness,increase amplitude,G03,0.0
+969d2a0a056a56b9,index with location,measurement of location,G06,0.5
+26bff43753c9b11e,indoor room,room decor,F24,0.0
+38976d4c9debf2ce,inflow channels,narrow area,D21,0.25
+bb951a96e78bb884,ingress buffer,internal buffer,H04,0.25
+f1db09e2abb2a6d5,inner closed,inner open,E04,0.25
+3ab83a80c5a05d2c,inner contact,inner support,D21,0.5
+4632dda21e993acc,inner fluid conduit,inner core,G01,0.0
+d0770066b010e8d3,inner peripheral,outer peripheral,G11,0.25
+f202ba371d3054c0,inorganic hybrid,thin emitting,B32,0.25
+491196cc5742a507,insert into trachea,put into trachea,A61,0.75
+612df7d8ed70e220,insert nucleic acid,messenger rna,C12,0.25
+0201c774b554a6ac,insertion losses,person performance,H03,0.0
+17684f9fbfb2bb12,instruction processing,instruction,H04,0.25
+81b693d767d59ffb,insulation sleeve,insulating sheath,H01,0.5
+1f856e89ec372283,interconnect site,opening,H01,0.25
+866bd815fffcc193,interconnected levers,precision bearing,F16,0.25
+5f479b26eaa9ec7b,interlock section,flanges,E04,0.25
+b3158da5313ac049,intermediate connection,intermediate arrangement,G04,0.5
+d4e45f3b88e77da4,intermediate speed,sound speed,D01,0.0
+2336a8148913c988,intruder detection,access management,G08,0.5
+47268c2f42d9c6ad,invertebrate,invertebrate pests,A61,0.5
+15c0dd3e629dd3b2,involve etherification,involve in ether formation,C07,0.75
+8255553b90ee63b4,inward travel,internal audit,G09,0.0
+58529412952f6c70,issued patent,granted patent,F23,0.75
+e169ebb1a1a4e506,kalanchoe plant,tropical succulent plant,A01,0.5
+d20bc1ce8ce8c8be,key arm,arm button,H04,0.25
+88f174bd617643f0,key recesses,set slots,H01,0.0
+0c1213c7307e8ed6,killed,killed in war,G02,0.0
+51dea20ad2116be0,kraft cooking,kraft paper,D21,0.5
+15346c5c071617f5,labeled ligand,complex,C07,0.25
+254c210c5b9a8726,laminated wall,layered wall,G06,0.75
+22ec12005bf5d848,lamination method,printing method,G02,0.5
+854a00b3cd7d6821,laser beam optical,polarization optic,G02,0.5
+d5df908de011e5f6,lateral power,power,H01,0.5
+dfdbf3d17c4cc811,length light,breath of light,G03,0.25
+6834a9943a986cdc,leveller,barcode,F02,0.0
+573cd771bef36db2,life testing,testing the life of a leakage current protection device,A61,0.5
+b30da8c485a8a42b,lift element,material discarded,D01,0.0
+cfdcde60f358f5d0,lifting finger,carrier,B41,0.25
+d75be89814399e27,lifting load,suspension load,E01,0.5
+b1e843fe31830b73,light sensitive composition,photographic film,C07,0.25
+99140cd9d08a096c,ligninases,novel extracellular enzymes,C12,0.25
+4dd33f1897005085,linear change,uniform variation,G02,0.5
+0e003bd326a1770a,linear systems,recursion estimator,G06,0.25
+5e7abc1d113ee90a,liquid reservoirs,liquid containing system,F01,0.5
+febdc62fe25deaf8,load distribution system,back up unit,G01,0.25
+6cfbea5dc25814b1,locking formation,sealing formation,B23,0.75
+7798834c97083fde,loudspeaker arrays,directional transducers,H04,0.5
+b7b220486a0cd2ca,low soc,low rate discharge,H01,0.5
+f6039590b064141c,lower stretches,straight stretches,F03,0.5
+9fdf867e8d67d06d,lower trunnion,lower back pain,F16,0.0
+26a0ff78f56777db,machine end,instrument corner,E21,0.5
+5b2136b19ecaeb4e,magnetically actuated,flux conductors,F04,0.25
+d7279029722a2148,main lane,main road,G08,0.75
+3a94209df7b25e32,main linear,main straight,G03,0.5
+caa599d63367d871,main pulse laser,pulse processing,H01,0.5
+88c72acf9622e192,maintain oxygen level,control oxygen deficiency,C10,0.5
+3edc1b42dcc74cff,make of high density polyethylene,make of high strength steel,H02,0.25
+4329b8063a3e85a5,make of slabs,terrace slabs,E04,0.5
+ec46d38e75a8bf1e,maleic anhydride grafted,graffiti numbers,C09,0.0
+b463e300f9476c07,map display system,route planning apparatus,G09,0.75
+91e0a220bf16aeed,mat forming,flexible mat forming,B28,0.5
+13fcfe7d5c06b503,mat sections,section officer,A63,0.25
+afecb71d510b0b44,material formation,cleaning,H01,0.25
+e6496af70e6f2ff3,material item,materials item,H04,1.0
+cdf29727d38ee299,materially less,materially less thickness,H01,0.75
+c7cf2ac715fb11c6,mayenite,high frequency sound,F27,0.0
+e68c822dca7aa96c,measure by probe,measuring idea,G01,0.0
+875bb24d6d70da10,measure surface temperature,detecting temperature changes,F23,0.5
+f5b9366a916e98f2,medical product,information storage,G06,0.0
+83c94b698271d7b6,melanocyte,msc,C12,0.0
+8abb9a31a9d81203,melodies,different,A46,0.0
+a59b0f02e7b53389,melt coating,melting eye tattoo,B41,0.0
+8a7a59740d2493f7,membrane vesicle,membrane virus,A61,0.25
+1249a99e38bbdf15,mentioned conveyor,ingot conveying,B22,0.5
+625c103fb6131c4c,metal phase,homogeneous,B01,0.25
+b2a50320d769175f,metallic binder,metal oxide binder,H01,0.5
+5cd0cc3e3559f499,metallic cartridges,metallic shell,F42,0.75
+c726e47968d3b5ed,metastatic bone disease,osteosarcoma,A61,0.5
+8e7049a64ff35e9f,metatarsal bones,metatarsus,A43,0.75
+a081e1dcdbeaa0e7,methoxyethylamine,milk,C07,0.0
+7ac9c6d2e8aece7b,microchambers,microphone,F16,0.0
+5714206db9d3fbb2,modify before use,modify by use,A61,0.25
+7537f417ad9d9759,moisture absorption rate,specific absorption rate,D06,0.5
+b637c81f875268d3,moisture proof film,transparent moisture proof film,H05,0.5
+a50250b5013ddcba,monocrystalline semiconductor,crystalline semiconductor substrate,H04,0.5
+d29bb6a260ed7d04,morpholin,compound,A61,0.25
+3827d6593a414d88,mount on cylinders,support on cylinders,B41,0.75
+83ac7fb9d4a4b62a,move to range,non linear actuators,F15,0.25
+21e4752ed38e0a92,move towards left,leftward flow,D05,0.75
+7dd89e23cfc6f369,movement directions,relative,B60,0.25
+ea69d02094ef6de3,multiplexed data,multiplex bit,H04,0.5
+40e2d71ecc727e46,nail strip,nail strip formation,B28,0.75
+1a82d6c28c886ef1,negative collector,cathode collector,C23,0.5
+9013a80dfb337d75,network load information,data packet,H04,0.25
+a6c2ab570f800398,neural stimulation,electrical nerve stimulation,H04,0.75
+795751d877276f33,new freely flowering,freely flowering habit,A01,0.5
+52ff443bd3d9cfce,non lamellar,non microstructure,A61,0.75
+6f320f6a9a266156,non polar carrier,carrying an electric charge,C09,0.5
+3aa9bb5c1ee4b6a7,noncollinear,coplanar points,G02,0.25
+5274945dc687596b,normal base,origin,B41,0.25
+9780fc3b94550397,notch base,surface cleaner,H01,0.0
+121d1acb9df1bc53,nozzle receptacle,plate member,B29,0.25
+305a9042f49def78,nvm array,array filter,H03,0.0
+23019f74e42b45f5,obstacle course,simulated course,G09,0.75
+717b335c4a3aed65,obtain from fractions,proportions,C07,0.25
+1e54071b30ddc298,offset table,table glass,H04,0.0
+725a9cc2431dcd90,oil tankers,vessel ships,B63,0.25
+871c5c154aeb0518,olefin production,propylene generation,C10,0.5
+81c14d3f4ca1b9a7,opaque walls,wall street journal,B29,0.0
+8c5fc6f98a3bf1e0,opc drum,electrostatic photosensitive drum,G02,0.5
+a20537882697e827,opening assembly,opening mechanism,E05,0.5
+65c8d9ad8c0d1c19,operate by vacuum,used in vacuum pressure system,B60,0.5
+fe6784dfe1d4baf4,operate internal combustion engine,control panel,F02,0.0
+116926e237e2a346,operating channel,band,H04,0.5
+200b6d4d4943e9a0,operational height,operational position,B61,0.5
+6861f8a29dfbbdbc,operator identification information,customer card number,H04,0.25
+984ecf7960e1cc2b,opposing walls,opposite side surfaces,B60,0.5
+46ae120f8280386a,optical glasses,optical frame,C03,0.0
+74973bd165ad0b4a,optimal quantity,standard quantity,A01,0.5
+300535f77347f9da,organic alkaline,alkali soluble alkaline,C11,0.25
+4ac62adb0579cf67,organic starting,large crystal,C25,0.0
+5c4fbe16fc1b4ab2,orthogonal acceleration,current flow,H01,0.25
+3f6ddb7628d50168,outer bar,bar council,E01,0.0
+1c40a2de43593f26,outer cylindrical electrode,annular support,F03,0.25
+2ebaaef599350eea,output center,output unit,B62,0.5
+9aa6200bf315b785,oven batteries,furnace cell,C10,0.5
+454f24563f1fe0dc,overall condition,overall position,B62,0.75
+0f9cff3ffad7e763,overall weight,areal weight,D06,0.5
+e3ff8279dc03062b,overflow compartment,overloading,F16,0.25
+c4b857f4184a1f9e,overflow device,mounting wall,E04,0.5
+e4057ca3ccea3838,oxidizing enzyme,enzymatically polyester ester,C12,0.25
+27e95d17c970f758,oxygen carrier,acid,C14,0.25
+b3a0dcac500be662,oxygen lean,air rich,F25,0.25
+448355c10404363b,oxygen value,o2 value,F02,0.75
+09f0bd1bb0b0d9f2,package member,tablets,A61,0.25
+8bb469dc9e2c4317,page file,ram,H04,0.25
+5d3bcd47b1dec72d,panel frame,lens panels,C02,0.25
+f11b3e736e22c194,paraboloid,paraboloid calculator,G01,0.0
+80556d40bb751c62,parallel force,side directional force,F28,0.5
+5a5986244897a31c,parallel orientation,space segment,G06,0.0
+7569356fc3073633,partial elliptical,elliptical machine,F21,0.0
+bd646f6632948a8e,particular operational,particular operational group,G01,0.75
+fd17b37bdf615743,pen based computer,pen based device,H04,0.75
+a46894d04101e52a,pendent,pendent accessory,F04,0.75
+b5488f84e24c2d9f,peptide precursor,post translational modification,C07,0.25
+c1ea9587f249c9a5,perfluoroalkyl group,perfluorocarbon alkyl radical,B23,0.25
+d419811f8a9a75fd,perform desired action,programmed machines,B23,0.25
+b259ef2d63c35898,perform working operations,implement working operations,B23,0.75
+77023a2180f12c64,peripheral nervous system stimulation,stimulation,A61,0.5
+b8740aec16fdedff,personage,character,A47,0.5
+9a502021f6a63350,photocleavable linker,cleavable group,C12,0.5
+6cb7e6ddadd735ac,photodefinable,ink jet authentication mark,B41,0.25
+6396554ea90a3a26,physical transport medium,coax cable,H04,0.5
+23b720feca54546a,pick element,pick component,E21,0.75
+1019eb3d2aba0003,pictorial image,illustrated image,G01,0.75
+420cdd07318edcf3,pillaring,composite,B01,0.25
+c49d577999670bbc,pipe box,pipe bundle,C21,0.0
+bbbe883f27cb1195,place to set,setting place,H04,0.75
+2faace6f78ec50fa,planar gear sets,axial gear members,F16,0.5
+0c0ba31292ccc6cb,plug nozzle,adapter nozzle,B01,0.75
+6c63400fa1baeeb0,ply tire,sound absorbing structural element,B29,0.25
+9e0f6a8eb0044a39,pneumatic logic,air compression,F28,0.25
+eb5965c41fb9f503,polls,monitors,G01,0.25
+2d75a6f8bc186208,polyglycolic acid,copolymers acid,D01,0.25
+e29fb87576e79ae7,polymeric ester,composition,C08,0.25
+67b8a9833cb9ff7f,portable radio communication,radio garden,H04,0.0
+81ad085eb3b7b589,position enclosure,position outside enclosure,B65,0.5
+24e66f7c84f94bc8,positioning sheet,positioning planes,A43,0.0
+0db3d973c6c7623c,post hole diggers,post holder,A01,0.0
+dd1a0fe84157f834,power conversion control,conduction controlling,H02,0.25
+8cdcbdbcfc833be0,pre established parameters,shoelace data points,A43,0.5
+056b7a00a98c0bb2,pre trip,high power,H01,0.25
+58bf294139575864,predetermined acceleration,predetermined longitudinal load,F42,0.5
+946b96c3d9aca09d,predetermined relatively,clockwise,H01,0.25
+5cc47b188ba619a7,preliminary dispersion,preliminary expenses,G03,0.0
+5c57ee4741cdfd99,preregistration,official admission,G03,0.25
+680c10de7a3be958,pressing state,predetermined pressing state,G03,0.5
+11b313e6d43ab944,pressure detection,pressure detection sensor,F23,0.5
+d432a6416712e59a,pressure failure,impact,F02,0.25
+a0ff8a87cc1c9417,pressure signal,fluid pressure signal,F03,0.75
+6865de717ec35f7f,presynaptic,dendro dendritic,A01,0.25
+03a923d049c8ef1e,prevent accidental separation,prevent spreading,A44,0.0
+c5c372adcbd13260,previous batch,temperature,D01,0.25
+60795faa1b27bf61,previously captured image,previous version,G01,0.0
+af3205334b5d20d8,produce by pump,sparkler nozzle,B67,0.25
+e2a07ab780d6d2e9,produce by recombinant dna technology,produce by technology,C12,0.25
+5c0007d167e8224b,produce liquid hydrocarbons,produce liquid hydrides,C10,0.5
+c5529107469f4c4c,produce thin layers,controllable functional layers,G01,0.25
+659ff554df8600e5,project onto surface,light rays,G03,0.25
+9a9fb07b3b920aca,projection method,measurement apparatus,G04,0.5
+3f3a062fb1070d32,prolog,compiler,H03,0.25
+19d1ce7636557cb4,prolong span,extending,F16,0.25
+9a77f02f5abb890e,proper order,re order,H04,0.25
+bf210af3973173ff,propyl bromide,butyl alcohol ethyl,C23,0.25
+332c61c4d353ceff,protocol component,emergency protocol,H04,0.0
+bd0d639fdbdced5f,protograph,protograph based low density parity check,H03,0.5
+6b0630ca15db77bf,provide acknowledgement,provide noun,H01,0.0
+0224929f196702f5,provide by terminals,provide using terminal,H04,0.75
+c77decbf667c2930,provide car,provide vehicle,B61,0.5
+25a5aeb5187968ea,provide for tuning,transmitter,H01,0.25
+33954b2951e7df2c,provide in amounts,depict in mass,C04,0.5
+ca1c6c282bc6b616,provide restoring force,equilibrium position,E01,0.25
+ec0407576da6b24a,provider networks,mtc capillary networks,H04,0.25
+e757b5e92ac69ed6,psd functions,frequencies variations,G06,0.5
+7c75f062fb68e034,pulping apparatus,pulp cavity,D21,0.0
+cac2663147f1293c,pulse width modulated control,voice control,G02,0.0
+8d70606f3b3234bb,pulsed plasma,magnetic flow,H05,0.25
+451e8c497461802d,pulverulent material,granular material,F23,0.75
+db24705b16446498,punch face,face punch,B21,0.75
+013e42f29329f821,pushing pin,rotating sliding member,B60,0.25
+d0be5c437ec6563e,radio wave transmission,radio wave,H01,0.5
+609062a17ff0c5d3,rear adjustment,back adjustments,E05,0.75
+2c3a4db015dfae77,receive acceleration,sensor,G05,0.25
+6a02b9eacf2dfd00,receive via surface,capturing via surface,B05,0.75
+17f0bfe68eb94b9f,receiver shaft,shoulder blade,F41,0.0
+de808cbe99f4de29,recover from reaction product,obtained from reaction product,C08,0.75
+1ae33604b1c83554,reduction factor,weighting factor,G06,0.25
+031e89ea25cd9754,reflect by reflection mirror,optical modulator,G01,0.5
+2972e338810a343a,reflection type liquid crystal display,display flex,G02,0.0
+51cbf2deb7f9933a,regeneration agent,regeneration reagent,D06,0.75
+0cabb8e9b09f2190,register digital converter,temperature to digital converter,H03,0.5
+8c0bf4c3b7696016,registration hole,registration system,B41,0.5
+1866adb376878857,relational formula,correction value,B61,0.25
+f5ecab50c3a45cf8,remain below threshold value,remain below predefined value,B60,0.75
+0e5f20c819683775,remaining legs,remaining files,B61,0.0
+fe2ff88a627d2457,renewable power,renewable power source,H02,0.75
+cad69be178c44871,request buffer,fuel mass flow evaluation,F02,0.25
+15bc58811096ce7b,resilient metal,resilient steel,E01,0.5
+bb53cc7f328051d2,resilient spring clip,clip convertor,F21,0.0
+5b94652c599d8345,respective emitter,emitter supply,H03,0.5
+160379940f530082,retainer bolts,retaining bolt,B29,1.0
+0dd3821d74c6474b,retaining insert,snap post,H01,0.25
+d6c0c0c841cf7125,retinal tissue,vitreous,C08,0.25
+40efcacfbe3c61ca,retorting process,copper retort,C10,0.5
+278a1839fa8392da,return structure,return type of malloc,F27,0.0
+dbb356a2c4d95460,rhodium carbonyl,rhodium jewellery,C07,0.0
+c705986c92ea74fb,rizatriptan,codeine,A61,0.0
+b0df1c2512a8cd65,rna seq,cellular protein synthesis,C12,0.25
+9316e70979d3c213,rocker lever,rocker lever,B41,1.0
+2b60bac467179218,roll on workpiece,hot steel roller,B21,0.25
+9c992dfba6a881e5,rotary electric,electric,F02,0.5
+40aafbbc4ce8c4c2,rotary section,rotational equilibrium,H01,0.25
+7978302ce1302db1,rotatable chamber,non rotatable shaft,G01,0.25
+5e44bd3f82e09aec,rotate on its longitudinal axis,rotate image,B24,0.0
+cea6436db5d1218d,rotation protrusion,link projections,F15,0.5
+26631b984d0f0fb4,rotor stages,plurality of sets,F02,0.25
+999b7793dfad50cc,run during interval,gap timing,G04,0.5
+0244649d5d48ab8f,running tally,tally sheets,G08,0.5
+4826cac4334c587d,salina,fluid,A61,0.0
+74dfbd0f7be210a0,sand formation,sand formation,E21,1.0
+550980626328415b,saturated felt,roller,F16,0.25
+0a153fb80c5c1ea2,saw sensor,sensor,F02,0.5
+06becc64cf27a784,sawtooth waves,triangle theory,G10,0.0
+e8246ba5661b84a7,scorch,discoloration heat,C08,0.75
+fb883e40832cb503,scratch coating,scratching pad,A63,0.25
+dea231b10d7c59c0,seal members,seal kit,E02,0.0
+6e1daa4cf769be03,seal teeth,seal stamp,F01,0.0
+d9123c1fd293f371,sealable adhesive,seal adhesive,B65,1.0
+4cc61c488166ba11,search indices,specialized search indices,G06,0.5
+fbcf869d79815ac0,sectional layer,sectional covering,F42,0.75
+d1fcea11f0c75664,secure to guard,relate to guard,A01,0.5
+a93501f1fad7260c,seeded,implant,A61,0.5
+4a3470855bd1d245,select unit,3 to 1 multiplexer,H01,0.25
+345fcbc956dd2d7b,selected box,selected package,B28,0.75
+74b7d64633b1c9c7,selected operation,selected species,H04,0.0
+d22f6387bba8b08d,selection logic,selector,G10,0.5
+c9abb0d080d9912c,selectively predetermined,predetermined control time,G01,0.5
+96440ed1c1160fca,self resonance frequency,electrical frequency,H01,0.5
+368c4b5a590a1fec,send to control node,send to control circuit,H04,0.5
+e0318d32a94520d7,sensitive photographic,sensitive plant,H01,0.0
+331db2a6fef163c2,sequence conservation,interaction,C12,0.0
+102b44ea2bedd014,service processing unit,requesting module,H04,0.25
+e5cd685df185e766,shannon,shannon fano,D03,0.5
+cd13338639f54c57,shape like tail,shape profiling,A63,0.25
+0ee9355a824e6f5c,shaped engaging,shaped elastic,F16,0.5
+0fc755d4402630fd,shaped substrates,shape substrate,C09,1.0
+01304287823e515f,sheet supply roller,sheet roll winding shaft,B41,0.5
+c7217620bd8b8f8b,shielded conductor,shielded sections,H01,0.5
+8c19bcea8b169916,shift link,shift,A47,0.5
+e49a8d1e4ac02182,show in chemical formula,atomic symbols,C09,0.25
+4ea0042d47c8d18f,shunt reactor,reactor pattern,H01,0.0
+e0d88c9c19df1b35,signal generating compound,radiation,C07,0.25
+d86e159db03378eb,signal sender,central receiver unit,H01,0.5
+d581474e8444aa4f,silicide formation,transistors,B01,0.25
+4225dea79bde391d,siloxane based,polymers,C04,0.25
+770ed76af30bbdf3,similar absorbent,similar sponge,A47,0.5
+7262782396de37e5,single pumping chamber,single wireless earbuds,F04,0.0
+e017559a330fd43d,sleeve upper,upper sleeves,A47,0.75
+3da67081802de435,slip segment,segment,F16,0.5
+1e3abc29ca0cd644,slot open,body,C22,0.25
+947d14ddb92055ac,smooth outer surface,soft outer surface,C21,0.5
+a3b9ce73f2c5ffd7,soft polymeric,soft as a feather,H04,0.0
+d58dbe3011b0e0ef,solder member,shoulder joint,H01,0.0
+fe52ab3b9ab65358,source channel,receiving element,A61,0.25
+f312271c18bd3b2b,source voltage,supply voltage,G06,0.75
+d4274e4ad7ebf148,speed control means,control unit,H02,0.5
+9433ed1f6a349bd8,speed impeller,pressure impeller,B01,0.75
+eb76d26ca87256d8,sphygmomanometer,inflatable cuff,G09,0.25
+b5b96755c6c0d4c4,split into flows,break into flows,F16,0.75
+65c258b5b694f4ae,spoke wheels,spoke wheels,B60,1.0
+983a10b9d8548509,sprayed,spray nozzle,E04,0.5
+bbc31890f7221512,spreader body,body mass index,B66,0.0
+5b6aee65a209a911,square lattice,square signal,F16,0.0
+7184a4ead9efa105,stability function,transmission,B60,0.25
+e425e33fa48f09b9,stabilizer members,support elements,B60,0.25
+13df06a26bbddadc,starch component,starch heater,D06,0.0
+bd2871ab09193933,stationary rod,moving matter,G01,0.25
+09eae2ee6f5726ef,steering matrices,spreading matrix,H04,0.25
+ad76cd219a90d756,stepped pin,stepped pin,B25,1.0
+c55de0d86110107b,storage lid,door body,B60,0.25
+c8f9a75ec162e85c,strand conveyor,pushing member,B65,0.25
+2a5c075db28c80cb,substantially axial,substantially longitudinal,F01,0.5
+7a5dca5b7e4870d5,substituted carboxylic,substituted chair,C10,0.0
+ab2132e3b0371633,sulfide sulfur,phosphorus,C01,0.25
+2027bdd5ccbdbda5,summits,mountains,F24,0.25
+7bf29fda079cd416,sun member,ventilation path,F04,0.25
+2841f7a086662bdd,superior abrasion,metal corrosion,D03,0.25
+a4c6bc8c1afacb94,support grooves,corresponding guide grooves,B22,0.75
+eb1dd18d7bf3fc6b,surface altering agent,surface tension,C04,0.25
+247a57aeb683c32f,surgical gloves,examination gloves,C04,0.5
+b68589f5864b351d,sustained delivery,constant drug delivery,C12,0.5
+c24c030fc4caf969,switch swm,solid waste management,G02,0.0
+03d3a68ba90cc49a,synthetic training,training,G06,0.25
+9609ecd078b2f70c,tap portion,body transistor,H01,0.5
+96cb765dc3f81893,target pointer,counter,G06,0.25
+db5f16d896206863,terephthalate polyester,terephthalate,D06,0.5
+7f6b3d22a129bf5b,tetracene,tetra pack,C09,0.0
+012f29dc558906d9,therapeutic applications,power plant applications,G21,0.5
+95a89e88f1c43ff1,therapeutic immune,immune system modulators,C07,0.5
+c76ba554588bb454,time digital signal,digital signal,H03,0.5
+a88fe073403bfb26,time domain equalization,waiting time,H03,0.0
+eb83769a3e4cfd30,toolpaths,paths,B22,0.5
+b56725d74d8be05e,tooth spaces,gear,G01,0.25
+a61674177c9a2fc7,top surface member,cover,H01,0.25
+46dce56464f432c7,track temperature,temperature sensor,G05,0.5
+ef32254298bbe142,transfer onto substrate,transfer onto substrate,B41,1.0
+b3dbb3e25c45c19d,transistor m6,bipolar junction transistors,G05,0.25
+5e61542bf726ef7b,transition member,portion tracker,E04,0.0
+3e3cdaf1838a35bd,transmit alarm,contacts sender,G06,0.0
+a7526da35562a20a,transmit over interface,transmit over bus,H04,0.5
+2329aa40f8924da2,transmit to platform,handling timber,B66,0.25
+e7f6c4adad346ef6,transparent liquid crystal display,drive crystal display device,G09,0.5
+a8ad4ea231a61a08,transport from layer,transport from film,D04,0.75
+12559fb1fbf351b8,travele in direction,alternative travel options,G01,0.25
+22e17458017d1355,treatment programs,treatments,F22,0.5
+c53be701d94b69db,triethylammonium salt,tertiary ammonium chloride derivative,C12,0.5
+81a80e2356907913,trommel screen,lock screen,B03,0.0
+c60290415a894697,tsr,total fees,C04,0.0
+12b1726de778ccd7,tubular billet,shell,B21,0.25
+ce7a48f2c4e0eacc,tubular latch,hollow member,E05,0.5
+442c114ed5c4e3c9,tunneling capacitor,capacitor housing,G11,0.5
+24d57d87b430dfdc,turbine machine,turbine starter assembly,F01,0.5
+caeddd8630e20c4b,type parameter,kind of parameter,G06,0.75
+9b4dd179e034b861,undulation,swing,B65,0.75
+5d86c614752b9ef0,unit inlet,unit inlet temperature,F16,0.5
+87828141f7aed925,update test cases,generating test cases,G06,0.75
+914c3112ad9cc304,upper clamp arm,upper clamp,F16,0.5
+b2c318f019e28238,upper series,upper system,B41,0.5
+9f5c34ab901f072f,use as cooling fluid,heat transfer,F24,0.25
+5d0183bf1c33d714,use balance,using balance,A63,1.0
+75ebf68e196c85ff,use in positioning,use cases,G01,0.0
+2334bd3af4c04334,use physically unclonable functions,physically fit,H04,0.0
+b30dbd07d09767b2,use solid materials,composite friction units,B29,0.25
+65bad31720aa46af,use voltage converter,race circuit,F02,0.0
+75af12f6ab507e86,useful metal,metal oxides,C07,0.5
+50d5bce42d6ed21c,vacuum cups,vacuum,E04,0.5
+6b1a0a838c0ad948,val ile,ser,C07,0.25
+fd298e091fef63db,vco circuit,control means,H03,0.25
+40bb71eeddc80cf7,vegfr2,plant growth,C12,0.0
+0096d0f44883ad4e,verifiable,confirmable password,H04,0.5
+e1295527cddb4a7e,vertical chute,chute,G07,0.5
+eafb3d36e6c3bd8d,vertical comb,vertical comb,B81,1.0
+9703f1c77297a70e,vibratory actuator,controlling a mechanism,A61,0.25
+6beace7c72a22af3,video light,video converter,G03,0.0
+2744e94e066d1d56,video lines,signal line,G09,0.5
+7f5d187c62256cfc,voltage patterns,voltages,G06,0.5
+f3c76d6051294afe,voltage values,potentials,B41,0.25
+d3443338c76d7ae5,wafer inspection system,wafer inspection apparatus,G01,0.75
+1436dd25f24613a4,wake up procedures,wake up clock system,G06,0.5
+f5affb0dc963adb1,walking aids,walking support,A45,0.75
+115bc1ac711486d7,walnut oil,nut salad,C08,0.0
+3507eb556b733257,water infiltration,warpage,H01,0.0
+7dcf0ab9059f3edc,water intake,liquid intake,B67,0.75
+5cdba58f6003ad39,water product,product review,H01,0.0
+038df92d6b263cf8,water propeller,center propeller,B63,0.5
+33755e7eebb5ea46,water propulsion device,propulsion pump,F01,0.5
+2c44c1233ccfd2f5,wave generation,initiating,F42,0.25
+a9d03584ab47bb1f,wearability,wearable,A61,0.5
+616c3a3e069d46bf,web transfer,web designing,D21,0.0
+45beb9c008949994,wedge device,thrust washer,F16,0.25
+1f99268a8b7f6c38,weldability,wetting,C08,0.0
+df2e07f45873f51f,well pump,pump system,E21,0.5
+3563f46e03e0b63c,whose identity,data,G06,0.25
+a949f719dbb2cb8a,wire grid polarization,wire grid polarization beamsplitter,G01,1.0
+18cc9b2d1d75739b,wiring trough,influent well,F16,0.25
+2cac15df9f918089,wood article,timber product,B44,0.75

@@ -192,4 +192,4 @@ if __name__ == "__main__":
     all_cs = mini_case_cs + other_cs
     prepare_notebooks(competitions=all_cs, 
                       notebook_path="/data/userdata/v-xuminrui/Notebook",
-                      idea_path="/data/userdata/v-xuminrui/Knowledge/idea_v3.json")
+                      idea_path="/data/userdata/v-xuminrui/Knowledge/idea_v4.json")

@@ -1,0 +1,335 @@
+{
+    "data": [
+      {
+        "id": "gpt-4.1-nano",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "DeepSeek-V3",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "deepseek-ai/DeepSeek-R1",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "o1-mini_2024-09-12",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4o",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4.1",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "o4-mini_2025-04-16",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "text-embedding-ada-002",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "phi-4",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4.1-mini",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "o1-mini",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4o-mini_2024-07-18",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "text-embedding-ada-002_2",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "Deepseek-R1",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "Meta-Llama-3.1-8B-Instruct",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4_turbo-2024-04-09",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "phi-4-mini-reasoning",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "o1",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4_0314",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4.1-mini_2025-04-14",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-35-turbo-instruct",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "deepseek-ai/DeepSeek-V3-0324",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4o_2024-05-13",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4.5-preview",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4-32k",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "o4-mini",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4o-mini",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "phi-3-medium-128k-instruct",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "meta-llama/Llama-3.3-70B-Instruct",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4-32k_0613",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-35-turbo_1106",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-35-turbo_0301",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "o3-mini",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "o1_2024-12-17",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4.5-preview_2025-02-27",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4-32k_0314",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "phi-3-5-mini-instruct",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4o_2024-11-20",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4.1_2025-04-14",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "phi-4-reasoning",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4o-realtime-preview_2024-10-01",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-35-turbo-instruct_0914",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "o3-mini_2025-01-31",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-35-turbo",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4_0125-Preview",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4o_2024-08-06",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4o-realtime-preview",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "o3_2025-04-16",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "gpt-4.1-nano_2025-04-14",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "o3",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "o1-preview",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "phi-3-5-moe-instruct",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      {
+        "id": "Deepseek-V3-0324",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      }
+    ],
+    "object": "list"
+  }
