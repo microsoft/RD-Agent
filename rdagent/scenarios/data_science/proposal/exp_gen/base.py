@@ -141,55 +141,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         else:
             raise ValueError(f"Invalid search type: {search_type}")
 
-    def get_parent_exp_fbs(
-        self,
-        selection: tuple[int, ...] | None = None,
-    ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
-        """
-        Collect all ancestors of the given selection.
-        The return list follows the order of [root->...->parent->current_node].
-        """
-        if selection is None:
-            selection = self.get_current_selection()
-
-        if len(self.dag_parent) == 0:
-            return []
-
-        return self.hist[self.dag_parent[selection[0]]]
-
-    def collect_all_ancestors(
-        self,
-        selection: tuple[int, ...] | None = None,
-    ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
-        """
-        Collect all ancestors of the given selection.
-        The return list follows the order of [root->...->parent->current_node].
-        """
-        if selection is None:
-            selection = self.get_current_selection()
-
-        if len(self.dag_parent) == 0:
-            return []
-
-        elif len(selection) == 0:
-            return []
-
-        else:
-            all_ancestors = []
-
-            # start from the latest selection
-            current_node_idx = selection[0]
-
-            # add the current node to the list
-            all_ancestors.insert(0, self.hist[current_node_idx])
-
-            parent_idx = self.dag_parent[current_node_idx]
-
-            while len(parent_idx) > 0:
-                all_ancestors.insert(0, self.hist[parent_idx[0]])
-                parent_idx = self.dag_parent[parent_idx[0]]
-
-        return all_ancestors
 
     def next_incomplete_component(
         self,
