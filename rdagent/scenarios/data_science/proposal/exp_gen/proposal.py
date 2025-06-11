@@ -1031,11 +1031,13 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         return result
 
     # FIXME: remove this, dump solution, should be merged into identify_problem in V2
-    def identify_problems_v3(self, trace: DSTrace, scenario_desc: str, sota_exp_desc: str, exp_feedback_list_desc: str) -> Dict:
+    def identify_problems_v3(
+        self, trace: DSTrace, scenario_desc: str, sota_exp_desc: str, exp_feedback_list_desc: str
+    ) -> Dict:
         sub_trace = trace.get_parent_exps()
         trace_length = len(trace.hist)
         all_problems = {}
-        
+
         # 阶段一：探索期（主要场景问题）
         if trace_length <= 3:
             scen_problems = self.identify_scenario_problem(scenario_desc, sota_exp_desc)
@@ -1043,7 +1045,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
                 scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
                 all_problems[problem_name] = scen_problems[problem_name]
             self.scen_prob_multiplier = 3
-        
+
         # 阶段二：混合期（两种问题都考虑）
         elif trace_length <= 6:
             # 优先场景问题，但也考虑反馈
@@ -1051,13 +1053,13 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             for problem_name in scen_problems:
                 scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
                 all_problems[problem_name] = scen_problems[problem_name]
-                
+
             fb_problems = self.identify_feedback_problem(scenario_desc, exp_feedback_list_desc, sota_exp_desc)
             for problem_name in fb_problems:
                 fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
                 all_problems[problem_name] = fb_problems[problem_name]
             self.scen_prob_multiplier = 2
-        
+
         # 阶段三：优化期（主要反馈问题）
         else:
             fb_problems = self.identify_feedback_problem(scenario_desc, exp_feedback_list_desc, sota_exp_desc)
@@ -1065,7 +1067,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
                 fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
                 all_problems[problem_name] = fb_problems[problem_name]
             self.scen_prob_multiplier = 1
-        
+
         return all_problems
 
     def gen(self, trace: DSTrace) -> DSExperiment:
