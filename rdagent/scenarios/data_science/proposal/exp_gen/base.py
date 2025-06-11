@@ -141,7 +141,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         else:
             raise ValueError(f"Invalid search type: {search_type}")
 
-
     def next_incomplete_component(
         self,
         search_type: Literal["all", "ancestors"] = "ancestors",
@@ -168,7 +167,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             if exp.hypothesis.component == component and fb:
                 return True
         return False
-
 
     def experiment_and_feedback_list_after_init(
         self,
@@ -209,7 +207,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             return SOTA_exp_and_feedback_list
         else:
             raise ValueError("Invalid return_type. Must be 'sota', 'failed', or 'all'.")
-
 
     def sota_experiment_fb(
         self,
