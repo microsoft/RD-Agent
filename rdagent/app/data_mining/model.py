@@ -1,5 +1,6 @@
-import fire
 import asyncio
+
+import fire
 
 from rdagent.app.data_mining.conf import MED_PROP_SETTING
 from rdagent.components.workflow.rd_loop import RDLoop

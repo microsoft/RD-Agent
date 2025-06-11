@@ -2,9 +2,9 @@
 Quant (Factor & Model) workflow with session control
 """
 
+import asyncio
 from typing import Any
 
-import asyncio
 import fire
 
 from rdagent.app.qlib_rd_loop.conf import QUANT_PROP_SETTING

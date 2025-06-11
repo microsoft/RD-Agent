@@ -1,20 +1,20 @@
+import copyreg
 from typing import Any, Literal, cast
 
 import numpy as np
 from litellm import (
+    BadRequestError,
     completion,
     completion_cost,
     embedding,
     supports_response_schema,
     token_counter,
-    BadRequestError,
 )
 
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.backend.base import APIBackend
 from rdagent.oai.llm_conf import LLMSettings
-import copyreg
 
 
 # NOTE: Patching! Otherwise, the exception will call the constructor and with following error:
@@ -59,8 +59,9 @@ class LiteLLMAPIBackend(APIBackend):
         logger.info(f"{LogColors.CYAN}Token count: {LogColors.END} {num_tokens}", tag="debug_litellm_token")
         return num_tokens
 
-    def _create_embedding_inner_function(self, input_content_list: list[str], *args: Any,
-                                         **kwargs: Any) -> list[list[float]]:  # noqa: ARG002
+    def _create_embedding_inner_function(
+        self, input_content_list: list[str], *args: Any, **kwargs: Any
+    ) -> list[list[float]]:  # noqa: ARG002
         """
         Call the embedding function
         """
@@ -130,8 +131,9 @@ class LiteLLMAPIBackend(APIBackend):
                 if message["choices"][0]["finish_reason"]:
                     finish_reason = message["choices"][0]["finish_reason"]
                 if "content" in message["choices"][0]["delta"]:
-                    chunk = (message["choices"][0]["delta"]["content"] or
-                             "")  # when finish_reason is "stop", content is None
+                    chunk = (
+                        message["choices"][0]["delta"]["content"] or ""
+                    )  # when finish_reason is "stop", content is None
                     content += chunk
                     logger.info(LogColors.CYAN + chunk + LogColors.END, raw=True, tag="llm_messages")
 
@@ -139,8 +141,11 @@ class LiteLLMAPIBackend(APIBackend):
         else:
             content = str(response.choices[0].message.content)
             finish_reason = response.choices[0].finish_reason
-            finish_reason_str = (f"({LogColors.RED}Finish reason: {finish_reason}{LogColors.END})"
-                                 if finish_reason and finish_reason != "stop" else "")
+            finish_reason_str = (
+                f"({LogColors.RED}Finish reason: {finish_reason}{LogColors.END})"
+                if finish_reason and finish_reason != "stop"
+                else ""
+            )
             logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}", tag="llm_messages")
 
         global ACC_COST
@@ -152,7 +157,8 @@ class LiteLLMAPIBackend(APIBackend):
         else:
             ACC_COST += cost
             logger.info(
-                f"Current Cost: ${float(cost):.10f}; Accumulated Cost: ${float(ACC_COST):.10f}; {finish_reason=}",)
+                f"Current Cost: ${float(cost):.10f}; Accumulated Cost: ${float(ACC_COST):.10f}; {finish_reason=}",
+            )
 
         prompt_tokens = token_counter(model=model, messages=messages)
         completion_tokens = token_counter(model=model, text=content)

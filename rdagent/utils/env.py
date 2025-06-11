@@ -7,10 +7,10 @@ Tries to create uniform environment for the agent to run;
 
 # TODO: move the scenario specific docker env into other folders.
 
+import contextlib
 import json
 import os
 import pickle
-import contextlib
 import re
 import select
 import shutil
@@ -46,6 +46,7 @@ from rdagent.utils.workflow import wait_retry
 # Normalize all bind paths in volumes to absolute paths using the workspace (working_dir).
 def normalize_volumes(vols: dict[str, str] | dict[str, dict[str, str]], working_dir: str) -> dict:
     abs_vols = {}
+
     def to_abs(path: str) -> str:
         # Converts a relative path to an absolute path using the workspace (working_dir).
         return os.path.abspath(os.path.join(working_dir, path)) if not os.path.isabs(path) else path
@@ -243,11 +244,14 @@ class Env(Generic[ASpecificEnvConf]):
         entry_add_timeout = (
             f"/bin/sh -c 'timeout --kill-after=10 {self.conf.running_timeout_period} {entry}; "
             + "entry_exit_code=$?; "
-            + (f"chmod -R 777 $(find {self.conf.mount_path} -mindepth 1 -maxdepth 1 ! -name cache ! -name input); "
-               # We don't have to change the permission of the cache and input folder to remove it
-               # + f"if [ -d {self.conf.mount_path}/cache ]; then chmod 777 {self.conf.mount_path}/cache; fi; " +
-               #     f"if [ -d {self.conf.mount_path}/input ]; then chmod 777 {self.conf.mount_path}/input; fi; "
-               if hasattr(self.conf, "mount_path") else "")
+            + (
+                f"chmod -R 777 $(find {self.conf.mount_path} -mindepth 1 -maxdepth 1 ! -name cache ! -name input); "
+                # We don't have to change the permission of the cache and input folder to remove it
+                # + f"if [ -d {self.conf.mount_path}/cache ]; then chmod 777 {self.conf.mount_path}/cache; fi; " +
+                #     f"if [ -d {self.conf.mount_path}/input ]; then chmod 777 {self.conf.mount_path}/input; fi; "
+                if hasattr(self.conf, "mount_path")
+                else ""
+            )
             + "exit $entry_exit_code'"
         )
 

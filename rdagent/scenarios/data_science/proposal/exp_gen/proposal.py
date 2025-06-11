@@ -630,9 +630,9 @@ class DSProposalV2ExpGen(ExpGen):
         for j, problem_name in enumerate(scores_sorted.index):
             if hypothesis_dict[problem_name].get("inspired", False):
                 index_to_pick_pool_list.extend([j] * 2)
-            if problem_dict[problem_name]['label'] == "SCENARIO_PROBLEM":
+            if problem_dict[problem_name]["label"] == "SCENARIO_PROBLEM":
                 index_to_pick_pool_list.extend([j] * self.scen_prob_multiplier)
-            elif problem_dict[problem_name]['label'] == "FEEDBACK_PROBLEM":
+            elif problem_dict[problem_name]["label"] == "FEEDBACK_PROBLEM":
                 index_to_pick_pool_list.extend([j] * (3 - self.scen_prob_multiplier))
             else:
                 index_to_pick_pool_list.extend([j] * 1)
@@ -965,7 +965,6 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         if not resp_keys.issubset(problem_keys):
             logger.error("Problem names are not fully aligned. Retrying...")
             raise ValueError("Problem names are not fully aligned.")
-
 
         return resp_dict
 

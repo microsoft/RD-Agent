@@ -50,10 +50,10 @@ class RDAgentLog(SingletonBaseClass):
     _tag_ctx: ContextVar[str] = ContextVar("_tag_ctx", default="")
 
     @property
-    def _tag(self) -> str:          # Get current tag
+    def _tag(self) -> str:  # Get current tag
         return self._tag_ctx.get()
 
-    @_tag.setter                     # Set current tag
+    @_tag.setter  # Set current tag
     def _tag(self, value: str) -> None:
         self._tag_ctx.set(value)
 

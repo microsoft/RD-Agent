@@ -308,7 +308,9 @@ class LoopBase:
         # empty the queue when restarting
         while not self.queue.empty():
             self.queue.get_nowait()
-        self.loop_idx = 0  # if we rerun the loop, we should revert the loop index to 0 to make sure every loop is correctly kicked
+        self.loop_idx = (
+            0  # if we rerun the loop, we should revert the loop index to 0 to make sure every loop is correctly kicked
+        )
 
         while True:
             try:

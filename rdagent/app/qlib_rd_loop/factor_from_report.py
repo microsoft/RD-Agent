@@ -1,8 +1,8 @@
+import asyncio
 import json
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
-import asyncio
 import fire
 
 from rdagent.app.qlib_rd_loop.conf import FACTOR_FROM_REPORT_PROP_SETTING
