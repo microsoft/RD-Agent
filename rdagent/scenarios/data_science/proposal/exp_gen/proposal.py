@@ -1030,6 +1030,46 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             )
         return result
 
+    # FIXME: remove this, dump solution, should be merged into identify_problem in V2
+    def identify_problems_v3(
+        self, trace: DSTrace, scenario_desc: str, sota_exp_desc: str, exp_feedback_list_desc: str
+    ) -> Dict:
+        sub_trace = trace.get_parent_exps()
+        trace_length = len(trace.hist)
+        all_problems = {}
+
+        # 阶段一：探索期（主要场景问题）
+        if trace_length <= 3:
+            scen_problems = self.identify_scenario_problem(scenario_desc, sota_exp_desc)
+            for problem_name in scen_problems:
+                scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
+                all_problems[problem_name] = scen_problems[problem_name]
+            self.scen_prob_multiplier = 3
+
+        # 阶段二：混合期（两种问题都考虑）
+        elif trace_length <= 6:
+            # 优先场景问题，但也考虑反馈
+            scen_problems = self.identify_scenario_problem(scenario_desc, sota_exp_desc)
+            for problem_name in scen_problems:
+                scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
+                all_problems[problem_name] = scen_problems[problem_name]
+
+            fb_problems = self.identify_feedback_problem(scenario_desc, exp_feedback_list_desc, sota_exp_desc)
+            for problem_name in fb_problems:
+                fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
+                all_problems[problem_name] = fb_problems[problem_name]
+            self.scen_prob_multiplier = 2
+
+        # 阶段三：优化期（主要反馈问题）
+        else:
+            fb_problems = self.identify_feedback_problem(scenario_desc, exp_feedback_list_desc, sota_exp_desc)
+            for problem_name in fb_problems:
+                fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
+                all_problems[problem_name] = fb_problems[problem_name]
+            self.scen_prob_multiplier = 1
+
+        return all_problems
+
     def gen(self, trace: DSTrace) -> DSExperiment:
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
         if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
@@ -1067,26 +1107,43 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             pipeline=pipeline,
         )
 
+        if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
+            if len(trace.current_selection) == 0:
+                # start a new sub-trace, and inject diverse problems.
+                inject_diverse = True
+                logger.info("Start a new sub-trace, and inject diverse problems.")
+            else:
+                inject_diverse = False
+        else:
+            inject_diverse = False
         # Step 1: Identify problems
         all_problems = {}
-        if len(trace.hist) >= 3:
-            fb_problems = self.identify_feedback_problem(
-                scenario_desc=scenario_desc,
-                exp_feedback_list_desc=exp_feedback_list_desc,
-                sota_exp_desc=sota_exp_desc,
-            )
-            for problem_name in fb_problems:
-                fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
-                all_problems[problem_name] = fb_problems[problem_name]
 
-        if len(trace.hist) < 9:
-            scen_problems = self.identify_scenario_problem(
-                scenario_desc=scenario_desc,
-                sota_exp_desc=sota_exp_desc,
-            )
-            for problem_name in scen_problems:
-                scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
-                all_problems[problem_name] = scen_problems[problem_name]
+        all_problems = self.identify_problems_v3(
+            trace=trace,
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+        )
+
+        # if len(trace.hist) > 3:
+        #     fb_problems = self.identify_feedback_problem(
+        #         scenario_desc=scenario_desc,
+        #         exp_feedback_list_desc=exp_feedback_list_desc,
+        #         sota_exp_desc=sota_exp_desc,
+        #     )
+        #     for problem_name in fb_problems:
+        #         fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
+        #         all_problems[problem_name] = fb_problems[problem_name]
+
+        # if len(trace.hist) < 9:
+        #     scen_problems = self.identify_scenario_problem(
+        #         scenario_desc=scenario_desc,
+        #         sota_exp_desc=sota_exp_desc,
+        #     )
+        #     for problem_name in scen_problems:
+        #         scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
+        #         all_problems[problem_name] = scen_problems[problem_name]
 
         # Step 1.5: Sample ideas from idea pool
         if DS_RD_SETTING.enable_knowledge_base:
@@ -1128,7 +1185,6 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         pickled_problem_name, new_hypothesis = self.hypothesis_rank(
             hypothesis_dict=hypothesis_dict,
             problem_dict=all_problems,
-            trace=trace,
         )
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
