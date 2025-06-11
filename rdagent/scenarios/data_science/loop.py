@@ -51,6 +51,28 @@ def clean_workspace(workspace_root: Path) -> None:
             file_and_folder.unlink()
 
 
+@wait_retry()
+def backup_folder(path: str | Path) -> Path:
+    path = Path(path)
+    workspace_bak_path = path.with_name(path.name + ".bak")
+    if workspace_bak_path.exists():
+        shutil.rmtree(workspace_bak_path)
+
+    try:
+        # `cp` may raise error if the workspace is beiing modified.
+        # rsync is more robust choice, but it is not installed in some docker images.
+        subprocess.run(
+            ["cp", "-r", "-P", str(path), str(workspace_bak_path)],
+            check=True,
+            capture_output=True,
+        )
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Error copying {path} to {workspace_bak_path}: {e}")
+        logger.error(f"Stdout: {e.stdout.decode() if e.stdout else ''}")
+        logger.error(f"Stderr: {e.stderr.decode() if e.stderr else ''}")
+    return workspace_bak_path
+
+
 class DataScienceRDLoop(RDLoop):
     # NOTE: we move the DataScienceRDLoop here to be easier to be imported
     skip_loop_error = (CoderError, RunnerError)
@@ -258,7 +280,8 @@ class DataScienceRDLoop(RDLoop):
                 )
                 / "mid_workspace.tar"
             )
-            subprocess.run(["tar", "-cf", str(mid_log_tar_path), "-C", str(Path().cwd() / "log"), "."], check=True)
+            log_back_path = backup_folder(Path().cwd() / "log")
+            subprocess.run(["tar", "-cf", str(mid_log_tar_path), "-C", str(log_back_path), "."], check=True)
 
             # only clean current workspace without affecting other loops.
             for k in "direct_exp_gen", "coding", "running":
@@ -268,28 +291,7 @@ class DataScienceRDLoop(RDLoop):
 
             # Backup the workspace (only necessary files are included)
             # - Step 1: Copy the workspace to a .bak package
-            @wait_retry()
-            def _backup_workspace():
-                workspace_path = Path(RD_AGENT_SETTINGS.workspace_path)
-                workspace_bak_path = workspace_path.with_name(workspace_path.name + ".bak")
-                if workspace_bak_path.exists():
-                    shutil.rmtree(workspace_bak_path)
-
-                try:
-                    subprocess.run(
-                        ["cp", "-r", "-P", str(workspace_path), str(workspace_bak_path)],
-                        check=True,
-                        capture_output=True,
-                    )
-                except subprocess.CalledProcessError as e:
-                    logger.error(f"Error copying {workspace_path} to {workspace_bak_path}: {e}")
-                    logger.error(f"Stdout: {e.stdout.decode() if e.stdout else ''}")
-                    logger.error(f"Stderr: {e.stderr.decode() if e.stderr else ''}")
-                return workspace_bak_path
-
-            # `cp` may raise error if the workspace is beiing modified.
-            # rsync is more robust choice, but it is not installed in some docker images.
-            workspace_bak_path = _backup_workspace()
+            workspace_bak_path = backup_folder(RD_AGENT_SETTINGS.workspace_path)
 
             # - Step 2: Clean .bak package
             for bak_workspace in workspace_bak_path.iterdir():
