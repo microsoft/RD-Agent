@@ -21,7 +21,7 @@ import zipfile
 from abc import abstractmethod
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Generic, Mapping, Optional, TypeVar, cast, Generator
+from typing import Any, Generator, Generic, Mapping, Optional, TypeVar, cast
 
 import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
