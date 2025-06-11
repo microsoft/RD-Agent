@@ -308,7 +308,7 @@ class ExpGen2TraceAndMergeV2(ExpGen):
         DS_RD_SETTING.proposal_version = version
         logger.info(f"ExpGen2TraceAndMergeV2: Resetting proposal version to {version}")
         self.exp_gen = DataScienceRDLoop._get_exp_gen(
-            f"rdagent.scenarios.data_science.proposal.exp_gen.{version}", self.scen
+            f"rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
         )
 
     def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
