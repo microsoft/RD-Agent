@@ -32,6 +32,7 @@ from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
+from rdagent.utils.workflow.misc import wait_retry
 
 
 def clean_workspace(workspace_root: Path) -> None:
@@ -267,13 +268,28 @@ class DataScienceRDLoop(RDLoop):
 
             # Backup the workspace (only necessary files are included)
             # - Step 1: Copy the workspace to a .bak package
-            workspace_path = Path(RD_AGENT_SETTINGS.workspace_path)
-            workspace_bak_path = workspace_path.with_name(workspace_path.name + ".bak")
-            if workspace_bak_path.exists():
-                shutil.rmtree(workspace_bak_path)
-            subprocess.run([
-                "cp", "-r", "-P", str(workspace_path), str(workspace_bak_path)
-            ], check=True)
+            @wait_retry()
+            def _backup_workspace():
+                workspace_path = Path(RD_AGENT_SETTINGS.workspace_path)
+                workspace_bak_path = workspace_path.with_name(workspace_path.name + ".bak")
+                if workspace_bak_path.exists():
+                    shutil.rmtree(workspace_bak_path)
+
+                try:
+                    subprocess.run(
+                        ["cp", "-r", "-P", str(workspace_path), str(workspace_bak_path)],
+                        check=True,
+                        capture_output=True,
+                    )
+                except subprocess.CalledProcessError as e:
+                    logger.error(f"Error copying {workspace_path} to {workspace_bak_path}: {e}")
+                    logger.error(f"Stdout: {e.stdout.decode() if e.stdout else ''}")
+                    logger.error(f"Stderr: {e.stderr.decode() if e.stderr else ''}")
+                return workspace_bak_path
+
+            # `cp` may raise error if the workspace is beiing modified.
+            # rsync is more robust choice, but it is not installed in some docker images.
+            workspace_bak_path = _backup_workspace()
 
             # - Step 2: Clean .bak package
             for bak_workspace in workspace_bak_path.iterdir():
