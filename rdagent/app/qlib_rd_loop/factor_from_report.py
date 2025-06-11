@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
+import asyncio
 import fire
 
 from rdagent.app.qlib_rd_loop.conf import FACTOR_FROM_REPORT_PROP_SETTING
@@ -162,7 +163,7 @@ def main(report_folder=None, path=None, step_n=None, loop_n=None, all_duration=N
     else:
         model_loop = FactorReportLoop(report_folder=report_folder)
 
-    model_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration)
+    asyncio.run(model_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration))
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ Quant (Factor & Model) workflow with session control
 
 from typing import Any
 
+import asyncio
 import fire
 
 from rdagent.app.qlib_rd_loop.conf import QUANT_PROP_SETTING
@@ -130,7 +131,8 @@ def main(path=None, step_n=None, loop_n=None, all_duration=None, checkout=True):
         quant_loop = QuantRDLoop(QUANT_PROP_SETTING)
     else:
         quant_loop = QuantRDLoop.load(path, checkout=checkout)
-    quant_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration)
+
+    asyncio.run(quant_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration))
 
 
 if __name__ == "__main__":
