@@ -29,10 +29,15 @@ copyreg.pickle(BadRequestError, _reduce_no_init)
 
 
 class LiteLLMSettings(LLMSettings):
-
     class Config:
         env_prefix = "LITELLM_"
-        """Use `LITELLM_` as prefix for environment variables"""
+
+    chat_api_key: str = ""
+    chat_base_url: str = ""
+    embedding_api_key: str = ""
+    embedding_base_url: str = ""
+
+    """Use `LITELLM_` as prefix for environment variables"""
 
     # Placeholder for LiteLLM specific settings, so far it's empty
 
@@ -48,6 +53,36 @@ class LiteLLMAPIBackend(APIBackend):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
+    def _get_chat_api_config(self) -> dict[str, Any]:
+        """获取Chat API的配置参数"""
+        config = {}
+
+        # 优先级：chat专用配置 > 通用配置 > 环境变量
+        api_key = LITELLM_SETTINGS.chat_openai_api_key or LITELLM_SETTINGS.openai_api_key
+        base_url = LITELLM_SETTINGS.chat_openai_base_url
+
+        if api_key:
+            config["api_key"] = api_key
+        if base_url:
+            config["api_base"] = base_url
+
+        return config
+
+    def _get_embedding_api_config(self) -> dict[str, Any]:
+        """获取Embedding API的配置参数"""
+        config = {}
+
+        # 优先级：embedding专用配置 > 通用配置 > 环境变量
+        api_key = LITELLM_SETTINGS.embedding_openai_api_key or LITELLM_SETTINGS.openai_api_key
+        base_url = LITELLM_SETTINGS.embedding_openai_base_url
+
+        if api_key:
+            config["api_key"] = api_key
+        if base_url:
+            config["api_base"] = base_url
+
+        return config
+
     def _calculate_token_from_messages(self, messages: list[dict[str, Any]]) -> int:
         """
         Calculate the token count from messages
@@ -61,19 +96,28 @@ class LiteLLMAPIBackend(APIBackend):
 
     def _create_embedding_inner_function(
         self, input_content_list: list[str], *args: Any, **kwargs: Any
-    ) -> list[list[float]]:  # noqa: ARG002
-        """
-        Call the embedding function
-        """
+    ) -> list[list[float]]:
         model_name = LITELLM_SETTINGS.embedding_model
-        logger.info(f"{LogColors.GREEN}Using emb model{LogColors.END} {model_name}", tag="debug_litellm_emb")
-        logger.info(f"Creating embedding for: {input_content_list}", tag="debug_litellm_emb")
-        response = embedding(
-            model=model_name,
-            input=input_content_list,
-            *args,
-            **kwargs,
-        )
+
+        # 获取embedding专用的API配置
+        embedding_config = self._get_embedding_api_config()
+
+        # 合并配置参数
+        call_kwargs = {
+            "model": model_name,
+            "input": input_content_list,
+            **embedding_config,  # 添加API密钥和base URL
+            **kwargs,  # 用户传入的其他参数
+        }
+
+        logger.info(f"{LogColors.GREEN}Using embedding model{LogColors.END} {model_name}", tag="llm_messages")
+        if embedding_config.get("api_base"):
+            logger.info(
+                f"{LogColors.GREEN}Using embedding base URL{LogColors.END} {embedding_config['api_base']}",
+                tag="llm_messages",
+            )
+
+        response = embedding(**call_kwargs)
         response_list = [data["embedding"] for data in response.data]
         return response_list
 
@@ -91,6 +135,7 @@ class LiteLLMAPIBackend(APIBackend):
             kwargs["response_format"] = {"type": "json_object"}
 
         logger.info(self._build_log_messages(messages), tag="llm_messages")
+
         # Call LiteLLM completion
         model = LITELLM_SETTINGS.chat_model
         temperature = LITELLM_SETTINGS.chat_temperature
@@ -111,17 +156,29 @@ class LiteLLMAPIBackend(APIBackend):
                         else:
                             reasoning_effort = None
                     break
-        response = completion(
-            model=model,
-            messages=messages,
-            stream=LITELLM_SETTINGS.chat_stream,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            reasoning_effort=reasoning_effort,
-            max_retries=0,
-            **kwargs,
-        )
+
+        # 获取chat专用的API配置
+        chat_config = self._get_chat_api_config()
+
+        # 合并配置参数
+        call_kwargs = {
+            "model": model,
+            "messages": messages,
+            "stream": LITELLM_SETTINGS.chat_stream,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "reasoning_effort": reasoning_effort,
+            "max_retries": 0,
+            **chat_config,  # 添加API密钥和base URL
+            **kwargs,  # 用户传入的其他参数
+        }
+
+        response = completion(**call_kwargs)
         logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {model}", tag="llm_messages")
+        if chat_config.get("api_base"):
+            logger.info(
+                f"{LogColors.GREEN}Using chat base URL{LogColors.END} {chat_config['api_base']}", tag="llm_messages"
+            )
 
         if LITELLM_SETTINGS.chat_stream:
             logger.info(f"{LogColors.BLUE}assistant:{LogColors.END}", tag="llm_messages")

@@ -5,11 +5,7 @@ from typing import Dict
 import pandas as pd
 
 from rdagent.core.experiment import Experiment
-from rdagent.core.proposal import (
-    Experiment2Feedback,
-    HypothesisFeedback,
-    Trace,
-)
+from rdagent.core.proposal import Experiment2Feedback, HypothesisFeedback, Trace
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.experiment.quant_experiment import QlibQuantScenario
