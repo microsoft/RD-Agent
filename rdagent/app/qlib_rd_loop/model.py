@@ -2,6 +2,8 @@
 Model workflow with session control
 """
 
+import asyncio
+
 import fire
 
 from rdagent.app.qlib_rd_loop.conf import MODEL_PROP_SETTING
@@ -28,7 +30,7 @@ def main(path=None, step_n=None, loop_n=None, all_duration=None, checkout=True):
         model_loop = ModelRDLoop(MODEL_PROP_SETTING)
     else:
         model_loop = ModelRDLoop.load(path, checkout=checkout)
-    model_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration)
+    asyncio.run(model_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration))
 
 
 if __name__ == "__main__":

@@ -61,7 +61,7 @@ describe: # some template to describe some object
 scen:  # customizable
   role: |-
     You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
-  input_path: "/kaggle/input"
+  input_path: "./input/"
 
 component_description:
   DataLoadSpec: |-
