@@ -1,4 +1,5 @@
 import os
+import multiprocessing
 import random
 import signal
 import subprocess
@@ -6,6 +7,7 @@ import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+import threading
 
 import randomname
 import typer
@@ -28,25 +30,6 @@ def favicon():
 
 msgs_for_frontend = defaultdict(list)
 pointers = defaultdict(int)
-
-
-def read_trace(log_path: Path, t: float = 1.5) -> None:
-    msgs_for_frontend[str(log_path)] = []
-    from rdagent.log.storage import FileStorage
-    from rdagent.log.ui.storage import WebStorage
-
-    fs = FileStorage(log_path)
-    ws = WebStorage(port=1, path=log_path)
-    for msg in fs.iter_msg():
-        data = ws._obj_to_json(obj=msg.content, tag=msg.tag, id=str(log_path), timestamp=msg.timestamp)
-        if data:
-            if isinstance(data, list):
-                for d in data:
-                    time.sleep(t)
-                    msgs_for_frontend[str(log_path)].append(d)
-            else:
-                time.sleep(t)
-                msgs_for_frontend[str(log_path)].append(data)
 
 
 @app.route("/trace", methods=["POST"])
@@ -78,7 +61,7 @@ def update_trace():
 @app.route("/upload", methods=["POST"])
 def upload_file():
     # 获取请求体中的字段
-    global rdagent_processes, server_port
+    global rdagent_processes, server_port, msgs_for_frontend
     scenario = request.form.get("scenario")
     files = request.files.getlist("files")
     competition = request.form.get("competition")
@@ -92,7 +75,27 @@ def upload_file():
     else:
         trace_path = log_folder_path / scenario
 
-    read_trace(trace_path)
+    def read_trace(log_path: Path, t: float = 1.5) -> None:
+        msgs_for_frontend[str(log_path)] = []
+        from rdagent.log.storage import FileStorage
+        from rdagent.log.ui.storage import WebStorage
+
+        fs = FileStorage(log_path)
+        ws = WebStorage(port=1, path=log_path)
+        for msg in fs.iter_msg():
+            data = ws._obj_to_json(obj=msg.content, tag=msg.tag, id=str(log_path), timestamp=msg.timestamp)
+            if data:
+                if isinstance(data, list):
+                    for d in data:
+                        time.sleep(t)
+                        msgs_for_frontend[str(log_path)].append(d["msg"])
+                else:
+                    time.sleep(t)
+                    msgs_for_frontend[str(log_path)].append(data["msg"])
+        msgs_for_frontend[str(log_path)].append({"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}})
+
+    # 启动后台线程，不阻塞 return
+    threading.Thread(target=read_trace, args=(trace_path,), daemon=True).start()
 
     return jsonify({"id": str(trace_path)}), 200
 
@@ -160,7 +163,7 @@ def control_process():
 @app.route("/", methods=["GET"])
 def index():
     # return 'Hello, World!'
-    return {k: [i["msg"]["tag"] for i in v] for k, v in msgs_for_frontend.items()}
+    return {k: [i["tag"] for i in v] for k, v in msgs_for_frontend.items()}
 
 
 @app.route("/<path:fn>", methods=["GET"])
