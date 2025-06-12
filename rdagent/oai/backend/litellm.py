@@ -1,7 +1,9 @@
+import copyreg
 from typing import Any, Literal, cast
 
 import numpy as np
 from litellm import (
+    BadRequestError,
     completion,
     completion_cost,
     embedding,
@@ -13,6 +15,17 @@ from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.backend.base import APIBackend
 from rdagent.oai.llm_conf import LLMSettings
+
+
+# NOTE: Patching! Otherwise, the exception will call the constructor and with following error:
+# `BadRequestError.__init__() missing 2 required positional arguments: 'model' and 'llm_provider'`
+def _reduce_no_init(exc: Exception) -> tuple:
+    cls = exc.__class__
+    return (cls.__new__, (cls,), exc.__dict__)
+
+
+# suppose you want to apply this to MyError
+copyreg.pickle(BadRequestError, _reduce_no_init)
 
 
 class LiteLLMSettings(LLMSettings):

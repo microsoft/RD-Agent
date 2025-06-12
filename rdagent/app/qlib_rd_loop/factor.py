@@ -2,6 +2,7 @@
 Factor workflow with session control
 """
 
+import asyncio
 from typing import Any
 
 import fire
@@ -40,7 +41,7 @@ def main(path=None, step_n=None, loop_n=None, all_duration=None, checkout=True):
         model_loop = FactorRDLoop(FACTOR_PROP_SETTING)
     else:
         model_loop = FactorRDLoop.load(path, checkout=checkout)
-    model_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration)
+    asyncio.run(model_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration))
 
 
 if __name__ == "__main__":
