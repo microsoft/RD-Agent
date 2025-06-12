@@ -241,7 +241,7 @@ class Env(Generic[ASpecificEnvConf]):
         # FIXME: the input path and cache path is hard coded here.
         # We don't want to change the content in input and cache path.
         # Otherwise, it may produce large amount of warnings.
-        def _get_chmod_cmd() -> str:
+        def _get_chmod_cmd(workspace_path: str) -> str:
             def _get_path_stem(path: str) -> str | None:
                 # If the input path is relative, keep only the first component
                 p = Path(path)
@@ -249,7 +249,7 @@ class Env(Generic[ASpecificEnvConf]):
                     return p.parts[0]
                 return None
 
-            chmod_cmd = f"chmod -R 777 $(find {self.conf.mount_path} -mindepth 1 -maxdepth 1"
+            chmod_cmd = f"chmod -R 777 $(find {workspace_path} -mindepth 1 -maxdepth 1"
             for name in [
                 _get_path_stem(T("scenarios.data_science.share:scen.cache_path").r()),
                 _get_path_stem(T("scenarios.data_science.share:scen.input_path").r()),
@@ -262,11 +262,11 @@ class Env(Generic[ASpecificEnvConf]):
             f"/bin/sh -c 'timeout --kill-after=10 {self.conf.running_timeout_period} {entry}; "
             + "entry_exit_code=$?; "
             + (
-                f"{_get_chmod_cmd()}; "
+                f"{_get_chmod_cmd(self.conf.mount_path)}"
                 # We don't have to change the permission of the cache and input folder to remove it
                 # + f"if [ -d {self.conf.mount_path}/cache ]; then chmod 777 {self.conf.mount_path}/cache; fi; " +
                 #     f"if [ -d {self.conf.mount_path}/input ]; then chmod 777 {self.conf.mount_path}/input; fi; "
-                if hasattr(self.conf, "mount_path")
+                if isinstance(self.conf, DockerConf)
                 else ""
             )
             + "exit $entry_exit_code'"
