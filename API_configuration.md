@@ -31,14 +31,14 @@ If you need Chat and Embedding to use different API services:
 
 ```bash
 # Chat configuration (using LiteLLM)
-export CHAT_OPENAI_API_KEY="sk-mentor-chat-key"
-export CHAT_OPENAI_BASE_URL="https://mentor-litellm.com/v1"
+export CHAT_OPENAI_API_KEY="sk-chat-key"
+export CHAT_OPENAI_BASE_URL="https://xxx-litellm.com/v1"
 export CHAT_MODEL='gpt-4o'
 
 # Embedding configuration (using other service)
 # Use siliconflow as example, pay attention to the **openai/** prefix
 export EMBEDDING_OPENAI_API_KEY="sk-embedding-service-key"
-export EMBEDDING_OPENAI_BASE_URL="https://embedding-service.com/v1"
+export EMBEDDING_OPENAI_BASE_URL="https://api.siliconflow.cn/v1"
 export EMBEDDING_MODEL="openai/BAAI/bge-m3"
 
 # Backend configuration

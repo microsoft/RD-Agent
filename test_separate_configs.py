@@ -15,6 +15,8 @@ load_dotenv()
 # Ensure correct import path
 sys.path.insert(0, str(Path(__file__).parent))
 
+PROMPT = "INTRODUCE YOURSELF"
+
 try:
     from rdagent.log import rdagent_logger as logger
     from rdagent.oai.backend.litellm import LITELLM_SETTINGS
@@ -56,7 +58,7 @@ def test_chat():
     print("=== Testing Chat Functionality ===")
     try:
         api_backend = get_api_backend()
-        response = api_backend.build_messages_and_create_chat_completion(user_prompt="Who are you")
+        response = api_backend.build_messages_and_create_chat_completion(user_prompt=PROMPT)
         print("✅ Chat test successful!")
         print(f"Response: {response[:100]}..." if len(response) > 100 else f"Response: {response}")
         print()
@@ -72,7 +74,7 @@ def test_embedding():
     print("=== Testing Embedding Functionality ===")
     try:
         api_backend = get_api_backend()
-        test_text = "Who are you"
+        test_text = PROMPT
         embedding = api_backend.create_embedding(test_text)
         print("✅ Embedding test successful!")
         print(f"Vector dimension: {len(embedding)}")
