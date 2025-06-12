@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import re
 
+from pydantic import BaseModel, Field
+
 from rdagent.components.coder.model_coder.model import ModelTask
 from rdagent.components.document_reader.document_reader import (
     load_and_process_pdfs_by_langchain,
@@ -12,6 +14,7 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.workflow import wait_retry
 
 
 def extract_model_from_doc(doc_content: str) -> dict:
@@ -105,6 +108,7 @@ class ModelExperimentLoaderFromDict(ModelTaskLoader):
                 architecture=model_data["architecture"],
                 variables=model_data["variables"],
                 hyperparameters=model_data["hyperparameters"],
+                training_hyperparameters=model_data["training_hyperparameters"],
                 model_type=model_data["model_type"],
             )
             task_l.append(task)
@@ -112,6 +116,7 @@ class ModelExperimentLoaderFromDict(ModelTaskLoader):
 
 
 class ModelExperimentLoaderFromPDFfiles(ModelTaskLoader):
+    @wait_retry(retry_n=5)
     def load(self, file_or_folder_path: str) -> dict:
         docs_dict = load_and_process_pdfs_by_langchain(file_or_folder_path)  # dict{file_path:content}
         model_dict = extract_model_from_docs(
