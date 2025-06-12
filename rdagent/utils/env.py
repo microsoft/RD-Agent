@@ -40,6 +40,7 @@ from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.experiment import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
+from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
 
 
@@ -240,15 +241,32 @@ class Env(Generic[ASpecificEnvConf]):
         # FIXME: the input path and cache path is hard coded here.
         # We don't want to change the content in input and cache path.
         # Otherwise, it may produce large amount of warnings.
+        def _get_chmod_cmd(workspace_path: str) -> str:
+            def _get_path_stem(path: str) -> str | None:
+                # If the input path is relative, keep only the first component
+                p = Path(path)
+                if not p.is_absolute() and p.parts:
+                    return p.parts[0]
+                return None
+
+            chmod_cmd = f"chmod -R 777 $(find {workspace_path} -mindepth 1 -maxdepth 1"
+            for name in [
+                _get_path_stem(T("scenarios.data_science.share:scen.cache_path").r()),
+                _get_path_stem(T("scenarios.data_science.share:scen.input_path").r()),
+            ]:
+                chmod_cmd += f" ! -name {name}"
+            chmod_cmd += ")"
+            return chmod_cmd
+
         entry_add_timeout = (
             f"/bin/sh -c 'timeout --kill-after=10 {self.conf.running_timeout_period} {entry}; "
             + "entry_exit_code=$?; "
             + (
-                f"chmod -R 777 $(find {self.conf.mount_path} -mindepth 1 -maxdepth 1 ! -name cache ! -name input); "
+                f"{_get_chmod_cmd(self.conf.mount_path)}"
                 # We don't have to change the permission of the cache and input folder to remove it
                 # + f"if [ -d {self.conf.mount_path}/cache ]; then chmod 777 {self.conf.mount_path}/cache; fi; " +
                 #     f"if [ -d {self.conf.mount_path}/input ]; then chmod 777 {self.conf.mount_path}/input; fi; "
-                if hasattr(self.conf, "mount_path")
+                if isinstance(self.conf, DockerConf)
                 else ""
             )
             + "exit $entry_exit_code'"
@@ -409,7 +427,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
                 volumes[lp] = rp
             cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
-            volumes[cache_path] = "./cache"
+            volumes[cache_path] = T("scenarios.data_science.share:scen.cache_path").r()
         for lp, rp in running_extra_volume.items():
             volumes[lp] = rp
 
@@ -821,7 +839,7 @@ class DockerEnv(Env[DockerConf]):
                 volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
             cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
-            volumes[cache_path] = {"bind": "./cache", "mode": "rw"}
+            volumes[cache_path] = {"bind": T("scenarios.data_science.share:scen.cache_path").r(), "mode": "rw"}
         for lp, rp in running_extra_volume.items():
             volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
 
