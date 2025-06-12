@@ -70,7 +70,7 @@ def upload_file():
 
     log_folder_path = Path("/home/bowen/workspace/new_traces").absolute()
 
-    if scenario == "Data Science Loop":
+    if scenario == "Data Science":
         trace_path = log_folder_path / "o1-preview" / f"{competition}.1"
     else:
         trace_path = log_folder_path / scenario

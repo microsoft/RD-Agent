@@ -238,7 +238,6 @@ class WebStorage(Storage):
                                 "workspace": w.file_dict,
                             }
                             for w in ws
-                            if w
                         ],
                     },
                 }
