@@ -7,6 +7,7 @@ Tries to create uniform environment for the agent to run;
 
 # TODO: move the scenario specific docker env into other folders.
 
+import contextlib
 import json
 import os
 import pickle
@@ -20,7 +21,7 @@ import zipfile
 from abc import abstractmethod
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Generic, Mapping, Optional, TypeVar
+from typing import Any, Generator, Generic, Mapping, Optional, TypeVar, cast
 
 import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
@@ -40,6 +41,29 @@ from rdagent.core.experiment import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils.workflow import wait_retry
+
+
+# Normalize all bind paths in volumes to absolute paths using the workspace (working_dir).
+def normalize_volumes(vols: dict[str, str | dict[str, str]], working_dir: str) -> dict:
+    abs_vols: dict[str, str | dict[str, str]] = {}
+
+    def to_abs(path: str) -> str:
+        # Converts a relative path to an absolute path using the workspace (working_dir).
+        return os.path.abspath(os.path.join(working_dir, path)) if not os.path.isabs(path) else path
+
+    for lp, vinfo in vols.items():
+        # Support both:
+        # 1. {'host_path': {'bind': 'container_path', ...}}
+        # 2. {'host_path': 'container_path'}
+        if isinstance(vinfo, dict):
+            # abs_vols = cast(dict[str, dict[str, str]], abs_vols)
+            vinfo = vinfo.copy()
+            vinfo["bind"] = to_abs(vinfo["bind"])
+            abs_vols[lp] = vinfo
+        else:
+            # abs_vols = cast(dict[str, str], abs_vols)
+            abs_vols[lp] = to_abs(vinfo)
+    return abs_vols
 
 
 def pull_image_with_progress(image: str) -> None:
@@ -213,10 +237,20 @@ class Env(Generic[ASpecificEnvConf]):
                 "the last command in the pipeline.",
             )
 
+        # FIXME: the input path and cache path is hard coded here.
+        # We don't want to change the content in input and cache path.
+        # Otherwise, it may produce large amount of warnings.
         entry_add_timeout = (
             f"/bin/sh -c 'timeout --kill-after=10 {self.conf.running_timeout_period} {entry}; "
             + "entry_exit_code=$?; "
-            + (f"chmod -R 777 {self.conf.mount_path}; " if hasattr(self.conf, "mount_path") else "")
+            + (
+                f"chmod -R 777 $(find {self.conf.mount_path} -mindepth 1 -maxdepth 1 ! -name cache ! -name input); "
+                # We don't have to change the permission of the cache and input folder to remove it
+                # + f"if [ -d {self.conf.mount_path}/cache ]; then chmod 777 {self.conf.mount_path}/cache; fi; " +
+                #     f"if [ -d {self.conf.mount_path}/input ]; then chmod 777 {self.conf.mount_path}/input; fi; "
+                if hasattr(self.conf, "mount_path")
+                else ""
+            )
             + "exit $entry_exit_code'"
         )
 
@@ -375,98 +409,116 @@ class LocalEnv(Env[ASpecificLocalConf]):
                 volumes[lp] = rp
             cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
-            volumes[cache_path] = "/tmp/cache"
+            volumes[cache_path] = "./cache"
         for lp, rp in running_extra_volume.items():
             volumes[lp] = rp
-        for rp, lp in volumes.items():
-            link_path = Path(lp)
-            real_path = Path(rp)
-            if not link_path.parent.exists():
-                link_path.parent.mkdir(parents=True, exist_ok=True)
-            if link_path.exists() or link_path.is_symlink():
-                link_path.unlink()
-            link_path.symlink_to(real_path)
 
-        # Setup environment
-        if env is None:
-            env = {}
-        path = [*self.conf.bin_path.split(":"), "/bin/", "/usr/bin/", *env.get("PATH", "").split(":")]
-        env["PATH"] = ":".join(path)
+        assert local_path is not None, "local_path should not be None"
+        volumes = normalize_volumes(volumes, local_path)
 
-        if entry is None:
-            entry = self.conf.default_entry
+        @contextlib.contextmanager
+        def _symlink_ctx(vol_map: Mapping[str, str]) -> Generator[None, None, None]:
+            created_links: list[Path] = []
+            try:
+                for real, link in vol_map.items():
+                    link_path = Path(link)
+                    real_path = Path(real)
+                    if not link_path.parent.exists():
+                        link_path.parent.mkdir(parents=True, exist_ok=True)
+                    if link_path.exists() or link_path.is_symlink():
+                        link_path.unlink()
+                    link_path.symlink_to(real_path)
+                    created_links.append(link_path)
+                yield
+            finally:
+                for p in created_links:
+                    try:
+                        if p.is_symlink() or p.exists():
+                            p.unlink()
+                    except FileNotFoundError:
+                        pass
 
-        print(Rule("[bold green]LocalEnv Logs Begin[/bold green]", style="dark_orange"))
-        table = Table(title="Run Info", show_header=False)
-        table.add_column("Key", style="bold cyan")
-        table.add_column("Value", style="bold magenta")
-        table.add_row("Entry", entry)
-        table.add_row("Local Path", local_path or "")
-        table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
-        table.add_row("Volumes", "\n".join(f"{k}:{v}" for k, v in volumes.items()))
-        print(table)
+        with _symlink_ctx(volumes):
+            # Setup environment
+            if env is None:
+                env = {}
+            path = [*self.conf.bin_path.split(":"), "/bin/", "/usr/bin/", *env.get("PATH", "").split(":")]
+            env["PATH"] = ":".join(path)
 
-        cwd = Path(local_path).resolve() if local_path else None
-        env = {k: str(v) if isinstance(v, int) else v for k, v in env.items()}
+            if entry is None:
+                entry = self.conf.default_entry
 
-        process = subprocess.Popen(
-            entry,
-            cwd=cwd,
-            env={**os.environ, **env},
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            shell=True,
-            bufsize=1,
-            universal_newlines=True,
-        )
+            print(Rule("[bold green]LocalEnv Logs Begin[/bold green]", style="dark_orange"))
+            table = Table(title="Run Info", show_header=False)
+            table.add_column("Key", style="bold cyan")
+            table.add_column("Value", style="bold magenta")
+            table.add_row("Entry", entry)
+            table.add_row("Local Path", local_path or "")
+            table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
+            table.add_row("Volumes", "\n".join(f"{k}:{v}" for k, v in volumes.items()))
+            print(table)
 
-        # Setup polling
-        if process.stdout is None or process.stderr is None:
-            raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
+            cwd = Path(local_path).resolve() if local_path else None
+            env = {k: str(v) if isinstance(v, int) else v for k, v in env.items()}
 
-        stdout_fd = process.stdout.fileno()
-        stderr_fd = process.stderr.fileno()
+            process = subprocess.Popen(
+                entry,
+                cwd=cwd,
+                env={**os.environ, **env},
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                shell=True,
+                bufsize=1,
+                universal_newlines=True,
+            )
 
-        poller = select.poll()
-        poller.register(stdout_fd, select.POLLIN)
-        poller.register(stderr_fd, select.POLLIN)
+            # Setup polling
+            if process.stdout is None or process.stderr is None:
+                raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
 
-        combined_output = ""
-        while True:
-            if process.poll() is not None:
-                break
-            events = poller.poll(100)
-            for fd, event in events:
-                if event & select.POLLIN:
-                    if fd == stdout_fd:
-                        while True:
-                            output = process.stdout.readline()
-                            if output == "":
-                                break
-                            Console().print(output.strip(), markup=False)
-                            combined_output += output
-                    elif fd == stderr_fd:
-                        while True:
-                            error = process.stderr.readline()
-                            if error == "":
-                                break
-                            Console().print(error.strip(), markup=False)
-                            combined_output += error
+            stdout_fd = process.stdout.fileno()
+            stderr_fd = process.stderr.fileno()
 
-        # Capture any final output
-        remaining_output, remaining_error = process.communicate()
-        if remaining_output:
-            Console().print(remaining_output.strip(), markup=False)
-            combined_output += remaining_output
-        if remaining_error:
-            Console().print(remaining_error.strip(), markup=False)
-            combined_output += remaining_error
+            poller = select.poll()
+            poller.register(stdout_fd, select.POLLIN)
+            poller.register(stderr_fd, select.POLLIN)
 
-        return_code = process.returncode
-        print(Rule("[bold green]LocalEnv Logs End[/bold green]", style="dark_orange"))
+            combined_output = ""
+            while True:
+                if process.poll() is not None:
+                    break
+                events = poller.poll(100)
+                for fd, event in events:
+                    if event & select.POLLIN:
+                        if fd == stdout_fd:
+                            while True:
+                                output = process.stdout.readline()
+                                if output == "":
+                                    break
+                                Console().print(output.strip(), markup=False)
+                                combined_output += output
+                        elif fd == stderr_fd:
+                            while True:
+                                error = process.stderr.readline()
+                                if error == "":
+                                    break
+                                Console().print(error.strip(), markup=False)
+                                combined_output += error
 
-        return combined_output, return_code
+            # Capture any final output
+            remaining_output, remaining_error = process.communicate()
+            if remaining_output:
+                Console().print(remaining_output.strip(), markup=False)
+                combined_output += remaining_output
+            if remaining_error:
+                Console().print(remaining_error.strip(), markup=False)
+                combined_output += remaining_error
+
+            return_code = process.returncode
+            print(Rule("[bold green]LocalEnv Logs End[/bold green]", style="dark_orange"))
+
+            return combined_output, return_code
 
 
 class CondaConf(LocalConf):
@@ -769,9 +821,11 @@ class DockerEnv(Env[DockerConf]):
                 volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
             cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
-            volumes[cache_path] = {"bind": "/tmp/cache", "mode": "rw"}
+            volumes[cache_path] = {"bind": "./cache", "mode": "rw"}
         for lp, rp in running_extra_volume.items():
             volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
+
+        volumes = normalize_volumes(cast(dict[str, str | dict[str, str]], volumes), self.conf.mount_path)
 
         log_output = ""
 

@@ -1,17 +1,24 @@
 import os
 import sys
 from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime
 from pathlib import Path
 from typing import Generator
 
 from loguru import logger
+
+from .conf import LOG_SETTINGS
+
+if LOG_SETTINGS.format_console is not None:
+    logger.remove()
+    logger.add(sys.stdout, format=LOG_SETTINGS.format_console)
+
 from psutil import Process
 
 from rdagent.core.utils import SingletonBaseClass, import_class
 
 from .base import Storage
-from .conf import LOG_SETTINGS
 from .storage import FileStorage
 from .utils import get_caller_info
 
@@ -39,14 +46,16 @@ class RDAgentLog(SingletonBaseClass):
 
     """
 
-    # TODO: Simplify it to introduce less concepts ( We may merge RDAgentLog, Storage &)
-    # Solution:  Storage => PipeLog, View => PipeLogView, RDAgentLog is an instance of PipeLogger
-    # PipeLogger.info(...) ,  PipeLogger.get_resp() to get feedback from frontend.
-    # def f():
-    #   logger = PipeLog()
-    #   logger.info("<code>")
-    #   feedback = logger.get_reps()
-    _tag: str = ""
+    # Thread-/coroutine-local tag;  In Linux forked subprocess, it will be copied to the subprocess.
+    _tag_ctx: ContextVar[str] = ContextVar("_tag_ctx", default="")
+
+    @property
+    def _tag(self) -> str:  # Get current tag
+        return self._tag_ctx.get()
+
+    @_tag.setter  # Set current tag
+    def _tag(self, value: str) -> None:
+        self._tag_ctx.set(value)
 
     def __init__(self) -> None:
         self.storage = FileStorage(LOG_SETTINGS.trace_path)
@@ -61,15 +70,16 @@ class RDAgentLog(SingletonBaseClass):
     def tag(self, tag: str) -> Generator[None, None, None]:
         if tag.strip() == "":
             raise ValueError("Tag cannot be empty.")
-        if self._tag != "":
-            tag = "." + tag
-
-        # TODO: It may result in error in mutithreading or co-routine
-        self._tag = self._tag + tag
+        # Generate a new complete tag
+        current_tag = self._tag_ctx.get()
+        new_tag = tag if current_tag == "" else f"{current_tag}.{tag}"
+        # Set and save token for later restore
+        token = self._tag_ctx.set(new_tag)
         try:
             yield
         finally:
-            self._tag = self._tag[: -len(tag)]
+            # Restore previous tag (thread/coroutine safe)
+            self._tag_ctx.reset(token)
 
     def set_storages_path(self, path: str | Path) -> None:
         for storage in [self.storage] + self.other_storages:
@@ -96,7 +106,6 @@ class RDAgentLog(SingletonBaseClass):
         return pid_chain
 
     def log_object(self, obj: object, *, tag: str = "") -> None:
-        # TODO: I think we can merge the log_object function with other normal log methods to make the interface simpler.
         caller_info = get_caller_info()
         tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
 

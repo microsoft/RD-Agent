@@ -255,7 +255,7 @@ task_gen:
     1. **Program Execution**: The resulting `main.py` script must be executable via `python main.py` without command-line parameters. Configurations should be hardcoded for simplicity.
     2. **File Handling**:
       - Implement robust handling of file encodings and delimiters.
-      - Input files are under `/kaggle/input/`. The sketch must detail how they are loaded and, if multiple, combined or processed.
+      - Input files are under `{% include "scenarios.data_science.share:scen.input_path" %}`. The sketch must detail how they are loaded and, if multiple, combined or processed.
       - Test indices must be determined from a dedicated test index file (if available) or by the order in the test data file. **Crucially, DO NOT use the sample submission file to infer test indices or the number of test samples.**
       - Ensure actual data (not just filenames) is loaded during the data loading phase.
       - If data is in zip files, the sketch should advise on robust loading, e.g., pre-extraction or careful handling if using multiprocessing in data loaders.
@@ -290,7 +290,7 @@ task_gen:
 
     YOUR TASK IS TO create a conceptual sketch for drafting or updating the `main.py` workflow. This is a plan, not code.
 
-    1. **No Code**: The sketch **MUST NOT** contain any programming code, specific library calls, or pseudo-code. Describe steps conceptually (e.g., "Load training data from /kaggle/input/train.csv"). List specific algorithm names where appropriate (e.g., "Apply XGBoost classifier," "Use Isotonic Regression for calibration").
+    1. **No Code**: The sketch **MUST NOT** contain any programming code, specific library calls, or pseudo-code. Describe steps conceptually (e.g., "Load training data from {% include "scenarios.data_science.share:scen.input_path" %}/train.csv"). List specific algorithm names where appropriate (e.g., "Apply XGBoost classifier," "Use Isotonic Regression for calibration").
     2. **Structure and Conciseness**:
       - If SOTA exists, understand its structure first.
       - If no SOTA, outline a clear, logical sequence of steps for the new `main.py`.
@@ -312,7 +312,7 @@ task_gen:
       - Even if the `Proposed Hypothesis` is not about efficiency, if past experiments failed due to timeouts or the dataset/model is complex, the sketch **must still incorporate measures to improve overall pipeline efficiency**. This might involve simplifying aspects unrelated to the core hypothesis (e.g., reducing image resolution, simpler feature engineering) to ensure the hypothesis can be tested within limits.
       - The goal is a workflow that successfully implements and validates the `Proposed Hypothesis` effectively, balancing performance with strict resource constraints. An experiment that times out provides no information.
     7. **Reminders of Common Mistakes (Especially for New `main.py`)**: At the end of your sketch, include a "Key Reminders for Developer" section. Add the following reminders if appropriate.
-      - Ensure all input files are loaded from their exact paths under `/kaggle/input/` (e.g., `/kaggle/input/<competition_name>/train.csv`)."
+      - Ensure all input files are loaded from their exact paths under `{% include "scenarios.data_science.share:scen.input_path" %}` (e.g., `{% include "scenarios.data_science.share:scen.input_path" %}<competition_name>/train.csv`)."
       - Verify `submission.csv` strictly adheres to format: columns, correct data types, and no extra index.
       - "Implement correct label mapping for classification tasks (e.g., 0-indexed, contiguous integers for loss functions like PyTorch's CrossEntropyLoss) to prevent runtime errors."
       - Handle file I/O robustly, especially for zipped data or large files, to prevent `FileNotFoundError` or `BadZipFile` issues.
@@ -323,7 +323,7 @@ task_gen:
     # Competition Scenario Description
     {{ scenario_desc }}
 
-    # Data Folder Structure (All files are under /kaggle/input/)
+    # Data Folder Structure (All files are under {% include "scenarios.data_science.share:scen.input_path" %})
     {{ data_folder_info }}
 
     # Current SOTA Implementation

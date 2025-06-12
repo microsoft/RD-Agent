@@ -1,3 +1,4 @@
+import asyncio
 import shutil
 import subprocess
 from datetime import datetime
@@ -31,6 +32,47 @@ from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
+from rdagent.utils.workflow.misc import wait_retry
+
+
+def clean_workspace(workspace_root: Path) -> None:
+    """
+    Clean the workspace folder and only keep the essential files to save more space.
+
+    # remove all files and folders in the workspace except for .py, .md, and .csv files to avoid large workspace dump
+    """
+    for file_and_folder in workspace_root.iterdir():
+        if file_and_folder.is_dir():
+            if file_and_folder.is_symlink():
+                file_and_folder.unlink()
+            else:
+                shutil.rmtree(file_and_folder)
+        elif file_and_folder.is_file() and file_and_folder.suffix not in [".py", ".md", ".csv"]:
+            file_and_folder.unlink()
+
+
+@wait_retry()
+def backup_folder(path: str | Path) -> Path:
+    path = Path(path)
+    workspace_bak_path = path.with_name(path.name + ".bak")
+    if workspace_bak_path.exists():
+        shutil.rmtree(workspace_bak_path)
+
+    try:
+        # `cp` may raise error if the workspace is beiing modified.
+        # rsync is more robust choice, but it is not installed in some docker images.
+        # use shutil.copytree(..., symlinks=True) should be more elegant, but it has more changes to raise error.
+        subprocess.run(
+            ["cp", "-r", "-P", str(path), str(workspace_bak_path)],
+            check=True,
+            capture_output=True,
+        )
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Error copying {path} to {workspace_bak_path}: {e}")
+        logger.error(f"Stdout: {e.stdout.decode() if e.stdout else ''}")
+        logger.error(f"Stderr: {e.stderr.decode() if e.stderr else ''}")
+        raise
+    return workspace_bak_path
 
 
 class DataScienceRDLoop(RDLoop):
@@ -102,7 +144,7 @@ class DataScienceRDLoop(RDLoop):
         self.summarizer = DSExperiment2Feedback(scen)
         super(RDLoop, self).__init__()
 
-    def direct_exp_gen(self, prev_out: dict[str, Any]):
+    async def direct_exp_gen(self, prev_out: dict[str, Any]):
 
         # set the SOTA experiment to submit
         sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace)
@@ -112,8 +154,7 @@ class DataScienceRDLoop(RDLoop):
         selection = self.ckp_selector.get_selection(self.trace)
         # set the current selection for the trace
         self.trace.set_current_selection(selection)
-
-        exp = self.exp_gen.gen(self.trace)
+        exp = await self.exp_gen.async_gen(self.trace, self)
         logger.log_object(exp)
 
         # FIXME: this is for LLM debug webapp, remove this when the debugging is done.
@@ -241,19 +282,29 @@ class DataScienceRDLoop(RDLoop):
                 )
                 / "mid_workspace.tar"
             )
-            subprocess.run(["tar", "-cf", str(mid_log_tar_path), "-C", (Path().cwd() / "log"), "."], check=True)
+            log_back_path = backup_folder(Path().cwd() / "log")
+            subprocess.run(["tar", "-cf", str(mid_log_tar_path), "-C", str(log_back_path), "."], check=True)
 
-            # remove all files and folders in the workspace except for .py, .md, and .csv files to avoid large workspace dump
-            for workspace_id in Path(RD_AGENT_SETTINGS.workspace_path).iterdir():
-                for file_and_folder in workspace_id.iterdir():
-                    if file_and_folder.is_dir():
-                        shutil.rmtree(file_and_folder)
-                    elif file_and_folder.is_file() and file_and_folder.suffix not in [".py", ".md", ".csv"]:
-                        file_and_folder.unlink()
+            # only clean current workspace without affecting other loops.
+            for k in "direct_exp_gen", "coding", "running":
+                if k in prev_out:
+                    assert isinstance(prev_out[k], DSExperiment)
+                    clean_workspace(prev_out[k].experiment_workspace.workspace_path)
 
-            subprocess.run(
-                ["tar", "-cf", str(mid_workspace_tar_path), "-C", (RD_AGENT_SETTINGS.workspace_path), "."], check=True
-            )
+            # Backup the workspace (only necessary files are included)
+            # - Step 1: Copy the workspace to a .bak package
+            workspace_bak_path = backup_folder(RD_AGENT_SETTINGS.workspace_path)
+
+            # - Step 2: Clean .bak package
+            for bak_workspace in workspace_bak_path.iterdir():
+                clean_workspace(bak_workspace)
+
+            # - Step 3: Create tarball from the cleaned .bak workspace
+            subprocess.run(["tar", "-cf", str(mid_workspace_tar_path), "-C", str(workspace_bak_path), "."], check=True)
+
+            # - Step 4: Remove .bak package
+            shutil.rmtree(workspace_bak_path)
+
             if DS_RD_SETTING.log_archive_temp_path is not None:
                 shutil.move(mid_log_tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar")
                 mid_log_tar_path = Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar"
