@@ -43,7 +43,7 @@ model_coder:
     4. You should use the following cache decorator to cache the results of the function:
     ```python
     from joblib import Memory
-    memory = Memory(location='./cache', verbose=0)
+    memory = Memory(location='{% include "scenarios.data_science.share:scen.cache_path" %}', verbose=0)
     @memory.cache``
     {% include "scenarios.data_science.share:guidelines.coding" %}
 
