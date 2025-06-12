@@ -40,8 +40,8 @@ from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.experiment import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
-from rdagent.utils.workflow import wait_retry
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.workflow import wait_retry
 
 
 # Normalize all bind paths in volumes to absolute paths using the workspace (working_dir).
@@ -248,9 +248,12 @@ class Env(Generic[ASpecificEnvConf]):
                 if not p.is_absolute() and p.parts:
                     return p.parts[0]
                 return None
+
             chmod_cmd = f"chmod -R 777 $(find {self.conf.mount_path} -mindepth 1 -maxdepth 1"
-            for name in [_get_path_stem(T("scenarios.data_science.share:scen.cache_path").r()),
-                        _get_path_stem(T("scenarios.data_science.share:scen.input_path").r())]:
+            for name in [
+                _get_path_stem(T("scenarios.data_science.share:scen.cache_path").r()),
+                _get_path_stem(T("scenarios.data_science.share:scen.input_path").r()),
+            ]:
                 chmod_cmd += f" ! -name {name}"
             chmod_cmd += ")"
             return chmod_cmd
