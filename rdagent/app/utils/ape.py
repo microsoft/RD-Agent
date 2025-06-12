@@ -5,7 +5,7 @@ This is the preliminary version of the APE (Automated Prompt Engineering)
 import pickle
 from pathlib import Path
 
-from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.log.conf import LOG_SETTINGS
 
 
 def get_llm_qa(file_path):
@@ -21,7 +21,7 @@ def get_llm_qa(file_path):
 
 # Example usage
 # use
-file_path = Path(RD_AGENT_SETTINGS.log_trace_path) / "debug_llm.pkl"
+file_path = Path(LOG_SETTINGS.trace_path) / "debug_llm.pkl"
 llm_qa = get_llm_qa(file_path)
 print(len(llm_qa))
 

@@ -1,6 +1,7 @@
 import inspect
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, TypedDict, cast
 
@@ -100,3 +101,14 @@ def extract_json(log_content: str) -> dict | None:
     if match:
         return cast(dict, json.loads(match.group(0)))
     return None
+
+
+def gen_datetime(dt: datetime | None = None) -> datetime:
+    """
+    Generate a datetime object in UTC timezone.
+    - If `dt` is None, it will return the current time in UTC.
+    - If `dt` is provided, it will convert it to UTC timezone.
+    """
+    if dt is None:
+        return datetime.now(timezone.utc)
+    return dt.astimezone(timezone.utc)

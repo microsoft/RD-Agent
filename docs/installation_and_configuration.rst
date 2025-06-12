@@ -51,6 +51,12 @@ For example, if you are using a DeepSeek model, you need to set as follows:
       CHAT_MODEL=deepseek/deepseek-chat
       DEEPSEEK_API_KEY=<replace_with_your_deepseek_api_key>
 
+Besides, when you are using reasoning models, the response might include the thought process. For this case, you need to set the following environment variable:
+   
+   .. code-block:: Properties
+      
+      REASONING_THINK_RM=True
+
 For more details on LiteLLM requirements, refer to the `official LiteLLM documentation <https://docs.litellm.ai/docs>`_.
 
 

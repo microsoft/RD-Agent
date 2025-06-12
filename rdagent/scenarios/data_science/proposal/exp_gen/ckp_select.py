@@ -56,7 +56,7 @@ class LimitTimeCKPSelector(CheckpointSelector):
 
         Returns:
             (-1,): Continue with the current latest trial
-            (): Start a new sub-trace if max trace limit not reached
+            trace.NEW_ROOT: Start a new sub-trace if max trace limit not reached
         """
 
         if self.time_limit_pre_trace is None:
@@ -69,8 +69,8 @@ class LimitTimeCKPSelector(CheckpointSelector):
             logger.info(f"Starting initial sub-trace {trace.sub_trace_count} at {current_time}")
             return (-1,)  # Continue with latest trial for new sub-trace
 
-        # Calculate elapsed time for current sub-trace
-        elapsed_time = current_time - self.sub_trace_start_times[trace.sub_trace_count - 1]
+        # Calculate elapsed time for current sub-trace, Trace count may be larger than MAX_TRACE_NUM druing merge process
+        elapsed_time = current_time - self.sub_trace_start_times[min(trace.sub_trace_count, self.MAX_TRACE_NUM) - 1]
 
         if elapsed_time < self.time_limit_pre_trace:
             # Continue with current sub-trace
@@ -94,7 +94,7 @@ class LimitTimeCKPSelector(CheckpointSelector):
                 f"Elapsed time {elapsed_time} exceeds time limit {self.time_limit_pre_trace}, jump to a new sub-trace"
             )
             logger.info(f"current sub-trace count: {trace.sub_trace_count}")
-            return tuple()  # Empty tuple signals starting a new sub-trace
+            return trace.NEW_ROOT  # Empty tuple signals starting a new sub-trace
 
 
 class SOTAJumpCKPSelector(CheckpointSelector):
@@ -140,7 +140,7 @@ class SOTAJumpCKPSelector(CheckpointSelector):
                     f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump to a new sub-trace"
                 )
                 logger.info(f"current sub-trace count: {trace.sub_trace_count}")
-                return ()
+                return trace.NEW_ROOT
             else:
                 logger.info(
                     f"SOTA count {sota_count} is above threshold {self.SOTA_COUNT_THRESHOLD}, continue the current latest trial"
@@ -201,7 +201,7 @@ class BackJumpCKPSelector(CheckpointSelector):
                     logger.info(
                         f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump a new sub-trace"
                     )
-                    return ()  # reboot a new sub-trace
+                    return trace.NEW_ROOT  # reboot a new sub-trace
                 else:
                     logger.info(
                         f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump back to the last second SOTA in hist (may not in current sub-trace)"
@@ -227,7 +227,7 @@ class BackJumpCKPSelector(CheckpointSelector):
                             f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump a new sub-trace"
                         )
                         logger.info(f"current sub-trace count: {trace.sub_trace_count}")
-                        return ()  # reboot a new sub-trace
+                        return trace.NEW_ROOT  # reboot a new sub-trace
 
             else:
                 logger.info(

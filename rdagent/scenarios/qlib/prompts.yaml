@@ -109,6 +109,7 @@ factor_hypothesis_specification: |-
     - If optimizing a specific type of factor, proceed from simple to complex.
   5. Note
     - Highlight that factors surpassing SOTA are included in the library to avoid re-implementation.
+    - No matter how many factors you plan to generate, only reply with one set of hypothesis and reason. The hypothesis can include the proposal of multiple factors at the same time.
 
 factor_experiment_output_format: |-
   The output should follow JSON format. The schema is as follows:

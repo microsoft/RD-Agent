@@ -92,7 +92,7 @@ isort:
 # First deal with the core folder, and then gradually increase the scope of detection,
 # and eventually realize the detection of the complete project.
 mypy:
-	$(PIPRUN) python -m mypy rdagent/core   #  --exclude rdagent/scripts,git_ignore_folder
+	$(PIPRUN) python -m mypy rdagent/core
 
 # Check lint with ruff.
 # First deal with the core folder, and then gradually increase the scope of detection,

@@ -175,3 +175,7 @@ mlruns/
 /*.sh
 .aider*
 rdagent/app/benchmark/factor/example.json
+
+# UI Server resources
+videos/
+static/

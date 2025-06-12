@@ -14,12 +14,12 @@ from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.utils import load_times
 from rdagent.log.utils import (
+    LogColors,
     extract_evoid,
     extract_json,
     extract_loopid_func_name,
     is_valid_session,
 )
-from rdagent.utils import remove_ansi_codes
 from rdagent.utils.repo.diff import generate_diff_from_dict
 
 if "show_stdout" not in state:
@@ -598,7 +598,7 @@ def stdout_win(loop_id: int):
         return
     start_index = stdout.find(f"Start Loop {loop_id}")
     end_index = stdout.find(f"Start Loop {loop_id + 1}")
-    loop_stdout = remove_ansi_codes(stdout[start_index:end_index])
+    loop_stdout = LogColors.remove_ansi_codes(stdout[start_index:end_index])
     with st.container(border=True):
         st.subheader(f"Loop {loop_id} stdout")
         pattern = f"Start Loop {loop_id}, " + r"Step \d+: \w+"
@@ -697,7 +697,7 @@ def get_state_data_range(state_data):
 
 
 # UI - Main
-if state.data["competition"]:
+if "competition" in state.data:
     st.title(state.data["competition"])
     st.markdown(f"[share_link](/ds_trace?log_folder={state.log_folder}&selection={state.log_path})")
     summarize_data()

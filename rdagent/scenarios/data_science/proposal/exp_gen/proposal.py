@@ -1,7 +1,6 @@
 import json
-import pprint
 from enum import Enum
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -24,6 +23,58 @@ from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
+
+_COMPONENT_META: Dict[str, Dict[str, Any]] = {
+    "DataLoadSpec": {
+        "target_name": "Data loader and specification generation",
+        "spec_file": "spec/data_loader.md",
+        "output_format_key": ".prompts:output_format.data_loader",
+        "task_class": DataLoaderTask,
+    },
+    "FeatureEng": {
+        "target_name": "Feature engineering",
+        "spec_file": "spec/feature.md",
+        "output_format_key": ".prompts:output_format.feature",
+        "task_class": FeatureTask,
+    },
+    "Model": {
+        "target_name": "Model",
+        "spec_file": "spec/model.md",
+        "output_format_key": ".prompts:output_format.model",
+        "task_class": ModelTask,
+    },
+    "Ensemble": {
+        "target_name": "Ensemble",
+        "spec_file": "spec/ensemble.md",
+        "output_format_key": ".prompts:output_format.ensemble",
+        "task_class": EnsembleTask,
+    },
+    "Workflow": {
+        "target_name": "Workflow",
+        "spec_file": "spec/workflow.md",
+        "output_format_key": ".prompts:output_format.workflow",
+        "task_class": WorkflowTask,
+    },
+    "Pipeline": {
+        "target_name": "Pipeline",
+        "spec_file": None,
+        "output_format_key": ".prompts:output_format.pipeline",
+        "task_class": PipelineTask,
+    },
+}
+
+
+def get_component(name: str) -> Dict[str, Any]:
+    meta = _COMPONENT_META.get(name)
+    if meta is None:
+        raise KeyError(f"Unknown component: {name!r}")
+
+    return {
+        "target_name": meta["target_name"],
+        "spec_file": meta["spec_file"],
+        "task_output_format": T(meta["output_format_key"]).r(),
+        "task_class": meta["task_class"],
+    }
 
 
 class ScenarioChallengeCategory(str, Enum):
@@ -222,45 +273,6 @@ class CodingSketch(BaseModel):
     )
 
 
-COMPONENT_TASK_MAPPING = {
-    "DataLoadSpec": {
-        "target_name": "Data loader and specification generation",
-        "spec_file": "spec/data_loader.md",
-        "task_output_format": T(".prompts:output_format.data_loader").r(),
-        "task_class": DataLoaderTask,
-    },
-    "FeatureEng": {
-        "target_name": "Feature engineering",
-        "spec_file": "spec/feature.md",
-        "task_output_format": T(".prompts:output_format.feature").r(),
-        "task_class": FeatureTask,
-    },
-    "Model": {
-        "target_name": "Model",
-        "spec_file": "spec/model.md",
-        "task_output_format": T(".prompts:output_format.model").r(),
-        "task_class": ModelTask,
-    },
-    "Ensemble": {
-        "target_name": "Ensemble",
-        "spec_file": "spec/ensemble.md",
-        "task_output_format": T(".prompts:output_format.ensemble").r(),
-        "task_class": EnsembleTask,
-    },
-    "Workflow": {
-        "target_name": "Workflow",
-        "spec_file": "spec/workflow.md",
-        "task_output_format": T(".prompts:output_format.workflow").r(),
-        "task_class": WorkflowTask,
-    },
-    "Pipeline": {
-        "target_name": "Pipeline",
-        "task_output_format": T(".prompts:output_format.pipeline").r(),
-        "task_class": PipelineTask,
-    },
-}
-
-
 def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None | DSDraftExpGen:
     next_missing_component = trace.next_incomplete_component()
     if next_missing_component is not None:
@@ -353,7 +365,7 @@ class DSProposalV1ExpGen(ExpGen):
         # - after we know the selected component, we can use RAG.
 
         # Step 2: Generate the rest of the hypothesis & task
-        component_info = COMPONENT_TASK_MAPPING.get(component)
+        component_info = get_component(component)
 
         if component_info:
             if DS_RD_SETTING.spec_enabled:
@@ -524,6 +536,8 @@ class DSProposalV2ExpGen(ExpGen):
     ) -> Dict:
         problem_formatted_str = ""
         for problem_name, problem_dict in problems.items():
+            if "problem" not in problem_dict:
+                continue
             problem_formatted_str += f"Problem Name: {problem_name}\n"
             problem_formatted_str += f"- Problem Description: {problem_dict['problem']}\n"
             if "idea" in problem_dict:
@@ -555,15 +569,22 @@ class DSProposalV2ExpGen(ExpGen):
             json_target_type=Dict[str, Dict[str, str | Dict[str, str | int]]],
         )
         resp_dict = json.loads(response)
+
+        # make sure the problem name is aligned
+        problem_keys = set(problems.keys())
+        resp_keys = set(resp_dict.keys())
+        if not resp_keys.issubset(problem_keys):
+            logger.error("Problem names are not fully aligned. Retrying...")
+            raise ValueError("Problem names are not fully aligned.")
+
         return resp_dict
 
-    def hypothesis_rank(
+    def compute_top_scores(
         self,
         hypothesis_dict: dict,
-        problem_dict: dict,
-    ) -> Tuple[str, DSHypothesis]:
+    ) -> pd.Series:
         """
-        This function depends on the `identify_problem` function.
+        Compute weighted total scores for each hypothesis and return the top five.
         """
         weights = {
             "alignment_score": 0.2,
@@ -590,25 +611,52 @@ class DSProposalV2ExpGen(ExpGen):
 
         scores = pd.DataFrame(scores_dict)
         scores_sorted = scores.sum().sort_values(ascending=False)
-        scores_sorted = scores_sorted[:5]  # Select top 5 hypotheses
+        return scores_sorted[:5]
 
+    def select_hypothesis(
+        self,
+        scores_sorted: pd.Series,
+        hypothesis_dict: dict,
+        problem_dict: dict,
+    ) -> int:
+        """
+        From the top five hypotheses (by weighted score), select one based on additional weighting rules
+        for 'inspired' flag and 'SCENARIO_PROBLEM' label. Returns the chosen hypothesis name and a
+        DSHypothesis instance.
+        """
         # Increase the weight of the hypothesis that is inspired by the idea pool to 3x.
         # Linear decay the weight of the scenario problem from 3x to 0x.
         index_to_pick_pool_list = []
         for j, problem_name in enumerate(scores_sorted.index):
             if hypothesis_dict[problem_name].get("inspired", False):
                 index_to_pick_pool_list.extend([j] * 2)
-            if problem_dict.get(problem_name, {}).get("label", "") == "SCENARIO_PROBLEM":
+            if problem_dict[problem_name]["label"] == "SCENARIO_PROBLEM":
                 index_to_pick_pool_list.extend([j] * self.scen_prob_multiplier)
-            else:
+            elif problem_dict[problem_name]["label"] == "FEEDBACK_PROBLEM":
                 index_to_pick_pool_list.extend([j] * (3 - self.scen_prob_multiplier))
+            else:
+                index_to_pick_pool_list.extend([j] * 1)
         logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
 
         # Create a random but reproducible integer
         reproducible_int = int.from_bytes(bytes.fromhex(md5_hash(scores_sorted.to_string())), byteorder="big") % len(
             index_to_pick_pool_list
         )
-        selected_idx = index_to_pick_pool_list[reproducible_int]
+        return index_to_pick_pool_list[reproducible_int]
+
+    def hypothesis_rank(
+        self, hypothesis_dict: dict, problem_dict: dict, selected_idx: Optional[int] = None
+    ) -> Tuple[str, DSHypothesis]:
+        """
+        Wrapper method that computes the top five hypotheses by weighted scoring and then selects one
+        according to additional weighting rules.
+        """
+        scores_sorted = self.compute_top_scores(hypothesis_dict)
+        if selected_idx is None:
+            selected_idx = self.select_hypothesis(
+                scores_sorted=scores_sorted, hypothesis_dict=hypothesis_dict, problem_dict=problem_dict
+            )
+
         max_score_problem_name = scores_sorted.index[selected_idx]
         problem_dict = problem_dict.get(max_score_problem_name, {})
 
@@ -632,9 +680,9 @@ class DSProposalV2ExpGen(ExpGen):
         failed_exp_feedback_list_desc: str,
     ) -> DSExperiment:
         if pipeline:
-            component_info = COMPONENT_TASK_MAPPING["Pipeline"]
+            component_info = get_component("Pipeline")
         else:
-            component_info = COMPONENT_TASK_MAPPING.get(hypothesis.component)
+            component_info = get_component(hypothesis.component)
         if pipeline:
             task_spec = T(f"scenarios.data_science.share:component_spec.Pipeline").r()
         elif DS_RD_SETTING.spec_enabled and sota_exp is not None:
@@ -737,7 +785,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         # Step 1: Identify problems
         all_problems = self.identify_problem(
-            current_sub_trace=trace.collect_all_ancestors(),
+            current_sub_trace=trace.get_parent_exps(),
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
@@ -911,6 +959,13 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             logger.error("No hypothesis generated. Retrying...")
             raise ValueError("No hypothesis generated.")
 
+        # make sure the problem name is aligned
+        problem_keys = set(problems.keys())
+        resp_keys = set(resp_dict.keys())
+        if not resp_keys.issubset(problem_keys):
+            logger.error("Problem names are not fully aligned. Retrying...")
+            raise ValueError("Problem names are not fully aligned.")
+
         return resp_dict
 
     def task_gen(
@@ -924,9 +979,9 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         failed_exp_feedback_list_desc: str,
     ) -> DSExperiment:
         if pipeline:
-            component_info = COMPONENT_TASK_MAPPING["Pipeline"]
+            component_info = get_component("Pipeline")
         else:
-            component_info = COMPONENT_TASK_MAPPING.get(hypotheses[0].component)
+            component_info = get_component(hypotheses[0].component)
         data_folder_info = self.scen.processed_data_folder_description
         sys_prompt = T(".prompts_v3:task_gen.system").r(
             # targets=component_info["target_name"],
@@ -991,6 +1046,46 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             )
         return result
 
+    # FIXME: remove this, dump solution, should be merged into identify_problem in V2
+    def identify_problems_v3(
+        self, trace: DSTrace, scenario_desc: str, sota_exp_desc: str, exp_feedback_list_desc: str
+    ) -> Dict:
+        sub_trace = trace.get_parent_exps()
+        trace_length = len(trace.hist)
+        all_problems = {}
+
+        # 阶段一：探索期（主要场景问题）
+        if trace_length <= 3:
+            scen_problems = self.identify_scenario_problem(scenario_desc, sota_exp_desc)
+            for problem_name in scen_problems:
+                scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
+                all_problems[problem_name] = scen_problems[problem_name]
+            self.scen_prob_multiplier = 3
+
+        # 阶段二：混合期（两种问题都考虑）
+        elif trace_length <= 6:
+            # 优先场景问题，但也考虑反馈
+            scen_problems = self.identify_scenario_problem(scenario_desc, sota_exp_desc)
+            for problem_name in scen_problems:
+                scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
+                all_problems[problem_name] = scen_problems[problem_name]
+
+            fb_problems = self.identify_feedback_problem(scenario_desc, exp_feedback_list_desc, sota_exp_desc)
+            for problem_name in fb_problems:
+                fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
+                all_problems[problem_name] = fb_problems[problem_name]
+            self.scen_prob_multiplier = 2
+
+        # 阶段三：优化期（主要反馈问题）
+        else:
+            fb_problems = self.identify_feedback_problem(scenario_desc, exp_feedback_list_desc, sota_exp_desc)
+            for problem_name in fb_problems:
+                fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
+                all_problems[problem_name] = fb_problems[problem_name]
+            self.scen_prob_multiplier = 1
+
+        return all_problems
+
     def gen(self, trace: DSTrace) -> DSExperiment:
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
         if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
@@ -1028,26 +1123,43 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             pipeline=pipeline,
         )
 
+        if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
+            if len(trace.current_selection) == 0:
+                # start a new sub-trace, and inject diverse problems.
+                inject_diverse = True
+                logger.info("Start a new sub-trace, and inject diverse problems.")
+            else:
+                inject_diverse = False
+        else:
+            inject_diverse = False
         # Step 1: Identify problems
         all_problems = {}
-        if len(trace.hist) >= 3:
-            fb_problems = self.identify_feedback_problem(
-                scenario_desc=scenario_desc,
-                exp_feedback_list_desc=exp_feedback_list_desc,
-                sota_exp_desc=sota_exp_desc,
-            )
-            for problem_name in fb_problems:
-                fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
-                all_problems[problem_name] = fb_problems[problem_name]
 
-        if len(trace.hist) < 9:
-            scen_problems = self.identify_scenario_problem(
-                scenario_desc=scenario_desc,
-                sota_exp_desc=sota_exp_desc,
-            )
-            for problem_name in scen_problems:
-                scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
-                all_problems[problem_name] = scen_problems[problem_name]
+        all_problems = self.identify_problems_v3(
+            trace=trace,
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+        )
+
+        # if len(trace.hist) > 3:
+        #     fb_problems = self.identify_feedback_problem(
+        #         scenario_desc=scenario_desc,
+        #         exp_feedback_list_desc=exp_feedback_list_desc,
+        #         sota_exp_desc=sota_exp_desc,
+        #     )
+        #     for problem_name in fb_problems:
+        #         fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
+        #         all_problems[problem_name] = fb_problems[problem_name]
+
+        # if len(trace.hist) < 9:
+        #     scen_problems = self.identify_scenario_problem(
+        #         scenario_desc=scenario_desc,
+        #         sota_exp_desc=sota_exp_desc,
+        #     )
+        #     for problem_name in scen_problems:
+        #         scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
+        #         all_problems[problem_name] = scen_problems[problem_name]
 
         # Step 1.5: Sample ideas from idea pool
         if DS_RD_SETTING.enable_knowledge_base:
@@ -1089,7 +1201,6 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         pickled_problem_name, new_hypothesis = self.hypothesis_rank(
             hypothesis_dict=hypothesis_dict,
             problem_dict=all_problems,
-            trace=trace,
         )
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:

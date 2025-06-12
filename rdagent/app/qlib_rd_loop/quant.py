@@ -2,6 +2,7 @@
 Quant (Factor & Model) workflow with session control
 """
 
+import asyncio
 from typing import Any
 
 import fire
@@ -113,7 +114,7 @@ class QuantRDLoop(RDLoop):
             self.trace.hist.append((prev_out["running"], feedback))
 
 
-def main(path=None, step_n=None):
+def main(path=None, step_n=None, loop_n=None, all_duration=None, checkout=True):
     """
     Auto R&D Evolving loop for fintech factors.
     You can continue running session by
@@ -123,8 +124,9 @@ def main(path=None, step_n=None):
     if path is None:
         quant_loop = QuantRDLoop(QUANT_PROP_SETTING)
     else:
-        quant_loop = QuantRDLoop.load(path)
-    quant_loop.run(step_n=step_n)
+        quant_loop = QuantRDLoop.load(path, checkout=checkout)
+
+    asyncio.run(quant_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration))
 
 
 if __name__ == "__main__":

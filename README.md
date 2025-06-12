@@ -61,7 +61,7 @@ R&D-Agent for Quantitative Finance, in short **RD-Agent(Q)**, is the first data-
 
 Extensive experiments in real stock markets show that, at a cost under $10, RD-Agent(Q) achieves approximately 2× higher ARR than benchmark factor libraries while using over 70% fewer factors. It also surpasses state-of-the-art deep time-series models under smaller resource budgets. Its alternating factor–model optimization further delivers excellent trade-off between predictive accuracy and strategy robustness.
 
-You can learn more details about **RD-Agent(Q)** through the [paper](https://arxiv.org/abs/2505.15155).
+You can learn more details about **RD-Agent(Q)** through the [paper](https://arxiv.org/abs/2505.15155) and reproduce it through the [documentation](https://rdagent.readthedocs.io/en/latest/scens/quant_agent_fin.html).
 
 # 📰 News
 | 🗞️ News        | 📝 Description                 |
@@ -70,7 +70,7 @@ You can learn more details about **RD-Agent(Q)** through the [paper](https://arx
 | [R&D-Agent-Quant Release](#deep-application-in-diverse-scenarios) | Apply R&D-Agent to quant trading | 
 | MLE-Bench Results Released | R&D-Agent currently leads as the [top-performing machine learning engineering agent](#-the-best-machine-learning-engineering-agent) on MLE-bench |
 | Support LiteLLM Backend | We now fully support **[LiteLLM](https://github.com/BerriAI/litellm)** as a backend for integration with multiple LLM providers. |
-| More General Data Science Agent | 🚀Coming soon! |
+| General Data Science Agent | [Data Science Agent](https://rdagent.readthedocs.io/en/latest/scens/data_science.html) |
 | Kaggle Scenario release | We release **[Kaggle Agent](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html)**, try the new features!                  |
 | Official WeChat group release  | We created a WeChat group, welcome to join! (🗪[QR Code](https://github.com/microsoft/RD-Agent/issues/880)) |
 | Official Discord release  | We launch our first chatting channel in Discord (🗪[![Chat](https://img.shields.io/badge/chat-discord-blue)](https://discord.gg/ybQ97B6Jjy)) |
@@ -151,41 +151,24 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   - json_mode
   - embedding query
 
-- For example: If you are using the `OpenAI API`, you have to configure your GPT model in the `.env` file like this.
-  ```bash
-  cat << EOF  > .env
-  OPENAI_API_KEY=<replace_with_your_openai_api_key>
-  # EMBEDDING_MODEL=text-embedding-3-small
-  CHAT_MODEL=gpt-4-turbo
-  EOF
-  ```
-- However, not every API services support these features by default. For example: `AZURE OpenAI`, you have to configure your GPT model in the `.env` file like this.
-  ```bash
-  cat << EOF  > .env
-  USE_AZURE=True
-  EMBEDDING_OPENAI_API_KEY=<replace_with_your_azure_openai_api_key>
-  EMBEDDING_AZURE_API_BASE=<replace_with_your_azure_endpoint>
-  EMBEDDING_AZURE_API_VERSION=<replace_with_the_version_of_your_azure_openai_api>
-  EMBEDDING_MODEL=text-embedding-3-small
-  CHAT_OPENAI_API_KEY=<replace_with_your_azure_openai_api_key>
-  CHAT_AZURE_API_BASE=<replace_with_your_azure_endpoint>
-  CHAT_AZURE_API_VERSION=<replace_with_the_version_of_your_azure_openai_api>
-  CHAT_MODEL=<replace_it_with_the_name_of_your_azure_chat_model>
-  EOF
-  ```
+  You can set your Chat Model and Embedding Model in the following ways:
 
-- We now support LiteLLM as a backend for integration with multiple LLM providers. If you use LiteLLM Backend to use models, you can configure as follows:
+- **Using LiteLLM (Recommended)**: We now support LiteLLM as a backend for integration with multiple LLM providers. You can configure as follows:
   ```bash
   cat << EOF  > .env
   BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
-  # It can be modified to any model supported by LiteLLM.
-  CHAT_MODEL=gpt-4o
+  # Set to any model supported by LiteLLM.
+  CHAT_MODEL=gpt-4o 
   EMBEDDING_MODEL=text-embedding-3-small
-  # The backend api_key fully follow the convention of litellm.
+  # Then configure the environment variables required by your chosen model in the convention of LiteLLM here.
   OPENAI_API_KEY=<replace_with_your_openai_api_key>
   ```
-  
-- For more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html).
+  Notice: If you are using reasoning models that include thought processes in their responses (such as \<think> tags), you need to set the following environment variable:
+  ```bash
+  REASONING_THINK_RM=True
+  ```
+
+- You can also use a deprecated backend if you only use `OpenAI API` or `Azure OpenAI` directly. For this deprecated setting and more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html).
 
 ### 🚀 Run the Application
 
