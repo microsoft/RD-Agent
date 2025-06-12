@@ -139,10 +139,6 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
     def gen(self, trace: DSTrace) -> DSExperiment:
         # Ignore the selection argument and use all leaves instead.
         sota_exp_fb = trace.sota_experiment_fb(selection=trace.current_selection)
-        exp_index = self.get_exp_index(trace)
-        exp_to_merge_fb = trace.sota_experiment_fb(selection=(exp_index,))
-        if exp_to_merge_fb is None:
-            exp_to_merge_fb = trace.hist[exp_index]
 
         if sota_exp_fb:
             sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
@@ -154,9 +150,29 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
             sota_exp_desc = ""
             eda_output = None
 
-        success_fb_list = trace.experiment_and_feedback_list_after_init(
-            return_type="sota", search_type="ancestors", selection=(exp_index,)
-        )
+        trace_fbs = []
+        # find the best exp to merge
+        for leaf in enumerate(leaves):
+            if leaf == trace.current_selection[0]:
+                continue
+
+            trace_fbs.append(
+                trace.experiment_and_feedback_list_after_init(
+                    return_type="sota",
+                    search_type="ancestors",
+                    selection=(leaf,),
+                )
+            )
+
+        num_to_slice = 20
+        if sum(len(fb_list) for fb_list in trace_fbs) > num_to_slice:
+            success_fb_trace_count = sum(1 for fb_list in trace_fbs if fb_list)
+            success_fb_list = [
+                fb for fb_list in trace_fbs for fb in fb_list[-(num_to_slice // success_fb_trace_count) :]
+            ]
+        else:
+            success_fb_list = [fb for fb_list in trace_fbs for fb in fb_list]
+
         if len(success_fb_list) > 0:
             exp_to_merge_fb_desc = T("scenarios.data_science.proposal.exp_gen.merge:trace").r(
                 exp_and_feedback_list=success_fb_list,
@@ -166,6 +182,11 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
                 pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
             )
         else:
+            exp_index = self.get_exp_index(trace)
+            exp_to_merge_fb = trace.sota_experiment_fb(selection=(exp_index,))
+            if exp_to_merge_fb is None:
+                exp_to_merge_fb = trace.hist[exp_index]
+
             exp_to_merge_fb_desc = T("scenarios.data_science.share:describe.feedback").r(
                 exp_and_feedback=exp_to_merge_fb,
                 heading="The feedback for the solution to be merged",
