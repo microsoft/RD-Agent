@@ -30,7 +30,7 @@ msgs_for_frontend = defaultdict(list)
 pointers = defaultdict(int)
 
 
-def read_trace(log_path: Path, t: float = 0.5) -> None:
+def read_trace(log_path: Path, t: float = 1.5) -> None:
     msgs_for_frontend[str(log_path)] = []
     from rdagent.log.storage import FileStorage
     from rdagent.log.ui.storage import WebStorage
@@ -160,7 +160,7 @@ def control_process():
 @app.route("/", methods=["GET"])
 def index():
     # return 'Hello, World!'
-    return str(msgs_for_frontend.keys())
+    return {k: [i["msg"]["tag"] for i in v] for k, v in msgs_for_frontend.items()}
 
 
 @app.route("/<path:fn>", methods=["GET"])
