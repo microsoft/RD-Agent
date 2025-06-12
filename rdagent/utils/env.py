@@ -262,7 +262,7 @@ class Env(Generic[ASpecificEnvConf]):
             f"/bin/sh -c 'timeout --kill-after=10 {self.conf.running_timeout_period} {entry}; "
             + "entry_exit_code=$?; "
             + (
-                f"{_get_chmod_cmd(self.conf.mount_path)}"
+                f"{_get_chmod_cmd(self.conf.mount_path)}; "
                 # We don't have to change the permission of the cache and input folder to remove it
                 # + f"if [ -d {self.conf.mount_path}/cache ]; then chmod 777 {self.conf.mount_path}/cache; fi; " +
                 #     f"if [ -d {self.conf.mount_path}/input ]; then chmod 777 {self.conf.mount_path}/input; fi; "
