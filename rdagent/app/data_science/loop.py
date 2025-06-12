@@ -13,8 +13,8 @@ def main(
     checkout: bool | str | Path = True,
     step_n: int | None = None,
     loop_n: int | None = None,
+    all_duration: str | None = None,
     competition="bms-molecular-translation",
-    timeout=None,
     replace_timer=True,
     exp_gen_cls: str | None = None,
 ):
@@ -66,7 +66,7 @@ def main(
     if exp_gen_cls is not None:
         kaggle_loop.exp_gen = import_class(exp_gen_cls)(kaggle_loop.exp_gen.scen)
 
-    kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout)
+    kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration)
 
 
 if __name__ == "__main__":

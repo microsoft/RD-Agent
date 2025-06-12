@@ -2,6 +2,7 @@ import os
 import random
 import signal
 import subprocess
+import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,6 +28,25 @@ def favicon():
 
 msgs_for_frontend = defaultdict(list)
 pointers = defaultdict(int)
+
+
+def read_trace(log_path: Path, t: float = 0.5) -> None:
+    msgs_for_frontend[str(log_path)] = []
+    from rdagent.log.storage import FileStorage
+    from rdagent.log.ui.storage import WebStorage
+
+    fs = FileStorage(log_path)
+    ws = WebStorage(port=1, path=log_path)
+    for msg in fs.iter_msg():
+        data = ws._obj_to_json(obj=msg.content, tag=msg.tag, id=str(log_path), timestamp=msg.timestamp)
+        if data:
+            if isinstance(data, list):
+                for d in data:
+                    time.sleep(t)
+                    msgs_for_frontend[str(log_path)].append(d)
+            else:
+                time.sleep(t)
+                msgs_for_frontend[str(log_path)].append(data)
 
 
 @app.route("/trace", methods=["POST"])
@@ -65,67 +85,16 @@ def upload_file():
     loop_n = request.form.get("loops")
     all_duration = request.form.get("all_duration")
 
-    # scenario = "Data Science Loop"
-    trace_name = randomname.get_name()
-    log_folder_path = Path("/home/bowen/workspace/RD-Agent_server_trace").absolute()
-    trace_files_path = log_folder_path / scenario / "uploads" / trace_name
+    log_folder_path = Path("/home/bowen/workspace/new_traces").absolute()
 
-    log_trace_path = (log_folder_path / scenario / trace_name).absolute()
-    stdout_path = log_folder_path / scenario / f"{trace_name}.stdout"
-    if not stdout_path.exists():
-        stdout_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # save files
-    for file in files:
-        if file:
-            p = log_folder_path / scenario / "uploads" / trace_name
-            if not p.exists():
-                p.mkdir(parents=True, exist_ok=True)
-            file.save(p / file.filename)
-
-    if scenario == "Finance Data Building":
-        cmds = ["rdagent", "fin_factor"]
-    if scenario == "Finance Data Building (Reports)":
-        cmds = ["rdagent", "fin_factor_report", "--report_folder", str(trace_files_path)]
-    if scenario == "Finance Model Implementation":
-        cmds = ["rdagent", "fin_model"]
-    if scenario == "General Model Implementation":
-        if len(files) == 0:  # files is one link
-            rfp = request.form.get("files")[0]
-        else:  # one file is uploaded
-            rfp = str(trace_files_path / files[0].filename)
-        cmds = ["rdagent", "general_model", "--report_file_path", rfp]
-    if scenario == "Medical Model Implementation":
-        cmds = ["rdagent", "med_model"]
     if scenario == "Data Science Loop":
-        cmds = ["rdagent", "kaggle", "--competition", competition]
+        trace_path = log_folder_path / "o1-preview" / f"{competition}.1"
+    else:
+        trace_path = log_folder_path / scenario
 
-    # time control parameters
-    if loop_n:
-        cmds += ["--loop_n", loop_n]
-    if all_duration:
-        cmds += ["--all_duration", f"{all_duration}h"]
+    read_trace(trace_path)
 
-    app.logger.info(f"Started process for {log_trace_path} with parameters: {cmds}")
-    with stdout_path.open("w") as log_file:
-        rdagent_processes[str(log_trace_path)] = subprocess.Popen(
-            cmds,
-            stdout=log_file,
-            stderr=log_file,
-            env={
-                **os.environ,
-                "LOG_TRACE_PATH": str(log_trace_path),
-                "LOG_UI_SERVER_PORT": str(server_port),
-            },
-        )
-    return (
-        jsonify(
-            {
-                "id": str(log_trace_path),
-            }
-        ),
-        200,
-    )
+    return jsonify({"id": str(trace_path)}), 200
 
 
 @app.route("/receive", methods=["POST"])
@@ -191,7 +160,7 @@ def control_process():
 @app.route("/", methods=["GET"])
 def index():
     # return 'Hello, World!'
-    return msgs_for_frontend
+    return str(msgs_for_frontend.keys())
 
 
 @app.route("/<path:fn>", methods=["GET"])

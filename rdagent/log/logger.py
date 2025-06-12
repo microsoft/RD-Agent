@@ -102,7 +102,7 @@ class RDAgentLog(SingletonBaseClass):
 
         for storage in [self.storage] + self.other_storages:
             logp = storage.log(obj, tag=tag)
-            logger.patch(lambda r: r.update(caller_info)).info(f"Log object to [{storage}], uri: {logp}")
+            logger.patch(lambda r: r.update(caller_info)).info(f"Log object to [{storage}], info: {logp}")
 
     def _log(self, level: str, msg: str, *, tag: str = "", raw: bool = False) -> None:
         caller_info = get_caller_info()

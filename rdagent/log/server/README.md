@@ -116,14 +116,16 @@ Only **2** Message in one loop
     "evo_id": "0",
     "content": [ // list of task_name & codes
         {
+            "evo_id": "0",
             "target_task_name": "task_1",
-            "codes": { // one or more codes
+            "workspace": { // one or more codes
                 "a.py": "...<python codes>",
                 "b.py": "...<python codes>",
                 //...
             }
         },
         {
+            "evo_id": "0",
             "target_task_name": "task_2",
             "codes": {
                 "a.py": "...<python codes>",
@@ -155,6 +157,7 @@ Only **2** Message in one loop
     "evo_id": "0",
     "content": [ // list of feedbacks
         {
+            "evo_id": "0",
             "final_decision": "True", // True or False
             "execution": "...",
             "code": "...",
