@@ -153,20 +153,42 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
 
   You can set your Chat Model and Embedding Model in the following ways:
 
-- **Using LiteLLM (Recommended)**: We now support LiteLLM as a backend for integration with multiple LLM providers. You can configure as follows:
+- **Using LiteLLM (Recommended)**: We now support LiteLLM as a backend for integration with multiple LLM providers. You can configure in two ways:
+
+  1. **Universal Configuration** (Same API for Chat and Embedding):
   ```bash
   cat << EOF  > .env
   BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
-  # Set to any model supported by LiteLLM.
+  # Set to any model supported by LiteLLM
   CHAT_MODEL=gpt-4o 
   EMBEDDING_MODEL=text-embedding-3-small
-  # Then configure the environment variables required by your chosen model in the convention of LiteLLM here.
+  # Configure the environment variables required by your chosen model
   OPENAI_API_KEY=<replace_with_your_openai_api_key>
+  EOF
   ```
+
+  2. **Separate Configuration** (Different APIs for Chat and Embedding):
+  ```bash
+  cat << EOF  > .env
+  BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
+  # Chat configuration
+  CHAT_MODEL=gpt-4o
+  CHAT_OPENAI_API_KEY=<replace_with_your_chat_api_key>
+  CHAT_OPENAI_BASE_URL=<optional_chat_endpoint>
+  
+  # Embedding configuration
+  EMBEDDING_MODEL=text-embedding-3-small
+  EMBEDDING_OPENAI_API_KEY=<replace_with_your_embedding_api_key>
+  EMBEDDING_OPENAI_BASE_URL=<optional_embedding_endpoint>
+  EOF
+  ```
+
   Notice: If you are using reasoning models that include thought processes in their responses (such as \<think> tags), you need to set the following environment variable:
   ```bash
   REASONING_THINK_RM=True
   ```
+
+  For more detailed configuration options and examples, please refer to [API Configuration Guide](API_configuration.md).
 
 - You can also use a deprecated backend if you only use `OpenAI API` or `Azure OpenAI` directly. For this deprecated setting and more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html).
 
@@ -407,4 +429,4 @@ To get started, you can explore the issues list, or search for `TODO:` comments 
 Before we released R&D-Agent as an open-source project on GitHub, it was an internal project within our group. Unfortunately, the internal commit history was not preserved when we removed some confidential code. As a result, some contributions from our group members, including Haotian Chen, Wenjun Feng, Haoxue Wang, Zeqi Ye, Xinjie Shen, and Jinhui Li, were not included in the public commits.
 
 # ⚖️ Legal disclaimer
-<p style="line-height: 1; font-style: italic;">The RD-agent is provided “as is”, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. The RD-agent is aimed to facilitate research and development process in the financial industry and not ready-to-use for any financial investment or advice. Users shall independently assess and test the risks of the RD-agent in a specific use scenario, ensure the responsible use of AI technology, including but not limited to developing and integrating risk mitigation measures, and comply with all applicable laws and regulations in all applicable jurisdictions. The RD-agent does not provide financial opinions or reflect the opinions of Microsoft, nor is it designed to replace the role of qualified financial professionals in formulating, assessing, and approving finance products. The inputs and outputs of the RD-agent belong to the users and users shall assume all liability under any theory of liability, whether in contract, torts, regulatory, negligence, products liability, or otherwise, associated with use of the RD-agent and any inputs and outputs thereof.</p>
+<p style="line-height: 1; font-style: italic;">The RD-agent is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. The RD-agent is aimed to facilitate research and development process in the financial industry and not ready-to-use for any financial investment or advice. Users shall independently assess and test the risks of the RD-agent in a specific use scenario, ensure the responsible use of AI technology, including but not limited to developing and integrating risk mitigation measures, and comply with all applicable laws and regulations in all applicable jurisdictions. The RD-agent does not provide financial opinions or reflect the opinions of Microsoft, nor is it designed to replace the role of qualified financial professionals in formulating, assessing, and approving finance products. The inputs and outputs of the RD-agent belong to the users and users shall assume all liability under any theory of liability, whether in contract, torts, regulatory, negligence, products liability, or otherwise, associated with use of the RD-agent and any inputs and outputs thereof.</p>
