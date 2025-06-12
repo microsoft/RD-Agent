@@ -16,6 +16,12 @@ auto_sota_selector:
       "explanation": "A brief explanation text for your selection."
     }
 
+    If you cannot make a selection, like no SOTA experiments and feedbacks, or the gap is too small, return 
+      {
+        "selected_SOTA_idx": None,
+        "explanation": "No SOTA experiments and feedbacks"
+      }
+
   user: |-
     # SOTA Experiments and Feedback
     {{ historical_sota_exp_with_desc_and_scores }}
