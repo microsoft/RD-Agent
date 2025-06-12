@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import asyncio
 from abc import ABC, abstractmethod
-from typing import Generic, List, Tuple, TypeVar
+from typing import TYPE_CHECKING, Generic, List, Tuple, TypeVar
 
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
 from rdagent.core.experiment import ASpecificExp, Experiment
 from rdagent.core.knowledge_base import KnowledgeBase
 from rdagent.core.scenario import Scenario
+
+if TYPE_CHECKING:
+    from rdagent.utils.workflow.loop import LoopBase
 
 
 class Hypothesis:
@@ -247,6 +252,17 @@ class ExpGen(ABC):
                 HypothesisGen().gen(trace)
             )
         """
+
+    async def async_gen(self, trace: Trace, loop: LoopBase) -> Experiment:
+        """
+        generate the experiment and decide whether to stop yield generation and give up control to other routines.
+        """
+        # we give a default implementation here.
+        # The proposal is set to try best to generate the experiment in max-parallel level.
+        while True:
+            if loop.get_unfinished_loop_cnt(loop.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
+                return self.gen(trace)
+            await asyncio.sleep(1)
 
 
 class HypothesisGen(ABC):

@@ -297,11 +297,11 @@ output_format:
     Your final output should be a dict containing all the identified problem without anything else.
     Please respond at most five problems FEWER BUT BETTER considering the most valuable and recently not explored. Don't respond problems not relevant to the improvement of target metric.
     {
-      "problem name 1": {
+      "problem name 1 (name of the identified problem without anything else)": {
         "problem": "Description of the first issue in no more than three sentences.",
         "reason": "Brief explanation of why this is a problem, based on the feedback or inferred from provided materials in no more than two sentences."
       },
-      "problem name 2": {
+      "problem name 2 (name of the identified problem without anything else)": {
         "problem": "Description of the second issue in no more than three sentences.",
         "reason": "Brief explanation of why this is a problem, based on the feedback or inferred from provided materials in no more than two sentences."
       }

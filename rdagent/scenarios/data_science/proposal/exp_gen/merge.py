@@ -304,21 +304,40 @@ class ExpGen2TraceAndMergeV2(ExpGen):
         )
         self.flag_start_merge = False
 
-    def gen(self, trace: DSTrace) -> DSExperiment:
+    def reset_exp_gen_version(self, version: str = "v2"):
+        DS_RD_SETTING.proposal_version = version
+        logger.info(f"ExpGen2TraceAndMergeV2: Resetting proposal version to {version}")
+        self.exp_gen = DataScienceRDLoop._get_exp_gen(
+            f"rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
+        )
+
+    def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
         logger.info(f"Remain time: {timer.remain_time_duration}")
 
         if timer.remain_time_duration >= timedelta(hours=DS_RD_SETTING.merge_hours):
 
             if DS_RD_SETTING.enable_inject_knowledge_at_root:
+                if DS_RD_SETTING.knowledge_base_path is not None and DS_RD_SETTING.idea_pool_json_path is not None:
+                    if len(trace.hist) == 0:
+                        # set the knowledge base option to True for the first trace
+                        DS_RD_SETTING.enable_knowledge_base = True
+
+            if DS_RD_SETTING.enable_multi_version_exp_gen:
+                exp_gen_version_list = DS_RD_SETTING.exp_gen_version_list.split(",")
+                for version in exp_gen_version_list:
+                    assert version in ["v3", "v2", "v1"]
 
                 if len(trace.hist) == 0:
-                    # set the knowledge base option to True for the first trace
-                    DS_RD_SETTING.enable_knowledge_base = True
+                    # set the proposal version for the first sub-trace
+                    self.reset_exp_gen_version(version=exp_gen_version_list[0])
+                elif len(trace.get_current_selection()) == 0 and trace.sub_trace_count > 0:
+                    # reset the proposal version at the start of other sub-trace
+                    if trace.sub_trace_count - 1 < len(exp_gen_version_list):
+                        self.reset_exp_gen_version(version=exp_gen_version_list[trace.sub_trace_count - 1])
+                    else:
+                        self.reset_exp_gen_version(version=exp_gen_version_list[-1])
 
-                else:
-                    # set the knowledge base option back to False for the other traces
-                    DS_RD_SETTING.enable_knowledge_base = False
             return self.exp_gen.gen(trace)
 
         else:
