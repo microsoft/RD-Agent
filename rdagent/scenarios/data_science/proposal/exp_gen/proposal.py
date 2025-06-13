@@ -4,7 +4,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 from pydantic import BaseModel, Field
+import math
+import os
+from pathlib import Path
 
+from rdagent.core.exception import CoderError
+from rdagent.scenarios.data_science.proposal.exp_gen.rag_hybrid_2 import HybridRAGSystem
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
@@ -525,6 +530,7 @@ class DSProposalV2ExpGen(ExpGen):
     @wait_retry(retry_n=5)
     def hypothesis_gen(
         self,
+        no_sota: bool, # TODO 
         component_desc: str,
         scenario_desc: str,
         exp_feedback_list_desc: str,
@@ -554,6 +560,7 @@ class DSProposalV2ExpGen(ExpGen):
             pipeline=pipeline,
             enable_idea_pool=enable_idea_pool,
             inject_diverse=inject_diverse,
+            no_sota=no_sota,
         )
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
             scenario_desc=scenario_desc,
@@ -578,6 +585,27 @@ class DSProposalV2ExpGen(ExpGen):
             raise ValueError("Problem names are not fully aligned.")
 
         return resp_dict
+
+    def hypothesis_draft(
+        self,
+        no_sota_idea_path: str | None,
+        component_desc: str,
+        scenario_desc: str,
+        exp_and_feedback_list_desc: str,
+        problems: Dict[str, Dict[str, str]],
+    ) -> Dict:
+        """
+        使用HybridRAGSystem（BM25+向量混合检索）生成假设。
+        """
+        if not hasattr(self, "_rag_system"):
+            self._rag_system = HybridRAGSystem(APIBackend(), cache_dir="./hypothesis_rag_cache")
+        return self._rag_system.hypothesis_draft(
+            no_sota_idea_path=no_sota_idea_path,
+            component_desc=component_desc,
+            scenario_desc=scenario_desc,
+            exp_and_feedback_list_desc=exp_and_feedback_list_desc,
+            problems=problems
+        )
 
     def compute_top_scores(
         self,
@@ -792,42 +820,53 @@ class DSProposalV2ExpGen(ExpGen):
             inject_diverse=inject_diverse,
         )
 
-        # Step 1.5: Sample ideas from idea pool
-        if DS_RD_SETTING.enable_knowledge_base:
-            all_problems = trace.knowledge_base.sample_ideas(
+        # # Step 1.5: Sample ideas from idea pool
+        # if DS_RD_SETTING.enable_knowledge_base:
+        #     all_problems = trace.knowledge_base.sample_ideas(
+        #         problems=all_problems,
+        #         scenario_desc=scenario_desc,
+        #         exp_feedback_list_desc=exp_feedback_list_desc,
+        #         sota_exp_desc=sota_exp_desc,
+        #         competition_desc=self.scen.get_competition_full_desc(),
+        #     )
+
+        # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
+        # distinguish between no_sota and has sota
+        if sota_exp is None and DS_RD_SETTING.enable_no_sota_rag:
+            hypothesis_dict = self.hypothesis_draft(
+                component_desc=component_desc,
+                scenario_desc=scenario_desc,
+                exp_and_feedback_list_desc=exp_feedback_list_desc,
                 problems=all_problems,
+                no_sota_idea_path=DS_RD_SETTING.no_sota_idea_path,
+            )
+        else:
+            hypothesis_dict = self.hypothesis_gen(
+                no_sota = sota_exp is None, #TODO
+                component_desc=component_desc,
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
                 sota_exp_desc=sota_exp_desc,
-                competition_desc=self.scen.get_competition_full_desc(),
+                problems=all_problems,
+                pipeline=pipeline,
+                enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
+                inject_diverse=inject_diverse,
             )
-
-        # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
-        hypothesis_dict = self.hypothesis_gen(
-            component_desc=component_desc,
-            scenario_desc=scenario_desc,
-            exp_feedback_list_desc=exp_feedback_list_desc,
-            sota_exp_desc=sota_exp_desc,
-            problems=all_problems,
-            pipeline=pipeline,
-            enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
-            inject_diverse=inject_diverse,
-        )
-        if not pipeline:
-            sota_exp_model_file_count = len(
-                [
-                    k
-                    for k in sota_exp.experiment_workspace.file_dict.keys()
-                    if k.endswith(".py") and "test" not in k and k.startswith("model")
-                ]
-            )
-            if sota_exp_model_file_count <= 1:
-                pop_names = []
-                for problem_name in hypothesis_dict:
-                    if hypothesis_dict[problem_name].get("component", "") == "Ensemble":
-                        pop_names.append(problem_name)
-                for name in pop_names:
-                    hypothesis_dict.pop(name)
+            if not pipeline:
+                sota_exp_model_file_count = len(
+                    [
+                        k
+                        for k in sota_exp.experiment_workspace.file_dict.keys()
+                        if k.endswith(".py") and "test" not in k and k.startswith("model")
+                    ]
+                )
+                if sota_exp_model_file_count <= 1:
+                    pop_names = []
+                    for problem_name in hypothesis_dict:
+                        if hypothesis_dict[problem_name].get("component", "") == "Ensemble":
+                            pop_names.append(problem_name)
+                    for name in pop_names:
+                        hypothesis_dict.pop(name)
 
         # Step 3: Select the best hypothesis
         pickled_problem_name, new_hypothesis = self.hypothesis_rank(
