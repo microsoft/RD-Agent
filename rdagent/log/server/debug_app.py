@@ -74,30 +74,31 @@ def upload_file():
         trace_path = log_folder_path / "o1-preview" / f"{competition}.1"
     else:
         trace_path = log_folder_path / scenario
+    id = randomname.get_name()
 
-    def read_trace(log_path: Path, t: float = 1.5) -> None:
-        msgs_for_frontend[str(log_path)] = []
+    def read_trace(log_path: Path, t: float = 1.5, id: str = "") -> None:
         from rdagent.log.storage import FileStorage
         from rdagent.log.ui.storage import WebStorage
 
         fs = FileStorage(log_path)
         ws = WebStorage(port=1, path=log_path)
+        msgs_for_frontend[id] = []
         for msg in fs.iter_msg():
-            data = ws._obj_to_json(obj=msg.content, tag=msg.tag, id=str(log_path), timestamp=msg.timestamp)
+            data = ws._obj_to_json(obj=msg.content, tag=msg.tag, id=id, timestamp=msg.timestamp)
             if data:
                 if isinstance(data, list):
                     for d in data:
                         time.sleep(t)
-                        msgs_for_frontend[str(log_path)].append(d["msg"])
+                        msgs_for_frontend[id].append(d["msg"])
                 else:
                     time.sleep(t)
-                    msgs_for_frontend[str(log_path)].append(data["msg"])
-        msgs_for_frontend[str(log_path)].append({"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}})
+                    msgs_for_frontend[id].append(data["msg"])
+        msgs_for_frontend[id].append({"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}})
 
     # 启动后台线程，不阻塞 return
-    threading.Thread(target=read_trace, args=(trace_path,), daemon=True).start()
+    threading.Thread(target=read_trace, args=(trace_path,1.5,id), daemon=True).start()
 
-    return jsonify({"id": str(trace_path)}), 200
+    return jsonify({"id": id}), 200
 
 
 @app.route("/receive", methods=["POST"])
