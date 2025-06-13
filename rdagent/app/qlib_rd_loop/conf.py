@@ -25,10 +25,6 @@ class ModelBasePropSetting(BasePropSetting):
     summarizer: str = "rdagent.scenarios.qlib.developer.feedback.QlibModelExperiment2Feedback"
     """Summarizer class"""
 
-    evolving_n: int = 10
-    """Number of evolutions"""
-
-
 class FactorBasePropSetting(BasePropSetting):
     model_config = SettingsConfigDict(env_prefix="QLIB_FACTOR_", protected_namespaces=())
 
@@ -50,10 +46,6 @@ class FactorBasePropSetting(BasePropSetting):
 
     summarizer: str = "rdagent.scenarios.qlib.developer.feedback.QlibFactorExperiment2Feedback"
     """Summarizer class"""
-
-    evolving_n: int = 10
-    """Number of evolutions"""
-
 
 class FactorFromReportPropSetting(FactorBasePropSetting):
     # 1) override the scen attribute
@@ -106,9 +98,6 @@ class QuantBasePropSetting(BasePropSetting):
 
     factor_summarizer: str = "rdagent.scenarios.qlib.developer.feedback.QlibFactorExperiment2Feedback"
     """Summarizer class"""
-
-    evolving_n: int = 10
-    """Number of evolutions"""
 
     action_selection: str = "bandit"
     """Action selection strategy: 'bandit' for bandit-based selection, 'llm' for LLM-based selection, 'random' for random selection"""
