@@ -14,7 +14,7 @@ Installation
 Ensure the current user can run Docker commands **without using sudo**. You can verify this by executing `docker run hello-world`.
 
 API Configuration Guide
-======================
+========================
 
 Background
 ----------
@@ -25,7 +25,7 @@ Quick Start
 -----------
 
 Method 1: Universal Configuration (Recommended for Beginners)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If your Chat and Embedding use the same API service:
 
@@ -40,7 +40,7 @@ If your Chat and Embedding use the same API service:
    export OPENAI_BASE_URL="https://your-endpoint.com/v1"
 
 Method 2: Separate Configuration (Recommended for Advanced Users)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you need Chat and Embedding to use different API services:
 
@@ -61,10 +61,10 @@ If you need Chat and Embedding to use different API services:
    export BACKEND="rdagent.oai.backend.LiteLLMAPIBackend"
 
 Testing Configuration
--------------------
+---------------------
 
 Using the Provided Test Script
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We provide several test scripts in folder ``test/oai`` that can:
 
