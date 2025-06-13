@@ -137,7 +137,7 @@ if "alpha158_metrics" not in state:
 
 
 def should_display(msg: Message):
-    for t in state.excluded_tags:
+    for t in state.excluded_tags + ["debug_tpl"]:
         if t in msg.tag.split("."):
             return False
 
@@ -154,8 +154,10 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                 msg = next(state.fs)
                 if should_display(msg):
                     tags = msg.tag.split(".")
-                    if "direct_exp_gen" not in state.current_tags and "direct_exp_gen" in tags:
+                    if "hypothesis generation" in msg.tag:
                         state.lround += 1
+                    # if "direct_exp_gen" not in state.current_tags and "direct_exp_gen" in tags:
+                    #     state.lround += 1
 
                     # new scenario gen this tags, old version UI not have these tags.
                     msg.tag = re.sub(r"\.evo_loop_\d+", "", msg.tag)
@@ -253,7 +255,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             wrong_num,
                             none_num,
                         )
-                    elif "feedback" in tags:
+                    elif "feedback" in tags and isinstance(msg.content, HypothesisFeedback):
                         state.h_decisions[state.lround] = msg.content.decision
 
                     state.msgs[state.lround][msg.tag].append(msg)
@@ -463,7 +465,7 @@ def summary_window():
                     df = pd.DataFrame(state.metric_series)
                 if show_true_only and len(state.hypotheses) >= len(state.metric_series):
                     if state.alpha158_metrics is not None:
-                        selected = ["alpha158"] + [i for i in df.index if state.h_decisions[int(i[6:])]]
+                        selected = ["alpha158"] + [i for i in df.index if i == "Baseline" or state.h_decisions[int(i[6:])]]
                     else:
                         selected = [i for i in df.index if i == "Baseline" or state.h_decisions[int(i[6:])]]
                     df = df.loc[selected]
@@ -583,13 +585,13 @@ def research_window():
             # pdf image
             c1, c2 = st.columns([2, 3])
             with c1:
-                if pim := state.msgs[round]["pdf_image"]:
+                if pim := state.msgs[0]["pdf_image"]:
                     for i in range(len(pim)):
                         st.image(pim[i].content, use_container_width=True)
 
             # loaded model exp
             with c2:
-                if mem := state.msgs[round]["load_experiment"]:
+                if mem := state.msgs[0]["load_experiment"]:
                     me: QlibModelExperiment = mem[0].content
                     tasks_window(me.sub_tasks)
 
@@ -1125,7 +1127,7 @@ if state.scenario is not None:
 
         rf_c = st.container()
         d_c = st.container()
-        round = 1
+        round = 0
     else:
         st.error("Unknown Scenario!")
         st.stop()
