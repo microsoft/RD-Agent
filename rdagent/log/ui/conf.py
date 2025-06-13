@@ -14,5 +14,7 @@ class UIBasePropSetting(ExtendedBaseSettings):
 
     amlt_path: str = "/data/share_folder_local/amlt"
 
+    static_path: str = "./git_ignore_folder/static"
+
 
 UI_SETTING = UIBasePropSetting()

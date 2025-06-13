@@ -1,10 +1,13 @@
 import os
+import multiprocessing
 import random
 import signal
 import subprocess
+import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+import threading
 
 import randomname
 import typer
@@ -58,74 +61,44 @@ def update_trace():
 @app.route("/upload", methods=["POST"])
 def upload_file():
     # 获取请求体中的字段
-    global rdagent_processes, server_port
+    global rdagent_processes, server_port, msgs_for_frontend
     scenario = request.form.get("scenario")
     files = request.files.getlist("files")
     competition = request.form.get("competition")
     loop_n = request.form.get("loops")
     all_duration = request.form.get("all_duration")
 
-    # scenario = "Data Science Loop"
-    trace_name = randomname.get_name()
-    log_folder_path = Path("/home/bowen/workspace/RD-Agent_server_trace").absolute()
-    trace_files_path = log_folder_path / scenario / "uploads" / trace_name
+    log_folder_path = Path("/home/bowen/workspace/new_traces").absolute()
 
-    log_trace_path = (log_folder_path / scenario / trace_name).absolute()
-    stdout_path = log_folder_path / scenario / f"{trace_name}.stdout"
-    if not stdout_path.exists():
-        stdout_path.parent.mkdir(parents=True, exist_ok=True)
+    if scenario == "Data Science":
+        trace_path = log_folder_path / "o1-preview" / f"{competition}.1"
+    else:
+        trace_path = log_folder_path / scenario
+    id = randomname.get_name()
 
-    # save files
-    for file in files:
-        if file:
-            p = log_folder_path / scenario / "uploads" / trace_name
-            if not p.exists():
-                p.mkdir(parents=True, exist_ok=True)
-            file.save(p / file.filename)
+    def read_trace(log_path: Path, t: float = 1.5, id: str = "") -> None:
+        from rdagent.log.storage import FileStorage
+        from rdagent.log.ui.storage import WebStorage
 
-    if scenario == "Finance Data Building":
-        cmds = ["rdagent", "fin_factor"]
-    if scenario == "Finance Data Building (Reports)":
-        cmds = ["rdagent", "fin_factor_report", "--report_folder", str(trace_files_path)]
-    if scenario == "Finance Model Implementation":
-        cmds = ["rdagent", "fin_model"]
-    if scenario == "General Model Implementation":
-        if len(files) == 0:  # files is one link
-            rfp = request.form.get("files")[0]
-        else:  # one file is uploaded
-            rfp = str(trace_files_path / files[0].filename)
-        cmds = ["rdagent", "general_model", "--report_file_path", rfp]
-    if scenario == "Medical Model Implementation":
-        cmds = ["rdagent", "med_model"]
-    if scenario == "Data Science Loop":
-        cmds = ["rdagent", "kaggle", "--competition", competition]
+        fs = FileStorage(log_path)
+        ws = WebStorage(port=1, path=log_path)
+        msgs_for_frontend[id] = []
+        for msg in fs.iter_msg():
+            data = ws._obj_to_json(obj=msg.content, tag=msg.tag, id=id, timestamp=msg.timestamp)
+            if data:
+                if isinstance(data, list):
+                    for d in data:
+                        time.sleep(t)
+                        msgs_for_frontend[id].append(d["msg"])
+                else:
+                    time.sleep(t)
+                    msgs_for_frontend[id].append(data["msg"])
+        msgs_for_frontend[id].append({"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}})
 
-    # time control parameters
-    if loop_n:
-        cmds += ["--loop_n", loop_n]
-    if all_duration:
-        cmds += ["--all_duration", f"{all_duration}h"]
+    # 启动后台线程，不阻塞 return
+    threading.Thread(target=read_trace, args=(trace_path,1.5,id), daemon=True).start()
 
-    app.logger.info(f"Started process for {log_trace_path} with parameters: {cmds}")
-    with stdout_path.open("w") as log_file:
-        rdagent_processes[str(log_trace_path)] = subprocess.Popen(
-            cmds,
-            stdout=log_file,
-            stderr=log_file,
-            env={
-                **os.environ,
-                "LOG_TRACE_PATH": str(log_trace_path),
-                "LOG_UI_SERVER_PORT": str(server_port),
-            },
-        )
-    return (
-        jsonify(
-            {
-                "id": str(log_trace_path),
-            }
-        ),
-        200,
-    )
+    return jsonify({"id": id}), 200
 
 
 @app.route("/receive", methods=["POST"])
@@ -191,7 +164,7 @@ def control_process():
 @app.route("/", methods=["GET"])
 def index():
     # return 'Hello, World!'
-    return msgs_for_frontend
+    return {k: [i["tag"] for i in v] for k, v in msgs_for_frontend.items()}
 
 
 @app.route("/<path:fn>", methods=["GET"])
