@@ -255,29 +255,35 @@ class LoopBase:
                         logger.warning(f"Step forward {si} of loop {li} is skipped.")
 
     async def kickoff_loop(self) -> None:
-        while True:
-            li = self.loop_idx
+        try:
+            while True:
+                li = self.loop_idx
 
-            # exit on loop limitation
-            if self.loop_n is not None:
-                if self.loop_n <= 0:
-                    break
-                self.loop_n -= 1
+                # exit on loop limitation
+                if self.loop_n is not None:
+                    if self.loop_n <= 0:
+                        break
+                    self.loop_n -= 1
 
-            # NOTE:
-            # Try best to kick off the first step; the first step is always the ExpGen;
-            # it have the right to decide when to stop yield new Experiment
-            if self.step_idx[li] == 0:
-                # Assume the first step is ExpGen
-                # Only kick off ExpGen when it is never kicked off before
-                await self._run_step(li)
-            self.queue.put_nowait(li)  # the loop `li` has been kicked off, waiting for workers to pick it up
-            self.loop_idx += 1
+                # NOTE:
+                # Try best to kick off the first step; the first step is always the ExpGen;
+                # it have the right to decide when to stop yield new Experiment
+                if self.step_idx[li] == 0:
+                    # Assume the first step is ExpGen
+                    # Only kick off ExpGen when it is never kicked off before
+                    await self._run_step(li)
+                self.queue.put_nowait(li)  # the loop `li` has been kicked off, waiting for workers to pick it up
+                self.loop_idx += 1
+        finally:
+            for _ in range(RD_AGENT_SETTINGS.get_max_parallel()):
+                self.queue.put_nowait(None)
 
     async def execute_loop(self) -> None:
         while True:
             # 1) get the tasks to goon loop `li`
             li = await self.queue.get()
+            if li is None:
+                break
             # 2) run the unfinished steps
             while self.step_idx[li] < len(self.steps):
                 if self.step_idx[li] == len(self.steps) - 1:
@@ -314,17 +320,23 @@ class LoopBase:
         )
 
         while True:
+            producer = asyncio.create_task(self.kickoff_loop())
+            consumers = [asyncio.create_task(self.execute_loop())
+                        for _ in range(RD_AGENT_SETTINGS.get_max_parallel())]
+            all_tasks = [producer, *consumers]
+
             try:
-                # run one kickoff_loop and execute_loop
-                await asyncio.gather(
-                    self.kickoff_loop(), *[self.execute_loop() for _ in range(RD_AGENT_SETTINGS.get_max_parallel())]
-                )
+                await asyncio.gather(*all_tasks)
                 break
             except self.LoopResumeError as e:
                 logger.warning(f"Stop all the routines and resume loop: {e}")
+                for task in all_tasks:
+                    task.cancel()
                 self.loop_idx = 0
             except self.LoopTerminationError as e:
                 logger.warning(f"Reach stop criterion and stop loop: {e}")
+                for task in all_tasks:
+                    task.cancel()
                 break
             finally:
                 self.close_pbar()
