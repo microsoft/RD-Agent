@@ -153,12 +153,22 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
 
   You can set your Chat Model and Embedding Model in the following ways:
 
-- **Using LiteLLM (Recommended)**: We now support LiteLLM as a backend for integration with multiple LLM providers. You can configure in two ways:
+- **Using LiteLLM (Default)**: We now support LiteLLM as a backend for integration with multiple LLM providers. You can configure in two ways:
 
-  **Option 1: Separate API bases for Chat and Embedding models**
+  **Option 1: Unified API base for both models**
   ```bash
   cat << EOF  > .env
-  BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
+  # Set to any model supported by LiteLLM.
+  CHAT_MODEL=gpt-4o 
+  EMBEDDING_MODEL=text-embedding-3-small
+  # Configure unified API base
+  OPENAI_API_BASE=<your_unified_api_base>
+  OPENAI_API_KEY=<replace_with_your_openai_api_key>
+  ```
+
+  **Option 2: Separate API bases for Chat and Embedding models**
+  ```bash
+  cat << EOF  > .env
   # Set to any model supported by LiteLLM.
   # Configure separate API bases for chat and embedding
   
@@ -173,18 +183,6 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   EMBEDDING_MODEL=litellm_proxy/BAAI/bge-large-en-v1.5
   LITELLM_PROXY_API_KEY=<replace_with_your_siliconflow_api_key>
   LITELLM_PROXY_API_BASE=https://api.siliconflow.cn/v1
-  ```
-
-  **Option 2: Unified API base for both models**
-  ```bash
-  cat << EOF  > .env
-  BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
-  # Set to any model supported by LiteLLM.
-  CHAT_MODEL=gpt-4o 
-  EMBEDDING_MODEL=text-embedding-3-small
-  # Configure unified API base
-  OPENAI_API_BASE=<your_unified_api_base>
-  OPENAI_API_KEY=<replace_with_your_openai_api_key>
   ```
 
   Notice: If you are using reasoning models that include thought processes in their responses (such as \<think> tags), you need to set the following environment variable:

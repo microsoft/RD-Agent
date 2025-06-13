@@ -13,19 +13,30 @@ Installation
 **Install Docker**: RDAgent is designed for research and development, acting like a human researcher and developer. It can write and run code in various environments, primarily using Docker for code execution. This keeps the remaining dependencies simple. Users must ensure Docker is installed before attempting most scenarios. Please refer to the `official 🐳Docker page <https://docs.docker.com/engine/install/>`_ for installation instructions.
 Ensure the current user can run Docker commands **without using sudo**. You can verify this by executing `docker run hello-world`.
 
-LiteLLM Backend Configuration
+LiteLLM Backend Configuration (Default)
 =============================
 
-Please create a `.env` file in the root directory of the project and add environment variables.
+The standard configuration options for the user using the OpenAI API are provided in the .env.example file. Please create a `.env` file in the root directory of the project and add environment variables.
 
 We now support LiteLLM as a backend for integration with multiple LLM providers. You can configure in two ways:
 
-Option 1: Separate API bases for Chat and Embedding models
+
+Option 1: Unified API base for both models
+-------------------------------------------
+
+   .. code-block:: Properties
+      # Set to any model supported by LiteLLM.
+      CHAT_MODEL=gpt-4o 
+      EMBEDDING_MODEL=text-embedding-3-small
+      # Configure unified API base
+      # The backend api_key fully follows the convention of litellm.
+      OPENAI_API_BASE=<your_unified_api_base>
+      OPENAI_API_KEY=<replace_with_your_openai_api_key>
+
+Option 2: Separate API bases for Chat and Embedding models
 ----------------------------------------------------------
 
    .. code-block:: Properties
-
-      BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
       # Set to any model supported by LiteLLM.
       
       # CHAT MODEL:
@@ -40,34 +51,21 @@ Option 1: Separate API bases for Chat and Embedding models
       LITELLM_PROXY_API_KEY=<replace_with_your_siliconflow_api_key>
       LITELLM_PROXY_API_BASE=https://api.siliconflow.cn/v1
 
-Option 2: Unified API base for both models
--------------------------------------------
-
-   .. code-block:: Properties
-
-      BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
-      # Set to any model supported by LiteLLM.
-      CHAT_MODEL=gpt-4o 
-      EMBEDDING_MODEL=text-embedding-3-small
-      # Configure unified API base
-      # The backend api_key fully follows the convention of litellm.
-      OPENAI_API_BASE=<your_unified_api_base>
-      OPENAI_API_KEY=<replace_with_your_openai_api_key>
-
 Necessary parameters include:
 
-- `BACKEND`: The backend to use. The default is `rdagent.oai.backend.DeprecBackend`. To use the LiteLLM backend, set it to `rdagent.oai.backend.LiteLLMAPIBackend`.
-
-- `CHAT_MODEL`: The model name of the chat model. 
+- `CHAT_MODEL`: The model name of the chat model.
 
 - `EMBEDDING_MODEL`: The model name of the embedding model.
 
-- `OPENAI_API_BASE`: The base URL of the API, which is used for both chat and embedding models if `EMBEDDING_MODEL` does not start with `litellm_proxy/`, else used for `CHAT_MODEL` only.
+- `OPENAI_API_BASE`: The base URL of the API. If `EMBEDDING_MODEL` does not start with `litellm_proxy/`, this is used for both chat and embedding models; otherwise, it is used for `CHAT_MODEL` only.
 
-- `LITELLM_PROXY_API_KEY`: The API key of the API, which is used for embedding models if `EMBEDDING_MODEL` starts with `litellm_proxy/`.
+Optional parameters (required if your embedding model is provided by a different provider than `CHAT_MODEL`):
 
-- `LITELLM_PROXY_API_BASE`: The base URL of the API, which is used for embedding models if `EMBEDDING_MODEL` starts with `litellm_proxy/`.
+- `LITELLM_PROXY_API_KEY`: The API key for the embedding model, required if `EMBEDDING_MODEL` starts with `litellm_proxy/`.
 
+- `LITELLM_PROXY_API_BASE`: The base URL for the embedding model, required if `EMBEDDING_MODEL` starts with `litellm_proxy/`.
+
+**Note:** If you are using an embedding model from a provider different from the chat model, remember to add the `litellm_proxy/` prefix to the `EMBEDDING_MODEL` name.
 
 
 The `CHAT_MODEL` and `EMBEDDING_MODEL` parameters will be passed into LiteLLM's completion function. 
@@ -98,7 +96,7 @@ Configuration(deprecated)
 
 To run the application, please create a `.env` file in the root directory of the project and add environment variables according to your requirements.
 
-The standard configuration options for the user using the OpenAI API are provided in the `.env.example` file.
+If you are using this deprecated version,  you should set `BACKEND` to `rdagent.oai.backend.DeprecBackend`.
 
 Here are some other configuration options that you can use:
 
