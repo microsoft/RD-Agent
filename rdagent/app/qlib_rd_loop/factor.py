@@ -17,12 +17,11 @@ class FactorRDLoop(RDLoop):
     skip_loop_error = (FactorEmptyError,)
 
     def running(self, prev_out: dict[str, Any]):
-        with logger.tag("ef"):  # evaluate and feedback
-            exp = self.runner.develop(prev_out["coding"])
-            if exp is None:
-                logger.error(f"Factor extraction failed.")
-                raise FactorEmptyError("Factor extraction failed.")
-            logger.log_object(exp, tag="runner result")
+        exp = self.runner.develop(prev_out["coding"])
+        if exp is None:
+            logger.error(f"Factor extraction failed.")
+            raise FactorEmptyError("Factor extraction failed.")
+        logger.log_object(exp, tag="runner result")
         return exp
 
 
