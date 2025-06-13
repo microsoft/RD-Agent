@@ -33,6 +33,7 @@ Option 2: Separate API bases for Chat and Embedding models
 ----------------------------------------------------------
 
    .. code-block:: Properties
+
       # Set to any model supported by LiteLLM.
       
       # CHAT MODEL:
