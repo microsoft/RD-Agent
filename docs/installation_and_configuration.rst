@@ -14,17 +14,13 @@ Installation
 Ensure the current user can run Docker commands **without using sudo**. You can verify this by executing `docker run hello-world`.
 
 LiteLLM Backend Configuration (Default)
-=============================
-
-The standard configuration options for the user using the OpenAI API are provided in the .env.example file. Please create a `.env` file in the root directory of the project and add environment variables.
-
-We now support LiteLLM as a backend for integration with multiple LLM providers. You can configure in two ways:
-
+=======================================
 
 Option 1: Unified API base for both models
--------------------------------------------
+------------------------------------------
 
    .. code-block:: Properties
+
       # Set to any model supported by LiteLLM.
       CHAT_MODEL=gpt-4o 
       EMBEDDING_MODEL=text-embedding-3-small
