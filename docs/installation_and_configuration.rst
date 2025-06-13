@@ -13,6 +13,67 @@ Installation
 **Install Docker**: RDAgent is designed for research and development, acting like a human researcher and developer. It can write and run code in various environments, primarily using Docker for code execution. This keeps the remaining dependencies simple. Users must ensure Docker is installed before attempting most scenarios. Please refer to the `official 🐳Docker page <https://docs.docker.com/engine/install/>`_ for installation instructions.
 Ensure the current user can run Docker commands **without using sudo**. You can verify this by executing `docker run hello-world`.
 
+API Configuration Guide
+======================
+
+Background
+----------
+
+RD-Agent supports configuring different API keys and endpoints for Chat and Embedding models. 
+
+Quick Start
+-----------
+
+Method 1: Universal Configuration (Recommended for Beginners)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If your Chat and Embedding use the same API service:
+
+.. code-block:: bash
+
+   # Set universal API key
+   export OPENAI_API_KEY="sk-your-api-key-here"
+   export BACKEND="rdagent.oai.backend.LiteLLMAPIBackend"
+   export CHAT_MODEL="gpt-4o"
+   export EMBEDDING_MODEL="text-embedding-3-small"
+   # Optional: Custom endpoint
+   export OPENAI_BASE_URL="https://your-endpoint.com/v1"
+
+Method 2: Separate Configuration (Recommended for Advanced Users)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you need Chat and Embedding to use different API services:
+
+.. code-block:: bash
+
+   # Chat configuration (using LiteLLM)
+   export CHAT_OPENAI_API_KEY="sk-chat-key"
+   export CHAT_OPENAI_BASE_URL="https://xxx-litellm.com/v1"
+   export CHAT_MODEL='gpt-4o'
+
+   # Embedding configuration (using other service)
+   # Use siliconflow as example, pay attention to the **openai/** prefix
+   export EMBEDDING_OPENAI_API_KEY="sk-embedding-service-key"
+   export EMBEDDING_OPENAI_BASE_URL="https://api.siliconflow.cn/v1"
+   export EMBEDDING_MODEL="openai/BAAI/bge-large-en-v1.5"
+
+   # Backend configuration
+   export BACKEND="rdagent.oai.backend.LiteLLMAPIBackend"
+
+Testing Configuration
+-------------------
+
+Using the Provided Test Script
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We provide several test scripts in folder ``test/oai`` that can:
+
+- ✅ **Automatically detect configuration mode** (Universal vs Separate)
+- ✅ **Test Chat and Embedding functionality**
+- ✅ **Analyze configuration source and validity**
+- ✅ **Provide configuration recommendations**
+
+
 LiteLLM Backend Configuration
 =============================
 
@@ -20,14 +81,14 @@ Please create a `.env` file in the root directory of the project and add environ
 
 Here is a sample configuration for using OpenAI's gpt-4o via LiteLLM. 
 
-   .. code-block:: Properties
+.. code-block:: Properties
 
-      BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
-      # It can be modified to any model supported by LiteLLM.
-      CHAT_MODEL=gpt-4o
-      EMBEDDING_MODEL=text-embedding-3-small
-      # The backend api_key fully follows the convention of litellm.
-      OPENAI_API_KEY=<replace_with_your_openai_api_key>
+   BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
+   # It can be modified to any model supported by LiteLLM.
+   CHAT_MODEL=gpt-4o
+   EMBEDDING_MODEL=text-embedding-3-small
+   # The backend api_key fully follows the convention of litellm.
+   OPENAI_API_KEY=<replace_with_your_openai_api_key>
 
 Necessary parameters include:
 
@@ -45,17 +106,17 @@ Additionally, you need to set up the the additional parameters for the respectiv
 
 For example, if you are using a DeepSeek model, you need to set as follows:
 
-   .. code-block:: Properties
+.. code-block:: Properties
 
-      # For some models LiteLLM requires a prefix to the model name.
-      CHAT_MODEL=deepseek/deepseek-chat
-      DEEPSEEK_API_KEY=<replace_with_your_deepseek_api_key>
+   # For some models LiteLLM requires a prefix to the model name.
+   CHAT_MODEL=deepseek/deepseek-chat
+   DEEPSEEK_API_KEY=<replace_with_your_deepseek_api_key>
 
 Besides, when you are using reasoning models, the response might include the thought process. For this case, you need to set the following environment variable:
    
-   .. code-block:: Properties
-      
-      REASONING_THINK_RM=True
+.. code-block:: Properties
+   
+   REASONING_THINK_RM=True
 
 For more details on LiteLLM requirements, refer to the `official LiteLLM documentation <https://docs.litellm.ai/docs>`_.
 

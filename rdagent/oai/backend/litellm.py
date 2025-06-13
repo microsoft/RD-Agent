@@ -32,11 +32,6 @@ class LiteLLMSettings(LLMSettings):
     class Config:
         env_prefix = "LITELLM_"
 
-    chat_api_key: str = ""
-    chat_base_url: str = ""
-    embedding_api_key: str = ""
-    embedding_base_url: str = ""
-
     """Use `LITELLM_` as prefix for environment variables"""
 
     # Placeholder for LiteLLM specific settings, so far it's empty

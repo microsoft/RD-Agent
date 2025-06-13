@@ -15,7 +15,7 @@ load_dotenv()
 # Ensure correct import path
 sys.path.insert(0, str(Path(__file__).parent))
 
-PROMPT = "INTRODUCE YOURSELF"
+PROMPT = "你是人吗"
 
 try:
     from rdagent.log import rdagent_logger as logger
