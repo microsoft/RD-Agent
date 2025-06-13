@@ -18,15 +18,40 @@ LiteLLM Backend Configuration
 
 Please create a `.env` file in the root directory of the project and add environment variables.
 
-Here is a sample configuration for using OpenAI's gpt-4o via LiteLLM. 
+We now support LiteLLM as a backend for integration with multiple LLM providers. You can configure in two ways:
+
+Option 1: Separate API bases for Chat and Embedding models
+----------------------------------------------------------
 
    .. code-block:: Properties
 
       BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
-      # It can be modified to any model supported by LiteLLM.
-      CHAT_MODEL=gpt-4o
+      # Set to any model supported by LiteLLM.
+      
+      # CHAT MODEL:
+      CHAT_MODEL=gpt-4o 
+      OPENAI_API_BASE=<your_chat_api_base>
+      OPENAI_API_KEY=<replace_with_your_openai_api_key>
+
+      # EMBEDDING MODEL:
+      # TAKE siliconflow as an example, you can use other providers.
+      # Note: embedding requires litellm_proxy prefix
+      EMBEDDING_MODEL=litellm_proxy/BAAI/bge-large-en-v1.5
+      LITELLM_PROXY_API_KEY=<replace_with_your_siliconflow_api_key>
+      LITELLM_PROXY_API_BASE=https://api.siliconflow.cn/v1
+
+Option 2: Unified API base for both models
+-------------------------------------------
+
+   .. code-block:: Properties
+
+      BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
+      # Set to any model supported by LiteLLM.
+      CHAT_MODEL=gpt-4o 
       EMBEDDING_MODEL=text-embedding-3-small
+      # Configure unified API base
       # The backend api_key fully follows the convention of litellm.
+      OPENAI_API_BASE=<your_unified_api_base>
       OPENAI_API_KEY=<replace_with_your_openai_api_key>
 
 Necessary parameters include:
@@ -36,6 +61,14 @@ Necessary parameters include:
 - `CHAT_MODEL`: The model name of the chat model. 
 
 - `EMBEDDING_MODEL`: The model name of the embedding model.
+
+- `OPENAI_API_BASE`: The base URL of the API, which is used for both chat and embedding models if `EMBEDDING_MODEL` does not start with `litellm_proxy/`, else used for `CHAT_MODEL` only.
+
+- `LITELLM_PROXY_API_KEY`: The API key of the API, which is used for embedding models if `EMBEDDING_MODEL` starts with `litellm_proxy/`.
+
+- `LITELLM_PROXY_API_BASE`: The base URL of the API, which is used for embedding models if `EMBEDDING_MODEL` starts with `litellm_proxy/`.
+
+
 
 The `CHAT_MODEL` and `EMBEDDING_MODEL` parameters will be passed into LiteLLM's completion function. 
 
