@@ -137,7 +137,7 @@ if "alpha158_metrics" not in state:
 
 
 def should_display(msg: Message):
-    for t in state.excluded_tags + ["debug_tpl"]:
+    for t in state.excluded_tags + ["debug_tpl", "debug_llm"]:
         if t in msg.tag.split("."):
             return False
 
