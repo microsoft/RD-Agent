@@ -156,8 +156,6 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     tags = msg.tag.split(".")
                     if "hypothesis generation" in msg.tag:
                         state.lround += 1
-                    # if "direct_exp_gen" not in state.current_tags and "direct_exp_gen" in tags:
-                    #     state.lround += 1
 
                     # new scenario gen this tags, old version UI not have these tags.
                     msg.tag = re.sub(r"\.evo_loop_\d+", "", msg.tag)
