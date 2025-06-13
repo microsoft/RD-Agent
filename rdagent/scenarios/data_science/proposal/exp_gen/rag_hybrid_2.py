@@ -47,13 +47,21 @@ class HybridRAGSystem:
     Optimized for problem-method-context structure
     """
     
-    def __init__(self, api_backend, cache_dir: str = "./rag_cache"):
+    def __init__(self, api_backend, cache_dir: str = "./rag_cache", enable_semantic: bool = True):
         self.api_backend = api_backend
         self.cache_dir = cache_dir
         
+        # Add semantic search control flag
+        self.enable_semantic = enable_semantic
+        
         # Weights configuration
-        self.semantic_weight = 0.7
-        self.keyword_weight = 0.3
+        if enable_semantic:
+            self.semantic_weight = 0.7
+            self.keyword_weight = 0.3
+        else:
+            # Keyword-only mode
+            self.semantic_weight = 0.0
+            self.keyword_weight = 1.0
         
         # Field weights for BM25
         self.field_weights = {
@@ -65,7 +73,6 @@ class HybridRAGSystem:
         # Performance settings
         self.batch_size = 32
         self.max_workers = 4
-        self.embedding_dim = 1536  
         
         # Disable parallel processing if SQLite cache is detected
         # to avoid thread safety issues
@@ -85,8 +92,19 @@ class HybridRAGSystem:
             try:
                 self.nlp = spacy.load("en_core_web_sm")
             except OSError:
-                logger.warning("spaCy model 'en_core_web_sm' not found. Using fallback tokenization.")
+                # Handle model download in a separate try-except to avoid scope issues
                 self.nlp = None
+                try:
+                    # Import spacy.cli separately to avoid variable scope conflicts
+                    import spacy.cli as spacy_cli
+                    logger.info("Downloading spaCy model 'en_core_web_sm' ...")
+                    spacy_cli.download("en_core_web_sm")
+                    # Try loading again after download
+                    self.nlp = spacy.load("en_core_web_sm")
+                    logger.info("spaCy model 'en_core_web_sm' downloaded and loaded successfully.")
+                except Exception as e:
+                    logger.warning(f"Failed to download spaCy model 'en_core_web_sm': {e}. Using fallback tokenization.")
+                    self.nlp = None
         else:
             self.nlp = None
         
@@ -426,11 +444,13 @@ class HybridRAGSystem:
                     self.idea_pool = json.load(f)
                 logger.info(f"Loaded {len(self.idea_pool)} ideas from cache")
             
-            # Load embeddings
-            if os.path.exists(self.embeddings_path):
+            # Load embeddings only if semantic search is enabled
+            if self.enable_semantic and os.path.exists(self.embeddings_path):
                 with builtins.open(self.embeddings_path, 'rb') as f:
                     self.idea_embeddings = pickle.load(f)
                 logger.info(f"Loaded embeddings for {len(self.idea_embeddings)} ideas")
+            elif not self.enable_semantic:
+                logger.info("Semantic search disabled - skipping embedding cache")
             
             # Load BM25 index
             if os.path.exists(self.bm25_path) and BM25Okapi:
@@ -441,10 +461,12 @@ class HybridRAGSystem:
                     self.idea_keys = bm25_data['keys']
                 logger.info("Loaded BM25 index from cache")
             
-            # Load FAISS index if available
-            if FAISS_AVAILABLE and os.path.exists(self.faiss_index_path):
+            # Load FAISS index only if semantic search is enabled and FAISS is available
+            if self.enable_semantic and FAISS_AVAILABLE and os.path.exists(self.faiss_index_path):
                 self.faiss_index = faiss.read_index(self.faiss_index_path)
                 logger.info("Loaded FAISS index from cache")
+            elif not self.enable_semantic:
+                logger.info("Semantic search disabled - skipping FAISS index")
             
             # Load metadata
             if os.path.exists(self.metadata_path):
@@ -462,9 +484,10 @@ class HybridRAGSystem:
             with builtins.open(self.idea_pool_path, 'w', encoding='utf-8') as f:
                 json.dump(self.idea_pool, f, indent=2, ensure_ascii=False)
             
-            # Save embeddings
-            with builtins.open(self.embeddings_path, 'wb') as f:
-                pickle.dump(self.idea_embeddings, f)
+            # Save embeddings only if semantic search is enabled
+            if self.enable_semantic:
+                with builtins.open(self.embeddings_path, 'wb') as f:
+                    pickle.dump(self.idea_embeddings, f)
             
             # Save BM25 index
             if self.bm25_index and BM25Okapi:
@@ -475,8 +498,8 @@ class HybridRAGSystem:
                         'keys': self.idea_keys
                     }, f)
             
-            # Save FAISS index
-            if FAISS_AVAILABLE and self.faiss_index:
+            # Save FAISS index only if semantic search is enabled
+            if self.enable_semantic and FAISS_AVAILABLE and self.faiss_index:
                 faiss.write_index(self.faiss_index, self.faiss_index_path)
             
             # Save metadata
@@ -485,7 +508,8 @@ class HybridRAGSystem:
                 'total_ideas': len(self.idea_pool),
                 'semantic_weight': self.semantic_weight,
                 'keyword_weight': self.keyword_weight,
-                'faiss_enabled': FAISS_AVAILABLE and self.faiss_index is not None
+                'semantic_enabled': self.enable_semantic,
+                'faiss_enabled': self.enable_semantic and FAISS_AVAILABLE and self.faiss_index is not None
             }
             with builtins.open(self.metadata_path, 'w') as f:
                 json.dump(metadata, f, indent=2)
@@ -546,7 +570,12 @@ class HybridRAGSystem:
                             embedding = self.api_backend.create_embedding([text])[0]
                             embeddings[idx] = np.array(embedding)
                         except:
-                            embeddings[idx] = np.zeros(self.embedding_dim)
+                            # 动态推断embedding维度
+                            if embeddings and embeddings[0] is not None:
+                                dim = embeddings[0].shape[0]
+                            else:
+                                dim = 1024  # fallback默认
+                            embeddings[idx] = np.zeros(dim)
         
         # Clean up old cache entries periodically
         if len(self.embedding_cache) > self.max_cache_size:
@@ -592,22 +621,25 @@ class HybridRAGSystem:
             logger.info("No new ideas to add (all already exist)")
             return
         
-        # Compute embeddings for new ideas
-        new_texts = []
-        new_names = []
-        
-        for idea_name, idea_data in actually_new.items():
-            text = self._get_idea_text(idea_data)
-            new_texts.append(text)
-            new_names.append(idea_name)
-        
-        if new_texts:
-            # Batch compute embeddings
-            new_embeddings = self.batch_create_embeddings(new_texts)
+        # Compute embeddings for new ideas only if semantic search is enabled
+        if self.enable_semantic:
+            new_texts = []
+            new_names = []
             
-            # Update embedding dictionary
-            for name, embedding in zip(new_names, new_embeddings):
-                self.idea_embeddings[name] = embedding
+            for idea_name, idea_data in actually_new.items():
+                text = self._get_idea_text(idea_data)
+                new_texts.append(text)
+                new_names.append(idea_name)
+            
+            if new_texts:
+                # Batch compute embeddings
+                new_embeddings = self.batch_create_embeddings(new_texts)
+                
+                # Update embedding dictionary
+                for name, embedding in zip(new_names, new_embeddings):
+                    self.idea_embeddings[name] = embedding
+        else:
+            logger.info("Semantic search disabled - skipping embedding computation")
         
         # Rebuild indices
         self._rebuild_indices()
@@ -620,9 +652,11 @@ class HybridRAGSystem:
         # Rebuild BM25 index
         self._rebuild_bm25_index()
         
-        # Rebuild FAISS index if available
-        if FAISS_AVAILABLE:
+        # Rebuild FAISS index only if semantic search is enabled
+        if self.enable_semantic and FAISS_AVAILABLE:
             self._rebuild_faiss_index()
+        else:
+            logger.info("Semantic search disabled - skipping FAISS index rebuild")
     
     def _rebuild_bm25_index(self):
         """Rebuild BM25 index from current idea pool"""
@@ -667,16 +701,17 @@ class HybridRAGSystem:
         embeddings_matrix = normalize(embeddings_matrix, axis=1)
         
         n_vectors = embeddings_matrix.shape[0]
+        embedding_dim = embeddings_matrix.shape[1]
         
         if n_vectors < 1000:
             # Use flat index for small datasets
-            self.faiss_index = faiss.IndexFlatIP(self.embedding_dim)
+            self.faiss_index = faiss.IndexFlatIP(embedding_dim)
         else:
             # Use IVF index for larger datasets
             nlist = min(100, n_vectors // 10)
-            quantizer = faiss.IndexFlatIP(self.embedding_dim)
+            quantizer = faiss.IndexFlatIP(embedding_dim)
             self.faiss_index = faiss.IndexIVFFlat(
-                quantizer, self.embedding_dim, nlist, faiss.METRIC_INNER_PRODUCT
+                quantizer, embedding_dim, nlist, faiss.METRIC_INNER_PRODUCT
             )
             self.faiss_index.train(embeddings_matrix)
         
@@ -705,6 +740,8 @@ class HybridRAGSystem:
         query_embedding = self.api_backend.create_embedding([query])[0]
         query_embedding = np.array(query_embedding).astype('float32')
         query_embedding = normalize(query_embedding.reshape(1, -1), axis=1)[0]
+        
+        embedding_dim = query_embedding.shape[0]
         
         if FAISS_AVAILABLE and self.faiss_index:
             # Use FAISS for fast search
@@ -789,7 +826,7 @@ class HybridRAGSystem:
         query = " ".join(query_parts)
         
         # Check query cache
-        cache_key = self._get_cache_key(f"{problem_name}:{query}:{top_k}")
+        cache_key = self._get_cache_key(f"{problem_name}:{query}:{top_k}:semantic_{self.enable_semantic}")
         if cache_key in self.query_cache:
             cache_entry = self.query_cache[cache_key]
             if self._is_cache_valid(cache_entry):
@@ -797,19 +834,25 @@ class HybridRAGSystem:
             
 
         adj_keyword_weight = self.keyword_weight
-        adj_semantic_weight = 1 - adj_keyword_weight
+        adj_semantic_weight = self.semantic_weight
         
         # Get BM25 scores (field-weighted)
         bm25_scores = self._compute_field_bm25_scores(problem_data)
         
-        # Get semantic scores
-        semantic_scores = self._compute_semantic_scores(query, top_k=top_k*3 if use_reranking else top_k)
-        
-        # Combine scores
-        final_scores = (
-            adj_semantic_weight * semantic_scores + 
-            adj_keyword_weight * bm25_scores
-        )
+        if self.enable_semantic:
+            # Get semantic scores only if semantic search is enabled
+            semantic_scores = self._compute_semantic_scores(query, top_k=top_k*3 if use_reranking else top_k)
+            
+            # Combine scores
+            final_scores = (
+                adj_semantic_weight * semantic_scores + 
+                adj_keyword_weight * bm25_scores
+            )
+        else:
+            # Keyword-only mode: use only BM25 scores
+            logger.info(f"Using keyword-only search for problem '{problem_name}'")
+            semantic_scores = np.zeros(len(self.idea_keys))
+            final_scores = bm25_scores
         
         # Get top candidates
         initial_top_k = min(top_k * 3, len(self.idea_keys)) if use_reranking else top_k
@@ -852,7 +895,8 @@ class HybridRAGSystem:
                     'semantic_score': float(candidate['semantic_score']),
                     'keyword_score': float(candidate['keyword_score']),
                     'idea_data': candidate['idea_data'],
-                    'key_concepts': keywords
+                    'key_concepts': keywords,
+                    'search_mode': 'keyword_only' if not self.enable_semantic else 'hybrid'
                 }
                 
                 final_results.append(result)
@@ -863,7 +907,8 @@ class HybridRAGSystem:
             'timestamp': time.time()
         }
         
-        logger.info(f"Found {len(final_results)} relevant ideas for problem '{problem_name}'")
+        search_mode = "keyword-only" if not self.enable_semantic else "hybrid"
+        logger.info(f"Found {len(final_results)} relevant ideas for problem '{problem_name}' using {search_mode} search")
         return final_results
 
     
@@ -1143,6 +1188,10 @@ class HybridRAGSystem:
     def update_weights(self, semantic_weight: float = None, field_weights: Dict[str, float] = None):
         """Update retrieval weights"""
         if semantic_weight is not None:
+            if not self.enable_semantic and semantic_weight > 0:
+                logger.warning("Semantic search is disabled. Cannot set semantic_weight > 0.")
+                return
+            
             self.semantic_weight = max(0.0, min(1.0, semantic_weight))
             self.keyword_weight = 1 - self.semantic_weight
             logger.info(f"Updated weights - Semantic: {self.semantic_weight}, Keyword: {self.keyword_weight}")
@@ -1150,6 +1199,31 @@ class HybridRAGSystem:
         if field_weights:
             self.field_weights.update(field_weights)
             logger.info(f"Updated field weights: {self.field_weights}")
+    
+    def set_semantic_mode(self, enable: bool):
+        """Enable or disable semantic search mode
+        
+        Args:
+            enable: Whether to enable semantic search.
+                    If disabled, will use keyword-only (BM25) search.
+        """
+        if enable and not self.enable_semantic:
+            logger.warning("Enabling semantic search mode. Note that embeddings may need to be computed.")
+            self.enable_semantic = True
+            self.semantic_weight = 0.7
+            self.keyword_weight = 0.3
+            # Re-initialize embedding structures if needed
+            if not hasattr(self, 'idea_embeddings') or self.idea_embeddings is None:
+                self.idea_embeddings = {}
+            if FAISS_AVAILABLE and not hasattr(self, 'faiss_index'):
+                self.faiss_index = None
+        elif not enable and self.enable_semantic:
+            logger.info("Disabling semantic search mode. Switching to keyword-only search.")
+            self.enable_semantic = False
+            self.semantic_weight = 0.0
+            self.keyword_weight = 1.0
+        
+        logger.info(f"Semantic search mode: {'enabled' if self.enable_semantic else 'disabled (keyword-only)'}")
     
     def set_parallel_processing(self, enable: bool):
         """Enable or disable parallel processing
@@ -1165,14 +1239,18 @@ class HybridRAGSystem:
         """Get system statistics"""
         stats = {
             'total_ideas': len(self.idea_pool),
-            'total_embeddings': len(self.idea_embeddings),
+            'total_embeddings': len(self.idea_embeddings) if self.enable_semantic else 0,
             'cache_size': {
                 'query_cache': len(self.query_cache),
-                'embedding_cache': len(self.embedding_cache)
+                'embedding_cache': len(self.embedding_cache) if self.enable_semantic else 0
             },
             'index_status': {
                 'bm25': self.bm25_index is not None,
-                'faiss': FAISS_AVAILABLE and self.faiss_index is not None
+                'faiss': self.enable_semantic and FAISS_AVAILABLE and self.faiss_index is not None
+            },
+            'search_mode': {
+                'semantic_enabled': self.enable_semantic,
+                'mode': 'hybrid' if self.enable_semantic else 'keyword_only'
             },
             'weights': {
                 'semantic': self.semantic_weight,
@@ -1182,7 +1260,7 @@ class HybridRAGSystem:
             'parallel_processing': self.enable_parallel
         }
         
-        if FAISS_AVAILABLE and self.faiss_index:
+        if self.enable_semantic and FAISS_AVAILABLE and self.faiss_index:
             stats['faiss_vectors'] = self.faiss_index.ntotal
         
         # Add field coverage statistics
@@ -1284,9 +1362,150 @@ class HybridRAGSystem:
                     logger.warning(f"Failed to save cache during cleanup: {e}")
                 except:
                     pass
+    
+    def __getstate__(self):
+        """Custom pickle state to handle SQLite cache objects"""
+        # Create a copy of the object state
+        state = self.__dict__.copy()
+        
+        # Remove objects that can't be pickled (SQLite connections, API backends, etc.)
+        unpicklable_attrs = [
+            'api_backend',  # May contain unpicklable network connections
+            'nlp',          # spaCy model may have unpicklable components
+            'bm25_index',   # May contain unpicklable objects
+            'faiss_index'   # FAISS index may have unpicklable components
+        ]
+        
+        for attr in unpicklable_attrs:
+            if attr in state:
+                state[attr] = None
+        
+        # Clear caches that might contain unpicklable objects
+        state['query_cache'] = {}
+        state['embedding_cache'] = {}
+        
+        return state
+    
+    def __setstate__(self, state):
+        """Custom pickle restore to reinitialize SQLite cache objects"""
+        # Restore the object state
+        self.__dict__.update(state)
+        
+        # Reinitialize unpicklable objects
+        self.api_backend = None  # Will need to be set externally if needed
+        self.nlp = None
+        self.bm25_index = None
+        self.faiss_index = None
+        
+        # Reinitialize caches
+        self.query_cache = {}
+        self.embedding_cache = {}
+        
+        # Try to reload cached data
+        try:
+            self._load_cache()
+        except Exception as e:
+            logger.warning(f"Failed to reload cache after unpickling: {e}")
+            # Initialize empty structures
+            self.idea_pool = {}
+            self.idea_embeddings = {}
+            self.tokenized_corpus = []
+            self.idea_keys = []
 
 
 # Convenience class that matches the original interface
 class HypothesisRAGSystem(HybridRAGSystem):
     """Alias for backward compatibility"""
     pass
+
+
+class KeywordOnlyRAGSystem(HybridRAGSystem):
+    """
+    Keyword-only RAG system using only BM25 for retrieval
+    No embeddings or semantic search - faster and doesn't require API calls for embeddings
+    """
+    
+    def __init__(self, api_backend=None, cache_dir: str = "./rag_cache_keyword_only"):
+        # Initialize with semantic search disabled
+        super().__init__(api_backend, cache_dir, enable_semantic=False)
+        logger.info("KeywordOnlyRAGSystem initialized - using BM25 search only")
+    
+    def batch_create_embeddings(self, texts: List[str]) -> List[np.ndarray]:
+        """Override to prevent embedding creation"""
+        logger.info("KeywordOnlyRAGSystem skipping embedding creation")
+        return [np.array([]) for _ in texts]
+    
+    def _compute_semantic_scores(self, query: str, top_k: int = None) -> np.ndarray:
+        """Override to return zero semantic scores"""
+        return np.zeros(len(self.idea_keys))
+    
+    def set_semantic_mode(self, enable: bool):
+        """Override to prevent enabling semantic mode"""
+        if enable:
+            logger.warning("KeywordOnlyRAGSystem cannot enable semantic search mode")
+        else:
+            logger.info("KeywordOnlyRAGSystem is already in keyword-only mode")
+    
+    def hypothesis_draft(
+        self,
+        no_sota_idea_path: str | None,
+        component_desc: str,
+        scenario_desc: str,
+        exp_and_feedback_list_desc: str,
+        problems: Dict[str, Dict[str, str]],
+    ) -> Dict:
+        """
+        Generate hypotheses using keyword-only RAG approach
+        Override to ensure no API backend is required
+        """
+        if self.api_backend is None:
+            logger.warning("No API backend provided for hypothesis generation. Using keyword search only for retrieval.")
+            # Still load ideas and do retrieval, but skip hypothesis generation
+            if no_sota_idea_path and os.path.exists(no_sota_idea_path):
+                try:
+                    with builtins.open(no_sota_idea_path, 'r', encoding='utf-8') as f:
+                        new_ideas = json.load(f)
+                        self.add_ideas(new_ideas, update_cache=True)
+                        logger.info(f"Loaded {len(new_ideas)} ideas from {no_sota_idea_path}")
+                except Exception as e:
+                    logger.error(f"Failed to load ideas from {no_sota_idea_path}: {e}")
+            
+            # Retrieve relevant ideas for each problem
+            problem_to_ideas = self.parallel_retrieve(problems, top_k=5)
+            
+            # Return structured results without LLM generation
+            results = {}
+            for problem_name, relevant_ideas in problem_to_ideas.items():
+                if relevant_ideas:
+                    top_idea = relevant_ideas[0]
+                    results[problem_name] = {
+                        "hypothesis": f"Based on keyword search, consider approaches similar to: {top_idea['idea_name']}",
+                        "reasoning": f"Found {len(relevant_ideas)} related ideas. Top match discusses: {top_idea['idea_data'].get('method', 'N/A')}",
+                        "related_ideas": [idea['idea_name'] for idea in relevant_ideas[:3]],
+                        "search_mode": "keyword_only",
+                        "confidence": "medium" if relevant_ideas[0]['similarity_score'] > 0.5 else "low"
+                    }
+                else:
+                    results[problem_name] = {
+                        "hypothesis": "No similar cases found in keyword search. Consider novel approaches.",
+                        "reasoning": "No relevant ideas found using keyword matching.",
+                        "related_ideas": [],
+                        "search_mode": "keyword_only",
+                        "confidence": "exploratory"
+                    }
+            
+            logger.info(f"Generated {len(results)} keyword-based hypothesis suggestions")
+            return results
+        else:
+            # Use parent method if API backend is available
+            return super().hypothesis_draft(
+                no_sota_idea_path, component_desc, scenario_desc, 
+                exp_and_feedback_list_desc, problems
+            )
+    
+    def get_statistics(self) -> Dict[str, Any]:
+        """Get statistics specific to keyword-only mode"""
+        stats = super().get_statistics()
+        stats['system_type'] = 'keyword_only'
+        stats['note'] = 'This system uses only BM25/keyword search - no embeddings required'
+        return stats

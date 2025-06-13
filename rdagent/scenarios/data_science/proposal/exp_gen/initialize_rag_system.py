@@ -112,6 +112,24 @@ def initialize_rag_system(
         force_rebuild: 是否强制重建索引
     """
     
+    # 创建必要的目录
+    logger.info("检查并创建必要的目录...")
+    directories_to_create = [
+        "./log",  # 用于prompt_cache.db等日志文件
+        cache_dir,  # RAG系统缓存目录
+    ]
+    
+    for directory in directories_to_create:
+        if not os.path.exists(directory):
+            try:
+                os.makedirs(directory, exist_ok=True)
+                logger.info(f"创建目录: {directory}")
+            except Exception as e:
+                logger.error(f"创建目录 {directory} 失败: {e}")
+                return False
+        else:
+            logger.debug(f"目录已存在: {directory}")
+    
     # 检查idea文件是否存在
     if not os.path.exists(idea_pool_path):
         logger.error(f"找不到idea文件: {idea_pool_path}")
@@ -210,6 +228,13 @@ def initialize_rag_system(
 def test_rag_system(cache_dir: str = "./hypothesis_rag_cache"):
     """测试RAG系统是否正常工作"""
     logger.info("\n测试RAG系统...")
+    
+    # 确保必要的目录存在
+    directories_to_create = ["./log", cache_dir]
+    for directory in directories_to_create:
+        if not os.path.exists(directory):
+            os.makedirs(directory, exist_ok=True)
+            logger.info(f"创建测试所需目录: {directory}")
     
     try:
         

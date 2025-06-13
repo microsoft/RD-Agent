@@ -24,6 +24,12 @@ langchain-community
 tiktoken
 pymupdf  # Extract shotsreens from pdf
 
+
+# RAG related
+faiss-cpu
+rank_bm25
+spacy
+
 # PDF related
 pypdf
 azure-ai-formrecognizer
