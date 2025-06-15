@@ -153,7 +153,7 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
         trace_fbs = []
         # find the best exp to merge
         leaves: list[int] = trace.get_leaves()
-        for leaf in enumerate(leaves):
+        for leaf in leaves:
             if leaf == trace.current_selection[0]:
                 continue
 
