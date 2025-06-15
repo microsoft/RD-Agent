@@ -274,9 +274,12 @@ class LoopBase:
                     await self._run_step(li)
                 self.queue.put_nowait(li)  # the loop `li` has been kicked off, waiting for workers to pick it up
                 self.loop_idx += 1
+        except Exception as e:
+            logger.error(f"Producer loop terminated unexpectedly: {e}")
         finally:
+            logger.info("Producer has finished. Sending termination signals...")
             for _ in range(RD_AGENT_SETTINGS.get_max_parallel()):
-                self.queue.put_nowait(None)
+                await self.queue.put_nowait(None)
 
     async def execute_loop(self) -> None:
         while True:
@@ -285,15 +288,20 @@ class LoopBase:
             if li is None:
                 break
             # 2) run the unfinished steps
-            while self.step_idx[li] < len(self.steps):
-                if self.step_idx[li] == len(self.steps) - 1:
-                    # NOTE: assume the last step is record, it will be fast and affect the global environment
-                    # if it is the last step, run it directly ()
-                    await self._run_step(li)
-                else:
-                    # await the step; parallel running happens here!
-                    # Only trigger subprocess if we have more than one process.
-                    await self._run_step(li, force_subproc=RD_AGENT_SETTINGS.is_force_subproc())
+            try:
+                while self.step_idx[li] < len(self.steps):
+                    if self.step_idx[li] == len(self.steps) - 1:
+                        # NOTE: assume the last step is record, it will be fast and affect the global environment
+                        # if it is the last step, run it directly ()
+                        await self._run_step(li)
+                    else:
+                        # await the step; parallel running happens here!
+                        # Only trigger subprocess if we have more than one process.
+                        await self._run_step(li, force_subproc=RD_AGENT_SETTINGS.is_force_subproc())
+            except Exception as e:
+                logger.error(f"Error processing loop {li}: {e}")
+            finally:
+                self.queue.task_done()
 
     async def run(self, step_n: int | None = None, loop_n: int | None = None, all_duration: str | None = None) -> None:
         """Run the workflow loop.
@@ -338,6 +346,8 @@ class LoopBase:
                 for task in all_tasks:
                     task.cancel()
                 break
+            except Exception as e:
+                logger.error(f"Error {type(e)} in task {task}: {e}")
             finally:
                 self.close_pbar()
 
