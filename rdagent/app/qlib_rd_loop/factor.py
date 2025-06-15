@@ -2,6 +2,7 @@
 Factor workflow with session control
 """
 
+import asyncio
 from typing import Any
 
 import fire
@@ -16,12 +17,11 @@ class FactorRDLoop(RDLoop):
     skip_loop_error = (FactorEmptyError,)
 
     def running(self, prev_out: dict[str, Any]):
-        with logger.tag("ef"):  # evaluate and feedback
-            exp = self.runner.develop(prev_out["coding"])
-            if exp is None:
-                logger.error(f"Factor extraction failed.")
-                raise FactorEmptyError("Factor extraction failed.")
-            logger.log_object(exp, tag="runner result")
+        exp = self.runner.develop(prev_out["coding"])
+        if exp is None:
+            logger.error(f"Factor extraction failed.")
+            raise FactorEmptyError("Factor extraction failed.")
+        logger.log_object(exp, tag="runner result")
         return exp
 
 
@@ -40,7 +40,7 @@ def main(path=None, step_n=None, loop_n=None, all_duration=None, checkout=True):
         model_loop = FactorRDLoop(FACTOR_PROP_SETTING)
     else:
         model_loop = FactorRDLoop.load(path, checkout=checkout)
-    model_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration)
+    asyncio.run(model_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration))
 
 
 if __name__ == "__main__":
