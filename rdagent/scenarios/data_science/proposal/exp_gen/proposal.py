@@ -598,7 +598,7 @@ class DSProposalV2ExpGen(ExpGen):
         使用HybridRAGSystem（BM25+向量混合检索）生成假设。
         """
         if not hasattr(self, "_rag_system"):
-            self._rag_system = HybridRAGSystem(APIBackend(), cache_dir="./hypothesis_rag_cache")
+            self._rag_system = HybridRAGSystem(APIBackend(), cache_dir="./hypothesis_rag_cache",enable_semantic=DS_RD_SETTING.enable_semantic)
         return self._rag_system.hypothesis_draft(
             no_sota_idea_path=no_sota_idea_path,
             component_desc=component_desc,

@@ -82,4 +82,7 @@ class KaggleBasePropSetting(ExtendedBaseSettings):
     enable_no_sota_rag: bool = True
     """Enable RAG for no-SOTA case in hypothesis draft"""
 
+    enable_semantic: bool = True
+    """Enable semantic search for RAG"""
+
 KAGGLE_IMPLEMENT_SETTING = KaggleBasePropSetting()
