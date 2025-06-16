@@ -24,6 +24,7 @@ class TestEmbedding(unittest.TestCase):
         assert similarity is not None
         assert isinstance(similarity, float)
         min_similarity_threshold = 0.8
+        print(f"similarity: {similarity}")
         assert similarity >= min_similarity_threshold
 
 

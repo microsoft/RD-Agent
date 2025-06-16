@@ -21,12 +21,14 @@ def generate_data_folder_from_qlib():
         entry=f"python generate.py",
     )
 
-    assert (
-        Path(__file__).parent / "factor_data_template" / "daily_pv_all.h5"
-    ).exists(), "daily_pv_all.h5 is not generated."
-    assert (
-        Path(__file__).parent / "factor_data_template" / "daily_pv_debug.h5"
-    ).exists(), "daily_pv_debug.h5 is not generated."
+    assert (Path(__file__).parent / "factor_data_template" / "daily_pv_all.h5").exists(), (
+        "daily_pv_all.h5 is not generated. It means rdagent/scenarios/qlib/experiment/factor_data_template/generate.py is not executed correctly. Please check the log: \n"
+        + execute_log
+    )
+    assert (Path(__file__).parent / "factor_data_template" / "daily_pv_debug.h5").exists(), (
+        "daily_pv_debug.h5 is not generated. It means rdagent/scenarios/qlib/experiment/factor_data_template/generate.py is not executed correctly. Please check the log: \n"
+        + execute_log
+    )
 
     Path(FACTOR_COSTEER_SETTINGS.data_folder).mkdir(parents=True, exist_ok=True)
     shutil.copy(
