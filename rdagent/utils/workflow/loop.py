@@ -298,8 +298,6 @@ class LoopBase:
                         # await the step; parallel running happens here!
                         # Only trigger subprocess if we have more than one process.
                         await self._run_step(li, force_subproc=RD_AGENT_SETTINGS.is_force_subproc())
-            except Exception as e:
-                logger.error(f"Error processing loop {li}: {e}")
             finally:
                 self.queue.task_done()
 
