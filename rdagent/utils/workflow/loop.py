@@ -261,7 +261,9 @@ class LoopBase:
             # exit on loop limitation
             if self.loop_n is not None:
                 if self.loop_n <= 0:
-                    raise self.LoopTerminationError("Loop count reached")
+                    for _ in range(RD_AGENT_SETTINGS.get_max_parallel()):
+                        self.queue.put_nowait(-1)
+                    break
                 self.loop_n -= 1
 
             # NOTE:
@@ -278,6 +280,8 @@ class LoopBase:
         while True:
             # 1) get the tasks to goon loop `li`
             li = await self.queue.get()
+            if li == -1:
+                raise self.LoopTerminationError("Loop termination")
             # 2) run the unfinished steps
             while self.step_idx[li] < len(self.steps):
                 if self.step_idx[li] == len(self.steps) - 1:
