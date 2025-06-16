@@ -276,6 +276,7 @@ class LoopBase:
                 self.loop_idx += 1
         except Exception as e:
             logger.error(f"Producer loop terminated unexpectedly: {e}")
+            raise
         finally:
             logger.info("Producer has finished. Sending termination signals...")
             for _ in range(RD_AGENT_SETTINGS.get_max_parallel()):
@@ -346,6 +347,7 @@ class LoopBase:
                 break
             except Exception as e:
                 logger.error(f"Error {type(e)} in {e}")
+                raise
             finally:
                 self.close_pbar()
 
