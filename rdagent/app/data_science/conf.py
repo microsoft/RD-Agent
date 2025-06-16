@@ -35,6 +35,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     #### proposal related
     proposal_version: str = "v1"
+    coder_version: str = "v1"
     coder_on_whole_pipeline: bool = False
     max_trace_hist: int = 3
 

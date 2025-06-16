@@ -98,7 +98,7 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
             enable_model_dump=DS_RD_SETTING.enable_model_dump,
         )
-        if DS_RD_SETTING.proposal_version == "v3":
+        if DS_RD_SETTING.coder_version == "v2":
             # FIXME: A temporary patch for BUILD
             user_prompt = T(".prompts:pipeline_coder.user_v3").r(
                 competition_info=competition_info,

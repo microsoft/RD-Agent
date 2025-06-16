@@ -87,7 +87,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
                     )
 
         eda_output = exp.experiment_workspace.file_dict.get("EDA.md", None)
-        if DS_RD_SETTING.proposal_version == "v3":
+        if DS_RD_SETTING.coder_version == "v2":
             # FIXME: Some minor changes. Did not have time to test the full.
             system_prompt = T(".prompts:exp_feedback_v3.system").r(
                 scenario=self.scen.get_scenario_all_desc(eda_output=eda_output)
