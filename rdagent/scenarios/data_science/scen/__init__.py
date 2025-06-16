@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from typing import Dict
+import runpy
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.conf import get_ds_env
@@ -35,7 +36,14 @@ class DataScienceScen(Scenario):
         if DS_RD_SETTING.sample_data:
             self.debug_path = f"{local_path}/sample/{competition}"
             if not Path(self.debug_path).exists():
-                create_debug_data(competition, dataset_path=local_path)
+                sample_py_path = Path(local_path) / competition / "sample.py"
+                if sample_py_path.exists():
+                    runpy.run_path(str(sample_py_path), init_globals={
+                        "dataset_path": str(local_path),
+                        "output_path": str(self.debug_path),
+                    })
+                else:
+                    create_debug_data(competition, dataset_path=local_path)
         else:
             self.debug_path = f"{local_path}/{competition}"
 

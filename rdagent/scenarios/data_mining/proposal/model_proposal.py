@@ -58,12 +58,12 @@ class DMModelHypothesisGen(ModelHypothesisGen):
     def convert_response(self, response: str) -> Hypothesis:
         response_dict = json.loads(response)
         hypothesis = DMModelHypothesis(
-            hypothesis=response_dict["hypothesis"],
-            reason=response_dict["reason"],
-            concise_reason=response_dict["concise_reason"],
-            concise_observation=response_dict["concise_observation"],
-            concise_justification=response_dict["concise_justification"],
-            concise_knowledge=response_dict["concise_knowledge"],
+            hypothesis=response_dict.get("hypothesis"),
+            reason=response_dict.get("reason"),
+            concise_reason=response_dict.get("concise_reason"),
+            concise_observation=response_dict.get("concise_observation"),
+            concise_justification=response_dict.get("concise_justification"),
+            concise_knowledge=response_dict.get("concise_knowledge"),
         )
         return hypothesis
 
@@ -106,6 +106,7 @@ class DMModelHypothesis2Experiment(ModelHypothesis2Experiment):
             variables = response_dict[model_name]["variables"]
             hyperparameters = response_dict[model_name]["hyperparameters"]
             model_type = response_dict[model_name]["model_type"]
+            training_hyperparameters = response_dict[model_name].get("training_hyperparameters", {})
             tasks.append(
                 ModelTask(
                     name=model_name,
@@ -114,6 +115,7 @@ class DMModelHypothesis2Experiment(ModelHypothesis2Experiment):
                     architecture=architecture,
                     variables=variables,
                     hyperparameters=hyperparameters,
+                    training_hyperparameters=training_hyperparameters,
                     model_type=model_type,
                 )
             )
