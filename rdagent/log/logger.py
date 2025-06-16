@@ -20,7 +20,7 @@ from rdagent.core.utils import SingletonBaseClass, import_class
 
 from .base import Storage
 from .storage import FileStorage
-from .utils import get_caller_info
+from .utils import LogColors, get_caller_info
 
 
 class RDAgentLog(SingletonBaseClass):
@@ -106,15 +106,17 @@ class RDAgentLog(SingletonBaseClass):
         return pid_chain
 
     def log_object(self, obj: object, *, tag: str = "") -> None:
-        caller_info = get_caller_info()
+        caller_info = get_caller_info(level=2)
         tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
 
         for storage in [self.storage] + self.other_storages:
             logp = storage.log(obj, tag=tag)
-            logger.patch(lambda r: r.update(caller_info)).info(f"Log object to [{storage}], uri: {logp}")
+            logger.patch(lambda r: r.update(caller_info)).info(
+                f"{LogColors.GRAY}Log object to [{storage}], uri: {logp}{LogColors.END}"
+            )
 
     def _log(self, level: str, msg: str, *, tag: str = "", raw: bool = False) -> None:
-        caller_info = get_caller_info()
+        caller_info = get_caller_info(level=3)
         tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
 
         if raw:
