@@ -279,7 +279,7 @@ class LoopBase:
         finally:
             logger.info("Producer has finished. Sending termination signals...")
             for _ in range(RD_AGENT_SETTINGS.get_max_parallel()):
-                await self.queue.put_nowait(None)
+                await self.queue.put(None)
 
     async def execute_loop(self) -> None:
         while True:
@@ -347,7 +347,7 @@ class LoopBase:
                     task.cancel()
                 break
             except Exception as e:
-                logger.error(f"Error {type(e)} in task {task}: {e}")
+                logger.error(f"Error {type(e)} in {e}")
             finally:
                 self.close_pbar()
 
