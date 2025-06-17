@@ -722,7 +722,7 @@ class DSProposalV2ExpGen(ExpGen):
             description=description,
         )
         new_workflow_desc = task_dict.get("workflow_update", "No update needed")
-        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis)
+        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis[0])
         # exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
         if sota_exp is not None:
             exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
