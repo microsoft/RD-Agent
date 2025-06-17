@@ -552,7 +552,7 @@ def research_window():
         st.subheader(title, divider="blue", anchor="_research")
         if isinstance(state.scenario, SIMILAR_SCENARIOS):
             # pdf image
-            if pim := state.msgs[round]["extract_factors_and_implement.load_pdf_screenshot"]:
+            if pim := state.msgs[round]["load_pdf_screenshot"]:
                 for i in range(min(2, len(pim))):
                     st.image(pim[i].content, use_container_width=True)
 
