@@ -535,14 +535,12 @@ class DSProposalV2ExpGen(ExpGen):
         inject_diverse: bool = False,
     ) -> Dict:
         problem_formatted_str = ""
-        for problem_name, problem_dict in problems.items():
-            if "problem" not in problem_dict:
-                continue
-            problem_formatted_str += f"Problem Name: {problem_name}\n"
-            problem_formatted_str += f"- Problem Description: {problem_dict['problem']}\n"
+        for i, (problem_name, problem_dict) in enumerate(problems.items()):
+            problem_formatted_str += f"## {i+1}. {problem_name}\n"
+            problem_formatted_str += f"{problem_dict['problem']}\n"
             if "idea" in problem_dict:
                 idea_formatted_str = DSIdea(problem_dict["idea"]).to_formatted_str()
-                problem_formatted_str += f"- Sampled Idea by user: \n{idea_formatted_str}\n"
+                problem_formatted_str += f"Sampled Idea by user: \n{idea_formatted_str}\n"
             problem_formatted_str += "\n\n"
 
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
@@ -689,6 +687,7 @@ class DSProposalV2ExpGen(ExpGen):
             task_spec = sota_exp.experiment_workspace.file_dict[component_info["spec_file"]]
         else:
             task_spec = T(f"scenarios.data_science.share:component_spec.{hypothesis.component}").r()
+        data_folder_info = self.scen.processed_data_folder_description
         sys_prompt = T(".prompts_v2:task_gen.system").r(
             targets=component_info["target_name"],
             task_specification=task_spec,
@@ -696,10 +695,11 @@ class DSProposalV2ExpGen(ExpGen):
             component_desc=component_desc,
             workflow_check=not pipeline and hypothesis.component != "Workflow",
         )
-        user_prompt = T(".prompts_v2:task_gen.user").r(
+        user_prompt = T(".prompts_v3:task_gen.user").r(
             scenario_desc=scenario_desc,
+            data_folder_info=data_folder_info,
             sota_exp_desc=sota_exp_desc,
-            hypothesis=str(hypothesis),
+            hypotheses=hypothesis,
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
