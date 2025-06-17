@@ -20,7 +20,7 @@ from rdagent.core.utils import SingletonBaseClass, import_class
 
 from .base import Storage
 from .storage import FileStorage
-from .utils import LogColors, get_caller_info
+from .utils import get_caller_info
 
 
 class RDAgentLog(SingletonBaseClass):
