@@ -202,6 +202,8 @@ def get_metric_direction(competition: str) -> bool:
     Return **True** if the metric is *bigger is better*, **False** if *smaller is better*.
     """
     leaderboard = leaderboard_scores(competition)
+    if float(leaderboard[0]) == float(leaderboard[-1]):
+        return float(leaderboard[0]) >= 0.5
     return float(leaderboard[0]) > float(leaderboard[-1])
 
 
