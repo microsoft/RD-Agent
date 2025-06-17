@@ -67,7 +67,11 @@ class LiteLLMAPIBackend(APIBackend):
         """
         model_name = LITELLM_SETTINGS.embedding_model
         logger.info(f"{LogColors.GREEN}Using emb model{LogColors.END} {model_name}", tag="debug_litellm_emb")
-        logger.info(f"Creating embedding for: {input_content_list}", tag="debug_litellm_emb")
+        if LITELLM_SETTINGS.log_llm_chat_content:
+            logger.info(
+                f"{LogColors.MAGENTA}Creating embedding{LogColors.END} for: {input_content_list}",
+                tag="debug_litellm_emb",
+            )
         response = embedding(
             model=model_name,
             input=input_content_list,
@@ -150,7 +154,9 @@ class LiteLLMAPIBackend(APIBackend):
                 else ""
             )
             if LITELLM_SETTINGS.log_llm_chat_content:
-                logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}", tag="llm_messages")
+                logger.info(
+                    f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}", tag="llm_messages"
+                )
 
         global ACC_COST
         try:

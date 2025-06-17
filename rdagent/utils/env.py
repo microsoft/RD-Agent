@@ -469,7 +469,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
             print(Rule("[bold green]LocalEnv Logs Begin[/bold green]", style="dark_orange"))
             table = Table(title="Run Info", show_header=False)
             table.add_column("Key", style="bold cyan")
-            table.add_column("Value", style="bold magenta", no_wrap=True)
+            table.add_column("Value", style="bold magenta")
             table.add_row("Entry", entry)
             table.add_row("Local Path", local_path or "")
             table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
@@ -853,7 +853,7 @@ class DockerEnv(Env[DockerConf]):
             table.add_row("Container Name", container.name)
             table.add_row("Entry", entry)
             table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
-            table.add_row("Volumes", "\n".join(f"{k}:{v}" for k, v in volumes.items()))
+            table.add_row("Volumes", "\n".join(f"{k}:\n  {v}" for k, v in volumes.items()))
             print(table)
             for log in logs:
                 decoded_log = log.strip().decode()

@@ -57,7 +57,7 @@ def generate_hypothesis(factor_result: dict, report_content: str) -> str:
     )
 
 
-def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> tuple[QlibFactorExperiment, Hypothesis]:
+def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> QlibFactorExperiment | None:
     """
     Extract hypothesis and experiment details from report files.
 
@@ -65,17 +65,15 @@ def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> tuple[Qlib
         report_file_path (str): Path to the report file.
 
     Returns:
-        tuple[QlibFactorExperiment, Hypothesis]: The extracted experiment and generated hypothesis.
+        QlibFactorExperiment: An instance of QlibFactorExperiment containing the extracted details.
+        None: If no valid experiment is found in the report.
     """
-    with logger.tag("extract_factors_and_implement"):
-        with logger.tag("load_factor_tasks"):
-            exp = FactorExperimentLoaderFromPDFfiles().load(report_file_path)
-            if exp is None or exp.sub_tasks == []:
-                return None, None
+    exp = FactorExperimentLoaderFromPDFfiles().load(report_file_path)
+    if exp is None or exp.sub_tasks == []:
+        return None
 
-        with logger.tag("load_pdf_screenshot"):
-            pdf_screenshot = extract_first_page_screenshot_from_pdf(report_file_path)
-            logger.log_object(pdf_screenshot)
+    pdf_screenshot = extract_first_page_screenshot_from_pdf(report_file_path)
+    logger.log_object(pdf_screenshot, tag="load_pdf_screenshot")
 
     docs_dict = load_and_process_pdfs_by_langchain(report_file_path)
 
@@ -92,7 +90,7 @@ def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> tuple[Qlib
     report_content = "\n".join(docs_dict.values())
     hypothesis = generate_hypothesis(factor_result, report_content)
     exp.hypothesis = hypothesis
-    return exp, hypothesis
+    return exp
 
 
 class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
@@ -106,36 +104,25 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
             self.judge_pdf_data_items = [i for i in Path(report_folder).rglob("*.pdf")]
 
         self.loop_n = min(len(self.judge_pdf_data_items), FACTOR_FROM_REPORT_PROP_SETTING.report_limit)
-        self.current_loop_hypothesis = None
-        self.current_loop_exp = None
-        self.steps = ["propose_hypo_exp", "propose", "direct_exp_gen", "coding", "running", "feedback"]
 
-    def propose_hypo_exp(self, prev_out: dict[str, Any]):
+    def direct_exp_gen(self, prev_out: dict[str, Any]):
         while True:
             report_file_path = self.judge_pdf_data_items[self.loop_idx]
             logger.info(f"Processing number {self.loop_idx} report: {report_file_path}")
-            exp, hypothesis = extract_hypothesis_and_exp_from_reports(str(report_file_path))
+            exp = extract_hypothesis_and_exp_from_reports(str(report_file_path))
             if exp is None:
                 continue
-            exp.based_experiments = [QlibFactorExperiment(sub_tasks=[], hypothesis=hypothesis)] + [
+            exp.based_experiments = [QlibFactorExperiment(sub_tasks=[], hypothesis=exp.hypothesis)] + [
                 t[0] for t in self.trace.hist if t[1]
             ]
             exp.sub_workspace_list = exp.sub_workspace_list[: FACTOR_FROM_REPORT_PROP_SETTING.max_factors_per_exp]
             exp.sub_tasks = exp.sub_tasks[: FACTOR_FROM_REPORT_PROP_SETTING.max_factors_per_exp]
-            logger.log_object(hypothesis, tag="hypothesis generation")
+            logger.log_object(exp.hypothesis, tag="hypothesis generation")
             logger.log_object(exp.sub_tasks, tag="experiment generation")
-            self.current_loop_hypothesis = hypothesis
-            self.current_loop_exp = exp
-            return None
-
-    def propose(self, prev_out: dict[str, Any]):
-        return self.current_loop_hypothesis
-
-    def direct_exp_gen(self, prev_out: dict[str, Any]):
-        return {"propose": self.current_loop_hypothesis, "exp_gen": self.current_loop_exp}
+            return exp
 
     def coding(self, prev_out: dict[str, Any]):
-        exp = self.coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
+        exp = self.coder.develop(prev_out["direct_exp_gen"])
         logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
 
