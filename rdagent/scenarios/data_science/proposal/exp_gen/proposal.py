@@ -673,7 +673,7 @@ class DSProposalV2ExpGen(ExpGen):
         scenario_desc: str,
         sota_exp_desc: str,
         sota_exp: DSExperiment,
-        hypothesis: DSHypothesis,
+        hypothesis: [DSHypothesis],
         pipeline: bool,
         failed_exp_feedback_list_desc: str,
     ) -> DSExperiment:
@@ -710,9 +710,7 @@ class DSProposalV2ExpGen(ExpGen):
         )
         task_dict = json.loads(response)
         task_design = task_dict.get("task_design", {})
-        task_name = (
-            task_design["model_name"] if (hypothesis.component == "Model" and not pipeline) else hypothesis.component
-        )
+        task_name = hypothesis[0].component
         description = (
             task_design
             if isinstance(task_design, str)
@@ -748,6 +746,22 @@ class DSProposalV2ExpGen(ExpGen):
             time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
             eda_output=eda_output,
         )
+
+    def get_all_hypotheses(self, problem_dict: dict, hypothesis_dict: dict) -> list[DSHypothesis]:
+        result = []
+        for name, data in hypothesis_dict.items():
+            problem_data = problem_dict.get(name, {})
+            result.append(
+                DSHypothesis(
+                    component=data.get("component", "Model"),
+                    hypothesis=data.get("hypothesis", "Hypothesis not provided"),
+                    reason=data.get("reason", "Reason not provided"),
+                    problem_name=name,
+                    problem_desc=problem_data.get("problem", "Problem description not provided"),
+                    problem_label=problem_data.get("label", "FEEDBACK_PROBLEM"),
+                )
+            )
+        return result
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
@@ -856,7 +870,9 @@ class DSProposalV2ExpGen(ExpGen):
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
-            hypothesis=new_hypothesis,
+            hypothesis=(
+                [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(all_problems, hypothesis_dict)
+            ),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
         )
