@@ -1,6 +1,8 @@
+import json
+
 import pandas as pd
 from sklearn.metrics import roc_auc_score
-import json
+
 
 class InvalidSubmissionError(Exception):
     """
@@ -9,9 +11,8 @@ class InvalidSubmissionError(Exception):
 
     pass
 
-def prepare_for_auroc_metric(
-    submission: pd.DataFrame, answers: pd.DataFrame, id_col: str, target_col: str
-) -> dict:
+
+def prepare_for_auroc_metric(submission: pd.DataFrame, answers: pd.DataFrame, id_col: str, target_col: str) -> dict:
 
     # Answers checks
     assert id_col in answers.columns, f"answers dataframe should have an {id_col} column"
@@ -56,6 +57,7 @@ def grade(submission: pd.DataFrame, answers: pd.DataFrame) -> float:
     )
     return roc_auc_score(y_true=roc_auc_inputs["y_true"], y_score=roc_auc_inputs["y_score"])
 
+
 if __name__ == "__main__":
     submission_path = "submission.csv"
     gt_submission_path = "submission_test.csv"
@@ -63,7 +65,11 @@ if __name__ == "__main__":
     answers = pd.read_csv(gt_submission_path)
     score = grade(submission=submission, answers=answers)
 
-    print(json.dumps({
-        "competition_id": "arf-12-hour-prediction-task",
-        "score": score,
-    }))
+    print(
+        json.dumps(
+            {
+                "competition_id": "arf-12-hour-prediction-task",
+                "score": score,
+            }
+        )
+    )

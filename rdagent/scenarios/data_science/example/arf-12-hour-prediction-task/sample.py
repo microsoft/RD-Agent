@@ -1,9 +1,11 @@
+import shutil
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import sparse
-import shutil
-from pathlib import Path
 from tqdm import tqdm
+
 
 def sample_and_copy_subfolder(
     input_dir: Path,
@@ -33,6 +35,7 @@ def sample_and_copy_subfolder(
 
     print(f"[INFO] Sampled {n_keep} of {N} from {input_dir.name}")
 
+
 def create_debug_data(
     dataset_path: str,
     output_path: str,
@@ -55,6 +58,7 @@ def create_debug_data(
         )
 
     print(f"\n[INFO] Sampling complete → Output in: {output_root}")
+
 
 if __name__ == "__main__" or globals().get("__name__") == "<run_path>":
     dataset_path = globals().get("dataset_path", "./")
