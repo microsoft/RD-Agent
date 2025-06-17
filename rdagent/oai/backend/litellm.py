@@ -125,7 +125,8 @@ class LiteLLMAPIBackend(APIBackend):
         logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {model}", tag="llm_messages")
 
         if LITELLM_SETTINGS.chat_stream:
-            logger.info(f"{LogColors.BLUE}assistant:{LogColors.END}", tag="llm_messages")
+            if LITELLM_SETTINGS.log_llm_chat_content:
+                logger.info(f"{LogColors.BLUE}assistant:{LogColors.END}", tag="llm_messages")
             content = ""
             finish_reason = None
             for message in response:
@@ -136,9 +137,10 @@ class LiteLLMAPIBackend(APIBackend):
                         message["choices"][0]["delta"]["content"] or ""
                     )  # when finish_reason is "stop", content is None
                     content += chunk
-                    logger.info(LogColors.CYAN + chunk + LogColors.END, raw=True, tag="llm_messages")
-
-            logger.info("\n", raw=True, tag="llm_messages")
+                    if LITELLM_SETTINGS.log_llm_chat_content:
+                        logger.info(LogColors.CYAN + chunk + LogColors.END, raw=True, tag="llm_messages")
+            if LITELLM_SETTINGS.log_llm_chat_content:
+                logger.info("\n", raw=True, tag="llm_messages")
         else:
             content = str(response.choices[0].message.content)
             finish_reason = response.choices[0].finish_reason
@@ -147,7 +149,8 @@ class LiteLLMAPIBackend(APIBackend):
                 if finish_reason and finish_reason != "stop"
                 else ""
             )
-            logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}", tag="llm_messages")
+            if LITELLM_SETTINGS.log_llm_chat_content:
+                logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}", tag="llm_messages")
 
         global ACC_COST
         try:
