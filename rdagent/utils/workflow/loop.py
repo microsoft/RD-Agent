@@ -96,6 +96,7 @@ class LoopBase:
     ] = ()  # you can define a list of error that will withdraw current loop
 
     EXCEPTION_KEY = "_EXCEPTION"
+    SENTINEL = -1
 
     _pbar: tqdm  # progress bar instance
 
@@ -261,6 +262,8 @@ class LoopBase:
             # exit on loop limitation
             if self.loop_n is not None:
                 if self.loop_n <= 0:
+                    for _ in range(RD_AGENT_SETTINGS.get_max_parallel()):
+                        self.queue.put_nowait(self.SENTINEL)
                     break
                 self.loop_n -= 1
 
@@ -278,6 +281,8 @@ class LoopBase:
         while True:
             # 1) get the tasks to goon loop `li`
             li = await self.queue.get()
+            if li == self.SENTINEL:
+                break
             # 2) run the unfinished steps
             while self.step_idx[li] < len(self.steps):
                 if self.step_idx[li] == len(self.steps) - 1:

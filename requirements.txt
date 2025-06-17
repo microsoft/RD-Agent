@@ -66,3 +66,6 @@ genson
 mlflow
 azureml-mlflow
 types-pytz
+
+# data science scenario for custom dataset
+sparse
