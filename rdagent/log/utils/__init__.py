@@ -66,11 +66,11 @@ class CallerInfo(TypedDict):
     name: Optional[str]
 
 
-def get_caller_info() -> CallerInfo:
+def get_caller_info(level: int = 2) -> CallerInfo:
     # Get the current stack information
     stack = inspect.stack()
     # The second element is usually the caller's information
-    caller_info = stack[2]
+    caller_info = stack[level]
     frame = caller_info[0]
     info: CallerInfo = {
         "line": caller_info.lineno,
