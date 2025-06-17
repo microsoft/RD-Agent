@@ -360,6 +360,11 @@ class ExpGen2TraceAndMergeV2(ExpGen):
                     return self.exp_gen.gen(trace)  # continue the last trace, to polish the merged solution
 
 
+    # TODO: implement the async_gen for the multi-trace version
+    def async_gen(self, trace: DSTrace, loop: LoopBase) -> DSExperiment:
+        pass
+
+
 class ExpGen2TraceAndMergeV3(ExpGen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
