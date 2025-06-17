@@ -317,7 +317,7 @@ class WebStorage(Storage):
                 ef: ExperimentFeedback = obj
                 content = (
                     {
-                        "observations": ef.observations,
+                        "observations": str(ef.observations),
                         "hypothesis_evaluation": ef.hypothesis_evaluation,
                         "new_hypothesis": ef.new_hypothesis,
                         "decision": ef.decision,

@@ -121,7 +121,7 @@ def upload_file():
     return (
         jsonify(
             {
-                "id": str(log_trace_path),
+                "id": str(scenario / trace_name),
             }
         ),
         200,

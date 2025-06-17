@@ -54,7 +54,19 @@ def update_trace():
     pointers[trace_id] = end_pointer
     if len(returned_msgs):
         app.logger.info(data)
-        app.logger.info(returned_msgs)
+        app.logger.info([i["tag"] for i in returned_msgs])
+        # try:
+        #     import json
+        #     resp = json.dumps(returned_msgs, ensure_ascii=False)
+        # except Exception as e:
+        #     app.logger.error(f"Error in jsonify: {e}")
+        #     for msg in returned_msgs:
+        #         try:
+        #             rr = json.dumps(msg, ensure_ascii=False)
+        #         except Exception as e:
+        #             app.logger.error(f"Error in jsonify individual message: {e}")
+        #             app.logger.error(msg)
+
     return jsonify(returned_msgs), 200
 
 
@@ -74,7 +86,7 @@ def upload_file():
         trace_path = log_folder_path / "o1-preview" / f"{competition}.1"
     else:
         trace_path = log_folder_path / scenario
-    id = randomname.get_name()
+    id = f"{scenario}/{randomname.get_name()}"
 
     def read_trace(log_path: Path, t: float = 1.5, id: str = "") -> None:
         from rdagent.log.storage import FileStorage
@@ -84,7 +96,7 @@ def upload_file():
         ws = WebStorage(port=1, path=log_path)
         msgs_for_frontend[id] = []
         for msg in fs.iter_msg():
-            data = ws._obj_to_json(obj=msg.content, tag=msg.tag, id=id, timestamp=msg.timestamp)
+            data = ws._obj_to_json(obj=msg.content, tag=msg.tag, id=id, timestamp=msg.timestamp.isoformat())
             if data:
                 if isinstance(data, list):
                     for d in data:
