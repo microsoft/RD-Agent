@@ -74,7 +74,7 @@ extract_scenario_problems_and_ideas:
     ## Output Format
     For each of the extracted ideas, you should strictly follow the JSON schema. Your final output should be a dict containing all the extracted ideas.
     {
-      "idea label": {
+      "idea label (A concise label summarize the core concept of this idea)": {
         "problem": "The scenario problem that the idea addresses, described without referencing the method itself.",
         "method": "A specific method used in this idea, described in a general and implementable way (e.g., 'applied a stacking ensemble method to combine predictions from multiple base models'). Avoid mentioning dataset-specific details to ensure better generalization",
         "context": "A detailed example of how the notebook implements this idea (e.g., 'the notebook used XGBoost, Random Forest, and LightGBM as base models and logistic regression as the meta-model').",
