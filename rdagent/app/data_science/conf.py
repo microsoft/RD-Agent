@@ -12,7 +12,11 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     # Main components
     ## Scen
     scen: str = "rdagent.scenarios.data_science.scen.KaggleScen"
-    """Scenario class for data mining model"""
+    """
+    Scenario class for data science tasks.
+    - For Kaggle competitions, use: "rdagent.scenarios.data_science.scen.KaggleScen"
+    - For custom data science scenarios, use: "rdagent.scenarios.data_science.scen.DataScienceScen"
+    """
 
     hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.proposal.DSProposalV2ExpGen"
     """Hypothesis generation class"""
