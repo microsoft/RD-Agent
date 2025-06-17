@@ -425,11 +425,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
                 volumes[lp] = rp
-            cache_path = (
-                f"/tmp/sample-{os.environ.get('USER')}"
-                if "/sample/" in "".join(self.conf.extra_volumes.keys())
-                else f"/tmp/full-{os.environ.get('USER')}"
-            )
+            cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
             volumes[cache_path] = T("scenarios.data_science.share:scen.cache_path").r()
         for lp, rp in running_extra_volume.items():
