@@ -495,6 +495,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
             # Setup polling
             if process.stdout is None or process.stderr is None:
                 raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
+
             if self.conf.live_output:
                 stdout_fd = process.stdout.fileno()
                 stderr_fd = process.stderr.fileno()
@@ -534,6 +535,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
                     Console().print(remaining_error.strip(), markup=False)
                     combined_output += remaining_error
             else:
+                # Sacrifice real-time output to avoid possible standard I/O hangs
                 out, err = process.communicate()
                 Console().print(out, end="", markup=False)
                 Console().print(err, end="", markup=False)
