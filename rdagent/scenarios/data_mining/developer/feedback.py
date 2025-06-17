@@ -46,15 +46,6 @@ class DMModelExperiment2Feedback(Experiment2Feedback):
             exp=exp,
             exp_result=exp.result if exp.result is not None else "execution failed",
         )
-        # user_prompt = T("scenarios.data_mining.prompts:model_feedback_generation.user").r(
-        #     context=context,
-        #     last_hypothesis=SOTA_hypothesis,
-        #     last_task=SOTA_experiment.sub_tasks[0].get_task_information() if SOTA_hypothesis else None,
-        #     last_code=SOTA_experiment.sub_workspace_list[0].file_dict.get("model.py") if SOTA_hypothesis else None,
-        #     last_result=SOTA_experiment.result if SOTA_hypothesis else None,
-        #     hypothesis=hypothesis,
-        #     exp=exp,
-        # )
 
         # Call the APIBackend to generate the response for hypothesis feedback
         response_hypothesis = APIBackend().build_messages_and_create_chat_completion(

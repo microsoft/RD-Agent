@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-import tempfile
 from pathlib import Path
 from typing import cast
 
@@ -79,8 +77,6 @@ class RDAgentSettings(ExtendedBaseSettings):
     enable_mlflow: bool = False
 
     initial_fator_library_size: int = 20
-
-    local_cache_path: str = tempfile.gettempdir()
 
     # parallel loop
     step_semaphore: int | dict[str, int] = 1
