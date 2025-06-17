@@ -141,10 +141,10 @@ class DSKnowledgeBase(UndirectedGraph):
             problem_to_sampled_idea_node_id[problem_name] = []
             for node in sampled_nodes:
                 idea_node = self.get_nodes_within_steps(start_node=node, steps=1, constraint_labels="IDEA")[0]
-
-                if idea_node.id not in self.used_idea_id_set and (
-                    competition_node is None or competition_node not in idea_node.neighbors
-                ):
+                # if idea_node.id not in self.used_idea_id_set and (
+                #     competition_node is None or competition_node not in idea_node.neighbors
+                # ):
+                if idea_node.id not in self.used_idea_id_set:
                     idea = DSIdea(raw_knowledge=idea_node.appendix)
                     problem_to_sampled_idea_node_id[problem_name].append(idea_node)
                     text += f"## Idea {len(problem_to_sampled_idea_node_id[problem_name])}\n"
