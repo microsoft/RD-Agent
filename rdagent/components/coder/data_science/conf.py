@@ -21,7 +21,6 @@ class DSCoderCoSTEERSettings(CoSTEERSettings):
 
     max_seconds: int = 2400
     env_type: str = "docker"
-    live_output: bool = False
     # TODO: extract a function for env and conf.
 
 

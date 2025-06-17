@@ -399,6 +399,7 @@ class LocalConf(EnvConf):
     """path like <path1>:<path2>:<path3>, which will be prepend to bin path."""
 
     retry_count: int = 0  # retry count for; run `retry_count + 1` times
+    live_output: bool = False
 
 
 ASpecificLocalConf = TypeVar("ASpecificLocalConf", bound=LocalConf)
@@ -494,7 +495,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
             # Setup polling
             if process.stdout is None or process.stderr is None:
                 raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
-            if live_output:
+            if self.conf.live_output:
                 stdout_fd = process.stdout.fileno()
                 stderr_fd = process.stderr.fileno()
 
