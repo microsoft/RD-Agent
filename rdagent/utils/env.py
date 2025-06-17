@@ -636,25 +636,6 @@ class QlibDockerConf(DockerConf):
     enable_cache: bool = False
 
 
-class DMDockerConf(DockerConf):
-    model_config = SettingsConfigDict(env_prefix="DM_DOCKER_")
-
-    build_from_dockerfile: bool = True
-    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "data_mining" / "docker"
-    image: str = "local_dm:latest"
-    mount_path: str = "/workspace/dm_workspace/"
-    default_entry: str = "python train.py"
-    extra_volumes: dict = {
-        str(
-            Path("~/.rdagent/.data/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3/")
-            .expanduser()
-            .resolve()
-            .absolute()
-        ): "/root/.data/"
-    }
-    shm_size: str | None = "16g"
-
-
 class KGDockerConf(DockerConf):
     model_config = SettingsConfigDict(env_prefix="KG_DOCKER_")
 
@@ -908,28 +889,6 @@ class QTDockerEnv(DockerEnv):
             logger.info("We are downloading!")
             cmd = "python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn --interval 1d --delete_old False"
             self.run(entry=cmd)
-        else:
-            logger.info("Data already exists. Download skipped.")
-
-
-class DMDockerEnv(DockerEnv):
-    """Qlib Torch Docker"""
-
-    def __init__(self, conf: DockerConf = DMDockerConf()):
-        super().__init__(conf)
-
-    def prepare(self, username: str, password: str) -> None:
-        """
-        Download image & data if it doesn't exist
-        """
-        super().prepare()
-        data_path = next(iter(self.conf.extra_volumes.keys()))
-        if not (Path(data_path)).exists():
-            logger.info("We are downloading!")
-            cmd = "wget -r -N -c -np --user={} --password={} -P ~/.rdagent/.data/ https://physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/".format(
-                username, password
-            )
-            os.system(cmd)
         else:
             logger.info("Data already exists. Download skipped.")
 

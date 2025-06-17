@@ -17,7 +17,6 @@ from importlib.resources import path as rpath
 
 import fire
 
-from rdagent.app.data_mining.model import main as med_model
 from rdagent.app.data_science.loop import main as kaggle
 from rdagent.app.general_model.general_model import (
     extract_models_and_implement as general_model,
@@ -59,7 +58,6 @@ def app():
             "fin_factor_report": fin_factor_report,
             "fin_model": fin_model,
             "fin_quant": fin_quant,
-            "med_model": med_model,
             "general_model": general_model,
             "ui": ui,
             "health_check": health_check,
