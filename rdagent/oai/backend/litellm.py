@@ -90,7 +90,8 @@ class LiteLLMAPIBackend(APIBackend):
         if json_mode and supports_response_schema(model=LITELLM_SETTINGS.chat_model):
             kwargs["response_format"] = {"type": "json_object"}
 
-        logger.info(self._build_log_messages(messages), tag="llm_messages")
+        if LITELLM_SETTINGS.log_llm_chat_content:
+            logger.info(self._build_log_messages(messages), tag="llm_messages")
         # Call LiteLLM completion
         model = LITELLM_SETTINGS.chat_model
         temperature = LITELLM_SETTINGS.chat_temperature
