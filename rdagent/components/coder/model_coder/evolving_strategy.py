@@ -10,10 +10,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
     CoSTEERQueriedKnowledgeV2,
 )
-from rdagent.components.coder.model_coder.model import (
-    ModelFBWorkspace,
-    ModelTask,
-)
+from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
 from rdagent.core.experiment import FBWorkspace
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
