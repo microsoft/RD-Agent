@@ -799,7 +799,7 @@ class DSProposalV2ExpGen(ExpGen):
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
                 sota_exp_desc=sota_exp_desc,
-                competition_desc=self.scen.get_competition_full_desc(),
+                competition_name=DS_RD_SETTING.competition,
             )
 
         # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)

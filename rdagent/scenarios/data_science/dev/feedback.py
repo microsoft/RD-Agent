@@ -136,7 +136,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
         if hypothesis_feedback.decision and DS_RD_SETTING.enable_knowledge_base:
             ds_idea = DSIdea(
                 {
-                    "competition": self.scen.get_competition_full_desc(),
+                    "competition": DS_RD_SETTING.competition,
                     "idea": exp.hypothesis.hypothesis,
                     "method": exp.pending_tasks_list[0][0].get_task_information(),
                     "problem": exp.hypothesis.problem_desc,

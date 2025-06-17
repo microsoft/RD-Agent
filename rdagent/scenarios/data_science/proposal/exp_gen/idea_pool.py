@@ -124,12 +124,12 @@ class DSKnowledgeBase(UndirectedGraph):
         scenario_desc: str,
         exp_feedback_list_desc: str,
         sota_exp_desc: str,
-        competition_desc: str,
+        competition_name: str,
     ) -> Dict:
         # sample ideas by cosine similarity
         text = ""
         problem_to_sampled_idea_node_id = {}
-        competition_node = self.get_node_by_content(competition_desc)
+        competition_node = self.get_node_by_content(competition_name)
 
         for i, (problem_name, problem_dict) in enumerate(problems.items()):
             sampled_nodes = self.semantic_search(
