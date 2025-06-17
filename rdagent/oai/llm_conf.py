@@ -10,7 +10,7 @@ from rdagent.core.conf import ExtendedBaseSettings
 
 class LLMSettings(ExtendedBaseSettings):
     # backend
-    backend: str = "rdagent.oai.backend.DeprecBackend"
+    backend: str = "rdagent.oai.backend.LiteLLMAPIBackend"
 
     chat_model: str = "gpt-4-turbo"
     embedding_model: str = "text-embedding-3-small"

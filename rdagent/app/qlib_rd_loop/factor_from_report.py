@@ -112,27 +112,26 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
         self.steps = ["propose_hypo_exp", "propose", "direct_exp_gen", "coding", "running", "feedback"]
 
     def propose_hypo_exp(self, prev_out: dict[str, Any]):
-        with logger.tag("r"):
-            while True:
-                if FACTOR_FROM_REPORT_PROP_SETTING.is_report_limit_enabled and self.valid_pdf_file_count > 15:
-                    break
-                report_file_path = self.judge_pdf_data_items[self.pdf_file_index]
-                logger.info(f"Processing number {self.pdf_file_index} report: {report_file_path}")
-                self.pdf_file_index += 1
-                exp, hypothesis = extract_hypothesis_and_exp_from_reports(str(report_file_path))
-                if exp is None:
-                    continue
-                self.valid_pdf_file_count += 1
-                exp.based_experiments = [QlibFactorExperiment(sub_tasks=[], hypothesis=hypothesis)] + [
-                    t[0] for t in self.trace.hist if t[1]
-                ]
-                exp.sub_workspace_list = exp.sub_workspace_list[: FACTOR_FROM_REPORT_PROP_SETTING.max_factors_per_exp]
-                exp.sub_tasks = exp.sub_tasks[: FACTOR_FROM_REPORT_PROP_SETTING.max_factors_per_exp]
-                logger.log_object(hypothesis, tag="hypothesis generation")
-                logger.log_object(exp.sub_tasks, tag="experiment generation")
-                self.current_loop_hypothesis = hypothesis
-                self.current_loop_exp = exp
-                return None
+        while True:
+            if FACTOR_FROM_REPORT_PROP_SETTING.is_report_limit_enabled and self.valid_pdf_file_count > 15:
+                break
+            report_file_path = self.judge_pdf_data_items[self.pdf_file_index]
+            logger.info(f"Processing number {self.pdf_file_index} report: {report_file_path}")
+            self.pdf_file_index += 1
+            exp, hypothesis = extract_hypothesis_and_exp_from_reports(str(report_file_path))
+            if exp is None:
+                continue
+            self.valid_pdf_file_count += 1
+            exp.based_experiments = [QlibFactorExperiment(sub_tasks=[], hypothesis=hypothesis)] + [
+                t[0] for t in self.trace.hist if t[1]
+            ]
+            exp.sub_workspace_list = exp.sub_workspace_list[: FACTOR_FROM_REPORT_PROP_SETTING.max_factors_per_exp]
+            exp.sub_tasks = exp.sub_tasks[: FACTOR_FROM_REPORT_PROP_SETTING.max_factors_per_exp]
+            logger.log_object(hypothesis, tag="hypothesis generation")
+            logger.log_object(exp.sub_tasks, tag="experiment generation")
+            self.current_loop_hypothesis = hypothesis
+            self.current_loop_exp = exp
+            return None
 
     def propose(self, prev_out: dict[str, Any]):
         return self.current_loop_hypothesis
@@ -141,9 +140,8 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
         return {"propose": self.current_loop_hypothesis, "exp_gen": self.current_loop_exp}
 
     def coding(self, prev_out: dict[str, Any]):
-        with logger.tag("d"):  # develop
-            exp = self.coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
-            logger.log_object(exp.sub_workspace_list, tag="coder result")
+        exp = self.coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
+        logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
 
 
