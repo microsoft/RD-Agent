@@ -451,9 +451,11 @@ class DSProposalV1ExpGen(ExpGen):
             return exp
         else:
             raise ValueError(f"Unknown component: {component}")
+
+
 class DSProposalV2ExpGen(ExpGen):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.support_function_calling = APIBackend().support_function_calling()
 
     def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
@@ -743,7 +745,9 @@ class DSProposalV2ExpGen(ExpGen):
             json_target_type=Dict[str, str | Dict[str, str]] if not self.support_function_calling else None,
         )
         task_dict = json.loads(response)
-        task_design = task_dict.get("task_design", {}) if not self.support_function_calling else task_dict.get("sketch", {})
+        task_design = (
+            task_dict.get("task_design", {}) if not self.support_function_calling else task_dict.get("sketch", {})
+        )
         logger.info("Task design:\n" + task_design)
         task_name = hypotheses[0].component
         description = (
@@ -911,6 +915,7 @@ class DSProposalV2ExpGen(ExpGen):
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
         )
+
 
 class DSProposalV3ExpGen(DSProposalV2ExpGen):
     def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
