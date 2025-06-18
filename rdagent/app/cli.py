@@ -17,7 +17,7 @@ from importlib.resources import path as rpath
 
 import fire
 
-from rdagent.app.data_science.loop import main as kaggle
+from rdagent.app.data_science.loop import main as data_science
 from rdagent.app.general_model.general_model import (
     extract_models_and_implement as general_model,
 )
@@ -62,7 +62,7 @@ def app():
             "ui": ui,
             "health_check": health_check,
             "collect_info": collect_info,
-            "kaggle": kaggle,
+            "data_science": data_science,
             "server_ui": server_ui,
         }
     )
