@@ -116,16 +116,18 @@ Only **2** Message in one loop
     "evo_id": "0",
     "content": [ // list of task_name & codes
         {
+            "evo_id": "0",
             "target_task_name": "task_1",
-            "codes": { // one or more codes
+            "workspace": { // one or more codes
                 "a.py": "...<python codes>",
                 "b.py": "...<python codes>",
                 //...
             }
         },
         {
+            "evo_id": "0",
             "target_task_name": "task_2",
-            "codes": {
+            "workspace": {
                 "a.py": "...<python codes>",
                 //...
             }
@@ -155,6 +157,7 @@ Only **2** Message in one loop
     "evo_id": "0",
     "content": [ // list of feedbacks
         {
+            "evo_id": "0",
             "final_decision": "True", // True or False
             "execution": "...",
             "code": "...",
@@ -230,8 +233,21 @@ Each tag below appears only once per loop.
         "reason": "...",
         "exception": "...",
         "observations": "...", // may not exists
-        "hypothesis_evaluation": "...", // may not exists
+        "hypothesis_evaluation": "...", // may not existsc
         "new_hypothesis": "...", // may not exists
     }
 }
 ```
+
+# TODO
+
+## Session
+
+- How to continue.
+- show & copy trace_id(name)?
+- 
+
+## Page
+
+1. remove Medical, add Finance Whole Pipeline
+2. 
