@@ -748,7 +748,7 @@ class DSProposalV2ExpGen(ExpGen):
         task_design = (
             task_dict.get("task_design", {}) if not self.support_function_calling else task_dict.get("sketch", {})
         )
-        logger.info("Task design:\n" + task_design)
+        logger.info(f"Task design:\n{task_design}")
         task_name = hypotheses[0].component
         description = (
             task_design
@@ -915,4 +915,3 @@ class DSProposalV2ExpGen(ExpGen):
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
         )
-
