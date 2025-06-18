@@ -257,7 +257,7 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
 
   # 2. Add the competition description file path to the `.env` file.
   mkdir -p ./git_ignore_folder/kaggle_data
-  dotenv set KG_LOCAL_DATA_PATH "$(pwd)/git_ignore_folder/kaggle_data"
+  dotenv set DS_LOCAL_DATA_PATH "$(pwd)/git_ignore_folder/kaggle_data"
 
   # 3. run the application
   rdagent kaggle --competition sf-crime
