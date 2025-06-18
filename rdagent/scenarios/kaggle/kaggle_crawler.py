@@ -106,9 +106,7 @@ def crawl_descriptions(
     return descriptions
 
 
-def download_data(
-    competition: str, settings: ExtendedBaseSettings, enable_create_debug_data: bool = True
-) -> None:
+def download_data(competition: str, settings: ExtendedBaseSettings, enable_create_debug_data: bool = True) -> None:
     local_path = settings.local_data_path
     if settings.if_using_mle_data:
         zipfile_path = f"{local_path}/zip_files"
@@ -224,9 +222,7 @@ def score_rank(competition: str, score: float) -> tuple[int, float]:
     return rank, rank_percent
 
 
-def download_notebooks(
-    competition: str, local_path: str, num: int = 15
-) -> None:
+def download_notebooks(competition: str, local_path: str, num: int = 15) -> None:
     data_path = Path(f"{local_path}/{competition}")
     from kaggle.api.kaggle_api_extended import KaggleApi
 
@@ -261,9 +257,7 @@ def notebook_to_knowledge(notebook_text: str) -> str:
     return response
 
 
-def convert_notebooks_to_text(
-    competition: str, local_path: str
-) -> None:
+def convert_notebooks_to_text(competition: str, local_path: str) -> None:
     data_path = Path(f"{local_path}/{competition}")
     converted_num = 0
 
