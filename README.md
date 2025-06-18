@@ -258,13 +258,11 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   # 2. Add the competition description file path to the `.env` file.
   mkdir -p ./git_ignore_folder/kaggle_data
   dotenv set DS_LOCAL_DATA_PATH "$(pwd)/git_ignore_folder/kaggle_data"
+  dotenv set DS_IF_USING_MLE_DATA True
 
   # 3. run the application
   rdagent data_science --competition sf-crime
   ```
-  > **Description of the above example:** <br />
-  > - Kaggle competition data is roughly divided into three sections: competition description file (json file) and complete dataset for the competition and simplified dataset for the competition. <br />
-  > - The Kaggle competition data will be downloaded automatically, the download process depends on `chromedriver`, installation instructions can be found in the [documentation](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#example-guide). <br />
 
 ### 🖥️ Monitor the Application Results
 - You can run the following command for our demo program to see the run logs.
@@ -310,7 +308,7 @@ The supported scenarios are listed below:
 | **🩺 Medical**      | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/dmm)[▶️YouTube](https://www.youtube.com/watch?v=VIaSTZuoZg4) | -                                                                                  |
 | **🏭 General**      | 🦾 [Auto paper reading & implementation](https://rdagent.azurewebsites.net/report_model)[▶️YouTube](https://www.youtube.com/watch?v=BiA2SfdKQ7o) <br/> 🤖 Auto Kaggle Model Tuning   | 🤖Auto Kaggle feature Engineering |
 
-- **[RoadMap](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#roadmap)**: Currently, we are working hard to add new features to the Kaggle scenario.
+- **[RoadMap](https://rdagent.readthedocs.io/en/latest/scens/data_science.html#roadmap)**: Currently, we are working hard to add new features to the Kaggle scenario.
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 

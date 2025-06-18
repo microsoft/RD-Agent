@@ -29,10 +29,7 @@ The supported scenarios are listed below:
     * - 🏭 General
       - :ref:`🦾Auto paper reading & implementation <model_copilot_general>`  
         
-        :ref:`🤖Auto Kaggle Model Tuning <kaggle_agent>`
-      - :ref:`🤖Auto Kaggle feature Engineering <kaggle_agent>`  
-        
-        :ref:`🤖 Data Science <data_science_agent>`
+      - :ref:`🤖 Data Science <data_science_agent>`
 
 
 .. toctree::
