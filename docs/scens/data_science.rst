@@ -61,13 +61,13 @@ The Data Science Agent is an agent that can automatically perform feature engine
 
 - 🔧 **Set up Environment for Custom User-defined Dataset**
 
-    .. code-block:: sh
+  .. code-block:: sh
 
-        dotenv set DS_SCEN rdagent.scenarios.data_science.scen.DataScienceScen
-        dotenv set DS_LOCAL_DATA_PATH <your local directory>/ds_data (e.g. rdagent/scenarios/data_science/example)
-        dotenv set DS_IF_USING_MLE_DATA False
-        dotenv set DS_CODER_ON_WHOLE_PIPELINE True
-        dotenv set DS_CODER_COSTEER_ENV_TYPE docker
+      dotenv set DS_SCEN rdagent.scenarios.data_science.scen.DataScienceScen
+      dotenv set DS_LOCAL_DATA_PATH rdagent/scenarios/data_science/example
+      dotenv set DS_IF_USING_MLE_DATA False
+      dotenv set DS_CODER_ON_WHOLE_PIPELINE True
+      dotenv set DS_CODER_COSTEER_ENV_TYPE docker
 
 🔍 MLE-bench Guide: Running ML Engineering via MLE-bench
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
