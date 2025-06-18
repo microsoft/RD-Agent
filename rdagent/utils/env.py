@@ -399,6 +399,7 @@ class LocalConf(EnvConf):
     """path like <path1>:<path2>:<path3>, which will be prepend to bin path."""
 
     retry_count: int = 0  # retry count for; run `retry_count + 1` times
+    live_output: bool = False
 
 
 ASpecificLocalConf = TypeVar("ASpecificLocalConf", bound=LocalConf)
@@ -495,43 +496,50 @@ class LocalEnv(Env[ASpecificLocalConf]):
             if process.stdout is None or process.stderr is None:
                 raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
 
-            stdout_fd = process.stdout.fileno()
-            stderr_fd = process.stderr.fileno()
+            if self.conf.live_output:
+                stdout_fd = process.stdout.fileno()
+                stderr_fd = process.stderr.fileno()
 
-            poller = select.poll()
-            poller.register(stdout_fd, select.POLLIN)
-            poller.register(stderr_fd, select.POLLIN)
+                poller = select.poll()
+                poller.register(stdout_fd, select.POLLIN)
+                poller.register(stderr_fd, select.POLLIN)
 
-            combined_output = ""
-            while True:
-                if process.poll() is not None:
-                    break
-                events = poller.poll(100)
-                for fd, event in events:
-                    if event & select.POLLIN:
-                        if fd == stdout_fd:
-                            while True:
-                                output = process.stdout.readline()
-                                if output == "":
-                                    break
-                                Console().print(output.strip(), markup=False)
-                                combined_output += output
-                        elif fd == stderr_fd:
-                            while True:
-                                error = process.stderr.readline()
-                                if error == "":
-                                    break
-                                Console().print(error.strip(), markup=False)
-                                combined_output += error
+                combined_output = ""
+                while True:
+                    if process.poll() is not None:
+                        break
+                    events = poller.poll(100)
+                    for fd, event in events:
+                        if event & select.POLLIN:
+                            if fd == stdout_fd:
+                                while True:
+                                    output = process.stdout.readline()
+                                    if output == "":
+                                        break
+                                    Console().print(output.strip(), markup=False)
+                                    combined_output += output
+                            elif fd == stderr_fd:
+                                while True:
+                                    error = process.stderr.readline()
+                                    if error == "":
+                                        break
+                                    Console().print(error.strip(), markup=False)
+                                    combined_output += error
 
-            # Capture any final output
-            remaining_output, remaining_error = process.communicate()
-            if remaining_output:
-                Console().print(remaining_output.strip(), markup=False)
-                combined_output += remaining_output
-            if remaining_error:
-                Console().print(remaining_error.strip(), markup=False)
-                combined_output += remaining_error
+                # Capture any final output
+                remaining_output, remaining_error = process.communicate()
+                if remaining_output:
+                    Console().print(remaining_output.strip(), markup=False)
+                    combined_output += remaining_output
+                if remaining_error:
+                    Console().print(remaining_error.strip(), markup=False)
+                    combined_output += remaining_error
+            else:
+                # Sacrifice real-time output to avoid possible standard I/O hangs
+                out, err = process.communicate()
+                Console().print(out, end="", markup=False)
+                Console().print(err, end="", markup=False)
+                combined_output = out + err
 
             return_code = process.returncode
             print(Rule("[bold green]LocalEnv Logs End[/bold green]", style="dark_orange"))
