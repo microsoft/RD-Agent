@@ -163,12 +163,16 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             else:
                 # LGBM + combined factors
                 result, stdout = exp.experiment_workspace.execute(
-                    qlib_config_name=f"conf_baseline.yaml" if len(exp.based_experiments) == 0 else "conf_combined_factors.yaml"
+                    qlib_config_name=(
+                        f"conf_baseline.yaml" if len(exp.based_experiments) == 0 else "conf_combined_factors.yaml"
+                    )
                 )
         else:
             logger.info(f"Experiment execution ...")
             result, stdout = exp.experiment_workspace.execute(
-                qlib_config_name=f"conf_baseline.yaml" if len(exp.based_experiments) == 0 else "conf_combined_factors.yaml"
+                qlib_config_name=(
+                    f"conf_baseline.yaml" if len(exp.based_experiments) == 0 else "conf_combined_factors.yaml"
+                )
             )
 
         if result is None:
