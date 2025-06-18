@@ -26,7 +26,7 @@ The Data Science Agent is an agent that can automatically perform feature engine
 
 - 📥 **Prepare Competition Data**
 
-  - Data Science competition data, contains three parts: competition description file (markdown file), competition dataset and competition evaluation files.
+  - Data Science competition data typically consists of three components: a competition description file (in Markdown format), the competition dataset, and evaluation scripts. For reference, an example of a custom user-defined dataset is provided in ``rdagent/scenarios/data_science/example``.
 
     - **Correct directory structure (Here is an example of competition data with id custom_data)**
 
@@ -43,6 +43,7 @@ The Data Science Agent is an agent that can automatically perform feature engine
           └── test.csv
           └── sample_submission.csv
           └── description.md
+          └── sample.py
         
       - ``ds_data/custom_data/train.csv:`` Necessary training data in csv or parquet format, or training images.
 
@@ -50,11 +51,23 @@ The Data Science Agent is an agent that can automatically perform feature engine
 
       - ``ds_data/custom_data/sample_submission.csv:`` (Optional) Competition sample submission file.
 
+      - ``ds_data/custom_data/sample.py:`` (Optional) Sample code for generating debug data from the competition dataset. If not provided, R&D-Agent will use its default sampling logic. For details, see the ``create_debug_data`` function in ``rdagent/scenarios/data_science/debug/data.py``.
+
       - ``ds_data/eval/custom_data/grade.py:`` (Optional) Competition grade script, in order to calculate the score for the submission.
 
       - ``ds_data/eval/custom_data/valid.py:`` (Optional) Competition validation script, in order to check if the submission format is correct.
 
       - ``ds_data/eval/custom_data/submission_test.csv:`` (Optional) Competition test label file.
+
+- 🔧 **Set up Environment for Custom User-defined Dataset**
+
+    .. code-block:: sh
+
+        dotenv set DS_SCEN rdagent.scenarios.data_science.scen.DataScienceScen
+        dotenv set DS_LOCAL_DATA_PATH <your local directory>/ds_data (e.g. rdagent/scenarios/data_science/example)
+        dotenv set DS_IF_USING_MLE_DATA False
+        dotenv set DS_CODER_ON_WHOLE_PIPELINE True
+        dotenv set DS_CODER_COSTEER_ENV_TYPE docker
 
 🔍 MLE-bench Guide: Running ML Engineering via MLE-bench
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
