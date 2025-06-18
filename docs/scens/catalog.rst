@@ -45,6 +45,4 @@ The supported scenarios are listed below:
     data_copilot_fin
     model_agent_fin
     model_copilot_general
-    kaggle_agent
     data_science
-
