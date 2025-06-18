@@ -799,7 +799,7 @@ class DSProposalV2ExpGen(ExpGen):
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
                 sota_exp_desc=sota_exp_desc,
-                competition_desc=self.scen.get_competition_full_desc(),
+                competition_name=DS_RD_SETTING.competition,
             )
 
         # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
@@ -830,13 +830,13 @@ class DSProposalV2ExpGen(ExpGen):
                     hypothesis_dict.pop(name)
 
         # Step 3: Select the best hypothesis
-        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+        picked_problem_name, new_hypothesis = self.hypothesis_rank(
             hypothesis_dict=hypothesis_dict,
             problem_dict=all_problems,
         )
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
-            trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
+            trace.knowledge_base.update_picked_problem(all_problems, picked_problem_name)
 
         return self.task_gen(
             component_desc=component_desc,
@@ -1198,13 +1198,13 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
                     hypothesis_dict.pop(name)
 
         # Step 3: Select the best hypothesis
-        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+        picked_problem_name, new_hypothesis = self.hypothesis_rank(
             hypothesis_dict=hypothesis_dict,
             problem_dict=all_problems,
         )
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
-            trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
+            trace.knowledge_base.update_picked_problem(all_problems, picked_problem_name)
 
         return self.task_gen(
             component_desc=component_desc,

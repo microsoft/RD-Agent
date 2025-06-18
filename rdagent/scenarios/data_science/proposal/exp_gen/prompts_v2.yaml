@@ -178,6 +178,52 @@ hypothesis_gen:
     # Identified Problems{% if enable_idea_pool %} with Sampled Ideas{% endif %}
     {{ problems }}
 
+hypothesis_draft:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace. If new trace surpasses the current SOTA, it will be the new SOTA. If not, it will be a failed experiment.
+    This will be the first trace of the competition implementation.
+    You will be provided with: 
+      1. A detailed competition scenario description;
+      2. Previous failed experiments and feedbacks, which are ordered attempts that failed;
+      4. An idea, which are extracted methods or techniques from previous SOTA implementations of other competitions. This idea is sample based on the similarity of the problem current. 
+    Your task is to propose testable hypotheses to draft the first implementation of the competition.
+
+    # Hypothesis Proposal
+
+    ## Hypothesis Guidelines
+    Here are few guidelines to help you formulate hypotheses:
+    1. Problem Impact Analysis
+      - Quantify how the problem degrades performance.
+    2. Previous Experiments Analysis
+      - For previous SOTA experiments, analyze insights and implicit patterns that can be leveraged to improve the current SOTA implementation.
+      - For failed experiments, think about the persistent problems they facing. If these experiments consistently failed due to time/memory constraints, prioritize changes on efficiency.
+    3. Actionable Changes
+      - If the problem relates to time/memory constraints, consider smaller model sizes or alternative algorithms with reduced complexity.
+      - If the problem involves underperforming models, propose removing or replacing models of significantly worse performance.
+      - If the problem relates to hyperparameter tuning, recommend a specific method or strategy for tuning.
+    4. Note on Time/Memory Constraints
+      - If prior experiments failed due to time/memory limitations, assume your new hypothesis will face the same constraints. In this case, prioritize efficiency and **ONLY** response to the problems related to time/memory constraints in your response dictionary.
+      - Besides, do not compromise performance merely for efficiency since the current SOTA implementation do not encounter the constraints. You should think about how to balance the efficiency and performance so that your new hypothesis can be executed successfully and achieve satisfactory performance. 
+    5. Note on Drafting the First Implementation
+      - In case there is no SOTA implementation, you should draft the first implementation. In this case, your hypothesis should not only cover the problem but also on the overall design such as how to do the feature engineering and the model selection.
+
+    ## Hypothesis Specification
+    {{ hypothesis_spec }}
+
+    ## Final Output Format in JSON Schema:
+    {{ hypothesis_output_format }}
+    
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Previous Experiments and Feedbacks
+    {{ exp_and_feedback_list_desc }}
+
+    # Identified Problems{% if enable_idea_pool %} with Sampled Ideas{% endif %}
+    {{ problems }}
+
 task_gen:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
@@ -240,13 +286,16 @@ task_gen:
 
 idea_sample:
   system: |-
-    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
-    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
-    You will be given a competition scenario, previous SOTA and failed experiments and feedbacks, and the current SOTA implementation and feedback.
-    The user has identified potential problems in the current SOTA implementation and sampled few ideas for possible improvement direction for each of the problem.
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace. If new trace surpasses the current SOTA, it will be the new SOTA. If not, it will be a failed experiment.
+    You will be provide with: 
+      1. A detailed competition scenario description;
+      2. Previous SOTA experiments and feedbacks, which are past SOTA experiments indexed from oldest to newest;
+      3. Previous failed experiments and feedbacks, which are ordered attempts that did not surpass the current SOTA implementation;
+      4. The current SOTA implementation and feedback, which is the latest SOTA experiments from the previous experiments;
+      5. A list of identified problems, which are specific technical or methodological issues from the current SOTA implementation;
+      6. A list of sampled ideas for each of the problems, which are extracted methods or techniques from previous SOTA implementations of other competitions. These ideas can potentially tackle the identified problems and improve the current SOTA implementation.
     Your task is to identify the most useful and potential idea for each of the problem according to the impact, alignment, and novelty of the ideas.
-
-    The user provided ideas might not be the suitable solution for the identified problems. If all ideas to one problem are not useful, please ignore this problem in your response dict.
 
     ### Specification
     {{ idea_spec }}
@@ -286,7 +335,7 @@ specification:
     {% endif %}
 
   idea: |-
-    1. Alignment: The idea should be aligned with the identified problem. It should be a potential solution to the problem.
+    1. Alignment: The idea should be aligned with the identified problem. It must be a potential solution to the problem.
     2. Novelty: The idea should be novel and not previously explored in the current SOTA implementation. Avoid ideas that have already been tried and failed.
     3. Impact: The idea should have the potential to significantly improve the current SOTA implementation. It should be a promising direction for further exploration.
     4. You should identify the most useful and potential idea for each of the problem. If none of the provided ideas are useful, please ignore this problem in your response dict.
@@ -325,11 +374,10 @@ output_format:
     }
   idea: |-
     For each of the problems, you should identified the most useful and potential idea strictly following to the JSON schema.
-    Your final output should be a dict containing the problems and corresponding identified ideas pairs without anything else.
-    Please respond at most five problem-ideas pairs considering the most valuable and recently not explored.
+    Your final output should be a dict containing the problems name and corresponding identified ideas index without anything else.
     {
-      "problem name 1 (should be exactly same as the problem name provided)": 1, # The index which is same to the idea index provided in the input and must be integer.
-      "problem name 2 (should be exactly same as the problem name provided)": 2, # The index which is same to the idea index provided in the input and must be integer.
+      "problem name 1 (should be exactly same as the problem name provided)": 1 (The index which is same to the idea index provided in the input and must be integer),
+      "problem name 2 (should be exactly same as the problem name provided)": 2 (The index which is same to the idea index provided in the input and must be integer),
     }
 
 
