@@ -26,16 +26,10 @@ The supported scenarios are listed below:
         :ref:`🦾Auto reports reading & implementation <data_copilot_fin>`  
         
         :ref:`🤖Iteratively Proposing Ideas & Evolving <data_agent_fin>`
-    * - 🩺 Medical
-      - :ref:`🤖Iteratively Proposing Ideas & Evolving <model_agent_med>`
-      - *(no data yet)*
     * - 🏭 General
       - :ref:`🦾Auto paper reading & implementation <model_copilot_general>`  
         
-        :ref:`🤖Auto Kaggle Model Tuning <kaggle_agent>`
-      - :ref:`🤖Auto Kaggle feature Engineering <kaggle_agent>`  
-        
-        :ref:`🤖 Data Science <data_science_agent>`
+      - :ref:`🤖 Data Science <data_science_agent>`
 
 
 .. toctree::
@@ -47,8 +41,5 @@ The supported scenarios are listed below:
     data_agent_fin
     data_copilot_fin
     model_agent_fin
-    model_agent_med
     model_copilot_general
-    kaggle_agent
     data_science
-

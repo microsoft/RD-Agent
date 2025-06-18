@@ -97,7 +97,7 @@ class QuantRDLoop(RDLoop):
         e = prev_out.get(self.EXCEPTION_KEY, None)
         if e is not None:
             feedback = HypothesisFeedback(
-                observations=e,
+                observations=str(e),
                 hypothesis_evaluation="",
                 new_hypothesis="",
                 reason="",

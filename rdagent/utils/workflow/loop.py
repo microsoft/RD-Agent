@@ -309,7 +309,10 @@ class LoopBase:
         if all_duration is not None and not self.timer.started:
             self.timer.reset(all_duration=all_duration)
 
-        self.step_n, self.loop_n = step_n, loop_n
+        if step_n is not None:
+            self.step_n = step_n
+        if loop_n is not None:
+            self.loop_n = loop_n
 
         # empty the queue when restarting
         while not self.queue.empty():

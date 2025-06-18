@@ -13,7 +13,7 @@ from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperi
 
 
 class FactorExperimentLoaderFromDict(FactorExperimentLoader):
-    def load(self, factor_dict: dict) -> list:
+    def load(self, factor_dict: dict) -> QlibFactorExperiment:
         """Load data from a dict."""
         task_l = []
         for factor_name, factor_data in factor_dict.items():

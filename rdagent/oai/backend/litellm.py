@@ -67,7 +67,11 @@ class LiteLLMAPIBackend(APIBackend):
         """
         model_name = LITELLM_SETTINGS.embedding_model
         logger.info(f"{LogColors.GREEN}Using emb model{LogColors.END} {model_name}", tag="debug_litellm_emb")
-        logger.info(f"Creating embedding for: {input_content_list}", tag="debug_litellm_emb")
+        if LITELLM_SETTINGS.log_llm_chat_content:
+            logger.info(
+                f"{LogColors.MAGENTA}Creating embedding{LogColors.END} for: {input_content_list}",
+                tag="debug_litellm_emb",
+            )
         response = embedding(
             model=model_name,
             input=input_content_list,
@@ -90,7 +94,8 @@ class LiteLLMAPIBackend(APIBackend):
         if json_mode and supports_response_schema(model=LITELLM_SETTINGS.chat_model):
             kwargs["response_format"] = {"type": "json_object"}
 
-        logger.info(self._build_log_messages(messages), tag="llm_messages")
+        if LITELLM_SETTINGS.log_llm_chat_content:
+            logger.info(self._build_log_messages(messages), tag="llm_messages")
         # Call LiteLLM completion
         model = LITELLM_SETTINGS.chat_model
         temperature = LITELLM_SETTINGS.chat_temperature
@@ -124,7 +129,8 @@ class LiteLLMAPIBackend(APIBackend):
         logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {model}", tag="llm_messages")
 
         if LITELLM_SETTINGS.chat_stream:
-            logger.info(f"{LogColors.BLUE}assistant:{LogColors.END}", tag="llm_messages")
+            if LITELLM_SETTINGS.log_llm_chat_content:
+                logger.info(f"{LogColors.BLUE}assistant:{LogColors.END}", tag="llm_messages")
             content = ""
             finish_reason = None
             for message in response:
@@ -135,9 +141,10 @@ class LiteLLMAPIBackend(APIBackend):
                         message["choices"][0]["delta"]["content"] or ""
                     )  # when finish_reason is "stop", content is None
                     content += chunk
-                    logger.info(LogColors.CYAN + chunk + LogColors.END, raw=True, tag="llm_messages")
-
-            logger.info("\n", raw=True, tag="llm_messages")
+                    if LITELLM_SETTINGS.log_llm_chat_content:
+                        logger.info(LogColors.CYAN + chunk + LogColors.END, raw=True, tag="llm_messages")
+            if LITELLM_SETTINGS.log_llm_chat_content:
+                logger.info("\n", raw=True, tag="llm_messages")
         else:
             content = str(response.choices[0].message.content)
             finish_reason = response.choices[0].finish_reason
@@ -146,7 +153,10 @@ class LiteLLMAPIBackend(APIBackend):
                 if finish_reason and finish_reason != "stop"
                 else ""
             )
-            logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}", tag="llm_messages")
+            if LITELLM_SETTINGS.log_llm_chat_content:
+                logger.info(
+                    f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}", tag="llm_messages"
+                )
 
         global ACC_COST
         try:

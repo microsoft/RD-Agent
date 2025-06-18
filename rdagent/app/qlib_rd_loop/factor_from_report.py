@@ -57,7 +57,7 @@ def generate_hypothesis(factor_result: dict, report_content: str) -> str:
     )
 
 
-def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> Tuple[QlibFactorExperiment, Hypothesis]:
+def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> QlibFactorExperiment | None:
     """
     Extract hypothesis and experiment details from report files.
 
@@ -65,17 +65,15 @@ def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> Tuple[Qlib
         report_file_path (str): Path to the report file.
 
     Returns:
-        Tuple[QlibFactorExperiment, Hypothesis]: The extracted experiment and generated hypothesis.
+        QlibFactorExperiment: An instance of QlibFactorExperiment containing the extracted details.
+        None: If no valid experiment is found in the report.
     """
-    with logger.tag("extract_factors_and_implement"):
-        with logger.tag("load_factor_tasks"):
-            exp = FactorExperimentLoaderFromPDFfiles().load(report_file_path)
-            if exp is None or exp.sub_tasks == []:
-                return None, None
+    exp = FactorExperimentLoaderFromPDFfiles().load(report_file_path)
+    if exp is None or exp.sub_tasks == []:
+        return None
 
-        with logger.tag("load_pdf_screenshot"):
-            pdf_screenshot = extract_first_page_screenshot_from_pdf(report_file_path)
-            logger.log_object(pdf_screenshot)
+    pdf_screenshot = extract_first_page_screenshot_from_pdf(report_file_path)
+    logger.log_object(pdf_screenshot, tag="load_pdf_screenshot")
 
     docs_dict = load_and_process_pdfs_by_langchain(report_file_path)
 
@@ -92,7 +90,7 @@ def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> Tuple[Qlib
     report_content = "\n".join(docs_dict.values())
     hypothesis = generate_hypothesis(factor_result, report_content)
     exp.hypothesis = hypothesis
-    return exp, hypothesis
+    return exp
 
 
 class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
@@ -105,47 +103,31 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
         else:
             self.judge_pdf_data_items = [i for i in Path(report_folder).rglob("*.pdf")]
 
-        self.pdf_file_index = 0
-        self.valid_pdf_file_count = 0
-        self.current_loop_hypothesis = None
-        self.current_loop_exp = None
-        self.steps = ["propose_hypo_exp", "propose", "direct_exp_gen", "coding", "running", "feedback"]
+        self.loop_n = min(len(self.judge_pdf_data_items), FACTOR_FROM_REPORT_PROP_SETTING.report_limit)
 
-    def propose_hypo_exp(self, prev_out: dict[str, Any]):
+    def direct_exp_gen(self, prev_out: dict[str, Any]):
         while True:
-            if FACTOR_FROM_REPORT_PROP_SETTING.is_report_limit_enabled and self.valid_pdf_file_count > 15:
-                break
-            report_file_path = self.judge_pdf_data_items[self.pdf_file_index]
-            logger.info(f"Processing number {self.pdf_file_index} report: {report_file_path}")
-            self.pdf_file_index += 1
-            exp, hypothesis = extract_hypothesis_and_exp_from_reports(str(report_file_path))
+            report_file_path = self.judge_pdf_data_items[self.loop_idx]
+            logger.info(f"Processing number {self.loop_idx} report: {report_file_path}")
+            exp = extract_hypothesis_and_exp_from_reports(str(report_file_path))
             if exp is None:
                 continue
-            self.valid_pdf_file_count += 1
-            exp.based_experiments = [QlibFactorExperiment(sub_tasks=[], hypothesis=hypothesis)] + [
+            exp.based_experiments = [QlibFactorExperiment(sub_tasks=[], hypothesis=exp.hypothesis)] + [
                 t[0] for t in self.trace.hist if t[1]
             ]
             exp.sub_workspace_list = exp.sub_workspace_list[: FACTOR_FROM_REPORT_PROP_SETTING.max_factors_per_exp]
             exp.sub_tasks = exp.sub_tasks[: FACTOR_FROM_REPORT_PROP_SETTING.max_factors_per_exp]
-            logger.log_object(hypothesis, tag="hypothesis generation")
+            logger.log_object(exp.hypothesis, tag="hypothesis generation")
             logger.log_object(exp.sub_tasks, tag="experiment generation")
-            self.current_loop_hypothesis = hypothesis
-            self.current_loop_exp = exp
-            return None
-
-    def propose(self, prev_out: dict[str, Any]):
-        return self.current_loop_hypothesis
-
-    def direct_exp_gen(self, prev_out: dict[str, Any]):
-        return {"propose": self.current_loop_hypothesis, "exp_gen": self.current_loop_exp}
+            return exp
 
     def coding(self, prev_out: dict[str, Any]):
-        exp = self.coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
+        exp = self.coder.develop(prev_out["direct_exp_gen"])
         logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
 
 
-def main(report_folder=None, path=None, step_n=None, loop_n=None, all_duration=None, checkout=True):
+def main(report_folder=None, path=None, all_duration=None, checkout=True):
     """
     Auto R&D Evolving loop for fintech factors (the factors are extracted from finance reports).
 
@@ -161,7 +143,7 @@ def main(report_folder=None, path=None, step_n=None, loop_n=None, all_duration=N
     else:
         model_loop = FactorReportLoop(report_folder=report_folder)
 
-    asyncio.run(model_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration))
+    asyncio.run(model_loop.run(all_duration=all_duration))
 
 
 if __name__ == "__main__":

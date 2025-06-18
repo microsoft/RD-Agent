@@ -14,7 +14,6 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
-from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.exception import KaggleError
 from rdagent.core.utils import cache_with_pickle
@@ -107,9 +106,7 @@ def crawl_descriptions(
     return descriptions
 
 
-def download_data(
-    competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPLEMENT_SETTING, enable_create_debug_data: bool = True
-) -> None:
+def download_data(competition: str, settings: ExtendedBaseSettings, enable_create_debug_data: bool = True) -> None:
     local_path = settings.local_data_path
     if settings.if_using_mle_data:
         zipfile_path = f"{local_path}/zip_files"
@@ -227,9 +224,7 @@ def score_rank(competition: str, score: float) -> tuple[int, float]:
     return rank, rank_percent
 
 
-def download_notebooks(
-    competition: str, local_path: str = f"{KAGGLE_IMPLEMENT_SETTING.local_data_path}/notebooks", num: int = 15
-) -> None:
+def download_notebooks(competition: str, local_path: str, num: int = 15) -> None:
     data_path = Path(f"{local_path}/{competition}")
     from kaggle.api.kaggle_api_extended import KaggleApi
 
@@ -264,9 +259,7 @@ def notebook_to_knowledge(notebook_text: str) -> str:
     return response
 
 
-def convert_notebooks_to_text(
-    competition: str, local_path: str = f"{KAGGLE_IMPLEMENT_SETTING.local_data_path}/notebooks"
-) -> None:
+def convert_notebooks_to_text(competition: str, local_path: str) -> None:
     data_path = Path(f"{local_path}/{competition}")
     converted_num = 0
 
@@ -302,7 +295,7 @@ def convert_notebooks_to_text(
     print(f"Converted {converted_num} notebooks to text files.")
 
 
-def collect_knowledge_texts(local_path: str = KAGGLE_IMPLEMENT_SETTING.local_data_path) -> dict[str, list[str]]:
+def collect_knowledge_texts(notebooks_path: str | Path) -> dict[str, list[str]]:
     """
     {
         "competition1": [
@@ -318,7 +311,7 @@ def collect_knowledge_texts(local_path: str = KAGGLE_IMPLEMENT_SETTING.local_dat
         ...
     }
     """
-    notebooks_dir = Path(local_path) / "notebooks"
+    notebooks_dir = Path(notebooks_path)
 
     competition_knowledge_texts_dict = {}
     for competition_dir in notebooks_dir.iterdir():
