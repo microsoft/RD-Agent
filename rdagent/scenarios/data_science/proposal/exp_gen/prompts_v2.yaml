@@ -26,9 +26,11 @@ scenario_problem:
     2. The challenge should be technical or methodological. Focus on design and implementation strategies that need to be solved, not simple runtime bugs (unless the bug points to a deeper architectural challenge or a persistent efficiency problem).
     3. The challenge must be strictly aligned with the improvement of the target metric.
     4. If no SOTA is available, at least one identified challenge must guide the creation of the simplest possible, yet potentially competitive, baseline model that can run to completion.
-
+    
+    {% if problem_output_format is not none %}
     ### Output Format
     {{ problem_output_format }}
+    {% endif %}
 
   user: |-
     # Scenario Description
@@ -61,7 +63,6 @@ feedback_problem:
     3. Do not do incremental exploration on the previous problems.
     {% endif %}
 
-    ## Feedback Problems
     ### Definition
     Key Learnings and Unresolved Challenges are specific, fine-grained technical or methodological observations, persistent issues, or patterns identified within previous experiments or the current SOTA implementation. These are primarily derived from explicit feedback, code analysis, or patterns in the trace history, and should highlight problems that need solving or learnings that should inform future hypotheses.
 
@@ -89,12 +90,11 @@ feedback_problem:
     3. Clearly state the learning or articulate the challenge.
     4. Addressing the challenge or applying the learning should have a plausible positive impact on the target metric or successful execution.
     5. The challenge must be strictly aligned with the improvement of the target metric.
-
-    ### Specification
-    {{ problem_spec }}
-
+    
+    {% if problem_output_format is not none %}
     ### Output Format
     {{ problem_output_format }}
+    {% endif %}
 
   user: |-
     # Scenario Description
@@ -192,9 +192,6 @@ hypothesis_gen:
     4. **Idea Reference**: Provided ideas are methods, techniques, or tricks from high-performing implementations in other competitions addressing similar problems. Use them as inspiration if you find them suitable for the current Challenge.
     {% endif %}
 
-    ## Hypothesis Specification
-    {{ hypothesis_spec }}
-
     ## 1.2. Guidelines for Writing Hypotheses
 
     1. **Be Specific and Decisive**:
@@ -220,9 +217,6 @@ hypothesis_gen:
     5. **Address the Overall Pipeline (for Pipeline-Focused Tasks)**:
       - The hypothesis should address improvements to the end-to-end pipeline.
       - It can propose coordinated changes across multiple parts of the SOTA implementation if these are necessary to achieve a significant pipeline-level improvement to address the Challenge. (Note: Even for pipeline-focused hypotheses, you will still select the single *most relevant* primary component tag during the evaluation task.)
-
-    # Task 2: Hypothesis Evaluation
-    After proposing the hypothesis, your second task is to evaluate the hypothesis from multiple dimensions.
 
     # Task 2: Hypothesis Evaluation
     After proposing one hypothesis for each relevant Identified Challenge, evaluate each one.
@@ -255,10 +249,11 @@ hypothesis_gen:
     3. Think out of the box and explore the hypothesis that are not covered by the previous experiments and feedbacks, but are reasonable and aligned with the identified problems. 
     4. Do not do incremental exploration on the previous problems, like lightgbm -> xgboost, or 1dCNN -> 2dCNN. Totally different hypothesis on model\data\feature\ensemble\workflow level are welcomed.
     {% endif %}
-
-
+    
+    {% if hypothesis_output_format is not none %}
     ## Final Output Format in JSON Schema:
     {{ hypothesis_output_format }}
+    {% endif %}
     
   user: |-
     # Scenario Description
@@ -277,7 +272,6 @@ task_gen:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
     The user is iteratively developing a Kaggle competition solution. Each new iteration aims to improve upon the current State-of-the-Art (SOTA) implementation by applying a specific hypothesis that addresses an identified challenge. The new trace is based on the current SOTA; the SOTA itself evolves.
-
 
     You will be provided with the following inputs:
     1. **Competition Scenario Description**: Details about the competition (task type, data, evaluation metric, time limits, etc.).
@@ -361,7 +355,8 @@ task_gen:
       - Handle file I/O robustly, especially for zipped data or large files, to prevent `FileNotFoundError` or `BadZipFile` issues.
       - Confirm no `tqdm` or other progress bars are in the final script.
       - Double-check that validation scores are saved correctly to `scores.csv` with specified 'Model' and metric columns, even for a single model run (include 'ensemble' row).
-
+    
+    {% if task_output_format is not none %}
     ## [Partial Response Format 1] Task Output Format:
     {{ task_output_format }}
 
@@ -377,6 +372,7 @@ task_gen:
       "task_design": ---The dict corresponding to task output format---,
       {% if workflow_check %}"workflow_update": ---A string corresponding to workflow description--- {% endif %}
     }
+    {% endif %}
     
   user: |-
     # Competition Scenario Description
@@ -430,11 +426,6 @@ idea_sample:
     {{ problem_ideas }}
 
 specification:
-  problem: |-
-    1. The problem should be specific and fine-grained. Avoid general or vague statements. 
-    2. The problem should technical or methodological. Focus on design and implementation flaws, not runtime errors.
-    3. The problem should be strictly aligned with the improvement of target metric. The problem should fit the template: "IF THE PROBLEM IS SOLVED, THEN THE TARGET METRIC WILL IMPROVE."
-  
   hypothesis: |-
     1. Each hypothesis should be specific and non-vague.
       - Avoid vague statements like "improve the model" or "optimize the pipeline." Instead, specify the exact changes to be made. Do not use ambiguous changes like "try method A or method B". 

@@ -9,6 +9,7 @@ from litellm import (
     embedding,
     supports_response_schema,
     token_counter,
+    supports_function_calling,
 )
 
 from rdagent.log import LogColors
@@ -173,3 +174,9 @@ class LiteLLMAPIBackend(APIBackend):
             tag="token_cost",
         )
         return content, finish_reason
+
+    def support_function_calling(self) -> bool:
+        """
+        Check if the backend supports function calling
+        """
+        return supports_function_calling(model=LITELLM_SETTINGS.chat_model) and LITELLM_SETTINGS.enable_function_call
