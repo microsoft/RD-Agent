@@ -128,7 +128,7 @@ The Data Science Agent is an agent that can automatically perform feature engine
     
     .. code-block:: sh
 
-        rdagent kaggle --competition <Competition ID>
+        rdagent data_science --competition <Competition ID>
 
 - 📥 **Visualize the R&D Process**
 
