@@ -67,8 +67,8 @@ class FactorFromReportPropSetting(FactorBasePropSetting):
     max_factors_per_exp: int = 10000
     """Maximum number of factors implemented per experiment"""
 
-    is_report_limit_enabled: bool = False
-    """Limits report processing count if True; processes all if False"""
+    report_limit: int = 10000
+    """Maximum number of reports to process"""
 
 
 class QuantBasePropSetting(BasePropSetting):

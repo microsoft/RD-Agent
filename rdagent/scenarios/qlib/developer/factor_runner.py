@@ -27,7 +27,7 @@ DIRNAME_local = Path.cwd()
 #         #
 #     def execute():
 #         de = DockerEnv()
-#         de.run(local_path=self.ws_path, entry="qrun conf.yaml")
+#         de.run(local_path=self.ws_path, entry="qrun conf_baseline.yaml")
 
 # TODO: supporting multiprocessing and keep previous results
 
@@ -158,17 +158,21 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
 
                 # model + combined factors
                 result, stdout = exp.experiment_workspace.execute(
-                    qlib_config_name="conf_model_combined.yaml", run_env=env_to_use
+                    qlib_config_name="conf_combined_factors_sota_model.yaml", run_env=env_to_use
                 )
             else:
                 # LGBM + combined factors
                 result, stdout = exp.experiment_workspace.execute(
-                    qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
+                    qlib_config_name=(
+                        f"conf_baseline.yaml" if len(exp.based_experiments) == 0 else "conf_combined_factors.yaml"
+                    )
                 )
         else:
             logger.info(f"Experiment execution ...")
             result, stdout = exp.experiment_workspace.execute(
-                qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
+                qlib_config_name=(
+                    f"conf_baseline.yaml" if len(exp.based_experiments) == 0 else "conf_combined_factors.yaml"
+                )
             )
 
         if result is None:

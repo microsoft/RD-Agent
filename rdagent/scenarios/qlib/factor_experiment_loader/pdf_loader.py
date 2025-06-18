@@ -19,6 +19,7 @@ from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 from rdagent.scenarios.qlib.factor_experiment_loader.json_loader import (
     FactorExperimentLoaderFromDict,
 )
@@ -566,7 +567,7 @@ def deduplicate_factors_by_llm(  # noqa: C901, PLR0912
 
 
 class FactorExperimentLoaderFromPDFfiles(FactorExperimentLoader):
-    def load(self, file_or_folder_path: str) -> dict:
+    def load(self, file_or_folder_path: str) -> QlibFactorExperiment:
         with logger.tag("docs"):
             docs_dict = load_and_process_pdfs_by_langchain(file_or_folder_path)
             logger.log_object(docs_dict)

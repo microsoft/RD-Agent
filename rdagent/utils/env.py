@@ -7,6 +7,7 @@ Tries to create uniform environment for the agent to run;
 
 # TODO: move the scenario specific docker env into other folders.
 
+import contextlib
 import json
 import os
 import pickle
@@ -20,7 +21,7 @@ import zipfile
 from abc import abstractmethod
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Generic, Mapping, Optional, TypeVar
+from typing import Any, Generator, Generic, Mapping, Optional, TypeVar, cast
 
 import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
@@ -39,7 +40,31 @@ from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.experiment import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
+from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
+
+
+# Normalize all bind paths in volumes to absolute paths using the workspace (working_dir).
+def normalize_volumes(vols: dict[str, str | dict[str, str]], working_dir: str) -> dict:
+    abs_vols: dict[str, str | dict[str, str]] = {}
+
+    def to_abs(path: str) -> str:
+        # Converts a relative path to an absolute path using the workspace (working_dir).
+        return os.path.abspath(os.path.join(working_dir, path)) if not os.path.isabs(path) else path
+
+    for lp, vinfo in vols.items():
+        # Support both:
+        # 1. {'host_path': {'bind': 'container_path', ...}}
+        # 2. {'host_path': 'container_path'}
+        if isinstance(vinfo, dict):
+            # abs_vols = cast(dict[str, dict[str, str]], abs_vols)
+            vinfo = vinfo.copy()
+            vinfo["bind"] = to_abs(vinfo["bind"])
+            abs_vols[lp] = vinfo
+        else:
+            # abs_vols = cast(dict[str, str], abs_vols)
+            abs_vols[lp] = to_abs(vinfo)
+    return abs_vols
 
 
 def pull_image_with_progress(image: str) -> None:
@@ -213,10 +238,37 @@ class Env(Generic[ASpecificEnvConf]):
                 "the last command in the pipeline.",
             )
 
+        # FIXME: the input path and cache path is hard coded here.
+        # We don't want to change the content in input and cache path.
+        # Otherwise, it may produce large amount of warnings.
+        def _get_chmod_cmd(workspace_path: str) -> str:
+            def _get_path_stem(path: str) -> str | None:
+                # If the input path is relative, keep only the first component
+                p = Path(path)
+                if not p.is_absolute() and p.parts:
+                    return p.parts[0]
+                return None
+
+            chmod_cmd = f"chmod -R 777 $(find {workspace_path} -mindepth 1 -maxdepth 1"
+            for name in [
+                _get_path_stem(T("scenarios.data_science.share:scen.cache_path").r()),
+                _get_path_stem(T("scenarios.data_science.share:scen.input_path").r()),
+            ]:
+                chmod_cmd += f" ! -name {name}"
+            chmod_cmd += ")"
+            return chmod_cmd
+
         entry_add_timeout = (
             f"/bin/sh -c 'timeout --kill-after=10 {self.conf.running_timeout_period} {entry}; "
             + "entry_exit_code=$?; "
-            + (f"chmod -R 777 {self.conf.mount_path}; " if hasattr(self.conf, "mount_path") else "")
+            + (
+                f"{_get_chmod_cmd(self.conf.mount_path)}; "
+                # We don't have to change the permission of the cache and input folder to remove it
+                # + f"if [ -d {self.conf.mount_path}/cache ]; then chmod 777 {self.conf.mount_path}/cache; fi; " +
+                #     f"if [ -d {self.conf.mount_path}/input ]; then chmod 777 {self.conf.mount_path}/input; fi; "
+                if isinstance(self.conf, DockerConf)
+                else ""
+            )
             + "exit $entry_exit_code'"
         )
 
@@ -347,6 +399,7 @@ class LocalConf(EnvConf):
     """path like <path1>:<path2>:<path3>, which will be prepend to bin path."""
 
     retry_count: int = 0  # retry count for; run `retry_count + 1` times
+    live_output: bool = False
 
 
 ASpecificLocalConf = TypeVar("ASpecificLocalConf", bound=LocalConf)
@@ -375,98 +428,123 @@ class LocalEnv(Env[ASpecificLocalConf]):
                 volumes[lp] = rp
             cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
-            volumes[cache_path] = "/tmp/cache"
+            volumes[cache_path] = T("scenarios.data_science.share:scen.cache_path").r()
         for lp, rp in running_extra_volume.items():
             volumes[lp] = rp
-        for rp, lp in volumes.items():
-            link_path = Path(lp)
-            real_path = Path(rp)
-            if not link_path.parent.exists():
-                link_path.parent.mkdir(parents=True, exist_ok=True)
-            if link_path.exists() or link_path.is_symlink():
-                link_path.unlink()
-            link_path.symlink_to(real_path)
 
-        # Setup environment
-        if env is None:
-            env = {}
-        path = [*self.conf.bin_path.split(":"), "/bin/", "/usr/bin/", *env.get("PATH", "").split(":")]
-        env["PATH"] = ":".join(path)
+        assert local_path is not None, "local_path should not be None"
+        volumes = normalize_volumes(volumes, local_path)
 
-        if entry is None:
-            entry = self.conf.default_entry
+        @contextlib.contextmanager
+        def _symlink_ctx(vol_map: Mapping[str, str]) -> Generator[None, None, None]:
+            created_links: list[Path] = []
+            try:
+                for real, link in vol_map.items():
+                    link_path = Path(link)
+                    real_path = Path(real)
+                    if not link_path.parent.exists():
+                        link_path.parent.mkdir(parents=True, exist_ok=True)
+                    if link_path.exists() or link_path.is_symlink():
+                        link_path.unlink()
+                    link_path.symlink_to(real_path)
+                    created_links.append(link_path)
+                yield
+            finally:
+                for p in created_links:
+                    try:
+                        if p.is_symlink() or p.exists():
+                            p.unlink()
+                    except FileNotFoundError:
+                        pass
 
-        print(Rule("[bold green]LocalEnv Logs Begin[/bold green]", style="dark_orange"))
-        table = Table(title="Run Info", show_header=False)
-        table.add_column("Key", style="bold cyan")
-        table.add_column("Value", style="bold magenta")
-        table.add_row("Entry", entry)
-        table.add_row("Local Path", local_path or "")
-        table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
-        table.add_row("Volumes", "\n".join(f"{k}:{v}" for k, v in volumes.items()))
-        print(table)
+        with _symlink_ctx(volumes):
+            # Setup environment
+            if env is None:
+                env = {}
+            path = [*self.conf.bin_path.split(":"), "/bin/", "/usr/bin/", *env.get("PATH", "").split(":")]
+            env["PATH"] = ":".join(path)
 
-        cwd = Path(local_path).resolve() if local_path else None
-        env = {k: str(v) if isinstance(v, int) else v for k, v in env.items()}
+            if entry is None:
+                entry = self.conf.default_entry
 
-        process = subprocess.Popen(
-            entry,
-            cwd=cwd,
-            env={**os.environ, **env},
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            shell=True,
-            bufsize=1,
-            universal_newlines=True,
-        )
+            print(Rule("[bold green]LocalEnv Logs Begin[/bold green]", style="dark_orange"))
+            table = Table(title="Run Info", show_header=False)
+            table.add_column("Key", style="bold cyan")
+            table.add_column("Value", style="bold magenta")
+            table.add_row("Entry", entry)
+            table.add_row("Local Path", local_path or "")
+            table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
+            table.add_row("Volumes", "\n".join(f"{k}:\n  {v}" for k, v in volumes.items()))
+            print(table)
 
-        # Setup polling
-        if process.stdout is None or process.stderr is None:
-            raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
+            cwd = Path(local_path).resolve() if local_path else None
+            env = {k: str(v) if isinstance(v, int) else v for k, v in env.items()}
 
-        stdout_fd = process.stdout.fileno()
-        stderr_fd = process.stderr.fileno()
+            process = subprocess.Popen(
+                entry,
+                cwd=cwd,
+                env={**os.environ, **env},
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                shell=True,
+                bufsize=1,
+                universal_newlines=True,
+            )
 
-        poller = select.poll()
-        poller.register(stdout_fd, select.POLLIN)
-        poller.register(stderr_fd, select.POLLIN)
+            # Setup polling
+            if process.stdout is None or process.stderr is None:
+                raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
 
-        combined_output = ""
-        while True:
-            if process.poll() is not None:
-                break
-            events = poller.poll(100)
-            for fd, event in events:
-                if event & select.POLLIN:
-                    if fd == stdout_fd:
-                        while True:
-                            output = process.stdout.readline()
-                            if output == "":
-                                break
-                            Console().print(output.strip(), markup=False)
-                            combined_output += output
-                    elif fd == stderr_fd:
-                        while True:
-                            error = process.stderr.readline()
-                            if error == "":
-                                break
-                            Console().print(error.strip(), markup=False)
-                            combined_output += error
+            if self.conf.live_output:
+                stdout_fd = process.stdout.fileno()
+                stderr_fd = process.stderr.fileno()
 
-        # Capture any final output
-        remaining_output, remaining_error = process.communicate()
-        if remaining_output:
-            Console().print(remaining_output.strip(), markup=False)
-            combined_output += remaining_output
-        if remaining_error:
-            Console().print(remaining_error.strip(), markup=False)
-            combined_output += remaining_error
+                poller = select.poll()
+                poller.register(stdout_fd, select.POLLIN)
+                poller.register(stderr_fd, select.POLLIN)
 
-        return_code = process.returncode
-        print(Rule("[bold green]LocalEnv Logs End[/bold green]", style="dark_orange"))
+                combined_output = ""
+                while True:
+                    if process.poll() is not None:
+                        break
+                    events = poller.poll(100)
+                    for fd, event in events:
+                        if event & select.POLLIN:
+                            if fd == stdout_fd:
+                                while True:
+                                    output = process.stdout.readline()
+                                    if output == "":
+                                        break
+                                    Console().print(output.strip(), markup=False)
+                                    combined_output += output
+                            elif fd == stderr_fd:
+                                while True:
+                                    error = process.stderr.readline()
+                                    if error == "":
+                                        break
+                                    Console().print(error.strip(), markup=False)
+                                    combined_output += error
 
-        return combined_output, return_code
+                # Capture any final output
+                remaining_output, remaining_error = process.communicate()
+                if remaining_output:
+                    Console().print(remaining_output.strip(), markup=False)
+                    combined_output += remaining_output
+                if remaining_error:
+                    Console().print(remaining_error.strip(), markup=False)
+                    combined_output += remaining_error
+            else:
+                # Sacrifice real-time output to avoid possible standard I/O hangs
+                out, err = process.communicate()
+                Console().print(out, end="", markup=False)
+                Console().print(err, end="", markup=False)
+                combined_output = out + err
+
+            return_code = process.returncode
+            print(Rule("[bold green]LocalEnv Logs End[/bold green]", style="dark_orange"))
+
+            return combined_output, return_code
 
 
 class CondaConf(LocalConf):
@@ -564,25 +642,6 @@ class QlibDockerConf(DockerConf):
     shm_size: str | None = "16g"
     enable_gpu: bool = True
     enable_cache: bool = False
-
-
-class DMDockerConf(DockerConf):
-    model_config = SettingsConfigDict(env_prefix="DM_DOCKER_")
-
-    build_from_dockerfile: bool = True
-    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "data_mining" / "docker"
-    image: str = "local_dm:latest"
-    mount_path: str = "/workspace/dm_workspace/"
-    default_entry: str = "python train.py"
-    extra_volumes: dict = {
-        str(
-            Path("~/.rdagent/.data/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3/")
-            .expanduser()
-            .resolve()
-            .absolute()
-        ): "/root/.data/"
-    }
-    shm_size: str | None = "16g"
 
 
 class KGDockerConf(DockerConf):
@@ -769,9 +828,11 @@ class DockerEnv(Env[DockerConf]):
                 volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
             cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
-            volumes[cache_path] = {"bind": "/tmp/cache", "mode": "rw"}
+            volumes[cache_path] = {"bind": T("scenarios.data_science.share:scen.cache_path").r(), "mode": "rw"}
         for lp, rp in running_extra_volume.items():
             volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
+
+        volumes = normalize_volumes(cast(dict[str, str | dict[str, str]], volumes), self.conf.mount_path)
 
         log_output = ""
 
@@ -800,7 +861,7 @@ class DockerEnv(Env[DockerConf]):
             table.add_row("Container Name", container.name)
             table.add_row("Entry", entry)
             table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
-            table.add_row("Volumes", "\n".join(f"{k}:{v}" for k, v in volumes.items()))
+            table.add_row("Volumes", "\n".join(f"{k}:\n  {v}" for k, v in volumes.items()))
             print(table)
             for log in logs:
                 decoded_log = log.strip().decode()
@@ -836,28 +897,6 @@ class QTDockerEnv(DockerEnv):
             logger.info("We are downloading!")
             cmd = "python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn --interval 1d --delete_old False"
             self.run(entry=cmd)
-        else:
-            logger.info("Data already exists. Download skipped.")
-
-
-class DMDockerEnv(DockerEnv):
-    """Qlib Torch Docker"""
-
-    def __init__(self, conf: DockerConf = DMDockerConf()):
-        super().__init__(conf)
-
-    def prepare(self, username: str, password: str) -> None:
-        """
-        Download image & data if it doesn't exist
-        """
-        super().prepare()
-        data_path = next(iter(self.conf.extra_volumes.keys()))
-        if not (Path(data_path)).exists():
-            logger.info("We are downloading!")
-            cmd = "wget -r -N -c -np --user={} --password={} -P ~/.rdagent/.data/ https://physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/".format(
-                username, password
-            )
-            os.system(cmd)
         else:
             logger.info("Data already exists. Download skipped.")
 
