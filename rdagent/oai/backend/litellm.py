@@ -92,8 +92,7 @@ class LiteLLMAPIBackend(APIBackend):
             kwargs["response_format"] = {"type": "json_object"}
         elif not supports_response_schema(model=LITELLM_SETTINGS.chat_model) and "response_format" in kwargs:
             logger.warning(
-                f"{LogColors.RED}Model {LITELLM_SETTINGS.chat_model} does not support response schema, "
-                "ignoring response_format argument.{LogColors.END}",
+                f"{LogColors.RED}Model {LITELLM_SETTINGS.chat_model} does not support response schema, ignoring response_format argument.{LogColors.END}",
                 tag="llm_messages",
             )
             kwargs.pop("response_format")
