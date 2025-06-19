@@ -90,14 +90,11 @@ class DataScienceRDLoop(RDLoop):
         from rdagent.scenarios.data_science.proposal.exp_gen.proposal import (
             DSProposalV1ExpGen,
             DSProposalV2ExpGen,
-            DSProposalV3ExpGen,
         )
 
         if class_uri == "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen":
-            if DS_RD_SETTING.proposal_version not in ["v1", "v2", "v3"]:
+            if DS_RD_SETTING.proposal_version not in ["v1", "v2"]:
                 return import_class(DS_RD_SETTING.proposal_version)(scen=scen)
-            if DS_RD_SETTING.proposal_version == "v3":
-                return DSProposalV3ExpGen(scen=scen)
             if DS_RD_SETTING.proposal_version == "v1":
                 return DSProposalV1ExpGen(scen=scen)
             if DS_RD_SETTING.proposal_version == "v2":

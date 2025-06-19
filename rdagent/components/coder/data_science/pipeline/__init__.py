@@ -98,21 +98,12 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
             enable_model_dump=DS_RD_SETTING.enable_model_dump,
         )
-        if DS_RD_SETTING.proposal_version == "v3":
-            # FIXME: A temporary patch for BUILD
-            user_prompt = T(".prompts:pipeline_coder.user_v3").r(
-                competition_info=competition_info,
-                folder_spec=data_folder_info,
-                latest_code=workspace.file_dict.get("main.py"),
-                latest_code_feedback=prev_task_feedback,
-            )
-        else:
-            user_prompt = T(".prompts:pipeline_coder.user").r(
-                competition_info=competition_info,
-                folder_spec=data_folder_info,
-                latest_code=workspace.file_dict.get("main.py"),
-                latest_code_feedback=prev_task_feedback,
-            )
+        user_prompt = T(".prompts:pipeline_coder.user").r(
+            competition_info=competition_info,
+            folder_spec=data_folder_info,
+            latest_code=workspace.file_dict.get("main.py"),
+            latest_code_feedback=prev_task_feedback,
+        )
 
         for _ in range(5):
             pipeline_code = PythonAgentOut.extract_output(
