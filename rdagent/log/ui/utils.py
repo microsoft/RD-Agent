@@ -144,26 +144,21 @@ def get_final_sota_exp(log_path: Path):
 
 @cache_with_pickle(_log_path_hash_func, force=True)
 def get_sota_exp_stat(log_path: Path):
-    trace_paths = [i for i in log_path.rglob(f"**/trace/**/*.pkl")]
+    trace_paths = [(i, int(re.match(r".*Loop_(\d+).*", str(i))[1])) for i in log_path.rglob(f"*/feedback/*/*.pkl")]
     if len(trace_paths) == 0:
         return None
-    final_trace_path = max(trace_paths, key=lambda x: int(re.match(r".*Loop_(\d+).*", str(x))[1]))
-    with final_trace_path.open("rb") as f:
-        final_trace = pickle.load(f)
 
-    if hasattr(final_trace, "sota_exp_to_submit"):
-        sota_exp = final_trace.sota_exp_to_submit
-    else:
-        sota_exp = final_trace.sota_experiment()
-
-    if sota_exp is None:
-        return None
-
+    trace_paths.sort(key=lambda x: x[1], reverse=True)
     sota_loop_id = None
-    for i, ef in enumerate(final_trace.hist):
-        if ef[0] == sota_exp:
-            sota_loop_id = i
-            break
+    for trace_path, loop_id in trace_paths:
+        with open(trace_path, "rb") as f:
+            trace = pickle.load(f)
+            if trace.decision:
+                sota_loop_id = loop_id
+                break
+
+    if sota_loop_id is None:
+        return None
 
     sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{sota_loop_id}/running/mle_score/**/*.pkl")]
     if len(sota_mle_score_paths) == 0:
