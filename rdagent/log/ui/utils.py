@@ -119,13 +119,13 @@ def get_script_time(stdout_p: Path):
     return None
 
 
-def _log_path_hash_func(log_path: Path):
+def _log_path_hash_func(log_path: Path, sota_loop_id: int | None = None):
     hash_str = str(log_path) + str(log_path.stat().st_mtime)
     session_p = log_path / "__session__"
     if session_p.exists():
         for ld in session_p.iterdir():
             if ld.is_dir():
-                hash_str += str(ld.name) + str(ld.stat().st_mtime)
+                hash_str += str(ld.name) + str(ld.stat().st_mtime) + str(sota_loop_id)
     else:
         hash_str += "no session now"
     return md5_hash(hash_str)
