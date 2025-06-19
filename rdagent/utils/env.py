@@ -835,6 +835,7 @@ class DockerEnv(Env[DockerConf]):
         volumes = normalize_volumes(cast(dict[str, str | dict[str, str]], volumes), self.conf.mount_path)
 
         log_output = ""
+        container = None
 
         try:
             container: docker.models.containers.Container = client.containers.run(  # type: ignore[no-any-unimported]
@@ -869,8 +870,6 @@ class DockerEnv(Env[DockerConf]):
                 Console().print(decoded_log, markup=False)
                 log_output += decoded_log + "\n"
             exit_status = container.wait()["StatusCode"]
-            container.stop()
-            container.remove()
             print(Rule("[bold green]Docker Logs End[/bold green]", style="dark_orange"))
             return log_output, exit_status
         except docker.errors.ContainerError as e:
@@ -879,6 +878,15 @@ class DockerEnv(Env[DockerConf]):
             raise RuntimeError("Docker image not found.")
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while running the container: {e}")
+        finally:
+            # Ensure container is always cleaned up, regardless of success or failure
+            if container is not None:
+                try:
+                    container.stop()
+                    container.remove()
+                except Exception as cleanup_error:
+                    # Log cleanup error but don't mask the original exception
+                    logger.warning(f"Failed to cleanup container {container.id}: {cleanup_error}")
 
 
 class QTDockerEnv(DockerEnv):
