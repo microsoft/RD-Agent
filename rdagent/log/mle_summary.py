@@ -1,7 +1,7 @@
 import pickle
+import traceback
 from collections import defaultdict
 from pathlib import Path
-import traceback
 
 import fire
 import pandas as pd
