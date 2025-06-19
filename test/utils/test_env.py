@@ -147,10 +147,10 @@ class EnvUtils(unittest.TestCase):
         """Test that cleanup_container function can be imported and has correct interface."""
         # Test that the function exists and can be called
         self.assertTrue(callable(cleanup_container))
-        
+
         # Test with None (should not raise an exception)
         cleanup_container(None, "test context")
-        
+
         # The function should accept positional and keyword arguments
         cleanup_container(None)
         cleanup_container(None, context="test")

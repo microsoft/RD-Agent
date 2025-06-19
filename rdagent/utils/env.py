@@ -48,7 +48,7 @@ def cleanup_container(container, context: str = "") -> None:
     """
     Shared helper function to clean up a Docker container.
     Always stops the container before removing it.
-    
+
     Parameters
     ----------
     container : docker container object or None
@@ -724,11 +724,13 @@ class MLEBDockerConf(DockerConf):
 class DockerEnv(Env[DockerConf]):
     # TODO: Save the output into a specific file
 
-    def _cleanup_container(self, container: docker.models.containers.Container | None, stop_first: bool = True, context: str = "") -> None:
+    def _cleanup_container(
+        self, container: docker.models.containers.Container | None, stop_first: bool = True, context: str = ""
+    ) -> None:
         """
         Helper method to clean up a Docker container.
         Delegates to the shared cleanup_container function.
-        
+
         Parameters
         ----------
         container : docker.models.containers.Container | None
