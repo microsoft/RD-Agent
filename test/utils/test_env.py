@@ -13,6 +13,7 @@ from rdagent.utils.env import (
     LocalEnv,
     QlibDockerConf,
     QTDockerEnv,
+    cleanup_container,
 )
 
 DIRNAME = Path(__file__).absolute().resolve().parent
@@ -141,6 +142,18 @@ class EnvUtils(unittest.TestCase):
         # The above command equals to the follow commands with dockr cli.sh
         # docker run  --memory=10m  -it --rm local_qlib:latest python -c 'import numpy as np; print(123);  size_mb = 1; size = size_mb * 1024 * 1024 // 8; array = np.random.randn(size).astype(np.float64); array[0], array[-1] = 1.0, 1.0; print(321)'
         # docker run  --memory=10g  -it --rm local_qlib:latest python -c 'import numpy as np; print(123);  size_mb = 1; size = size_mb * 1024 * 1024 // 8; array = np.random.randn(size).astype(np.float64); array[0], array[-1] = 1.0, 1.0; print(321)'
+
+    def test_cleanup_container_import(self):
+        """Test that cleanup_container function can be imported and has correct interface."""
+        # Test that the function exists and can be called
+        self.assertTrue(callable(cleanup_container))
+
+        # Test with None (should not raise an exception)
+        cleanup_container(None, "test context")
+
+        # The function should accept positional and keyword arguments
+        cleanup_container(None)
+        cleanup_container(None, context="test")
 
 
 if __name__ == "__main__":

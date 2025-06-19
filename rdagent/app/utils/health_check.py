@@ -3,22 +3,25 @@ import socket
 import docker
 
 from rdagent.log import rdagent_logger as logger
+from rdagent.utils.env import cleanup_container
 
 
 def check_docker() -> None:
+    container = None
     try:
         client = docker.from_env()
         client.images.pull("hello-world")
         container = client.containers.run("hello-world", detach=True)
         logs = container.logs().decode("utf-8")
         print(logs)
-        container.remove()
         logger.info(f"The docker status is normal")
     except docker.errors.DockerException as e:
         logger.error(f"An error occurred: {e}")
         logger.warning(
             f"Docker status is exception, please check the docker configuration or reinstall it. Refs: https://docs.docker.com/engine/install/ubuntu/."
         )
+    finally:
+        cleanup_container(container, "health check")
 
 
 def is_port_in_use(port):
