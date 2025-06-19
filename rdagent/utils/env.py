@@ -724,24 +724,6 @@ class MLEBDockerConf(DockerConf):
 class DockerEnv(Env[DockerConf]):
     # TODO: Save the output into a specific file
 
-    def _cleanup_container(  # type: ignore[no-any-unimported]
-        self, container: docker.models.containers.Container | None, stop_first: bool = True, context: str = ""
-    ) -> None:
-        """
-        Helper method to clean up a Docker container.
-        Delegates to the shared cleanup_container function.
-
-        Parameters
-        ----------
-        container : docker.models.containers.Container | None
-            The container to clean up, or None if no container to clean up
-        stop_first : bool
-            Whether to stop the container before removing it (deprecated, always stops first now)
-        context : str
-            Additional context for logging (e.g., "GPU test", "health check")
-        """
-        cleanup_container(container, context)
-
     def prepare(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
         """
         Download image if it doesn't exist
@@ -836,7 +818,7 @@ class DockerEnv(Env[DockerConf]):
             except docker.errors.APIError:
                 return {}
             finally:
-                self._cleanup_container(container, context="GPU test")
+                cleanup_container(container, context="GPU test")
             return gpu_kwargs
 
         return _f()
@@ -926,7 +908,7 @@ class DockerEnv(Env[DockerConf]):
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while running the container: {e}")
         finally:
-            self._cleanup_container(container)
+            cleanup_container(container)
 
 
 class QTDockerEnv(DockerEnv):
