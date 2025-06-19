@@ -143,19 +143,19 @@ def get_final_sota_exp(log_path: Path):
 
 
 @cache_with_pickle(_log_path_hash_func, force=True)
-def get_sota_exp_stat(log_path: Path):
-    trace_paths = [(i, int(re.match(r".*Loop_(\d+).*", str(i))[1])) for i in log_path.rglob(f"*/feedback/*/*.pkl")]
-    if len(trace_paths) == 0:
-        return None
+def get_sota_exp_stat(log_path: Path, sota_loop_id: int | None = None):
+    if sota_loop_id is None:
+        trace_paths = [(i, int(re.match(r".*Loop_(\d+).*", str(i))[1])) for i in log_path.rglob(f"*/feedback/*/*.pkl")]
+        if len(trace_paths) == 0:
+            return None
 
-    trace_paths.sort(key=lambda x: x[1], reverse=True)
-    sota_loop_id = None
-    for trace_path, loop_id in trace_paths:
-        with open(trace_path, "rb") as f:
-            trace = pickle.load(f)
-            if trace.decision:
-                sota_loop_id = loop_id
-                break
+        trace_paths.sort(key=lambda x: x[1], reverse=True)
+        for trace_path, loop_id in trace_paths:
+            with open(trace_path, "rb") as f:
+                trace = pickle.load(f)
+                if trace.decision:
+                    sota_loop_id = loop_id
+                    break
 
     if sota_loop_id is None:
         return None
@@ -273,7 +273,7 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
                 v["sota_exp_score_valid"] = final_sota_exp.result.loc["ensemble"].iloc[0]
             else:
                 v["sota_exp_score_valid"] = None
-            v["sota_exp_stat_new"] = get_sota_exp_stat(Path(lf) / k)
+            v["sota_exp_stat_new"] = get_sota_exp_stat(Path(lf) / k, v.get("sota_loop_id"))
             # change experiment name
             if "amlt" in lf:
                 summary[f"{lf[lf.rfind('amlt')+5:].split('/')[0]} - {k}"] = v
