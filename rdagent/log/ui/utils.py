@@ -145,7 +145,11 @@ def get_final_sota_exp(log_path: Path):
 @cache_with_pickle(_log_path_hash_func, force=True)
 def get_sota_exp_stat(log_path: Path, sota_loop_id: int | None = None):
     if sota_loop_id is None:
-        trace_paths = [(i, int(re.match(r".*Loop_(\d+).*", str(i))[1])) for i in log_path.rglob(f"*/feedback/*/*.pkl")]
+        trace_paths = [
+            (i, int(match[1]))
+            for i in log_path.rglob(f"*/feedback/*/*.pkl")
+            if (match := re.search(r".*Loop_(\d+).*", str(i)))
+        ]
         if len(trace_paths) == 0:
             return None
 
