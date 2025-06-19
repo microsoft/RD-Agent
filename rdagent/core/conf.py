@@ -87,8 +87,7 @@ class RDAgentSettings(ExtendedBaseSettings):
         """Based on the setting of semaphore, return the maximum number of parallel loops"""
         if isinstance(self.step_semaphore, int):
             return self.step_semaphore
-        else:
-            return max(self.step_semaphore.values())
+        return max(self.step_semaphore.values())
 
     # NOTE: for debug
     # the following function only serves as debugging and is necessary in main logic.
