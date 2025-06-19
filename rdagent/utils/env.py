@@ -701,6 +701,29 @@ class MLEBDockerConf(DockerConf):
 class DockerEnv(Env[DockerConf]):
     # TODO: Save the output into a specific file
 
+    def _cleanup_container(self, container: docker.models.containers.Container | None, stop_first: bool = False, context: str = "") -> None:
+        """
+        Helper method to clean up a Docker container.
+        
+        Parameters
+        ----------
+        container : docker.models.containers.Container | None
+            The container to clean up, or None if no container to clean up
+        stop_first : bool
+            Whether to stop the container before removing it
+        context : str
+            Additional context for logging (e.g., "GPU test", "health check")
+        """
+        if container is not None:
+            try:
+                if stop_first:
+                    container.stop()
+                container.remove()
+            except Exception as cleanup_error:
+                # Log cleanup error but don't mask the original exception
+                context_str = f" {context}" if context else ""
+                logger.warning(f"Failed to cleanup{context_str} container {container.id}: {cleanup_error}")
+
     def prepare(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
         """
         Download image if it doesn't exist
@@ -795,13 +818,7 @@ class DockerEnv(Env[DockerConf]):
             except docker.errors.APIError:
                 return {}
             finally:
-                # Ensure container is always cleaned up
-                if container is not None:
-                    try:
-                        container.remove()
-                    except Exception as cleanup_error:
-                        # Log cleanup error but don't mask the original exception
-                        logger.warning(f"Failed to cleanup GPU test container {container.id}: {cleanup_error}")
+                self._cleanup_container(container, stop_first=False, context="GPU test")
             return gpu_kwargs
 
         return _f()
@@ -890,14 +907,7 @@ class DockerEnv(Env[DockerConf]):
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while running the container: {e}")
         finally:
-            # Ensure container is always cleaned up, regardless of success or failure
-            if container is not None:
-                try:
-                    container.stop()
-                    container.remove()
-                except Exception as cleanup_error:
-                    # Log cleanup error but don't mask the original exception
-                    logger.warning(f"Failed to cleanup container {container.id}: {cleanup_error}")
+            self._cleanup_container(container, stop_first=True)
 
 
 class QTDockerEnv(DockerEnv):
