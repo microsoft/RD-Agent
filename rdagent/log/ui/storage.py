@@ -161,6 +161,7 @@ class WebStorage(Storage):
                 h: DSHypothesis = obj.hypothesis
                 tasks = [t[0] for t in obj.pending_tasks_list]
                 t = tasks[0]
+                t.name = type(t).__name__  # TODO: PipelinTask have "COMPONENT" in name, fix this when creating task.
                 data = [
                     {
                         "id": id,
@@ -214,33 +215,26 @@ class WebStorage(Storage):
                     },
                 ]
         elif f"evo_loop_{ei}.evolving code" in tag and "running" not in tag:
-            from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
-            from rdagent.components.coder.model_coder.model import (
-                ModelFBWorkspace,
-                ModelTask,
-            )
+            from rdagent.core.experiment import FBWorkspace
 
-            ws: list[FactorFBWorkspace | ModelFBWorkspace] = [i for i in obj]
-            if all(isinstance(item, FactorFBWorkspace) for item in ws) or all(
-                isinstance(item, ModelFBWorkspace) for item in ws
-            ):
-                data = {
-                    "id": id,
-                    "msg": {
-                        "tag": "evolving.codes",
-                        "timestamp": timestamp,
-                        "loop_id": li,
-                        "evo_id": ei,
-                        "content": [
-                            {
-                                "evo_id": ei,
-                                "target_task_name": w.target_task.name,
-                                "workspace": w.file_dict,
-                            }
-                            for w in ws
-                        ],
-                    },
-                }
+            ws: list[FBWorkspace] = [i for i in obj]
+            data = {
+                "id": id,
+                "msg": {
+                    "tag": "evolving.codes",
+                    "timestamp": timestamp,
+                    "loop_id": li,
+                    "evo_id": ei,
+                    "content": [
+                        {
+                            "evo_id": ei,
+                            "target_task_name": w.target_task.name if w.target_task else "PipelineTask", # TODO: save this when proposal
+                            "workspace": w.file_dict,
+                        }
+                        for w in ws
+                    ],
+                },
+            }
         elif f"evo_loop_{ei}.evolving feedback" in tag and "running" not in tag:
             from rdagent.components.coder.CoSTEER.evaluators import (
                 CoSTEERSingleFeedback,
