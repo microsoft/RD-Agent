@@ -44,7 +44,7 @@ from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
 
 
-def cleanup_container(container, context: str = "") -> None:
+def cleanup_container(container: docker.models.containers.Container | None, context: str = "") -> None:  # type: ignore[no-any-unimported]
     """
     Shared helper function to clean up a Docker container.
     Always stops the container before removing it.
@@ -724,7 +724,7 @@ class MLEBDockerConf(DockerConf):
 class DockerEnv(Env[DockerConf]):
     # TODO: Save the output into a specific file
 
-    def _cleanup_container(
+    def _cleanup_container(  # type: ignore[no-any-unimported]
         self, container: docker.models.containers.Container | None, stop_first: bool = True, context: str = ""
     ) -> None:
         """
@@ -881,10 +881,10 @@ class DockerEnv(Env[DockerConf]):
         volumes = normalize_volumes(cast(dict[str, str | dict[str, str]], volumes), self.conf.mount_path)
 
         log_output = ""
-        container = None
+        container: docker.models.containers.Container | None = None  # type: ignore[no-any-unimported]
 
         try:
-            container: docker.models.containers.Container = client.containers.run(  # type: ignore[no-any-unimported]
+            container = client.containers.run(
                 image=self.conf.image,
                 command=entry,
                 volumes=volumes,
@@ -898,6 +898,7 @@ class DockerEnv(Env[DockerConf]):
                 cpu_count=self.conf.cpu_count,  # Set CPU limit
                 **self._gpu_kwargs(client),
             )
+            assert container is not None  # Ensure container was created successfully
             logs = container.logs(stream=True)
             print(Rule("[bold green]Docker Logs Begin[/bold green]", style="dark_orange"))
             table = Table(title="Run Info", show_header=False)
