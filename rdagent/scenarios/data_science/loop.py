@@ -93,7 +93,7 @@ class DataScienceRDLoop(RDLoop):
         )
 
         if class_uri == "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen":
-            if DS_RD_SETTING.proposal_version not in ["v1", "v2", "v3"]:
+            if DS_RD_SETTING.proposal_version not in ["v1", "v2"]:
                 return import_class(DS_RD_SETTING.proposal_version)(scen=scen)
             if DS_RD_SETTING.proposal_version == "v1":
                 return DSProposalV1ExpGen(scen=scen)
