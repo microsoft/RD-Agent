@@ -6,19 +6,27 @@ from rdagent.log import rdagent_logger as logger
 
 
 def check_docker() -> None:
+    container = None
     try:
         client = docker.from_env()
         client.images.pull("hello-world")
         container = client.containers.run("hello-world", detach=True)
         logs = container.logs().decode("utf-8")
         print(logs)
-        container.remove()
         logger.info(f"The docker status is normal")
     except docker.errors.DockerException as e:
         logger.error(f"An error occurred: {e}")
         logger.warning(
             f"Docker status is exception, please check the docker configuration or reinstall it. Refs: https://docs.docker.com/engine/install/ubuntu/."
         )
+    finally:
+        # Ensure container is always cleaned up, regardless of success or failure
+        if container is not None:
+            try:
+                container.remove()
+            except Exception as cleanup_error:
+                # Log cleanup error but don't mask the original exception
+                logger.warning(f"Failed to cleanup container {container.id}: {cleanup_error}")
 
 
 def is_port_in_use(port):

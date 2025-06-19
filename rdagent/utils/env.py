@@ -785,12 +785,23 @@ class DockerEnv(Env[DockerConf]):
 
         @wait_retry(5, 10)
         def _f() -> dict:
+            container = None
             try:
                 get_image(self.conf.image)
-                client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
+                container = client.containers.run(self.conf.image, "nvidia-smi", detach=True, **gpu_kwargs)
+                # Wait for container to complete
+                container.wait()
                 logger.info("GPU Devices are available.")
             except docker.errors.APIError:
                 return {}
+            finally:
+                # Ensure container is always cleaned up
+                if container is not None:
+                    try:
+                        container.remove()
+                    except Exception as cleanup_error:
+                        # Log cleanup error but don't mask the original exception
+                        logger.warning(f"Failed to cleanup GPU test container {container.id}: {cleanup_error}")
             return gpu_kwargs
 
         return _f()
