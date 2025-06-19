@@ -7,9 +7,9 @@ from litellm import (
     completion,
     completion_cost,
     embedding,
+    supports_function_calling,
     supports_response_schema,
     token_counter,
-    supports_function_calling,
 )
 
 from rdagent.log import LogColors

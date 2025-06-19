@@ -505,7 +505,7 @@ class APIBackend(ABC):
         Check if the backend supports function calling
         """
         raise NotImplementedError("Subclasses must implement this method")
-    
+
     @abstractmethod
     def _calculate_token_from_messages(self, messages: list[dict[str, Any]]) -> int:
         """
