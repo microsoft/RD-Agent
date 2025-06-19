@@ -3,26 +3,7 @@ import socket
 import docker
 
 from rdagent.log import rdagent_logger as logger
-
-
-def _cleanup_container(container, context: str = "") -> None:
-    """
-    Helper function to clean up a Docker container.
-    
-    Parameters
-    ----------
-    container : docker container object or None
-        The container to clean up, or None if no container to clean up
-    context : str
-        Additional context for logging (e.g., "health check")
-    """
-    if container is not None:
-        try:
-            container.remove()
-        except Exception as cleanup_error:
-            # Log cleanup error but don't mask the original exception
-            context_str = f" {context}" if context else ""
-            logger.warning(f"Failed to cleanup{context_str} container {container.id}: {cleanup_error}")
+from rdagent.utils.env import cleanup_container
 
 
 def check_docker() -> None:
@@ -40,7 +21,7 @@ def check_docker() -> None:
             f"Docker status is exception, please check the docker configuration or reinstall it. Refs: https://docs.docker.com/engine/install/ubuntu/."
         )
     finally:
-        _cleanup_container(container, "health check")
+        cleanup_container(container, "health check")
 
 
 def is_port_in_use(port):

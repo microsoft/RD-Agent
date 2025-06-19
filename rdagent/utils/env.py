@@ -44,6 +44,29 @@ from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
 
 
+def cleanup_container(container, context: str = "") -> None:
+    """
+    Shared helper function to clean up a Docker container.
+    Always stops the container before removing it.
+    
+    Parameters
+    ----------
+    container : docker container object or None
+        The container to clean up, or None if no container to clean up
+    context : str
+        Additional context for logging (e.g., "health check", "GPU test")
+    """
+    if container is not None:
+        try:
+            # Always stop first - stop() doesn't raise error if already stopped
+            container.stop()
+            container.remove()
+        except Exception as cleanup_error:
+            # Log cleanup error but don't mask the original exception
+            context_str = f" {context}" if context else ""
+            logger.warning(f"Failed to cleanup{context_str} container {container.id}: {cleanup_error}")
+
+
 # Normalize all bind paths in volumes to absolute paths using the workspace (working_dir).
 def normalize_volumes(vols: dict[str, str | dict[str, str]], working_dir: str) -> dict:
     abs_vols: dict[str, str | dict[str, str]] = {}
@@ -701,28 +724,21 @@ class MLEBDockerConf(DockerConf):
 class DockerEnv(Env[DockerConf]):
     # TODO: Save the output into a specific file
 
-    def _cleanup_container(self, container: docker.models.containers.Container | None, stop_first: bool = False, context: str = "") -> None:
+    def _cleanup_container(self, container: docker.models.containers.Container | None, stop_first: bool = True, context: str = "") -> None:
         """
         Helper method to clean up a Docker container.
+        Delegates to the shared cleanup_container function.
         
         Parameters
         ----------
         container : docker.models.containers.Container | None
             The container to clean up, or None if no container to clean up
         stop_first : bool
-            Whether to stop the container before removing it
+            Whether to stop the container before removing it (deprecated, always stops first now)
         context : str
             Additional context for logging (e.g., "GPU test", "health check")
         """
-        if container is not None:
-            try:
-                if stop_first:
-                    container.stop()
-                container.remove()
-            except Exception as cleanup_error:
-                # Log cleanup error but don't mask the original exception
-                context_str = f" {context}" if context else ""
-                logger.warning(f"Failed to cleanup{context_str} container {container.id}: {cleanup_error}")
+        cleanup_container(container, context)
 
     def prepare(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
         """
@@ -818,7 +834,7 @@ class DockerEnv(Env[DockerConf]):
             except docker.errors.APIError:
                 return {}
             finally:
-                self._cleanup_container(container, stop_first=False, context="GPU test")
+                self._cleanup_container(container, context="GPU test")
             return gpu_kwargs
 
         return _f()
@@ -907,7 +923,7 @@ class DockerEnv(Env[DockerConf]):
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while running the container: {e}")
         finally:
-            self._cleanup_container(container, stop_first=True)
+            self._cleanup_container(container)
 
 
 class QTDockerEnv(DockerEnv):
