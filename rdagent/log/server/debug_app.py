@@ -88,7 +88,7 @@ def upload_file():
         trace_path = log_folder_path / scenario
     id = f"{scenario}/{randomname.get_name()}"
 
-    def read_trace(log_path: Path, t: float = 1.5, id: str = "") -> None:
+    def read_trace(log_path: Path, t: float = 0.7, id: str = "") -> None:
         from rdagent.log.storage import FileStorage
         from rdagent.log.ui.storage import WebStorage
 
