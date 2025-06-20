@@ -40,3 +40,48 @@
     3.  将 `record` 方法从 `def` 改为 `async def`。
     4.  在 `record` 方法内部，使用创建的锁来包裹核心的 `trace` 修改操作。
 -   **为什么**: 这是保证并发安全的最后一环，也是对核心循环影响最小的方案。`record` 是唯一会"写入"共享数据 `trace` 的地方。在并行模式下，通过在这个极小的、执行速度极快的代码块前后加锁和释放锁，我们确保了即使有多个实验同时完成，它们也会严格排队、一个接一个地被记录到 `trace` 中，从而完美地避免了数据图的损坏。当并行模式关闭时，这个锁不会被创建，`record` 的行为也与原来完全一致。
+
+---
+
+# Development Plan: Parallel Multi-Trace Exploration (Final Version)
+
+## 1. Core Design Philosophy
+
+Adopt the **"Attribute Injection & Minimal Locking"** approach.
+
+**Goal**: To implement a concurrently safe, multi-trace parallel exploration feature that can be toggled by configuration, all while minimizing modifications to the core loop (`loop.py`).
+
+## 2. Code Modification Logic by Module
+
+### 2.1. `DSExperiment` (The Context Carrier)
+-   **File**: `rdagent/scenarios/data_science/experiment/experiment.py`
+-   **Action**: Add a new attribute `self.parent_selection: tuple[int, ...] | None = None` to the `DSExperiment` class.
+-   **Rationale**: This is the core of the "attribute injection" strategy. In a multi-branch parallel mode, we must determine an experiment's future parent node at the moment of its creation. This attribute acts as a "return address" label for the experiment, solving the "lost context" problem in concurrent scenarios. Subsequent stages (`coding`, `running`) are agnostic to this label, but the final `record` step relies on it to accurately connect the experiment to the correct place in the `trace` graph.
+
+### 2.2. `TraceScheduler` (The Decision-Maker)
+-   **File**: `rdagent/scenarios/data_science/proposal/exp_gen/scheduler.py` (New File)
+-   **Action**: Create a new scheduler module containing the `TraceScheduler` ABC and a `RoundRobinScheduler` implementation.
+-   **Rationale**: When multiple trace branches (i.e., leaves of the DAG) are available for exploration, we need a clear strategy to decide "which one to expand next?". The `TraceScheduler` encapsulates this decision logic, and its internal `asyncio.Lock` ensures that it can safely and correctly assign targets even when called by multiple concurrent generation tasks.
+
+### 2.3. `ParallelExpGen` (The Controller)
+-   **File**: `rdagent/scenarios/data_science/proposal/exp_gen/parallel.py` (New File)
+-   **Action**: Create a new `ParallelExpGen` class to act as the controller for parallel mode and the executor of "attribute injection".
+-   **Rationale**: When parallel mode is enabled, this class is invoked. Its responsibilities are:
+    1.  Call the `TraceScheduler` to get a parent node (`parent_selection`).
+    2.  Call the underlying, standard experiment generator to create a `DSExperiment` instance.
+    3.  Perform the most critical step: **inject** the retrieved `parent_selection` into this new experiment instance.
+    4.  Return the experiment object, which now carries its parent-node label.
+
+### 2.4. `RDLoop` (The Base Framework)
+-   **File**: `rdagent/utils/workflow/loop.py`
+-   **Action**: Replace `asyncio.iscoroutinefunction` with `inspect.iscoroutinefunction`.
+-   **Rationale**: This is a minor improvement for code robustness and compliance with Python standard library conventions, ensuring the framework is more versatile and can better handle various asynchronous functions in the future.
+
+### 2.5. `DataScienceRDLoop` (The Core Loop)
+-   **File**: `rdagent/scenarios/data_science/loop.py`
+-   **Action**:
+    1.  In `__init__`, add a toggleable `asyncio.Lock` instance based on configuration.
+    2.  Simplify the logic in `direct_exp_gen`, delegating the responsibility of checkpoint selection to the `ExpGen` subclass where it belongs.
+    3.  Change the `record` method signature from `def` to `async def`.
+    4.  Inside the `record` method, wrap the core `trace` modification operations with the created lock.
+-   **Rationale**: This is the final and most crucial step for ensuring concurrency safety, and it's the least invasive approach for the core loop. The `record` method is the only place that "writes" to the shared `trace` data. In parallel mode, by acquiring and releasing a lock around this tiny, fast block of code, we guarantee that even if multiple experiments finish simultaneously, they are recorded into the `trace` one by one, perfectly avoiding data graph corruption. When parallel mode is disabled, the lock is not created, and the `record` behavior remains identical to the original.
