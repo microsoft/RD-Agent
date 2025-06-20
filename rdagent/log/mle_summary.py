@@ -103,7 +103,6 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
         success_loop_num = 0
 
         sota_exp_stat = ""
-        sota_loop_id = None
         sota_exp_score = None
         sota_exp_rank = None
         grade_output = None
@@ -183,7 +182,6 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
                                 sota_exp_stat = "made_submission"
                             if grade_output["score"] is not None:
                                 sota_exp_score = grade_output["score"]
-                                sota_loop_id = loop_id
                                 if is_mle:
                                     _, sota_exp_rank = score_rank(
                                         stat[log_trace_path.name]["competition"], grade_output["score"]
@@ -204,7 +202,6 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
                 "valid_scores": valid_scores,
                 "success_loop_num": success_loop_num,
                 "sota_exp_stat": sota_exp_stat,
-                "sota_loop_id": sota_loop_id,
                 "sota_exp_score": sota_exp_score,
                 "sota_exp_rank": sota_exp_rank,
                 "bronze_threshold": bronze_threshold,

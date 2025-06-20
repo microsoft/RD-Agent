@@ -119,13 +119,13 @@ def get_script_time(stdout_p: Path):
     return None
 
 
-def _log_path_hash_func(log_path: Path, sota_loop_id: int | None = None):
+def _log_path_hash_func(log_path: Path):
     hash_str = str(log_path) + str(log_path.stat().st_mtime)
     session_p = log_path / "__session__"
     if session_p.exists():
         for ld in session_p.iterdir():
             if ld.is_dir():
-                hash_str += str(ld.name) + str(ld.stat().st_mtime) + str(sota_loop_id)
+                hash_str += str(ld.name) + str(ld.stat().st_mtime)
     else:
         hash_str += "no session now"
     return md5_hash(hash_str)
@@ -143,26 +143,37 @@ def get_final_sota_exp(log_path: Path):
 
 
 @cache_with_pickle(_log_path_hash_func, force=True)
-def get_sota_exp_stat(log_path: Path, sota_loop_id: int | None = None):
-    if sota_loop_id is None:
-        trace_paths = [
-            (i, int(match[1]))
-            for i in log_path.rglob(f"*/feedback/*/*.pkl")
-            if (match := re.search(r".*Loop_(\d+).*", str(i)))
-        ]
-        if len(trace_paths) == 0:
-            return None
-
-        trace_paths.sort(key=lambda x: x[1], reverse=True)
-        for trace_path, loop_id in trace_paths:
-            with open(trace_path, "rb") as f:
-                trace = pickle.load(f)
-                if trace.decision:
-                    sota_loop_id = loop_id
-                    break
-
-    if sota_loop_id is None:
+def get_sota_exp_stat(log_path: Path):
+    trace_paths = [i for i in log_path.rglob(f"**/trace/**/*.pkl")]
+    if len(trace_paths) == 0:
         return None
+    final_trace_path = max(trace_paths, key=lambda x: int(re.match(r".*Loop_(\d+).*", str(x))[1]))
+    with final_trace_path.open("rb") as f:
+        final_trace = pickle.load(f)
+
+    if hasattr(final_trace, "sota_exp_to_submit"):
+        sota_exp = final_trace.sota_exp_to_submit
+    else:
+        sota_exp = final_trace.sota_experiment()
+
+    if sota_exp is None:
+        return None
+
+    sota_loop_id = None
+    exp_paths = [
+        (i, int(match[1]))
+        for i in log_path.rglob(f"*/running/*/*.pkl")
+        if (match := re.search(r".*Loop_(\d+).*", str(i)))
+    ]
+    if len(exp_paths) == 0:
+        return None
+    exp_paths.sort(key=lambda x: x[1], reverse=True)
+    for exp_path, loop_id in exp_paths:
+        with open(exp_path, "rb") as f:
+            trace = pickle.load(f)
+            if trace.experiment_workspace.all_codes == sota_exp.experiment_workspace.all_codes:
+                sota_loop_id = loop_id
+                break
 
     sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{sota_loop_id}/running/mle_score/**/*.pkl")]
     if len(sota_mle_score_paths) == 0:
@@ -277,7 +288,7 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
                 v["sota_exp_score_valid"] = final_sota_exp.result.loc["ensemble"].iloc[0]
             else:
                 v["sota_exp_score_valid"] = None
-            v["sota_exp_stat_new"] = get_sota_exp_stat(Path(lf) / k, v.get("sota_loop_id"))
+            v["sota_exp_stat_new"] = get_sota_exp_stat(Path(lf) / k)
             # change experiment name
             if "amlt" in lf:
                 summary[f"{lf[lf.rfind('amlt')+5:].split('/')[0]} - {k}"] = v
