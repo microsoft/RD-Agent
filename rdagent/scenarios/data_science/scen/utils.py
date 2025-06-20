@@ -306,19 +306,17 @@ def _walk(path: Path):
             yield p
 
 
-def preview_csv(p: Path, file_name: str, simple=True, show_nan_columns=False) -> str:
-    """Generate a textual preview of a csv file
+def preview_df(df: pd.DataFrame, file_name: str, simple=True, show_nan_columns=False) -> str:
+    """Generate a textual preview of a dataframe
 
     Args:
-        p (Path): the path to the csv file
+        df (pd.DataFrame): the dataframe to preview
         file_name (str): the file name to use in the preview
         simple (bool, optional): whether to use a simplified version of the preview. Defaults to True.
 
     Returns:
         str: the textual preview
     """
-    df = pd.read_csv(p)
-
     out = []
 
     out.append(f"-> {file_name} has {df.shape[0]} rows and {df.shape[1]} columns.")
@@ -358,6 +356,18 @@ def preview_csv(p: Path, file_name: str, simple=True, show_nan_columns=False) ->
     return "\n".join(out)
 
 
+def preview_csv(p: Path, file_name: str, simple=True, show_nan_columns=False) -> str:
+    """Generate a textual preview of a csv file"""
+    df = pd.read_csv(p)
+    return preview_df(df, file_name, simple=simple, show_nan_columns=show_nan_columns)
+
+
+def preview_parquet(p: Path, file_name: str, simple=True, show_nan_columns=False) -> str:
+    """Generate a textual preview of a parquet file"""
+    df = pd.read_parquet(p)
+    return preview_df(df, file_name, simple=simple, show_nan_columns=show_nan_columns)
+
+
 def preview_json(p: Path, file_name: str):
     """Generate a textual preview of a json file using a generated json schema"""
     builder = SchemaBuilder()
@@ -388,7 +398,9 @@ def preview_json(p: Path, file_name: str):
     return f"-> {file_name} has auto-generated json schema:\n" + builder.to_json(indent=2)
 
 
-def describe_data_folder_v2(base_path, include_file_details=True, simple=False, show_nan_columns=False):
+def describe_data_folder_v2(
+    base_path, include_file_details=True, simple=False, show_nan_columns=False, max_length: int = 6_000
+):
     """
     Generate a textual preview of a directory, including an overview of the directory
     structure and previews of individual files
@@ -404,6 +416,8 @@ def describe_data_folder_v2(base_path, include_file_details=True, simple=False, 
                 out.append(preview_csv(fn, file_name, simple=simple, show_nan_columns=show_nan_columns))
             elif fn.suffix == ".json":
                 out.append(preview_json(fn, file_name))
+            elif fn.suffix == ".parquet":
+                out.append(preview_parquet(fn, file_name, simple=simple, show_nan_columns=show_nan_columns))
             elif fn.suffix in plaintext_files:
                 if get_file_len_size(fn)[0] < 30:
                     with open(fn) as f:
@@ -411,16 +425,22 @@ def describe_data_folder_v2(base_path, include_file_details=True, simple=False, 
                         if fn.suffix in code_files:
                             content = f"```\n{content}\n```"
                         out.append(f"-> {file_name} has content:\n\n{content}")
+            if len("\n\n".join(out)) > max_length:
+                break
 
     result = "\n\n".join(out)
 
     # if the result is very long we generate a simpler version
-    if len(result) > 6_000 and not simple:
+    if len(result) > max_length and not simple:
         return describe_data_folder_v2(
-            base_path, include_file_details=include_file_details, simple=True, show_nan_columns=show_nan_columns
+            base_path,
+            include_file_details=include_file_details,
+            simple=True,
+            show_nan_columns=show_nan_columns,
+            max_length=max_length,
         )
     # if still too long, we truncate
-    if len(result) > 6_000 and simple:
-        return result[:6_000] + "\n... (truncated)"
+    if len(result) > max_length and simple:
+        return result[:max_length] + "\n... (truncated)"
 
     return result

@@ -74,13 +74,13 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
                 # Check model names (index)
                 if not score_df.index.is_unique:
-                    score_check_text += "\n[Error] The score dataframe contains duplicate model names."
+                    score_check_text += "\n[Error] The file 'scores.csv' contains duplicate model names."
                     score_ret_code = 1
                 if "ensemble" not in model_set_in_scores:
-                    score_check_text += "\n[Error] The score dataframe doesn't contain the ensemble model."
+                    score_check_text += "\n[Error] The file 'scores.csv' doesn't contain the ensemble model."
                     score_ret_code = 1
                 if score_ret_code != 0:
-                    score_check_text += f"The score_df is:\n{score_df}"
+                    score_check_text += f"The dataframe in file 'scores.csv' is:\n{score_df}"
 
                 # Check metric name (columns)
                 if score_df.columns.tolist() != [self.scen.metric_name]:
@@ -124,10 +124,6 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                         final_decision=False,
                     )
             stdout += "\n" + submission_check_out
-
-        eda_output = implementation.file_dict.get("EDA.md", None)
-
-        eda_output = implementation.file_dict.get("EDA.md", None)
 
         if not isinstance(implementation, FBWorkspace):
             eda_output = None
