@@ -8,7 +8,7 @@ loguru
 fire
 fuzzywuzzy
 openai
-litellm
+litellm==1.72.4
 azure.identity
 pyarrow
 rich

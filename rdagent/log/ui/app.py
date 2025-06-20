@@ -24,7 +24,6 @@ from rdagent.core.scenario import Scenario
 from rdagent.log.base import Message
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.qlib_report_figure import report_figure
-from rdagent.scenarios.data_mining.experiment.model_experiment import DMModelScenario
 from rdagent.scenarios.general_model.scenario import GeneralModelScenario
 from rdagent.scenarios.kaggle.experiment.scenario import KGScenario
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorScenario
@@ -63,7 +62,6 @@ QLIB_SELECTED_METRICS = [
 
 SIMILAR_SCENARIOS = (
     QlibModelScenario,
-    DMModelScenario,
     QlibFactorScenario,
     QlibFactorFromReportScenario,
     QlibQuantScenario,
@@ -193,9 +191,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             and msg.content.based_experiments[-1].result is not None
                         ):
                             sms = msg.content.based_experiments[-1].result
-                            if isinstance(state.scenario, DMModelScenario):
-                                sms.index = ["AUROC"]
-                            elif isinstance(
+                            if isinstance(
                                 state.scenario,
                                 (
                                     QlibModelScenario,
@@ -211,31 +207,23 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             state.all_metric_series.append(sms_all)
 
                         # common metrics
-                        if msg.content.result is None:
-                            if isinstance(state.scenario, DMModelScenario):
-                                state.metric_series.append(
-                                    pd.Series([None], index=["AUROC"], name=f"Round {state.lround}")
-                                )
-                        else:
-                            sms = msg.content.result
-                            if isinstance(state.scenario, DMModelScenario):
-                                sms.index = ["AUROC"]
-                            elif isinstance(
-                                state.scenario,
-                                (
-                                    QlibModelScenario,
-                                    QlibFactorFromReportScenario,
-                                    QlibFactorScenario,
-                                    QlibQuantScenario,
-                                ),
-                            ):
-                                sms_all = sms
-                                sms = sms.loc[QLIB_SELECTED_METRICS]
+                        sms = msg.content.result
+                        if isinstance(
+                            state.scenario,
+                            (
+                                QlibModelScenario,
+                                QlibFactorFromReportScenario,
+                                QlibFactorScenario,
+                                QlibQuantScenario,
+                            ),
+                        ):
+                            sms_all = sms
+                            sms = sms.loc[QLIB_SELECTED_METRICS]
 
-                            sms.name = f"Round {state.lround}"
-                            sms_all.name = f"Round {state.lround}"
-                            state.metric_series.append(sms)
-                            state.all_metric_series.append(sms_all)
+                        sms.name = f"Round {state.lround}"
+                        sms_all.name = f"Round {state.lround}"
+                        state.metric_series.append(sms)
+                        state.all_metric_series.append(sms_all)
                     elif "hypothesis generation" in tags:
                         state.hypotheses[state.lround] = msg.content
                     elif "evolving code" in tags:
@@ -564,7 +552,7 @@ def research_window():
         st.subheader(title, divider="blue", anchor="_research")
         if isinstance(state.scenario, SIMILAR_SCENARIOS):
             # pdf image
-            if pim := state.msgs[round]["extract_factors_and_implement.load_pdf_screenshot"]:
+            if pim := state.msgs[round]["load_pdf_screenshot"]:
                 for i in range(min(2, len(pim))):
                     st.image(pim[i].content, use_container_width=True)
 

@@ -71,7 +71,7 @@ You can learn more details about **RD-Agent(Q)** through the [paper](https://arx
 | MLE-Bench Results Released | R&D-Agent currently leads as the [top-performing machine learning engineering agent](#-the-best-machine-learning-engineering-agent) on MLE-bench |
 | Support LiteLLM Backend | We now fully support **[LiteLLM](https://github.com/BerriAI/litellm)** as a backend for integration with multiple LLM providers. |
 | General Data Science Agent | [Data Science Agent](https://rdagent.readthedocs.io/en/latest/scens/data_science.html) |
-| Kaggle Scenario release | We release **[Kaggle Agent](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html)**, try the new features!                  |
+| Kaggle Scenario release | We release **[Kaggle Agent](https://rdagent.readthedocs.io/en/latest/scens/data_science.html)**, try the new features!                  |
 | Official WeChat group release  | We created a WeChat group, welcome to join! (🗪[QR Code](https://github.com/microsoft/RD-Agent/issues/880)) |
 | Official Discord release  | We launch our first chatting channel in Discord (🗪[![Chat](https://img.shields.io/badge/chat-discord-blue)](https://discord.gg/ybQ97B6Jjy)) |
 | First release | **R&D-Agent** is released on GitHub |
@@ -196,6 +196,11 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
 
 The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented by the following commands(each item represents one demo, you can select the one you prefer):
 
+- Run the **Automated Quantitative Trading & Iterative Factors Model Joint Evolution**:  [Qlib](http://github.com/microsoft/qlib) self-loop factor & model proposal and implementation application
+  ```sh
+  rdagent fin_quant
+  ```
+
 - Run the **Automated Quantitative Trading & Iterative Factors Evolution**:  [Qlib](http://github.com/microsoft/qlib) self-loop factor proposal and implementation application
   ```sh
   rdagent fin_factor
@@ -204,19 +209,6 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
 - Run the **Automated Quantitative Trading & Iterative Model Evolution**: [Qlib](http://github.com/microsoft/qlib) self-loop model proposal and implementation application
   ```sh
   rdagent fin_model
-  ```
-
-- Run the **Automated Medical Prediction Model Evolution**: Medical self-loop model proposal and implementation application
-  >(1) Apply for an account at [PhysioNet](https://physionet.org/). <br /> (2) Request access to FIDDLE preprocessed data: [FIDDLE Dataset](https://physionet.org/content/mimic-eicu-fiddle-feature/1.0.0/). <br />
-  (3) Place your username and password in `.env`.
-  ```bash
-  cat << EOF  >> .env
-  DM_USERNAME=<your_username>
-  DM_PASSWORD=<your_password>
-  EOF
-  ```
-  ```sh
-  rdagent med_model
   ```
 
 - Run the **Automated Quantitative Trading & Factors Extraction from Financial Reports**:  Run the [Qlib](http://github.com/microsoft/qlib) factor extraction and implementation application based on financial reports
@@ -249,7 +241,7 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   > 3. Join the competition: Click `Join the competition` -> `I Understand and Accept` at the bottom of the [competition details page](https://www.kaggle.com/competitions/sf-crime/data).
   ```bash
   # Generally, you can run the Kaggle competition program with the following command:
-  rdagent kaggle --competition <your competition name>
+  rdagent data_science --competition <your competition name>
 
   # Specifically, you need to create a folder for storing competition files (e.g., competition description file, competition datasets, etc.), and configure the path to the folder in your environment. In addition, you need to use chromedriver when you download the competition descriptors, which you can follow for this specific example:
   
@@ -257,14 +249,12 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
 
   # 2. Add the competition description file path to the `.env` file.
   mkdir -p ./git_ignore_folder/kaggle_data
-  dotenv set KG_LOCAL_DATA_PATH "$(pwd)/git_ignore_folder/kaggle_data"
+  dotenv set DS_LOCAL_DATA_PATH "$(pwd)/git_ignore_folder/kaggle_data"
+  dotenv set DS_IF_USING_MLE_DATA True
 
   # 3. run the application
-  rdagent kaggle --competition sf-crime
+  rdagent data_science --competition sf-crime
   ```
-  > **Description of the above example:** <br />
-  > - Kaggle competition data is roughly divided into three sections: competition description file (json file) and complete dataset for the competition and simplified dataset for the competition. <br />
-  > - The Kaggle competition data will be downloaded automatically, the download process depends on `chromedriver`, installation instructions can be found in the [documentation](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#example-guide). <br />
 
 ### 🖥️ Monitor the Application Results
 - You can run the following command for our demo program to see the run logs.
@@ -310,7 +300,7 @@ The supported scenarios are listed below:
 | **🩺 Medical**      | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/dmm)[▶️YouTube](https://www.youtube.com/watch?v=VIaSTZuoZg4) | -                                                                                  |
 | **🏭 General**      | 🦾 [Auto paper reading & implementation](https://rdagent.azurewebsites.net/report_model)[▶️YouTube](https://www.youtube.com/watch?v=BiA2SfdKQ7o) <br/> 🤖 Auto Kaggle Model Tuning   | 🤖Auto Kaggle feature Engineering |
 
-- **[RoadMap](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#roadmap)**: Currently, we are working hard to add new features to the Kaggle scenario.
+- **[RoadMap](https://rdagent.readthedocs.io/en/latest/scens/data_science.html#roadmap)**: Currently, we are working hard to add new features to the Kaggle scenario.
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 

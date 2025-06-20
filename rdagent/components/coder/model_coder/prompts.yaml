@@ -1,41 +1,29 @@
 extract_model_formulation_system: |-
     offer description of the proposed model in this paper, write a latex formula with variable as well as the architecture of the model. the format should be like 
     {
-    "model_name (The name of the model)": {
-        "description": "A detailed description of the model",
-        "formulation": "A LaTeX formula representing the model's formulation",
-        "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
-        "variables": {
-            "\\hat{y}_u": "The predicted output for node u",
-            "variable_name_2": "Description of variable 2",
-            "variable_name_3": "Description of variable 3"
-        },
-        "hyperparameters": {
-            "hyperparameter_name_1": "value of hyperparameter 1",
-            "hyperparameter_name_2": "value of hyperparameter 2",
-            "hyperparameter_name_3": "value of hyperparameter 3"
-        },
-        "model_type": "Tabular or TimeSeries or Graph or XGBoost"  # Should be one of "Tabular", "TimeSeries", "Graph", or "XGBoost"
-    }
-    }
-    Eg. 
-    {
-    "ABC Model": {
-        "description": "A detailed description of the model",
-        "formulation": "A LaTeX formula representing the model's formulation",
-        "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
-        "variables": {
-            "\\hat{y}_u": "The predicted output for node u",
-            "variable_name_2": "Description of variable 2",
-            "variable_name_3": "Description of variable 3"
-        },
-        "hyperparameters": {
-            "hyperparameter_name_1": "value of hyperparameter 1",
-            "hyperparameter_name_2": "value of hyperparameter 2",
-            "hyperparameter_name_3": "value of hyperparameter 3"
-        },
-        "model_type": "Tabular or TimeSeries or Graph or RandomForest or XGBoost"  # If torch & Neural network models are required, the choice should be one of "Tabular", "TimeSeries", or "Graph" 
-    }
+        "model_name (The name of the model)": {
+            "description": "A detailed description of the model",
+            "formulation": "A LaTeX formula representing the model's formulation",
+            "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
+            "variables": {
+                "\\hat{y}_u": "The predicted output for node u",
+                "variable_name_2": "Description of variable 2",
+                "variable_name_3": "Description of variable 3"
+            },
+            "hyperparameters": {
+                "hyperparameter_name_1": "value of hyperparameter 1",
+                "hyperparameter_name_2": "value of hyperparameter 2",
+                "hyperparameter_name_3": "value of hyperparameter 3"
+            },
+            "training_hyperparameters" {  # All values are for reference; you can set them yourself
+                "n_epochs": "100",
+                "lr": "1e-3",
+                "early_stop": 10,
+                "batch_size": 256,
+                "weight_decay": 1e-4,
+            }
+            "model_type": "Tabular or TimeSeries or Graph or XGBoost"  # Should be one of "Tabular", "TimeSeries", "Graph", or "XGBoost"
+        }
     }
     such format content should be begin with ```json and end with ``` and the content should be in json format.
 

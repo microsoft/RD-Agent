@@ -500,6 +500,13 @@ class APIBackend(ABC):
         return [content_to_embedding_dict[content] for content in input_content_list]  # type: ignore[misc]
 
     @abstractmethod
+    def support_function_calling(self) -> bool:
+        """
+        Check if the backend supports function calling
+        """
+        raise NotImplementedError("Subclasses must implement this method")
+
+    @abstractmethod
     def _calculate_token_from_messages(self, messages: list[dict[str, Any]]) -> int:
         """
         Calculate the token count from messages

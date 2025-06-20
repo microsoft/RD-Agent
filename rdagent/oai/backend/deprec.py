@@ -261,6 +261,13 @@ class DeprecBackend(APIBackend):
                     raise
         return encoding
 
+    def support_function_calling(self) -> bool:
+        """
+        Check if the backend supports function calling.
+        Currently, deprec backend does not support function calling so it returns False. #FIXME: maybe a mapping to the backend class is needed.
+        """
+        return False
+
     def _create_embedding_inner_function(  # type: ignore[no-untyped-def]
         self, input_content_list: list[str], *args, **kwargs
     ) -> list[list[float]]:  # noqa: ARG002

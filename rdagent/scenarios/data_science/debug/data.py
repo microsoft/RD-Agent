@@ -1,5 +1,3 @@
-import os
-import platform
 import shutil
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -12,8 +10,6 @@ try:
     import bson  # pip install pymongo
 except:
     pass
-
-from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 
 
 class DataHandler:
@@ -178,10 +174,10 @@ def copy_file(src_fp, target_folder, data_folder):
 
 def create_debug_data(
     competition: str,
+    dataset_path: str | Path,
     dr_cls: type[DataReducer] = UniqueIDDataReducer,
     min_frac=0.01,
     min_num=5,
-    dataset_path=None,
     sample_path=None,
 ):
     """
@@ -189,14 +185,12 @@ def create_debug_data(
     and renames/moves files for easier debugging.
     Automatically detects file type (csv, pkl, parquet, hdf, etc.).
     """
-    if dataset_path is None:
-        dataset_path = KAGGLE_IMPLEMENT_SETTING.local_data_path  # FIXME: don't hardcode this KAGGLE_IMPLEMENT_SETTING
-
+    dataset_path = Path(dataset_path)
     if sample_path is None:
-        sample_path = Path(dataset_path) / "sample"
+        sample_path = dataset_path / "sample"
 
-    data_folder = Path(dataset_path) / competition
-    sample_folder = Path(sample_path) / competition
+    data_folder = dataset_path / competition
+    sample_folder = sample_path / competition
 
     # Traverse the folder and exclude specific file types
     included_extensions = {".csv", ".pkl", ".parquet", ".h5", ".hdf", ".hdf5", ".jsonl", ".bson"}

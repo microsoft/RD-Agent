@@ -44,6 +44,29 @@ from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
 
 
+def cleanup_container(container: docker.models.containers.Container | None, context: str = "") -> None:  # type: ignore[no-any-unimported]
+    """
+    Shared helper function to clean up a Docker container.
+    Always stops the container before removing it.
+
+    Parameters
+    ----------
+    container : docker container object or None
+        The container to clean up, or None if no container to clean up
+    context : str
+        Additional context for logging (e.g., "health check", "GPU test")
+    """
+    if container is not None:
+        try:
+            # Always stop first - stop() doesn't raise error if already stopped
+            container.stop()
+            container.remove()
+        except Exception as cleanup_error:
+            # Log cleanup error but don't mask the original exception
+            context_str = f" {context}" if context else ""
+            logger.warning(f"Failed to cleanup{context_str} container {container.id}: {cleanup_error}")
+
+
 # Normalize all bind paths in volumes to absolute paths using the workspace (working_dir).
 def normalize_volumes(vols: dict[str, str | dict[str, str]], working_dir: str) -> dict:
     abs_vols: dict[str, str | dict[str, str]] = {}
@@ -399,6 +422,7 @@ class LocalConf(EnvConf):
     """path like <path1>:<path2>:<path3>, which will be prepend to bin path."""
 
     retry_count: int = 0  # retry count for; run `retry_count + 1` times
+    live_output: bool = False
 
 
 ASpecificLocalConf = TypeVar("ASpecificLocalConf", bound=LocalConf)
@@ -469,7 +493,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
             print(Rule("[bold green]LocalEnv Logs Begin[/bold green]", style="dark_orange"))
             table = Table(title="Run Info", show_header=False)
             table.add_column("Key", style="bold cyan")
-            table.add_column("Value", style="bold magenta", no_wrap=True)
+            table.add_column("Value", style="bold magenta")
             table.add_row("Entry", entry)
             table.add_row("Local Path", local_path or "")
             table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
@@ -495,43 +519,50 @@ class LocalEnv(Env[ASpecificLocalConf]):
             if process.stdout is None or process.stderr is None:
                 raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
 
-            stdout_fd = process.stdout.fileno()
-            stderr_fd = process.stderr.fileno()
+            if self.conf.live_output:
+                stdout_fd = process.stdout.fileno()
+                stderr_fd = process.stderr.fileno()
 
-            poller = select.poll()
-            poller.register(stdout_fd, select.POLLIN)
-            poller.register(stderr_fd, select.POLLIN)
+                poller = select.poll()
+                poller.register(stdout_fd, select.POLLIN)
+                poller.register(stderr_fd, select.POLLIN)
 
-            combined_output = ""
-            while True:
-                if process.poll() is not None:
-                    break
-                events = poller.poll(100)
-                for fd, event in events:
-                    if event & select.POLLIN:
-                        if fd == stdout_fd:
-                            while True:
-                                output = process.stdout.readline()
-                                if output == "":
-                                    break
-                                Console().print(output.strip(), markup=False)
-                                combined_output += output
-                        elif fd == stderr_fd:
-                            while True:
-                                error = process.stderr.readline()
-                                if error == "":
-                                    break
-                                Console().print(error.strip(), markup=False)
-                                combined_output += error
+                combined_output = ""
+                while True:
+                    if process.poll() is not None:
+                        break
+                    events = poller.poll(100)
+                    for fd, event in events:
+                        if event & select.POLLIN:
+                            if fd == stdout_fd:
+                                while True:
+                                    output = process.stdout.readline()
+                                    if output == "":
+                                        break
+                                    Console().print(output.strip(), markup=False)
+                                    combined_output += output
+                            elif fd == stderr_fd:
+                                while True:
+                                    error = process.stderr.readline()
+                                    if error == "":
+                                        break
+                                    Console().print(error.strip(), markup=False)
+                                    combined_output += error
 
-            # Capture any final output
-            remaining_output, remaining_error = process.communicate()
-            if remaining_output:
-                Console().print(remaining_output.strip(), markup=False)
-                combined_output += remaining_output
-            if remaining_error:
-                Console().print(remaining_error.strip(), markup=False)
-                combined_output += remaining_error
+                # Capture any final output
+                remaining_output, remaining_error = process.communicate()
+                if remaining_output:
+                    Console().print(remaining_output.strip(), markup=False)
+                    combined_output += remaining_output
+                if remaining_error:
+                    Console().print(remaining_error.strip(), markup=False)
+                    combined_output += remaining_error
+            else:
+                # Sacrifice real-time output to avoid possible standard I/O hangs
+                out, err = process.communicate()
+                Console().print(out, end="", markup=False)
+                Console().print(err, end="", markup=False)
+                combined_output = out + err
 
             return_code = process.returncode
             print(Rule("[bold green]LocalEnv Logs End[/bold green]", style="dark_orange"))
@@ -634,25 +665,6 @@ class QlibDockerConf(DockerConf):
     shm_size: str | None = "16g"
     enable_gpu: bool = True
     enable_cache: bool = False
-
-
-class DMDockerConf(DockerConf):
-    model_config = SettingsConfigDict(env_prefix="DM_DOCKER_")
-
-    build_from_dockerfile: bool = True
-    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "data_mining" / "docker"
-    image: str = "local_dm:latest"
-    mount_path: str = "/workspace/dm_workspace/"
-    default_entry: str = "python train.py"
-    extra_volumes: dict = {
-        str(
-            Path("~/.rdagent/.data/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3/")
-            .expanduser()
-            .resolve()
-            .absolute()
-        ): "/root/.data/"
-    }
-    shm_size: str | None = "16g"
 
 
 class KGDockerConf(DockerConf):
@@ -796,12 +808,17 @@ class DockerEnv(Env[DockerConf]):
 
         @wait_retry(5, 10)
         def _f() -> dict:
+            container = None
             try:
                 get_image(self.conf.image)
-                client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
+                container = client.containers.run(self.conf.image, "nvidia-smi", detach=True, **gpu_kwargs)
+                # Wait for container to complete
+                container.wait()
                 logger.info("GPU Devices are available.")
             except docker.errors.APIError:
                 return {}
+            finally:
+                cleanup_container(container, context="GPU test")
             return gpu_kwargs
 
         return _f()
@@ -846,9 +863,10 @@ class DockerEnv(Env[DockerConf]):
         volumes = normalize_volumes(cast(dict[str, str | dict[str, str]], volumes), self.conf.mount_path)
 
         log_output = ""
+        container: docker.models.containers.Container | None = None  # type: ignore[no-any-unimported]
 
         try:
-            container: docker.models.containers.Container = client.containers.run(  # type: ignore[no-any-unimported]
+            container = client.containers.run(
                 image=self.conf.image,
                 command=entry,
                 volumes=volumes,
@@ -862,6 +880,7 @@ class DockerEnv(Env[DockerConf]):
                 cpu_count=self.conf.cpu_count,  # Set CPU limit
                 **self._gpu_kwargs(client),
             )
+            assert container is not None  # Ensure container was created successfully
             logs = container.logs(stream=True)
             print(Rule("[bold green]Docker Logs Begin[/bold green]", style="dark_orange"))
             table = Table(title="Run Info", show_header=False)
@@ -872,7 +891,7 @@ class DockerEnv(Env[DockerConf]):
             table.add_row("Container Name", container.name)
             table.add_row("Entry", entry)
             table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
-            table.add_row("Volumes", "\n".join(f"{k}:{v}" for k, v in volumes.items()))
+            table.add_row("Volumes", "\n".join(f"{k}:\n  {v}" for k, v in volumes.items()))
             print(table)
             for log in logs:
                 decoded_log = log.strip().decode()
@@ -880,8 +899,6 @@ class DockerEnv(Env[DockerConf]):
                 Console().print(decoded_log, markup=False)
                 log_output += decoded_log + "\n"
             exit_status = container.wait()["StatusCode"]
-            container.stop()
-            container.remove()
             print(Rule("[bold green]Docker Logs End[/bold green]", style="dark_orange"))
             return log_output, exit_status
         except docker.errors.ContainerError as e:
@@ -890,6 +907,8 @@ class DockerEnv(Env[DockerConf]):
             raise RuntimeError("Docker image not found.")
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while running the container: {e}")
+        finally:
+            cleanup_container(container)
 
 
 class QTDockerEnv(DockerEnv):
@@ -908,28 +927,6 @@ class QTDockerEnv(DockerEnv):
             logger.info("We are downloading!")
             cmd = "python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn --interval 1d --delete_old False"
             self.run(entry=cmd)
-        else:
-            logger.info("Data already exists. Download skipped.")
-
-
-class DMDockerEnv(DockerEnv):
-    """Qlib Torch Docker"""
-
-    def __init__(self, conf: DockerConf = DMDockerConf()):
-        super().__init__(conf)
-
-    def prepare(self, username: str, password: str) -> None:
-        """
-        Download image & data if it doesn't exist
-        """
-        super().prepare()
-        data_path = next(iter(self.conf.extra_volumes.keys()))
-        if not (Path(data_path)).exists():
-            logger.info("We are downloading!")
-            cmd = "wget -r -N -c -np --user={} --password={} -P ~/.rdagent/.data/ https://physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/".format(
-                username, password
-            )
-            os.system(cmd)
         else:
             logger.info("Data already exists. Download skipped.")
 
