@@ -250,9 +250,11 @@ class LoopBase:
                         current_step = self.step_idx[li]
                         self.pbar.n = current_step
                         next_step = self.step_idx[li] % len(self.steps)
-                        self.pbar.set_postfix(loop_index=li + next_step_idx // len(self.steps),
-                                              step_index=next_step,
-                                              step_name=self.steps[next_step])
+                        self.pbar.set_postfix(
+                            loop_index=li + next_step_idx // len(self.steps),
+                            step_index=next_step,
+                            step_name=self.steps[next_step],
+                        )
                         self._check_exit_conditions_on_step()
                     else:
                         logger.warning(f"Step forward {si} of loop {li} is skipped.")

@@ -355,6 +355,7 @@ def preview_df(df: pd.DataFrame, file_name: str, simple=True, show_nan_columns=F
 
     return "\n".join(out)
 
+
 def preview_csv(p: Path, file_name: str, simple=True, show_nan_columns=False) -> str:
     """Generate a textual preview of a csv file"""
     df = pd.read_csv(p)
@@ -397,7 +398,9 @@ def preview_json(p: Path, file_name: str):
     return f"-> {file_name} has auto-generated json schema:\n" + builder.to_json(indent=2)
 
 
-def describe_data_folder_v2(base_path, include_file_details=True, simple=False, show_nan_columns=False, max_length: int=6_000):
+def describe_data_folder_v2(
+    base_path, include_file_details=True, simple=False, show_nan_columns=False, max_length: int = 6_000
+):
     """
     Generate a textual preview of a directory, including an overview of the directory
     structure and previews of individual files
@@ -430,7 +433,11 @@ def describe_data_folder_v2(base_path, include_file_details=True, simple=False, 
     # if the result is very long we generate a simpler version
     if len(result) > max_length and not simple:
         return describe_data_folder_v2(
-            base_path, include_file_details=include_file_details, simple=True, show_nan_columns=show_nan_columns, max_length=max_length,
+            base_path,
+            include_file_details=include_file_details,
+            simple=True,
+            show_nan_columns=show_nan_columns,
+            max_length=max_length,
         )
     # if still too long, we truncate
     if len(result) > max_length and simple:

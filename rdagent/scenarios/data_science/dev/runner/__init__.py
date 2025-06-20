@@ -115,8 +115,8 @@ class DSCoSTEERRunner(CoSTEER):
             CoSTEERTask(
                 name="Debug running solution",
                 description=f"You'll be provided with the source code and the running and testing stdout. "
-                            "Please check the error messages and debug the source code if any errors occur.\n"
-                            f"Current code repo md5: {md5_hash(exp.experiment_workspace.all_codes)}",
+                "Please check the error messages and debug the source code if any errors occur.\n"
+                f"Current code repo md5: {md5_hash(exp.experiment_workspace.all_codes)}",
             ),
         ]
         exp = super().develop(exp)  # run strategy(code implementation & evaluation loops)
