@@ -23,6 +23,9 @@ class DSExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):
         # this field is optional. It  is not none only when we have a format checker. Currently, only following cases are supported.
         # - mle-bench
 
+        # For parallel multi-trace support
+        self.parent_selection: tuple[int, ...] | None = None
+
     def is_ready_to_run(self) -> bool:
         """
         ready to run does not indicate the experiment is runnable

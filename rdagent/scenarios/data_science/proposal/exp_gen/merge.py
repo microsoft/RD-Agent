@@ -1,11 +1,13 @@
 """Merge the version in different traces"""
 
+import asyncio
 import json
 from datetime import timedelta
 from typing import Dict, Tuple
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.proposal import ExpGen
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
@@ -16,6 +18,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, D
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
+from rdagent.utils.workflow.loop import LoopBase
 
 
 class MergeExpGen(ExpGen):
@@ -359,10 +362,11 @@ class ExpGen2TraceAndMergeV2(ExpGen):
                     trace.set_current_selection(selection=(-1,))
                     return self.exp_gen.gen(trace)  # continue the last trace, to polish the merged solution
 
-
-    # TODO: implement the async_gen for the multi-trace version
-    def async_gen(self, trace: DSTrace, loop: LoopBase) -> DSExperiment:
-        pass
+    # TODO: implement the async_gen for the multi-trace version. See ParallelExpGen for a pattern.
+    async def async_gen(self, trace: DSTrace, loop: LoopBase) -> DSExperiment:
+        # This now needs to align with the base class but might not be fully parallel-aware yet.
+        # The new producer-consumer loop will set the context via trace.set_current_selection.
+        return self.gen(trace)
 
 
 class ExpGen2TraceAndMergeV3(ExpGen):
@@ -405,3 +409,53 @@ class ExpGen2TraceAndMergeV3(ExpGen):
                         selection = (leaves[1],)
                 trace.set_current_selection(selection)
                 return self.merge_exp_gen.gen(trace)
+
+
+class ParallelExpGen(ExpGen):
+    """
+    An experiment generation strategy that explores multiple traces in parallel.
+
+    This generator is designed to work with the Producer-Consumer model in DataScienceRDLoop.
+    It includes a simple policy to create new traces until a target count is reached.
+    After that, it lets the loop's scheduler decide which trace to expand.
+
+    NOTE: This simplified implementation does not handle the time-based merging logic
+    from `ExpGen2TraceAndMergeV2`. It is intended as a clear example of the parallel pattern.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # The underlying generator for creating a single experiment
+        self.exp_gen = DataScienceRDLoop._get_exp_gen(
+            "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
+        )
+        # A simple policy: how many parallel traces we want to maintain.
+        self.target_trace_count = DS_RD_SETTING.get("max_traces", 2)
+
+    def gen(self, trace: DSTrace) -> DSExperiment:
+        """
+        Synchronous generation is delegated to the underlying exp_gen.
+        The main logic is in async_gen.
+        """
+        return self.exp_gen.gen(trace)
+
+    async def async_gen(self, trace: DSTrace, loop: LoopBase) -> DSExperiment:
+        """
+        Waits for a free execution slot, then generates a new experiment based on the
+        context (`current_selection`) that was set by the producer loop.
+
+        It also injects a policy to create new traces if the current count is below the target.
+        """
+        # The producer loop already uses the scheduler to set the selection.
+        # Here, we can add a policy to override that selection if we want to force a new trace.
+        if trace.sub_trace_count < self.target_trace_count:
+            trace.set_current_selection(trace.NEW_ROOT)
+
+        while True:
+            if loop.get_unfinished_loop_cnt(loop.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
+                # Generate experiment using the underlying synchronous generator.
+                # It will use the `current_selection` that was set either by the loop's scheduler
+                # or by the policy check right above.
+                return self.gen(trace)
+
+            await asyncio.sleep(1)

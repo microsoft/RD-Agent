@@ -141,17 +141,18 @@ class DataScienceRDLoop(RDLoop):
         self.summarizer = DSExperiment2Feedback(scen)
         super(RDLoop, self).__init__()
 
-    async def direct_exp_gen(self, prev_out: dict[str, Any]):
+        # For parallel multi-trace support
+        self.trace_lock = asyncio.Lock() if DS_RD_SETTING.get("enable_parallel_multi_trace", False) else None
 
+    async def direct_exp_gen(self, prev_out: dict[str, Any]):
         # set the SOTA experiment to submit
         sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace)
         self.trace.set_sota_exp_to_submit(sota_exp_to_submit)
 
-        # set the checkpoint to start from
-        selection = self.ckp_selector.get_selection(self.trace)
-        # set the current selection for the trace
-        self.trace.set_current_selection(selection)
+        # The ExpGen is now responsible for selecting the checkpoint,
+        # especially in parallel mode.
         exp = await self.exp_gen.async_gen(self.trace, self)
+
         logger.log_object(exp)
 
         # FIXME: this is for LLM debug webapp, remove this when the debugging is done.
@@ -210,44 +211,72 @@ class DataScienceRDLoop(RDLoop):
         logger.log_object(feedback)
         return feedback
 
-    def record(self, prev_out: dict[str, Any]):
+    async def record(self, prev_out: dict[str, Any]):
+        """
+        Record the experiment result into the trace.
+        If in parallel mode, this method uses a lock to ensure atomic updates.
+        """
+        if self.trace_lock:
+            async with self.trace_lock:
+                self._perform_record(prev_out)
+        else:
+            self._perform_record(prev_out)
+
+    def _perform_record(self, prev_out: dict[str, Any]):
+        """Helper method containing the actual recording logic."""
+        # Get the experiment from prev_out, handling exceptions
+        e = prev_out.get(self.EXCEPTION_KEY, None)
+        if e is None:
+            exp = prev_out["running"]
+        else:
+            exp = prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"]
+
+        # Use the injected parent_selection if it exists (parallel mode)
+        if hasattr(exp, "parent_selection") and exp.parent_selection is not None:
+            self.trace.set_current_selection(exp.parent_selection)
+        else:
+            # Fallback for non-parallel mode
+            selection = self.ckp_selector.get_selection(self.trace)
+            self.trace.set_current_selection(selection)
+
         # set the DAG parent for the trace
         self.trace.sync_dag_parent_and_hist()
 
-        e = prev_out.get(self.EXCEPTION_KEY, None)
         if e is None:
             self.trace.hist.append((prev_out["running"], prev_out["feedback"]))
         else:
             self.trace.hist.append(
                 (
-                    prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"],
+                    exp,
                     ExperimentFeedback.from_exception(e),
                 )
             )
-            if self.trace.sota_experiment() is None:
-                if DS_RD_SETTING.coder_on_whole_pipeline:
-                    #  check if feedback is not generated
-                    if len(self.trace.hist) >= DS_RD_SETTING.coding_fail_reanalyze_threshold:
-                        recent_hist = self.trace.hist[-DS_RD_SETTING.coding_fail_reanalyze_threshold :]
-                        if all(isinstance(fb.exception, (CoderError, RunnerError)) for _, fb in recent_hist):
-                            new_scen = self.trace.scen
-                            if hasattr(new_scen, "reanalyze_competition_description"):
-                                logger.info(
-                                    "Reanalyzing the competition description after three consecutive coding failures."
-                                )
-                                new_scen.reanalyze_competition_description()
-                                self.trace.scen = new_scen
-                            else:
-                                logger.info("Can not reanalyze the competition description.")
-                elif len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors:
-                    # if {in inital/drafting stage} and {tried enough times}
-                    for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]:
-                        if fb:
-                            break  # any success will stop restarting.
-                    else:  # otherwise restart it
-                        logger.error("Consecutive errors reached the limit. Dumping trace.")
-                        logger.log_object(self.trace, tag="trace before restart")
-                        self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
+        
+        # ... (rest of original record logic) ...
+        if self.trace.sota_experiment() is None:
+            if DS_RD_SETTING.coder_on_whole_pipeline:
+                #  check if feedback is not generated
+                if len(self.trace.hist) >= DS_RD_SETTING.coding_fail_reanalyze_threshold:
+                    recent_hist = self.trace.hist[-DS_RD_SETTING.coding_fail_reanalyze_threshold :]
+                    if all(isinstance(fb.exception, (CoderError, RunnerError)) for _, fb in recent_hist):
+                        new_scen = self.trace.scen
+                        if hasattr(new_scen, "reanalyze_competition_description"):
+                            logger.info(
+                                "Reanalyzing the competition description after three consecutive coding failures."
+                            )
+                            new_scen.reanalyze_competition_description()
+                            self.trace.scen = new_scen
+                        else:
+                            logger.info("Can not reanalyze the competition description.")
+            elif len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors:
+                # if {in inital/drafting stage} and {tried enough times}
+                for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]:
+                    if fb:
+                        break  # any success will stop restarting.
+                else:  # otherwise restart it
+                    logger.error("Consecutive errors reached the limit. Dumping trace.")
+                    logger.log_object(self.trace, tag="trace before restart")
+                    self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
 
         logger.log_object(self.trace, tag="trace")
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")

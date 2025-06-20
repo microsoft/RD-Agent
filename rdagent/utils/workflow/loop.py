@@ -11,6 +11,7 @@ Postscripts:
 import asyncio
 import concurrent.futures
 import datetime
+import inspect
 import pickle
 from collections import defaultdict
 from dataclasses import dataclass
@@ -212,7 +213,7 @@ class LoopBase:
                             result = await curr_loop.run_in_executor(pool, func, self.loop_prev_out[li])
                     else:
                         # auto determine whether to run async or sync
-                        if asyncio.iscoroutinefunction(func):
+                        if inspect.iscoroutinefunction(func):
                             result = await func(self.loop_prev_out[li])
                         else:
                             # Default: run sync function directly
