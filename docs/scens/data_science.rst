@@ -69,6 +69,32 @@ The Data Science Agent is an agent that can automatically perform feature engine
       dotenv set DS_CODER_ON_WHOLE_PIPELINE True
       dotenv set DS_CODER_COSTEER_ENV_TYPE docker
 
+- 🚀 **Run the Application**
+
+  - You can directly run the application by using the following command:
+    
+    .. code-block:: sh
+
+        rdagent data_science --competition <Competition ID>
+
+  - Then, you can run the test set score corresponding to each round of the loop.
+
+    .. code-block:: sh
+
+        dotenv run -- python rdagent/log/mle_summary.py grade <url_to_log>
+
+    Here, <url_to_log> refers to the parent directory of the log folder generated during the run.
+
+- 📥 **Visualize the R&D Process**
+
+  - We provide a web UI to visualize the log. You just need to run:
+
+    .. code-block:: sh
+
+        streamlit run rdagent/log/ui/dsapp.py
+
+  - Then you can input the log path and visualize the R&D process.
+
 🔍 MLE-bench Guide: Running ML Engineering via MLE-bench
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
