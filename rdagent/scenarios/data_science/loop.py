@@ -149,8 +149,13 @@ class DataScienceRDLoop(RDLoop):
         sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace)
         self.trace.set_sota_exp_to_submit(sota_exp_to_submit)
 
-        # The ExpGen is now responsible for selecting the checkpoint,
-        # especially in parallel mode.
+        # set the checkpoint to start from
+        selection = self.ckp_selector.get_selection(self.trace)
+        # set the current selection for the trace
+        self.trace.set_current_selection(selection)
+
+        # in parallel + multi-trace mode, the above global "trace.current_selection" will not be used 
+        # instead, we will use the "local_selection" set in each exp_gen.async_gen() to avoid race condition.
         exp = await self.exp_gen.async_gen(self.trace, self)
 
         logger.log_object(exp)
@@ -231,13 +236,9 @@ class DataScienceRDLoop(RDLoop):
         else:
             exp = prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"]
 
-        # Use the injected parent_selection if it exists (parallel mode)
-        if hasattr(exp, "parent_selection") and exp.parent_selection is not None:
-            self.trace.set_current_selection(exp.parent_selection)
-        else:
-            # Fallback for non-parallel mode
-            selection = self.ckp_selector.get_selection(self.trace)
-            self.trace.set_current_selection(selection)
+        # NOTE: in (parallel + multi-trace mode), set the "local_selection" as the global "current selection" for the trace 
+        if hasattr(exp, "local_selection") and exp.local_selection is not None:
+            self.trace.set_current_selection(exp.local_selection)
 
         # set the DAG parent for the trace
         self.trace.sync_dag_parent_and_hist()

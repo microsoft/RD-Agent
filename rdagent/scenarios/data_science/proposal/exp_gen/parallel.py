@@ -6,7 +6,7 @@ from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.proposal import ExpGen
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
-from rdagent.scenarios.data_science.proposal.exp_gen.scheduler import RoundRobinScheduler, TraceScheduler
+from rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler import RoundRobinScheduler, TraceScheduler
 
 if TYPE_CHECKING:
     from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from rdagent.utils.workflow.loop import LoopBase
 
 
-class ParallelExpGen(ExpGen):
+class ParallelMultiTraceExpGen(ExpGen):
     """
     An experiment generation strategy that enables parallel multi-trace exploration.
 
@@ -29,8 +29,11 @@ class ParallelExpGen(ExpGen):
         self.exp_gen = DataScienceRDLoop._get_exp_gen(
             "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
         )
-        self.scheduler: TraceScheduler = RoundRobinScheduler()
+        self.trace_scheduler: TraceScheduler = RoundRobinScheduler()
         self.target_trace_count = DS_RD_SETTING.get("max_traces", 2)
+
+        # # The lock is used to protect the trace context (current_selection)
+        # self._trace_context_lock = asyncio.Lock()
 
     async def async_gen(self, trace: DSTrace, loop: LoopBase) -> DSExperiment:
         """
@@ -38,33 +41,26 @@ class ParallelExpGen(ExpGen):
         scheduler, generates a new experiment, and injects the parent context
         into it before returning.
         """
-        parent_selection: tuple[int, ...]
-
+        local_selection: tuple[int, ...] = None
+        # step 1: select the parant trace to expand
         # Policy: if we have fewer traces than our target, start a new one.
-        # This check is not atomic and has a race condition, but for the purpose
-        # of this example, it's a simple way to drive trace creation.
-        # A more advanced scheduler could manage this internally.
         if trace.sub_trace_count < self.target_trace_count:
-            parent_selection = trace.NEW_ROOT
+            local_selection = trace.NEW_ROOT
         else:
             # Otherwise, use the scheduler to pick an existing trace to expand.
-            parent_selection = await self.scheduler.select_trace(trace)
+            # NOTE: asyncio.Lock is used in the inner scheduler.
+            local_selection = await self.trace_scheduler.select_trace(trace)
 
-        # We must set the selection on the trace temporarily for the underlying
-        # generator to use it as context. This is a localized change and is
-        # safe as long as the underlying gen() is not async.
-        trace.set_current_selection(parent_selection)
-
-        # The loop in the base `async_gen` handles the concurrency check.
-        # We can call it via super() or reimplement it here.
         while True:
             if loop.get_unfinished_loop_cnt(loop.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
-                # Generate the base experiment
-                exp = self.exp_gen.gen(trace)
+                # step 2: generate the experiment with the local selection
+                exp = self.exp_gen.gen(trace, local_selection)
 
-                # Inject the context
-                exp.parent_selection = parent_selection
+                # Inject the local selection to the experiment object
+                exp.set_local_selection(local_selection)
 
                 return exp
             
             await asyncio.sleep(1) 
+
+        

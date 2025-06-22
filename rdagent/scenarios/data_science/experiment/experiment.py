@@ -24,7 +24,7 @@ class DSExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):
         # - mle-bench
 
         # For parallel multi-trace support
-        self.parent_selection: tuple[int, ...] | None = None
+        self.local_selection: tuple[int, ...] | None = None
 
     def is_ready_to_run(self) -> bool:
         """
@@ -32,3 +32,7 @@ class DSExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):
         (so it is different from `trace.next_incomplete_component`.)
         """
         return self.experiment_workspace is not None and "main.py" in self.experiment_workspace.file_dict
+
+
+    def set_local_selection(self, local_selection: tuple[int, ...]) -> None:
+        self.local_selection = local_selection
