@@ -16,6 +16,9 @@ class LLMSettings(ExtendedBaseSettings):
     embedding_model: str = "text-embedding-3-small"
 
     reasoning_effort: Literal["low", "medium", "high"] | None = None
+    enable_function_call: bool = (
+        True  # Whether to enable function calling in chat models. may not work for models that do not support it.
+    )
 
     # Handling format
     reasoning_think_rm: bool = False

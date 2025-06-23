@@ -114,8 +114,10 @@ class DSCoSTEERRunner(CoSTEER):
         exp.sub_tasks = [
             CoSTEERTask(
                 name="Debug running solution",
-                description=f"The whole workflow of the solution has finished with some execution error, please check the error message and debug the whole code repo.\nCurrent code repo md5: {md5_hash(exp.experiment_workspace.all_codes)}",
-            )
+                description=f"You'll be provided with the source code and the running and testing stdout. "
+                "Please check the error messages and debug the source code if any errors occur.\n"
+                f"Current code repo md5: {md5_hash(exp.experiment_workspace.all_codes)}",
+            ),
         ]
         exp = super().develop(exp)  # run strategy(code implementation & evaluation loops)
         exp.sub_tasks = bak_sub_tasks

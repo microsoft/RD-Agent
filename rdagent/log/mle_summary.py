@@ -44,7 +44,7 @@ def save_grade_info(log_trace_path: Path):
 
 
 def save_all_grade_info(log_folder):
-    for log_trace_path in log_folder.iterdir():
+    for log_trace_path in Path(log_folder).iterdir():
         if is_valid_session(log_trace_path):
             try:
                 save_grade_info(log_trace_path)
