@@ -52,9 +52,9 @@ def update_trace():
     returned_msgs = msgs_for_frontend[trace_id][pointers[trace_id] : end_pointer]
 
     pointers[trace_id] = end_pointer
-    if len(returned_msgs):
-        app.logger.info(data)
-        app.logger.info([i["tag"] for i in returned_msgs])
+    # if len(returned_msgs):
+    #     app.logger.info(data)
+    #     app.logger.info([i["tag"] for i in returned_msgs])
         # try:
         #     import json
         #     resp = json.dumps(returned_msgs, ensure_ascii=False)
@@ -88,7 +88,7 @@ def upload_file():
         trace_path = log_folder_path / scenario
     id = f"{scenario}/{randomname.get_name()}"
 
-    def read_trace(log_path: Path, t: float = 0.7, id: str = "") -> None:
+    def read_trace(log_path: Path, t: float = 0.2, id: str = "") -> None:
         from rdagent.log.storage import FileStorage
         from rdagent.log.ui.storage import WebStorage
 
@@ -173,10 +173,16 @@ def control_process():
         return jsonify({"error": f"Failed to {action} process"}), 500
 
 
+@app.route("/test", methods=["GET"])
+def test():
+    # return 'Hello, World!'
+    return {k: [i["tag"] for i in v] for k, v in msgs_for_frontend.items()}
+
 @app.route("/", methods=["GET"])
 def index():
     # return 'Hello, World!'
-    return {k: [i["tag"] for i in v] for k, v in msgs_for_frontend.items()}
+    # return {k: [i["tag"] for i in v] for k, v in msgs_for_frontend.items()}
+    return send_from_directory(app.static_folder, "index.html")
 
 
 @app.route("/<path:fn>", methods=["GET"])
