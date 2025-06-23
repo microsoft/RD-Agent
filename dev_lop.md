@@ -104,11 +104,10 @@
 ### 2.5. `DataScienceRDLoop` (核心循环)
 -   **文件**: `rdagent/scenarios/data_science/loop.py`
 -   **做什么**:
-    1. **简化 `direct_exp_gen`**：移除检查点选择逻辑，专注于调用 `exp_gen.async_gen()`
-    2. **关键修改：将 `record` 方法从同步改为异步**：
+    1. **关键修改：将 `record` 方法从同步改为异步**：
        - 原来：`def record(self, prev_out: dict[str, Any]) -> dict[str, Any]`
        - 现在：`async def record(self, prev_out: dict[str, Any]) -> dict[str, Any]`
-    3. **增强 `_perform_record`**：添加状态同步逻辑：
+    2. **增强 `_perform_record`**：添加状态同步逻辑：
     ```python
     def _perform_record(self, prev_out: dict[str, Any]):
         # 获取实验对象
@@ -180,7 +179,9 @@ T4: return exp_B                                    # 携带标签的实验
 ```python
 # 在配置中启用并行多trace模式
 DS_RD_SETTING.enable_parallel_multi_trace = True
-DS_RD_SETTING.max_traces = 3  # 最大并行分支数
+DS_RD_SETTING.max_traces = 2  # 最大并行分支数
+# 确保开启了async 
+STEP_SEMAPHORE=2
 ```
 
 ### 5.2. ExpGen选择
