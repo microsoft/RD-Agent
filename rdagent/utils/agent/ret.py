@@ -31,7 +31,8 @@ class PythonAgentOut(AgentOut):
 
     @classmethod
     def extract_output(cls, resp: str):
-        match = re.search(r".*```[Pp]ython\n(.*)\n```.*", resp, re.DOTALL)
+        # We use lazy mode (.*?) to only extract the first code block in the response.
+        match = re.search(r".*```[Pp]ython\n(.*?)\n```.*", resp, re.DOTALL)
         if match:
             code = match.group(1)
             code = re.sub(r"</?code>", "", code, flags=re.IGNORECASE)
