@@ -10,7 +10,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler import Roun
 
 if TYPE_CHECKING:
     from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-    from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace
+    from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace, Experiment
     from rdagent.utils.workflow.loop import LoopBase
 
 
@@ -27,13 +27,16 @@ class ParallelMultiTraceExpGen(ExpGen):
         super().__init__(*args, **kwargs)
         # The underlying generator for creating a single experiment
         self.exp_gen = DataScienceRDLoop._get_exp_gen(
-            "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
+            "rdagent.scenarios.data_science.proposal.exp_gen.proposal.DSProposalV2ExpGen", self.scen
         )
         self.trace_scheduler: TraceScheduler = RoundRobinScheduler()
         self.target_trace_count = DS_RD_SETTING.get("max_traces", 2)
 
         # # The lock is used to protect the trace context (current_selection)
         # self._trace_context_lock = asyncio.Lock()
+
+    def gen(self, trace: "DSTrace") -> "Experiment":
+        raise NotImplementedError("ParallelMultiTraceExpGen is designed for async usage, please call async_gen instead.")
 
     async def async_gen(self, trace: DSTrace, loop: LoopBase) -> DSExperiment:
         """
