@@ -142,7 +142,7 @@ class DataScienceRDLoop(RDLoop):
         super(RDLoop, self).__init__()
 
         # For parallel multi-trace support
-        self.trace_lock = asyncio.Lock() if DS_RD_SETTING.get("enable_parallel_multi_trace", False) else None
+        self.trace_lock = asyncio.Lock() if DS_RD_SETTING.enable_parallel_multi_trace else None
 
     async def direct_exp_gen(self, prev_out: dict[str, Any]):
         # set the SOTA experiment to submit

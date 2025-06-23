@@ -30,7 +30,7 @@ class ParallelMultiTraceExpGen(ExpGen):
             "rdagent.scenarios.data_science.proposal.exp_gen.proposal.DSProposalV2ExpGen", self.scen
         )
         self.trace_scheduler: TraceScheduler = RoundRobinScheduler()
-        self.target_trace_count = DS_RD_SETTING.get("max_traces", 2)
+        self.max_trace_num = DS_RD_SETTING.max_trace_num
 
         # # The lock is used to protect the trace context (current_selection)
         # self._trace_context_lock = asyncio.Lock()
@@ -47,7 +47,7 @@ class ParallelMultiTraceExpGen(ExpGen):
         local_selection: tuple[int, ...] = None
         # step 1: select the parant trace to expand
         # Policy: if we have fewer traces than our target, start a new one.
-        if trace.sub_trace_count < self.target_trace_count:
+        if trace.sub_trace_count < self.max_trace_num:
             local_selection = trace.NEW_ROOT
         else:
             # Otherwise, use the scheduler to pick an existing trace to expand.
