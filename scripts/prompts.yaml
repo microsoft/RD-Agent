@@ -1,0 +1,101 @@
+component_description: |-
+  [EDA]: Responsible for performing exploratory data analysis to understand data distributions, identify patterns, detect anomalies, and uncover relationships between variables. Includes generating summary statistics, visualizations, and initial hypotheses to guide further processing.
+  [DataPreprocess]: Handles loading raw data, managing missing values, type conversions, normalization, and ensuring data consistency for downstream tasks. Includes initial data validation, outlier detection, and basic data cleaning to prepare data for feature engineering.
+  [FeatureEngineer]: Transforms raw data into informative features through encoding categorical variables, scaling, generating new features, and selecting relevant features. Ensures feature transformations are reproducible, robust, and tailored to the modeling approach.
+  [Model]: Encompasses model selection, architecture definition, and integration into the pipeline. Covers model training, validation, evaluation, and performance monitoring to ensure the model is well-suited to the problem and generalizes effectively.
+  [Tuning]: Optimizes model and pipeline parameters using systematic search strategies such as grid search, random search, or Bayesian optimization. Focuses on maximizing validation performance and preventing overfitting.
+  [Ensemble]: Combines predictions from multiple models using techniques such as averaging, stacking, or blending. Evaluates ensemble performance, ensures diversity among base models, and leverages complementary strengths for improved generalization and robustness.
+
+extract_general_knowledge:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace. If new trace surpasses the current SOTA, it will be the new SOTA. If not, it will be a failed experiment.
+    You will be provided with:
+      1. A detailed description of the competition scenario.
+      2. A discussion thread focused on the methodology used to achieve SOTA performance for the competition. Comments are included if they are relevant.
+      3. The corresponding solution notebook that achieves SOTA performance for the competition.
+    Your task is to analyze all provided information and extract the most impactful, transferable, and actionable methodological knowledge from the discussion and the notebook.
+
+    # Knowledge Extraction Guidelines
+    "Knowledge" refers to a key insight, method, technique, or approach that significantly contributes to the solution's success.
+
+    ## Criteria for Extracted Knowledge
+    - **Transferable**: Applicable to similar scenarios; avoid dataset- or competition-specific details (e.g., column names, competition-specific tricks).
+    - **Specific**: Clearly defined and distinguishable from general concepts. For example, use "applying polynomial feature transformation to capture non-linear relationships" instead of just "feature engineering."
+    - **Reproducible**: Actionable and possible to implement based on the description. Include implementation details in the `context` field, such as how optimal weights for ensembling were determined, criteria for hyperparameter tuning, or the algorithm used for feature selection.
+    - **Impactful**: Demonstrates a measurable contribution to model performance. Exclude trivial, routine, or boilerplate steps (e.g., "handling multiple submissions" or "using `glob` for file operations").
+    - **Complete**: Includes all dependent components necessary for implementation and reproduction. For example, if a model idea requires a specific feature engineering technique, include that technique in the `context` field.
+
+    ## Output Format
+    For each extracted knowledge item, strictly follow the JSON schema below. Output a dictionary containing all extracted knowledge items.
+    {
+      "idea (concise, general label summarizing the knowledge)": {
+      "method": "A specific, general, and implementable description of the method (e.g., 'applied a stacking ensemble method to combine predictions from multiple base models'). Avoid dataset-specific details.",
+      "context": "A detailed example of how the notebook implements this idea (e.g., 'the notebook used XGBoost, Random Forest, and LightGBM as base models and logistic regression as the meta-model').",
+      "code": "(Optional) Code snippet or pseudocode for the knowledge. Include only if the code notebook is provided.",
+      "problem": "(Optional) The problem this knowledge addresses, described without referencing the method itself. Include only if clearly stated in the provided material."
+      }
+    }
+  user: |-
+    # Competition Scenario Description
+    {{ competition_desc }}
+
+    # Solution Notebook
+    {{ notebook }}
+
+    # Discussion
+    {{ discussion }}
+
+extract_specific_knowledge:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace. If new trace surpasses the current SOTA, it will be the new SOTA. If not, it will be a failed experiment.
+    You will be provided with:
+      1. A detailed description of the competition scenario.
+      2. A discussion thread focused on the methodology used to achieve SOTA performance for the competition. Comments are included if they are relevant.
+      3. The corresponding solution notebook that achieves SOTA performance for the competition.
+    Your task is to analyze all provided information and extract the most impactful, transferable, and actionable methodological knowledge from the discussion and the notebook.
+
+    # Knowledge Extraction Guidelines
+    "Knowledge" refers to a key insight, method, technique, or approach that significantly contributes to the solution's success.
+
+    ## Criteria for Extracted Knowledge
+    - **Transferable**: Applicable to similar scenarios; avoid dataset- or competition-specific details (e.g., column names, competition-specific tricks).
+    - **Specific**: Clearly defined and distinguishable from general concepts. For example, use "applying polynomial feature transformation to capture non-linear relationships" instead of just "feature engineering."
+    - **Reproducible**: Actionable and possible to implement based on the description. Include implementation details in the `context` field, such as how optimal weights for ensembling were determined, criteria for hyperparameter tuning, or the algorithm used for feature selection.
+    - **Impactful**: Demonstrates a measurable contribution to model performance. Exclude trivial, routine, or boilerplate steps (e.g., "handling multiple submissions" or "using `glob` for file operations").
+    - **Complete**: Includes all dependent components necessary for implementation and reproduction. For example, if a model idea requires a specific feature engineering technique, include that technique in the `context` field.
+
+    ## Output Format
+    For each extracted knowledge item, strictly follow the JSON schema below. Output a dictionary containing all extracted knowledge items.
+    {
+      "idea (concise, general label summarizing the knowledge)": {
+        "method": "A specific, general, and implementable description of the method (e.g., 'applied a stacking ensemble method to combine predictions from multiple base models'). Avoid dataset-specific details.",
+        "context": "A detailed example of how the notebook implements this idea (e.g., 'the notebook used XGBoost, Random Forest, and LightGBM as base models and logistic regression as the meta-model').",
+        "code": "(Optional) Code snippet or pseudocode for the knowledge. Include only if the code notebook is provided.",
+        "problem": "(Optional) The problem this knowledge addresses, described without referencing the method itself. Include only if clearly stated in the provided material."
+      }
+    }
+
+  user: |-
+    # Competition Scenario Description
+    {{ competition_desc }}
+
+    # Solution Notebook
+    {{ notebook }}
+
+    # Discussion
+    {{ discussion }}
+
+output_format:
+  specific_knowledge: |-
+    For each extracted knowledge item, strictly follow the JSON schema below. Output a dictionary containing all extracted knowledge items.
+    {
+      "idea (concise, general label summarizing the knowledge)": {
+        "component": "The component that the knowledge focus on. Must be one of [EDA, DataPreprocess, FeatureEngineer, Model, Tuning, Ensemble]"
+        "method": "A specific, general, and implementable description of the method (e.g., 'applied a stacking ensemble method to combine predictions from multiple base models'). Avoid dataset-specific details.",
+        "context": "A detailed example of how the notebook implements this idea (e.g., 'the notebook used XGBoost, Random Forest, and LightGBM as base models and logistic regression as the meta-model').",
+        "code": "(Optional) Code snippet or pseudocode for the knowledge. Include only if the code notebook is provided.",
+        "problem": "(Optional) The problem this knowledge addresses, described without referencing the method itself. Include only if clearly stated in the provided material."
+      }
+    }
