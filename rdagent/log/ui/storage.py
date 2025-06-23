@@ -228,7 +228,9 @@ class WebStorage(Storage):
                     "content": [
                         {
                             "evo_id": ei,
-                            "target_task_name": w.target_task.name if w.target_task else "PipelineTask", # TODO: save this when proposal
+                            "target_task_name": (
+                                w.target_task.name if w.target_task else "PipelineTask"
+                            ),  # TODO: save this when proposal
                             "workspace": w.file_dict,
                         }
                         for w in ws

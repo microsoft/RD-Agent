@@ -1,13 +1,13 @@
-import os
 import multiprocessing
+import os
 import random
 import signal
 import subprocess
+import threading
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
-import threading
 
 import randomname
 import typer
@@ -55,17 +55,17 @@ def update_trace():
     # if len(returned_msgs):
     #     app.logger.info(data)
     #     app.logger.info([i["tag"] for i in returned_msgs])
-        # try:
-        #     import json
-        #     resp = json.dumps(returned_msgs, ensure_ascii=False)
-        # except Exception as e:
-        #     app.logger.error(f"Error in jsonify: {e}")
-        #     for msg in returned_msgs:
-        #         try:
-        #             rr = json.dumps(msg, ensure_ascii=False)
-        #         except Exception as e:
-        #             app.logger.error(f"Error in jsonify individual message: {e}")
-        #             app.logger.error(msg)
+    # try:
+    #     import json
+    #     resp = json.dumps(returned_msgs, ensure_ascii=False)
+    # except Exception as e:
+    #     app.logger.error(f"Error in jsonify: {e}")
+    #     for msg in returned_msgs:
+    #         try:
+    #             rr = json.dumps(msg, ensure_ascii=False)
+    #         except Exception as e:
+    #             app.logger.error(f"Error in jsonify individual message: {e}")
+    #             app.logger.error(msg)
 
     return jsonify(returned_msgs), 200
 
@@ -108,7 +108,7 @@ def upload_file():
         msgs_for_frontend[id].append({"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}})
 
     # 启动后台线程，不阻塞 return
-    threading.Thread(target=read_trace, args=(trace_path,1.5,id), daemon=True).start()
+    threading.Thread(target=read_trace, args=(trace_path, 1.5, id), daemon=True).start()
 
     return jsonify({"id": id}), 200
 
@@ -177,6 +177,7 @@ def control_process():
 def test():
     # return 'Hello, World!'
     return {k: [i["tag"] for i in v] for k, v in msgs_for_frontend.items()}
+
 
 @app.route("/", methods=["GET"])
 def index():
