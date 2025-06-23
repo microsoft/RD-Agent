@@ -108,7 +108,7 @@ def upload_file():
         msgs_for_frontend[id].append({"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}})
 
     # 启动后台线程，不阻塞 return
-    threading.Thread(target=read_trace, args=(trace_path, 1.5, id), daemon=True).start()
+    threading.Thread(target=read_trace, args=(trace_path, 0.5, id), daemon=True).start()
 
     return jsonify({"id": id}), 200
 
