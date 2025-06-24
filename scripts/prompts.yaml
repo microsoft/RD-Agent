@@ -1,10 +1,30 @@
-component_description: |-
-  [EDA]: Responsible for performing exploratory data analysis to understand data distributions, identify patterns, detect anomalies, and uncover relationships between variables. Includes generating summary statistics, visualizations, and initial hypotheses to guide further processing.
-  [DataPreprocess]: Handles loading raw data, managing missing values, type conversions, normalization, and ensuring data consistency for downstream tasks. Includes initial data validation, outlier detection, and basic data cleaning to prepare data for feature engineering.
-  [FeatureEngineer]: Transforms raw data into informative features through encoding categorical variables, scaling, generating new features, and selecting relevant features. Ensures feature transformations are reproducible, robust, and tailored to the modeling approach.
-  [Model]: Encompasses model selection, architecture definition, and integration into the pipeline. Covers model training, validation, evaluation, and performance monitoring to ensure the model is well-suited to the problem and generalizes effectively.
-  [Tuning]: Optimizes model and pipeline parameters using systematic search strategies such as grid search, random search, or Bayesian optimization. Focuses on maximizing validation performance and preventing overfitting.
-  [Ensemble]: Combines predictions from multiple models using techniques such as averaging, stacking, or blending. Evaluates ensemble performance, ensures diversity among base models, and leverages complementary strengths for improved generalization and robustness.
+kaggle_crawler:
+  discussion: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    You will be provided with a Kaggle discussion thread, including the main post and user comments. Your task is to extract and structure only the methodological content from the discussion.
+
+    # Target Information
+    1. The discussion title.
+    2. The main methodological content of the discussion, structured in Markdown. Focus exclusively on technical approaches, methods, experiments, results, and reasoning related to the competition or problem. Ignore introductions, personal stories, or unrelated context.
+    3. The ordered comments, each including the author and only the methodological content of the comment, structured in Markdown. Exclude any comments that are off-topic, congratulatory, social, or unrelated to methodology.
+    4. The link of the code notebook of this discussion, if any. The format should be https://www.kaggle.com/code/{username}/{notebook-name}. If there is no code link, it should be an empty string.
+
+    # Output Specification
+    1. Remove all HTML tags from the output.
+    2. Exclude all links except for the code notebook link (format: https://www.kaggle.com/code/{username}/{notebook-name}).
+    3. Format all output using Markdown, including headings (##, ###, ####, etc.) for clear structure.
+    4. Preserve original formatting for math, tables, code blocks, and technical content.
+    5. Maintain the logical flow and structure of the original discussion.
+    6. Focus exclusively on extracting and presenting methodological insights, technical approaches, experiments, results, and reasoning. Omit introductions, personal stories, congratulatory remarks, and any content not directly related to methodology.
+
+describe:
+  component_description: |-
+    [EDA]: Performs exploratory analysis to uncover data distributions, patterns, anomalies, and relationships. Generates summary statistics, visualizations, and initial hypotheses to guide processing.
+    [DataPreprocess]: Loads raw data, handles missing values, type conversions, normalization, and ensures consistency. Includes validation, outlier detection, and cleaning for feature engineering.
+    [FeatureEngineer]: Transforms raw data into meaningful features via encoding, scaling, feature creation, and selection. Ensures reproducibility and robustness for modeling.
+    [Model]: Handles model selection, architecture design, training, validation, and evaluation. Ensures generalization and suitability for the problem.
+    [Tuning]: Optimizes model and pipeline parameters using grid/random search or Bayesian methods. Maximizes validation performance while preventing overfitting.
+    [Ensemble]: Combines predictions from multiple models (averaging, stacking, blending) to improve robustness and generalization. Ensures model diversity and evaluates ensemble performance.
 
 extract_general_knowledge:
   system: |-
@@ -58,6 +78,8 @@ extract_specific_knowledge:
 
     # Knowledge Extraction Guidelines
     "Knowledge" refers to a key insight, method, technique, or approach that significantly contributes to the solution's success.
+    Each knowledge should focus on of the following components:
+    {{ component_desc }}
 
     ## Criteria for Extracted Knowledge
     - **Transferable**: Applicable to similar scenarios; avoid dataset- or competition-specific details (e.g., column names, competition-specific tricks).
@@ -67,15 +89,7 @@ extract_specific_knowledge:
     - **Complete**: Includes all dependent components necessary for implementation and reproduction. For example, if a model idea requires a specific feature engineering technique, include that technique in the `context` field.
 
     ## Output Format
-    For each extracted knowledge item, strictly follow the JSON schema below. Output a dictionary containing all extracted knowledge items.
-    {
-      "idea (concise, general label summarizing the knowledge)": {
-        "method": "A specific, general, and implementable description of the method (e.g., 'applied a stacking ensemble method to combine predictions from multiple base models'). Avoid dataset-specific details.",
-        "context": "A detailed example of how the notebook implements this idea (e.g., 'the notebook used XGBoost, Random Forest, and LightGBM as base models and logistic regression as the meta-model').",
-        "code": "(Optional) Code snippet or pseudocode for the knowledge. Include only if the code notebook is provided.",
-        "problem": "(Optional) The problem this knowledge addresses, described without referencing the method itself. Include only if clearly stated in the provided material."
-      }
-    }
+    {{ output_format }}
 
   user: |-
     # Competition Scenario Description
