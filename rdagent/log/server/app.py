@@ -71,7 +71,7 @@ def upload_file():
         trace_name = f"{competition}-{randomname.get_name()}"
     else:
         trace_name = randomname.get_name()
-    log_folder_path = Path("/home/bowen/workspace/RD-Agent_server_trace").absolute()
+    log_folder_path = Path(UI_SETTING.trace_folder).absolute()
     trace_files_path = log_folder_path / scenario / "uploads" / trace_name
 
     log_trace_path = (log_folder_path / scenario / trace_name).absolute()
@@ -125,7 +125,7 @@ def upload_file():
     return (
         jsonify(
             {
-                "id": str(scenario / trace_name),
+                "id": f"{scenario} / {trace_name}",
             }
         ),
         200,
@@ -192,10 +192,17 @@ def control_process():
         return jsonify({"error": f"Failed to {action} process, {e}"}), 500
 
 
+@app.route("/test", methods=["GET"])
+def test():
+    # return 'Hello, World!'
+    return {k: [i["tag"] for i in v] for k, v in msgs_for_frontend.items()}
+
+
 @app.route("/", methods=["GET"])
 def index():
     # return 'Hello, World!'
-    return msgs_for_frontend
+    # return {k: [i["tag"] for i in v] for k, v in msgs_for_frontend.items()}
+    return send_from_directory(app.static_folder, "index.html")
 
 
 @app.route("/<path:fn>", methods=["GET"])

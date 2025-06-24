@@ -16,5 +16,7 @@ class UIBasePropSetting(ExtendedBaseSettings):
 
     static_path: str = "./git_ignore_folder/static"
 
+    trace_folder: str = "./traces"
+
 
 UI_SETTING = UIBasePropSetting()
