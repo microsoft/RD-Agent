@@ -36,36 +36,34 @@ class RoundRobinScheduler(TraceScheduler):
     A concurrency-safe scheduling strategy that cycles through active traces
     in a round-robin fashion.
 
-    It uses an internal asyncio.Lock to protect its state, making it safe
-    to be called from multiple concurrent producer tasks.
+    NOTE: we don't need to use asyncio.Lock here as the kickoff_loop ensures the ExpGen is always sequential, instead of parallel.
     """
 
     def __init__(self):
         self._last_selected_leaf_id = -1
-        self._lock = asyncio.Lock()
 
     async def select_trace(self, trace: DSTrace) -> tuple[int, ...]:
         """
         Atomically selects the next leaf node from the trace in order.
         """
-        async with self._lock:
-            leaves = trace.get_leaves()
-            if not leaves:
-                # This is the very first experiment in a new tree.
-                return trace.NEW_ROOT
 
-            # Find the index of the last selected leaf in the current list of leaves
-            try:
-                current_position = leaves.index(self._last_selected_leaf_id)
-                # Move to the next position, wrapping around if necessary
-                next_position = (current_position + 1) % len(leaves)
-            except ValueError:
-                # This can happen if the last selected leaf is no longer a leaf
-                # (it has been expanded) or if this is the first selection.
-                # In either case, start from the beginning.
-                next_position = 0
+        leaves = trace.get_leaves()
+        if not leaves:
+            # This is the very first experiment in a new tree.
+            return trace.NEW_ROOT
 
-            selected_leaf = leaves[next_position]
-            self._last_selected_leaf_id = selected_leaf
+        # Find the index of the last selected leaf in the current list of leaves
+        try:
+            current_position = leaves.index(self._last_selected_leaf_id)
+            # Move to the next position, wrapping around if necessary
+            next_position = (current_position + 1) % len(leaves)
+        except ValueError:
+            # This can happen if the last selected leaf is no longer a leaf
+            # (it has been expanded) or if this is the first selection.
+            # In either case, start from the beginning.
+            next_position = 0
 
-            return (selected_leaf,) 
+        selected_leaf = leaves[next_position]
+        self._last_selected_leaf_id = selected_leaf
+
+        return (selected_leaf,)

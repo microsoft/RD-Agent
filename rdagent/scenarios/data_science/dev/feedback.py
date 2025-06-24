@@ -27,16 +27,14 @@ class DSExperiment2Feedback(Experiment2Feedback):
         # 4. result 任务的结果
         # 5. sota_exp.result 之前最好的结果
 
-        local_selection = getattr(exp, "local_selection", None)
-
-        sota_exp = trace.sota_experiment(selection=local_selection)
+        sota_exp = trace.sota_experiment()
         sota_desc = T("scenarios.data_science.share:describe.exp").r(
             exp=sota_exp, heading="SOTA of previous exploration of the scenario"
         )
 
         # Get feedback description using shared template
         feedback_desc = T("scenarios.data_science.share:describe.feedback").r(
-            exp_and_feedback=trace.last_exp_fb(selection=local_selection), heading="Previous Trial Feedback"
+            exp_and_feedback=trace.last_exp_fb(), heading="Previous Trial Feedback"
         )
 
         # TODO:

@@ -362,12 +362,6 @@ class ExpGen2TraceAndMergeV2(ExpGen):
                     trace.set_current_selection(selection=(-1,))
                     return self.exp_gen.gen(trace)  # continue the last trace, to polish the merged solution
 
-    # TODO: implement the async_gen for the multi-trace version. See ParallelExpGen for a pattern.
-    async def async_gen(self, trace: DSTrace, loop: LoopBase) -> DSExperiment:
-        # This now needs to align with the base class but might not be fully parallel-aware yet.
-        # The new producer-consumer loop will set the context via trace.set_current_selection.
-        return self.gen(trace)
-
 
 class ExpGen2TraceAndMergeV3(ExpGen):
     def __init__(self, *args, **kwargs):
@@ -409,4 +403,3 @@ class ExpGen2TraceAndMergeV3(ExpGen):
                         selection = (leaves[1],)
                 trace.set_current_selection(selection)
                 return self.merge_exp_gen.gen(trace)
-

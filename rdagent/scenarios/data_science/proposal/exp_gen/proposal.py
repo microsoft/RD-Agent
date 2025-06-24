@@ -802,11 +802,10 @@ class DSProposalV2ExpGen(ExpGen):
             )
         return result
 
-    def gen(self, trace: DSTrace, local_selection: tuple[int, ...] | None = None) -> DSExperiment:
-
-        # NOTE: local_selection is used only in the parallel + multi-trace mode,
-        # each operation should use its own local_selection, instead to global "trace.current_selection"
-        # to avoid race condition.
+    def gen(
+        self,
+        trace: DSTrace,
+    ) -> DSExperiment:
 
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
         if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
@@ -822,7 +821,7 @@ class DSProposalV2ExpGen(ExpGen):
                 ]
             )
 
-        sota_exp = trace.sota_experiment(selection=local_selection)
+        sota_exp = trace.sota_experiment()
         if not isinstance(sota_exp, DSExperiment):
             eda_output = None
         else:
@@ -833,40 +832,19 @@ class DSProposalV2ExpGen(ExpGen):
             exp=sota_exp, heading="Best of previous exploration of the scenario"
         )
 
-        if local_selection is None:
-
-            exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-                exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
-                type="all",
-                pipeline=pipeline,
-            )
-            failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-                exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
-                type="failed",
-                pipeline=pipeline,
-            )
-
-        else:
-            # NOTE: in the parallel + multi-trace mode, we only retrieve the feedbacks of parent trace.
-            exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-                exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(
-                    return_type="all", 
-                    search_type="ancestors",
-                    selection=local_selection),
-                type="all",
-                pipeline=pipeline,
-            )
-            failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-                exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(
-                    return_type="failed", 
-                    search_type="ancestors",
-                    selection=local_selection),
-                type="failed",
-                pipeline=pipeline,
-            )
+        exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
+            type="all",
+            pipeline=pipeline,
+        )
+        failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
+            type="failed",
+            pipeline=pipeline,
+        )
 
         # NOTE: we currently don't support inject diverse problems for the parallel + multi-trace mode,
-        if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0 and local_selection is None:
+        if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
             if len(trace.current_selection) == 0:
                 # start a new sub-trace, and inject diverse problems.
                 inject_diverse = True
@@ -878,7 +856,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         # Step 1: Identify problems
         all_problems = self.identify_problem(
-            current_sub_trace=trace.get_parent_exps(selection=local_selection),
+            current_sub_trace=trace.get_parent_exps(),
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
