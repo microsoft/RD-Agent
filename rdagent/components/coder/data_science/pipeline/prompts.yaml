@@ -90,27 +90,6 @@ pipeline_coder:
     --------- Feedback to former code ---------
     {{ latest_code_feedback }}
     The former code contains errors. You should correct the code based on the provided information, ensuring you do not repeat the same mistakes.
-    {% else %}
-    The former code is correct. You should try to improve the code based on the provided task while not changing the irrelevant parts.
-    {% endif %}
-    {% endif %} 
-
-    You should strictly follow the code specifications provided by the specification to implement the function.
-
-  user_v3: |-
-    --------- Competition Information ---------
-    {{ competition_info }}
-
-    --------- Data Folder Description (All path are relative to the data folder) ---------
-    {{ folder_spec }}
-    
-    {% if latest_code %}
-    --------- Former code ---------
-    {{ latest_code }}
-    {% if latest_code_feedback is not none %}
-    --------- Feedback to former code ---------
-    {{ latest_code_feedback }}
-    The former code contains errors. You should correct the code based on the provided information, ensuring you do not repeat the same mistakes.
     Keep the part that already seem correct intact. Avoid modifying them to refrain from introducing new errors.
     {% else %}
     The former code is correct. You should try to improve the code based on the provided task while not changing the irrelevant parts.

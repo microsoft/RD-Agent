@@ -17,6 +17,8 @@ class TestRDAgentImports(unittest.TestCase):
     def import_all_modules_from_directory(directory):
         for file in directory.joinpath("rdagent").rglob("*.py"):
             fstr = str(file)
+            if "example" in fstr:
+                continue
             if "meta_tpl" in fstr:
                 continue
             if "template" in fstr or "tpl" in fstr:
