@@ -357,21 +357,26 @@ task_gen:
       - Double-check that validation scores are saved correctly to `scores.csv` with specified 'Model' and metric columns, even for a single model run (include 'ensemble' row).
     
     {% if task_output_format is not none %}
+
+    {% if workflow_check %}
     ## [Partial Response Format 1] Task Output Format:
     {{ task_output_format }}
 
-    {% if workflow_check %}
     # Step 2: Workflow Update
     Since components have dependencies, your second task is to update the workflow to reflect the changes made to the target component. Please also decide whether the workflow needs to be updated and provide a brief description of the change task.
     {{ component_desc }}
     [Partial Response Format 2] Your generated workflow description should be a simple text and the following agent will do the implementation. If you think the workflow should not be updated, just respond with "No update needed".
-    {% endif %}
 
     Your final output should strictly adhere to the following JSON format. 
     {
       "task_design": ---The dict corresponding to task output format---,
-      {% if workflow_check %}"workflow_update": ---A string corresponding to workflow description--- {% endif %}
+      "workflow_update": ---A string corresponding to workflow description---
     }
+    {% else %}
+    ## Task Output Format:
+    {{ task_output_format }}
+    {% endif %}
+
     {% endif %}
     
   user: |-
