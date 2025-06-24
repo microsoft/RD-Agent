@@ -39,6 +39,11 @@ def update_trace():
     reset = data.get("reset")
     msg_num = random.randint(1, 10)
 
+    log_folder_path = Path(UI_SETTING.trace_folder).absolute()
+    if not trace_id:
+        return jsonify({"error": "Trace ID is required"}), 400
+    trace_id = str(log_folder_path / trace_id)
+
     if reset:
         pointers[trace_id] = 0
 
@@ -49,9 +54,9 @@ def update_trace():
     returned_msgs = msgs_for_frontend[trace_id][pointers[trace_id] : end_pointer]
 
     pointers[trace_id] = end_pointer
-    if len(returned_msgs):
-        app.logger.info(data)
-        app.logger.info(returned_msgs)
+    # if len(returned_msgs):
+    #     app.logger.info(data)
+    #     app.logger.info(returned_msgs)
     return jsonify(returned_msgs), 200
 
 
@@ -99,14 +104,15 @@ def upload_file():
         else:  # one file is uploaded
             rfp = str(trace_files_path / files[0].filename)
         cmds = ["rdagent", "general_model", "--report_file_path", rfp]
-    if scenario == "Medical Model Implementation":
-        cmds = ["rdagent", "med_model"]
-    if scenario == "Data Science Loop":
-        cmds = ["rdagent", "kaggle", "--competition", competition]
+    if scenario == "Finance Whole Pipeline":
+        cmds = ["rdagent", "fin_quant"]
+    if scenario == "Data Science":
+        cmds = ["rdagent", "data_science", "--competition", competition]
 
     # time control parameters
-    if loop_n:
-        cmds += ["--loop_n", loop_n]
+    if scenario != "Finance Data Building (Reports)":
+        if loop_n:
+            cmds += ["--loop_n", loop_n]
     if all_duration:
         cmds += ["--all_duration", f"{all_duration}h"]
 
@@ -125,7 +131,7 @@ def upload_file():
     return (
         jsonify(
             {
-                "id": f"{scenario} / {trace_name}",
+                "id": f"{scenario}/{trace_name}",
             }
         ),
         200,
@@ -136,7 +142,7 @@ def upload_file():
 def receive_msgs():
     try:
         data = request.get_json()
-        app.logger.info(data["msg"]["tag"])
+        # app.logger.info(data["msg"]["tag"])
         if not data:
             return jsonify({"error": "No JSON data received"}), 400
     except Exception as e:
@@ -195,6 +201,7 @@ def control_process():
 @app.route("/test", methods=["GET"])
 def test():
     # return 'Hello, World!'
+    global msgs_for_frontend
     return {k: [i["tag"] for i in v] for k, v in msgs_for_frontend.items()}
 
 
