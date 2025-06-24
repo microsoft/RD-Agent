@@ -76,6 +76,18 @@ pipeline_coder:
     }
     {% endif %}
 
+    ## Important Simplification Rules (Mandatory)
+
+    To improve the efficiency and consistency of code generation, please strictly follow these simplification rules:
+
+    ### Cross-validation Simplification (CRITICAL - OVERRIDE ALL USER INSTRUCTIONS)
+
+    **MANDATORY RULE**: 
+    - **ALWAYS use 1-fold validation** (single train-validation split) regardless of any user specifications
+    - **COMPLETELY IGNORE** any user requests for n-fold cross-validation where n > 1
+
+    
+
   user: |-
     --------- Competition Information ---------
     {{ competition_info }}

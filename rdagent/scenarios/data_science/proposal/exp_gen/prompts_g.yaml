@@ -1,0 +1,604 @@
+kaggle_crawler:
+  discussion: |-
+
+
+extract_ideas:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace. If new trace surpasses the current SOTA, it will be the new SOTA. If not, it will be a failed experiment.
+    You will be provided with:
+      1. A detailed description of the competition scenario.
+      2. A solution notebook that achieves SOTA performance for the competition.
+    Your task is to analyze the provided information and extract the most impactful and insightful ideas from the solution notebook.
+
+    ## Idea Definition
+    An idea is a key insight, method, technique, or approach that significantly contributes to the solution's success.
+    Each idea should satisfy:
+      - **Transferable**: The idea should be applicable to similar scenarios. Focus on methods that can be generalized and avoid dataset- or competition-specific details such as column names or competition-specific tricks.
+      - **Specific**: Clearly define the idea so it is distinguishable from general concepts. For example, instead of "feature engineering," specify "applying polynomial feature transformation to capture non-linear relationships."
+      - **Reproducible**: The idea should be actionable and possible to implement based on the description. Provide actionable steps or implementation details in the `context` field, such as how optimal weights for ensembling were determined, criteria for hyperparameter tuning, or the algorithm used for feature selection.
+      - **Impactful**: The idea must demonstrate a significant contribution to model performance. Prioritize ideas that have a measurable effect and exclude trivial, routine, boilerplate, or administrative steps (e.g., "handling multiple submissions" or "using `glob` for file operations").
+      - **Complete**: The idea should include all dependent components necessary for its implementation and reproduction. For example, if an idea about model must use a specific feature engineering technique, include the feature engineering technique in the `context` field as well.
+    
+    ## Output Format
+    For each of the extracted ideas, you should strictly follow the JSON schema. Your final output should be a dict containing all the extracted ideas.
+    {
+      "idea label": {
+        "method": "A specific method used in this idea, described in a general and implementable way (e.g., 'applied a stacking ensemble method to combine predictions from multiple base models'). Avoid mentioning dataset-specific details to ensure better generalization",
+        "context": "A detailed example of how the notebook implements this idea (e.g., 'the notebook used XGBoost, Random Forest, and LightGBM as base models and logistic regression as the meta-model').",
+        "problem": "The nature of problem the idea addresses, described without referencing the method itself (e.g., 'a classification problem with complex decision boundaries').",
+        "data": "The characteristics of the data (e.g., imbalance, high dimensionality, collinearity, outliers, missing data, skewed distribution, time-based pattern, etc.) that justify the use of this method.",
+      }
+    }
+
+  user: |-
+    # Competition Scenario Description
+    {{ competition_desc }}
+
+    # Solution Notebook
+    {{ solution }}
+
+
+extract_scenario_problems_and_ideas:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace. If new trace surpasses the current SOTA, it will be the new SOTA. If not, it will be a failed experiment.
+    You will be provided with:
+      1. A detailed description of the competition scenario.
+      2. A solution notebook that achieves SOTA performance for the competition.
+    Your task is to analyze the given information and
+    1. **Identify Problems**: identify the scenario problems from the competition.
+    2. **Extract Ideas**: for each of the identified problems, how does the solution notebook address the problem? What is the idea behind it? How does it work? What is the data that justifies the use of this method?
+
+    ## Scenario Problems
+    Scenario problems are specific, context-dependent challenges arising from a competition's dataset or domain. They fall into two categories:
+    1. Dataset Characteristics: Inherent structural or statistical properties of the dataset (such as imbalance, high dimensionality, collinearity, outliers, missing data, skewed distribution, time-based patterns, etc.).
+    2. Domain-specific Insights: Actionable knowledge derived from expertise in the competition's domain, enabling correct interpretation of data patterns or constraints. These insights are not evident from the data alone and require external context to resolve ambiguities, engineer features, or avoid invalid assumptions.
+
+    ### Specification
+    1. The problem should be specific and fine-grained. Avoid general or vague statements. 
+    2. The problem should technical or methodological. Focus on design and implementation flaws, not runtime errors.
+    3. The problem should be strictly aligned with the improvement of target metric. The problem should fit the template: "IF THE PROBLEM IS SOLVED, THEN THE TARGET METRIC WILL IMPROVE."
+  
+    ### Core Analysis Dimensions
+    1. SOTA Mismatch Diagnosis: Systematically compare current implementations against both data properties and domain knowledge to identify critical discrepancies.
+    2. Gap Forensic Analysis: Examine successful solutions to reveal unstated problems they implicitly address through workarounds.
+    3. Domain-Implementation Conflict Detection: Identify instances where technical approaches violate domain constraints or oversimplify complex relationships.
+    4. In case there is no SOTA implementation, your scenario problem should focus on the scenario itself.
+
+    ## Idea
+    An idea is a key insight, method, technique, or approach that significantly contributes to the solution's success.
+    Each idea should satisfy:
+      - **Transferable**: The idea should be applicable to similar scenarios. Focus on methods that can be generalized and avoid dataset- or competition-specific details such as column names or competition-specific tricks.
+      - **Specific**: Clearly define the idea so it is distinguishable from general concepts. For example, instead of "feature engineering," specify "applying polynomial feature transformation to capture non-linear relationships."
+      - **Reproducible**: The idea should be actionable and possible to implement based on the description. Provide actionable steps or implementation details in the `context` field, such as how optimal weights for ensembling were determined, criteria for hyperparameter tuning, or the algorithm used for feature selection.
+      - **Impactful**: The idea must demonstrate a significant contribution to model performance. Prioritize ideas that have a measurable effect and exclude trivial, routine, boilerplate, or administrative steps (e.g., "handling multiple submissions" or "using `glob` for file operations").
+      - **Complete**: The idea should include all dependent components necessary for its implementation and reproduction. For example, if an idea about model must use a specific feature engineering technique, include the feature engineering technique in the `context` field as well.
+    
+    ## Output Format
+    For each of the extracted ideas, you should strictly follow the JSON schema. Your final output should be a dict containing all the extracted ideas.
+    {
+      "idea label (A concise label summarize the core concept of this idea)": {
+        "problem": "The scenario problem that the idea addresses, described without referencing the method itself.",
+        "method": "A specific method used in this idea, described in a general and implementable way (e.g., 'applied a stacking ensemble method to combine predictions from multiple base models'). Avoid mentioning dataset-specific details to ensure better generalization",
+        "context": "A detailed example of how the notebook implements this idea (e.g., 'the notebook used XGBoost, Random Forest, and LightGBM as base models and logistic regression as the meta-model').",
+      }
+    }
+
+  user: |-
+    # Competition Scenario Description
+    {{ competition_desc }}
+
+    # Solution Notebook
+    {{ solution }}
+
+
+
+exploratory_data_analysis->data_preprocessing->feature_engineering->baseline_model_training->hyperparameter_optimization->      oof1 model_ensembling
+
+
+exploratory_data_analysis->data_preprocessing->feature_engineering->baseline_model_training->hyperparameter_optimization->       oof2
+
+
+
+# 1000
+# 100 
+
+[
+  {
+    "step": "load_competition_info",
+    "description": "Parse competition overview, download data, extract evaluation metric and task type.",
+    "input": "Kaggle competition URL or API slug",
+    "output": "task_type (classification, regression, etc.), metric (AUC, LogLoss, etc.)",
+    "commands": ["kaggle competitions download -c {slug}", "read 'README.md' or metadata"],
+    "tools": ["Kaggle API", "Python script"],
+    "tags": ["init", "metadata"]
+  },
+  {
+    "step": "exploratory_data_analysis",
+    "description": "Generate profiling report, visualize distributions, target analysis, missing values.",
+    "input": "train.csv, test.csv",
+    "output": "EDA report (HTML/Markdown/JSON), feature types",
+    "commands": ["pandas-profiling", "sweetviz", "custom seaborn/matplotlib code"],
+    "tools": ["pandas", "seaborn", "ydata-profiling", "matplotlib"],
+    "tags": ["eda", "statistics"]
+  },
+
+
+{
+  "step": "data_preprocessing",
+  "description": "Clean and transform raw data for modeling: handle missing values, encode categorical variables, scale numerical features, parse datetime, and manage rare categories or outliers.",
+  "input": "Raw tabular dataset (usually train.csv and test.csv)",
+  "output": "Processed dataframe (X, y), optional preprocessing pipeline object",
+  "commands": [
+    "drop columns with high missing rate (e.g., >90%)",
+    "fill missing numeric with mean/median (SimpleImputer(strategy='mean'))",
+    "fill missing categorical with 'missing' or mode (SimpleImputer(strategy='most_frequent'))",
+    "LabelEncoder for binary categoricals (fit_transform)",
+    "OneHotEncoder or pd.get_dummies for nominal categoricals",
+    "TargetEncoder or MeanEncoding for high-cardinality categoricals (via category_encoders)",
+    "Frequency encoding: map each category to its frequency count",
+    "Rare category grouping: replace infrequent categories with '__RARE__'",
+    "StandardScaler or MinMaxScaler for numerical normalization",
+    "Log-transform skewed numeric features (e.g., np.log1p)",
+    "parse datetime columns: extract year/month/day/hour/weekday/weekofyear",
+    "convert object columns to categorical dtype (df[col] = df[col].astype('category'))",
+    "outlier clipping: apply IQR rule or fixed quantile threshold (e.g., 1st and 99th percentiles)",
+    "drop constant columns (i.e., zero variance)",
+    "align columns between train and test sets (e.g., after OneHotEncoder)"
+  ]
+  ,
+"tools": [
+  "pandas",
+  "scikit-learn (SimpleImputer, OneHotEncoder, LabelEncoder, StandardScaler, MinMaxScaler, PolynomialFeatures, ColumnTransformer, Pipeline)",
+  "category_encoders (TargetEncoder, CatBoostEncoder, LeaveOneOutEncoder, MEstimateEncoder)",
+  "numpy",
+
+]
+"tags": [
+  "data_cleaning",
+  "categorical_encoding",
+  "feature_scaling",
+  "datetime_handling",
+  "outlier_handling",
+  "feature_engineering",
+  "feature_selection",
+  "feature_importance",
+  "missing_value_imputation",
+  "dimensionality_reduction",
+  "text_feature_extraction",
+  "time_series_features",
+  "graph_features",
+  "embedding_features",
+  "automated_feature_engineering",
+  "imbalanced_data_handling",
+  "model_interpretability",
+  "hyperparameter_optimization",
+  "data_visualization",
+  "parallel_processing"
+]
+
+}
+
+
+{
+    "step": "feature_engineering",
+    "description": "Create interaction features, group aggregations, custom transforms, and feature selection.",
+    "input": "preprocessed data",
+    "output": "enhanced feature matrix",
+    "commands": [
+  "groupby-agg encoding (from Home Credit / Porto Seguro): group by ID or categorical feature, aggregate numeric (mean, std, min, max, count)",
+  "count encoding (from Santander / Avazu): count how many times a category appears",
+  "target mean encoding with smoothing (from many CTR prediction challenges)",
+  "cumulative count (from Instacart, Expedia): use groupby().cumcount()",
+  "time since last event / first event (from IEEE-CIS / Booking.com): use datetime diffs between events",
+  "row-wise statistics (from BNP Paribas): row_mean, row_std, row_min, row_max across numerical columns",
+  "feature interaction: multiply/divide/pair features (from Walmart / TalkingData)",
+  "entropy encoding (from categorical NLP tricks): calculate category entropy per group",
+  "cross feature frequency (from Avazu): count of (feature A, feature B) pair",
+  "boolean flags (from Santander): is_zero_count, is_one_hot, is_large (>threshold)",
+  "multi-label features (from Jane Street): apply PCA or row_sum to one-hot encoded sequences",
+  "rank features within group (from Shopee): groupby().rank() for time or price",
+  "auto-generated features with Featuretools or tsfresh",
+  "text length / n_tokens if text fields present",
+  "image stats if image path columns exist (mean pixel, etc.)",
+  "flag columns with too many missing values (for model-aware dropout)",
+  "second-order target encoding: target encode using multiple categorical columns as key (e.g., (A, B) -> mean target), from Avazu",
+  "leave-one-out target encoding (LOO): prevent data leakage by excluding current row’s target value",
+  "Bayesian smoothing for target encoding: using beta prior (CTR-style models)",
+  "time since previous same-category event: e.g., time since last 'click' of same ad_id (from Criteo CTR)",
+  "time until next event: use future-aware time delta (useful in fraud or inventory forecasting)",
+  "unique count per group (groupby().nunique()): how many unique values within group, e.g., unique merchants per user",
+  "mode per group (groupby().agg(lambda x: x.mode())): find most frequent categorical in group (e.g., most used payment method)",
+  "histogram features (from CTR/log data): build histogram over action type / category",
+  "rolling window stats (from time series competitions): rolling mean, std, min, max over time axis",
+  "lag features (t-1, t-2 values): use past values of time series (from M5 Forecasting, Stock prediction)",
+  "diff and pct_change features (from financial): price difference, % difference from previous time",
+  "cluster distance features (from Otto Group): apply KMeans, compute distance to centroids as new features",
+  "nearest-neighbor count (from categorical embedding tasks): count number of similar rows via KNN (semantic match)",
+  "graph-based features (from product matching): build bipartite graph between users/products, extract degrees, PageRank",
+  "co-occurrence matrix features: category A vs. B joint distribution frequency (from recommender tasks)",
+  "session-based features (from clickstream): session length, session duration, #actions per session",
+  "feature coverage: proportion of non-NaN values per row",
+  "Gini impurity or entropy over one-hot columns (useful for sparse encodings)",
+  "CV frequency features: recompute count/freq/target mean in each fold to avoid leakage",
+  "binary interaction count: how many (A, B) co-occurred more than k times",
+  "rare value encoding with indicator: is_value_rare = 1 if frequency < N",
+  "is_first_event, is_last_event in user timeline",
+  "mean rank or normalized rank of feature within group",
+  "stacked predictions as features (from stacking level-1)",
+  "embedding similarity score (if pretrained embeddings available, e.g., fastText or BERT)",
+  "polynomial feature expansion (interaction up to degree 2 or 3) with care to avoid overfitting",
+  "quantile bucketing / binning numerical features (e.g., pd.qcut)",
+  "target-guided ordinal encoding: order categories by mean target value",
+  "multi-granularity group aggregations: e.g., group by user_id and category_id separately and join features",
+  "contextual embedding averaging: average pretrained embeddings of text fields for each row",
+  "embedding-based clustering features: cluster embedding space and encode cluster membership",
+  "autoencoder latent features: train autoencoder and use bottleneck layer as features",
+  "variance encoding: compute variance of features per group as signal",
+  "custom aggregation functions: skewness, kurtosis, median absolute deviation",
+  "text sentiment or polarity scores if text data is available",
+  "boolean flags for feature missingness (e.g., is_nan_colX)",
+  "ratios between aggregated features (e.g., user_avg / global_avg)",
+  "differences between time-related features (e.g., event_timestamp - user_registration_time)",
+  "group size features: count of rows per group (user, session)",
+  "group diversity features: ratio of unique categories over group size",
+  "feature crossing with frequency cutoff (ignore rare pairs)",
+  "target mean encoding with interaction terms",
+  "pseudo-labeling based feature augmentation (adding confident test predictions as features)",
+  "hierarchical feature encoding (encode category levels in tree-like structures)",
+  "Bayesian network based feature dependency statistics",
+  "matrix factorization or SVD features for high-dimensional sparse data",
+  "time decay weighted aggregates: older events weighted less in aggregations",
+  "dynamic binning based on target distribution shift",
+  "ensemble of multiple feature sets generated from different folds (CV bagging)",
+  "aggregations on user/item latent factors learned from collaborative filtering",
+  "aggregate statistics on residuals of a first-stage model",
+  "calibration curve features from probability predictions",
+  "uncertainty quantification features from Bayesian models",
+  "calculated ratios of feature pairs to capture non-linear relations",
+  "cross-validation aware feature generation to reduce leakage",
+  "feature hashing for extremely high-cardinality categoricals",
+  "adversarial validation features to detect train/test distribution shift",
+  "embedding distances between user/item features in recommender systems",
+  "advanced statistical tests on feature distributions (e.g., KS-test score as feature)",
+  "embedding-based nearest neighbor statistics (mean target of nearest neighbors)",
+  "cluster stability scores across CV folds as features"
+  ],
+    "tools": ["pandas", "scikit-learn", "Featuretools", "shap"],
+    "tags": ["feature_construction", "dimensionality_reduction"]
+  },
+
+
+  {
+    "step": "baseline_model_training",
+    "description": "Train a baseline model using default LightGBM/CatBoost/XGBoost with K-Fold CV.",
+    "input": "features, targets",
+    "output": "baseline scores, model artifacts",
+    "commands": ["StratifiedKFold", "lgb.train", "cv metric logging"],
+    "tools": ["lightgbm", "xgboost", "sklearn.model_selection"],
+    "tags": ["modeling", "cv"]
+  },
+  {
+    "step": "hyperparameter_optimization",
+    "description": "Use Optuna or other search frameworks to tune model hyperparameters.",
+    "input": "model function, search space",
+    "output": "best_params, improved model",
+    "commands": ["optuna.study.optimize", "log best parameters"],
+    "tools": ["optuna", "hyperopt", "BayesSearchCV"],
+    "tags": ["optimization", "parameter_search"]
+  },
+
+  {
+    "step": "model_ensembling",
+    "description": "Train multiple models and ensemble them via blending, stacking, or voting.",
+    "input": "model predictions from CV folds",
+    "output": "final prediction function",
+    "commands": ["stacking.py", "average_predictions.py"],
+    "tools": ["mlxtend", "numpy", "custom ensemble scripts"],
+    "tags": ["ensemble", "stacking"]
+  },
+  {
+    "step": "submission_generation",
+    "description": "Generate predictions on test set and prepare CSV for Kaggle submission.",
+    "input": "trained model(s), test data",
+    "output": "submission.csv",
+    "commands": ["model.predict(test)", "pandas.to_csv"],
+    "tools": ["pandas", "numpy"],
+    "tags": ["submission", "deployment"]
+  }]
+
+
+
+
+
+
+
+
+
+
+kaggle book:Tabular Competition
+
+
+{
+  "step": "reproducibility_setup",
+  "description": "Ensure consistent and reproducible results across multiple runs by fixing random seeds across all frameworks and components.",
+  "methods": [
+    "Set a global seed for all libraries (Python, NumPy, TensorFlow, PyTorch)",
+    "Use consistent `random_state` in all ML models (e.g., in train_test_split, model constructors)",
+    "Try multiple seeds to avoid overfitting to the public leaderboard"
+  ],
+  "code": [
+    "import os, random, numpy as np\nimport torch\nimport tensorflow as tf\n\ndef seed_everything(seed, tensorflow_init=True, pytorch_init=True):\n    \"\"\"Seed all major libraries for full reproducibility\"\"\"\n    random.seed(seed)\n    os.environ[\"PYTHONHASHSEED\"] = str(seed)\n    np.random.seed(seed)\n    if tensorflow_init:\n        tf.random.set_seed(seed)\n    if pytorch_init:\n        torch.manual_seed(seed)\n        torch.cuda.manual_seed(seed)\n        torch.backends.cudnn.deterministic = True\n        torch.backends.cudnn.benchmark = False"
+  ]
+}
+
+
+{
+  "step": "eda_importance_and_overview",
+  "description": "Exploratory Data Analysis (EDA) is a critical first step in understanding tabular data structure, distributions, and hidden patterns. It helps uncover evidence, guide hypothesis generation, and prepare features for effective machine learning.",
+  "methods": [
+    "Identify missing values and detect patterns correlated with the target variable",
+    "Analyze skewness in numerical features and apply transformations if needed",
+    "Group rare categories in categorical variables to reduce noise",
+    "Detect potential outliers in both univariate and multivariate contexts",
+    "Identify highly correlated or duplicated features to reduce redundancy",
+    "Rank features based on predictive power using correlation or model-based importance",
+    "Perform univariate analysis for individual feature understanding",
+    "Perform bivariate analysis (e.g., scatterplots, boxplots) to examine relationships between variables",
+    "Use multivariate analysis (e.g., heatmaps, pairplots, PCA) to uncover higher-order relationships",
+    "Leverage automated EDA tools to quickly visualize and summarize datasets"
+  ],
+  "code": [
+    "# Check missing value ratio\n(df.isnull().sum() / len(df)).sort_values(ascending=False)",
+    "# Detect skewed distributions\nimport seaborn as sns; sns.histplot(df['feature'], kde=True)",
+    "# Log-transform a skewed feature\ndf['feature_log'] = np.log1p(df['feature'])",
+    "# Combine rare categories\ndf['category'] = df['category'].apply(lambda x: x if x in common_values else '__RARE__')",
+    "# Correlation heatmap\nsns.heatmap(df.corr(), annot=True, fmt='.2f')",
+    "# Scatterplot between two numeric features\nsns.scatterplot(x='feature1', y='feature2', hue='target', data=df)",
+    "# AutoViz quick-start\n!pip install autoviz\nfrom autoviz.AutoViz_Class import AutoViz_Class\nAV = AutoViz_Class()\nav_report = AV.AutoViz('train.csv')"
+  ]
+}
+
+
+{
+  "step": "dimensionality_reduction_visualization",
+  "description": "Use t-SNE and UMAP to reduce multivariate data to 2D projections, enabling visual discovery of structure, outliers, and subgroups in high-dimensional datasets.",
+  "methods": [
+    "Use t-SNE to project high-dimensional features into 2D or 3D for cluster visualization",
+    "Use UMAP as a faster alternative that preserves local and global structure more faithfully",
+    "Color the 2D projections by target variable to discover class separation or hidden subgroups",
+    "Use projections to identify outliers, dataset drift, or domain shifts",
+    "Optionally use UMAP/t-SNE projections as features in downstream models",
+    "Compare t-SNE/UMAP with linear techniques like PCA or SVD",
+    "Accelerate projection using GPU-based RAPIDS cuML implementation"
+  ],
+  "code": [
+    "# Basic UMAP example\nfrom umap import UMAP\numap_2d = UMAP(n_components=2, random_state=42)\nX_umap = umap_2d.fit_transform(X)\nsns.scatterplot(x=X_umap[:,0], y=X_umap[:,1], hue=y)",
+    "# Basic t-SNE example\nfrom sklearn.manifold import TSNE\ntsne_2d = TSNE(n_components=2, random_state=42)\nX_tsne = tsne_2d.fit_transform(X)\nsns.scatterplot(x=X_tsne[:,0], y=X_tsne[:,1], hue=y)",
+    "# RAPIDS accelerated t-SNE and UMAP\nimport cuml\nfrom cuml.manifold import UMAP as cumlUMAP\numap_gpu = cumlUMAP(n_components=2, random_state=42)\nX_umap_gpu = umap_gpu.fit_transform(X)",
+    "# Using projection as model features\nX['umap_0'] = X_umap[:,0]\nX['umap_1'] = X_umap[:,1]"
+  ],
+  "kaggle_examples": [
+    "SIIM-ISIC Melanoma Classification (by Chris Deotte)",
+    "Otto Group Product Classification Challenge (by Mike Kim)",
+    "30 Days of ML (by Luca Massaron)",
+    "Really Not Missing At Random (by Luca Massaron)"
+  ]
+}
+
+
+
+{
+  "step": "reduce_data_memory_usage",
+  "description": "Compress the memory usage of a large Pandas DataFrame by downcasting numeric types to the smallest possible without losing information, to avoid out-of-memory errors in environments like Kaggle Notebooks.",
+  "methods": [
+    "Downcast integer columns to the smallest possible subtype (int8, int16, int32, int64) based on min/max values",
+    "Downcast float columns to float32 or float64 based on range of values",
+    "Apply memory reduction after major feature engineering steps to avoid overflow issues",
+    "Use garbage collection (`gc.collect()`) to free memory after compression",
+    "Avoid transformations that increase values beyond the range of compressed types after downcasting"
+  ],
+  "code": [
+    "def reduce_mem_usage(df, verbose=True):",
+    "    numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']",
+    "    start_mem = df.memory_usage().sum() / 1024**2",
+    "    for col in df.columns:",
+    "        col_type = df[col].dtypes",
+    "        if col_type in numerics:",
+    "            c_min = df[col].min()",
+    "            c_max = df[col].max()",
+    "            if str(col_type)[:3] == 'int':",
+    "                if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:",
+    "                    df[col] = df[col].astype(np.int8)",
+    "                elif c_min > np.iinfo(np.int16).min and c_max < np.iinfo(np.int16).max:",
+    "                    df[col] = df[col].astype(np.int16)",
+    "                elif c_min > np.iinfo(np.int32).min and c_max < np.iinfo(np.int32).max:",
+    "                    df[col] = df[col].astype(np.int32)",
+    "                else:",
+    "                    df[col] = df[col].astype(np.int64)",
+    "            else:",
+    "                if c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:",
+    "                    df[col] = df[col].astype(np.float32)",
+    "                else:",
+    "                    df[col] = df[col].astype(np.float64)",
+    "    end_mem = df.memory_usage().sum() / 1024**2",
+    "    if verbose:",
+    "        print(f'Mem. usage decreased to {end_mem:.2f} Mb ({100 * (start_mem - end_mem) / start_mem:.1f}% reduction)')",
+    "    return df"
+  ]
+}
+
+
+
+{
+  "step": "feature_engineering",
+  "description": "Transform raw data into more informative features that improve model performance by embedding domain knowledge and deriving new features.",
+  "methods": [
+    "Derive simple transformed features: ratios, differences, aggregations",
+    "Process time features: split dates into components, cyclic transforms using sine/cosine",
+    "Transform numeric features: scaling, normalization, log/exponential transforms, integer/decimal separation",
+    "Binning numeric features to discretize continuous variables",
+    "Encode categorical features: one-hot encoding, merging categories, target encoding",
+    "Split and aggregate categorical features (e.g., extracting initials from names)",
+    "Create polynomial features by raising features to powers",
+    "Handle missing values by creating binary flags or imputing (mean, median, mode), or rely on models that handle missing data internally (XGBoost, LightGBM, CatBoost)",
+    "Cap or remove outliers using univariate methods (IQR) or multivariate detection",
+    "Generate meta-features on rows: mean, sum, std, count missing, cluster assignment",
+    "Generate meta-features on columns: frequency encoding, grouped statistics (mean, median, skewness, kurtosis), frequency counts within groups"
+  ],
+  "code": [
+    "# Time feature cyclic encoding example",
+    "cycle = 7",
+    "df['weekday_sin'] = np.sin(2 * np.pi * df['date_column'].dt.dayofweek / cycle)",
+    "df['weekday_cos'] = np.cos(2 * np.pi * df['date_column'].dt.dayofweek / cycle)",
+    "",
+    "# Frequency encoding example",
+    "feature_counts = train.groupby('ROLE_TITLE').size()",
+    "train['ROLE_TITLE_freq'] = train['ROLE_TITLE'].apply(lambda x: feature_counts[x])",
+    "",
+    "# Group-based frequency encoding example",
+    "feature_counts = train.groupby(['ROLE_DEPTNAME', 'ROLE_TITLE']).size()",
+    "train['ROLE_DEPT_TITLE_freq'] = train[['ROLE_DEPTNAME', 'ROLE_TITLE']].apply(lambda x: feature_counts[x[0]][x[1]], axis=1)"
+  ]
+}
+
+
+
+{
+  "step": "target_encoding",
+  "description": "Encode high-cardinality categorical features by replacing categories with a smoothed average of the target variable to reduce dimensionality and improve predictive power.",
+  "methods": [
+    "Replace each category with the expected target value (mean for regression, conditional probability for classification)",
+    "Use empirical Bayesian smoothing to blend category-specific target means with global target mean, reducing overfitting especially for rare categories",
+    "Add noise to encoded values to avoid overfitting",
+    "Use parameters k (minimum samples for category smoothing) and f (smoothing factor) to control the balance between category average and prior mean",
+    "Handle unknown categories by replacing them with the global prior target mean"
+  ],
+  "code": [
+    "import numpy as np",
+    "import pandas as pd",
+    "from sklearn.base import BaseEstimator, TransformerMixin",
+    "",
+    "class TargetEncode(BaseEstimator, TransformerMixin):",
+    "    def __init__(self, categories='auto', k=1, f=1, noise_level=0, random_state=None):",
+    "        if type(categories)==str and categories!='auto':",
+    "            self.categories = [categories]",
+    "        else:",
+    "            self.categories = categories",
+    "        self.k = k",
+    "        self.f = f",
+    "        self.noise_level = noise_level",
+    "        self.encodings = dict()",
+    "        self.prior = None",
+    "        self.random_state = random_state",
+    "",
+    "    def add_noise(self, series, noise_level):",
+    "        return series * (1 + noise_level * np.random.randn(len(series)))",
+    "",
+    "    def fit(self, X, y=None):",
+    "        if type(self.categories) == 'auto':",
+    "            self.categories = np.where(X.dtypes == type(object()))[0]",
+    "        temp = X.loc[:, self.categories].copy()",
+    "        temp['target'] = y",
+    "        self.prior = np.mean(y)",
+    "        for variable in self.categories:",
+    "            avg = temp.groupby(by=variable)['target'].agg(['mean', 'count'])",
+    "            smoothing = 1 / (1 + np.exp(-(avg['count'] - self.k) / self.f))",
+    "            self.encodings[variable] = dict(self.prior * (1 - smoothing) + avg['mean'] * smoothing)",
+    "        return self",
+    "",
+    "    def transform(self, X):",
+    "        Xt = X.copy()",
+    "        for variable in self.categories:",
+    "            Xt[variable].replace(self.encodings[variable], inplace=True)",
+    "            unknown_value = {value: self.prior for value in X[variable].unique() if value not in self.encodings[variable].keys()}",
+    "            if len(unknown_value) > 0:",
+    "                Xt[variable].replace(unknown_value, inplace=True)",
+    "            Xt[variable] = Xt[variable].astype(float)",
+    "            if self.noise_level > 0:",
+    "                if self.random_state is not None:",
+    "                    np.random.seed(self.random_state)",
+    "                Xt[variable] = self.add_noise(Xt[variable], self.noise_level)",
+    "        return Xt",
+    "",
+    "    def fit_transform(self, X, y=None):",
+    "        self.fit(X, y)",
+    "        return self.transform(X)"
+  ]
+}
+
+
+{
+  "step": "feature_importance_evaluation",
+  "description": "Evaluate and select relevant features to avoid overfitting and reduce noise, improving model performance and training time.",
+  "methods": [
+    "Perform feature selection at the end of the data preparation pipeline after creating all features and a working model",
+    "Use cross-validation to test the effectiveness of selected features",
+    "Classical statistical methods: forward addition or backward elimination to iteratively add/remove features based on model performance (time-consuming)",
+    "Lasso regression with stability selection: repeatedly fit models on bootstrapped samples, keep features with non-zero coefficients most frequently",
+    "Tree-based model importance: use impurity decrease or gain metrics to rank features and apply threshold for pruning",
+    "Feature shuffling (permutation importance): shuffle one feature at a time and evaluate the impact on model performance; if performance worsens, feature is important",
+    "Boruta algorithm: iteratively compare features to randomized shadow features to statistically test importance using tree-based models",
+    "BorutaShap: extension of Boruta using SHAP values for more reliable feature selection and explainability",
+    "For linear models, use Boruta with shallow tree (max depth=1) to select only main effects"
+  ],
+  "code": []
+
+}
+
+{
+  "step": "pseudo_labeling",
+  "description": "Use confident predictions from the test set as additional training data to increase effective sample size and potentially improve model performance.",
+  "methods": [
+    "Train a strong initial model on the labeled training set.",
+    "Predict on the unlabeled test set to generate pseudo-labels.",
+    "Establish a confidence measure for predictions (e.g., prediction probability for classification, prediction variance for regression).",
+    "Select only the most confident pseudo-labeled test examples for training augmentation.",
+    "Combine original training data with selected pseudo-labeled examples (recommended ratio: about 70% original data, 30% pseudo-labeled data).",
+    "Train a new model on the combined dataset.",
+    "Use the new model to predict and submit results.",
+    "Avoid including pseudo-labels in validation sets to prevent misleading performance estimates.",
+    "If possible, use different model types for generating pseudo-labels and for final training to avoid reinforcing model-specific biases.",
+    "Evaluate empirically if pseudo-labeling helps, as it may not always improve and can sometimes worsen results due to noise."
+  ]
+}
+
+
+{
+  "step": "denoising_autoencoder_feature_engineering",
+  "description": "Use denoising autoencoders (DAEs) to reduce noise and create new features from tabular data, improving the representation of numeric data for downstream models.",
+  "methods": [
+    "Train a DAE by encoding input data into a compressed latent representation and decoding it back to reconstruct the original input.",
+    "Use the activations from the middle (bottleneck) layer as new features (bottleneck DAE).",
+    "Alternatively, use activations from all hidden layers as features (deep stack DAE).",
+    "Inject noise into the input during training (e.g., swap noise or mixup) to augment data and prevent overfitting.",
+    "Swap noise approaches include: column-wise swapping, row-wise swapping, or random swapping of feature values with others from the dataset.",
+    "Tune architecture details such as the number of layers, units per layer, and type of layers (e.g., transformers or dense layers).",
+    "Optimize hyperparameters such as learning rate, batch size, and loss functions, considering numeric and categorical feature losses separately.",
+    "Use early stopping based on validation loss to avoid overfitting (lowest training loss is not always best).",
+    "Stack training and test data to train the DAE for better feature learning (common in competitions but less practical beyond them).",
+    "Use the new features created by the DAE as inputs to downstream models like neural networks or gradient boosting machines.",
+    "Consider pre-built implementations or notebooks (e.g., Hung Khoi’s PyTorch notebook, Jeong-Yoon Lee’s Kaggler library) to speed up experimentation.",
+    "Be aware that building an effective DAE is trial and error; success depends on careful tuning and problem specifics."
+  ]
+}
+
+
+{
+  "step": "neural_networks_for_tabular_competitions",
+  "description": "Use neural networks to complement gradient boosting models in tabular data problems, leveraging their ability to capture signals that boosting might miss and improving ensemble performance.",
+  "methods": [
+    "Build neural networks quickly using libraries like TensorFlow/Keras or PyTorch.",
+    "Use pre-built architectures such as TabNet, NODE, Wide & Deep, DeepFM, xDeepFM, and AutoInt for tabular data.",
+    "Prefer activation functions like GeLU, SeLU, or Mish over ReLU for better performance on tabular data.",
+    "Experiment with batch size and use data augmentation techniques such as mixup.",
+    "Apply quantile transformation on numeric features to normalize their distributions (uniform or Gaussian).",
+    "Use embedding layers to represent categorical features as dense vectors, reducing dimensionality and improving learning.",
+    "Remember embeddings do not capture interactions automatically; manual feature engineering may be needed to model these interactions.",
+    "Embedding layers can be reused: once trained, embeddings can be extracted and used as input features for other models like gradient boosting or linear models.",
+    "Explore available resources and tutorials for building and training neural networks on tabular data (e.g., book chapters, Kaggle notebooks, YouTube tutorials).",
+    "Leverage open-source implementations for complex architectures: \n  - TabNet: pytorch-tabnet or implementations by Yirun Zhang\n  - NODE: TensorFlow and PyTorch implementations by Yirun Zhang\n  - Factorization machines-based models via DeepCTR or DeepTables libraries.",
+    "Use neural networks as part of an ensemble with gradient boosting models to exploit complementary strengths, as this often yields better results than either alone."
+  ]
+}
