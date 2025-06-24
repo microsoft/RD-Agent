@@ -66,7 +66,11 @@ def upload_file():
     all_duration = request.form.get("all_duration")
 
     # scenario = "Data Science Loop"
-    trace_name = randomname.get_name()
+    if scenario == "Data Science":
+        competition = competition[10:] # Eg. MLE-Bench:aerial-cactus-competition
+        trace_name = f"{competition}-{randomname.get_name()}"
+    else:
+        trace_name = randomname.get_name()
     log_folder_path = Path("/home/bowen/workspace/RD-Agent_server_trace").absolute()
     trace_files_path = log_folder_path / scenario / "uploads" / trace_name
 
@@ -185,7 +189,7 @@ def control_process():
         else:
             return jsonify({"error": "Unknown action"}), 400
     except Exception as e:
-        return jsonify({"error": f"Failed to {action} process"}), 500
+        return jsonify({"error": f"Failed to {action} process, {e}"}), 500
 
 
 @app.route("/", methods=["GET"])

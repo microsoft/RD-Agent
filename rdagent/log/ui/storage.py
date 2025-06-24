@@ -33,7 +33,7 @@ class WebStorage(Storage):
     def log(self, obj: object, tag: str, timestamp: datetime | None = None, **kwargs: Any) -> str | Path:
         timestamp = gen_datetime(timestamp)
         if "pdf_image" in tag or "load_pdf_screenshot" in tag:
-            obj.save(f"{UI_SETTING.static_path}/{timestamp}.jpg")
+            obj.save(f"{UI_SETTING.static_path}/{timestamp.isoformat()}.jpg")
 
         try:
             data = self._obj_to_json(obj=obj, tag=tag, id=self.path, timestamp=timestamp.isoformat())
