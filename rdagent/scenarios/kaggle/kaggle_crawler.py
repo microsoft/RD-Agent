@@ -3,6 +3,7 @@ import bisect
 import json
 import shutil
 import subprocess
+import tarfile
 import time
 import zipfile
 from itertools import chain
@@ -111,6 +112,7 @@ def download_data(competition: str, settings: ExtendedBaseSettings, enable_creat
     if settings.if_using_mle_data:
         zipfile_path = f"{local_path}/zip_files"
         zip_competition_path = Path(zipfile_path) / competition
+        competition_local_path = Path(local_path) / competition
 
         if not zip_competition_path.exists():
             mleb_env = MLEBDockerEnv()
@@ -122,24 +124,41 @@ def download_data(competition: str, settings: ExtendedBaseSettings, enable_creat
                 running_extra_volume={str(Path("~/.kaggle").expanduser().absolute()): "/root/.kaggle"},
             )
 
-        if not (Path(local_path) / competition).exists() or list((Path(local_path) / competition).iterdir()) == []:
-            (Path(local_path) / competition).mkdir(parents=True, exist_ok=True)
+        if not competition_local_path.exists() or list(competition_local_path.iterdir()) == []:
+            competition_local_path.mkdir(parents=True, exist_ok=True)
 
             mleb_env = MLEBDockerEnv()
             mleb_env.prepare()
             mleb_env.run(f"cp -r ./zip_files/{competition}/prepared/public/* ./{competition}", local_path=local_path)
 
-            for zip_path in (Path(local_path) / competition).rglob("*.zip"):
+            for zip_path in competition_local_path.rglob("*.zip"):
                 with zipfile.ZipFile(zip_path, "r") as zip_ref:
                     if len(zip_ref.namelist()) == 1:
                         mleb_env.run(
-                            f"unzip -o ./{zip_path.relative_to(local_path)} -d {zip_path.parent.relative_to(local_path)}",
-                            local_path=local_path,
+                            f"unzip -o ./{zip_path.relative_to(competition_local_path)} -d {zip_path.parent.relative_to(competition_local_path)}",
+                            local_path=competition_local_path,
                         )
                     else:
                         mleb_env.run(
-                            f"mkdir -p ./{zip_path.parent.relative_to(local_path)}/{zip_path.stem}; unzip -o ./{zip_path.relative_to(local_path)} -d ./{zip_path.parent.relative_to(local_path)}/{zip_path.stem}",
-                            local_path=local_path,
+                            f"mkdir -p ./{zip_path.parent.relative_to(competition_local_path)}/{zip_path.stem}; unzip -o ./{zip_path.relative_to(competition_local_path)} -d ./{zip_path.parent.relative_to(competition_local_path)}/{zip_path.stem}",
+                            local_path=competition_local_path,
+                        )
+            for tar_path in competition_local_path.rglob("*.tar*"):
+                if not tarfile.is_tarfile(tar_path):
+                    logger.error(f"{tar_path} is not a valid tar file.")
+                    continue
+                is_gzip_file = open(tar_path, "rb").read(2) == b"\x1f\x8b"
+                with tarfile.open(tar_path, "r:gz") if is_gzip_file else tarfile.open(tar_path, "r") as tar_ref:
+                    if len(tar_ref.getmembers()) == 1:
+                        mleb_env.run(
+                            f"tar -{'xzf' if is_gzip_file else 'xf'} ./{tar_path.relative_to(competition_local_path)} -C {tar_path.parent.relative_to(competition_local_path)}",
+                            local_path=competition_local_path,
+                        )
+                    else:
+                        folder_name = tar_path.name.replace(".tar", "").replace(".gz", "")
+                        mleb_env.run(
+                            f"mkdir -p ./{tar_path.parent.relative_to(competition_local_path)}/{folder_name}; tar -{'xzf' if is_gzip_file else 'xf'} ./{tar_path.relative_to(competition_local_path)} -C ./{tar_path.parent.relative_to(competition_local_path)}/{folder_name}",
+                            local_path=competition_local_path,
                         )
             # NOTE:
             # Patching:  due to mle has special renaming mechanism for different competition;
