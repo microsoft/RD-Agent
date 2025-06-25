@@ -46,6 +46,12 @@ class GenericDataHandler(DataHandler):
         elif suffix == ".jsonl":
             # Read JSON Lines file
             return pd.read_json(path, lines=True)
+        elif suffix == ".json":
+            # Not each json file is able to be converted to a DataFrame
+            try:
+                return pd.read_json(path, lines=False)
+            except:
+                return None
         elif suffix == ".bson":
             data = bson.decode_file_iter(open(path, "rb"))
             df = pd.DataFrame(data)
@@ -69,6 +75,8 @@ class GenericDataHandler(DataHandler):
         elif suffix == ".jsonl":
             # Save DataFrame to JSON Lines file
             df.to_json(path, orient="records", lines=True)
+        elif suffix == ".json":
+            df.to_json(path, orient="records", lines=False)
         elif suffix == ".bson":
             data = df.to_dict(orient="records")
             with open(path, "wb") as file:
@@ -81,6 +89,9 @@ class GenericDataHandler(DataHandler):
 
 class DataReducer:
     """Base DataReducer interface."""
+    def __init__(self, min_frac=0.02, min_num=5):
+        self.min_frac = min_frac
+        self.min_num = min_num
 
     def reduce(self, df: pd.DataFrame) -> pd.DataFrame:
         raise NotImplementedError
@@ -92,10 +103,6 @@ class RandDataReducer(DataReducer):
     or at least `min_frac` fraction of the data (whichever is larger).
     """
 
-    def __init__(self, min_frac=0.02, min_num=5):
-        self.min_frac = min_frac
-        self.min_num = min_num
-
     def reduce(self, df: pd.DataFrame, frac: float = None) -> pd.DataFrame:
         frac = max(self.min_frac, self.min_num / len(df)) if frac is None else frac
         # print(f"Sampling {frac * 100:.2f}% of the data ({len(df)} rows)")
@@ -104,18 +111,54 @@ class RandDataReducer(DataReducer):
         return df.sample(frac=frac, random_state=1)
 
 
-class UniqueIDDataReducer(DataReducer):
-    def __init__(self, min_frac=0.02, min_num=5):
-        self.min_frac = min_frac
-        self.min_num = min_num
-        self.random_reducer = RandDataReducer(min_frac, min_num)
+class FolderReducer(DataReducer):
+    """
+    Sample folder from a large number of folders.
+    """
 
+    def reduce(self, array: list, frac: float = None) -> list:
+        frac = max(self.min_frac, self.min_num / len(array)) if frac is None else frac
+        if frac >= 1:
+            return array
+        train_items = [x for x in array if 'train' in str(x)]
+        test_items  = [x for x in array if 'test'  in str(x)]
+
+        # 至少保留一个 train 和一个 test
+        mandatory = []
+        if train_items:
+            mandatory.append(np.random.choice(train_items, size=1, replace=False)[0])
+        if test_items:
+            mandatory.append(np.random.choice(test_items, size=1, replace=False)[0])
+        mandatory.extend(np.random.choice(array, size=int(len(array) * frac) - len(mandatory), replace=False))
+        return mandatory
+
+
+class FileReducer(DataReducer):
+    """
+    Sample file from a large number of files, keep min_num of files for each folder.
+    """
+
+    def reduce(self, files: list[Path]) -> list:
+        folder_dict = defaultdict(list)
+        for file in files:
+            folder_dict[file.parent].append(file)
+        
+        sampled_files = []
+        for folder, folder_files in folder_dict.items():
+            n = max(int(len(folder_files) * self.min_frac), self.min_num)
+            sampled_files.extend(np.random.choice(folder_files, size=n, replace=False))
+        return sampled_files
+        
+
+
+class UniqueIDDataReducer(DataReducer):
     def reduce(self, df: pd.DataFrame) -> pd.DataFrame:
         if not len(df):
             return df
 
+        random_reducer = RandDataReducer(self.min_frac, self.min_num)
         if not isinstance(df, pd.DataFrame):
-            return self.random_reducer.reduce(df)
+            return random_reducer.reduce(df)
 
         def is_valid_label(column):
             if not isinstance(column.iloc[0], (int, float, str, tuple, frozenset, bytes, complex, type(None))):
@@ -134,7 +177,7 @@ class UniqueIDDataReducer(DataReducer):
             label_col = df.iloc[:, 1]
 
         if not is_valid_label(label_col):
-            return self.random_reducer.reduce(df)
+            return random_reducer.reduce(df)
 
         unique_labels = label_col.unique()
         unique_count = len(unique_labels)
@@ -149,16 +192,200 @@ class UniqueIDDataReducer(DataReducer):
         remain_df = df.drop(index=sampled_rows.index)
         remaining_frac = frac - unique_count / len(df)
 
-        remaining_sampled = self.random_reducer.reduce(remain_df, remaining_frac)
+        remaining_sampled = random_reducer.reduce(remain_df, remaining_frac)
         result_df = pd.concat([sampled_rows, remaining_sampled]).sort_index()
         return result_df
 
 
-def count_files_in_folder(folder: Path) -> int:
+
+class DataSampler:
+    """Base DataSampler interface."""
+    def __init__(self, data_folder, sample_folder, reducer):
+        self.data_folder = data_folder
+        self.sample_folder = sample_folder
+        self.data_reducer = reducer
+        self.included_extensions = {".csv", ".pkl", ".parquet", ".h5", ".hdf", ".hdf5", ".jsonl", ".bson"}
+        self.data_handler = GenericDataHandler()
+    def sample(self) -> None:
+        raise NotImplementedError
+
+
+class DefaultSampler(DataSampler):
+    def sample(self) -> None:
+        # Traverse the folder and exclude specific file types, without json currently
+        
+        files_to_process = [file for file in self.data_folder.rglob("*") if file.is_file()]
+        file_types_count = count_files_in_folder(files_to_process)
+        
+        skip_subfolder_data = any(
+            f.is_file() and f.suffix in self.included_extensions
+            for f in self.data_folder.iterdir()
+            if f.name.startswith(("train", "test"))
+        )
+        processed_files = []
+        sample_used_file_names = set()
+        has_id_col = False
+
+        for file_path in tqdm(files_to_process, desc="Processing data", unit="file"):
+            sampled_file_path = self.sample_folder / file_path.relative_to(self.data_folder)
+            if sampled_file_path.exists():
+                continue
+
+            if file_path.suffix.lower() not in self.included_extensions:
+                continue
+
+            if skip_subfolder_data and file_path.parent != self.data_folder:
+                continue  # bypass files in subfolders
+
+            sampled_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Load the original data
+            df = self.data_handler.load(file_path)
+            if df is None:
+                continue
+
+            # Create a sampled subset
+            df_sampled = self.data_reducer.reduce(df)
+            processed_files.append(file_path)
+            # Dump the sampled data
+            try:
+                self.data_handler.dump(df_sampled, sampled_file_path)
+                # Extract possible file references from the sampled data
+                if "submission" in file_path.stem:
+                    continue  # Skip submission files
+                for col in df_sampled.columns:
+                    if "id" in col:
+                        has_id_col = True
+                        sample_used_file_names.extend([df_sampled[col].astype(str).unique()])
+                        continue
+                for col in df_sampled.columns:
+                    sample_used_file_names.extend([df_sampled[col].astype(str).unique()])
+            except Exception as e:
+                print(f"Error processing {file_path}: {e}")
+                continue
+
+        
+        
+        # Process non-data files
+        subfolder_dict = {}
+        global_groups = defaultdict(list)
+        for file_path in files_to_process:
+            if file_path in processed_files:
+                continue  # Already handled above
+            rel_dir = file_path.relative_to(self.data_folder).parts[0]
+            subfolder_dict.setdefault(rel_dir, []).append(file_path)
+            global_groups[file_path.stem].append(Path(file_path))
+
+        # For each subfolder, decide which files to copy
+        selected_groups = []
+        extra_tag = [".txt", ".json"]
+        for rel_dir, file_list in tqdm(subfolder_dict.items(), desc="Processing files", unit="file"):
+            used_files = []
+            not_used_files = []
+            extra_files = []
+
+            # Check if each file is in the "used" list
+            for fp in file_list:
+                if str(fp.name) in sample_used_file_names or str(fp.stem) in sample_used_file_names:
+                    used_files.append(fp)
+                else:
+                    for tag in extra_tag:
+                        if file_types_count.get(tag, 1000) < 100 and fp.suffix.lower() == tag:
+                            extra_files.append(fp)
+                    not_used_files.append(fp)
+
+            # Directly copy used files
+            for uf in used_files:
+                copy_file(uf, self.sample_folder, self.data_folder)
+
+            # If no files are used, randomly sample files to keep the folder from being empty
+            if len(used_files) == 0:
+                if len(file_list) <= self.data_reducer.min_num:
+                    num_to_keep = len(file_list)
+                else:
+                    num_to_keep = max(int(len(file_list) * self.data_reducer.min_frac), self.data_reducer.min_num)
+
+                # Use a greedy strategy to select groups so that the total number of files is as close as possible to num_to_keep
+                total_files = 0
+                np.random.shuffle(not_used_files)
+                for nf in not_used_files:
+                    if total_files > num_to_keep:
+                        break
+                    if nf.stem in selected_groups:
+                        total_files += 1
+                    else:
+                        selected_groups.append(nf.stem)
+                        total_files += 1
+
+                print(f"Sampling {num_to_keep} files without label from {total_files} files in {rel_dir}")
+
+                # Flatten the selected groups into a single list of files
+                sampled_not_used = [
+                    nf for group, value in global_groups.items() if group in selected_groups for nf in value
+                ]
+
+                # Copy the selected files to the target directory (all files with the same base name will be copied)
+                for nf in sampled_not_used:
+                    # Construct the target path based on the relative path of nf from data_folder
+                    sampled_file_path = self.sample_folder / nf.relative_to(self.data_folder)
+                    if sampled_file_path.exists():
+                        continue
+                    sampled_file_path.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy(nf, sampled_file_path)
+
+            # Copy extra files
+            print(f"Copying {len(extra_files)} extra files")
+            for uf in extra_files:
+                copy_file(uf, self.sample_folder, self.data_folder)
+
+        final_files_count = sum(1 for _ in self.sample_folder.rglob("*") if _.is_file())
+        print(f"[INFO] After sampling, the sample folder `{self.sample_folder}` contains {final_files_count} files in total.")
+
+
+class FolderSampler(DataSampler):
     """
-    Count the total number of files in a folder, including files in subfolders.
+    Sample data from a large number of folders.
     """
-    return sum(1 for _ in folder.rglob("*") if _.is_file())
+    def sample(self) -> None:
+        sample_used_file_names = []
+        current_level = [d for d in self.data_folder.iterdir() if d.is_dir()]
+        last_count = 0
+        subdirs = []
+        sample_dirs = []
+        sample_files = []
+        level = 1  
+        while current_level:
+            subdirs = [d for current_dir in current_level for d in current_dir.iterdir() if d.is_dir()]
+            subdirs_names = [d.name for d in subdirs]
+            if not subdirs:
+                print('current_level', len(current_level))
+                subfiles = [d for current_dir in current_level for d in current_dir.iterdir() if d.is_file()]
+                sample_files = self.data_reducer.reduce(subfiles)
+                print(f"sample {len(sample_files)} files from {len(subfiles)}")
+                break
+            
+            print(f"subdirs count: {len(set(subdirs_names))}, last_count: {last_count}, subdirs[0]: {subdirs[0]}, sample_used_file_names count: {len(set(sample_used_file_names))}")
+            if sample_used_file_names and set(sample_used_file_names).issubset(set(subdirs_names)):
+                sample_dirs = [d for d in subdirs if d.name in sample_used_file_names]
+                print(f"sample {len(sample_dirs)} folders from {len(subdirs)}")
+                break
+            print(last_count)
+            print(len(sample_dirs) < last_count)
+            if len(subdirs_names) > 1000 or (last_count and len(sample_dirs) < last_count):
+                sample_dirs = self.data_reducer.reduce(subdirs)
+                print(f"sample {len(sample_dirs)} folders from {len(subdirs)}")
+                break
+            last_count = len(set(subdirs_names))
+            current_level = subdirs
+            level += 1
+        
+        for i in sample_dirs:
+            copy_folder(i, self.sample_folder, self.data_folder)
+        for i in sample_files:
+            copy_file(i, self.sample_folder, self.data_folder)
+        for i in self.data_folder.iterdir():
+            if i.is_file():
+                copy_file(i, self.sample_folder, self.data_folder)
 
 
 def copy_file(src_fp, target_folder, data_folder):
@@ -172,10 +399,43 @@ def copy_file(src_fp, target_folder, data_folder):
         shutil.copy(src_fp, target_fp)
 
 
+def copy_folder(src_fp, target_folder, data_folder):
+    """
+    Copy a folder recursively.
+    """
+    target_fp = target_folder / src_fp.relative_to(data_folder)
+    if not target_fp.exists():
+        target_fp.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_fp, target_fp)
+
+
+def count_files_in_folder(files_to_process):
+    """
+    Count the number of each file type in a folder, including files in subfolders.
+    """
+    total_files_count = len(files_to_process)
+    print(
+        f"[INFO] Original dataset folder has {total_files_count} files in total (including subfolders)."
+    )
+    file_types_count = Counter(file.suffix.lower() for file in files_to_process)
+    print("File type counts:")
+    for file_type, count in file_types_count.items():
+        print(f"{file_type}: {count}")
+    return file_types_count
+    
+
+def map_competition(competition: str) -> tuple[DataReducer, DataSampler]:
+    cls_map = {
+        "google-research-identify-contrails-reduce-global-warming": (FolderReducer, FolderSampler),
+        "smartphone-decimeter-2022": (FolderReducer, FolderSampler),
+        "vesuvius-challenge-ink-detection": (FileReducer, FolderSampler),
+    }
+    return cls_map.get(competition, (UniqueIDDataReducer, DefaultSampler))
+
+
 def create_debug_data(
     competition: str,
     dataset_path: str | Path,
-    dr_cls: type[DataReducer] = UniqueIDDataReducer,
     min_frac=0.01,
     min_num=5,
     sample_path=None,
@@ -185,143 +445,15 @@ def create_debug_data(
     and renames/moves files for easier debugging.
     Automatically detects file type (csv, pkl, parquet, hdf, etc.).
     """
-    dataset_path = Path(dataset_path)
     if sample_path is None:
-        sample_path = dataset_path / "sample"
-
-    data_folder = dataset_path / competition
-    sample_folder = sample_path / competition
-
-    # Traverse the folder and exclude specific file types
-    included_extensions = {".csv", ".pkl", ".parquet", ".h5", ".hdf", ".hdf5", ".jsonl", ".bson"}
-    files_to_process = [file for file in data_folder.rglob("*") if file.is_file()]
-    total_files_count = len(files_to_process)
-    print(
-        f"[INFO] Original dataset folder `{data_folder}` has {total_files_count} files in total (including subfolders)."
-    )
-    file_types_count = Counter(file.suffix.lower() for file in files_to_process)
-    print("File type counts:")
-    for file_type, count in file_types_count.items():
-        print(f"{file_type}: {count}")
-
-    # This set will store filenames or paths that appear in the sampled data
-    sample_used_file_names = set()
+        sample_path = Path(dataset_path) / "sample"
 
     # Prepare data handler and reducer
-    data_handler = GenericDataHandler()
-    data_reducer = dr_cls(min_frac=min_frac, min_num=min_num)
+    reduce_method, sample_method = map_competition(competition)
+    data_reducer = reduce_method(min_frac=min_frac, min_num=min_num)
+    sampler = sample_method(Path(dataset_path) / competition, Path(sample_path) / competition, data_reducer)
+    print(f"processing {competition}, sample_method: {sample_method}, reduce_method: {reduce_method}")
+    sampler.sample()
 
-    skip_subfolder_data = any(
-        f.is_file() and f.suffix in included_extensions
-        for f in data_folder.iterdir()
-        if f.name.startswith(("train", "test"))
-    )
-    processed_files = []
 
-    for file_path in tqdm(files_to_process, desc="Processing data", unit="file"):
-        sampled_file_path = sample_folder / file_path.relative_to(data_folder)
-        if sampled_file_path.exists():
-            continue
-
-        if file_path.suffix.lower() not in included_extensions:
-            continue
-
-        if skip_subfolder_data and file_path.parent != data_folder:
-            continue  # bypass files in subfolders
-
-        sampled_file_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Load the original data
-        df = data_handler.load(file_path)
-
-        # Create a sampled subset
-        df_sampled = data_reducer.reduce(df)
-        processed_files.append(file_path)
-        # Dump the sampled data
-        try:
-            data_handler.dump(df_sampled, sampled_file_path)
-            # Extract possible file references from the sampled data
-            if "submission" in file_path.stem:
-                continue  # Skip submission files
-            for col in df_sampled.columns:
-                unique_vals = df_sampled[col].astype(str).unique()
-                for val in unique_vals:
-                    # Add the entire string to the set;
-                    # in real usage, might want to parse or extract basename, etc.
-                    sample_used_file_names.add(val)
-        except Exception as e:
-            print(f"Error processing {file_path}: {e}")
-            continue
-
-    # Process non-data files
-    subfolder_dict = {}
-    global_groups = defaultdict(list)
-    for file_path in files_to_process:
-        if file_path in processed_files:
-            continue  # Already handled above
-        rel_dir = file_path.relative_to(data_folder).parts[0]
-        subfolder_dict.setdefault(rel_dir, []).append(file_path)
-        global_groups[file_path.stem].append(Path(file_path))
-
-    # For each subfolder, decide which files to copy
-    selected_groups = []
-    for rel_dir, file_list in tqdm(subfolder_dict.items(), desc="Processing files", unit="file"):
-        used_files = []
-        not_used_files = []
-        extra_files = []
-
-        # Check if each file is in the "used" list
-        for fp in file_list:
-            if str(fp.name) in sample_used_file_names or str(fp.stem) in sample_used_file_names:
-                used_files.append(fp)
-            else:
-                if file_types_count.get(".txt", 1000) < 100 and fp.suffix.lower() == ".txt":
-                    extra_files.append(fp)
-                not_used_files.append(fp)
-
-        # Directly copy used files
-        for uf in used_files:
-            copy_file(uf, sample_folder, data_folder)
-
-        # If no files are used, randomly sample files to keep the folder from being empty
-        if len(used_files) == 0:
-            if len(file_list) <= min_num:
-                num_to_keep = len(file_list)
-            else:
-                num_to_keep = max(int(len(file_list) * min_frac), min_num)
-
-            # Use a greedy strategy to select groups so that the total number of files is as close as possible to num_to_keep
-            total_files = 0
-            np.random.shuffle(not_used_files)
-            for nf in not_used_files:
-                if total_files > num_to_keep:
-                    break
-                if nf.stem in selected_groups:
-                    total_files += 1
-                else:
-                    selected_groups.append(nf.stem)
-                    total_files += 1
-
-            print(f"Sampling {num_to_keep} files without label from {total_files} files in {rel_dir}")
-
-            # Flatten the selected groups into a single list of files
-            sampled_not_used = [
-                nf for group, value in global_groups.items() if group in selected_groups for nf in value
-            ]
-
-            # Copy the selected files to the target directory (all files with the same base name will be copied)
-            for nf in sampled_not_used:
-                # Construct the target path based on the relative path of nf from data_folder
-                sampled_file_path = sample_folder / nf.relative_to(data_folder)
-                if sampled_file_path.exists():
-                    continue
-                sampled_file_path.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy(nf, sampled_file_path)
-
-        # Copy extra files
-        print(f"Copying {len(extra_files)} extra files")
-        for uf in extra_files:
-            copy_file(uf, sample_folder, data_folder)
-
-    final_files_count = count_files_in_folder(sample_folder)
-    print(f"[INFO] After sampling, the sample folder `{sample_folder}` contains {final_files_count} files in total.")
+    
