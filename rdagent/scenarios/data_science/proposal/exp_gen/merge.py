@@ -1,13 +1,11 @@
 """Merge the version in different traces"""
 
-import asyncio
 import json
 from datetime import timedelta
 from typing import Dict, Tuple
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
-from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.proposal import ExpGen
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
@@ -18,7 +16,6 @@ from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, D
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
-from rdagent.utils.workflow.loop import LoopBase
 
 
 class MergeExpGen(ExpGen):

@@ -5,7 +5,7 @@ Pipfile
 public
 release-notes.md
 typescript*
-deve_lop.md
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
