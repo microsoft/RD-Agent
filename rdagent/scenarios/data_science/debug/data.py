@@ -206,6 +206,7 @@ class DataSampler:
         self.data_reducer = reducer
         self.included_extensions = {".csv", ".pkl", ".parquet", ".h5", ".hdf", ".hdf5", ".jsonl", ".bson"}
         self.data_handler = GenericDataHandler()
+        
     def sample(self) -> None:
         raise NotImplementedError
 
@@ -369,16 +370,15 @@ class FolderSampler(DataSampler):
                 sample_dirs = [d for d in subdirs if d.name in sample_used_file_names]
                 print(f"sample {len(sample_dirs)} folders from {len(subdirs)}")
                 break
-            print(last_count)
-            print(len(sample_dirs) < last_count)
-            if len(subdirs_names) > 1000 or (last_count and len(sample_dirs) < last_count):
+
+            if len(subdirs_names) > 100 or (last_count and 1 < len(sample_dirs) < last_count):
                 sample_dirs = self.data_reducer.reduce(subdirs)
                 print(f"sample {len(sample_dirs)} folders from {len(subdirs)}")
                 break
             last_count = len(set(subdirs_names))
             current_level = subdirs
             level += 1
-        
+
         for i in sample_dirs:
             copy_folder(i, self.sample_folder, self.data_folder)
         for i in sample_files:
@@ -428,6 +428,9 @@ def map_competition(competition: str) -> tuple[DataReducer, DataSampler]:
     cls_map = {
         "google-research-identify-contrails-reduce-global-warming": (FolderReducer, FolderSampler),
         "smartphone-decimeter-2022": (FolderReducer, FolderSampler),
+        "herbarium-2020-fgvc7": (FolderReducer, FolderSampler),
+        "herbarium-2021-fgvc8": (FolderReducer, FolderSampler),
+        "herbarium-2022-fgvc9": (FolderReducer, FolderSampler),
         "vesuvius-challenge-ink-detection": (FileReducer, FolderSampler),
     }
     return cls_map.get(competition, (UniqueIDDataReducer, DefaultSampler))
