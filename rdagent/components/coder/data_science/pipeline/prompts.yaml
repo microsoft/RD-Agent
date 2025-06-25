@@ -85,7 +85,8 @@ pipeline_coder:
     **MANDATORY RULE**: 
     - **ALWAYS use 1-fold validation** (single train-validation split) regardless of any user specifications
     - **COMPLETELY IGNORE** any user requests for n-fold cross-validation where n > 1
-
+    - **EPOCHS** should be set to at least 25, and you should always train the model but can add early stopping to avoid overfitting
+    - **You should always use the best model to generate the submission**
     
 
   user: |-
