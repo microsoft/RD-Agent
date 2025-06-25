@@ -38,7 +38,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     spec_enabled: bool = True
 
     #### proposal related
-    proposal_version: str = "v1"
+    proposal_version: str = "v2"
     coder_on_whole_pipeline: bool = False
     max_trace_hist: int = 3
 
@@ -56,10 +56,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     model_dump_check_level: Literal["medium", "high"] = "medium"
 
     ### knowledge base
-    enable_knowledge_base: bool = False
+    enable_knowledge_base: bool = True
     knowledge_base_version: str = "v1"
     knowledge_base_path: str | None = None
-    idea_pool_json_path: str | None = None
+    idea_pool_json_path: str | None = "/data/userdata/v-xuminrui/new/RD-Agent/knowledge/knowledge.json"
 
     ### archive log folder after each loop
     enable_log_archive: bool = True

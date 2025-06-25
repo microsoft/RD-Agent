@@ -72,7 +72,7 @@ class DSKnowledgeBase(UndirectedGraph):
                 problem_node = UndirectedNode(content=problem, label="PROBLEM")
                 node_list.append(problem_node)
                 add_pairs.append((idea_node, [problem_node]))
-                
+
         self.batch_embedding(node_list)
         for idea_node, neighbor_list in add_pairs:
             self.add_nodes(idea_node, neighbor_list)
@@ -84,17 +84,25 @@ class DSKnowledgeBase(UndirectedGraph):
         else:
             logger.info(f"Building knowledge graph from idea pool json file: {idea_pool_json_path}")
         with open(idea_pool_json_path, "r", encoding="utf-8") as f:
-            idea_pool_dict = json.load(f)
+            idea_pool_data = json.load(f)
 
         to_add_ideas = []
-        for i, (idea_label, idea_content) in tqdm(enumerate(idea_pool_dict.items()), desc="Building Knowledge Graph from Ideas"):
-            idea_content.update({"idea": idea_label})
+        if isinstance(idea_pool_data, dict):
+            items = idea_pool_data.items()
+        elif isinstance(idea_pool_data, list):
+            items = enumerate(idea_pool_data)
+        else:
+            logger.error("Unsupported idea pool data format.")
+            return
+
+        for i, idea_content in tqdm(items, desc="Building Knowledge Graph from Ideas"):
+            if isinstance(idea_pool_data, dict):
+                idea_content.update({"idea": i})
             try:
                 idea = DSIdea(idea_content)
                 to_add_ideas.append(idea)
             except Exception as e:
-                print(f"The {i}-th idea process failed due to error {e}")
-                continue
+                logger.error(f"The {i}-th idea process failed due to error {e}")
         self.add_idea(to_add_ideas)
 
     def sample_ideas(
@@ -111,9 +119,7 @@ class DSKnowledgeBase(UndirectedGraph):
         competition_node = self.get_node_by_content(competition_name)
 
         for i, (problem_name, problem_dict) in enumerate(problems.items()):
-            sampled_nodes = self.semantic_search(
-                node=problem_dict["problem"], constraint_labels=["PROBLEM"]
-            )
+            sampled_nodes = self.semantic_search(node=problem_dict["problem"], constraint_labels=["PROBLEM"])
 
             text += f"# Problem Name {i+1}: {problem_name}\n"
             text += f"- Problem Description: {problem_dict['problem']}\n"

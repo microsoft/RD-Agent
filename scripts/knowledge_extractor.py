@@ -2,11 +2,11 @@ import json
 import os
 import re
 from pathlib import Path
-from tqdm import tqdm
 from typing import Dict, List
 
 import nbformat
 from nbconvert import MarkdownExporter
+from tqdm import tqdm
 
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
@@ -56,7 +56,10 @@ def notebook_to_knowledge(competition_desc: str, discussion: str, notebook: str)
 def process_single_competition(competition_name: str):
     competition_path = f"{LOCAL_DATA_PATH}/{competition_name}"
     # load competition description
-    with open(f"/data/userdata/v-xuminrui/knowledge/kaggle_competitions/{competition_name}/{competition_name}.md", encoding="utf-8") as file:
+    with open(
+        f"/data/userdata/v-xuminrui/knowledge/kaggle_competitions/{competition_name}/{competition_name}.md",
+        encoding="utf-8",
+    ) as file:
         competition_desc = file.read()
 
     discussion_files = os.listdir(f"{competition_path}/discussion")
@@ -85,7 +88,7 @@ def process_single_competition(competition_name: str):
         )
         knowledge = [item for idx, item in knowledge.items()]
         for k in knowledge:
-            k['competition'] = competition_name
+            k["competition"] = competition_name
 
         # save as list
         existing_knowledge = []
@@ -99,9 +102,6 @@ def process_single_competition(competition_name: str):
             json.dump(existing_knowledge, f, indent=2, ensure_ascii=False)
 
 
-competitions = [
-    entry.name for entry in os.scandir(LOCAL_DATA_PATH) 
-    if entry.is_dir()
-]
+competitions = [entry.name for entry in os.scandir(LOCAL_DATA_PATH) if entry.is_dir()]
 for competition in tqdm(competitions, desc="Process Competition"):
     process_single_competition(competition)
