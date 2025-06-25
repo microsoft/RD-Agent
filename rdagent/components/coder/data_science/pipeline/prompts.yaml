@@ -35,6 +35,59 @@ pipeline_coder:
     {% endfor %}
     {% endif %}
 
+    ## START OF BACKGROUND CONTEXT: Pipeline Implementation Standards & Constraints ###
+
+      The `main.py` sketch you generate should lead to a pipeline implementation that adheres to the following standards. These are guiding principles for the final *outcome* of your sketch:
+
+      1.  **Program Execution**: The resulting `main.py` script must be executable via `python main.py` **without command-line parameters**. Configurations should be hardcoded for simplicity and reproducibility.
+
+      2.  **File Handling & Critical Rules**:
+          - Implement robust handling of file encodings and delimiters. Input files are under `{% include "scenarios.data_science.share:scen.input_path" %}`.
+          - **Crucially, DO NOT use the `sample_submission.csv` for any purpose other than to determine the required column names and format for the final output.** Do not use it to infer test indices, sample count, or prediction order.
+          - If data is in zip files, advise on a robust loading strategy, such as pre-extraction.
+
+      3.  **Data Pipeline: Preprocessing & Feature Engineering**:
+          - Convert data to correct types, handle missing values/outliers as guided by EDA, and optimize memory.
+          - Implement domain-specific feature creation (e.g., interaction, date-based, text-based features).
+          - Ensure no features are inadvertently excluded during processing.
+
+      4.  **Data Leakage Prevention**:
+          - **This is a critical rule.** Prevent any information from the validation or test sets from influencing any training-related step, including the fitting of preprocessors and data-driven feature engineering.
+
+      5.  **Modeling: Technology Defaults & Advanced Tactics (Data-Type Specific)**:
+          - **Tabular Tasks**:
+              - **Default Stack**: LightGBM (LGB) is the first choice. Use XGBoost for time dependencies, CatBoost for heavy categorical interactions.
+              - **Grandmaster Tactics**: Aim to generate **10,000+ features** with GPU acceleration (cuDF). Use **3-level stacking architectures** for ensembling.
+          - **NLP Tasks**:
+              - **Default Model**: **deBERTa-v3**.
+              - **Grandmaster Tactics**: Implement **layer-wise learning rate decay**, fine-tune on **domain-specific embeddings**, and use **back-translation** for augmentation.
+          - **CV Tasks**:
+              - **Default Model**: **Swin Transformer** (or EfficientNetV2 for efficiency).
+              - **Grandmaster Tactics**: Randomly select between **Mixup/CutMix**, use **Progressive Resizing & TTA**, and apply **pseudo-labeling** or **knowledge distillation**.
+
+      6.  **Modeling: General Strategy & Core Principles**:
+          - **Start with a simple, correct baseline** using the defaults if no SOTA is provided.
+          - Once the baseline is solid, **systematically apply advanced tactics**. The biggest gains often come from feature engineering (Tabular), advanced fine-tuning/augmentation (NLP/CV), and sophisticated ensembling.
+
+      7.  **Code Standards & Resource Utilization**:
+          - The final submission code must **NOT** use progress bars (e.g., `tqdm`).
+          - Leverage GPU and multiprocessing where appropriate.
+
+      8.  **Validation & Scoring (`scores.csv`)**:
+          - **Validation Strategy**: Implement a proper, consistent validation strategy (e.g., K-Fold, StratifiedKFold, GroupKFold).
+          - **Metric Calculation**: A successful run must always produce `scores.csv` with the official competition metric.
+          - **File Format**: `scores.csv` must have `Model` and metric columns, and crucially, a final row for the **"ensemble"** score.
+
+      9.  **Submission Generation (`submission.csv`)**:
+          - Generate `submission.csv` in the **exact format** required by `sample_submission.csv`.
+
+      10. **Recommended Workflow Summary**:
+          The pipeline should follow this logical progression:
+          - **Phase 1: EDA & Baseline**: Quickly establish a valid, end-to-end submission to confirm the pipeline works.
+          - **Phase 2: Iterative Improvement**: Systematically improve single-model performance via feature engineering, advanced modeling, and hyperparameter optimization.
+          - **Phase 3: Ensembling & Finalization**: Maximize performance by combining diverse, strong models using techniques like stacking.
+
+      ## END OF BACKGROUND CONTEXT ###
 
     ## Guidelines
     1. Ensure that the dataset is loaded strictly from `{% include "scenarios.data_science.share:scen.input_path" %}`, following the exact folder structure described in the **Data Folder Description**, and do not attempt to load data from the current directory (`./`).
