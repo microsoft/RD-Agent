@@ -76,12 +76,12 @@ extract_specific_knowledge:
       3. The corresponding solution notebook that achieves SOTA performance for the competition.
     Your task is to analyze all provided information and extract the most impactful, transferable, and actionable methodological knowledge from the discussion and the notebook.
 
-    # Knowledge Extraction Guidelines
-    "Knowledge" refers to a key insight, method, technique, or approach that significantly contributes to the solution's success.
+    # Knowledge Extraction
+    Knowledge refers to a key insight, method, technique, or approach that significantly contributes to the solution's success. It the knowledge is implemented, the metric will improve.
     Each knowledge should focus on of the following components:
     {{ component_desc }}
 
-    ## Criteria for Extracted Knowledge
+    ## Specification
     - **Transferable**: Applicable to similar scenarios; avoid dataset- or competition-specific details (e.g., column names, competition-specific tricks).
     - **Specific**: Clearly defined and distinguishable from general concepts. For example, use "applying polynomial feature transformation to capture non-linear relationships" instead of just "feature engineering."
     - **Reproducible**: Actionable and possible to implement based on the description. Include implementation details in the `context` field, such as how optimal weights for ensembling were determined, criteria for hyperparameter tuning, or the algorithm used for feature selection.
@@ -105,11 +105,12 @@ output_format:
   specific_knowledge: |-
     For each extracted knowledge item, strictly follow the JSON schema below. Output a dictionary containing all extracted knowledge items.
     {
-      "idea (concise, general label summarizing the knowledge)": {
-        "component": "The component that the knowledge focus on. Must be one of [EDA, DataPreprocess, FeatureEngineer, Model, Tuning, Ensemble]"
+      "index of knowledge, must be integer": {
+        "idea": "A concise label summarizing the knowledge."
+        "component": "The component that the knowledge focus on. Must be one of [EDA, DataPreprocess, FeatureEngineer, Model, Tuning, Ensemble]."
         "method": "A specific, general, and implementable description of the method (e.g., 'applied a stacking ensemble method to combine predictions from multiple base models'). Avoid dataset-specific details.",
         "context": "A detailed example of how the notebook implements this idea (e.g., 'the notebook used XGBoost, Random Forest, and LightGBM as base models and logistic regression as the meta-model').",
-        "code": "(Optional) Code snippet or pseudocode for the knowledge. Include only if the code notebook is provided.",
-        "problem": "(Optional) The problem this knowledge addresses, described without referencing the method itself. Include only if clearly stated in the provided material."
+        "problem": "The problem this knowledge try to address, described without referencing the method itself.",
+        "code": "(Optional) Code snippet or pseudocode for the knowledge. Include only if the code notebook is provided."
       }
     }
