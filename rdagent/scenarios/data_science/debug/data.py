@@ -145,7 +145,7 @@ class FileReducer(DataReducer):
         
         sampled_files = []
         for folder, folder_files in folder_dict.items():
-            n = max(int(len(folder_files) * self.min_frac), self.min_num)
+            n = min(max(int(len(folder_files) * self.min_frac), self.min_num), len(folder_files))
             sampled_files.extend(np.random.choice(folder_files, size=n, replace=False))
         return sampled_files
         
