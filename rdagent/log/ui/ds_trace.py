@@ -239,10 +239,9 @@ def llm_log_win(llm_d: list):
                             st.markdown(spec)
                             rdict.pop("spec")
                         else:
-                            # show model codes
                             showed_keys = []
                             for k, v in rdict.items():
-                                if k.startswith("model_") and k.endswith(".py"):
+                                if k.endswith(".py"):
                                     st.markdown(f":red[**{k}**]")
                                     st.code(v, language="python", wrap_lines=True, line_numbers=True)
                                     showed_keys.append(k)
@@ -251,7 +250,10 @@ def llm_log_win(llm_d: list):
                         st.write(":red[**Other parts (except for the code or spec) in response dict:**]")
                         st.json(rdict)
                     except:
-                        st.json(resp)
+                        try:
+                            st.json(resp)
+                        except:
+                            show_text(resp)
                 with t2:
                     show_text(user)
                 with t3:
