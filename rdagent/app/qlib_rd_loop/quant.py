@@ -6,11 +6,11 @@ import asyncio
 from typing import Any
 
 import fire
-from rdagent.core.conf import RD_AGENT_SETTINGS
 
 from rdagent.app.qlib_rd_loop.conf import QUANT_PROP_SETTING
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
 from rdagent.core.exception import FactorEmptyError, ModelEmptyError
 from rdagent.core.proposal import (

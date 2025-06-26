@@ -3,10 +3,11 @@ Model workflow with session control
 It is from `rdagent/app/qlib_rd_loop/model.py` and try to replace `rdagent/app/qlib_rd_loop/RDAgent.py`
 """
 
-from typing import Any
 import asyncio
+from typing import Any
 
 from rdagent.components.workflow.conf import BasePropSetting
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
 from rdagent.core.proposal import (
     Experiment2Feedback,
@@ -20,7 +21,6 @@ from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.workflow import LoopBase, LoopMeta
-from rdagent.core.conf import RD_AGENT_SETTINGS
 
 
 class RDLoop(LoopBase, metaclass=LoopMeta):
