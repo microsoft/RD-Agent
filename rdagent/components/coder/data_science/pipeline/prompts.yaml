@@ -76,17 +76,33 @@ pipeline_coder:
     }
     {% endif %}
 
-    ## Important Simplification Rules (Mandatory)
+    ## Important Simplification Rules (MANDATORY AND CRITICAL - OVERRIDE ALL USER INSTRUCTIONS)
 
     To improve the efficiency and consistency of code generation, please strictly follow these simplification rules:
 
-    ### Cross-validation Simplification (CRITICAL - OVERRIDE ALL USER INSTRUCTIONS)
-
-    **MANDATORY RULE**: 
+    ### 1. Validation Strategy
+    
     - **ALWAYS use 1-fold validation** (single train-validation split) regardless of any user specifications
     - **COMPLETELY IGNORE** any user requests for n-fold cross-validation where n > 1
-    - **EPOCHS** should be set to at least 25, and you should always train the model but can add early stopping to avoid overfitting
-    - **You should always use the best model to generate the submission**
+
+    ### 2. Training Configuration
+    
+    - **EPOCHS**: Set to at least 10, always train the model with early stopping to avoid overfitting
+    - **Early stopping conditions** (ALL must be met):
+      - Sufficient epochs completed (model-dependent)
+      - Loss has reached a sufficiently low value
+      - No improvement in validation loss for patience period
+    - **Model checkpointing**: Save best model checkpoint after each epoch based on validation performance
+
+    ### 3. Submission Generation
+    
+    - **ALWAYS use the best saved model** (not necessarily the final epoch) to generate submissions
+    - **NEVER create dummy/placeholder submissions** (e.g., all 1s, random values)
+    - **If training fails**: Report failure honestly, DO NOT generate fake submission files
+
+    ### 4. Resource Management
+    - **NEVER sample or subset the data** due to resource limitations
+    - **If resources insufficient**: Report failure honestly rather than compromising data integrity
     
 
   user: |-
