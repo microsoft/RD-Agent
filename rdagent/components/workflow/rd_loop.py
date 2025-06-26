@@ -51,19 +51,19 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         logger.log_object(hypothesis, tag="hypothesis generation")
         return hypothesis
 
-    async def _exp_gen(self, hypothesis: Hypothesis):
-        while True:
-            if self.get_unfinished_loop_cnt(self.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
-                exp = self.hypothesis2experiment.convert(hypothesis, self.trace)
-                logger.log_object(exp.sub_tasks, tag="experiment generation")
-                return exp
-            await asyncio.sleep(1)
+    def _exp_gen(self, hypothesis: Hypothesis):
+        exp = self.hypothesis2experiment.convert(hypothesis, self.trace)
+        logger.log_object(exp.sub_tasks, tag="experiment generation")
+        return exp
 
     # included steps
     async def direct_exp_gen(self, prev_out: dict[str, Any]):
-        hypo = self._propose()
-        exp = await self._exp_gen(hypo)
-        return {"propose": hypo, "exp_gen": exp}
+        while True:
+            if self.get_unfinished_loop_cnt(self.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
+                hypo = self._propose()
+                exp = self._exp_gen(hypo)
+                return {"propose": hypo, "exp_gen": exp}
+            await asyncio.sleep(1)
 
     def coding(self, prev_out: dict[str, Any]):
         exp = self.coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
