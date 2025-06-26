@@ -116,3 +116,153 @@ class DSDraftExpGen(ExpGen):
             # exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
             exp.experiment_workspace.inject_code_from_file_dict(last_successful_exp.experiment_workspace)
         return exp
+
+
+class DSDraftExpGenV2(ExpGen):
+    def tag_gen(self, scenario_desc: str) -> str:
+        sys_prompt = T(".prompts_draft:tag_gen.system").r(
+            tag_desc=T(".prompts_draft:description.tag_description").r()
+        )
+        user_prompt = T(".prompts_draft:tag_gen.user").r(
+            scenario_desc=scenario_desc,
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, str],
+        )
+        return json.loads(response)['tag'].lower()
+    
+    def knowledge_gen(self, tag: str) -> str:
+        if tag not in ['cv', 'nlp', 'tabular']:
+            tag = 'others'
+        general_knowledge = T(".prompts_draft:knowledge.general").r()
+        domain_knowledge = T(f".prompts_draft:knowledge.{tag}").r()
+        return f"{general_knowledge}\n{domain_knowledge}\n\n"
+
+    def hypothesis_gen(
+        self,
+        knowledge: str,
+        component_desc: str,
+        scenario_desc: str,
+        failed_exp_feedback_list_desc: str,
+    ) -> DSHypothesis:
+        sys_prompt = T(".prompts_draft:hypothesis_gen.system").r(
+            component_desc=component_desc
+        )
+        user_prompt = T(".prompts_draft:hypothesis_gen.user").r(
+            scenario_desc=scenario_desc,
+            knowledge=knowledge,
+            failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, str],
+        )
+        resp_dict = json.loads(response)
+        return DSHypothesis(
+            component=resp_dict.get,("component", "Model"),
+            hypothesis=resp_dict.get,("hypothesis", "Hypothesis not provided"),
+            reason=resp_dict.get,("hypothesis", "Hypothesis not provided"),
+        )
+
+    def task_gen(
+        self,
+        component_desc: str,
+        scenario_desc: str,
+        hypotheses: list[DSHypothesis],
+        pipeline: bool,
+        failed_exp_feedback_list_desc: str,
+    ) -> DSExperiment:
+        if pipeline:
+            component_info = get_component("Pipeline")
+        else:
+            component_info = get_component(hypotheses[0].component)
+        data_folder_info = self.scen.processed_data_folder_description
+        sys_prompt = T(".prompts_draft:task_gen.system").r(
+            task_output_format=component_info["task_output_format"],
+            component_desc=component_desc,
+            workflow_check=not pipeline and hypotheses[0].component != "Workflow",
+        )
+        user_prompt = T(".prompts_draft:task_gen.user").r(
+            scenario_desc=scenario_desc,
+            data_folder_info=data_folder_info,
+            hypotheses=hypotheses,
+            failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, str | Dict[str, str]],
+        )
+        task_dict = json.loads(response)
+        task_design = (
+            task_dict.get("task_design", {}) if not self.support_function_calling else task_dict.get("sketch", {})
+        )
+        logger.info(f"Task design:\n{task_design}")
+        task_name = hypotheses[0].component
+        description = (
+            task_design
+            if isinstance(task_design, str)
+            else task_design.get("description", f"{component_info['target_name']} description not provided")
+        )
+        task_class = component_info["task_class"]
+        task = task_class(
+            name=task_name,
+            description=description,
+        )
+        new_workflow_desc = task_dict.get("workflow_update", "No update needed")
+        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypotheses[0])
+        if not pipeline and new_workflow_desc != "No update needed":
+            workflow_task = WorkflowTask(
+                name="Workflow",
+                description=new_workflow_desc,
+            )
+            exp.pending_tasks_list.append([workflow_task])
+        return exp
+
+    def gen(self, trace: DSTrace) -> DSExperiment:
+        # Step 0: Prepare
+        pipeline = DS_RD_SETTING.coder_on_whole_pipeline
+        if pipeline:
+            component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
+        else:
+            component_desc = "\n".join(
+                [
+                    f"[{key}] {value}"
+                    for key, value in T("scenarios.data_science.share:component_description").template.items()
+                ]
+            )
+
+        last_exp = trace.last_exp()
+        if not isinstance(last_exp, DSExperiment):
+            eda_output = None
+        else:
+            eda_output = last_exp.experiment_workspace.file_dict.get("EDA.md", None)
+        scenario_desc = trace.scen.get_scenario_all_desc(eda_output=None)
+        
+        failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
+            type="failed",
+            pipeline=pipeline,
+        )
+
+        # Step 1: Generate Tags TODO: do this part in the scenario analysis part
+        tag = self.tag_gen(scenario_desc)
+        knowledge = self.knowledge_gen(tag)
+
+        # Step 2: Generate Hypothesis based on General Knowledge
+        hypothesis = self.hypothesis_gen(
+            knowledge=knowledge,
+            component_desc=component_desc,
+            scenario_desc=scenario_desc,
+            exp_feedback_list_desc=failed_exp_feedback_list_desc,
+            pipeline=pipeline,
+        )
+
+        # Step 3: Design Task
+        return self.task_gen()
