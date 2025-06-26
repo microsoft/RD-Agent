@@ -26,14 +26,13 @@ def favicon():
 
 
 msgs_for_frontend = defaultdict(list)
-pointers = defaultdict(int)
+pointers = defaultdict(lambda: defaultdict(int))  # pointers[trace_id][user_ip]
 
 
 @app.route("/trace", methods=["POST"])
 def update_trace():
     global pointers, msgs_for_frontend
     data = request.get_json()
-    # app.logger.info(data)
     trace_id = data.get("id")
     return_all = data.get("all")
     reset = data.get("reset")
@@ -44,19 +43,19 @@ def update_trace():
         return jsonify({"error": "Trace ID is required"}), 400
     trace_id = str(log_folder_path / trace_id)
 
-    if reset:
-        pointers[trace_id] = 0
+    user_ip = request.remote_addr
 
-    end_pointer = pointers[trace_id] + msg_num
+    if reset:
+        pointers[trace_id][user_ip] = 0
+
+    start_pointer = pointers[trace_id][user_ip]
+    end_pointer = start_pointer + msg_num
     if end_pointer > len(msgs_for_frontend[trace_id]) or return_all:
         end_pointer = len(msgs_for_frontend[trace_id])
 
-    returned_msgs = msgs_for_frontend[trace_id][pointers[trace_id] : end_pointer]
+    returned_msgs = msgs_for_frontend[trace_id][start_pointer:end_pointer]
 
-    pointers[trace_id] = end_pointer
-    # if len(returned_msgs):
-    #     app.logger.info(data)
-    #     app.logger.info(returned_msgs)
+    pointers[trace_id][user_ip] = end_pointer
     return jsonify(returned_msgs), 200
 
 
