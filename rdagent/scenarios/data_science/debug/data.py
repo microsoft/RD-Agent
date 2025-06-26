@@ -89,6 +89,7 @@ class GenericDataHandler(DataHandler):
 
 class DataReducer:
     """Base DataReducer interface."""
+
     def __init__(self, min_frac=0.02, min_num=5):
         self.min_frac = min_frac
         self.min_num = min_num
@@ -120,8 +121,8 @@ class FolderReducer(DataReducer):
         frac = max(self.min_frac, self.min_num / len(array)) if frac is None else frac
         if frac >= 1:
             return array
-        train_items = [x for x in array if 'train' in str(x)]
-        test_items  = [x for x in array if 'test'  in str(x)]
+        train_items = [x for x in array if "train" in str(x)]
+        test_items = [x for x in array if "test" in str(x)]
 
         # 至少保留一个 train 和一个 test
         mandatory = []
@@ -142,13 +143,12 @@ class FileReducer(DataReducer):
         folder_dict = defaultdict(list)
         for file in files:
             folder_dict[file.parent].append(file)
-        
+
         sampled_files = []
         for folder, folder_files in folder_dict.items():
             n = min(max(int(len(folder_files) * self.min_frac), self.min_num), len(folder_files))
             sampled_files.extend(np.random.choice(folder_files, size=n, replace=False))
         return sampled_files
-        
 
 
 class UniqueIDDataReducer(DataReducer):
@@ -197,16 +197,16 @@ class UniqueIDDataReducer(DataReducer):
         return result_df
 
 
-
 class DataSampler:
     """Base DataSampler interface."""
+
     def __init__(self, data_folder, sample_folder, reducer):
         self.data_folder = data_folder
         self.sample_folder = sample_folder
         self.data_reducer = reducer
         self.included_extensions = {".csv", ".pkl", ".parquet", ".h5", ".hdf", ".hdf5", ".jsonl", ".bson"}
         self.data_handler = GenericDataHandler()
-        
+
     def sample(self) -> None:
         raise NotImplementedError
 
@@ -214,10 +214,10 @@ class DataSampler:
 class DefaultSampler(DataSampler):
     def sample(self) -> None:
         # Traverse the folder and exclude specific file types, without json currently
-        
+
         files_to_process = [file for file in self.data_folder.rglob("*") if file.is_file()]
         file_types_count = count_files_in_folder(files_to_process)
-        
+
         skip_subfolder_data = any(
             f.is_file() and f.suffix in self.included_extensions
             for f in self.data_folder.iterdir()
@@ -265,8 +265,6 @@ class DefaultSampler(DataSampler):
                 print(f"Error processing {file_path}: {e}")
                 continue
 
-        
-        
         # Process non-data files
         subfolder_dict = {}
         global_groups = defaultdict(list)
@@ -340,13 +338,16 @@ class DefaultSampler(DataSampler):
                 copy_file(uf, self.sample_folder, self.data_folder)
 
         final_files_count = sum(1 for _ in self.sample_folder.rglob("*") if _.is_file())
-        print(f"[INFO] After sampling, the sample folder `{self.sample_folder}` contains {final_files_count} files in total.")
+        print(
+            f"[INFO] After sampling, the sample folder `{self.sample_folder}` contains {final_files_count} files in total."
+        )
 
 
 class FolderSampler(DataSampler):
     """
     Sample data from a large number of folders.
     """
+
     def sample(self) -> None:
         sample_used_file_names = []
         current_level = [d for d in self.data_folder.iterdir() if d.is_dir()]
@@ -354,18 +355,22 @@ class FolderSampler(DataSampler):
         subdirs = []
         sample_dirs = []
         sample_files = []
-        level = 1  
+        extra_files = [d for d in self.data_folder.iterdir() if d.is_file()]
+        level = 1
         while current_level:
             subdirs = [d for current_dir in current_level for d in current_dir.iterdir() if d.is_dir()]
             subdirs_names = [d.name for d in subdirs]
+            extra_files.extend([d for current_dir in current_level for d in current_dir.iterdir() if d.is_file()])
             if not subdirs:
-                print('current_level', len(current_level))
+                print("current_level", len(current_level))
                 subfiles = [d for current_dir in current_level for d in current_dir.iterdir() if d.is_file()]
                 sample_files = self.data_reducer.reduce(subfiles)
                 print(f"sample {len(sample_files)} files from {len(subfiles)}")
                 break
-            
-            print(f"subdirs count: {len(set(subdirs_names))}, last_count: {last_count}, subdirs[0]: {subdirs[0]}, sample_used_file_names count: {len(set(sample_used_file_names))}")
+
+            print(
+                f"subdirs count: {len(set(subdirs_names))}, last_count: {last_count}, subdirs[0]: {subdirs[0]}, sample_used_file_names count: {len(set(sample_used_file_names))}"
+            )
             if sample_used_file_names and set(sample_used_file_names).issubset(set(subdirs_names)):
                 sample_dirs = [d for d in subdirs if d.name in sample_used_file_names]
                 print(f"sample {len(sample_dirs)} folders from {len(subdirs)}")
@@ -383,9 +388,8 @@ class FolderSampler(DataSampler):
             copy_folder(i, self.sample_folder, self.data_folder)
         for i in sample_files:
             copy_file(i, self.sample_folder, self.data_folder)
-        for i in self.data_folder.iterdir():
-            if i.is_file():
-                copy_file(i, self.sample_folder, self.data_folder)
+        for i in set(extra_files):
+            copy_file(i, self.sample_folder, self.data_folder)
 
 
 def copy_file(src_fp, target_folder, data_folder):
@@ -414,15 +418,13 @@ def count_files_in_folder(files_to_process):
     Count the number of each file type in a folder, including files in subfolders.
     """
     total_files_count = len(files_to_process)
-    print(
-        f"[INFO] Original dataset folder has {total_files_count} files in total (including subfolders)."
-    )
+    print(f"[INFO] Original dataset folder has {total_files_count} files in total (including subfolders).")
     file_types_count = Counter(file.suffix.lower() for file in files_to_process)
     print("File type counts:")
     for file_type, count in file_types_count.items():
         print(f"{file_type}: {count}")
     return file_types_count
-    
+
 
 def map_competition(competition: str) -> tuple[DataReducer, DataSampler]:
     cls_map = {
@@ -457,6 +459,3 @@ def create_debug_data(
     sampler = sample_method(Path(dataset_path) / competition, Path(sample_path) / competition, data_reducer)
     print(f"processing {competition}, sample_method: {sample_method}, reduce_method: {reduce_method}")
     sampler.sample()
-
-
-    
