@@ -107,6 +107,47 @@ def crawl_descriptions(
     return descriptions
 
 
+def unzip_zip_file(competition_local_path: Path, mleb_env: MLEBDockerEnv):
+    for zip_path in competition_local_path.rglob("*.zip"):
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            if len(zip_ref.namelist()) == 1:
+                mleb_env.run(
+                    f"unzip -o ./{zip_path.relative_to(competition_local_path)} -d {zip_path.parent.relative_to(competition_local_path)}; rm -rf ./{zip_path.relative_to(competition_local_path)}",
+                    local_path=competition_local_path,
+                )
+            else:
+                mleb_env.run(
+                    f"mkdir -p ./{zip_path.parent.relative_to(competition_local_path)}/{zip_path.stem}; unzip -o ./{zip_path.relative_to(competition_local_path)} -d ./{zip_path.parent.relative_to(competition_local_path)}/{zip_path.stem}; rm -rf ./{zip_path.relative_to(competition_local_path)}",
+                    local_path=competition_local_path,
+                )
+
+    for seven_z_path in competition_local_path.rglob("*.7z"):
+        mleb_env.run(
+            f"7z x ./{seven_z_path.relative_to(competition_local_path)} -o{seven_z_path.parent.relative_to(competition_local_path)}/{seven_z_path.stem}; rm -rf ./{seven_z_path.relative_to(competition_local_path)}",
+            local_path=competition_local_path,
+        )
+
+
+def unzip_tar_gz_file(competition_local_path: Path, mleb_env: MLEBDockerEnv):
+    for tar_path in competition_local_path.rglob("*.tar*"):
+        if not tarfile.is_tarfile(tar_path):
+            logger.error(f"{tar_path} is not a valid tar file.")
+            continue
+        is_gzip_file = open(tar_path, "rb").read(2) == b"\x1f\x8b"
+        with tarfile.open(tar_path, "r:gz") if is_gzip_file else tarfile.open(tar_path, "r") as tar_ref:
+            if len(tar_ref.getmembers()) == 1:
+                mleb_env.run(
+                    f"tar -{'xzf' if is_gzip_file else 'xf'} ./{tar_path.relative_to(competition_local_path)} -C {tar_path.parent.relative_to(competition_local_path)}; rm -rf ./{tar_path.relative_to(competition_local_path)}",
+                    local_path=competition_local_path,
+                )
+            else:
+                folder_name = tar_path.name.replace(".tar", "").replace(".gz", "")
+                mleb_env.run(
+                    f"mkdir -p ./{tar_path.parent.relative_to(competition_local_path)}/{folder_name}; tar -{'xzf' if is_gzip_file else 'xf'} ./{tar_path.relative_to(competition_local_path)} -C ./{tar_path.parent.relative_to(competition_local_path)}/{folder_name}; rm -rf ./{tar_path.relative_to(competition_local_path)}",
+                    local_path=competition_local_path,
+                )
+
+
 def download_data(competition: str, settings: ExtendedBaseSettings, enable_create_debug_data: bool = True) -> None:
     local_path = settings.local_data_path
     if settings.if_using_mle_data:
@@ -131,35 +172,20 @@ def download_data(competition: str, settings: ExtendedBaseSettings, enable_creat
             mleb_env.prepare()
             mleb_env.run(f"cp -r ./zip_files/{competition}/prepared/public/* ./{competition}", local_path=local_path)
 
-            for zip_path in competition_local_path.rglob("*.zip"):
-                with zipfile.ZipFile(zip_path, "r") as zip_ref:
-                    if len(zip_ref.namelist()) == 1:
-                        mleb_env.run(
-                            f"unzip -o ./{zip_path.relative_to(competition_local_path)} -d {zip_path.parent.relative_to(competition_local_path)}",
-                            local_path=competition_local_path,
-                        )
-                    else:
-                        mleb_env.run(
-                            f"mkdir -p ./{zip_path.parent.relative_to(competition_local_path)}/{zip_path.stem}; unzip -o ./{zip_path.relative_to(competition_local_path)} -d ./{zip_path.parent.relative_to(competition_local_path)}/{zip_path.stem}",
-                            local_path=competition_local_path,
-                        )
-            for tar_path in competition_local_path.rglob("*.tar*"):
-                if not tarfile.is_tarfile(tar_path):
-                    logger.error(f"{tar_path} is not a valid tar file.")
-                    continue
-                is_gzip_file = open(tar_path, "rb").read(2) == b"\x1f\x8b"
-                with tarfile.open(tar_path, "r:gz") if is_gzip_file else tarfile.open(tar_path, "r") as tar_ref:
-                    if len(tar_ref.getmembers()) == 1:
-                        mleb_env.run(
-                            f"tar -{'xzf' if is_gzip_file else 'xf'} ./{tar_path.relative_to(competition_local_path)} -C {tar_path.parent.relative_to(competition_local_path)}",
-                            local_path=competition_local_path,
-                        )
-                    else:
-                        folder_name = tar_path.name.replace(".tar", "").replace(".gz", "")
-                        mleb_env.run(
-                            f"mkdir -p ./{tar_path.parent.relative_to(competition_local_path)}/{folder_name}; tar -{'xzf' if is_gzip_file else 'xf'} ./{tar_path.relative_to(competition_local_path)} -C ./{tar_path.parent.relative_to(competition_local_path)}/{folder_name}",
-                            local_path=competition_local_path,
-                        )
+            for round in range(5):
+                unzip_zip_file(competition_local_path, mleb_env)
+                unzip_tar_gz_file(competition_local_path, mleb_env)
+                if (
+                    len(list(competition_local_path.rglob("*.zip"))) == 0
+                    and len(list(competition_local_path.rglob("*.7z"))) == 0
+                    and len(list(competition_local_path.rglob("*.tar*"))) == 0
+                ):
+                    break
+            else:
+                logger.warning(
+                    f"After 5 rounds of unzipping, still found zip or tar files in {competition_local_path}."
+                )
+
             # NOTE:
             # Patching:  due to mle has special renaming mechanism for different competition;
             # We have to switch the schema back to a uniform one;

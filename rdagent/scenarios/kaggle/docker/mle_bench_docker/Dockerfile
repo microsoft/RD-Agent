@@ -8,6 +8,7 @@ RUN apt-get clean && apt-get update && apt-get install -y \
     build-essential \
     git-lfs \
     unzip \
+    p7zip-full \
     && rm -rf /var/lib/apt/lists/* 
 
 RUN git clone https://github.com/openai/mle-bench.git
