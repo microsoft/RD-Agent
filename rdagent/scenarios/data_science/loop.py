@@ -156,9 +156,6 @@ class DataScienceRDLoop(RDLoop):
         exp = await self.exp_gen.async_gen(self.trace, self)
 
         logger.log_object(exp)
-
-        # FIXME: this is for LLM debug webapp, remove this when the debugging is done.
-        logger.log_object(exp, tag="debug_exp_gen")
         return exp
 
     def coding(self, prev_out: dict[str, Any]):
