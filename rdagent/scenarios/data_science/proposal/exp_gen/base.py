@@ -182,27 +182,27 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         final_component = self.COMPLETE_ORDER[-1]
         has_final_component = True if DS_RD_SETTING.coder_on_whole_pipeline else False
         SOTA_exp_and_feedback_list = []
-        failed_exp_and_feedback_list = []
+        failed_exp_and_feedback_list_after_sota = []
         for exp, fb in search_list:
             if has_final_component:
                 if fb.decision:
                     SOTA_exp_and_feedback_list.append((exp, fb))
-                    failed_exp_and_feedback_list = []
+                    failed_exp_and_feedback_list_after_sota = []
                 else:
-                    failed_exp_and_feedback_list.append((exp, fb))
+                    failed_exp_and_feedback_list_after_sota.append((exp, fb))
             if exp.hypothesis.component == final_component and fb:
                 has_final_component = True
-        if max_retrieve_num is not None and (SOTA_exp_and_feedback_list or failed_exp_and_feedback_list):
+        if max_retrieve_num is not None and (SOTA_exp_and_feedback_list or failed_exp_and_feedback_list_after_sota):
             SOTA_exp_and_feedback_list = SOTA_exp_and_feedback_list[
                 -min(max_retrieve_num, len(SOTA_exp_and_feedback_list)) :
             ]
-            failed_exp_and_feedback_list = failed_exp_and_feedback_list[
-                -min(max_retrieve_num, len(failed_exp_and_feedback_list)) :
+            failed_exp_and_feedback_list_after_sota = failed_exp_and_feedback_list_after_sota[
+                -min(max_retrieve_num, len(failed_exp_and_feedback_list_after_sota)) :
             ]
         if return_type == "all":
-            return SOTA_exp_and_feedback_list + failed_exp_and_feedback_list
+            return SOTA_exp_and_feedback_list + failed_exp_and_feedback_list_after_sota
         elif return_type == "failed":
-            return failed_exp_and_feedback_list
+            return failed_exp_and_feedback_list_after_sota
         elif return_type == "sota":
             return SOTA_exp_and_feedback_list
         else:
