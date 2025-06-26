@@ -24,6 +24,7 @@ class DSIdea:
         self.method = raw_knowledge.get("method", None)
         self.context = raw_knowledge.get("context", None)
         self.problem = raw_knowledge.get("problem", None)
+        self.code = raw_knowledge.get("code", None)
 
     def __str__(self) -> str:
         return json.dumps(
@@ -33,6 +34,7 @@ class DSIdea:
                 "method": self.method,
                 "context": self.context,
                 "problem": self.problem,
+                "code": self.code,
             }
         )
 
