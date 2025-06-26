@@ -136,6 +136,11 @@ class LoopBase:
         if isinstance(limit := RD_AGENT_SETTINGS.step_semaphore, dict):
             limit = limit.get(step_name, 1)  # default to 1 if not specified
 
+        # NOTE: we assume the record step is always the last step to modify the global environment,
+        # so we set the limit to 1 to avoid race condition
+        if step_name == "record":
+            limit = 1
+
         if step_name not in self.semaphores:
             self.semaphores[step_name] = asyncio.Semaphore(limit)
         return self.semaphores[step_name]
