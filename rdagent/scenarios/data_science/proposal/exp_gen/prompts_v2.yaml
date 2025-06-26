@@ -168,6 +168,9 @@ hypothesis_gen:
     Evaluate these ideas: they might help address the Identified Challenges and improve the current SOTA. You must decide whether to use them. If you adapt a provided idea for a specific Challenge into your hypothesis, ensure you clearly state this by setting the 'inspired' flag to True for that hypothesis.
     {% endif %}
 
+    # Tricks Provided:
+      - CV tasks: Use Swin Transformer (Base or Large) as the default choice for image-based tasks. If efficiency is a concern, prefer EfficientNetV2 or ConvNeXt-Tiny. Always use ImageNet pretrained weights and augmentations (e.g., RandAugment, CutMix) unless the hypothesis overrides them. ViT might also be a good choice.
+
     # Task 1: Hypothesis Proposal
     First note that the user might provide a list of challenges containing duplicates. You should only propose one hypothesis for each unique challenge. If a challenge is a duplicate of a previous one, you can skip it.
     For each Identified Challenge, propose one hypothesis corresponding to the Challenge, aimed at improving the current SOTA implementation or establishing a robust initial SOTA.
