@@ -4,6 +4,7 @@ It is from `rdagent/app/qlib_rd_loop/model.py` and try to replace `rdagent/app/q
 """
 
 from typing import Any
+import asyncio
 
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.core.developer import Developer
@@ -19,6 +20,7 @@ from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.workflow import LoopBase, LoopMeta
+from rdagent.core.conf import RD_AGENT_SETTINGS
 
 
 class RDLoop(LoopBase, metaclass=LoopMeta):
@@ -44,20 +46,23 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         super().__init__()
 
     # excluded steps
-    async def _propose(self):
-        hypothesis = await self.hypothesis_gen.async_gen(self.trace)
+    def _propose(self):
+        hypothesis = self.hypothesis_gen.gen(self.trace)
         logger.log_object(hypothesis, tag="hypothesis generation")
         return hypothesis
 
-    def _exp_gen(self, hypothesis: Hypothesis):
-        exp = self.hypothesis2experiment.convert(hypothesis, self.trace)
-        logger.log_object(exp.sub_tasks, tag="experiment generation")
-        return exp
+    async def _exp_gen(self, hypothesis: Hypothesis):
+        while True:
+            if self.get_unfinished_loop_cnt(self.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
+                exp = self.hypothesis2experiment.convert(hypothesis, self.trace)
+                logger.log_object(exp.sub_tasks, tag="experiment generation")
+                return exp
+            await asyncio.sleep(1)
 
     # included steps
     async def direct_exp_gen(self, prev_out: dict[str, Any]):
-        hypo = await self._propose()
-        exp = self._exp_gen(hypo)
+        hypo = self._propose()
+        exp = await self._exp_gen(hypo)
         return {"propose": hypo, "exp_gen": exp}
 
     def coding(self, prev_out: dict[str, Any]):
