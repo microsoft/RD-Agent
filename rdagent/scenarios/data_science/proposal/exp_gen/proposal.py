@@ -802,7 +802,11 @@ class DSProposalV2ExpGen(ExpGen):
             )
         return result
 
-    def gen(self, trace: DSTrace) -> DSExperiment:
+    def gen(
+        self,
+        trace: DSTrace,
+    ) -> DSExperiment:
+
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
         if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
             return draft_exp
@@ -839,6 +843,7 @@ class DSProposalV2ExpGen(ExpGen):
             pipeline=pipeline,
         )
 
+        # NOTE: we currently don't support inject diverse problems for the parallel + multi-trace mode,
         if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
             if len(trace.current_selection) == 0:
                 # start a new sub-trace, and inject diverse problems.

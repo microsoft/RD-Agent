@@ -266,11 +266,12 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
     def last_exp_fb(
         self,
         search_type: Literal["all", "ancestors"] = "ancestors",
+        selection: tuple[int, ...] | None = None,
     ) -> tuple[DSExperiment, ExperimentFeedback] | None:
         """
         Access the last experiment and feedback
         """
-        search_list = self.retrieve_search_list(search_type)
+        search_list = self.retrieve_search_list(search_type, selection=selection)
         for exp, ef in search_list[::-1]:
             return exp, ef
         return None

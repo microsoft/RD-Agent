@@ -142,7 +142,6 @@ class DataScienceRDLoop(RDLoop):
         super(RDLoop, self).__init__()
 
     async def direct_exp_gen(self, prev_out: dict[str, Any]):
-
         # set the SOTA experiment to submit
         sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace)
         self.trace.set_sota_exp_to_submit(sota_exp_to_submit)
@@ -151,7 +150,11 @@ class DataScienceRDLoop(RDLoop):
         selection = self.ckp_selector.get_selection(self.trace)
         # set the current selection for the trace
         self.trace.set_current_selection(selection)
+
+        # in parallel + multi-trace mode, the above global "trace.current_selection" will not be used
+        # instead, we will use the "local_selection" attached to each exp to in async_gen().
         exp = await self.exp_gen.async_gen(self.trace, self)
+
         logger.log_object(exp)
 
         # FIXME: this is for LLM debug webapp, remove this when the debugging is done.
@@ -197,6 +200,11 @@ class DataScienceRDLoop(RDLoop):
         - If we come to feedback phase, the previous development steps are successful.
         """
         exp: DSExperiment = prev_out["running"]
+
+        # set the local selection to the trace after feedback
+        if exp.local_selection is not None:
+            self.trace.set_current_selection(exp.local_selection)
+
         if self.trace.next_incomplete_component() is None or DS_RD_SETTING.coder_on_whole_pipeline:
             # we have alreadly completed components in previous trace. So current loop is focusing on a new proposed idea.
             # So we need feedback for the proposal.
@@ -211,19 +219,36 @@ class DataScienceRDLoop(RDLoop):
         return feedback
 
     def record(self, prev_out: dict[str, Any]):
-        # set the DAG parent for the trace
-        self.trace.sync_dag_parent_and_hist()
+
+        exp: DSExperiment = None
 
         e = prev_out.get(self.EXCEPTION_KEY, None)
         if e is None:
-            self.trace.hist.append((prev_out["running"], prev_out["feedback"]))
+            exp = prev_out["running"]
+            self.trace.hist.append((exp, prev_out["feedback"]))
+
+            # NOTE: we put below  operations on selections here, instead of out of the if-else block,
+            # to fit the corner case that the trace will be reset
+
+            # set the local selection to the trace as global selection, then set the DAG parent for the trace
+            if exp.local_selection is not None:
+                self.trace.set_current_selection(exp.local_selection)
+            self.trace.sync_dag_parent_and_hist()
+
         else:
+            exp: DSExperiment = prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"]
             self.trace.hist.append(
                 (
-                    prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"],
+                    exp,
                     ExperimentFeedback.from_exception(e),
                 )
             )
+
+            # set the local selection to the trace as global selection, then set the DAG parent for the trace
+            if exp.local_selection is not None:
+                self.trace.set_current_selection(exp.local_selection)
+            self.trace.sync_dag_parent_and_hist()
+
             if self.trace.sota_experiment() is None:
                 if DS_RD_SETTING.coder_on_whole_pipeline:
                     #  check if feedback is not generated
