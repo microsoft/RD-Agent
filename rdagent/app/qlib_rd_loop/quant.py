@@ -64,8 +64,8 @@ class QuantRDLoop(RDLoop):
         self.trace = QuantTrace(scen=scen)
         super(RDLoop, self).__init__()
 
-    def direct_exp_gen(self, prev_out: dict[str, Any]):
-        hypo = self._propose()
+    async def direct_exp_gen(self, prev_out: dict[str, Any]):
+        hypo = await self._propose()
         assert hypo.action in ["factor", "model"]
         if hypo.action == "factor":
             exp = self.factor_hypothesis2experiment.convert(hypo, self.trace)

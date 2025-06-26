@@ -44,8 +44,8 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         super().__init__()
 
     # excluded steps
-    def _propose(self):
-        hypothesis = self.hypothesis_gen.gen(self.trace)
+    async def _propose(self):
+        hypothesis = await self.hypothesis_gen.async_gen(self.trace)
         logger.log_object(hypothesis, tag="hypothesis generation")
         return hypothesis
 
@@ -55,8 +55,8 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         return exp
 
     # included steps
-    def direct_exp_gen(self, prev_out: dict[str, Any]):
-        hypo = self._propose()
+    async def direct_exp_gen(self, prev_out: dict[str, Any]):
+        hypo = await self._propose()
         exp = self._exp_gen(hypo)
         return {"propose": hypo, "exp_gen": exp}
 
