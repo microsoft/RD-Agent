@@ -731,7 +731,7 @@ class DSProposalV2ExpGen(ExpGen):
             component_desc=component_desc,
             workflow_check=not pipeline and hypotheses[0].component != "Workflow",
         )
-        user_prompt = T(".prompts_v3:task_gen.user").r(
+        user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,
             data_folder_info=data_folder_info,
             sota_exp_desc=sota_exp_desc,
@@ -774,7 +774,7 @@ class DSProposalV2ExpGen(ExpGen):
         return exp
 
     def get_scenario_all_desc(self, trace: DSTrace, eda_output=None) -> str:
-        return T(".prompts_v3:scenario_description").r(
+        return T(".prompts_v2:scenario_description").r(
             background=trace.scen.background,
             submission_specifications=trace.scen.submission_specifications,
             evaluation=trace.scen.metric_description,
