@@ -225,6 +225,7 @@ class DSDraftExpGenV2(ExpGen):
         scenario_desc: str,
         hypotheses: list[DSHypothesis],
         pipeline: bool,
+        knowledge: str,
         failed_exp_feedback_list_desc: str,
     ) -> DSExperiment:
         if pipeline:
@@ -239,6 +240,7 @@ class DSDraftExpGenV2(ExpGen):
         )
         user_prompt = T(".prompts_draft:task_gen.user").r(
             scenario_desc=scenario_desc,
+            knowledge=knowledge,
             data_folder_info=data_folder_info,
             hypotheses=hypotheses,
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
@@ -319,5 +321,6 @@ class DSDraftExpGenV2(ExpGen):
             scenario_desc=scenario_desc,
             hypotheses=[hypothesis],
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
+            knowledge=knowledge,
             pipeline=pipeline,
         )
