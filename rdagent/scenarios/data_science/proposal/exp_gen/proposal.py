@@ -731,6 +731,7 @@ class DSProposalV2ExpGen(ExpGen):
             # task_output_format=component_info["task_output_format"],
             component_desc=component_desc,
             runtime_environment=runtime_environment,
+            hyperparameter_spec=T("scenarios.data_science.share:spec.hyperparameter").r(),
             workflow_check=not pipeline and hypotheses[0].component != "Workflow",
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(

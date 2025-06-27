@@ -312,3 +312,18 @@ component_spec:
 guidelines:
   coding: |-
     You might receive exploratory data analysis (EDA) details about the source data. Do not use this EDA information to create assertions or raise errors. We might generate sample data for quick coding (so your code may run on sample data which is part of the full-size data), but remember that the EDA details are based on the full-size data.
+
+spec:
+  hyperparameter: |-
+    1. Hyperparameters Requiring Tuning (e.g., learning rate, weight decay, optimizer, etc.)
+      - Adjust conservatively to avoid instability.
+      - Apply a systematic hyperparameter tuning strategy to identify optimal values.
+    2. Hyperparameters Dependent on Empirical Estimation or Past Failures (e.g., epochs, CV folds, batch size, etc.)
+      - Estimate these parameters based on the runtime environment constraints and experiences from previous experiment failures.
+    3. Balancing Epochs and CV Folds
+      - When runtime permit, prioritize increasing the number of training epochs, but always implement early stopping to prevent overfitting and ensure the process completes within the allowed runtime.
+      - When runtime constrained, first reduce the number of CV folds—provided that validation reliability remains acceptable—before lowering the number of epochs.
+    4. Early Stopping Strategy.
+      - Sufficient epochs are completed.
+      - Sufficient low loss are reached.
+      - Sufficient stable validation loss are achieved.
