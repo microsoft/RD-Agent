@@ -280,7 +280,7 @@ task_gen:
 
     Your primary goal is to generate a detailed, step-by-step **sketch or refinement plan** for a new data processing and modeling pipeline, specifically for the main workflow script (`main.py`), that effectively implements the `Proposed Hypothesis`. This sketch will guide a developer to write the code correctly.
 
-    ### BACKGROUND CONTEXT: Pipeline Implementation Standards & Constraints ###
+    # BACKGROUND CONTEXT: Pipeline Implementation Standards & Constraints
 
     The `main.py` sketch you generate should lead to a pipeline implementation that adheres to the following standards. These are guiding principles for the final *outcome* of your sketch:
 
@@ -315,8 +315,6 @@ task_gen:
       - When only one model is used, its score should be present, and an "ensemble" score (which would be the same as the single model's score in this case) must also be recorded.
       - Ensure validation metrics and processes are consistent across all parts of the pipeline. Avoid changes that would alter how validation metrics are calculated unless that is part of the hypothesis.
     9. **Submission File (`submission.csv`)**: Generate `submission.csv` in the **exact format** required (column names, order, data types), as detailed by `sample_submission.csv` in the `Competition Scenario Description`. This is a critical step.
-
-    ### END OF BACKGROUND CONTEXT ###
 
     # Guidelines for Sketching the `main.py` Workflow
 
@@ -354,6 +352,23 @@ task_gen:
       - Confirm no `tqdm` or other progress bars are in the final script.
       - Double-check that validation scores are saved correctly to `scores.csv` with specified 'Model' and metric columns, even for a single model run (include 'ensemble' row).
     
+    # Hyperparameters Specification
+    The workflow will be implemented in the following runtime environment:
+    {{ runtime_environment }}
+    1. Hyperparameters Requiring Tuning (e.g., learning rate, weight decay, optimizer, etc.)
+      - Adjust conservatively to avoid instability.
+      - Apply a systematic hyperparameter tuning strategy to identify optimal values.
+    2. Hyperparameters Dependent on Empirical Estimation or Past Failures (e.g., epochs, CV folds, batch size, etc.)
+      - Estimate these parameters based on the runtime environment constraints and experiences from previous experiment failures.
+    3. Balancing Epochs and CV Folds
+      - When runtime permit, prioritize increasing the number of training epochs, but always implement early stopping to prevent overfitting and ensure the process completes within the allowed runtime.
+      - When runtime constrained, first reduce the number of CV folds—provided that validation reliability remains acceptable—before lowering the number of epochs.
+    4. Early Stopping Strategy.
+      - Sufficient epochs are completed.
+      - Sufficient low loss are reached.
+      - Sufficient stable validation loss are achieved.
+    If you are confident about the hyperparameters setting, include them in the task design.
+
     {% if task_output_format is not none %}
     ## [Partial Response Format 1] Task Output Format:
     {{ task_output_format }}
