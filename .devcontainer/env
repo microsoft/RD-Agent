@@ -35,7 +35,7 @@ DS_IF_USING_MLE_DATA=True
 
 PICKLE_CACHE_FOLDER_PATH_STR=./log/pickle_cache
 CACHE_WITH_PICKLE=False
-ENABLE_CACHE=False  # important to avoid generating large files.
+ENABLE_CACHE=False
 PROMPT_CACHE_PATH=./log/prompt_cache.db
 
 DS_CODER_COSTEER_ENV_TYPE=conda
