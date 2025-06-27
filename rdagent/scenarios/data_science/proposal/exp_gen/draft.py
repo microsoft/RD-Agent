@@ -1,6 +1,5 @@
 import json
 from typing import TYPE_CHECKING
-
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
@@ -12,10 +11,64 @@ from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.utils.agent.tpl import T
+from rdagent.log import rdagent_logger as logger
+# from rdagent.scenarios.data_science.proposal.exp_gen.proposal import get_component
+from typing import Any, Dict
+from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 
+_COMPONENT_META: Dict[str, Dict[str, Any]] = {
+    "DataLoadSpec": {
+        "target_name": "Data loader and specification generation",
+        "spec_file": "spec/data_loader.md",
+        "output_format_key": ".prompts:output_format.data_loader",
+        "task_class": DataLoaderTask,
+    },
+    "FeatureEng": {
+        "target_name": "Feature engineering",
+        "spec_file": "spec/feature.md",
+        "output_format_key": ".prompts:output_format.feature",
+        "task_class": FeatureTask,
+    },
+    "Model": {
+        "target_name": "Model",
+        "spec_file": "spec/model.md",
+        "output_format_key": ".prompts:output_format.model",
+        "task_class": ModelTask,
+    },
+    "Ensemble": {
+        "target_name": "Ensemble",
+        "spec_file": "spec/ensemble.md",
+        "output_format_key": ".prompts:output_format.ensemble",
+        "task_class": EnsembleTask,
+    },
+    "Workflow": {
+        "target_name": "Workflow",
+        "spec_file": "spec/workflow.md",
+        "output_format_key": ".prompts:output_format.workflow",
+        "task_class": WorkflowTask,
+    },
+    "Pipeline": {
+        "target_name": "Pipeline",
+        "spec_file": None,
+        "output_format_key": ".prompts:output_format.pipeline",
+        "task_class": PipelineTask,
+    },
+}
+
+
+def get_component(name: str) -> Dict[str, Any]:
+    meta = _COMPONENT_META.get(name)
+    if meta is None:
+        raise KeyError(f"Unknown component: {name!r}")
+
+    return {
+        "target_name": meta["target_name"],
+        "spec_file": meta["spec_file"],
+        "task_output_format": T(meta["output_format_key"]).r(),
+        "task_class": meta["task_class"],
+    }
 
 class DSDraftExpGen(ExpGen):
-
     def _init_task_gen(
         self,
         targets: str,
@@ -134,12 +187,9 @@ class DSDraftExpGenV2(ExpGen):
         )
         return json.loads(response)['tag'].lower()
     
-    def knowledge_gen(self, tag: str) -> str:
-        if tag not in ['cv', 'nlp', 'tabular']:
-            tag = 'others'
+    def knowledge_gen(self) -> str:
         general_knowledge = T(".prompts_draft:knowledge.general").r()
-        domain_knowledge = T(f".prompts_draft:knowledge.{tag}").r()
-        return f"{general_knowledge}\n{domain_knowledge}\n\n"
+        return f"{general_knowledge}"
 
     def hypothesis_gen(
         self,
@@ -164,9 +214,9 @@ class DSDraftExpGenV2(ExpGen):
         )
         resp_dict = json.loads(response)
         return DSHypothesis(
-            component=resp_dict.get,("component", "Model"),
-            hypothesis=resp_dict.get,("hypothesis", "Hypothesis not provided"),
-            reason=resp_dict.get,("hypothesis", "Hypothesis not provided"),
+            component=resp_dict.get("component", "Model"),
+            hypothesis=resp_dict.get("hypothesis", "Hypothesis not provided"),
+            reason=resp_dict.get("reason", "Reason not provided"),
         )
 
     def task_gen(
@@ -243,7 +293,7 @@ class DSDraftExpGenV2(ExpGen):
             eda_output = None
         else:
             eda_output = last_exp.experiment_workspace.file_dict.get("EDA.md", None)
-        scenario_desc = trace.scen.get_scenario_all_desc(eda_output=None)
+        scenario_desc = trace.scen.get_scenario_all_desc(eda_output=eda_output)
         
         failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
             exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
@@ -252,8 +302,8 @@ class DSDraftExpGenV2(ExpGen):
         )
 
         # Step 1: Generate Tags TODO: do this part in the scenario analysis part
-        tag = self.tag_gen(scenario_desc)
-        knowledge = self.knowledge_gen(tag)
+        # tag = self.tag_gen(scenario_desc)
+        knowledge = self.knowledge_gen()
 
         # Step 2: Generate Hypothesis based on General Knowledge
         hypothesis = self.hypothesis_gen(
@@ -261,8 +311,13 @@ class DSDraftExpGenV2(ExpGen):
             component_desc=component_desc,
             scenario_desc=scenario_desc,
             exp_feedback_list_desc=failed_exp_feedback_list_desc,
-            pipeline=pipeline,
         )
 
         # Step 3: Design Task
-        return self.task_gen()
+        return self.task_gen(
+            component_desc=component_desc,
+            scenario_desc=scenario_desc,
+            hypotheses=[hypothesis],
+            failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
+            pipeline=pipeline,
+        )

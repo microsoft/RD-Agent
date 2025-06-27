@@ -13,15 +13,56 @@ description:
 
 knowledge:
   general: |-
-    this is general knowledge works for all competitions
-  nlp: |-
-    this is a template for nlp task
-  cv: |-
-    this is a template for cv task
-  tabular: |-
-    this is a template for tabular task
-  others: |-
-    this is a template for other task type
+    This general strategy applies to all competitions and aims to ensure the pipeline runs **correctly, robustly, and reproducibly**. The pipeline must strictly follow the order:  
+    **[DataPreprocess] → [EDA] → [FeatureEngineer] → [Model] → [Tuning] → [Ensemble]**.
+
+    1. [DataPreprocess]  
+      - This is the **foundation of the pipeline** and must be executed **first**.
+      - Ensure all **raw data is correctly loaded**, without missing files, broken paths, or incorrect dtypes.
+      - **Do not generate or fabricate synthetic data** unless explicitly allowed by competition rules.
+      - You must **traverse directories (e.g., with `os.walk`)** to validate the presence of required files like images and CSVs.
+      - Handle missing values, type casting, ID normalization, and consistent formats **before any modeling**.
+      - If this step fails or is skipped, all downstream steps are invalid.
+
+    2. [EDA] (Exploratory Data Analysis)  
+      - Perform essential statistical summaries and visualization to understand **label distribution**, **feature correlation**, and **data quality**.
+      - Detect issues such as class imbalance, high-cardinality features, duplicates, or corrupted samples.
+      - Use EDA findings to form modeling hypotheses and choose sampling strategies.
+
+    3. [FeatureEngineer]  
+      - Build features in **modular, traceable steps**.
+      - Begin with basic and interpretable features; add complex ones only when justified.
+      - Ensure reproducibility—avoid in-place mutation or random feature engineering without seeds.
+
+    4. [Model]  
+      - Choose models suitable for the **data modality** and **dataset size** (e.g., don’t use ViT on 1k images).
+      - Start with a **simple baseline model** to verify the entire pipeline functions correctly end-to-end.
+      - Ensure the model can be **fully trained within the allowed runtime**.
+      - The choice of model and training parameters must be well matched. Ensure that the model can be fully trained within the allowed time limit. If needed, use 1-fold cross-validation to validate feasibility. Use code-level hypothesis digging to determine the optimal batch size to maximize memory utilization. Set a sufficiently large number of epochs, and apply early stopping with patience ≥ 10 to allow performance to improve. For the first draft, keep the design simple and reliable to ensure correctness and stability of the pipeline.
+
+    5. [Tuning]  
+      - Tune **only after** verifying the pipeline and model correctness.
+      - Use 1-fold CV or a small subset to quickly debug and test ideas before full 5-fold runs.
+      - Set batch size by inspecting memory usage (`nvidia-smi`) or using memory-aware heuristics to **maximize utilization**.
+      - Set `max_epoch` to a **sufficiently large value** (e.g., 50–100), and apply **early stopping** with `patience ≥ 10` to allow meaningful convergence.
+
+    6. [Ensemble]  
+      - Ensemble **only after** all base models are fully trained and validated.
+      - Prefer diverse models (e.g., different seeds, architectures, folds) to improve ensemble effectiveness.
+      - Keep the ensembling method **simple, reproducible.
+      - Ensemble logic must not bypass earlier validation steps.
+
+    Key Constraints  
+    7. [DataPreprocess] must be correctly validated before moving to any downstream stage.  
+      - Never use generated data or pseudo-labels in the first draft.
+      - The **first version must focus on simplicity, correctness, and debuggability**.
+      - **Always test early outputs** before scaling or ensembling.
+
+    #### Summary  
+    Build a **stable and testable pipeline** from the beginning.  
+    Each stage should be independently verifiable.  
+    Your first draft should **run reliably**, be easy to debug, and **serve as a foundation** for future improvement (e.g., tuning, ensemble, tricks).
+
 
 tag_gen:
   system: |-
@@ -147,8 +188,11 @@ task_gen:
       - Reiterate: **DO NOT** use the sample submission file to extract test indices or any other information beyond the required column names and format for the output file.
       - Ensure no features are inadvertently excluded during processing.
     5. **Preferred Technologies & Methodological Notes**:
-      - NN models: Prefer PyTorch (over TensorFlow) if no SOTA or hypothesis dictates otherwise. Prioritize fine-tuning pre-trained models.
-      - Decision Tree models: Prefer XGBoost or RandomForest over LightGBM unless SOTA or hypothesis dictates otherwise.
+      - Tabular tasks: Default to LightGBM (LGB) as first choice. Use XGBoost (XGB) or CatBoost if the dataset involves time dependencies, sparse features, or heavy categorical interactions. Neural models (e.g., TabNet, FT-Transformer) can be added if the hypothesis explicitly requires them, but are not default.
+      - NLP tasks: Default to deBERTa V3 (Base or Large) if no other model is mandated by hypothesis. For classification or regression, prefer fine-tuning pretrained deBERTa models. Use lighter models (e.g., RoBERTa-base, BERT-base) if compute is limited. Use generative models (e.g., T5, GPT-style) only when required (e.g., summarization, generation).
+      - CV tasks: Use Swin Transformer (Base or Large) as the default choice for image-based tasks. If efficiency is a concern, prefer EfficientNetV2 or ConvNeXt-Tiny. Always use ImageNet pretrained weights and augmentations (e.g., RandAugment, CutMix) unless the hypothesis overrides them.
+      - If no SOTA is given and hypothesis is unclear, design the simplest working pipeline using these defaults to ensure a valid end-to-end run. Baselines must prioritize correctness, simplicity, and trainability over complexity.
+      - Once a correct and runnable pipeline is in place (i.e., no bugs, correct outputs, clean structure), all further development effort should focus on model selection, feature engineering, hyperparameter tuning, and ensemble strategies. These are the core levers of competitive performance.
     6. **General Data Science Considerations**:
       - Design for scalability.
       - Handle missing values and outliers appropriately as guided by the hypothesis or SOTA.
