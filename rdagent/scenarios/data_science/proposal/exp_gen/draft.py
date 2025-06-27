@@ -242,7 +242,7 @@ class DSDraftExpGenV2(ExpGen):
             scenario_desc=scenario_desc,
             knowledge=knowledge,
             data_folder_info=data_folder_info,
-            hypotheses=hypotheses,
+            hypothesis=hypotheses[0], # FIXME: pass 1 hypothesis only
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
