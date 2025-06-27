@@ -123,9 +123,8 @@ pipeline_eval:
     Step 1: Executes successfully without any errors. Please distinguish between the errors and warnings.
 
     Step 2: Correctly generates a final submission in the correct format, ensuring: they align with the submission structure, the index names and column names should match the sample, and the items should not be empty or apparently incorrect.
-    - Carefully check that the submission file and any reported scores are genuinely produced by a real model training and inference process. 
-    - Any attempt to bypass model training or inference—such as generating random predictions, hard-coding outputs, or otherwise fabricating results—should be considered cheating and must result in evaluation failure.
-    - Any attempt to sample a subset of training data for efficiency is not allowed. All training data must be loaded and used.
+    - Carefully verify that the submission file and any reported scores are the result of actual model training and inference. Random predictions, fabricated results, or hard-coded outputs constitute cheating and must result in evaluation failure.
+    - Sampling a subset of the training data for efficiency (e.g., randomly selecting a portion of the data) is discouraged unless it demonstrably improves performance (e.g., removing irrelevant or outlier samples).
 
     Step 3: Aligns with the competition requirements. This includes:
     - CAREFULLY ANALYZE WHETHER THE EXPERIMENTAL SETUP AND CODE MAY CAUSE MISALIGNMENT BETWEEN VALIDATION AND TEST PERFORMANCE.
