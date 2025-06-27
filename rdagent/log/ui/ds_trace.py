@@ -617,18 +617,22 @@ def stdout_win(loop_id: int):
                 st.code(v, language="log", wrap_lines=True)
 
 
-def get_folders_sorted(log_path):
-    """缓存并返回排序后的文件夹列表，并加入进度打印"""
+def get_folders_sorted(log_path, sort_by_time=False):
+    """
+    Cache and return the sorted list of folders, with progress printing.
+    :param log_path: Log path
+    :param sort_by_time: Whether to sort by time, default False (sort by name)
+    """
     if not log_path.exists():
         st.toast(f"Path {log_path} does not exist!")
         return []
-    with st.spinner("正在加载文件夹列表..."):
-        folders = sorted(
-            (folder for folder in log_path.iterdir() if is_valid_session(folder)),
-            key=lambda folder: folder.stat().st_mtime,
-            reverse=True,
-        )
-        st.write(f"找到 {len(folders)} 个文件夹")
+    with st.spinner("Loading folder list..."):
+        folders = [folder for folder in log_path.iterdir() if is_valid_session(folder)]
+        if sort_by_time:
+            folders = sorted(folders, key=lambda folder: folder.stat().st_mtime, reverse=True)
+        else:
+            folders = sorted(folders, key=lambda folder: folder.name)
+        st.write(f"Found {len(folders)} folders")
     return [folder.name for folder in folders]
 
 
@@ -659,7 +663,7 @@ with st.sidebar:
     if not state.log_folder.exists():
         st.warning(f"Path {state.log_folder} does not exist!")
     else:
-        folders = get_folders_sorted(state.log_folder)
+        folders = get_folders_sorted(state.log_folder, sort_by_time=False)
         if "selection" in st.query_params:
             default_index = (
                 folders.index(st.query_params["selection"]) if st.query_params["selection"] in folders else 0
