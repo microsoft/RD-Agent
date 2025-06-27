@@ -215,11 +215,11 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
 
 """ data folder description version 2 """
 import json
+import reprlib
 from pathlib import Path
 
 import humanize
 import pandas as pd
-from genson import SchemaBuilder
 from pandas.api.types import is_numeric_dtype
 
 # these files are treated as code (e.g. markdown wrapped)
@@ -319,7 +319,9 @@ def preview_df(df: pd.DataFrame, file_name: str, simple=True, show_nan_columns=F
     """
     out = []
 
-    out.append(f"-> {file_name} has {df.shape[0]} rows and {df.shape[1]} columns.")
+    out.append(f"### {file_name}: ")
+    out.append(f"#### 1.DataFrame preview:")
+    out.append(f"It has {df.shape[0]} rows and {df.shape[1]} columns.")
 
     if simple:
         cols = df.columns.tolist()
@@ -353,6 +355,18 @@ def preview_df(df: pd.DataFrame, file_name: str, simple=True, show_nan_columns=F
         if nan_cols:
             out.append(f"Columns containing NaN values: {', '.join(nan_cols)}")
 
+    # Add: Display DataFrame directly
+    if len(df) > 0:
+        out.append("#### 2.DataFrame preview:(only show the first 5 rows and 15 columns)")
+        # Show first 5 rows, max 15 columns to avoid overly wide output
+        df_preview = df.head(5)
+        if df.shape[1] > 15:
+            df_preview = df_preview.iloc[:, :15]
+            out.append(str(df_preview))
+            out.append(f"... (showing first 15 of {df.shape[1]} columns)")
+        else:
+            out.append(str(df_preview))
+
     return "\n".join(out)
 
 
@@ -369,48 +383,152 @@ def preview_parquet(p: Path, file_name: str, simple=True, show_nan_columns=False
 
 
 def preview_json(p: Path, file_name: str):
-    """Generate a textual preview of a json file using a generated json schema"""
-    builder = SchemaBuilder()
-    with open(p) as f:
-        first_line = f.readline().strip()
+    """Generate a textual preview of a json file using reprlib for compact object display"""
+    result = []
+    result.append(f"### {file_name}:")
 
-        try:
-            first_object = json.loads(first_line)
+    try:
+        # First check if this is a JSONL format
+        is_jsonl = False
 
-            if not isinstance(first_object, dict):
-                raise json.JSONDecodeError("The first line isn't JSON", first_line, 0)
-
-            # if the the next line exists and is not empty, then it is a JSONL file
+        with open(p, "r", encoding="utf-8") as f:
+            first_line = f.readline().strip()
             second_line = f.readline().strip()
-            if second_line:
-                f.seek(0)  # so reset and read line by line
-                for line in f:
-                    builder.add_object(json.loads(line.strip()))
-            # if it is empty, then it's a single JSON object file
-            else:
-                builder.add_object(first_object)
 
-        except json.JSONDecodeError:
-            # if first line isn't JSON, then it's prettified and we can read whole file
-            f.seek(0)
-            builder.add_object(json.load(f))
+            # Correct JSONL detection: both lines must be independent complete JSON objects
+            if first_line and second_line:
+                try:
+                    # Try to parse the first two lines, both should be complete JSON objects
+                    json.loads(first_line)  # First line is complete JSON
+                    json.loads(second_line)  # Second line is also complete JSON
+                    is_jsonl = True
+                except json.JSONDecodeError:
+                    # If any line fails to parse, it's not JSONL
+                    is_jsonl = False
 
-    return f"-> {file_name} has auto-generated json schema:\n" + builder.to_json(indent=2)
+        if is_jsonl:
+            # JSONL format: one JSON object per line
+            result.append("#### 1.Format: JSONL (JSON Lines)")
+            result.append("#### 2.Content preview (first few objects):")
+
+            # Configure reprlib for JSONL
+            jsonl_repr = reprlib.Repr()
+            jsonl_repr.maxother = 300
+
+            with open(p, "r", encoding="utf-8") as f:
+                for i, line in enumerate(f):
+                    if i >= 3:  # Only show first 3 objects
+                        result.append("... (showing first 3 JSONL objects)")
+                        break
+                    if line.strip():
+                        try:
+                            obj = json.loads(line.strip())
+                            result.append(f"Object {i+1}: {jsonl_repr.repr(obj)}")
+                        except:
+                            result.append(f"Object {i+1}: Invalid JSON")
+        else:
+            # Single JSON file
+            with open(p, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            result.append("### 1.Format: Single JSON object")
+            result.append("### 2.Structure overview:")
+
+            # Basic information
+            if isinstance(data, dict):
+                result.append(f"Type: Object with {len(data)} keys: {list(data.keys())}")
+                for key, value in data.items():
+                    if isinstance(value, list):
+                        result.append(f"  - {key}: array[{len(value)}]")
+                    elif isinstance(value, dict):
+                        result.append(f"  - {key}: object{{{len(value)} keys}}")
+                    else:
+                        result.append(f"  - {key}: {type(value).__name__}")
+            elif isinstance(data, list):
+                result.append(f"Type: Array with {len(data)} items")
+                if len(data) > 0:
+                    sample_item = data[0]
+                    if isinstance(sample_item, dict):
+                        result.append(f"Sample item keys: {list(sample_item.keys())}")
+
+            result.append("### 3.Content preview (reprlib):")
+
+            # Use reprlib to display content
+            compact_repr = reprlib.Repr()
+            compact_repr.maxother = 300
+
+            result.append(compact_repr.repr(data))
+
+    except Exception as e:
+        result.append(f"Error processing JSON: {str(e)[:100]}")
+
+    return "\n".join(result)
+
+
+def select_files_for_preview(base_path: Path, max_files_per_group: int = 1, threshold: int = 10) -> list:
+    """
+    Intelligently select a representative subset of files for detailed preview.
+    If a directory has more than `threshold` files of the same type, only `max_files_per_group` are selected.
+    """
+    from collections import defaultdict
+
+    # Group files by (parent_directory, file_extension)
+    files_by_group = defaultdict(list)
+    for p in _walk(base_path):
+        if p.is_file():
+            files_by_group[(p.parent, p.suffix)].append(p)
+
+    selected_files = []
+
+    # Always include a root README.md if it exists
+    root_readme = base_path / "README.md"
+    if root_readme.exists():
+        selected_files.append(root_readme)
+
+    for group, files in files_by_group.items():
+        # Sort files to be deterministic (e.g., by name)
+        files.sort()
+
+        if root_readme in files:
+            try:
+                files.remove(root_readme)
+            except ValueError:
+                pass  # was not in list
+
+        if len(files) > threshold:
+            # If many files, select a few representatives
+            selected_files.extend(files[:max_files_per_group])
+        else:
+            # If few files, select all of them
+            selected_files.extend(files)
+
+    # Remove duplicates and maintain order
+    return list(dict.fromkeys(selected_files))
 
 
 def describe_data_folder_v2(
-    base_path, include_file_details=True, simple=False, show_nan_columns=False, max_length: int = 6_000
+    base_path, include_file_details=True, simple=False, show_nan_columns=False, max_length: int = 10000
 ):
     """
     Generate a textual preview of a directory, including an overview of the directory
-    structure and previews of individual files
+    structure and previews of individual files.
     """
-    tree = f"```\n{file_tree(base_path)}```"
+
+    tree = f"## File tree:\n```\n{file_tree_v2(base_path,max_lines=200)}```"
     out = [tree]
 
     if include_file_details:
-        for fn in _walk(base_path):
-            file_name = str(fn.relative_to(base_path))
+        out.append("\n## File details:")
+
+        # Intelligently select a subset of files to preview
+        files_to_preview = select_files_for_preview(Path(base_path))
+        out.append(f" (Showing details for {len(files_to_preview)} representative files out of many)")
+
+        for fn in files_to_preview:
+            try:
+                file_name = str(fn.relative_to(Path(base_path)))
+            except ValueError:
+                file_name = str(fn)
 
             if fn.suffix == ".csv":
                 out.append(preview_csv(fn, file_name, simple=simple, show_nan_columns=show_nan_columns))
@@ -419,13 +537,17 @@ def describe_data_folder_v2(
             elif fn.suffix == ".parquet":
                 out.append(preview_parquet(fn, file_name, simple=simple, show_nan_columns=show_nan_columns))
             elif fn.suffix in plaintext_files:
-                if get_file_len_size(fn)[0] < 30:
-                    with open(fn) as f:
-                        content = f.read()
-                        if fn.suffix in code_files:
-                            content = f"```\n{content}\n```"
-                        out.append(f"-> {file_name} has content:\n\n{content}")
+                try:
+                    if get_file_len_size(fn)[0] < 30:
+                        with open(fn) as f:
+                            content = f.read()
+                            if fn.suffix in code_files:
+                                content = f"```\n{content}\n```"
+                            out.append(f"-> {file_name} has content:\n\n{content}")
+                except Exception:
+                    pass  # Ignore read errors for small files
             if len("\n\n".join(out)) > max_length:
+                out.append("\n... (File details truncated due to max_length)")
                 break
 
     result = "\n\n".join(out)
@@ -444,3 +566,141 @@ def describe_data_folder_v2(
         return result[:max_length] + "\n... (truncated)"
 
     return result
+
+
+def file_tree_v2(
+    path: Path, max_lines: int = 200, priority_files: set = {".csv", ".json", ".parquet", ".md", ".txt"}
+) -> str:
+    """
+    Smart file tree generator v2 - focused on solving truncation issues
+
+    Args:
+        path: Target directory path
+        max_lines: Maximum output lines (to prevent overly long output)
+        priority_files: File extensions to prioritize for display
+
+    Display rules:
+        - First level: Show all items regardless of count
+        - Other levels ≤8 items: Show all
+        - Other levels >8 items: Show first 2 + remaining count
+    """
+    path = Path(path)
+    lines = []
+    line_count = 0
+
+    def add_line(text: str) -> bool:
+        """Add a line, return whether we can continue adding more"""
+        nonlocal line_count
+        if line_count >= max_lines:
+            return False
+        lines.append(text)
+        line_count += 1
+        return True
+
+    # Root directory
+    if not add_line(f"{path.name}/"):
+        return "\n".join(lines)
+
+    # Process recursively
+    _process_directory_v2(path, 0, "", priority_files, add_line)
+
+    # Add truncation notice if needed
+    if line_count >= max_lines:
+        lines.append("... (display limited, please increase max_lines parameter)")
+
+    return "\n".join(lines)
+
+
+def _process_directory_v2(path: Path, depth: int, prefix: str, priority_files: set, add_line_func) -> bool:
+    """Process a single directory"""
+
+    try:
+        # Get directory contents, reuse existing system_names filtering
+        items = [p for p in path.iterdir() if not p.name.startswith(".") and p.name not in system_names]
+        dirs = sorted([p for p in items if p.is_dir()])
+        files = sorted([p for p in items if p.is_file()])
+
+        # Categorize files, reuse existing classification logic
+        priority_files_list, other_files = _categorize_files_v2(files, priority_files)
+
+        # Handle subdirectories - show all at first level, limited at other levels
+        if depth == 0 or len(dirs) <= 8:
+            # First level or ≤8 items: show all
+            for d in dirs:
+                if not add_line_func(f"{prefix}├── {d.name}/"):
+                    return False
+
+                # Process subdirectory recursively
+                child_prefix = prefix + "│   "
+                if not _process_directory_v2(d, depth + 1, child_prefix, priority_files, add_line_func):
+                    return False
+        else:
+            # Not first level and >8 items: show first 2
+            show_count = 2
+            for d in dirs[:show_count]:
+                if not add_line_func(f"{prefix}├── {d.name}/"):
+                    return False
+
+                # Process subdirectory recursively
+                child_prefix = prefix + "│   "
+                if not _process_directory_v2(d, depth + 1, child_prefix, priority_files, add_line_func):
+                    return False
+
+            # Show remaining directory count
+            remaining = len(dirs) - show_count
+            if not add_line_func(f"{prefix}├── ... (+{remaining} more directories)"):
+                return False
+
+        # Merge all files for unified processing
+        all_files = priority_files_list + other_files
+
+        # Handle files - show all at first level, limited at other levels
+        if depth == 0 or len(all_files) <= 8:
+            # First level or ≤8 items: show all
+            for f in all_files:
+                if not add_line_func(f"{prefix}├── {f.name} ({_get_size_str_v2(f)})"):
+                    return False
+        else:
+            # Not first level and >8 items: show first 2
+            show_count = 2
+            for f in all_files[:show_count]:
+                if not add_line_func(f"{prefix}├── {f.name} ({_get_size_str_v2(f)})"):
+                    return False
+
+            # Show remaining file count
+            remaining = len(all_files) - show_count
+            if not add_line_func(f"{prefix}├── ... (+{remaining} more files)"):
+                return False
+
+    except PermissionError:
+        return add_line_func(f"{prefix}❌ Permission denied")
+    except Exception as e:
+        return add_line_func(f"{prefix}❌ Error: {str(e)[:30]}")
+
+    return True
+
+
+def _categorize_files_v2(files: list, priority_files: set) -> tuple:
+    """Categorize files into priority and other groups"""
+    priority = []
+    other = []
+
+    for f in files:
+        if f.suffix.lower() in priority_files:
+            priority.append(f)
+        else:
+            other.append(f)
+
+    # Sort priority files by size (larger files first)
+    priority.sort(key=lambda x: x.stat().st_size if x.exists() else 0, reverse=True)
+
+    return priority, other
+
+
+def _get_size_str_v2(file_path: Path) -> str:
+    """Get file size string, reuse existing humanize logic"""
+    try:
+        size = file_path.stat().st_size
+        return humanize.naturalsize(size)
+    except:
+        return "? B"
