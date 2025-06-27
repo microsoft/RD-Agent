@@ -156,9 +156,6 @@ class DataScienceRDLoop(RDLoop):
         exp = await self.exp_gen.async_gen(self.trace, self)
 
         logger.log_object(exp)
-
-        # FIXME: this is for LLM debug webapp, remove this when the debugging is done.
-        logger.log_object(exp, tag="debug_exp_gen")
         return exp
 
     def coding(self, prev_out: dict[str, Any]):
@@ -225,7 +222,6 @@ class DataScienceRDLoop(RDLoop):
         e = prev_out.get(self.EXCEPTION_KEY, None)
         if e is None:
             exp = prev_out["running"]
-            self.trace.hist.append((exp, prev_out["feedback"]))
 
             # NOTE: we put below  operations on selections here, instead of out of the if-else block,
             # to fit the corner case that the trace will be reset
@@ -235,19 +231,22 @@ class DataScienceRDLoop(RDLoop):
                 self.trace.set_current_selection(exp.local_selection)
             self.trace.sync_dag_parent_and_hist()
 
+            self.trace.hist.append((exp, prev_out["feedback"]))
+
         else:
             exp: DSExperiment = prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"]
+
+            # set the local selection to the trace as global selection, then set the DAG parent for the trace
+            if exp.local_selection is not None:
+                self.trace.set_current_selection(exp.local_selection)
+            self.trace.sync_dag_parent_and_hist()
+
             self.trace.hist.append(
                 (
                     exp,
                     ExperimentFeedback.from_exception(e),
                 )
             )
-
-            # set the local selection to the trace as global selection, then set the DAG parent for the trace
-            if exp.local_selection is not None:
-                self.trace.set_current_selection(exp.local_selection)
-            self.trace.sync_dag_parent_and_hist()
 
             if self.trace.sota_experiment() is None:
                 if DS_RD_SETTING.coder_on_whole_pipeline:
