@@ -353,9 +353,6 @@ task_gen:
       - Double-check that validation scores are saved correctly to `scores.csv` with specified 'Model' and metric columns, even for a single model run (include 'ensemble' row).
     
     # Hyperparameters Specification
-    The workflow will be implemented in the following runtime environment:
-    {{ runtime_environment }}
-
     Choose hyperparameters to ensure strong performance while meeting resource and time constraints. Specify values only when clearly justified by evidence or strong rationale.
     {% include "scenarios.data_science.share:spec.hyperparameter" %}
 

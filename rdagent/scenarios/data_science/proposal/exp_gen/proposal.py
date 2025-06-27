@@ -724,13 +724,11 @@ class DSProposalV2ExpGen(ExpGen):
             component_info = get_component("Pipeline")
         else:
             component_info = get_component(hypotheses[0].component)
-        runtime_environment = self.scen.get_runtime_environment()
         data_folder_info = self.scen.processed_data_folder_description
         sys_prompt = T(".prompts_v2:task_gen.system").r(
             task_output_format=component_info["task_output_format"] if not self.support_function_calling else None,
             # task_output_format=component_info["task_output_format"],
             component_desc=component_desc,
-            runtime_environment=runtime_environment,
             workflow_check=not pipeline and hypotheses[0].component != "Workflow",
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
