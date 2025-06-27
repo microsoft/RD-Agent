@@ -143,34 +143,10 @@ def control_process():
     id = data["id"]
     action = data["action"]
 
-    if id not in rdagent_processes or rdagent_processes[id] is None:
-        return jsonify({"error": "No running process for given id"}), 400
-
-    process = rdagent_processes[id]
-
-    if process.poll() is not None:
-        msgs_for_frontend[id].append({"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}})
-        return jsonify({"error": "Process has already terminated"}), 400
-
-    try:
-        if action == "pause":
-            os.kill(process.pid, signal.SIGSTOP)
-            return jsonify({"status": "paused"}), 200
-        elif action == "resume":
-            os.kill(process.pid, signal.SIGCONT)
-            return jsonify({"status": "resumed"}), 200
-        elif action == "stop":
-            process.terminate()
-            process.wait()
-            del rdagent_processes[id]
-            msgs_for_frontend[id].append(
-                {"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}}
-            )
-            return jsonify({"status": "stopped"}), 200
-        else:
-            return jsonify({"error": "Unknown action"}), 400
-    except Exception as e:
-        return jsonify({"error": f"Failed to {action} process"}), 500
+    return jsonify({
+        "status": "success",
+        "message": f"Received action '{action}' for process with id '{id}'"
+    })
 
 
 @app.route("/test", methods=["GET"])
