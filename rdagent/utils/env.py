@@ -666,7 +666,7 @@ class QlibDockerConf(DockerConf):
     image: str = "local_qlib:latest"
     mount_path: str = "/workspace/qlib_workspace/"
     default_entry: str = "qrun conf.yaml"
-    extra_volumes: dict = {str(Path("~/.qlib/").expanduser().resolve().absolute()): "/root/.qlib/"}
+    extra_volumes: dict = {str(Path("~/.qlib/").expanduser().resolve().absolute()): {"bind": "/root/.qlib/", "mode": "rw"}}
     shm_size: str | None = "16g"
     enable_gpu: bool = True
     enable_cache: bool = False
@@ -858,12 +858,12 @@ class DockerEnv(Env[DockerConf]):
 
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
-                volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
+                volumes[lp] = rp if isinstance(rp, dict) else {"bind": rp, "mode": self.conf.extra_volume_mode}
             cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
             volumes[cache_path] = {"bind": T("scenarios.data_science.share:scen.cache_path").r(), "mode": "rw"}
         for lp, rp in running_extra_volume.items():
-            volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
+            volumes[lp] =  rp if isinstance(rp, dict) else {"bind": rp, "mode": self.conf.extra_volume_mode}
 
         volumes = normalize_volumes(cast(dict[str, str | dict[str, str]], volumes), self.conf.mount_path)
 
