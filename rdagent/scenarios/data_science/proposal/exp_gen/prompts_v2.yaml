@@ -357,7 +357,7 @@ task_gen:
     {{ runtime_environment }}
 
     Choose hyperparameters to ensure strong performance while meeting resource and time constraints. Specify values only when clearly justified by evidence or strong rationale.
-    {{ hyperparameter_spec }}
+    {% include "scenarios.data_science.share:spec.hyperparameter" %}
 
     {% if task_output_format is not none %}
     ## [Partial Response Format 1] Task Output Format:
