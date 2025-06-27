@@ -322,8 +322,8 @@ spec:
     2. Hyperparameters Dependent on Empirical Estimation or Past Failures (e.g., epochs, CV folds, batch size, etc.)
       - Estimate these parameters based on the runtime environment constraints and experiences from previous experiment failures.
     3. Balancing Epochs and CV Folds
-      - When runtime permit, prioritize increasing the number of training epochs, but always implement early stopping to prevent overfitting and ensure the process completes within the allowed runtime.
-      - When runtime constrained, first reduce the number of CV folds—provided that validation reliability remains acceptable—before lowering the number of epochs.
+      - When run time permit, prioritize increasing the number of training epochs, but always implement early stopping to prevent overfitting and ensure the process completes within the allowed runtime.
+      - When run time constrained, first reduce the number of CV folds—provided that validation reliability remains acceptable—before lowering the number of epochs.
     4. Early Stopping Strategy
       - Sufficient epochs are completed.
       - Sufficient low loss are reached.
