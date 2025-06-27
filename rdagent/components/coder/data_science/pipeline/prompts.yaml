@@ -123,6 +123,8 @@ pipeline_eval:
     Step 1: Executes successfully without any errors. Please distinguish between the errors and warnings.
 
     Step 2: Correctly generates a final submission in the correct format, ensuring: they align with the submission structure, the index names and column names should match the sample, and the items should not be empty or apparently incorrect.
+    - Carefully check that the submission file and any reported scores are genuinely produced by a real model training and inference process. 
+    - Any attempt to bypass model training or inference—such as generating random predictions, hard-coding outputs, or otherwise fabricating results—should be considered cheating and must result in evaluation failure.
     
     Step 3: Aligns with the competition requirements. This includes:
     - CAREFULLY ANALYZE WHETHER THE EXPERIMENTAL SETUP AND CODE MAY CAUSE MISALIGNMENT BETWEEN VALIDATION AND TEST PERFORMANCE.
@@ -142,6 +144,7 @@ pipeline_eval:
     [Note] 
     1. Model performance is NOT a concern in this evaluation—only correct execution and formatting matter.
     2. You only check the format of the submission since we only feed you part of the data, so the submission might has different index to the sample submission data.
+    3. Submissions and scores must be the result of actual model training and inference. Any form of cheating or fabrication (e.g., random or hard-coded outputs) is strictly prohibited and should lead to rejection.
     
     Please respond with your feedback in the following JSON format and order
     ```json
