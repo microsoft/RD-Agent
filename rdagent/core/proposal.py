@@ -87,6 +87,7 @@ class HypothesisFeedback(ExperimentFeedback):
         hypothesis_evaluation: str,
         new_hypothesis: str,
         reason: str,
+        code_change_summary: str | None = None,
         *,
         decision: bool,
     ) -> None:
@@ -94,12 +95,16 @@ class HypothesisFeedback(ExperimentFeedback):
         self.observations = observations
         self.hypothesis_evaluation = hypothesis_evaluation
         self.new_hypothesis = new_hypothesis
+        self.code_change_summary = code_change_summary
 
     def __str__(self) -> str:
-        return f"""{super().__str__()}
+        res = f"""{super().__str__()}
 Observations: {self.observations}
 Hypothesis Evaluation: {self.hypothesis_evaluation}
 New Hypothesis: {self.new_hypothesis}"""
+        if self.code_change_summary is not None:
+            res += "\nCode Change Summary: " + self.code_change_summary
+        return res
 
 
 ASpecificScen = TypeVar("ASpecificScen", bound=Scenario)
