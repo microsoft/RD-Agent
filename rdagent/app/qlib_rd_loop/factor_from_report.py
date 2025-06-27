@@ -117,7 +117,7 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
                     self.shift_report += 1
                     self.loop_n -= 1
                     if self.loop_n < 0:  # NOTE: on every step, we self.loop_n -= 1 at first.
-                        break
+                        raise self.LoopTerminationError("Reach stop criterion and stop loop")
                     continue
                 exp.based_experiments = [QlibFactorExperiment(sub_tasks=[], hypothesis=exp.hypothesis)] + [
                     t[0] for t in self.trace.hist if t[1]
