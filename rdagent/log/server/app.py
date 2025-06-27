@@ -7,17 +7,21 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import randomname
+from rdagent.log.storage import FileStorage
+from rdagent.log.ui.storage import WebStorage
 import typer
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
 from rdagent.log.ui.conf import UI_SETTING
+from rdagent.log.utils import is_valid_session
 
 app = Flask(__name__, static_folder=UI_SETTING.static_path)
 CORS(app)
 
 rdagent_processes = defaultdict()
 server_port = 19899
+log_folder_path = Path(UI_SETTING.trace_folder).absolute()
 
 
 @app.route("/favicon.ico")
@@ -28,6 +32,30 @@ def favicon():
 msgs_for_frontend = defaultdict(list)
 pointers = defaultdict(lambda: defaultdict(int))  # pointers[trace_id][user_ip]
 
+def read_trace(log_path: Path, id: str = "") -> None:
+    fs = FileStorage(log_path)
+    ws = WebStorage(port=1, path=log_path)
+    msgs_for_frontend[id] = []
+    last_timestamp = None
+    for msg in fs.iter_msg():
+        data = ws._obj_to_json(obj=msg.content, tag=msg.tag, id=id, timestamp=msg.timestamp.isoformat())
+        if data:
+            if isinstance(data, list):
+                for d in data:
+                    msgs_for_frontend[id].append(d["msg"])
+                    last_timestamp = msg.timestamp
+            else:
+                msgs_for_frontend[id].append(data["msg"])
+                last_timestamp = msg.timestamp
+
+    now = datetime.now(timezone.utc)
+    if last_timestamp and (now - last_timestamp).total_seconds() > 1800:
+        msgs_for_frontend[id].append({"tag": "END", "timestamp": now.isoformat(), "content": {}})
+
+# load all traces from the log folder
+for p in log_folder_path.glob("*/*/"):
+    if is_valid_session(p):
+        read_trace(p, id=str(p))
 
 @app.route("/trace", methods=["POST"])
 def update_trace():
@@ -37,7 +65,7 @@ def update_trace():
     return_all = data.get("all")
     reset = data.get("reset")
     msg_num = random.randint(1, 10)
-
+    app.logger.info(data)
     log_folder_path = Path(UI_SETTING.trace_folder).absolute()
     if not trace_id:
         return jsonify({"error": "Trace ID is required"}), 400
@@ -56,6 +84,8 @@ def update_trace():
     returned_msgs = msgs_for_frontend[trace_id][start_pointer:end_pointer]
 
     pointers[trace_id][user_ip] = end_pointer
+    if returned_msgs:
+        app.logger.info([msg["tag"] for msg in returned_msgs])
     return jsonify(returned_msgs), 200
 
 
@@ -75,7 +105,6 @@ def upload_file():
         trace_name = f"{competition}-{randomname.get_name()}"
     else:
         trace_name = randomname.get_name()
-    log_folder_path = Path(UI_SETTING.trace_folder).absolute()
     trace_files_path = log_folder_path / scenario / "uploads" / trace_name
 
     log_trace_path = (log_folder_path / scenario / trace_name).absolute()
@@ -158,13 +187,13 @@ def receive_msgs():
 
 @app.route("/control", methods=["POST"])
 def control_process():
-    global rdagent_processes
+    global rdagent_processes, msgs_for_frontend
     data = request.get_json()
     app.logger.info(data)
     if not data or "id" not in data or "action" not in data:
         return jsonify({"error": "Missing 'id' or 'action' in request"}), 400
 
-    id = data["id"]
+    id = str(log_folder_path / data["id"])
     action = data["action"]
 
     if id not in rdagent_processes or rdagent_processes[id] is None:
@@ -200,8 +229,10 @@ def control_process():
 @app.route("/test", methods=["GET"])
 def test():
     # return 'Hello, World!'
-    global msgs_for_frontend
-    return {k: [i["tag"] for i in v] for k, v in msgs_for_frontend.items()}
+    global msgs_for_frontend, pointers
+    msgs = {k: [i["tag"] for i in v] for k, v in msgs_for_frontend.items()}
+    pointers = pointers
+    return jsonify({"msgs": msgs, "pointers": pointers}), 200
 
 
 @app.route("/", methods=["GET"])
@@ -219,7 +250,7 @@ def server_static_files(fn):
 def main(port: int = 19899):
     global server_port
     server_port = port
-    app.run(debug=True, host="0.0.0.0", port=port)
+    app.run(debug=False, host="0.0.0.0", port=port)
 
 
 if __name__ == "__main__":
