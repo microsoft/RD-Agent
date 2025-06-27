@@ -222,7 +222,7 @@ class DataScienceRDLoop(RDLoop):
         e = prev_out.get(self.EXCEPTION_KEY, None)
         if e is None:
             exp = prev_out["running"]
-            
+
             # NOTE: we put below  operations on selections here, instead of out of the if-else block,
             # to fit the corner case that the trace will be reset
 
@@ -235,7 +235,6 @@ class DataScienceRDLoop(RDLoop):
 
         else:
             exp: DSExperiment = prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"]
-
 
             # set the local selection to the trace as global selection, then set the DAG parent for the trace
             if exp.local_selection is not None:
