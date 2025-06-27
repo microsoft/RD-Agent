@@ -324,7 +324,7 @@ spec:
     3. Balancing Epochs and CV Folds
       - When runtime permit, prioritize increasing the number of training epochs, but always implement early stopping to prevent overfitting and ensure the process completes within the allowed runtime.
       - When runtime constrained, first reduce the number of CV folds—provided that validation reliability remains acceptable—before lowering the number of epochs.
-    4. Early Stopping Strategy.
+    4. Early Stopping Strategy
       - Sufficient epochs are completed.
       - Sufficient low loss are reached.
       - Sufficient stable validation loss are achieved.
