@@ -27,9 +27,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     ## Coding Related
     coding_fail_reanalyze_threshold: int = 3
 
-    debug_timeout: int = 900
+    debug_timeout: int = 600
     """The timeout limit for running on debugging data"""
-    full_timeout: int = 5400
+    full_timeout: int = 3600
     """The timeout limit for running on full data"""
 
     ### specific feature
@@ -42,7 +42,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     coder_on_whole_pipeline: bool = False
     max_trace_hist: int = 3
 
-    coder_max_loop: int = 5
+    coder_max_loop: int = 10
     runner_max_loop: int = 1
 
     rule_base_eval: bool = False
