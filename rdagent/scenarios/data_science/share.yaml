@@ -291,7 +291,7 @@ component_spec:
       - Handle missing values and outliers appropriately (e.g., impute, remove, or replace).
       - Ensure consistency between feature data types and transformations.
       - Prevent data leakage: Do not use information derived from the test set when transforming training data.
-      - NEVER sample a subset of data, even when memory is insufficient or time limit is exceeded.
+      - Sampling a subset of the training data for efficiency (e.g., randomly selecting a portion of the data) is discouraged unless it demonstrably improves performance (e.g., removing irrelevant or outlier samples).
 
     6. Notes:
       - GPU and multiprocessing are available and are encouraged to use for accelerating transformations.

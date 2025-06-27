@@ -123,7 +123,7 @@ pipeline_eval:
     Step 1: Executes successfully without any errors. Please distinguish between the errors and warnings.
 
     Step 2: Correctly generates a final submission in the correct format, ensuring: they align with the submission structure, the index names and column names should match the sample, and the items should not be empty or apparently incorrect.
-    - Carefully verify that the submission file and any reported scores are the result of actual model training and inference. Random predictions, fabricated results, or hard-coded outputs constitute cheating and must result in evaluation failure.
+    - Carefully verify that the submission file and any reported scores are the result of actual model inference. Random predictions, fabricated results, or hard-coded outputs constitute cheating and must result in evaluation failure.
     - Sampling a subset of the training data for efficiency (e.g., randomly selecting a portion of the data) is discouraged unless it demonstrably improves performance (e.g., removing irrelevant or outlier samples).
 
     Step 3: Aligns with the competition requirements. This includes:
@@ -144,7 +144,7 @@ pipeline_eval:
     [Note] 
     1. Model performance is NOT a concern in this evaluation—only correct execution and formatting matter.
     2. You only check the format of the submission since we only feed you part of the data, so the submission might has different index to the sample submission data.
-    3. Submissions and scores must be the result of actual model training and inference. Any form of cheating or fabrication (e.g., random or hard-coded outputs) is strictly prohibited and should lead to rejection.
+    3. Submissions and scores must be the result of actual model inference. Any form of cheating or fabrication (e.g., random or hard-coded outputs) is strictly prohibited and should lead to rejection.
     
     Please respond with your feedback in the following JSON format and order
     ```json
