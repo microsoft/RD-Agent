@@ -29,3 +29,6 @@ class DSExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):
         (so it is different from `trace.next_incomplete_component`.)
         """
         return self.experiment_workspace is not None and "main.py" in self.experiment_workspace.file_dict
+
+    def set_local_selection(self, local_selection: tuple[int, ...]) -> None:
+        self.local_selection = local_selection

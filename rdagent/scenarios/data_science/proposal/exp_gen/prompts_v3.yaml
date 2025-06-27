@@ -87,47 +87,7 @@ feedback_problem:
     {{ sota_exp_desc }}
 
 scenario_description: |-
-  {% if use_raw_description -%}
-  ====== Background ======
-  {{ raw_description }}
-
-  {% else %}
-  ====== Background ======
-  {{ background }}
-
-  {% if eda_output is not none %}
-  ====== Data Overview (EDA) ======
-  {{ eda_output }}
-  {% endif %}
-
-  ====== Submission Format ======
-  Please ensure your submission adheres to the following specifications:
-  {{ submission_specifications }}
-
-  ====== Important Guidelines ======
-  Before submitting your results, please note the following:
-  - We have numerous tests in place to check your code.
-  - Ensure your submission is genuine.
-  - Do not manipulate data or return values solely to pass preliminary tests, as this will not lead to successful final evaluation.
-
-  {% endif %}
-
-  ====== Evaluation ======
-  {% if not use_raw_description and metric_name %}
-  The primary evaluation metric for this task is: **{{ metric_name }}**.
-  {% endif %}
-  This metric is considered better when it is **{% if metric_direction %}larger{% else %}smaller{% endif %}**.
-
-  {% if evaluation is not none %}
-  Additional Evaluation Details:
-  {{ evaluation }}
-  {% endif %}
-
-  {% if time_limit %}
-  ====== Time Limit ======
-  Your code's execution is limited to **{{ time_limit }}**.
-  Please optimize your model and parameters to ensure your code runs within this specified time constraint.
-  {% endif %}
+  {% include "scenarios.data_science.proposal.exp_gen.prompts_v2:scenario_description" %}
 
 hypothesis_gen:
   system: |-
@@ -320,24 +280,4 @@ task_gen:
       - Double-check that validation scores are saved correctly to `scores.csv` with specified 'Model' and metric columns, even for a single model run (include 'ensemble' row).
 
   user: |-
-    # Competition Scenario Description
-    {{ scenario_desc }}
-
-    # Data Folder Structure (All files are under {% include "scenarios.data_science.share:scen.input_path" %})
-    {{ data_folder_info }}
-
-    # Current SOTA Implementation
-    {{ sota_exp_desc }}
-
-    # Proposed Hypothesis
-    This sketch should implement the following hypotheses:
-
-    {% for hypothesis in hypotheses %}
-    ## {{ hypothesis.problem_name }}
-    **Why:** {{ hypothesis.problem_desc }}
-    **Hypothesis:** {{ hypothesis.hypothesis }}
-
-    {% endfor %}
-    # Feedback from Previous Failed Experiments (e.g., experiments that did not pass evaluation, encountered bugs, or failed to surpass SOTA performance)
-
-    {{ failed_exp_and_feedback_list_desc }}
+    {% include "scenarios.data_science.proposal.exp_gen.prompts_v2:task_gen.user" %}

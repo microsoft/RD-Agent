@@ -218,7 +218,7 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp_fb[0] if sota_exp_fb else None,
-            hypothesis=new_hypothesis,
+            hypotheses=[new_hypothesis],
             pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
             failed_exp_feedback_list_desc="",
         )

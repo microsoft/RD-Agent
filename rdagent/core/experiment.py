@@ -324,6 +324,9 @@ class Experiment(
             {}
         )  # TODO: in Kaggle, now sub results are all saved in self.result, remove this in the future.
 
+        # For parallel multi-trace support
+        self.local_selection: tuple[int, ...] | None = None
+
 
 ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)
 

@@ -136,6 +136,11 @@ class LoopBase:
         if isinstance(limit := RD_AGENT_SETTINGS.step_semaphore, dict):
             limit = limit.get(step_name, 1)  # default to 1 if not specified
 
+        # NOTE: we assume the record step is always the last step to modify the global environment,
+        # so we set the limit to 1 to avoid race condition
+        if step_name == "record":
+            limit = 1
+
         if step_name not in self.semaphores:
             self.semaphores[step_name] = asyncio.Semaphore(limit)
         return self.semaphores[step_name]
@@ -219,6 +224,10 @@ class LoopBase:
                             result = func(self.loop_prev_out[li])
                     # Store result in the nested dictionary
                     self.loop_prev_out[li][name] = result
+
+                    # Record the trace
+                    end = datetime.datetime.now(datetime.timezone.utc)
+                    self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
                     # Save snapshot after completing the step
                     self.dump(self.session_folder / f"{li}" / f"{si}_{name}")
                 except Exception as e:
@@ -239,10 +248,6 @@ class LoopBase:
                         raise  # re-raise unhandled exceptions
                 finally:
                     if step_forward:
-                        # Record execution trace and update progress bar
-                        end = datetime.datetime.now(datetime.timezone.utc)
-                        self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
-
                         # Increment step index
                         self.step_idx[li] = next_step_idx
 
