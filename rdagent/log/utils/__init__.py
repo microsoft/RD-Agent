@@ -3,7 +3,7 @@ import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, TypedDict, cast, Any
+from typing import Any, Optional, TypedDict, cast
 
 
 class LogColors:
@@ -122,6 +122,7 @@ def dict_get_with_warning(d: dict, key: str, default: Any = None) -> Any:
     - Instead, it will log a warning message.
     """
     from rdagent.log import rdagent_logger as logger
+
     if key not in d:
         logger.warning(f"Key {key} not found in {d}")
         return default

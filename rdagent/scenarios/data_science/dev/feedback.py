@@ -119,8 +119,9 @@ class DSExperiment2Feedback(Experiment2Feedback):
             hypothesis_evaluation=dict_get_with_warning(resp_dict, "Feedback for Hypothesis", "No feedback provided"),
             new_hypothesis=dict_get_with_warning(resp_dict, "New Hypothesis", "No new hypothesis provided"),
             reason=dict_get_with_warning(resp_dict, "Reasoning", "No reasoning provided"),
-            code_change_summary=dict_get_with_warning(resp_dict, "Code Change Summary",
-                                                      "No code change summary provided"),
+            code_change_summary=dict_get_with_warning(
+                resp_dict, "Code Change Summary", "No code change summary provided"
+            ),
             decision=convert2bool(dict_get_with_warning(resp_dict, "Replace Best Result", "no")),
         )
 
