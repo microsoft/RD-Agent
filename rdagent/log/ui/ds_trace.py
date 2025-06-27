@@ -660,14 +660,15 @@ with st.sidebar:
         st.warning(f"Path {state.log_folder} does not exist!")
     else:
         folders = get_folders_sorted(state.log_folder)
+        sorted_folders = sorted(folders, key=lambda x: x[0] if x else "")
         if "selection" in st.query_params:
             default_index = (
-                folders.index(st.query_params["selection"]) if st.query_params["selection"] in folders else 0
+                sorted_folders.index(st.query_params["selection"]) if st.query_params["selection"] in sorted_folders else 0
             )
         else:
             default_index = 0
         state.log_path = st.selectbox(
-            f"Select from :blue[**{state.log_folder.absolute()}**]", folders, index=default_index
+            f"Select from :blue[**{state.log_folder.absolute()}**]", sorted_folders, index=default_index
         )
 
         if st.button("Refresh Data"):
