@@ -198,10 +198,10 @@ class DSDraftExpGenV2(ExpGen):
         scenario_desc: str,
         failed_exp_feedback_list_desc: str,
     ) -> DSHypothesis:
-        sys_prompt = T(".prompts_draft:hypothesis_gen.system").r(
+        sys_prompt = T(".prompts_draft:hypothesis_draft.system").r(
             component_desc=component_desc
         )
-        user_prompt = T(".prompts_draft:hypothesis_gen.user").r(
+        user_prompt = T(".prompts_draft:hypothesis_draft.user").r(
             scenario_desc=scenario_desc,
             knowledge=knowledge,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
@@ -310,7 +310,7 @@ class DSDraftExpGenV2(ExpGen):
             knowledge=knowledge,
             component_desc=component_desc,
             scenario_desc=scenario_desc,
-            exp_feedback_list_desc=failed_exp_feedback_list_desc,
+            failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
         )
 
         # Step 3: Design Task
