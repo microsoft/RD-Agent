@@ -522,7 +522,7 @@ def describe_data_folder_v2(
 
         # Intelligently select a subset of files to preview
         files_to_preview = select_files_for_preview(Path(base_path))
-        out.append(f" (Showing details for {len(files_to_preview)} representative files out of many)")
+        out.append(f" (Showing details for representative files out of many)")
 
         for fn in files_to_preview:
             try:
