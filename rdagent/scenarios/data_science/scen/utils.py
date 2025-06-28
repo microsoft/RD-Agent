@@ -431,8 +431,8 @@ def preview_json(p: Path, file_name: str):
             with open(p, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
-            result.append("### 1.Format: Single JSON object")
-            result.append("### 2.Structure overview:")
+            result.append("#### 1.Format: Single JSON object")
+            result.append("#### 2.Structure overview:")
 
             # Basic information
             if isinstance(data, dict):
@@ -451,7 +451,7 @@ def preview_json(p: Path, file_name: str):
                     if isinstance(sample_item, dict):
                         result.append(f"Sample item keys: {list(sample_item.keys())}")
 
-            result.append("### 3.Content preview (reprlib):")
+            result.append("#### 3.Content preview (reprlib):")
 
             # Use reprlib to display content
             compact_repr = reprlib.Repr()
