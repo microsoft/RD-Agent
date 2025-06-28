@@ -105,7 +105,9 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
             self.judge_pdf_data_items = [i for i in Path(report_folder).rglob("*.pdf")]
 
         self.loop_n = min(len(self.judge_pdf_data_items), FACTOR_FROM_REPORT_PROP_SETTING.report_limit)
-        self.shift_report = 0  # some reports does not contain viable factor, so we ship some of them to avoid infinite loop
+        self.shift_report = (
+            0  # some reports does not contain viable factor, so we ship some of them to avoid infinite loop
+        )
 
     async def direct_exp_gen(self, prev_out: dict[str, Any]):
         while True:
