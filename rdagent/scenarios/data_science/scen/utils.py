@@ -329,8 +329,13 @@ class FileTreeGenerator:
             # Root directory
             self._add_line(f"{path.name}/")
 
-            # Process recursively
-            self._process_directory(path, 0, "", base_path)
+            try:
+                # Process recursively
+                self._process_directory(path, 0, "", base_path)
+            except MaxLinesExceededError:
+                # This is expected when we hit the line limit
+                # Just continue to add the truncation notice below
+                pass
 
             # Add truncation notice if needed
             if self.line_count >= self.max_lines:
@@ -338,6 +343,10 @@ class FileTreeGenerator:
 
             return "\n".join(self.lines)
 
+        except MaxLinesExceededError:
+            # In case MaxLinesExceededError is raised from _add_line for the root
+            self.lines.append("... (display limited, please increase max_lines parameter)")
+            return "\n".join(self.lines)
         except Exception as e:
             raise FileTreeGenerationError(f"Failed to generate tree for {path}: {str(e)}") from e
 
@@ -369,6 +378,7 @@ class FileTreeGenerator:
         Raises:
             DirectoryPermissionError: If directory access is denied
             FileTreeGenerationError: If processing fails
+            MaxLinesExceededError: Propagated when line limit is reached
         """
         try:
             # Get directory contents, filter out system files
@@ -385,6 +395,9 @@ class FileTreeGenerator:
             # Process files
             self._process_files(priority_files_list + other_files, depth, prefix)
 
+        except MaxLinesExceededError:
+            # Propagate this up so generate_tree can handle it
+            raise
         except PermissionError as e:
             raise DirectoryPermissionError(f"Permission denied accessing {path}") from e
         except OSError as e:
@@ -476,7 +489,7 @@ class FileTreeGenerator:
         try:
             size = file_path.stat().st_size
             return humanize.naturalsize(size)
-        except:
+        except (OSError, FileNotFoundError):
             return "? B"
 
 
