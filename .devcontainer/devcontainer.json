@@ -1,0 +1,29 @@
+{
+  "name": "rd-agent-mle DevContainer",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "workspaceFolder": "/workspace/RD-Agent",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace/RD-Agent,type=bind,consistency=cached",
+  "remoteUser": "root",
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "mounts": [
+    "source=/home/shared/RD-Agent/kaggle,target=/home/shared/RD-Agent/kaggle,type=bind,consistency=cached,readonly"
+  ],
+  "extensions": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-toolsai.jupyter"
+  ],
+  "runArgs": [
+    "--init",
+    "--shm-size=1g",
+    "--env-file", "${localWorkspaceFolder}/.devcontainer/env",
+    "--network=host",
+    "--gpus=all"
+  ],
+  "postCreateCommand": "make dev"
+}
