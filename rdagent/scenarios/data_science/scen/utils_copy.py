@@ -328,52 +328,9 @@ class FileTreeGenerator:
             self._add_line(f"{path.name}/")
             self._process_directory(path, 0, "", base_path)
         except MaxLinesExceededError:
-            pass  # Expected when hitting line limit
+            self.lines.append("... (display limited, please increase max_lines parameter)")
         except Exception as e:
             raise FileTreeGenerationError(f"Failed to generate tree for {path}: {str(e)}") from e
-
-        # CORNER CASE HANDLING: Always check if we hit the limit and add truncation notice if needed
-        #
-        # WHY THIS IS NECESSARY:
-        # The code uses a "mixed exception handling strategy":
-        # - Sub-methods (_process_subdirectories, _process_files, _process_single_directory)
-        #   catch MaxLinesExceededError and handle it silently (don't re-raise)
-        # - This means some MaxLinesExceededError exceptions never propagate to generate_tree
-        #
-        # CORNER CASE SCENARIO:
-        # 1. _add_line() is called and line_count reaches max_lines
-        # 2. _add_line() throws MaxLinesExceededError
-        # 3. A sub-method catches the exception but doesn't re-raise it (silent handling)
-        # 4. The exception never reaches generate_tree's except block above
-        # 5. OLD VERSION: No truncation notice is added → User doesn't know content was truncated
-        # 6. NEW VERSION: This check below ensures truncation notice is always added
-        #
-        # DEMONSTRATION EXAMPLE (max_lines=5, processing 6 files):
-        #
-        # 🔴 OLD VERSION RESULT:
-        # project/
-        # ├── file1.csv
-        # ├── file2.csv
-        # ├── file3.csv
-        # ├── file4.csv
-        # 🔍 Truncation notice? NO → User doesn't know content was truncated!
-        #
-        # 🔵 NEW VERSION RESULT:
-        # project/
-        # ├── file1.csv
-        # ├── file2.csv
-        # ├── file3.csv
-        # ├── file4.csv
-        # ... (display limited)
-        # 🔍 Truncation notice? YES → User knows content was truncated!
-        #
-        # The key difference:
-        # - OLD: Relies on exception propagation (fails when sub-methods handle silently)
-        # - NEW: Active check ensures truncation notice is always present
-        if self.line_count >= self.max_lines and (
-            not self.lines or not self.lines[-1].startswith("... (display limited")
-        ):
-            self.lines.append("... (display limited, please increase max_lines parameter)")
 
         return "\n".join(self.lines)
 
