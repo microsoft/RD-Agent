@@ -3,6 +3,7 @@ Factor workflow with session control
 """
 
 import asyncio
+from pathlib import Path
 from typing import Any
 
 import fire
@@ -25,7 +26,13 @@ class FactorRDLoop(RDLoop):
         return exp
 
 
-def main(path=None, step_n=None, loop_n=None, all_duration=None, checkout=True):
+def main(
+    path: str | None = None,
+    step_n: int | None = None,
+    loop_n: int | None = None,
+    all_duration: str | None = None,
+    checkout: bool | str | Path = True,
+):
     """
     Auto R&D Evolving loop for fintech factors.
 
