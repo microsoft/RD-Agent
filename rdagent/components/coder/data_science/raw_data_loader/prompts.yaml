@@ -312,7 +312,7 @@ data_loader_coder:
     --------- Code Specification ---------
     {{ code_spec }}
 
-    --------- Data Folder Description (All path are relative to the data folder) ---------
+    --------- Data Folder Description (All path are relative to the data folder, i.e. "{% include "scenarios.data_science.share:scen.input_path" %}") ---------
     {{ folder_spec }}
     
     {% if latest_code %}
