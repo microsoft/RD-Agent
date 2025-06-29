@@ -3,7 +3,7 @@ An example of the generated data folder description:
 
 ## File tree:
 ```
-plant-pathology-2020-fgvc7/
+./
 ├── images/
 │   ├── Test_0.jpg (182.7 kB)
 │   ├── Test_1.jpg (362.4 kB)
@@ -294,7 +294,7 @@ class FileTreeGenerator:
     Smart file tree generator with symlink handling and intelligent truncation.
     """
 
-    def __init__(self, max_lines: int = 200, priority_files: Set[str] = None):
+    def __init__(self, max_lines: int = 200, priority_files: Set[str] = None, hide_base_name: bool = True):
         """
         Initialize the file tree generator.
 
@@ -306,6 +306,7 @@ class FileTreeGenerator:
         self.priority_files = priority_files or {".csv", ".json", ".parquet", ".md", ".txt"}
         self.lines = []
         self.line_count = 0
+        self.hide_base_name = hide_base_name
 
     def generate_tree(self, path: Union[str, Path]) -> str:
         """
@@ -325,7 +326,7 @@ class FileTreeGenerator:
             base_path = path.resolve()
             self.lines = []
             self.line_count = 0
-            self._add_line(f"{path.name}/")
+            self._add_line(f"{'.' if self.hide_base_name else path.name}/")
             self._process_directory(path, 0, "", base_path)
         except MaxLinesExceededError:
             pass  # Expected when hitting line limit
