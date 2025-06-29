@@ -38,8 +38,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     spec_enabled: bool = True
 
     #### proposal related
-    proposal_version: str = "v1"
-    coder_on_whole_pipeline: bool = False
+    proposal_version: str = "v2"
+    coder_on_whole_pipeline: bool = True
     max_trace_hist: int = 3
 
     coder_max_loop: int = 10
