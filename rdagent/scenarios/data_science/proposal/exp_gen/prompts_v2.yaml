@@ -5,8 +5,7 @@ scenario_problem:
 
     You will be provided with:
     1. A detailed competition scenario description;
-    2. A history of previous SOTA experiments and their associated feedbacks, typically indexed or ordered from oldest to newest;
-    3. A history of previous failed experiments and their associated feedbacks, chronologically ordered, where each failed experiment did not surpass the SOTA that was current at the time of its execution;
+    2. The overall current SOTA implementation and its associated feedback, which represents the best-performing experiment from the entire history provided up to this point.
 
     Your task is to analyze the provided information (primarily the scenario and current SOTA, if available) and identify a concise list of **Key Challenges** or **Core Problems** relevant to achieving success in this competition and improving the target metric. Aim for **FEWER BUT BETTER** challenges (e.g., 2-3 critical challenges), focusing on the most impactful aspects that can be methodically addressed.
 
@@ -46,8 +45,8 @@ feedback_problem:
 
     You will be provided with:
     1. A detailed competition scenario description;
-    2. A history of previous SOTA experiments and their associated feedbacks, typically indexed or ordered from oldest to newest;
-    3. A history of previous failed experiments and their associated feedbacks, chronologically ordered, where each failed experiment did not surpass the SOTA that was current at the time of its execution;
+    2. A history of previous successfully experiments and their associated feedbacks, indexed or ordered from oldest to newest; the latest SOTA experiment accumulates all the improvements from the previous successful experiments.
+    3. A history of previous failed experiments and their associated feedbacks, chronologically ordered, where each failed experiment did not surpass the SOTA that was current at the time of its execution. The failed experiments are based on the current SOTA implementation and are used to propose hypotheses for further performance improvements.
     4. The overall current SOTA implementation and its associated feedback, which represents the best-performing experiment from the entire history provided up to this point.
 
     Your task is to analyze all this provided historical information and extract **Key Learnings and Unresolved Challenges** from the experiment history. These should guide concrete improvements in subsequent iterations.
@@ -99,7 +98,7 @@ feedback_problem:
   user: |-
     # Scenario Description
     {{ scenario_desc }}
-    
+
     # Previous Experiments and Feedbacks
     {{ exp_and_feedback_list_desc }}    
 
@@ -155,8 +154,8 @@ hypothesis_gen:
     The user is iteratively improving a Kaggle competition implementation. Each new iteration (trace) is a modification of the current State-of-the-Art (SOTA). If a new trace surpasses the current SOTA, it becomes the new SOTA. Otherwise, it's a failed experiment.
     You will be provided with:
     1. A detailed competition scenario description.
-    2. Previous SOTA experiments and feedback (chronologically ordered, oldest to newest).
-    3. Previous failed experiments and feedback (ordered attempts that did not improve SOTA).
+    2. A history of previous successfully experiments and their associated feedbacks, indexed or ordered from oldest to newest; the latest SOTA experiment accumulates all the improvements from the previous successful experiments.
+    3. A history of previous failed experiments and their associated feedbacks, chronologically ordered, where each failed experiment did not surpass the SOTA that was current at the time of its execution. The failed experiments are based on the current SOTA implementation and are used to propose hypotheses for further performance improvements.
     4. The current SOTA implementation and feedback (the latest successful experiment).
     5. A list of identified **Challenges** from history), which we will refer to as "Identified Challenges" below.
 
@@ -275,10 +274,9 @@ task_gen:
 
     You will be provided with the following inputs:
     1. **Competition Scenario Description**: Details about the competition (task type, data, evaluation metric, time limits, etc.).
-    2. **Previous SOTA Experiments & Feedback**: (If available) A history of successful implementations, ordered chronologically.
-    3. **Previous Failed Experiments & Feedback**: (If available) A history of unsuccessful attempts, which are crucial for learning.
-    4. **Current SOTA Implementation & Feedback**: (If available) Details of the best-performing solution so far. **If no SOTA implementation is provided, your primary task is to sketch the initial, simplest possible, end-to-end `main.py` workflow.**
-    5. **Proposed Hypothesis**: One, or more specific hypotheses aimed at improving the current SOTA or forming the basis of an initial SOTA. This hypothesis directly addresses an "Identified Challenge" from a previous analysis step.
+    2. **Current SOTA Implementation & Feedback**: (If available) Details of the best-performing solution so far. **If no SOTA implementation is provided, your primary task is to sketch the initial, simplest possible, end-to-end `main.py` workflow.**
+    3. **Proposed Hypothesis**: One, or more specific hypotheses aimed at improving the current SOTA or forming the basis of an initial SOTA. This hypothesis directly addresses an "Identified Challenge" from a previous analysis step.
+    4. **Previous Failed Experiments & Feedback**: (If available) A history of unsuccessful attempts, which are crucial for learning. The failed experiments are based on the current SOTA implementation and are used to propose hypotheses for further performance improvements.
 
     Your primary goal is to generate a detailed, step-by-step **sketch or refinement plan** for a new data processing and modeling pipeline, specifically for the main workflow script (`main.py`), that effectively implements the `Proposed Hypothesis`. This sketch will guide a developer to write the code correctly.
 
@@ -381,7 +379,7 @@ task_gen:
     # Data Folder Structure (All files are under {% include "scenarios.data_science.share:scen.input_path" %})
     {{ data_folder_info }}
 
-    # Current SOTA Implementation
+    # Current SOTA Implementation & Feedback
     {{ sota_exp_desc }}
 
     # Proposed Hypothesis
@@ -393,7 +391,8 @@ task_gen:
     **Hypothesis:** {{ hypothesis.hypothesis }}
 
     {% endfor %}
-    # Feedback from Previous Failed Experiments (e.g., experiments that did not pass evaluation, encountered bugs, or failed to surpass SOTA performance):
+    # Previous Failed Experiments & Feedback (e.g., experiments that did not pass evaluation, encountered bugs, or failed to surpass SOTA performance)
+
     {{ failed_exp_and_feedback_list_desc }}
 
 idea_sample:

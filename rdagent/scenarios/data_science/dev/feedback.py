@@ -9,6 +9,7 @@ from rdagent.core.proposal import (
     ExperimentFeedback,
     HypothesisFeedback,
 )
+from rdagent.log.utils import dict_get_with_warning
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
@@ -26,6 +27,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
         # 3. 相对sota_exp的改动
         # 4. result 任务的结果
         # 5. sota_exp.result 之前最好的结果
+
         sota_exp = trace.sota_experiment()
         sota_desc = T("scenarios.data_science.share:describe.exp").r(
             exp=sota_exp, heading="SOTA of previous exploration of the scenario"
@@ -113,11 +115,14 @@ class DSExperiment2Feedback(Experiment2Feedback):
         # Currently, we do not use `observations`, `hypothesis_evaluation`, and `new_hypothesis` in the framework.
         # `new_hypothesis` should not exist in the feedback.
         hypothesis_feedback = HypothesisFeedback(
-            observations=resp_dict.get("Observations", "No observations provided"),
-            hypothesis_evaluation=resp_dict.get("Feedback for Hypothesis", "No feedback provided"),
-            new_hypothesis=resp_dict.get("New Hypothesis", "No new hypothesis provided"),
-            reason=resp_dict.get("Reasoning", "No reasoning provided"),
-            decision=convert2bool(resp_dict.get("Replace Best Result", "no")),
+            observations=dict_get_with_warning(resp_dict, "Observations", "No observations provided"),
+            hypothesis_evaluation=dict_get_with_warning(resp_dict, "Feedback for Hypothesis", "No feedback provided"),
+            new_hypothesis=dict_get_with_warning(resp_dict, "New Hypothesis", "No new hypothesis provided"),
+            reason=dict_get_with_warning(resp_dict, "Reasoning", "No reasoning provided"),
+            code_change_summary=dict_get_with_warning(
+                resp_dict, "Code Change Summary", "No code change summary provided"
+            ),
+            decision=convert2bool(dict_get_with_warning(resp_dict, "Replace Best Result", "no")),
         )
 
         if hypothesis_feedback and DS_RD_SETTING.enable_knowledge_base:
