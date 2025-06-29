@@ -3,7 +3,7 @@ An example of the generated data folder description:
 
 ## File tree:
 ```
-plant-pathology-2020-fgvc7/
+./
 ├── images/
 │   ├── Test_0.jpg (182.7 kB)
 │   ├── Test_1.jpg (362.4 kB)
