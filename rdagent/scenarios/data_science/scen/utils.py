@@ -261,6 +261,16 @@ def file_tree(path: Path, depth=0) -> str:
         if (p.is_dir() or (p.is_symlink() and p.resolve().is_dir())) and p.name not in system_names
     ]
 
+    # if total_dirs > 5, we only show the first 3 and last 2
+    total_dirs = len(dirs)
+    if total_dirs > 5:
+        dirs = sorted(dirs)
+        first_seven = dirs[:3]
+        last_three = dirs[-2:]
+        omitted = total_dirs - 5
+        dirs = first_seven + last_three
+        insert_at = 3
+
     # Calculate base_path (the top-level resolved absolute directory)
     base_path = Path(path).resolve()
     # Find the top-level base_path when in recursion (depth>0)
@@ -271,7 +281,7 @@ def file_tree(path: Path, depth=0) -> str:
             ancestor = ancestor.parent
         base_path = ancestor.resolve()
 
-    for p in sorted(dirs):
+    for idx, p in enumerate(dirs):
         if p.is_symlink():
             target = p.resolve()
             if str(target).startswith(str(base_path)):
@@ -282,6 +292,9 @@ def file_tree(path: Path, depth=0) -> str:
                 continue
         result.append(f"{' ' * depth * 4}{p.name}/")
         result.append(file_tree(p, depth + 1))
+
+        if total_dirs > 5 and idx == 3 - 1:
+            result.append(f"{' ' * depth * 4}... and {omitted} other directories")
 
     return "\n".join(result)
 
