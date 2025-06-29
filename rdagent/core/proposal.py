@@ -55,6 +55,7 @@ class ExperimentFeedback(Feedback):
         self,
         reason: str,
         *,
+        code_change_summary: str | None = None,
         decision: bool,
         exception: Exception | None = None,
     ) -> None:
@@ -65,12 +66,16 @@ class ExperimentFeedback(Feedback):
         self.exception: Exception | None = (
             exception  # if the experiment raises exception, it will be integrated into part of the feedback.
         )
+        self.code_change_summary = code_change_summary
 
     def __bool__(self) -> bool:
         return self.decision
 
     def __str__(self) -> str:
-        return f"Decision: {self.decision}\nReason: {self.reason}"
+        res = f"Decision: {self.decision}\nReason: {self.reason}"
+        if self.code_change_summary is not None:
+            res += "\nCode Change Summary: " + self.code_change_summary
+        return res
 
     @classmethod
     def from_exception(cls, e: Exception) -> ExperimentFeedback:
@@ -88,9 +93,10 @@ class HypothesisFeedback(ExperimentFeedback):
         new_hypothesis: str,
         reason: str,
         *,
+        code_change_summary: str | None = None,
         decision: bool,
     ) -> None:
-        super().__init__(reason, decision=decision)
+        super().__init__(reason, decision=decision, code_change_summary=code_change_summary)
         self.observations = observations
         self.hypothesis_evaluation = hypothesis_evaluation
         self.new_hypothesis = new_hypothesis
