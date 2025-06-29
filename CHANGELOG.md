@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0](https://github.com/microsoft/RD-Agent/compare/v0.6.1...v0.7.0) (2025-06-29)
+
+
+### Features
+
+* add code change summary ([#1000](https://github.com/microsoft/RD-Agent/issues/1000)) ([937ec26](https://github.com/microsoft/RD-Agent/commit/937ec263b215928633822c4d76ad4e47442c8198))
+* add hide_base_name option and update data folder prompts ([#1004](https://github.com/microsoft/RD-Agent/issues/1004)) ([2f61fa8](https://github.com/microsoft/RD-Agent/commit/2f61fa8cd90c91ad29f320ce9ea6c49f49ac9111))
+
 ## [0.6.1](https://github.com/microsoft/RD-Agent/compare/v0.6.0...v0.6.1) (2025-06-28)
 
 
