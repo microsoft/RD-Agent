@@ -102,7 +102,7 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             competition_info=competition_info,
             folder_spec=data_folder_info,
             latest_code=workspace.file_dict.get("main.py"),
-            latest_code_feedback=prev_task_feedback,
+            latest_code_feedback=str(prev_task_feedback),
         )
 
         for _ in range(5):
