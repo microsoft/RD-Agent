@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, List
 
 from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
 from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.evaluation import Evaluator, Feedback
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import Task, Workspace
@@ -61,6 +62,14 @@ class CoSTEERSingleFeedback(Feedback):
         """
         if "final_decision" not in data:
             raise ValueError("'final_decision' is required")
+
+        if "debug_timeout" in data:
+            DS_RD_SETTING.debug_timeout = max(int(data.get("debug_timeout", DS_RD_SETTING.debug_timeout)), DS_RD_SETTING.debug_timeout)
+            del data["debug_timeout"]
+
+        if "full_timeout" in data:
+            DS_RD_SETTING.full_timeout = max(int(data.get("full_timeout", DS_RD_SETTING.full_timeout)), DS_RD_SETTING.full_timeout)
+            del data["full_timeout"]
 
         if isinstance(data["final_decision"], str):
             if data["final_decision"] == "false" or data["final_decision"] == "False":

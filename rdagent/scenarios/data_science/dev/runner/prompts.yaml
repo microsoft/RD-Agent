@@ -33,6 +33,7 @@ DSCoSTEER_eval:
     {% else %}
     The user will provide you the whole code base, some logs generated during the execution of the whole workflow. Your evaluation scope includes whether the workflow code executes successfully.
     No need to check the detail of submission file.
+    If the code failed due to timeout, and estimated total runtime in stdout, and there are no obvious code issues or time-consuming optimization methods, please provide a estimate of the total runtime in seconds based on the estimated total runtime in stdout.
 
     Please respond with your feedback in the following JSON format and order
     ```json
@@ -40,7 +41,8 @@ DSCoSTEER_eval:
         "execution": "Describe whether the code executed successfully. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information.",
         "return_checking": "Describe the expected file to be generated.",
         "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
-        "final_decision": <true/false>
+        "final_decision": <true/false>,
+        "full_timeout": {{ full_timeout }},
     }
     ```
     {% endif %}
