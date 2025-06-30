@@ -38,6 +38,7 @@ trace: |-
     {% else %}
     Experiment Score: {{ exp_and_feedback[0].result.loc["ensemble"].iloc[0] }}
     Experiment Feedback: {{ exp_and_feedback[1].reason }}
+    {% if exp_and_feedback[1].code_change_summary  %}Code Change Summary: {{ exp_and_feedback[1].code_change_summary }}{% endif %}
     {% endif %}
     {% endfor %}
     {% endif %}
