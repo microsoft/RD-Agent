@@ -54,6 +54,9 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
 
         # execute workflow
         stdout, execute_ret_code = implementation.execute_ret_code(env=env, entry="python -m coverage run main.py")
+        running_time = re.search(r"Total running time: (\d+\.\d+) seconds.", stdout).group(1)
+        implementation.inject_files(**{"running_time.txt": running_time})
+
         match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL)
         eda_output = match.groups()[1] if match else None
         if eda_output is None:
@@ -196,4 +199,5 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         if submission_ret_code != 0:
             feedback.final_decision = False
             feedback.return_checking += "\nSubmission file check failed."
+        feedback.execution += f"\nTotal running time: {running_time} seconds."
         return feedback

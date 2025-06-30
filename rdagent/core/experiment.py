@@ -320,6 +320,7 @@ class Experiment(
         # - only runner will assign this variable
         # - We will always create a new Experiment without copying previous results when we goto the next new loop.
         self.result: object = None  # The result of the experiment, can be different types in different scenarios.
+        self.running_time: float | None = None
         self.sub_results: dict[str, float] = (
             {}
         )  # TODO: in Kaggle, now sub results are all saved in self.result, remove this in the future.

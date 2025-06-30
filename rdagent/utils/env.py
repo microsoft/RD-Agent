@@ -214,6 +214,7 @@ class Env(Generic[ASpecificEnvConf]):
                         f"The running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
                     )
                     log_output += f"\n\nThe running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
+                log_output += f"\nTotal running time: {end - start:.3f} seconds."
                 return log_output, return_code
             except Exception as e:
                 if retry_index == self.conf.retry_count:
@@ -796,6 +797,8 @@ class DockerEnv(Env[DockerConf]):
                     )
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while pulling the image: {e}")
+        finally:
+            pass
 
     def _gpu_kwargs(self, client: docker.DockerClient) -> dict:  # type: ignore[no-any-unimported]
         """get gpu kwargs based on its availability"""
