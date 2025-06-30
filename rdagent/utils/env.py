@@ -602,6 +602,10 @@ class DockerConf(EnvConf):
     default_entry: str  # the entry point of the image
 
     extra_volumes: dict = {}
+    """It accept a dict of volumes, which can be either
+    {<host_path>: <container_path>} or
+    {<host_path>: {"bind": <container_path>, "mode": <mode, ro/rw/default is extra_volume_mode>}}
+    """
     extra_volume_mode: str = "ro"  # by default. only the mount_path should be writable, others are changed to read-only
     # Sometime, we need maintain some extra data for the workspace.
     # And the extra data may be shared and the downloading can be time consuming.
@@ -662,7 +666,9 @@ class QlibDockerConf(DockerConf):
     image: str = "local_qlib:latest"
     mount_path: str = "/workspace/qlib_workspace/"
     default_entry: str = "qrun conf.yaml"
-    extra_volumes: dict = {str(Path("~/.qlib/").expanduser().resolve().absolute()): "/root/.qlib/"}
+    extra_volumes: dict = {
+        str(Path("~/.qlib/").expanduser().resolve().absolute()): {"bind": "/root/.qlib/", "mode": "rw"}
+    }
     shm_size: str | None = "16g"
     enable_gpu: bool = True
     enable_cache: bool = False
@@ -854,12 +860,12 @@ class DockerEnv(Env[DockerConf]):
 
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
-                volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
+                volumes[lp] = rp if isinstance(rp, dict) else {"bind": rp, "mode": self.conf.extra_volume_mode}
             cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
             volumes[cache_path] = {"bind": T("scenarios.data_science.share:scen.cache_path").r(), "mode": "rw"}
         for lp, rp in running_extra_volume.items():
-            volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
+            volumes[lp] = rp if isinstance(rp, dict) else {"bind": rp, "mode": self.conf.extra_volume_mode}
 
         volumes = normalize_volumes(cast(dict[str, str | dict[str, str]], volumes), self.conf.mount_path)
 

@@ -5,7 +5,7 @@ exp_feedback:
     Below is a detailed description of the current Kaggle competition scenario:
     {{ scenario }}
 
-    Your task is to analyze the current experiment's hypothesis, implementation (code), and results, explicitly comparing them with previous experiments and the best previous result (SOTA).
+    Your task is to analyze the current experiment's hypothesis, implementation (code and its changes), and results, explicitly comparing them with previous experiments and the best previous result (SOTA).
 
     Step-by-step Analysis Process:
 
@@ -63,6 +63,7 @@ exp_feedback:
     {
       "Submission Format Check": "yes or no",
       "First Valid Submission": "yes or no",
+      "Code Change Summary": "Clearly summarize the changes made to the code (please cover the most important changes while being concise); during development, extra modifications may be made beyond the intent of the hypothesis, so these changes should also be included to provide complete information",
       "Observations": "Clearly summarize current and SOTA ensemble results with exact scores and notable patterns. Limit to no more than three concise, data-focused sentences. Your observation must be grounded by explicit evidence from scenario description or code implementation, not just validation scores.",
       "Feedback for Hypothesis": Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences.",
       "Evaluation Aligned With Task": "yes or no",

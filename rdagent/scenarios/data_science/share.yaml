@@ -32,10 +32,11 @@ describe: # some template to describe some object
     {% if exp_and_feedback and exp_and_feedback|length > 1 %}
     ## {{heading | default('Previous trial and feedback')}}
     {% if exp_and_feedback[0].hypothesis %}
-    the experiment is designed based on hypothesis: {{ exp_and_feedback[0].hypothesis }}
+    The experiment is designed based on hypothesis: {{ exp_and_feedback[0].hypothesis }}
     {% endif %}
-    feedback decision: {{ exp_and_feedback[1].decision }}
-    reason: {{ exp_and_feedback[1].reason }}
+    Feedback decision: {{ exp_and_feedback[1].decision }}
+    {% if exp_and_feedback[1].code_change_summary  %}Code change summary: {{ exp_and_feedback[1].code_change_summary }}{% endif %}
+    Reason: {{ exp_and_feedback[1].reason }}
     {% endif %}
 
   trace: |-
@@ -47,6 +48,7 @@ describe: # some template to describe some object
     Target Problem: {{ exp_and_feedback[0].hypothesis.problem_desc }}
     {% if not pipeline %}Chosen Component: {{ exp_and_feedback[0].hypothesis.component }}{% endif %}
     Proposed Hypothesis: {{ exp_and_feedback[0].hypothesis.hypothesis }}
+    {% if exp_and_feedback[1].code_change_summary  %}Code Change Summary: {{ exp_and_feedback[1].code_change_summary }}{% endif %}
     Surpass Previous SOTA: {{ exp_and_feedback[1].decision }}
     {% if exp_and_feedback[0].result is none %}
     Experiment Score: Running buggy
