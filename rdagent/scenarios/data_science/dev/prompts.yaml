@@ -117,10 +117,13 @@ exp_feedback:
     {{ feedback_desc or "There has not been any experiments yet." }}
     Please refer to these hypotheses and feedback to help you recommend new experiment and hypothesis
 
+    Note: We prioritize minimal, incremental code changes that lead to measurable improvements. Extensive rewrites without significant gains should be discouraged.
+
     Tips:
     - Step 1: If submission format has issues, prioritize fixing them before proceeding. If the format is correct and it's the first valid submission ever (there has never been valid submissions in the past), set `"Replace Best Result": "yes"`. If the format is correct and this is not the first valid submission, proceed to Step 2.
     - Step 2: If evaluation alignment issues are identified (validation approach does not follow competition requirements), address these methodological discrepancies immediately.
     - Step 3: If new results significantly worse than SOTA, or repeated hyperparameter adjustments yield no improvement, it might be time to rethink or shift focus.
+    - Step 4: If the result is only slightly better than the SOTA, but the code modifications are extensive (e.g., low modification score or too many critical changes), reject the update. Prefer small-step improvements with minimal changes. Set `"Replace Best Result": "no"` and explain in `"Reasoning"` starting with `[Code Change Too Large]`.
 
 exp_feedback_v3:
   system: |-
