@@ -1,6 +1,7 @@
 import hashlib
 import json
 import pickle
+import random
 import re
 from collections import defaultdict
 from datetime import timedelta
@@ -144,17 +145,13 @@ def task_win(data):
             )
 
 
-def workspace_win(workspace, instance_id=None, cmp_workspace=None):
+def workspace_win(workspace, cmp_workspace=None, cmp_name="last code."):
     show_files = {k: v for k, v in workspace.file_dict.items() if "test" not in k}
 
-    base_key = str(workspace.workspace_path)
-    if instance_id is not None:
-        base_key += f"_{instance_id}"
-    unique_key = hashlib.md5(base_key.encode()).hexdigest()
     if len(show_files) > 0:
         if cmp_workspace:
             diff = generate_diff_from_dict(cmp_workspace.file_dict, show_files, "main.py")
-            with st.expander(":violet[**Diff with last SOTA**]"):
+            with st.expander(f":violet[**Diff with {cmp_name}**]"):
                 st.code("".join(diff), language="diff", wrap_lines=True, line_numbers=True)
         with st.expander(f"Files in :blue[{replace_ep_path(workspace.workspace_path)}]"):
             code_tabs = st.tabs(show_files.keys())
@@ -167,20 +164,24 @@ def workspace_win(workspace, instance_id=None, cmp_workspace=None):
                         line_numbers=True,
                     )
 
-            st.markdown("### Save All Files to Folder")
-            target_folder = st.text_input("Enter target folder path:", key=f"save_folder_path_input_{unique_key}")
+            if state.show_save_input:
+                st.markdown("### Save All Files to Folder")
+                unique_key = hashlib.md5("".join(show_files.values()).encode()).hexdigest() + str(
+                    random.randint(0, 10000)
+                )
+                target_folder = st.text_input("Enter target folder path:", key=unique_key)
 
-            if st.button("Save Files", key=f"save_files_button_{unique_key}"):
-                if target_folder.strip() == "":
-                    st.warning("Please enter a valid folder path.")
-                else:
-                    target_folder_path = Path(target_folder)
-                    target_folder_path.mkdir(parents=True, exist_ok=True)
-                    for filename, content in workspace.file_dict.items():
-                        save_path = target_folder_path / filename
-                        save_path.parent.mkdir(parents=True, exist_ok=True)
-                        save_path.write_text(content, encoding="utf-8")
-                    st.success(f"All files saved to: {target_folder}")
+                if st.button("Save Files", key=f"save_files_button_{unique_key}"):
+                    if target_folder.strip() == "":
+                        st.warning("Please enter a valid folder path.")
+                    else:
+                        target_folder_path = Path(target_folder)
+                        target_folder_path.mkdir(parents=True, exist_ok=True)
+                        for filename, content in workspace.file_dict.items():
+                            save_path = target_folder_path / filename
+                            save_path.parent.mkdir(parents=True, exist_ok=True)
+                            save_path.write_text(content, encoding="utf-8")
+                        st.success(f"All files saved to: {target_folder}")
     else:
         st.markdown(f"No files in :blue[{replace_ep_path(workspace.workspace_path)}]")
 
@@ -296,7 +297,11 @@ def evolving_win(data, key, llm_data=None):
                 llm_log_win(llm_data[evo_id])
             if data[evo_id]["evolving code"][0] is not None:
                 st.subheader("codes")
-                workspace_win(data[evo_id]["evolving code"][0], instance_id=key)
+                workspace_win(
+                    data[evo_id]["evolving code"][0],
+                    cmp_workspace=data[evo_id - 1]["evolving code"][0] if evo_id > 0 else None,
+                    cmp_name="last evolving code",
+                )
                 fb = data[evo_id]["evolving feedback"][0]
                 st.subheader("evolving feedback" + ("✅" if bool(fb) else "❌"))
                 f1, f2, f3 = st.tabs(["execution", "return_checking", "code"])
@@ -333,7 +338,7 @@ def coding_win(data, llm_data: dict | None = None):
         llm_log_win(common_llm_data)
     if "no_tag" in data:
         st.subheader("Exp Workspace (coding final)")
-        workspace_win(data["no_tag"].experiment_workspace, instance_id="coding_dump")
+        workspace_win(data["no_tag"].experiment_workspace)
 
 
 def running_win(data, mle_score, llm_data=None, sota_exp=None):
@@ -349,8 +354,8 @@ def running_win(data, mle_score, llm_data=None, sota_exp=None):
         st.subheader("Exp Workspace (running final)")
         workspace_win(
             data["no_tag"].experiment_workspace,
-            instance_id="running_dump",
             cmp_workspace=sota_exp.experiment_workspace if sota_exp else None,
+            cmp_name="last SOTA",
         )
         st.subheader("Result")
         st.write(data["no_tag"].result)
@@ -366,7 +371,10 @@ def feedback_win(fb_data, llm_data=None):
     st.header("Feedback" + ("✅" if bool(fb_data) else "❌"), divider="orange", anchor="feedback")
     if state.show_llm_log and llm_data is not None:
         llm_log_win(llm_data["no_tag"])
-    st.code(str(fb_data).replace("\n", "\n\n"), wrap_lines=True)
+    try:
+        st.code(str(fb_data).replace("\n", "\n\n"), wrap_lines=True)
+    except Exception as e:
+        st.write(fb_data.__dict__)
     if fb_data.exception is not None:
         st.markdown(f"**:red[Exception]**: {fb_data.exception}")
 
@@ -383,7 +391,7 @@ def sota_win(sota_exp, trace):
         st.markdown(f"**SOTA Exp Hypothesis**")
         hypothesis_win(sota_exp.hypothesis)
         st.markdown("**Exp Workspace**")
-        workspace_win(sota_exp.experiment_workspace, instance_id="sota")
+        workspace_win(sota_exp.experiment_workspace)
     else:
         st.markdown("No SOTA experiment.")
 
@@ -682,8 +690,9 @@ with st.sidebar:
             state.times = load_times(state.log_folder / state.log_path)
             state.data, state.llm_data = load_data(state.log_folder / state.log_path)
             st.rerun()
-    st.toggle("Show LLM Log", key="show_llm_log")
-    st.toggle("Show stdout", key="show_stdout")
+    st.toggle("**Show LLM Log**", key="show_llm_log")
+    st.toggle("*Show stdout*", key="show_stdout")
+    st.toggle("*Show save workspace feature*", key="show_save_input")
     st.markdown(
         f"""
 - [Exp Gen](#exp-gen)
