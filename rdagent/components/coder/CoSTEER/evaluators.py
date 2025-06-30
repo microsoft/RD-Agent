@@ -64,11 +64,15 @@ class CoSTEERSingleFeedback(Feedback):
             raise ValueError("'final_decision' is required")
 
         if "debug_timeout" in data:
-            DS_RD_SETTING.debug_timeout = max(int(data.get("debug_timeout", DS_RD_SETTING.debug_timeout)), DS_RD_SETTING.debug_timeout)
+            DS_RD_SETTING.debug_timeout = max(
+                int(data.get("debug_timeout", DS_RD_SETTING.debug_timeout)), DS_RD_SETTING.debug_timeout
+            )
             del data["debug_timeout"]
 
         if "full_timeout" in data:
-            DS_RD_SETTING.full_timeout = max(int(data.get("full_timeout", DS_RD_SETTING.full_timeout)), DS_RD_SETTING.full_timeout)
+            DS_RD_SETTING.full_timeout = max(
+                int(data.get("full_timeout", DS_RD_SETTING.full_timeout)), DS_RD_SETTING.full_timeout
+            )
             del data["full_timeout"]
 
         if isinstance(data["final_decision"], str):
