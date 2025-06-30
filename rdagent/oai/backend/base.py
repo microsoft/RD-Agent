@@ -479,7 +479,7 @@ class APIBackend(ABC):
         if json_target_type is not None:
             TypeAdapter(json_target_type).validate_json(all_response)
         if (response_format := kwargs.get("response_format")) is not None:
-            if issubclass(response_format, BaseModel):
+            if not isinstance(response_format, dict) and issubclass(response_format, BaseModel):
                 # It may raise TypeError if initialization fails
                 response_format(**json.loads(all_response))
             else:

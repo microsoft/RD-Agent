@@ -60,6 +60,12 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         result = implementation.run(env=env, entry=f"python -m coverage run main.py")
         implementation.running_info.running_time = result.running_time
         execute_ret_code = result.exit_code
+        if not DS_RD_SETTING.sample_data:
+            match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL)
+            eda_output = match.groups()[1] if match else None
+            if eda_output is None:
+                eda_output = "No EDA output."
+            implementation.inject_files(**{"EDA.md": eda_output})
         stdout = remove_eda_part(result.stdout)
         stdout += f"The code executed {'successfully' if execute_ret_code == 0 else 'failed'}."
 
