@@ -172,6 +172,11 @@ class DSDraftExpGen(ExpGen):
 
 
 class DSDraftExpGenV2(ExpGen):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.support_function_calling = APIBackend().support_function_calling()
+
+
     def tag_gen(self, scenario_desc: str) -> str:
         sys_prompt = T(".prompts_draft:tag_gen.system").r(
             tag_desc=T(".prompts_draft:description.tag_description").r()
