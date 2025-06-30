@@ -105,14 +105,21 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
             self.judge_pdf_data_items = [i for i in Path(report_folder).rglob("*.pdf")]
 
         self.loop_n = min(len(self.judge_pdf_data_items), FACTOR_FROM_REPORT_PROP_SETTING.report_limit)
+        self.shift_report = (
+            0  # some reports does not contain viable factor, so we ship some of them to avoid infinite loop
+        )
 
     async def direct_exp_gen(self, prev_out: dict[str, Any]):
         while True:
             if self.get_unfinished_loop_cnt(self.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
-                report_file_path = self.judge_pdf_data_items[self.loop_idx]
+                report_file_path = self.judge_pdf_data_items[self.loop_idx + self.shift_report]
                 logger.info(f"Processing number {self.loop_idx} report: {report_file_path}")
                 exp = extract_hypothesis_and_exp_from_reports(str(report_file_path))
                 if exp is None:
+                    self.shift_report += 1
+                    self.loop_n -= 1
+                    if self.loop_n < 0:  # NOTE: on every step, we self.loop_n -= 1 at first.
+                        raise self.LoopTerminationError("Reach stop criterion and stop loop")
                     continue
                 exp.based_experiments = [QlibFactorExperiment(sub_tasks=[], hypothesis=exp.hypothesis)] + [
                     t[0] for t in self.trace.hist if t[1]
