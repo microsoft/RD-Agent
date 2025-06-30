@@ -3,7 +3,7 @@ import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, TypedDict, cast
+from typing import Any, Optional, TypedDict, cast
 
 
 class LogColors:
@@ -112,3 +112,18 @@ def gen_datetime(dt: datetime | None = None) -> datetime:
     if dt is None:
         return datetime.now(timezone.utc)
     return dt.astimezone(timezone.utc)
+
+
+def dict_get_with_warning(d: dict, key: str, default: Any = None) -> Any:
+    """
+    Motivation:
+    - When handling the repsonse from the LLM, we may use dict get to get the value.
+    - the function prevent falling into default value **silently**.
+    - Instead, it will log a warning message.
+    """
+    from rdagent.log import rdagent_logger as logger
+
+    if key not in d:
+        logger.warning(f"Key {key} not found in {d}")
+        return default
+    return d[key]
