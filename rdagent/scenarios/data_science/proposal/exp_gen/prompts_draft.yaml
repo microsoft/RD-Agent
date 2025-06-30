@@ -265,6 +265,9 @@ task_gen:
     # Competition Scenario Description
     {{ scenario_desc }}
 
+    # Template Implementation & Guidelines
+    {{ knowledge }}
+
     # Data Folder Structure (All files are under {% include "scenarios.data_science.share:scen.input_path" %})
     {{ data_folder_info }}
 

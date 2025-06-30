@@ -12,7 +12,7 @@ from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSEx
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.utils.agent.tpl import T
 from rdagent.log import rdagent_logger as logger
-# from rdagent.scenarios.data_science.proposal.exp_gen.proposal import get_component
+from rdagent.scenarios.data_science.proposal.exp_gen.proposal import CodingSketch
 from typing import Any, Dict
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 
@@ -228,7 +228,7 @@ class DSDraftExpGenV2(ExpGen):
         self,
         component_desc: str,
         scenario_desc: str,
-        hypotheses: list[DSHypothesis],
+        hypothesis: DSHypothesis,
         pipeline: bool,
         knowledge: str,
         failed_exp_feedback_list_desc: str,
@@ -236,32 +236,32 @@ class DSDraftExpGenV2(ExpGen):
         if pipeline:
             component_info = get_component("Pipeline")
         else:
-            component_info = get_component(hypotheses[0].component)
+            component_info = get_component(hypothesis.component)
         data_folder_info = self.scen.processed_data_folder_description
         sys_prompt = T(".prompts_draft:task_gen.system").r(
-            task_output_format=component_info["task_output_format"],
+            task_output_format=component_info["task_output_format"] if not self.support_function_calling else None,
             component_desc=component_desc,
-            workflow_check=not pipeline and hypotheses[0].component != "Workflow",
+            workflow_check=not pipeline and hypothesis.component != "Workflow",
         )
         user_prompt = T(".prompts_draft:task_gen.user").r(
             scenario_desc=scenario_desc,
             knowledge=knowledge,
             data_folder_info=data_folder_info,
-            hypothesis=hypotheses[0], # FIXME: pass 1 hypothesis only
+            hypothesis=hypothesis,
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            json_mode=True,
-            json_target_type=Dict[str, str | Dict[str, str]],
+            response_format=CodingSketch if self.support_function_calling else {"type": "json_object"},
+            json_target_type=Dict[str, str | Dict[str, str]] if not self.support_function_calling else None,
         )
         task_dict = json.loads(response)
         task_design = (
             task_dict.get("task_design", {}) if not self.support_function_calling else task_dict.get("sketch", {})
         )
         logger.info(f"Task design:\n{task_design}")
-        task_name = hypotheses[0].component
+        task_name = hypothesis.component
         description = (
             task_design
             if isinstance(task_design, str)
@@ -273,7 +273,7 @@ class DSDraftExpGenV2(ExpGen):
             description=description,
         )
         new_workflow_desc = task_dict.get("workflow_update", "No update needed")
-        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypotheses[0])
+        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis)
         if not pipeline and new_workflow_desc != "No update needed":
             workflow_task = WorkflowTask(
                 name="Workflow",
@@ -324,7 +324,7 @@ class DSDraftExpGenV2(ExpGen):
         return self.task_gen(
             component_desc=component_desc,
             scenario_desc=scenario_desc,
-            hypotheses=[hypothesis],
+            hypothesis=hypothesis,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
             knowledge=knowledge,
             pipeline=pipeline,
