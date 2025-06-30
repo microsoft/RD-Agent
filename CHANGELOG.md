@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.1](https://github.com/microsoft/RD-Agent/compare/v0.6.0...v0.6.1) (2025-06-28)
+
+
+### Bug Fixes
+
+* fix mount ([#1001](https://github.com/microsoft/RD-Agent/issues/1001)) ([4ae2f13](https://github.com/microsoft/RD-Agent/commit/4ae2f1303dfcbaea53d459be7c8e85bf85ce5f4f))
+* handle the bug of wrong dag_parant index ([#996](https://github.com/microsoft/RD-Agent/issues/996)) ([bda12ff](https://github.com/microsoft/RD-Agent/commit/bda12ffecf9ae116e0d04eece0c6a1b61413d916))
+* improve log folder sorting and selection UX ([#993](https://github.com/microsoft/RD-Agent/issues/993)) ([b116807](https://github.com/microsoft/RD-Agent/commit/b11680777f116b6c40f9e535e0da10c186c95050))
+
 ## [0.6.0](https://github.com/microsoft/RD-Agent/compare/v0.5.0...v0.6.0) (2025-06-26)
 
 
