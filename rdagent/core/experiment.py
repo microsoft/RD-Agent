@@ -284,7 +284,7 @@ ASpecificWSForSubTasks = TypeVar("ASpecificWSForSubTasks", bound=Workspace)
 
 @dataclass
 class RunningInfo:
-    result: object = None
+    result: object = None # The result of the experiment, can be different types in different scenarios.
     running_time: float | None = None
 
 
@@ -335,11 +335,11 @@ class Experiment(
         self.local_selection: tuple[int, ...] | None = None
 
     @property
-    def result(self):
+    def result(self) -> object:
         return self.running_info.result
 
     @result.setter
-    def result(self, value):
+    def result(self, value: object) -> None:
         self.running_info.result = value
 
 

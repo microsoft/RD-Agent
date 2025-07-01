@@ -366,7 +366,7 @@ class Env(Generic[ASpecificEnvConf]):
             with open(target_folder / f"{key}.pkl", "wb") as f:
                 pickle.dump(ret, f)
             self.zip_a_folder_into_a_file(local_path, str(target_folder / f"{key}.zip"))
-        return ret
+        return cast(EnvResult, ret)
 
     @abstractmethod
     def _run_ret_code(
