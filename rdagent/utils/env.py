@@ -812,8 +812,6 @@ class DockerEnv(Env[DockerConf]):
                     )
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while pulling the image: {e}")
-        finally:
-            pass
 
     def _gpu_kwargs(self, client: docker.DockerClient) -> dict:  # type: ignore[no-any-unimported]
         """get gpu kwargs based on its availability"""
