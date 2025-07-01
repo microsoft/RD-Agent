@@ -121,9 +121,11 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         base_check_code = T(".eval_tests.submission_format_test", ftype="txt").r()
         implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
         # stdout += "----Submission Check 1-----\n"
-        submission_check_out, submission_ret_code, submission_running_time = implementation.execute_ret_code(
+        submission_result = implementation.execute_ret_code(
             env=env, entry="python test/submission_format_test.py"
         )
+        submission_check_out = submission_result.stdout
+        submission_ret_code = submission_result.ret_code
         stdout += "\n" + submission_check_out
 
         system_prompt = T(".prompts:workflow_eval.system").r(

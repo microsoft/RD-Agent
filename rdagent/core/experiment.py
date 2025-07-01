@@ -15,6 +15,7 @@ from typing import Any, Generic, TypeVar
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
 from rdagent.utils import filter_redundant_text
+from rdagent.utils.env import EnvResult
 from rdagent.utils.fmt import shrink_text
 
 if typing.TYPE_CHECKING:
@@ -250,27 +251,25 @@ class FBWorkspace(Workspace):
         """
         Before each execution, make sure to prepare and inject code.
         """
-        stdout, _, _ = self.execute_ret_code(env, entry)
-        return stdout
+        result = self.execute_ret_code(env, entry)
+        return result.stdout
 
-    def execute_ret_code(self, env: Env, entry: str) -> tuple[str, int]:
+    def execute_ret_code(self, env: Env, entry: str) -> EnvResult:
         """
-        Execute the code in the environment and return both the stdout and the exit code.
+        Execute the code in the environment and return an EnvResult object (stdout, exit_code, running_time).
 
         Before each execution, make sure to prepare and inject code.
         """
         self.prepare()
         self.inject_files(**self.file_dict)
-        stdout, return_code, running_time = env.run_ret_code(entry, str(self.workspace_path), env={"PYTHONPATH": "./"})
-        return (
-            shrink_text(
-                filter_redundant_text(stdout),
-                context_lines=RD_AGENT_SETTINGS.stdout_context_len,
-                line_len=RD_AGENT_SETTINGS.stdout_line_len,
-            ),
-            return_code,
-            running_time,
+        result = env.run_ret_code(entry, str(self.workspace_path), env={"PYTHONPATH": "./"})
+        # result is EnvResult
+        result.stdout = shrink_text(
+            filter_redundant_text(result.stdout),
+            context_lines=RD_AGENT_SETTINGS.stdout_context_len,
+            line_len=RD_AGENT_SETTINGS.stdout_line_len,
         )
+        return result
 
     def __str__(self) -> str:
         return f"Workspace[{self.workspace_path=}" + (
