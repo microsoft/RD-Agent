@@ -11,12 +11,15 @@ from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
 from rdagent.utils import filter_redundant_text
-from rdagent.utils.env import EnvResult
+
+if TYPE_CHECKING:
+    from rdagent.utils.env import EnvResult
+
 from rdagent.utils.fmt import shrink_text
 
 if typing.TYPE_CHECKING:
@@ -284,7 +287,7 @@ ASpecificWSForSubTasks = TypeVar("ASpecificWSForSubTasks", bound=Workspace)
 
 @dataclass
 class RunningInfo:
-    result: object = None # The result of the experiment, can be different types in different scenarios.
+    result: object = None  # The result of the experiment, can be different types in different scenarios.
     running_time: float | None = None
 
 
