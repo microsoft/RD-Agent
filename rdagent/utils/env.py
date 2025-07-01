@@ -233,7 +233,7 @@ class Env(Generic[ASpecificEnvConf]):
         **kwargs: dict,
     ) -> tuple[str, int]:
         """
-        Run the folder under the environment and return both the stdout and the exit code.
+        Run the folder under the environment and return the stdout, exit code, and running time.
 
         Parameters
         ----------
@@ -250,7 +250,7 @@ class Env(Generic[ASpecificEnvConf]):
 
         Returns
         -------
-            A tuple containing the stdout and the exit code
+            A tuple containing the stdout, the exit code, and the running time in seconds.
         """
         running_extra_volume = kwargs.get("running_extra_volume", {})
         if entry is None:
@@ -315,7 +315,7 @@ class Env(Generic[ASpecificEnvConf]):
         env: dict | None = None,
         running_extra_volume: Mapping = MappingProxyType({}),
         remove_timestamp: bool = True,
-    ) -> tuple[str, int]:
+    ) -> tuple[str, int, float]:
         """
         Run the folder under the environment.
         Will cache the output and the folder diff for next round of running.
@@ -365,7 +365,7 @@ class Env(Generic[ASpecificEnvConf]):
         env: dict | None = None,
         running_extra_volume: Mapping = MappingProxyType({}),
         **kwargs: Any,
-    ) -> tuple[str, int]:
+    ) -> tuple[str, int, float]:
         """
         Execute the specified entry point within the given environment and local path.
 
@@ -382,8 +382,8 @@ class Env(Generic[ASpecificEnvConf]):
 
         Returns
         -------
-        tuple[str, int]
-            A tuple containing the standard output and the exit code of the execution.
+        tuple[str, int, float]
+            A tuple containing the standard output, exit code, and running time in seconds.
         """
         pass
 
