@@ -11,6 +11,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Generic, TypeVar
+from dataclasses import dataclass
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
@@ -281,6 +282,12 @@ ASpecificWSForExperiment = TypeVar("ASpecificWSForExperiment", bound=Workspace)
 ASpecificWSForSubTasks = TypeVar("ASpecificWSForSubTasks", bound=Workspace)
 
 
+@dataclass
+class RunningInfo:
+    result: object = None
+    running_time: float | None = None
+
+
 class Experiment(
     ABC,
     Generic[ASpecificTask, ASpecificWSForExperiment, ASpecificWSForSubTasks],
@@ -319,14 +326,21 @@ class Experiment(
         # NOTE: Assumption
         # - only runner will assign this variable
         # - We will always create a new Experiment without copying previous results when we goto the next new loop.
-        self.result: object = None  # The result of the experiment, can be different types in different scenarios.
-        self.running_time: float | None = None
+        self.running_info = RunningInfo()
         self.sub_results: dict[str, float] = (
             {}
         )  # TODO: in Kaggle, now sub results are all saved in self.result, remove this in the future.
 
         # For parallel multi-trace support
         self.local_selection: tuple[int, ...] | None = None
+
+    @property
+    def result(self):
+        return self.running_info.result
+
+    @result.setter
+    def result(self, value):
+        self.running_info.result = value
 
 
 ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)
