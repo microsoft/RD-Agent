@@ -22,8 +22,8 @@ describe: # some template to describe some object
     Submission format check result is:
     {{ exp.format_check_result }}
     {% endif %}
-    {% if exp.running_time is not none %}
-    Running time: {{ exp.running_time }} seconds
+    {% if exp.running_info.running_time is not none %}
+    Running time: {{ exp.running_info.running_time }} seconds
     {% endif %}
     {% endif %}
 
