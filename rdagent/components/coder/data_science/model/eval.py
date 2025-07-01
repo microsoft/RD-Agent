@@ -67,7 +67,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 (DIRNAME / "eval_tests" / "model_test.txt").read_text().replace("model01", target_task.name)
             )  # only check the model changed this time
             implementation.inject_files(**{fname: test_code})
-            stdout, ret_code = implementation.execute_ret_code(env=env, entry=f"python {fname}")
+            stdout, ret_code, running_time = implementation.execute_ret_code(env=env, entry=f"python {fname}")
 
             if stdout is None:
                 raise CoderError(

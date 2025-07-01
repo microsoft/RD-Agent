@@ -63,8 +63,8 @@ class EnvUtils(unittest.TestCase):
         print(local_conf)
         le = LocalEnv(conf=local_conf)
         le.prepare()
-        res, code = le.run_ret_code(local_path=str(code_path))
-        print(res, code)
+        res, code, time = le.run_ret_code(local_path=str(code_path))
+        print(res, code, time)
 
     def test_conda_simple(self):
         conda_conf = CondaConf(default_entry="which python", conda_env_name="MLE")
@@ -72,8 +72,8 @@ class EnvUtils(unittest.TestCase):
         le.prepare()
         code_path = DIRNAME / "tmp_code"
         code_path.mkdir(exist_ok=True)
-        res, code = le.run_ret_code(local_path=str(code_path))
-        print(res, code)
+        res, code, time = le.run_ret_code(local_path=str(code_path))
+        print(res, code, time)
 
     def test_conda_error(self):
         conda_conf = CondaConf(conda_env_name="MLE")
@@ -82,7 +82,7 @@ class EnvUtils(unittest.TestCase):
         file_name = f"{time.time()}.py"
         with open(self.test_workspace / file_name, "w") as f:
             f.write('import json \njson.loads(b\'{"name": "\xa1"}\')')
-        res, code = le.run_ret_code(local_path=str(self.test_workspace), entry=f"python {file_name}")
+        res, code, time = le.run_ret_code(local_path=str(self.test_workspace), entry=f"python {file_name}")
         assert code == 1
         assert "bytes can only contain ASCII literal characters" in res
 
@@ -109,20 +109,20 @@ class EnvUtils(unittest.TestCase):
         qtde.prepare()
 
         # Test with a valid command
-        result, return_code = qtde.run_ret_code(entry='echo "Hello, World!"', local_path=str(self.test_workspace))
+        result, return_code, time = qtde.run_ret_code(entry='echo "Hello, World!"', local_path=str(self.test_workspace))
         print(return_code)
         assert return_code == 0, f"Expected return code 0, but got {return_code}"
         assert "Hello, World!" in result, "Expected output not found in result"
 
         # Test with an invalid command
-        _, return_code = qtde.run_ret_code(entry="invalid_command", local_path=str(self.test_workspace))
+        _, return_code, time = qtde.run_ret_code(entry="invalid_command", local_path=str(self.test_workspace))
         print(return_code)
         assert return_code != 0, "Expected non-zero return code for invalid command"
 
         dc = QlibDockerConf()
         dc.running_timeout_period = 1
         qtde = QTDockerEnv(dc)
-        result, return_code = qtde.run_ret_code(entry="sleep 2", local_path=str(self.test_workspace))
+        result, return_code, time = qtde.run_ret_code(entry="sleep 2", local_path=str(self.test_workspace))
         print(result)
         assert return_code == 124, "Expected return code 124 for timeout"
 

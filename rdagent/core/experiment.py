@@ -250,7 +250,7 @@ class FBWorkspace(Workspace):
         """
         Before each execution, make sure to prepare and inject code.
         """
-        stdout, _ = self.execute_ret_code(env, entry)
+        stdout, _, _ = self.execute_ret_code(env, entry)
         return stdout
 
     def execute_ret_code(self, env: Env, entry: str) -> tuple[str, int]:
@@ -261,7 +261,7 @@ class FBWorkspace(Workspace):
         """
         self.prepare()
         self.inject_files(**self.file_dict)
-        stdout, return_code = env.run_ret_code(entry, str(self.workspace_path), env={"PYTHONPATH": "./"})
+        stdout, return_code, running_time = env.run_ret_code(entry, str(self.workspace_path), env={"PYTHONPATH": "./"})
         return (
             shrink_text(
                 filter_redundant_text(stdout),
@@ -269,6 +269,7 @@ class FBWorkspace(Workspace):
                 line_len=RD_AGENT_SETTINGS.stdout_line_len,
             ),
             return_code,
+            running_time,
         )
 
     def __str__(self) -> str:

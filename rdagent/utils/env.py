@@ -189,7 +189,7 @@ class Env(Generic[ASpecificEnvConf]):
         -------
             the stdout
         """
-        stdout, _ = self.run_ret_code(entry=entry, local_path=local_path, env=env, **kwargs)
+        stdout, _, _ = self.run_ret_code(entry=entry, local_path=local_path, env=env, **kwargs)
         return stdout
 
     def __run_ret_code_with_retry(
@@ -199,7 +199,7 @@ class Env(Generic[ASpecificEnvConf]):
         env: dict | None = None,
         running_extra_volume: Mapping = MappingProxyType({}),
         remove_timestamp: bool = True,
-    ) -> tuple[str, int]:
+    ) -> tuple[str, int, float]:
         # TODO: remove_timestamp can be implemented in a shallower way...
         for retry_index in range(self.conf.retry_count + 1):
             try:
@@ -215,7 +215,7 @@ class Env(Generic[ASpecificEnvConf]):
                     )
                     log_output += f"\n\nThe running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
                 log_output += f"\nTotal running time: {end - start:.3f} seconds."
-                return log_output, return_code
+                return log_output, return_code, end - start
             except Exception as e:
                 if retry_index == self.conf.retry_count:
                     raise
@@ -298,13 +298,13 @@ class Env(Generic[ASpecificEnvConf]):
         )
 
         if self.conf.enable_cache:
-            stdout, return_code = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
+            stdout, return_code, running_time = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
         else:
-            stdout, return_code = self.__run_ret_code_with_retry(
+            stdout, return_code, running_time = self.__run_ret_code_with_retry(
                 entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False
             )
 
-        return stdout, return_code
+        return stdout, return_code, running_time
 
     def cached_run(
         self,

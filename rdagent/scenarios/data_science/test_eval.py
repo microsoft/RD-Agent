@@ -74,7 +74,7 @@ class TestEval(TestEvalBase):
             raise NoTestEvalError(err_msg)
         workspace.inject_files(**{"submission_format_valid.py": (eval_path / "valid.py").read_text()})
         workspace.inject_files(**{"submission_test.csv": (eval_path / "submission_test.csv").read_text()})
-        submission_check_out, submission_ret_code = workspace.execute_ret_code(
+        submission_check_out, submission_ret_code, submission_running_time = workspace.execute_ret_code(
             env=self.env,
             entry=f"python submission_format_valid.py {competition}",
         )
@@ -116,7 +116,7 @@ class MLETestEval(TestEvalBase):
             .replace("<competition_id>", competition)
         )
         workspace.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
-        submission_check_out, submission_ret_code = workspace.execute_ret_code(
+        submission_check_out, submission_ret_code, submission_running_time = workspace.execute_ret_code(
             env=self.env, entry="python test/mle_submission_format_test.py"
         )
 

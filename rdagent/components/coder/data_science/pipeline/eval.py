@@ -57,7 +57,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
         # Clean the scores.csv & submission.csv.
         implementation.execute(env=env, entry=get_clear_ws_cmd())
-        stdout, execute_ret_code = implementation.execute_ret_code(env=env, entry=f"python -m coverage run main.py")
+        stdout, execute_ret_code, running_time = implementation.execute_ret_code(env=env, entry=f"python -m coverage run main.py")
         stdout = remove_eda_part(stdout)
         stdout += f"The code executed {'successfully' if execute_ret_code == 0 else 'failed'}."
 
@@ -105,7 +105,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             base_check_code = T(".eval_tests.submission_format_test", ftype="txt").r()
             implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
             # stdout += "----Submission Check 1-----\n"
-            submission_check_out, submission_ret_code = implementation.execute_ret_code(
+            submission_check_out, submission_ret_code, submission_running_time = implementation.execute_ret_code(
                 env=env, entry="python test/submission_format_test.py"
             )
             if DS_RD_SETTING.rule_base_eval:
