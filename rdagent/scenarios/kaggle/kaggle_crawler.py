@@ -129,7 +129,9 @@ def download_data(competition: str, settings: ExtendedBaseSettings, enable_creat
 
             mleb_env = MLEBDockerEnv()
             mleb_env.prepare()
-            mleb_env.check_output(f"cp -r ./zip_files/{competition}/prepared/public/* ./{competition}", local_path=local_path)
+            mleb_env.check_output(
+                f"cp -r ./zip_files/{competition}/prepared/public/* ./{competition}", local_path=local_path
+            )
 
             for zip_path in competition_local_path.rglob("*.zip"):
                 with zipfile.ZipFile(zip_path, "r") as zip_ref:

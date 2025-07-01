@@ -181,7 +181,9 @@ class Env(Generic[ASpecificEnvConf]):
         Prepare for the environment based on it's configure
         """
 
-    def check_output(self, entry: str | None = None, local_path: str = ".", env: dict | None = None, **kwargs: dict) -> str:
+    def check_output(
+        self, entry: str | None = None, local_path: str = ".", env: dict | None = None, **kwargs: dict
+    ) -> str:
         """
         Run the folder under the environment.
 
