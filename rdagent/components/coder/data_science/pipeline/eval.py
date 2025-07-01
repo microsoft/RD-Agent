@@ -57,9 +57,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
         # Clean the scores.csv & submission.csv.
         implementation.execute(env=env, entry=get_clear_ws_cmd())
-        result = implementation.execute_ret_code(
-            env=env, entry=f"python -m coverage run main.py"
-        )
+        result = implementation.execute_ret_code(env=env, entry=f"python -m coverage run main.py")
         execute_ret_code = result.ret_code
         stdout = remove_eda_part(result.stdout)
         stdout += f"The code executed {'successfully' if execute_ret_code == 0 else 'failed'}."

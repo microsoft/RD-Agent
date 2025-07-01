@@ -116,9 +116,7 @@ class MLETestEval(TestEvalBase):
             .replace("<competition_id>", competition)
         )
         workspace.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
-        submission_result = workspace.execute_ret_code(
-            env=self.env, entry="python test/mle_submission_format_test.py"
-        )
+        submission_result = workspace.execute_ret_code(env=self.env, entry="python test/mle_submission_format_test.py")
 
         workspace.inject_files(**{"test/mle_submission_format_test.output": submission_result.stdout})
         return submission_result.stdout, submission_result.ret_code

@@ -19,10 +19,10 @@ import time
 import uuid
 import zipfile
 from abc import abstractmethod
+from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Generator, Generic, Mapping, Optional, TypeVar, cast
-from dataclasses import dataclass
 
 import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
@@ -129,6 +129,7 @@ class EnvConf(ExtendedBaseSettings):
 
 ASpecificEnvConf = TypeVar("ASpecificEnvConf", bound=EnvConf)
 
+
 @dataclass
 class EnvResult:
     """
@@ -201,8 +202,8 @@ class Env(Generic[ASpecificEnvConf]):
         -------
             the stdout
         """
-        stdout, _, _ = self.run_ret_code(entry=entry, local_path=local_path, env=env, **kwargs)
-        return stdout
+        result = self.run_ret_code(entry=entry, local_path=local_path, env=env, **kwargs)
+        return result.stdout
 
     def __run_ret_code_with_retry(
         self,
@@ -310,9 +311,7 @@ class Env(Generic[ASpecificEnvConf]):
         )
 
         if self.conf.enable_cache:
-            result = self.cached_run(
-                entry_add_timeout, local_path, env, running_extra_volume
-            )
+            result = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
         else:
             result = self.__run_ret_code_with_retry(
                 entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False

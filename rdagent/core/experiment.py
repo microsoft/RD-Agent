@@ -9,9 +9,9 @@ import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from copy import deepcopy
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Generic, TypeVar
-from dataclasses import dataclass
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
