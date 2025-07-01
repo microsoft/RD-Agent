@@ -5,9 +5,9 @@ exp_feedback:
     Below is a detailed description of the current Kaggle competition scenario:
     {{ scenario }}
 
-    Your task is to analyze the current experiment's hypothesis, implementation (code and its changes), and results, explicitly comparing them with previous experiments and the best previous result (SOTA).
+    Your task is to analyze the current experiment's hypothesis, implementation (code and its changes), and results, explicitly comparing them with previous best SOTA result step by step.
 
-    Step-by-step Analysis Process:
+    # Step-by-step Analysis Process:
 
     Step 1: Verify Submission Format
     - If the submission format check fails:
@@ -19,7 +19,7 @@ exp_feedback:
       - If this is the first valid submission ever, set `"Replace Best Result": "yes"`.
       - Otherwise, proceed to Step 2.
 
-    Step 2: Evaluate Alignment with Competition Requirements (if format correct)
+    Step 2: Evaluate Alignment with Competition Requirements
     - GOAL: CAREFULLY ANALYZE WHETHER THE EXPERIMENTAL SETUP AND CODE MAY CAUSE MISALIGNMENT BETWEEN VALIDATION AND TEST PERFORMANCE.
     - Confirm strict adherence to the competition's evaluation rules listed in `scenario`:
       - Exact match between validation metric and official Kaggle metric.
@@ -35,7 +35,7 @@ exp_feedback:
       - Begin your `reasoning` with `[Evaluation error]`, explicitly stating the evaluation alignment issues causing experiment failure.
     - If evaluation alignment passes, set `"Evaluation Aligned With Task": "yes"`, and then proceed to Step 3.
 
-    Step 3: Analyze Experimental Results (if format and evaluation alignment correct)
+    Step 3: Analyze Experimental Results
     - Explicitly confirm or refute the hypothesis with precise data points or performance trends.
     - Directly compare the current `ensemble` validation score to the SOTA `ensemble` validation score. Do not focus on individual models unless anomalies are significant.
     - Based on the metric used in the competition, the comparison should fit into the following categories:
@@ -57,9 +57,18 @@ exp_feedback:
     - Please examine the code carefully based on the above criteria and provide a detailed analysis of the code.
     - Begin your `reasoning` with `[Code Analysis]`, clearly stating why the current code is better or worse than SOTA, based on the analysis of code implementation.
     - If the current code is not better than SOTA, set `"Replace Best Result": "no"`. Otherwise, set `"Replace Best Result": "yes"`.
- 
-    Provide detailed and constructive feedback structured as follows:
-    Example JSON Structure for Result Analysis:
+
+    Step 5: Analyze Code Effectiveness
+    - Goal: Determine whether the current code requires further refinement, primarily focusing on hyperparameter tuning. Assess if the current settings are appropriate by referring to running time, resource usage, and other relevant statistics.
+    - If the current code is effective in terms of both efficiency and hyperparameters:
+      - Set `"Replace Best Result": "yes"`.
+      - Set `"Effectiveness Check": "yes"`.
+    - If the current code is NOT effective in terms of both efficiency and hyperparameters:
+      - Set `"Replace Best Result": "yes"`.
+      - Set `"Effectiveness Check": "no"`.
+    - Begin your `reasoning` with `[Effectiveness Analysis]`, clearly stating whether the current code is effective enough or needs further refinement, especially regarding hyperparameter choices and efficiency.
+
+    Provide detailed and constructive feedback structured as follows without anything else:
     {
       "Submission Format Check": "yes or no",
       "First Valid Submission": "yes or no",
@@ -68,6 +77,7 @@ exp_feedback:
       "Feedback for Hypothesis": Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences.",
       "Evaluation Aligned With Task": "yes or no",
       "Replace Best Result": "yes or no",
+      "Effectiveness Check": "yes or no",
       "Reasoning": "Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences."
     }
 

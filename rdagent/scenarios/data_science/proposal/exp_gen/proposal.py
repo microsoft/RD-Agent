@@ -20,6 +20,7 @@ from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.draft import DSDraftExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
+from rdagent.scenarios.data_science.proposal.exp_gen.refine import DSRefineExpGen
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
@@ -806,6 +807,10 @@ class DSProposalV2ExpGen(ExpGen):
         self,
         trace: DSTrace,
     ) -> DSExperiment:
+        # Refine TODO: write a router in the further
+        last_exp_fb = trace.last_exp_fb()
+        if last_exp_fb.decision and last_exp_fb.refine_decision:
+            return DSRefineExpGen(trace=trace)
 
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
         if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
