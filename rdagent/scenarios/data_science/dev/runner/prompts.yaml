@@ -19,6 +19,7 @@ DSCoSTEER_eval:
     The user will provide you the whole code base, some logs generated during the execution of the whole workflow. Your evaluation scope includes whether the workflow code:
     1. Executes successfully, correctly organizing components and generating a final submission.
     2. Generates predictions in the correct format, ensuring they align with the **sample submission** structure!
+    3. If the code failed due to timeout, and estimated total runtime in stdout, and there are no obvious code issues or time-consuming optimization methods, please provide a estimate of reasonable total runtime in seconds based on the estimated total runtime in stdout.
 
     
     Please respond with your feedback in the following JSON format and order
@@ -27,13 +28,15 @@ DSCoSTEER_eval:
         "execution": "Describe whether the whole code base executed successfully and generating the final submission. Include any errors or issues encountered, and retain all error messages and traceback details.",
         "return_checking": "Verify the generated files, particularly the submission file. Ensure that its format matches the sample submission",
         "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
-        "final_decision": <true/false>
+        "final_decision": <true/false>,
+        "full_timeout": {{ full_timeout }}
     }
     ```
     {% else %}
     The user will provide you the whole code base, some logs generated during the execution of the whole workflow. Your evaluation scope includes whether the workflow code executes successfully.
     No need to check the detail of submission file.
-    If the code failed due to timeout, and estimated total runtime in stdout, and there are no obvious code issues or time-consuming optimization methods, please provide a estimate of the total runtime in seconds based on the estimated total runtime in stdout.
+    If the code failed due to timeout, and estimated total runtime in stdout, and there are no obvious code issues or time-consuming optimization methods, please provide a estimate of reasonable total runtime in seconds based on the estimated total runtime in stdout.
+
 
     Please respond with your feedback in the following JSON format and order
     ```json

@@ -92,8 +92,9 @@ pipeline_coder:
     The former code contains errors. You should correct the code based on the provided information, ensuring you do not repeat the same mistakes.
     Keep the part that already seem correct intact. Avoid modifying them to refrain from introducing new errors.
     {% if "killed" in latest_code_feedback and "exceeded" in latest_code_feedback %}
-    Please add runtime estimation to the code. We need to benchmark average training and validation batch times and extrapolate total expected runtime (in minutes) based on known training steps and batch size.
-    Before training, the code should print: Estimated total runtime: {T_total/60:.2f} minutes.
+    Please add runtime estimation to the code. We need to benchmark average training and validation batch times and extrapolate total expected runtime (in seconds) based on known training steps and batch size.
+    Do not use assumed average_batch_time, calculated from the first few batches when necessary.
+    Before training, the code should print: Estimated total runtime: {T_total:.2f} seconds.
     {% endif %}
     {% else %}
     The former code is correct. You should try to improve the code based on the provided task while not changing the irrelevant parts.
@@ -141,6 +142,7 @@ pipeline_eval:
     [Note] 
     1. Model performance is NOT a concern in this evaluation—only correct execution and formatting matter.
     2. You only check the format of the submission since we only feed you part of the data, so the submission might has different index to the sample submission data.
+    3. If the code failed due to timeout, and estimated total runtime in stdout, and there are no obvious code issues or time-consuming optimization methods, please provide a estimate of reasonable total runtime in seconds based on the estimated total runtime in stdout.
     
     Please respond with your feedback in the following JSON format and order
     ```json
@@ -148,7 +150,8 @@ pipeline_eval:
         "execution": "Describe whether the code executed successfully, correctly integrating all components and generating the final submission. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information.",
         "return_checking": "Verify the generated files, particularly the submission file. Ensure that its format matches the sample submission, checking the index, column names, and CSV content.",
         "code": "Begin explicitly with [Code analysis] or [Evaluation error]. Provide feedback on code quality, readability, adherence to the given specifications, and alignment with competition requirements.",
-        "final_decision": <true/false>
+        "final_decision": <true/false>,
+        "debug_timeout": {{ debug_timeout }}
     }
     ```
     {% else %}
@@ -159,7 +162,7 @@ pipeline_eval:
 
     [Note] 
     1. Model performance is NOT a concern in this evaluation—only correct execution and formatting matter.
-    2. If the code failed due to timeout, and estimated total runtime in stdout, and there are no obvious code issues or time-consuming optimization methods, please provide a estimate of the total runtime in seconds based on the estimated total runtime in stdout.
+    2. If the code failed due to timeout, and estimated total runtime in stdout, and there are no obvious code issues or time-consuming optimization methods, please provide a estimate of reasonable total runtime in seconds based on the estimated total runtime in stdout.
 
     Please respond with your feedback in the following JSON format and order
     ```json
