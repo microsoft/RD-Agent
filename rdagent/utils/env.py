@@ -181,7 +181,7 @@ class Env(Generic[ASpecificEnvConf]):
         Prepare for the environment based on it's configure
         """
 
-    def run(self, entry: str | None = None, local_path: str = ".", env: dict | None = None, **kwargs: dict) -> str:
+    def check_output(self, entry: str | None = None, local_path: str = ".", env: dict | None = None, **kwargs: dict) -> str:
         """
         Run the folder under the environment.
 
@@ -414,7 +414,7 @@ class Env(Generic[ASpecificEnvConf]):
         with open(os.path.join(local_path, random_file_name), "w") as f:
             f.write(code)
         entry = f"python {random_file_name}"
-        log_output = self.run(entry, local_path, env, running_extra_volume=dict(running_extra_volume))
+        log_output = self.check_output(entry, local_path, env, running_extra_volume=dict(running_extra_volume))
         results = []
         os.remove(os.path.join(local_path, random_file_name))
         for name in dump_file_names:
@@ -949,7 +949,7 @@ class QTDockerEnv(DockerEnv):
         if not (Path(qlib_data_path) / "qlib_data" / "cn_data").exists():
             logger.info("We are downloading!")
             cmd = "python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn --interval 1d --delete_old False"
-            self.run(entry=cmd)
+            self.check_output(entry=cmd)
         else:
             logger.info("Data already exists. Download skipped.")
 

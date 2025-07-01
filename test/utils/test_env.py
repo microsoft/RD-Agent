@@ -22,7 +22,7 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 class QlibLocalEnv(LocalEnv):
     def prepare(self) -> None:
         if not (Path("~/.qlib/qlib_data/cn_data").expanduser().resolve().exists()):
-            self.run(
+            self.check_output(
                 entry="python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn",
             )
         else:
@@ -48,7 +48,7 @@ class EnvUtils(unittest.TestCase):
         qle = QlibLocalEnv(conf=local_conf)
         qle.prepare()
         conf_path = str(DIRNAME / "env_tpl" / "conf.yaml")
-        qle.run(entry="qrun " + conf_path)
+        qle.check_output(entry="qrun " + conf_path)
         mlrun_p = DIRNAME / "env_tpl" / "mlruns"
         self.assertTrue(mlrun_p.exists(), f"Expected output file {mlrun_p} not found")
 
@@ -94,13 +94,13 @@ class EnvUtils(unittest.TestCase):
         qtde.prepare()  # you can prepare for multiple times. It is expected to handle it correctly
         # qtde.run("nvidia-smi")  # NOTE: you can check your GPU with this command
         # the stdout are returned as result
-        result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="qrun conf.yaml")
+        result = qtde.check_output(local_path=str(DIRNAME / "env_tpl"), entry="qrun conf.yaml")
 
         mlrun_p = DIRNAME / "env_tpl" / "mlruns"
         self.assertTrue(mlrun_p.exists(), f"Expected output file {mlrun_p} not found")
 
         # read experiment
-        result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="python read_exp_res.py")
+        result = qtde.check_output(local_path=str(DIRNAME / "env_tpl"), entry="python read_exp_res.py")
         print(result)
 
     def test_run_ret_code(self):
@@ -131,12 +131,12 @@ class EnvUtils(unittest.TestCase):
 
         qtde = QTDockerEnv(QlibDockerConf(mem_limit="10m"))
         qtde.prepare()
-        result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry=cmd)
+        result = qtde.check_output(local_path=str(DIRNAME / "env_tpl"), entry=cmd)
         self.assertTrue(not result.strip().endswith("success"))
 
         qtde = QTDockerEnv(QlibDockerConf(mem_limit="1g"))
         qtde.prepare()
-        result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry=cmd)
+        result = qtde.check_output(local_path=str(DIRNAME / "env_tpl"), entry=cmd)
         self.assertTrue(result.strip().endswith("success"))
 
         # The above command equals to the follow commands with dockr cli.sh

@@ -255,10 +255,10 @@ class FBWorkspace(Workspace):
         """
         Before each execution, make sure to prepare and inject code.
         """
-        result = self.execute_ret_code(env, entry)
+        result = self.run(env, entry)
         return result.stdout
 
-    def execute_ret_code(self, env: Env, entry: str) -> EnvResult:
+    def run(self, env: Env, entry: str) -> EnvResult:
         """
         Execute the code in the environment and return an EnvResult object (stdout, exit_code, running_time).
 

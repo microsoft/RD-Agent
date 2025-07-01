@@ -52,7 +52,7 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
         fname = "test/data_loader_test.py"
         test_code = (DIRNAME / "eval_tests" / "data_loader_test.txt").read_text()
         implementation.inject_files(**{fname: test_code})
-        result = implementation.execute_ret_code(env=env, entry=f"python {fname}")
+        result = implementation.run(env=env, entry=f"python {fname}")
         stdout = result.stdout
         ret_code = result.ret_code
         match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===(.*)", stdout, re.DOTALL)
