@@ -22,6 +22,7 @@ from abc import abstractmethod
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Generator, Generic, Mapping, Optional, TypeVar, cast
+from dataclasses import dataclass
 
 import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
@@ -128,6 +129,17 @@ class EnvConf(ExtendedBaseSettings):
 
 ASpecificEnvConf = TypeVar("ASpecificEnvConf", bound=EnvConf)
 
+@dataclass
+class EnvResult:
+    """
+    The result of running the environment.
+    It contains the stdout, the exit code, and the running time in seconds.
+    """
+
+    stdout: str
+    exit_code: int
+    running_time: float
+
 
 class Env(Generic[ASpecificEnvConf]):
     """
@@ -199,7 +211,7 @@ class Env(Generic[ASpecificEnvConf]):
         env: dict | None = None,
         running_extra_volume: Mapping = MappingProxyType({}),
         remove_timestamp: bool = True,
-    ) -> tuple[str, int, float]:
+    ) -> EnvResult:
         # TODO: remove_timestamp can be implemented in a shallower way...
         for retry_index in range(self.conf.retry_count + 1):
             try:
@@ -215,7 +227,7 @@ class Env(Generic[ASpecificEnvConf]):
                     )
                     log_output += f"\n\nThe running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
                 log_output += f"\nTotal running time: {end - start:.3f} seconds."
-                return log_output, return_code, end - start
+                return EnvResult(log_output, return_code, end - start)
             except Exception as e:
                 if retry_index == self.conf.retry_count:
                     raise
@@ -231,7 +243,7 @@ class Env(Generic[ASpecificEnvConf]):
         local_path: str = ".",
         env: dict | None = None,
         **kwargs: dict,
-    ) -> tuple[str, int]:
+    ) -> EnvResult:
         """
         Run the folder under the environment and return the stdout, exit code, and running time.
 
@@ -250,7 +262,7 @@ class Env(Generic[ASpecificEnvConf]):
 
         Returns
         -------
-            A tuple containing the stdout, the exit code, and the running time in seconds.
+            EnvResult: An object containing the stdout, the exit code, and the running time in seconds.
         """
         running_extra_volume = kwargs.get("running_extra_volume", {})
         if entry is None:
@@ -298,15 +310,15 @@ class Env(Generic[ASpecificEnvConf]):
         )
 
         if self.conf.enable_cache:
-            stdout, return_code, running_time = self.cached_run(
+            result = self.cached_run(
                 entry_add_timeout, local_path, env, running_extra_volume
             )
         else:
-            stdout, return_code, running_time = self.__run_ret_code_with_retry(
+            result = self.__run_ret_code_with_retry(
                 entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False
             )
 
-        return stdout, return_code, running_time
+        return result
 
     def cached_run(
         self,
@@ -315,7 +327,7 @@ class Env(Generic[ASpecificEnvConf]):
         env: dict | None = None,
         running_extra_volume: Mapping = MappingProxyType({}),
         remove_timestamp: bool = True,
-    ) -> tuple[str, int, float]:
+    ) -> EnvResult:
         """
         Run the folder under the environment.
         Will cache the output and the folder diff for next round of running.
@@ -348,7 +360,7 @@ class Env(Generic[ASpecificEnvConf]):
         )
         if Path(target_folder / f"{key}.pkl").exists() and Path(target_folder / f"{key}.zip").exists():
             with open(target_folder / f"{key}.pkl", "rb") as f:
-                ret: tuple[str, int] = pickle.load(f)
+                ret = pickle.load(f)
             self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path)
         else:
             ret = self.__run_ret_code_with_retry(entry, local_path, env, running_extra_volume, remove_timestamp)
@@ -365,7 +377,7 @@ class Env(Generic[ASpecificEnvConf]):
         env: dict | None = None,
         running_extra_volume: Mapping = MappingProxyType({}),
         **kwargs: Any,
-    ) -> tuple[str, int, float]:
+    ) -> tuple[str, int]:
         """
         Execute the specified entry point within the given environment and local path.
 
@@ -382,8 +394,8 @@ class Env(Generic[ASpecificEnvConf]):
 
         Returns
         -------
-        tuple[str, int, float]
-            A tuple containing the standard output, exit code, and running time in seconds.
+        tuple[str, int]
+            A tuple containing the standard output and the exit code.
         """
         pass
 
