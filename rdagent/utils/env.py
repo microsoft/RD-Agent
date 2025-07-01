@@ -298,7 +298,9 @@ class Env(Generic[ASpecificEnvConf]):
         )
 
         if self.conf.enable_cache:
-            stdout, return_code, running_time = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
+            stdout, return_code, running_time = self.cached_run(
+                entry_add_timeout, local_path, env, running_extra_volume
+            )
         else:
             stdout, return_code, running_time = self.__run_ret_code_with_retry(
                 entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False
