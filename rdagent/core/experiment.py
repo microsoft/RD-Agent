@@ -63,10 +63,12 @@ class Task(AbsTask):
 ASpecificTask = TypeVar("ASpecificTask", bound=Task)
 ASpecificFeedback = TypeVar("ASpecificFeedback", bound=Feedback)
 
+
 @dataclass
 class RunningInfo:
     result: object = None  # The result of the experiment, can be different types in different scenarios.
     running_time: float | None = None
+
 
 class Workspace(ABC, Generic[ASpecificTask, ASpecificFeedback]):
     """
