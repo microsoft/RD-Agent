@@ -13,16 +13,15 @@ task_gen:
     Your goal is to generate a detailed, step-by-step **refinement plan** for current SOTA implementation that effectively implements the `Proposed Hypothesis`.
 
     # Task Design Specification
-    {{ task_spec }}
+    {% include "scenarios.data_science.share:component_spec.Pipeline" %}
 
     # Task Design Guidelines
-    {{ task_guide }}
+    {% include "scenarios.data_science.share:guidelines.refine" %}
 
     # Refinement Specification
-    Hypothesis: {{ hypothesis.hypothesis }}
-    Reason: {{ hypothesis.reason }} 
-    1. **Efficiency Refinement**
-    2. **Hyperparameters Tuning**
+    ## Hypothesis: {{ hypothesis.hypothesis }}
+    ### Reason: {{ hypothesis.reason }} 
+    ## Hyperparameters Tuning:
     {% include "scenarios.data_science.share:spec.hyperparameter" %}
 
     # Output Format

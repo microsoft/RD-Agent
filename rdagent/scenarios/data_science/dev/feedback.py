@@ -123,7 +123,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
                 resp_dict, "Code Change Summary", "No code change summary provided"
             ),
             decision=convert2bool(dict_get_with_warning(resp_dict, "Replace Best Result", "no")),
-            refine_decision=convert2bool(dict_get_with_warning(resp_dict, "Effectiveness Check", "no")),
+            refine_decision=convert2bool(dict_get_with_warning(resp_dict, "Refine Decision", "no")),
         )
 
         if hypothesis_feedback and DS_RD_SETTING.enable_knowledge_base:
