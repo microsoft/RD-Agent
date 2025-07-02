@@ -1,4 +1,3 @@
-import pickle
 from collections import defaultdict
 from pathlib import Path
 
@@ -56,7 +55,7 @@ def _get_loop_and_fn_after_hours(log_folder: Path, hours: int):
     stop_session_fp = get_first_session_file_after_duration(log_folder, f"{hours}h")
 
     with stop_session_fp.open("rb") as f:
-        session_obj: LoopBase = pickle.load(f)
+        session_obj: LoopBase = pd.read_parquet(f)
 
     loop_trace = session_obj.loop_trace
     stop_li = max(loop_trace.keys())
@@ -211,12 +210,12 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
         )
 
     # Save the summary
-    save_name = f"summary_{hours}h.pkl" if hours else "summary.pkl"
+    save_name = f"summary_{hours}h.parquet" if hours else "summary.parquet"
     save_p = log_folder / save_name
     if save_p.exists():
         save_p.unlink()
         print(f"Old {save_name} removed.")
-    pd.to_pickle(stat, save_p)
+    pd.to_parquet(stat, save_p)
 
 
 # {
