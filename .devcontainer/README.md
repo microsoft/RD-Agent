@@ -19,3 +19,12 @@ export KAGGLE_KEY=
 ```
 
 3. Run: python rdagent/app/data_science/loop.py --competition nomad2018-predict-transparent-conductors
+
+
+# Additional Notes
+- Please install and use this Dev Container in VS Code.
+- You **must open VS Code remotely and enter the `RD-Agent` directory before running the DevContainer configuration (`.devcontainer/devcontainer.json`)**. Otherwise, the workspace and path mappings will not work as expected.
+- To open the DevContainer correctly in VS Code:
+  1. Remotely connect to the machine and open the `RD-Agent` folder in VS Code.
+  2. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac), type and select **"Dev Containers: Reopen in Container"**.
+
