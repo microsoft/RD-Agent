@@ -55,19 +55,50 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
         env = get_ds_env(extra_volumes={self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()})
 
-        # Clean the scores.csv & submission.csv.
-        implementation.execute(env=env, entry=get_clear_ws_cmd())
-        result = implementation.run(env=env, entry=f"python -m coverage run main.py")
-        implementation.running_info.running_time = result.running_time
-        execute_ret_code = result.exit_code
+        stdout = ""
+        run_full_data = True
         if not DS_RD_SETTING.sample_data:
-            match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL)
-            eda_output = match.groups()[1] if match else None
-            if eda_output is None:
-                eda_output = "No EDA output."
-            implementation.inject_files(**{"EDA.md": eda_output})
-        stdout = remove_eda_part(result.stdout)
-        stdout += f"The code executed {'successfully' if execute_ret_code == 0 else 'failed'}."
+            # Because coder runs on full data, we need to run debug mode in advance to save time
+            implementation.execute(env=env, entry=get_clear_ws_cmd())
+            result = implementation.run(env=env, entry=f"python -m coverage run main.py --debug")
+            if result.exit_code != 0:
+                stdout += "Debug mode failed to run. Please check the stdout:\n"
+                stdout += result.stdout
+                run_full_data = False
+            else:
+                stdout += "Debug mode ran successfully.\n"
+                match = re.search(r"(.*?)=== Start of Debug Mode ===(.*)=== End of Debug Mode ===", stdout, re.DOTALL)
+                debug_output = match.groups()[1] if match else None
+                if debug_output is not None:
+                    debug_time, full_estimated_time = None, None
+                    if match := re.search(r"debug_time:\s*(\d+(?:.\d+)?)", debug_output, re.DOTALL):
+                        debug_time = float(match.group(1))
+                    if match := re.search(r"estimated_time:\s*(\d+(?:.\d+)?)", debug_output, re.DOTALL):
+                        full_estimated_time = float(match.group(1))
+                    if debug_time is not None and full_estimated_time is not None:
+                        stdout += f"Debug mode ran in {debug_time:.2f} seconds, estimated full run time is {full_estimated_time:.2f} seconds.\n"
+                        if full_estimated_time < env.conf.running_timeout_period * 2:
+                            stdout += "The estimated full run time is less than twice the timeout period, proceeding with full data run.\n"
+                        else:
+                            stdout += "The estimated full run time is more than twice the timeout period, skipping full data run.\n"
+                            run_full_data = False
+
+        if run_full_data:
+            # Clean the scores.csv & submission.csv.
+            implementation.execute(env=env, entry=get_clear_ws_cmd())
+            execute_stdout, execute_ret_code = implementation.execute_ret_code(
+                env=env, entry=f"python -m coverage run main.py"
+            )
+            if not DS_RD_SETTING.sample_data:
+                match = re.search(
+                    r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", execute_stdout, re.DOTALL
+                )
+                eda_output = match.groups()[1] if match else None
+                if eda_output is None:
+                    eda_output = "No EDA output."
+                implementation.inject_files(**{"EDA.md": eda_output})
+            execute_stdout = remove_eda_part(execute_stdout)
+            stdout += f"The code executed {'successfully' if execute_ret_code == 0 else 'failed'} with following output:\n{execute_stdout.strip()}\n"
 
         score_fp = implementation.workspace_path / "scores.csv"
         score_ret_code = 0
