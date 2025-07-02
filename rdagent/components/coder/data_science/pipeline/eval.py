@@ -59,7 +59,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         implementation.execute(env=env, entry=get_clear_ws_cmd())
         result = implementation.run(env=env, entry=f"python -m coverage run main.py")
         implementation.running_info.running_time = result.running_time
-        execute_ret_code = result.ret_code
+        execute_ret_code = result.exit_code
         stdout = remove_eda_part(result.stdout)
         stdout += f"The code executed {'successfully' if execute_ret_code == 0 else 'failed'}."
 
@@ -109,7 +109,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             # stdout += "----Submission Check 1-----\n"
             submission_result = implementation.run(env=env, entry="python test/submission_format_test.py")
             submission_check_out = submission_result.stdout
-            submission_ret_code = submission_result.ret_code
+            submission_ret_code = submission_result.exit_code
             if DS_RD_SETTING.rule_base_eval:
                 if execute_ret_code == 0 and score_ret_code == 0 and submission_ret_code == 0:
                     return PipelineSingleFeedback(
