@@ -52,7 +52,7 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
 
         result = implementation.run(env=env, entry=f"python {fname}")
 
-        if "main.py" in implementation.file_dict and result.ret_code == 0:
+        if "main.py" in implementation.file_dict and result.exit_code == 0:
             workflow_stdout = implementation.execute(env=env, entry="python main.py")
             workflow_stdout = remove_eda_part(workflow_stdout)
         else:
@@ -76,6 +76,6 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
             user_prompt=user_prompt,
             init_kwargs_update_func=FeatureEvalFeedback.val_and_update_init_dict,
         )
-        fb.final_decision = fb.final_decision and result.ret_code == 0
+        fb.final_decision = fb.final_decision and result.exit_code == 0
 
         return fb
