@@ -67,21 +67,22 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 run_full_data = False
             else:
                 stdout += "Debug mode ran successfully.\n"
-                match = re.search(r"(.*?)=== Start of Debug Mode ===(.*)=== End of Debug Mode ===", stdout, re.DOTALL)
-                debug_output = match.groups()[1] if match else None
-                if debug_output is not None:
-                    debug_time, full_estimated_time = None, None
-                    if match := re.search(r"debug_time:\s*(\d+(?:.\d+)?)", debug_output, re.DOTALL):
-                        debug_time = float(match.group(1))
-                    if match := re.search(r"estimated_time:\s*(\d+(?:.\d+)?)", debug_output, re.DOTALL):
-                        full_estimated_time = float(match.group(1))
-                    if debug_time is not None and full_estimated_time is not None:
-                        stdout += f"Debug mode ran in {debug_time:.2f} seconds, estimated full run time is {full_estimated_time:.2f} seconds.\n"
-                        if full_estimated_time < env.conf.running_timeout_period * 2:
-                            stdout += "The estimated full run time is less than twice the timeout period, proceeding with full data run.\n"
-                        else:
-                            stdout += "The estimated full run time is more than twice the timeout period, skipping full data run.\n"
-                            run_full_data = False
+                debug_time, full_estimated_time = None, None
+                if match := re.search(r"debug_time:\s*(\d+(?:.\d+)?)", debug_stdout, re.DOTALL):
+                    debug_time = float(match.group(1))
+                if match := re.search(r"estimated_time:\s*(\d+(?:.\d+)?)", debug_stdout, re.DOTALL):
+                    full_estimated_time = float(match.group(1))
+                if debug_time is not None and full_estimated_time is not None:
+                    stdout += f"Debug mode ran in {debug_time:.2f} seconds, estimated full run time is {full_estimated_time:.2f} seconds.\n"
+                    if full_estimated_time < env.conf.running_timeout_period * 2:
+                        stdout += "The estimated full run time is less than twice the timeout period, proceeding with full data run.\n"
+                    else:
+                        stdout += f"The estimated full run time is more than twice the timeout period, skipping full data run.\nFollowing the stdout of the debug mode run:\n{debug_stdout.strip()}\n"
+                        run_full_data = False
+                else:
+                    stdout += (
+                        "Debug mode did not provide debug_time or estimated_time, proceeding with full data run.\n"
+                    )
 
         if run_full_data:
             # Clean the scores.csv & submission.csv.
