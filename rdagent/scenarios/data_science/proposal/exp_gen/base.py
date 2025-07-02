@@ -208,6 +208,26 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         else:
             raise ValueError("Invalid return_type. Must be 'sota', 'failed', or 'all'.")
 
+    def sota_experiment_idx(
+        self,
+        search_type: Literal["all", "ancestors"] = "ancestors",
+        selection: tuple[int, ...] | None = None,
+    ) -> int | None:
+        """
+        Returns
+        -------
+        int or None
+            The index (in reversed order: -1, -2, ...) of the SOTA experiment in the trace,
+            or None if not found.
+        """
+        search_list = self.retrieve_search_list(search_type, selection=selection)
+
+        if DS_RD_SETTING.coder_on_whole_pipeline or self.next_incomplete_component() is None:
+            for rev_idx, (exp, ef) in enumerate(search_list[::-1]):
+                if ef.decision:
+                    return -(rev_idx + 1)
+        return None
+
     def sota_experiment_fb(
         self,
         search_type: Literal["all", "ancestors"] = "ancestors",
