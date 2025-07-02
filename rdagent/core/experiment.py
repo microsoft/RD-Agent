@@ -63,6 +63,10 @@ class Task(AbsTask):
 ASpecificTask = TypeVar("ASpecificTask", bound=Task)
 ASpecificFeedback = TypeVar("ASpecificFeedback", bound=Feedback)
 
+@dataclass
+class RunningInfo:
+    result: object = None  # The result of the experiment, can be different types in different scenarios.
+    running_time: float | None = None
 
 class Workspace(ABC, Generic[ASpecificTask, ASpecificFeedback]):
     """
@@ -73,6 +77,7 @@ class Workspace(ABC, Generic[ASpecificTask, ASpecificFeedback]):
     def __init__(self, target_task: ASpecificTask | None = None) -> None:
         self.target_task: ASpecificTask | None = target_task
         self.feedback: ASpecificFeedback | None = None
+        self.running_info: RunningInfo = RunningInfo()
 
     @abstractmethod
     def execute(self, *args: Any, **kwargs: Any) -> object | None:
@@ -283,12 +288,6 @@ class FBWorkspace(Workspace):
 
 ASpecificWSForExperiment = TypeVar("ASpecificWSForExperiment", bound=Workspace)
 ASpecificWSForSubTasks = TypeVar("ASpecificWSForSubTasks", bound=Workspace)
-
-
-@dataclass
-class RunningInfo:
-    result: object = None  # The result of the experiment, can be different types in different scenarios.
-    running_time: float | None = None
 
 
 class Experiment(

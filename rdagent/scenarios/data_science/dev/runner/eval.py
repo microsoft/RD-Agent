@@ -56,7 +56,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         result = implementation.run(env=env, entry="python -m coverage run main.py")
         stdout = result.stdout
         execute_ret_code = result.ret_code
-        implementation.inject_files(**{"running_time.txt": result.running_time})
+        implementation.running_info.running_time = result.running_time
 
         match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL)
         eda_output = match.groups()[1] if match else None
