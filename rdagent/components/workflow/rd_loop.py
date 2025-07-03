@@ -28,8 +28,8 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
     def __init__(self, PROP_SETTING: BasePropSetting):
         scen: Scenario = import_class(PROP_SETTING.scen)()
         logger.log_object(scen, tag="scenario")
-        logger.log_object(PROP_SETTING, tag="RDLOOP_SETTINGS")
-        logger.log_object(RD_AGENT_SETTINGS, tag="RD_AGENT_SETTINGS")
+        logger.log_object(PROP_SETTING.model_dump(), tag="RDLOOP_SETTINGS")
+        logger.log_object(RD_AGENT_SETTINGS.model_dump(), tag="RD_AGENT_SETTINGS")
         self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
 
         self.hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.hypothesis2experiment)()
