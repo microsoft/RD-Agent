@@ -204,10 +204,10 @@ class Env(Generic[ASpecificEnvConf]):
         -------
             the stdout
         """
-        result = self.run_ret_code(entry=entry, local_path=local_path, env=env, **kwargs)
+        result = self.run(entry=entry, local_path=local_path, env=env, **kwargs)
         return result.stdout
 
-    def __run_ret_code_with_retry(
+    def __run_with_retry(
         self,
         entry: str | None = None,
         local_path: str = ".",
@@ -219,7 +219,7 @@ class Env(Generic[ASpecificEnvConf]):
         for retry_index in range(self.conf.retry_count + 1):
             try:
                 start = time.time()
-                log_output, return_code = self._run_ret_code(
+                log_output, return_code = self._run(
                     entry, local_path, env, running_extra_volume=running_extra_volume, remove_timestamp=remove_timestamp
                 )
                 end = time.time()
@@ -240,7 +240,7 @@ class Env(Generic[ASpecificEnvConf]):
                 time.sleep(self.conf.retry_wait_seconds)
         raise RuntimeError  # for passing CI
 
-    def run_ret_code(
+    def run(
         self,
         entry: str | None = None,
         local_path: str = ".",
@@ -315,7 +315,7 @@ class Env(Generic[ASpecificEnvConf]):
         if self.conf.enable_cache:
             result = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
         else:
-            result = self.__run_ret_code_with_retry(
+            result = self.__run_with_retry(
                 entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False
             )
 
@@ -364,14 +364,14 @@ class Env(Generic[ASpecificEnvConf]):
                 ret = pickle.load(f)
             self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path)
         else:
-            ret = self.__run_ret_code_with_retry(entry, local_path, env, running_extra_volume, remove_timestamp)
+            ret = self.__run_with_retry(entry, local_path, env, running_extra_volume, remove_timestamp)
             with open(target_folder / f"{key}.pkl", "wb") as f:
                 pickle.dump(ret, f)
             self.zip_a_folder_into_a_file(local_path, str(target_folder / f"{key}.zip"))
         return cast(EnvResult, ret)
 
     @abstractmethod
-    def _run_ret_code(
+    def _run(
         self,
         entry: str | None,
         local_path: str = ".",
@@ -452,7 +452,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
 
     def prepare(self) -> None: ...
 
-    def _run_ret_code(
+    def _run(
         self,
         entry: str | None = None,
         local_path: str | None = None,
@@ -853,7 +853,7 @@ class DockerEnv(Env[DockerConf]):
         output_string = re.sub(datetime_pattern, "[DATETIME]", input_string)
         return output_string
 
-    def _run_ret_code(
+    def _run(
         self,
         entry: str | None = None,
         local_path: str = ".",

@@ -63,7 +63,7 @@ class EnvUtils(unittest.TestCase):
         print(local_conf)
         le = LocalEnv(conf=local_conf)
         le.prepare()
-        result = le.run_ret_code(local_path=str(code_path))
+        result = le.run(local_path=str(code_path))
         print(result.stdout, result.exit_code, result.running_time)
 
     def test_conda_simple(self):
@@ -72,7 +72,7 @@ class EnvUtils(unittest.TestCase):
         le.prepare()
         code_path = DIRNAME / "tmp_code"
         code_path.mkdir(exist_ok=True)
-        result = le.run_ret_code(local_path=str(code_path))
+        result = le.run(local_path=str(code_path))
         print(result.stdout, result.exit_code, result.running_time)
 
     def test_conda_error(self):
@@ -82,7 +82,7 @@ class EnvUtils(unittest.TestCase):
         file_name = f"{time.time()}.py"
         with open(self.test_workspace / file_name, "w") as f:
             f.write('import json \njson.loads(b\'{"name": "\xa1"}\')')
-        result = le.run_ret_code(local_path=str(self.test_workspace), entry=f"python {file_name}")
+        result = le.run(local_path=str(self.test_workspace), entry=f"python {file_name}")
         assert result.exit_code == 1
         assert "bytes can only contain ASCII literal characters" in result.stdout
 
@@ -103,26 +103,26 @@ class EnvUtils(unittest.TestCase):
         result = qtde.check_output(local_path=str(DIRNAME / "env_tpl"), entry="python read_exp_res.py")
         print(result)
 
-    def test_run_ret_code(self):
-        """Test the run_ret_code method of QTDockerEnv with both valid and invalid commands."""
+    def test_run(self):
+        """Test the run method of QTDockerEnv with both valid and invalid commands."""
         qtde = QTDockerEnv()
         qtde.prepare()
 
         # Test with a valid command
-        result = qtde.run_ret_code(entry='echo "Hello, World!"', local_path=str(self.test_workspace))
+        result = qtde.run(entry='echo "Hello, World!"', local_path=str(self.test_workspace))
         print(result.exit_code)
         assert result.exit_code == 0, f"Expected return code 0, but got {result.exit_code}"
         assert "Hello, World!" in result.stdout, "Expected output not found in result"
 
         # Test with an invalid command
-        result = qtde.run_ret_code(entry="invalid_command", local_path=str(self.test_workspace))
+        result = qtde.run(entry="invalid_command", local_path=str(self.test_workspace))
         print(result.exit_code)
         assert result.exit_code != 0, "Expected non-zero return code for invalid command"
 
         dc = QlibDockerConf()
         dc.running_timeout_period = 1
         qtde = QTDockerEnv(dc)
-        result = qtde.run_ret_code(entry="sleep 2", local_path=str(self.test_workspace))
+        result = qtde.run(entry="sleep 2", local_path=str(self.test_workspace))
         print(result.exit_code)
         assert result.exit_code == 124, "Expected return code 124 for timeout"
 
