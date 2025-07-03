@@ -55,7 +55,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         # execute workflow
         result = implementation.run(env=env, entry="python -m coverage run main.py")
         stdout = result.stdout
-        execute_ret_code = result.ret_code
+        execute_ret_code = result.exit_code
         implementation.running_info.running_time = result.running_time
 
         match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL)

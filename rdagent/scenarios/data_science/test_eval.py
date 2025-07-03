@@ -82,7 +82,7 @@ class TestEval(TestEvalBase):
             **{file: workspace.DEL_KEY for file in ["submission_format_valid.py", "submission_test.csv"]}
         )
         workspace.inject_files(**{"test/mle_submission_format_test.output": submission_result.stdout})
-        return submission_result.stdout, submission_result.ret_code
+        return submission_result.stdout, submission_result.exit_code
 
     def enabled(self, competition) -> bool:
         return Path(
@@ -119,7 +119,7 @@ class MLETestEval(TestEvalBase):
         submission_result = workspace.run(env=self.env, entry="python test/mle_submission_format_test.py")
 
         workspace.inject_files(**{"test/mle_submission_format_test.output": submission_result.stdout})
-        return submission_result.stdout, submission_result.ret_code
+        return submission_result.stdout, submission_result.exit_code
 
     def enabled(self, competition) -> bool:
         return True
