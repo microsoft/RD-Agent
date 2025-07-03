@@ -78,6 +78,9 @@ def load_data(log_path: Path):
             if msg.tag == "competition":
                 data["competition"] = msg.content
                 continue
+            if "SETTINGS" in msg.tag:
+                data["settings"][msg.tag] = msg.content
+                continue
 
             msg.tag = re.sub(r"\.evo_loop_\d+", "", msg.tag)
             msg.tag = re.sub(r"Loop_\d+\.[^.]+\.?", "", msg.tag)
