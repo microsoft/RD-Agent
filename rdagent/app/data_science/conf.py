@@ -27,9 +27,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     ## Coding Related
     coding_fail_reanalyze_threshold: int = 3
 
-    debug_timeout: int = 900
+    debug_timeout: int = 1200
     """The timeout limit for running on debugging data"""
-    full_timeout: int = 4500
+    full_timeout: int = 7200
     """The timeout limit for running on full data"""
 
     ### specific feature
