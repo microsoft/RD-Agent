@@ -77,7 +77,7 @@ class DSRefineExpGen(ExpGen):
             eda_output = None
         else:
             eda_output = sota_exp.experiment_workspace.file_dict.get("EDA.md", None)
-        scenario_desc = self.get_scenario_all_desc(trace, eda_output=eda_output)
+        scenario_desc = self.scen.get_scenario_all_desc(trace, eda_output=eda_output)
         sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
             exp=sota_exp, heading="Best of previous exploration of the scenario"
         )
