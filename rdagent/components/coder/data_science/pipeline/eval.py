@@ -74,10 +74,10 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                     full_estimated_time = float(match.group(1))
                 if debug_time is not None and full_estimated_time is not None:
                     stdout += f"Debug mode ran in {debug_time:.2f} seconds, estimated full run time is {full_estimated_time:.2f} seconds.\n"
-                    if full_estimated_time < env.conf.running_timeout_period * 2:
-                        stdout += "The estimated full run time is less than twice the timeout period, proceeding with full data run.\n"
+                    if full_estimated_time < env.conf.running_timeout_period * 3:
+                        stdout += "The estimated full run time is less than three times the timeout period, proceeding with full data run.\n"
                     else:
-                        stdout += f"The estimated full run time is more than twice the timeout period, skipping full data run.\nFollowing the stdout of the debug mode run:\n{debug_stdout.strip()}\n"
+                        stdout += f"The estimated full run time is more than three times the timeout period, skipping full data run.\nFollowing the stdout of the debug mode run:\n{debug_stdout.strip()}\n"
                         run_full_data = False
                 else:
                     stdout += (
