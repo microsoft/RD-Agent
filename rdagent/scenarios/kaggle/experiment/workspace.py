@@ -83,7 +83,7 @@ class KGFBWorkspace(FBWorkspace):
         else:
             running_extra_volume = {}
 
-        execute_log = kgde.run(
+        execute_log = kgde.check_output(
             local_path=str(self.workspace_path),
             env=run_env,
             running_extra_volume=running_extra_volume,

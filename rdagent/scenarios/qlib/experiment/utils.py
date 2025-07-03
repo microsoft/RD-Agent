@@ -16,7 +16,7 @@ def generate_data_folder_from_qlib():
     qtde.prepare()
 
     # Run the Qlib backtest
-    execute_log = qtde.run(
+    execute_log = qtde.check_output(
         local_path=str(template_path),
         entry=f"python generate.py",
     )

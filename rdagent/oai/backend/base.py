@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Optional, cast
 
 import pytz
-from pydantic import TypeAdapter
+from pydantic import BaseModel, TypeAdapter
 
 from rdagent.core.exception import PolicyError
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass
@@ -275,6 +275,11 @@ class APIBackend(ABC):
         *args,
         **kwargs,
     ) -> str:
+        """
+        Responseible for building messages and logging messages
+
+        TODO: What is weird is that the function is called before we seperate embeddings and chat completion.
+        """
         if former_messages is None:
             former_messages = []
         messages = self._build_messages(
@@ -463,6 +468,7 @@ class APIBackend(ABC):
             match = re.search(r"<think>(.*?)</think>(.*)", all_response, re.DOTALL)
             _, all_response = match.groups() if match else ("", all_response)
 
+        # 3) format checking
         if json_mode:
             try:
                 json.loads(all_response)
@@ -472,6 +478,12 @@ class APIBackend(ABC):
                 json.loads(all_response)
         if json_target_type is not None:
             TypeAdapter(json_target_type).validate_json(all_response)
+        if (response_format := kwargs.get("response_format")) is not None:
+            if issubclass(response_format, BaseModel):
+                # It may raise TypeError if initialization fails
+                response_format(**json.loads(all_response))
+            else:
+                logger.warning(f"Unknown response_format: {response_format}, skipping validation.")
         if self.dump_chat_cache:
             self.cache.chat_set(input_content_json, all_response)
         return all_response

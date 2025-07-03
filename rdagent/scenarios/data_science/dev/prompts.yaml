@@ -5,7 +5,7 @@ exp_feedback:
     Below is a detailed description of the current Kaggle competition scenario:
     {{ scenario }}
 
-    Your task is to analyze the current experiment's hypothesis, implementation (code), and results, explicitly comparing them with previous experiments and the best previous result (SOTA).
+    Your task is to analyze the current experiment's hypothesis, implementation (code and its changes), and results, explicitly comparing them with previous experiments and the best previous result (SOTA).
 
     Step-by-step Analysis Process:
 
@@ -63,6 +63,7 @@ exp_feedback:
     {
       "Submission Format Check": "yes or no",
       "First Valid Submission": "yes or no",
+      "Code Change Summary": "Clearly summarize the changes made to the code (please cover the most important changes while being concise); during development, extra modifications may be made beyond the intent of the hypothesis, so these changes should also be included to provide complete information",
       "Observations": "Clearly summarize current and SOTA ensemble results with exact scores and notable patterns. Limit to no more than three concise, data-focused sentences. Your observation must be grounded by explicit evidence from scenario description or code implementation, not just validation scores.",
       "Feedback for Hypothesis": Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences.",
       "Evaluation Aligned With Task": "yes or no",
@@ -97,8 +98,9 @@ exp_feedback:
     1. Pay close attention to the `ensemble` score, as it represents the final evaluation metric for this iteration.
     2. If any individual model significantly outperforms the ensemble, this may indicate an issue in the ensemble method. But if the final `ensemble` score surpasses the current SOTA, you should update the SOTA record. However, it seems that there are noticeable issues in the ensemble component, be sure to highlight them explicitly.
 
-    Below are the results for this experiment:
-    {{ cur_exp.result }}
+    Below are the results and running time for this experiment:
+    Running time: {{ cur_exp.running_info.running_time }} seconds.
+    Results: {{ cur_exp.result }}
 
     {% if cur_vs_sota_score is not none %}
     Below is the comparison of the current `ensemble` performance with the SOTA results:
