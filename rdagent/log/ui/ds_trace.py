@@ -78,6 +78,9 @@ def load_data(log_path: Path):
             if msg.tag == "competition":
                 data["competition"] = msg.content
                 continue
+            if "SETTINGS" in msg.tag:
+                data["settings"][msg.tag] = msg.content
+                continue
 
             msg.tag = re.sub(r"\.evo_loop_\d+", "", msg.tag)
             msg.tag = re.sub(r"Loop_\d+\.[^.]+\.?", "", msg.tag)
@@ -131,16 +134,16 @@ def load_stdout(stdout_path: Path):
 
 
 # UI windows
-def task_win(data):
+def task_win(task):
     with st.container(border=True):
-        st.markdown(f"**:violet[{data.name}]**")
-        st.markdown(data.description)
-        if hasattr(data, "architecture"):  # model task
+        st.markdown(f"**:violet[{task.name}]**")
+        st.markdown(task.description)
+        if hasattr(task, "architecture"):  # model task
             st.markdown(
                 f"""
     | Model_type | Architecture | hyperparameters |
     |------------|--------------|-----------------|
-    | {data.model_type} | {data.architecture} | {data.hyperparameters} |
+    | {task.model_type} | {task.architecture} | {task.hyperparameters} |
     """
             )
 
@@ -282,7 +285,7 @@ def exp_gen_win(exp_gen_data, llm_data=None):
     workspace_win(exp_gen_data["no_tag"].experiment_workspace)
 
 
-def evolving_win(data, key, llm_data=None):
+def evolving_win(data, key, llm_data=None, base_workspace=None):
     with st.container(border=True):
         if len(data) > 1:
             evo_id = st.slider("Evolving", 0, len(data) - 1, 0, key=key)
@@ -299,8 +302,8 @@ def evolving_win(data, key, llm_data=None):
                 st.subheader("codes")
                 workspace_win(
                     data[evo_id]["evolving code"][0],
-                    cmp_workspace=data[evo_id - 1]["evolving code"][0] if evo_id > 0 else None,
-                    cmp_name="last evolving code",
+                    cmp_workspace=data[evo_id - 1]["evolving code"][0] if evo_id > 0 else base_workspace,
+                    cmp_name="last evolving code" if evo_id > 0 else "base workspace",
                 )
                 fb = data[evo_id]["evolving feedback"][0]
                 st.subheader("evolving feedback" + ("✅" if bool(fb) else "❌"))
@@ -315,7 +318,7 @@ def evolving_win(data, key, llm_data=None):
             st.markdown("No evolving.")
 
 
-def coding_win(data, llm_data: dict | None = None):
+def coding_win(data, base_exp, llm_data: dict | None = None):
     st.header("Coding", divider="blue", anchor="coding")
     if llm_data is not None:
         common_llm_data = llm_data.pop("no_tag", [])
@@ -330,10 +333,20 @@ def coding_win(data, llm_data: dict | None = None):
         for task in task_set:
             st.subheader(task)
             task_data = {k: {a.split(".")[1]: b for a, b in v.items() if task in a} for k, v in evolving_data.items()}
-            evolving_win(task_data, key=task, llm_data=llm_data if llm_data else None)
+            evolving_win(
+                task_data,
+                key=task,
+                llm_data=llm_data if llm_data else None,
+                base_workspace=base_exp.experiment_workspace,
+            )
     else:
         # 旧版未存Task tag的Trace
-        evolving_win(evolving_data, key="coding", llm_data=llm_data if llm_data else None)
+        evolving_win(
+            evolving_data,
+            key="coding",
+            llm_data=llm_data if llm_data else None,
+            base_workspace=base_exp.experiment_workspace,
+        )
     if state.show_llm_log:
         llm_log_win(common_llm_data)
     if "no_tag" in data:
@@ -341,12 +354,15 @@ def coding_win(data, llm_data: dict | None = None):
         workspace_win(data["no_tag"].experiment_workspace)
 
 
-def running_win(data, mle_score, llm_data=None, sota_exp=None):
+def running_win(data, base_exp, llm_data=None, sota_exp=None):
     st.header("Running", divider="blue", anchor="running")
     if llm_data is not None:
         common_llm_data = llm_data.pop("no_tag", [])
     evolving_win(
-        {k: v for k, v in data.items() if isinstance(k, int)}, key="running", llm_data=llm_data if llm_data else None
+        {k: v for k, v in data.items() if isinstance(k, int)},
+        key="running",
+        llm_data=llm_data if llm_data else None,
+        base_workspace=base_exp.experiment_workspace,
     )
     if state.show_llm_log and llm_data is not None:
         llm_log_win(common_llm_data)
@@ -359,11 +375,16 @@ def running_win(data, mle_score, llm_data=None, sota_exp=None):
         )
         st.subheader("Result")
         st.write(data["no_tag"].result)
-        st.subheader("MLE Submission Score" + ("✅" if (isinstance(mle_score, dict) and mle_score["score"]) else "❌"))
+        mle_score_text = data.get("mle_score", "no submission to score")
+        mle_score = extract_json(mle_score_text)
+        st.subheader(
+            "MLE Submission Score"
+            + ("✅" if (isinstance(mle_score, dict) and mle_score["score"] is not None) else "❌")
+        )
         if isinstance(mle_score, dict):
             st.json(mle_score)
         else:
-            st.code(mle_score, wrap_lines=True)
+            st.code(mle_score_text, wrap_lines=True)
 
 
 def feedback_win(fb_data, llm_data=None):
@@ -400,11 +421,15 @@ def main_win(loop_id, llm_data=None):
     loop_data = state.data[loop_id]
     exp_gen_win(loop_data["direct_exp_gen"], llm_data["direct_exp_gen"] if llm_data else None)
     if "coding" in loop_data:
-        coding_win(loop_data["coding"], llm_data["coding"] if llm_data else None)
+        coding_win(
+            loop_data["coding"],
+            base_exp=loop_data["direct_exp_gen"]["no_tag"],
+            llm_data=llm_data["coding"] if llm_data else None,
+        )
     if "running" in loop_data:
         running_win(
             loop_data["running"],
-            loop_data.get("mle_score", "no submission to score"),
+            base_exp=loop_data["coding"]["no_tag"],
             llm_data=llm_data["running"] if llm_data else None,
             sota_exp=(
                 state.data[loop_id - 1].get("record", {}).get("SOTA experiment", None)
