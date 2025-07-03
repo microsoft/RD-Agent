@@ -807,11 +807,6 @@ class DSProposalV2ExpGen(ExpGen):
         self,
         trace: DSTrace,
     ) -> DSExperiment:
-        # Refine TODO: write a router in the further
-        last_exp_fb = trace.last_exp_fb()
-        if last_exp_fb.decision and last_exp_fb.refine_decision:
-            return DSRefineExpGen(trace=trace)
-
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
         if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
             return draft_exp

@@ -26,8 +26,7 @@ class DSExpGen(ExpGen):
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
-        sota_exp, sota_exp_fb = trace.sota_experiment_fb()
-        sota_exp_idx = trace.sota_experiment_idx()
+        sota_exp = trace.sota_experiment()
 
         # Draft
         # TODO: draft here
@@ -37,8 +36,11 @@ class DSExpGen(ExpGen):
         # Refine
         # TODO: introduce LLMs to decide whether to refine. Current: rule-based.
         if sota_exp is not None:
+            # TODO: I think the logic of the sota_experiment_fb() should be refined
+            sota_exp_fb = trace.sota_experiment_fb()[-1]
+            sota_exp_idx = trace.sota_experiment_idx()
             last_exp_idx = -1
-            if pipeline and sota_exp.refine_decision and (last_exp_idx - sota_exp_idx) <= 2:
+            if pipeline and sota_exp_fb.refine_decision and (last_exp_idx - sota_exp_idx) <= 2:
                 return DSRefineExpGen(scen=self.scen).gen(trace=trace)
 
         # Propose
