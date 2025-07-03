@@ -11,11 +11,11 @@ The Data Science Agent is an agent that can automatically perform feature engine
 🧭 Example Guide
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- 🔧 **Set up RD-Agent Environment**
+1. 🔧 **Set up RD-Agent Environment**
 
   - Before you start, please make sure you have installed RD-Agent and configured the environment for RD-Agent correctly. If you want to know how to install and configure the RD-Agent, please refer to the `documentation <../installation_and_configuration.html>`_.
 
-- 🔩 **Setting the Environment variables at .env file**
+2. 🔩 **Setting the Environment variables at .env file**
 
   - Determine the path where the data will be stored and add it to the ``.env`` file.
 
@@ -24,9 +24,86 @@ The Data Science Agent is an agent that can automatically perform feature engine
     dotenv set DS_LOCAL_DATA_PATH <your local directory>/ds_data
     dotenv set DS_SCEN rdagent.scenarios.data_science.scen.DataScienceScen
 
-- 📥 **Prepare Competition Data**
+3. 📥 **Prepare Competition Data**
 
-  - Data Science competition data typically consists of three components: a competition description file (in Markdown format), the competition dataset, and evaluation scripts. For reference, an example of a custom user-defined dataset is provided in ``rdagent/scenarios/data_science/example``.
+  - A data science competition dataset usually consists of two parts: ``competition dataset`` and ``evaluation dataset``. (We provide `a sample <https://github.com/microsoft/RD-Agent/tree/main/rdagent/scenarios/data_science/example>`_ of a customized dataset named: `arf-12-hour-prediction-task as a reference`.)
+    
+    - The ``competition dataset`` contains **training data**, **test data**, **description files**, **formatted submission files**, **data sampling codes**.
+    
+    - The ``evaluation dataset`` contains **test results file**, **data checking codes**, and **scoring codes**.
+
+  - We use the ``arf-12-hour-prediction-task`` data as a sample to introduce the preparation workflow for the competition dataset.
+  
+    - Create a ``ds_data/source_data/arf-12-hours-prediction-task`` folder, which will be used to store your raw dataset.
+
+      - The raw files for the competition ``arf-12-hours-prediction-task`` have two files: ``ARF_12h.csv`` and ``X.npz``.
+    
+    - Create a ``ds_data/source_data/arf-12-hours-prediction-task/prepare.py`` file that splits your raw data into *training data*, *test data*, *formatted submission file*, and *test result file*. (You will need to write a script based on your raw data.)
+      
+      - The following shows the preprocessing code for the raw data of ``arf-12-hours-prediction-task``.
+
+      .. literalinclude:: ../../rdagent/scenarios/data_science/example/prepare.py
+        :language: python
+        :caption: ds_data/source_data/arf-12-hours-prediction-task/prepare.py
+        :linenos:
+
+      - At the end of program execution, the ``ds_data`` folder structure will look like this:
+
+        .. code-block:: text
+
+          ds_data
+          ├── arf-12-hours-prediction-task
+          │   ├── train
+          │   │   ├── ARF_12h.csv
+          │   │   └── X.npz
+          │   ├── test
+          │   │   ├── ARF_12h.csv
+          │   │   └── X.npz
+          │   └── sample_submission.csv
+          ├── eval
+          │   └── arf-12-hours-prediction-task
+          │       └── submission_test.csv
+          └── source_data
+              └── arf-12-hours-prediction-task
+                  ├── ARF_12h.csv
+                  ├── prepare.py
+                  └── X.npz
+
+    - Create a ``ds_data/arf-12-hours-prediction-task/description.md`` file to describe your competition, Objective, dataset, and other information.
+
+      - The following shows the description file for ``arf-12-hours-prediction-task``
+
+      .. literalinclude:: ../../rdagent/scenarios/data_science/example/arf-12-hour-prediction-task/description.md
+        :language: markdown
+        :caption: ds_data/arf-12-hours-prediction-task/description.md
+        :linenos:
+
+    - Create a ``ds_data/arf-12-hours-prediction-task/sample.py`` file to construct the debugging sample data.
+
+      - The following shows the script for constructing the debugging sample data based on the ``arf-12-hours-prediction-task`` dataset implementation.
+
+      .. literalinclude:: ../../rdagent/scenarios/data_science/example/arf-12-hour-prediction-task/sample.py
+        :language: markdown
+        :caption: ds_data/arf-12-hours-prediction-task/sample.py
+        :linenos:
+
+    - Create a ``ds_data/eval/arf-12-hour-prediction-task/valid.py`` file, which is used to check the validity of the submission files to ensure that their formatting is consistent with the reference file.
+
+      - The following shows a script that checks the validity of a submission based on the ``arf-12-hours-prediction-task`` data.
+
+      .. literalinclude:: ../../rdagent/scenarios/data_science/example/eval/arf-12-hour-prediction-task/valid.py
+        :language: markdown
+        :caption: ds_data/eval/arf-12-hour-prediction-task/valid.py
+        :linenos:
+
+    - Create a ``ds_data/eval/arf-12-hour-prediction-task/grade.py`` file, which is used to calculate the score based on the submission file and the standard answer file, and output the result in JSON format.
+
+      - The following shows a grading script based on the ``arf-12-hours-prediction-task`` data implementation.
+
+      .. literalinclude:: ../../rdagent/scenarios/data_science/example/eval/arf-12-hour-prediction-task/grade.py
+        :language: markdown
+        :caption: ds_data/eval/arf-12-hour-prediction-task/grade.py
+        :linenos:
 
     - **Correct directory structure (Here is an example of competition data with id custom_data)**
 
@@ -46,6 +123,8 @@ The Data Science Agent is an agent that can automatically perform feature engine
           └── sample.py
         
       - ``ds_data/custom_data/train.csv:`` Necessary training data in csv or parquet format, or training images.
+
+      - ``ds_data/custom_data/test.csv:`` Necessary test data in csv or parquet format, or test images.
 
       - ``ds_data/custom_data/description.md:`` (Optional) Competition description file.
 
