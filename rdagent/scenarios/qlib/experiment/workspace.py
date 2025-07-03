@@ -26,7 +26,7 @@ class QlibFBWorkspace(FBWorkspace):
         qtde.prepare()
 
         # Run the Qlib backtest
-        execute_qlib_log = qtde.run(
+        execute_qlib_log = qtde.check_output(
             local_path=str(self.workspace_path),
             entry=f"qrun {qlib_config_name}",
             env=run_env,
@@ -34,7 +34,7 @@ class QlibFBWorkspace(FBWorkspace):
         logger.log_object(execute_qlib_log, tag="Qlib_execute_log")
 
         # TODO: We should handle the case when Docker times out.
-        execute_log = qtde.run(
+        execute_log = qtde.check_output(
             local_path=str(self.workspace_path),
             entry="python read_exp_res.py",
             env=run_env,

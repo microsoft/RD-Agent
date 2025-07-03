@@ -98,8 +98,9 @@ exp_feedback:
     1. Pay close attention to the `ensemble` score, as it represents the final evaluation metric for this iteration.
     2. If any individual model significantly outperforms the ensemble, this may indicate an issue in the ensemble method. But if the final `ensemble` score surpasses the current SOTA, you should update the SOTA record. However, it seems that there are noticeable issues in the ensemble component, be sure to highlight them explicitly.
 
-    Below are the results for this experiment:
-    {{ cur_exp.result }}
+    Below are the results and running time for this experiment:
+    Running time: {{ cur_exp.running_info.running_time }} seconds.
+    Results: {{ cur_exp.result }}
 
     {% if cur_vs_sota_score is not none %}
     Below is the comparison of the current `ensemble` performance with the SOTA results:

@@ -19,6 +19,7 @@ import time
 import uuid
 import zipfile
 from abc import abstractmethod
+from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Generator, Generic, Mapping, Optional, TypeVar, cast
@@ -129,6 +130,18 @@ class EnvConf(ExtendedBaseSettings):
 ASpecificEnvConf = TypeVar("ASpecificEnvConf", bound=EnvConf)
 
 
+@dataclass
+class EnvResult:
+    """
+    The result of running the environment.
+    It contains the stdout, the exit code, and the running time in seconds.
+    """
+
+    stdout: str
+    exit_code: int
+    running_time: float
+
+
 class Env(Generic[ASpecificEnvConf]):
     """
     We use BaseModel as the setting due to the features it provides
@@ -168,7 +181,9 @@ class Env(Generic[ASpecificEnvConf]):
         Prepare for the environment based on it's configure
         """
 
-    def run(self, entry: str | None = None, local_path: str = ".", env: dict | None = None, **kwargs: dict) -> str:
+    def check_output(
+        self, entry: str | None = None, local_path: str = ".", env: dict | None = None, **kwargs: dict
+    ) -> str:
         """
         Run the folder under the environment.
 
@@ -189,22 +204,22 @@ class Env(Generic[ASpecificEnvConf]):
         -------
             the stdout
         """
-        stdout, _ = self.run_ret_code(entry=entry, local_path=local_path, env=env, **kwargs)
-        return stdout
+        result = self.run(entry=entry, local_path=local_path, env=env, **kwargs)
+        return result.stdout
 
-    def __run_ret_code_with_retry(
+    def __run_with_retry(
         self,
         entry: str | None = None,
         local_path: str = ".",
         env: dict | None = None,
         running_extra_volume: Mapping = MappingProxyType({}),
         remove_timestamp: bool = True,
-    ) -> tuple[str, int]:
+    ) -> EnvResult:
         # TODO: remove_timestamp can be implemented in a shallower way...
         for retry_index in range(self.conf.retry_count + 1):
             try:
                 start = time.time()
-                log_output, return_code = self._run_ret_code(
+                log_output, return_code = self._run(
                     entry, local_path, env, running_extra_volume=running_extra_volume, remove_timestamp=remove_timestamp
                 )
                 end = time.time()
@@ -214,7 +229,8 @@ class Env(Generic[ASpecificEnvConf]):
                         f"The running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
                     )
                     log_output += f"\n\nThe running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
-                return log_output, return_code
+                log_output += f"\nTotal running time: {end - start:.3f} seconds."
+                return EnvResult(log_output, return_code, end - start)
             except Exception as e:
                 if retry_index == self.conf.retry_count:
                     raise
@@ -224,15 +240,15 @@ class Env(Generic[ASpecificEnvConf]):
                 time.sleep(self.conf.retry_wait_seconds)
         raise RuntimeError  # for passing CI
 
-    def run_ret_code(
+    def run(
         self,
         entry: str | None = None,
         local_path: str = ".",
         env: dict | None = None,
         **kwargs: dict,
-    ) -> tuple[str, int]:
+    ) -> EnvResult:
         """
-        Run the folder under the environment and return both the stdout and the exit code.
+        Run the folder under the environment and return the stdout, exit code, and running time.
 
         Parameters
         ----------
@@ -249,7 +265,7 @@ class Env(Generic[ASpecificEnvConf]):
 
         Returns
         -------
-            A tuple containing the stdout and the exit code
+            EnvResult: An object containing the stdout, the exit code, and the running time in seconds.
         """
         running_extra_volume = kwargs.get("running_extra_volume", {})
         if entry is None:
@@ -297,13 +313,13 @@ class Env(Generic[ASpecificEnvConf]):
         )
 
         if self.conf.enable_cache:
-            stdout, return_code = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
+            result = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
         else:
-            stdout, return_code = self.__run_ret_code_with_retry(
+            result = self.__run_with_retry(
                 entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False
             )
 
-        return stdout, return_code
+        return result
 
     def cached_run(
         self,
@@ -312,7 +328,7 @@ class Env(Generic[ASpecificEnvConf]):
         env: dict | None = None,
         running_extra_volume: Mapping = MappingProxyType({}),
         remove_timestamp: bool = True,
-    ) -> tuple[str, int]:
+    ) -> EnvResult:
         """
         Run the folder under the environment.
         Will cache the output and the folder diff for next round of running.
@@ -345,17 +361,17 @@ class Env(Generic[ASpecificEnvConf]):
         )
         if Path(target_folder / f"{key}.pkl").exists() and Path(target_folder / f"{key}.zip").exists():
             with open(target_folder / f"{key}.pkl", "rb") as f:
-                ret: tuple[str, int] = pickle.load(f)
+                ret = pickle.load(f)
             self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path)
         else:
-            ret = self.__run_ret_code_with_retry(entry, local_path, env, running_extra_volume, remove_timestamp)
+            ret = self.__run_with_retry(entry, local_path, env, running_extra_volume, remove_timestamp)
             with open(target_folder / f"{key}.pkl", "wb") as f:
                 pickle.dump(ret, f)
             self.zip_a_folder_into_a_file(local_path, str(target_folder / f"{key}.zip"))
-        return ret
+        return cast(EnvResult, ret)
 
     @abstractmethod
-    def _run_ret_code(
+    def _run(
         self,
         entry: str | None,
         local_path: str = ".",
@@ -380,7 +396,7 @@ class Env(Generic[ASpecificEnvConf]):
         Returns
         -------
         tuple[str, int]
-            A tuple containing the standard output and the exit code of the execution.
+            A tuple containing the standard output and the exit code.
         """
         pass
 
@@ -400,7 +416,7 @@ class Env(Generic[ASpecificEnvConf]):
         with open(os.path.join(local_path, random_file_name), "w") as f:
             f.write(code)
         entry = f"python {random_file_name}"
-        log_output = self.run(entry, local_path, env, running_extra_volume=dict(running_extra_volume))
+        log_output = self.check_output(entry, local_path, env, running_extra_volume=dict(running_extra_volume))
         results = []
         os.remove(os.path.join(local_path, random_file_name))
         for name in dump_file_names:
@@ -436,7 +452,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
 
     def prepare(self) -> None: ...
 
-    def _run_ret_code(
+    def _run(
         self,
         entry: str | None = None,
         local_path: str | None = None,
@@ -837,7 +853,7 @@ class DockerEnv(Env[DockerConf]):
         output_string = re.sub(datetime_pattern, "[DATETIME]", input_string)
         return output_string
 
-    def _run_ret_code(
+    def _run(
         self,
         entry: str | None = None,
         local_path: str = ".",
@@ -933,7 +949,7 @@ class QTDockerEnv(DockerEnv):
         if not (Path(qlib_data_path) / "qlib_data" / "cn_data").exists():
             logger.info("We are downloading!")
             cmd = "python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn --interval 1d --delete_old False"
-            self.run(entry=cmd)
+            self.check_output(entry=cmd)
         else:
             logger.info("Data already exists. Download skipped.")
 
