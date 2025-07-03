@@ -57,7 +57,7 @@ class ExperimentFeedback(Feedback):
         *,
         code_change_summary: str | None = None,
         decision: bool,
-        refine_decision: bool,
+        refine_decision: bool = False,
         exception: Exception | None = None,
     ) -> None:
         self.decision = decision
@@ -97,7 +97,7 @@ class HypothesisFeedback(ExperimentFeedback):
         *,
         code_change_summary: str | None = None,
         decision: bool,
-        refine_decision: bool,
+        refine_decision: bool = False,
     ) -> None:
         super().__init__(
             reason, decision=decision, refine_decision=refine_decision, code_change_summary=code_change_summary
