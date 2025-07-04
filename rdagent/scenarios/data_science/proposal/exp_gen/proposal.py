@@ -831,6 +831,8 @@ class DSProposalV2ExpGen(ExpGen):
                     for key, value in T("scenarios.data_science.share:component_description").template.items()
                 ]
             )
+
+        sota_exp = trace.sota_experiment()
         if not isinstance(sota_exp, DSExperiment):
             eda_output = None
         else:
