@@ -32,6 +32,7 @@ from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
+from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.utils.workflow.misc import wait_retry
 
 
@@ -80,6 +81,7 @@ class DataScienceRDLoop(RDLoop):
     skip_loop_error = (CoderError, RunnerError)
     withdraw_loop_error = (PolicyError,)
 
+    # when using more advanced proposals(merged, parallel, etc.), we provide a default exp_gen for convinience.
     default_exp_gen: type[ExpGen] = DSProposalV2ExpGen
 
     def __init__(self, PROP_SETTING: BasePropSetting):
