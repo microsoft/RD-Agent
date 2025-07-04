@@ -17,7 +17,7 @@ pipeline_coder:
     {% include "scenarios.data_science.share:spec.hyperparameter" %}
 
     ## Specification your code should follow
-    {{ spec }}
+    {% include "scenarios.data_science.share:component_spec.Pipeline" %}
 
     {% if queried_similar_successful_knowledge|length != 0 or queried_former_failed_knowledge|length != 0 %}
     ## Relevant Information for This Task
@@ -134,9 +134,7 @@ pipeline_coder:
     2. Enhance code clarity and debugging capabilities  
     3. Optimize model configuration or validation strategy
     
-    The former code is correct. You should try to improve the code based on the provided task while not changing the irrelevant parts.
-    {% endif %}
-    {% endif %} 
+    The former code is correct. You should try to improve the code based on the provided task while not changing the irrelevant parts.{% endif %}{% endif %}
 
     ## Code Generation Best Practices
     1. **Avoid Hard-coding**: Avoid hard-coded values (e.g., fixed dataset size). Use proportions for data splitting instead of absolute numbers.
@@ -195,7 +193,7 @@ pipeline_eval:
 
     {% if debug_mode %}
     Step 5: The code is executed in a debug mode with the command `python main.py --debug`. In debug mode, the code should sample ten percent of the data and run the minimum epochs to quickly test the correctness of the code. You should check whether the code follows this requirements. If not, you should emphasize it in your feedback and reject this implementation.
-    You will also be given the execution time and estimated time for the full run. If not time information is provided or the estimated full run time is more than three times the timeout period, you should reject the implementation because the full run will not finish in time. 
+    You will also be given the execution time and estimated time for the full run. You should check whether the estimated time is too large to finish in the given time limit. You should also consider the early stopping mechanism in the code. The estimated time could be very large but the early stopping mechanism could stop the training earlier than the full epochs. You should also check whether the debug time is reasonable and the estimated time is reasonable based on the debug time.
     {% endif %}
 
     ## Evaluation Criteria
@@ -213,7 +211,7 @@ pipeline_eval:
     4. **Exception Handling Review**: Check that try-except blocks are used appropriately (only for data loading) and minimized elsewhere to avoid masking code issues.
     5. **Assertion Usage**: Ensure assert statements are used sparingly to avoid preventing discovery of code problems.
     6. **Debug-Friendly Code**: Verify there are appropriate print statements at key steps for debugging and iteration. Check that print() function is used instead of logging module.
-    7. **Training Configuration**: Verify epoch numbers are reasonable (at least 10), early stopping is properly implemented with appropriate conditions, and model checkpointing is used.
+    7. **Training Configuration**: Verify epoch numbers are reasonable (at least 10), early stopping is properly implemented with appropriate conditions, and model checkpoint is used.
     8. **Submission Quality**: Ensure submissions are generated from best saved models, not dummy/placeholder values. Verify honest failure reporting if training issues occur.
     9. **Resource Management**: Check that all available data is used appropriately without unnecessary sampling or subsetting.
     10. **Robustness**: Ensure the code handles varying data sizes and structures gracefully without breaking on edge cases.
