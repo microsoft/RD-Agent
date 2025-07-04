@@ -5,10 +5,13 @@ from collections import deque
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import matplotlib.pyplot as plt
+import networkx as nx
 import pandas as pd
 import typer
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
+from rdagent.core.proposal import Trace
 from rdagent.core.utils import cache_with_pickle
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.utils import extract_json
@@ -274,10 +277,16 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             v["running_time"] = str(running_time).split(".")[0]
 
             final_sota_exp = get_final_sota_exp(Path(lf) / k)
-            if final_sota_exp is not None and final_sota_exp.result is not None:
-                v["sota_exp_score_valid"] = final_sota_exp.result.loc["ensemble"].iloc[0]
-            else:
-                v["sota_exp_score_valid"] = None
+
+            v["sota_exp_score_valid"] = None
+            if final_sota_exp is not None:
+                try:
+                    final_sota_result = final_sota_exp.result
+                except AttributeError:  # Compatible with old versions
+                    final_sota_result = final_sota_exp.__dict__["result"]
+                if final_sota_result is not None:
+                    v["sota_exp_score_valid"] = final_sota_result.loc["ensemble"].iloc[0]
+
             v["sota_exp_stat_new"] = get_sota_exp_stat(Path(lf) / k)
             # change experiment name
             if "amlt" in lf:
@@ -541,6 +550,57 @@ def get_statistics_df(summary_df: pd.DataFrame) -> pd.DataFrame:
 
     stat_df = pd.concat([total_stat, sota_exp_stat, sota_exp_stat_new], axis=1)
     return stat_df
+
+
+def trace_figure(trace: Trace):
+    G = nx.DiGraph()
+
+    # Calculate the number of ancestors for each node (root node is 0, more ancestors means lower level)
+    levels = {}
+    for i in range(len(trace.dag_parent)):
+        levels[i] = len(trace.get_parents(i))
+
+    # Add nodes and edges
+    edges = []
+    for i, parents in enumerate(trace.dag_parent):
+        for parent in parents:
+            edges.append((f"L{parent}", f"L{i}"))
+    G.add_edges_from(edges)
+
+    # Group nodes by number of ancestors, fewer ancestors are higher up
+    layer_nodes = {}
+    for idx, lvl in levels.items():
+        layer_nodes.setdefault(lvl, []).append(f"L{idx}")
+
+    # Layout by level: y axis is -lvl, x axis is evenly distributed
+    pos = {}
+
+    def parent_avg_pos(node):
+        id = int(node[1:])
+        parents = trace.dag_parent[id]
+
+        if not parents:
+            return 0
+
+        parent_nodes = [f"L{p}" for p in parents]
+        parent_xs = [pos[p][0] for p in parent_nodes if p in pos]
+        return sum(parent_xs) / len(parent_xs)
+
+    for lvl in sorted(layer_nodes):
+        nodes = layer_nodes[lvl]
+        # For root nodes, sort directly by index
+        if lvl == 0:
+            sorted_nodes = sorted(nodes, key=lambda n: int(n[1:]))
+        else:
+            sorted_nodes = sorted(nodes, key=parent_avg_pos)
+        y = -lvl
+        x_start = -0.5 * (len(sorted_nodes) - 1)
+        for i, node in enumerate(sorted_nodes):
+            pos[node] = (x_start + i, y)
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    nx.draw(G, pos, with_labels=True, arrows=True, node_color="skyblue", node_size=100, font_size=5, ax=ax)
+    return fig
 
 
 def compare(
