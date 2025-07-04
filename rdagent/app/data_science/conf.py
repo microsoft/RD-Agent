@@ -38,7 +38,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     spec_enabled: bool = True
 
     #### proposal related
-    proposal_version: str = "v2"
+    # proposal_version: str = "v2" deprecated
+
     coder_on_whole_pipeline: bool = True
     max_trace_hist: int = 3
 
