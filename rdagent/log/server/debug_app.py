@@ -143,10 +143,7 @@ def control_process():
     id = data["id"]
     action = data["action"]
 
-    return jsonify({
-        "status": "success",
-        "message": f"Received action '{action}' for process with id '{id}'"
-    })
+    return jsonify({"status": "success", "message": f"Received action '{action}' for process with id '{id}'"})
 
 
 @app.route("/test", methods=["GET"])

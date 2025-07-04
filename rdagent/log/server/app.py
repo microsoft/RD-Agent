@@ -7,13 +7,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import randomname
-from rdagent.log.storage import FileStorage
-from rdagent.log.ui.storage import WebStorage
 import typer
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
+from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
+from rdagent.log.ui.storage import WebStorage
 from rdagent.log.utils import is_valid_session
 
 app = Flask(__name__, static_folder=UI_SETTING.static_path)
@@ -31,6 +31,7 @@ def favicon():
 
 msgs_for_frontend = defaultdict(list)
 pointers = defaultdict(lambda: defaultdict(int))  # pointers[trace_id][user_ip]
+
 
 def read_trace(log_path: Path, id: str = "") -> None:
     fs = FileStorage(log_path)
@@ -52,10 +53,12 @@ def read_trace(log_path: Path, id: str = "") -> None:
     if last_timestamp and (now - last_timestamp).total_seconds() > 1800:
         msgs_for_frontend[id].append({"tag": "END", "timestamp": now.isoformat(), "content": {}})
 
+
 # load all traces from the log folder
 for p in log_folder_path.glob("*/*/"):
     if is_valid_session(p):
         read_trace(p, id=str(p))
+
 
 @app.route("/trace", methods=["POST"])
 def update_trace():
@@ -101,7 +104,7 @@ def upload_file():
 
     # scenario = "Data Science Loop"
     if scenario == "Data Science":
-        competition = competition[10:] # Eg. MLE-Bench:aerial-cactus-competition
+        competition = competition[10:]  # Eg. MLE-Bench:aerial-cactus-competition
         trace_name = f"{competition}-{randomname.get_name()}"
     else:
         trace_name = randomname.get_name()
