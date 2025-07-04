@@ -279,6 +279,18 @@ class APIBackend(ABC):
         Responseible for building messages and logging messages
 
         TODO: What is weird is that the function is called before we seperate embeddings and chat completion.
+
+        Parameters
+        ----------
+        user_prompt : str
+        system_prompt : str | None
+        former_messages : list | None
+        response_format : BaseModel | dict
+            A BaseModel based on pydantic or a dict
+        **kwargs
+        Returns
+        -------
+        str
         """
         if former_messages is None:
             former_messages = []
