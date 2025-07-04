@@ -40,16 +40,23 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         if prev_task_feedback is None:
             # if no prev_tak_feedback, it is the first loop; we do not make any changes and goto evaluators directly.
             return {}
-
-        task_information_str = target_task.get_task_information()
-        # 1. code
-        system_prompt = T(".prompts:DSCoSTEER_debugger.system").r(
-            task_desc=task_information_str,
-            out_spec=PythonBatchEditOut.get_spec(with_del=False),
-        )
-        user_prompt = T(".prompts:DSCoSTEER_debugger.user").r(
+        if prev_task_feedback.hyperparameter_tuning_decision:
+            task_information_str = target_task.get_task_information()
+            # 1. code
+            system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
+                out_spec=PythonBatchEditOut.get_spec(with_del=False),
+            )
+        else:
+            task_information_str = target_task.get_task_information()
+            # 1. code
+            system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
+                task_desc=task_information_str,
+                out_spec=PythonBatchEditOut.get_spec(with_del=False),
+            )
+        user_prompt = T(".prompts:DSCoSTEER.user").r(
             code=workspace.all_codes,
             feedback=prev_task_feedback,
+            hyperparameter_tuning_suggestion=prev_task_feedback.hyperparameter_tuning_suggestion,
         )
 
         batch_edit = PythonBatchEditOut.extract_output(

@@ -30,7 +30,7 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
 from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.utils.workflow.misc import wait_retry
 
@@ -115,8 +115,7 @@ class DataScienceRDLoop(RDLoop):
 
         self.ckp_selector = import_class(PROP_SETTING.selector_name)()
         self.sota_exp_selector = import_class(PROP_SETTING.sota_exp_selector_name)()
-
-        self.exp_gen: ExpGen = self._get_exp_gen(PROP_SETTING.hypothesis_gen, scen)
+        self.exp_gen = DSExpGen(scen)
 
         # coders
         self.data_loader_coder = DataLoaderCoSTEER(scen)

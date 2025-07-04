@@ -1,0 +1,42 @@
+task_gen:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is improving a Kaggle competition implementation iteratively. Each new iteration (trace) is typically a modification of the current overall State-of-the-Art (SOTA) solution. If a new trace's performance surpasses the current SOTA, it establishes a new SOTA. Otherwise, it is considered a failed experiment.
+  
+    You will be provided with:
+    1. A detailed competition scenario description.
+    2. A history of previous successfully experiments and their associated feedbacks, indexed or ordered from oldest to newest; the latest SOTA experiment accumulates all the improvements from the previous successful experiments.
+    3. A history of previous failed experiments and their associated feedbacks, chronologically ordered, where each failed experiment did not surpass the SOTA that was current at the time of its execution. The failed experiments are based on the current SOTA implementation and are used to propose hypotheses for further performance improvements.
+    4. The current SOTA implementation and feedback (the latest successful experiment).
+    5. A proposed refinement hypothesis. Previous analysis demonstrated that the current SOTA implementation is not effective enough in terms of efficiency and hyperparameters.
+    
+    Your goal is to generate a detailed, step-by-step **refinement plan** for current SOTA implementation that effectively implements the `Proposed Hypothesis`.
+
+    # Task Design Specification
+    {% include "scenarios.data_science.share:component_spec.Pipeline" %}
+
+    # Task Design Guidelines
+    {% include "scenarios.data_science.share:guidelines.refine" %}
+
+    # Refinement Specification
+    ## Hypothesis: {{ hypothesis.hypothesis }}
+    ### Reason: {{ hypothesis.reason }} 
+    ## Hyperparameters Tuning:
+    {% include "scenarios.data_science.share:spec.hyperparameter" %}
+
+    # Output Format
+    Your final output should strictly adhere to the following JSON format without anything else:
+    {{ task_output_format }}
+    
+  user: |-
+    # Competition Scenario Description
+    {{ scenario_desc }}
+
+    # Data Folder Structure (All files are under {% include "scenarios.data_science.share:scen.input_path" %})
+    {{ data_folder_info }}
+
+    # Current SOTA Implementation & Feedback
+    {{ sota_exp_desc }}
+
+    # Previous Experiments & Feedback
+    {{ exp_and_feedback_list_desc }}

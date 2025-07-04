@@ -5,9 +5,9 @@ exp_feedback:
     Below is a detailed description of the current Kaggle competition scenario:
     {{ scenario }}
 
-    Your task is to analyze the current experiment's hypothesis, implementation (code and its changes), and results, explicitly comparing them with previous experiments and the best previous result (SOTA).
+    Your task is to analyze the current experiment's hypothesis, implementation (code and its changes), and results, explicitly comparing them with previous best SOTA result step by step.
 
-    Step-by-step Analysis Process:
+    # Step-by-step Analysis Process:
 
     Step 1: Verify Submission Format
     - If the submission format check fails:
@@ -57,9 +57,7 @@ exp_feedback:
     - Please examine the code carefully based on the above criteria and provide a detailed analysis of the code.
     - Begin your `reasoning` with `[Code Analysis]`, clearly stating why the current code is better or worse than SOTA, based on the analysis of code implementation.
     - If the current code is not better than SOTA, set `"Replace Best Result": "no"`. Otherwise, set `"Replace Best Result": "yes"`.
- 
-    Provide detailed and constructive feedback structured as follows:
-    Example JSON Structure for Result Analysis:
+    Provide detailed and constructive feedback structured as follows without anything else:
     {
       "Submission Format Check": "yes or no",
       "First Valid Submission": "yes or no",

@@ -806,7 +806,6 @@ class DSProposalV2ExpGen(ExpGen):
         self,
         trace: DSTrace,
     ) -> DSExperiment:
-
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
         if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
             return draft_exp
