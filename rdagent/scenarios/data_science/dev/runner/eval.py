@@ -67,6 +67,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
             stdout = remove_eda_part(stdout)
             stdout += f"The code executed {'successfully' if execute_ret_code == 0 else 'failed'}. {'The EDA output is removed from the stdout. ' if eda_output else ''}"
         else:
+            execute_ret_code = 0
             stdout = "The code executed successfully in the coder stage. No need to check the code execution in the runner stage. Please only focus on the metrics and submission files."
 
         # Check score file

@@ -96,6 +96,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 if eda_output is None:
                     eda_output = "No EDA output."
                 implementation.inject_files(**{"EDA.md": eda_output})
+                implementation.running_info.running_time = result.running_time
             result.stdout = remove_eda_part(result.stdout)
             stdout += f"The code executed {'successfully' if result.exit_code == 0 else 'failed'} with following output:\n{result.stdout.strip()}\n"
 
