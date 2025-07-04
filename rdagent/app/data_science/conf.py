@@ -46,7 +46,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     runner_max_loop: int = 1
 
     rule_base_eval: bool = False
-    sample_data: bool = True
+    sample_data_by_LLM: bool = False
     use_raw_description: bool = False
     show_nan_columns: bool = False
 

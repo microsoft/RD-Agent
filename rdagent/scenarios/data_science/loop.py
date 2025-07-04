@@ -104,6 +104,8 @@ class DataScienceRDLoop(RDLoop):
     def __init__(self, PROP_SETTING: BasePropSetting):
         logger.log_object(PROP_SETTING.competition, tag="competition")
         scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
+        logger.log_object(PROP_SETTING.model_dump(), tag="RDLOOP_SETTINGS")
+        logger.log_object(RD_AGENT_SETTINGS.model_dump(), tag="RD_AGENT_SETTINGS")
 
         # 1) task generation from scratch
         # self.scratch_gen: tuple[HypothesisGen, Hypothesis2Experiment] = DummyHypothesisGen(scen),

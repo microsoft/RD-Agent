@@ -55,13 +55,33 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
         env = get_ds_env(extra_volumes={self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()})
 
-        # Clean the scores.csv & submission.csv.
+        stdout = ""
         implementation.execute(env=env, entry=get_clear_ws_cmd())
-        result = implementation.run(env=env, entry=f"python -m coverage run main.py")
-        implementation.running_info.running_time = result.running_time
+        if DS_RD_SETTING.sample_data_by_LLM:
+            # Because coder runs on full data, we need to run debug mode in advance to save time
+            result = implementation.run(env=env, entry=f"python -m coverage run main.py --debug")
+        else:
+            result = implementation.run(env=env, entry=f"python -m coverage run main.py")
         execute_ret_code = result.exit_code
-        stdout = remove_eda_part(result.stdout)
-        stdout += f"The code executed {'successfully' if execute_ret_code == 0 else 'failed'}."
+        result.stdout = remove_eda_part(result.stdout)
+        if result.exit_code != 0:
+            stdout += f"Code failed to run. Please check the stdout:\n Following the stdout of the debug mode run:\n{result.stdout.strip()}\n"
+        else:
+            stdout += f"Code ran successfully.\n Following the stdout of the debug mode run:\n{result.stdout.strip()}\n"
+        if DS_RD_SETTING.sample_data_by_LLM:
+            debug_time, full_estimated_time = None, None
+            if match := re.search(r"debug_time:\s*(\d+(?:.\d+)?)", result.stdout, re.DOTALL):
+                debug_time = float(match.group(1))
+            if match := re.search(r"estimated_time:\s*(\d+(?:.\d+)?)", result.stdout, re.DOTALL):
+                full_estimated_time = float(match.group(1))
+            if debug_time is not None and full_estimated_time is not None:
+                stdout += f"Debug mode ran in {debug_time:.2f} seconds, estimated full run time is {full_estimated_time:.2f} seconds.\n"
+                if full_estimated_time < env.conf.running_timeout_period * 3:
+                    stdout += "The estimated full run time is less than three times the timeout period.\n"
+                else:
+                    stdout += f"The estimated full run time is more than three times the timeout period.\n"
+            else:
+                stdout += "Debug mode did not provide debug_time or estimated_time, it's a buggy implementation.\n"
 
         score_fp = implementation.workspace_path / "scores.csv"
         score_ret_code = 0
@@ -137,6 +157,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             task_desc=target_task.get_task_information(),
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
+            debug_mode=DS_RD_SETTING.sample_data_by_LLM,
         )
         user_prompt = T(".prompts:pipeline_eval.user").r(
             stdout=stdout.strip(),
