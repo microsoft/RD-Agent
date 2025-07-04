@@ -138,7 +138,8 @@ class DataScienceRDLoop(RDLoop):
             self.trace = DSTrace(scen=scen, knowledge_base=knowledge_base)
         else:
             self.trace = DSTrace(scen=scen)
-        self.summarizer = DSExperiment2Feedback(scen)
+        # self.summarizer = DSExperiment2Feedback(scen)
+        self.summarizer = import_class(PROP_SETTING.summarizer)(scen)
         super(RDLoop, self).__init__()
 
     async def direct_exp_gen(self, prev_out: dict[str, Any]):
