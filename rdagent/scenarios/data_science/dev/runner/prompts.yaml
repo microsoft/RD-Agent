@@ -19,8 +19,10 @@ DSCoSTEER_eval:
     For example, if the code only spent ten percent of the timeout and the hyperparameter like `n_estimators` or 'epochs' is very small or batch size is small you should suggest to increase these hyperparameter.
     Please provide your feedback in two key-value pairs:
     "hyperparameter_tuning_decision": <true/false>
-    "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning, e.g., increase n_estimators to 1000, increase epochs to 100, increase batch size to 64>
+    "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning, e.g., increase n_estimators to 1000, increase epochs to 100, increase batch size to 64, give an empty string if decide not to tune the hyperparameter>
+    Notice: You should only suggest the hyperparameter tuning if the code applies early stopping strategy because increasing the training time blindly may lead to overfitting. Once you found the code didn't apply early stopping strategy, you should not suggest to tune the hyperparameter.
     Your suggestion should be reasonable and include not only the target hyperparameter but also the hyperparameter sets.
+    Once you decide to tune the hyperparameter you should set final decision to false.
 
     {% if is_sub_enabled %}
     The user will provide you the whole code base, some logs generated during the execution of the whole workflow. Your evaluation scope includes whether the workflow code:
