@@ -477,22 +477,55 @@ class APIBackend(ABC):
                 json_str = re.sub(r'\bNone\b', 'null', json_str)
                 return json_str
             
-            try:
-                # 第一次尝试：直接解析原始响应
-                json.loads(all_response)
-            except json.decoder.JSONDecodeError:
+            def extract_first_json(response):
+                """提取第一个完整的JSON对象，忽略额外内容"""
+                decoder = json.JSONDecoder()
+                obj, idx = decoder.raw_decode(response)
+                return json.dumps(obj)  # 重新序列化为干净的JSON
+            
+            def try_parse_json(content):
+                """
+                尝试解析JSON，如果有额外数据错误则提取第一个JSON对象
+                返回: (成功标志, 解析结果或处理后的内容)
+                """
                 try:
-                    # 第二次尝试：提取JSON代码块
-                    match = re.search(r"```json(.*)```", all_response, re.DOTALL)
-                    if match:
-                        all_response = match.groups()[0].strip()
-                        json.loads(all_response)
-                    else:
-                        raise json.decoder.JSONDecodeError("No JSON block found", all_response, 0)
-                except json.decoder.JSONDecodeError:
-                    # 第三次尝试：修复Python布尔值后解析
-                    all_response = fix_python_booleans(all_response)
-                    json.loads(all_response)  # 如果这里还失败就让异常抛出
+                    json.loads(content)
+                    return True, content
+                except json.decoder.JSONDecodeError as e:
+                    if "Extra data" in str(e):
+                        try:
+                            cleaned = extract_first_json(content)
+                            json.loads(cleaned)
+                            return True, cleaned
+                        except:
+                            pass
+                    return False, content
+            
+            # 保存原始响应
+            original_response = all_response
+            
+            # 策略1：直接解析
+            success, all_response = try_parse_json(all_response)
+            if not success:
+                # 策略2：从代码块提取
+                match = re.search(r"```json(.*)```", original_response, re.DOTALL)
+                if match:
+                    json_content = match.groups()[0].strip()
+                    success, all_response = try_parse_json(json_content)
+                
+                if not success:
+                    # 策略3：修复Python布尔值
+                    fixed_content = fix_python_booleans(all_response)
+                    success, all_response = try_parse_json(fixed_content)
+                    
+                    if not success:
+                        # 所有策略都失败，抛出异常
+                        raise json.decoder.JSONDecodeError(
+                            "Failed to parse JSON after all attempts", 
+                            all_response, 
+                            0
+                        )
+        
         if json_target_type is not None:
             TypeAdapter(json_target_type).validate_json(all_response)
         if (response_format := kwargs.get("response_format")) is not None:
