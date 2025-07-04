@@ -470,12 +470,29 @@ class APIBackend(ABC):
 
         # 3) format checking
         if json_mode:
+            def fix_python_booleans(json_str):
+                """修复Python风格的布尔值为JSON标准格式"""
+                json_str = re.sub(r'\bTrue\b', 'true', json_str)
+                json_str = re.sub(r'\bFalse\b', 'false', json_str)
+                json_str = re.sub(r'\bNone\b', 'null', json_str)
+                return json_str
+            
             try:
+                # 第一次尝试：直接解析原始响应
                 json.loads(all_response)
             except json.decoder.JSONDecodeError:
-                match = re.search(r"```json(.*)```", all_response, re.DOTALL)
-                all_response = match.groups()[0] if match else all_response
-                json.loads(all_response)
+                try:
+                    # 第二次尝试：提取JSON代码块
+                    match = re.search(r"```json(.*)```", all_response, re.DOTALL)
+                    if match:
+                        all_response = match.groups()[0].strip()
+                        json.loads(all_response)
+                    else:
+                        raise json.decoder.JSONDecodeError("No JSON block found", all_response, 0)
+                except json.decoder.JSONDecodeError:
+                    # 第三次尝试：修复Python布尔值后解析
+                    all_response = fix_python_booleans(all_response)
+                    json.loads(all_response)  # 如果这里还失败就让异常抛出
         if json_target_type is not None:
             TypeAdapter(json_target_type).validate_json(all_response)
         if (response_format := kwargs.get("response_format")) is not None:
