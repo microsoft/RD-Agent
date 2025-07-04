@@ -51,7 +51,7 @@ def curves_win(summary: dict):
         with st.container(border=True):
             st.markdown(f"**:blue[{k}] - :violet[{v['competition']}]**")
             try:
-                tscores = {f"loop {k-1}": v for k, v in v["test_scores"].items()}
+                tscores = {f"loop {k}": v for k, v in v["test_scores"].items()}
                 vscores = {}
                 for k, vs in v["valid_scores"].items():
                     if not vs.index.is_unique:
@@ -72,6 +72,13 @@ def curves_win(summary: dict):
                     ensemble_row = vdf.loc[["ensemble"]]
                     vdf = pd.concat([ensemble_row, vdf.drop("ensemble")])
                 vdf.columns = [f"loop {i}" for i in vdf.columns]
+
+                # Ensure tdf has all loops present in vdf, fill missing with NaN
+                for loop_name in vdf.columns:
+                    if loop_name not in tdf.index:
+                        tdf.loc[loop_name] = pd.NA
+                tdf = tdf.reindex(vdf.columns)
+
                 fig = go.Figure()
                 # Add test scores trace from tdf
                 fig.add_trace(

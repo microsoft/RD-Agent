@@ -28,7 +28,7 @@ def get_ds_env(
     conf_type: Literal["kaggle", "mlebench"] = "kaggle",
     extra_volumes: dict = {},
     running_timeout_period: int = (
-        DS_RD_SETTING.debug_timeout if DS_RD_SETTING.sample_data else DS_RD_SETTING.full_timeout
+        DS_RD_SETTING.debug_timeout if not DS_RD_SETTING.sample_data_by_LLM else DS_RD_SETTING.full_timeout
     ),
 ) -> Env:
     """

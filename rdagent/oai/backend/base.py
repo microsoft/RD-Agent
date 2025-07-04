@@ -279,6 +279,18 @@ class APIBackend(ABC):
         Responseible for building messages and logging messages
 
         TODO: What is weird is that the function is called before we seperate embeddings and chat completion.
+
+        Parameters
+        ----------
+        user_prompt : str
+        system_prompt : str | None
+        former_messages : list | None
+        response_format : BaseModel | dict
+            A BaseModel based on pydantic or a dict
+        **kwargs
+        Returns
+        -------
+        str
         """
         if former_messages is None:
             former_messages = []
@@ -479,7 +491,7 @@ class APIBackend(ABC):
         if json_target_type is not None:
             TypeAdapter(json_target_type).validate_json(all_response)
         if (response_format := kwargs.get("response_format")) is not None:
-            if issubclass(response_format, BaseModel):
+            if not isinstance(response_format, dict) and issubclass(response_format, BaseModel):
                 # It may raise TypeError if initialization fails
                 response_format(**json.loads(all_response))
             else:

@@ -21,8 +21,8 @@ scenario_description: |-
   {% endif %}
 
   {% if time_limit %}------The time limit to your code------
-  You code running is limit to {{ time_limit }}, please change yor model type and model parameters to make sure your code can run within the time limit.
-
+  You code running is limit to {{ time_limit }}, after this time limit, your code will be terminated. But remember your main target is to achieve the best performance and you have several times to modify your code. So please be bold to make the best use of all the time limit and don't be too conservative.
+  During this time limit, you have all the resources available to you. Please fully leverage all the computational resources(CPUs and GPUs) to achieve the best performance like choose a powerful model, use a large batch size, enable data sampler with big parallel.
   {% endif %}
   {% if evaluation is not none %}------Evaluation------
   {{ evaluation }}

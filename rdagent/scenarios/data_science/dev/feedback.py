@@ -109,7 +109,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
             )
         )
 
-        if resp_dict.get("Evaluation Aligned With Task", "no") == "no":
+        if evaluation_not_aligned := dict_get_with_warning(resp_dict, "Evaluation Aligned With Task", "no") == "no":
             exp.result = None
 
         # Currently, we do not use `observations`, `hypothesis_evaluation`, and `new_hypothesis` in the framework.
@@ -118,11 +118,16 @@ class DSExperiment2Feedback(Experiment2Feedback):
             observations=dict_get_with_warning(resp_dict, "Observations", "No observations provided"),
             hypothesis_evaluation=dict_get_with_warning(resp_dict, "Feedback for Hypothesis", "No feedback provided"),
             new_hypothesis=dict_get_with_warning(resp_dict, "New Hypothesis", "No new hypothesis provided"),
-            reason=dict_get_with_warning(resp_dict, "Reasoning", "No reasoning provided"),
+            reason=dict_get_with_warning(resp_dict, "Reasoning", "No reasoning provided")
+            + ("\nRejected because evaluation code not aligned with task." if evaluation_not_aligned else ""),
             code_change_summary=dict_get_with_warning(
                 resp_dict, "Code Change Summary", "No code change summary provided"
             ),
-            decision=convert2bool(dict_get_with_warning(resp_dict, "Replace Best Result", "no")),
+            decision=(
+                False
+                if evaluation_not_aligned
+                else convert2bool(dict_get_with_warning(resp_dict, "Replace Best Result", "no"))
+            ),
         )
 
         if hypothesis_feedback and DS_RD_SETTING.enable_knowledge_base:
