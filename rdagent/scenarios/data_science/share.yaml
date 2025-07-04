@@ -318,32 +318,6 @@ component_spec:
 guidelines:
   coding: |-
     You might receive exploratory data analysis (EDA) details about the source data. Do not use this EDA information to create assertions or raise errors. We might generate sample data for quick coding (so your code may run on sample data which is part of the full-size data), but remember that the EDA details are based on the full-size data.
-  draft: |-
-    TODO
-  refine: |-
-    1. **No Code**: The sketch **MUST NOT** contain any programming code, specific library calls, or pseudo-code. Describe steps conceptually (e.g., "Load training data from {% include "scenarios.data_science.share:scen.input_path" %}/train.csv"). List specific algorithm names or hyperparameter changes where appropriate (e.g., "Switch to XGBoost classifier," "Reduce number of CV folds to 3," "Lower learning rate to 0.001").
-    2. **Structure and Conciseness**:
-      - Always start by analyzing the structure and logic of the existing SOTA implementation.
-      - Clearly outline a logical sequence of steps for the refined `main.py`, focusing on the minimal and targeted changes needed.
-    3. **Refinement Guidelines**:
-      - Your sketch must detail **precisely what to change, add, or remove** in the current SOTA to improve efficiency or optimize hyperparameters.
-      - Reducing computational cost (e.g., fewer CV folds, smaller model, lower input resolution, early stopping).
-      - Adjusting hyperparameters for better performance or stability (e.g., learning rate, batch size, epochs, optimizer).
-      - Any other modifications that directly address efficiency or optimization, while preserving the core logic of the SOTA.
-      - Do **not** propose unrelated architectural changes or new features unless they are required for efficiency or optimization.
-      - If previous experiments failed due to resource constraints, explicitly state [EFFICIENCY AS TOP PRIORITY] at the beginning and list concrete measures to address these issues.
-    4. **Specificity and Clarity**:
-      - Be unambiguous. Instead of "tune hyperparameters," specify "Reduce batch size from 64 to 32," or "Enable early stopping with patience=3."
-      - The sketch must be definitive. No open-ended options or phrases like "for example," or "e.g.," within a step's action.
-    5. **Key Reminders for Developer**: At the end of your sketch, include a "Key Reminders for Developer" section. Add the following reminders if appropriate:
-      - Ensure all input files are loaded from their exact paths under `{% include "scenarios.data_science.share:scen.input_path" %}` (e.g., `{% include "scenarios.data_science.share:scen.input_path" %}<competition_name>/train.csv`)."
-      - Verify `submission.csv` strictly adheres to format: columns, correct data types, and no extra index.
-      - "Implement correct label mapping for classification tasks (e.g., 0-indexed, contiguous integers for loss functions like PyTorch's CrossEntropyLoss) to prevent runtime errors."
-      - Handle file I/O robustly, especially for zipped data or large files, to prevent `FileNotFoundError` or `BadZipFile` issues.
-      - Confirm no `tqdm` or other progress bars are in the final script.
-      - Double-check that validation scores are saved correctly to `scores.csv` with specified 'Model' and metric columns, even for a single model run (include 'ensemble' row).
-  propose: |-
-    TODO
 
 spec:
   hyperparameter: |-

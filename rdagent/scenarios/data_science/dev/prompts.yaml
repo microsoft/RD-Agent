@@ -57,17 +57,6 @@ exp_feedback:
     - Please examine the code carefully based on the above criteria and provide a detailed analysis of the code.
     - Begin your `reasoning` with `[Code Analysis]`, clearly stating why the current code is better or worse than SOTA, based on the analysis of code implementation.
     - If the current code is not better than SOTA, set `"Replace Best Result": "no"`. Otherwise, set `"Replace Best Result": "yes"`.
-
-    Step 5: Analyze Code Effectiveness
-    - Goal: After confirming that the current code replaces the SOTA, determine whether further refinement is needed in terms of efficiency and hyperparameter optimization. Assess if the current implementation can be improved for better resource usage, faster running time, or more optimal hyperparameter settings.
-    - If the current code is effective in terms of both efficiency and hyperparameters:
-      - Set `"Replace Best Result": "yes"`.
-      - Set `"Refine Decision": "no"`.
-    - If the current code is NOT effective in terms of both efficiency and hyperparameters and further refinement is necessary.
-      - Set `"Replace Best Result": "yes"`.
-      - Set `"Refine Decision": "yes"`.
-    - Begin your `reasoning` with `[Effectiveness Analysis]`, clearly stating whether the current code is effective enough or needs further refinement, especially regarding hyperparameter choices and efficiency.
-
     Provide detailed and constructive feedback structured as follows without anything else:
     {
       "Submission Format Check": "yes or no",
