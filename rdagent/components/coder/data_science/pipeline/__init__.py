@@ -91,11 +91,11 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         system_prompt = T(".prompts:pipeline_coder.system").r(
             task_desc=pipeline_task_info,
+            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
             out_spec=PythonAgentOut.get_spec(),
             runtime_environment=runtime_environment,
-            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
             enable_model_dump=DS_RD_SETTING.enable_model_dump,
             enable_debug_mode=DS_RD_SETTING.sample_data_by_LLM,
         )
