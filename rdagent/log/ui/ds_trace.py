@@ -13,7 +13,7 @@ from streamlit import session_state as state
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.storage import FileStorage
-from rdagent.log.ui.utils import load_times
+from rdagent.log.ui.utils import load_times, trace_figure
 from rdagent.log.utils import (
     LogColors,
     extract_evoid,
@@ -43,7 +43,7 @@ def convert_defaultdict_to_dict(d):
     return d
 
 
-@st.cache_data(persist=True)
+# @st.cache_data(persist=True)
 def load_data(log_path: Path):
     data = defaultdict(lambda: defaultdict(dict))
     llm_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -374,7 +374,10 @@ def running_win(data, base_exp, llm_data=None, sota_exp=None):
             cmp_name="last SOTA",
         )
         st.subheader("Result")
-        st.write(data["no_tag"].result)
+        try:
+            st.write(data["no_tag"].result)
+        except AttributeError as e:  # Compatible with old versions
+            st.write(data["no_tag"].__dict__["result"])
         mle_score_text = data.get("mle_score", "no submission to score")
         mle_score = extract_json(mle_score_text)
         st.subheader(
@@ -458,6 +461,13 @@ def replace_ep_path(p: Path):
 def summarize_data():
     st.header("Summary", divider="rainbow")
     with st.container(border=True):
+        min_id, max_id = get_state_data_range(state.data)
+        if st.toggle("Show trace DAG", key="show_trace_dag"):
+            st.markdown("### Trace DAG")
+            final_trace_loop_id = max_id
+            while "record" not in state.data[final_trace_loop_id]:
+                final_trace_loop_id -= 1
+            st.pyplot(trace_figure(state.data[final_trace_loop_id]["record"]["trace"]))
         df = pd.DataFrame(
             columns=[
                 "Component",
@@ -475,10 +485,9 @@ def summarize_data():
                 "Start Time (UTC+8)",
                 "End Time (UTC+8)",
             ],
-            index=range(len(state.data) - 1),
+            index=range(min_id, max_id + 1),
         )
 
-        min_id, max_id = get_state_data_range(state.data)
         for loop in range(min_id, max_id + 1):
             loop_data = state.data[loop]
             df.loc[loop, "Component"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.component
@@ -503,9 +512,11 @@ def summarize_data():
                 df.loc[loop, "End Time (UTC+8)"] = state.times[loop][-1].end + timedelta(hours=8)
             if "running" in loop_data and "no_tag" in loop_data["running"]:
                 try:
-                    df.loc[loop, "Running Score (valid)"] = str(
-                        round(loop_data["running"]["no_tag"].result.loc["ensemble"].iloc[0], 5)
-                    )
+                    try:
+                        running_result = loop_data["running"]["no_tag"].result
+                    except AttributeError as e:  # Compatible with old versions
+                        running_result = loop_data["running"]["no_tag"].__dict__["result"]
+                    df.loc[loop, "Running Score (valid)"] = str(round(running_result.loc["ensemble"].iloc[0], 5))
                 except:
                     df.loc[loop, "Running Score (valid)"] = "❌"
                 if "mle_score" not in state.data[loop]:
@@ -720,6 +731,7 @@ with st.sidebar:
     st.toggle("*Show save workspace feature*", key="show_save_input")
     st.markdown(
         f"""
+- [Summary](#summary)
 - [Exp Gen](#exp-gen)
 - [Coding](#coding)
 - [Running](#running)
@@ -732,7 +744,7 @@ with st.sidebar:
 def get_state_data_range(state_data):
     # we have a "competition" key in state_data
     # like dict_keys(['competition', 10, 11, 12, 13, 14])
-    keys = [k for k in state_data.keys() if isinstance(k, int)]
+    keys = [k for k in state_data.keys() if isinstance(k, int) and "no_tag" in state_data[k]["direct_exp_gen"]]
     return min(keys), max(keys)
 
 
