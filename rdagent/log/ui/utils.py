@@ -163,10 +163,20 @@ def get_sota_exp_stat(log_path: Path):
         return None
 
     sota_loop_id = None
-    for i, ef in enumerate(final_trace.hist):
-        if ef[0] == sota_exp:
-            sota_loop_id = i
-            break
+    exp_paths = [
+        (i, int(match[1]))
+        for i in log_path.rglob(f"*/running/*/*.pkl")
+        if (match := re.search(r".*Loop_(\d+).*", str(i)))
+    ]
+    if len(exp_paths) == 0:
+        return None
+    exp_paths.sort(key=lambda x: x[1], reverse=True)
+    for exp_path, loop_id in exp_paths:
+        with open(exp_path, "rb") as f:
+            trace = pickle.load(f)
+            if trace.experiment_workspace.all_codes == sota_exp.experiment_workspace.all_codes:
+                sota_loop_id = loop_id
+                break
 
     sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{sota_loop_id}/running/mle_score/**/*.pkl")]
     if len(sota_mle_score_paths) == 0:

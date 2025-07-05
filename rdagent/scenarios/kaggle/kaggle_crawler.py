@@ -221,6 +221,7 @@ def get_metric_direction(competition: str) -> bool:
     """
     leaderboard = leaderboard_scores(competition)
     if float(leaderboard[0]) == float(leaderboard[-1]):
+        # This happens when top scores are all the same, such as 0 or 1.
         return float(leaderboard[0]) >= 0.5
     return float(leaderboard[0]) > float(leaderboard[-1])
 
