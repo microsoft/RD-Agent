@@ -25,7 +25,19 @@ from rdagent.utils.fmt import shrink_text
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
-DSCoSTEEREvalFeedback = CoSTEERSingleFeedback
+
+class DSCoSTEEREvalFeedback(CoSTEERSingleFeedback):
+    """
+    Feedback for Data Science CoSTEER evaluation.
+    This feedback is used to evaluate the code and execution of the Data Science CoSTEER task.
+    """
+
+    def __init__(
+        self, *args, hyperparameter_tuning_decision: bool = None, hyperparameter_tuning_suggestion: str = None, **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        self.hyperparameter_tuning_decision = hyperparameter_tuning_decision
+        self.hyperparameter_tuning_suggestion = hyperparameter_tuning_suggestion
 
 
 class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
@@ -146,6 +158,9 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         user_prompt = T(".prompts:DSCoSTEER_eval.user").r(
             code=implementation.all_codes,
             stdout=shrink_text(stdout),
+            time_spent=f"{implementation.running_info.running_time:.2f} seconds",
+            timeout=f"{env.conf.running_timeout_period} seconds",
+            percent_of_timeout_used=f"{(implementation.running_info.running_time / env.conf.running_timeout_period) * 100:.2f}%",
         )
 
         feedback = build_cls_from_json_with_retry(
@@ -163,6 +178,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                 used_files = set(json.loads(coverage_report_path.read_text())["files"].keys())
                 coverage_report_path.unlink()
                 logger.info(f"All used scripts: {used_files}")
+
 
                 use_one_model = False
                 for f in used_files:

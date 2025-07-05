@@ -164,7 +164,7 @@ class DataScienceScen(Scenario):
         # TODO:  add it into base class.  Environment should(i.e. `DSDockerConf`) should be part of the scenario class.
         env = get_ds_env()
         implementation = FBWorkspace()
-        fname = "temp.py"
+        fname = "runtime_info.py"
         implementation.inject_files(
             **{fname: (Path(__file__).absolute().resolve().parent / "runtime_info.py").read_text()}
         )

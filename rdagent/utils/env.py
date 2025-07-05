@@ -340,24 +340,24 @@ class Env(Generic[ASpecificEnvConf]):
         # we must add the information of data (beyond code) into the key.
         # Otherwise, all commands operating on data will become invalid (e.g. rm -r submission.csv)
         # So we recursively walk in the folder and add the sorted relative filename list as part of the key.
-        data_key = []
-        for path in Path(local_path).rglob("*"):
-            p = str(path.relative_to(Path(local_path)))
-            if p.startswith("__pycache__"):
-                continue
-            data_key.append(p)
-        data_key = sorted(data_key)
+        # data_key = []
+        # for path in Path(local_path).rglob("*"):
+        #     p = str(path.relative_to(Path(local_path)))
+        #     if p.startswith("__pycache__"):
+        #         continue
+        #     data_key.append(p)
+        # data_key = sorted(data_key)
 
         key = md5_hash(
             json.dumps(
                 [
                     [str(path.relative_to(Path(local_path))), path.read_text()]
-                    for path in sorted(Path(local_path).rglob("*.py"))
+                    for path in sorted(list(Path(local_path).rglob("*.py")) + list(Path(local_path).rglob("*.csv")))
                 ]
             )
             + json.dumps({"entry": entry, "running_extra_volume": dict(running_extra_volume)})
             + json.dumps({"extra_volumes": self.conf.extra_volumes})
-            + json.dumps(data_key)
+            # + json.dumps(data_key)
         )
         if Path(target_folder / f"{key}.pkl").exists() and Path(target_folder / f"{key}.zip").exists():
             with open(target_folder / f"{key}.pkl", "rb") as f:

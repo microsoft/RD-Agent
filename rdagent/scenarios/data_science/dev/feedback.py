@@ -128,6 +128,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
                 if evaluation_not_aligned
                 else convert2bool(dict_get_with_warning(resp_dict, "Replace Best Result", "no"))
             ),
+            refine_decision=convert2bool(dict_get_with_warning(resp_dict, "Refine Decision", "no")),
         )
 
         if hypothesis_feedback and DS_RD_SETTING.enable_knowledge_base:

@@ -75,11 +75,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             if match := re.search(r"estimated_time:\s*(\d+(?:.\d+)?)", result.stdout, re.DOTALL):
                 full_estimated_time = float(match.group(1))
             if debug_time is not None and full_estimated_time is not None:
-                stdout += f"Debug mode ran in {debug_time:.2f} seconds, estimated full run time is {full_estimated_time:.2f} seconds.\n"
-                if full_estimated_time < env.conf.running_timeout_period * 3:
-                    stdout += "The estimated full run time is less than three times the timeout period.\n"
-                else:
-                    stdout += f"The estimated full run time is more than three times the timeout period.\n"
+                stdout += f"Debug mode ran in {debug_time:.2f} seconds, estimated full run time is {full_estimated_time:.2f} seconds. The estimated time is {full_estimated_time / env.conf.running_timeout_period * 100:.2f}% the debug time."
             else:
                 stdout += "Debug mode did not provide debug_time or estimated_time, it's a buggy implementation.\n"
 
