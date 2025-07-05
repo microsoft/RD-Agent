@@ -21,15 +21,16 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.proposal.DSProposalV2ExpGen"
     """Hypothesis generation class"""
 
+    summarizer: str = "rdagent.scenarios.data_science.dev.feedback.DSExperiment2Feedback"
     ## Workflow Related
     consecutive_errors: int = 5
 
     ## Coding Related
-    coding_fail_reanalyze_threshold: int = 3
+    coding_fail_reanalyze_threshold: int = 10
 
-    debug_timeout: int = 600
+    debug_timeout: int = 900
     """The timeout limit for running on debugging data"""
-    full_timeout: int = 3600
+    full_timeout: int = 5400
     """The timeout limit for running on full data"""
 
     ### specific feature
@@ -38,11 +39,11 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     spec_enabled: bool = True
 
     #### proposal related
-    proposal_version: str = "v1"
-    coder_on_whole_pipeline: bool = False
+    proposal_version: str = "v2"
+    coder_on_whole_pipeline: bool = True
     max_trace_hist: int = 3
 
-    coder_max_loop: int = 10
+    coder_max_loop: int = 6
     runner_max_loop: int = 1
 
     rule_base_eval: bool = False
