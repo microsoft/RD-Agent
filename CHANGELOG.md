@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.7.0](https://github.com/microsoft/RD-Agent/compare/v0.6.1...v0.7.0) (2025-07-05)
+
+
+### Features
+
+* add code change summary ([#1000](https://github.com/microsoft/RD-Agent/issues/1000)) ([937ec26](https://github.com/microsoft/RD-Agent/commit/937ec263b215928633822c4d76ad4e47442c8198))
+* add hide_base_name option and update data folder prompts ([#1004](https://github.com/microsoft/RD-Agent/issues/1004)) ([2f61fa8](https://github.com/microsoft/RD-Agent/commit/2f61fa8cd90c91ad29f320ce9ea6c49f49ac9111))
+* added running time statistics for the DS scenario experiment ([#1007](https://github.com/microsoft/RD-Agent/issues/1007)) ([030abd8](https://github.com/microsoft/RD-Agent/commit/030abd87191377641a678c80852f5ecad84e7a6e))
+* show first evo round codes diff ([#1009](https://github.com/microsoft/RD-Agent/issues/1009)) ([4844622](https://github.com/microsoft/RD-Agent/commit/4844622e5fd28d7cbaabd9d7888f8204c60b76b3))
+* try coder on whole data ([#1017](https://github.com/microsoft/RD-Agent/issues/1017)) ([4973e05](https://github.com/microsoft/RD-Agent/commit/4973e0532248c6172eec3bb70dffda052af2d14f))
+
+
+### Bug Fixes
+
+* fix a minor bug in DS eval ([#1012](https://github.com/microsoft/RD-Agent/issues/1012)) ([5a520e9](https://github.com/microsoft/RD-Agent/commit/5a520e9d44899d44fddc0f2e5571596223161b71))
+
 ## [0.6.1](https://github.com/microsoft/RD-Agent/compare/v0.6.0...v0.6.1) (2025-06-28)
 
 
