@@ -17,7 +17,7 @@ pipeline_coder:
     {% include "scenarios.data_science.share:spec.hyperparameter" %}
 
     ## Specification your code should follow
-    {% include "scenarios.data_science.share:component_spec.Pipeline" %}
+    {{ spec }}
 
     {% if queried_similar_successful_knowledge|length != 0 or queried_former_failed_knowledge|length != 0 %}
     ## Relevant Information for This Task
