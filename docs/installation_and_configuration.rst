@@ -17,7 +17,7 @@ LiteLLM Backend Configuration (Default)
 =======================================
 
 .. note::
-   🔥 **Attention**: We now provide experimental support for **DeepSeek** models! You can use DeepSeek's official API for cost-effective and high-performance inference. See Option 3 below for DeepSeek configuration.
+   🔥 **Attention**: We now provide experimental support for **DeepSeek** models! You can use DeepSeek's official API for cost-effective and high-performance inference. See the configuration example below for DeepSeek setup.
 
 Option 1: Unified API base for both models
 ------------------------------------------
@@ -51,8 +51,10 @@ Option 2: Separate API bases for Chat and Embedding models
       LITELLM_PROXY_API_KEY=<replace_with_your_siliconflow_api_key>
       LITELLM_PROXY_API_BASE=https://api.siliconflow.cn/v1
 
-Option 3: DeepSeek Official API configuration
----------------------------------------------
+Configuration Example: DeepSeek Setup
+-------------------------------------
+
+Many users encounter configuration errors when setting up DeepSeek. Here's a complete working example:
 
    .. code-block:: Properties
 
@@ -60,7 +62,7 @@ Option 3: DeepSeek Official API configuration
       CHAT_MODEL=deepseek/deepseek-chat 
       DEEPSEEK_API_KEY=<replace_with_your_deepseek_api_key>
 
-      # EMBEDDING MODEL: Using SiliconFlow for embedding since deepseek has no embedding model.
+      # EMBEDDING MODEL: Using SiliconFlow for embedding since DeepSeek has no embedding model.
       # Note: embedding requires litellm_proxy prefix
       EMBEDDING_MODEL=litellm_proxy/BAAI/bge-m3
       LITELLM_PROXY_API_KEY=<replace_with_your_siliconflow_api_key>
