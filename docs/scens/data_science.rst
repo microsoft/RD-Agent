@@ -11,11 +11,11 @@ The Data Science Agent is an agent that can automatically perform feature engine
 🧭 Example Guide
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-1. 🔧 **Set up RD-Agent Environment**
+- 🔧 **Set up RD-Agent Environment**
 
   - Before you start, please make sure you have installed RD-Agent and configured the environment for RD-Agent correctly. If you want to know how to install and configure the RD-Agent, please refer to the `documentation <../installation_and_configuration.html>`_.
 
-2. 🔩 **Setting the Environment variables at .env file**
+- 🔩 **Setting the Environment variables at .env file**
 
   - Determine the path where the data will be stored and add it to the ``.env`` file.
 
@@ -24,13 +24,13 @@ The Data Science Agent is an agent that can automatically perform feature engine
     dotenv set DS_LOCAL_DATA_PATH <your local directory>/ds_data
     dotenv set DS_SCEN rdagent.scenarios.data_science.scen.DataScienceScen
 
-3. 📥 **Prepare Competition Data**
+- 📥 **Prepare Competition Data**
 
   - A data science competition dataset usually consists of two parts: ``competition dataset`` and ``evaluation dataset``. (We provide `a sample <https://github.com/microsoft/RD-Agent/tree/main/rdagent/scenarios/data_science/example>`_ of a customized dataset named: `arf-12-hour-prediction-task as a reference`.)
     
     - The ``competition dataset`` contains **training data**, **test data**, **description files**, **formatted submission files**, **data sampling codes**.
     
-    - The ``evaluation dataset`` contains **test results file**, **data checking codes**, and **scoring codes**.
+    - The ``evaluation dataset`` contains **standard answer file**, **data checking codes**, and **Code for calculation of scores**.
 
   - We use the ``arf-12-hour-prediction-task`` data as a sample to introduce the preparation workflow for the competition dataset.
   
@@ -38,7 +38,7 @@ The Data Science Agent is an agent that can automatically perform feature engine
 
       - The raw files for the competition ``arf-12-hours-prediction-task`` have two files: ``ARF_12h.csv`` and ``X.npz``.
     
-    - Create a ``ds_data/source_data/arf-12-hours-prediction-task/prepare.py`` file that splits your raw data into *training data*, *test data*, *formatted submission file*, and *test result file*. (You will need to write a script based on your raw data.)
+    - Create a ``ds_data/source_data/arf-12-hours-prediction-task/prepare.py`` file that splits your raw data into **training data**, **test data**, **formatted submission file**, and **standard answer file**. (You will need to write a script based on your raw data.)
       
       - The following shows the preprocessing code for the raw data of ``arf-12-hours-prediction-task``.
 
@@ -49,25 +49,25 @@ The Data Science Agent is an agent that can automatically perform feature engine
 
       - At the end of program execution, the ``ds_data`` folder structure will look like this:
 
-        .. code-block:: text
+      .. code-block:: text
 
-          ds_data
-          ├── arf-12-hours-prediction-task
-          │   ├── train
-          │   │   ├── ARF_12h.csv
-          │   │   └── X.npz
-          │   ├── test
-          │   │   ├── ARF_12h.csv
-          │   │   └── X.npz
-          │   └── sample_submission.csv
-          ├── eval
-          │   └── arf-12-hours-prediction-task
-          │       └── submission_test.csv
-          └── source_data
-              └── arf-12-hours-prediction-task
-                  ├── ARF_12h.csv
-                  ├── prepare.py
-                  └── X.npz
+        ds_data
+        ├── arf-12-hours-prediction-task
+        │   ├── train
+        │   │   ├── ARF_12h.csv
+        │   │   └── X.npz
+        │   ├── test
+        │   │   ├── ARF_12h.csv
+        │   │   └── X.npz
+        │   └── sample_submission.csv
+        ├── eval
+        │   └── arf-12-hours-prediction-task
+        │       └── submission_test.csv
+        └── source_data
+            └── arf-12-hours-prediction-task
+                ├── ARF_12h.csv
+                ├── prepare.py
+                └── X.npz
 
     - Create a ``ds_data/arf-12-hours-prediction-task/description.md`` file to describe your competition, Objective, dataset, and other information.
 
@@ -96,7 +96,7 @@ The Data Science Agent is an agent that can automatically perform feature engine
         :caption: ds_data/eval/arf-12-hour-prediction-task/valid.py
         :linenos:
 
-    - Create a ``ds_data/eval/arf-12-hour-prediction-task/grade.py`` file, which is used to calculate the score based on the submission file and the standard answer file, and output the result in JSON format.
+    - Create a ``ds_data/eval/arf-12-hour-prediction-task/grade.py`` file, which is used to calculate the score based on the submission file and the **standard answer file**, and output the result in JSON format.
 
       - The following shows a grading script based on the ``arf-12-hours-prediction-task`` data implementation.
 
@@ -104,6 +104,32 @@ The Data Science Agent is an agent that can automatically perform feature engine
         :language: markdown
         :caption: ds_data/eval/arf-12-hour-prediction-task/grade.py
         :linenos:
+
+  - At this point, you have created a complete dataset. The correct structure of the dataset should look like this.
+
+  .. code-block:: text
+
+      ds_data
+      ├── arf-12-hours-prediction-task
+      │   ├── train
+      │   │   ├── ARF_12h.csv
+      │   │   └── X.npz
+      │   ├── test
+      │   │   ├── ARF_12h.csv
+      │   │   └── X.npz
+      │   ├── description.md
+      │   ├── sample_submission.csv
+      │   └── sample.py
+      ├── eval
+      │   └── arf-12-hours-prediction-task
+      │       ├── grade.py
+      │       ├── submission_test.csv
+      │       └── valid.py
+      └── source_data
+          └── arf-12-hours-prediction-task
+              ├── ARF_12h.csv
+              ├── prepare.py
+              └── X.npz
 
     - **Correct directory structure (Here is an example of competition data with id custom_data)**
 
@@ -143,10 +169,8 @@ The Data Science Agent is an agent that can automatically perform feature engine
   .. code-block:: sh
 
       dotenv set DS_SCEN rdagent.scenarios.data_science.scen.DataScienceScen
-      dotenv set DS_LOCAL_DATA_PATH rdagent/scenarios/data_science/example
-      dotenv set DS_IF_USING_MLE_DATA False
+      dotenv set DS_LOCAL_DATA_PATH <your local directory>/ds_data
       dotenv set DS_CODER_ON_WHOLE_PIPELINE True
-      dotenv set DS_CODER_COSTEER_ENV_TYPE docker
 
 - 🚀 **Run the Application**
 
@@ -155,6 +179,12 @@ The Data Science Agent is an agent that can automatically perform feature engine
     .. code-block:: sh
 
         rdagent data_science --competition <Competition ID>
+
+    - The following shows the command to run based on the ``arf-12-hours-prediction-task`` data
+
+      .. code-block:: sh
+
+          rdagent data_science --competition arf-12-hours-prediction-task
 
   - Then, you can run the test set score corresponding to each round of the loop.
 
