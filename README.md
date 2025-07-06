@@ -153,7 +153,9 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
 
   You can set your Chat Model and Embedding Model in the following ways:
 
-- **Using LiteLLM (Default)**: We now support LiteLLM as a backend for integration with multiple LLM providers. You can configure in two ways:
+  > **🔥 Attention**: We now provide experimental support for **DeepSeek** models! You can use DeepSeek's official API for cost-effective and high-performance inference. See Option 3 below for DeepSeek configuration.
+
+- **Using LiteLLM (Default)**: We now support LiteLLM as a backend for integration with multiple LLM providers. You can configure in multiple ways:
 
   **Option 1: Unified API base for both models**
   ```bash
@@ -183,6 +185,21 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   EMBEDDING_MODEL=litellm_proxy/BAAI/bge-large-en-v1.5
   LITELLM_PROXY_API_KEY=<replace_with_your_siliconflow_api_key>
   LITELLM_PROXY_API_BASE=https://api.siliconflow.cn/v1
+  ```
+
+  **Option 3: DeepSeek Official API configuration**
+  ```bash
+  cat << EOF  > .env
+  # CHAT MODEL: Using DeepSeek Official API
+  CHAT_MODEL=deepseek/deepseek-chat 
+  DEEPSEEK_API_KEY=<replace_with_your_deepseek_api_key>
+
+  # EMBEDDING MODEL: Using SiliconFlow for embedding since deepseek has no embedding model.
+  # Note: embedding requires litellm_proxy prefix
+  EMBEDDING_MODEL=litellm_proxy/BAAI/bge-m3
+  LITELLM_PROXY_API_KEY=<replace_with_your_siliconflow_api_key>
+  LITELLM_PROXY_API_BASE=https://api.siliconflow.cn/v1
+  EOF
   ```
 
   Notice: If you are using reasoning models that include thought processes in their responses (such as \<think> tags), you need to set the following environment variable:

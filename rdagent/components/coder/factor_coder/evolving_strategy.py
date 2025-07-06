@@ -145,7 +145,7 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                     json_mode=True,
                     json_target_type=Dict[str, str],
                 )
-                
+
                 try:
                     code = json.loads(response)["code"]
                 except json.decoder.JSONDecodeError:
@@ -155,9 +155,9 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                         code = match.group(1).strip()
                     else:
                         raise  # 继续重试
-                
+
                 return code
-                
+
             except (json.decoder.JSONDecodeError, KeyError):
                 pass
         else:
