@@ -145,7 +145,7 @@ def upload_file():
         if loop_n:
             cmds += ["--loop_n", loop_n]
     if all_duration:
-        cmds += ["--all_duration", f"{all_duration}h"]
+        cmds += ["--timeout", f"{all_duration}h"]
 
     app.logger.info(f"Started process for {log_trace_path} with parameters: {cmds}")
     with stdout_path.open("w") as log_file:
