@@ -187,7 +187,9 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   LITELLM_PROXY_API_BASE=https://api.siliconflow.cn/v1
   ```
 
-  Since many users encounter configuration errors when setting up DeepSeek. Here's a complete working example for Deepseek Setup:
+  **Configuration Example: DeepSeek Setup**:
+
+  >Since many users encounter configuration errors when setting up DeepSeek. Here's a complete working example for DeepSeek Setup:
   ```bash
   cat << EOF  > .env
   # CHAT MODEL: Using DeepSeek Official API
