@@ -483,23 +483,22 @@ class APIBackend(ABC):
         # 3) format checking
         if json_mode:
 
-            def fix_python_booleans(json_str):
+            def fix_python_booleans(json_str: str) -> str:
                 """修复Python风格的布尔值为JSON标准格式"""
                 json_str = re.sub(r"\bTrue\b", "true", json_str)
                 json_str = re.sub(r"\bFalse\b", "false", json_str)
                 json_str = re.sub(r"\bNone\b", "null", json_str)
                 return json_str
 
-            def extract_first_json(response):
+            def extract_first_json(response: str) -> str:
                 """提取第一个完整的JSON对象，忽略额外内容"""
                 decoder = json.JSONDecoder()
                 obj, idx = decoder.raw_decode(response)
                 return json.dumps(obj)  # 重新序列化为干净的JSON
 
-            def try_parse_json(content):
+            def try_parse_json(content: str) -> tuple[bool, str]:
                 """
                 尝试解析JSON，如果有额外数据错误则提取第一个JSON对象
-                返回: (成功标志, 解析结果或处理后的内容)
                 """
                 try:
                     json.loads(content)
