@@ -16,6 +16,7 @@ from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
+from rdagent.scenarios.data_science.dev.feedback import ExperimentFeedback
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.draft import DSDraftExpGen
@@ -720,6 +721,7 @@ class DSProposalV2ExpGen(ExpGen):
         hypotheses: list[DSHypothesis],
         pipeline: bool,
         failed_exp_feedback_list_desc: str,
+        sota_exp_fb: ExperimentFeedback | None = None,
     ) -> DSExperiment:
         if pipeline:
             component_info = get_component("Pipeline")
@@ -738,6 +740,7 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             hypotheses=hypotheses,
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
+            EDA_improvement=sota_exp_fb.EDA_improvement if sota_exp_fb else None,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
@@ -821,7 +824,7 @@ class DSProposalV2ExpGen(ExpGen):
                 ]
             )
 
-        sota_exp = trace.sota_experiment()
+        sota_exp, sota_exp_fb = trace.sota_experiment_fb()
         if not isinstance(sota_exp, DSExperiment):
             eda_output = None
         else:
@@ -919,4 +922,5 @@ class DSProposalV2ExpGen(ExpGen):
             ),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
+            sota_exp_fb=sota_exp_fb,
         )

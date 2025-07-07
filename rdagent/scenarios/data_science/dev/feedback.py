@@ -129,6 +129,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
                 else convert2bool(dict_get_with_warning(resp_dict, "Replace Best Result", "no"))
             ),
             refine_decision=convert2bool(dict_get_with_warning(resp_dict, "Refine Decision", "no")),
+            EDA_improvement=dict_get_with_warning(resp_dict, "EDA Improvement", "no"),  # EDA improvement suggestion
         )
 
         if hypothesis_feedback and DS_RD_SETTING.enable_knowledge_base:

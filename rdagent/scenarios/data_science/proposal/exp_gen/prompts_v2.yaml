@@ -114,7 +114,7 @@ scenario_description: |-
   ====== Background ======
   {{ background }}
 
-  {% if eda_output is not none %}
+  {% if eda_output is not none %}The following is the output of the exploratory data analysis (EDA) performed on the dataset, You should carefully analyze it to better craft your feature engineering and model training strategies.
   ====== Data Overview (EDA) ======
   {{ eda_output }}
   {% endif %}
@@ -350,7 +350,8 @@ task_gen:
       - Handle file I/O robustly, especially for zipped data or large files, to prevent `FileNotFoundError` or `BadZipFile` issues.
       - Confirm no `tqdm` or other progress bars are in the final script.
       - Double-check that validation scores are saved correctly to `scores.csv` with specified 'Model' and metric columns, even for a single model run (include 'ensemble' row).
-    
+    8. **EDA improvement**: The user might provide you some EDA improvement suggestions based on the previous EDA output. If so, you should also include the EDA improvement in your sketch.
+
     # Hyperparameters Specification
     Choose hyperparameters to ensure strong performance while meeting resource and time constraints. Specify values only when clearly justified by evidence or strong rationale.
     {% include "scenarios.data_science.share:spec.hyperparameter" %}
@@ -393,8 +394,11 @@ task_gen:
 
     {% endfor %}
     # Previous Failed Experiments & Feedback (e.g., experiments that did not pass evaluation, encountered bugs, or failed to surpass SOTA performance)
-
     {{ failed_exp_and_feedback_list_desc }}
+  
+    {% if EDA_improvement is not none %}
+    {{ EDA_improvement }}
+    {% endif %}
 
 idea_sample:
   system: |-

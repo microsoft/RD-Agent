@@ -57,6 +57,13 @@ exp_feedback:
     - Please examine the code carefully based on the above criteria and provide a detailed analysis of the code.
     - Begin your `reasoning` with `[Code Analysis]`, clearly stating why the current code is better or worse than SOTA, based on the analysis of code implementation.
     - If the current code is not better than SOTA, set `"Replace Best Result": "no"`. Otherwise, set `"Replace Best Result": "yes"`.
+
+    Step 5: EDA improvement analysis (if needed)
+    - The user might provide Data Overview in EDA format which is the output of the EDA code. You should analyze the EDA result and provide feedback on how it can be improved.
+    - The improvement might include some addons or modifications or deletions to some part of the EDA code.
+    - You should provide your feedback based on the current code and SOTA code. Especially focus on the feature engineering part.
+    - For example, if the code truncate the line with N words, you can suggest to print the mean, median or quantile of the length of the line for better understanding of the data in the next rounds of experiments.
+
     Provide detailed and constructive feedback structured as follows without anything else:
     {
       "Submission Format Check": "yes or no",
@@ -67,7 +74,8 @@ exp_feedback:
       "Evaluation Aligned With Task": "yes or no",
       "Replace Best Result": "yes or no",
       "Refine Decision": "yes or no",
-      "Reasoning": "Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences."
+      "Reasoning": "Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences.",
+      "EDA Improvement": "improvement suggestion for EDA code, if needed, otherwise set to 'no'. If there is no EDA code, set to 'no'."
     }
 
   user: |-

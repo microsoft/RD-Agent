@@ -58,10 +58,12 @@ class ExperimentFeedback(Feedback):
         code_change_summary: str | None = None,
         decision: bool,
         refine_decision: bool = False,
+        EDA_improvement: str | None = None,
         exception: Exception | None = None,
     ) -> None:
         self.decision = decision
         self.refine_decision = refine_decision
+        self.EDA_improvement = EDA_improvement
         self.reason = reason
         # Exception is not None means failing to generate runnable experiments due to exception.
         # Runable reuslts are not always good.
@@ -98,9 +100,14 @@ class HypothesisFeedback(ExperimentFeedback):
         code_change_summary: str | None = None,
         decision: bool,
         refine_decision: bool = False,
+        EDA_improvement: str | None = None,
     ) -> None:
         super().__init__(
-            reason, decision=decision, refine_decision=refine_decision, code_change_summary=code_change_summary
+            reason,
+            decision=decision,
+            refine_decision=refine_decision,
+            code_change_summary=code_change_summary,
+            EDA_improvement=EDA_improvement,
         )
         self.observations = observations
         self.hypothesis_evaluation = hypothesis_evaluation
