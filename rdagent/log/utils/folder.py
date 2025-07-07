@@ -24,7 +24,7 @@ def get_first_session_file_after_duration(log_folder: str | Path, duration: str 
             session_obj: LoopBase = pickle.load(f)
         timer = session_obj.timer
         all_duration = timer.all_duration
-        remain_time_duration = timer.remain_time_duration
+        remain_time_duration = timer.remain_time()
         if all_duration is None or remain_time_duration is None:
             msg = "Timer is not configured"
             raise ValueError(msg)
