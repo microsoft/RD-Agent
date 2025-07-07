@@ -235,9 +235,9 @@ class ExpGen2TraceAndMerge(ExpGen):
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
-        logger.info(f"Remain time: {timer.remain_time_duration}")
+        logger.info(f"Remain time: {timer.remain_time()}")
 
-        if timer.remain_time_duration >= timedelta(hours=DS_RD_SETTING.merge_hours):
+        if timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
             leaves: list[int] = trace.get_leaves()
             if len(leaves) < 2:
                 selection = trace.NEW_ROOT  # create new trace
@@ -351,9 +351,9 @@ class ExpGen2TraceAndMergeV2(ExpGen):
 
     def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
-        logger.info(f"Remain time: {timer.remain_time_duration}")
+        logger.info(f"Remain time: {timer.remain_time()}")
 
-        if timer.remain_time_duration >= timedelta(hours=DS_RD_SETTING.merge_hours):
+        if timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
 
             if DS_RD_SETTING.enable_inject_knowledge_at_root:
                 if DS_RD_SETTING.knowledge_base_path is not None and DS_RD_SETTING.idea_pool_json_path is not None:
@@ -408,9 +408,9 @@ class ExpGen2TraceAndMergeV3(ExpGen):
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
-        logger.info(f"Remain time: {timer.remain_time_duration}")
+        logger.info(f"Remain time: {timer.remain_time()}")
 
-        if timer.remain_time_duration >= timedelta(hours=DS_RD_SETTING.merge_hours):
+        if timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
 
             if DS_RD_SETTING.enable_inject_knowledge_at_root:
 
