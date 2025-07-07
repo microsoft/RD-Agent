@@ -814,13 +814,6 @@ class DSProposalV2ExpGen(ExpGen):
     ) -> DSExperiment:
 
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
-        # Drafting
-        # if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
-        #     return draft_exp
-        
-        sota_exp = trace.sota_experiment()
-        # if sota_exp is None and pipeline:
-        #     return draft_exp_in_pipeline(self.scen, trace)
 
         if pipeline:
             component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()

@@ -100,7 +100,6 @@ class DSExperiment2Feedback(Experiment2Feedback):
             scenario=self.scen.get_scenario_all_desc(eda_output=eda_output)
         )
         user_prompt = T(f".prompts:{self.version}.user").r(
-        user_prompt = T(f".prompts:{self.version}.user").r(
             sota_desc=sota_desc,
             cur_exp=exp,
             diff_edition=diff_edition,
