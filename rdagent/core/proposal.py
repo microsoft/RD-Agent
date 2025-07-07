@@ -75,7 +75,7 @@ class ExperimentFeedback(Feedback):
         res = f"Decision: {self.decision}\nReason: {self.reason}"
         code_change_summary = getattr(self, "code_change_summary", None)
         if code_change_summary is not None:
-            res += "\nCode Change Summary: " + self.code_change_summary
+            res += "\nCode Change Summary: " + code_change_summary
         return res
 
     @classmethod
