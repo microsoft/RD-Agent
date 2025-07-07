@@ -49,7 +49,7 @@ DSCoSTEER_eval:
   user: |-
     --------- code base ---------
     {{ code }}
-    --------- test stdout ---------
+    --------- the stdout of code execution and testing ---------
     {{ stdout }}
 
 DSCoSTEER_debugger:

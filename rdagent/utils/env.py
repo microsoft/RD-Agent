@@ -19,6 +19,7 @@ import time
 import uuid
 import zipfile
 from abc import abstractmethod
+from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Generator, Generic, Mapping, Optional, TypeVar, cast
@@ -42,6 +43,29 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
+
+
+def cleanup_container(container: docker.models.containers.Container | None, context: str = "") -> None:  # type: ignore[no-any-unimported]
+    """
+    Shared helper function to clean up a Docker container.
+    Always stops the container before removing it.
+
+    Parameters
+    ----------
+    container : docker container object or None
+        The container to clean up, or None if no container to clean up
+    context : str
+        Additional context for logging (e.g., "health check", "GPU test")
+    """
+    if container is not None:
+        try:
+            # Always stop first - stop() doesn't raise error if already stopped
+            container.stop()
+            container.remove()
+        except Exception as cleanup_error:
+            # Log cleanup error but don't mask the original exception
+            context_str = f" {context}" if context else ""
+            logger.warning(f"Failed to cleanup{context_str} container {container.id}: {cleanup_error}")
 
 
 # Normalize all bind paths in volumes to absolute paths using the workspace (working_dir).
@@ -93,6 +117,7 @@ def pull_image_with_progress(image: str) -> None:
 
 
 class EnvConf(ExtendedBaseSettings):
+    # TODO: add prefix ....
     default_entry: str
     extra_volumes: dict = {}
     running_timeout_period: int = 3600  # 10 minutes
@@ -103,6 +128,18 @@ class EnvConf(ExtendedBaseSettings):
 
 
 ASpecificEnvConf = TypeVar("ASpecificEnvConf", bound=EnvConf)
+
+
+@dataclass
+class EnvResult:
+    """
+    The result of running the environment.
+    It contains the stdout, the exit code, and the running time in seconds.
+    """
+
+    stdout: str
+    exit_code: int
+    running_time: float
 
 
 class Env(Generic[ASpecificEnvConf]):
@@ -144,7 +181,9 @@ class Env(Generic[ASpecificEnvConf]):
         Prepare for the environment based on it's configure
         """
 
-    def run(self, entry: str | None = None, local_path: str = ".", env: dict | None = None, **kwargs: dict) -> str:
+    def check_output(
+        self, entry: str | None = None, local_path: str = ".", env: dict | None = None, **kwargs: dict
+    ) -> str:
         """
         Run the folder under the environment.
 
@@ -165,22 +204,22 @@ class Env(Generic[ASpecificEnvConf]):
         -------
             the stdout
         """
-        stdout, _ = self.run_ret_code(entry=entry, local_path=local_path, env=env, **kwargs)
-        return stdout
+        result = self.run(entry=entry, local_path=local_path, env=env, **kwargs)
+        return result.stdout
 
-    def __run_ret_code_with_retry(
+    def __run_with_retry(
         self,
         entry: str | None = None,
         local_path: str = ".",
         env: dict | None = None,
         running_extra_volume: Mapping = MappingProxyType({}),
         remove_timestamp: bool = True,
-    ) -> tuple[str, int]:
+    ) -> EnvResult:
         # TODO: remove_timestamp can be implemented in a shallower way...
         for retry_index in range(self.conf.retry_count + 1):
             try:
                 start = time.time()
-                log_output, return_code = self._run_ret_code(
+                log_output, return_code = self._run(
                     entry, local_path, env, running_extra_volume=running_extra_volume, remove_timestamp=remove_timestamp
                 )
                 end = time.time()
@@ -190,7 +229,8 @@ class Env(Generic[ASpecificEnvConf]):
                         f"The running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
                     )
                     log_output += f"\n\nThe running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
-                return log_output, return_code
+                log_output += f"\nTotal running time: {end - start:.3f} seconds."
+                return EnvResult(log_output, return_code, end - start)
             except Exception as e:
                 if retry_index == self.conf.retry_count:
                     raise
@@ -200,15 +240,15 @@ class Env(Generic[ASpecificEnvConf]):
                 time.sleep(self.conf.retry_wait_seconds)
         raise RuntimeError  # for passing CI
 
-    def run_ret_code(
+    def run(
         self,
         entry: str | None = None,
         local_path: str = ".",
         env: dict | None = None,
         **kwargs: dict,
-    ) -> tuple[str, int]:
+    ) -> EnvResult:
         """
-        Run the folder under the environment and return both the stdout and the exit code.
+        Run the folder under the environment and return the stdout, exit code, and running time.
 
         Parameters
         ----------
@@ -225,7 +265,7 @@ class Env(Generic[ASpecificEnvConf]):
 
         Returns
         -------
-            A tuple containing the stdout and the exit code
+            EnvResult: An object containing the stdout, the exit code, and the running time in seconds.
         """
         running_extra_volume = kwargs.get("running_extra_volume", {})
         if entry is None:
@@ -273,13 +313,13 @@ class Env(Generic[ASpecificEnvConf]):
         )
 
         if self.conf.enable_cache:
-            stdout, return_code = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
+            result = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
         else:
-            stdout, return_code = self.__run_ret_code_with_retry(
+            result = self.__run_with_retry(
                 entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False
             )
 
-        return stdout, return_code
+        return result
 
     def cached_run(
         self,
@@ -288,7 +328,7 @@ class Env(Generic[ASpecificEnvConf]):
         env: dict | None = None,
         running_extra_volume: Mapping = MappingProxyType({}),
         remove_timestamp: bool = True,
-    ) -> tuple[str, int]:
+    ) -> EnvResult:
         """
         Run the folder under the environment.
         Will cache the output and the folder diff for next round of running.
@@ -321,17 +361,17 @@ class Env(Generic[ASpecificEnvConf]):
         )
         if Path(target_folder / f"{key}.pkl").exists() and Path(target_folder / f"{key}.zip").exists():
             with open(target_folder / f"{key}.pkl", "rb") as f:
-                ret: tuple[str, int] = pickle.load(f)
+                ret = pickle.load(f)
             self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path)
         else:
-            ret = self.__run_ret_code_with_retry(entry, local_path, env, running_extra_volume, remove_timestamp)
+            ret = self.__run_with_retry(entry, local_path, env, running_extra_volume, remove_timestamp)
             with open(target_folder / f"{key}.pkl", "wb") as f:
                 pickle.dump(ret, f)
             self.zip_a_folder_into_a_file(local_path, str(target_folder / f"{key}.zip"))
-        return ret
+        return cast(EnvResult, ret)
 
     @abstractmethod
-    def _run_ret_code(
+    def _run(
         self,
         entry: str | None,
         local_path: str = ".",
@@ -356,7 +396,7 @@ class Env(Generic[ASpecificEnvConf]):
         Returns
         -------
         tuple[str, int]
-            A tuple containing the standard output and the exit code of the execution.
+            A tuple containing the standard output and the exit code.
         """
         pass
 
@@ -376,7 +416,7 @@ class Env(Generic[ASpecificEnvConf]):
         with open(os.path.join(local_path, random_file_name), "w") as f:
             f.write(code)
         entry = f"python {random_file_name}"
-        log_output = self.run(entry, local_path, env, running_extra_volume=dict(running_extra_volume))
+        log_output = self.check_output(entry, local_path, env, running_extra_volume=dict(running_extra_volume))
         results = []
         os.remove(os.path.join(local_path, random_file_name))
         for name in dump_file_names:
@@ -412,7 +452,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
 
     def prepare(self) -> None: ...
 
-    def _run_ret_code(
+    def _run(
         self,
         entry: str | None = None,
         local_path: str | None = None,
@@ -578,6 +618,10 @@ class DockerConf(EnvConf):
     default_entry: str  # the entry point of the image
 
     extra_volumes: dict = {}
+    """It accept a dict of volumes, which can be either
+    {<host_path>: <container_path>} or
+    {<host_path>: {"bind": <container_path>, "mode": <mode, ro/rw/default is extra_volume_mode>}}
+    """
     extra_volume_mode: str = "ro"  # by default. only the mount_path should be writable, others are changed to read-only
     # Sometime, we need maintain some extra data for the workspace.
     # And the extra data may be shared and the downloading can be time consuming.
@@ -638,7 +682,9 @@ class QlibDockerConf(DockerConf):
     image: str = "local_qlib:latest"
     mount_path: str = "/workspace/qlib_workspace/"
     default_entry: str = "qrun conf.yaml"
-    extra_volumes: dict = {str(Path("~/.qlib/").expanduser().resolve().absolute()): "/root/.qlib/"}
+    extra_volumes: dict = {
+        str(Path("~/.qlib/").expanduser().resolve().absolute()): {"bind": "/root/.qlib/", "mode": "rw"}
+    }
     shm_size: str | None = "16g"
     enable_gpu: bool = True
     enable_cache: bool = False
@@ -785,12 +831,17 @@ class DockerEnv(Env[DockerConf]):
 
         @wait_retry(5, 10)
         def _f() -> dict:
+            container = None
             try:
                 get_image(self.conf.image)
-                client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
+                container = client.containers.run(self.conf.image, "nvidia-smi", detach=True, **gpu_kwargs)
+                # Wait for container to complete
+                container.wait()
                 logger.info("GPU Devices are available.")
             except docker.errors.APIError:
                 return {}
+            finally:
+                cleanup_container(container, context="GPU test")
             return gpu_kwargs
 
         return _f()
@@ -802,7 +853,7 @@ class DockerEnv(Env[DockerConf]):
         output_string = re.sub(datetime_pattern, "[DATETIME]", input_string)
         return output_string
 
-    def _run_ret_code(
+    def _run(
         self,
         entry: str | None = None,
         local_path: str = ".",
@@ -825,19 +876,20 @@ class DockerEnv(Env[DockerConf]):
 
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
-                volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
+                volumes[lp] = rp if isinstance(rp, dict) else {"bind": rp, "mode": self.conf.extra_volume_mode}
             cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
             volumes[cache_path] = {"bind": T("scenarios.data_science.share:scen.cache_path").r(), "mode": "rw"}
         for lp, rp in running_extra_volume.items():
-            volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
+            volumes[lp] = rp if isinstance(rp, dict) else {"bind": rp, "mode": self.conf.extra_volume_mode}
 
         volumes = normalize_volumes(cast(dict[str, str | dict[str, str]], volumes), self.conf.mount_path)
 
         log_output = ""
+        container: docker.models.containers.Container | None = None  # type: ignore[no-any-unimported]
 
         try:
-            container: docker.models.containers.Container = client.containers.run(  # type: ignore[no-any-unimported]
+            container = client.containers.run(
                 image=self.conf.image,
                 command=entry,
                 volumes=volumes,
@@ -851,6 +903,7 @@ class DockerEnv(Env[DockerConf]):
                 cpu_count=self.conf.cpu_count,  # Set CPU limit
                 **self._gpu_kwargs(client),
             )
+            assert container is not None  # Ensure container was created successfully
             logs = container.logs(stream=True)
             print(Rule("[bold green]Docker Logs Begin[/bold green]", style="dark_orange"))
             table = Table(title="Run Info", show_header=False)
@@ -869,8 +922,6 @@ class DockerEnv(Env[DockerConf]):
                 Console().print(decoded_log, markup=False)
                 log_output += decoded_log + "\n"
             exit_status = container.wait()["StatusCode"]
-            container.stop()
-            container.remove()
             print(Rule("[bold green]Docker Logs End[/bold green]", style="dark_orange"))
             return log_output, exit_status
         except docker.errors.ContainerError as e:
@@ -879,6 +930,8 @@ class DockerEnv(Env[DockerConf]):
             raise RuntimeError("Docker image not found.")
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while running the container: {e}")
+        finally:
+            cleanup_container(container)
 
 
 class QTDockerEnv(DockerEnv):
@@ -896,7 +949,7 @@ class QTDockerEnv(DockerEnv):
         if not (Path(qlib_data_path) / "qlib_data" / "cn_data").exists():
             logger.info("We are downloading!")
             cmd = "python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn --interval 1d --delete_old False"
-            self.run(entry=cmd)
+            self.check_output(entry=cmd)
         else:
             logger.info("Data already exists. Download skipped.")
 

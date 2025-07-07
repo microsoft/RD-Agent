@@ -10,6 +10,7 @@ import fire
 from rdagent.app.qlib_rd_loop.conf import QUANT_PROP_SETTING
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
 from rdagent.core.exception import FactorEmptyError, ModelEmptyError
 from rdagent.core.proposal import (
@@ -64,15 +65,18 @@ class QuantRDLoop(RDLoop):
         self.trace = QuantTrace(scen=scen)
         super(RDLoop, self).__init__()
 
-    def direct_exp_gen(self, prev_out: dict[str, Any]):
-        hypo = self._propose()
-        assert hypo.action in ["factor", "model"]
-        if hypo.action == "factor":
-            exp = self.factor_hypothesis2experiment.convert(hypo, self.trace)
-        else:
-            exp = self.model_hypothesis2experiment.convert(hypo, self.trace)
-        logger.log_object(exp.sub_tasks, tag="experiment generation")
-        return {"propose": hypo, "exp_gen": exp}
+    async def direct_exp_gen(self, prev_out: dict[str, Any]):
+        while True:
+            if self.get_unfinished_loop_cnt(self.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
+                hypo = self._propose()
+                assert hypo.action in ["factor", "model"]
+                if hypo.action == "factor":
+                    exp = self.factor_hypothesis2experiment.convert(hypo, self.trace)
+                else:
+                    exp = self.model_hypothesis2experiment.convert(hypo, self.trace)
+                logger.log_object(exp.sub_tasks, tag="experiment generation")
+                return {"propose": hypo, "exp_gen": exp}
+            await asyncio.sleep(1)
 
     def coding(self, prev_out: dict[str, Any]):
         if prev_out["direct_exp_gen"]["propose"].action == "factor":

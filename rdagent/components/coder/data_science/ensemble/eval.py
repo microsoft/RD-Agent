@@ -63,7 +63,9 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
         )
 
         implementation.inject_files(**{fname: test_code})
-        stdout, ret_code = implementation.execute_ret_code(env=env, entry=f"python {fname}")
+        result = implementation.run(env=env, entry=f"python {fname}")
+        stdout = result.stdout
+        ret_code = result.exit_code
 
         stdout += f"\nNOTE: the above scripts run with return code {ret_code}"
 

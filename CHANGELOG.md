@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.6.1](https://github.com/microsoft/RD-Agent/compare/v0.6.0...v0.6.1) (2025-06-28)
+
+
+### Bug Fixes
+
+* fix mount ([#1001](https://github.com/microsoft/RD-Agent/issues/1001)) ([4ae2f13](https://github.com/microsoft/RD-Agent/commit/4ae2f1303dfcbaea53d459be7c8e85bf85ce5f4f))
+* handle the bug of wrong dag_parant index ([#996](https://github.com/microsoft/RD-Agent/issues/996)) ([bda12ff](https://github.com/microsoft/RD-Agent/commit/bda12ffecf9ae116e0d04eece0c6a1b61413d916))
+* improve log folder sorting and selection UX ([#993](https://github.com/microsoft/RD-Agent/issues/993)) ([b116807](https://github.com/microsoft/RD-Agent/commit/b11680777f116b6c40f9e535e0da10c186c95050))
+
+## [0.6.0](https://github.com/microsoft/RD-Agent/compare/v0.5.0...v0.6.0) (2025-06-26)
+
+
+### Features
+
+* async mechanism for multi-trace ([#981](https://github.com/microsoft/RD-Agent/issues/981)) ([9e60c32](https://github.com/microsoft/RD-Agent/commit/9e60c32cf348481eb55617809c059c359d7603b8))
+
+
+### Bug Fixes
+
+* add async to direct_exp_gen avoid infinite loop ([#992](https://github.com/microsoft/RD-Agent/issues/992)) ([78c203d](https://github.com/microsoft/RD-Agent/commit/78c203d8eefbba67fc120b35cb25e85b2200ac49))
+* docker container cleanup to prevent accumulation and system slowdown ([#975](https://github.com/microsoft/RD-Agent/issues/975)) ([05cf094](https://github.com/microsoft/RD-Agent/commit/05cf094913e48c903c8a4476d6c609d8bfa10681))
+* fix a bug and update the docs ([#978](https://github.com/microsoft/RD-Agent/issues/978)) ([d1ae9e1](https://github.com/microsoft/RD-Agent/commit/d1ae9e1dcc2ccd1ffe05cb1c6db3e905fa70425c))
+* merge datascience v3 and v2 ([#974](https://github.com/microsoft/RD-Agent/issues/974)) ([1ba7548](https://github.com/microsoft/RD-Agent/commit/1ba754853ce2010ce1cb0bbd217b67689fa1ebdf))
+* refine details ([#979](https://github.com/microsoft/RD-Agent/issues/979)) ([25caa3d](https://github.com/microsoft/RD-Agent/commit/25caa3d00c255286dce27915b9355987b87ed2e8))
+* refine prompt ([#987](https://github.com/microsoft/RD-Agent/issues/987)) ([76df96e](https://github.com/microsoft/RD-Agent/commit/76df96ee88212a8aee7f518b9cacf80591dc2939))
+
 ## [0.5.0](https://github.com/microsoft/RD-Agent/compare/v0.4.0...v0.5.0) (2025-06-18)
 
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Generic, List, Tuple, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
@@ -55,6 +55,7 @@ class ExperimentFeedback(Feedback):
         self,
         reason: str,
         *,
+        code_change_summary: str | None = None,
         decision: bool,
         exception: Exception | None = None,
     ) -> None:
@@ -65,12 +66,16 @@ class ExperimentFeedback(Feedback):
         self.exception: Exception | None = (
             exception  # if the experiment raises exception, it will be integrated into part of the feedback.
         )
+        self.code_change_summary = code_change_summary
 
     def __bool__(self) -> bool:
         return self.decision
 
     def __str__(self) -> str:
-        return f"Decision: {self.decision}\nReason: {self.reason}"
+        res = f"Decision: {self.decision}\nReason: {self.reason}"
+        if self.code_change_summary is not None:
+            res += "\nCode Change Summary: " + self.code_change_summary
+        return res
 
     @classmethod
     def from_exception(cls, e: Exception) -> ExperimentFeedback:
@@ -88,9 +93,10 @@ class HypothesisFeedback(ExperimentFeedback):
         new_hypothesis: str,
         reason: str,
         *,
+        code_change_summary: str | None = None,
         decision: bool,
     ) -> None:
-        super().__init__(reason, decision=decision)
+        super().__init__(reason, decision=decision, code_change_summary=code_change_summary)
         self.observations = observations
         self.hypothesis_evaluation = hypothesis_evaluation
         self.new_hypothesis = new_hypothesis
@@ -108,7 +114,7 @@ ASpecificKB = TypeVar("ASpecificKB", bound=KnowledgeBase)
 
 class Trace(Generic[ASpecificScen, ASpecificKB]):
     NodeType = tuple[Experiment, ExperimentFeedback]  # Define NodeType as a new type representing the tuple
-    NEW_ROOT: Tuple = ()
+    NEW_ROOT: tuple = ()
 
     def __init__(self, scen: ASpecificScen, knowledge_base: ASpecificKB | None = None) -> None:
         self.scen: ASpecificScen = scen
@@ -163,35 +169,33 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
 
         return [self.hist[i] for i in self.get_parents(selection[0])]
 
-    def exp2idx(self, exp: Experiment | List[Experiment]) -> int | List[int] | None:
+    def exp2idx(self, exp: Experiment | list[Experiment]) -> int | list[int] | None:
         if isinstance(exp, list):
-            exps: List[Experiment] = exp
+            exps: list[Experiment] = exp
 
             # keep the order
             exp_to_index: dict[Experiment, int] = {_exp: i for i, (_exp, _) in enumerate(self.hist)}
             return [exp_to_index[_exp] for _exp in exps]
-        else:
-            for i, (_exp, _) in enumerate(self.hist):
-                if _exp == exp:
-                    return i
+        for i, (_exp, _) in enumerate(self.hist):
+            if _exp == exp:
+                return i
         return None
 
-    def idx2exp(self, idx: int | List[int]) -> Experiment | List[Experiment]:
+    def idx2exp(self, idx: int | list[int]) -> Experiment | list[Experiment]:
         if isinstance(idx, list):
-            idxs: List[int] = idx
+            idxs: list[int] = idx
             return [self.hist[_idx][0] for _idx in idxs]
-        else:
-            return self.hist[idx][0]
+        return self.hist[idx][0]
 
     def is_parent(self, parent_idx: int, child_idx: int) -> bool:
         ancestors = self.get_parents(child_idx)
         return parent_idx in ancestors
 
-    def get_parents(self, child_idx: int) -> List[int]:
+    def get_parents(self, child_idx: int) -> list[int]:
         if self.is_selection_new_tree((child_idx,)):
             return []
 
-        ancestors: List[int] = []
+        ancestors: list[int] = []
         curr = child_idx
         while True:
             ancestors.insert(0, curr)

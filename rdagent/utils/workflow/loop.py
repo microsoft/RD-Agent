@@ -136,6 +136,11 @@ class LoopBase:
         if isinstance(limit := RD_AGENT_SETTINGS.step_semaphore, dict):
             limit = limit.get(step_name, 1)  # default to 1 if not specified
 
+        # NOTE: we assume the record step is always the last step to modify the global environment,
+        # so we set the limit to 1 to avoid race condition
+        if step_name == "record":
+            limit = 1
+
         if step_name not in self.semaphores:
             self.semaphores[step_name] = asyncio.Semaphore(limit)
         return self.semaphores[step_name]
@@ -219,6 +224,10 @@ class LoopBase:
                             result = func(self.loop_prev_out[li])
                     # Store result in the nested dictionary
                     self.loop_prev_out[li][name] = result
+
+                    # Record the trace
+                    end = datetime.datetime.now(datetime.timezone.utc)
+                    self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
                     # Save snapshot after completing the step
                     self.dump(self.session_folder / f"{li}" / f"{si}_{name}")
                 except Exception as e:
@@ -239,10 +248,6 @@ class LoopBase:
                         raise  # re-raise unhandled exceptions
                 finally:
                     if step_forward:
-                        # Record execution trace and update progress bar
-                        end = datetime.datetime.now(datetime.timezone.utc)
-                        self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
-
                         # Increment step index
                         self.step_idx[li] = next_step_idx
 
@@ -250,7 +255,11 @@ class LoopBase:
                         current_step = self.step_idx[li]
                         self.pbar.n = current_step
                         next_step = self.step_idx[li] % len(self.steps)
-                        self.pbar.set_postfix(loop_index=li, step_index=next_step, step_name=self.steps[next_step])
+                        self.pbar.set_postfix(
+                            loop_index=li + next_step_idx // len(self.steps),
+                            step_index=next_step,
+                            step_name=self.steps[next_step],
+                        )
                         self._check_exit_conditions_on_step()
                     else:
                         logger.warning(f"Step forward {si} of loop {li} is skipped.")
@@ -411,6 +420,18 @@ class LoopBase:
             An instance of LoopBase with the loaded session.
         """
         path = Path(path)
+        # if the path is a directory, load the latest session
+        if path.is_dir():
+            if path.name != "__session__":
+                path = path / "__session__"
+
+            if not path.exists():
+                raise FileNotFoundError(f"No session file found in {path}")
+
+            # iterate the dump steps in increasing order
+            files = sorted(path.glob("*/*_*"), key=lambda f: (int(f.parent.name), int(f.name.split("_")[0])))
+            path = files[-1]
+            logger.info(f"Loading latest session from {path}")
         with path.open("rb") as f:
             session = cast(LoopBase, pickle.load(f))
 
