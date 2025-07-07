@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Dict
 
 from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedback
@@ -136,18 +137,28 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 queried_similar_error_knowledge_to_render = queried_similar_error_knowledge_to_render[:-1]
         for _ in range(10):
             try:
-                code = json.loads(
-                    APIBackend(
-                        use_chat_cache=FACTOR_COSTEER_SETTINGS.coder_use_cache
-                    ).build_messages_and_create_chat_completion(
-                        user_prompt=user_prompt,
-                        system_prompt=system_prompt,
-                        json_mode=True,
-                        json_target_type=Dict[str, str],
-                    )
-                )["code"]
+                response = APIBackend(
+                    use_chat_cache=FACTOR_COSTEER_SETTINGS.coder_use_cache
+                ).build_messages_and_create_chat_completion(
+                    user_prompt=user_prompt,
+                    system_prompt=system_prompt,
+                    json_mode=True,
+                    json_target_type=Dict[str, str],
+                )
+
+                try:
+                    code = json.loads(response)["code"]
+                except json.decoder.JSONDecodeError:
+                    # extract python code block
+                    match = re.search(r"```python(.*?)```", response, re.DOTALL)
+                    if match:
+                        code = match.group(1).strip()
+                    else:
+                        raise  # continue to retry
+
                 return code
-            except json.decoder.JSONDecodeError:
+
+            except (json.decoder.JSONDecodeError, KeyError):
                 pass
         else:
             return ""  # return empty code if failed to get code after 10 attempts
