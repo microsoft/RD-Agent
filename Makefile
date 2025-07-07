@@ -119,11 +119,11 @@ pre-commit:
 
 # Auto lint with black.
 auto-black:
-	$(PIPRUN) python -m black . --extend-exclude test/scripts --extend-exclude git_ignore_folder -l 120
+	$(PIPRUN) python -m black . --extend-exclude test/scripts --extend-exclude git_ignore_folder --extend-exclude .venv -l 120
 
 # Auto lint with isort.
 auto-isort:
-	$(PIPRUN) python -m isort . -s git_ignore_folder -s test/scripts
+	$(PIPRUN) python -m isort . -s git_ignore_folder -s test/scripts -s .venv
 
 # Auto lint with toml-sort.
 auto-toml-sort:
