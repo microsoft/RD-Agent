@@ -40,6 +40,7 @@ class ParallelMultiTraceExpGen(ExpGen):
         self.merge_exp_gen = ExpGen2Hypothesis(self.scen)
         self.trace_scheduler: TraceScheduler = RoundRobinScheduler()
         self.max_trace_num = DS_RD_SETTING.max_trace_num
+        self._gen_lock = asyncio.Lock()
 
     def gen(self, trace: "DSTrace") -> "Experiment":
         raise NotImplementedError(
@@ -59,48 +60,48 @@ class ParallelMultiTraceExpGen(ExpGen):
         while True:
 
             if timer.remain_time_duration >= timedelta(hours=DS_RD_SETTING.merge_hours):
+                async with self._gen_lock:
+                    if DS_RD_SETTING.enable_inject_knowledge_at_root:
 
-                if DS_RD_SETTING.enable_inject_knowledge_at_root:
+                        if len(trace.hist) == 0:
+                            # set the knowledge base option to True for the first trace
+                            DS_RD_SETTING.enable_knowledge_base = True
 
-                    if len(trace.hist) == 0:
-                        # set the knowledge base option to True for the first trace
-                        DS_RD_SETTING.enable_knowledge_base = True
-
+                        else:
+                            # set the knowledge base option back to False for the other traces
+                            DS_RD_SETTING.enable_knowledge_base = False
+                    # step 1: select the parant trace to expand
+                    # Policy: if we have fewer traces than our target, start a new one.
+                    if trace.sub_trace_count < self.max_trace_num:
+                        local_selection = trace.NEW_ROOT
                     else:
-                        # set the knowledge base option back to False for the other traces
-                        DS_RD_SETTING.enable_knowledge_base = False
-                # step 1: select the parant trace to expand
-                # Policy: if we have fewer traces than our target, start a new one.
-                if trace.sub_trace_count < self.max_trace_num:
-                    local_selection = trace.NEW_ROOT
-                else:
-                    # Otherwise, use the scheduler to pick an existing trace to expand.
-                    local_selection = await self.trace_scheduler.select_trace(trace)
+                        # Otherwise, use the scheduler to pick an existing trace to expand.
+                        local_selection = await self.trace_scheduler.select_trace(trace)
 
-                if loop.get_unfinished_loop_cnt(loop.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
+                    if loop.get_unfinished_loop_cnt(loop.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
 
-                    # set the local selection as the global current selection for the trace
-                    trace.set_current_selection(local_selection)
-                    # step 2: generate the experiment with the local selection
-                    before_leaves = trace.get_leaves()
-                    before_len = len(before_leaves)
+                        # set the local selection as the global current selection for the trace
+                        trace.set_current_selection(local_selection)
+                        # step 2: generate the experiment with the local selection
+                        before_leaves = trace.get_leaves()
+                        before_len = len(before_leaves)
 
-                    exp = self.exp_gen.gen(trace)
+                        exp = self.exp_gen.gen(trace)
 
-                    after_leaves = trace.get_leaves()
-                    after_len = len(after_leaves)
+                        after_leaves = trace.get_leaves()
+                        after_len = len(after_leaves)
 
-                    logger.info(
-                        f"[GEN] parent={trace.get_current_selection()}  "
-                        f"leaves: {before_len}->{after_len}  "
-                        f"before={before_leaves}  after={after_leaves}"
-                    )
-                    logger.info(f"hist/dag_parent: {len(trace.hist)}/{len(trace.dag_parent)}")
+                        logger.info(
+                            f"[GEN] parent={trace.get_current_selection()}  "
+                            f"leaves: {before_len}->{after_len}  "
+                            f"before={before_leaves}  after={after_leaves}"
+                        )
+                        logger.info(f"hist/dag_parent: {trace.hist}/{trace.dag_parent}")
 
-                    # Inject the local selection to the experiment object
-                    exp.set_local_selection(local_selection)
+                        # Inject the local selection to the experiment object
+                        exp.set_local_selection(local_selection)
 
-                    return exp
+                        return exp
 
             else:
                 # enter the merging stage
