@@ -9,7 +9,7 @@ from pydantic_settings import (
     PydanticBaseSettingsSource,
 )
 
-
+print('debug')
 class ExtendedBaseSettings(BaseSettings):
 
     @classmethod
