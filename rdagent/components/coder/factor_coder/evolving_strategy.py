@@ -149,12 +149,12 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 try:
                     code = json.loads(response)["code"]
                 except json.decoder.JSONDecodeError:
-                    # 提取Python代码块
+                    # extract python code block
                     match = re.search(r"```python(.*?)```", response, re.DOTALL)
                     if match:
                         code = match.group(1).strip()
                     else:
-                        raise  # 继续重试
+                        raise  # continue to retry
 
                 return code
 

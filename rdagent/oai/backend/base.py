@@ -34,7 +34,7 @@ except ImportError:
 
 
 class JSONParser:
-    """JSON解析器，支持多种策略"""
+    """JSON parser supporting multiple strategies"""
 
     def __init__(self) -> None:
         self.strategies: List[Callable[[str], str]] = [
@@ -45,7 +45,7 @@ class JSONParser:
         ]
 
     def parse(self, content: str) -> str:
-        """解析JSON内容，自动尝试多种策略"""
+        """Parse JSON content, automatically trying multiple strategies"""
         original_content = content
 
         for strategy in self.strategies:
@@ -54,11 +54,11 @@ class JSONParser:
             except json.JSONDecodeError:
                 continue
 
-        # 所有策略都失败
+        # All strategies failed
         raise json.JSONDecodeError("Failed to parse JSON after all attempts", original_content, 0)
 
     def _direct_parse(self, content: str) -> str:
-        """策略1：直接解析（包含处理额外数据）"""
+        """Strategy 1: Direct parsing (including handling extra data)"""
         try:
             json.loads(content)
             return content
@@ -68,7 +68,7 @@ class JSONParser:
             raise
 
     def _extract_from_code_block(self, content: str) -> str:
-        """策略2：从代码块中提取JSON"""
+        """Strategy 2: Extract JSON from code block"""
         match = re.search(r"```json\s*(.*?)\s*```", content, re.DOTALL)
         if not match:
             raise json.JSONDecodeError("No JSON code block found", content, 0)
@@ -77,15 +77,15 @@ class JSONParser:
         return self._direct_parse(json_content)
 
     def _fix_python_syntax(self, content: str) -> str:
-        """策略3：修复Python语法后解析"""
+        """Strategy 3: Fix Python syntax before parsing"""
         fixed = self._fix_python_booleans(content)
         return self._direct_parse(fixed)
 
     def _extract_with_fix_combined(self, content: str) -> str:
-        """策略4：组合策略 - 先修复Python语法，再提取第一个JSON"""
+        """Strategy 4: Combined strategy - fix Python syntax first, then extract the first JSON object"""
         fixed = self._fix_python_booleans(content)
 
-        # 尝试从修复后的内容中提取代码块
+        # Try to extract code block from the fixed content
         match = re.search(r"```json\s*(.*?)\s*```", fixed, re.DOTALL)
         if match:
             fixed = match.group(1).strip()
@@ -94,7 +94,7 @@ class JSONParser:
 
     @staticmethod
     def _fix_python_booleans(json_str: str) -> str:
-        """使用tokenize安全地修复Python风格的布尔值为JSON标准格式"""
+        """Safely fix Python-style booleans to JSON standard format using tokenize"""
         replacements = {"True": "true", "False": "false", "None": "null"}
 
         try:
@@ -109,19 +109,19 @@ class JSONParser:
                     out.append(tokval)
 
             result = "".join(out)
-            # 验证结果是否为有效JSON
+            # Validate if the result is valid JSON
             json.loads(result)
             return result
 
         except (tokenize.TokenError, json.JSONDecodeError):
-            # 如果tokenize失败，回退到正则表达式方法
+            # If tokenize fails, fallback to regex method
             for python_val, json_val in replacements.items():
-                json_str = re.sub(rf"\b{python_val}\b", json_val, json_str)
+                json_str = re.sub(rf"\\b{python_val}\\b", json_val, json_str)
             return json_str
 
     @staticmethod
     def _extract_first_json(response: str) -> str:
-        """提取第一个完整的JSON对象，忽略额外内容"""
+        """Extract the first complete JSON object, ignoring extra content"""
         decoder = json.JSONDecoder()
         obj, _ = decoder.raw_decode(response)
         return json.dumps(obj)
