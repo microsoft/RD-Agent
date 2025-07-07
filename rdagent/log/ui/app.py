@@ -130,8 +130,8 @@ if "all_metric_series" not in state:
     state.all_metric_series = []
 
 # Factor Task Baseline
-if "alpha158_metrics" not in state:
-    state.alpha158_metrics = None
+if "alpha_baseline_metrics" not in state:
+    state.alpha_baseline_metrics = None
 
 
 def should_display(msg: Message):
@@ -179,7 +179,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                         # factor baseline exp metrics
                         if (
                             isinstance(state.scenario, (QlibFactorScenario, QlibQuantScenario))
-                            and state.alpha158_metrics is None
+                            and state.alpha_baseline_metrics is None
                         ):
                             try:
                                 sms = msg.content.based_experiments[0].result
@@ -187,7 +187,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                                 sms = msg.content.based_experiments[0].__dict__["result"]
                             sms = sms.loc[QLIB_SELECTED_METRICS]
                             sms.name = "alpha158"
-                            state.alpha158_metrics = sms
+                            state.alpha_baseline_metrics = sms
 
                         if state.lround == 1 and len(msg.content.based_experiments) > 0:
                             try:
@@ -292,7 +292,7 @@ def refresh(same_trace: bool = False):
     state.all_metric_series = []
     state.last_msg = None
     state.current_tags = []
-    state.alpha158_metrics = None
+    state.alpha_baseline_metrics = None
 
 
 def evolving_feedback_window(wsf: FactorSingleFeedback | ModelSingleFeedback):
@@ -387,7 +387,7 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
         for i in df.index
         if i != "alpha158" and i != "Baseline"
     ]
-    if state.alpha158_metrics is not None:
+    if state.alpha_baseline_metrics is not None:
         hover_texts = ["Baseline: alpha158"] + hover_texts
     for ci, col in enumerate(df.columns):
         row = ci // C + 1
@@ -408,7 +408,7 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
         )
     fig.update_layout(showlegend=False, height=height)
 
-    if state.alpha158_metrics is not None:
+    if state.alpha_baseline_metrics is not None:
         for i in range(1, R + 1):  # 行
             for j in range(1, C + 1):  # 列
                 fig.update_xaxes(
@@ -450,14 +450,14 @@ def summary_window():
                 display_hypotheses(state.hypotheses, state.h_decisions, show_true_only)
 
             with chart_c:
-                if isinstance(state.scenario, QlibFactorScenario) and state.alpha158_metrics is not None:
-                    df = pd.DataFrame([state.alpha158_metrics] + state.metric_series)
-                elif isinstance(state.scenario, QlibQuantScenario) and state.alpha158_metrics is not None:
-                    df = pd.DataFrame([state.alpha158_metrics] + state.metric_series)
+                if isinstance(state.scenario, QlibFactorScenario) and state.alpha_baseline_metrics is not None:
+                    df = pd.DataFrame([state.alpha_baseline_metrics] + state.metric_series)
+                elif isinstance(state.scenario, QlibQuantScenario) and state.alpha_baseline_metrics is not None:
+                    df = pd.DataFrame([state.alpha_baseline_metrics] + state.metric_series)
                 else:
                     df = pd.DataFrame(state.metric_series)
                 if show_true_only and len(state.hypotheses) >= len(state.metric_series):
-                    if state.alpha158_metrics is not None:
+                    if state.alpha_baseline_metrics is not None:
                         selected = ["alpha158"] + [
                             i for i in df.index if i == "Baseline" or state.h_decisions[int(i[6:])]
                         ]
