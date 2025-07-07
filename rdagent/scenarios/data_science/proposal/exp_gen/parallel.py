@@ -82,7 +82,20 @@ class ParallelMultiTraceExpGen(ExpGen):
                     # set the local selection as the global current selection for the trace
                     trace.set_current_selection(local_selection)
                     # step 2: generate the experiment with the local selection
+                    before_leaves = trace.get_leaves()
+                    before_len = len(before_leaves)
+
                     exp = self.exp_gen.gen(trace)
+
+                    after_leaves = trace.get_leaves()
+                    after_len = len(after_leaves)
+
+                    logger.info(
+                        f"[GEN] parent={trace.get_current_selection()}  "
+                        f"leaves: {before_len}->{after_len}  "
+                        f"before={before_leaves}  after={after_leaves}"
+                    )
+                    logger.debug(f"hist/dag_parent: {len(trace.hist)}/{len(trace.dag_parent)}")
 
                     # Inject the local selection to the experiment object
                     exp.set_local_selection(local_selection)
