@@ -186,7 +186,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             except AttributeError:
                                 sms = msg.content.based_experiments[0].__dict__["result"]
                             sms = sms.loc[QLIB_SELECTED_METRICS]
-                            sms.name = "alpha158"
+                            sms.name = "Alpha Base"
                             state.alpha_baseline_metrics = sms
 
                         if state.lround == 1 and len(msg.content.based_experiments) > 0:
@@ -385,10 +385,10 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
     hover_texts = [
         hypothesis_hover_text(state.hypotheses[int(i[6:])], state.h_decisions[int(i[6:])])
         for i in df.index
-        if i != "alpha158" and i != "Baseline"
+        if i != "Alpha Base" and i != "Baseline"
     ]
     if state.alpha_baseline_metrics is not None:
-        hover_texts = ["Baseline: alpha158"] + hover_texts
+        hover_texts = ["Baseline"] + hover_texts
     for ci, col in enumerate(df.columns):
         row = ci // C + 1
         col_num = ci % C + 1
@@ -451,14 +451,14 @@ def summary_window():
 
             with chart_c:
                 if isinstance(state.scenario, QlibFactorScenario) and state.alpha_baseline_metrics is not None:
-                    df = pd.DataFrame([state.alpha_baseline_metrics] + state.metric_series)
+                    df = pd.DataFrame([state.alpha_baseline_metrics] + state.metric_series[1:])
                 elif isinstance(state.scenario, QlibQuantScenario) and state.alpha_baseline_metrics is not None:
-                    df = pd.DataFrame([state.alpha_baseline_metrics] + state.metric_series)
+                    df = pd.DataFrame([state.alpha_baseline_metrics] + state.metric_series[1:])
                 else:
                     df = pd.DataFrame(state.metric_series)
                 if show_true_only and len(state.hypotheses) >= len(state.metric_series):
                     if state.alpha_baseline_metrics is not None:
-                        selected = ["alpha158"] + [
+                        selected = ["Alpha Base"] + [
                             i for i in df.index if i == "Baseline" or state.h_decisions[int(i[6:])]
                         ]
                     else:
