@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+import io
 import json
 import re
 import sqlite3
 import time
+import tokenize
 import uuid
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, Callable, List, Optional, Tuple, cast
 
 import pytz
 from pydantic import BaseModel, TypeAdapter
@@ -29,6 +31,100 @@ try:
     openai_imported = True
 except ImportError:
     openai_imported = False
+
+
+class JSONParser:
+    """JSON解析器，支持多种策略"""
+
+    def __init__(self) -> None:
+        self.strategies: List[Callable[[str], str]] = [
+            self._direct_parse,
+            self._extract_from_code_block,
+            self._fix_python_syntax,
+            self._extract_with_fix_combined,
+        ]
+
+    def parse(self, content: str) -> str:
+        """解析JSON内容，自动尝试多种策略"""
+        original_content = content
+
+        for strategy in self.strategies:
+            try:
+                return strategy(original_content)
+            except json.JSONDecodeError:
+                continue
+
+        # 所有策略都失败
+        raise json.JSONDecodeError("Failed to parse JSON after all attempts", original_content, 0)
+
+    def _direct_parse(self, content: str) -> str:
+        """策略1：直接解析（包含处理额外数据）"""
+        try:
+            json.loads(content)
+            return content
+        except json.JSONDecodeError as e:
+            if "Extra data" in str(e):
+                return self._extract_first_json(content)
+            raise
+
+    def _extract_from_code_block(self, content: str) -> str:
+        """策略2：从代码块中提取JSON"""
+        match = re.search(r"```json\s*(.*?)\s*```", content, re.DOTALL)
+        if not match:
+            raise json.JSONDecodeError("No JSON code block found", content, 0)
+
+        json_content = match.group(1).strip()
+        return self._direct_parse(json_content)
+
+    def _fix_python_syntax(self, content: str) -> str:
+        """策略3：修复Python语法后解析"""
+        fixed = self._fix_python_booleans(content)
+        return self._direct_parse(fixed)
+
+    def _extract_with_fix_combined(self, content: str) -> str:
+        """策略4：组合策略 - 先修复Python语法，再提取第一个JSON"""
+        fixed = self._fix_python_booleans(content)
+
+        # 尝试从修复后的内容中提取代码块
+        match = re.search(r"```json\s*(.*?)\s*```", fixed, re.DOTALL)
+        if match:
+            fixed = match.group(1).strip()
+
+        return self._direct_parse(fixed)
+
+    @staticmethod
+    def _fix_python_booleans(json_str: str) -> str:
+        """使用tokenize安全地修复Python风格的布尔值为JSON标准格式"""
+        replacements = {"True": "true", "False": "false", "None": "null"}
+
+        try:
+            out = []
+            io_string = io.StringIO(json_str)
+            tokens = tokenize.generate_tokens(io_string.readline)
+
+            for toknum, tokval, _, _, _ in tokens:
+                if toknum == tokenize.NAME and tokval in replacements:
+                    out.append(replacements[tokval])
+                else:
+                    out.append(tokval)
+
+            result = "".join(out)
+            # 验证结果是否为有效JSON
+            json.loads(result)
+            return result
+
+        except (tokenize.TokenError, json.JSONDecodeError):
+            # 如果tokenize失败，回退到正则表达式方法
+            for python_val, json_val in replacements.items():
+                json_str = re.sub(rf"\b{python_val}\b", json_val, json_str)
+            return json_str
+
+    @staticmethod
+    def _extract_first_json(response: str) -> str:
+        """提取第一个完整的JSON对象，忽略额外内容"""
+        decoder = json.JSONDecoder()
+        obj, _ = decoder.raw_decode(response)
+        return json.dumps(obj)
 
 
 class SQliteLazyCache(SingletonBaseClass):
@@ -482,57 +578,8 @@ class APIBackend(ABC):
 
         # 3) format checking
         if json_mode:
-
-            def fix_python_booleans(json_str: str) -> str:
-                """修复Python风格的布尔值为JSON标准格式"""
-                json_str = re.sub(r"\bTrue\b", "true", json_str)
-                json_str = re.sub(r"\bFalse\b", "false", json_str)
-                json_str = re.sub(r"\bNone\b", "null", json_str)
-                return json_str
-
-            def extract_first_json(response: str) -> str:
-                """提取第一个完整的JSON对象，忽略额外内容"""
-                decoder = json.JSONDecoder()
-                obj, idx = decoder.raw_decode(response)
-                return json.dumps(obj)  # 重新序列化为干净的JSON
-
-            def try_parse_json(content: str) -> tuple[bool, str]:
-                """
-                尝试解析JSON，如果有额外数据错误则提取第一个JSON对象
-                """
-                try:
-                    json.loads(content)
-                    return True, content
-                except json.decoder.JSONDecodeError as e:
-                    if "Extra data" in str(e):
-                        try:
-                            cleaned = extract_first_json(content)
-                            json.loads(cleaned)
-                            return True, cleaned
-                        except:
-                            pass
-                    return False, content
-
-            # 保存原始响应
-            original_response = all_response
-
-            # 策略1：直接解析
-            success, all_response = try_parse_json(all_response)
-            if not success:
-                # 策略2：从代码块提取
-                match = re.search(r"```json(.*)```", original_response, re.DOTALL)
-                if match:
-                    json_content = match.groups()[0].strip()
-                    success, all_response = try_parse_json(json_content)
-
-                if not success:
-                    # 策略3：修复Python布尔值
-                    fixed_content = fix_python_booleans(all_response)
-                    success, all_response = try_parse_json(fixed_content)
-
-                    if not success:
-                        # 所有策略都失败，抛出异常
-                        raise json.decoder.JSONDecodeError("Failed to parse JSON after all attempts", all_response, 0)
+            parser = JSONParser()
+            all_response = parser.parse(all_response)
 
         if json_target_type is not None:
             TypeAdapter(json_target_type).validate_json(all_response)
