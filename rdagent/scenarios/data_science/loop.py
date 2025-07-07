@@ -275,6 +275,7 @@ class DataScienceRDLoop(RDLoop):
         # set the SOTA experiment to submit
         sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace)
         self.trace.set_sota_exp_to_submit(sota_exp_to_submit)
+        logger.log_object(sota_exp_to_submit, tag="sota_exp_to_submit")
 
         logger.log_object(self.trace, tag="trace")
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
