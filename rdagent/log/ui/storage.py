@@ -292,8 +292,12 @@ class WebStorage(Storage):
             from rdagent.core.experiment import Experiment
 
             if isinstance(obj, Experiment):
-                if obj.result is not None:
-                    result_str = obj.result.to_json()
+                try:
+                    result = obj.result
+                except AttributeError:  # compatibility with old versions
+                    result = obj.__dict__["result"]
+                if result is not None:
+                    result_str = result.to_json()
                     data = {
                         "id": id,
                         "msg": {
