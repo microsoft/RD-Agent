@@ -181,33 +181,43 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             isinstance(state.scenario, (QlibFactorScenario, QlibQuantScenario))
                             and state.alpha158_metrics is None
                         ):
-                            sms = msg.content.based_experiments[0].result.loc[QLIB_SELECTED_METRICS]
+                            try:
+                                sms = msg.content.based_experiments[0].result
+                            except AttributeError:
+                                sms = msg.content.based_experiments[0].__dict__["result"]
+                            sms = sms.loc[QLIB_SELECTED_METRICS]
                             sms.name = "alpha158"
                             state.alpha158_metrics = sms
 
                         if (
                             state.lround == 1
                             and len(msg.content.based_experiments) > 0
-                            and msg.content.based_experiments[-1].result is not None
                         ):
-                            sms = msg.content.based_experiments[-1].result
-                            if isinstance(
-                                state.scenario,
-                                (
-                                    QlibModelScenario,
-                                    QlibFactorFromReportScenario,
-                                    QlibFactorScenario,
-                                    QlibQuantScenario,
-                                ),
-                            ):
-                                sms_all = sms
-                                sms = sms.loc[QLIB_SELECTED_METRICS]
-                            sms.name = f"Baseline"
-                            state.metric_series.append(sms)
-                            state.all_metric_series.append(sms_all)
+                            try:
+                                sms = msg.content.based_experiments[-1].result
+                            except AttributeError:
+                                sms = msg.content.based_experiments[-1].__dict__["result"]
+                            if sms is not None:
+                                if isinstance(
+                                    state.scenario,
+                                    (
+                                        QlibModelScenario,
+                                        QlibFactorFromReportScenario,
+                                        QlibFactorScenario,
+                                        QlibQuantScenario,
+                                    ),
+                                ):
+                                    sms_all = sms
+                                    sms = sms.loc[QLIB_SELECTED_METRICS]
+                                sms.name = f"Baseline"
+                                state.metric_series.append(sms)
+                                state.all_metric_series.append(sms_all)
 
                         # common metrics
-                        sms = msg.content.result
+                        try:
+                            sms = msg.content.result
+                        except AttributeError:
+                            sms = msg.content.__dict__["result"]
                         if isinstance(
                             state.scenario,
                             (
