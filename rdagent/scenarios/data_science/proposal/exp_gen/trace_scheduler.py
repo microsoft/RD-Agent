@@ -53,20 +53,20 @@ class RoundRobinScheduler(TraceScheduler):
         """
         Atomically selects the next leaf node from the trace in order.
         """
-        # step 0: Commit the pending selections
-        for i in range(self.rec_commit_idx, len(trace.dag_parent)):
-            for p in trace.dag_parent[i]:
-                self.uncommited_rec_status[p] -= 1
-        self.rec_commit_idx = len(trace.hist)
-
-        # step 1: select the parant trace to expand
-        # Policy: if we have fewer traces than our target, start a new one.
-        if trace.sub_trace_count + self.uncommited_rec_status[trace.sub_trace_count] < self.max_trace_num:
-            self.uncommited_rec_status[trace.sub_trace_count] += 1
-            return trace.NEW_ROOT
-
-        # Step2: suggest a selection to a not expanding leave
         while True:
+            # step 0: Commit the pending selections
+            for i in range(self.rec_commit_idx, len(trace.dag_parent)):
+                for p in trace.dag_parent[i]:
+                    self.uncommited_rec_status[p] -= 1
+            self.rec_commit_idx = len(trace.hist)
+
+            # step 1: select the parant trace to expand
+            # Policy: if we have fewer traces than our target, start a new one.
+            if trace.sub_trace_count + self.uncommited_rec_status[trace.sub_trace_count] < self.max_trace_num:
+                self.uncommited_rec_status[trace.sub_trace_count] += 1
+                return trace.NEW_ROOT
+
+            # Step2: suggest a selection to a not expanding leave
             leaves = trace.get_leaves()
             for leaf in leaves:
                 if self.uncommited_rec_status[leaf] == 0:
