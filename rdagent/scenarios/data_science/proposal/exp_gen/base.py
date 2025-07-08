@@ -226,7 +226,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
                 # the sota exp should be accepted decision and all required components are completed.
                 if ef.decision:
                     return exp, ef
-        return None, None
+        return None
 
     def sota_experiment(
         self,
