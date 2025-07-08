@@ -353,7 +353,8 @@ task_gen:
     8. **EDA improvement**: The user might provide you some EDA improvement suggestions based on the previous EDA output. If so, you should also include the EDA improvement in your sketch.
 
     # Hyperparameters Specification
-    Choose hyperparameters to ensure strong performance while meeting resource and time constraints. Specify values only when clearly justified by evidence or strong rationale.
+    Follow the hyperparameters specification below when approaching hyperparameter selection.
+    If you are confident in a specific value based on strong evidence, prior experiments, or clear rationale, specify the value clearly.
     {% include "scenarios.data_science.share:spec.hyperparameter" %}
 
     {% if task_output_format is not none %}

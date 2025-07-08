@@ -330,6 +330,9 @@ spec:
       - When run time permit, prioritize increasing the number of training epochs, but always implement early stopping to prevent overfitting and ensure the process completes within the allowed runtime.
       - When run time constrained, first reduce the number of CV folds—provided that validation reliability remains acceptable—before lowering the number of epochs.
     4. Early Stopping Strategy
-      - Sufficient epochs are completed.
-      - Sufficient low loss are reached.
-      - Sufficient stable validation loss are achieved.
+      - Always implement an early stopping mechanism to prevent overfitting and ensure the process completes within the allowed runtime.
+      - Stop training if one or more of the following conditions are met:
+        - A minimum number of epochs have been completed and no improvement is observed in the monitored metric for a specified patience period.
+        - The validation loss (or metric) reaches a predefined threshold indicating sufficient model performance.
+        - The validation loss (or metric) remains stable (i.e., does not improve) for a set number of consecutive epochs.
+      - Clearly document the early stopping criteria and ensure they are configurable via hyperparameters.
