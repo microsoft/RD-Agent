@@ -126,14 +126,3 @@ class DSExperiment2Feedback(Experiment2Feedback):
 
         return hypothesis_feedback
 
-class DSDraftExperiment2Feedback(DSExperiment2Feedback):
-    """
-    A class to generate feedback for a DSExperiment based on the scenario and trace.
-    This class extends the Experiment2Feedback class to provide specific functionality
-    for data science experiments.
-    """
-
-    def __init__(self, scen: Scenario, version: str = "draft_exp_feedback") -> None:
-        super().__init__(scen, version)
-        self.version = version
-

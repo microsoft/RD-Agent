@@ -120,8 +120,8 @@ class DataScienceRDLoop(RDLoop):
             self.trace = DSTrace(scen=scen, knowledge_base=knowledge_base)
         else:
             self.trace = DSTrace(scen=scen)
-
-        self.summarizer = import_class(PROP_SETTING.summarizer)(scen)
+            
+        self.summarizer = import_class(PROP_SETTING.summarizer)(scen=scen, version=PROP_SETTING.summarizer_version)
 
         super(RDLoop, self).__init__()
 

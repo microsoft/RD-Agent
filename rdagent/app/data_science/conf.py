@@ -22,6 +22,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """Hypothesis generation class"""
 
     summarizer: str = "rdagent.scenarios.data_science.dev.feedback.DSExperiment2Feedback"
+    summarizer_version: str = "exp_feedback" # exp_feedback or exp_feedback_draft
     ## Workflow Related
     consecutive_errors: int = 5
 
