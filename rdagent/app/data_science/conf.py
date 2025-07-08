@@ -18,11 +18,13 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     - For custom data science scenarios, use: "rdagent.scenarios.data_science.scen.DataScienceScen"
     """
 
-    hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.proposal.DSProposalV2ExpGen"
+    hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.router.DraftRouterExpGen"
     """Hypothesis generation class"""
 
     summarizer: str = "rdagent.scenarios.data_science.dev.feedback.DSExperiment2Feedback"
-    summarizer_version: str = "exp_feedback"  # exp_feedback or exp_feedback_draft
+    summarizer_init_kwargs: dict = {
+        "version": "exp_feedback",
+    }
     ## Workflow Related
     consecutive_errors: int = 5
 

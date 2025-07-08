@@ -13,6 +13,7 @@ class DraftRouterExpGen(ExpGen):
     """
 
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.draft_exp_gen = DSDraftExpGenV2(self.scen)
         self.base_exp_gen = DSProposalV2ExpGen(self.scen)
 
@@ -22,12 +23,3 @@ class DraftRouterExpGen(ExpGen):
         if sota_exp is None and pipeline:
             return self.draft_exp_gen.gen(trace)
         return self.base_exp_gen.gen(trace)
-
-
-"""
-# Default
-DS_HYPOTHESIS_GEN="rdagent.scenarios.data_science.proposal.exp_gen.proposal.DSProposalV2ExpGen"
-
-# Your compared method
-DS_HYPOTHESIS_GEN="rdagent.scenarios.data_science.proposal.exp_gen.proposal.router.DraftRouterExpGen"
-"""
