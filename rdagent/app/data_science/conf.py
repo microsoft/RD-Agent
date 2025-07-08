@@ -18,7 +18,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     - For custom data science scenarios, use: "rdagent.scenarios.data_science.scen.DataScienceScen"
     """
 
-    hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.router.DraftRouterExpGen"
+    hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.proposal.DSProposalV2ExpGen"
     """Hypothesis generation class"""
 
     summarizer: str = "rdagent.scenarios.data_science.dev.feedback.DSExperiment2Feedback"
