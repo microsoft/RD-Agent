@@ -112,8 +112,6 @@ class DataScienceRDLoop(RDLoop):
         self.runner = DSCoSTEERRunner(scen)
         if DS_RD_SETTING.enable_doc_dev:
             self.docdev = DocDev(scen)
-        # self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
-        # logger.log_object(self.summarizer, tag="summarizer")
 
         if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
             knowledge_base = DSKnowledgeBase(
@@ -123,7 +121,6 @@ class DataScienceRDLoop(RDLoop):
         else:
             self.trace = DSTrace(scen=scen)
 
-        #self.summarizer = DSExperiment2Feedback(scen)
         self.summarizer = import_class(PROP_SETTING.summarizer)(scen)
 
         super(RDLoop, self).__init__()

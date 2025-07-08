@@ -2,13 +2,13 @@ from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.proposal import ExpGen
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace
-from rdagent.scenarios.data_science.proposal.exp_gen.draft.draft_v1 import DSDraftExpGenV2
+from rdagent.scenarios.data_science.proposal.exp_gen.draft.draft import DSDraftExpGenV2
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 
 
 class DraftRouterExpGen(ExpGen):
     """
-    A intelligent router for drafting and improving.
+    A intelligent router for drafting and proposing.
 
     """
     def __init__(self, *args, **kwargs):

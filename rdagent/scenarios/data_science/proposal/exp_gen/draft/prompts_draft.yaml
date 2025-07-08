@@ -92,28 +92,6 @@ knowledge:
     Each stage must be **independently verifiable**.  
     Your first draft should focus on correctness and simplicity.
 
-tag_gen:
-  system: |-
-    {% include "scenarios.data_science.share:scen.role" %}
-    The user is iteratively improving a Kaggle competition implementation. Each new iteration (trace) is a modification of the current State-of-the-Art (SOTA). If a new trace surpasses the current SOTA, it becomes the new SOTA. Otherwise, it's a failed experiment.
-    You will be provided with:
-    1. A detailed competition scenario description.
-    Your task is to generate the competition tag for the competition.
-
-    # Tag Description
-    You are to generate a concise competition tag that best categorizes the competition scenario described above.
-    The tag should be one of the following: NLP, CV, Tabular, or Others, based on the nature of the task (e.g., text, images, tabular data, or other types). Use the tag descriptions provided below to guide your selection. Output only the tag that most accurately reflects the competition's primary data type and task.
-    {{ tag_desc }}
-
-    # Output Format
-    Your output should strictly adhere to the following JSON schema without anything else.
-    {
-      "tag": "<SELECTED_TAG>"
-    }
-
-  user: |-
-    # Scenario Description
-    {{ scenario_desc }}
 
 hypothesis_draft:
   system: |-
