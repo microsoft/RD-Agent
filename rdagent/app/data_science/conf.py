@@ -38,14 +38,14 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     spec_enabled: bool = True
 
     #### proposal related
-    proposal_version: str = "v1"
-    coder_on_whole_pipeline: bool = False
+    # proposal_version: str = "v2" deprecated
+
+    coder_on_whole_pipeline: bool = True
     max_trace_hist: int = 3
 
     coder_max_loop: int = 10
     runner_max_loop: int = 1
 
-    rule_base_eval: bool = False
     sample_data_by_LLM: bool = False
     use_raw_description: bool = False
     show_nan_columns: bool = False

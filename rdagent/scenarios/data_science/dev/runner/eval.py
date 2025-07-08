@@ -25,7 +25,19 @@ from rdagent.utils.fmt import shrink_text
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
-DSCoSTEEREvalFeedback = CoSTEERSingleFeedback
+
+class DSCoSTEEREvalFeedback(CoSTEERSingleFeedback):
+    """
+    Feedback for Data Science CoSTEER evaluation.
+    This feedback is used to evaluate the code and execution of the Data Science CoSTEER task.
+    """
+
+    def __init__(
+        self, *args, hyperparameter_tuning_decision: bool = None, hyperparameter_tuning_suggestion: str = None, **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        self.hyperparameter_tuning_decision = hyperparameter_tuning_decision
+        self.hyperparameter_tuning_suggestion = hyperparameter_tuning_suggestion
 
 
 class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
@@ -116,27 +128,6 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         if test_eval.enabled(self.scen.competition):
             submission_check_out, submission_ret_code = test_eval.valid(self.scen.competition, implementation)
             stdout += f"\nSubmission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
-        if DS_RD_SETTING.rule_base_eval:
-            if DS_RD_SETTING.if_using_mle_data:
-                score_check_text = score_check_text + "\n" + submission_check_out
-            if (
-                execute_ret_code == 0
-                and score_ret_code == 0
-                and (not DS_RD_SETTING.if_using_mle_data or submission_ret_code == 0)
-            ):
-                return DSCoSTEEREvalFeedback(
-                    execution=stdout,
-                    return_checking=score_check_text,
-                    code="Code evaluation is not available.",
-                    final_decision=True,
-                )
-            else:
-                return DSCoSTEEREvalFeedback(
-                    execution=stdout,
-                    return_checking=score_check_text,
-                    code="Code evaluation is not available.",
-                    final_decision=False,
-                )
 
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=implementation.file_dict.get("EDA.md", None)),
@@ -146,6 +137,9 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         user_prompt = T(".prompts:DSCoSTEER_eval.user").r(
             code=implementation.all_codes,
             stdout=shrink_text(stdout),
+            time_spent=f"{implementation.running_info.running_time:.2f} seconds",
+            timeout=f"{env.conf.running_timeout_period} seconds",
+            percent_of_timeout_used=f"{(implementation.running_info.running_time / env.conf.running_timeout_period) * 100:.2f}%",
         )
 
         feedback = build_cls_from_json_with_retry(

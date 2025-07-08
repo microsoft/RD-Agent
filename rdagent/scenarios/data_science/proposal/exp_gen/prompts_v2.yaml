@@ -114,7 +114,7 @@ scenario_description: |-
   ====== Background ======
   {{ background }}
 
-  {% if eda_output is not none %}
+  {% if eda_output is not none %}The following is the output of the exploratory data analysis (EDA) performed on the dataset, You should carefully analyze it to better craft your feature engineering and model training strategies.
   ====== Data Overview (EDA) ======
   {{ eda_output }}
   {% endif %}
@@ -206,7 +206,6 @@ hypothesis_gen:
         - *Good Example (Efficiency)*: "To resolve the 'timeout during training' challenge, reduce `NUM_EPOCHS` from 5 to 2 and `N_SPLITS` for cross-validation from 5 to 3 in the main training loop, aiming to complete execution within the 1-hour limit while minimizing impact on the F1-score."
         - *Poor Example*: "Tune the model for better results."
       - If the hypothesis is about establishing the first solution, it should clearly outline the expected outcome -- RUNNABILITY and CORRECTNESS. Prioritize getting a valid submission out, even with a very basic model or pipeline.
-        - *Good Example*: "Implement a simple RandomForest classifier with default parameters, using 5-fold cross-validation for model evaluation. This will lead to a decent baseline model that can run to completion and generate a valid submission file."
     3. **Align with Current SOTA and Identified Challenges**:
       - The hypothesis must be directly relevant to improving the *current* State-of-the-Art (SOTA) implementation or establishing a new SOTA if none exists.
       - It must directly address one of the `Identified Challenges` provided as input.
@@ -280,7 +279,7 @@ task_gen:
 
     Your primary goal is to generate a detailed, step-by-step **sketch or refinement plan** for a new data processing and modeling pipeline, specifically for the main workflow script (`main.py`), that effectively implements the `Proposed Hypothesis`. This sketch will guide a developer to write the code correctly.
 
-    ### BACKGROUND CONTEXT: Pipeline Implementation Standards & Constraints ###
+    # BACKGROUND CONTEXT: Pipeline Implementation Standards & Constraints
 
     The `main.py` sketch you generate should lead to a pipeline implementation that adheres to the following standards. These are guiding principles for the final *outcome* of your sketch:
 
@@ -309,14 +308,12 @@ task_gen:
       - Prevent data leakage from test/validation sets into any training stage.
     7. **Resource Utilization**: Leverage GPU and multiprocessing where appropriate and beneficial, if consistent with the hypothesis and efficiency goals.
     8. **Metric Calculation and Storage (`scores.csv`)**:
-      - Calculate the official competition metric on a proper validation set (e.g., K-fold CV, typically 3-5 folds unless efficiency dictates fewer). Save results to `scores.csv`.
+      - Calculate the official competition metric on a proper validation set. Save results to `scores.csv`.
       - The sketch must ensure this step is included. A successful run should always produce scores.
-      - `scores.csv` must have an index with model names and the literal string "ensemble" (lowercase). Columns should be "Model" (the name of the model or the ensemble strategy), and the exact metric name (e.g., "AUC").
+      - `scores.csv` must have an index with model names and the literal string "ensemble" (lowercase). Columns should be the exact metric name (e.g., "AUC").
       - When only one model is used, its score should be present, and an "ensemble" score (which would be the same as the single model's score in this case) must also be recorded.
       - Ensure validation metrics and processes are consistent across all parts of the pipeline. Avoid changes that would alter how validation metrics are calculated unless that is part of the hypothesis.
     9. **Submission File (`submission.csv`)**: Generate `submission.csv` in the **exact format** required (column names, order, data types), as detailed by `sample_submission.csv` in the `Competition Scenario Description`. This is a critical step.
-
-    ### END OF BACKGROUND CONTEXT ###
 
     # Guidelines for Sketching the `main.py` Workflow
 
@@ -353,7 +350,13 @@ task_gen:
       - Handle file I/O robustly, especially for zipped data or large files, to prevent `FileNotFoundError` or `BadZipFile` issues.
       - Confirm no `tqdm` or other progress bars are in the final script.
       - Double-check that validation scores are saved correctly to `scores.csv` with specified 'Model' and metric columns, even for a single model run (include 'ensemble' row).
-    
+    8. **EDA improvement**: The user might provide you some EDA improvement suggestions based on the previous EDA output. If so, you should also include the EDA improvement in your sketch.
+
+    # Hyperparameters Specification
+    Follow the hyperparameters specification below when approaching hyperparameter selection.
+    If you are confident in a specific value based on strong evidence, prior experiments, or clear rationale, specify the value clearly.
+    {% include "scenarios.data_science.share:spec.hyperparameter" %}
+
     {% if task_output_format is not none %}
     ## [Partial Response Format 1] Task Output Format:
     {{ task_output_format }}
@@ -392,8 +395,11 @@ task_gen:
 
     {% endfor %}
     # Previous Failed Experiments & Feedback (e.g., experiments that did not pass evaluation, encountered bugs, or failed to surpass SOTA performance)
-
     {{ failed_exp_and_feedback_list_desc }}
+  
+    {% if eda_improvement is not none %}
+    {{ eda_improvement }}
+    {% endif %}
 
 idea_sample:
   system: |-
