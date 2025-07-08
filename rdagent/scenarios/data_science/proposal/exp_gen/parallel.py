@@ -104,8 +104,10 @@ class ParallelMultiTraceExpGen(ExpGen):
                     else:
                         selection = (leaves[0],)
                         if trace.sota_exp_to_submit is not None:
-                            if trace.is_parent(trace.exp2idx(trace.sota_exp_to_submit), leaves[1]):
-                                selection = (leaves[1],)
+                            for i in range(1, len(leaves)):
+                                if trace.is_parent(trace.exp2idx(trace.sota_exp_to_submit), leaves[i]):
+                                    selection = (leaves[i],)
+                                    break
                         trace.set_current_selection(selection)
                         return self.merge_exp_gen.gen(trace)
 
