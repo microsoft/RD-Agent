@@ -15,8 +15,11 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.utils import (
+    CodingSketch,
+    get_component,
+)
 from rdagent.utils.agent.tpl import T
-from rdagent.scenarios.data_science.proposal.exp_gen.utils import get_component, CodingSketch
 
 
 class DSDraftExpGen(ExpGen):
