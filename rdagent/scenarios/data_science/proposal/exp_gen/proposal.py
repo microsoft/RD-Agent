@@ -19,6 +19,7 @@ from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.feedback import ExperimentFeedback
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.draft import DSDraftExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
 from rdagent.scenarios.data_science.proposal.exp_gen.refine import DSRefineExpGen
 from rdagent.utils.agent.tpl import T
@@ -274,29 +275,22 @@ class CodingSketch(BaseModel):
     )
 
 
-# TODO: merge the two version draft in the further
-# def draft_exp_in_pipeline(scen: Scenario, trace: DSTrace) -> None | DSDraftExpGenV2:
-#     return DSDraftExpGenV2(scen=scen).gen(
-#         trace=trace,
-#     )
-
-
-# def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None | DSDraftExpGen:
-#     next_missing_component = trace.next_incomplete_component()
-#     if next_missing_component is not None:
-#         return DSDraftExpGen(scen=scen).gen(
-#             component=next_missing_component,
-#             trace=trace,
-#         )
-#     else:
-#         return None
+def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None | DSDraftExpGen:
+    next_missing_component = trace.next_incomplete_component()
+    if next_missing_component is not None:
+        return DSDraftExpGen(scen=scen).gen(
+            component=next_missing_component,
+            trace=trace,
+        )
+    else:
+        return None
 
 
 class DSProposalV1ExpGen(ExpGen):
     def gen(self, trace: DSTrace) -> DSExperiment:
         # Drafting Stage
-        # if draft_exp := draft_exp_in_decomposition(self.scen, trace):
-        #     return draft_exp
+        if draft_exp := draft_exp_in_decomposition(self.scen, trace):
+            return draft_exp
 
         # Guidelines:
         # System prompts: Shared condition you are facing
