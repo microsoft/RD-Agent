@@ -21,7 +21,6 @@ from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.draft import DSDraftExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
-from rdagent.scenarios.data_science.proposal.exp_gen.refine import DSRefineExpGen
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
