@@ -171,7 +171,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
     def experiment_and_feedback_list_after_init(
         self,
         return_type: Literal["sota", "failed", "all"],
-        search_type: Literal["all", "ancestors"] = "all",
+        search_type: Literal["all", "ancestors"] = "ancestors",
         selection: tuple[int, ...] | None = None,
         max_retrieve_num: int | None = None,
     ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
