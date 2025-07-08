@@ -235,10 +235,12 @@ class DataScienceRDLoop(RDLoop):
             # set the local selection to the trace as global selection, then set the DAG parent for the trace
             if exp.local_selection is not None:
                 self.trace.set_current_selection(exp.local_selection)
-            self.trace.sync_dag_parent_and_hist((
-                exp,
-                ExperimentFeedback.from_exception(e),
-            ))
+            self.trace.sync_dag_parent_and_hist(
+                (
+                    exp,
+                    ExperimentFeedback.from_exception(e),
+                )
+            )
 
             if self.trace.sota_experiment() is None:
                 if DS_RD_SETTING.coder_on_whole_pipeline:

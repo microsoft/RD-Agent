@@ -93,7 +93,8 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         return leaves
 
     def sync_dag_parent_and_hist(
-        self, exp_and_fb: tuple[Experiment, ExperimentFeedback],
+        self,
+        exp_and_fb: tuple[Experiment, ExperimentFeedback],
     ) -> None:
         """
         Adding corresponding parent index to the dag_parent when the hist is going to be changed.
