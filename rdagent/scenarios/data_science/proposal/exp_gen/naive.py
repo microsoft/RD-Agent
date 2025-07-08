@@ -8,7 +8,7 @@ from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
-
+print('debug')
 
 class NaiveExpGen(ExpGen):
     def gen(self, trace: DSTrace) -> DSExperiment:
