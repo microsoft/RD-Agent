@@ -21,7 +21,6 @@ from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.draft import DSDraftExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
-from rdagent.scenarios.data_science.proposal.exp_gen.refine import DSRefineExpGen
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
@@ -721,7 +720,7 @@ class DSProposalV2ExpGen(ExpGen):
         hypotheses: list[DSHypothesis],
         pipeline: bool,
         failed_exp_feedback_list_desc: str,
-        sota_exp_fb: ExperimentFeedback | None = None,
+        fb_to_sota_exp: ExperimentFeedback | None = None,
     ) -> DSExperiment:
         if pipeline:
             component_info = get_component("Pipeline")
@@ -740,7 +739,7 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             hypotheses=hypotheses,
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
-            eda_improvement=sota_exp_fb.eda_improvement if sota_exp_fb else None,
+            eda_improvement=fb_to_sota_exp.eda_improvement if fb_to_sota_exp else None,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
@@ -824,7 +823,11 @@ class DSProposalV2ExpGen(ExpGen):
                 ]
             )
 
-        sota_exp, sota_exp_fb = trace.sota_experiment_fb()
+        if sota_exp_fb := trace.sota_experiment_fb() is None:
+            sota_exp, fb_to_sota_exp = None, None
+        else:
+            sota_exp, fb_to_sota_exp = sota_exp_fb
+
         if not isinstance(sota_exp, DSExperiment):
             eda_output = None
         else:
@@ -922,5 +925,5 @@ class DSProposalV2ExpGen(ExpGen):
             ),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
-            sota_exp_fb=sota_exp_fb,
+            fb_to_sota_exp=fb_to_sota_exp,
         )
