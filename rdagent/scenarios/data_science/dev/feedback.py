@@ -10,7 +10,6 @@ from rdagent.core.proposal import (
     HypothesisFeedback,
 )
 from rdagent.core.scenario import Scenario
-
 from rdagent.log.utils import dict_get_with_warning
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -125,4 +124,3 @@ class DSExperiment2Feedback(Experiment2Feedback):
             trace.knowledge_base.add_idea(idea=ds_idea)
 
         return hypothesis_feedback
-

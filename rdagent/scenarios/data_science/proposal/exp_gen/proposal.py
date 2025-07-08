@@ -19,7 +19,9 @@ from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.feedback import ExperimentFeedback
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
-from rdagent.scenarios.data_science.proposal.exp_gen.draft.draft import DSDraftExpGen # TODO: DSDraftExpGen should be moved to router in the further
+from rdagent.scenarios.data_science.proposal.exp_gen.draft.draft import (
+    DSDraftExpGen,  # TODO: DSDraftExpGen should be moved to router in the further
+)
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
 from rdagent.scenarios.data_science.proposal.exp_gen.refine import DSRefineExpGen
 from rdagent.utils.agent.tpl import T
@@ -813,7 +815,7 @@ class DSProposalV2ExpGen(ExpGen):
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
         if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
             return draft_exp
-        
+
         if pipeline:
             component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
         else:

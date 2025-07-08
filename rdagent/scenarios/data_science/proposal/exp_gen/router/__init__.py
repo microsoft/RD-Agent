@@ -11,6 +11,7 @@ class DraftRouterExpGen(ExpGen):
     A intelligent router for drafting and proposing.
 
     """
+
     def __init__(self, *args, **kwargs):
         self.draft_exp_gen = DSDraftExpGenV2(self.scen)
         self.base_exp_gen = DSProposalV2ExpGen(self.scen)
@@ -21,7 +22,7 @@ class DraftRouterExpGen(ExpGen):
         if sota_exp is None and pipeline:
             return self.draft_exp_gen.gen(trace)
         return self.base_exp_gen.gen(trace)
-    
+
 
 """
 # Default
