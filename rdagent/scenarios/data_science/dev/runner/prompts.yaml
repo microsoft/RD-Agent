@@ -15,11 +15,19 @@ DSCoSTEER_eval:
     - Model training
     - Ensembling
 
+    The user will provide you the time spent on the whole code execution and the timeout of the code execution. You should decide whether the hyperparameter is reasonable based on the time.
+    For example, if the code only spent ten percent of the timeout and the hyperparameter like `n_estimators` or 'epochs' is very small or batch size is small you should suggest to increase these hyperparameter.
+    Please provide your feedback in two key-value pairs:
+    "hyperparameter_tuning_decision": <true/false>
+    "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning, e.g., increase n_estimators to 1000, increase epochs to 100, increase batch size to 64, give an empty string if decide not to tune the hyperparameter>
+    Notice: You should only suggest the hyperparameter tuning if the code applies early stopping strategy because increasing the training time blindly may lead to overfitting. Once you found the code didn't apply early stopping strategy, you should not suggest to tune the hyperparameter.
+    Your suggestion should be reasonable and include not only the target hyperparameter but also the hyperparameter sets.
+    Once you decide to tune the hyperparameter you should set "final_decision" to false.
+
     {% if is_sub_enabled %}
     The user will provide you the whole code base, some logs generated during the execution of the whole workflow. Your evaluation scope includes whether the workflow code:
     1. Executes successfully, correctly organizing components and generating a final submission.
     2. Generates predictions in the correct format, ensuring they align with the **sample submission** structure!
-
     
     Please respond with your feedback in the following JSON format and order
     ```json
@@ -27,7 +35,9 @@ DSCoSTEER_eval:
         "execution": "Describe whether the whole code base executed successfully and generating the final submission. Include any errors or issues encountered, and retain all error messages and traceback details.",
         "return_checking": "Verify the generated files, particularly the submission file. Ensure that its format matches the sample submission",
         "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
-        "final_decision": <true/false>
+        "final_decision": <true/false>,
+        "hyperparameter_tuning_decision": <true/false>,
+        "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,
     }
     ```
     {% else %}
@@ -40,7 +50,9 @@ DSCoSTEER_eval:
         "execution": "Describe whether the code executed successfully. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information.",
         "return_checking": "Describe the expected file to be generated.",
         "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
-        "final_decision": <true/false>
+        "final_decision": <true/false>,
+        "hyperparameter_tuning_decision": <true/false>,
+        "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,
     }
     ```
     {% endif %}
@@ -51,9 +63,15 @@ DSCoSTEER_eval:
     {{ code }}
     --------- the stdout of code execution and testing ---------
     {{ stdout }}
+    --------- the time spent on code execution ---------
+    {{ time_spent }}
+    --------- the timeout of code execution ---------
+    {{ timeout }}
+    --------- the percent of timeout used ---------
+    {{ percent_of_timeout_used }}
 
-DSCoSTEER_debugger:
-  system: |-
+DSCoSTEER:
+  system_debugger: |-
     You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science.
     You have finished the implementation of the whole workflow which has executed well on a sampled dataset. However, the user has reported that the workflow failed to execute on the full dataset.
 
@@ -74,8 +92,29 @@ DSCoSTEER_debugger:
         "code": "The Python code as a string."
     }
     {% endif %}
+  system_refine: |-
+    You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science.
+    You have finished the implementation of the whole workflow which has executed well on a sampled dataset. However, the user has reported that the hyperparameters are not reasonable and the code didn't make the best use of the time limit.
+    Your current job is to refine the whole code base, try to refine the hyperparameters.
+
+    The user will provide your the whole code base, some feedback generated during the execution of the whole workflow and some suggestions for hyperparameter tuning.
+    Your modified code should follow the minimal changes principle. Only modify the hyperparameters that is necessary.
+
+    ## Output Format
+    {% if out_spec %}
+    {{ out_spec }}
+    {% else %}
+    Please response the code in the following json format. Here is an example structure for the JSON output:
+    {
+        "code": "The Python code as a string."
+    }
+    {% endif %}
   user: |-
     --------- code base ---------
     {{ code }}
     --------- feedback ---------
     {{ feedback }}
+    {% if hyperparameter_tuning_suggestion is not none %}
+    --------- hyperparameter tuning suggestions ---------
+    {{ hyperparameter_tuning_suggestion }}
+    {% endif %}

@@ -296,13 +296,14 @@ component_spec:
       - Handle missing values and outliers appropriately (e.g., impute, remove, or replace).
       - Ensure consistency between feature data types and transformations.
       - Prevent data leakage: Do not use information derived from the test set when transforming training data.
+      - Sampling a subset of the training data for efficiency (e.g., randomly selecting a portion of the data) is discouraged unless it demonstrably improves performance (e.g., removing irrelevant or outlier samples).
 
     6. Notes:
       - GPU and multiprocessing are available and are encouraged to use for accelerating transformations.
   
     7. Metric Calculation and Storage:
       - Calculate the metric (mentioned in the evaluation section of the competition information) for each model and ensemble strategy on valid, and save the results in `scores.csv`
-      - The evaluation should be based on 5-fold cross-validation but only if that's an appropriate evaluation for the task at hand. Store the mean validation score of 5-fold cross-validation in `scores.csv` on each model.
+      - The evaluation should be based on k-fold cross-validation but only if that's an appropriate evaluation for the task at hand. Store the mean validation score of k-fold cross-validation in `scores.csv` on each model. Refer to the hyperparameter specification for rules to set the CV folds.
       - Even if only one model is present, compute the ensemble score and store it under `"ensemble"`.
       - The index of `scores.csv` should include the model name and the "ensemble" strategy. "ensemble" should be exactly in the index with all lower case letters. Ensemble is the result from several models. If only one model is present, the ensemble score should be the same as the model score.
       - The column names in `scores.csv` should be:
@@ -317,3 +318,21 @@ component_spec:
 guidelines:
   coding: |-
     You might receive exploratory data analysis (EDA) details about the source data. Do not use this EDA information to create assertions or raise errors. We might generate sample data for quick coding (so your code may run on sample data which is part of the full-size data), but remember that the EDA details are based on the full-size data.
+
+spec:
+  hyperparameter: |-
+    1. Hyperparameters Requiring Tuning (e.g., learning rate, weight decay, optimizer, etc.)
+      - Adjust conservatively to avoid instability.
+      - Apply a systematic hyperparameter tuning strategy to identify optimal values.
+    2. Hyperparameters Dependent on Empirical Estimation or Past Failures (e.g., batch size, patience, epochs, etc.)
+      - Estimate these parameters based on the resource constraints (e.g. run time limit) or experiences from previous experiment failures.
+    3. Balancing Epochs and CV Folds
+      - When run time permit, prioritize increasing the number of training epochs, but always implement early stopping to prevent overfitting and ensure the process completes within the allowed runtime.
+      - When run time constrained, first reduce the number of CV folds—provided that validation reliability remains acceptable—before lowering the number of epochs.
+    4. Early Stopping Strategy
+      - Always implement an early stopping mechanism to prevent overfitting and ensure the process completes within the allowed runtime.
+      - Stop training if one or more of the following conditions are met:
+        - A minimum number of epochs have been completed and no improvement is observed in the monitored metric for a specified patience period.
+        - The validation loss (or metric) reaches a predefined threshold indicating sufficient model performance.
+        - The validation loss (or metric) remains stable (i.e., does not improve) for a set number of consecutive epochs.
+      - Clearly document the early stopping criteria and ensure they are configurable via hyperparameters.

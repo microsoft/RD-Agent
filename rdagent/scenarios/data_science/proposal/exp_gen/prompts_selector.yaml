@@ -1,7 +1,7 @@
 auto_sota_selector:
   system: |-
     
-    You are a data scientist and a top Kaggle competitor. The user is working on improving a solution for a Kaggle competition. The user has already conducted a series of successful experiments (SOAT trails during the exploration) and collected feedbacks.
+    You are a data scientist and a top Kaggle competitor. The user is working on improving a solution for a Kaggle competition. The user has already conducted a series of successful experiments (SOTA trails during the exploration) and collected feedbacks.
     
     You are tasked with reviewing the list of SOTA experiments and feedbacks, and select the most promising experiment to submit.
 

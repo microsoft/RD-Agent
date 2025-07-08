@@ -226,7 +226,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
                 # the sota exp should be accepted decision and all required components are completed.
                 if ef.decision:
                     return exp, ef
-        return None
+        return None, None
 
     def sota_experiment(
         self,
@@ -241,11 +241,12 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
     def last_successful_exp(
         self,
         search_type: Literal["all", "ancestors"] = "ancestors",
+        selection: tuple[int, ...] | None = None,
     ) -> DSExperiment | None:
         """
         Access the last successful experiment even part of the components are not completed.
         """
-        search_list = self.retrieve_search_list(search_type)
+        search_list = self.retrieve_search_list(search_type, selection=selection)
 
         for exp, ef in search_list[::-1]:
             if ef.decision:
