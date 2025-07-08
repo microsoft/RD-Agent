@@ -126,21 +126,6 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             submission_result = implementation.run(env=env, entry="python test/submission_format_test.py")
             submission_check_out = submission_result.stdout
             submission_ret_code = submission_result.exit_code
-            if DS_RD_SETTING.rule_base_eval:
-                if execute_ret_code == 0 and score_ret_code == 0 and submission_ret_code == 0:
-                    return PipelineSingleFeedback(
-                        execution=stdout,
-                        return_checking=score_check_text + "\n" + submission_check_out,
-                        code="Code evaluation is not available.",
-                        final_decision=True,
-                    )
-                else:
-                    return PipelineSingleFeedback(
-                        execution=stdout,
-                        return_checking=score_check_text + "\n" + submission_check_out,
-                        code="Code evaluation is not available.",
-                        final_decision=False,
-                    )
             stdout += "\n" + submission_check_out
 
         if not isinstance(implementation, FBWorkspace):

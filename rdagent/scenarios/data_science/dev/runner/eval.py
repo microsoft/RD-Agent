@@ -128,27 +128,6 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         if test_eval.enabled(self.scen.competition):
             submission_check_out, submission_ret_code = test_eval.valid(self.scen.competition, implementation)
             stdout += f"\nSubmission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
-        if DS_RD_SETTING.rule_base_eval:
-            if DS_RD_SETTING.if_using_mle_data:
-                score_check_text = score_check_text + "\n" + submission_check_out
-            if (
-                execute_ret_code == 0
-                and score_ret_code == 0
-                and (not DS_RD_SETTING.if_using_mle_data or submission_ret_code == 0)
-            ):
-                return DSCoSTEEREvalFeedback(
-                    execution=stdout,
-                    return_checking=score_check_text,
-                    code="Code evaluation is not available.",
-                    final_decision=True,
-                )
-            else:
-                return DSCoSTEEREvalFeedback(
-                    execution=stdout,
-                    return_checking=score_check_text,
-                    code="Code evaluation is not available.",
-                    final_decision=False,
-                )
 
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=implementation.file_dict.get("EDA.md", None)),
