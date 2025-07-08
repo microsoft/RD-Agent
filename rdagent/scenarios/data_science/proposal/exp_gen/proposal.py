@@ -457,12 +457,12 @@ class DSProposalV1ExpGen(ExpGen):
 class DSProposalV2ExpGen(ExpGen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.support_function_calling = APIBackend().support_function_calling()
+        self.supports_response_schema = APIBackend().supports_response_schema()
 
     def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_output_format=(
-                T(".prompts_v2:output_format.problem").r() if not self.support_function_calling else None
+                T(".prompts_v2:output_format.problem").r() if not self.supports_response_schema else None
             ),
         )
         user_prompt = T(".prompts_v2:scenario_problem.user").r(
@@ -472,10 +472,10 @@ class DSProposalV2ExpGen(ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=ScenarioChallenges if self.support_function_calling else {"type": "json_object"},
-            json_target_type=Dict[str, Dict[str, str]] if not self.support_function_calling else None,
+            response_format=ScenarioChallenges if self.supports_response_schema else {"type": "json_object"},
+            json_target_type=Dict[str, Dict[str, str]] if not self.supports_response_schema else None,
         )
-        if self.support_function_calling:
+        if self.supports_response_schema:
             challenges = ScenarioChallenges(**json.loads(response))
             # Translate to problems
             problems = {o.caption: {"problem": o.statement, "reason": o.reasoning} for o in challenges.challenges}
@@ -490,7 +490,7 @@ class DSProposalV2ExpGen(ExpGen):
     ) -> Dict:
         sys_prompt = T(".prompts_v2:feedback_problem.system").r(
             problem_output_format=(
-                T(".prompts_v2:output_format.problem").r() if not self.support_function_calling else None
+                T(".prompts_v2:output_format.problem").r() if not self.supports_response_schema else None
             ),
             inject_diverse=inject_diverse,
         )
@@ -502,10 +502,10 @@ class DSProposalV2ExpGen(ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=TraceChallenges if self.support_function_calling else {"type": "json_object"},
-            json_target_type=Dict[str, Dict[str, str]] if not self.support_function_calling else None,
+            response_format=TraceChallenges if self.supports_response_schema else {"type": "json_object"},
+            json_target_type=Dict[str, Dict[str, str]] if not self.supports_response_schema else None,
         )
-        if self.support_function_calling:
+        if self.supports_response_schema:
             challenges = TraceChallenges(**json.loads(response))
             # Translate to problems
             problems = {o.caption: {"problem": o.statement, "reason": o.reasoning} for o in challenges.challenges}
@@ -569,7 +569,7 @@ class DSProposalV2ExpGen(ExpGen):
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             hypothesis_output_format=(
                 T(".prompts_v2:output_format.hypothesis").r(pipeline=pipeline, enable_idea_pool=enable_idea_pool)
-                if not self.support_function_calling
+                if not self.supports_response_schema
                 else None
             ),
             pipeline=pipeline,
@@ -586,12 +586,12 @@ class DSProposalV2ExpGen(ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=HypothesisList if self.support_function_calling else {"type": "json_object"},
+            response_format=HypothesisList if self.supports_response_schema else {"type": "json_object"},
             json_target_type=(
-                Dict[str, Dict[str, str | Dict[str, str | int]]] if not self.support_function_calling else None
+                Dict[str, Dict[str, str | Dict[str, str | int]]] if not self.supports_response_schema else None
             ),
         )
-        if self.support_function_calling:
+        if self.supports_response_schema:
             hypotheses = HypothesisList(**json.loads(response))
             resp_dict = {
                 h.caption: {
@@ -728,7 +728,7 @@ class DSProposalV2ExpGen(ExpGen):
             component_info = get_component(hypotheses[0].component)
         data_folder_info = self.scen.processed_data_folder_description
         sys_prompt = T(".prompts_v2:task_gen.system").r(
-            task_output_format=component_info["task_output_format"] if not self.support_function_calling else None,
+            task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
             # task_output_format=component_info["task_output_format"],
             component_desc=component_desc,
             workflow_check=not pipeline and hypotheses[0].component != "Workflow",
@@ -744,12 +744,12 @@ class DSProposalV2ExpGen(ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=CodingSketch if self.support_function_calling else {"type": "json_object"},
-            json_target_type=Dict[str, str | Dict[str, str]] if not self.support_function_calling else None,
+            response_format=CodingSketch if self.supports_response_schema else {"type": "json_object"},
+            json_target_type=Dict[str, str | Dict[str, str]] if not self.supports_response_schema else None,
         )
         task_dict = json.loads(response)
         task_design = (
-            task_dict.get("task_design", {}) if not self.support_function_calling else task_dict.get("sketch", {})
+            task_dict.get("task_design", {}) if not self.supports_response_schema else task_dict.get("sketch", {})
         )
         logger.info(f"Task design:\n{task_design}")
         task_name = hypotheses[0].component
