@@ -823,7 +823,7 @@ class DSProposalV2ExpGen(ExpGen):
                 ]
             )
 
-        if sota_exp_fb := trace.sota_experiment_fb() is None:
+        if (sota_exp_fb := trace.sota_experiment_fb()) is None:
             sota_exp, fb_to_sota_exp = None, None
         else:
             sota_exp, fb_to_sota_exp = sota_exp_fb
