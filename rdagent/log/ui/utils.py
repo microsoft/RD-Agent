@@ -8,6 +8,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import networkx as nx
 import pandas as pd
+import plotly.graph_objects as go
 import typer
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
@@ -562,6 +563,41 @@ def get_statistics_df(summary_df: pd.DataFrame) -> pd.DataFrame:
     return stat_df
 
 
+def curve_figure(scores: pd.DataFrame) -> go.Figure:
+    """
+    scores.columns.name is the metric name, e.g., "accuracy", "f1", etc.
+    scores.index is the loop index, e.g., ["L1", "L2", "L3", ...]
+    scores["test"] is the test score, other columns are valid scores for different loops.
+    The "ensemble" column is the ensemble score.
+    The "Test scores" and "ensemble" lines are visible, while other valid scores are hidden by default.
+    """
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=scores.index,
+            y=scores["test"],
+            mode="lines+markers",
+            name="Test scores",
+            marker=dict(symbol="diamond"),
+            line=dict(shape="linear", dash="dash"),
+        )
+    )
+    for column in scores.columns:
+        if column != "test":
+            fig.add_trace(
+                go.Scatter(
+                    x=scores.index,
+                    y=scores[column],
+                    mode="lines+markers",
+                    name=f"{column}",
+                    visible=("legendonly" if column != "ensemble" else None),
+                )
+            )
+    fig.update_layout(title=f"Test and Valid scores (metric: {scores.columns.name})")
+
+    return fig
+
+
 def trace_figure(trace: Trace):
     G = nx.DiGraph()
 
@@ -575,38 +611,72 @@ def trace_figure(trace: Trace):
     for i, parents in enumerate(trace.dag_parent):
         for parent in parents:
             edges.append((f"L{parent}", f"L{i}"))
+        if len(parents) == 0:
+            G.add_node(f"L{i}")
     G.add_edges_from(edges)
 
-    # Group nodes by number of ancestors, fewer ancestors are higher up
-    layer_nodes = {}
-    for idx, lvl in levels.items():
-        layer_nodes.setdefault(lvl, []).append(f"L{idx}")
+    # Check if G is a path (a single line)
+    is_path = nx.is_path(G, list(nx.topological_sort(G)))
+    if is_path:
+        # Arrange nodes in a square spiral
+        n = len(G.nodes())
+        pos = {}
+        x, y = 0, 0
+        dx, dy = 1, 0
+        step = 1
+        steps_taken = 0
+        steps_in_dir = 1
+        dir_changes = 0
+        for i, node in enumerate(G.nodes()):
+            pos[node] = (x, y)
+            x += dx
+            y += dy
+            steps_taken += 1
+            if steps_taken == steps_in_dir:
+                steps_taken = 0
+                # Change direction: right -> up -> left -> down -> right ...
+                dx, dy = -dy, dx
+                dir_changes += 1
+                if dir_changes % 2 == 0:
+                    steps_in_dir += 1
+    else:
+        # Group nodes by number of ancestors, fewer ancestors are higher up
+        layer_nodes = {}
+        for idx, lvl in levels.items():
+            layer_nodes.setdefault(lvl, []).append(f"L{idx}")
 
-    # Layout by level: y axis is -lvl, x axis is evenly distributed
-    pos = {}
+        # Layout by level: y axis is -lvl, x axis is evenly distributed
+        pos = {}
 
-    def parent_avg_pos(node):
-        id = int(node[1:])
-        parents = trace.dag_parent[id]
+        def parent_avg_pos(node):
+            id = int(node[1:])
+            parents = trace.dag_parent[id]
 
-        if not parents:
-            return 0
+            if not parents:
+                return 0
 
-        parent_nodes = [f"L{p}" for p in parents]
-        parent_xs = [pos[p][0] for p in parent_nodes if p in pos]
-        return sum(parent_xs) / len(parent_xs)
+            parent_nodes = [f"L{p}" for p in parents]
+            parent_xs = [pos[p][0] for p in parent_nodes if p in pos]
+            return sum(parent_xs) / len(parent_xs) if parent_xs else 0
 
-    for lvl in sorted(layer_nodes):
-        nodes = layer_nodes[lvl]
-        # For root nodes, sort directly by index
-        if lvl == 0:
-            sorted_nodes = sorted(nodes, key=lambda n: int(n[1:]))
-        else:
-            sorted_nodes = sorted(nodes, key=parent_avg_pos)
-        y = -lvl
-        x_start = -0.5 * (len(sorted_nodes) - 1)
-        for i, node in enumerate(sorted_nodes):
-            pos[node] = (x_start + i, y)
+        for lvl in sorted(layer_nodes):
+            nodes = layer_nodes[lvl]
+            # For root nodes, sort directly by index
+            if lvl == 0:
+                sorted_nodes = sorted(nodes, key=lambda n: int(n[1:]))
+            else:
+                # Sort by average parent x, so children are below their parents
+                sorted_nodes = sorted(nodes, key=parent_avg_pos)
+            y = -lvl  # y decreases as level increases (children below parents)
+            for i, node in enumerate(sorted_nodes):
+                if lvl == 0:
+                    x = i
+                else:
+                    # Place child directly below average parent x, offset if multiple at same y
+                    avg_x = parent_avg_pos(node)
+                    # To avoid overlap, spread siblings a bit if needed
+                    x = avg_x + (i - (len(sorted_nodes) - 1) / 2) * 0.5
+                pos[node] = (x, y)
 
     fig, ax = plt.subplots(figsize=(8, 6))
     nx.draw(G, pos, with_labels=True, arrows=True, node_color="skyblue", node_size=100, font_size=5, ax=ax)

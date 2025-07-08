@@ -8,12 +8,13 @@ from datetime import timedelta
 from pathlib import Path
 
 import pandas as pd
+import plotly.express as px
 import streamlit as st
 from streamlit import session_state as state
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.storage import FileStorage
-from rdagent.log.ui.utils import load_times, trace_figure
+from rdagent.log.ui.utils import curve_figure, load_times, trace_figure
 from rdagent.log.utils import (
     LogColors,
     extract_evoid,
@@ -47,6 +48,7 @@ def convert_defaultdict_to_dict(d):
 def load_data(log_path: Path):
     data = defaultdict(lambda: defaultdict(dict))
     llm_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+    token_costs = defaultdict(list)
 
     for msg in FileStorage(log_path).iter_msg():
         if not msg.tag:
@@ -74,6 +76,8 @@ def load_data(log_path: Path):
                         "obj": msg.content,
                     }
                 )
+        elif "token_cost" in msg.tag:
+            token_costs[li].append(msg)
         elif "llm" not in msg.tag and "session" not in msg.tag and "batch embedding" not in msg.tag:
             if msg.tag == "competition":
                 data["competition"] = msg.content
@@ -122,7 +126,11 @@ def load_data(log_path: Path):
             else:
                 llm_data[lid][fn]["no_tag"].append(d)
 
-    return convert_defaultdict_to_dict(data), convert_defaultdict_to_dict(llm_data)
+    return (
+        convert_defaultdict_to_dict(data),
+        convert_defaultdict_to_dict(llm_data),
+        convert_defaultdict_to_dict(token_costs),
+    )
 
 
 def load_stdout(stdout_path: Path):
@@ -391,16 +399,16 @@ def running_win(data, base_exp, llm_data=None, sota_exp=None):
 
 
 def feedback_win(fb_data, llm_data=None):
-    fb_data = fb_data["no_tag"]
-    st.header("Feedback" + ("✅" if bool(fb_data) else "❌"), divider="orange", anchor="feedback")
+    fb = fb_data["no_tag"]
+    st.header("Feedback" + ("✅" if bool(fb) else "❌"), divider="orange", anchor="feedback")
     if state.show_llm_log and llm_data is not None:
         llm_log_win(llm_data["no_tag"])
     try:
-        st.code(str(fb_data).replace("\n", "\n\n"), wrap_lines=True)
+        st.code(str(fb).replace("\n", "\n\n"), wrap_lines=True)
     except Exception as e:
-        st.write(fb_data.__dict__)
-    if fb_data.exception is not None:
-        st.markdown(f"**:red[Exception]**: {fb_data.exception}")
+        st.write(fb.__dict__)
+    if fb.exception is not None:
+        st.markdown(f"**:red[Exception]**: {fb.exception}")
 
 
 def sota_win(sota_exp, trace):
@@ -458,11 +466,19 @@ def replace_ep_path(p: Path):
     return p
 
 
-def summarize_data():
+def summarize_win():
     st.header("Summary", divider="rainbow")
     with st.container(border=True):
         min_id, max_id = get_state_data_range(state.data)
-        if st.toggle("Show trace DAG", key="show_trace_dag"):
+        info0, info1, info2, info3 = st.columns([2, 1, 1, 1])
+        show_trace_dag = info0.toggle("Show trace DAG", key="show_trace_dag")
+        with info1.popover("LITELLM_SETTINGS", icon="⚙️"):
+            st.write(state.data.get("SETTINGS", {}).get("LITELLM_SETTINGS", "No settings found."))
+        with info2.popover("RD_AGENT_SETTINGS", icon="⚙️"):
+            st.write(state.data.get("SETTINGS", {}).get("RD_AGENT_SETTINGS", "No settings found."))
+        with info3.popover("RDLOOP_SETTINGS", icon="⚙️"):
+            st.write(state.data.get("SETTINGS", {}).get("RDLOOP_SETTINGS", "No settings found."))
+        if show_trace_dag:
             st.markdown("### Trace DAG")
             final_trace_loop_id = max_id
             while "record" not in state.data[final_trace_loop_id]:
@@ -478,6 +494,7 @@ def summarize_data():
                 "Running Score (test)",
                 "Feedback",
                 "e-loops(coding)",
+                "COST($)",
                 "Time",
                 "Exp Gen",
                 "Coding",
@@ -488,6 +505,7 @@ def summarize_data():
             index=range(min_id, max_id + 1),
         )
 
+        valid_results = {}
         for loop in range(min_id, max_id + 1):
             loop_data = state.data[loop]
             df.loc[loop, "Component"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.component
@@ -498,6 +516,7 @@ def summarize_data():
                 for k, v in loop_data["direct_exp_gen"]["no_tag"].hypothesis.__dict__.items()
                 if k not in ["component", "hypothesis", "reason"]
             }
+            df.loc[loop, "COST($)"] = sum(tc.content["cost"] for tc in state.token_costs[loop])
             if loop in state.times and state.times[loop]:
                 df.loc[loop, "Time"] = str(sum((i.end - i.start for i in state.times[loop]), timedelta())).split(".")[0]
                 exp_gen_time = state.times[loop][0].end - state.times[loop][0].start
@@ -517,6 +536,7 @@ def summarize_data():
                     except AttributeError as e:  # Compatible with old versions
                         running_result = loop_data["running"]["no_tag"].__dict__["result"]
                     df.loc[loop, "Running Score (valid)"] = str(round(running_result.loc["ensemble"].iloc[0], 5))
+                    valid_results[loop] = running_result
                 except:
                     df.loc[loop, "Running Score (valid)"] = "❌"
                 if "mle_score" not in state.data[loop]:
@@ -568,7 +588,48 @@ def summarize_data():
                 df.loc[loop, "Feedback"] = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
             else:
                 df.loc[loop, "Feedback"] = "N/A"
+
+        # COST curve
+        costs = df["COST($)"].astype(float)
+        costs.index = [f"L{i}" for i in costs.index]
+        cumulative_costs = costs.cumsum()
+        with st.popover("COST Curve", icon="💰", use_container_width=True):
+            fig = px.line(
+                x=costs.index,
+                y=[costs.values, cumulative_costs.values],
+                labels={"x": "Loop", "value": "COST($)"},
+                title="COST($) per Loop & Cumulative COST($)",
+                markers=True,
+            )
+            fig.update_traces(mode="lines+markers")
+            fig.data[0].name = "COST($) per Loop"
+            fig.data[1].name = "Cumulative COST($)"
+            st.plotly_chart(fig)
+
         st.dataframe(df[df.columns[~df.columns.isin(["Hypothesis", "Reason", "Others"])]])
+
+        # scores curve
+        vscores = {}
+        for k, vs in valid_results.items():
+            if not vs.index.is_unique:
+                st.warning(f"Loop {k}'s valid scores index are not unique, only the last one will be kept to show.")
+                st.write(vs)
+            vscores[k] = vs[~vs.index.duplicated(keep="last")].iloc[:, 0]
+        if len(vscores) > 0:
+            metric_name = list(vscores.values())[0].name
+        else:
+            metric_name = "None"
+        vscores = pd.DataFrame(vscores)
+        if "ensemble" in vscores.index:
+            ensemble_row = vscores.loc[["ensemble"]]
+            vscores = pd.concat([ensemble_row, vscores.drop("ensemble")])
+        vscores = vscores.T
+        vscores["test"] = df["Running Score (test)"]
+        vscores.index = [f"L{i}" for i in vscores.index]
+        vscores.columns.name = metric_name
+        with st.popover("Scores Curve", icon="📈", use_container_width=True):
+            st.plotly_chart(curve_figure(vscores))
+
         st.markdown("### Hypotheses Table")
         st.dataframe(
             df.iloc[:, :8],
@@ -602,7 +663,7 @@ def summarize_data():
         comp_df = (
             df.loc[:, ["Component", "Running Score (test)", "Feedback", "e-loops(coding)"]]
             .groupby("Component")
-            .apply(comp_stat_func)
+            .apply(comp_stat_func, include_groups=False)
         )
         comp_df.loc["Total"] = comp_df.sum()
         comp_df.loc["Total", "Valid Rate"] = round(
@@ -724,7 +785,7 @@ with st.sidebar:
                 st.stop()
 
             state.times = load_times(state.log_folder / state.log_path)
-            state.data, state.llm_data = load_data(state.log_folder / state.log_path)
+            state.data, state.llm_data, state.token_costs = load_data(state.log_folder / state.log_path)
             st.rerun()
     st.toggle("**Show LLM Log**", key="show_llm_log")
     st.toggle("*Show stdout*", key="show_stdout")
@@ -744,7 +805,11 @@ with st.sidebar:
 def get_state_data_range(state_data):
     # we have a "competition" key in state_data
     # like dict_keys(['competition', 10, 11, 12, 13, 14])
-    keys = [k for k in state_data.keys() if isinstance(k, int) and "no_tag" in state_data[k]["direct_exp_gen"]]
+    keys = [
+        k
+        for k in state_data.keys()
+        if isinstance(k, int) and "direct_exp_gen" in state_data[k] and "no_tag" in state_data[k]["direct_exp_gen"]
+    ]
     return min(keys), max(keys)
 
 
@@ -752,7 +817,7 @@ def get_state_data_range(state_data):
 if "competition" in state.data:
     st.title(state.data["competition"])
     st.markdown(f"[share_link](/ds_trace?log_folder={state.log_folder}&selection={state.log_path})")
-    summarize_data()
+    summarize_win()
     min_id, max_id = get_state_data_range(state.data)
     if max_id > min_id:
         loop_id = st.slider("Loop", min_id, max_id, min_id)
