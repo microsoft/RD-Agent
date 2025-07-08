@@ -179,7 +179,6 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                 coverage_report_path.unlink()
                 logger.info(f"All used scripts: {used_files}")
 
-
                 use_one_model = False
                 for f in used_files:
                     if f.startswith("model_") and "test" not in f:

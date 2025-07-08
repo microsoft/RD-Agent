@@ -740,7 +740,7 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             hypotheses=hypotheses,
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
-            EDA_improvement=sota_exp_fb.EDA_improvement if sota_exp_fb else None,
+            eda_improvement=sota_exp_fb.eda_improvement if sota_exp_fb else None,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,

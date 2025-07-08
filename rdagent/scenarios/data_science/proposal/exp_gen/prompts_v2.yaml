@@ -396,8 +396,8 @@ task_gen:
     # Previous Failed Experiments & Feedback (e.g., experiments that did not pass evaluation, encountered bugs, or failed to surpass SOTA performance)
     {{ failed_exp_and_feedback_list_desc }}
   
-    {% if EDA_improvement is not none %}
-    {{ EDA_improvement }}
+    {% if eda_improvement is not none %}
+    {{ eda_improvement }}
     {% endif %}
 
 idea_sample:
