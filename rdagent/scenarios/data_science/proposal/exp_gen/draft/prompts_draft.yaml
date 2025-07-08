@@ -16,8 +16,10 @@ knowledge:
     This general strategy applies to all competitions and aims to ensure the pipeline runs **correctly, robustly, and reproducibly**. The pipeline must strictly follow the order:  
     **[DataPreprocess] → [EDA] → [FeatureEngineer] → [Model] → [Tuning] → [Ensemble]**
 
+    ### Runtime Environment
+    {{ runtime_environment }}
+
     ### Resource Note
-     **You have access to a 40GB V100 GPU.**  
     You are **not restricted to lightweight models**. You may use medium to large pretrained architectures (e.g., EfficientNet-B3/B5, ConvNeXt-Tiny, Swin-S) **if they fit within the training time budget**.
 
     - During [Model] or [Tuning], always estimate and test the largest **batch size** that fits into available memory to **maximize throughput**.
