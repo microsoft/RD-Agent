@@ -13,7 +13,7 @@ from streamlit import session_state as state
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.storage import FileStorage
-from rdagent.log.ui.utils import load_times
+from rdagent.log.ui.utils import load_times, trace_figure
 from rdagent.log.utils import (
     LogColors,
     extract_evoid,
@@ -43,7 +43,7 @@ def convert_defaultdict_to_dict(d):
     return d
 
 
-@st.cache_data(persist=True)
+# @st.cache_data(persist=True)
 def load_data(log_path: Path):
     data = defaultdict(lambda: defaultdict(dict))
     llm_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -77,6 +77,9 @@ def load_data(log_path: Path):
         elif "llm" not in msg.tag and "session" not in msg.tag and "batch embedding" not in msg.tag:
             if msg.tag == "competition":
                 data["competition"] = msg.content
+                continue
+            if "SETTINGS" in msg.tag:
+                data["settings"][msg.tag] = msg.content
                 continue
 
             msg.tag = re.sub(r"\.evo_loop_\d+", "", msg.tag)
@@ -131,16 +134,16 @@ def load_stdout(stdout_path: Path):
 
 
 # UI windows
-def task_win(data):
+def task_win(task):
     with st.container(border=True):
-        st.markdown(f"**:violet[{data.name}]**")
-        st.markdown(data.description)
-        if hasattr(data, "architecture"):  # model task
+        st.markdown(f"**:violet[{task.name}]**")
+        st.markdown(task.description)
+        if hasattr(task, "architecture"):  # model task
             st.markdown(
                 f"""
     | Model_type | Architecture | hyperparameters |
     |------------|--------------|-----------------|
-    | {data.model_type} | {data.architecture} | {data.hyperparameters} |
+    | {task.model_type} | {task.architecture} | {task.hyperparameters} |
     """
             )
 
@@ -282,7 +285,7 @@ def exp_gen_win(exp_gen_data, llm_data=None):
     workspace_win(exp_gen_data["no_tag"].experiment_workspace)
 
 
-def evolving_win(data, key, llm_data=None):
+def evolving_win(data, key, llm_data=None, base_workspace=None):
     with st.container(border=True):
         if len(data) > 1:
             evo_id = st.slider("Evolving", 0, len(data) - 1, 0, key=key)
@@ -299,8 +302,8 @@ def evolving_win(data, key, llm_data=None):
                 st.subheader("codes")
                 workspace_win(
                     data[evo_id]["evolving code"][0],
-                    cmp_workspace=data[evo_id - 1]["evolving code"][0] if evo_id > 0 else None,
-                    cmp_name="last evolving code",
+                    cmp_workspace=data[evo_id - 1]["evolving code"][0] if evo_id > 0 else base_workspace,
+                    cmp_name="last evolving code" if evo_id > 0 else "base workspace",
                 )
                 fb = data[evo_id]["evolving feedback"][0]
                 st.subheader("evolving feedback" + ("✅" if bool(fb) else "❌"))
@@ -315,7 +318,7 @@ def evolving_win(data, key, llm_data=None):
             st.markdown("No evolving.")
 
 
-def coding_win(data, llm_data: dict | None = None):
+def coding_win(data, base_exp, llm_data: dict | None = None):
     st.header("Coding", divider="blue", anchor="coding")
     if llm_data is not None:
         common_llm_data = llm_data.pop("no_tag", [])
@@ -330,10 +333,20 @@ def coding_win(data, llm_data: dict | None = None):
         for task in task_set:
             st.subheader(task)
             task_data = {k: {a.split(".")[1]: b for a, b in v.items() if task in a} for k, v in evolving_data.items()}
-            evolving_win(task_data, key=task, llm_data=llm_data if llm_data else None)
+            evolving_win(
+                task_data,
+                key=task,
+                llm_data=llm_data if llm_data else None,
+                base_workspace=base_exp.experiment_workspace,
+            )
     else:
         # 旧版未存Task tag的Trace
-        evolving_win(evolving_data, key="coding", llm_data=llm_data if llm_data else None)
+        evolving_win(
+            evolving_data,
+            key="coding",
+            llm_data=llm_data if llm_data else None,
+            base_workspace=base_exp.experiment_workspace,
+        )
     if state.show_llm_log:
         llm_log_win(common_llm_data)
     if "no_tag" in data:
@@ -341,12 +354,15 @@ def coding_win(data, llm_data: dict | None = None):
         workspace_win(data["no_tag"].experiment_workspace)
 
 
-def running_win(data, mle_score, llm_data=None, sota_exp=None):
+def running_win(data, base_exp, llm_data=None, sota_exp=None):
     st.header("Running", divider="blue", anchor="running")
     if llm_data is not None:
         common_llm_data = llm_data.pop("no_tag", [])
     evolving_win(
-        {k: v for k, v in data.items() if isinstance(k, int)}, key="running", llm_data=llm_data if llm_data else None
+        {k: v for k, v in data.items() if isinstance(k, int)},
+        key="running",
+        llm_data=llm_data if llm_data else None,
+        base_workspace=base_exp.experiment_workspace,
     )
     if state.show_llm_log and llm_data is not None:
         llm_log_win(common_llm_data)
@@ -358,12 +374,20 @@ def running_win(data, mle_score, llm_data=None, sota_exp=None):
             cmp_name="last SOTA",
         )
         st.subheader("Result")
-        st.write(data["no_tag"].result)
-        st.subheader("MLE Submission Score" + ("✅" if (isinstance(mle_score, dict) and mle_score["score"]) else "❌"))
+        try:
+            st.write(data["no_tag"].result)
+        except AttributeError as e:  # Compatible with old versions
+            st.write(data["no_tag"].__dict__["result"])
+        mle_score_text = data.get("mle_score", "no submission to score")
+        mle_score = extract_json(mle_score_text)
+        st.subheader(
+            "MLE Submission Score"
+            + ("✅" if (isinstance(mle_score, dict) and mle_score["score"] is not None) else "❌")
+        )
         if isinstance(mle_score, dict):
             st.json(mle_score)
         else:
-            st.code(mle_score, wrap_lines=True)
+            st.code(mle_score_text, wrap_lines=True)
 
 
 def feedback_win(fb_data, llm_data=None):
@@ -400,11 +424,15 @@ def main_win(loop_id, llm_data=None):
     loop_data = state.data[loop_id]
     exp_gen_win(loop_data["direct_exp_gen"], llm_data["direct_exp_gen"] if llm_data else None)
     if "coding" in loop_data:
-        coding_win(loop_data["coding"], llm_data["coding"] if llm_data else None)
+        coding_win(
+            loop_data["coding"],
+            base_exp=loop_data["direct_exp_gen"]["no_tag"],
+            llm_data=llm_data["coding"] if llm_data else None,
+        )
     if "running" in loop_data:
         running_win(
             loop_data["running"],
-            loop_data.get("mle_score", "no submission to score"),
+            base_exp=loop_data["coding"]["no_tag"],
             llm_data=llm_data["running"] if llm_data else None,
             sota_exp=(
                 state.data[loop_id - 1].get("record", {}).get("SOTA experiment", None)
@@ -433,6 +461,13 @@ def replace_ep_path(p: Path):
 def summarize_data():
     st.header("Summary", divider="rainbow")
     with st.container(border=True):
+        min_id, max_id = get_state_data_range(state.data)
+        if st.toggle("Show trace DAG", key="show_trace_dag"):
+            st.markdown("### Trace DAG")
+            final_trace_loop_id = max_id
+            while "record" not in state.data[final_trace_loop_id]:
+                final_trace_loop_id -= 1
+            st.pyplot(trace_figure(state.data[final_trace_loop_id]["record"]["trace"]))
         df = pd.DataFrame(
             columns=[
                 "Component",
@@ -450,10 +485,9 @@ def summarize_data():
                 "Start Time (UTC+8)",
                 "End Time (UTC+8)",
             ],
-            index=range(len(state.data) - 1),
+            index=range(min_id, max_id + 1),
         )
 
-        min_id, max_id = get_state_data_range(state.data)
         for loop in range(min_id, max_id + 1):
             loop_data = state.data[loop]
             df.loc[loop, "Component"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.component
@@ -478,9 +512,11 @@ def summarize_data():
                 df.loc[loop, "End Time (UTC+8)"] = state.times[loop][-1].end + timedelta(hours=8)
             if "running" in loop_data and "no_tag" in loop_data["running"]:
                 try:
-                    df.loc[loop, "Running Score (valid)"] = str(
-                        round(loop_data["running"]["no_tag"].result.loc["ensemble"].iloc[0], 5)
-                    )
+                    try:
+                        running_result = loop_data["running"]["no_tag"].result
+                    except AttributeError as e:  # Compatible with old versions
+                        running_result = loop_data["running"]["no_tag"].__dict__["result"]
+                    df.loc[loop, "Running Score (valid)"] = str(round(running_result.loc["ensemble"].iloc[0], 5))
                 except:
                     df.loc[loop, "Running Score (valid)"] = "❌"
                 if "mle_score" not in state.data[loop]:
@@ -695,6 +731,7 @@ with st.sidebar:
     st.toggle("*Show save workspace feature*", key="show_save_input")
     st.markdown(
         f"""
+- [Summary](#summary)
 - [Exp Gen](#exp-gen)
 - [Coding](#coding)
 - [Running](#running)
@@ -707,7 +744,7 @@ with st.sidebar:
 def get_state_data_range(state_data):
     # we have a "competition" key in state_data
     # like dict_keys(['competition', 10, 11, 12, 13, 14])
-    keys = [k for k in state_data.keys() if isinstance(k, int)]
+    keys = [k for k in state_data.keys() if isinstance(k, int) and "no_tag" in state_data[k]["direct_exp_gen"]]
     return min(keys), max(keys)
 
 

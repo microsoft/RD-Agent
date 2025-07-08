@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+import io
 import json
 import re
 import sqlite3
 import time
+import tokenize
 import uuid
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, Callable, List, Optional, Tuple, cast
 
 import pytz
 from pydantic import BaseModel, TypeAdapter
@@ -29,6 +31,100 @@ try:
     openai_imported = True
 except ImportError:
     openai_imported = False
+
+
+class JSONParser:
+    """JSON parser supporting multiple strategies"""
+
+    def __init__(self) -> None:
+        self.strategies: List[Callable[[str], str]] = [
+            self._direct_parse,
+            self._extract_from_code_block,
+            self._fix_python_syntax,
+            self._extract_with_fix_combined,
+        ]
+
+    def parse(self, content: str) -> str:
+        """Parse JSON content, automatically trying multiple strategies"""
+        original_content = content
+
+        for strategy in self.strategies:
+            try:
+                return strategy(original_content)
+            except json.JSONDecodeError:
+                continue
+
+        # All strategies failed
+        raise json.JSONDecodeError("Failed to parse JSON after all attempts", original_content, 0)
+
+    def _direct_parse(self, content: str) -> str:
+        """Strategy 1: Direct parsing (including handling extra data)"""
+        try:
+            json.loads(content)
+            return content
+        except json.JSONDecodeError as e:
+            if "Extra data" in str(e):
+                return self._extract_first_json(content)
+            raise
+
+    def _extract_from_code_block(self, content: str) -> str:
+        """Strategy 2: Extract JSON from code block"""
+        match = re.search(r"```json\s*(.*?)\s*```", content, re.DOTALL)
+        if not match:
+            raise json.JSONDecodeError("No JSON code block found", content, 0)
+
+        json_content = match.group(1).strip()
+        return self._direct_parse(json_content)
+
+    def _fix_python_syntax(self, content: str) -> str:
+        """Strategy 3: Fix Python syntax before parsing"""
+        fixed = self._fix_python_booleans(content)
+        return self._direct_parse(fixed)
+
+    def _extract_with_fix_combined(self, content: str) -> str:
+        """Strategy 4: Combined strategy - fix Python syntax first, then extract the first JSON object"""
+        fixed = self._fix_python_booleans(content)
+
+        # Try to extract code block from the fixed content
+        match = re.search(r"```json\s*(.*?)\s*```", fixed, re.DOTALL)
+        if match:
+            fixed = match.group(1).strip()
+
+        return self._direct_parse(fixed)
+
+    @staticmethod
+    def _fix_python_booleans(json_str: str) -> str:
+        """Safely fix Python-style booleans to JSON standard format using tokenize"""
+        replacements = {"True": "true", "False": "false", "None": "null"}
+
+        try:
+            out = []
+            io_string = io.StringIO(json_str)
+            tokens = tokenize.generate_tokens(io_string.readline)
+
+            for toknum, tokval, _, _, _ in tokens:
+                if toknum == tokenize.NAME and tokval in replacements:
+                    out.append(replacements[tokval])
+                else:
+                    out.append(tokval)
+
+            result = "".join(out)
+            # Validate if the result is valid JSON
+            json.loads(result)
+            return result
+
+        except (tokenize.TokenError, json.JSONDecodeError):
+            # If tokenize fails, fallback to regex method
+            for python_val, json_val in replacements.items():
+                json_str = re.sub(rf"\\b{python_val}\\b", json_val, json_str)
+            return json_str
+
+    @staticmethod
+    def _extract_first_json(response: str) -> str:
+        """Extract the first complete JSON object, ignoring extra content"""
+        decoder = json.JSONDecoder()
+        obj, _ = decoder.raw_decode(response)
+        return json.dumps(obj)
 
 
 class SQliteLazyCache(SingletonBaseClass):
@@ -279,6 +375,18 @@ class APIBackend(ABC):
         Responseible for building messages and logging messages
 
         TODO: What is weird is that the function is called before we seperate embeddings and chat completion.
+
+        Parameters
+        ----------
+        user_prompt : str
+        system_prompt : str | None
+        former_messages : list | None
+        response_format : BaseModel | dict
+            A BaseModel based on pydantic or a dict
+        **kwargs
+        Returns
+        -------
+        str
         """
         if former_messages is None:
             former_messages = []
@@ -470,16 +578,13 @@ class APIBackend(ABC):
 
         # 3) format checking
         if json_mode:
-            try:
-                json.loads(all_response)
-            except json.decoder.JSONDecodeError:
-                match = re.search(r"```json(.*)```", all_response, re.DOTALL)
-                all_response = match.groups()[0] if match else all_response
-                json.loads(all_response)
+            parser = JSONParser()
+            all_response = parser.parse(all_response)
+
         if json_target_type is not None:
             TypeAdapter(json_target_type).validate_json(all_response)
         if (response_format := kwargs.get("response_format")) is not None:
-            if issubclass(response_format, BaseModel):
+            if not isinstance(response_format, dict) and issubclass(response_format, BaseModel):
                 # It may raise TypeError if initialization fails
                 response_format(**json.loads(all_response))
             else:

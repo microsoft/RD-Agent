@@ -130,6 +130,7 @@ class DSCoSTEERRunner(CoSTEER):
             logger.error("Metrics file (scores.csv) is not generated.")
             raise RunnerError(f"Metrics file (scores.csv) is not generated")
         exp.result = pd.read_csv(score_fp, index_col=0)
+        exp.running_info.running_time = exp.experiment_workspace.running_info.running_time
 
         # 2) if mle-bench, then the submission format checking will be used.
         # DockerEnv for MLEBench submission validation

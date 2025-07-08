@@ -104,6 +104,8 @@ class DataScienceRDLoop(RDLoop):
     def __init__(self, PROP_SETTING: BasePropSetting):
         logger.log_object(PROP_SETTING.competition, tag="competition")
         scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
+        logger.log_object(PROP_SETTING.model_dump(), tag="RDLOOP_SETTINGS")
+        logger.log_object(RD_AGENT_SETTINGS.model_dump(), tag="RD_AGENT_SETTINGS")
 
         # 1) task generation from scratch
         # self.scratch_gen: tuple[HypothesisGen, Hypothesis2Experiment] = DummyHypothesisGen(scen),
@@ -145,9 +147,6 @@ class DataScienceRDLoop(RDLoop):
         super(RDLoop, self).__init__()
 
     async def direct_exp_gen(self, prev_out: dict[str, Any]):
-        # set the SOTA experiment to submit
-        sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace)
-        self.trace.set_sota_exp_to_submit(sota_exp_to_submit)
 
         # set the checkpoint to start from
         selection = self.ckp_selector.get_selection(self.trace)
@@ -275,6 +274,11 @@ class DataScienceRDLoop(RDLoop):
                         logger.error("Consecutive errors reached the limit. Dumping trace.")
                         logger.log_object(self.trace, tag="trace before restart")
                         self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
+
+        # set the SOTA experiment to submit
+        sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace)
+        self.trace.set_sota_exp_to_submit(sota_exp_to_submit)
+        logger.log_object(sota_exp_to_submit, tag="sota_exp_to_submit")
 
         logger.log_object(self.trace, tag="trace")
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")

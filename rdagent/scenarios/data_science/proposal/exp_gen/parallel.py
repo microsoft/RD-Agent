@@ -53,12 +53,12 @@ class ParallelMultiTraceExpGen(ExpGen):
         into it before returning.
         """
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
-        logger.info(f"Remain time: {timer.remain_time_duration}")
+        logger.info(f"Remain time: {timer.remain_time()}")
         local_selection: tuple[int, ...] = None
 
         while True:
 
-            if timer.remain_time_duration >= timedelta(hours=DS_RD_SETTING.merge_hours):
+            if timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
 
                 if DS_RD_SETTING.enable_inject_knowledge_at_root:
 
@@ -104,8 +104,10 @@ class ParallelMultiTraceExpGen(ExpGen):
                     else:
                         selection = (leaves[0],)
                         if trace.sota_exp_to_submit is not None:
-                            if trace.is_parent(trace.exp2idx(trace.sota_exp_to_submit), leaves[1]):
-                                selection = (leaves[1],)
+                            for i in range(1, len(leaves)):
+                                if trace.is_parent(trace.exp2idx(trace.sota_exp_to_submit), leaves[i]):
+                                    selection = (leaves[i],)
+                                    break
                         trace.set_current_selection(selection)
                         return self.merge_exp_gen.gen(trace)
 

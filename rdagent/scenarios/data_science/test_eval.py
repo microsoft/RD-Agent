@@ -74,15 +74,15 @@ class TestEval(TestEvalBase):
             raise NoTestEvalError(err_msg)
         workspace.inject_files(**{"submission_format_valid.py": (eval_path / "valid.py").read_text()})
         workspace.inject_files(**{"submission_test.csv": (eval_path / "submission_test.csv").read_text()})
-        submission_check_out, submission_ret_code = workspace.execute_ret_code(
+        submission_result = workspace.run(
             env=self.env,
             entry=f"python submission_format_valid.py {competition}",
         )
         workspace.inject_files(
             **{file: workspace.DEL_KEY for file in ["submission_format_valid.py", "submission_test.csv"]}
         )
-        workspace.inject_files(**{"test/mle_submission_format_test.output": submission_check_out})
-        return submission_check_out, submission_ret_code
+        workspace.inject_files(**{"test/mle_submission_format_test.output": submission_result.stdout})
+        return submission_result.stdout, submission_result.exit_code
 
     def enabled(self, competition) -> bool:
         return Path(
@@ -116,12 +116,10 @@ class MLETestEval(TestEvalBase):
             .replace("<competition_id>", competition)
         )
         workspace.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
-        submission_check_out, submission_ret_code = workspace.execute_ret_code(
-            env=self.env, entry="python test/mle_submission_format_test.py"
-        )
+        submission_result = workspace.run(env=self.env, entry="python test/mle_submission_format_test.py")
 
-        workspace.inject_files(**{"test/mle_submission_format_test.output": submission_check_out})
-        return submission_check_out, submission_ret_code
+        workspace.inject_files(**{"test/mle_submission_format_test.output": submission_result.stdout})
+        return submission_result.stdout, submission_result.exit_code
 
     def enabled(self, competition) -> bool:
         return True

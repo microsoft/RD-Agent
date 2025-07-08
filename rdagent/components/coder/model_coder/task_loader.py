@@ -97,7 +97,7 @@ def extract_model_from_docs(docs_dict):
 
 
 class ModelExperimentLoaderFromDict(ModelTaskLoader):
-    def load(self, model_dict: dict) -> list:
+    def load(self, model_dict: dict) -> QlibModelExperiment:
         """Load data from a dict."""
         task_l = []
         for model_name, model_data in model_dict.items():
@@ -117,7 +117,7 @@ class ModelExperimentLoaderFromDict(ModelTaskLoader):
 
 class ModelExperimentLoaderFromPDFfiles(ModelTaskLoader):
     @wait_retry(retry_n=5)
-    def load(self, file_or_folder_path: str) -> dict:
+    def load(self, file_or_folder_path: str) -> QlibModelExperiment:
         docs_dict = load_and_process_pdfs_by_langchain(file_or_folder_path)  # dict{file_path:content}
         model_dict = extract_model_from_docs(
             docs_dict
