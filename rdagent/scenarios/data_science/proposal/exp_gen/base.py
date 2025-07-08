@@ -3,6 +3,7 @@ from typing import List, Literal
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.evolving_framework import KnowledgeBase
+from rdagent.core.experiment import Experiment
 from rdagent.core.proposal import ExperimentFeedback, Hypothesis, Trace
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
@@ -93,6 +94,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
     def sync_dag_parent_and_hist(
         self,
+        exp_and_fb: tuple[Experiment, ExperimentFeedback],
     ) -> None:
         """
         Adding corresponding parent index to the dag_parent when the hist is going to be changed.
@@ -111,6 +113,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
                 current_node_idx = len(self.hist) - 1
 
             self.dag_parent.append((current_node_idx,))
+        self.hist.append(exp_and_fb)
 
     def retrieve_search_list(
         self,
@@ -171,7 +174,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
     def experiment_and_feedback_list_after_init(
         self,
         return_type: Literal["sota", "failed", "all"],
-        search_type: Literal["all", "ancestors"] = "all",
+        search_type: Literal["all", "ancestors"] = "ancestors",
         selection: tuple[int, ...] | None = None,
         max_retrieve_num: int | None = None,
     ) -> list[tuple[DSExperiment, ExperimentFeedback]]:

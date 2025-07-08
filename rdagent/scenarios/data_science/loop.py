@@ -210,19 +210,14 @@ class DataScienceRDLoop(RDLoop):
             # set the local selection to the trace as global selection, then set the DAG parent for the trace
             if exp.local_selection is not None:
                 self.trace.set_current_selection(exp.local_selection)
-            self.trace.sync_dag_parent_and_hist()
-
-            self.trace.hist.append((exp, prev_out["feedback"]))
-
+            self.trace.sync_dag_parent_and_hist((exp, prev_out["feedback"]))
         else:
             exp: DSExperiment = prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"]
 
             # set the local selection to the trace as global selection, then set the DAG parent for the trace
             if exp.local_selection is not None:
                 self.trace.set_current_selection(exp.local_selection)
-            self.trace.sync_dag_parent_and_hist()
-
-            self.trace.hist.append(
+            self.trace.sync_dag_parent_and_hist(
                 (
                     exp,
                     ExperimentFeedback.from_exception(e),
