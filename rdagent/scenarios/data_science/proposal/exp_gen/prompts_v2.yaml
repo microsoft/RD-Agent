@@ -13,7 +13,7 @@ scenario_problem:
     1. **SOTA Alignment Analysis**: (If SOTA is provided) Systematically compare the current SOTA implementation against dataset properties and domain knowledge to identify discrepancies or areas representing core challenges to overcome for enhancement.
     2. **Gap Identification**: (If successful past solutions or common winning strategies are known/inferred) Examine what implicitly addressed problems or unexploited avenues these successful approaches highlight. These gaps can represent current challenges.
     3. **Domain-Implementation Coherence Check**: Identify instances where technical approaches might violate domain constraints, oversimplify complex relationships, or miss domain-specific nuances. These incoherencies are challenges.
-    4. **Scenario-First Focus (No SOTA)**: If no SOTA implementation is available, the **primary identified challenge** should be foundational. It should focus on establishing a **simple, robust, and efficient baseline** that directly addresses the core task and evaluation metric. Avoid overly complex initial challenges.
+    4. **Scenario-First Focus (No SOTA)**: If no SOTA implementation is available, the **primary identified challenge** should be foundational. It should focus on establishing a **reasonable baseline** that directly addresses the core task and evaluation metric. Avoid overly complex initial challenges.
 
     ## Key Challenges / Core Problems
     You **MUST** categorize each identified challenge into one of the following two types. This categorization should be based on the primary driver or nature of the challenge:
@@ -60,6 +60,7 @@ feedback_problem:
     Diversity is very critical in the analysis of scenario problems. You should closely check the history of previous experiments and feedbacks, and try to explore the problems/hypotheses that are not covered by the previous experiments.
     1. Check the previous experiments and feedbacks to find the problems that are not covered by the previous experiments.
     2. Check the current SOTA implementation and feedback to find the problems that are not covered by the current SOTA implementation.
+    3. Do not do incremental exploration on the previous problems.
     {% endif %}
 
     ### Definition
@@ -267,7 +268,7 @@ task_gen:
 
     You will be provided with the following inputs:
     1. **Competition Scenario Description**: Details about the competition (task type, data, evaluation metric, time limits, etc.).
-    2. **Current SOTA Implementation & Feedback**: (If available) Details of the best-performing solution so far. **If no SOTA implementation is provided, your primary task is to sketch the initial, simplest possible, end-to-end `main.py` workflow.**
+    2. **Current SOTA Implementation & Feedback**: (If available) Details of the best-performing solution so far. **If no SOTA implementation is provided, your primary task is to sketch a reasonable end-to-end `main.py` workflow.**
     3. **Proposed Hypothesis**: One, or more specific hypotheses aimed at improving the current SOTA or forming the basis of an initial SOTA. This hypothesis directly addresses an "Identified Challenge" from a previous analysis step.
     4. **Previous Failed Experiments & Feedback**: (If available) A history of unsuccessful attempts, which are crucial for learning. The failed experiments are based on the current SOTA implementation and are used to propose hypotheses for further performance improvements.
 
@@ -316,7 +317,7 @@ task_gen:
       - If no SOTA, outline a clear, logical sequence of steps for the new `main.py`.
     3. **Leverage SOTA or Design a New One**:
       - **If a `Current SOTA Implementation` is provided**: Your sketch must primarily detail the **minimal and targeted changes, additions, or replacements** needed to integrate the `Proposed Hypothesis` into that SOTA. Focus only on what needs to change.
-      - **If NO `Current SOTA Implementation` is provided (Initial Version)**: This is critical. Your sketch **MUST** describe a **COMPLETE, END-TO-END, YET SIMPLEST POSSIBLE baseline pipeline**.
+      - **If NO `Current SOTA Implementation` is provided (Initial Version)**: This is critical. Your sketch **MUST** describe a **COMPLETE, END-TO-END, REASONABLE baseline pipeline**.
         - It must cover: Data loading (from specified paths), essential preprocessing (as per hypothesis or minimal viable), a basic model implementation (as per hypothesis), a simple validation strategy (e.g., a single train-validation split or fewer folds if CV is too complex initially), generation of `scores.csv`, and `submission.csv` in the correct format.
         - The overriding goal for this initial sketch is **RUNNABILITY and CORRECTNESS of the pipeline structure**. Prioritize getting a valid submission out, even with a very basic model. Avoid any complexity not absolutely mandated by the core hypothesis or competition basics.
     4. **Learn from Past Failures**:
@@ -329,7 +330,7 @@ task_gen:
       - Always design the workflow to execute within the competition `Time Limit`.
       - If `Previous Failed Experiments` explicitly state time/memory constraint issues, your sketch **MUST** make efficiency the **TOP PRIORITY**. Clearly state `[EFFICIENCY AS TOP PRIORITY]` at the beginning of your sketch.
       - The sketch must then detail *specific measures* to achieve this.
-      - Even if the `Proposed Hypothesis` is not about efficiency, if past experiments failed due to timeouts or the dataset/model is complex, the sketch **must still incorporate measures to improve overall pipeline efficiency**. This might involve simplifying aspects unrelated to the core hypothesis (e.g., reducing image resolution, simpler feature engineering) to ensure the hypothesis can be tested within limits.
+      - Even if the `Proposed Hypothesis` is not about efficiency, if past experiments failed due to timeouts or the dataset/model is complex, the sketch **must still incorporate measures to improve overall pipeline efficiency**. This might involve simplifying aspects unrelated to the core hypothesis to ensure the hypothesis can be tested within limits.
       - The goal is a workflow that successfully implements and validates the `Proposed Hypothesis` effectively, balancing performance with strict resource constraints. An experiment that times out provides no information.
       - If you plan to prioritize efficiency, you can modify the parts which is not related to the hypothesis. Which means your task should still able to validate the hypothesis.
       - Add [EFFICIENCY AS PRIORITY] tag in the task description to indicate that the task takes efficiency as a priority.
