@@ -721,7 +721,7 @@ class DSProposalV2ExpGen(ExpGen):
         hypotheses: list[DSHypothesis],
         pipeline: bool,
         failed_exp_feedback_list_desc: str,
-        sota_exp_fb: ExperimentFeedback | None = None,
+        fb_to_sota_exp: ExperimentFeedback | None = None,
     ) -> DSExperiment:
         if pipeline:
             component_info = get_component("Pipeline")
@@ -740,7 +740,7 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             hypotheses=hypotheses,
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
-            eda_improvement=sota_exp_fb.eda_improvement if sota_exp_fb else None,
+            eda_improvement=fb_to_sota_exp.eda_improvement if fb_to_sota_exp else None,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
@@ -824,7 +824,12 @@ class DSProposalV2ExpGen(ExpGen):
                 ]
             )
 
-        sota_exp, sota_exp_fb = trace.sota_experiment_fb()
+        sota_exp_fb = trace.sota_experiment_fb()
+        if sota_exp_fb is None:
+            sota_exp, fb_to_sota_exp = None, None
+        else:
+            sota_exp, fb_to_sota_exp = sota_exp_fb
+
         if not isinstance(sota_exp, DSExperiment):
             eda_output = None
         else:
@@ -922,5 +927,5 @@ class DSProposalV2ExpGen(ExpGen):
             ),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
-            sota_exp_fb=sota_exp_fb,
+            fb_to_sota_exp=fb_to_sota_exp,
         )

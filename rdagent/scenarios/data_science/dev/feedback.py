@@ -102,7 +102,6 @@ class DSExperiment2Feedback(Experiment2Feedback):
                 if evaluation_not_aligned
                 else convert2bool(dict_get_with_warning(resp_dict, "Replace Best Result", "no"))
             ),
-            refine_decision=convert2bool(dict_get_with_warning(resp_dict, "Refine Decision", "no")),
             eda_improvement=dict_get_with_warning(resp_dict, "EDA Improvement", "no"),  # EDA improvement suggestion
         )
 
