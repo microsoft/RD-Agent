@@ -617,7 +617,7 @@ class APIBackend(ABC):
         return [content_to_embedding_dict[content] for content in input_content_list]  # type: ignore[misc]
 
     @abstractmethod
-    def support_function_calling(self) -> bool:
+    def supports_response_schema(self) -> bool:
         """
         Check if the backend supports function calling
         """

@@ -261,7 +261,7 @@ class DeprecBackend(APIBackend):
                     raise
         return encoding
 
-    def support_function_calling(self) -> bool:
+    def supports_response_schema(self) -> bool:
         """
         Check if the backend supports function calling.
         Currently, deprec backend does not support function calling so it returns False. #FIXME: maybe a mapping to the backend class is needed.
