@@ -62,7 +62,6 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             result = implementation.run(env=env, entry=f"python -m coverage run main.py --debug")
         else:
             result = implementation.run(env=env, entry=f"python -m coverage run main.py")
-        execute_ret_code = result.exit_code
         result.stdout = remove_eda_part(result.stdout)
         if result.exit_code != 0:
             stdout += f"Code failed to run. Please check the stdout:\n Following the stdout of the debug mode run:\n{result.stdout.strip()}\n"
