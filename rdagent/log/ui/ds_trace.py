@@ -475,11 +475,11 @@ def summarize_win():
         min_id, max_id = get_state_data_range(state.data)
         info0, info1, info2, info3, info4, info5 = st.columns([1, 1, 1, 1, 1, 1])
         show_trace_dag = info0.toggle("Show trace DAG", key="show_trace_dag")
-        with info1.popover("LITELLM_SETTINGS", icon="⚙️"):
+        with info1.popover("LITELLM", icon="⚙️"):
             st.write(state.data.get("settings", {}).get("LITELLM_SETTINGS", "No settings found."))
-        with info2.popover("RD_AGENT_SETTINGS", icon="⚙️"):
+        with info2.popover("RD_AGENT", icon="⚙️"):
             st.write(state.data.get("settings", {}).get("RD_AGENT_SETTINGS", "No settings found."))
-        with info3.popover("RDLOOP_SETTINGS", icon="⚙️"):
+        with info3.popover("RDLOOP", icon="⚙️"):
             st.write(state.data.get("settings", {}).get("RDLOOP_SETTINGS", "No settings found."))
 
         llm_call, llm_filter_call = get_llm_call_stats(state.llm_data)
