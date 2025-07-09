@@ -575,12 +575,13 @@ class APIBackend(ABC):
             _, all_response = match.groups() if match else ("", all_response)
 
         # 3) format checking
-        if json_mode:
+        if json_mode or json_target_type:
             parser = JSONParser()
             all_response = parser.parse(all_response)
+            if json_target_type:
+                # deepseek will enter this branch
+                TypeAdapter(json_target_type).validate_json(all_response)
 
-        if json_target_type is not None:
-            TypeAdapter(json_target_type).validate_json(all_response)
         if (response_format := kwargs.get("response_format")) is not None:
             if not isinstance(response_format, dict) and issubclass(response_format, BaseModel):
                 # It may raise TypeError if initialization fails
