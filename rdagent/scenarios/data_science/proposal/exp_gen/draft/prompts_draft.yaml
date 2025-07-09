@@ -13,8 +13,48 @@ description:
 
 knowledge:
   general: |-
-    TODO
+    This is general techniques for data science tasks, aiming to ensure the pipeline runs **correctly, robustly, and reproducibly**.
 
+    ## Runtime Environment
+    {{ runtime_environment }}
+
+    ## Component Description
+    The following components are used to describe the task. Each component has a specific role in the data science pipeline, and they should be used to structure the task effectively.
+    {{ component_desc }}
+
+    ## Component Guidelines
+    1. [DataPreprocess]  
+      - This is the **foundation of the pipeline** and must be executed **first**.
+      - Ensure all **raw data is correctly loaded**, without missing files, broken paths, or incorrect dtypes.
+      - **Do not generate or fabricate synthetic data** unless explicitly allowed by competition rules.
+      - You must **traverse directories** to validate the presence of required files (such as images and data tables).
+      - Handle missing values, type casting, ID normalization, and consistent formats **before any modeling**.
+      - If this step fails or is skipped, all downstream steps are invalid.
+    2. [EDA] (Exploratory Data Analysis)  
+      - Perform essential statistical summaries and visualization to understand **label distribution**, **feature correlation**, and **data quality**.
+      - Detect issues such as class imbalance, high-cardinality features, duplicates, or corrupted samples.
+      - Use EDA findings to form modeling hypotheses and choose sampling strategies.
+    3. [FeatureEngineer]  
+      - Build features in **modular, traceable steps**.
+      - Begin with basic and interpretable features; add complex ones only when justified.
+      - Ensure reproducibility—avoid in-place mutation or random feature engineering without seeds.
+    4. [Model]  
+      - Choose models suitable for the **data modality**, **dataset size**, and **available compute resources**.
+      - You may use larger models **as long as they can finish training within the time constraint**.
+      - Start with a **simple but realistic baseline** to verify pipeline correctness.
+      - Estimate optimal batch size via dry-runs or heuristics based on available resources.
+      - Ensure training time is acceptable with early stopping.
+      - Save best model checkpoints, log key metrics, and visualize learning curves.
+    5. [Tuning]  
+      - Tune **only after verifying the pipeline and model correctness**.
+      - Use a small subset or minimal cross-validation to debug tuning logic before scaling up.
+      - Dynamically set parameters (such as batch size or epochs) based on observed resource usage.
+      - Set training duration to allow convergence without overfitting.
+    6. [Ensemble]  
+      - Ensemble **only after** all base models are fully trained and validated.
+      - Prefer diverse models (e.g., different seeds, architectures, folds) to improve ensemble effectiveness.
+      - Keep the ensembling method **simple, reproducible**.
+      - Ensemble logic must not bypass earlier validation steps.
 
 hypothesis_draft:
   system: |-
