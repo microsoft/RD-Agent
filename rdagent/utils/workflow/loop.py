@@ -136,9 +136,12 @@ class LoopBase:
         if isinstance(limit := RD_AGENT_SETTINGS.step_semaphore, dict):
             limit = limit.get(step_name, 1)  # default to 1 if not specified
 
-        # NOTE: we assume the record step is always the last step to modify the global environment,
-        # so we set the limit to 1 to avoid race condition
-        if step_name == "record":
+        # NOTE:
+        # (1) we assume the record step is always the last step to modify the global environment,
+        #     so we set the limit to 1 to avoid race condition
+        # (2) Because we support (-1,) as local selection; So it is hard to align a) the comparision target in `feedbck`
+        #     and b) parent node in `record`; So we prevent parallelism in `feedback` and `record` to avoid inconsistency
+        if step_name in ("record", "feedback"):
             limit = 1
 
         if step_name not in self.semaphores:
