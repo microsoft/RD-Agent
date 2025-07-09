@@ -8,6 +8,7 @@ from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
+from rdagent.utils.agent.tpl import T
 
 _COMPONENT_META: Dict[str, Dict[str, Any]] = {
     "DataLoadSpec": {
