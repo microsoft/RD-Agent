@@ -213,14 +213,15 @@ class Env(Generic[ASpecificEnvConf]):
         local_path: str = ".",
         env: dict | None = None,
         running_extra_volume: Mapping = MappingProxyType({}),
-        remove_timestamp: bool = True,
     ) -> EnvResult:
-        # TODO: remove_timestamp can be implemented in a shallower way...
         for retry_index in range(self.conf.retry_count + 1):
             try:
                 start = time.time()
                 log_output, return_code = self._run(
-                    entry, local_path, env, running_extra_volume=running_extra_volume, remove_timestamp=remove_timestamp
+                    entry,
+                    local_path,
+                    env,
+                    running_extra_volume=running_extra_volume,
                 )
                 end = time.time()
                 logger.info(f"Running time: {end - start} seconds")
@@ -316,7 +317,10 @@ class Env(Generic[ASpecificEnvConf]):
             result = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
         else:
             result = self.__run_with_retry(
-                entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False
+                entry_add_timeout,
+                local_path,
+                env,
+                running_extra_volume,
             )
 
         return result
@@ -327,7 +331,6 @@ class Env(Generic[ASpecificEnvConf]):
         local_path: str = ".",
         env: dict | None = None,
         running_extra_volume: Mapping = MappingProxyType({}),
-        remove_timestamp: bool = True,
     ) -> EnvResult:
         """
         Run the folder under the environment.
@@ -364,7 +367,7 @@ class Env(Generic[ASpecificEnvConf]):
                 ret = pickle.load(f)
             self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path)
         else:
-            ret = self.__run_with_retry(entry, local_path, env, running_extra_volume, remove_timestamp)
+            ret = self.__run_with_retry(entry, local_path, env, running_extra_volume)
             with open(target_folder / f"{key}.pkl", "wb") as f:
                 pickle.dump(ret, f)
             self.zip_a_folder_into_a_file(local_path, str(target_folder / f"{key}.zip"))
@@ -846,20 +849,12 @@ class DockerEnv(Env[DockerConf]):
 
         return _f()
 
-    def replace_time_info(self, input_string: str) -> str:
-        """To remove any time related information from the logs since it will destroy the cache mechanism"""
-        """We currently set this function as default, but it can be changed in the future"""
-        datetime_pattern = r"\b\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?\b"
-        output_string = re.sub(datetime_pattern, "[DATETIME]", input_string)
-        return output_string
-
     def _run(
         self,
         entry: str | None = None,
         local_path: str = ".",
         env: dict | None = None,
         running_extra_volume: Mapping = MappingProxyType({}),
-        remove_timestamp: bool = True,
         **kwargs: Any,
     ) -> tuple[str, int]:
         if env is None:
@@ -918,7 +913,6 @@ class DockerEnv(Env[DockerConf]):
             print(table)
             for log in logs:
                 decoded_log = log.strip().decode()
-                decoded_log = self.replace_time_info(decoded_log) if remove_timestamp else decoded_log
                 Console().print(decoded_log, markup=False)
                 log_output += decoded_log + "\n"
             exit_status = container.wait()["StatusCode"]

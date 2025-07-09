@@ -22,6 +22,7 @@ from rdagent.log.utils import (
     extract_loopid_func_name,
     is_valid_session,
 )
+from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 
 if "show_stdout" not in state:
@@ -44,7 +45,7 @@ def convert_defaultdict_to_dict(d):
     return d
 
 
-# @st.cache_data(persist=True)
+@st.cache_data(persist=True)
 def load_data(log_path: Path):
     data = defaultdict(lambda: defaultdict(dict))
     llm_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -60,8 +61,6 @@ def load_data(log_path: Path):
         if ei is not None:
             ei = int(ei)
         if "debug_" in msg.tag:
-            if "debug_tpl" in msg.tag and "filter_" in msg.content["uri"]:
-                continue
             if ei is not None:
                 llm_data[li][fn][ei].append(
                     {
@@ -201,9 +200,9 @@ def workspace_win(workspace, cmp_workspace=None, cmp_name="last code."):
 def show_text(text, lang=None):
     """显示文本代码块"""
     if lang:
-        st.code(text, language=lang, wrap_lines=True)
+        st.code(text, language=lang, wrap_lines=True, line_numbers=True)
     elif "\n" in text:
-        st.code(text, language="python", wrap_lines=True)
+        st.code(text, language="python", wrap_lines=True, line_numbers=True)
     else:
         st.code(text, language="html", wrap_lines=True)
 
@@ -220,6 +219,8 @@ def llm_log_win(llm_d: list):
     for d in llm_d:
         if "debug_tpl" in d["tag"]:
             uri = d["obj"]["uri"]
+            if "filter_redundant_text" in uri:
+                continue
             tpl = d["obj"]["template"]
             cxt = d["obj"]["context"]
             rd = d["obj"]["rendered"]
@@ -240,32 +241,19 @@ def llm_log_win(llm_d: list):
                 with t1:
                     try:
                         rdict = json.loads(resp)
-                        if "code" in rdict:
-                            code = rdict["code"]
-                            st.markdown(":red[**Code in response dict:**]")
-                            st.code(code, language="python", wrap_lines=True, line_numbers=True)
-                            rdict.pop("code")
-                        elif "spec" in rdict:
-                            spec = rdict["spec"]
-                            st.markdown(":red[**Spec in response dict:**]")
-                            st.markdown(spec)
-                            rdict.pop("spec")
-                        else:
-                            showed_keys = []
-                            for k, v in rdict.items():
-                                if k.endswith(".py"):
-                                    st.markdown(f":red[**{k}**]")
-                                    st.code(v, language="python", wrap_lines=True, line_numbers=True)
-                                    showed_keys.append(k)
-                            for k in showed_keys:
-                                rdict.pop(k)
-                        st.write(":red[**Other parts (except for the code or spec) in response dict:**]")
+                        showed_keys = []
+                        for k, v in rdict.items():
+                            if k.endswith(".py") or k.endswith(".md"):
+                                st.markdown(f":red[**{k}**]")
+                                st.code(v, language="python", wrap_lines=True, line_numbers=True)
+                                showed_keys.append(k)
+                        for k in showed_keys:
+                            rdict.pop(k)
+                        if len(showed_keys) > 0:
+                            st.write(":red[**Other parts (except for the code or spec) in response dict:**]")
                         st.json(rdict)
                     except:
-                        try:
-                            st.json(resp)
-                        except:
-                            show_text(resp)
+                        show_text(resp)
                 with t2:
                     show_text(user)
                 with t3:
@@ -466,18 +454,37 @@ def replace_ep_path(p: Path):
     return p
 
 
+def get_llm_call_stats(llm_data: dict) -> tuple[int, int]:
+    total_llm_call = 0
+    total_filter_call = 0
+    filter_sys_prompt = T("rdagent.utils.prompts:filter_redundant_text.system").r()
+    for li, loop_d in llm_data.items():
+        for fn, loop_fn_d in loop_d.items():
+            for k, v in loop_fn_d.items():
+                for d in v:
+                    if "debug_llm" in d["tag"]:
+                        total_llm_call += 1
+                        if filter_sys_prompt == d["obj"]["system"]:
+                            total_filter_call += 1
+    return total_llm_call, total_filter_call
+
+
 def summarize_win():
     st.header("Summary", divider="rainbow")
     with st.container(border=True):
         min_id, max_id = get_state_data_range(state.data)
-        info0, info1, info2, info3 = st.columns([2, 1, 1, 1])
+        info0, info1, info2, info3, info4, info5 = st.columns([1, 1, 1, 1, 1, 1])
         show_trace_dag = info0.toggle("Show trace DAG", key="show_trace_dag")
-        with info1.popover("LITELLM_SETTINGS", icon="⚙️"):
-            st.write(state.data.get("SETTINGS", {}).get("LITELLM_SETTINGS", "No settings found."))
-        with info2.popover("RD_AGENT_SETTINGS", icon="⚙️"):
-            st.write(state.data.get("SETTINGS", {}).get("RD_AGENT_SETTINGS", "No settings found."))
-        with info3.popover("RDLOOP_SETTINGS", icon="⚙️"):
-            st.write(state.data.get("SETTINGS", {}).get("RDLOOP_SETTINGS", "No settings found."))
+        with info1.popover("LITELLM", icon="⚙️"):
+            st.write(state.data.get("settings", {}).get("LITELLM_SETTINGS", "No settings found."))
+        with info2.popover("RD_AGENT", icon="⚙️"):
+            st.write(state.data.get("settings", {}).get("RD_AGENT_SETTINGS", "No settings found."))
+        with info3.popover("RDLOOP", icon="⚙️"):
+            st.write(state.data.get("settings", {}).get("RDLOOP_SETTINGS", "No settings found."))
+
+        llm_call, llm_filter_call = get_llm_call_stats(state.llm_data)
+        info4.metric("LLM Calls", llm_call)
+        info5.metric("LLM Filter Calls", f"{llm_filter_call}({round(llm_filter_call / llm_call * 100, 2)}%)")
         if show_trace_dag:
             st.markdown("### Trace DAG")
             final_trace_loop_id = max_id
