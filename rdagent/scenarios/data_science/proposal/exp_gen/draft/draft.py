@@ -260,8 +260,7 @@ class DSDraftExpGenV2(ExpGen):
             pipeline=pipeline,
         )
 
-        # Step 1: Generate Tags TODO: do this part in the scenario analysis part
-        # tag = self.tag_gen(scenario_desc)
+        # Step 1: Retrieve Knowledge
         knowledge = self.knowledge_gen()
 
         # Step 2: Generate Hypothesis based on General Knowledge
