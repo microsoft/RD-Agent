@@ -642,7 +642,7 @@ def feedback_window():
                         st.error(f"Error displaying workspace path: {str(e)}")
                 with st.expander("**Config⚙️**", expanded=True):
                     st.markdown(state.scenario.experiment_setting, unsafe_allow_html=True)
-            
+
             if fb := state.msgs[round]["feedback"]:
                 if fbr := state.msgs[round]["Quantitative Backtesting Chart"]:
                     st.markdown("**Returns📈**")
