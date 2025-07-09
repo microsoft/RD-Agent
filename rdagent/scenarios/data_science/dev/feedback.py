@@ -9,6 +9,7 @@ from rdagent.core.proposal import (
     ExperimentFeedback,
     HypothesisFeedback,
 )
+from rdagent.core.scenario import Scenario
 from rdagent.log.utils import dict_get_with_warning
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -20,6 +21,10 @@ from rdagent.utils.repo.diff import generate_diff_from_dict
 
 
 class DSExperiment2Feedback(Experiment2Feedback):
+    def __init__(self, scen: Scenario, version: str = "exp_feedback") -> None:
+        super().__init__(scen)
+        self.version = version
+
     def generate_feedback(self, exp: DSExperiment, trace: DSTrace) -> ExperimentFeedback:
         # 用哪些信息来生成feedback
         # 1. pending_tasks_list[0][0] 任务的描述
@@ -63,10 +68,11 @@ class DSExperiment2Feedback(Experiment2Feedback):
             )
 
         eda_output = exp.experiment_workspace.file_dict.get("EDA.md", None)
-        system_prompt = T(".prompts:exp_feedback.system").r(
+
+        system_prompt = T(f".prompts:{self.version}.system").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=eda_output)
         )
-        user_prompt = T(".prompts:exp_feedback.user").r(
+        user_prompt = T(f".prompts:{self.version}.user").r(
             sota_desc=sota_desc,
             cur_exp=exp,
             diff_edition=diff_edition,

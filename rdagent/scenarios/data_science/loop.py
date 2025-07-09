@@ -30,7 +30,7 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
 from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.utils.workflow.misc import wait_retry
@@ -112,8 +112,6 @@ class DataScienceRDLoop(RDLoop):
         self.runner = DSCoSTEERRunner(scen)
         if DS_RD_SETTING.enable_doc_dev:
             self.docdev = DocDev(scen)
-        # self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
-        # logger.log_object(self.summarizer, tag="summarizer")
 
         if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
             knowledge_base = DSKnowledgeBase(
@@ -122,7 +120,9 @@ class DataScienceRDLoop(RDLoop):
             self.trace = DSTrace(scen=scen, knowledge_base=knowledge_base)
         else:
             self.trace = DSTrace(scen=scen)
-        self.summarizer = DSExperiment2Feedback(scen)
+
+        self.summarizer = import_class(PROP_SETTING.summarizer)(scen=scen, **PROP_SETTING.summarizer_init_kwargs)
+
         super(RDLoop, self).__init__()
 
     async def direct_exp_gen(self, prev_out: dict[str, Any]):

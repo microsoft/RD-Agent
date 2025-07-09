@@ -94,6 +94,7 @@ class LiteLLMAPIBackend(APIBackend):
         """
         Call the chat completion function
         """
+
         if response_format and not supports_response_schema(model=LITELLM_SETTINGS.chat_model):
             # Deepseek will enter this branch
             logger.warning(
