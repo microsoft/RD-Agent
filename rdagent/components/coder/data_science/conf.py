@@ -64,7 +64,7 @@ def get_clear_ws_cmd(stage: Literal["before_training", "before_inference"] = "be
     """
     assert stage in ["before_training", "before_inference"], f"Unknown stage: {stage}"
     if DS_RD_SETTING.enable_model_dump and stage == "before_training":
-        cmd = "rm -r submission.csv scores.csv models"
+        cmd = "rm -r submission.csv scores.csv models trace.log"
     else:
-        cmd = "rm submission.csv scores.csv"
+        cmd = "rm submission.csv scores.csv trace.log"
     return cmd
