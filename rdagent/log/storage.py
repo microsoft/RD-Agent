@@ -28,8 +28,14 @@ def _remove_empty_dir(path: Path) -> None:
 class FileStorage(Storage):
     """
     The info are logginged to the file systems
-
-    TODO: describe the storage format
+    
+    ### 存储格式说明
+    - 日志文件按标签(tag)组织目录结构
+    - 文件名格式: YYYY-MM-DD_HH-MM-SS-FFFFFF.log
+    - 支持三种存储格式:
+      1. JSON (.json): 用于结构化数据
+      2. Pickle (.pkl): 用于Python对象
+      3. 文本 (.log): 用于纯文本日志
     """
 
     def __init__(self, path: str | Path) -> None:

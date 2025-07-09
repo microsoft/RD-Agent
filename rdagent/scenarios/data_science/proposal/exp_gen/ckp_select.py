@@ -242,3 +242,23 @@ class BackJumpCKPSelector(CheckpointSelector):
 
 
 # TODO: implement these selectors and more
+
+# 实现基础选择器
+class BasicCKPSelector:
+    def select(self, trace_history):
+        """选择最新可用的checkpoint"""
+        if trace_history:
+            return len(trace_history) - 1  # 返回最新索引
+        return 0
+
+# 实现基于性能的选择器
+class PerformanceCKPSelector:
+    def select(self, trace_history):
+        """选择性能最优的checkpoint"""
+        best_idx = 0
+        best_score = -float('inf')
+        for i, trace in enumerate(trace_history):
+            if trace.score > best_score:
+                best_score = trace.score
+                best_idx = i
+        return best_idx

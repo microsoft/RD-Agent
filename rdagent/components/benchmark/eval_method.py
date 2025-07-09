@@ -166,9 +166,9 @@ class FactorImplementEval(BaseEval):
             try:
                 gen_factor_l = self.generate_method.develop(self.test_cases.get_exp())
             except KeyboardInterrupt:
-                # TODO: Why still need to save result after KeyboardInterrupt?
-                print("Manually interrupted the evaluation. Saving existing results")
-                break
+                # 修改：不再保存结果，直接退出
+                print("Evaluation interrupted by user. Exiting without saving.")
+                return
 
             if len(gen_factor_l.sub_workspace_list) != len(self.test_cases.ground_truth):
                 raise ValueError(
