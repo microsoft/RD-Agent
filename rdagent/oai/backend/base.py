@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Tuple, cast
+from typing import Any, Callable, List, Optional, Tuple, Type, Union, cast
 
 import pytz
 from pydantic import BaseModel, TypeAdapter
@@ -528,20 +528,15 @@ class APIBackend(ABC):
         seed: Optional[int] = None,
         json_target_type: Optional[str] = None,
         add_json_in_prompt: bool = False,
-        response_format: Optional[dict] = None,
+        response_format: Optional[Union[dict, Type[BaseModel]]] = None,
         **kwargs: Any,
     ) -> str:
         """
         Call the chat completion function and automatically continue the conversation if the finish_reason is length.
         """
-        response_format = kwargs.get("response_format", None)
-        if response_format is None:
-            if json_mode:
-                response_format = {"type": "json_object"}
-        # else
-        #     if response_format == {"type": "json_object"}:
-        #         json_mode = True
-        #         logger.warning("response_format is set to json_object, which will override the json_mode argument.")
+
+        if response_format is None and json_mode:
+            response_format = {"type": "json_object"}
 
         # 0) return directly if cache is hit
         if seed is None and LLM_SETTINGS.use_auto_chat_cache_seed_gen:
@@ -564,11 +559,11 @@ class APIBackend(ABC):
         # Loop to get a full response
         try_n = 6
         for _ in range(try_n):  # for some long code, 3 times may not enough for reasoning models
-            if json_mode and add_json_in_prompt:
+            if response_format and add_json_in_prompt:
                 self._add_json_in_prompt(new_messages)
             response, finish_reason = self._create_chat_completion_inner_function(
                 messages=new_messages,
-                json_mode=json_mode,
+                response_format=response_format,
                 **kwargs,
             )
             all_response += response
@@ -584,17 +579,19 @@ class APIBackend(ABC):
             _, all_response = match.groups() if match else ("", all_response)
 
         # 3) format checking
-        if json_mode or json_target_type:
+        if response_format or json_target_type:
             parser = JSONParser()
             all_response = parser.parse(all_response)
             if json_target_type:
                 # deepseek will enter this branch
                 TypeAdapter(json_target_type).validate_json(all_response)
 
-        if (response_format := kwargs.get("response_format")) is not None:
+        if response_format is not None:
             if not isinstance(response_format, dict) and issubclass(response_format, BaseModel):
                 # It may raise TypeError if initialization fails
                 response_format(**json.loads(all_response))
+            elif response_format == {"type": "json_object"}:
+                logger.info(f"Using OpenAI response format: {response_format}")
             else:
                 logger.warning(f"Unknown response_format: {response_format}, skipping validation.")
         if self.dump_chat_cache:
@@ -651,6 +648,7 @@ class APIBackend(ABC):
     def _create_chat_completion_inner_function(  # type: ignore[no-untyped-def] # noqa: C901, PLR0912, PLR0915
         self,
         messages: list[dict[str, Any]],
+        response_format: Optional[Union[dict, Type[BaseModel]]] = None,
         *args,
         **kwargs,
     ) -> tuple[str, str | None]:
