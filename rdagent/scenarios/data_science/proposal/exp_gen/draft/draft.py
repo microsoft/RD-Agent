@@ -147,7 +147,7 @@ class DSDraftExpGenV2(ExpGen):
         runtime_environment = self.scen.get_runtime_environment()
         general_knowledge = T(".prompts_draft:knowledge.general").r(
             runtime_environment=runtime_environment,
-            component_desc=T(".prompts_draft:description.component_description").r()
+            component_desc=T(".prompts_draft:description.component_description").r(),
         )
         return f"{general_knowledge}"
 
