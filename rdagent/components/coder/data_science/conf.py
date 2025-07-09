@@ -54,6 +54,7 @@ def get_ds_env(
         raise ValueError(f"Unknown env type: {conf.env_type}")
     env.conf.extra_volumes = extra_volumes
     env.conf.running_timeout_period = running_timeout_period
+    env.prepare()
     return env
 
 

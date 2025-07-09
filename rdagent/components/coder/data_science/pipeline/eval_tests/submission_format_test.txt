@@ -31,7 +31,7 @@ find . | grep -i sample | grep -i submission | grep -v sample_submission.csv | g
 input_dir = Path('{% include "scenarios.data_science.share:scen.input_path" %}')
 sample_submission_files = list(input_dir.glob("*sample_submission*.csv")) + list(
     input_dir.glob("*sampleSubmission*.csv")
-)
+) + list(input_dir.glob("*randomPredictions*.tsv"))
 
 if not sample_submission_files:
     print(f'Error: No sample submission file found in {% include "scenarios.data_science.share:scen.input_path" %}')
