@@ -109,14 +109,12 @@ class JSONParser:
                     out.append(tokval)
 
             result = "".join(out)
-            # Validate if the result is valid JSON
-            json.loads(result)
             return result
 
         except (tokenize.TokenError, json.JSONDecodeError):
             # If tokenize fails, fallback to regex method
             for python_val, json_val in replacements.items():
-                json_str = re.sub(rf"\\b{python_val}\\b", json_val, json_str)
+                json_str = re.sub(rf"\b{python_val}\b", json_val, json_str)
             return json_str
 
     @staticmethod
@@ -617,7 +615,7 @@ class APIBackend(ABC):
         return [content_to_embedding_dict[content] for content in input_content_list]  # type: ignore[misc]
 
     @abstractmethod
-    def support_function_calling(self) -> bool:
+    def supports_response_schema(self) -> bool:
         """
         Check if the backend supports function calling
         """

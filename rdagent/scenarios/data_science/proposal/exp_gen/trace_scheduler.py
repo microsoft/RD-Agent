@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -15,11 +16,14 @@ class TraceScheduler(ABC):
     """
 
     @abstractmethod
-    async def select_trace(self, trace: DSTrace) -> tuple[int, ...]:
+    async def next(self, trace: DSTrace) -> tuple[int, ...]:
         """
         Selects the next trace to expand.
 
-        This method must be async to allow for safe concurrent access.
+        For proposing selections, we have to follow the rules
+        - Suggest selection: suggest a selection that is suitable for the current trace.
+        - Suggested should be garenteed to be recorded at last!!!
+        - If no suitable selection is found, the function should async wait!!!!
 
         Args:
             trace: The DSTrace object containing the full experiment history.
@@ -39,31 +43,33 @@ class RoundRobinScheduler(TraceScheduler):
     NOTE: we don't need to use asyncio.Lock here as the kickoff_loop ensures the ExpGen is always sequential, instead of parallel.
     """
 
-    def __init__(self):
+    def __init__(self, max_trace_num: int):
+        self.max_trace_num = max_trace_num
         self._last_selected_leaf_id = -1
+        self.rec_commit_idx = 0  # the node before rec_idx is already committed.
+        self.uncommited_rec_status = defaultdict(int)  # the uncommited record status
 
-    async def select_trace(self, trace: DSTrace) -> tuple[int, ...]:
+    async def next(self, trace: DSTrace) -> tuple[int, ...]:
         """
         Atomically selects the next leaf node from the trace in order.
         """
+        while True:
+            # step 0: Commit the pending selections
+            for i in range(self.rec_commit_idx, len(trace.dag_parent)):
+                for p in trace.dag_parent[i]:
+                    self.uncommited_rec_status[p] -= 1
+            self.rec_commit_idx = len(trace.hist)
 
-        leaves = trace.get_leaves()
-        if not leaves:
-            # This is the very first experiment in a new tree.
-            return trace.NEW_ROOT
+            # step 1: select the parant trace to expand
+            # Policy: if we have fewer traces than our target, start a new one.
+            if trace.sub_trace_count + self.uncommited_rec_status[trace.NEW_ROOT] < self.max_trace_num:
+                self.uncommited_rec_status[trace.NEW_ROOT] += 1
+                return trace.NEW_ROOT
 
-        # Find the index of the last selected leaf in the current list of leaves
-        try:
-            current_position = leaves.index(self._last_selected_leaf_id)
-            # Move to the next position, wrapping around if necessary
-            next_position = (current_position + 1) % len(leaves)
-        except ValueError:
-            # This can happen if the last selected leaf is no longer a leaf
-            # (it has been expanded) or if this is the first selection.
-            # In either case, start from the beginning.
-            next_position = 0
-
-        selected_leaf = leaves[next_position]
-        self._last_selected_leaf_id = selected_leaf
-
-        return (selected_leaf,)
+            # Step2: suggest a selection to a not expanding leave
+            leaves = trace.get_leaves()
+            for leaf in leaves:
+                if self.uncommited_rec_status[leaf] == 0:
+                    self.uncommited_rec_status[leaf] += 1
+                    return (leaf,)
+            await asyncio.sleep(1)
