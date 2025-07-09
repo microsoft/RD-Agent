@@ -95,7 +95,9 @@ class LiteLLMAPIBackend(APIBackend):
         """
         if json_mode and supports_response_schema(model=LITELLM_SETTINGS.chat_model):
             kwargs["response_format"] = {"type": "json_object"}
+
         elif not supports_response_schema(model=LITELLM_SETTINGS.chat_model) and "response_format" in kwargs:
+            # Deepseek will enter this branch
             logger.warning(
                 f"{LogColors.RED}Model {LITELLM_SETTINGS.chat_model} does not support response schema, ignoring response_format argument.{LogColors.END}",
                 tag="llm_messages",
