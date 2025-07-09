@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic_settings import SettingsConfigDict
+from pydantic_settings import SettingsConfigDict # type: ignore
 
 from rdagent.app.kaggle.conf import KaggleBasePropSetting
 
@@ -69,8 +69,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     )
 
     #### Evaluation on Test related
-    eval_sub_dir: str = "eval"  # TODO: fixme, this is not a good name
-    """We'll use f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.eval_sub_dir}/{competition}"
+    evaluation_submission_dir: str = "eval"  
+    """We'll use f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.evaluation_submission_dir}/{competition}"
     to find the scriipt to evaluate the submission on test"""
 
     """---below are the settings for multi-trace---"""
