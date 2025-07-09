@@ -45,7 +45,7 @@ def convert_defaultdict_to_dict(d):
     return d
 
 
-# @st.cache_data(persist=True)
+@st.cache_data(persist=True)
 def load_data(log_path: Path):
     data = defaultdict(lambda: defaultdict(dict))
     llm_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
