@@ -528,11 +528,20 @@ class APIBackend(ABC):
         seed: Optional[int] = None,
         json_target_type: Optional[str] = None,
         add_json_in_prompt: bool = False,
+        response_format: Optional[dict] = None,
         **kwargs: Any,
     ) -> str:
         """
         Call the chat completion function and automatically continue the conversation if the finish_reason is length.
         """
+        response_format = kwargs.get("response_format", None)
+        if response_format is None:
+            if json_mode:
+                response_format = {"type": "json_object"}
+        # else
+        #     if response_format == {"type": "json_object"}:
+        #         json_mode = True
+        #         logger.warning("response_format is set to json_object, which will override the json_mode argument.")
 
         # 0) return directly if cache is hit
         if seed is None and LLM_SETTINGS.use_auto_chat_cache_seed_gen:
@@ -642,7 +651,6 @@ class APIBackend(ABC):
     def _create_chat_completion_inner_function(  # type: ignore[no-untyped-def] # noqa: C901, PLR0912, PLR0915
         self,
         messages: list[dict[str, Any]],
-        json_mode: bool = False,
         *args,
         **kwargs,
     ) -> tuple[str, str | None]:
