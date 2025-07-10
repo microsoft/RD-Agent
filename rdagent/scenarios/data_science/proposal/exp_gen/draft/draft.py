@@ -125,10 +125,10 @@ class DSDraftExpGen(ExpGen):
         return exp
 
 
-class DSDraftExpGenV2(ExpGen):
+class DSDraftV2ExpGen(ExpGen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.support_function_calling = APIBackend().support_function_calling()
+        self.supports_response_schema = APIBackend().supports_response_schema()
 
     def tag_gen(self, scenario_desc: str) -> str:
         sys_prompt = T(".prompts_draft:tag_gen.system").r(tag_desc=T(".prompts_draft:description.tag_description").r())
@@ -192,7 +192,7 @@ class DSDraftExpGenV2(ExpGen):
             component_info = get_component(hypothesis.component)
         data_folder_info = self.scen.processed_data_folder_description
         sys_prompt = T(".prompts_draft:task_gen.system").r(
-            task_output_format=component_info["task_output_format"] if not self.support_function_calling else None,
+            task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
             component_desc=component_desc,
             workflow_check=not pipeline and hypothesis.component != "Workflow",
         )
@@ -206,12 +206,12 @@ class DSDraftExpGenV2(ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=CodingSketch if self.support_function_calling else {"type": "json_object"},
-            json_target_type=Dict[str, str | Dict[str, str]] if not self.support_function_calling else None,
+            response_format=CodingSketch if self.supports_response_schema else {"type": "json_object"},
+            json_target_type=Dict[str, str | Dict[str, str]] if not self.supports_response_schema else None,
         )
         task_dict = json.loads(response)
         task_design = (
-            task_dict.get("task_design", {}) if not self.support_function_calling else task_dict.get("sketch", {})
+            task_dict.get("task_design", {}) if not self.supports_response_schema else task_dict.get("sketch", {})
         )
         logger.info(f"Task design:\n{task_design}")
         task_name = hypothesis.component

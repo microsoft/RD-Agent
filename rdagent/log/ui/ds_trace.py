@@ -475,6 +475,7 @@ def summarize_win():
         min_id, max_id = get_state_data_range(state.data)
         info0, info1, info2, info3, info4, info5 = st.columns([1, 1, 1, 1, 1, 1])
         show_trace_dag = info0.toggle("Show trace DAG", key="show_trace_dag")
+        only_success = info0.toggle("Only Success", key="only_success")
         with info1.popover("LITELLM", icon="⚙️"):
             st.write(state.data.get("settings", {}).get("LITELLM_SETTINGS", "No settings found."))
         with info2.popover("RD_AGENT", icon="⚙️"):
@@ -613,6 +614,8 @@ def summarize_win():
             fig.data[1].name = "Cumulative COST($)"
             st.plotly_chart(fig)
 
+        if only_success:
+            df = df[df["Feedback"] == "✅"]
         st.dataframe(df[df.columns[~df.columns.isin(["Hypothesis", "Reason", "Others"])]])
 
         # scores curve

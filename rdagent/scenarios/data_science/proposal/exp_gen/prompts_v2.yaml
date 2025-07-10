@@ -306,6 +306,12 @@ task_gen:
       - When only one model is used, its score should be present, and an "ensemble" score (which would be the same as the single model's score in this case) must also be recorded.
       - Ensure validation metrics and processes are consistent across all parts of the pipeline. Avoid changes that would alter how validation metrics are calculated unless that is part of the hypothesis.
     8. **Submission File (`submission.csv`)**: Generate `submission.csv` in the **exact format** required (column names, order, data types), as detailed by `sample_submission.csv` in the `Competition Scenario Description`. This is a critical step.
+    9. **Preferred Packages Notes**:
+      - You can choose the most proper packages for the task to best achieve the hypothesis.
+      - When facing a choice between two packages which both can achieve the same goal, you should choose the one which is more commonly used and less likely to cause bugs in coding. Especially those you are not familiar with.
+      - For GBDT models, prefer XGBoost or RandomForest over LightGBM unless the SOTA or hypothesis dictates otherwise.
+      - For neural networks, prefer PyTorch or PyTorch based library (over TensorFlow) unless the SOTA or hypothesis dictates otherwise.
+      - For neural networks, prefer fine-tuning pre-trained models over training from scratch.
 
     # Guidelines for Sketching the `main.py` Workflow
 
