@@ -351,23 +351,30 @@ task_gen:
 
     
     {% if task_output_format is not none %}
+
+    {% if not workflow_check %}
+
+    {{ task_output_format }}
+
+    {% else %}
+
     # Output Format
     There might be one or two steps in the task. But you should adhere to the final output format.
 
-    ## [Partial Response Format 1] Task Output Format:
+    ## [Partial Response Format 1]
+    ### Step1: **Task Output Format** :
     {{ task_output_format }}
 
-    {% if workflow_check %}
-    ## Step 2: Workflow Update
+    ### Step 2: **Workflow Update** :
     Since components have dependencies, your second task is to update the workflow to reflect the changes made to the target component. Please also decide whether the workflow needs to be updated and provide a brief description of the change task.
     {{ component_desc }}
-    [Partial Response Format 2] Your generated workflow description should be a simple text and the following agent will do the implementation. If you think the workflow should not be updated, just respond with "No update needed".
-    {% endif %}
 
-    ## At last, your final output should strictly adhere to the following JSON format. 
+    ## [Partial Response Format 2] Your generated workflow description should be a simple text and the following agent will do the implementation. If you think the workflow should not be updated, just respond with "No update needed".
+
+    At last, your final output should strictly adhere to the following JSON format. 
     {
-      "task_design": "A detailed, step-by-step implementation guide for `main.py` that synthesizes planned modifications and code structure into a comprehensive coding plan. Must be formatted in Markdown with level-3 headings (###) organizing logical sections, key decision points, and implementation steps. Should provide sufficient detail covering implementation flow, algorithms, data handling, and key logic points for unambiguous developer execution.",
-      {% if workflow_check %}"workflow_update": "A string which is a precise and comprehensive description of the workflow update.", {% endif %}
+      "task_design": ---The dict corresponding to **Task Output Format** ---, 
+      "workflow_update": "A string which is a precise and comprehensive description of the **Workflow Update** ."
     }
     {% endif %}
     

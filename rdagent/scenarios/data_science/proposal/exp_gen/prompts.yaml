@@ -344,5 +344,5 @@ output_format:
     Design a specific and detailed Pipeline task based on the given hypothesis. The output should be detailed enough to directly implement the corresponding code.
     The output should follow JSON format. The schema is as follows:
     {
-        "description": "A precise and comprehensive description of the main workflow script (`main.py`)",
+        "description": "A detailed, step-by-step implementation guide for `main.py` that synthesizes planned modifications and code structure into a comprehensive coding plan. Must be formatted in Markdown with level-3 headings (###) organizing logical sections, key decision points, and implementation steps. Should provide sufficient detail covering implementation flow, algorithms, data handling, and key logic points for unambiguous developer execution.",
     }
