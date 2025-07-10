@@ -14,6 +14,7 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
     MultiProcessEvolvingStrategy,
 )
 from rdagent.components.coder.CoSTEER.task import CoSTEERTask
+from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
 from rdagent.components.coder.data_science.share.eval import ModelDumpEvaluator
 from rdagent.core.exception import RunnerError
 from rdagent.core.scenario import Scenario
@@ -22,6 +23,17 @@ from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.runner.eval import DSCoSTEERCoSTEEREvaluator
 from rdagent.utils.agent.ret import PythonBatchEditOut
 from rdagent.utils.agent.tpl import T
+
+
+class DSRunnerCoSTEERSettings(DSCoderCoSTEERSettings):
+    """Data Science CoSTEER settings"""
+
+    class Config:
+        env_prefix = "DS_Runner_CoSTEER_"
+
+    max_seconds: int = 3600
+    env_type: str = "docker"
+    # TODO: extract a function for env and conf.
 
 
 class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
@@ -97,12 +109,13 @@ class DSCoSTEERRunner(CoSTEER):
         eva = CoSTEERMultiEvaluator(
             single_evaluator=eval_l, scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
-        es = DSRunnerMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
+        settings = DSRunnerCoSTEERSettings()
+        es = DSRunnerMultiProcessEvolvingStrategy(scen=scen, settings=settings)
 
         # In runner, we don't need very big loops, so we set max_loop to 3
         super().__init__(
             *args,
-            settings=CoSTEER_SETTINGS,
+            settings=settings,
             eva=eva,
             es=es,
             evolving_version=2,
