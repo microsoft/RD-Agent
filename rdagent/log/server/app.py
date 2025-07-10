@@ -10,12 +10,12 @@ import randomname
 import typer
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
+from werkzeug.utils import secure_filename
 
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.storage import WebStorage
 from rdagent.log.utils import is_valid_session
-from werkzeug.utils import secure_filename
 
 app = Flask(__name__, static_folder=UI_SETTING.static_path)
 CORS(app)
