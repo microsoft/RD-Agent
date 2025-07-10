@@ -109,12 +109,13 @@ class DSCoSTEERRunner(CoSTEER):
         eva = CoSTEERMultiEvaluator(
             single_evaluator=eval_l, scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
-        es = DSRunnerMultiProcessEvolvingStrategy(scen=scen, settings=DSRunnerCoSTEERSettings())
+        settings = DSRunnerCoSTEERSettings()
+        es = DSRunnerMultiProcessEvolvingStrategy(scen=scen, settings=settings)
 
         # In runner, we don't need very big loops, so we set max_loop to 3
         super().__init__(
             *args,
-            settings=DSRunnerCoSTEERSettings(),
+            settings=settings,
             eva=eva,
             es=es,
             evolving_version=2,
