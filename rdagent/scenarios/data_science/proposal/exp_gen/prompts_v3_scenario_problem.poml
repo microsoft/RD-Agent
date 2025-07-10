@@ -1,0 +1,56 @@
+<poml>
+  <include src="../../poml_share/role.poml" />
+  <p>The user is improving a Kaggle competition implementation iteratively. Each new iteration (trace) is typically a modification of the current overall State-of-the-Art (SOTA) solution. If a new trace's performance surpasses the current SOTA, it establishes a new SOTA. Otherwise, it is considered a failed experiment.</p>
+  <p>You will be provided with:
+    <list listStyle="decimal">
+      <item>A detailed competition scenario description;</item>
+      <item>A history of previous SOTA experiments and their associated feedbacks, typically indexed or ordered from oldest to newest;</item>
+      <item>A history of previous failed experiments and their associated feedbacks, chronologically ordered, where each failed experiment did not surpass the SOTA that was current at the time of its execution;</item>
+    </list>
+  </p>
+  <p>Your task is to analyze the provided information (primarily the scenario and current SOTA, if available) and identify a concise list of <b>Key Challenges</b> or <b>Core Problems</b> relevant to achieving success in this competition and improving the target metric. Aim for <b>FEWER BUT BETTER</b> challenges (e.g., 2-3 critical challenges), focusing on the most impactful aspects that can be methodically addressed.</p>
+
+  <cp caption="Core Analysis Dimensions for Identifying Challenges" level="2">
+  <list listStyle="decimal">
+    <item><cp className="inline" caption="SOTA Alignment Analysis">(If SOTA is provided) Systematically compare the current SOTA implementation against dataset properties and domain knowledge to identify discrepancies or areas representing core challenges to overcome for enhancement.</cp></item>
+    <item><cp className="inline" caption="Gap Identification">(If successful past solutions or common winning strategies are known/inferred) Examine what implicitly addressed problems or unexploited avenues these successful approaches highlight. These gaps can represent current challenges.</cp></item>
+    <item><cp className="inline" caption="Domain-Implementation Coherence Check">Identify instances where technical approaches might violate domain constraints, oversimplify complex relationships, or miss domain-specific nuances. These incoherencies are challenges.</cp></item>
+    <item><cp className="inline" caption="Scenario-First Focus (No SOTA)">If no SOTA implementation is available, the <b>primary identified challenge</b> should be foundational. It should focus on establishing a <b>simple, robust, and efficient baseline</b> that directly addresses the core task and evaluation metric. Avoid overly complex initial challenges.</cp></item>
+  </list>
+  </cp>
+
+  <cp caption="Key Challenges / Core Problems" level="2">
+  <p>You <b>MUST</b> categorize each identified challenge into one of the following two types. This categorization should be based on the primary driver or nature of the challenge:</p>
+  <list listStyle="decimal">
+    <item><cp className="inline" caption="Dataset-Driven Challenge">Challenges primarily derived from addressing or leveraging inherent structural or statistical properties of the dataset (e.g., mitigating imbalance, managing high dimensionality, specific feature engineering needs for data types like text or time-series, handling missing data, transforming skewed distributions, accounting for collinearity or outliers).</cp></item>
+    <item><cp className="inline" caption="Domain-Informed Challenge">Challenges primarily derived from correctly applying actionable knowledge specific to the competition's domain. This includes the correct interpretation of data patterns based on domain context, domain-specific feature engineering, adhering to known domain constraints, or avoiding invalid assumptions that data analysis alone might not reveal.</cp></item>
+  </list>
+  </cp>
+
+  <cp caption="Specification for each Identified Challenge" level="2">
+  <list listStyle="decimal">
+    <item>The challenge should be specific and fine-grained. Avoid general or vague statements.</item>
+    <item>The challenge should be technical or methodological. Focus on design and implementation strategies that need to be solved, not simple runtime bugs (unless the bug points to a deeper architectural challenge or a persistent efficiency problem).</item>
+    <item>The challenge must be strictly aligned with the improvement of the target metric.</item>
+    <item>If no SOTA is available, at least one identified challenge must guide the creation of the simplest possible, yet potentially competitive, baseline model that can run to completion.</item>
+  </list>
+  </cp>
+
+  <human-msg>
+    <cp caption="Scenario Description">
+    {{ scenario_desc }}
+    </cp>
+    <cp caption="Current SOTA Implementation">
+    {{ sota_exp_desc }}
+    </cp>
+
+  </human-msg>
+
+  <stylesheet>
+  {
+    ".inline": {
+      "captionStyle": "bold"
+    }
+  }
+  </stylesheet>
+</poml>
