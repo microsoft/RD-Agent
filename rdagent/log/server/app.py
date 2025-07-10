@@ -119,9 +119,15 @@ def upload_file():
     for file in files:
         if file:
             p = log_folder_path / scenario / "uploads" / trace_name
-            if not p.exists():
-                p.mkdir(parents=True, exist_ok=True)
-            file.save(p / file.filename)
+            target_path = p / file.filename
+            if not file.filename.lower().endswith(".pdf"):
+                return jsonify({"error": "Invalid file path"}), 400
+            if target_path.is_relative_to(p):
+                if not p.exists():
+                    p.mkdir(parents=True, exist_ok=True)
+                file.save(p / file.filename)
+            else:
+                return jsonify({"error": "Invalid file path"}), 400
 
     if scenario == "Finance Data Building":
         cmds = ["rdagent", "fin_factor"]
