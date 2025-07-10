@@ -716,8 +716,9 @@ class KGDockerConf(DockerConf):
 class DSDockerConf(DockerConf):
     model_config = SettingsConfigDict(env_prefix="DS_DOCKER_")
 
-    build_from_dockerfile: bool = False
-    image: str = "gcr.io/kaggle-gpu-images/python:latest"
+    build_from_dockerfile: bool = True
+    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker" / "DS_docker"
+    image: str = "local_ds:latest"
     mount_path: str = "/kaggle/workspace"
     default_entry: str = "python main.py"
 

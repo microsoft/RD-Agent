@@ -63,12 +63,31 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         if DS_RD_SETTING.sample_data_by_LLM:
             # Because coder runs on full data, we need to run debug mode in advance to save time
             result = implementation.run(
-                env=env, entry=f"strace -e trace=file -f -o trace.log python -m coverage run main.py --debug"
+                
+                env=env, entry=f"strace -e trace=file -f -o trace.log strace -e trace=file -f -o trace.log python -m coverage run main.py --debug"
+            
             )
         else:
             result = implementation.run(
-                env=env, entry=f"strace -e trace=file -f -o trace.log python -m coverage run main.py"
+                
+                env=env, entry=f"strace -e trace=file -f -o trace.log strace -e trace=file -f -o trace.log python -m coverage run main.py"
+            
             )
+
+        sample_submission_check = True
+        test_eval = get_test_eval()
+        if (sample_submission_file_name := test_eval.get_sample_submission_name(self.scen.competition)) is not None:
+            # check whether code ever opens the sample submission file
+            if (implementation.workspace_path / "trace.log").exists():
+                opened_trace_lines = [
+                    line
+                    for line in (implementation.workspace_path / "trace.log").read_text().splitlines()
+                    if "openat" in line and sample_submission_file_name in line
+                ]
+                if len(opened_trace_lines) > 0:
+                    stdout += f"Code opened the sample submission file '{sample_submission_file_name}' during execution.\n Reject the implementation!\n"
+                    sample_submission_check = False
+
         result.stdout = remove_eda_part(result.stdout)
         if result.exit_code != 0:
             stdout += f"Code failed to run. Please check the stdout:\n Following the stdout of the debug mode run:\n{result.stdout.strip()}\n"
@@ -91,7 +110,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                     pattern = r"base_model_workspace/models/[^/]+\.(pt|pth|h5|joblib)"
                     base_model = re.search(pattern, text_to_search)
                     if not base_model:
-                        stdout += "Code did not opened base model from `base_model_workspace` during execution.\n Reject the implementation!\n"
+                        stdout += "Code did not loaded base model from `base_model_workspace` during execution.\n Reject the implementation!\n"
                     else:
                         stdout += f"Loaded base model from {base_model.group(0)}"
 
@@ -131,7 +150,6 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
                 score_ret_code = 1
 
-        test_eval = get_test_eval()
         if not test_eval.is_sub_enabled(self.scen.competition):
             submission_ret_code = 0
         else:
@@ -166,10 +184,15 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             user_prompt=user_prompt,
             init_kwargs_update_func=PipelineSingleFeedback.val_and_update_init_dict,
         )
-        if score_ret_code != 0:
+        if score_ret_code != 0 and wfb.final_decision is True:
             wfb.final_decision = False
             wfb.return_checking += "\n" + score_check_text
-        if submission_ret_code != 0:
+        if submission_ret_code != 0 and wfb.final_decision is True:
             wfb.final_decision = False
             wfb.return_checking += "\nSubmission file check failed."
+        if sample_submission_check is False and wfb.final_decision is True:
+            wfb.final_decision = False
+            wfb.return_checking += (
+                "\nSample submission file check failed. Code should not open the sample submission file."
+            )
         return wfb

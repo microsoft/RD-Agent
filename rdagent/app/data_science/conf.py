@@ -48,9 +48,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     max_trace_hist: int = 3
 
     coder_max_loop: int = 10
-    runner_max_loop: int = 1
+    runner_max_loop: int = 3
 
-    sample_data_by_LLM: bool = False
+    sample_data_by_LLM: bool = True
     use_raw_description: bool = False
     show_nan_columns: bool = False
 

@@ -20,12 +20,11 @@ from rdagent.scenarios.data_science.test_eval import (
 from rdagent.scenarios.kaggle.kaggle_crawler import score_rank
 from rdagent.utils.workflow import LoopBase
 
-test_eval = get_test_eval()
-
-is_mle = isinstance(test_eval, MLETestEval)
-
 
 def save_grade_info(log_trace_path: Path):
+    test_eval = get_test_eval()
+
+    is_mle = isinstance(test_eval, MLETestEval)
     trace_storage = FileStorage(log_trace_path)
     for msg in trace_storage.iter_msg():
         if "competition" in msg.tag:
@@ -74,6 +73,9 @@ def _get_loop_and_fn_after_hours(log_folder: Path, hours: int):
 
 
 def summarize_folder(log_folder: Path, hours: int | None = None):
+    test_eval = get_test_eval()
+
+    is_mle = isinstance(test_eval, MLETestEval)
     """
     Summarize the log folder and save the summary as a pickle file.
     Args:

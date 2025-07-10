@@ -26,9 +26,27 @@ class TestEvalBase:
         """able to eval or not"""
 
     @abstractmethod
+    def get_sample_submission_name(self, competition: str) -> str:
+        """
+        Get the sample submission file name for the given competition.
+
+        This is used to determine the file name for the submission file.
+        """
+        input_dir = Path(f"{DS_RD_SETTING.local_data_path}/{competition}")
+        sample_submission_files = (
+            list(input_dir.glob("*sample_submission*.csv"))
+            + list(input_dir.glob("*sampleSubmission*.csv"))
+            + list(input_dir.glob("*randomPredictions*.tsv"))
+        )
+        if len(sample_submission_files) == 0:
+            return None
+        else:
+            return sample_submission_files[0].name
+
+    @abstractmethod
     def is_sub_enabled(self, competition: str) -> bool:
         """
-        Is subsmiossion file enabled
+        Is submission file enabled
 
         If a file like <sample submission csv> is provided; then we think inference from test data to submission file is enabled.
         According test will be enabled as well.
@@ -38,11 +56,7 @@ class TestEvalBase:
         2. We proivde a sample submission. But we don't proivde strict evaluation.
 
         """
-        input_dir = Path(f"{DS_RD_SETTING.local_data_path}/{competition}")
-        sample_submission_files = list(input_dir.glob("*sample_submission*.csv")) + list(
-            input_dir.glob("*sampleSubmission*.csv")
-        )
-        return len(sample_submission_files) > 0
+        return self.get_sample_submission_name(competition) is not None
 
 
 class TestEval(TestEvalBase):
