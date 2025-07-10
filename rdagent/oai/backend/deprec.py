@@ -417,13 +417,12 @@ class DeprecBackend(APIBackend):
             )
 
             # FIX what if the model does not support response_schema
-            if response_format:
-                if add_json_in_prompt:
-                    for message in messages[::-1]:
-                        message["content"] = message["content"] + "\nPlease respond in json format."
-                        if message["role"] == LLM_SETTINGS.system_prompt_role:
-                            # NOTE: assumption: systemprompt is always the first message
-                            break
+            if response_format == {"type": "json_object"} and add_json_in_prompt:
+                for message in messages[::-1]:
+                    message["content"] = message["content"] + "\nPlease respond in json format."
+                    if message["role"] == LLM_SETTINGS.system_prompt_role:
+                        # NOTE: assumption: systemprompt is always the first message
+                        break
                 call_kwargs["response_format"] = {"type": "json_object"}
             response = self.chat_client.chat.completions.create(**call_kwargs)
 
