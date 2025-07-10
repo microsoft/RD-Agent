@@ -2,7 +2,7 @@ from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.proposal import ExpGen
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace
-from rdagent.scenarios.data_science.proposal.exp_gen.draft.draft import DSDraftExpGenV2
+from rdagent.scenarios.data_science.proposal.exp_gen.draft.draft import DSDraftV2ExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 
 
@@ -14,7 +14,7 @@ class DraftRouterExpGen(ExpGen):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.draft_exp_gen = DSDraftExpGenV2(self.scen)
+        self.draft_exp_gen = DSDraftV2ExpGen(self.scen)
         self.base_exp_gen = DSProposalV2ExpGen(self.scen)
 
     def gen(self, trace: DSTrace) -> DSExperiment:
