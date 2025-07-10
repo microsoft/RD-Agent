@@ -15,6 +15,7 @@ from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.storage import WebStorage
 from rdagent.log.utils import is_valid_session
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__, static_folder=UI_SETTING.static_path)
 CORS(app)
@@ -119,8 +120,9 @@ def upload_file():
     for file in files:
         if file:
             p = (log_folder_path / scenario / "uploads" / trace_name).resolve()
-            target_path = (p / file.filename).resolve()  # Normalize target path
-            if not file.filename.lower().endswith(".pdf"):
+            sanitized_filename = secure_filename(file.filename)  # Sanitize filename
+            target_path = (p / sanitized_filename).resolve()  # Normalize target path
+            if not sanitized_filename.lower().endswith(".pdf"):
                 return jsonify({"error": "Invalid file type"}), 400
             # Ensure target_path is within the allowed base directory
             if os.path.commonpath([str(target_path), str(p)]) == str(p):
