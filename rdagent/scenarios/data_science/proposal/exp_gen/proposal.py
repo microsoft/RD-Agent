@@ -767,7 +767,6 @@ class DSProposalV2ExpGen(ExpGen):
                 task_desc = task_dict.get("description", not_found_str)
         # task_desc: str, a description of the task
 
-
         # 2) create the main task
         logger.info(f"Task design:\n{task_desc}")
         task_name = hypotheses[0].component

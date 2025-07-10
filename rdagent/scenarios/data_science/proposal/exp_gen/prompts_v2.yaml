@@ -352,14 +352,15 @@ task_gen:
     
     {% if task_output_format is not none %}
 
+    # Output Format
+
     {% if not workflow_check %}
 
     {{ task_output_format }}
 
     {% else %}
 
-    # Output Format
-    There might be one or two steps in the task. But you should adhere to the final output format.
+    There are two steps in the task. But you should adhere to the final output format.
 
     ## [Partial Response Format 1]
     ### Step1: **Task Output Format** :
@@ -373,9 +374,10 @@ task_gen:
 
     At last, your final output should strictly adhere to the following JSON format. 
     {
-      "task_design": ---The dict corresponding to **Task Output Format** ---, 
-      "workflow_update": "A string which is a precise and comprehensive description of the **Workflow Update** ."
+      "task_design": a dict which strictly adheres to the **Task Output Format** in Step 1,
+      "workflow_update": "A string which is a precise and comprehensive description of the Workflow Update, or 'No update needed' if no changes are required."
     }
+    {% endif %}
     {% endif %}
     
   user: |-
