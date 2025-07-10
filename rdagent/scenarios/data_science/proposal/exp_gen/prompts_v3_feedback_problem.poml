@@ -1,0 +1,139 @@
+<poml>
+  <include src="../../poml_share/role.poml" />
+  <p>The user is improving a Kaggle competition implementation iteratively through traces. Each new trace is a modification of the State-of-the-Art (SOTA) implementation that was current at the time that trace was initiated. If a new trace's performance surpasses the SOTA it aimed to improve upon, it becomes the new SOTA. If not, it is considered a failed experiment.</p>
+  <p>You will be provided with:
+    <list listStyle="decimal">
+      <item>A detailed competition scenario description;</item>
+      <item>A history of previous SOTA experiments and their associated feedbacks, typically indexed or ordered from oldest to newest;</item>
+      <item>A history of previous failed experiments and their associated feedbacks, chronologically ordered, where each failed experiment did not surpass the SOTA that was current at the time of its execution;</item>
+      <item>The overall current SOTA implementation and its associated feedback, which represents the best-performing experiment from the entire history provided up to this point.</item>
+    </list>
+  </p>
+  <p>Your task is to analyze all this provided historical information and extract <b>Key Learnings and Unresolved Challenges</b> from the experiment history. These should guide concrete improvements in subsequent iterations.</p>
+
+  <cp caption="Key Learnings and Unresolved Challenges" level="2">
+    <cp caption="Definition" level="3">
+      <p>
+        Key Learnings and Unresolved Challenges are specific, fine-grained technical or methodological observations, persistent issues, or patterns identified within previous experiments or the current SOTA implementation.
+        These are primarily derived from explicit feedback, code analysis, or patterns in the trace history, and should highlight problems that need solving or learnings that should inform future hypotheses.
+      </p>
+    </cp>
+    <cp caption="Guidelines for Identification" level="3">
+      <p>Here are guidelines to help you identify these Learnings and Challenges:</p>
+      <list listStyle="decimal">
+        <item>
+          <cp className="inline" caption="Feedback Analysis">
+            <list>
+              <item>
+                <cp className="inline" caption="Explicit Issues/Suggestions as Challenges">
+                  Extract critical issues, errors (especially those pointing to deeper problems like resource limits or incorrect submission formats if not easily fixed), or direct suggestions from feedback that represent unresolved problems.
+                </cp>
+              </item>
+              <item>
+                <cp className="inline" caption="Implicit Gaps as Challenges">
+                  Infer unaddressed points, shortcomings, or areas for improvement implied by feedback that constitute ongoing challenges.
+                </cp>
+              </item>
+              <item>
+                <cp className="inline" caption="Time/Memory Constraints as Critical Challenges">
+                  If previous experiments indicate failures due to time/memory limitations, or inefficient resource usage, this <b>MUST</b> be listed as a critical challenge. This includes identifying if the current SOTA or failed experiments are too complex for the given time limits.
+                </cp>
+              </item>
+            </list>
+          </cp>
+        </item>
+        <item>
+          <cp className="inline" caption="Implementation Review (of SOTA or relevant past experiments)">
+            <list>
+              <item>
+                <cp className="inline" caption="Suboptimal Design as Challenges">
+                  Identify potentially suboptimal feature selection, model architecture, hyperparameters, ensemble strategy, training/validation processes that appear as recurring problems or limit performance, framing them as challenges to be addressed.
+                </cp>
+              </item>
+              <item>
+                <cp className="inline" caption="Common Implementation Issues">
+                  Note the coding issues that are blocking for receiving a reasonable result. For example, the submission format was repeatedly incorrect despite attempts to fix it, this is an unresolved challenge related to the implementation.
+                </cp>
+              </item>
+            </list>
+          </cp>
+        </item>
+        <item>
+          <cp className="inline" caption="Trace History Analysis (Trends & Patterns as Challenges)">
+            <list>
+              <item>
+                <cp className="inline" caption="Persistent Issues/Errors as Challenges">
+                  Flag unresolved negative patterns, errors (e.g., recurrent <code>zipfile.BadZipFile</code>, CUDA label errors, submission format mismatches if they persist after attempts to fix), or suboptimal outcomes that recur across multiple experiment traces. These represent core unresolved challenges.
+                </cp>
+              </item>
+              <item>
+                <cp className="inline" caption="Ineffective/Partial Fixes">
+                  Highlight if previous changes intended to solve a problem were only partially successful or ineffective, meaning the core challenge remains.
+                </cp>
+              </item>
+              <item>
+                <cp className="inline" caption="Unexplored Promising Directions">
+                  Identify potentially valuable approaches (e.g., alternative feature sets, different model families, advanced optimization techniques) that were hinted at by feedback, briefly tried without full exploration, or represent logical next steps given the trajectory of past experiments.
+                </cp>
+              </item>
+              <item>
+                <cp className="inline" caption="Constraint Violations/Inefficiencies as Challenges">
+                  Explicitly note any unaddressed time or memory constraint violations or significant computational inefficiencies as critical challenges that need strategic solutions.
+                </cp>
+              </item>
+            </list>
+          </cp>
+        </item>
+      </list>
+    </cp>
+    <cp caption="Specification for each Learning/Challenge" level="3">
+      <list listStyle="decimal">
+        <item>
+          <cp className="inline" caption="Specific, Actionable, and Evidence-based">
+            The Learning/Challenge must be specific, actionable, and evidence-based (tied to feedback, code, or trace history).
+          </cp>
+        </item>
+        <item>
+          <cp className="inline" caption="Technical or Methodological Focus">
+            It should focus on technical or methodological problems that need solving.
+          </cp>
+        </item>
+        <item>
+          <cp className="inline" caption="Clear Articulation">
+            Clearly state the learning or articulate the challenge.
+          </cp>
+        </item>
+        <item>
+          <cp className="inline" caption="Positive Impact Requirement">
+            Addressing the challenge or applying the learning should have a plausible positive impact on the target metric or successful execution.
+          </cp>
+        </item>
+        <item>
+          <cp className="inline" caption="Alignment with Target Metric">
+            The challenge must be strictly aligned with the improvement of the target metric.
+          </cp>
+        </item>
+      </list>
+    </cp>
+  </cp>
+
+  <human-msg>
+    <cp caption="Scenario Description">
+    {{ scenario_desc }}
+    </cp>
+    <cp caption="Previous Experiments and Feedbacks">
+    {{ exp_and_feedback_list_desc }}
+    </cp>
+    <cp caption="Current SOTA Implementation">
+    {{ sota_exp_desc }}
+    </cp>
+  </human-msg>
+
+  <stylesheet>
+  {
+    ".inline": {
+      "captionStyle": "bold"
+    }
+  }
+  </stylesheet>
+</poml>
