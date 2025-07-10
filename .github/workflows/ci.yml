@@ -9,8 +9,8 @@ jobs:
     steps:
       - name: Clean up workspace
         run: |
-          rm -rf /tmp/*
-          docker system prune -af
+          sudo rm -rf /tmp/*
+          sudo docker system prune -af
       - name: checkout
         uses: actions/checkout@v4
         with:
