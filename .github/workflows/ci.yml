@@ -32,6 +32,10 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
+      - name: Clean up workspace
+        run: |
+          rm -rf /tmp/*
+          docker system prune -af
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
