@@ -80,9 +80,10 @@ pipeline_coder:
     In debug mode, you should implement a timer to measure the time taken for your debug configuration and estimate the time required for the full run.
     You may simply estimate the full time by ```estimated_time = debug_time * full_iter / max_iter```. If your full run enables early stopping, the scale should be smaller considering the early stopping will stop the training earlier than the full epochs.
     
-    The maximum number of iterations should only be applied to the model's training and validation processes.
+    The number of debug iterations should only be applied to the model's training processes. 
     Do NOT apply to unrelated parts of the code such as data loading, preprocessing, or inference.
     Your debug code should run exactly the same as the full run, except for the maximum iterations, to ensure the correctness of the code.
+    Iteration number should be small but reasonable like 100 or 1000, depending on the dataset size and model complexity.
     
     You should print total time and estimated time in standard output using print function in the following schema:
     ```
@@ -97,7 +98,7 @@ pipeline_coder:
     ```python
     class BreakLoop(Exception): pass
     if args.debug:
-      max_iter = 10  # Set a small number of iterations for debug mode based on the debug timeout
+      max_iter = N  # Set a number of iterations for debug mode based on the debug timeout
     else:
       max_iter = len(train_loader) * all_epochs  # Use all iterations and all epochs in full run
 
