@@ -22,6 +22,7 @@ dump_model_eval:
     - Check if the code saves the test data in the "models/" subfolder when there is no test data specified.
     - Ensure that when the code is rerun, it skips the training process and loads the model from the "models/" subfolder for direct inference.
       - Verify that there is no training activity in the output.
+      - Assuming the file names and paths are fixed and will not change.
     - Ensure that even if you skip the model training by loading saved models, the files like scores.csv and submission.csv are still correctly created.
     - The model's performance should remain consistent and not vary unreasonably between training and inference.
 

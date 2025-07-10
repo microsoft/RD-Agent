@@ -50,13 +50,12 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> DSCoSTEEREvalFeedback:
-
+        input_path = T("scenarios.data_science.share:scen.input_path").r()
+        extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": input_path}
+        if DS_RD_SETTING.previous_workspace_path:
+            extra_volumes[DS_RD_SETTING.previous_workspace_path] = input_folder + "/base_model_workspace/"
         env = get_ds_env(
-            extra_volumes={
-                f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": T(
-                    "scenarios.data_science.share:scen.input_path"
-                ).r()
-            },
+            extra_volumes=extra_volumes,
             running_timeout_period=DS_RD_SETTING.full_timeout,
         )
 

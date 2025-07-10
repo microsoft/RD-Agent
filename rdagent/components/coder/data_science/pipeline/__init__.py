@@ -88,6 +88,7 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             runtime_environment=runtime_environment,
             enable_model_dump=DS_RD_SETTING.enable_model_dump,
             enable_debug_mode=DS_RD_SETTING.sample_data_by_LLM,
+            previous_workspace_path=DS_RD_SETTING.previous_workspace_path,
         )
         user_prompt = T(".prompts:pipeline_coder.user").r(
             competition_info=competition_info,

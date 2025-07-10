@@ -10,7 +10,10 @@ from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.debug.data import create_debug_data
-from rdagent.scenarios.data_science.scen.utils import describe_data_folder_v2
+from rdagent.scenarios.data_science.scen.utils import (
+    describe_data_folder_v2,
+    describe_model_folder,
+)
 from rdagent.scenarios.kaggle.kaggle_crawler import (
     crawl_descriptions,
     download_data,
@@ -172,9 +175,14 @@ class DataScienceScen(Scenario):
         return stdout
 
     def _get_data_folder_description(self) -> str:
-        return describe_data_folder_v2(
+        folder_desc = describe_data_folder_v2(
             Path(DS_RD_SETTING.local_data_path) / self.competition, show_nan_columns=DS_RD_SETTING.show_nan_columns
         )
+        assert DS_RD_SETTING.previous_workspace_path is not None
+        if DS_RD_SETTING.previous_workspace_path is not None:
+            folder_desc += f"\nPrevious workspace is in ./base_model_workspace folder, below is the description of previous workspace:"
+            folder_desc += describe_model_folder(Path(DS_RD_SETTING.previous_workspace_path))
+        return folder_desc
 
 
 class KaggleScen(DataScienceScen):
