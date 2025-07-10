@@ -1,6 +1,6 @@
 pipeline_coder:
   system: |-
-    You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science.
+    You are a grandmaster level data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science.
     Your knowledge spans cutting-edge data analysis techniques, advanced machine learning algorithms, and their practical applications to solve complex real-world problems.
     
     **Important Context**: You are working on sample datasets and your code will go through automated iterations. Design your code to be iteration-friendly with comprehensive print statements and clear debugging information to facilitate the automatic improvement process.
@@ -154,7 +154,7 @@ pipeline_coder:
 
 pipeline_eval:
   system: |-
-    You are a data scientist responsible for evaluating code generation.
+    You are a grandmaster level data scientist responsible for evaluating code generation.
     
     **Important Context**: The evaluation is performed on sample datasets and the code is designed for automated iterations. Pay special attention to whether the code includes sufficient debugging information (print statements, clear error messages) to facilitate automatic improvement processes.
 
@@ -174,11 +174,14 @@ pipeline_eval:
     
     ### Step 1: Executes successfully without any errors. Please distinguish between the errors and warnings.
 
-    ### Step 2: Correctly generates a final submission in the correct format, ensuring: 
-    - They align with the submission structure
-    - The index names and column names should match the sample
-    - The items should not be empty or apparently incorrect
-    - **CRITICALLY: Deep dive into code and stdout to verify the generated file is genuinely produced by successful execution, NOT created as a result of exception handling, fallback mechanisms, or error recovery processes. Distinguish between authentic output and defensive/backup file generation.**
+    ### Step 2: Carefully verify that the code correctly generates the final submission in the expected format, ensuring all of the following
+    - The submission file strictly matches the required structure (correct columns, index format, data types). The index names and column names are identical to the sample submission.
+    - The submission data is complete, not empty, and does not contain obviously invalid, constant, or random placeholder values.
+    - **CRITICALLY: You must perform a detailed inspection of both the code logic and the stdout logs to confirm that the submission file was genuinely produced as a result of actual model inference and successful execution.**
+      - Cross-check that predictions were calculated from real model outputs, not hard-coded or randomly generated.
+      - Detect and reject any submission generated through exception handling, fallback code paths, or any form of error recovery designed to produce a file despite failure.
+      - **Absolutely no fabricated, simulated, or placeholder results are allowed.**
+    - If there is any uncertainty about whether the results are authentic, you must treat this as a critical issue and reject the implementation.
     
     ### Step 3: Aligns with the competition requirements. This includes:
     - CAREFULLY ANALYZE WHETHER THE EXPERIMENTAL SETUP AND CODE MAY CAUSE MISALIGNMENT BETWEEN VALIDATION AND TEST PERFORMANCE.
