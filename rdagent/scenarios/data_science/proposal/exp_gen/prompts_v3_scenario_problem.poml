@@ -38,12 +38,11 @@
 
   <human-msg>
     <cp caption="Scenario Description">
-    {{ scenario_desc }}
+      <text whiteSpace="trim">{{ scenario_desc }}</text>
     </cp>
     <cp caption="Current SOTA Implementation">
-    {{ sota_exp_desc }}
+      <text whiteSpace="pre">{{ sota_exp_desc }}</text>
     </cp>
-
   </human-msg>
 
   <stylesheet>

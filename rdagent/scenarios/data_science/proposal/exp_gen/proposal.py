@@ -1,9 +1,11 @@
 import json
 import pprint
 from enum import Enum
+from pathlib import Path
 from typing import List, Dict, Tuple
 
 import pandas as pd
+import poml
 from pydantic import BaseModel, Field
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -783,14 +785,16 @@ class DSProposalV2ExpGen(ExpGen):
 
 class DSProposalV3ExpGen(DSProposalV2ExpGen):
     def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
-        sys_prompt = T(".prompts_v3:scenario_problem.system").r()
-        user_prompt = T(".prompts_v3:scenario_problem.user").r(
-            scenario_desc=scenario_desc,
-            sota_exp_desc=sota_exp_desc,
-        )
+        poml.set_trace(tempdir="log/prompts")
+        prompt_path = Path(__file__).parent / "prompts_v3_scenario_problem.poml"
+        prompt = poml.poml(prompt_path, context={
+            "scenario_desc": scenario_desc,
+            "sota_exp_desc": sota_exp_desc,
+        })
+        print(prompt)
         response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt,
-            system_prompt=sys_prompt,
+            user_prompt=prompt[1]['content'],
+            system_prompt=prompt[0]['content'],
             response_format=ScenarioChallenges
             # json_mode=True,
             # json_target_type=Dict[str, Dict[str, str]],
