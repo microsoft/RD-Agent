@@ -118,8 +118,7 @@ def upload_file():
     # save files
     for file in files:
         if file:
-            p = log_folder_path / scenario / "uploads" / trace_name
-            p = p.resolve()  # Normalize base path
+            p = (log_folder_path / scenario / "uploads" / trace_name).resolve()
             target_path = (p / file.filename).resolve()  # Normalize target path
             if not file.filename.lower().endswith(".pdf"):
                 return jsonify({"error": "Invalid file path"}), 400
