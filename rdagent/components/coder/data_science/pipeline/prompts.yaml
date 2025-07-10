@@ -98,6 +98,32 @@ pipeline_coder:
     You should be very careful about the label classes number in the debug mode. The label classes should be the same as the full run even when you are in the debug mode. The label classes number is often used to build the model.
     {% endif %}
 
+    {% if enable_max_iter %}
+    Your code will be executed in a debug mode with following command: 
+    ```bash
+    python main.py --debug
+    ```
+    In debug mode, the timeout for your code is {{ debug_timeout }} seconds. You should set a reasonable maximum number of iterations to test the correctness of your whole pipeline.
+    In debug mode, you should implement a timer to measure the time taken for your debug configuration and estimate the time required for the full run by simply ```debug_time / max_iter * full_iter```.
+    Your debug code should run exactly the same as the full run, except for the maximum number of iteration, to ensure the correctness of the code.
+
+    The maximum number of iterations (`max_iter`) should be strictly applied only to the model's training and validation processes, such as:
+    - Training loops (e.g., epochs, batch iterations)
+    - Validation loops
+    - Optimization steps
+    Do NOT apply `max_iter` to unrelated parts of the code (e.g., data loading, preprocessing, or inference).
+
+    You should print total time and estimated time in standard output using print function in the following schema:
+    ```
+    === Start of Debug Information ===
+    debug_time: time_taken_for_debug_run_in_seconds (e.g., 'debug_time: 10.0')
+    estimated_time: estimated_time_for_full_run_in_seconds (e.g., 'estimated_time: 100.0')
+    === End of Debug Information ===
+    ```
+    User will use the following code to match: re.search(r"(.*?)=== Start of Debug Information ===(.*)=== End of Debug Information ===", stdout, re.DOTALL).groups()[1]
+    
+    {% endif %}
+
     ## Output Format
     {% if out_spec %}
     {{ out_spec }}
