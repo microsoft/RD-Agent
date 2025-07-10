@@ -121,8 +121,9 @@ def upload_file():
             p = (log_folder_path / scenario / "uploads" / trace_name).resolve()
             target_path = (p / file.filename).resolve()  # Normalize target path
             if not file.filename.lower().endswith(".pdf"):
-                return jsonify({"error": "Invalid file path"}), 400
-            if str(target_path).startswith(str(p)):  # Validate normalized paths
+                return jsonify({"error": "Invalid file type"}), 400
+            # Ensure target_path is within the allowed base directory
+            if os.path.commonpath([str(target_path), str(p)]) == str(p):
                 if not p.exists():
                     p.mkdir(parents=True, exist_ok=True)
                 file.save(target_path)
