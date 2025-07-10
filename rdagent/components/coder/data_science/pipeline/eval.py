@@ -137,8 +137,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             task_desc=target_task.get_task_information(),
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
-            debug_mode=DS_RD_SETTING.sample_data_by_LLM,
-            enable_max_iter=DS_RD_SETTING.enable_max_iter,
+            debug_mode=DS_RD_SETTING.coder_debug_mode,
         )
         user_prompt = T(".prompts:pipeline_eval.user").r(
             stdout=stdout.strip(),

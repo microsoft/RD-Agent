@@ -87,8 +87,7 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             out_spec=PythonAgentOut.get_spec(),
             runtime_environment=runtime_environment,
             enable_model_dump=DS_RD_SETTING.enable_model_dump,
-            enable_debug_mode=DS_RD_SETTING.sample_data_by_LLM,
-            enable_max_iter=DS_RD_SETTING.enable_max_iter,
+            enable_debug_mode=DS_RD_SETTING.coder_debug_mode,
             debug_timeout=DS_RD_SETTING.debug_timeout,
         )
         user_prompt = T(".prompts:pipeline_coder.user").r(
