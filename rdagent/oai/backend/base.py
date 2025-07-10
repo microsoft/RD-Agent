@@ -559,7 +559,7 @@ class APIBackend(ABC):
         # Loop to get a full response
         try_n = 6
         for _ in range(try_n):  # for some long code, 3 times may not enough for reasoning models
-            if response_format and add_json_in_prompt:
+            if response_format == {"type": "json_object"} and add_json_in_prompt:
                 self._add_json_in_prompt(new_messages)
             response, finish_reason = self._create_chat_completion_inner_function(
                 messages=new_messages,
@@ -579,7 +579,7 @@ class APIBackend(ABC):
             _, all_response = match.groups() if match else ("", all_response)
 
         # 3) format checking
-        if response_format or json_target_type:
+        if response_format == {"type": "json_object"} or json_target_type:
             parser = JSONParser()
             all_response = parser.parse(all_response)
             if json_target_type:
