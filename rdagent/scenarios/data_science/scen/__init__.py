@@ -178,7 +178,6 @@ class DataScienceScen(Scenario):
         folder_desc = describe_data_folder_v2(
             Path(DS_RD_SETTING.local_data_path) / self.competition, show_nan_columns=DS_RD_SETTING.show_nan_columns
         )
-        assert DS_RD_SETTING.previous_workspace_path is not None
         if DS_RD_SETTING.previous_workspace_path is not None:
             folder_desc += f"\nPrevious workspace is in ./base_model_workspace folder, below is the description of previous workspace:"
             folder_desc += describe_model_folder(Path(DS_RD_SETTING.previous_workspace_path))

@@ -634,7 +634,7 @@ class DataFolderDescriptor:
                 file_name = str(fn)
 
             try:
-                if fn.suffix == ".py" and not "test" in file_name:
+                if fn.suffix == ".py" and "test" not in file_name:
                     out.append(f"### {file_name}:")
                     out.append(fn.read_text(encoding="utf-8"))
             except Exception as e:
