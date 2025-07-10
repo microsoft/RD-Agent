@@ -349,21 +349,25 @@ task_gen:
     If you are confident in a specific value based on strong evidence, prior experiments, or clear rationale, specify the value clearly.
     {% include "scenarios.data_science.share:spec.hyperparameter" %}
 
+    
     {% if task_output_format is not none %}
+    # Output Format
+    There might be one or two steps in the task. But you should adhere to the final output format.
+
     ## [Partial Response Format 1] Task Output Format:
     {{ task_output_format }}
 
     {% if workflow_check %}
-    # Step 2: Workflow Update
+    ## Step 2: Workflow Update
     Since components have dependencies, your second task is to update the workflow to reflect the changes made to the target component. Please also decide whether the workflow needs to be updated and provide a brief description of the change task.
     {{ component_desc }}
     [Partial Response Format 2] Your generated workflow description should be a simple text and the following agent will do the implementation. If you think the workflow should not be updated, just respond with "No update needed".
     {% endif %}
 
-    Your final output should strictly adhere to the following JSON format. 
+    ## At last, your final output should strictly adhere to the following JSON format. 
     {
-      "task_design": ---The dict corresponding to task output format---,
-      {% if workflow_check %}"workflow_update": ---A string corresponding to workflow description--- {% endif %}
+      "task_design": "A detailed, step-by-step implementation guide for `main.py` that synthesizes planned modifications and code structure into a comprehensive coding plan. Must be formatted in Markdown with level-3 headings (###) organizing logical sections, key decision points, and implementation steps. Should provide sufficient detail covering implementation flow, algorithms, data handling, and key logic points for unambiguous developer execution.",
+      {% if workflow_check %}"workflow_update": "A string which is a precise and comprehensive description of the workflow update.", {% endif %}
     }
     {% endif %}
     
@@ -481,5 +485,6 @@ output_format:
       "problem name 1 (should be exactly same as the problem name provided)": 1, # The index which is same to the idea index provided in the input and must be integer.
       "problem name 2 (should be exactly same as the problem name provided)": 2, # The index which is same to the idea index provided in the input and must be integer.
     }
+
 
 

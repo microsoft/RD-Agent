@@ -731,7 +731,6 @@ class DSProposalV2ExpGen(ExpGen):
         data_folder_info = self.scen.processed_data_folder_description
         sys_prompt = T(".prompts_v2:task_gen.system").r(
             task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
-            # task_output_format=component_info["task_output_format"],
             component_desc=component_desc,
             workflow_check=not pipeline and hypotheses[0].component != "Workflow",
         )
@@ -743,12 +742,14 @@ class DSProposalV2ExpGen(ExpGen):
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
             eda_improvement=fb_to_sota_exp.eda_improvement if fb_to_sota_exp else None,
         )
+
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
             response_format=CodingSketch if self.supports_response_schema else {"type": "json_object"},
             json_target_type=Dict[str, str | Dict[str, str]] if not self.supports_response_schema else None,
         )
+
         task_dict = json.loads(response)
         task_design = (
             task_dict.get("task_design", {}) if not self.supports_response_schema else task_dict.get("sketch", {})
