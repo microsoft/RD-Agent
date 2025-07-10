@@ -125,7 +125,7 @@ def upload_file():
             if not sanitized_filename.lower().endswith(".pdf"):
                 return jsonify({"error": "Invalid file type"}), 400
             # Ensure target_path is within the allowed base directory
-            if os.path.commonpath([str(target_path), str(p)]) == str(p):
+            if os.path.commonpath([str(target_path), str(p)]) == str(p) and target_path.is_file() == False:
                 if not p.exists():
                     p.mkdir(parents=True, exist_ok=True)
                 file.save(target_path)
