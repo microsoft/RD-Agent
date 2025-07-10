@@ -34,14 +34,6 @@ export KAGGLE_KEY=
 
 1. save your submission file in `./sumission.csv`
 
-2. link the data to the target path
-```bash
+2. Run evaluation
 DS_COMPETITION=<your competition name>
-mkdir -p /tmp/kaggle/zip_files/$DS_COMPETITION 
-tar -xf /data/Blob_EastUS/tar_files/zip_files/$DS_COMPETITION.tar -C /tmp/kaggle/zip_files/$DS_COMPETITION
-```
-
-3. Run evaluation
-```bash
-mlebench grade-sample submission.csv $DS_COMPETITION --data-dir /tmp/kaggle/zip_files/
-```
+conda run -n mlebench  mlebench grade-sample submission.csv $DS_COMPETITION --data-dir /tmp/kaggle/zip_files/
