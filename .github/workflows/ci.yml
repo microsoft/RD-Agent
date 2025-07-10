@@ -7,10 +7,6 @@ jobs:
     needs: dependabot
     runs-on: ubuntu-latest
     steps:
-      - name: Clean up workspace
-        run: |
-          sudo rm -rf /tmp/*
-          sudo docker system prune -af
       - name: checkout
         uses: actions/checkout@v4
         with:
