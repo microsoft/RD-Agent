@@ -219,8 +219,14 @@ pipeline_eval:
     - If no issues are found, begin your `code` with `[Code analysis]`, providing a detailed analysis of the code quality, readability, and adherence to specifications.
 
     {% if debug_mode %}
-    Step 5: The code is executed in a debug mode with the command `python main.py --debug`. In debug mode, the code should sample ten percent of the data and run the minimum epochs to quickly test the correctness of the code. You should check whether the code follows this requirements. If not, you should emphasize it in your feedback and reject this implementation.
+    Step 4: The code is executed in a debug mode with the command `python main.py --debug`. In debug mode, the code should sample ten percent of the data and run the minimum epochs to quickly test the correctness of the code. You should check whether the code follows this requirements. If not, you should emphasize it in your feedback and reject this implementation.
     You will also be given the execution time and estimated time for the full run. You should check whether the estimated time is too large to finish in the given time limit. You should also consider the early stopping mechanism in the code. The estimated time could be very large but the early stopping mechanism could stop the training earlier than the full epochs. You should also check whether the debug time is reasonable and the estimated time is reasonable based on the debug time.
+    {% endif %}
+  
+    {% if enable_max_iter %}
+    Step 4: The code is executed in a debug mode with the command `python main.py --debug`. In debug mode, the code should set a reduced maximum number of iterations (`max_iter`) to quickly test the correctness of the code. You should check whether the code follows this requirement. If not, you should emphasize it in your feedback and reject this implementation.
+    You will also be given the execution time and estimated time for the full run. You should check whether the estimated time is too large to finish in the given time limit. You should also consider the early stopping mechanism in the code. The estimated time could be very large but the early stopping mechanism could stop the training earlier than the full iterations. You should also check whether the debug time is reasonable and the estimated time is reasonable based on the debug time.
+    The code should ensure that `max_iter` is strictly applied only to the model's training and validation processes, not to unrelated parts such as data loading or inference.
     {% endif %}
 
     ## Evaluation Criteria

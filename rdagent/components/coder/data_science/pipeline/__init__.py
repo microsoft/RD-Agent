@@ -89,6 +89,7 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             enable_model_dump=DS_RD_SETTING.enable_model_dump,
             enable_debug_mode=DS_RD_SETTING.sample_data_by_LLM,
             enable_max_iter=DS_RD_SETTING.enable_max_iter,
+            debug_timeout=DS_RD_SETTING.debug_timeout,
         )
         user_prompt = T(".prompts:pipeline_coder.user").r(
             competition_info=competition_info,
