@@ -36,13 +36,14 @@ except ImportError:
 class JSONParser:
     """JSON parser supporting multiple strategies"""
 
-    def __init__(self) -> None:
+    def __init__(self, add_json_in_prompt: bool = False) -> None:
         self.strategies: List[Callable[[str], str]] = [
             self._direct_parse,
             self._extract_from_code_block,
             self._fix_python_syntax,
             self._extract_with_fix_combined,
         ]
+        self.add_json_in_prompt = add_json_in_prompt
 
     def parse(self, content: str) -> str:
         """Parse JSON content, automatically trying multiple strategies"""
@@ -55,7 +56,16 @@ class JSONParser:
                 continue
 
         # All strategies failed
-        raise json.JSONDecodeError("Failed to parse JSON after all attempts", original_content, 0)
+        if not self.add_json_in_prompt:
+            error = json.JSONDecodeError(
+                "Failed to parse JSON after all attempts, maybe because 'messages' must contain the word 'json' in some form",
+                original_content,
+                0,
+            )
+            error.message = "Failed to parse JSON after all attempts, maybe because 'messages' must contain the word 'json' in some form"  # type: ignore[attr-defined]
+            raise error
+        else:
+            raise json.JSONDecodeError("Failed to parse JSON after all attempts", original_content, 0)
 
     def _direct_parse(self, content: str) -> str:
         """Strategy 1: Direct parsing (including handling extra data)"""
@@ -580,7 +590,7 @@ class APIBackend(ABC):
 
         # 3) format checking
         if response_format == {"type": "json_object"} or json_target_type:
-            parser = JSONParser()
+            parser = JSONParser(add_json_in_prompt=add_json_in_prompt)
             all_response = parser.parse(all_response)
             if json_target_type:
                 # deepseek will enter this branch
