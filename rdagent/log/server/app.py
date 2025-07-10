@@ -119,13 +119,13 @@ def upload_file():
     for file in files:
         if file:
             p = log_folder_path / scenario / "uploads" / trace_name
-            target_path = p / file.filename
+            target_path = (p / file.filename).resolve()
             if not file.filename.lower().endswith(".pdf"):
                 return jsonify({"error": "Invalid file path"}), 400
-            if target_path.is_relative_to(p):
+            if str(target_path).startswith(str(p.resolve())):
                 if not p.exists():
                     p.mkdir(parents=True, exist_ok=True)
-                file.save(p / file.filename)
+                file.save(target_path)
             else:
                 return jsonify({"error": "Invalid file path"}), 400
 
