@@ -104,9 +104,9 @@ pipeline_coder:
     iterations_count = 0
     try:
       for epoch in range(max_epochs):  
-        for i, (data, target) in enumerate(train_loader):
+        for data, target in train_loader:
           # Your training code here
-          if args.debug and i >= max_iter:
+          if args.debug and iterations_count >= max_iter:
             raise BreakLoop  # Use a custom exception to break the loop in debug mode
           iterations_count += 1
     except BreakLoop:
