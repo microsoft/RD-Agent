@@ -7,6 +7,10 @@ jobs:
     needs: dependabot
     runs-on: ubuntu-latest
     steps:
+      - name: Clean up workspace
+        run: |
+          rm -rf /tmp/*
+          docker system prune -af
       - name: checkout
         uses: actions/checkout@v4
         with:
@@ -32,10 +36,6 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - name: Clean up workspace
-        run: |
-          rm -rf /tmp/*
-          docker system prune -af
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
