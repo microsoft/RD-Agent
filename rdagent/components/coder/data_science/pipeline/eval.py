@@ -57,17 +57,17 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
         stdout = ""
         implementation.execute(env=env, entry=get_clear_ws_cmd())
-        if DS_RD_SETTING.sample_data_by_LLM:
+        if DS_RD_SETTING.use_sample_data:
+            result = implementation.run(env=env, entry=f"python -m coverage run main.py")
+        else:
             # Because coder runs on full data, we need to run debug mode in advance to save time
             result = implementation.run(env=env, entry=f"python -m coverage run main.py --debug")
-        else:
-            result = implementation.run(env=env, entry=f"python -m coverage run main.py")
         result.stdout = remove_eda_part(result.stdout)
         if result.exit_code != 0:
             stdout += f"Code failed to run. Please check the stdout:\n Following the stdout of the debug mode run:\n{result.stdout.strip()}\n"
         else:
             stdout += f"Code ran successfully.\n Following the stdout of the debug mode run:\n{result.stdout.strip()}\n"
-        if DS_RD_SETTING.sample_data_by_LLM:
+        if not DS_RD_SETTING.use_sample_data:
             debug_time, full_estimated_time = None, None
             if match := re.search(r"debug_time:\s*(\d+(?:.\d+)?)", result.stdout, re.DOTALL):
                 debug_time = float(match.group(1))
@@ -137,7 +137,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             task_desc=target_task.get_task_information(),
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
-            debug_mode=DS_RD_SETTING.coder_debug_mode,
+            debug_mode=not DS_RD_SETTING.use_sample_data,
         )
         user_prompt = T(".prompts:pipeline_eval.user").r(
             stdout=stdout.strip(),

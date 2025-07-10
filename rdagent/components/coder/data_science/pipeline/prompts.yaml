@@ -92,17 +92,23 @@ pipeline_coder:
     === End of Debug Information ===
     ```
     User will use the following code to match: re.search(r"(.*?)=== Start of Debug Information ===(.*)=== End of Debug Information ===", stdout, re.DOTALL).groups()[1]
-    Notice, maximum number of iterations should only be applied in debug mode. Always use the full data in the full run!
+    Notice, maximum number of iterations should only be applied in debug mode. 
     Example code:
     ```python
     if args.debug:
       max_iter = 10  # Set a small number of iterations for debug mode based on the debug timeout
+    else:
+      max_iter = len(train_loader) * all_epochs  # Use all iterations and all epochs in full run
 
-    for i, (data, target) in enumerate(train_loader):
-      # Your training code here
-      if i >= max_iter:
-        break
+    iterations_count = 0
+    for epoch in range(max_epochs):
+      for i, (data, target) in enumerate(train_loader):
+        # Your training code here
+        if args.debug and i >= max_iter:
+          break
+        iterations_count += 1
     ```
+    For those packages that are cannot fit to track iterations, you can train the model for a small number of epochs in debug mode, such as 1 epoch, to ensure the correctness of the code.
     {% endif %}
 
     ## Output Format
