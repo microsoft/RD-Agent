@@ -11,6 +11,7 @@ from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 
 def main(
     path: str | None = None,
+    workspace: str | None = None,
     checkout: bool | str | Path = True,
     step_n: int | None = None,
     loop_n: int | None = None,
@@ -25,6 +26,8 @@ def main(
     ----------
     path :
         A path like `$LOG_PATH/__session__/1/0_propose`. This indicates that we restore the state after finishing step 0 in loop 1.
+    workspace:
+        A path like `$WORKSPACE_PATH`. This indicates that we restore the state from the workspace.
     checkout :
         Used only when a path is provided.
         Can be True, False, or a path.
@@ -57,6 +60,15 @@ def main(
 
     if not DS_RD_SETTING.competition:
         logger.error("Please specify competition name.")
+
+    if workspace is not None:
+        DS_RD_SETTING.previous_workspace_path = str(Path(workspace).absolute())
+        DS_RD_SETTING.previous_workspace_path = workspace
+        DS_RD_SETTING.enable_model_dump = True
+        DS_RD_SETTING.sample_data_by_LLM = True
+        DS_RD_SETTING.coder_on_whole_pipeline = True
+        DS_RD_SETTING.coder_on_whole_pipeline = True
+        DS_CODER_COSTEER_ENV_TYPE = "conda"
 
     if path is None:
         kaggle_loop = DataScienceRDLoop(DS_RD_SETTING)

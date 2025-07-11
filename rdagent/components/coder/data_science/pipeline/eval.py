@@ -52,8 +52,10 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 code="This task has failed too many times, skip implementation.",
                 final_decision=False,
             )
-
-        env = get_ds_env(extra_volumes={self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()})
+        extra_volumes = {self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()}
+        if DS_RD_SETTING.previous_workspace_path:
+            extra_volumes[DS_RD_SETTING.previous_workspace_path] = "./base_model_workspace/"
+        env = get_ds_env(extra_volumes=extra_volumes)
 
         stdout = ""
         implementation.execute(env=env, entry=get_clear_ws_cmd())
@@ -96,6 +98,16 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 stdout += f"Debug mode ran in {debug_time:.2f} seconds, estimated full run time is {full_estimated_time:.2f} seconds. The estimated time is {full_estimated_time / env.conf.running_timeout_period * 100:.2f}% the debug time."
             else:
                 stdout += "Debug mode did not provide debug_time or estimated_time, it's a buggy implementation.\n"
+            if DS_RD_SETTING.previous_workspace_path:
+                trace_fp = implementation.workspace_path / "trace.log"
+                if trace_fp.exists():
+                    text_to_search = trace_fp.read_text(encoding="utf-8")
+                    pattern = r"base_model_workspace/models/[^/]+\.(pt|pth|h5|joblib)"
+                    base_model = re.search(pattern, text_to_search)
+                    if not base_model:
+                        stdout += "Code did not loaded base model from `base_model_workspace` during execution.\n Reject the implementation!\n"
+                    else:
+                        stdout += f"Loaded base model from {base_model.group(0)}"
 
         score_fp = implementation.workspace_path / "scores.csv"
         score_ret_code = 0
