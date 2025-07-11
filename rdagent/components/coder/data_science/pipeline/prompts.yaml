@@ -105,7 +105,7 @@ pipeline_coder:
     {% if out_spec %}
     {{ out_spec }}
     {% else %}
-    Please response the code in the following json format. Here is an example structure for the JSON output:
+    Please response the full runable code in the following json format. Here is an example structure for the JSON output:
     {
         "code": "The Python code as a string."
     }

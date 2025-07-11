@@ -63,7 +63,6 @@ def main(
 
     if workspace is not None:
         DS_RD_SETTING.previous_workspace_path = str(Path(workspace).absolute())
-        DS_RD_SETTING.previous_workspace_path = workspace
         DS_RD_SETTING.enable_model_dump = True
         DS_RD_SETTING.sample_data_by_LLM = True
         DS_RD_SETTING.coder_on_whole_pipeline = True

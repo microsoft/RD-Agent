@@ -83,6 +83,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                     stdout += f"Code opened the sample submission file '{sample_submission_file_name}' during execution.\n Reject the implementation!\n"
                     sample_submission_check = False
 
+        score_ret_code = 0
         result.stdout = remove_eda_part(result.stdout)
         if result.exit_code != 0:
             stdout += f"Code failed to run. Please check the stdout:\n Following the stdout of the debug mode run:\n{result.stdout.strip()}\n"
@@ -105,12 +106,12 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                     pattern = r"base_model_workspace/models/[^/]+\.(pt|pth|h5|joblib)"
                     base_model = re.search(pattern, text_to_search)
                     if not base_model:
-                        stdout += "Code did not loaded base model from `base_model_workspace` during execution.\n Reject the implementation!\n"
+                        stdout += "\nCode did not loaded base model from `base_model_workspace` during execution.\n Reject the implementation!\n"
+                        score_ret_code = 1
                     else:
-                        stdout += f"Loaded base model from {base_model.group(0)}"
+                        stdout += f"\nLoaded base model from {base_model.group(0)}"
 
         score_fp = implementation.workspace_path / "scores.csv"
-        score_ret_code = 0
         score_check_text = ""
         if not score_fp.exists():
             score_check_text = "[Error] Metrics file (scores.csv) is not generated!"
