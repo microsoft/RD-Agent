@@ -53,10 +53,9 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
             else self.scen.debug_path
         )
 
-        input_path = T("scenarios.data_science.share:scen.input_path").r()
-        extra_volumes = {data_source_path: input_path}
+        extra_volumes = {data_source_path: T("scenarios.data_science.share:scen.input_path").r()}
         if DS_RD_SETTING.previous_workspace_path:
-            extra_volumes[DS_RD_SETTING.previous_workspace_path] = input_path + "/base_model_workspace/"
+            extra_volumes[DS_RD_SETTING.previous_workspace_path] = "./base_model_workspace/"
         env = get_ds_env(
             extra_volumes=extra_volumes,
             running_timeout_period=(
