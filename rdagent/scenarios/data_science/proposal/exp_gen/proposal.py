@@ -729,11 +729,11 @@ class DSProposalV2ExpGen(ExpGen):
         else:
             component_info = get_component(hypotheses[0].component)
         data_folder_info = self.scen.processed_data_folder_description
+        workflow_check = not pipeline and hypotheses[0].component != "Workflow"
         sys_prompt = T(".prompts_v2:task_gen.system").r(
             task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
-            # task_output_format=component_info["task_output_format"],
             component_desc=component_desc,
-            workflow_check=not pipeline and hypotheses[0].component != "Workflow",
+            workflow_check=workflow_check,
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,
@@ -743,37 +743,47 @@ class DSProposalV2ExpGen(ExpGen):
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
             eda_improvement=fb_to_sota_exp.eda_improvement if fb_to_sota_exp else None,
         )
+
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
             response_format=CodingSketch if self.supports_response_schema else {"type": "json_object"},
             json_target_type=Dict[str, str | Dict[str, str]] if not self.supports_response_schema else None,
         )
+
         task_dict = json.loads(response)
-        task_design = (
-            task_dict.get("task_design", {}) if not self.supports_response_schema else task_dict.get("sketch", {})
-        )
-        logger.info(f"Task design:\n{task_design}")
+
+        # 1) explain the response and get main task_description
+        not_found_str = f"{component_info['target_name']} description not provided"
+        if self.supports_response_schema:
+            # task_dict: {"sketch": str, ...}
+            task_desc = task_dict.get("sketch", not_found_str)
+        else:
+            if workflow_check:
+                # task_dict:  {"task_design": ...., "workflow_update": ....}
+                task_desc = task_dict.get("task_design", {}).get("description", not_found_str)
+            else:
+                # task_dict:  {"description": ....}
+                task_desc = task_dict.get("description", not_found_str)
+        # task_desc: str, a description of the task
+
+        # 2) create the main task
+        logger.info(f"Task design:\n{task_desc}")
         task_name = hypotheses[0].component
-        description = (
-            task_design
-            if isinstance(task_design, str)
-            else task_design.get("description", f"{component_info['target_name']} description not provided")
-        )
         task_class = component_info["task_class"]
         task = task_class(
             name=task_name,
-            description=description,
+            description=task_desc,
         )
-        new_workflow_desc = task_dict.get("workflow_update", "No update needed")
         exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypotheses[0])
-        # exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
         if sota_exp is not None:
             exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
-        if not pipeline and new_workflow_desc != "No update needed":
+
+        # 3) create the workflow update task
+        if workflow_check:
             workflow_task = WorkflowTask(
                 name="Workflow",
-                description=new_workflow_desc,
+                description=task_dict.get("workflow_update", "No update needed"),
             )
             exp.pending_tasks_list.append([workflow_task])
         return exp

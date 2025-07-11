@@ -355,22 +355,35 @@ task_gen:
     If you are confident in a specific value based on strong evidence, prior experiments, or clear rationale, specify the value clearly.
     {% include "scenarios.data_science.share:spec.hyperparameter" %}
 
+    
     {% if task_output_format is not none %}
-    ## [Partial Response Format 1] Task Output Format:
+
+    # Output Format
+
+    {% if not workflow_check %}
+
     {{ task_output_format }}
 
-    {% if workflow_check %}
-    # Step 2: Workflow Update
+    {% else %}
+
+    There are two steps in the task. But you should adhere to the final output format.
+
+    ## [Partial Response Format 1]
+    ### Step1: **Task Output Format** :
+    {{ task_output_format }}
+
+    ### Step 2: **Workflow Update** :
     Since components have dependencies, your second task is to update the workflow to reflect the changes made to the target component. Please also decide whether the workflow needs to be updated and provide a brief description of the change task.
     {{ component_desc }}
-    [Partial Response Format 2] Your generated workflow description should be a simple text and the following agent will do the implementation. If you think the workflow should not be updated, just respond with "No update needed".
-    {% endif %}
 
-    Your final output should strictly adhere to the following JSON format. 
+    ## [Partial Response Format 2] Your generated workflow description should be a simple text and the following agent will do the implementation. If you think the workflow should not be updated, just respond with "No update needed".
+
+    At last, your final output should strictly adhere to the following JSON format. 
     {
-      "task_design": ---The dict corresponding to task output format---,
-      {% if workflow_check %}"workflow_update": ---A string corresponding to workflow description--- {% endif %}
+      "task_design": a dict which strictly adheres to the **Task Output Format** in Step 1,
+      "workflow_update": "A string which is a precise and comprehensive description of the Workflow Update, or 'No update needed' if no changes are required."
     }
+    {% endif %}
     {% endif %}
     
   user: |-
@@ -487,5 +500,6 @@ output_format:
       "problem name 1 (should be exactly same as the problem name provided)": 1, # The index which is same to the idea index provided in the input and must be integer.
       "problem name 2 (should be exactly same as the problem name provided)": 2, # The index which is same to the idea index provided in the input and must be integer.
     }
+
 
 
