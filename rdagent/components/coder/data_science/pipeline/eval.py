@@ -52,10 +52,10 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 code="This task has failed too many times, skip implementation.",
                 final_decision=False,
             )
-        input_folder = T("scenarios.data_science.share:scen.input_path").r()
-        extra_volumes = {self.scen.debug_path: input_folder}
+        input_path = T("scenarios.data_science.share:scen.input_path").r()
+        extra_volumes = {self.scen.debug_path: input_path}
         if DS_RD_SETTING.previous_workspace_path:
-            extra_volumes[DS_RD_SETTING.previous_workspace_path] = input_folder + "/base_model_workspace/"
+            extra_volumes[DS_RD_SETTING.previous_workspace_path] = input_path + "/base_model_workspace/"
         env = get_ds_env(extra_volumes=extra_volumes)
 
         stdout = ""
