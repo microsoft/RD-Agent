@@ -48,10 +48,8 @@ pipeline_coder:
 
     ## Data Loading
     - Load the dataset strictly from `{% include "scenarios.data_science.share:scen.input_path" %}` as described in the **Data Folder Description**. DO NOT attempt to load data from the current directory (`./`).
-    - **Try-except Usage Rules**:
-      - **ONLY allowed for**: Reading data files to handle missing file scenarios.
-      - **Important**: If no data is successfully read, it means the reading method is wrong. Fix the reading approach instead of bypassing the error via try-except.
-      - **STRICTLY PROHIBITED**: You should **never** use try-except blocks to hide or bypass errors in data processing, analysis, or any other parts of the code. All errors must be fixed at their source, not caught and ignored.
+    - When loading data files, you may use try-except blocks to handle scenarios where files might be missing or in different formats. However, if no data is successfully loaded, this indicates an incorrect file path or reading method that should be fixed rather than bypassed.
+    - **Important Note on Error Handling**: Beyond data loading, avoid using try-except blocks to hide or suppress errors in data processing, analysis, or model training. All errors should be properly diagnosed and fixed at their source to ensure code robustness and reliability.
 
     ## Exploratory Data Analysis (EDA) (Required)
     - Perform EDA and print the following (in the required schema):
