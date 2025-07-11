@@ -115,6 +115,10 @@ To run the application, please create a `.env` file in the root directory of the
 
 If you are using this deprecated version,  you should set `BACKEND` to `rdagent.oai.backend.DeprecBackend`.
 
+   .. code-block:: Properties
+
+      BACKEND=rdagent.oai.backend.DeprecBackend
+
 Here are some other configuration options that you can use:
 
 OpenAI API
