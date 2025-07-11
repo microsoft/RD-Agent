@@ -209,6 +209,7 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   ```
 
 - You can also use a deprecated backend if you're using OpenAI API or Azure OpenAI directly. For more information on this deprecated setting and additional configuration options, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html). When configuring additional options, refer to the [official LiteLLM documentation](https://docs.litellm.ai/docs) to configure CHAT_MODEL based on your API type (referencing the response model setting). For API usage, check the documentation for setting environment variables with os.environ.
+
 ### 🚀 Run the Application
 
 The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented by the following commands(each item represents one demo, you can select the one you prefer):
