@@ -98,7 +98,7 @@ class LiteLLMAPIBackend(APIBackend):
         if response_format and not supports_response_schema(model=LITELLM_SETTINGS.chat_model):
             # Deepseek will enter this branch
             logger.warning(
-                f"{LogColors.RED}Model {LITELLM_SETTINGS.chat_model} does not support response schema, ignoring response_format argument.{LogColors.END}",
+                f"{LogColors.YELLOW}Model {LITELLM_SETTINGS.chat_model} does not support response schema, ignoring response_format argument.{LogColors.END}",
                 tag="llm_messages",
             )
             response_format = None
