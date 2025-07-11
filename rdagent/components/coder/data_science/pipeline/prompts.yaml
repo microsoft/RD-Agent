@@ -165,60 +165,65 @@ pipeline_eval:
     Your task is to rigorously evaluate the code implementation against the provided scenario and task description, ensuring it meets all requirements, adheres to the specified structure, and executes successfully.
 
     {% if is_sub_enabled %}
-    ## Evaluation Workflow
-    Your focus is to check whether the workflow code:
+    ## Evaluation Steps
     
-    ### Step 1: Executes successfully without any errors. Please distinguish between the errors and warnings.
+    ### Step 1: Execution Success
+    - Goal: Ensure the code executes successfully without any errors.
+    - Notes:
+      - Model performance is not evaluated in this step; focus solely on successful execution.
+      - Warnings are acceptable if they do not interfere with successful code execution.
+    - If the code execute successfully:
+      - Proceed to Step 2.
+    - If the code does not execute successfully:
+      - Set the "final_decision" to false and write complete analysis in the "execution" field.
 
-    ### Step 2: Carefully verify that the code correctly generates the final submission in the expected format, ensuring all of the following
-    - The submission file strictly matches the required structure (correct columns, index format, data types). The index names and column names are identical to the sample submission.
-    - The submission data is complete, not empty, and does not contain obviously invalid, constant, or random placeholder values.
-    - **CRITICALLY: You must perform a detailed inspection of both the code logic and the stdout logs to confirm that the submission file was genuinely produced as a result of actual model inference and successful execution.**
-      - Cross-check that predictions were calculated from real model outputs, not hard-coded or randomly generated.
-      - Detect and reject any submission generated through exception handling, fallback code paths, or any form of error recovery designed to produce a file despite failure.
-      - **Absolutely no fabricated, simulated, or placeholder results are allowed.**
-    - If there is any uncertainty about whether the results are authentic, you must treat this as a critical issue and reject the implementation.
-    
-    ### Step 3: Aligns with the competition requirements. This includes:
-    - CAREFULLY ANALYZE WHETHER THE EXPERIMENTAL SETUP AND CODE MAY CAUSE MISALIGNMENT BETWEEN VALIDATION AND TEST PERFORMANCE.
-    - Confirm strict adherence to the competition's evaluation rules listed in `scenario`:
-      - Exact match between the implementation code of metric and the requirements of the scenario. **The metric number is not the focus.**
-      - Consistent prediction methodologies between validation and test datasets.
-      - No shortcuts or fold-specific strategies applied inconsistently.
-      - Rigorous checks for corner-case consistency.
-    - If such discrepancies or risks are found:
-      - Clearly document these issues in `code`.
-      - Begin your `code` with `[Evaluation error]`, explicitly stating the evaluation alignment issues causing experiment failure.
-    - If no issues are found, begin your `code` with `[Code analysis]`, providing a detailed analysis of the code quality, readability, and adherence to specifications.
+    ### Step 2: Submission File Authenticity and Format
+    - Goal: Verify that the code correctly generates the final submission in the expected format and that the submission is authentic.
+    - Guidlines:
+      - The submission file must strictly match the required structure (correct columns, index format, data types). The index names and column names must be identical to the sample submission.
+      - Rigorously verify that the submission file was produced by genuine model inference and successful code execution, not by cheating, fallback or exception-handling mechanisms.
+        - The submission must be generated from genuine model predictions using the best saved model—never empty, constant, random, or hard-coded values.
+        - Submissions must reflect authentic model outputs; any form of fabrication, cheating, or simulated results is strictly prohibited and grounds for rejection.
+        - Cross-check both code logic and stdout to ensure predictions originate from real model inference, not from error recovery or placeholder code paths.
+      - Only check the format of the submission since only part of the data is provided; the submission might have a different index than the sample submission data.
+      - Verify honest failure reporting if training issues occur.
+    - If the code passes this step:
+      - Proceed to Step 3.
+    - If the code does not pass this step:
+      - Set the "final_decision" to false and clearly document the issues in the "return_checking" field.
+
+    ### Step 3: Competition Alignment
+    - Goal: Confirm strict adherence to the competition's evaluation rules and experimental setup.
+    - Guidelines:
+      - Analyze whether the experimental setup and code may cause misalignment between validation and test performance.
+      - Confirm strict adherence to the competition's evaluation rules listed in `scenario`:
+        - The metric implementation must exactly match scenario requirements (metric value itself is not the focus).
+        - Prediction methodologies must be consistent between validation and test datasets.
+        - No shortcuts or fold-specific strategies should be applied inconsistently.
+      - Check for corner-case consistency.
+      - Avoid hard-coded values; use proportions for data splitting and similar operations.
+    - If no issues are found:
+      - Begin the "code" with `[Code analysis]`, providing a detailed analysis of the code quality, readability, and adherence to specifications.
+    - If discrepancies or risks are found:
+      - Set the "final_decision" to false.
+      - Begin the "code" with `[Evaluation error]`, explicitly document any evaluation alignment issues causing experiment failure.
 
     {% if debug_mode %}
-    ### Step 4: The code is executed in a debug mode with the command `python main.py --debug`. In debug mode, the code should sample ten percent of the data and run the minimum epochs to quickly test the correctness of the code. You should check whether the code follows this requirements. If not, you should emphasize it in your feedback and reject this implementation.
-    You will also be given the execution time and estimated time for the full run. You should check whether the estimated time is too large to finish in the given time limit. You should also consider the early stopping mechanism in the code. The estimated time could be very large but the early stopping mechanism could stop the training earlier than the full epochs. You should also check whether the debug time is reasonable and the estimated time is reasonable based on the debug time.
+    ### Step 4: Debug Mode Compliance
+    - Goal: Ensure the code follows debug mode requirements.
+    - Guidlines:
+      - Sufficient debugging information (print statements, clear error messages) should be included to facilitate automatic improvement processes.
+      - The code should be executed in debug mode with the command `python main.py --debug`.
+      - In debug mode, the code should sample ten percent of the data and run the minimum epochs to quickly test the correctness of the code.
+      - Check whether the code follows these requirements. If not, emphasize it in your feedback and reject this implementation.
+      - Execution time and estimated time for the full run should be checked. Estimated time should not be too large to finish in the given time limit.
+      - Consider the early stopping mechanism in the code. The estimated time could be very large but early stopping could stop the training earlier than the full epochs.
+      - Debug time should be reasonable and the estimated time should be reasonable based on the debug time.
+      - Data sampling should only be applied in debug mode. Always use the full data in the full run.
+      - The label classes number should be the same as the full run even in debug mode.
+    - If the code passes this step: Finalize evaluation.
+    - If the code does not pass this step: Clearly document the debug mode compliance issues and reject the implementation.
     {% endif %}
-
-    ## Evaluation Guidelines
-    1. Model performance is NOT a concern in this evaluation—only correct execution and formatting matter.
-    2. Submissions and scores must be the result of actual model inference. Any form of cheating or fabrication (e.g., random or hard-coded outputs) is strictly prohibited and should lead to rejection.
-    3. You only check the format of the submission since we only feed you part of the data, so the submission might have different index to the sample submission data.
-    4. **Sample Dataset Context**: Evaluation is performed on sample datasets, so dataset size variations are expected and acceptable.
-    5. **Code Robustness & Debugging**:
-      - Ensure the code handles varying data sizes and structures gracefully without breaking on edge cases.
-      - Pay special attention to whether the code includes sufficient debugging information (print statements, clear error messages) to facilitate automatic improvement processes.
-      - Verify there are appropriate print statements at key steps for debugging and iteration. Check that print() function is used instead of logging module.
-      - Verify that error messages provide meaningful debugging information rather than generic messages.
-    6. **Code Quality & Best Practices**:
-      - Verify the code avoids hard-coded values and uses **proportions** instead of absolute numbers for data splitting.
-      - Check that try-except blocks are used appropriately (only for data loading) and minimized elsewhere to avoid masking code issues.
-      - Ensure assert statements are used sparingly to avoid preventing discovery of code problems.
-    7. **Training Configuration**:
-      - Verify epoch numbers are reasonable (at least 10).
-      - Early stopping is properly implemented with appropriate conditions.
-      - Model checkpointing is used and the best saved model is used for predictions.
-    8. **Submission Quality**:
-      - Ensure submissions are generated from best saved models, not dummy/placeholder values.
-      - Verify honest failure reporting if training issues occur.
-    9. **Resource Management**:
-      - Check that all available data is used appropriately without unnecessary sampling or subsetting.
 
     ## Output Format
     Please respond with your feedback in the following JSON format without anything else.
