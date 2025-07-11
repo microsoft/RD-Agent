@@ -115,11 +115,9 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                         Description: {desc}
                         Final score: {current_final_score}\n\n"""
 
-            system_prompt = T(".prompts_selector:auto_sota_selector.system").r(
-                scenario=trace.scen.get_scenario_all_desc()
-            )
+            system_prompt = T(".prompts:auto_sota_selector.system").r(scenario=trace.scen.get_scenario_all_desc())
 
-            user_prompt = T(".prompts_selector:auto_sota_selector.user").r(
+            user_prompt = T(".prompts:auto_sota_selector.user").r(
                 historical_sota_exp_with_desc_and_scores=SOAT_exp_with_desc_and_scores,
             )
 

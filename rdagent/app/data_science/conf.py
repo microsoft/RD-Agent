@@ -84,7 +84,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """The maximum number of traces to grow before merging"""
 
     #### multi-trace:checkpoint selector
-    selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.ckp_select.LatestCKPSelector"
+    selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.select.expand.LatestCKPSelector"
     """The name of the selector to use"""
     sota_count_window: int = 5
     """The number of trials to consider for SOTA count"""
@@ -92,7 +92,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """The threshold for SOTA count"""
 
     #### multi-trace: SOTA experiment selector
-    sota_exp_selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.sota_exp_select.GlobalSOTASelector"
+    sota_exp_selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.select.submit.GlobalSOTASelector"
     """The name of the SOTA experiment selector to use"""
 
     ### multi-trace:inject optimals for multi-trace
