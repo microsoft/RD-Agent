@@ -264,7 +264,7 @@ pipeline_eval:
     {{ scenario }}
 
     # Task Description
-    {{ task desc }}
+    {{ task_desc }}
 
     ## Task Specification for Code Structure
     {{ spec }}
