@@ -229,9 +229,7 @@ class ExpGen2TraceAndMerge(ExpGen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.merge_exp_gen = MergeExpGen(self.scen)
-        self.exp_gen = DataScienceRDLoop._get_exp_gen(
-            "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
-        )
+        self.exp_gen = DataScienceRDLoop.default_exp_gen(self.scen)
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
@@ -337,17 +335,17 @@ class ExpGen2TraceAndMergeV2(ExpGen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.merge_exp_gen = MergeExpGen_MultiTrace(self.scen)
-        self.exp_gen = DataScienceRDLoop._get_exp_gen(
-            "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
-        )
+        self.exp_gen = DataScienceRDLoop.default_exp_gen(self.scen)
         self.flag_start_merge = False
 
     def reset_exp_gen_version(self, version: str = "v2"):
-        DS_RD_SETTING.proposal_version = version
-        logger.info(f"ExpGen2TraceAndMergeV2: Resetting proposal version to {version}")
-        self.exp_gen = DataScienceRDLoop._get_exp_gen(
-            f"rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
-        )
+        # AFAIK, this class is not used anymore (because v3 & v1 is deprecated); So we just leave a NotImplementedError instead of refine it.
+        # DS_RD_SETTING.proposal_version = version
+        # logger.info(f"ExpGen2TraceAndMergeV2: Resetting proposal version to {version}")
+        # self.exp_gen = DataScienceRDLoop._get_exp_gen(
+        #     f"rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
+        # )
+        raise NotImplementedError("You should not switch version with proposal_version")
 
     def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
@@ -402,9 +400,7 @@ class ExpGen2TraceAndMergeV3(ExpGen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.merge_exp_gen = ExpGen2Hypothesis(self.scen)
-        self.exp_gen = DataScienceRDLoop._get_exp_gen(
-            "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
-        )
+        self.exp_gen = DataScienceRDLoop.default_exp_gen(self.scen)
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer

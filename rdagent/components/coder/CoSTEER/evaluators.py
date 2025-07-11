@@ -70,6 +70,10 @@ class CoSTEERSingleFeedback(Feedback):
 
         if not isinstance(data["final_decision"], bool):
             raise ValueError(f"'final_decision' must be a boolean, not {type(data['final_decision'])}")
+
+        for attr in "execution", "return_checking", "code":
+            if data[attr] is not None and not isinstance(data[attr], str):
+                raise ValueError(f"'{attr}' must be a string, not {type(data[attr])}")
         return data
 
     def __str__(self) -> str:

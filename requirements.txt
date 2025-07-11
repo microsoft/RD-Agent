@@ -47,6 +47,7 @@ st-theme
 randomname
 flask
 flask-cors
+networkx
 
 # kaggle crawler
 selenium

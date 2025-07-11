@@ -643,11 +643,11 @@ def feedback_window():
                 with st.expander("**Config⚙️**", expanded=True):
                     st.markdown(state.scenario.experiment_setting, unsafe_allow_html=True)
 
-            if fbr := state.msgs[round]["Quantitative Backtesting Chart"]:
-                st.markdown("**Returns📈**")
-                fig = report_figure(fbr[0].content)
-                st.plotly_chart(fig)
             if fb := state.msgs[round]["feedback"]:
+                if fbr := state.msgs[round]["Quantitative Backtesting Chart"]:
+                    st.markdown("**Returns📈**")
+                    fig = report_figure(fbr[0].content)
+                    st.plotly_chart(fig)
                 st.markdown("**Hypothesis Feedback🔍**")
                 h: HypothesisFeedback = fb[0].content
                 st.markdown(

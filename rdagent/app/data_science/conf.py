@@ -21,6 +21,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.proposal.DSProposalV2ExpGen"
     """Hypothesis generation class"""
 
+    summarizer: str = "rdagent.scenarios.data_science.dev.feedback.DSExperiment2Feedback"
+    summarizer_init_kwargs: dict = {
+        "version": "exp_feedback",
+    }
     ## Workflow Related
     consecutive_errors: int = 5
 
@@ -38,15 +42,15 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     spec_enabled: bool = True
 
     #### proposal related
-    proposal_version: str = "v1"
-    coder_on_whole_pipeline: bool = False
+    # proposal_version: str = "v2" deprecated
+
+    coder_on_whole_pipeline: bool = True
     max_trace_hist: int = 3
 
     coder_max_loop: int = 10
-    runner_max_loop: int = 1
+    runner_max_loop: int = 3
 
-    rule_base_eval: bool = False
-    sample_data_by_LLM: bool = False
+    sample_data_by_LLM: bool = True
     use_raw_description: bool = False
     show_nan_columns: bool = False
 

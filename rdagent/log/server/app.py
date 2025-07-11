@@ -10,6 +10,7 @@ import randomname
 import typer
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
+from werkzeug.utils import secure_filename
 
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
@@ -118,10 +119,18 @@ def upload_file():
     # save files
     for file in files:
         if file:
-            p = log_folder_path / scenario / "uploads" / trace_name
-            if not p.exists():
-                p.mkdir(parents=True, exist_ok=True)
-            file.save(p / file.filename)
+            p = (log_folder_path / scenario / "uploads" / trace_name).resolve()
+            sanitized_filename = secure_filename(file.filename)  # Sanitize filename
+            target_path = (p / sanitized_filename).resolve()  # Normalize target path
+            if not sanitized_filename.lower().endswith(".pdf"):
+                return jsonify({"error": "Invalid file type"}), 400
+            # Ensure target_path is within the allowed base directory
+            if os.path.commonpath([str(target_path), str(p)]) == str(p) and target_path.is_file() == False:
+                if not p.exists():
+                    p.mkdir(parents=True, exist_ok=True)
+                file.save(target_path)
+            else:
+                return jsonify({"error": "Invalid file path"}), 400
 
     if scenario == "Finance Data Building":
         cmds = ["rdagent", "fin_factor"]

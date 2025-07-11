@@ -62,8 +62,8 @@ class RoundRobinScheduler(TraceScheduler):
 
             # step 1: select the parant trace to expand
             # Policy: if we have fewer traces than our target, start a new one.
-            if trace.sub_trace_count + self.uncommited_rec_status[trace.sub_trace_count] < self.max_trace_num:
-                self.uncommited_rec_status[trace.sub_trace_count] += 1
+            if trace.sub_trace_count + self.uncommited_rec_status[trace.NEW_ROOT] < self.max_trace_num:
+                self.uncommited_rec_status[trace.NEW_ROOT] += 1
                 return trace.NEW_ROOT
 
             # Step2: suggest a selection to a not expanding leave

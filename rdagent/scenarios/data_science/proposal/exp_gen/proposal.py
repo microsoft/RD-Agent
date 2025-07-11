@@ -16,9 +16,12 @@ from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
+from rdagent.scenarios.data_science.dev.feedback import ExperimentFeedback
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
-from rdagent.scenarios.data_science.proposal.exp_gen.draft import DSDraftExpGen
+from rdagent.scenarios.data_science.proposal.exp_gen.draft.draft import (
+    DSDraftExpGen,  # TODO: DSDraftExpGen should be moved to router in the further
+)
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
@@ -456,12 +459,12 @@ class DSProposalV1ExpGen(ExpGen):
 class DSProposalV2ExpGen(ExpGen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.support_function_calling = APIBackend().support_function_calling()
+        self.supports_response_schema = APIBackend().supports_response_schema()
 
     def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_output_format=(
-                T(".prompts_v2:output_format.problem").r() if not self.support_function_calling else None
+                T(".prompts_v2:output_format.problem").r() if not self.supports_response_schema else None
             ),
         )
         user_prompt = T(".prompts_v2:scenario_problem.user").r(
@@ -471,10 +474,10 @@ class DSProposalV2ExpGen(ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=ScenarioChallenges if self.support_function_calling else {"type": "json_object"},
-            json_target_type=Dict[str, Dict[str, str]] if not self.support_function_calling else None,
+            response_format=ScenarioChallenges if self.supports_response_schema else {"type": "json_object"},
+            json_target_type=Dict[str, Dict[str, str]] if not self.supports_response_schema else None,
         )
-        if self.support_function_calling:
+        if self.supports_response_schema:
             challenges = ScenarioChallenges(**json.loads(response))
             # Translate to problems
             problems = {o.caption: {"problem": o.statement, "reason": o.reasoning} for o in challenges.challenges}
@@ -489,7 +492,7 @@ class DSProposalV2ExpGen(ExpGen):
     ) -> Dict:
         sys_prompt = T(".prompts_v2:feedback_problem.system").r(
             problem_output_format=(
-                T(".prompts_v2:output_format.problem").r() if not self.support_function_calling else None
+                T(".prompts_v2:output_format.problem").r() if not self.supports_response_schema else None
             ),
             inject_diverse=inject_diverse,
         )
@@ -501,10 +504,10 @@ class DSProposalV2ExpGen(ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=TraceChallenges if self.support_function_calling else {"type": "json_object"},
-            json_target_type=Dict[str, Dict[str, str]] if not self.support_function_calling else None,
+            response_format=TraceChallenges if self.supports_response_schema else {"type": "json_object"},
+            json_target_type=Dict[str, Dict[str, str]] if not self.supports_response_schema else None,
         )
-        if self.support_function_calling:
+        if self.supports_response_schema:
             challenges = TraceChallenges(**json.loads(response))
             # Translate to problems
             problems = {o.caption: {"problem": o.statement, "reason": o.reasoning} for o in challenges.challenges}
@@ -568,7 +571,7 @@ class DSProposalV2ExpGen(ExpGen):
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             hypothesis_output_format=(
                 T(".prompts_v2:output_format.hypothesis").r(pipeline=pipeline, enable_idea_pool=enable_idea_pool)
-                if not self.support_function_calling
+                if not self.supports_response_schema
                 else None
             ),
             pipeline=pipeline,
@@ -585,12 +588,12 @@ class DSProposalV2ExpGen(ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=HypothesisList if self.support_function_calling else {"type": "json_object"},
+            response_format=HypothesisList if self.supports_response_schema else {"type": "json_object"},
             json_target_type=(
-                Dict[str, Dict[str, str | Dict[str, str | int]]] if not self.support_function_calling else None
+                Dict[str, Dict[str, str | Dict[str, str | int]]] if not self.supports_response_schema else None
             ),
         )
-        if self.support_function_calling:
+        if self.supports_response_schema:
             hypotheses = HypothesisList(**json.loads(response))
             resp_dict = {
                 h.caption: {
@@ -719,17 +722,18 @@ class DSProposalV2ExpGen(ExpGen):
         hypotheses: list[DSHypothesis],
         pipeline: bool,
         failed_exp_feedback_list_desc: str,
+        fb_to_sota_exp: ExperimentFeedback | None = None,
     ) -> DSExperiment:
         if pipeline:
             component_info = get_component("Pipeline")
         else:
             component_info = get_component(hypotheses[0].component)
         data_folder_info = self.scen.processed_data_folder_description
+        workflow_check = not pipeline and hypotheses[0].component != "Workflow"
         sys_prompt = T(".prompts_v2:task_gen.system").r(
-            task_output_format=component_info["task_output_format"] if not self.support_function_calling else None,
-            # task_output_format=component_info["task_output_format"],
+            task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
             component_desc=component_desc,
-            workflow_check=not pipeline and hypotheses[0].component != "Workflow",
+            workflow_check=workflow_check,
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,
@@ -737,38 +741,49 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             hypotheses=hypotheses,
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
+            eda_improvement=fb_to_sota_exp.eda_improvement if fb_to_sota_exp else None,
         )
+
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=CodingSketch if self.support_function_calling else {"type": "json_object"},
-            json_target_type=Dict[str, str | Dict[str, str]] if not self.support_function_calling else None,
+            response_format=CodingSketch if self.supports_response_schema else {"type": "json_object"},
+            json_target_type=Dict[str, str | Dict[str, str]] if not self.supports_response_schema else None,
         )
+
         task_dict = json.loads(response)
-        task_design = (
-            task_dict.get("task_design", {}) if not self.support_function_calling else task_dict.get("sketch", {})
-        )
-        logger.info(f"Task design:\n{task_design}")
+
+        # 1) explain the response and get main task_description
+        not_found_str = f"{component_info['target_name']} description not provided"
+        if self.supports_response_schema:
+            # task_dict: {"sketch": str, ...}
+            task_desc = task_dict.get("sketch", not_found_str)
+        else:
+            if workflow_check:
+                # task_dict:  {"task_design": ...., "workflow_update": ....}
+                task_desc = task_dict.get("task_design", {}).get("description", not_found_str)
+            else:
+                # task_dict:  {"description": ....}
+                task_desc = task_dict.get("description", not_found_str)
+        # task_desc: str, a description of the task
+
+        # 2) create the main task
+        logger.info(f"Task design:\n{task_desc}")
         task_name = hypotheses[0].component
-        description = (
-            task_design
-            if isinstance(task_design, str)
-            else task_design.get("description", f"{component_info['target_name']} description not provided")
-        )
         task_class = component_info["task_class"]
         task = task_class(
             name=task_name,
-            description=description,
+            description=task_desc,
         )
-        new_workflow_desc = task_dict.get("workflow_update", "No update needed")
         exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypotheses[0])
-        # exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
         if sota_exp is not None:
             exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
-        if not pipeline and new_workflow_desc != "No update needed":
+
+        # 3) create the workflow update task
+        if workflow_check:
             workflow_task = WorkflowTask(
                 name="Workflow",
-                description=new_workflow_desc,
+                description=task_dict.get("workflow_update", "No update needed"),
             )
             exp.pending_tasks_list.append([workflow_task])
         return exp
@@ -806,7 +821,6 @@ class DSProposalV2ExpGen(ExpGen):
         self,
         trace: DSTrace,
     ) -> DSExperiment:
-
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
         if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
             return draft_exp
@@ -821,7 +835,11 @@ class DSProposalV2ExpGen(ExpGen):
                 ]
             )
 
-        sota_exp = trace.sota_experiment()
+        if (sota_exp_fb := trace.sota_experiment_fb()) is None:
+            sota_exp, fb_to_sota_exp = None, None
+        else:
+            sota_exp, fb_to_sota_exp = sota_exp_fb
+
         if not isinstance(sota_exp, DSExperiment):
             eda_output = None
         else:
@@ -919,4 +937,5 @@ class DSProposalV2ExpGen(ExpGen):
             ),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
+            fb_to_sota_exp=fb_to_sota_exp,
         )

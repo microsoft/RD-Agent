@@ -34,9 +34,7 @@ class ParallelMultiTraceExpGen(ExpGen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # The underlying generator for creating a single experiment
-        self.exp_gen = DataScienceRDLoop._get_exp_gen(
-            "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
-        )
+        self.exp_gen = DataScienceRDLoop.default_exp_gen(self.scen)
         self.merge_exp_gen = ExpGen2Hypothesis(self.scen)
         self.trace_scheduler: TraceScheduler = RoundRobinScheduler(DS_RD_SETTING.max_trace_num)
 
@@ -97,8 +95,10 @@ class ParallelMultiTraceExpGen(ExpGen):
                     else:
                         selection = (leaves[0],)
                         if trace.sota_exp_to_submit is not None:
-                            if trace.is_parent(trace.exp2idx(trace.sota_exp_to_submit), leaves[1]):
-                                selection = (leaves[1],)
+                            for i in range(1, len(leaves)):
+                                if trace.is_parent(trace.exp2idx(trace.sota_exp_to_submit), leaves[i]):
+                                    selection = (leaves[i],)
+                                    break
                         trace.set_current_selection(selection)
                         return self.merge_exp_gen.gen(trace)
 
