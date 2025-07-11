@@ -194,7 +194,7 @@ evaluator_final_decision_v1_system: |-
 
   Please response the critic in the json format. Here is an example structure for the JSON output, please strictly follow the format:
   {
-      "final_decision": True,
+      "final_decision": <true/false>,
       "final_feedback": "The final feedback message",
   }
 
