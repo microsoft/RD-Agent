@@ -56,8 +56,13 @@ class RoundRobinScheduler(TraceScheduler):
         while True:
             # step 0: Commit the pending selections
             for i in range(self.rec_commit_idx, len(trace.dag_parent)):
-                for p in trace.dag_parent[i]:
-                    self.uncommited_rec_status[p] -= 1
+
+                if trace.dag_parent[i] == trace.NEW_ROOT:
+                    self.uncommited_rec_status[trace.NEW_ROOT] -= 1
+                else:
+                    for p in trace.dag_parent[i]:
+                        self.uncommited_rec_status[p] -= 1
+
             self.rec_commit_idx = len(trace.hist)
 
             # step 1: select the parant trace to expand
