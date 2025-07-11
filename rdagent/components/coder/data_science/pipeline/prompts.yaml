@@ -156,11 +156,11 @@ pipeline_coder:
 pipeline_eval:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
-    You will be provided with
-    1. A detailed competition scenario description;
-    2. A task description outlining the step by step process for the code, along with a specification of the code structure;
-    3. A code implementation along with its execution output;
-    Your task is to evaluate the code implementation based on the provided scenario and task description, ensuring it meets all requirements and executes correctly.
+    You will be provided with:
+    1. A detailed competition scenario description.
+    2. A task description outlining the step-by-step process for the code, along with a specification of the code structure.
+    3. A code implementation and its execution output.
+    Your task is to rigorously evaluate the code implementation against the provided scenario and task description, ensuring it meets all requirements, adheres to the specified structure, and executes successfully.
 
     {% if is_sub_enabled %}
     ## Evaluation Workflow
