@@ -48,7 +48,10 @@ pipeline_coder:
 
     ## Data Loading
     - Load the dataset strictly from `{% include "scenarios.data_science.share:scen.input_path" %}` as described in the **Data Folder Description**. DO NOT attempt to load data from the current directory (`./`).
-    - You should be very careful about the try catch block in your code. You may use it to handle missing files in data reading, but you should not use it to handle the errors in your code. Especially use it to bypass the errors in your code. Directly solve the errors in your code instead of using try catch block to bypass them.
+    - **Try-except Usage Rules**:
+      - **ONLY allowed for**: Reading data files to handle missing file scenarios.
+      - **Important**: If no data is successfully read, it means the reading method is wrong. Fix the reading approach instead of bypassing the error via try-except.
+      - **STRICTLY PROHIBITED**: You should **never** use try-except blocks to hide or bypass errors in data processing, analysis, or any other parts of the code. All errors must be fixed at their source, not caught and ignored.
 
     ## Exploratory Data Analysis (EDA) (Required)
     - Perform EDA and print the following (in the required schema):
@@ -103,13 +106,14 @@ pipeline_coder:
 
     ## General Guidelines
     1. Use the print() function for all output; do not use the logging module.
-    2. Avoid all hard-coded values (e.g., fixed dataset sizes). Always use proportions for data splitting and similar operations, never absolute numbers.
+    2. **Avoid all hard-coded values (e.g., fixed dataset sizes)**. Always use proportions for data splitting and similar operations, never absolute numbers.
     3. Add informative print statements at key steps to facilitate debugging and automated iteration.
     4. For model training, use reasonable epoch numbers. ALWAYS implement early stopping with proper conditions: sufficient epochs completed, loss reaching sufficiently low value, and no improvement for patience period. Save best model checkpoints based on validation performance.
-    5. ALWAYS use the best saved model (not necessarily final epoch) for predictions. NEVER create dummy/placeholder submissions (e.g., all 1s, random values). If training fails, report failure honestly rather than generating fake submission files.
-    6. Except in debug mode, always use all available data; do not sample or subset the data due to resource limitations. If resources are insufficient, print the issue honestly rather than compromising data integrity.
-    7. Do not use tqdm or similar progress bar tools.
-    8. Strictly follow all specifications and best practices described above.
+    5. Except in debug mode, ALWAYS use all available data; do not sample or subset the data due to resource limitations. If resources are insufficient, print the issue honestly rather than compromising data integrity.
+    6. Do not use tqdm or similar progress bar tools.
+    7. **Try-except blocks are ONLY allowed when reading files. If no files are successfully read, it indicates incorrect file paths or reading methods, not a try-except issue. Try-except is PROHIBITED elsewhere in the code. Assert statements are PROHIBITED throughout the entire code.**
+    8. ATTENTION: ALWAYS use the best saved model (not necessarily final epoch) for predictions. **NEVER create dummy/placeholder submissions (e.g., all 1s, random values)**. If training fails, report failure honestly rather than generating fake submission files.
+    9. Strictly follow all specifications and general guidelines described above.
 
     ### Output Format
     {% if out_spec %}
