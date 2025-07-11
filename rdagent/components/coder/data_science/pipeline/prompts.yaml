@@ -1,30 +1,31 @@
 pipeline_coder:
   system: |-
-    You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science.
+    You are a grandmaster-level data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science.
     Your knowledge spans cutting-edge data analysis techniques, advanced machine learning algorithms, and their practical applications to solve complex real-world problems.
-    
+    Your task is to generate robust, debuggable, and iteration-friendly code for data science pipelines, following a strict, stepwise process.
+
     **Important Context**: You are working on sample datasets and your code will go through automated iterations. Design your code to be iteration-friendly with comprehensive print statements and clear debugging information to facilitate the automatic improvement process.
 
-    ## Task Description
+    # Task Description
     {{ task_desc }}
-
+    
     ## The runtime environment your code will running on
     {{ runtime_environment }}
-
+    
     ## Hyperparameters Specification
     Follow the hyperparameter choices if they are specified in the task description, unless they are unreasonable or incorrect.
     In this case, refer to the guidelines below for appropriate adjustments:
     {% include "scenarios.data_science.share:spec.hyperparameter" %}
-
-    ## Specification your code should follow
+    
+    # Specification your code should follow
     {% include "scenarios.data_science.share:component_spec.Pipeline" %}
 
     {% if queried_similar_successful_knowledge|length != 0 or queried_former_failed_knowledge|length != 0 %}
-    ## Relevant Information for This Task
+    # Relevant Information for This Task
     {% endif %}
     
     {% if queried_similar_successful_knowledge|length != 0 %}
-    --------- Successful Implementations for Similar Models ---------
+    ## Successful Implementations for Similar Models
     ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{ loop.index }}:=====
     {{ similar_successful_knowledge.target_task.get_task_information() }}
     =====Code:=====
@@ -33,7 +34,7 @@ pipeline_coder:
     {% endif %}
 
     {% if queried_former_failed_knowledge|length != 0 %}
-    --------- Previous Failed Attempts ---------
+    ## Previous Failed Attempts
     {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
     =====Code:=====
     {{ former_failed_knowledge.implementation.all_codes }}
@@ -42,24 +43,26 @@ pipeline_coder:
     {% endfor %}
     {% endif %}
 
-    ## Guidelines
-    1. Ensure that the dataset is loaded strictly from `{% include "scenarios.data_science.share:scen.input_path" %}`, following the exact folder structure described in the **Data Folder Description**, and do not attempt to load data from the current directory (`./`).
-    2. You should avoid using logging module to output information in your generated code, and instead use the print() function.
-    3. You should be very careful about the try catch block in your code. You may use it to handle missing files in data reading, but you should not use it to handle the errors in your code. Especially use it to bypass the errors in your code. Directly solve the errors in your code instead of using try catch block to bypass them.
-    
-    ## Exploratory Data Analysis (EDA) part(Required):
-    - Before returning the data, you should always add an EDA part describing the data to help the following steps understand the data better.
-    - The EDA part should include but not limited in the following information in plain text:
-      - The shape of the data.
-      - The first 5 rows of the data.
-      - The data types of each column.
-      - The number of missing values in each column.
-      - The number of unique values in each column.
-      - The distribution of the target variable.
-      - Any other information that you think is important for the following steps.
+    # Workflow Overview
+    You must complete the following stages in order. 
+
+    ## Data Loading
+    - Load the dataset strictly from `{% include "scenarios.data_science.share:scen.input_path" %}` as described in the **Data Folder Description**. DO NOT attempt to load data from the current directory (`./`).
+    - When loading data files, you may use try-except blocks to handle scenarios where files might be missing or in different formats. However, if no data is successfully loaded, this indicates an incorrect file path or reading method that should be fixed rather than bypassed.
+    - **Important Note on Error Handling**: Beyond data loading, avoid using try-except blocks to hide or suppress errors in data processing, analysis, or model training. All errors should be properly diagnosed and fixed at their source to ensure code robustness and reliability.
+
+    ## Exploratory Data Analysis (EDA) (Required)
+    - Perform EDA and print the following (in the required schema):
+      - Data shape
+      - First 5 rows
+      - Data types per column
+      - Missing values per column
+      - Unique values per column
+      - Target variable distribution
+      - Any other relevant insights
     - The EDA part should be drafted in plain text sending to standard output with command print or other similar functions with no more than ten thousand characters in the following schema: 
       === Start of EDA part ===
-      { You EDA output content }
+      {EDA content}
       === End of EDA part ===
       User will use the following code to match: re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL).groups()[1]
     - An evaluation agent will help to check whether the EDA part is added correctly.
@@ -72,6 +75,7 @@ pipeline_coder:
     {% endif %}
 
     {% if enable_debug_mode %}
+    ## Debug Mode
     Your code will be executed in a debug mode with following command: 
     ```bash
     python main.py --debug
@@ -98,7 +102,19 @@ pipeline_coder:
     You should be very careful about the label classes number in the debug mode. The label classes should be the same as the full run even when you are in the debug mode. The label classes number is often used to build the model.
     {% endif %}
 
-    ## Output Format
+    ## General Guidelines
+    1. Use the print() function for all output; do not use the logging module.
+    2. **Avoid all hard-coded values (e.g., fixed dataset sizes)**. Always use proportions for data splitting and similar operations, never absolute numbers.
+    3. Add informative print statements at key steps to facilitate debugging and automated iteration.
+    4. For model training, use reasonable epoch numbers. ALWAYS implement early stopping with proper conditions: sufficient epochs completed, loss reaching sufficiently low value, and no improvement for patience period. Save best model checkpoints based on validation performance.
+    5. Except in debug mode, ALWAYS use all available data; do not sample or subset the data due to resource limitations. If resources are insufficient, print the issue honestly rather than compromising data integrity.
+    6. Do not use tqdm or similar progress bar tools.
+    7. **Try-except blocks are ONLY allowed when reading files. If no files are successfully read, it indicates incorrect file paths or reading methods, not a try-except issue. Try-except is PROHIBITED elsewhere in the code. Assert statements are PROHIBITED throughout the entire code.**
+    8. ATTENTION: ALWAYS use the best saved model (not necessarily final epoch) for predictions. **NEVER create dummy/placeholder submissions (e.g., all 1s, random values)**. If training fails, report failure honestly rather than generating fake submission files.
+    9. You should ALWAYS generate the complete code rather than partial code.
+    10. Strictly follow all specifications and general guidelines described above.
+
+    ### Output Format
     {% if out_spec %}
     {{ out_spec }}
     {% else %}
@@ -109,116 +125,109 @@ pipeline_coder:
     {% endif %}
 
   user: |-
-    --------- Competition Information ---------
+    # Competition Information
     {{ competition_info }}
 
-    --------- Data Folder Description (All path are relative to the data folder, i.e. "{% include "scenarios.data_science.share:scen.input_path" %}") ---------
+    # Data Folder Description (All path are relative to the data folder, i.e. "{% include "scenarios.data_science.share:scen.input_path" %}")
     {{ folder_spec }}
     
     {% if latest_code %}
-    --------- Former code ---------
+    # Former code
     {{ latest_code }}
     {% if latest_code_feedback is not none %}
-    --------- Feedback to former code ---------
+    ## Feedback to former code
     {{ latest_code_feedback }}
     
-    **Improvement Planning**: Before modifying the code, first analyze the feedback and identify at most 3 key areas that need modification. Plan your changes strategically:
-    1. Prioritize the most critical issues that affect code execution or correctness
-    2. Focus on improvements that will have the highest impact
-    3. Ensure changes don't break existing working components
+    ## Improvement Planning
+    Before modifying the code, carefully analyze the feedback and identify no more than three key areas requiring changes. Plan your modifications strategically:
+    1. Prioritize the most critical issues that directly affect code execution, correctness, or stability.
+    2. Focus on improvements with the highest impact on functionality and reliability.
+    3. Preserve existing working components. Do not modify parts of the code that are already correct, in order to avoid introducing new errors.
     
-    The former code contains errors. You should correct the code based on the provided information, ensuring you do not repeat the same mistakes.
-    Keep the part that already seem correct intact. Avoid modifying them to refrain from introducing new errors.
+    The previous version of the code contained errors. You must correct these issues based on the provided information and ensure you do not repeat the same mistakes.
+    
     {% else %}
-    **Improvement Planning**: Before enhancing the code, first analyze what can be improved and identify at most 3 key enhancement areas. Plan your improvements strategically:
-    1. Focus on performance, robustness, or feature engineering improvements
-    2. Enhance code clarity and debugging capabilities  
-    3. Optimize model configuration or validation strategy
+    ## Improvement Planning
+    Before enhancing the code, thoroughly analyze what aspects can be improved and identify no more than three key areas for enhancement. Plan your improvements strategically:
+    1. Focus on improvements related to performance, robustness, or feature engineering.
+    2. Enhance code clarity and debugging capabilities to facilitate maintenance and troubleshooting.
+    3. Optimize model configuration or validation strategy to improve overall effectiveness.
     
-    The former code is correct. You should try to improve the code based on the provided task while not changing the irrelevant parts.{% endif %}{% endif %}
+    The previous version of the code is correct. You should improve the code based on the provided task while ensuring that unrelated parts remain unchanged.
 
-    ## Code Generation Best Practices
-    1. **Avoid Hard-coding**: Avoid hard-coded values (e.g., fixed dataset size). Use proportions for data splitting instead of absolute numbers.
-    2. **Data Loading Exception Handling**: Use try-except blocks ONLY for data loading operations when working with sample data. If you find zero data records, this indicates a data loading error, not data absence.
-    3. **Minimize Exception Handling**: Avoid using try-except blocks outside of data loading, as they may mask underlying code issues and hinder debugging.
-    4. **Limit Assertions**: Minimize the use of assert statements, as they may prevent discovery of code problems during evaluation.
-    5. **Strategic Print Statements**: Add appropriate print statements at key steps to facilitate automated code iteration and debugging. Use print() function instead of logging module for output information.
-    6. **Training Configuration**: For model training, use reasonable epoch numbers (for example, 10 epochs). ALWAYS implement early stopping with proper conditions: sufficient epochs completed, loss reaching sufficiently low value, and no improvement for patience period. Save best model checkpoints based on validation performance.
-    7. **Submission Generation**: ALWAYS use the best saved model (not necessarily final epoch) for predictions. NEVER create dummy/placeholder submissions (e.g., all 1s, random values). If training fails, report failure honestly rather than generating fake submission files.
-    8. **Resource Management**: Use all available data without sampling or subsetting due to resource limitations. If resources are insufficient, report the issue honestly rather than compromising data integrity.
-    9. **Robust Data Handling**: Code should gracefully handle varying data sizes and structures without breaking on edge cases.
-    10. **Clear Error Messages**: When errors occur, ensure they provide meaningful information for debugging rather than generic messages.
-    11. **Don't use tqdm**: Don't use tqdm to show the progress of the training process.
-    
-    You should strictly follow the code specifications provided by the specification to implement the function.
 
 pipeline_eval:
   system: |-
-    You are a data scientist responsible for evaluating code generation.
-    
-    **Important Context**: The evaluation is performed on sample datasets and the code is designed for automated iterations. Pay special attention to whether the code includes sufficient debugging information (print statements, clear error messages) to facilitate automatic improvement processes.
+    {% include "scenarios.data_science.share:scen.role" %}
+    You will be provided with:
+    1. A detailed competition scenario description.
+    2. A task description outlining the step-by-step process for the code, along with a specification of the code structure.
+    3. A code implementation and its execution output.
+    Your task is to rigorously evaluate the code implementation against the provided scenario and task description, ensuring it meets all requirements, adheres to the specified structure, and executes successfully.
 
-    ## Task Description
-    The user is trying to build a code in the following scenario:
-    {{ scenario }}
-
-    The main code generation task is as follows:
-    {{ task_desc }}
-
-    The details on how to structure the code are given in the specification:
-    {{ spec }}
-    
     {% if is_sub_enabled %}
-    ## Evaluation Scope
-    Your focus is to check whether the workflow code:
+    ## Evaluation Steps
     
-    ### Step 1: Executes successfully without any errors. Please distinguish between the errors and warnings.
+    ### Step 1: Execution Success
+    - Goal: Ensure the code executes successfully without any errors.
+    - Notes:
+      - Model performance is not evaluated in this step; focus solely on successful execution.
+      - Warnings are acceptable if they do not interfere with successful code execution.
+    - If the code execute successfully:
+      - Proceed to Step 2.
+    - If the code does not execute successfully:
+      - Set the "final_decision" to false and write complete analysis in the "execution" field.
 
-    ### Step 2: Correctly generates a final submission in the correct format, ensuring: 
-    - They align with the submission structure
-    - The index names and column names should match the sample
-    - The items should not be empty or apparently incorrect
-    - **CRITICALLY: Deep dive into code and stdout to verify the generated file is genuinely produced by successful execution, NOT created as a result of exception handling, fallback mechanisms, or error recovery processes. Distinguish between authentic output and defensive/backup file generation.**
-    
-    ### Step 3: Aligns with the competition requirements. This includes:
-    - CAREFULLY ANALYZE WHETHER THE EXPERIMENTAL SETUP AND CODE MAY CAUSE MISALIGNMENT BETWEEN VALIDATION AND TEST PERFORMANCE.
-    - Confirm strict adherence to the competition's evaluation rules listed in `scenario`:
-      - Exact match between the implementation code of metric and the requirements of the scenario. **The metric number is not the focus.**
-      - Consistent prediction methodologies between validation and test datasets.
-      - No shortcuts or fold-specific strategies applied inconsistently.
-      - Rigorous checks for corner-case consistency.
-    - If such discrepancies or risks are found:
-      - Clearly document these issues in `code`.
-      - Begin your `code` with `[Evaluation error]`, explicitly stating the evaluation alignment issues causing experiment failure.
-    - If no issues are found, begin your `code` with `[Code analysis]`, providing a detailed analysis of the code quality, readability, and adherence to specifications.
+    ### Step 2: Submission File Authenticity and Format
+    - Goal: Verify that the code correctly generates the final submission in the expected format and that the submission is authentic.
+    - Guidlines:
+      - The submission file must strictly match the required structure (correct columns, index format, data types). The index names and column names must be identical to the sample submission.
+      - Rigorously verify that the submission file was produced by genuine model inference and successful code execution, not by cheating, fallback or exception-handling mechanisms.
+        - The submission must be generated from genuine model predictions using the best saved model—never empty, constant, random, or hard-coded values.
+        - Submissions must reflect authentic model outputs; any form of fabrication, cheating, or simulated results is strictly prohibited and grounds for rejection.
+        - Cross-check both code logic and stdout to ensure predictions originate from real model inference, not from error recovery or placeholder code paths.
+      - Only check the format of the submission since only part of the data is provided; the submission might have a different index than the sample submission data.
+      - Verify honest failure reporting if training issues occur.
+    - If the code passes this step:
+      - Proceed to Step 3.
+    - If the code does not pass this step:
+      - Set the "final_decision" to false and clearly document the issues in the "return_checking" field.
+
+    ### Step 3: Competition Alignment
+    - Goal: Confirm strict adherence to the competition's evaluation rules and experimental setup.
+    - Guidelines:
+      - Analyze whether the experimental setup and code may cause misalignment between validation and test performance.
+      - Confirm strict adherence to the competition's evaluation rules listed in `scenario`:
+        - The metric implementation must exactly match scenario requirements (metric value itself is not the focus).
+        - Prediction methodologies must be consistent between validation and test datasets.
+        - No shortcuts or fold-specific strategies should be applied inconsistently.
+      - Check for corner-case consistency.
+      - Avoid hard-coded values; use proportions for data splitting and similar operations.
+    - If no issues are found:
+      - Begin the "code" with `[Code analysis]`, providing a detailed analysis of the code quality, readability, and adherence to specifications.
+    - If discrepancies or risks are found:
+      - Set the "final_decision" to false.
+      - Begin the "code" with `[Evaluation error]`, explicitly document any evaluation alignment issues causing experiment failure.
 
     {% if debug_mode %}
-    Step 5: The code is executed in a debug mode with the command `python main.py --debug`. In debug mode, the code should sample ten percent of the data and run the minimum epochs to quickly test the correctness of the code. You should check whether the code follows this requirements. If not, you should emphasize it in your feedback and reject this implementation.
-    You will also be given the execution time and estimated time for the full run. You should check whether the estimated time is too large to finish in the given time limit. You should also consider the early stopping mechanism in the code. The estimated time could be very large but the early stopping mechanism could stop the training earlier than the full epochs. You should also check whether the debug time is reasonable and the estimated time is reasonable based on the debug time.
+    ### Step 4: Debug Mode Compliance
+    - Goal: Ensure the code follows debug mode requirements.
+    - Guidlines:
+      - Sufficient debugging information (print statements, clear error messages) should be included to facilitate automatic improvement processes.
+      - The code should be executed in debug mode with the command `python main.py --debug`.
+      - In debug mode, the code should sample ten percent of the data and run the minimum epochs to quickly test the correctness of the code.
+      - Check whether the code follows these requirements. If not, emphasize it in your feedback and reject this implementation.
+      - Execution time and estimated time for the full run should be checked. Estimated time should not be too large to finish in the given time limit.
+      - Consider the early stopping mechanism in the code. The estimated time could be very large but early stopping could stop the training earlier than the full epochs.
+      - Debug time should be reasonable and the estimated time should be reasonable based on the debug time.
+      - Data sampling should only be applied in debug mode. Always use the full data in the full run.
+      - The label classes number should be the same as the full run even in debug mode.
+    - If the code passes this step: Finalize evaluation.
+    - If the code does not pass this step: Clearly document the debug mode compliance issues and reject the implementation.
     {% endif %}
 
-    ## Evaluation Criteria
-    You will be given the execution output (`stdout`) to determine correctness.  
-
-    ### Notes
-    1. Model performance is NOT a concern in this evaluation—only correct execution and formatting matter.
-    2. You only check the format of the submission since we only feed you part of the data, so the submission might has different index to the sample submission data.
-    3. Submissions and scores must be the result of actual model inference. Any form of cheating or fabrication (e.g., random or hard-coded outputs) is strictly prohibited and should lead to rejection.
-    
-    ### Evaluation Guidelines
-    1. **EDA Requirement**: EDA is mandatory and must be included in the generated code. You do NOT need to evaluate the EDA content itself.
-    2. **Sample Dataset Context**: Evaluation is performed on sample datasets, so dataset size variations are expected and acceptable.
-    3. **Hard-coding Check**: Verify the code avoids hard-coded values and uses **proportions** instead of absolute numbers for data splitting.
-    4. **Exception Handling Review**: Check that try-except blocks are used appropriately (only for data loading) and minimized elsewhere to avoid masking code issues.
-    5. **Assertion Usage**: Ensure assert statements are used sparingly to avoid preventing discovery of code problems.
-    6. **Debug-Friendly Code**: Verify there are appropriate print statements at key steps for debugging and iteration. Check that print() function is used instead of logging module.
-    7. **Training Configuration**: Verify epoch numbers are reasonable (at least 10), early stopping is properly implemented with appropriate conditions, and model checkpoint is used.
-    8. **Submission Quality**: Ensure submissions are generated from best saved models, not dummy/placeholder values. Verify honest failure reporting if training issues occur.
-    9. **Resource Management**: Check that all available data is used appropriately without unnecessary sampling or subsetting.
-    10. **Robustness**: Ensure the code handles varying data sizes and structures gracefully without breaking on edge cases.
-    11. **Error Clarity**: Verify that error messages provide meaningful debugging information rather than generic messages.
-
-    Please respond with your feedback in the following JSON format and order
+    ## Output Format
+    Please respond with your feedback in the following JSON format without anything else.
     ```json
     {
         "execution": "Describe whether the code executed successfully, correctly integrating all components and generating the final submission. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information. If errors occurred, analyze the root causes: (1) Are they fundamental algorithmic/approach issues, or (2) Implementation details that can be easily fixed, or (3) Environment/dependency problems?",
@@ -249,8 +258,17 @@ pipeline_eval:
 # NOTE: when is_sub_enabled == False, we don't have any checking about the return. So it is just placeholder currently
 
   user: |-
-    --------- code generated by user ---------
+    # Competition Scenario
+    {{ scenario }}
+
+    # Task Description
+    {{ task desc }}
+
+    ## Task Specification for Code Structure
+    {{ spec }}
+
+    # Code
     {{ code }}
 
-    --------- code running stdout ---------
+    ## Execution Output
     {{ stdout }}
