@@ -319,7 +319,7 @@ class Env(Generic[ASpecificEnvConf]):
                 else ""
             )
             + "exit $entry_exit_code"
-            + "'" # end of the sh command
+            + "'"  # end of the sh command
         )
 
         if self.conf.enable_cache:

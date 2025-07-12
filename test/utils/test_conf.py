@@ -26,6 +26,5 @@ class ConfUtils(unittest.TestCase):
         assert QlibDockerConf().enable_cache is True
 
 
-
 if __name__ == "__main__":
     unittest.main()
