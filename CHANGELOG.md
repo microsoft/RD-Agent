@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.8.0](https://github.com/microsoft/RD-Agent/compare/v0.7.0...v0.8.0) (2025-07-12)
+
+
+### Features
+
+* add only success filter toggle for traces ([#1047](https://github.com/microsoft/RD-Agent/issues/1047)) ([5e582cc](https://github.com/microsoft/RD-Agent/commit/5e582cc71d5c153666c465cb2d797dc71e43c501))
+* add sample submission file check ([#1053](https://github.com/microsoft/RD-Agent/issues/1053)) ([6a840d8](https://github.com/microsoft/RD-Agent/commit/6a840d819251e64d98daa40289592a05ac5fb369))
+* add ws CLI and support optional timeout/cache ([#1066](https://github.com/microsoft/RD-Agent/issues/1066)) ([fae3def](https://github.com/microsoft/RD-Agent/commit/fae3defefa38e91131d4e351d68f4484ca280956))
+* enable drafting with knowledge ([#998](https://github.com/microsoft/RD-Agent/issues/998)) ([8e385eb](https://github.com/microsoft/RD-Agent/commit/8e385ebf422256d08f02c055ab64115872b69d94))
+
+
+### Bug Fixes
+
+* add spec for hyperparameters in task design and coder ([#995](https://github.com/microsoft/RD-Agent/issues/995)) ([10246fd](https://github.com/microsoft/RD-Agent/commit/10246fd2491d48560d5f7055f78906e7a6a2882e))
+* based on response schema; not function calling ([#1038](https://github.com/microsoft/RD-Agent/issues/1038)) ([99da8c5](https://github.com/microsoft/RD-Agent/commit/99da8c58f0f779aa19edc2522d4cf143577811d8))
+* correct DS_LOCAL_DATA_PATH error in devcontainer ([#1063](https://github.com/microsoft/RD-Agent/issues/1063)) ([588fcfa](https://github.com/microsoft/RD-Agent/commit/588fcfa3ab0a4eca5afee766e3f56f094b28a999))
+* error in prompt template ([#1065](https://github.com/microsoft/RD-Agent/issues/1065)) ([a90e598](https://github.com/microsoft/RD-Agent/commit/a90e598e568c0339a5f29577fbf44e302bc0d96f))
+* fix a bug in return curve display ([#1042](https://github.com/microsoft/RD-Agent/issues/1042)) ([249f661](https://github.com/microsoft/RD-Agent/commit/249f6614a67d8b38e9ad2f0d95154db7071e8e3a))
+* fix a small bug in json_mode ([#1041](https://github.com/microsoft/RD-Agent/issues/1041)) ([8bc12ea](https://github.com/microsoft/RD-Agent/commit/8bc12eaaa7ecda69043ec781896299a6796c8140))
+* fix a small bug in response_schema ([#1043](https://github.com/microsoft/RD-Agent/issues/1043)) ([66cadcd](https://github.com/microsoft/RD-Agent/commit/66cadcd7b2a91bac416acd94196b96f43b572c2b))
+* handle the no-update case of root node in uncommited_rec_status ([#1062](https://github.com/microsoft/RD-Agent/issues/1062)) ([ead8dce](https://github.com/microsoft/RD-Agent/commit/ead8dced0e5b157b6e1bded380f440ee0b8a86f7))
+* improve the logic of json_schema and refine the reasoning extraction logic for reasoning model ([#1044](https://github.com/microsoft/RD-Agent/issues/1044)) ([12060b1](https://github.com/microsoft/RD-Agent/commit/12060b197ca618ca8901f93cde6bc2b42d79e4e9))
+* path traversal risk ([#1050](https://github.com/microsoft/RD-Agent/issues/1050)) ([2f78216](https://github.com/microsoft/RD-Agent/commit/2f782169ebeb0453422621ac8ace06353ca72615))
+* prevent parallelism in feedback and record steps ([#1046](https://github.com/microsoft/RD-Agent/issues/1046)) ([d0272a9](https://github.com/microsoft/RD-Agent/commit/d0272a9de104a629ccd2652b9e95c9bb58ac6cb1))
+* properly assign sota_exp_fb before None comparison ([#1037](https://github.com/microsoft/RD-Agent/issues/1037)) ([5d6a927](https://github.com/microsoft/RD-Agent/commit/5d6a927501e95b6afa520294d23fcf9ca16c69ae))
+* remove refine decision & bug fix ([#1031](https://github.com/microsoft/RD-Agent/issues/1031)) ([0059a6a](https://github.com/microsoft/RD-Agent/commit/0059a6aeb658a76bdc28cd7741a2bc9e6569363f))
+* scheduler next selection parallel disorder ([#1028](https://github.com/microsoft/RD-Agent/issues/1028)) ([f468595](https://github.com/microsoft/RD-Agent/commit/f468595169512b89f436396ee976404879e00d7a))
+* split then sample & remove simple model guide in ds proposal ([#1034](https://github.com/microsoft/RD-Agent/issues/1034)) ([2dde8b8](https://github.com/microsoft/RD-Agent/commit/2dde8b84a1d08cf0ca39b2f50de64d053fd73ba8))
+* stop evolve if global timer is timeout ([#1039](https://github.com/microsoft/RD-Agent/issues/1039)) ([ad37417](https://github.com/microsoft/RD-Agent/commit/ad374176a14be1fa5aac43fd8df48f89b2a81fe0))
+* TypeError: cannot unpack non-iterable bool object ([#1036](https://github.com/microsoft/RD-Agent/issues/1036)) ([f4370a4](https://github.com/microsoft/RD-Agent/commit/f4370a4265c84cefc4844d21b7f296929ca7638c))
+
 ## [0.7.0](https://github.com/microsoft/RD-Agent/compare/v0.6.1...v0.7.0) (2025-07-08)
 
 
