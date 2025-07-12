@@ -15,7 +15,7 @@ class ConfUtils(unittest.TestCase):
         assert QlibDockerConf().mem_limit == "300g"  # more accurate subclass will override the base class
         assert QlibDockerConf().running_timeout_period is None
 
-        os.environ["default_entry"] = "which python"
+        os.environ["DEFAULT_ENTRY"] = "which python"
         os.environ["ENABLE_CACHE"] = "False"
 
         assert EnvConf().enable_cache is False

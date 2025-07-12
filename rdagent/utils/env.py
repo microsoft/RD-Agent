@@ -687,7 +687,10 @@ class QlibCondaEnv(LocalEnv[QlibCondaConf]):
 
 
 class QlibDockerConf(DockerConf):
-    model_config = SettingsConfigDict(env_prefix="QLIB_DOCKER_")
+    model_config = SettingsConfigDict(
+        env_prefix="QLIB_DOCKER_",
+        env_parse_none_str="None",  # Nthis is the key to accept `RUNNING_TIMEOUT_PERIOD=None`
+    )
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "qlib" / "docker"

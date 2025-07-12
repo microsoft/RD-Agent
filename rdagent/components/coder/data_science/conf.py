@@ -1,4 +1,5 @@
-from typing import Literal
+from types import MappingProxyType
+from typing import Literal, Mapping
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
@@ -26,7 +27,7 @@ class DSCoderCoSTEERSettings(CoSTEERSettings):
 
 def get_ds_env(
     conf_type: Literal["kaggle", "mlebench"] = "kaggle",
-    extra_volumes: dict = {},
+    extra_volumes: Mapping = MappingProxyType({}),
     running_timeout_period: int | None = DS_RD_SETTING.debug_timeout,
     enable_cache: bool | None = None,
 ) -> Env:
