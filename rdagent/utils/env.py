@@ -117,14 +117,18 @@ def pull_image_with_progress(image: str) -> None:
 
 
 class EnvConf(ExtendedBaseSettings):
-    # TODO: add prefix ....
     default_entry: str
     extra_volumes: dict = {}
-    running_timeout_period: int = 3600  # 10 minutes
+    running_timeout_period: int | None = 3600  # 10 minutes
     # helper settings to support transparent;
     enable_cache: bool = True
     retry_count: int = 5  # retry count for the docker run
     retry_wait_seconds: int = 10  # retry wait seconds for the docker run
+
+    model_config = SettingsConfigDict(
+        # TODO: add prefix ....
+        env_parse_none_str="None",  # Nthis is the key to accept `RUNNING_TIMEOUT_PERIOD=None`
+    )
 
 
 ASpecificEnvConf = TypeVar("ASpecificEnvConf", bound=EnvConf)
@@ -225,7 +229,7 @@ class Env(Generic[ASpecificEnvConf]):
                 )
                 end = time.time()
                 logger.info(f"Running time: {end - start} seconds")
-                if end - start + 1 >= self.conf.running_timeout_period:
+                if self.conf.running_timeout_period is not None and end - start + 1 >= self.conf.running_timeout_period:
                     logger.warning(
                         f"The running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
                     )
@@ -299,9 +303,13 @@ class Env(Generic[ASpecificEnvConf]):
             chmod_cmd += ")"
             return chmod_cmd
 
+        if self.conf.running_timeout_period is None:
+            timeout_cmd = entry
+        else:
+            timeout_cmd = f"timeout --kill-after=10 {self.conf.running_timeout_period} {entry}"
         entry_add_timeout = (
-            f"/bin/sh -c 'timeout --kill-after=10 {self.conf.running_timeout_period} {entry}; "
-            + "entry_exit_code=$?; "
+            f"/bin/sh -c '"  # start of the sh command
+            + f"{timeout_cmd}; entry_exit_code=$?; "
             + (
                 f"{_get_chmod_cmd(self.conf.mount_path)}; "
                 # We don't have to change the permission of the cache and input folder to remove it
@@ -310,7 +318,8 @@ class Env(Generic[ASpecificEnvConf]):
                 if isinstance(self.conf, DockerConf)
                 else ""
             )
-            + "exit $entry_exit_code'"
+            + "exit $entry_exit_code"
+            + "'"  # end of the sh command
         )
 
         if self.conf.enable_cache:
@@ -635,7 +644,7 @@ class DockerConf(EnvConf):
     mem_limit: str | None = "48g"  # Add memory limit attribute
     cpu_count: int | None = None  # Add CPU limit attribute
 
-    running_timeout_period: int = 3600  # 1 hour
+    running_timeout_period: int | None = 3600  # 1 hour
 
     enable_cache: bool = True  # enable the cache mechanism
 
@@ -678,7 +687,10 @@ class QlibCondaEnv(LocalEnv[QlibCondaConf]):
 
 
 class QlibDockerConf(DockerConf):
-    model_config = SettingsConfigDict(env_prefix="QLIB_DOCKER_")
+    model_config = SettingsConfigDict(
+        env_prefix="QLIB_DOCKER_",
+        env_parse_none_str="None",  # Nthis is the key to accept `RUNNING_TIMEOUT_PERIOD=None`
+    )
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "qlib" / "docker"
@@ -707,7 +719,7 @@ class KGDockerConf(DockerConf):
     #     Path("git_ignore_folder/data").resolve(): "/root/.data/"
     # }
 
-    running_timeout_period: int = 600
+    running_timeout_period: int | None = 600
     mem_limit: str | None = (
         "48g"  # Add memory limit attribute # new-york-city-taxi-fare-prediction may need more memory
     )
@@ -722,7 +734,7 @@ class DSDockerConf(DockerConf):
     mount_path: str = "/kaggle/workspace"
     default_entry: str = "python main.py"
 
-    running_timeout_period: int = 600
+    running_timeout_period: int | None = 600
     mem_limit: str | None = (
         "48g"  # Add memory limit attribute # new-york-city-taxi-fare-prediction may need more memory
     )
