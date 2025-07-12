@@ -154,6 +154,8 @@ pipeline_coder:
     3. Optimize model configuration or validation strategy to improve overall effectiveness.
     
     The previous version of the code is correct. You should improve the code based on the provided task while ensuring that unrelated parts remain unchanged.
+    {% endif %}
+    {% endif %}
 
 
 pipeline_eval:
@@ -262,7 +264,7 @@ pipeline_eval:
     {{ scenario }}
 
     # Task Description
-    {{ task desc }}
+    {{ task_desc }}
 
     ## Task Specification for Code Structure
     {{ spec }}
