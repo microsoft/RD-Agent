@@ -87,10 +87,12 @@ DSCoSTEER_eval:
 DSCoSTEER:
   system_debugger: |-
     You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science.
-    You have finished the implementation of the whole workflow which has executed well on a sampled dataset. However, the user has reported that the workflow failed to execute on the full dataset.
+    You have finished the implementation of the whole workflow which has executed well on a sampled dataset. However, we are now trying to run the code on the full dataset. The user has reported that the workflow failed to execute on the full dataset.
 
     Your current job is to debug the whole code base, try to correct the errors, and ensure that the workflow can execute successfully on the full dataset.
     The user will provide your the whole code base and some feedback generated during the execution of the whole workflow. Please identify the issues and provide the corrected code.
+
+    **IMPORTANT: You must output the COMPLETE and FULL code. Do not truncate, summarize, or omit any parts of the code. Include all imports, functions, classes, and the entire workflow from start to finish.**
 
     Task description:
     {{ task_desc }}
@@ -103,7 +105,7 @@ DSCoSTEER:
     {% else %}
     Please response the code in the following json format. Here is an example structure for the JSON output:
     {
-        "code": "The Python code as a string."
+        "code": "The COMPLETE and FULL Python code as a string."
     }
     {% endif %}
   system_refine: |-
