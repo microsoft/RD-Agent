@@ -57,14 +57,13 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
         stdout = ""
         implementation.execute(env=env, entry=get_clear_ws_cmd())
-        if DS_RD_SETTING.sample_data_by_LLM:
-            # Because coder runs on full data, we need to run debug mode in advance to save time
+        if DS_RD_SETTING.use_sample_data:
             result = implementation.run(
-                env=env, entry=f"strace -e trace=file -f -o trace.log python -m coverage run main.py --debug"
+                env=env, entry=f"strace -e trace=file -f -o trace.log python -m coverage run main.py"
             )
         else:
             result = implementation.run(
-                env=env, entry=f"strace -e trace=file -f -o trace.log python -m coverage run main.py"
+                env=env, entry=f"strace -e trace=file -f -o trace.log python -m coverage run main.py --debug"
             )
 
         sample_submission_check = True
@@ -86,7 +85,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             stdout += f"Code failed to run. Please check the stdout:\n Following the stdout of the debug mode run:\n{result.stdout.strip()}\n"
         else:
             stdout += f"Code ran successfully.\n Following the stdout of the debug mode run:\n{result.stdout.strip()}\n"
-        if DS_RD_SETTING.sample_data_by_LLM:
+        if not DS_RD_SETTING.use_sample_data:
             debug_time, full_estimated_time = None, None
             if match := re.search(r"debug_time:\s*(\d+(?:.\d+)?)", result.stdout, re.DOTALL):
                 debug_time = float(match.group(1))
@@ -152,7 +151,12 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
         system_prompt = T(".prompts:pipeline_eval.system").r(
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
+<<<<<<< HEAD
             debug_mode=DS_RD_SETTING.sample_data_by_LLM,
+=======
+            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
+            debug_mode=not DS_RD_SETTING.use_sample_data,
+>>>>>>> 5d4cbc7a860ce5580c871cb1ef852efa8ab252f2
         )
         user_prompt = T(".prompts:pipeline_eval.user").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
