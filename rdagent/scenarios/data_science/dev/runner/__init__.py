@@ -133,7 +133,7 @@ class DSCoSTEERRunner(CoSTEER):
             # If iteration is disabled, only run once
             effective_max_loop = 1
 
-        # In runner, we don't need very big loops, so we set max_loop to runner_max_loop
+        # In runner, we don't need very big loops, so we set max_loop to effective_max_loop
         super().__init__(
             *args,
             settings=settings,

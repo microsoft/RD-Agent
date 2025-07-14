@@ -4,8 +4,7 @@ DSCoSTEER_eval:
 
     ## System Configuration  
     - Runner iteration enabled: {{ enable_runner_iteration }}
-    - Maximum runner loops: {{ runner_max_loop }}
-    - Hyperparameter tuning is {% if enable_runner_iteration and runner_max_loop > 1 %}ENABLED{% else %}DISABLED{% endif %}
+    - Hyperparameter tuning is {% if enable_runner_iteration %}ENABLED{% else %}DISABLED{% endif %}
 
     ## Task Description
     The user is trying to build a data science solution in the following scenario:
@@ -31,11 +30,10 @@ DSCoSTEER_eval:
     
     **IMPORTANT**: Hyperparameter tuning iteration is controlled by system settings. You should only suggest hyperparameter tuning ("hyperparameter_tuning_decision": true) if:
     1. The system has runner iteration enabled (enable_runner_iteration=True)
-    2. The system allows multiple runner loops (runner_max_loop > 1)  
-    3. The code execution time and hyperparameters suggest room for improvement
-    4. The code applies early stopping strategy (to prevent overfitting)
+    2. The code execution time and hyperparameters suggest room for improvement
+    3. The code applies early stopping strategy (to prevent overfitting)
     
-    If runner iteration is disabled or only single loop is allowed, you should always set "hyperparameter_tuning_decision" to false regardless of execution time.
+    If runner iteration is disabled, you should always set "hyperparameter_tuning_decision" to false regardless of execution time.
     
     Please provide your feedback in two key-value pairs:
     "hyperparameter_tuning_decision": <true/false>
