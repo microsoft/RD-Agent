@@ -50,11 +50,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     coder_max_loop: int = 10
     runner_max_loop: int = 3
 
-<<<<<<< HEAD
-    coder_debug_mode: bool = False
-=======
-    use_sample_data: bool = False
->>>>>>> 5d4cbc7a860ce5580c871cb1ef852efa8ab252f2
+    sample_data_by_LLM: bool = True
     use_raw_description: bool = False
     show_nan_columns: bool = False
 

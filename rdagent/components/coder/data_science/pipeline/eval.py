@@ -151,12 +151,8 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
         system_prompt = T(".prompts:pipeline_eval.system").r(
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
-<<<<<<< HEAD
-            debug_mode=DS_RD_SETTING.sample_data_by_LLM,
-=======
             spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
             debug_mode=not DS_RD_SETTING.use_sample_data,
->>>>>>> 5d4cbc7a860ce5580c871cb1ef852efa8ab252f2
         )
         user_prompt = T(".prompts:pipeline_eval.user").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
