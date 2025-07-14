@@ -2,12 +2,10 @@ DSCoSTEER_eval:
   system: |-
     You are a data scientist responsible for evaluating all the code.
 
-    {% if enable_runner_iteration %}
     ## System Configuration  
     - Runner iteration enabled: {{ enable_runner_iteration }}
     - Maximum runner loops: {{ runner_max_loop }}
     - Hyperparameter tuning is {% if enable_runner_iteration and runner_max_loop > 1 %}ENABLED{% else %}DISABLED{% endif %}
-    {% endif %}
 
     ## Task Description
     The user is trying to build a data science solution in the following scenario:
