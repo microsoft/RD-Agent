@@ -44,22 +44,36 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         workspace: FBWorkspace | None = None,
         prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
-        if prev_task_feedback is None:
-            # if no prev_tak_feedback, it is the first loop; we do not make any changes and goto evaluators directly.
+        # Check if runner iteration is enabled and allowed
+        if not DS_RD_SETTING.enable_runner_iteration or DS_RD_SETTING.runner_max_loop <= 1:
+            # If iteration is disabled or max_loop <= 1, only run once without any modifications
             return {}
+
+        if prev_task_feedback is None:
+            # if no prev_task_feedback, it is the first loop; we do not make any changes and goto evaluators directly.
+            return {}
+
+        # 🎯 KEY FIX: Check final_decision - if True, task is complete, no further iterations needed
+        if prev_task_feedback.final_decision:
+            # Task is completed successfully, no need for further modifications
+            return {}
+
+        # Choose appropriate system prompt based on hyperparameter tuning decision
+        task_information_str = target_task.get_task_information()
+
         if prev_task_feedback.hyperparameter_tuning_decision:
-            task_information_str = target_task.get_task_information()
-            # 1. code
+            # Use system_refine for hyperparameter tuning
             system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
                 out_spec=PythonBatchEditOut.get_spec(with_del=False),
             )
         else:
-            task_information_str = target_task.get_task_information()
-            # 1. code
-            system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
+            # Use system_debugger for error fixing and debugging
+            system_prompt = T(".prompts:DSCoSTEER.system_debugger").r(
                 task_desc=task_information_str,
                 out_spec=PythonBatchEditOut.get_spec(with_del=False),
             )
+
+        # Generate user prompt for both cases
         user_prompt = T(".prompts:DSCoSTEER.user").r(
             code=workspace.all_codes,
             feedback=prev_task_feedback,
@@ -112,7 +126,14 @@ class DSCoSTEERRunner(CoSTEER):
         settings = DSRunnerCoSTEERSettings()
         es = DSRunnerMultiProcessEvolvingStrategy(scen=scen, settings=settings)
 
-        # In runner, we don't need very big loops, so we set max_loop to 3
+        # Determine the effective max_loop based on iteration settings
+        if DS_RD_SETTING.enable_runner_iteration and DS_RD_SETTING.runner_max_loop > 1:
+            effective_max_loop = DS_RD_SETTING.runner_max_loop
+        else:
+            # If iteration is disabled, only run once
+            effective_max_loop = 1
+
+        # In runner, we don't need very big loops, so we set max_loop to runner_max_loop
         super().__init__(
             *args,
             settings=settings,
@@ -120,7 +141,7 @@ class DSCoSTEERRunner(CoSTEER):
             es=es,
             evolving_version=2,
             scen=scen,
-            max_loop=DS_RD_SETTING.runner_max_loop,
+            max_loop=effective_max_loop,
             **kwargs,
         )
 

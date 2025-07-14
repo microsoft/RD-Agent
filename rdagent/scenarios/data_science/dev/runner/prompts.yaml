@@ -2,6 +2,11 @@ DSCoSTEER_eval:
   system: |-
     You are a data scientist responsible for evaluating all the code.
 
+    ## System Configuration  
+    - Runner iteration enabled: {{ enable_runner_iteration }}
+    - Maximum runner loops: {{ runner_max_loop }}
+    - Hyperparameter tuning is {% if enable_runner_iteration and runner_max_loop > 1 %}ENABLED{% else %}DISABLED{% endif %}
+
     ## Task Description
     The user is trying to build a data science solution in the following scenario:
     {{ scenario }}
@@ -17,6 +22,15 @@ DSCoSTEER_eval:
 
     The user will provide you the time spent on the whole code execution and the timeout of the code execution. You should decide whether the hyperparameter is reasonable based on the time.
     For example, if the code only spent ten percent of the timeout and the hyperparameter like `n_estimators` or 'epochs' is very small or batch size is small you should suggest to increase these hyperparameter.
+    
+    **IMPORTANT**: Hyperparameter tuning iteration is controlled by system settings. You should only suggest hyperparameter tuning ("hyperparameter_tuning_decision": true) if:
+    1. The system has runner iteration enabled (enable_runner_iteration=True)
+    2. The system allows multiple runner loops (runner_max_loop > 1)  
+    3. The code execution time and hyperparameters suggest room for improvement
+    4. The code applies early stopping strategy (to prevent overfitting)
+    
+    If runner iteration is disabled or only single loop is allowed, you should always set "hyperparameter_tuning_decision" to false regardless of execution time.
+    
     Please provide your feedback in two key-value pairs:
     "hyperparameter_tuning_decision": <true/false>
     "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning, e.g., increase n_estimators to 1000, increase epochs to 100, increase batch size to 64, give an empty string if decide not to tune the hyperparameter>

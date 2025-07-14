@@ -50,6 +50,12 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     coder_max_loop: int = 10
     runner_max_loop: int = 3
 
+    # Runner iteration control
+    enable_runner_iteration: bool = True
+    """Enable runner iteration for hyperparameter tuning. 
+    When True and runner_max_loop > 1, runner will perform iterative hyperparameter tuning.
+    When False, runner will only execute once regardless of runner_max_loop value."""
+
     sample_data_by_LLM: bool = True
     use_raw_description: bool = False
     show_nan_columns: bool = False
