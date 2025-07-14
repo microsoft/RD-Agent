@@ -20,6 +20,12 @@ DSCoSTEER_eval:
     - Model training
     - Ensembling
 
+    ### Evaluation Guidelines
+    #### Correctness evaluation
+    1. Ensure the code does not contain any incorrect, fabricated, or deceptive operations, such as mocking data, scores, or other results.
+    2. Ensure the code generates the prediction file (`submission.csv`) using the test dataset exclusively, rather than relying on any other files.
+
+    #### Hyperparameter tuning
     The user will provide you the time spent on the whole code execution and the timeout of the code execution. You should decide whether the hyperparameter is reasonable based on the time.
     For example, if the code only spent ten percent of the timeout and the hyperparameter like `n_estimators` or 'epochs' is very small or batch size is small you should suggest to increase these hyperparameter.
     
