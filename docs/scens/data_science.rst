@@ -9,7 +9,7 @@ Data Science Agent
 The Data Science Agent is an agent that can automatically perform feature engineering and model tuning. It can be used to solve various data science problems, such as image classification, time series forecasting, and text classification.
 
 🌟 Introduction
-^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~
 
 In this scenario, our automated system proposes hypothesis, choose action, implements code, conducts validation, and utilizes feedback in a continuous, iterative process.
 
@@ -57,9 +57,10 @@ The **Data Science** Agent stands as a central engine in this transformation, en
 By leveraging the **Data Science** Agent, researchers and developers can accelerate experimentation cycles. Whether fine-tuning custom models or competing in high-stakes benchmarks like Kaggle, the Data Science Agent unlocks new frontiers in intelligent, self-directed discovery.
 
 🧭 Example Guide - Customized dataset
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- 🔧 **Set up RD-Agent Environment**
+🔧 **Set up RD-Agent Environment**
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   - Before you start, please make sure you have installed RD-Agent and configured the environment for RD-Agent correctly. If you want to know how to install and configure the RD-Agent, please refer to the `documentation <../installation_and_configuration.html>`_.
 
@@ -72,15 +73,16 @@ By leveraging the **Data Science** Agent, researchers and developers can acceler
     dotenv set DS_LOCAL_DATA_PATH <your local directory>/ds_data
     dotenv set DS_SCEN rdagent.scenarios.data_science.scen.DataScienceScen
 
-- 📥 **Prepare Competition Data**
+📥 **Prepare Customized datasets**
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  - A data science competition dataset usually consists of two parts: ``competition dataset`` and ``evaluation dataset``. (We provide `a sample <https://github.com/microsoft/RD-Agent/tree/main/rdagent/scenarios/data_science/example>`_ of a customized dataset named: `arf-12-hour-prediction-task as a reference`.)
+  - A data science competition dataset usually consists of two parts: ``competition dataset`` and ``evaluation dataset``. (We provide `a sample <https://github.com/microsoft/RD-Agent/tree/main/rdagent/scenarios/data_science/example>`_ of a customized dataset named: `arf-12-hours-prediction-task as a reference`.)
     
     - The ``competition dataset`` contains **training data**, **test data**, **description files**, **formatted submission files**, **data sampling codes**.
     
     - The ``evaluation dataset`` contains **standard answer file**, **data checking codes**, and **Code for calculation of scores**.
 
-  - We use the ``arf-12-hour-prediction-task`` data as a sample to introduce the preparation workflow for the competition dataset.
+  - We use the ``arf-12-hours-prediction-task`` data as a sample to introduce the preparation workflow for the competition dataset.
   
     - Create a ``ds_data/source_data/arf-12-hours-prediction-task`` folder, which will be used to store your raw dataset.
 
@@ -90,7 +92,7 @@ By leveraging the **Data Science** Agent, researchers and developers can acceler
       
       - The following shows the preprocessing code for the raw data of ``arf-12-hours-prediction-task``.
 
-      .. literalinclude:: ../../rdagent/scenarios/data_science/example/ds_data/source_data/arf-12-hours-prediction-task/prepare.py
+      .. literalinclude:: ../../rdagent/scenarios/data_science/example/source_data/arf-12-hours-prediction-task/prepare.py
         :language: python
         :caption: ds_data/source_data/arf-12-hours-prediction-task/prepare.py
         :linenos:
@@ -121,7 +123,7 @@ By leveraging the **Data Science** Agent, researchers and developers can acceler
 
       - The following shows the description file for ``arf-12-hours-prediction-task``
 
-      .. literalinclude:: ../../rdagent/scenarios/data_science/example/ds_data/arf-12-hour-prediction-task/description.md
+      .. literalinclude:: ../../rdagent/scenarios/data_science/example/arf-12-hours-prediction-task/description.md
         :language: markdown
         :caption: ds_data/arf-12-hours-prediction-task/description.md
         :linenos:
@@ -130,27 +132,27 @@ By leveraging the **Data Science** Agent, researchers and developers can acceler
 
       - The following shows the script for constructing the debugging sample data based on the ``arf-12-hours-prediction-task`` dataset implementation.
 
-      .. literalinclude:: ../../rdagent/scenarios/data_science/example/ds_data/arf-12-hour-prediction-task/sample.py
+      .. literalinclude:: ../../rdagent/scenarios/data_science/example/arf-12-hours-prediction-task/sample.py
         :language: markdown
         :caption: ds_data/arf-12-hours-prediction-task/sample.py
         :linenos:
 
-    - Create a ``ds_data/eval/arf-12-hour-prediction-task/valid.py`` file, which is used to check the validity of the submission files to ensure that their formatting is consistent with the reference file.
+    - Create a ``ds_data/eval/arf-12-hours-prediction-task/valid.py`` file, which is used to check the validity of the submission files to ensure that their formatting is consistent with the reference file.
 
       - The following shows a script that checks the validity of a submission based on the ``arf-12-hours-prediction-task`` data.
 
-      .. literalinclude:: ../../rdagent/scenarios/data_science/example/ds_data/eval/arf-12-hour-prediction-task/valid.py
+      .. literalinclude:: ../../rdagent/scenarios/data_science/example/eval/arf-12-hours-prediction-task/valid.py
         :language: markdown
-        :caption: ds_data/eval/arf-12-hour-prediction-task/valid.py
+        :caption: ds_data/eval/arf-12-hours-prediction-task/valid.py
         :linenos:
 
-    - Create a ``ds_data/eval/arf-12-hour-prediction-task/grade.py`` file, which is used to calculate the score based on the submission file and the **standard answer file**, and output the result in JSON format.
+    - Create a ``ds_data/eval/arf-12-hours-prediction-task/grade.py`` file, which is used to calculate the score based on the submission file and the **standard answer file**, and output the result in JSON format.
 
       - The following shows a grading script based on the ``arf-12-hours-prediction-task`` data implementation.
 
-      .. literalinclude:: ../../rdagent/scenarios/data_science/example/ds_data/eval/arf-12-hour-prediction-task/grade.py
+      .. literalinclude:: ../../rdagent/scenarios/data_science/example/eval/arf-12-hours-prediction-task/grade.py
         :language: markdown
-        :caption: ds_data/eval/arf-12-hour-prediction-task/grade.py
+        :caption: ds_data/eval/arf-12-hours-prediction-task/grade.py
         :linenos:
 
   - At this point, you have created a complete dataset. The correct structure of the dataset should look like this.
@@ -183,15 +185,32 @@ By leveraging the **Data Science** Agent, researchers and developers can acceler
 
     - If we don't need the test set scores, then we can choose not to generate **formatted submission files** and **standard answer file** in the prepare code, and we don't need to write **data checking codes** and **Code for calculation of scores**.
 
-    - **data sampling codes** can also be created according to the actual need, if you do not provide **data sampling codes**, the program will use the `sampling method provided by the RD-Agent by default <https://github.com/microsoft/RD-Agent/blob/main/rdagent/scenarios/data_science/debug/data.py#L605>`_.
+    - **Data sampling code** can also be created according to the actual need, if you do not provide **data sampling code**, RD-Agent will be handed over to the LLM sampling at runtime.
 
       - In the default sampling method (``create_debug_data``), the default sampling ratio (parameter: ``min_frac``) is 1%, if 1% of the data is less than 5, then 5 data will be sampled (parameter: ``min_num``), you can adjust the sampling ratio by adjusting these two parameters.
 
-        .. code-block:: sh
+        - If you have customized data sampling code, you need to set ``DS_SAMPLE_DATA_BY_LLM`` to ``False`` (default is True) in the ``.env`` file before running, so that the program will use the customized sampling code when running, and you can just execute this line of code in the command line:
 
-          python rdagent/app/data_science/debug.py --dataset_path <dataset path> --competition <competiton_name> --min_frac <sampling ratio> --min_num <minimum number of sampling>
+          .. code-block:: sh
 
-  - If you don't need the score of the test set, and use the sampling method provided by RD-Agent by default, then you only need to prepare a simplest dataset. The structure of the simplest dataset should look like this.
+            dotenv set DS_SAMPLE_DATA_BY_LLM False
+
+        - In addition, we provide a data sampling method in `rdagent.scenarios.data_science.debug.data.create_debug_data <https://github.com/microsoft/RD-Agent/blob/main/rdagent/scenarios/data_science/debug/data.py#L605>`_, in this method, the default sampling ratio (parameter: ``min_frac``) is 1%, if 1% of the data is less than 5, then 5 data will be sampled (parameter: ``min_num``), you can use this method by the following two ways.
+
+          - You can set ``DS_SAMPLE_DATA_BY_LLM`` to ``False`` in the ``.env`` file so that when the program runs, it will use the sampling code provided by RD-Agent.
+
+            .. code-block:: sh
+
+              dotenv set DS_SAMPLE_DATA_BY_LLM False
+
+          - If you think that the parameters in the receipt sampling method provided by RD-Agent are not suitable, you can customize the parameters in the following command and run it, and set ``DS_SAMPLE_DATA_BY_LLM`` to ``False`` in the ``.env`` so that the program will use the sampling data you provided when running.
+
+            .. code-block:: sh
+
+              python rdagent/app/data_science/debug.py --dataset_path <dataset path> --competition <competiton_name> --min_frac <sampling ratio> --min_num <minimum number of sampling>
+              dotenv set DS_SAMPLE_DATA_BY_LLM False
+
+  - If you don't need the scores from the test set and leave the data sampling to the LLM, or if you use the sampling method provided by the RD-Agent, you only need to prepare a minimal dataset. The structure of the simplest dataset should be as shown below.
 
     .. code-block:: text
 
@@ -210,7 +229,14 @@ By leveraging the **Data Science** Agent, researchers and developers can acceler
                 ├── prepare.py
                 └── X.npz
 
-- 🔧 **Set up Environment for Custom User-defined Dataset**
+  - We have prepared a dataset based on the above description for your reference. You can download it with the following command.
+
+    .. code-block:: sh
+
+      wget https://github.com/SunsetWolf/rdagent_resource/releases/download/ds_data/arf-12-hours-prediction-task.zip
+
+⚙️ **Set up Environment for Customized datasets**
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   .. code-block:: sh
 
@@ -218,9 +244,10 @@ By leveraging the **Data Science** Agent, researchers and developers can acceler
       dotenv set DS_LOCAL_DATA_PATH <your local directory>/ds_data
       dotenv set DS_CODER_ON_WHOLE_PIPELINE True
 
-- 🚀 **Run the Application**
+🚀 **Run the Application**
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  - You can directly run the application by using the following command:
+  - 🌏 You can directly run the application by using the following command:
     
     .. code-block:: sh
 
@@ -232,17 +259,17 @@ By leveraging the **Data Science** Agent, researchers and developers can acceler
 
           rdagent data_science --competition arf-12-hours-prediction-task
 
-  - 📥 **Visualize the R&D Process**
+  - 📈 Visualize the R&D Process
 
     - We provide a web UI to visualize the log. You just need to run:
 
       .. code-block:: sh
 
-          streamlit run rdagent/log/ui/dsapp.py
+          rdagent ui --port <custom port> --log_dir <your log folder like "log/"> --data_science True
 
     - Then you can input the log path and visualize the R&D process.
 
-  - 🧪 **Scoring the test results**
+  - 🧪 Scoring the test results
 
     - Finally, shutdown the program, and get the test set scores with this command.
 
@@ -266,12 +293,8 @@ By utilizing the **Kaggle Agent**, data scientists can craft innovative solution
 🧭 Example Guide - Kaggle Dataset
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-📦 Preparing for the run
-"""""""""""""""""""""""""
-
-- 🔧 **Set up RD-Agent Environment**
-
-  - Before you start, please make sure you have installed RD-Agent and configured the environment for RD-Agent correctly. If you want to know how to install and configure the RD-Agent, please refer to the `documentation <../installation_and_configuration.html>`_.
+🛠️ Preparing For The Competition
+""""""""""""""""""""""""""""""""""
 
 - 🔨 **Configuring the Kaggle API**
 
@@ -303,8 +326,8 @@ By utilizing the **Kaggle Agent**, data scientists can craft innovative solution
 
     - In the **Competition List Available** below, you can jump to the competition details page.
 
-📦 Preparing Dataset
-""""""""""""""""""""""""""""""""""""
+📥 Preparing Competition DataDataset && Set up RD-Agent Environment
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 - As a subset of data science, kaggle's dataset still follows the data science format. Based on this, the kaggle dataset can be divided into two categories depending on whether or not it is supported by the mle-bench.- What is **MLE-Bench**?
 
@@ -318,31 +341,27 @@ By utilizing the **Kaggle Agent**, data scientists can craft innovative solution
 
 - Prepare datasets for **MLE-Bench** supported competitions.
 
-  - You need to configure chromdriver, which is used to download the competition description file.
+  - If you agree with the **MLE-Bench** standard, then you don't need to prepare the dataset, you just need to configure your ``.env`` file to automate the download of the dataset.
 
-    - The following commands are the reference steps for configuring chromdriver
+    - Configure environment variables, add ``DS_IF_USING_MLE_DATA`` to environment variables, and set it to ``True``.
 
       .. code-block:: sh
 
-        # install chrome
-        wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo apt install ./google-chrome-stable_current_amd64.deb
-        google-chrome --version
-        # install chromedriver
-        wget "https://storage.googleapis.com/chrome-for-testing-public/$(google-chrome --version | grep -oP '\d+\.\d+\.\d+\.\d+')/linux64/chromedriver-linux64.zip"
-        unzip chromedriver-linux64.zip
-        cd chromedriver-linux64
-        sudo mv chromedriver /usr/local/bin
-        sudo chmod +x /usr/local/bin/chromedriver
-        chromedriver --version
+        dotenv set DS_IF_USING_MLE_DATA True
 
-  - Configure environment variables, add ``DS_IF_USING_MLE_DATA`` to environment variables, and set it to ``True``.
+    - Configure environment variables, add ``DS_SAMPLE_DATA_BY_LLM`` to environment variables, and set it to ``True``.
 
-    .. code-block:: sh
+      .. code-block:: sh
 
-      dotenv set DS_IF_USING_MLE_DATA True
+        dotenv set DS_SAMPLE_DATA_BY_LLM True
 
-  - At this point, you are ready to start running your competition, which will automatically download the data and construct a minimum dataset.
+    - Configure environment variables, add ``DS_SCEN`` to environment variables, and set it to ``rdagent.scenarios.data_science.scen.KaggleScen``.
+
+      .. code-block:: sh
+
+        dotenv set DS_SCEN rdagent.scenarios.data_science.scen.KaggleScen
+
+  - At this point, you are ready to start running your competition, which will automatically download the data, and the LLM will automatically extract the minimum dataset.
 
     - After running the program the structure of the ds_data folder should look like this (Using the ``tabular-playground-series-dec-2021`` contest as an example).
 
@@ -354,15 +373,11 @@ By utilizing the **Kaggle Agent**, data scientists can craft innovative solution
         │   ├── sample_submission.csv
         │   ├── test.csv
         │   └── train.csv
-        ├── sample
-        │   └── tabular-playground-series-dec-2021
-        │       ├── description.md
-        │       ├── sample_submission.csv
-        │       ├── test.csv
-        │       └── train.csv
         └── zip_files
             └── tabular-playground-series-dec-2021
                 └── tabular-playground-series-dec-2021.zip
+
+      - The ``ds_data/zip_files`` folder contains a zip file of the raw competition data downloaded from kaggle website.
 
   - At runtime, RD-Agent will automatically build the Docker image specified at `rdagent/scenarios/kaggle/docker/mle_bench_docker/Dockerfile <https://github.com/microsoft/RD-Agent/blob/main/rdagent/scenarios/kaggle/docker/mle_bench_docker/Dockerfile>`_. This image is responsible for downloading the required datasets and grading files for MLE-Bench.
 
@@ -385,10 +400,10 @@ By utilizing the **Kaggle Agent**, data scientists can craft innovative solution
             kaggle competitions download -c playground-series-s4e9
 
     - Create a ``ds_data/source_data/playground-series-s4e9/prepare.py`` file that splits your raw data into **training data**, **test data**, **formatted submission file**, and **standard answer file**. (You will need to write a script based on your raw data.)
-      
+
       - The following shows the preprocessing code for the raw data of ``playground-series-s4e9``.
 
-      .. literalinclude:: ../../rdagent/scenarios/data_science/example/ds_data/source_data/playground-series-s4e9/prepare.py
+      .. literalinclude:: ../../rdagent/scenarios/data_science/example/source_data/playground-series-s4e9/prepare.py
         :language: python
         :caption: ds_data/source_data/playground-series-s4e9/prepare.py
         :linenos:
@@ -416,7 +431,7 @@ By utilizing the **Kaggle Agent**, data scientists can craft innovative solution
 
       - The following shows the description file for ``playground-series-s4e9``
 
-        .. literalinclude:: ../../rdagent/scenarios/data_science/example/ds_data/playground-series-s4e9/description.md
+        .. literalinclude:: ../../rdagent/scenarios/data_science/example/playground-series-s4e9/description.md
           :language: markdown
           :caption: ds_data/playground-series-s4e9/description.md
           :linenos:
@@ -425,7 +440,7 @@ By utilizing the **Kaggle Agent**, data scientists can craft innovative solution
 
       - The following shows a script that checks the validity of a submission based on the ``playground-series-s4e9`` data.
 
-      .. literalinclude:: ../../rdagent/scenarios/data_science/example/ds_data/eval/playground-series-s4e9/valid.py
+      .. literalinclude:: ../../rdagent/scenarios/data_science/example/eval/playground-series-s4e9/valid.py
         :language: markdown
         :caption: ds_data/eval/playground-series-s4e9/valid.py
         :linenos:
@@ -434,7 +449,7 @@ By utilizing the **Kaggle Agent**, data scientists can craft innovative solution
 
       - The following shows a grading script based on the ``playground-series-s4e9`` data implementation.
 
-      .. literalinclude:: ../../rdagent/scenarios/data_science/example/ds_data/eval/playground-series-s4e9/grade.py
+      .. literalinclude:: ../../rdagent/scenarios/data_science/example/eval/playground-series-s4e9/grade.py
         :language: markdown
         :caption: ds_data/eval/playground-series-s4e9/grade.py
         :linenos:
@@ -463,181 +478,51 @@ By utilizing the **Kaggle Agent**, data scientists can craft innovative solution
                 ├── test.csv
                 └── train.csv
 
-
-
-
-
-
-
-
-
-
-
-- 📥 **Download Competition Data**
-
-  - Kaggle competition data, contains two parts: competition description file (json file or markdown file) and competition dataset (zip file).
-
-    - **How to get the competition dataset**
-
-      - The competition dataset is downloaded and extracted automatically when the program is run. If the zip file exists, the download will be skipped, if the unzip folder exists, the unzip will be skipped.
-
-    - **How to get the competition description file**
-
-      - The competition description file is downloaded automatically when the programme is run, and the download process relies on ``chromedriver``, which can be installed as follows:
-
-        .. code-block:: sh
-
-          # install chrome
-          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt install ./google-chrome-stable_current_amd64.deb
-          google-chrome --version
-          # install chromedriver
-          wget "https://storage.googleapis.com/chrome-for-testing-public/$(google-chrome --version | grep -oP '\d+\.\d+\.\d+\.\d+')/linux64/chromedriver-linux64.zip"
-          unzip chromedriver-linux64.zip
-          cd chromedriver-linux64
-          sudo mv chromedriver /usr/local/bin
-          sudo chmod +x /usr/local/bin/chromedriver
-          chromedriver --version
-
-    
-
-    - **Correct directory structure (Here is an example of competition data with id sf-crime)**
-
-      .. code-block:: text
-
-        kaggle_data
-        └── zip_files
-        | └── sf-crime.zip
-        ├── sample
-        | └── sf-crime
-        |   └── ...
-        ├── sf-crime.json
-        └── sf-crime
-          └── ...
-        
-      - ``kaggle_data/zip_files/sf-crime.zip:`` Competition dataset zip files downloaded from the Kaggle website.
-
-      - ``kaggle_data/sf-crime.json:`` Competition description file.
-
-      - ``kaggle_data/sf-crime:`` The target folder for unzipping the competition dataset. Complete dataset.
-
-      - ``kaggle_data/sample/sf-crime:`` Simplified dataset based on the complete dataset. Used to quickly verify that the code works.
-
-- 🚀 **Run the Application**
-
-  - You can directly run the application by using the following command:
+  - We have prepared a dataset based on the above description for your reference. You can download it with the following command.
 
     .. code-block:: sh
 
-        rdagent kaggle --competition <Competition ID>
+      wget https://github.com/SunsetWolf/rdagent_resource/releases/download/ds_data/playground-series-s4e9.zip
 
-- 📤 **Submit the Result Automatically or Manually**
-
-  - If Auto: You need to set ``KG_AUTO_SUBMIT`` to ``true`` in the ``.env`` file.
+  - Next, we need to configure the environment for the ``playground-series-s4e9`` contest. You can do this by executing the following command at the command line.
 
     .. code-block:: sh
 
-      dotenv set KG_AUTO_SUBMIT true
-  
-  - Else: You can download the prediction results from the UI interface and submit them manually. For more details, refer to the :doc:`UI guide <../ui>`.
+      dotenv set DS_IF_USING_MLE_DATA False
+      dotenv set DS_SAMPLE_DATA_BY_LLM False
+      dotenv set DS_SCEN rdagent.scenarios.data_science.scen.KaggleScen
 
+🚀 **Run the Application**
+""""""""""""""""""""""""""""""""""""
 
-
-
-- **Kaggle Agent**, as a subset of **data science**, can also be run via the **data science command**, like this:
-
-  .. code-block:: sh
-
-      rdagent data_science --competition <your competition name>
-
-  
-
-🔍 MLE-bench Guide: Running ML Engineering via MLE-bench
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-- 📝 **MLE-bench Overview**
-
-  - MLE-bench is a comprehensive benchmark designed to evaluate the ML engineering capabilities of AI systems using real-world scenarios. Since Kaggle does not provide held-out test sets for these competitions, the benchmark includes preparation scripts that split the publicly available training data into new training and test sets, and grading scripts are provided for each competition to accurately evaluate submission scores.
-
-    - You can see which competitions are supported in the `repo of mle-bench <https://github.com/openai/mle-bench/tree/main/mlebench/competitions>`_.
-
-- 🔧 **Set up Environment for MLE-bench**
-
-  - Running R&D-Agent on MLE-bench is designed for full automation. There is no need for manual downloads and data preparation. Simply set the environment variable ``DS_IF_USING_MLE_DATA`` to True.  
-
-  - At runtime, R&D-Agent will automatically build the Docker image specified at ``rdagent/scenarios/kaggle/docker/mle_bench_docker/Dockerfile``. This image is responsible for downloading the required datasets and grading files for MLE-bench.  
-  
-  - Note: The first run may take longer than subsequent runs as the Docker image and data are being downloaded and set up for the first time.
-
-    .. code-block:: sh
-
-        dotenv set DS_LOCAL_DATA_PATH <your local directory>/kaggle_data
-        dotenv set DS_IF_USING_MLE_DATA True
-
-- 🔨 **Configuring the Kaggle API**
-
-  - Downloading Kaggle competition data requires the Kaggle API. You can set up the Kaggle API by following these steps:
-  
-    - Register and login on the `Kaggle <https://www.kaggle.com/>`_ website.
-
-    - Click on the avatar (usually in the top right corner of the page) -> ``Settings`` -> ``Create New Token``, A file called ``kaggle.json`` will be downloaded.
-
-    - Move ``kaggle.json`` to ``~/.config/kaggle/``
-
-    - Modify the permissions of the ``kaggle.json`` file.
-
-      .. code-block:: sh
-
-        chmod 600 ~/.config/kaggle/kaggle.json
-
-  - For more information about Kaggle API Settings, refer to the `Kaggle API <https://github.com/Kaggle/kaggle-api>`_.
-
-
-- 🔩 **Setting the Environment Variables for MLE-bench**
-
-  - In addition to auto-downloading the benchmark data, you must also configure the runtime environment for executing the competition code.  
-  - Use the environment variable ``DS_CODER_COSTEER_ENV_TYPE`` to select the execution mode:
-    
-    • When set to docker (the default), RD-Agent utilizes the official Kaggle Docker image (``gcr.io/kaggle-gpu-images/python:latest``) to ensure that all required packages are available.  
-    • If you prefer to use a custom Docker setup, you can modify the configuration using ``DS_DOCKER_IMAGE`` or ``DS_DOCKERFILE_FOLDER_PATH``.  
-    • Alternatively, if your competition work only demands basic libraries, you may set ``DS_CODER_COSTEER_ENV_TYPE`` to conda. In this mode, you must create a local conda environment named “kaggle” and pre-install the necessary packages. RD-Agent will execute the competition code within this “kaggle” conda environment.
-
-    .. code-block:: sh
-
-      # Configure the runtime environment: choice between 'docker' (default) or 'conda'
-      dotenv set DS_CODER_COSTEER_ENV_TYPE docker
-
-- 🚀 **Run the Application**
-
-  - You can directly run the application by using the following command:
+  - 🌏 You can directly run the application by using the following command:
     
     .. code-block:: sh
 
         rdagent data_science --competition <Competition ID>
 
-- 📥 **Visualize the R&D Process**
+    - The following shows the command to run based on the ``playground-series-s4e9`` data
 
-  - We provide a web UI to visualize the log. You just need to run:
+      .. code-block:: sh
+
+          rdagent data_science --competition playground-series-s4e9
+
+  - 📈 Visualize the R&D Process
+
+    - We provide a web UI to visualize the log. You just need to run:
+
+      .. code-block:: sh
+
+          rdagent ui --port <custom port> --log_dir <your log folder like "log/"> --data_science True
+
+    - Then you can input the log path and visualize the R&D process.
+
+  - 🧪 Scoring the test results
+
+    - Finally, shutdown the program, and get the test set scores with this command.
 
     .. code-block:: sh
 
-        streamlit run rdagent/log/ui/dsapp.py
+      dotenv run -- python rdagent/log/mle_summary.py grade <url_to_log>
 
-  - Then you can input the log path and visualize the R&D process.
-
-- **Additional Guidance**
-
-  - **Combine different LLM Models at R&D Stage**
-
-    - You can combine different LLM models at the R&D stage. 
-
-    - By default, when you set environment variable ``CHAT_MODEL``, it covers both R&D stages. When customizing the model for the development stage, you can set:
-    
-    .. code-block:: sh
-
-      # This example sets the model to "o3-mini". For some models, the reasoning effort shoule be set to "None".
-      dotenv set LITELLM_CHAT_MODEL_MAP '{"coding":{"model":"o3-mini","reasoning_effort":"high"},"running":{"model":"o3-mini","reasoning_effort":"high"}}'
-
-
-
-
+    Here, <url_to_log> refers to the parent directory of the log folder generated during the run.
