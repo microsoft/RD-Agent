@@ -27,12 +27,18 @@ from rdagent.app.qlib_rd_loop.model import main as fin_model
 from rdagent.app.qlib_rd_loop.quant import main as fin_quant
 from rdagent.app.utils.health_check import health_check
 from rdagent.app.utils.info import collect_info
+from rdagent.log.mle_summary import grade_summary
 
 
-def ui(port=19899, log_dir="", debug=False):
+def ui(port=19899, log_dir="", debug=False, data_science=False):
     """
     start web app to show the log traces.
     """
+    if data_science:
+        with rpath("rdagent.log.ui", "dsapp.py") as app_path:
+            cmds = ["streamlit", "run", app_path, f"--server.port={port}"]
+            subprocess.run(cmds)
+        return
     with rpath("rdagent.log.ui", "app.py") as app_path:
         cmds = ["streamlit", "run", app_path, f"--server.port={port}"]
         if log_dir or debug:
@@ -63,6 +69,7 @@ def app():
             "health_check": health_check,
             "collect_info": collect_info,
             "data_science": data_science,
+            "grade_summary": grade_summary,
             "server_ui": server_ui,
         }
     )

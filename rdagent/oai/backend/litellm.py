@@ -1,5 +1,5 @@
 import copyreg
-from typing import Any, Literal, cast
+from typing import Any, Literal, Optional, Type, Union, cast
 
 import numpy as np
 from litellm import (
@@ -11,6 +11,7 @@ from litellm import (
     supports_response_schema,
     token_counter,
 )
+from pydantic import BaseModel
 
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
@@ -86,23 +87,24 @@ class LiteLLMAPIBackend(APIBackend):
     def _create_chat_completion_inner_function(  # type: ignore[no-untyped-def] # noqa: C901, PLR0912, PLR0915
         self,
         messages: list[dict[str, Any]],
-        json_mode: bool = False,
+        response_format: Optional[Union[dict, Type[BaseModel]]] = None,
         *args,
         **kwargs,
     ) -> tuple[str, str | None]:
         """
         Call the chat completion function
         """
-        if json_mode and supports_response_schema(model=LITELLM_SETTINGS.chat_model):
-            kwargs["response_format"] = {"type": "json_object"}
 
-        elif not supports_response_schema(model=LITELLM_SETTINGS.chat_model) and "response_format" in kwargs:
+        if response_format and not supports_response_schema(model=LITELLM_SETTINGS.chat_model):
             # Deepseek will enter this branch
             logger.warning(
-                f"{LogColors.RED}Model {LITELLM_SETTINGS.chat_model} does not support response schema, ignoring response_format argument.{LogColors.END}",
+                f"{LogColors.YELLOW}Model {LITELLM_SETTINGS.chat_model} does not support response schema, ignoring response_format argument.{LogColors.END}",
                 tag="llm_messages",
             )
-            kwargs.pop("response_format")
+            response_format = None
+
+        if response_format:
+            kwargs["response_format"] = response_format
 
         if LITELLM_SETTINGS.log_llm_chat_content:
             logger.info(self._build_log_messages(messages), tag="llm_messages")

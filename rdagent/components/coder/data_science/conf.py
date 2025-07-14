@@ -27,7 +27,8 @@ class DSCoderCoSTEERSettings(CoSTEERSettings):
 def get_ds_env(
     conf_type: Literal["kaggle", "mlebench"] = "kaggle",
     extra_volumes: dict = {},
-    running_timeout_period: int = DS_RD_SETTING.debug_timeout,
+    running_timeout_period: int | None = DS_RD_SETTING.debug_timeout,
+    enable_cache: bool | None = None,
 ) -> Env:
     """
     Retrieve the appropriate environment configuration based on the env_type setting.
@@ -52,8 +53,11 @@ def get_ds_env(
         )
     else:
         raise ValueError(f"Unknown env type: {conf.env_type}")
-    env.conf.extra_volumes = extra_volumes
+    env.conf.extra_volumes = extra_volumes.copy()
     env.conf.running_timeout_period = running_timeout_period
+    if enable_cache is not None:
+        env.conf.enable_cache = enable_cache
+    env.prepare()
     return env
 
 
@@ -63,7 +67,7 @@ def get_clear_ws_cmd(stage: Literal["before_training", "before_inference"] = "be
     """
     assert stage in ["before_training", "before_inference"], f"Unknown stage: {stage}"
     if DS_RD_SETTING.enable_model_dump and stage == "before_training":
-        cmd = "rm -r submission.csv scores.csv models"
+        cmd = "rm -r submission.csv scores.csv models trace.log"
     else:
-        cmd = "rm submission.csv scores.csv"
+        cmd = "rm submission.csv scores.csv trace.log"
     return cmd

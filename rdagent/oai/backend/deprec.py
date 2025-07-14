@@ -12,12 +12,13 @@ import urllib.request
 import uuid
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, Optional, Type, Union, cast
 
 import numpy as np
 import openai
 import tiktoken
 from openai.types.chat import ChatCompletion
+from pydantic import BaseModel
 
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass, import_class
 from rdagent.log import LogColors
@@ -294,7 +295,7 @@ class DeprecBackend(APIBackend):
     def _create_chat_completion_inner_function(  # type: ignore[no-untyped-def] # noqa: C901, PLR0912, PLR0915
         self,
         messages: list[dict[str, Any]],
-        json_mode: bool = False,
+        response_format: Optional[Union[dict, Type[BaseModel]]] = None,
         add_json_in_prompt: bool = False,
         *args,
         **kwargs,
@@ -414,13 +415,14 @@ class DeprecBackend(APIBackend):
                 frequency_penalty=frequency_penalty,
                 presence_penalty=presence_penalty,
             )
-            if json_mode:
-                if add_json_in_prompt:
-                    for message in messages[::-1]:
-                        message["content"] = message["content"] + "\nPlease respond in json format."
-                        if message["role"] == LLM_SETTINGS.system_prompt_role:
-                            # NOTE: assumption: systemprompt is always the first message
-                            break
+
+            # FIX what if the model does not support response_schema
+            if response_format == {"type": "json_object"} and add_json_in_prompt:
+                for message in messages[::-1]:
+                    message["content"] = message["content"] + "\nPlease respond in json format."
+                    if message["role"] == LLM_SETTINGS.system_prompt_role:
+                        # NOTE: assumption: systemprompt is always the first message
+                        break
                 call_kwargs["response_format"] = {"type": "json_object"}
             response = self.chat_client.chat.completions.create(**call_kwargs)
 

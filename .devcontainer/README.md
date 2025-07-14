@@ -28,3 +28,12 @@ export KAGGLE_KEY=
   1. Remotely connect to the machine and open the `RD-Agent` folder in VS Code.
   2. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac), type and select **"Dev Containers: Reopen in Container"**.
 
+
+
+# How to grade your submission in the DevContainer
+
+1. save your submission file in `./sumission.csv`
+
+2. Run evaluation
+DS_COMPETITION=<your competition name>
+conda run -n mlebench  mlebench grade-sample submission.csv $DS_COMPETITION --data-dir /tmp/kaggle/zip_files/
