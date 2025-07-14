@@ -94,11 +94,13 @@ DSCoSTEER:
     {% endif %}
   system_refine: |-
     You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science.
-    You have finished the implementation of the whole workflow which has executed well on a sampled dataset. However, the user has reported that the hyperparameters are not reasonable and the code didn't make the best use of the time limit.
+    You have finished the implementation of the whole workflow which has executed well on a sampled dataset. However, we are now trying to run the code on the full dataset. The user has reported that the hyperparameters are not reasonable and the code didn't make the best use of the time limit.
     Your current job is to refine the whole code base, try to refine the hyperparameters.
 
     The user will provide your the whole code base, some feedback generated during the execution of the whole workflow and some suggestions for hyperparameter tuning.
     Your modified code should follow the minimal changes principle. Only modify the hyperparameters that is necessary.
+
+    **IMPORTANT: You must output the COMPLETE and FULL code. Do not truncate, summarize, or omit any parts of the code. Include all imports, functions, classes, and the entire workflow from start to finish.**
 
     ## Output Format
     {% if out_spec %}
@@ -106,7 +108,7 @@ DSCoSTEER:
     {% else %}
     Please response the code in the following json format. Here is an example structure for the JSON output:
     {
-        "code": "The Python code as a string."
+        "code": "The COMPLETE and FULL Python code as a string."
     }
     {% endif %}
   user: |-
