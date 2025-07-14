@@ -10,7 +10,7 @@ app = typer.Typer(help="Run data-science environment commands.")
 
 
 @app.command()
-def run(competition: str, cmd: str, local_path: str = "./"):
+def run(competition: str, cmd: str, local_path: str = "./", mount_path: str | None = None):
     """
     Launch the data-science environment for a specific competition and run the
     provided command.
@@ -43,6 +43,9 @@ def run(competition: str, cmd: str, local_path: str = "./"):
         running_timeout_period=None,
         enable_cache=False,
     )
+
+    if mount_path is not None:
+        env.conf.mount_path = mount_path
 
     env.run(entry=cmd, local_path=local_path)
 
