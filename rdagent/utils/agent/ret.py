@@ -85,45 +85,20 @@ class PythonBatchEditOut(AgentOut):
         return code_blocks
 
 
-# TODO: complete the apply_patch() function by @Qizheng
 class PythonBatchPatchOut(AgentOut):
     @classmethod
     def get_spec(cls):
         return T(".tpl:PythonBatchPatchOut").r()
 
-    @classmethod
-    def apply_patch(cls, patch_text: str) -> str:
-        """
-        Apply patch text to filesystem using the apply_patch module.
-
-        Args:
-            patch_text: The patch text to apply
-
-        Returns:
-            Result message from patch application
-
-        Raises:
-            DiffError: If patch application fails
-        """
-        return apply_patch_from_text(patch_text)
 
     @classmethod
     def extract_output(cls, resp: str) -> str:
-        """
-        Extract patch content from the response.
-
-        Args:
-            resp: The raw response text containing patch
-
-        Returns:
-            The extracted patch text
-        """
-        # Extract patch content from markdown code block if present
-        patch_pattern = re.compile(r"```(?:diff|patch)?\n(.*?)\n```", re.DOTALL)
+        # Step 1: extract patch by pattern
+        patch_pattern = re.compile(r"(\*\*\* Begin Patch\s*(.*?)\s*\*\*\* End Patch)", re.DOTALL)
         match = patch_pattern.search(resp)
         if match:
-            # Remove trailing whitespace to avoid parsing errors
-            return match.group(1).rstrip()
+            resp = match.group(1).rstrip()
 
-        # If no code block found, return the response as-is
-        return resp
+        # Step 2: apply the patch, this will modify the file in place
+        # FIXME: this modify the code in place, so there is nothing to return
+        return apply_patch_from_text(resp)

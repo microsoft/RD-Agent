@@ -51,7 +51,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # Choose appropriate system prompt based on hyperparameter tuning decision
         task_information_str = target_task.get_task_information()
-        
+
         # Output Agent Map
         output_map = {
             True: (PythonBatchPatchOut.get_spec(), PythonBatchPatchOut.extract_output),
@@ -62,15 +62,15 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         if prev_task_feedback.hyperparameter_tuning_decision:
             # Use system_refine for hyperparameter tuning
             system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
-            out_spec=output_spec,
-            enable_runner_code_diff=DS_RD_SETTING.enable_runner_code_diff,
+                out_spec=output_spec,
+                enable_runner_code_diff=DS_RD_SETTING.enable_runner_code_diff,
             )
         else:
             # Use system_debugger for error fixing and debugging
             system_prompt = T(".prompts:DSCoSTEER.system_debugger").r(
-            task_desc=task_information_str,
-            out_spec=output_spec,
-            enable_runner_code_diff=DS_RD_SETTING.enable_runner_code_diff,
+                task_desc=task_information_str,
+                out_spec=output_spec,
+                enable_runner_code_diff=DS_RD_SETTING.enable_runner_code_diff,
             )
 
         # Generate user prompt for both cases
