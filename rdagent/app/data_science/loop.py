@@ -16,7 +16,8 @@ def main(
     step_n: int | None = None,
     loop_n: int | None = None,
     timeout: str | None = None,
-    competition="bms-molecular-translation",
+    competition: str | None = None,
+    dataset: str | None = None,
     replace_timer=True,
     exp_gen_cls: str | None = None,
 ):
@@ -43,6 +44,8 @@ def main(
         - If both step_n and loop_n are provided, the process will stop as soon as either condition is met.
     competition :
         Competition name.
+    dataset :
+        Dateset name, used for finetune.
     replace_timer :
         If a session is loaded, determines whether to replace the timer with session.timer.
     exp_gen_cls :
@@ -57,6 +60,10 @@ def main(
     """
     if competition is not None:
         DS_RD_SETTING.competition = competition
+
+    if dataset is not None:
+        DS_RD_SETTING.competition = dataset
+        DS_RD_SETTING.scen = "rdagent.scenarios.data_science.scen.LLMFinetuneScen"
 
     if not DS_RD_SETTING.competition:
         logger.error("Please specify competition name.")

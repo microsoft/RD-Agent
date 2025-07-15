@@ -462,11 +462,14 @@ class DSProposalV2ExpGen(ExpGen):
         self.supports_response_schema = APIBackend().supports_response_schema()
 
     def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
-        sys_prompt = T(".prompts_v2:scenario_problem.system").r(
-            problem_output_format=(
-                T(".prompts_v2:output_format.problem").r() if not self.supports_response_schema else None
-            ),
-        )
+        if self.scen.is_finetune:
+            sys_prompt = T(".prompts_v2:scenario_problem.finetune").r()
+        else:
+            sys_prompt = T(".prompts_v2:scenario_problem.system").r(
+                problem_output_format=(
+                    T(".prompts_v2:output_format.problem").r() if not self.supports_response_schema else None
+                ),
+            )
         user_prompt = T(".prompts_v2:scenario_problem.user").r(
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
@@ -729,12 +732,17 @@ class DSProposalV2ExpGen(ExpGen):
         else:
             component_info = get_component(hypotheses[0].component)
         data_folder_info = self.scen.processed_data_folder_description
-        sys_prompt = T(".prompts_v2:task_gen.system").r(
-            task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
-            # task_output_format=component_info["task_output_format"],
-            component_desc=component_desc,
-            workflow_check=not pipeline and hypotheses[0].component != "Workflow",
-        )
+        if self.scen.is_finetune:
+            sys_prompt = T(".prompts_v2:task_gen.finetune").r(
+                task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
+            )
+        else:
+            sys_prompt = T(".prompts_v2:task_gen.system").r(
+                task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
+                # task_output_format=component_info["task_output_format"],
+                component_desc=component_desc,
+                workflow_check=not pipeline and hypotheses[0].component != "Workflow",
+            )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,
             data_folder_info=data_folder_info,
@@ -882,6 +890,22 @@ class DSProposalV2ExpGen(ExpGen):
             )
 
         # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
+        if self.scen.is_finetune:
+            return self.task_gen(
+                component_desc=component_desc,
+                scenario_desc=scenario_desc,
+                sota_exp_desc=sota_exp_desc,
+                sota_exp=sota_exp,
+                hypotheses=[
+                    DSHypothesis(
+                        component="Model",
+                    )
+                ],
+                pipeline=pipeline,
+                failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
+                fb_to_sota_exp=fb_to_sota_exp,
+            )
+
         hypothesis_dict = self.hypothesis_gen(
             component_desc=component_desc,
             scenario_desc=scenario_desc,

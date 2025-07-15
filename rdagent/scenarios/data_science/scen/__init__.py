@@ -63,6 +63,10 @@ class DataScienceScen(Scenario):
             self._get_direction()
         )  # True indicates higher is better, False indicates lower is better
 
+    @property
+    def is_finetune(self):
+        return isinstance(self, LLMFinetuneScen)
+
     def reanalyze_competition_description(self):
         self.raw_description = self._get_description()
         self.processed_data_folder_description = self._get_data_folder_description()
@@ -208,6 +212,73 @@ class KaggleScen(DataScienceScen):
         return T(".prompts:rich_style_description").r(
             name="Kaggle",
             competition=f"[{self.competition}](https://www.kaggle.com/competitions/{self.competition})",
+        )
+
+
+class LLMFinetuneScen(DataScienceScen):
+    """LLMFinetuneScen Scenario"""
+
+    def __init__(self, competition: str) -> None:
+        self._download_data(competition=competition)
+        super().__init__(competition)
+        self.base_model = "Qwen3-1.7B-local"
+
+    def _download_data(self, competition: str):
+        """
+        Download dateset from Hugging Face Hub
+
+        Parameters
+        ----------
+        - competition (str): Dateset ID, like "shibing624/alpaca-zh".
+        """
+        save_path = f"{DS_RD_SETTING.local_data_path}/{competition}"
+        if Path(save_path).exists():
+            logger.info(f"{save_path} already exists.")
+        else:
+            logger.info(f"Downloading {competition} to {save_path}")
+            command = f"huggingface-cli download {competition} --repo-type dataset --local-dir {save_path}"
+            try:
+                import os
+
+                os.system(command)
+            except ImportError:
+                raise ImportError(
+                    "Please install huggingface-cli first. "
+                    'You can install it with `pip install -U "huggingface_hub[cli]"`.'
+                )
+
+    def _get_description(self):
+        if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}/README.md")).exists():
+            logger.info(f"{self.competition}/Found README.md, loading from local file.")
+            return fp.read_text()
+
+    def _get_direction(self):
+        return True
+
+    @property
+    def rich_style_description(self) -> str:
+        raise NotImplementedError
+
+    @property
+    def background(self) -> str:
+        background_template = T(".finetune:competition_background")
+        background_prompt = background_template.r(
+            base_model=self.base_model,
+            raw_description=self.raw_description,
+        )
+        return background_prompt
+
+    def get_competition_full_desc(self) -> str:
+        return T(".finetune:scenario_description").r(
+            raw_description=self.raw_description,
+        )
+
+    def get_scenario_all_desc(self, eda_output=None) -> str:
+        """
+        eda_output depends on dynamic .md files from current workspace, not fixed.
+        """
+        return T(".finetune:scenario_description").r(
+            raw_description=self.raw_description,
         )
 
 
