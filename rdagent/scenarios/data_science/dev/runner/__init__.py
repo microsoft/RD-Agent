@@ -31,7 +31,7 @@ class DSRunnerCoSTEERSettings(DSCoderCoSTEERSettings):
     class Config:
         env_prefix = "DS_Runner_CoSTEER_"
 
-    max_seconds: int = 3600
+    max_seconds: int = DS_RD_SETTING.full_timeout
     env_type: str = "docker"
     # TODO: extract a function for env and conf.
 
