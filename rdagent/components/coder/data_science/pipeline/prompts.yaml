@@ -76,30 +76,49 @@ pipeline_coder:
 
     {% if enable_debug_mode %}
     ## Debug Mode
-    Your code will be executed in a debug mode with following command: 
+    Your code will be executed in a debug mode to quickly test the correctness of the code with following command: 
     ```bash
     python main.py --debug
     ```
-    In debug mode, you should only sample ten percent of the training data and run the minimum epochs to quickly test the correctness of the code.
+    In debug mode, the timeout for your code is {{ debug_timeout }} seconds. You should set a reasonable maximum number of iterations for your debug run, so that the code can be completed within the timeout limit.
     In debug mode, you should implement a timer to measure the time taken for your debug configuration and estimate the time required for the full run.
-    For example, you can sample ten percent of the training data and run for one epoch, then the full run with ten epochs will take one hundred times the time taken for the debug run. The scale is calculated by yourself depending on the data sampling and epoch number you choose. If your full run enables early stopping, the scale should be smaller considering the early stopping will stop the training earlier than the full epochs.
-    You should sample the data after train valid split. When you split the data after sampling, you might get a class with only one sample which might cause the split strategy to fail.
-    Your debug code should run exactly the same as the full run, except for the data sampling and epoch number, to ensure the correctness of the code.
+    You may simply estimate the full time by ```estimated_time = debug_time * full_iter / max_iter```. If your full run enables early stopping, the scale should be smaller considering the early stopping will stop the training earlier than the full epochs.
+    
+    The number of debug iterations should only be applied to the model's training processes. 
+    Do NOT apply to unrelated parts of the code such as data loading, preprocessing, or inference.
+    Do NOT sample data in debug mode, always use the full data in the full run.
+    Your debug code should run exactly the same as the full run, except for the maximum iterations, to ensure the correctness of the code.
+    Iteration number should be small but reasonable like 100 or 1000, depending on the dataset size, model complexity, and time limit.
+    
     You should print total time and estimated time in standard output using print function in the following schema:
+    ```
     === Start of Debug Information ===
     debug_time: time_taken_for_debug_run_in_seconds (e.g., 'debug_time: 10.0')
     estimated_time: estimated_time_for_full_run_in_seconds (e.g., 'estimated_time: 100.0')
     === End of Debug Information ===
+    ```
     User will use the following code to match: re.search(r"(.*?)=== Start of Debug Information ===(.*)=== End of Debug Information ===", stdout, re.DOTALL).groups()[1]
-    Notice, data sampling should only be applied in debug mode. Always use the full data in the full run!
+    Notice, maximum number of iterations should only be applied in debug mode. 
     Example code:
     ```python
+    class BreakLoop(Exception): pass
     if args.debug:
-      sample_size = int(0.1 * len(train_dataset))  # 10% for debug
+      max_iter = N  # Set a number of iterations for debug mode based on the debug timeout
     else:
-      sample_size = len(train_dataset)
+      max_iter = len(train_loader) * all_epochs  # Use all iterations and all epochs in full run
+
+    iterations_count = 0
+    try:
+      for epoch in range(max_epochs):  
+        for data, target in train_loader:
+          # Your training code here
+          if args.debug and iterations_count >= max_iter:
+            raise BreakLoop  # Use a custom exception to break the loop in debug mode
+          iterations_count += 1
+    except BreakLoop:
+      pass
     ```
-    You should be very careful about the label classes number in the debug mode. The label classes should be the same as the full run even when you are in the debug mode. The label classes number is often used to build the model.
+    For those packages that are cannot fit to track iterations, you can train the model for a small number of epochs in debug mode, such as 1 epoch, to ensure the correctness of the code.
     {% endif %}
 
     ## General Guidelines
@@ -214,16 +233,12 @@ pipeline_eval:
     {% if debug_mode %}
     ### Step 4: Debug Mode Compliance
     - Goal: Ensure the code follows debug mode requirements.
-    - Guidlines:
+    - Guidelines:
       - Sufficient debugging information (print statements, clear error messages) should be included to facilitate automatic improvement processes.
       - The code should be executed in debug mode with the command `python main.py --debug`.
-      - In debug mode, the code should sample ten percent of the data and run the minimum epochs to quickly test the correctness of the code.
-      - Check whether the code follows these requirements. If not, emphasize it in your feedback and reject this implementation.
-      - Execution time and estimated time for the full run should be checked. Estimated time should not be too large to finish in the given time limit.
-      - Consider the early stopping mechanism in the code. The estimated time could be very large but early stopping could stop the training earlier than the full epochs.
-      - Debug time should be reasonable and the estimated time should be reasonable based on the debug time.
-      - Data sampling should only be applied in debug mode. Always use the full data in the full run.
-      - The label classes number should be the same as the full run even in debug mode.
+      - In debug mode, the code must limit the number of training iterations or epochs to ensure completion within the specified timeout (`{{ debug_timeout }}` seconds).
+      - The debug mode should only affect the training loop (not data loading, preprocessing, or inference).
+      - The debug run must use the full dataset (no sampling or subsetting), and the workflow should remain identical to the full run except for the iteration/epoch limit.
     - If the code passes this step: Finalize evaluation.
     - If the code does not pass this step: Clearly document the debug mode compliance issues and reject the implementation.
     {% endif %}
