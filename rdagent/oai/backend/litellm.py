@@ -40,15 +40,19 @@ class LiteLLMSettings(LLMSettings):
 
 
 LITELLM_SETTINGS = LiteLLMSettings()
-logger.info(f"{LITELLM_SETTINGS}")
-logger.log_object(LITELLM_SETTINGS.model_dump(), tag="LITELLM_SETTINGS")
 ACC_COST = 0.0
 
 
 class LiteLLMAPIBackend(APIBackend):
     """LiteLLM implementation of APIBackend interface"""
 
+    _has_logged_settings: bool = False
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        if not self.__class__._has_logged_settings:
+            logger.info(f"{LITELLM_SETTINGS}")
+            logger.log_object(LITELLM_SETTINGS.model_dump(), tag="LITELLM_SETTINGS")
+            self.__class__._has_logged_settings = True
         super().__init__(*args, **kwargs)
 
     def _calculate_token_from_messages(self, messages: list[dict[str, Any]]) -> int:
