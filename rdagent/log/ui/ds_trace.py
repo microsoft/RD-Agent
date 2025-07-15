@@ -14,6 +14,7 @@ from streamlit import session_state as state
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.storage import FileStorage
+from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.utils import curve_figure, load_times, trace_figure
 from rdagent.log.utils import (
     LogColors,
@@ -45,7 +46,6 @@ def convert_defaultdict_to_dict(d):
     return d
 
 
-@st.cache_data(persist=True)
 def load_data(log_path: Path):
     data = defaultdict(lambda: defaultdict(dict))
     llm_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -130,6 +130,10 @@ def load_data(log_path: Path):
         convert_defaultdict_to_dict(llm_data),
         convert_defaultdict_to_dict(token_costs),
     )
+
+
+if UI_SETTING.enable_cache:
+    load_data = st.cache_data(persist=True)(load_data)
 
 
 def load_stdout(stdout_path: Path):
