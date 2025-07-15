@@ -1,6 +1,7 @@
+import json
+
 import pandas as pd
 from sklearn.metrics import roc_auc_score
-import json
 
 
 def prepare_for_auroc_metric(submission: pd.DataFrame, answers: pd.DataFrame, id_col: str, target_col: str) -> dict:

@@ -1,8 +1,9 @@
+import shutil
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import sparse
-import shutil
-from pathlib import Path
 from tqdm import tqdm
 
 
