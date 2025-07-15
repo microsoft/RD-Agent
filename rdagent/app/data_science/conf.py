@@ -55,6 +55,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """Enable runner iteration for hyperparameter tuning. 
     When True and runner_max_loop > 1, runner will perform iterative hyperparameter tuning.
     When False, runner will only execute once regardless of runner_max_loop value."""
+    enable_runner_code_diff: bool = False 
 
     sample_data_by_LLM: bool = True
     use_raw_description: bool = False
