@@ -217,7 +217,7 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   
   os.environ["AZURE_API_KEY"] = "<your_azure_api_key>"
   os.environ["AZURE_API_BASE"] = "<your_azure_api_base>"
-  os.environ["AZURE_API_VERSION"] = ""
+  os.environ["AZURE_API_VERSION"] = "<version>"
   
   response = completion(
     "azure/<your_deployment_name>",
@@ -233,11 +233,11 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
     CHAT_MODEL=azure/<your_deployment_name>
     AZURE_API_BASE=https://<your_azure_base>.openai.azure.com/
     AZURE_API_KEY=<your_azure_api_key>
-    AZURE_API_VERSION=2023-12-01
+    AZURE_API_VERSION=<version>
   
     EMBEDDING_MODEL=<embedding_model>
     LITELLM_PROXY_API_KEY=<your_siliconflow_api_key>
-    LITELLM_PROXY_API_BASE=<your_siliconflow_api_base>
+    LITELLM_PROXY_API_BASE=https://api.siliconflow.cn/v1
   ```
 
 
