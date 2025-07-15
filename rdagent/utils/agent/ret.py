@@ -86,8 +86,8 @@ class PythonBatchEditOut(AgentOut):
 # TODO: complete the apply_patch() function by @Qizheng
 class PythonBatchPatchOut(AgentOut):
     @classmethod
-    def get_spec(cls, with_del=True):
-        return T(".tpl:PythonCodeDiffOut").r(with_del=with_del)
+    def get_spec(cls):
+        return T(".tpl:PythonBatchPatchOut").r()
 
     def apply_path():
         pass

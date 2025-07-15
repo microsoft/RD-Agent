@@ -93,42 +93,22 @@ DSCoSTEER_eval:
 DSCoSTEER:
   system_debugger: |-
     {% include "scenarios.data_science.share:scen.role" %}
-    You have finished the implementation of the whole workflow which has executed well on a sampled dataset. However, we are now trying to run the code on the full dataset. The user has reported that the workflow failed to execute on the full dataset.
-
-    Your current job is to debug the whole code base, try to correct the errors, and ensure that the workflow can execute successfully on the full dataset.
-    The user will provide your the whole code base and some feedback generated during the execution of the whole workflow. Please identify the issues and provide the corrected code.
-
-    **IMPORTANT: You must output the COMPLETE and FULL code. Do not truncate, summarize, or omit any parts of the code. Include all imports, functions, classes, and the entire workflow from start to finish.**
-
-    Task description:
-    {{ task_desc }}
-
-    Your modified code should follow the minimal changes principle. You should only modify the code that is necessary to fix the issues but not affect any other parts of the code. Try to correct as less files as possible since files are interdependent.
-
-    ## Output Format
-    {% if out_spec %}
-    {{ out_spec }}
-    {% else %}
-    Please response the code in the following json format. Here is an example structure for the JSON output:
-    {
-        "code": "The COMPLETE and FULL Python code as a string."
-    }
-    {% endif %}
-
-  system_refine: |-
-    {% include "scenarios.data_science.share:scen.role" %}
     You have finished the implementation of the whole workflow which has executed well on a sampled dataset. Now we are working on the full dataset.
-    The user has reported that the hyperparameters are not reasonable and the code didn't make the best use of the time limit.
+    The user has reported that the workflow failed to execute on the full dataset.
     Your will be provided with:
     1. Code base.
-    2. Feedback generated during the execution of the whole workflow.
-    3. Suggestions for hyperparameter tuning.
-    Your task is to refine the code base and modify the hyperparameters based on the feedback and suggestions.
+    2. Task description, which is the task the code is trying to solve.
+    3. Feedback generated during the execution of the whole workflow.
+    4. Suggestions for hyperparameter tuning.
+    Your job is to debug the whole code base, try to correct the errors, and ensure that the workflow can execute successfully on the full dataset.
 
-    ## Refinement Instructions
-    1. Minimal changes principle: only modify necessary hyperparameters based on the feedback and suggestions.
+    ## Task description
+    {{ task_desc }}
+
+    ## Instructions
+    1. Minimal changes principle: only modify the code that is necessary to fix the issues but not affect any other parts of the code. Try to correct as less files as possible since files are interdependent.
     {% if enable_runner_code_diff %}
-    2. You must output in Code Diff format.
+    2. You must output in Code Diff format. The detailed format specification is as follows.
     {% else %}
     2. You must output the COMPLETE and FULL code. Do not truncate, summarize, or omit any parts of the code. Include all imports, functions, classes, and the entire workflow from start to finish.
     {% endif %}
@@ -142,6 +122,35 @@ DSCoSTEER:
         "code": "The Python code as a string."
     }
     {% endif %}
+
+  system_refine: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    You have finished the implementation of the whole workflow which has executed well on a sampled dataset. Now we are working on the full dataset.
+    The user has reported that the hyperparameters are not reasonable and the code didn't make the best use of the time limit.
+    Your will be provided with:
+    1. Code base.
+    2. Feedback generated during the execution of the whole workflow.
+    3. Suggestions for hyperparameter tuning.
+    Your task is to refine the code base and modify the hyperparameters based on the feedback and suggestions.
+
+    ## Instructions
+    1. Minimal changes principle: only modify necessary hyperparameters based on the feedback and suggestions.
+    {% if enable_runner_code_diff %}
+    2. You must output in Code Diff format. The detailed format specification is as follows.
+    {% else %}
+    2. You must output the COMPLETE and FULL code. Do not truncate, summarize, or omit any parts of the code. Include all imports, functions, classes, and the entire workflow from start to finish.
+    {% endif %}
+
+    ## Output Format
+    {% if out_spec %}
+    {{ out_spec }}
+    {% else %}
+    Please response the code in the following JSON format without anything else.
+    {
+        "code": "The Python code as a string."
+    }
+    {% endif %}
+  
   user: |-
     # Code Base
     {{ code }}

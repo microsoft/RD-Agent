@@ -21,7 +21,7 @@ from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.runner.eval import DSCoSTEERCoSTEEREvaluator
-from rdagent.utils.agent.ret import PythonBatchEditOut
+from rdagent.utils.agent.ret import PythonBatchEditOut, PythonBatchPatchOut
 from rdagent.utils.agent.tpl import T
 
 
@@ -60,17 +60,26 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # Choose appropriate system prompt based on hyperparameter tuning decision
         task_information_str = target_task.get_task_information()
+        
+        # Output Agent Map
+        output_map = {
+            True: (PythonBatchPatchOut.get_spec(), PythonBatchPatchOut.extract_output),
+            False: (PythonBatchEditOut.get_spec(with_del=False), PythonBatchEditOut.extract_output),
+        }
+        output_spec, extract_output_fn = output_map[DS_RD_SETTING.enable_runner_code_diff]
 
         if prev_task_feedback.hyperparameter_tuning_decision:
             # Use system_refine for hyperparameter tuning
             system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
-                out_spec=PythonBatchEditOut.get_spec(with_del=False),
+            out_spec=output_spec,
+            enable_runner_code_diff=DS_RD_SETTING.enable_runner_code_diff,
             )
         else:
             # Use system_debugger for error fixing and debugging
             system_prompt = T(".prompts:DSCoSTEER.system_debugger").r(
-                task_desc=task_information_str,
-                out_spec=PythonBatchEditOut.get_spec(with_del=False),
+            task_desc=task_information_str,
+            out_spec=output_spec,
+            enable_runner_code_diff=DS_RD_SETTING.enable_runner_code_diff,
             )
 
         # Generate user prompt for both cases
@@ -80,7 +89,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             hyperparameter_tuning_suggestion=prev_task_feedback.hyperparameter_tuning_suggestion,
         )
 
-        batch_edit = PythonBatchEditOut.extract_output(
+        batch_edit = extract_output_fn(
             APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=user_prompt,
                 system_prompt=system_prompt,
