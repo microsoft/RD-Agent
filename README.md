@@ -225,20 +225,20 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   )
   ```
 
-Based on the above LiteLLM documentation, you can configure Azure as follows:
-
-```bash
-  cat << EOF  > .env
-
-  CHAT_MODEL=azure/<your_deployment_name>
-  AZURE_API_BASE=https://<your_azure_base>.openai.azure.com/
-  AZURE_API_KEY=<your_azure_api_key>
-  AZURE_API_VERSION=2023-12-01
-
-  EMBEDDING_MODEL=<embedding_model>
-  LITELLM_PROXY_API_KEY=<your_siliconflow_api_key>
-  LITELLM_PROXY_API_BASE=<your_siliconflow_api_base>
-```
+  Based on the above LiteLLM documentation, you can configure Azure as follows:
+  
+  ```bash
+    cat << EOF  > .env
+  
+    CHAT_MODEL=azure/<your_deployment_name>
+    AZURE_API_BASE=https://<your_azure_base>.openai.azure.com/
+    AZURE_API_KEY=<your_azure_api_key>
+    AZURE_API_VERSION=2023-12-01
+  
+    EMBEDDING_MODEL=<embedding_model>
+    LITELLM_PROXY_API_KEY=<your_siliconflow_api_key>
+    LITELLM_PROXY_API_BASE=<your_siliconflow_api_base>
+  ```
 
 
 
