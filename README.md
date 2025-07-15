@@ -208,7 +208,7 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   REASONING_THINK_RM=True
   ```
 
-  - You can also use a deprecated backend if you only use `OpenAI API` or `Azure OpenAI` directly. For this deprecated setting and more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html). When configuring additional options, refer to the [official LiteLLM documentation](https://docs.litellm.ai/docs) for configuring CHAT_MODEL based on the `response` model setting, and for API usage with `os.environ`.You can refer to the following Azure setup example from the official LiteLLM guide:
+  - You can also use a deprecated backend if you only use `OpenAI API` or `Azure OpenAI` directly. For this deprecated setting and more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html). When configuring additional options, refer to the [official LiteLLM documentation](https://docs.litellm.ai/docs) for configuring CHAT_MODEL based on the `response` model setting, and for API usage with `os.environ`.You can refer to the following Azure setup example:
 
   Python usage example on LiteLLM’s Azure documentation:
   ```python
