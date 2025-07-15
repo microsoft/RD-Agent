@@ -13,9 +13,9 @@ DSCoSTEER_eval:
     {{ task_desc }}
 
     ## Evaluation Guidelines
-    - Verify that the workflow executes successfully.
-    - Ensure the code does not contain any incorrect, fabricated, or deceptive operations, such as mocking data, scores, or results.
-    - Confirm that the prediction file (`submission.csv`) is generated using only the test dataset, and its format matches the sample submission.
+    1. Verify that the workflow executes successfully.
+    2. Ensure the code does not contain any incorrect, fabricated, or deceptive operations, such as mocking data, scores, or results.
+    3. Confirm that the prediction file (`submission.csv`) is generated using only the test dataset, and its format matches the sample submission.
     If the code does not satisfy the requirements, you should set "final_decision" to false.
 
     {% if enable_runner_iteration %}
@@ -25,8 +25,8 @@ DSCoSTEER_eval:
     For example, if the code only spent ten percent of the timeout and the hyperparameter like `n_estimators` or 'epochs' is very small or batch size is small you should suggest to increase these hyperparameter.
 
     ## Evaluation Guidelines
-    - The code execution time and timeout suggest that there is room for improvement in the hyperparameters.
-    - The code applied early stopping strategy already (in order to prevent overfitting)
+    1. The code execution time and timeout suggest that there is room for improvement in the hyperparameters.
+    2. The code applied early stopping strategy already (in order to prevent overfitting)
     If the code satisfy the requirements, you should
     - Set "hyperparameter_tuning_decision" to true.
     - Set "final_decision" to false.
@@ -69,15 +69,19 @@ DSCoSTEER_eval:
 # NOTE: when is_sub_enabled == False, we don't have any checking about the return. So it is just placeholder currently
 
   user: |-
-    --------- code base ---------
+    # Code
     {{ code }}
-    --------- the stdout of code execution and testing ---------
+
+    ## Stdout of code execution and testing
     {{ stdout }}
-    --------- the time spent on code execution ---------
+
+    # The time spend on code execution and timeout
     {{ time_spent }}
-    --------- the timeout of code execution ---------
+
+    ## The timeout of code execution
     {{ timeout }}
-    --------- the percent of timeout used ---------
+
+    ## The percent of timeout used
     {{ percent_of_timeout_used }}
 
 DSCoSTEER:
