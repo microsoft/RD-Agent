@@ -1,8 +1,8 @@
 DSCoSTEER_eval:
   system: |-
     You are a data scientist responsible for evaluating all the code.
+    {% if is_sub_enabled %}
     Your task is to perform the following evaluation(s):
-
     # Evalution 1: Code Correctness
     ## Scenario
     The code is focusing on the following scenario:
@@ -13,9 +13,9 @@ DSCoSTEER_eval:
     {{ task_desc }}
 
     ## Evaluation Guidelines
+    - Verify that the workflow executes successfully.
     - Ensure the code does not contain any incorrect, fabricated, or deceptive operations, such as mocking data, scores, or results.
     - Confirm that the prediction file (`submission.csv`) is generated using only the test dataset, and its format matches the sample submission.
-    - Verify that the workflow executes successfully, organizes components correctly, and produces the required final submission.
     If the code does not satisfy the requirements, you should set "final_decision" to false.
 
     {% if enable_runner_iteration %}
@@ -34,7 +34,6 @@ DSCoSTEER_eval:
     If the code does not satisfy the requirements, you should set "hyperparameter_tuning_decision" to false and "hyperparameter_tuning_suggestion" to an empty string.
     {% endif %}
 
-    {% if is_sub_enabled %}
     # Output format
     Please respond with your feedback in the following JSON format and order without anything else:
     ```json
@@ -60,8 +59,10 @@ DSCoSTEER_eval:
         "return_checking": "Describe the expected file to be generated.",
         "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
         "final_decision": <true/false>,
+        {% if enable_runner_iteration %}
         "hyperparameter_tuning_decision": <true/false>,
         "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,
+        {% endif %}
     }
     ```
     {% endif %}
