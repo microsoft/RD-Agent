@@ -132,49 +132,6 @@ feedback_problem:
     # Current SOTA Implementation
     {{ sota_exp_desc }}
 
-scenario_description: |-
-  {% if use_raw_description -%}
-  ====== Background ======
-  {{ raw_description }}
-
-  {% else %}
-  ====== Background ======
-  {{ background }}
-
-  {% if eda_output is not none %}The following is the output of the exploratory data analysis (EDA) performed on the dataset, You should carefully analyze it to better craft your feature engineering and model training strategies.
-  ====== Data Overview (EDA) ======
-  {{ eda_output }}
-  {% endif %}
-
-  ====== Submission Format ======
-  Please ensure your submission adheres to the following specifications:
-  {{ submission_specifications }}
-
-  ====== Important Guidelines ======
-  Before submitting your results, please note the following:
-  - We have numerous tests in place to check your code.
-  - Ensure your submission is genuine.
-  - Do not manipulate data or return values solely to pass preliminary tests, as this will not lead to successful final evaluation.
-
-  {% endif %}
-
-  ====== Evaluation ======
-  {% if not use_raw_description and metric_name %}
-  The primary evaluation metric for this task is: **{{ metric_name }}**.
-  {% endif %}
-  This metric is considered better when it is **{% if metric_direction %}larger{% else %}smaller{% endif %}**.
-
-  {% if evaluation is not none %}
-  Additional Evaluation Details:
-  {{ evaluation }}
-  {% endif %}
-
-  {% if time_limit %}
-  ====== Time Limit ======
-  Your code's execution is limited to **{{ time_limit }}**. After this time limit, your code will be terminated. But remember your main target is to achieve the best performance and you have several times to modify your code. So please be bold to make the best use of all the time limit and don't be too conservative.
-  During this time limit, you have all the resources available to you. Please fully leverage all the computational resources(CPUs and GPUs) to achieve the best performance like choose a powerful model, use a large batch size, enable data sampler with big parallel.
-  {% endif %}
-
 hypothesis_gen:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
@@ -381,22 +338,35 @@ task_gen:
     If you are confident in a specific value based on strong evidence, prior experiments, or clear rationale, specify the value clearly.
     {% include "scenarios.data_science.share:spec.hyperparameter" %}
 
+    
     {% if task_output_format is not none %}
-    ## [Partial Response Format 1] Task Output Format:
+
+    # Output Format
+
+    {% if not workflow_check %}
+
     {{ task_output_format }}
 
-    {% if workflow_check %}
-    # Step 2: Workflow Update
+    {% else %}
+
+    There are two steps in the task. But you should adhere to the final output format.
+
+    ## [Partial Response Format 1]
+    ### Step1: **Task Output Format** :
+    {{ task_output_format }}
+
+    ### Step 2: **Workflow Update** :
     Since components have dependencies, your second task is to update the workflow to reflect the changes made to the target component. Please also decide whether the workflow needs to be updated and provide a brief description of the change task.
     {{ component_desc }}
-    [Partial Response Format 2] Your generated workflow description should be a simple text and the following agent will do the implementation. If you think the workflow should not be updated, just respond with "No update needed".
-    {% endif %}
 
-    Your final output should strictly adhere to the following JSON format. 
+    ## [Partial Response Format 2] Your generated workflow description should be a simple text and the following agent will do the implementation. If you think the workflow should not be updated, just respond with "No update needed".
+
+    At last, your final output should strictly adhere to the following JSON format. 
     {
-      "task_design": ---The dict corresponding to task output format---,
-      {% if workflow_check %}"workflow_update": ---A string corresponding to workflow description--- {% endif %}
+      "task_design": a dict which strictly adheres to the **Task Output Format** in Step 1,
+      "workflow_update": "A string which is a precise and comprehensive description of the Workflow Update, or 'No update needed' if no changes are required."
     }
+    {% endif %}
     {% endif %}
     
   user: |-
@@ -565,5 +535,6 @@ output_format:
       "problem name 1 (should be exactly same as the problem name provided)": 1, # The index which is same to the idea index provided in the input and must be integer.
       "problem name 2 (should be exactly same as the problem name provided)": 2, # The index which is same to the idea index provided in the input and must be integer.
     }
+
 
 

@@ -31,7 +31,7 @@ class DSRunnerCoSTEERSettings(DSCoderCoSTEERSettings):
     class Config:
         env_prefix = "DS_Runner_CoSTEER_"
 
-    max_seconds: int = 3600
+    max_seconds: int = DS_RD_SETTING.full_timeout
     env_type: str = "docker"
     # TODO: extract a function for env and conf.
 
@@ -56,7 +56,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         else:
             task_information_str = target_task.get_task_information()
             # 1. code
-            system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
+            system_prompt = T(".prompts:DSCoSTEER.system_debugger").r(
                 task_desc=task_information_str,
                 out_spec=PythonBatchEditOut.get_spec(with_del=False),
             )

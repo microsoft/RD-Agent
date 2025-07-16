@@ -19,7 +19,7 @@ class DSCoderCoSTEERSettings(CoSTEERSettings):
     class Config:
         env_prefix = "DS_Coder_CoSTEER_"
 
-    max_seconds: int = 2400
+    max_seconds: int = DS_RD_SETTING.debug_timeout * 4
     env_type: str = "docker"
     # TODO: extract a function for env and conf.
 
@@ -27,7 +27,8 @@ class DSCoderCoSTEERSettings(CoSTEERSettings):
 def get_ds_env(
     conf_type: Literal["kaggle", "mlebench"] = "kaggle",
     extra_volumes: dict = {},
-    running_timeout_period: int = DS_RD_SETTING.debug_timeout,
+    running_timeout_period: int | None = DS_RD_SETTING.debug_timeout,
+    enable_cache: bool | None = None,
 ) -> Env:
     """
     Retrieve the appropriate environment configuration based on the env_type setting.
@@ -52,8 +53,10 @@ def get_ds_env(
         )
     else:
         raise ValueError(f"Unknown env type: {conf.env_type}")
-    env.conf.extra_volumes = extra_volumes
+    env.conf.extra_volumes = extra_volumes.copy()
     env.conf.running_timeout_period = running_timeout_period
+    if enable_cache is not None:
+        env.conf.enable_cache = enable_cache
     env.prepare()
     return env
 
