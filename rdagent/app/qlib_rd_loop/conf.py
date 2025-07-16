@@ -75,7 +75,7 @@ class QuantBasePropSetting(BasePropSetting):
     model_config = SettingsConfigDict(env_prefix="QLIB_QUANT_", protected_namespaces=())
 
     # 1) override base settings
-    scen: str = "rdagent.scenarios.qlib.experiment.quant_experiment.QlibQuantScenario"
+    scen: str = "rdagent.scenarios.qlib.experiment.factor_experiment.QlibFactorScenario"
     """Scenario class for Qlib Model"""
 
     quant_hypothesis_gen: str = "rdagent.scenarios.qlib.proposal.quant_proposal.QlibQuantHypothesisGen"

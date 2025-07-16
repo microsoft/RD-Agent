@@ -21,6 +21,8 @@ class QlibFactorExperiment(FactorExperiment[FactorTask, QlibFBWorkspace, FactorF
 
 
 class QlibFactorScenario(Scenario):
+    def get_runtime_environment(self) -> str:
+        return "python:3.10-slim, qlib"
     def __init__(self) -> None:
         super().__init__()
         self._background = deepcopy(T(".prompts:qlib_factor_background").r())
