@@ -1,6 +1,11 @@
+import os
 import socket
 
 import docker
+import fire
+import litellm
+from litellm import completion, embedding
+from litellm.utils import ModelResponse
 
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import cleanup_container
@@ -41,17 +46,6 @@ def check_and_list_free_ports(start_port=19899, max_ports=10) -> None:
         )
     else:
         logger.info(f"Port 19899 is not occupied, you can run the `rdagent ui` command")
-
-
-import os
-
-import fire
-import litellm
-from litellm import completion, embedding
-from litellm.utils import ModelResponse
-
-from rdagent.log import rdagent_logger as logger
-from rdagent.oai.backend.litellm import LITELLM_SETTINGS
 
 
 def test_chat(chat_model, chat_api_key, chat_api_base):
