@@ -208,37 +208,7 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   REASONING_THINK_RM=True
   ```
 
-  - You can also use a deprecated backend if you only use `OpenAI API` or `Azure OpenAI` directly. For this deprecated setting and more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html). When configuring additional options, refer to the [official LiteLLM documentation](https://docs.litellm.ai/docs) for configuring CHAT_MODEL based on the `response` model setting, and for API usage with `os.environ`.You can refer to the following Azure setup example:
-
-  Python usage example on LiteLLM’s Azure documentation:
-  ```python
-  from litellm import completion
-  import os
-  
-  os.environ["AZURE_API_KEY"] = "<your_azure_api_key>"
-  os.environ["AZURE_API_BASE"] = "<your_azure_api_base>"
-  os.environ["AZURE_API_VERSION"] = "<version>"
-  
-  response = completion(
-    "azure/<your_deployment_name>",
-    messages = [{ "content": "Hello, how are you?", "role": "user" }]
-  )
-  ```
-
-  Based on the above LiteLLM documentation, you can configure Azure as follows:
-  
-  ```bash
-    cat << EOF  > .env
-  
-    CHAT_MODEL=azure/<your_deployment_name>
-    AZURE_API_BASE=https://<your_azure_base>.openai.azure.com/
-    AZURE_API_KEY=<your_azure_api_key>
-    AZURE_API_VERSION=<version>
-  
-    EMBEDDING_MODEL=<embedding_model>
-    LITELLM_PROXY_API_KEY=<your_siliconflow_api_key>
-    LITELLM_PROXY_API_BASE=https://api.siliconflow.cn/v1
-  ```
+  - You can also use a deprecated backend if you only use `OpenAI API` or `Azure OpenAI` directly. For this deprecated setting and more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html). When configuring additional options, consult the [official LiteLLM documentation](https://docs.litellm.ai/docs) for guidance on configuring the CHAT\_MODEL based on the `response` model setting and for using the API with `os.environ`, similar to the example in the [LiteLLM Backend DeepSeek Configuration](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html#configuration-example-deepseek-setup).
 
 
 
