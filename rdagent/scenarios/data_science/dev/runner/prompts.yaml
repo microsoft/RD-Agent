@@ -8,7 +8,7 @@ DSCoSTEER_eval:
     The code is focusing on the following scenario:
     {{ scenario }}
 
-    ## Task Description
+    ## Target Task Description
     The code is focusing on the following task:
     {{ task_desc }}
 

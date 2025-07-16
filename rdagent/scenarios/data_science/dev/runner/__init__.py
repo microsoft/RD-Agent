@@ -49,9 +49,6 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             # if no prev_task_feedback, it is the first loop; we do not make any changes and goto evaluators directly.
             return {}
 
-        # Choose appropriate system prompt based on hyperparameter tuning decision
-        task_information_str = target_task.get_task_information()
-
         # Output Agent Map
         output_map = {
             True: (PythonBatchPatchOut.get_spec(), PythonBatchPatchOut.extract_output),
@@ -66,8 +63,9 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 enable_runner_code_diff=DS_RD_SETTING.enable_runner_code_diff,
             )
         else:
+            task_information_str = target_task.get_task_information()
             # Use system_debugger for error fixing and debugging
-            system_prompt = T(".prompts:DSCoSTEER.system_debugger").r(
+            system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
                 task_desc=task_information_str,
                 out_spec=output_spec,
                 enable_runner_code_diff=DS_RD_SETTING.enable_runner_code_diff,
