@@ -132,7 +132,11 @@ def env_check():
         logger.error(" One or more tests failed. Please check credentials or model support.")
 
 
-def health_check(check_env: bool = False):
+def health_check(
+    check_env: bool = True,
+    check_docker: bool = True,
+    check_ports: bool = True,
+):
     """
     Run the RD-Agent health check:
     - Check if Docker is available
@@ -140,10 +144,21 @@ def health_check(check_env: bool = False):
     - (Optional) Check that the API Key and model are configured correctly.
 
     Args:
-        check_env (bool): if True, performs API Key test; otherwise, performs local port and docker check only.
+        check_env (bool): Whether to check API Key and model configuration.
+        check_docker (bool): Checks if Docker is installed and running.
+        check_ports (bool): Whether to check if the default port (19899) is occupied.
     """
+    check_all = False
+
     if check_env:
+        check_all = True
         env_check()
-    else:
+    if check_docker:
+        check_all = True
         check_docker()
+    if check_ports:
+        check_all = True
         check_and_list_free_ports()
+
+    if not check_all:
+        logger.warning("⚠️ All health check items are disabled. Please enable at least one check.")
