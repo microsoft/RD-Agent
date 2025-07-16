@@ -1,10 +1,12 @@
-import fire
 import os
+
+import fire
 import litellm
-from litellm.utils import ModelResponse
 from litellm import completion, embedding
-from rdagent.oai.backend.litellm import LITELLM_SETTINGS
+from litellm.utils import ModelResponse
+
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.backend.litellm import LITELLM_SETTINGS
 
 
 def test_chat(chat_model, chat_api_key, chat_api_base):
