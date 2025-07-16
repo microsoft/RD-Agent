@@ -139,7 +139,7 @@ def health_check(check_env: bool = False):
     - Check that the default ports are not occupied
     - (Optional) Check that the API Key and model are configured correctly.
 
-    Args: 
+    Args:
         check_env (bool): if True, performs API Key test; otherwise, performs local port and docker check only.
     """
     if check_env:
