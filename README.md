@@ -227,7 +227,7 @@ More details can be found in the [development setup](https://rdagent.readthedocs
 - If your environment configuration is complete, please execute the following commands to check if your configuration is valid. This step is necessary.
 
   ```bash
-  rdagent env_check
+  rdagent health_check --check_env True
   ```
 
 ### 🚀 Run the Application
