@@ -40,9 +40,8 @@ scenario_description: |-
   During this time limit, you have all the resources available to you. Please fully leverage all the computational resources(CPUs and GPUs) to achieve the best performance like choose a powerful model, use a large batch size, enable data sampler with big parallel.
   {% if sample_data_by_LLM is not none and sample_data_by_LLM is true %}
   ====== Time Limit On Debug Mode Code Execution ======
-  Your are also required to include a debug mode in your code, the debug code's execution is limited to **{{ debug_time_limit }}**. You should set your debug parameters(eg. epoch number) accordingly to ensure your debug code can run within this time limit. 
-  {% endif %}
-  {% endif %}
+  Your are also required to include a debug mode in your code, the debug code's execution is limited to **{{ debug_time_limit }}**. You should make sure 10 percent of the data training one epoch can be finished within this time limit. If not, your should propose a new debug strategy in your task.
+  {% endif %}{% endif %}
 
 competition_description_template:
   system: |-
