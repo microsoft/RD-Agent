@@ -23,6 +23,7 @@ from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.runner.eval import DSCoSTEERCoSTEEREvaluator
 from rdagent.utils.agent.ret import PythonBatchEditOut, PythonBatchPatchOut
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.workflow import wait_retry
 
 
 class DSRunnerCoSTEERSettings(DSCoderCoSTEERSettings):
@@ -37,6 +38,7 @@ class DSRunnerCoSTEERSettings(DSCoderCoSTEERSettings):
 
 
 class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
+    @wait_retry(retry_n=5)
     def implement_one_task(
         self,
         target_task: CoSTEERTask,

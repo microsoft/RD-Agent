@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# The following code is modified from https://cookbook.openai.com/examples/gpt4-1_prompting_guide
 
 """
 A self-contained **pure-Python 3.9+** utility for applying human-readable
