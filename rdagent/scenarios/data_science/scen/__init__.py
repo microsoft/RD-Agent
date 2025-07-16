@@ -225,7 +225,6 @@ class LLMFinetuneScen(DataScienceScen):
     def __init__(self, competition: str) -> None:
         self._download_data(competition=competition)
         super().__init__(competition)
-        self.base_model = "Qwen3-1.7B-local"
 
     def _download_data(self, competition: str):
         """
@@ -267,7 +266,6 @@ class LLMFinetuneScen(DataScienceScen):
     def background(self) -> str:
         background_template = T(".finetune:competition_background")
         background_prompt = background_template.r(
-            base_model=self.base_model,
             raw_description=self.raw_description,
         )
         return background_prompt

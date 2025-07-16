@@ -739,11 +739,11 @@ class DSProposalV2ExpGen(ExpGen):
                 task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
             )
         else:
-          sys_prompt = T(".prompts_v2:task_gen.system").r(
-              task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
-              component_desc=component_desc,
-              workflow_check=workflow_check,
-          )
+            sys_prompt = T(".prompts_v2:task_gen.system").r(
+                task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
+                component_desc=component_desc,
+                workflow_check=workflow_check,
+            )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,
             data_folder_info=data_folder_info,

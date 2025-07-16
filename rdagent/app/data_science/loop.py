@@ -63,6 +63,7 @@ def main(
 
     if dataset is not None:
         DS_RD_SETTING.competition = dataset
+        # set finetune scenario
         DS_RD_SETTING.scen = "rdagent.scenarios.data_science.scen.LLMFinetuneScen"
 
     if not DS_RD_SETTING.competition:
@@ -70,11 +71,8 @@ def main(
 
     if workspace is not None:
         DS_RD_SETTING.previous_workspace_path = str(Path(workspace).absolute())
+        # model dump is neeeded
         DS_RD_SETTING.enable_model_dump = True
-        DS_RD_SETTING.sample_data_by_LLM = True
-        DS_RD_SETTING.coder_on_whole_pipeline = True
-        DS_RD_SETTING.coder_on_whole_pipeline = True
-        DS_CODER_COSTEER_ENV_TYPE = "conda"
 
     if path is None:
         kaggle_loop = DataScienceRDLoop(DS_RD_SETTING)
