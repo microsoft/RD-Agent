@@ -3,12 +3,11 @@ scenario_description: |-
   ------Background of the scenario------
   {{ raw_description }}
 
-  The evaluation metrics used is directed as:
-  The metric is better when it is {% if metric_direction %}bigger{% else %}smaller{% endif %}.
-
   {% else %}
-    ------Background of the scenario------
+  ------Background of the scenario------
   {{ background }}
+
+  {% endif %}
 
   ------ Guidelines for participating in the competition ----
   Before submitting your results, we have numerous tests ready to check your code. Please ensure your submission is genuine and do not manipulate data or return values just to pass the tests, as this will not lead to successful final results.
@@ -17,8 +16,7 @@ scenario_description: |-
   {{ submission_specifications }}
 
   ------The name of the evaluation metric used------
-  {{ metric_name }}
-  {% endif %}
+  `{{ metric_name }}`
 
   {% if time_limit %}------The time limit to your code------
   You code running is limit to {{ time_limit }}, after this time limit, your code will be terminated. But remember your main target is to achieve the best performance and you have several times to modify your code. So please be bold to make the best use of all the time limit and don't be too conservative.

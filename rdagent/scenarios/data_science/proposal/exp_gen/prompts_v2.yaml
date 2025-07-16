@@ -114,6 +114,7 @@ scenario_description: |-
   {% else %}
   ====== Background ======
   {{ background }}
+  {% endif %}
 
   {% if eda_output is not none %}The following is the output of the exploratory data analysis (EDA) performed on the dataset, You should carefully analyze it to better craft your feature engineering and model training strategies.
   ====== Data Overview (EDA) ======
@@ -130,10 +131,8 @@ scenario_description: |-
   - Ensure your submission is genuine.
   - Do not manipulate data or return values solely to pass preliminary tests, as this will not lead to successful final evaluation.
 
-  {% endif %}
-
   ====== Evaluation ======
-  {% if not use_raw_description and metric_name %}
+  {% if metric_name %}
   The primary evaluation metric for this task is: **{{ metric_name }}**.
   {% endif %}
   This metric is considered better when it is **{% if metric_direction %}larger{% else %}smaller{% endif %}**.

@@ -56,7 +56,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         else:
             task_information_str = target_task.get_task_information()
             # 1. code
-            system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
+            system_prompt = T(".prompts:DSCoSTEER.system_debugger").r(
                 task_desc=task_information_str,
                 out_spec=PythonBatchEditOut.get_spec(with_del=False),
             )
