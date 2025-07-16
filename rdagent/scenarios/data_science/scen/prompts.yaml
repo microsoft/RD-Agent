@@ -1,36 +1,47 @@
 scenario_description: |-
-  {% if use_raw_description %}
-  ------Background of the scenario------
+  {% if use_raw_description -%}
+  ====== Background of the scenario======
   {{ raw_description }}
 
   {% else %}
-  ------Background of the scenario------
+  ====== Background of the scenario======
   {{ background }}
-
   {% endif %}
 
-  ------ Guidelines for participating in the competition ----
-  Before submitting your results, we have numerous tests ready to check your code. Please ensure your submission is genuine and do not manipulate data or return values just to pass the tests, as this will not lead to successful final results.
+  {% if eda_output is not none %}The following is the output of the exploratory data analysis (EDA) performed on the dataset, You should carefully analyze it to better craft your feature engineering and model training strategies.
+  ====== Data Overview (EDA) ======
+  {{ eda_output }}
+  {% endif %}
 
-  ------The expected output & submission format specifications------
+  ====== Submission Format ======
+  Please ensure your submission adheres to the following specifications:
   {{ submission_specifications }}
 
-  ------The name of the evaluation metric used------
-  `{{ metric_name }}`
+  ====== Important Guidelines ======
+  Before submitting your results, please note the following:
+  - We have numerous tests in place to check your code.
+  - Ensure your submission is genuine.
+  - Do not manipulate data or return values solely to pass preliminary tests, as this will not lead to successful final evaluation.
 
-  {% if time_limit %}------The time limit to your code------
-  You code running is limit to {{ time_limit }}, after this time limit, your code will be terminated. But remember your main target is to achieve the best performance and you have several times to modify your code. So please be bold to make the best use of all the time limit and don't be too conservative.
-  During this time limit, you have all the resources available to you. Please fully leverage all the computational resources(CPUs and GPUs) to achieve the best performance like choose a powerful model, use a large batch size, enable data sampler with big parallel.
+  ====== Evaluation ======
+  {% if metric_name %}
+  The primary evaluation metric for this task is: **{{ metric_name }}**.
   {% endif %}
-  {% if evaluation is not none %}------Evaluation------
+  This metric is considered better when it is **{% if metric_direction %}larger{% else %}smaller{% endif %}**.
+
+  {% if evaluation is not none %}
+  Additional Evaluation Details:
   {{ evaluation }}
-
   {% endif %}
-  The evaluation metrics used is directed as:
-  The metric is better when it is {% if metric_direction %}bigger{% else %}smaller{% endif %}.
 
-  {% if eda_output is not none %}------Data Overview(EDA)------
-  {{ eda_output }}
+  {% if time_limit %}
+  ====== Time Limit On Full Code Execution ======
+  Your full code's execution is limited to **{{ time_limit }}**. After this time limit, your code will be terminated. But remember your main target is to achieve the best performance and you have several times to modify your code. So please be bold to make the best use of all the time limit and don't be too conservative.
+  During this time limit, you have all the resources available to you. Please fully leverage all the computational resources(CPUs and GPUs) to achieve the best performance like choose a powerful model, use a large batch size, enable data sampler with big parallel.
+  {% if sample_data_by_LLM is not none and sample_data_by_LLM is true %}
+  ====== Time Limit On Debug Mode Code Execution ======
+  Your are also required to include a debug mode in your code, the debug code's execution is limited to **{{ debug_time_limit }}**. You should set your debug parameters(eg. epoch number) accordingly to ensure your debug code can run within this time limit. 
+  {% endif %}
   {% endif %}
 
 competition_description_template:
