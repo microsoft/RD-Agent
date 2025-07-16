@@ -52,6 +52,12 @@ class Scenario(ABC):
         The scenario description varies based on the task being performed.
         """
 
+    @abstractmethod
+    def get_runtime_environment(self) -> str:
+        """
+        Get the runtime environment information
+        """
+
     @property
     def experiment_setting(self) -> str | None:
         """Get experiment setting and return as rich text string"""

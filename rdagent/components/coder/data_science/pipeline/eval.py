@@ -151,14 +151,14 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             eda_output = implementation.file_dict.get("EDA.md", None)
 
         system_prompt = T(".prompts:pipeline_eval.system").r(
-            scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
-            task_desc=target_task.get_task_information(),
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
-            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
             debug_mode=DS_RD_SETTING.sample_data_by_LLM,
         )
         user_prompt = T(".prompts:pipeline_eval.user").r(
+            scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
+            task_desc=target_task.get_task_information(),
             stdout=stdout.strip(),
+            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
             code=implementation.file_dict["main.py"],
         )
         wfb = build_cls_from_json_with_retry(

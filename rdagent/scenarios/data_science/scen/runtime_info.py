@@ -62,6 +62,8 @@ if __name__ == "__main__":
         "numpy",
         "scikit-learn",
         "scipy",
+        "xgboost",
+        "sklearn",
         "lightgbm",
         "vtk",
         "opencv-python",

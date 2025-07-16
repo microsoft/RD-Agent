@@ -69,7 +69,7 @@ You can learn more details about **RD-Agent(Q)** through the [paper](https://arx
 | [Technical Report Release](#overall-technical-report) | Overall framework description and results on MLE-bench | 
 | [R&D-Agent-Quant Release](#deep-application-in-diverse-scenarios) | Apply R&D-Agent to quant trading | 
 | MLE-Bench Results Released | R&D-Agent currently leads as the [top-performing machine learning engineering agent](#-the-best-machine-learning-engineering-agent) on MLE-bench |
-| Support LiteLLM Backend | We now fully support **[LiteLLM](https://github.com/BerriAI/litellm)** as a backend for integration with multiple LLM providers. |
+| Support LiteLLM Backend | We now fully support **[LiteLLM](https://github.com/BerriAI/litellm)** as our default backend for integration with multiple LLM providers. |
 | General Data Science Agent | [Data Science Agent](https://rdagent.readthedocs.io/en/latest/scens/data_science.html) |
 | Kaggle Scenario release | We release **[Kaggle Agent](https://rdagent.readthedocs.io/en/latest/scens/data_science.html)**, try the new features!                  |
 | Official WeChat group release  | We created a WeChat group, welcome to join! (🗪[QR Code](https://github.com/microsoft/RD-Agent/issues/880)) |
@@ -131,10 +131,22 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   ```
 
 ### 🛠️ Install the R&D-Agent
+
+#### For Users
 - You can directly install the R&D-Agent package from PyPI:
   ```sh
   pip install rdagent
   ```
+
+#### For Developers
+- If you want to try the latest version or contribute to RD-Agent, you can install it from the source and follow the development setup:
+  ```sh
+  git clone https://github.com/microsoft/RD-Agent
+  cd RD-Agent
+  make dev
+  ```
+
+More details can be found in the [development setup](https://rdagent.readthedocs.io/en/latest/development.html).
 
 ### 💊 Health check
 - rdagent provides a health check that currently checks two things.

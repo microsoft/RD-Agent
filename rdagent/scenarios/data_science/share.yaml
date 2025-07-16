@@ -321,7 +321,7 @@ component_spec:
 
 guidelines:
   coding: |-
-    You might receive exploratory data analysis (EDA) details about the source data. Do not use this EDA information to create assertions or raise errors. We might generate sample data for quick coding (so your code may run on sample data which is part of the full-size data), but remember that the EDA details are based on the full-size data.
+    You might receive exploratory data analysis (EDA) details about the source data. **Do not use this EDA information to create assertions, hard-coded values, or raise errors.** We might generate sample data for quick coding (so your code may run on sample data which is part of the full-size data), but remember that the EDA details are based on the full-size data.
 
 spec:
   hyperparameter: |-
@@ -340,3 +340,5 @@ spec:
         - The validation loss (or metric) reaches a predefined threshold indicating sufficient model performance.
         - The validation loss (or metric) remains stable (i.e., does not improve) for a set number of consecutive epochs.
       - Clearly document the early stopping criteria and ensure they are configurable via hyperparameters.
+    5. Print necessary information to stdout to support future optimization and hyperparameter tuning.
+      - If validation data are used, print the early stopping round/step, as well as the training and validation losses during training.

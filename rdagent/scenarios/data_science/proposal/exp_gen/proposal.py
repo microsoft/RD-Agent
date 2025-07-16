@@ -788,19 +788,6 @@ class DSProposalV2ExpGen(ExpGen):
             exp.pending_tasks_list.append([workflow_task])
         return exp
 
-    def get_scenario_all_desc(self, trace: DSTrace, eda_output=None) -> str:
-        return T(".prompts_v2:scenario_description").r(
-            background=trace.scen.background,
-            submission_specifications=trace.scen.submission_specifications,
-            evaluation=trace.scen.metric_description,
-            metric_name=trace.scen.metric_name,
-            metric_direction=trace.scen.metric_direction,
-            raw_description=trace.scen.raw_description,
-            use_raw_description=DS_RD_SETTING.use_raw_description,
-            time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
-            eda_output=eda_output,
-        )
-
     def get_all_hypotheses(self, problem_dict: dict, hypothesis_dict: dict) -> list[DSHypothesis]:
         result = []
         for name, data in hypothesis_dict.items():
@@ -844,7 +831,7 @@ class DSProposalV2ExpGen(ExpGen):
             eda_output = None
         else:
             eda_output = sota_exp.experiment_workspace.file_dict.get("EDA.md", None)
-        scenario_desc = self.get_scenario_all_desc(trace, eda_output=eda_output)
+        scenario_desc = self.scen.get_scenario_all_desc(eda_output=eda_output)
 
         sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
             exp=sota_exp, heading="Best of previous exploration of the scenario"
