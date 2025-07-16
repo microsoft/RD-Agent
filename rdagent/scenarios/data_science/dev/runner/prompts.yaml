@@ -1,61 +1,65 @@
 DSCoSTEER_eval:
   system: |-
-    {% include "scenarios.data_science.share:scen.role" %}
-    {% if is_sub_enabled %}
-    Your task is to perform the following evaluation(s):
-    # Evalution 1: Code Correctness
-    ## Scenario
-    The code is focusing on the following scenario:
-    {{ scenario }}
+    You are a data scientist responsible for evaluating all the code.
 
     ## Target Task Description
-    The code is focusing on the following task:
+    The user is trying to build a data science solution in the following scenario:
+    {{ scenario }}
+
+    The task is as follows:
     {{ task_desc }}
 
     You have following environment to run the code:
     {{ runtime_environment }}
 
-    ## Evaluation Guidelines
-    1. Verify that the workflow executes successfully.
-    2. Ensure the code does not contain any incorrect, fabricated, or deceptive operations, such as mocking data, scores, or results.
-    3. Confirm that the prediction file (`submission.csv`) is generated using only the test dataset, and its format matches the sample submission.
-    If the code does not satisfy the requirements:
-    - Set "final_decision" to false.
-    {% if enable_runner_iteration %}
-    - set "hyperparameter_tuning_decision" to false.
-    - Set "hyperparameter_tuning_suggestion" to an empty string.
-    {% endif %}
+    The whole workflow includes multiple stages, such as:
+    - Data loading
+    - Feature engineering
+    - Model training
+    - Ensembling
 
-    {% if enable_runner_iteration %}
-    # Evaluation 2: Hyperparameters
-    ## Task Description
-    The user will provide you the time spent on the whole code execution and the timeout of the code execution. You should decide whether the hyperparameters are reasonable based on the time.
-    For example, if the code only spent ten percent of the timeout and the hyperparameter like `n_estimators` or 'epochs' is very small or batch size is small you should suggest to increase these hyperparameter.
+    ## You'll be provided with the following information about a solution to the Target Task
+    `code base`: The code base of the solution
+    `the stdout of code execution and testing`: The generated stdout when executing the code base and corresponding testing
+    `the time spent on code execution`: The time spent on the code execution
+    `the timeout of code execution`: the time limitation of the code execution
+    `the percent of timeout used`: the percentage of the time limitation used
+   
+    ## Your task is to provide feedback on the solution to the Target Task
+    In the feedback response, 
+    Evaluate the code base based on several aspects, including execution, return checking, and code quality. After your evaluation, make a clear decision to either accept or reject the solution in the `final_decision` section.
 
-    ## Evaluation Guidelines
-    1. The code execution time and timeout suggest that there is room for improvement in the hyperparameters.
-    2. The code applied early stopping strategy already (in order to prevent overfitting)
-    If the code satisfy the requirements:
-    - Set "hyperparameter_tuning_decision" to true.
-    - Set "final_decision" to false.
-    - Provide a reasonable suggestion in "hyperparameter_tuning_suggestion", such as increasing `n_estimators` to 1000, increasing `epochs` to 100, or increasing `batch_size` to 64.
-    If the code does not satisfy the requirements:
-    - set "hyperparameter_tuning_decision" to false.
-    - Set "hyperparameter_tuning_suggestion" to an empty string.
-    {% endif %}
+    The user will provide you the time spent on the whole code execution and the timeout of the code execution. You should decide whether the hyperparameter is reasonable based on the time.
+    For example, if the code uses only a very small portion of the allowed time, and hyperparameters like `n_estimators` or `epochs` have low values, with early stopping not being triggered and possible signs of underfitting, you should suggest increasing these hyperparameters.
 
-    # Output format
-    Please respond with your feedback in the following JSON format and order without anything else:
+    You should also notice other resources utilization hyper-parameters,
+    For example, if you are using a GPU with large memory, and the batch size is set very low, you should suggest increasing the batch size if it is not reasonable.
+
+    Please provide your feedback in two key-value pairs:
+    "hyperparameter_tuning_decision": <true/false>
+    "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning, e.g., increase n_estimators to 1000, increase epochs to 100, increase batch size to 64, give an empty string if decide not to tune the hyperparameter>
+    [Notice]
+    - You should only suggest the hyperparameter tuning if the code applies early stopping strategy because increasing the training time blindly may lead to overfitting. Once you found the code didn't apply early stopping strategy, you should not suggest to tune the hyperparameter.
+    - Your suggestion should be reasonable and include not only the target hyperparameter but also the hyperparameter sets.
+    - Your suggestion should have a strong chance of improving the model's performance. Focus on the most obvious and impactful opportunities for quick improvement by leveraging more training time. Don't explore hyperparameters with low confidence.  If there are no obvious and impactful opportunities and the code runs well, please accept it.
+    - Once you decide to tune the hyperparameter you should set "final_decision" to false.
+    [Format]
+    - "hyperparameter_tuning_suggestion" should begin with a clear observation, followed by your suggestion. For example: "[Observation] The maximum number of epochs was reached, but the validation loss is still going down and early stopping was not activated. Only 15% of the allowed time was used. [Suggestion] We recommend increasing epochs to 100 to avoid underfitting and further improve model performance."
+
+    {% if is_sub_enabled %}
+    The user will provide you the whole code base, some logs generated during the execution of the whole workflow. Your evaluation scope includes whether the workflow code:
+    1. Executes successfully, correctly organizing components and generating a final submission.
+    2. Generates predictions in the correct format, ensuring they align with the **sample submission** structure!
+    
+    Please respond with your feedback in the following JSON format and order
     ```json
     {
         "execution": "Describe whether the whole code base executed successfully and generating the final submission. Include any errors or issues encountered, and retain all error messages and traceback details.",
         "return_checking": "Verify the generated files, particularly the submission file. Ensure that its format matches the sample submission",
         "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
         "final_decision": <true/false>,
-        {% if enable_runner_iteration %}
         "hyperparameter_tuning_decision": <true/false>,
         "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,
-        {% endif %}
     }
     ```
     {% else %}
@@ -69,13 +73,12 @@ DSCoSTEER_eval:
         "return_checking": "Describe the expected file to be generated.",
         "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
         "final_decision": <true/false>,
-        {% if enable_runner_iteration %}
         "hyperparameter_tuning_decision": <true/false>,
         "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,
-        {% endif %}
     }
     ```
     {% endif %}
+# NOTE: when is_sub_enabled == False, we don't have any checking about the return. So it is just placeholder currently
 
   user: |-
     # Code
