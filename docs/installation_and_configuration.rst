@@ -108,13 +108,14 @@ Besides, when you are using reasoning models, the response might include the tho
 For more details on LiteLLM requirements, refer to the `official LiteLLM documentation <https://docs.litellm.ai/docs>`_.
 
 
-Here’s a sample configuration specifically for Azure OpenAI, based on the `official LiteLLM documentation <https://docs.litellm.ai/docs>`\_:
+Here’s a sample configuration specifically for Azure OpenAI, based on the `official LiteLLM documentation <https://docs.litellm.ai/docs>`_:
 
 **Configuration Example: Azure OpenAI Setup (Based on LiteLLM Docs)**
 
-If you're using Azure OpenAI, below is a working example using the Python SDK, following the `official LiteLLM documentation <https://docs.litellm.ai/docs/providers/azure/>`\_:
+If you're using Azure OpenAI, below is a working example using the Python SDK, following the `official LiteLLM documentation <https://docs.litellm.ai/docs/providers/azure/>`_:
 
    .. code-block:: Properties
+
       from litellm import completion
       import os
       
@@ -132,6 +133,7 @@ If you're using Azure OpenAI, below is a working example using the Python SDK, f
 To align with the Python SDK example above, you can configure the `CHAT_MODEL` based on the `response` model setting and use the corresponding `os.environ` variables by writing them into your local `.env` file as follows:
 
    .. code-block:: Properties
+
       cat << EOF > .env
       # CHAT MODEL: Azure OpenAI via LiteLLM
       CHAT_MODEL=azure/<your_deployment_name>
