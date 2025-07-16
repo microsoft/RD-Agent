@@ -350,12 +350,34 @@ task_gen:
       - Double-check that validation scores are saved correctly to `scores.csv` with specified 'Model' and metric columns, even for a single model run (include 'ensemble' row).
     8. **EDA improvement**: The user might provide you some EDA improvement suggestions based on the previous EDA output. If so, you should also include the EDA improvement in your sketch.
 
+    # Guidelines for Ensemble Implementation
+      You must carefully allocate the training and runtime budget to ensure the **ensemble logic is well-executed and evaluated**, without compromising model performance.
+      ### 1. Core Principle
+      Your goal is not just to tune individual models, but to build an **effective ensemble**. Make design decisions that lead to **strong overall ensemble performance**, not just strong base models.
+      ### 2. Training-Time Resource Allocation
+      - You may use **multiple folds** if justified, but you must **ensure the full pipeline completes within runtime limits**.
+      - Avoid reducing base model quality just to save time. For example:
+        -  Freezing large parts of the model (e.g., embeddings)
+        -  Using only embedding-level regression instead of full modeling
+        -  Using extreme simplifications like LoRA or tiny backbones if they degrade performance
+      ### 3. Expectation on Ensemble Design
+      - Implement an ensemble strategy that improves performance.
+        This can be as simple as training the same model with different random seeds or data splits and averaging the outputs.
+        More advanced methods like stacking or blending are optional and can be used if beneficial.
+        Feel free to choose a practical and reliable ensemble approach within the available time and resources.
+      - Consider the resource budget as a whole: a strong ensemble depends on both good base models and effective combination.
+      ### 4. Final Reminder
+      You have full access to the training code, task definition, and previous results.
+      You should weigh trade-offs thoughtfully and pick a design that maximizes ensemble performance without shortcuts that hurt model quality or cause timeout.
+      - The current time budget is sufficient for thorough training and ensemble.
+      - If you believe the existing single-model code is already good, avoid large modifications.
+      - Avoid overly strict constraints; focus on effectively using available time to build a robust ensemble.
+      
     # Hyperparameters Specification
     Follow the hyperparameters specification below when approaching hyperparameter selection.
     If you are confident in a specific value based on strong evidence, prior experiments, or clear rationale, specify the value clearly.
     {% include "scenarios.data_science.share:spec.hyperparameter" %}
 
-    
     {% if task_output_format is not none %}
 
     # Output Format
@@ -386,6 +408,10 @@ task_gen:
     {% endif %}
     {% endif %}
     
+
+
+
+
   user: |-
     # Competition Scenario Description
     {{ scenario_desc }}
