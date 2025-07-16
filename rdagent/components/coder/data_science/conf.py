@@ -19,7 +19,7 @@ class DSCoderCoSTEERSettings(CoSTEERSettings):
     class Config:
         env_prefix = "DS_Coder_CoSTEER_"
 
-    max_seconds: int = 2400
+    max_seconds: int = DS_RD_SETTING.debug_timeout * 4
     env_type: str = "docker"
     # TODO: extract a function for env and conf.
 

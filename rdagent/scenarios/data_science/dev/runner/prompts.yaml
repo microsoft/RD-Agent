@@ -12,6 +12,9 @@ DSCoSTEER_eval:
     The code is focusing on the following task:
     {{ task_desc }}
 
+    You have following environment to run the code:
+    {{ runtime_environment }}
+
     ## Evaluation Guidelines
     1. Verify that the workflow executes successfully.
     2. Ensure the code does not contain any incorrect, fabricated, or deceptive operations, such as mocking data, scores, or results.

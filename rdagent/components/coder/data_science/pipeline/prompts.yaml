@@ -82,6 +82,7 @@ pipeline_coder:
     ```
     In debug mode, you should only sample ten percent of the training data and run the minimum epochs to quickly test the correctness of the code.
     In debug mode, you should implement a timer to measure the time taken for your debug configuration and estimate the time required for the full run.
+    In debug mode, your code should run faster, so the environment will set a shorter time limit than the standard time limit for your code.
     For example, you can sample ten percent of the training data and run for one epoch, then the full run with ten epochs will take one hundred times the time taken for the debug run. The scale is calculated by yourself depending on the data sampling and epoch number you choose. If your full run enables early stopping, the scale should be smaller considering the early stopping will stop the training earlier than the full epochs.
     You should sample the data after train valid split. When you split the data after sampling, you might get a class with only one sample which might cause the split strategy to fail.
     Your debug code should run exactly the same as the full run, except for the data sampling and epoch number, to ensure the correctness of the code.
@@ -133,7 +134,9 @@ pipeline_coder:
     
     {% if latest_code %}
     # Former code
+    ```
     {{ latest_code }}
+    ```
     {% if latest_code_feedback is not none %}
     ## Feedback to former code
     {{ latest_code_feedback }}
@@ -270,7 +273,11 @@ pipeline_eval:
     {{ spec }}
 
     # Code
+    ```
     {{ code }}
+    ```
 
     ## Execution Output
+    ```
     {{ stdout }}
+    ```
