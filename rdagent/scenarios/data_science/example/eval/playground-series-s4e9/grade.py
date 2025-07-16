@@ -1,3 +1,4 @@
+import datetime
 import json
 
 import numpy as np
@@ -41,8 +42,6 @@ def prepare_for_metric(submission: pd.DataFrame, answers: pd.DataFrame) -> dict:
 def grade(submission: pd.DataFrame, answers: pd.DataFrame) -> float:
     metric_inputs = prepare_for_metric(submission, answers)
     return np.sqrt(mean_squared_error(metric_inputs["y_true"], metric_inputs["y_score"]))
-    # metric_inputs = prepare_for_metric(submission, answers)
-    # return mean_absolute_error(metric_inputs["y_true"], metric_inputs["y_score"])
 
 
 if __name__ == "__main__":
@@ -52,12 +51,37 @@ if __name__ == "__main__":
     answers = pd.read_csv(gt_submission_path)
     score = grade(submission=submission, answers=answers)
 
-    # must json,
+    # This `thresholds` can be customized according to the leaderboard page of the Kaggle website and your own needs.
+    # Refs: https://www.kaggle.com/competitions/playground-series-s4e9/leaderboard
+    thresholds = {
+        "gold": 62917.05988,
+        "silver": 62945.91714,
+        "bronze": 62958.13747,
+        "median": 63028.69429,
+    }
+
+    # The output must be in json format. To configure the full output,
+    # you can run the command `rdagent grade_summary --log_folder` to summarize the scores at the end of the program.
+    # If you don't need it, you can just provide the `competition_id`` and `score``.
     print(
         json.dumps(
             {
-                "competition_id": "playground-series-s4e9",
+                "competition_id": "arf-12-hours-prediction-task",
                 "score": score,
+                "gold_threshold": thresholds["gold"],
+                "silver_threshold": thresholds["silver"],
+                "bronze_threshold": thresholds["bronze"],
+                "median_threshold": thresholds["median"],
+                "any_medal": bool(score >= thresholds["bronze"]),
+                "gold_medal": bool(score >= thresholds["gold"]),
+                "silver_medal": bool(score >= thresholds["silver"]),
+                "bronze_medal": bool(score >= thresholds["bronze"]),
+                "above_median": bool(score >= thresholds["median"]),
+                "submission_exists": True,
+                "valid_submission": True,
+                "is_lower_better": False,
+                "created_at": str(datetime.datetime.now().isoformat()),
+                "submission_path": submission_path,
             }
         )
     )

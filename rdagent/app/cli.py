@@ -27,6 +27,7 @@ from rdagent.app.qlib_rd_loop.model import main as fin_model
 from rdagent.app.qlib_rd_loop.quant import main as fin_quant
 from rdagent.app.utils.health_check import health_check
 from rdagent.app.utils.info import collect_info
+from rdagent.app.utils.env_check import main as env_check
 from rdagent.log.mle_summary import grade_summary
 
 
@@ -71,5 +72,6 @@ def app():
             "data_science": data_science,
             "grade_summary": grade_summary,
             "server_ui": server_ui,
+            "env_check": env_check,
         }
     )

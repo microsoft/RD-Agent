@@ -224,6 +224,12 @@ More details can be found in the [development setup](https://rdagent.readthedocs
 
 - You can also use a deprecated backend if you only use `OpenAI API` or `Azure OpenAI` directly. For this deprecated setting and more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html).
 
+- If your environment configuration is complete, please execute the following commands to check if your configuration is valid. This step is necessary.
+
+  ```bash
+  rdagent env_check
+  ```
+
 ### 🚀 Run the Application
 
 The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented by the following commands(each item represents one demo, you can select the one you prefer):

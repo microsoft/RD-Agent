@@ -329,9 +329,9 @@ By utilizing the **Kaggle Agent**, data scientists can craft innovative solution
 📥 Preparing Competition DataDataset && Set up RD-Agent Environment
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-- As a subset of data science, kaggle's dataset still follows the data science format. Based on this, the kaggle dataset can be divided into two categories depending on whether or not it is supported by the mle-bench.- What is **MLE-Bench**?
+- As a subset of data science, kaggle's dataset still follows the data science format. Based on this, the kaggle dataset can be divided into two categories depending on whether or not it is supported by the **MLE-Bench**.
 
-  - What is MLE-Bench?
+  - What is **MLE-Bench**?
 
     - **MLE-Bench** is a comprehensive benchmark designed to evaluate the **machine learning engineering** capabilities of AI systems using real-world scenarios. The dataset includes multiple Kaggle competitions. Since Kaggle does not provide reserved test sets for these competitions, the benchmark includes preparation scripts for splitting publicly available training data into new training and test sets, and scoring scripts for each competition to accurately evaluate submission scores.
 
@@ -496,7 +496,7 @@ By utilizing the **Kaggle Agent**, data scientists can craft innovative solution
 """"""""""""""""""""""""""""""""""""
 
   - 🌏 You can directly run the application by using the following command:
-    
+
     .. code-block:: sh
 
         rdagent data_science --competition <Competition ID>
@@ -524,5 +524,11 @@ By utilizing the **Kaggle Agent**, data scientists can craft innovative solution
     .. code-block:: sh
 
       dotenv run -- python rdagent/log/mle_summary.py grade <url_to_log>
+
+    - If you have configured the full output in ``ds_data/eval/playground-series-s4e9/grade.py``, or if you are running a competition that receives **MLE-Bench** support, you can also summarize the scores by running the following command.
+
+    .. code-block:: sh
+
+      rdagent grade_summary --log_folder=<url_to_log>
 
     Here, <url_to_log> refers to the parent directory of the log folder generated during the run.
