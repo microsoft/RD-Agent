@@ -234,7 +234,6 @@ class Env(Generic[ASpecificEnvConf]):
                         f"The running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
                     )
                     log_output += f"\n\nThe running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
-                log_output += f"\nTotal running time: {end - start:.3f} seconds."
                 return EnvResult(log_output, return_code, end - start)
             except Exception as e:
                 if retry_index == self.conf.retry_count:
