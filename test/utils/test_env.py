@@ -22,7 +22,7 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 class QlibLocalEnv(LocalEnv):
     def prepare(self) -> None:
         if not (Path("~/.qlib/qlib_data/cn_data").expanduser().resolve().exists()):
-            self.run(
+            self.check_output(
                 entry="python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn",
             )
         else:
@@ -48,7 +48,7 @@ class EnvUtils(unittest.TestCase):
         qle = QlibLocalEnv(conf=local_conf)
         qle.prepare()
         conf_path = str(DIRNAME / "env_tpl" / "conf.yaml")
-        qle.run(entry="qrun " + conf_path)
+        qle.check_output(entry="qrun " + conf_path)
         mlrun_p = DIRNAME / "env_tpl" / "mlruns"
         self.assertTrue(mlrun_p.exists(), f"Expected output file {mlrun_p} not found")
 
@@ -63,8 +63,8 @@ class EnvUtils(unittest.TestCase):
         print(local_conf)
         le = LocalEnv(conf=local_conf)
         le.prepare()
-        res, code = le.run_ret_code(local_path=str(code_path))
-        print(res, code)
+        result = le.run(local_path=str(code_path))
+        print(result.stdout, result.exit_code, result.running_time)
 
     def test_conda_simple(self):
         conda_conf = CondaConf(default_entry="which python", conda_env_name="MLE")
@@ -72,8 +72,8 @@ class EnvUtils(unittest.TestCase):
         le.prepare()
         code_path = DIRNAME / "tmp_code"
         code_path.mkdir(exist_ok=True)
-        res, code = le.run_ret_code(local_path=str(code_path))
-        print(res, code)
+        result = le.run(local_path=str(code_path))
+        print(result.stdout, result.exit_code, result.running_time)
 
     def test_conda_error(self):
         conda_conf = CondaConf(conda_env_name="MLE")
@@ -82,9 +82,9 @@ class EnvUtils(unittest.TestCase):
         file_name = f"{time.time()}.py"
         with open(self.test_workspace / file_name, "w") as f:
             f.write('import json \njson.loads(b\'{"name": "\xa1"}\')')
-        res, code = le.run_ret_code(local_path=str(self.test_workspace), entry=f"python {file_name}")
-        assert code == 1
-        assert "bytes can only contain ASCII literal characters" in res
+        result = le.run(local_path=str(self.test_workspace), entry=f"python {file_name}")
+        assert result.exit_code == 1
+        assert "bytes can only contain ASCII literal characters" in result.stdout
 
     def test_docker(self):
         """We will mount `env_tpl` into the docker image.
@@ -94,49 +94,49 @@ class EnvUtils(unittest.TestCase):
         qtde.prepare()  # you can prepare for multiple times. It is expected to handle it correctly
         # qtde.run("nvidia-smi")  # NOTE: you can check your GPU with this command
         # the stdout are returned as result
-        result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="qrun conf.yaml")
+        result = qtde.check_output(local_path=str(DIRNAME / "env_tpl"), entry="qrun conf.yaml")
 
         mlrun_p = DIRNAME / "env_tpl" / "mlruns"
         self.assertTrue(mlrun_p.exists(), f"Expected output file {mlrun_p} not found")
 
         # read experiment
-        result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="python read_exp_res.py")
+        result = qtde.check_output(local_path=str(DIRNAME / "env_tpl"), entry="python read_exp_res.py")
         print(result)
 
-    def test_run_ret_code(self):
-        """Test the run_ret_code method of QTDockerEnv with both valid and invalid commands."""
+    def test_run(self):
+        """Test the run method of QTDockerEnv with both valid and invalid commands."""
         qtde = QTDockerEnv()
         qtde.prepare()
 
         # Test with a valid command
-        result, return_code = qtde.run_ret_code(entry='echo "Hello, World!"', local_path=str(self.test_workspace))
-        print(return_code)
-        assert return_code == 0, f"Expected return code 0, but got {return_code}"
-        assert "Hello, World!" in result, "Expected output not found in result"
+        result = qtde.run(entry='echo "Hello, World!"', local_path=str(self.test_workspace))
+        print(result.exit_code)
+        assert result.exit_code == 0, f"Expected return code 0, but got {result.exit_code}"
+        assert "Hello, World!" in result.stdout, "Expected output not found in result"
 
         # Test with an invalid command
-        _, return_code = qtde.run_ret_code(entry="invalid_command", local_path=str(self.test_workspace))
-        print(return_code)
-        assert return_code != 0, "Expected non-zero return code for invalid command"
+        result = qtde.run(entry="invalid_command", local_path=str(self.test_workspace))
+        print(result.exit_code)
+        assert result.exit_code != 0, "Expected non-zero return code for invalid command"
 
         dc = QlibDockerConf()
         dc.running_timeout_period = 1
         qtde = QTDockerEnv(dc)
-        result, return_code = qtde.run_ret_code(entry="sleep 2", local_path=str(self.test_workspace))
-        print(result)
-        assert return_code == 124, "Expected return code 124 for timeout"
+        result = qtde.run(entry="sleep 2", local_path=str(self.test_workspace))
+        print(result.exit_code)
+        assert result.exit_code == 124, "Expected return code 124 for timeout"
 
     def test_docker_mem(self):
         cmd = 'python -c \'print("start"); import numpy as np;  size_mb = 500; size = size_mb * 1024 * 1024 // 8; array = np.random.randn(size).astype(np.float64); print("success")\''
 
         qtde = QTDockerEnv(QlibDockerConf(mem_limit="10m"))
         qtde.prepare()
-        result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry=cmd)
+        result = qtde.check_output(local_path=str(DIRNAME / "env_tpl"), entry=cmd)
         self.assertTrue(not result.strip().endswith("success"))
 
         qtde = QTDockerEnv(QlibDockerConf(mem_limit="1g"))
         qtde.prepare()
-        result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry=cmd)
+        result = qtde.check_output(local_path=str(DIRNAME / "env_tpl"), entry=cmd)
         self.assertTrue(result.strip().endswith("success"))
 
         # The above command equals to the follow commands with dockr cli.sh

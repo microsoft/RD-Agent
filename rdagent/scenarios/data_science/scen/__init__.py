@@ -10,10 +10,7 @@ from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.debug.data import create_debug_data
-from rdagent.scenarios.data_science.scen.utils import (
-    describe_data_folder,
-    describe_data_folder_v2,
-)
+from rdagent.scenarios.data_science.scen.utils import describe_data_folder_v2
 from rdagent.scenarios.kaggle.kaggle_crawler import (
     crawl_descriptions,
     download_data,
@@ -33,7 +30,7 @@ class DataScienceScen(Scenario):
             raise FileNotFoundError(f"Cannot find {competition} in {DS_RD_SETTING.local_data_path}")
 
         local_path = DS_RD_SETTING.local_data_path
-        if DS_RD_SETTING.sample_data:
+        if not DS_RD_SETTING.sample_data_by_LLM:
             self.debug_path = f"{local_path}/sample/{competition}"
             if not Path(self.debug_path).exists():
                 sample_py_path = Path(local_path) / competition / "sample.py"
@@ -167,7 +164,7 @@ class DataScienceScen(Scenario):
         # TODO:  add it into base class.  Environment should(i.e. `DSDockerConf`) should be part of the scenario class.
         env = get_ds_env()
         implementation = FBWorkspace()
-        fname = "temp.py"
+        fname = "runtime_info.py"
         implementation.inject_files(
             **{fname: (Path(__file__).absolute().resolve().parent / "runtime_info.py").read_text()}
         )

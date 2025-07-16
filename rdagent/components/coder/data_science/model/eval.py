@@ -67,7 +67,9 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 (DIRNAME / "eval_tests" / "model_test.txt").read_text().replace("model01", target_task.name)
             )  # only check the model changed this time
             implementation.inject_files(**{fname: test_code})
-            stdout, ret_code = implementation.execute_ret_code(env=env, entry=f"python {fname}")
+            result = implementation.run(env=env, entry=f"python {fname}")
+            stdout = result.stdout
+            ret_code = result.exit_code
 
             if stdout is None:
                 raise CoderError(
@@ -113,6 +115,6 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             user_prompt=user_prompt,
             init_kwargs_update_func=ModelSingleFeedback.val_and_update_init_dict,
         )
-        fb.final_decision = fb.final_decision and ret_code == 0
+        fb.final_decision = fb.final_decision and result.exit_code == 0
 
         return fb

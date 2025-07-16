@@ -5,9 +5,9 @@ exp_feedback:
     Below is a detailed description of the current Kaggle competition scenario:
     {{ scenario }}
 
-    Your task is to analyze the current experiment's hypothesis, implementation (code), and results, explicitly comparing them with previous experiments and the best previous result (SOTA).
+    Your task is to analyze the current experiment's hypothesis, implementation (code and its changes), and results, explicitly comparing them with previous best SOTA result step by step.
 
-    Step-by-step Analysis Process:
+    # Step-by-step Analysis Process:
 
     Step 1: Verify Submission Format
     - If the submission format check fails:
@@ -57,22 +57,30 @@ exp_feedback:
     - Please examine the code carefully based on the above criteria and provide a detailed analysis of the code.
     - Begin your `reasoning` with `[Code Analysis]`, clearly stating why the current code is better or worse than SOTA, based on the analysis of code implementation.
     - If the current code is not better than SOTA, set `"Replace Best Result": "no"`. Otherwise, set `"Replace Best Result": "yes"`.
- 
-    Provide detailed and constructive feedback structured as follows:
-    Example JSON Structure for Result Analysis:
+
+    Step 5: EDA improvement analysis (if needed)
+    - The user might provide Data Overview in EDA format which is the output of the EDA code. You should analyze the EDA result and provide feedback on how it can be improved.
+    - The improvement might include some addons or modifications or deletions to some part of the EDA code.
+    - You should provide your feedback based on the current code and SOTA code. Especially focus on the feature engineering part.
+    - For example, if the code truncate the line with N words, you can suggest to print the mean, median or quantile of the length of the line for better understanding of the data in the next rounds of experiments.
+
+    Provide detailed and constructive feedback structured as follows without anything else:
     {
       "Submission Format Check": "yes or no",
       "First Valid Submission": "yes or no",
+      "Code Change Summary": "Clearly summarize the changes made to the code (please cover the most important changes while being concise); during development, extra modifications may be made beyond the intent of the hypothesis, so these changes should also be included to provide complete information",
       "Observations": "Clearly summarize current and SOTA ensemble results with exact scores and notable patterns. Limit to no more than three concise, data-focused sentences. Your observation must be grounded by explicit evidence from scenario description or code implementation, not just validation scores.",
       "Feedback for Hypothesis": Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences.",
       "Evaluation Aligned With Task": "yes or no",
       "Replace Best Result": "yes or no",
-      "Reasoning": "Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences."
+      "Refine Decision": "yes or no",
+      "Reasoning": "Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences.",
+      "EDA Improvement": "improvement suggestion for EDA code, if needed, otherwise set to 'no'. If there is no EDA code, set to 'no'."
     }
 
   user: |-
     We are currently in a process of validating hypotheses to iteratively improve our models for Kaggle competitions. Each round aims explicitly to confirm or reject hypotheses based on experiment results.
-
+    
     ## SOTA Solution
     {{ sota_desc }}
 
@@ -97,8 +105,9 @@ exp_feedback:
     1. Pay close attention to the `ensemble` score, as it represents the final evaluation metric for this iteration.
     2. If any individual model significantly outperforms the ensemble, this may indicate an issue in the ensemble method. But if the final `ensemble` score surpasses the current SOTA, you should update the SOTA record. However, it seems that there are noticeable issues in the ensemble component, be sure to highlight them explicitly.
 
-    Below are the results for this experiment:
-    {{ cur_exp.result }}
+    Below are the results and running time for this experiment:
+    Running time: {{ cur_exp.running_info.running_time }} seconds.
+    Results: {{ cur_exp.result }}
 
     {% if cur_vs_sota_score is not none %}
     Below is the comparison of the current `ensemble` performance with the SOTA results:
@@ -117,21 +126,22 @@ exp_feedback:
     {{ feedback_desc or "There has not been any experiments yet." }}
     Please refer to these hypotheses and feedback to help you recommend new experiment and hypothesis
 
+
     Tips:
     - Step 1: If submission format has issues, prioritize fixing them before proceeding. If the format is correct and it's the first valid submission ever (there has never been valid submissions in the past), set `"Replace Best Result": "yes"`. If the format is correct and this is not the first valid submission, proceed to Step 2.
     - Step 2: If evaluation alignment issues are identified (validation approach does not follow competition requirements), address these methodological discrepancies immediately.
     - Step 3: If new results significantly worse than SOTA, or repeated hyperparameter adjustments yield no improvement, it might be time to rethink or shift focus.
 
-exp_feedback_v3:
+exp_feedback_draft:
   system: |-
     You are an advanced assistant analyzing results in data-driven R&D.
 
     Below is a detailed description of the current Kaggle competition scenario:
     {{ scenario }}
 
-    Your task is to analyze the current experiment's hypothesis, implementation (code), and results, explicitly comparing them with previous experiments and the best previous result (SOTA).
+    Your task is to analyze the current experiment's hypothesis, implementation (code and its changes), and results, explicitly comparing them with previous best SOTA result step by step.
 
-    Step-by-step Analysis Process:
+    # Step-by-step Analysis Process:
 
     Step 1: Verify Submission Format
     - If the submission format check fails:
@@ -150,9 +160,11 @@ exp_feedback_v3:
       - Consistent prediction methodologies between validation and test datasets.
       - No shortcuts or fold-specific strategies applied inconsistently.
       - Rigorous checks for corner-case consistency.
+      - If the validation score appears unreliable, provide concrete evidence from the scenario description or code implementation. Do not rely on assumptions without direct supporting evidence.
     - Additionally, detect whether the setup introduces structural risks, such as overfitting-prone finetuning strategies or domain adaptation on insufficient data.
+      - If overfitting is detected, provide a detailed analysis explaining how and why it occurs, referencing scenario description, code implementation, and validation scores to support your findings.
     - If such discrepancies or risks are found:
-      - Clearly document these issues in `Reasoning`.
+      - Clearly document these issues in `Reasoning`, referencing both scenario description and code implementation—not just validation scores.
       - Set `"Evaluation Aligned With Task": "no"` and `"Replace Best Result": "no"`.
       - Begin your `reasoning` with `[Evaluation error]`, explicitly stating the evaluation alignment issues causing experiment failure.
     - If evaluation alignment passes, set `"Evaluation Aligned With Task": "yes"`, and then proceed to Step 3.
@@ -168,6 +180,7 @@ exp_feedback_v3:
     - NOTES:
       - The experiments focus on the comparison of the final ensemble results (Don't reject the results because they are still not perfect)
       - If the `ensemble` score does not exceed the best individual mode or single fold, it is still acceptable unless the gap is significant.
+    
     Step 4: Analyze Code With Similar validation Results
     - If the current `ensemble` validation score is similar to the SOTA `ensemble` validation score, give the decision based on the comparison between the current experiment and SOTA.
     - The current code should replace the best result if the code is:
@@ -176,23 +189,39 @@ exp_feedback_v3:
       - Interpretable and domain alignment. The code should be tied to solid domain knowledge and be interpretable.
       - More resource efficiency. The code should be more efficient in terms of time and space complexity.
     - Please examine the code carefully based on the above criteria and provide a detailed analysis of the code.
-    - Begin your `reasoning` with `[Code Analysis]`, clearly stating why the current code is better or worse than SOTA.
+    - Begin your `reasoning` with `[Code Analysis]`, clearly stating why the current code is better or worse than SOTA, based on the analysis of code implementation.
     - If the current code is not better than SOTA, set `"Replace Best Result": "no"`. Otherwise, set `"Replace Best Result": "yes"`.
- 
-    Provide detailed and constructive feedback structured as follows:
-    Example JSON Structure for Result Analysis:
+
+    Step 5: EDA improvement analysis (if needed)
+    - The user might provide Data Overview in EDA format which is the output of the EDA code. You should analyze the EDA result and provide feedback on how it can be improved.
+    - The improvement might include some addons or modifications or deletions to some part of the EDA code.
+    - You should provide your feedback based on the current code and SOTA code. Especially focus on the feature engineering part.
+    - For example, if the code truncate the line with N words, you can suggest to print the mean, median or quantile of the length of the line for better understanding of the data in the next rounds of experiments.
+
+    Provide detailed and constructive feedback structured as follows without anything else:
     {
       "Submission Format Check": "yes or no",
       "First Valid Submission": "yes or no",
-      "Observations": "Clearly summarize current and SOTA ensemble results with exact scores and notable patterns. Limit to no more than three concise, data-focused sentences.",
+      "Code Change Summary": "Clearly summarize the changes made to the code (please cover the most important changes while being concise); during development, extra modifications may be made beyond the intent of the hypothesis, so these changes should also be included to provide complete information",
+      "Observations": "Clearly summarize current and SOTA ensemble results with exact scores and notable patterns. Limit to no more than three concise, data-focused sentences. Your observation must be grounded by explicit evidence from scenario description or code implementation, not just validation scores.",
       "Feedback for Hypothesis": Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences.",
       "Evaluation Aligned With Task": "yes or no",
       "Replace Best Result": "yes or no",
-      "Reasoning": "Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences."
+      "Refine Decision": "yes or no",
+      "Reasoning": "Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences.",
+      "EDA Improvement": "improvement suggestion for EDA code, if needed, otherwise set to 'no'. If there is no EDA code, set to 'no'."
     }
 
   user: |-
     We are currently in a process of validating hypotheses to iteratively improve our models for Kaggle competitions. Each round aims explicitly to confirm or reject hypotheses based on experiment results.
+    We prioritize minimal, incremental code changes that lead to measurable improvements.**
+    - Once a pipeline can run end-to-end and produce valid outputs with reasonable validation results, **future iterations should avoid large-scale rewrites**.
+    - Instead, apply **small, controlled changes** to gradually improve performance. Examples include:
+      - Increasing `max_epoch` or adjusting early stopping to allow better convergence.
+      - Slightly modifying model architecture (e.g., unfreezing layers, switching backbone).
+      - Tuning hyperparameters like learning rate, batch size, or dropout.
+      - Introducing one new augmentation or feature at a time.
+    - This approach ensures that each change is **testable**, **traceable**, and **reversible**, and it avoids the risk of silently breaking a previously working pipeline.
 
     ## SOTA Solution
     {{ sota_desc }}
@@ -218,8 +247,9 @@ exp_feedback_v3:
     1. Pay close attention to the `ensemble` score, as it represents the final evaluation metric for this iteration.
     2. If any individual model significantly outperforms the ensemble, this may indicate an issue in the ensemble method. But if the final `ensemble` score surpasses the current SOTA, you should update the SOTA record. However, it seems that there are noticeable issues in the ensemble component, be sure to highlight them explicitly.
 
-    Below are the results for this experiment:
-    {{ cur_exp.result }}
+    Below are the results and running time for this experiment:
+    Running time: {{ cur_exp.running_info.running_time }} seconds.
+    Results: {{ cur_exp.result }}
 
     {% if cur_vs_sota_score is not none %}
     Below is the comparison of the current `ensemble` performance with the SOTA results:
@@ -238,7 +268,9 @@ exp_feedback_v3:
     {{ feedback_desc or "There has not been any experiments yet." }}
     Please refer to these hypotheses and feedback to help you recommend new experiment and hypothesis
 
+
     Tips:
     - Step 1: If submission format has issues, prioritize fixing them before proceeding. If the format is correct and it's the first valid submission ever (there has never been valid submissions in the past), set `"Replace Best Result": "yes"`. If the format is correct and this is not the first valid submission, proceed to Step 2.
     - Step 2: If evaluation alignment issues are identified (validation approach does not follow competition requirements), address these methodological discrepancies immediately.
     - Step 3: If new results significantly worse than SOTA, or repeated hyperparameter adjustments yield no improvement, it might be time to rethink or shift focus.
+    - Step 4: If the result is only slightly better than the SOTA, but the code modifications are extensive (e.g., low modification score or too many critical changes), reject the update. Prefer small-step improvements with minimal changes. Set `"Replace Best Result": "no"` and explain in `"Reasoning"` starting with `[Code Change Too Large]`.

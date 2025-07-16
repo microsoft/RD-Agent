@@ -218,7 +218,7 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp_fb[0] if sota_exp_fb else None,
-            hypothesis=new_hypothesis,
+            hypotheses=[new_hypothesis],
             pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
             failed_exp_feedback_list_desc="",
         )
@@ -229,15 +229,13 @@ class ExpGen2TraceAndMerge(ExpGen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.merge_exp_gen = MergeExpGen(self.scen)
-        self.exp_gen = DataScienceRDLoop._get_exp_gen(
-            "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
-        )
+        self.exp_gen = DataScienceRDLoop.default_exp_gen(self.scen)
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
-        logger.info(f"Remain time: {timer.remain_time_duration}")
+        logger.info(f"Remain time: {timer.remain_time()}")
 
-        if timer.remain_time_duration >= timedelta(hours=DS_RD_SETTING.merge_hours):
+        if timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
             leaves: list[int] = trace.get_leaves()
             if len(leaves) < 2:
                 selection = trace.NEW_ROOT  # create new trace
@@ -337,23 +335,23 @@ class ExpGen2TraceAndMergeV2(ExpGen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.merge_exp_gen = MergeExpGen_MultiTrace(self.scen)
-        self.exp_gen = DataScienceRDLoop._get_exp_gen(
-            "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
-        )
+        self.exp_gen = DataScienceRDLoop.default_exp_gen(self.scen)
         self.flag_start_merge = False
 
     def reset_exp_gen_version(self, version: str = "v2"):
-        DS_RD_SETTING.proposal_version = version
-        logger.info(f"ExpGen2TraceAndMergeV2: Resetting proposal version to {version}")
-        self.exp_gen = DataScienceRDLoop._get_exp_gen(
-            f"rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
-        )
+        # AFAIK, this class is not used anymore (because v3 & v1 is deprecated); So we just leave a NotImplementedError instead of refine it.
+        # DS_RD_SETTING.proposal_version = version
+        # logger.info(f"ExpGen2TraceAndMergeV2: Resetting proposal version to {version}")
+        # self.exp_gen = DataScienceRDLoop._get_exp_gen(
+        #     f"rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
+        # )
+        raise NotImplementedError("You should not switch version with proposal_version")
 
     def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
-        logger.info(f"Remain time: {timer.remain_time_duration}")
+        logger.info(f"Remain time: {timer.remain_time()}")
 
-        if timer.remain_time_duration >= timedelta(hours=DS_RD_SETTING.merge_hours):
+        if timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
 
             if DS_RD_SETTING.enable_inject_knowledge_at_root:
                 if DS_RD_SETTING.knowledge_base_path is not None and DS_RD_SETTING.idea_pool_json_path is not None:
@@ -402,15 +400,13 @@ class ExpGen2TraceAndMergeV3(ExpGen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.merge_exp_gen = ExpGen2Hypothesis(self.scen)
-        self.exp_gen = DataScienceRDLoop._get_exp_gen(
-            "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
-        )
+        self.exp_gen = DataScienceRDLoop.default_exp_gen(self.scen)
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
-        logger.info(f"Remain time: {timer.remain_time_duration}")
+        logger.info(f"Remain time: {timer.remain_time()}")
 
-        if timer.remain_time_duration >= timedelta(hours=DS_RD_SETTING.merge_hours):
+        if timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
 
             if DS_RD_SETTING.enable_inject_knowledge_at_root:
 

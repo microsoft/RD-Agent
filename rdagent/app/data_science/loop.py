@@ -14,8 +14,8 @@ def main(
     checkout: bool | str | Path = True,
     step_n: int | None = None,
     loop_n: int | None = None,
+    timeout: str | None = None,
     competition="bms-molecular-translation",
-    timeout=None,
     replace_timer=True,
     exp_gen_cls: str | None = None,
 ):

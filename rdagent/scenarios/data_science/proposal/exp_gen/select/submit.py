@@ -70,11 +70,13 @@ class AutoSOTAexpSelector(SOTAexpSelector):
 
             if len(leaves) >= 2:
 
-                logger.info(f"Auto SOTA selector: Multiple traces found, collecting SOTA experiments from each trace")
+                logger.info(
+                    f"Auto SOTA selector: {len(leaves)} traces found, collecting SOTA experiments from each trace"
+                )
                 # multiple trace case, collect the latest SOTA experiments from each trace
                 new_sota_exp_fb_list: list[tuple[DSExperiment, ExperimentFeedback]] = []
-                # calculate the number of SOTA experiments to retrieve from each trace
-                max_sota_retrieved_num_per_trace = DS_RD_SETTING.max_sota_retrieved_num // len(leaves)
+                # calculate the number of SOTA experiments to retrieve from each trace, prevent it from becoming zero
+                max_sota_retrieved_num_per_trace = max(DS_RD_SETTING.max_sota_retrieved_num // len(leaves), 2)
                 # recall, due to the integer division, the final number of SOTA experiments to retrieve may be different
                 for leaf in leaves:
                     sota_exp_fb_list_per_trace = trace.experiment_and_feedback_list_after_init(
@@ -113,11 +115,9 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                         Description: {desc}
                         Final score: {current_final_score}\n\n"""
 
-            system_prompt = T(".prompts_selector:auto_sota_selector.system").r(
-                scenario=trace.scen.get_scenario_all_desc()
-            )
+            system_prompt = T(".prompts:auto_sota_selector.system").r(scenario=trace.scen.get_scenario_all_desc())
 
-            user_prompt = T(".prompts_selector:auto_sota_selector.user").r(
+            user_prompt = T(".prompts:auto_sota_selector.user").r(
                 historical_sota_exp_with_desc_and_scores=SOAT_exp_with_desc_and_scores,
             )
 

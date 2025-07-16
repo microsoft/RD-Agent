@@ -17,6 +17,7 @@ from rdagent.core.evolving_agent import EvolvingStrategy, RAGEvoAgent
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import Experiment
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.backend.base import RD_Agent_TIMER_wrapper
 
 
 class CoSTEER(Developer[Experiment]):
@@ -106,6 +107,9 @@ class CoSTEER(Developer[Experiment]):
                 logger.info(f"evolving workspace: {sw}")
             if (datetime.now() - start_datetime).seconds > self.max_seconds:
                 logger.info(f"Reached max time limit {self.max_seconds} seconds, stop evolving")
+                break
+            if RD_Agent_TIMER_wrapper.timer.started and RD_Agent_TIMER_wrapper.timer.is_timeout():
+                logger.info("Global timer is timeout, stop evolving")
                 break
 
         if self.with_feedback and self.filter_final_evo:

@@ -1,4 +1,5 @@
 import pickle
+import traceback
 from collections import defaultdict
 from pathlib import Path
 
@@ -19,12 +20,11 @@ from rdagent.scenarios.data_science.test_eval import (
 from rdagent.scenarios.kaggle.kaggle_crawler import score_rank
 from rdagent.utils.workflow import LoopBase
 
-test_eval = get_test_eval()
-
-is_mle = isinstance(test_eval, MLETestEval)
-
 
 def save_grade_info(log_trace_path: Path):
+    test_eval = get_test_eval()
+
+    is_mle = isinstance(test_eval, MLETestEval)
     trace_storage = FileStorage(log_trace_path)
     for msg in trace_storage.iter_msg():
         if "competition" in msg.tag:
@@ -40,16 +40,16 @@ def save_grade_info(log_trace_path: Path):
                         mle_score_str, tag=f"{msg.tag}.mle_score.pid", save_type="pkl", timestamp=msg.timestamp
                     )
                 except Exception as e:
-                    print(f"Error in {log_trace_path}: {e}")
+                    print(f"Error in {log_trace_path}: {e}", traceback.format_exc())
 
 
-def save_all_grade_info(log_folder):
+def save_all_grade_info(log_folder: str | Path) -> None:
     for log_trace_path in Path(log_folder).iterdir():
         if is_valid_session(log_trace_path):
             try:
                 save_grade_info(log_trace_path)
             except NoTestEvalError as e:
-                print(f"Error in {log_trace_path}: {e}")
+                print(f"Error in {log_trace_path}: {e}", traceback.format_exc())
 
 
 def _get_loop_and_fn_after_hours(log_folder: Path, hours: int):
@@ -72,7 +72,10 @@ def _get_loop_and_fn_after_hours(log_folder: Path, hours: int):
     return stop_li, stop_fn
 
 
-def summarize_folder(log_folder: Path, hours: int | None = None):
+def summarize_folder(log_folder: Path, hours: int | None = None) -> None:
+    test_eval = get_test_eval()
+
+    is_mle = isinstance(test_eval, MLETestEval)
     """
     Summarize the log folder and save the summary as a pickle file.
     Args:
@@ -108,11 +111,11 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
 
         if hours:
             stop_li, stop_fn = _get_loop_and_fn_after_hours(log_trace_path, hours)
-
-        for msg in FileStorage(log_trace_path).iter_msg():  # messages in log trace
-            loop_id, fn = extract_loopid_func_name(msg.tag)
+        msgs = [(msg, extract_loopid_func_name(msg.tag)) for msg in FileStorage(log_trace_path).iter_msg()]
+        msgs = [(msg, int(loop_id) if loop_id else loop_id, fn) for msg, (loop_id, fn) in msgs]
+        msgs.sort(key=lambda m: m[1] if m[1] else -1)  # sort by loop id
+        for msg, loop_id, fn in msgs:  # messages in log trace
             if loop_id:
-                loop_id = int(loop_id)
                 loop_num = max(loop_id + 1, loop_num)
             if hours and loop_id == stop_li and fn == stop_fn:
                 break
@@ -239,7 +242,10 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
 # }
 
 
-def grade_summary(log_folder):
+def grade_summary(log_folder: str | Path) -> None:
+    """
+    Generate test scores for log traces in the log folder and save the summary.
+    """
     log_folder = Path(log_folder)
     save_all_grade_info(log_folder)
     summarize_folder(log_folder)

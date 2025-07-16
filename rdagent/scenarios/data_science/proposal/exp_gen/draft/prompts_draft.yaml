@@ -1,0 +1,252 @@
+description:
+  tag_description: |-
+    [NLP]: Tasks involving natural language processing, such as text classification, sentiment analysis, or language modeling.
+    [CV]: Tasks involving computer vision, such as image classification, object detection, or segmentation.
+    [Tabular]: Tasks involving structured/tabular data, such as regression, classification, or time series forecasting.
+  component_description: |-
+    [DataPreprocess]: Loads raw data, handles missing values, type conversions, normalization, and ensures consistency. Includes validation, outlier detection, and cleaning for feature engineering.
+    [EDA]: Performs exploratory analysis to uncover data distributions, patterns, anomalies, and relationships. Generates summary statistics, visualizations, and initial hypotheses to guide processing.
+    [FeatureEngineer]: Transforms raw data into meaningful features via encoding, scaling, feature creation, and selection. Ensures reproducibility and robustness for modeling.
+    [Model]: Handles model selection, architecture design, training, validation, and evaluation. Ensures generalization and suitability for the problem.
+    [Ensemble]: Combines predictions from multiple models (averaging, stacking, blending) to improve robustness and generalization. Ensures model diversity and evaluates ensemble performance.
+    [Tuning]: Optimizes model and pipeline parameters using grid/random search or Bayesian methods. Maximizes validation performance while preventing overfitting.
+
+knowledge:
+  general: |-
+    This is general techniques for data science tasks, aiming to ensure the pipeline runs **correctly, robustly, and reproducibly**.
+
+    ## Runtime Environment
+    {{ runtime_environment }}
+
+    ## Component Description
+    The following components are used to describe the task. Each component has a specific role in the data science pipeline, and they should be used to structure the task effectively.
+    {{ component_desc }}
+
+    ## Component Guidelines
+    1. [DataPreprocess]  
+      - This is the **foundation of the pipeline** and must be executed **first**.
+      - Ensure all **raw data is correctly loaded**, without missing files, broken paths, or incorrect dtypes.
+      - **Do not generate or fabricate synthetic data** unless explicitly allowed by competition rules.
+      - You must **traverse directories** to validate the presence of required files (such as images and data tables).
+      - Handle missing values, type casting, ID normalization, and consistent formats **before any modeling**.
+      - If this step fails or is skipped, all downstream steps are invalid.
+    2. [EDA] (Exploratory Data Analysis)  
+      - Perform essential statistical summaries and visualization to understand **label distribution**, **feature correlation**, and **data quality**.
+      - Detect issues such as class imbalance, high-cardinality features, duplicates, or corrupted samples.
+      - Use EDA findings to form modeling hypotheses and choose sampling strategies.
+    3. [FeatureEngineer]  
+      - Build features in **modular, traceable steps**.
+      - Begin with basic and interpretable features; add complex ones only when justified.
+      - Ensure reproducibility—avoid in-place mutation or random feature engineering without seeds.
+    4. [Model]  
+      - Choose models suitable for the **data modality**, **dataset size**, and **available compute resources**.
+      - You may use larger models **as long as they can finish training within the time constraint**.
+      - Start with a **simple but realistic baseline** to verify pipeline correctness.
+      - Estimate optimal batch size via dry-runs or heuristics based on available resources.
+      - Ensure training time is acceptable with early stopping.
+      - Save best model checkpoints, log key metrics, and visualize learning curves.
+    5. [Tuning]  
+      - Tune **only after verifying the pipeline and model correctness**.
+      - Use a small subset or minimal cross-validation to debug tuning logic before scaling up.
+      - Dynamically set parameters (such as batch size or epochs) based on observed resource usage.
+      - Set training duration to allow convergence without overfitting.
+    6. [Ensemble]  
+      - Ensemble **only after** all base models are fully trained and validated.
+      - Prefer diverse models (e.g., different seeds, architectures, folds) to improve ensemble effectiveness.
+      - Keep the ensembling method **simple, reproducible**.
+      - Ensemble logic must not bypass earlier validation steps.
+
+hypothesis_draft:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is about to draft the very first implementation for a Kaggle competition. There is no existing State-of-the-Art (SOTA) implementation yet—this is the initial baseline. The user will also be provided with a template implementation, which is distilled from successful approaches in other competitions and by GrandMasters.
+    You will be provided with:
+    1. A detailed competition scenario description.
+    2. A template implementation and guidelines, representing best practices and acknowledged knowledge from other top solutions.
+    3. A history of previous failed experiments and their associated feedbacks, chronologically ordered, where each failed experiment did not surpass the SOTA that was current at the time of its execution. The failed experiments are based on the current SOTA implementation and are used to propose hypotheses for further performance improvements.
+    Your task is to propose one specific, actionable, and testable hypothesis that will guide the creation of the first end-to-end implementation, leveraging the provided template as a starting point.
+
+    # Hypothesis Proposal for First Implementation
+    ## Steps to Hypothesize
+    1. **Understand the Competition Context**:
+      - Carefully analyze the competition scenario description.
+      - Review the provided template implementation and guidelines, and identify any necessary adaptations for this specific competition.
+      - Refer to the template and guidelines for best practices and ensure alignment with recommended approaches.
+      - Prioritize hypotheses that ensure a successful, end-to-end runnable pipeline.
+    2. **Drafting the First Implementation**:
+      - Your hypothesis must focus on building the simplest possible, yet correct and runnable, baseline pipeline, using the provided template and guidelines as a foundation.
+      - Explicitly reference the template and guidelines when proposing adaptations or changes.
+      - The goal is to ensure the pipeline can execute end-to-end, generate a valid submission, and produce a baseline score.
+      - Avoid complex or multi-step solutions; do not combine unrelated techniques.
+      - Prioritize correctness, runnability, and adherence to competition requirements over performance or sophistication.
+    3. **Actionable and Testable**:
+      - The hypothesis must propose a clear, concrete action or adaptation that can be directly implemented and tested, especially in the context of the provided template and guidelines.
+      - It should specify the core model type, minimal preprocessing, and essential steps to produce a valid submission.
+      - If resource constraints are a concern, propose measures to ensure the pipeline completes within limits (e.g., use a lightweight model, reduce data size, limit epochs or folds).
+
+    ## Guidelines for Writing Hypotheses
+    1. **Be Specific and Decisive**:
+      - Clearly state the exact change or approach for the first implementation, especially how the provided template and guidelines should be adapted.
+      - Reference specific sections or recommendations from the template and guidelines where relevant.
+      - Avoid vague statements or alternatives.
+      - The hypothesis must be more informative than simply restating the competition description or the template.
+    2. **Ensure Testability and Actionability**:
+      - The hypothesis should describe an action that can be implemented and validated in the first run.
+      - The expected outcome is a runnable, correct, and valid baseline pipeline.
+    3. **Align with Competition Requirements**:
+      - The hypothesis must directly address the competition's requirements.
+      - It should ensure the output files (e.g., submission.csv, scores.csv) are generated in the correct format.
+    4. **Maintain Singular Focus**:
+      - Propose only one core idea or change for the first implementation.
+      - Do not bundle unrelated ideas.
+    5. **Prioritize Runnability and Correctness**:
+      - The main goal is to get a working pipeline that produces a valid submission.
+      - Performance improvements can be addressed in future iterations.
+
+    ## Component Tag
+    After proposing the hypothesis, assign a single component tag to the hypothesis.
+    Choose the **single most relevant** tag from the list below, even if the hypothesis appears to touch upon multiple areas. Use the following detailed descriptions to understand the scope and boundaries of each component.
+    {{ component_desc }}
+
+    ## Final Output Format in JSON Schema:
+    For each of the identified problem, you should propose a hypothesis strictly following to the JSON schema. Your final output should be a dict containing all the proposed hypothesis.
+    {
+      "component": "The component tag of the hypothesis. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
+      "hypothesis": "A concise, testable statement derived from previous experimental outcomes.",
+      "reason": "Provide a clear, logical progression from problem identification to hypothesis formulation, grounded in evidence (e.g., trace history, domain principles, or competition constraints). Refer to the Hypothesis Guidelines for better understanding.",
+    }
+    
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Template Implementation & Guidelines
+    {{ knowledge }}
+
+    # Previous Failed Experiments and Feedbacks
+    {{ failed_exp_feedback_list_desc }}
+
+task_gen:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is about to draft the very first implementation for a Kaggle competition. There is no existing State-of-the-Art (SOTA) implementation yet—this is the initial baseline. The user will also be provided with a template implementation, which is distilled from successful approaches in other competitions and by GrandMasters.
+    You will be provided with:
+    1. A detailed competition scenario description.
+    2. A template implementation and guidelines, representing best practices and acknowledged knowledge from top solutions.
+    3. A history of previous failed experiments and their associated feedbacks, chronologically ordered, where each failed experiment did not surpass the SOTA that was current at the time of its execution. The failed experiments are based on the current SOTA implementation and are used to propose hypotheses for further performance improvements.
+    4. A proposed hypothesis, which aimed at forming the basis of an initial SOTA.
+    Your primary goal is to generate a detailed, step-by-step **sketch or refinement plan** for a new data processing and modeling pipeline, specifically for the main workflow script (`main.py`), that effectively implements the `Proposed Hypothesis`. This sketch will guide a developer to write the code correctly.
+
+    # Pipeline Implementation Standards & Constraints
+    
+    The `main.py` sketch you generate should lead to a pipeline implementation that adheres to the following standards. These are guiding principles for the final *outcome* of your sketch:
+    
+    1. **Program Execution**: The resulting `main.py` script must be executable via `python main.py` without command-line parameters. Configurations should be hardcoded for simplicity.
+    2. **File Handling**:
+      - Implement robust handling of file encodings and delimiters.
+      - Input files are under `{% include "scenarios.data_science.share:scen.input_path" %}`. The sketch must detail how they are loaded and, if multiple, combined or processed.
+      - Test indices must be determined from a dedicated test index file (if available) or by the order in the test data file. **Crucially, DO NOT use the sample submission file to infer test indices or the number of test samples.**
+      - Ensure actual data (not just filenames) is loaded during the data loading phase.
+      - If data is in zip files, the sketch should advise on robust loading, e.g., pre-extraction or careful handling if using multiprocessing in data loaders.
+    3. **Data Preprocessing**:
+      - Convert data to correct types (numeric, categorical, parse dates).
+      - Optimize memory usage (e.g., downcasting, chunk processing if essential and the hypothesis supports it).
+      - Implement domain-specific preprocessing relevant to the hypothesis (e.g., text tokenization, image resizing/augmentation).
+    4. **Code Standards**:
+      - The pipeline must **NOT** use progress bars (e.g., `tqdm`) in the submission code.
+      - Reiterate: **DO NOT** use the sample submission file to extract test indices or any other information beyond the required column names and format for the output file.
+      - Ensure no features are inadvertently excluded during processing.
+    5. **Preferred Technologies & Methodological Notes**:
+      - Tabular tasks: Default to LightGBM (LGB) as first choice. Use XGBoost (XGB) or CatBoost if the dataset involves time dependencies, sparse features, or heavy categorical interactions. Neural models (e.g., TabNet, FT-Transformer) can be added if the hypothesis explicitly requires them, but are not default.
+      - NLP tasks: Default to deBERTa V3 (Base or Large) if no other model is mandated by hypothesis. For classification or regression, prefer fine-tuning pretrained deBERTa models. Use lighter models (e.g., RoBERTa-base, BERT-base) if compute is limited. Use generative models (e.g., T5, GPT-style) only when required (e.g., summarization, generation).
+      - CV tasks: Use Swin Transformer (Base or Large) as the default choice for image-based tasks. If efficiency is a concern, prefer EfficientNetV2 or ConvNeXt-Tiny. Always use ImageNet pretrained weights and augmentations (e.g., RandAugment, CutMix) unless the hypothesis overrides them.
+      - If no SOTA is given and hypothesis is unclear, design the simplest working pipeline using these defaults to ensure a valid end-to-end run. Baselines must prioritize correctness, simplicity, and trainability over complexity.
+      - Once a correct and runnable pipeline is in place (i.e., no bugs, correct outputs, clean structure), all further development effort should focus on model selection, feature engineering, hyperparameter tuning, and ensemble strategies. These are the core levers of competitive performance.
+    6. **General Data Science Considerations**:
+      - Design for scalability.
+      - Handle missing values and outliers appropriately as guided by the hypothesis or SOTA.
+      - Ensure consistency between feature data types and any transformations applied.
+      - Prevent data leakage from test/validation sets into any training stage.
+    7. **Resource Utilization**: Leverage GPU and multiprocessing where appropriate and beneficial, if consistent with the hypothesis and efficiency goals.
+    8. **Metric Calculation and Storage (`scores.csv`)**:
+      - Calculate the official competition metric on a proper validation set (e.g., K-fold CV, typically 3-5 folds unless efficiency dictates fewer). Save results to `scores.csv`.
+      - The sketch must ensure this step is included. A successful run should always produce scores.
+      - `scores.csv` must have an index with model names and the literal string "ensemble" (lowercase). Columns should be "Model" (the name of the model or the ensemble strategy), and the exact metric name (e.g., "AUC").
+      - When only one model is used, its score should be present, and an "ensemble" score (which would be the same as the single model's score in this case) must also be recorded.
+      - Ensure validation metrics and processes are consistent across all parts of the pipeline. Avoid changes that would alter how validation metrics are calculated unless that is part of the hypothesis.
+    9. **Submission File (`submission.csv`)**: Generate `submission.csv` in the **exact format** required (column names, order, data types), as detailed by `sample_submission.csv` in the `Competition Scenario Description`. This is a critical step.
+
+    # Guidelines for Sketching the `main.py` Workflow
+
+    YOUR TASK IS TO create a conceptual sketch for drafting or updating the `main.py` workflow. This is a plan, not code.
+
+    1. **No Code**: The sketch **MUST NOT** contain any programming code, specific library calls, or pseudo-code. Describe steps conceptually (e.g., "Load training data from {% include "scenarios.data_science.share:scen.input_path" %}/train.csv"). List specific algorithm names where appropriate (e.g., "Apply XGBoost classifier," "Use Isotonic Regression for calibration").
+    2. **Structure and Conciseness**:
+      - If SOTA exists, understand its structure first.
+      - If no SOTA, outline a clear, logical sequence of steps for the new `main.py`.
+    3. **Leverage SOTA or Design a New One**:
+      - **If a `Current SOTA Implementation` is provided**: Your sketch must primarily detail the **minimal and targeted changes, additions, or replacements** needed to integrate the `Proposed Hypothesis` into that SOTA. Focus only on what needs to change.
+      - **If NO `Current SOTA Implementation` is provided (Initial Version)**: This is critical. Your sketch **MUST** describe a **COMPLETE, END-TO-END, YET SIMPLEST POSSIBLE baseline pipeline**.
+        - It must cover: Data loading (from specified paths), essential preprocessing (as per hypothesis or minimal viable), a basic model implementation (as per hypothesis), a simple validation strategy (e.g., a single train-validation split or fewer folds if CV is too complex initially), generation of `scores.csv`, and `submission.csv` in the correct format.
+        - The overriding goal for this initial sketch is **RUNNABILITY and CORRECTNESS of the pipeline structure**. Prioritize getting a valid submission out, even with a very basic model. Avoid any complexity not absolutely mandated by the core hypothesis or competition basics.
+    4. **Learn from Past Failures**:
+      - If `Previous Failed Experiments & Feedback` are provided, analyze them meticulously. Design the sketch to explicitly avoid repeating similar mistakes, especially if failures relate to the current hypothesis, data handling, submission format, or resource usage (timeouts).
+      - If a hypothesis aims to fix a past failure, the sketch should detail precisely how the fix is implemented.
+    5. **Specificity and Clarity**:
+      - Be unambiguous. Instead of "select model," if the hypothesis implies "Train an EfficientNet-B0 model," state that.
+      - The sketch must be definitive. No open-ended options or phrases like "for example," or "e.g.," within a step's action.
+    6. **Resource Constraints & Efficiency**:
+      - Always design the workflow to execute within the competition `Time Limit`.
+      - If `Previous Failed Experiments` explicitly state time/memory constraint issues, your sketch **MUST** make efficiency the **TOP PRIORITY**. Clearly state `[EFFICIENCY AS TOP PRIORITY]` at the beginning of your sketch.
+      - The sketch must then detail *specific measures* to achieve this (e.g., "Reduce CV folds to 2," "Limit training to 3 epochs," "Use a smaller pre-trained model like MobileNetV2," "Subsample training data to 50% if full dataset causes timeout").
+      - Even if the `Proposed Hypothesis` is not about efficiency, if past experiments failed due to timeouts or the dataset/model is complex, the sketch **must still incorporate measures to improve overall pipeline efficiency**. This might involve simplifying aspects unrelated to the core hypothesis (e.g., reducing image resolution, simpler feature engineering) to ensure the hypothesis can be tested within limits.
+      - The goal is a workflow that successfully implements and validates the `Proposed Hypothesis` effectively, balancing performance with strict resource constraints. An experiment that times out provides no information.
+      - If you plan to prioritize efficiency, you can modify the parts which is not related to the hypothesis. Which means your task should still able to validate the hypothesis.
+      - Add [EFFICIENCY AS PRIORITY] tag in the task description to indicate that the task takes efficiency as a priority.
+      - Although the task should prioritize efficiency, it should not be the only focus. The task should also be aligned with the proposed hypothesis and the current SOTA implementation.
+    7. **Reminders of Common Mistakes (Especially for New `main.py`)**: At the end of your sketch, include a "Key Reminders for Developer" section. Add the following reminders if appropriate.
+      - Ensure all input files are loaded from their exact paths under `{% include "scenarios.data_science.share:scen.input_path" %}` (e.g., `{% include "scenarios.data_science.share:scen.input_path" %}<competition_name>/train.csv`)."
+      - Verify `submission.csv` strictly adheres to format: columns, correct data types, and no extra index.
+      - "Implement correct label mapping for classification tasks (e.g., 0-indexed, contiguous integers for loss functions like PyTorch's CrossEntropyLoss) to prevent runtime errors."
+      - Handle file I/O robustly, especially for zipped data or large files, to prevent `FileNotFoundError` or `BadZipFile` issues.
+      - Confirm no `tqdm` or other progress bars are in the final script.
+      - Double-check that validation scores are saved correctly to `scores.csv` with specified 'Model' and metric columns, even for a single model run (include 'ensemble' row).
+    
+    {% if task_output_format is not none %}
+    ## [Partial Response Format 1] Task Output Format:
+    {{ task_output_format }}
+
+    {% if workflow_check %}
+    # Step 2: Workflow Update
+    Since components have dependencies, your second task is to update the workflow to reflect the changes made to the target component. Please also decide whether the workflow needs to be updated and provide a brief description of the change task.
+    {{ component_desc }}
+    [Partial Response Format 2] Your generated workflow description should be a simple text and the following agent will do the implementation. If you think the workflow should not be updated, just respond with "No update needed".
+    {% endif %}
+
+    Your final output should strictly adhere to the following JSON format. 
+    {
+      "task_design": ---The dict corresponding to task output format---,
+      {% if workflow_check %}"workflow_update": ---A string corresponding to workflow description--- {% endif %}
+    }
+    {% endif %}
+    
+  user: |-
+    # Competition Scenario Description
+    {{ scenario_desc }}
+    
+    # Template Implementation & Guidelines
+    {{ knowledge }}
+
+    # Template Implementation & Guidelines
+    {{ knowledge }}
+
+    # Data Folder Structure (All files are under {% include "scenarios.data_science.share:scen.input_path" %})
+    {{ data_folder_info }}
+
+    # Proposed Hypothesis
+    This sketch should implement the following hypotheses:
+    Hypothesis: {{ hypothesis.hypothesis }}
+    Reason: {{ hypothesis.reason }}
+
+    # Previous Failed Experiments & Feedback
+    {{ failed_exp_and_feedback_list_desc }}

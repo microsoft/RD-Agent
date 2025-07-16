@@ -32,6 +32,7 @@ from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
+from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.utils.workflow.misc import wait_retry
 
 
@@ -80,30 +81,14 @@ class DataScienceRDLoop(RDLoop):
     skip_loop_error = (CoderError, RunnerError)
     withdraw_loop_error = (PolicyError,)
 
-    @staticmethod
-    def _get_exp_gen(class_uri: str, scen: Scenario):
-        """
-        Just for compatibility with the old version of the code.
-        """
-        # TODO: remove me in the future. I don't have to be this complicated.
-        # It is just for compatibility with the old version of the code and configuration.
-        from rdagent.scenarios.data_science.proposal.exp_gen.proposal import (
-            DSProposalV1ExpGen,
-            DSProposalV2ExpGen,
-        )
-
-        if class_uri == "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen":
-            if DS_RD_SETTING.proposal_version not in ["v1", "v2"]:
-                return import_class(DS_RD_SETTING.proposal_version)(scen=scen)
-            if DS_RD_SETTING.proposal_version == "v1":
-                return DSProposalV1ExpGen(scen=scen)
-            if DS_RD_SETTING.proposal_version == "v2":
-                return DSProposalV2ExpGen(scen=scen)
-        return import_class(class_uri)(scen)
+    # when using more advanced proposals(merged, parallel, etc.), we provide a default exp_gen for convinience.
+    default_exp_gen: type[ExpGen] = DSProposalV2ExpGen
 
     def __init__(self, PROP_SETTING: BasePropSetting):
         logger.log_object(PROP_SETTING.competition, tag="competition")
         scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
+        logger.log_object(PROP_SETTING.model_dump(), tag="RDLOOP_SETTINGS")
+        logger.log_object(RD_AGENT_SETTINGS.model_dump(), tag="RD_AGENT_SETTINGS")
 
         # 1) task generation from scratch
         # self.scratch_gen: tuple[HypothesisGen, Hypothesis2Experiment] = DummyHypothesisGen(scen),
@@ -113,8 +98,7 @@ class DataScienceRDLoop(RDLoop):
 
         self.ckp_selector = import_class(PROP_SETTING.selector_name)()
         self.sota_exp_selector = import_class(PROP_SETTING.sota_exp_selector_name)()
-
-        self.exp_gen: ExpGen = self._get_exp_gen(PROP_SETTING.hypothesis_gen, scen)
+        self.exp_gen: ExpGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
 
         # coders
         self.data_loader_coder = DataLoaderCoSTEER(scen)
@@ -128,8 +112,6 @@ class DataScienceRDLoop(RDLoop):
         self.runner = DSCoSTEERRunner(scen)
         if DS_RD_SETTING.enable_doc_dev:
             self.docdev = DocDev(scen)
-        # self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
-        # logger.log_object(self.summarizer, tag="summarizer")
 
         if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
             knowledge_base = DSKnowledgeBase(
@@ -138,24 +120,23 @@ class DataScienceRDLoop(RDLoop):
             self.trace = DSTrace(scen=scen, knowledge_base=knowledge_base)
         else:
             self.trace = DSTrace(scen=scen)
-        self.summarizer = DSExperiment2Feedback(scen)
+
+        self.summarizer = import_class(PROP_SETTING.summarizer)(scen=scen, **PROP_SETTING.summarizer_init_kwargs)
+
         super(RDLoop, self).__init__()
 
     async def direct_exp_gen(self, prev_out: dict[str, Any]):
-
-        # set the SOTA experiment to submit
-        sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace)
-        self.trace.set_sota_exp_to_submit(sota_exp_to_submit)
 
         # set the checkpoint to start from
         selection = self.ckp_selector.get_selection(self.trace)
         # set the current selection for the trace
         self.trace.set_current_selection(selection)
-        exp = await self.exp_gen.async_gen(self.trace, self)
-        logger.log_object(exp)
 
-        # FIXME: this is for LLM debug webapp, remove this when the debugging is done.
-        logger.log_object(exp, tag="debug_exp_gen")
+        # in parallel + multi-trace mode, the above global "trace.current_selection" will not be used
+        # instead, we will use the "local_selection" attached to each exp to in async_gen().
+        exp = await self.exp_gen.async_gen(self.trace, self)
+
+        logger.log_object(exp)
         return exp
 
     def coding(self, prev_out: dict[str, Any]):
@@ -197,6 +178,11 @@ class DataScienceRDLoop(RDLoop):
         - If we come to feedback phase, the previous development steps are successful.
         """
         exp: DSExperiment = prev_out["running"]
+
+        # set the local selection to the trace after feedback
+        if exp.local_selection is not None:
+            self.trace.set_current_selection(exp.local_selection)
+
         if self.trace.next_incomplete_component() is None or DS_RD_SETTING.coder_on_whole_pipeline:
             # we have alreadly completed components in previous trace. So current loop is focusing on a new proposed idea.
             # So we need feedback for the proposal.
@@ -211,19 +197,33 @@ class DataScienceRDLoop(RDLoop):
         return feedback
 
     def record(self, prev_out: dict[str, Any]):
-        # set the DAG parent for the trace
-        self.trace.sync_dag_parent_and_hist()
+
+        exp: DSExperiment = None
 
         e = prev_out.get(self.EXCEPTION_KEY, None)
         if e is None:
-            self.trace.hist.append((prev_out["running"], prev_out["feedback"]))
+            exp = prev_out["running"]
+
+            # NOTE: we put below  operations on selections here, instead of out of the if-else block,
+            # to fit the corner case that the trace will be reset
+
+            # set the local selection to the trace as global selection, then set the DAG parent for the trace
+            if exp.local_selection is not None:
+                self.trace.set_current_selection(exp.local_selection)
+            self.trace.sync_dag_parent_and_hist((exp, prev_out["feedback"]))
         else:
-            self.trace.hist.append(
+            exp: DSExperiment = prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"]
+
+            # set the local selection to the trace as global selection, then set the DAG parent for the trace
+            if exp.local_selection is not None:
+                self.trace.set_current_selection(exp.local_selection)
+            self.trace.sync_dag_parent_and_hist(
                 (
-                    prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"],
+                    exp,
                     ExperimentFeedback.from_exception(e),
                 )
             )
+
             if self.trace.sota_experiment() is None:
                 if DS_RD_SETTING.coder_on_whole_pipeline:
                     #  check if feedback is not generated
@@ -248,6 +248,11 @@ class DataScienceRDLoop(RDLoop):
                         logger.error("Consecutive errors reached the limit. Dumping trace.")
                         logger.log_object(self.trace, tag="trace before restart")
                         self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
+
+        # set the SOTA experiment to submit
+        sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace)
+        self.trace.set_sota_exp_to_submit(sota_exp_to_submit)
+        logger.log_object(sota_exp_to_submit, tag="sota_exp_to_submit")
 
         logger.log_object(self.trace, tag="trace")
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")

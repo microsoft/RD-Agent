@@ -55,11 +55,47 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
         env = get_ds_env(extra_volumes={self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()})
 
-        # Clean the scores.csv & submission.csv.
+        stdout = ""
         implementation.execute(env=env, entry=get_clear_ws_cmd())
-        stdout, execute_ret_code = implementation.execute_ret_code(env=env, entry=f"python -m coverage run main.py")
-        stdout = remove_eda_part(stdout)
-        stdout += f"The code executed {'successfully' if execute_ret_code == 0 else 'failed'}."
+        if DS_RD_SETTING.sample_data_by_LLM:
+            # Because coder runs on full data, we need to run debug mode in advance to save time
+            result = implementation.run(
+                env=env, entry=f"strace -e trace=file -f -o trace.log python -m coverage run main.py --debug"
+            )
+        else:
+            result = implementation.run(
+                env=env, entry=f"strace -e trace=file -f -o trace.log python -m coverage run main.py"
+            )
+
+        sample_submission_check = True
+        test_eval = get_test_eval()
+        if (sample_submission_file_name := test_eval.get_sample_submission_name(self.scen.competition)) is not None:
+            # check whether code ever opens the sample submission file
+            if (implementation.workspace_path / "trace.log").exists():
+                opened_trace_lines = [
+                    line
+                    for line in (implementation.workspace_path / "trace.log").read_text().splitlines()
+                    if "openat" in line and sample_submission_file_name in line
+                ]
+                if len(opened_trace_lines) > 0:
+                    stdout += f"Code opened the sample submission file '{sample_submission_file_name}' during execution.\n Reject the implementation!\n"
+                    sample_submission_check = False
+
+        result.stdout = remove_eda_part(result.stdout)
+        if result.exit_code != 0:
+            stdout += f"Code failed to run. Please check the stdout:\n Following the stdout of the debug mode run:\n{result.stdout.strip()}\n"
+        else:
+            stdout += f"Code ran successfully.\n Following the stdout of the debug mode run:\n{result.stdout.strip()}\n"
+        if DS_RD_SETTING.sample_data_by_LLM:
+            debug_time, full_estimated_time = None, None
+            if match := re.search(r"debug_time:\s*(\d+(?:.\d+)?)", result.stdout, re.DOTALL):
+                debug_time = float(match.group(1))
+            if match := re.search(r"estimated_time:\s*(\d+(?:.\d+)?)", result.stdout, re.DOTALL):
+                full_estimated_time = float(match.group(1))
+            if debug_time is not None and full_estimated_time is not None:
+                stdout += f"Debug mode ran in {debug_time:.2f} seconds, estimated full run time is {full_estimated_time:.2f} seconds. The estimated time is {full_estimated_time / env.conf.running_timeout_period * 100:.2f}% the debug time."
+            else:
+                stdout += "Debug mode did not provide debug_time or estimated_time, it's a buggy implementation.\n"
 
         score_fp = implementation.workspace_path / "scores.csv"
         score_ret_code = 0
@@ -97,7 +133,6 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
                 score_ret_code = 1
 
-        test_eval = get_test_eval()
         if not test_eval.is_sub_enabled(self.scen.competition):
             submission_ret_code = 0
         else:
@@ -105,24 +140,9 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             base_check_code = T(".eval_tests.submission_format_test", ftype="txt").r()
             implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
             # stdout += "----Submission Check 1-----\n"
-            submission_check_out, submission_ret_code = implementation.execute_ret_code(
-                env=env, entry="python test/submission_format_test.py"
-            )
-            if DS_RD_SETTING.rule_base_eval:
-                if execute_ret_code == 0 and score_ret_code == 0 and submission_ret_code == 0:
-                    return PipelineSingleFeedback(
-                        execution=stdout,
-                        return_checking=score_check_text + "\n" + submission_check_out,
-                        code="Code evaluation is not available.",
-                        final_decision=True,
-                    )
-                else:
-                    return PipelineSingleFeedback(
-                        execution=stdout,
-                        return_checking=score_check_text + "\n" + submission_check_out,
-                        code="Code evaluation is not available.",
-                        final_decision=False,
-                    )
+            submission_result = implementation.run(env=env, entry="python test/submission_format_test.py")
+            submission_check_out = submission_result.stdout
+            submission_ret_code = submission_result.exit_code
             stdout += "\n" + submission_check_out
 
         if not isinstance(implementation, FBWorkspace):
@@ -131,13 +151,14 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             eda_output = implementation.file_dict.get("EDA.md", None)
 
         system_prompt = T(".prompts:pipeline_eval.system").r(
-            scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
-            task_desc=target_task.get_task_information(),
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
-            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
+            debug_mode=DS_RD_SETTING.sample_data_by_LLM,
         )
         user_prompt = T(".prompts:pipeline_eval.user").r(
+            scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
+            task_desc=target_task.get_task_information(),
             stdout=stdout.strip(),
+            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
             code=implementation.file_dict["main.py"],
         )
         wfb = build_cls_from_json_with_retry(
@@ -146,10 +167,15 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             user_prompt=user_prompt,
             init_kwargs_update_func=PipelineSingleFeedback.val_and_update_init_dict,
         )
-        if score_ret_code != 0:
+        if score_ret_code != 0 and wfb.final_decision is True:
             wfb.final_decision = False
             wfb.return_checking += "\n" + score_check_text
-        if submission_ret_code != 0:
+        if submission_ret_code != 0 and wfb.final_decision is True:
             wfb.final_decision = False
             wfb.return_checking += "\nSubmission file check failed."
+        if sample_submission_check is False and wfb.final_decision is True:
+            wfb.final_decision = False
+            wfb.return_checking += (
+                "\nSample submission file check failed. Code should not open the sample submission file."
+            )
         return wfb

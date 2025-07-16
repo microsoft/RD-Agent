@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 from streamlit import session_state as state
 
@@ -16,6 +15,7 @@ from rdagent.log.ui.utils import (
     HIGH,
     LITE,
     MEDIUM,
+    curve_figure,
     get_statistics_df,
     get_summary_df,
     percent_df,
@@ -51,7 +51,8 @@ def curves_win(summary: dict):
         with st.container(border=True):
             st.markdown(f"**:blue[{k}] - :violet[{v['competition']}]**")
             try:
-                tscores = {f"loop {k-1}": v for k, v in v["test_scores"].items()}
+                tscores = {k: v for k, v in v["test_scores"].items()}
+                tscores = pd.Series(tscores)
                 vscores = {}
                 for k, vs in v["valid_scores"].items():
                     if not vs.index.is_unique:
@@ -60,44 +61,20 @@ def curves_win(summary: dict):
                         )
                         st.write(vs)
                     vscores[k] = vs[~vs.index.duplicated(keep="last")].iloc[:, 0]
-
                 if len(vscores) > 0:
                     metric_name = list(vscores.values())[0].name
                 else:
                     metric_name = "None"
+                vscores = pd.DataFrame(vscores)
+                if "ensemble" in vscores.index:
+                    ensemble_row = vscores.loc[["ensemble"]]
+                    vscores = pd.concat([ensemble_row, vscores.drop("ensemble")])
+                vscores = vscores.T
+                vscores["test"] = tscores
+                vscores.index = [f"L{i}" for i in vscores.index]
+                vscores.columns.name = metric_name
 
-                tdf = pd.Series(tscores, name="score")
-                vdf = pd.DataFrame(vscores)
-                if "ensemble" in vdf.index:
-                    ensemble_row = vdf.loc[["ensemble"]]
-                    vdf = pd.concat([ensemble_row, vdf.drop("ensemble")])
-                vdf.columns = [f"loop {i}" for i in vdf.columns]
-                fig = go.Figure()
-                # Add test scores trace from tdf
-                fig.add_trace(
-                    go.Scatter(
-                        x=tdf.index,
-                        y=tdf,
-                        mode="lines+markers",
-                        name="Test scores",
-                        marker=dict(symbol="diamond"),
-                        line=dict(shape="linear", dash="dash"),
-                    )
-                )
-                # Add valid score traces from vdf (transposed to have loops on x-axis)
-                for column in vdf.T.columns:
-                    fig.add_trace(
-                        go.Scatter(
-                            x=vdf.T.index,
-                            y=vdf.T[column],
-                            mode="lines+markers",
-                            name=f"{column}",
-                            visible=("legendonly" if column != "ensemble" else None),
-                        )
-                    )
-                fig.update_layout(title=f"Test and Valid scores (metric: {metric_name})")
-
-                st.plotly_chart(fig)
+                st.plotly_chart(curve_figure(vscores))
             except Exception as e:
                 import traceback
 

@@ -16,6 +16,9 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
 LiteLLM Backend Configuration (Default)
 =======================================
 
+.. note::
+   🔥 **Attention**: We now provide experimental support for **DeepSeek** models! You can use DeepSeek's official API for cost-effective and high-performance inference. See the configuration example below for DeepSeek setup.
+
 Option 1: Unified API base for both models
 ------------------------------------------
 
@@ -45,6 +48,23 @@ Option 2: Separate API bases for Chat and Embedding models
       # TAKE siliconflow as an example, you can use other providers.
       # Note: embedding requires litellm_proxy prefix
       EMBEDDING_MODEL=litellm_proxy/BAAI/bge-large-en-v1.5
+      LITELLM_PROXY_API_KEY=<replace_with_your_siliconflow_api_key>
+      LITELLM_PROXY_API_BASE=https://api.siliconflow.cn/v1
+
+Configuration Example: DeepSeek Setup
+-------------------------------------
+
+Many users encounter configuration errors when setting up DeepSeek. Here's a complete working example:
+
+   .. code-block:: Properties
+
+      # CHAT MODEL: Using DeepSeek Official API
+      CHAT_MODEL=deepseek/deepseek-chat 
+      DEEPSEEK_API_KEY=<replace_with_your_deepseek_api_key>
+
+      # EMBEDDING MODEL: Using SiliconFlow for embedding since DeepSeek has no embedding model.
+      # Note: embedding requires litellm_proxy prefix
+      EMBEDDING_MODEL=litellm_proxy/BAAI/bge-m3
       LITELLM_PROXY_API_KEY=<replace_with_your_siliconflow_api_key>
       LITELLM_PROXY_API_BASE=https://api.siliconflow.cn/v1
 
@@ -94,6 +114,10 @@ Configuration(deprecated)
 To run the application, please create a `.env` file in the root directory of the project and add environment variables according to your requirements.
 
 If you are using this deprecated version,  you should set `BACKEND` to `rdagent.oai.backend.DeprecBackend`.
+
+   .. code-block:: Properties
+
+      BACKEND=rdagent.oai.backend.DeprecBackend
 
 Here are some other configuration options that you can use:
 

@@ -9,12 +9,17 @@ import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from copy import deepcopy
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
 from rdagent.utils import filter_redundant_text
+
+if TYPE_CHECKING:
+    from rdagent.utils.env import EnvResult
+
 from rdagent.utils.fmt import shrink_text
 
 if typing.TYPE_CHECKING:
@@ -59,6 +64,12 @@ ASpecificTask = TypeVar("ASpecificTask", bound=Task)
 ASpecificFeedback = TypeVar("ASpecificFeedback", bound=Feedback)
 
 
+@dataclass
+class RunningInfo:
+    result: object = None  # The result of the experiment, can be different types in different scenarios.
+    running_time: float | None = None
+
+
 class Workspace(ABC, Generic[ASpecificTask, ASpecificFeedback]):
     """
     A workspace is a place to store the task implementation. It evolves as the developer implements the task.
@@ -68,6 +79,7 @@ class Workspace(ABC, Generic[ASpecificTask, ASpecificFeedback]):
     def __init__(self, target_task: ASpecificTask | None = None) -> None:
         self.target_task: ASpecificTask | None = target_task
         self.feedback: ASpecificFeedback | None = None
+        self.running_info: RunningInfo = RunningInfo()
 
     @abstractmethod
     def execute(self, *args: Any, **kwargs: Any) -> object | None:
@@ -250,26 +262,25 @@ class FBWorkspace(Workspace):
         """
         Before each execution, make sure to prepare and inject code.
         """
-        stdout, _ = self.execute_ret_code(env, entry)
-        return stdout
+        result = self.run(env, entry)
+        return result.stdout
 
-    def execute_ret_code(self, env: Env, entry: str) -> tuple[str, int]:
+    def run(self, env: Env, entry: str) -> EnvResult:
         """
-        Execute the code in the environment and return both the stdout and the exit code.
+        Execute the code in the environment and return an EnvResult object (stdout, exit_code, running_time).
 
         Before each execution, make sure to prepare and inject code.
         """
         self.prepare()
         self.inject_files(**self.file_dict)
-        stdout, return_code = env.run_ret_code(entry, str(self.workspace_path), env={"PYTHONPATH": "./"})
-        return (
-            shrink_text(
-                filter_redundant_text(stdout),
-                context_lines=RD_AGENT_SETTINGS.stdout_context_len,
-                line_len=RD_AGENT_SETTINGS.stdout_line_len,
-            ),
-            return_code,
+        result = env.run(entry, str(self.workspace_path), env={"PYTHONPATH": "./"})
+        # result is EnvResult
+        result.stdout = shrink_text(
+            filter_redundant_text(result.stdout),
+            context_lines=RD_AGENT_SETTINGS.stdout_context_len,
+            line_len=RD_AGENT_SETTINGS.stdout_line_len,
         )
+        return result
 
     def __str__(self) -> str:
         return f"Workspace[{self.workspace_path=}" + (
@@ -319,10 +330,21 @@ class Experiment(
         # NOTE: Assumption
         # - only runner will assign this variable
         # - We will always create a new Experiment without copying previous results when we goto the next new loop.
-        self.result: object = None  # The result of the experiment, can be different types in different scenarios.
+        self.running_info = RunningInfo()
         self.sub_results: dict[str, float] = (
             {}
         )  # TODO: in Kaggle, now sub results are all saved in self.result, remove this in the future.
+
+        # For parallel multi-trace support
+        self.local_selection: tuple[int, ...] | None = None
+
+    @property
+    def result(self) -> object:
+        return self.running_info.result
+
+    @result.setter
+    def result(self, value: object) -> None:
+        self.running_info.result = value
 
 
 ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)

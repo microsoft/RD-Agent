@@ -47,6 +47,7 @@ st-theme
 randomname
 flask
 flask-cors
+networkx
 
 # kaggle crawler
 selenium
@@ -66,6 +67,3 @@ genson
 mlflow
 azureml-mlflow
 types-pytz
-
-# data science scenario for custom dataset
-sparse

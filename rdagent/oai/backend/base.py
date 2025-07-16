@@ -1,18 +1,20 @@
 from __future__ import annotations
 
+import io
 import json
 import re
 import sqlite3
 import time
+import tokenize
 import uuid
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, Callable, List, Optional, Tuple, Type, Union, cast
 
 import pytz
-from pydantic import TypeAdapter
+from pydantic import BaseModel, TypeAdapter
 
 from rdagent.core.exception import PolicyError
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass
@@ -29,6 +31,108 @@ try:
     openai_imported = True
 except ImportError:
     openai_imported = False
+
+
+class JSONParser:
+    """JSON parser supporting multiple strategies"""
+
+    def __init__(self, add_json_in_prompt: bool = False) -> None:
+        self.strategies: List[Callable[[str], str]] = [
+            self._direct_parse,
+            self._extract_from_code_block,
+            self._fix_python_syntax,
+            self._extract_with_fix_combined,
+        ]
+        self.add_json_in_prompt = add_json_in_prompt
+
+    def parse(self, content: str) -> str:
+        """Parse JSON content, automatically trying multiple strategies"""
+        original_content = content
+
+        for strategy in self.strategies:
+            try:
+                return strategy(original_content)
+            except json.JSONDecodeError:
+                continue
+
+        # All strategies failed
+        if not self.add_json_in_prompt:
+            error = json.JSONDecodeError(
+                "Failed to parse JSON after all attempts, maybe because 'messages' must contain the word 'json' in some form",
+                original_content,
+                0,
+            )
+            error.message = "Failed to parse JSON after all attempts, maybe because 'messages' must contain the word 'json' in some form"  # type: ignore[attr-defined]
+            raise error
+        else:
+            raise json.JSONDecodeError("Failed to parse JSON after all attempts", original_content, 0)
+
+    def _direct_parse(self, content: str) -> str:
+        """Strategy 1: Direct parsing (including handling extra data)"""
+        try:
+            json.loads(content)
+            return content
+        except json.JSONDecodeError as e:
+            if "Extra data" in str(e):
+                return self._extract_first_json(content)
+            raise
+
+    def _extract_from_code_block(self, content: str) -> str:
+        """Strategy 2: Extract JSON from code block"""
+        match = re.search(r"```json\s*(.*?)\s*```", content, re.DOTALL)
+        if not match:
+            raise json.JSONDecodeError("No JSON code block found", content, 0)
+
+        json_content = match.group(1).strip()
+        return self._direct_parse(json_content)
+
+    def _fix_python_syntax(self, content: str) -> str:
+        """Strategy 3: Fix Python syntax before parsing"""
+        fixed = self._fix_python_booleans(content)
+        return self._direct_parse(fixed)
+
+    def _extract_with_fix_combined(self, content: str) -> str:
+        """Strategy 4: Combined strategy - fix Python syntax first, then extract the first JSON object"""
+        fixed = self._fix_python_booleans(content)
+
+        # Try to extract code block from the fixed content
+        match = re.search(r"```json\s*(.*?)\s*```", fixed, re.DOTALL)
+        if match:
+            fixed = match.group(1).strip()
+
+        return self._direct_parse(fixed)
+
+    @staticmethod
+    def _fix_python_booleans(json_str: str) -> str:
+        """Safely fix Python-style booleans to JSON standard format using tokenize"""
+        replacements = {"True": "true", "False": "false", "None": "null"}
+
+        try:
+            out = []
+            io_string = io.StringIO(json_str)
+            tokens = tokenize.generate_tokens(io_string.readline)
+
+            for toknum, tokval, _, _, _ in tokens:
+                if toknum == tokenize.NAME and tokval in replacements:
+                    out.append(replacements[tokval])
+                else:
+                    out.append(tokval)
+
+            result = "".join(out)
+            return result
+
+        except (tokenize.TokenError, json.JSONDecodeError):
+            # If tokenize fails, fallback to regex method
+            for python_val, json_val in replacements.items():
+                json_str = re.sub(rf"\b{python_val}\b", json_val, json_str)
+            return json_str
+
+    @staticmethod
+    def _extract_first_json(response: str) -> str:
+        """Extract the first complete JSON object, ignoring extra content"""
+        decoder = json.JSONDecoder()
+        obj, _ = decoder.raw_decode(response)
+        return json.dumps(obj)
 
 
 class SQliteLazyCache(SingletonBaseClass):
@@ -275,6 +379,23 @@ class APIBackend(ABC):
         *args,
         **kwargs,
     ) -> str:
+        """
+        Responseible for building messages and logging messages
+
+        TODO: What is weird is that the function is called before we seperate embeddings and chat completion.
+
+        Parameters
+        ----------
+        user_prompt : str
+        system_prompt : str | None
+        former_messages : list | None
+        response_format : BaseModel | dict
+            A BaseModel based on pydantic or a dict
+        **kwargs
+        Returns
+        -------
+        str
+        """
         if former_messages is None:
             former_messages = []
         messages = self._build_messages(
@@ -417,11 +538,15 @@ class APIBackend(ABC):
         seed: Optional[int] = None,
         json_target_type: Optional[str] = None,
         add_json_in_prompt: bool = False,
+        response_format: Optional[Union[dict, Type[BaseModel]]] = None,
         **kwargs: Any,
     ) -> str:
         """
         Call the chat completion function and automatically continue the conversation if the finish_reason is length.
         """
+
+        if response_format is None and json_mode:
+            response_format = {"type": "json_object"}
 
         # 0) return directly if cache is hit
         if seed is None and LLM_SETTINGS.use_auto_chat_cache_seed_gen:
@@ -444,11 +569,11 @@ class APIBackend(ABC):
         # Loop to get a full response
         try_n = 6
         for _ in range(try_n):  # for some long code, 3 times may not enough for reasoning models
-            if json_mode and add_json_in_prompt:
+            if response_format == {"type": "json_object"} and add_json_in_prompt:
                 self._add_json_in_prompt(new_messages)
             response, finish_reason = self._create_chat_completion_inner_function(
                 messages=new_messages,
-                json_mode=json_mode,
+                response_format=response_format,
                 **kwargs,
             )
             all_response += response
@@ -460,18 +585,33 @@ class APIBackend(ABC):
 
         # 2) refine the response and return
         if LLM_SETTINGS.reasoning_think_rm:
+            # Strategy 1: Try to match complete <think>...</think> pattern
             match = re.search(r"<think>(.*?)</think>(.*)", all_response, re.DOTALL)
-            _, all_response = match.groups() if match else ("", all_response)
+            if match:
+                _, all_response = match.groups()
+            else:
+                # Strategy 2: If no complete match, try to match only </think>
+                match = re.search(r"</think>(.*)", all_response, re.DOTALL)
+                if match:
+                    all_response = match.group(1)
+                # If no match at all, keep original content
 
-        if json_mode:
-            try:
-                json.loads(all_response)
-            except json.decoder.JSONDecodeError:
-                match = re.search(r"```json(.*)```", all_response, re.DOTALL)
-                all_response = match.groups()[0] if match else all_response
-                json.loads(all_response)
-        if json_target_type is not None:
-            TypeAdapter(json_target_type).validate_json(all_response)
+        # 3) format checking
+        if response_format == {"type": "json_object"} or json_target_type:
+            parser = JSONParser(add_json_in_prompt=add_json_in_prompt)
+            all_response = parser.parse(all_response)
+            if json_target_type:
+                # deepseek will enter this branch
+                TypeAdapter(json_target_type).validate_json(all_response)
+
+        if response_format is not None:
+            if not isinstance(response_format, dict) and issubclass(response_format, BaseModel):
+                # It may raise TypeError if initialization fails
+                response_format(**json.loads(all_response))
+            elif response_format == {"type": "json_object"}:
+                logger.info(f"Using OpenAI response format: {response_format}")
+            else:
+                logger.warning(f"Unknown response_format: {response_format}, skipping validation.")
         if self.dump_chat_cache:
             self.cache.chat_set(input_content_json, all_response)
         return all_response
@@ -500,7 +640,7 @@ class APIBackend(ABC):
         return [content_to_embedding_dict[content] for content in input_content_list]  # type: ignore[misc]
 
     @abstractmethod
-    def support_function_calling(self) -> bool:
+    def supports_response_schema(self) -> bool:
         """
         Check if the backend supports function calling
         """
@@ -526,7 +666,7 @@ class APIBackend(ABC):
     def _create_chat_completion_inner_function(  # type: ignore[no-untyped-def] # noqa: C901, PLR0912, PLR0915
         self,
         messages: list[dict[str, Any]],
-        json_mode: bool = False,
+        response_format: Optional[Union[dict, Type[BaseModel]]] = None,
         *args,
         **kwargs,
     ) -> tuple[str, str | None]:

@@ -3,9 +3,11 @@ Model workflow with session control
 It is from `rdagent/app/qlib_rd_loop/model.py` and try to replace `rdagent/app/qlib_rd_loop/RDAgent.py`
 """
 
+import asyncio
 from typing import Any
 
 from rdagent.components.workflow.conf import BasePropSetting
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
 from rdagent.core.proposal import (
     Experiment2Feedback,
@@ -26,20 +28,16 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
     def __init__(self, PROP_SETTING: BasePropSetting):
         scen: Scenario = import_class(PROP_SETTING.scen)()
         logger.log_object(scen, tag="scenario")
-
+        logger.log_object(PROP_SETTING.model_dump(), tag="RDLOOP_SETTINGS")
+        logger.log_object(RD_AGENT_SETTINGS.model_dump(), tag="RD_AGENT_SETTINGS")
         self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
-        logger.log_object(self.hypothesis_gen, tag="hypothesis generator")
 
         self.hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.hypothesis2experiment)()
-        logger.log_object(self.hypothesis2experiment, tag="hypothesis2experiment")
 
         self.coder: Developer = import_class(PROP_SETTING.coder)(scen)
-        logger.log_object(self.coder, tag="coder")
         self.runner: Developer = import_class(PROP_SETTING.runner)(scen)
-        logger.log_object(self.runner, tag="runner")
 
         self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
-        logger.log_object(self.summarizer, tag="summarizer")
         self.trace = Trace(scen=scen)
         super().__init__()
 
@@ -55,10 +53,13 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         return exp
 
     # included steps
-    def direct_exp_gen(self, prev_out: dict[str, Any]):
-        hypo = self._propose()
-        exp = self._exp_gen(hypo)
-        return {"propose": hypo, "exp_gen": exp}
+    async def direct_exp_gen(self, prev_out: dict[str, Any]):
+        while True:
+            if self.get_unfinished_loop_cnt(self.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
+                hypo = self._propose()
+                exp = self._exp_gen(hypo)
+                return {"propose": hypo, "exp_gen": exp}
+            await asyncio.sleep(1)
 
     def coding(self, prev_out: dict[str, Any]):
         exp = self.coder.develop(prev_out["direct_exp_gen"]["exp_gen"])

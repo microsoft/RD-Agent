@@ -71,15 +71,9 @@ SIMILAR_SCENARIOS = (
 
 def filter_log_folders(main_log_path):
     """
-    The webpage only displays valid folders.
-    If the __session__ folder exists in a subfolder of the log folder, it is considered a valid folder,
-    otherwise it is considered an invalid folder.
+    Filter and return the log folders relative to the main log path.
     """
-    folders = [
-        folder.relative_to(main_log_path)
-        for folder in main_log_path.iterdir()
-        if folder.is_dir() and folder.joinpath("__session__").exists() and folder.joinpath("__session__").is_dir()
-    ]
+    folders = [folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
     folders = sorted(folders, key=lambda x: x.name)
     return folders
 
@@ -130,8 +124,8 @@ if "all_metric_series" not in state:
     state.all_metric_series = []
 
 # Factor Task Baseline
-if "alpha158_metrics" not in state:
-    state.alpha158_metrics = None
+if "alpha_baseline_metrics" not in state:
+    state.alpha_baseline_metrics = None
 
 
 def should_display(msg: Message):
@@ -179,35 +173,42 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                         # factor baseline exp metrics
                         if (
                             isinstance(state.scenario, (QlibFactorScenario, QlibQuantScenario))
-                            and state.alpha158_metrics is None
+                            and state.alpha_baseline_metrics is None
                         ):
-                            sms = msg.content.based_experiments[0].result.loc[QLIB_SELECTED_METRICS]
-                            sms.name = "alpha158"
-                            state.alpha158_metrics = sms
+                            try:
+                                sms = msg.content.based_experiments[0].result
+                            except AttributeError:
+                                sms = msg.content.based_experiments[0].__dict__["result"]
+                            sms = sms.loc[QLIB_SELECTED_METRICS]
+                            sms.name = "Alpha Base"
+                            state.alpha_baseline_metrics = sms
 
-                        if (
-                            state.lround == 1
-                            and len(msg.content.based_experiments) > 0
-                            and msg.content.based_experiments[-1].result is not None
-                        ):
-                            sms = msg.content.based_experiments[-1].result
-                            if isinstance(
-                                state.scenario,
-                                (
-                                    QlibModelScenario,
-                                    QlibFactorFromReportScenario,
-                                    QlibFactorScenario,
-                                    QlibQuantScenario,
-                                ),
-                            ):
-                                sms_all = sms
-                                sms = sms.loc[QLIB_SELECTED_METRICS]
-                            sms.name = f"Baseline"
-                            state.metric_series.append(sms)
-                            state.all_metric_series.append(sms_all)
+                        if state.lround == 1 and len(msg.content.based_experiments) > 0:
+                            try:
+                                sms = msg.content.based_experiments[-1].result
+                            except AttributeError:
+                                sms = msg.content.based_experiments[-1].__dict__["result"]
+                            if sms is not None:
+                                if isinstance(
+                                    state.scenario,
+                                    (
+                                        QlibModelScenario,
+                                        QlibFactorFromReportScenario,
+                                        QlibFactorScenario,
+                                        QlibQuantScenario,
+                                    ),
+                                ):
+                                    sms_all = sms
+                                    sms = sms.loc[QLIB_SELECTED_METRICS]
+                                sms.name = f"Baseline"
+                                state.metric_series.append(sms)
+                                state.all_metric_series.append(sms_all)
 
                         # common metrics
-                        sms = msg.content.result
+                        try:
+                            sms = msg.content.result
+                        except AttributeError:
+                            sms = msg.content.__dict__["result"]
                         if isinstance(
                             state.scenario,
                             (
@@ -285,7 +286,7 @@ def refresh(same_trace: bool = False):
     state.all_metric_series = []
     state.last_msg = None
     state.current_tags = []
-    state.alpha158_metrics = None
+    state.alpha_baseline_metrics = None
 
 
 def evolving_feedback_window(wsf: FactorSingleFeedback | ModelSingleFeedback):
@@ -378,10 +379,10 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
     hover_texts = [
         hypothesis_hover_text(state.hypotheses[int(i[6:])], state.h_decisions[int(i[6:])])
         for i in df.index
-        if i != "alpha158" and i != "Baseline"
+        if i != "Alpha Base" and i != "Baseline"
     ]
-    if state.alpha158_metrics is not None:
-        hover_texts = ["Baseline: alpha158"] + hover_texts
+    if state.alpha_baseline_metrics is not None:
+        hover_texts = ["Baseline"] + hover_texts
     for ci, col in enumerate(df.columns):
         row = ci // C + 1
         col_num = ci % C + 1
@@ -401,7 +402,7 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
         )
     fig.update_layout(showlegend=False, height=height)
 
-    if state.alpha158_metrics is not None:
+    if state.alpha_baseline_metrics is not None:
         for i in range(1, R + 1):  # 行
             for j in range(1, C + 1):  # 列
                 fig.update_xaxes(
@@ -443,15 +444,15 @@ def summary_window():
                 display_hypotheses(state.hypotheses, state.h_decisions, show_true_only)
 
             with chart_c:
-                if isinstance(state.scenario, QlibFactorScenario) and state.alpha158_metrics is not None:
-                    df = pd.DataFrame([state.alpha158_metrics] + state.metric_series)
-                elif isinstance(state.scenario, QlibQuantScenario) and state.alpha158_metrics is not None:
-                    df = pd.DataFrame([state.alpha158_metrics] + state.metric_series)
+                if isinstance(state.scenario, QlibFactorScenario) and state.alpha_baseline_metrics is not None:
+                    df = pd.DataFrame([state.alpha_baseline_metrics] + state.metric_series[1:])
+                elif isinstance(state.scenario, QlibQuantScenario) and state.alpha_baseline_metrics is not None:
+                    df = pd.DataFrame([state.alpha_baseline_metrics] + state.metric_series[1:])
                 else:
                     df = pd.DataFrame(state.metric_series)
                 if show_true_only and len(state.hypotheses) >= len(state.metric_series):
-                    if state.alpha158_metrics is not None:
-                        selected = ["alpha158"] + [
+                    if state.alpha_baseline_metrics is not None:
+                        selected = ["Alpha Base"] + [
                             i for i in df.index if i == "Baseline" or state.h_decisions[int(i[6:])]
                         ]
                     else:
@@ -636,11 +637,11 @@ def feedback_window():
                 with st.expander("**Config⚙️**", expanded=True):
                     st.markdown(state.scenario.experiment_setting, unsafe_allow_html=True)
 
-            if fbr := state.msgs[round]["Quantitative Backtesting Chart"]:
-                st.markdown("**Returns📈**")
-                fig = report_figure(fbr[0].content)
-                st.plotly_chart(fig)
             if fb := state.msgs[round]["feedback"]:
+                if fbr := state.msgs[round]["Quantitative Backtesting Chart"]:
+                    st.markdown("**Returns📈**")
+                    fig = report_figure(fbr[0].content)
+                    st.plotly_chart(fig)
                 st.markdown("**Hypothesis Feedback🔍**")
                 h: HypothesisFeedback = fb[0].content
                 st.markdown(

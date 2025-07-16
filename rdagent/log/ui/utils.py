@@ -5,10 +5,14 @@ from collections import deque
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import matplotlib.pyplot as plt
+import networkx as nx
 import pandas as pd
+import plotly.graph_objects as go
 import typer
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
+from rdagent.core.proposal import Trace
 from rdagent.core.utils import cache_with_pickle
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.utils import extract_json
@@ -160,10 +164,20 @@ def get_sota_exp_stat(log_path: Path):
         return None
 
     sota_loop_id = None
-    for i, ef in enumerate(final_trace.hist):
-        if ef[0] == sota_exp:
-            sota_loop_id = i
-            break
+    exp_paths = [
+        (i, int(match[1]))
+        for i in log_path.rglob(f"*/running/*/*.pkl")
+        if (match := re.search(r".*Loop_(\d+).*", str(i)))
+    ]
+    if len(exp_paths) == 0:
+        return None
+    exp_paths.sort(key=lambda x: x[1], reverse=True)
+    for exp_path, loop_id in exp_paths:
+        with open(exp_path, "rb") as f:
+            trace = pickle.load(f)
+            if trace.experiment_workspace.all_codes == sota_exp.experiment_workspace.all_codes:
+                sota_loop_id = loop_id
+                break
 
     sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{sota_loop_id}/running/mle_score/**/*.pkl")]
     if len(sota_mle_score_paths) == 0:
@@ -274,10 +288,16 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             v["running_time"] = str(running_time).split(".")[0]
 
             final_sota_exp = get_final_sota_exp(Path(lf) / k)
-            if final_sota_exp is not None and final_sota_exp.result is not None:
-                v["sota_exp_score_valid"] = final_sota_exp.result.loc["ensemble"].iloc[0]
-            else:
-                v["sota_exp_score_valid"] = None
+
+            v["sota_exp_score_valid"] = None
+            if final_sota_exp is not None:
+                try:
+                    final_sota_result = final_sota_exp.result
+                except AttributeError:  # Compatible with old versions
+                    final_sota_result = final_sota_exp.__dict__["result"]
+                if final_sota_result is not None:
+                    v["sota_exp_score_valid"] = final_sota_result.loc["ensemble"].iloc[0]
+
             v["sota_exp_stat_new"] = get_sota_exp_stat(Path(lf) / k)
             # change experiment name
             if "amlt" in lf:
@@ -541,6 +561,126 @@ def get_statistics_df(summary_df: pd.DataFrame) -> pd.DataFrame:
 
     stat_df = pd.concat([total_stat, sota_exp_stat, sota_exp_stat_new], axis=1)
     return stat_df
+
+
+def curve_figure(scores: pd.DataFrame) -> go.Figure:
+    """
+    scores.columns.name is the metric name, e.g., "accuracy", "f1", etc.
+    scores.index is the loop index, e.g., ["L1", "L2", "L3", ...]
+    scores["test"] is the test score, other columns are valid scores for different loops.
+    The "ensemble" column is the ensemble score.
+    The "Test scores" and "ensemble" lines are visible, while other valid scores are hidden by default.
+    """
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=scores.index,
+            y=scores["test"],
+            mode="lines+markers",
+            name="Test scores",
+            marker=dict(symbol="diamond"),
+            line=dict(shape="linear", dash="dash"),
+        )
+    )
+    for column in scores.columns:
+        if column != "test":
+            fig.add_trace(
+                go.Scatter(
+                    x=scores.index,
+                    y=scores[column],
+                    mode="lines+markers",
+                    name=f"{column}",
+                    visible=("legendonly" if column != "ensemble" else None),
+                )
+            )
+    fig.update_layout(title=f"Test and Valid scores (metric: {scores.columns.name})")
+
+    return fig
+
+
+def trace_figure(trace: Trace):
+    G = nx.DiGraph()
+
+    # Calculate the number of ancestors for each node (root node is 0, more ancestors means lower level)
+    levels = {}
+    for i in range(len(trace.dag_parent)):
+        levels[i] = len(trace.get_parents(i))
+
+    # Add nodes and edges
+    edges = []
+    for i, parents in enumerate(trace.dag_parent):
+        for parent in parents:
+            edges.append((f"L{parent}", f"L{i}"))
+        if len(parents) == 0:
+            G.add_node(f"L{i}")
+    G.add_edges_from(edges)
+
+    # Check if G is a path (a single line)
+    is_path = nx.is_path(G, list(nx.topological_sort(G)))
+    if is_path:
+        # Arrange nodes in a square spiral
+        n = len(G.nodes())
+        pos = {}
+        x, y = 0, 0
+        dx, dy = 1, 0
+        step = 1
+        steps_taken = 0
+        steps_in_dir = 1
+        dir_changes = 0
+        for i, node in enumerate(G.nodes()):
+            pos[node] = (x, y)
+            x += dx
+            y += dy
+            steps_taken += 1
+            if steps_taken == steps_in_dir:
+                steps_taken = 0
+                # Change direction: right -> up -> left -> down -> right ...
+                dx, dy = -dy, dx
+                dir_changes += 1
+                if dir_changes % 2 == 0:
+                    steps_in_dir += 1
+    else:
+        # Group nodes by number of ancestors, fewer ancestors are higher up
+        layer_nodes = {}
+        for idx, lvl in levels.items():
+            layer_nodes.setdefault(lvl, []).append(f"L{idx}")
+
+        # Layout by level: y axis is -lvl, x axis is evenly distributed
+        pos = {}
+
+        def parent_avg_pos(node):
+            id = int(node[1:])
+            parents = trace.dag_parent[id]
+
+            if not parents:
+                return 0
+
+            parent_nodes = [f"L{p}" for p in parents]
+            parent_xs = [pos[p][0] for p in parent_nodes if p in pos]
+            return sum(parent_xs) / len(parent_xs) if parent_xs else 0
+
+        for lvl in sorted(layer_nodes):
+            nodes = layer_nodes[lvl]
+            # For root nodes, sort directly by index
+            if lvl == 0:
+                sorted_nodes = sorted(nodes, key=lambda n: int(n[1:]))
+            else:
+                # Sort by average parent x, so children are below their parents
+                sorted_nodes = sorted(nodes, key=parent_avg_pos)
+            y = -lvl  # y decreases as level increases (children below parents)
+            for i, node in enumerate(sorted_nodes):
+                if lvl == 0:
+                    x = i
+                else:
+                    # Place child directly below average parent x, offset if multiple at same y
+                    avg_x = parent_avg_pos(node)
+                    # To avoid overlap, spread siblings a bit if needed
+                    x = avg_x + (i - (len(sorted_nodes) - 1) / 2) * 0.5
+                pos[node] = (x, y)
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    nx.draw(G, pos, with_labels=True, arrows=True, node_color="skyblue", node_size=100, font_size=5, ax=ax)
+    return fig
 
 
 def compare(

@@ -1,5 +1,50 @@
 # Changelog
 
+## [0.7.0](https://github.com/microsoft/RD-Agent/compare/v0.6.1...v0.7.0) (2025-07-08)
+
+
+### Features
+
+* add code change summary ([#1000](https://github.com/microsoft/RD-Agent/issues/1000)) ([937ec26](https://github.com/microsoft/RD-Agent/commit/937ec263b215928633822c4d76ad4e47442c8198))
+* add hide_base_name option and update data folder prompts ([#1004](https://github.com/microsoft/RD-Agent/issues/1004)) ([2f61fa8](https://github.com/microsoft/RD-Agent/commit/2f61fa8cd90c91ad29f320ce9ea6c49f49ac9111))
+* added running time statistics for the DS scenario experiment ([#1007](https://github.com/microsoft/RD-Agent/issues/1007)) ([030abd8](https://github.com/microsoft/RD-Agent/commit/030abd87191377641a678c80852f5ecad84e7a6e))
+* merge code summary and support more traces ([#1025](https://github.com/microsoft/RD-Agent/issues/1025)) ([48201e7](https://github.com/microsoft/RD-Agent/commit/48201e79b55ff5a98dad51702a7d0ac6b1ddc9eb))
+* show first evo round codes diff ([#1009](https://github.com/microsoft/RD-Agent/issues/1009)) ([4844622](https://github.com/microsoft/RD-Agent/commit/4844622e5fd28d7cbaabd9d7888f8204c60b76b3))
+* try coder on whole data ([#1017](https://github.com/microsoft/RD-Agent/issues/1017)) ([4973e05](https://github.com/microsoft/RD-Agent/commit/4973e0532248c6172eec3bb70dffda052af2d14f))
+
+
+### Bug Fixes
+
+* fix a minor bug in DS eval ([#1012](https://github.com/microsoft/RD-Agent/issues/1012)) ([5a520e9](https://github.com/microsoft/RD-Agent/commit/5a520e9d44899d44fddc0f2e5571596223161b71))
+* fix some bugs in quant scen ([#1026](https://github.com/microsoft/RD-Agent/issues/1026)) ([7b34d41](https://github.com/microsoft/RD-Agent/commit/7b34d418642d1c0c2986db9ecf6a5d9bc22cc3da))
+* support experimental support for Deepseek models and update docs about configuration ([#1024](https://github.com/microsoft/RD-Agent/issues/1024)) ([35cfc19](https://github.com/microsoft/RD-Agent/commit/35cfc193f9b35d786aeb7585334427ad358c982f))
+
+## [0.6.1](https://github.com/microsoft/RD-Agent/compare/v0.6.0...v0.6.1) (2025-06-28)
+
+
+### Bug Fixes
+
+* fix mount ([#1001](https://github.com/microsoft/RD-Agent/issues/1001)) ([4ae2f13](https://github.com/microsoft/RD-Agent/commit/4ae2f1303dfcbaea53d459be7c8e85bf85ce5f4f))
+* handle the bug of wrong dag_parant index ([#996](https://github.com/microsoft/RD-Agent/issues/996)) ([bda12ff](https://github.com/microsoft/RD-Agent/commit/bda12ffecf9ae116e0d04eece0c6a1b61413d916))
+* improve log folder sorting and selection UX ([#993](https://github.com/microsoft/RD-Agent/issues/993)) ([b116807](https://github.com/microsoft/RD-Agent/commit/b11680777f116b6c40f9e535e0da10c186c95050))
+
+## [0.6.0](https://github.com/microsoft/RD-Agent/compare/v0.5.0...v0.6.0) (2025-06-26)
+
+
+### Features
+
+* async mechanism for multi-trace ([#981](https://github.com/microsoft/RD-Agent/issues/981)) ([9e60c32](https://github.com/microsoft/RD-Agent/commit/9e60c32cf348481eb55617809c059c359d7603b8))
+
+
+### Bug Fixes
+
+* add async to direct_exp_gen avoid infinite loop ([#992](https://github.com/microsoft/RD-Agent/issues/992)) ([78c203d](https://github.com/microsoft/RD-Agent/commit/78c203d8eefbba67fc120b35cb25e85b2200ac49))
+* docker container cleanup to prevent accumulation and system slowdown ([#975](https://github.com/microsoft/RD-Agent/issues/975)) ([05cf094](https://github.com/microsoft/RD-Agent/commit/05cf094913e48c903c8a4476d6c609d8bfa10681))
+* fix a bug and update the docs ([#978](https://github.com/microsoft/RD-Agent/issues/978)) ([d1ae9e1](https://github.com/microsoft/RD-Agent/commit/d1ae9e1dcc2ccd1ffe05cb1c6db3e905fa70425c))
+* merge datascience v3 and v2 ([#974](https://github.com/microsoft/RD-Agent/issues/974)) ([1ba7548](https://github.com/microsoft/RD-Agent/commit/1ba754853ce2010ce1cb0bbd217b67689fa1ebdf))
+* refine details ([#979](https://github.com/microsoft/RD-Agent/issues/979)) ([25caa3d](https://github.com/microsoft/RD-Agent/commit/25caa3d00c255286dce27915b9355987b87ed2e8))
+* refine prompt ([#987](https://github.com/microsoft/RD-Agent/issues/987)) ([76df96e](https://github.com/microsoft/RD-Agent/commit/76df96ee88212a8aee7f518b9cacf80591dc2939))
+
 ## [0.5.0](https://github.com/microsoft/RD-Agent/compare/v0.4.0...v0.5.0) (2025-06-18)
 
 

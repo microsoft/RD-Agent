@@ -55,22 +55,30 @@ class ExperimentFeedback(Feedback):
         self,
         reason: str,
         *,
+        code_change_summary: str | None = None,
         decision: bool,
+        eda_improvement: str | None = None,
         exception: Exception | None = None,
     ) -> None:
         self.decision = decision
+        self.eda_improvement = eda_improvement
         self.reason = reason
         # Exception is not None means failing to generate runnable experiments due to exception.
         # Runable reuslts are not always good.
         self.exception: Exception | None = (
             exception  # if the experiment raises exception, it will be integrated into part of the feedback.
         )
+        self.code_change_summary = code_change_summary
 
     def __bool__(self) -> bool:
         return self.decision
 
     def __str__(self) -> str:
-        return f"Decision: {self.decision}\nReason: {self.reason}"
+        res = f"Decision: {self.decision}\nReason: {self.reason}"
+        code_change_summary = getattr(self, "code_change_summary", None)
+        if code_change_summary is not None:
+            res += "\nCode Change Summary: " + code_change_summary
+        return res
 
     @classmethod
     def from_exception(cls, e: Exception) -> ExperimentFeedback:
@@ -88,9 +96,16 @@ class HypothesisFeedback(ExperimentFeedback):
         new_hypothesis: str,
         reason: str,
         *,
+        code_change_summary: str | None = None,
         decision: bool,
+        eda_improvement: str | None = None,
     ) -> None:
-        super().__init__(reason, decision=decision)
+        super().__init__(
+            reason,
+            decision=decision,
+            code_change_summary=code_change_summary,
+            eda_improvement=eda_improvement,
+        )
         self.observations = observations
         self.hypothesis_evaluation = hypothesis_evaluation
         self.new_hypothesis = new_hypothesis

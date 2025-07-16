@@ -78,7 +78,7 @@ hypothesis_output_format_with_action: |-
   The output should follow JSON format. The schema is as follows:
   {
   "action": "If `hypothesis_specification` provides the action you need to take, please follow "hypothesis_specification" to choose the action. Otherwise, based on previous experimental results, suggest the action you believe is most appropriate at the moment. It should be one of [`factor`, `model`].",
-  "hypothesis": "The new hypothesis generated based on the information provided.",
+  "hypothesis": "The new hypothesis generated based on the information provided,should be a string.",
   "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them. Limit in two or three sentences.",
   }
 

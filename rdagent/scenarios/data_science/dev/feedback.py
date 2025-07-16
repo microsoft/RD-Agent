@@ -9,6 +9,8 @@ from rdagent.core.proposal import (
     ExperimentFeedback,
     HypothesisFeedback,
 )
+from rdagent.core.scenario import Scenario
+from rdagent.log.utils import dict_get_with_warning
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
@@ -19,6 +21,10 @@ from rdagent.utils.repo.diff import generate_diff_from_dict
 
 
 class DSExperiment2Feedback(Experiment2Feedback):
+    def __init__(self, scen: Scenario, version: str = "exp_feedback") -> None:
+        super().__init__(scen)
+        self.version = version
+
     def generate_feedback(self, exp: DSExperiment, trace: DSTrace) -> ExperimentFeedback:
         # 用哪些信息来生成feedback
         # 1. pending_tasks_list[0][0] 任务的描述
@@ -26,6 +32,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
         # 3. 相对sota_exp的改动
         # 4. result 任务的结果
         # 5. sota_exp.result 之前最好的结果
+
         sota_exp = trace.sota_experiment()
         sota_desc = T("scenarios.data_science.share:describe.exp").r(
             exp=sota_exp, heading="SOTA of previous exploration of the scenario"
@@ -59,38 +66,13 @@ class DSExperiment2Feedback(Experiment2Feedback):
                 f"The current score is {cur_score}, while the SOTA score is {sota_score}. "
                 f"{'In this competition, higher is better.' if self.scen.metric_direction else 'In this competition, lower is better.'}"
             )
-        if DS_RD_SETTING.rule_base_eval:
-            if sota_exp:
-                if cur_score > sota_score:
-                    return HypothesisFeedback(
-                        observations="The current score bigger than the SOTA score.",
-                        hypothesis_evaluation="The current score is bigger than the SOTA score.",
-                        new_hypothesis="No new hypothesis provided",
-                        reason="The current score is bigger than the SOTA score.",
-                        decision=True if self.scen.metric_direction else False,
-                    )
-                elif cur_score < sota_score:
-                    return HypothesisFeedback(
-                        observations="The current score smaller than the SOTA score.",
-                        hypothesis_evaluation="The current score is smaller than the SOTA score.",
-                        new_hypothesis="No new hypothesis provided",
-                        reason="The current score is smaller than the SOTA score.",
-                        decision=False if self.scen.metric_direction else True,
-                    )
-                else:
-                    return HypothesisFeedback(
-                        observations="The current score equals to the SOTA score.",
-                        hypothesis_evaluation="The current score equals to the SOTA score.",
-                        new_hypothesis="No new hypothesis provided",
-                        reason="The current score equals to the SOTA score.",
-                        decision=False,
-                    )
 
         eda_output = exp.experiment_workspace.file_dict.get("EDA.md", None)
-        system_prompt = T(".prompts:exp_feedback.system").r(
+
+        system_prompt = T(f".prompts:{self.version}.system").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=eda_output)
         )
-        user_prompt = T(".prompts:exp_feedback.user").r(
+        user_prompt = T(f".prompts:{self.version}.user").r(
             sota_desc=sota_desc,
             cur_exp=exp,
             diff_edition=diff_edition,
@@ -107,17 +89,26 @@ class DSExperiment2Feedback(Experiment2Feedback):
             )
         )
 
-        if resp_dict.get("Evaluation Aligned With Task", "no") == "no":
+        if evaluation_not_aligned := dict_get_with_warning(resp_dict, "Evaluation Aligned With Task", "no") == "no":
             exp.result = None
 
         # Currently, we do not use `observations`, `hypothesis_evaluation`, and `new_hypothesis` in the framework.
         # `new_hypothesis` should not exist in the feedback.
         hypothesis_feedback = HypothesisFeedback(
-            observations=resp_dict.get("Observations", "No observations provided"),
-            hypothesis_evaluation=resp_dict.get("Feedback for Hypothesis", "No feedback provided"),
-            new_hypothesis=resp_dict.get("New Hypothesis", "No new hypothesis provided"),
-            reason=resp_dict.get("Reasoning", "No reasoning provided"),
-            decision=convert2bool(resp_dict.get("Replace Best Result", "no")),
+            observations=dict_get_with_warning(resp_dict, "Observations", "No observations provided"),
+            hypothesis_evaluation=dict_get_with_warning(resp_dict, "Feedback for Hypothesis", "No feedback provided"),
+            new_hypothesis=dict_get_with_warning(resp_dict, "New Hypothesis", "No new hypothesis provided"),
+            reason=dict_get_with_warning(resp_dict, "Reasoning", "No reasoning provided")
+            + ("\nRejected because evaluation code not aligned with task." if evaluation_not_aligned else ""),
+            code_change_summary=dict_get_with_warning(
+                resp_dict, "Code Change Summary", "No code change summary provided"
+            ),
+            decision=(
+                False
+                if evaluation_not_aligned
+                else convert2bool(dict_get_with_warning(resp_dict, "Replace Best Result", "no"))
+            ),
+            eda_improvement=dict_get_with_warning(resp_dict, "EDA Improvement", "no"),  # EDA improvement suggestion
         )
 
         if hypothesis_feedback and DS_RD_SETTING.enable_knowledge_base:
