@@ -340,3 +340,5 @@ spec:
         - The validation loss (or metric) reaches a predefined threshold indicating sufficient model performance.
         - The validation loss (or metric) remains stable (i.e., does not improve) for a set number of consecutive epochs.
       - Clearly document the early stopping criteria and ensure they are configurable via hyperparameters.
+    5. Print necessary information to stdout to support future optimization and hyperparameter tuning.
+      - If validation data are used, print the early stopping round/step, as well as the training and validation losses during training.
