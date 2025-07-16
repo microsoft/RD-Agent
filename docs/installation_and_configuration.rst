@@ -107,13 +107,9 @@ Besides, when you are using reasoning models, the response might include the tho
 
 For more details on LiteLLM requirements, refer to the `official LiteLLM documentation <https://docs.litellm.ai/docs>`_.
 
-
 Configuration Example 2: Azure OpenAI Setup
 -------------------------------------------
-
 Here’s a sample configuration specifically for Azure OpenAI, based on the `official LiteLLM documentation <https://docs.litellm.ai/docs>`_:
-
-**Configuration Example: Azure OpenAI Setup (Based on LiteLLM Docs)**
 
 If you're using Azure OpenAI, below is a working example using the Python SDK, following the `official LiteLLM documentation <https://docs.litellm.ai/docs/providers/azure/>`_:
 
