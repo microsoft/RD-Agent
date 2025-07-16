@@ -208,7 +208,7 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   REASONING_THINK_RM=True
   ```
 
-  - You can also use a deprecated backend if you only use `OpenAI API` or `Azure OpenAI` directly. For this deprecated setting and more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html). When configuring additional options, consult the [official LiteLLM documentation](https://docs.litellm.ai/docs) for guidance on configuring the CHAT\_MODEL based on the `response` model setting and for using the API with `os.environ`, similar to the example in the [LiteLLM Backend DeepSeek Configuration](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html#configuration-example-deepseek-setup).
+  You can also use a deprecated backend if you only use `OpenAI API` or `Azure OpenAI` directly. For this deprecated setting and more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html). When configuring additional options, consult the [official LiteLLM documentation](https://docs.litellm.ai/docs) for guidance on configuring the CHAT\_MODEL based on the `response` model setting and for using the API with `os.environ`, similar to the example in the [LiteLLM Backend DeepSeek Configuration](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html#configuration-example-deepseek-setup).
 
 
 
