@@ -126,8 +126,6 @@ class DSCoSTEERRunner(CoSTEER):
         settings = DSRunnerCoSTEERSettings()
         es = DSRunnerMultiProcessEvolvingStrategy(scen=scen, settings=settings)
 
-
-
         # In runner, we don't need very big loops, so we set max_loop to runner_max_loop
         super().__init__(
             *args,

@@ -90,7 +90,6 @@ class PythonBatchPatchOut(AgentOut):
     def get_spec(cls):
         return T(".tpl:PythonBatchPatchOut").r()
 
-
     @classmethod
     def extract_output(cls, resp: str) -> str:
         # Step 1: extract patch by pattern
@@ -100,5 +99,4 @@ class PythonBatchPatchOut(AgentOut):
             resp = match.group(1).rstrip()
 
         # Step 2: apply the patch, this will modify the file in place
-        # FIXME: this modify the code in place, so there is nothing to return
-        return apply_patch_from_text(resp)
+        return apply_patch_from_text(resp, inplace=False)

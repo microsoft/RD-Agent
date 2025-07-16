@@ -439,7 +439,9 @@ def apply_commit(
     commit: Commit,
     write_fn: Callable[[str, str], None],
     remove_fn: Callable[[str], None],
-) -> None:
+    inplace: bool = False,
+) -> None | dict:
+    batch_edit = {}
     for path, change in commit.changes.items():
         if change.type is ActionType.DELETE:
             remove_fn(path)
@@ -450,10 +452,13 @@ def apply_commit(
         elif change.type is ActionType.UPDATE:
             if change.new_content is None:
                 raise DiffError(f"UPDATE change for {path} has no new content")
-            target = change.move_path or path
-            write_fn(target, change.new_content)
-            if change.move_path:
-                remove_fn(path)
+            if inplace:
+                target = change.move_path or path
+                write_fn(target, change.new_content)
+                if change.move_path:
+                    remove_fn(path)
+            batch_edit[path] = change.new_content
+    return batch_edit
 
 
 def process_patch(
@@ -461,6 +466,7 @@ def process_patch(
     open_fn: Callable[[str], str],
     write_fn: Callable[[str, str], None],
     remove_fn: Callable[[str], None],
+    inplace: bool = False,
 ) -> str:
     if not text.startswith("*** Begin Patch"):
         raise DiffError("Patch text must start with *** Begin Patch")
@@ -468,8 +474,8 @@ def process_patch(
     orig = load_files(paths, open_fn)
     patch, _fuzz = text_to_patch(text, orig)
     commit = patch_to_commit(patch, orig)
-    apply_commit(commit, write_fn, remove_fn)
-    return "Done!"
+    batch_edit = apply_commit(commit, write_fn, remove_fn, inplace)
+    return batch_edit
 
 
 # --------------------------------------------------------------------------- #
@@ -494,13 +500,13 @@ def remove_file(path: str) -> None:
 # --------------------------------------------------------------------------- #
 #  CLI entry-point
 # --------------------------------------------------------------------------- #
-def apply_patch_from_text(patch_text: str) -> str:
+def apply_patch_from_text(patch_text: str, inplace: bool = False) -> str:
     """Apply patch text to filesystem, same as main() but with parameter input"""
     if not patch_text:
         raise DiffError("Patch text cannot be empty")
 
     try:
-        result = process_patch(patch_text, open_file, write_file, remove_file)
+        result = process_patch(patch_text, open_file, write_file, remove_file, inplace)
         return result
     except DiffError as exc:
         raise exc
