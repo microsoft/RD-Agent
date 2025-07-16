@@ -34,6 +34,7 @@ class DSRunnerCoSTEERSettings(DSCoderCoSTEERSettings):
 
     max_seconds: int = DS_RD_SETTING.full_timeout
     env_type: str = "docker"
+    diff_mode: bool = False
     # TODO: extract a function for env and conf.
 
 
@@ -54,15 +55,18 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         # Output Agent Map
         output_map = {
             True: (PythonBatchPatchOut.get_spec(), PythonBatchPatchOut.extract_output),
-            False: (PythonBatchEditOut.get_spec(with_del=False), PythonBatchEditOut.extract_output),
+            False: (
+                PythonBatchEditOut.get_spec(with_del=False),
+                PythonBatchEditOut.extract_output,
+            ),
         }
-        output_spec, extract_output_fn = output_map[DS_RD_SETTING.enable_runner_code_diff]
+        output_spec, extract_output_fn = output_map[self.settings.diff_mode]
 
         if prev_task_feedback.hyperparameter_tuning_decision:
             # Use system_refine for hyperparameter tuning
             system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
                 out_spec=output_spec,
-                enable_runner_code_diff=DS_RD_SETTING.enable_runner_code_diff,
+                diff_mode=self.settings.diff_mode,
             )
         else:
             task_information_str = target_task.get_task_information()
@@ -70,7 +74,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
                 task_desc=task_information_str,
                 out_spec=output_spec,
-                enable_runner_code_diff=DS_RD_SETTING.enable_runner_code_diff,
+                diff_mode=self.settings.diff_mode,
             )
 
         # Generate user prompt for both cases
@@ -87,7 +91,9 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             )
         )
 
-        batch_edit = {k: v for k, v in batch_edit.items() if k in workspace.file_dict.keys()}
+        batch_edit = {
+            k: v for k, v in batch_edit.items() if k in workspace.file_dict.keys()
+        }
 
         return batch_edit
 
@@ -148,7 +154,9 @@ class DSCoSTEERRunner(CoSTEER):
                 f"Current code repo md5: {md5_hash(exp.experiment_workspace.all_codes)}",
             ),
         ]
-        exp = super().develop(exp)  # run strategy(code implementation & evaluation loops)
+        exp = super().develop(
+            exp
+        )  # run strategy(code implementation & evaluation loops)
         exp.sub_tasks = bak_sub_tasks
 
         # NOTE: after running the loops, we expect some results are generated
@@ -159,12 +167,18 @@ class DSCoSTEERRunner(CoSTEER):
             logger.error("Metrics file (scores.csv) is not generated.")
             raise RunnerError(f"Metrics file (scores.csv) is not generated")
         exp.result = pd.read_csv(score_fp, index_col=0)
-        exp.running_info.running_time = exp.experiment_workspace.running_info.running_time
+        exp.running_info.running_time = (
+            exp.experiment_workspace.running_info.running_time
+        )
 
         # 2) if mle-bench, then the submission format checking will be used.
         # DockerEnv for MLEBench submission validation
         if DS_RD_SETTING.if_using_mle_data:
-            score_fp = exp.experiment_workspace.workspace_path / "test" / "mle_submission_format_test.output"
+            score_fp = (
+                exp.experiment_workspace.workspace_path
+                / "test"
+                / "mle_submission_format_test.output"
+            )
             with score_fp.open() as f:
                 exp.format_check_result = f.read()
         return exp

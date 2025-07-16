@@ -9,7 +9,7 @@ DSCoSTEER_eval:
     4. `The timeout of code execution`: the time limitation of the code execution
     5. `The percent of timeout used`: the percentage of the time limitation used
     Your task is to perform the following evaluation(s):
-    
+
     # Evalution 1: Code Correctness
     ## Scenario
     The code is focusing on the following scenario:
@@ -116,7 +116,7 @@ DSCoSTEER:
 
     ## Instructions
     1. Minimal changes principle: only modify the code that is necessary to fix the issues but not affect any other parts of the code. Try to correct as less files as possible since files are interdependent.
-    {% if enable_runner_code_diff %}
+    {% if diff_mode %}
     2. You must output in Code Diff format. The detailed format specification is as follows.
     {% else %}
     2. You must output the COMPLETE and FULL code. Do not truncate, summarize, or omit any parts of the code. Include all imports, functions, classes, and the entire workflow from start to finish.
@@ -144,7 +144,7 @@ DSCoSTEER:
 
     ## Instructions
     1. Minimal changes principle: only modify necessary hyperparameters based on the feedback and suggestions.
-    {% if enable_runner_code_diff %}
+    {% if diff_mode %}
     2. You must output in Code Diff format. The detailed format specification is as follows.
     {% else %}
     2. You must output the COMPLETE and FULL code. Do not truncate, summarize, or omit any parts of the code. Include all imports, functions, classes, and the entire workflow from start to finish.
@@ -159,11 +159,11 @@ DSCoSTEER:
         "code": "The Python code as a string."
     }
     {% endif %}
-  
+
   user: |-
     # Code Base
     {{ code }}
-    
+
     ## Feedback
     {{ feedback }}
 
