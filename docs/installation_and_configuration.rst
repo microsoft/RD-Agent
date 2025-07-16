@@ -111,7 +111,7 @@ Configuration Example 2: Azure OpenAI Setup
 -------------------------------------------
 Here’s a sample configuration specifically for Azure OpenAI, based on the `official LiteLLM documentation <https://docs.litellm.ai/docs>`_:
 
-If you're using Azure OpenAI, below is a working example using the Python SDK, following the `official LiteLLM documentation <https://docs.litellm.ai/docs/providers/azure/>`_:
+If you're using Azure OpenAI, below is a working example using the Python SDK, following the `LiteLLM Azure OpenAI documentation <https://docs.litellm.ai/docs/providers/azure/>`_:
 
    .. code-block:: Properties
 
