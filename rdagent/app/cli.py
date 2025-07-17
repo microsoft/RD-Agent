@@ -16,6 +16,7 @@ import subprocess
 from importlib.resources import path as rpath
 
 import fire
+import typer
 
 from rdagent.app.data_science.loop import main as data_science
 from rdagent.app.general_model.general_model import (
@@ -25,7 +26,6 @@ from rdagent.app.qlib_rd_loop.factor import main as fin_factor
 from rdagent.app.qlib_rd_loop.factor_from_report import main as fin_factor_report
 from rdagent.app.qlib_rd_loop.model import main as fin_model
 from rdagent.app.qlib_rd_loop.quant import main as fin_quant
-from rdagent.app.utils.health_check import health_check
 from rdagent.app.utils.info import collect_info
 from rdagent.log.mle_summary import grade_summary
 
@@ -55,6 +55,21 @@ def server_ui(port=19899):
     start web app to show the log traces in real time
     """
     subprocess.run(["python", "rdagent/log/server/app.py", f"--port={port}"])
+
+
+def health_check(
+    check_env: bool = True,
+    check_port: bool = True,
+    check_docker: bool = True,
+):
+    cmd_list = ["python", "rdagent/app/utils/health_check.py"]
+    if not check_env:
+        cmd_list.append("-e")
+    if not check_docker:
+        cmd_list.append("-d")
+    if not check_port:
+        cmd_list.append("-p")
+    subprocess.run(cmd_list)
 
 
 def app():
