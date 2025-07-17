@@ -15,6 +15,7 @@ from streamlit import session_state as state
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
+from rdagent.oai.backend.litellm import LITELLM_SETTINGS
 from rdagent.log.ui.utils import curve_figure, load_times, trace_figure
 from rdagent.log.utils import (
     LogColors,
@@ -241,8 +242,8 @@ def llm_log_win(llm_d: list):
             system = d["obj"].get("system", None)
             user = d["obj"]["user"]
             resp = d["obj"]["resp"]
-            with st.popover(f"**LLM**", icon="🤖", use_container_width=True):
-                t1, t2, t3 = st.tabs([":green[**Response**]", ":blue[**User**]", ":orange[**System**]"])
+            with st.expander(f"**LLM**", icon="🤖", expanded=False):
+                t1, t2, t3, t4 = st.tabs([":green[**Response**]", ":blue[**User**]", ":orange[**System**]", ":violet[**ChatBot**]"])
                 with t1:
                     try:
                         rdict = json.loads(resp)
@@ -263,6 +264,19 @@ def llm_log_win(llm_d: list):
                     show_text(user)
                 with t3:
                     show_text(system or "No system prompt available")
+                with t4:
+                    resp_c, input_c = st.columns(2)
+                    call_llm = resp_c.button("Call LLM", key=hashlib.md5(resp.encode()).hexdigest())
+                    sys_p = input_c.text_area(label="system", value=system, height="stretch")
+                    user_p = input_c.text_area(label="user", value=user, height="content")
+                    resp_new = ""
+                    if call_llm:
+                        pass
+                    try:
+                        rdict = json.loads(resp_new)
+                        resp_c.chat_message(name="assistant").json(rdict)
+                    except:
+                        resp_c.chat_message(name="assistant").code(resp_new, wrap_lines=True, line_numbers=True)
 
 
 def hypothesis_win(hypo):
@@ -845,8 +859,6 @@ def get_state_data_range(state_data):
 # UI - Main
 if "competition" in state.data:
     st.title(state.data["competition"])
-    if st.button("To CHAT"):
-        st.switch_page("chat.py")
     st.markdown(f"[share_link](/ds_trace?log_folder={state.log_folder}&selection={state.log_path})")
     summarize_win()
     min_id, max_id = get_state_data_range(state.data)
