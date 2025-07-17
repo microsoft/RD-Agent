@@ -315,11 +315,6 @@ hypothesis_select:
     # Current SOTA Implementation
     {{ sota_exp_desc }}
 
-    # The remaining time is
-    {{ res_time }}
-
-
-
 
 
 task_gen:
@@ -487,8 +482,6 @@ task_gen:
     This sketch should implement the following hypotheses:
 
     {% for hypothesis in hypotheses %}
-    ## {{ hypothesis.problem_name }}
-    **Why:** {{ hypothesis.problem_desc }}
     **Hypothesis:** {{ hypothesis.hypothesis }}
 
     {% endfor %}
@@ -588,5 +581,15 @@ output_format:
       "problem name 2 (should be exactly same as the problem name provided)": 2, # The index which is same to the idea index provided in the input and must be integer.
     }
 
+  hypothesis_select: - 
+    Choose the best hypothesis from the provided hypothesis candidates {{ hypothesis_candidates }}.  
+    You must return a dictionary in the following format **for each selected hypothesis**:
 
+    {
+      "hypothesis": "...",  
+      "component": "..."  // Must be one of: 'DataLoadSpec', 'FeatureEng', 'Model', 'Workflow'
+    }
+
+    The **"hypothesis"** must be selected **from the provided hypothesis candidates** (do not generate new ones),  
+    **except** when you choose `"component": "Ensemble"`, in which case you should write your **own hypothesis**.
 

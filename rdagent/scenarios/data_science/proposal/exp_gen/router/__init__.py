@@ -5,7 +5,6 @@ from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.draft.draft import DSDraftV2ExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 
-
 class DraftRouterExpGen(ExpGen):
     """
     A intelligent router for drafting and proposing.
@@ -23,3 +22,11 @@ class DraftRouterExpGen(ExpGen):
         if sota_exp is None and pipeline:
             return self.draft_exp_gen.gen(trace)
         return self.base_exp_gen.gen(trace)
+
+
+class EnsembleRouterExpGen(ExpGen):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def gen(self, trace: DSTrace) -> DSExperiment:
+        pass

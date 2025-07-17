@@ -5,6 +5,10 @@ from typing import Any, Dict, List, Optional, Tuple
 import pandas as pd
 from pydantic import BaseModel, Field
 
+from rdagent.log.timer import RDAgentTimer
+from rdagent.core.conf import RD_AGENT_SETTINGS
+import asyncio
+
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
@@ -26,6 +30,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
+import re
 
 _COMPONENT_META: Dict[str, Dict[str, Any]] = {
     "DataLoadSpec": {
@@ -461,6 +466,17 @@ class DSProposalV2ExpGen(ExpGen):
         super().__init__(*args, **kwargs)
         self.supports_response_schema = APIBackend().supports_response_schema()
 
+    async def async_gen(self, trace, loop):
+        """
+        generate the experiment and decide whether to stop yield generation and give up control to other routines.
+        """
+        # we give a default implementation here.
+        # The proposal is set to try best to generate the experiment in max-parallel level.
+        while True:
+            if loop.get_unfinished_loop_cnt(loop.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
+                return self.gen(trace, loop.timer)
+            await asyncio.sleep(1)
+
     def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_output_format=(
@@ -717,37 +733,40 @@ class DSProposalV2ExpGen(ExpGen):
                                    scenario_desc: str,
                                    exp_feedback_list_desc: str,
                                    sota_exp_desc: str,
-                                   pipeline: bool,
-                                   ensemble_timeout: int
-                                  ,hypothesis_candidates:dict
-                                  
+                                   hypothesis_candidates:dict,
+                                   timer
                                   ):
+        
+        # time_use_current = 0
+        # for exp, feedback in trace.hist:
+        #     if exp.running_info.running_time is not None:
+        #         time_use_current += exp.running_info.running_time
+        # res_time = 12*3600 - time_use_current
+        res_time = timer.remain_time()
 
         ensemble_timeout = DS_RD_SETTING.ensemble_timeout
-
         hypothesis_candidates =  str(json.dumps(hypothesis_candidates, indent=2))
 
-        ensemble_timeout =  str(ensemble_timeout)
-
-        res_time = 10000
-
         sys_prompt = T(".prompts_v2:hypothesis_select.system").r(
-            hypothesis_output_format=(
-                T(".prompts_v2:output_format.hypothesis").r(pipeline=pipeline, enable_idea_pool=enable_idea_pool)
-                if not self.supports_response_schema
-                else None
-            ),
-            pipeline=pipeline,
+                hypothesis_candidates = hypothesis_candidates,
+                res_time = res_time,
+                ensemble_timeout = ensemble_timeout,
+                hypothesis_output_format = T(".prompts_v2:output_format.hypothesis_select").r(hypothesis_candidates = hypothesis_candidates)
         )
+
         user_prompt = T(".prompts_v2:hypothesis_select.user").r(
             scenario_desc=scenario_desc,
             exp_and_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
-            res_time = res_time
         )
 
-        pass
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+        )
 
+        response_dict = json.loads(response)
+        return response_dict
 
 
     def task_gen(
@@ -856,7 +875,8 @@ class DSProposalV2ExpGen(ExpGen):
 
     def gen(
         self,
-        trace: DSTrace,
+        trace: DSTrace, 
+        timer: RDAgentTimer
     ) -> DSExperiment:
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
         if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
@@ -958,13 +978,21 @@ class DSProposalV2ExpGen(ExpGen):
         # Step 3: Select the best hypothesis
         # pickled_problem_name, new_hypothesis = self.hypothesis_rank(
         #     hypothesis_dict=hypothesis_dict,
-        #     problem_dict=all_problems,
+        #     problem_dict=  all_problems,
         # )
-        pickled_problem_name, new_hypothesis = self.hypothesis_select_with_llm()
 
+        response_dict= self.hypothesis_select_with_llm(scenario_desc=scenario_desc,
+                                    exp_feedback_list_desc=exp_feedback_list_desc,
+                                    sota_exp_desc=sota_exp_desc,
+                                    hypothesis_candidates =hypothesis_dict ,
+                                    timer=timer)
 
+        if response_dict["component"] != "Ensemble":
+            new_hypothesis = DSHypothesis(component=hypothesis_dict[response_dict["hypothesis"]]["component"].get("component", "Model"),hypothesis=response_dict["hypothesis"])
+        else:
+            new_hypothesis = DSHypothesis(component=HypothesisComponent.Ensemble,hypothesis=response_dict["hypothesis"])
 
-
+        pickled_problem_name= None
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
