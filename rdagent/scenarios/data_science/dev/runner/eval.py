@@ -11,7 +11,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
 )
 from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
 from rdagent.components.coder.data_science.utils import remove_eda_part
-from rdagent.core.evolving_framework import QueriedKnowledge, EvoStep
+from rdagent.core.evolving_framework import EvoStep, QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.test_eval import (
@@ -48,13 +48,12 @@ class DSCoSTEEREvalFeedback(CoSTEERSingleFeedback):
             "### Code",
             str(self.code),
             "### Final Decision",
-            f"This implementation is {'SUCCESS' if self.final_decision else 'FAIL'}."
+            f"This implementation is {'SUCCESS' if self.final_decision else 'FAIL'}.",
         ]
         if self.hyperparameter_tuning_decision:
             parts.append("### Hyperparameter Tuning Suggestion")
             parts.append(str(self.hyperparameter_tuning_suggestion))
         return "\n".join(parts)
-
 
 
 class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
@@ -65,7 +64,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         implementation: FBWorkspace,
         gt_implementation: FBWorkspace,
         queried_knowledge: QueriedKnowledge = None,
-        evolving_trace: list[EvoStep] = None,
+        evolving_history: tuple = None,
         **kwargs,
     ) -> DSCoSTEEREvalFeedback:
 
@@ -147,19 +146,9 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
             submission_check_out, submission_ret_code = test_eval.valid(self.scen.competition, implementation)
             stdout += f"\nSubmission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
 
-    
-        # Generate evolving status
-        evolving_status = f"This is the {len(evolving_trace)}th evolving step. There are in total {self.max_loop} evolving steps."
-
-        # Generate evolving history
-        evolving_history = None
-        if evolving_trace:
-            evolving_history = "\n".join(
-            f"### Evolving Step {i + 1}: {'Hyperparameter Tuning' if trace.feedback.hyperparameter_tuning_decision else 'Debug'}\n{trace.feedback}"
-            for i, trace in enumerate(evolving_trace)
-            )
-
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
+            max_loop=DS_RD_SETTING.runner_max_loop,
+            cur_loop=evolving_history[0],
             scenario=self.scen.get_scenario_all_desc(eda_output=implementation.file_dict.get("EDA.md", None)),
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             task_desc=target_task.get_task_information(),
@@ -171,8 +160,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
             time_spent=f"{implementation.running_info.running_time:.2f} seconds",
             timeout=f"{env.conf.running_timeout_period} seconds",
             percent_of_timeout_used=f"{(implementation.running_info.running_time / env.conf.running_timeout_period) * 100:.2f}%",
-            evolving_status=evolving_status,
-            evolving_history=evolving_history,
+            evolving_history=evolving_history[1],
         )
 
         feedback = build_cls_from_json_with_retry(

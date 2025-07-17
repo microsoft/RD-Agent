@@ -44,6 +44,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         self,
         target_task: CoSTEERTask,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
+        evolving_history: tuple = None,
         workspace: FBWorkspace | None = None,
         prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
@@ -52,19 +53,19 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             # if no prev_task_feedback, it is the first loop; we do not make any changes and goto evaluators directly.
             return {}
 
-        # Output Agent Map
-        output_map = {
-            True: (PythonBatchPatchOut.get_spec(), PythonBatchPatchOut.extract_output),
-            False: (
-                PythonBatchEditOut.get_spec(with_del=False),
-                PythonBatchEditOut.extract_output,
-            ),
-        }
-        output_spec, extract_output_fn = output_map[self.settings.diff_mode]
+        # Set output agent
+        if self.settings.diff_mode:
+            output_spec = PythonBatchPatchOut.get_spec()
+            extract_output_fn = PythonBatchPatchOut.extract_output
+        else:
+            output_spec = PythonBatchEditOut.get_spec(with_del=False)
+            extract_output_fn = PythonBatchEditOut.extract_output
 
         if prev_task_feedback.hyperparameter_tuning_decision:
             # Use system_refine for hyperparameter tuning
             system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
+                max_loop=DS_RD_SETTING.runner_max_loop,
+                cur_loop=evolving_history[0],
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,
             )
@@ -72,6 +73,8 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             task_information_str = target_task.get_task_information()
             # Use system_debugger for error fixing and debugging
             system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
+                max_loop=DS_RD_SETTING.runner_max_loop,
+                cur_loop=evolving_history[0],
                 task_desc=task_information_str,
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,
@@ -81,15 +84,14 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         user_prompt = T(".prompts:DSCoSTEER.user").r(
             code=workspace.all_codes,
             feedback=prev_task_feedback,
+            evolving_history=evolving_history[1],
             hyperparameter_tuning_suggestion=prev_task_feedback.hyperparameter_tuning_suggestion,
         )
-
-        batch_edit = extract_output_fn(
-            APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
-            )
+        resp = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=system_prompt,
         )
+        batch_edit = extract_output_fn(resp["code"])
 
         batch_edit = {k: v for k, v in batch_edit.items() if k in workspace.file_dict.keys()}
 

@@ -2,6 +2,10 @@ DSCoSTEER_eval:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
     {% if is_sub_enabled %}
+    You have successfully implemented the workflow on a sampled dataset and are now transitioning to the full dataset.
+    The code base will be iteratively improved through a series of [coding] and [feedback] steps.
+    The maximum number of evolution steps is {{ max_loop }}, and you are currently on [feedback] step {{ cur_loop }}.
+
     You will be provided with:
     1. The current code base you need to evaluate.
     2. The stdout of the current code execution and testing.
@@ -82,7 +86,6 @@ DSCoSTEER_eval:
     }
     ```
     {% endif %}
-# NOTE: when is_sub_enabled == False, we don't have any checking about the return. So it is just placeholder currently
 
   user: |-
     # Code base
@@ -108,15 +111,20 @@ DSCoSTEER_eval:
 DSCoSTEER:
   system_debugger: |-
     {% include "scenarios.data_science.share:scen.role" %}
-    You have finished the implementation of the whole workflow which has executed well on a sampled dataset. Now we are working on the full dataset.
-    The user has reported that the workflow failed to execute on the full dataset.
-    Your will be provided with:
-    1. Code base.
-    2. Task description, which is the task the code is trying to solve.
-    3. Feedback generated during the execution of the whole workflow.
-    4. Suggestions for hyperparameter tuning.
-    Your job is to debug the whole code base, try to correct the errors, and ensure that the workflow can execute successfully on the full dataset.
+    You have successfully implemented the workflow on a sampled dataset and are now transitioning to the full dataset.
+    The code base will be iteratively improved through a series of [coding] and [feedback] steps.
+    The maximum number of evolution steps is {{ max_loop }}, and you are currently on [coding] step {{ cur_loop }}.
+    The previous [feedback] step indicates that the code failed to execute successfully on the full dataset.
 
+    Your will be provided with:
+    1. The current code base you need to refine.
+    2. The task description, which is the task the code is trying to solve.
+    3. The feedback after executing the code base.
+    4. The evolving history, which includes the code change summaries and feedbacks from previous evolving steps.
+    
+    Your job is to:
+    1. Debug the whole code base, try to correct the errors, and ensure that the workflow can execute successfully on the full dataset.
+    2. Summarize the changes you made to the original code base.
     ## Task description
     {{ task_desc }}
 
@@ -127,6 +135,7 @@ DSCoSTEER:
     {% else %}
     2. You must output the COMPLETE and FULL code. Do not truncate, summarize, or omit any parts of the code. Include all imports, functions, classes, and the entire workflow from start to finish.
     {% endif %}
+    3. Write a concise and structured code change summary. Clearly describe what was changed, specifying exactly what was changed from what to what (e.g., "Changed batch_size from 32 to 128"). Briefly explain the reasoning behind each modification.
 
     ## Output Format
     {% if out_spec %}
@@ -134,27 +143,36 @@ DSCoSTEER:
     {% else %}
     Please response the code in the following JSON format without anything else.
     {
-        "code": "The Python code as a string."
+        "code": "The refined Python code as a string."
+        "code_change_summary": "The structured summary to briefly summarize the changes made to the original code base in two to three sentences."
     }
     {% endif %}
 
   system_refine: |-
     {% include "scenarios.data_science.share:scen.role" %}
-    You have finished the implementation of the whole workflow which has executed well on a sampled dataset. Now we are working on the full dataset.
-    The user has reported that the hyperparameters are not reasonable and the code didn't make the best use of the time limit.
+    You have successfully implemented the workflow on a sampled dataset and are now transitioning to the full dataset.
+    The code base will be iteratively improved through a series of [coding] and [feedback] steps.
+    The maximum number of evolution steps is {{ max_loop }}, and you are currently on [coding] step {{ cur_loop }}.
+    The previous [feedback] step indicates that the code executed successfully, but there are opportunities to improve performance through hyperparameter tuning.
+
     Your will be provided with:
-    1. Code base.
-    2. Feedback generated during the execution of the whole workflow.
-    3. Suggestions for hyperparameter tuning.
-    Your task is to refine the code base and modify the hyperparameters based on the feedback and suggestions.
+    1. The current code base you need to refine.
+    2. The feedback after executing the code base.
+    3. The suggestions for hyperparameter tuning.
+    4. The evolving history, which includes the code change summaries and feedbacks from previous evolving steps.
+    
+    Your task is to:
+    1. Refine the code base and modify the hyperparameters based on the feedback, suggestions, and evolving history.
+    2. Summarize the changes you made to the original code base.
 
     ## Instructions
-    1. Minimal changes principle: only modify necessary hyperparameters based on the feedback and suggestions.
+    1. Minimal changes principle: only modify necessary hyperparameters based on the feedback, suggestions, and evolving history.
     {% if diff_mode %}
-    2. You must output in Code Diff format. The detailed format specification is as follows.
+    2. You must output the code in V4A diff format. The detailed format specification is as follows.
     {% else %}
     2. You must output the COMPLETE and FULL code. Do not truncate, summarize, or omit any parts of the code. Include all imports, functions, classes, and the entire workflow from start to finish.
     {% endif %}
+    3. Write a concise and structured code change summary. Clearly describe what was changed, specifying exactly what was changed from what to what (e.g., "Changed batch_size from 32 to 128"). Briefly explain the reasoning behind each modification.
 
     ## Output Format
     {% if out_spec %}
@@ -162,7 +180,8 @@ DSCoSTEER:
     {% else %}
     Please response the code in the following JSON format without anything else.
     {
-        "code": "The Python code as a string."
+        "code": "The refined Python code as a string."
+        "code_change_summary": "The structured summary to briefly summarize the changes made to the original code base in two to three sentences."
     }
     {% endif %}
 
@@ -172,6 +191,9 @@ DSCoSTEER:
 
     ## Feedback
     {{ feedback }}
+
+    ## Evolving History
+    {{ evolving_history }}
 
     {% if hyperparameter_tuning_suggestion is not none %}
     ## Hyperparameter Tuning Suggestion

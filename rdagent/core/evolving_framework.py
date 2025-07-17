@@ -51,6 +51,13 @@ class EvoStep:
     evolvable_subjects: EvolvableSubjects
     queried_knowledge: QueriedKnowledge | None = None
     feedback: Feedback | None = None
+    code_change_summary: str | None = None  # TODO: minrui
+
+    def __str__(self) -> str:
+        return f"""{str(self.feedback)}
+### Summary of Code Change
+{self.code_change_summary}
+"""
 
 
 class EvolvingStrategy(ABC):
