@@ -144,9 +144,8 @@ class DSDraftV2ExpGen(ExpGen):
         return json.loads(response)["tag"].lower()
 
     def knowledge_gen(self) -> str:
-        runtime_environment = self.scen.get_runtime_environment()
         general_knowledge = T(".prompts_draft:knowledge.general").r(
-            runtime_environment=runtime_environment,
+            runtime_environment=self.scen.get_runtime_environment(),
             component_desc=T(".prompts_draft:description.component_description").r(),
         )
         return f"{general_knowledge}"
