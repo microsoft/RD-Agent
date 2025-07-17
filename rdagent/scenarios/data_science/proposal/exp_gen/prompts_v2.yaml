@@ -184,7 +184,7 @@ hypothesis_gen:
       - If there is no SOTA implementation yet (i.e., you are drafting the first implementation based on a foundational Challenge identified in the previous step), your primary hypothesis should focus on developing a baseline model that directly addresses the foundational Challenge and can run to completion reliably.
       - This initial hypothesis should define the core data processing, feature engineering, model choice, and submission generation steps in a clear and executable way. Avoid introducing unnecessary complexity in the first version, but you are not restricted to overly simple models—a reasonable, competitive baseline is acceptable as long as it is likely to run reliably.
     3. **Actionable Changes**:
-      - If a Challenge involves underperforming models (e.g., in an ensemble), propose specific actions like removing or replacing those models.
+      - If a Challenge involves underperforming models, propose specific actions like removing or replacing those models.
       - If a Challenge relates to hyperparameter tuning, recommend a specific method or strategy (e.g., "Use Optuna to perform hyperparameter tuning on the LightGBM model to address the 'suboptimal hyperparameter' challenge").
       - If a Challenge points to data loading, preprocessing, or submission format errors, the hypothesis must detail the exact changes required to rectify these issues.
     {% if enable_idea_pool %}
@@ -223,7 +223,6 @@ hypothesis_gen:
       - **`DataLoadSpec`**: Responsible for loading raw competition data, ensuring data is converted to the correct types, and potentially providing an initial exploratory data analysis (EDA) summary. (e.g., fixing `zipfile.BadZipFile` by improving loading logic).
       - **`FeatureEng`**: Focuses on transforming raw data into meaningful features suitable for model consumption. Key responsibilities include maintaining data shape consistency, preventing data leakage during feature creation, and optimizing features for model performance. Feature engineering should be model-agnostic.
       - **`Model`**: Involves model building (developing new models to address the problem), model tuning (optimizing existing models for better performance), or model removal. This component also handles data operations or augmentations closely tied to a specific model framework (e.g., PyTorch `Datasets` & `DataLoaders`, TensorFlow `tf.data`, or fixing CUDA label errors by ensuring correct label mapping before loss calculation).
-      - **`Ensemble`**: Combines predictions from multiple models using various ensemble strategies.
       - **`Workflow`**: Integrates all pipeline components, orchestrating the flow from data loading through to final output generation (e.g., correcting `submission.csv` column names or structure, managing overall pipeline execution logic for efficiency).
 
     2. **Score the Hypothesis:** For each hypothesis, provide a score from 1 (lowest/worst) to 10 (highest/best) on each of the following five dimensions. Base your scores on all provided information.
@@ -240,7 +239,7 @@ hypothesis_gen:
     1. Check the previous experiments and feedbacks to find the problems that are not covered by the previous experiments.
     2. Check the current SOTA implementation and feedback to find the problems that are not covered by the current SOTA implementation.
     3. Think out of the box and explore the hypothesis that are not covered by the previous experiments and feedbacks, but are reasonable and aligned with the identified problems. 
-    4. Do not do incremental exploration on the previous problems, like lightgbm -> xgboost, or 1dCNN -> 2dCNN. Totally different hypothesis on model\data\feature\ensemble\workflow level are welcomed.
+    4. Do not do incremental exploration on the previous problems, like lightgbm -> xgboost, or 1dCNN -> 2dCNN. Totally different hypothesis on model\data\feature\workflow level are welcomed.
     {% endif %}
     
     {% if hypothesis_output_format is not none %}
@@ -260,6 +259,68 @@ hypothesis_gen:
 
     # Identified Challenges{% if enable_idea_pool %} with Sampled Ideas{% endif %}
     {{ problems }}
+
+hypothesis_select:
+  system: |- 
+        You are a Kaggle Grandmaster with deep expertise in model evaluation and decision making. 
+        Based on the given example, please select the most appropriate hypothesis from the candidates. 
+        These hypotheses are sourced from `model/data/feature/workflow`. Choose the one that best matches the intent or logic of the prompt. 
+        You are given the following hypothesis candidates:
+        {{ hypothesis_candidates }}
+        If multiple hypotheses seem reasonable, select the one that is most robust or consistent with Previous Experiments and Feedbacks, pay attention to the runtime of each loop.
+
+        If you believe that previous methods have reached their limits and the current setting only involves a single model, feel free to propose an ensemble solution. However, you **must** carefully allocate the training and runtime budget to ensure the **ensemble logic is well-executed and evaluated**, without compromising the performance of the previous models.
+
+        ### 1.Ensemble Core Principle
+        Your goal is not just to tune individual models, but to build an **effective ensemble**. Make design decisions that lead to **strong overall ensemble performance**, not just strong base models.
+        Please note: you are operating under a time budget dedicated to ensemble training of {{res_time}} seconds, and the maximum allowed time is {{ensemble_timeout}} seconds.
+        Assume training a single model takes about 1 hour. For example, if you have roughly twice that time left, you can try training multiple models with different random seeds or data splits to reuse time effectively.
+        If you have more time, you might consider training a multi-fold ensemble. Use your judgment to decide how many folds or seeds fit within your remaining time budget.
+
+        ### 2. Training-Time Resource Allocation
+        - You may use **multiple folds** if justified, but you must **ensure the full pipeline completes within runtime limits**.
+        - Avoid reducing base model quality just to save time. For example:
+          - Freezing large parts of the model (e.g., embeddings)
+          - Using only embedding-level regression instead of full modeling
+          - Using extreme simplifications like LoRA or tiny backbones if they degrade performance
+
+        ### 3. Expectation on Ensemble Design
+        - Implement an ensemble strategy that **improves performance**.
+          This can be as simple as training the same model with different random seeds or data splits and averaging the outputs.
+          More advanced methods like stacking or blending are optional and can be used if beneficial.
+          Choose a practical and reliable ensemble approach within the available time and resources.
+        - Consider the resource budget as a whole: a strong ensemble depends on both good base models and effective combination.
+
+        ### 4. Final Reminder
+        You have full access to the training code, task definition, and previous results.
+        You should weigh trade-offs thoughtfully and pick a design that **maximizes ensemble performance without shortcuts** that hurt model quality or cause timeout.
+        - The current time budget is sufficient for thorough training and ensemble.
+        - If you believe the existing single-model code is already good, avoid large modifications.
+        - Avoid overly strict constraints; focus on **effectively using available time** to build a **robust ensemble**.
+
+
+        {% if hypothesis_output_format is not none %}
+        ## Final Output Format in JSON Schema:
+        {{ hypothesis_output_format }}
+        {% endif %}
+
+hypothesis_select:
+  user: |- 
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Previous Experiments and Feedbacks
+    {{ exp_and_feedback_list_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+    # The remaining time is
+    {{ res_time }}
+
+
+
+
 
 task_gen:
   system: |-

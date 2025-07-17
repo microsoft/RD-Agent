@@ -712,6 +712,43 @@ class DSProposalV2ExpGen(ExpGen):
             problem_desc=problem_dict.get("problem", "Problem description not provided"),
             problem_label=problem_dict.get("label", "FEEDBACK_PROBLEM"),
         )
+    
+    def hypothesis_select_with_llm(self,
+                                   scenario_desc: str,
+                                   exp_feedback_list_desc: str,
+                                   sota_exp_desc: str,
+                                   pipeline: bool,
+                                   ensemble_timeout: int
+                                  ,hypothesis_candidates:dict
+                                  
+                                  ):
+
+        ensemble_timeout = DS_RD_SETTING.ensemble_timeout
+
+        hypothesis_candidates =  str(json.dumps(hypothesis_candidates, indent=2))
+
+        ensemble_timeout =  str(ensemble_timeout)
+
+        res_time = 10000
+
+        sys_prompt = T(".prompts_v2:hypothesis_select.system").r(
+            hypothesis_output_format=(
+                T(".prompts_v2:output_format.hypothesis").r(pipeline=pipeline, enable_idea_pool=enable_idea_pool)
+                if not self.supports_response_schema
+                else None
+            ),
+            pipeline=pipeline,
+        )
+        user_prompt = T(".prompts_v2:hypothesis_select.user").r(
+            scenario_desc=scenario_desc,
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+            res_time = res_time
+        )
+
+        pass
+
+
 
     def task_gen(
         self,
@@ -919,10 +956,15 @@ class DSProposalV2ExpGen(ExpGen):
                     hypothesis_dict.pop(name)
 
         # Step 3: Select the best hypothesis
-        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
-            hypothesis_dict=hypothesis_dict,
-            problem_dict=all_problems,
-        )
+        # pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+        #     hypothesis_dict=hypothesis_dict,
+        #     problem_dict=all_problems,
+        # )
+        pickled_problem_name, new_hypothesis = self.hypothesis_select_with_llm()
+
+
+
+
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
