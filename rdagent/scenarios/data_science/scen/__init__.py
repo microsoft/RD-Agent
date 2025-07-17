@@ -166,6 +166,7 @@ class DataScienceScen(Scenario):
 
     def get_runtime_environment(self) -> str:
         # TODO:  add it into base class.  Environment should(i.e. `DSDockerConf`) should be part of the scenario class.
+        """Return runtime environment information."""
         env = get_ds_env()
         implementation = FBWorkspace()
         fname = "runtime_info.py"

@@ -270,6 +270,11 @@ task_gen:
       - For neural networks, prefer PyTorch or PyTorch based library (over TensorFlow) unless the SOTA or hypothesis dictates otherwise.
       - For neural networks, prefer fine-tuning pre-trained models over training from scratch.
 
+    ## Package Declaration
+    At the end of your design, **you MUST** provide a key `packages` in the final JSON output.  
+    It should be an **array of PyPI package names** (strings) that you expect to `import` in the forthcoming implementation.  
+    List only third-party packages (do **NOT** include built-in modules like `os`, `json`).  
+
     # Guidelines for Sketching the `main.py` Workflow
 
     YOUR TASK IS TO create a conceptual sketch for drafting or updating the `main.py` workflow. This is a plan, not code.

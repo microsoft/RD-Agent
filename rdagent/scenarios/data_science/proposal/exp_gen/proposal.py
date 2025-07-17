@@ -23,6 +23,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.draft.draft import (
     DSDraftExpGen,  # TODO: DSDraftExpGen should be moved to router in the further
 )
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
+from rdagent.scenarios.data_science.proposal.exp_gen.utils import get_packages
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
@@ -273,6 +274,11 @@ class CodingSketch(BaseModel):
         "This section should synthesize the information from `modifications` (if any) and/or `structure` (if any) into a comprehensive and actionable coding plan for `main.py`. "
         "The content **must** be formatted using Markdown, with logical sections, key decision points, or implementation steps clearly organized by level-3 headings (i.e., `###`). "
         "This field should provide sufficient detail for a developer to understand the implementation flow, algorithms, data handling, and key logic points without ambiguity."
+    )
+    packages: List[str] = Field(
+        default=None,
+        description="A list of third-party package names (PyPI) that the planned implementation will import. "
+        "Used to query the runtime environment dynamically. Leave `null` or omit if not applicable.",
     )
 
 
@@ -775,6 +781,15 @@ class DSProposalV2ExpGen(ExpGen):
             name=task_name,
             description=task_desc,
         )
+
+        assert isinstance(task, PipelineTask), f"Task {task_name} is not a PipelineTask, got {type(task)}"
+        # only for llm with response schema.(TODO: support for non-schema llm?)
+        # If the LLM provides a "packages" field (list[str]), compute runtime environment now and cache it for subsequent prompts in later loops.
+        if isinstance(task_dict, dict) and "packages" in task_dict and isinstance(task_dict["packages"], list):
+            pkgs: list[str] = [str(p) for p in task_dict["packages"]]
+            # Persist for later stages
+            task.package_info = get_packages(pkgs)
+
         exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypotheses[0])
         if sota_exp is not None:
             exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)

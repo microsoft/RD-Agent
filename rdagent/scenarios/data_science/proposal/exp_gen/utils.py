@@ -1,13 +1,16 @@
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
+from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
+from rdagent.core.experiment import FBWorkspace
 from rdagent.utils.agent.tpl import T
 
 _COMPONENT_META: Dict[str, Dict[str, Any]] = {
@@ -86,3 +89,20 @@ class CodingSketch(BaseModel):
         "The content **must** be formatted using Markdown, with logical sections, key decision points, or implementation steps clearly organized by level-3 headings (i.e., `###`). "
         "This field should provide sufficient detail for a developer to understand the implementation flow, algorithms, data handling, and key logic points without ambiguity."
     )
+
+
+def get_packages(self, pkgs: list[str] | None = None) -> str:
+    # TODO:  add it into base class.  Environment should(i.e. `DSDockerConf`) should be part of the scenario class.
+    """Return runtime environment information."""
+    # Reuse package list cached during Draft stage when available.
+    if pkgs is None and hasattr(self, "required_packages"):
+        pkgs = getattr(self, "required_packages")  # type: ignore[arg-type]
+
+    env = get_ds_env()
+    implementation = FBWorkspace()
+    fname = "package_info.py"
+    implementation.inject_files(**{fname: (Path(__file__).absolute().resolve().parent / "package_info.py").read_text()})
+
+    pkg_args = " ".join(pkgs) if pkgs else ""
+    stdout = implementation.execute(env=env, entry=f"python {fname} {pkg_args}")
+    return stdout
