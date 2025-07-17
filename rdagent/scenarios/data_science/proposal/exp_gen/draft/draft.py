@@ -130,31 +130,6 @@ class DSDraftV2ExpGen(ExpGen):
         super().__init__(*args, **kwargs)
         self.supports_response_schema = APIBackend().supports_response_schema()
 
-        # Packages requested by the LLM during the draft stage. Cached for reuse.
-        self._requested_pkgs: list[str] | None = None
-
-    # ---------------------------------------------------------------------
-    # New: ask the LLM which third-party packages it plans to use so we can
-    # query their versions dynamically.
-    # ---------------------------------------------------------------------
-
-    def _package_query(self, scenario_desc: str) -> list[str]:
-        """Ask the LLM for the list of packages it intends to import.
-
-        Returns a unique, lowercase list of package names.
-        """
-        sys_prompt = T(".prompts_draft:pkg_query.system").r()
-        user_prompt = T(".prompts_draft:pkg_query.user").r(scenario_desc=scenario_desc)
-
-        response = APIBackend().build_messages_and_create_chat_completion(
-            system_prompt=sys_prompt,
-            user_prompt=user_prompt,
-            json_mode=True,
-            json_target_type=Dict[str, List[str]],
-        )
-        pkg_list = list({pkg.lower() for pkg in json.loads(response)["packages"]})  # deduplicate & normalize
-        return pkg_list
-
     def tag_gen(self, scenario_desc: str) -> str:
         sys_prompt = T(".prompts_draft:tag_gen.system").r(tag_desc=T(".prompts_draft:description.tag_description").r())
         user_prompt = T(".prompts_draft:tag_gen.user").r(
@@ -169,25 +144,12 @@ class DSDraftV2ExpGen(ExpGen):
         return json.loads(response)["tag"].lower()
 
     def knowledge_gen(self) -> str:
-        """Generate general knowledge section with tailored runtime information."""
-
-        # Step 1: Ask for required packages once per draft session.
-        if self._requested_pkgs is None:
-            scenario_desc = self.scen.get_competition_full_desc()
-            self._requested_pkgs = self._package_query(scenario_desc)
-
-            # Cache the package list inside the scenario for later stages.
-            setattr(self.scen, "required_packages", self._requested_pkgs)
-
-        # Step 2: Query versions via updated get_runtime_environment.
-        runtime_environment = self.scen.get_runtime_environment(self._requested_pkgs)
-
-        # Step 3: Render the knowledge template with enriched environment info.
+        runtime_environment = self.scen.get_runtime_environment()
         general_knowledge = T(".prompts_draft:knowledge.general").r(
             runtime_environment=runtime_environment,
             component_desc=T(".prompts_draft:description.component_description").r(),
         )
-        return general_knowledge
+        return f"{general_knowledge}"
 
     def hypothesis_gen(
         self,

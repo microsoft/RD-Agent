@@ -84,6 +84,7 @@ if __name__ == "__main__":
 
     print_filtered_packages(installed_packages, filtered_packages)
 
+    # TODO: Handle missing packages.
     # Report packages that are requested by the LLM but are not installed.
     missing_pkgs = [pkg for pkg in filtered_packages if pkg.lower() not in installed_packages]
     if missing_pkgs:

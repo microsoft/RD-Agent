@@ -274,6 +274,11 @@ class CodingSketch(BaseModel):
         "The content **must** be formatted using Markdown, with logical sections, key decision points, or implementation steps clearly organized by level-3 headings (i.e., `###`). "
         "This field should provide sufficient detail for a developer to understand the implementation flow, algorithms, data handling, and key logic points without ambiguity."
     )
+    packages: Optional[List[str]] = Field(
+        default=None,
+        description="Optional. A list of third-party package names (PyPI) that the planned implementation will import. "
+        "Used to query the runtime environment dynamically. Leave `null` or omit if not applicable."
+    )
 
 
 def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None | DSDraftExpGen:
@@ -753,6 +758,18 @@ class DSProposalV2ExpGen(ExpGen):
 
         task_dict = json.loads(response)
 
+        # only for llm with response schema.(TODO: support for non-schema llm?)
+        # If the LLM provides a "packages" field (list[str]), compute runtime environment now and cache it for subsequent prompts in later loops.
+        if isinstance(task_dict, dict) and "packages" in task_dict and isinstance(task_dict["packages"], list):
+            pkgs: list[str] = [str(p).lower() for p in task_dict["packages"]]
+            try:
+                runtime_env = self.scen.get_runtime_environment(pkgs)
+                # Persist for later stages
+                setattr(self.scen, "runtime_environment", runtime_env)
+            except Exception as e:
+                # TODO: handle missing packages.
+                logger.warning(f"Failed to obtain runtime environment: {e}")
+                
         # 1) explain the response and get main task_description
         not_found_str = f"{component_info['target_name']} description not provided"
         if self.supports_response_schema:

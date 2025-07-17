@@ -270,6 +270,12 @@ task_gen:
       - For neural networks, prefer PyTorch or PyTorch based library (over TensorFlow) unless the SOTA or hypothesis dictates otherwise.
       - For neural networks, prefer fine-tuning pre-trained models over training from scratch.
 
+    ## Package Declaration
+    At the end of your design, **you MUST** provide a key `packages` in the final JSON output.  
+    It should be an **array of lowercase PyPI package names** (strings) that you expect to `import` in the forthcoming implementation.  
+    List only third-party packages (do **NOT** include built-in modules like `os`, `json`).  
+    Example: `"packages": ["numpy", "pandas", "xgboost"]`.
+
     # Guidelines for Sketching the `main.py` Workflow
 
     YOUR TASK IS TO create a conceptual sketch for drafting or updating the `main.py` workflow. This is a plan, not code.
@@ -320,6 +326,7 @@ task_gen:
     {% if not workflow_check %}
 
     {{ task_output_format }}
+    "packages": ["<package1>", "<package2>", ...]
 
     {% else %}
 
@@ -328,6 +335,7 @@ task_gen:
     ## [Partial Response Format 1]
     ### Step1: **Task Output Format** :
     {{ task_output_format }}
+    "packages": ["<package1>", "<package2>", ...]
 
     ### Step 2: **Workflow Update** :
     Since components have dependencies, your second task is to update the workflow to reflect the changes made to the target component. Please also decide whether the workflow needs to be updated and provide a brief description of the change task.
@@ -339,6 +347,7 @@ task_gen:
     {
       "task_design": a dict which strictly adheres to the **Task Output Format** in Step 1,
       "workflow_update": "A string which is a precise and comprehensive description of the Workflow Update, or 'No update needed' if no changes are required."
+      ,"packages": ["<package1>", "<package2>"]
     }
     {% endif %}
     {% endif %}

@@ -56,13 +56,6 @@ knowledge:
       - Keep the ensembling method **simple, reproducible**.
       - Ensemble logic must not bypass earlier validation steps.
 
-pkg_query:
-  system: |-
-    You are an experienced data scientist. Based on the competition description, list **all third-party Python packages** (PyPI names) you plan to import in the forthcoming implementation. Output MUST be a JSON object with a single key "packages" whose value is an array of package names.
-  user: |-
-    # Scenario Description
-    {{ scenario_desc }}
-
 hypothesis_draft:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
