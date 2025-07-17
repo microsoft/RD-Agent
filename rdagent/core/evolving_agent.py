@@ -92,7 +92,7 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator]):
                 # 5. Evaluation
                 if self.with_feedback:
                     es.feedback = (
-                        eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge)
+                        eva if isinstance(eva, Feedback) else eva.evaluate(evo, evolving_trace=self.evolving_trace)
                     )
                     logger.log_object(es.feedback, tag="evolving feedback")
 
