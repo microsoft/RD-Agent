@@ -751,7 +751,7 @@ class DSProposalV2ExpGen(ExpGen):
                 hypothesis_candidates = hypothesis_candidates,
                 res_time = res_time,
                 ensemble_timeout = ensemble_timeout,
-                hypothesis_output_format = T(".prompts_v2:output_format.hypothesis_select").r(hypothesis_candidates = hypothesis_candidates)
+                hypothesis_output_format = T(".prompts_v2:output_format.hypothesis_select_format").r(hypothesis_candidates = hypothesis_candidates)
         )
 
         user_prompt = T(".prompts_v2:hypothesis_select.user").r(
@@ -988,7 +988,7 @@ class DSProposalV2ExpGen(ExpGen):
                                     timer=timer)
 
         if response_dict["component"] != "Ensemble":
-            new_hypothesis = DSHypothesis(component=hypothesis_dict[response_dict["hypothesis"]]["component"].get("component", "Model"),hypothesis=response_dict["hypothesis"])
+            new_hypothesis = DSHypothesis(component=hypothesis_dict[response_dict["hypothesis"]].get("component", "Model"),hypothesis=response_dict["hypothesis"])
         else:
             new_hypothesis = DSHypothesis(component=HypothesisComponent.Ensemble,hypothesis=response_dict["hypothesis"])
 
