@@ -4,7 +4,7 @@ import pickle
 import random
 import re
 from collections import defaultdict
-from datetime import timedelta
+from datetime import time, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -25,6 +25,7 @@ from rdagent.log.utils import (
 )
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
+from rdagent.oai.llm_utils import APIBackend
 
 if "show_stdout" not in state:
     state.show_stdout = False
@@ -228,7 +229,7 @@ def llm_log_win(llm_d: list):
             tpl = d["obj"]["template"]
             cxt = d["obj"]["context"]
             rd = d["obj"]["rendered"]
-            with st.expander(highlight_prompts_uri(uri), expanded=False, icon="⚙️"):
+            with st.popover(highlight_prompts_uri(uri), icon="⚙️", use_container_width=True):
                 t1, t2, t3 = st.tabs([":green[**Rendered**]", ":blue[**Template**]", ":orange[**Context**]"])
                 with t1:
                     show_text(rd)
@@ -240,7 +241,7 @@ def llm_log_win(llm_d: list):
             system = d["obj"].get("system", None)
             user = d["obj"]["user"]
             resp = d["obj"]["resp"]
-            with st.expander(f"**LLM**", expanded=False, icon="🤖"):
+            with st.popover(f"**LLM**", icon="🤖", use_container_width=True):
                 t1, t2, t3 = st.tabs([":green[**Response**]", ":blue[**User**]", ":orange[**System**]"])
                 with t1:
                     try:
@@ -473,6 +474,16 @@ def get_llm_call_stats(llm_data: dict) -> tuple[int, int]:
     return total_llm_call, total_filter_call
 
 
+def timedelta_to_str(td: timedelta | None) -> str:
+    if isinstance(td, timedelta):
+        total_seconds = int(td.total_seconds())
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    return td
+
+
 def summarize_win():
     st.header("Summary", divider="rainbow")
     with st.container(border=True):
@@ -511,8 +522,6 @@ def summarize_win():
                 "Exp Gen",
                 "Coding",
                 "Running",
-                "Start Time (UTC+8)",
-                "End Time (UTC+8)",
             ],
             index=range(min_id, max_id + 1),
         )
@@ -529,18 +538,24 @@ def summarize_win():
                 if k not in ["component", "hypothesis", "reason"]
             }
             df.loc[loop, "COST($)"] = sum(tc.content["cost"] for tc in state.token_costs[loop])
+            
+            # Time Stats
             if loop in state.times and state.times[loop]:
-                df.loc[loop, "Time"] = str(sum((i.end - i.start for i in state.times[loop]), timedelta())).split(".")[0]
-                exp_gen_time = state.times[loop][0].end - state.times[loop][0].start
-                df.loc[loop, "Exp Gen"] = str(exp_gen_time).split(".")[0]
-                if len(state.times[loop]) > 1:
-                    coding_time = state.times[loop][1].end - state.times[loop][1].start
-                    df.loc[loop, "Coding"] = str(coding_time).split(".")[0]
-                if len(state.times[loop]) > 2:
-                    running_time = state.times[loop][2].end - state.times[loop][2].start
-                    df.loc[loop, "Running"] = str(running_time).split(".")[0]
-                df.loc[loop, "Start Time (UTC+8)"] = state.times[loop][0].start + timedelta(hours=8)
-                df.loc[loop, "End Time (UTC+8)"] = state.times[loop][-1].end + timedelta(hours=8)
+                exp_gen_time = coding_time = running_time = None
+                all_steps_time = timedelta()
+                for lpt in state.times[loop]:
+                    all_steps_time += lpt.end - lpt.start
+                    if lpt.step_idx == 0:
+                        exp_gen_time = lpt.end - lpt.start
+                    elif lpt.step_idx == 1:
+                        coding_time = lpt.end - lpt.start
+                    elif lpt.step_idx == 2:
+                        running_time = lpt.end - lpt.start
+                df.loc[loop, "Time"] = timedelta_to_str(all_steps_time)
+                df.loc[loop, "Exp Gen"] = timedelta_to_str(exp_gen_time)
+                df.loc[loop, "Coding"] = timedelta_to_str(coding_time)
+                df.loc[loop, "Running"] = timedelta_to_str(running_time)
+
             if "running" in loop_data and "no_tag" in loop_data["running"]:
                 try:
                     try:
@@ -705,10 +720,11 @@ def summarize_win():
         st1.markdown("### Time Statistics")
         time_stat_df = time_df.groupby("Component").sum()
         time_stat_df.loc["Total"] = time_stat_df.sum()
-        time_stat_df.loc[:, "Exp Gen(%)"] = time_stat_df["Exp Gen"] / time_stat_df["Time"] * 100
-        time_stat_df.loc[:, "Coding(%)"] = time_stat_df["Coding"] / time_stat_df["Time"] * 100
-        time_stat_df.loc[:, "Running(%)"] = time_stat_df["Running"] / time_stat_df["Time"] * 100
-        time_stat_df = time_stat_df.map(lambda x: str(x).split(".")[0] if pd.notnull(x) else "0:00:00")
+        time_stat_df.loc[:, "Exp Gen(%)"] = (time_stat_df["Exp Gen"] / time_stat_df["Time"] * 100).round(2)
+        time_stat_df.loc[:, "Coding(%)"] = (time_stat_df["Coding"] / time_stat_df["Time"] * 100).round(2)
+        time_stat_df.loc[:, "Running(%)"] = (time_stat_df["Running"] / time_stat_df["Time"] * 100).round(2)
+        for col in ["Time", "Exp Gen", "Coding", "Running"]:
+            time_stat_df[col] = time_stat_df[col].map(timedelta_to_str)
         st1.dataframe(time_stat_df)
 
 
@@ -751,7 +767,6 @@ def get_folders_sorted(log_path, sort_by_time=False):
             folders = sorted(folders, key=lambda folder: folder.stat().st_mtime, reverse=True)
         else:
             folders = sorted(folders, key=lambda folder: folder.name)
-        st.write(f"Found {len(folders)} folders")
     return [folder.name for folder in folders]
 
 
@@ -803,7 +818,7 @@ with st.sidebar:
             st.rerun()
     st.toggle("**Show LLM Log**", key="show_llm_log")
     st.toggle("*Show stdout*", key="show_stdout")
-    st.toggle("*Show save workspace feature*", key="show_save_input")
+    st.toggle("*Show save workspace*", key="show_save_input")
     st.markdown(
         f"""
 - [Summary](#summary)
@@ -830,6 +845,8 @@ def get_state_data_range(state_data):
 # UI - Main
 if "competition" in state.data:
     st.title(state.data["competition"])
+    if st.button("To CHAT"):
+        st.switch_page("chat.py")
     st.markdown(f"[share_link](/ds_trace?log_folder={state.log_folder}&selection={state.log_path})")
     summarize_win()
     min_id, max_id = get_state_data_range(state.data)
