@@ -50,9 +50,6 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     coder_max_loop: int = 10
     runner_max_loop: int = 3
 
-    # Runner code diff
-    enable_runner_code_diff: bool = False
-
     sample_data_by_LLM: bool = True
     use_raw_description: bool = False
     show_nan_columns: bool = False

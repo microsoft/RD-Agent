@@ -91,9 +91,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             )
         )
 
-        batch_edit = {
-            k: v for k, v in batch_edit.items() if k in workspace.file_dict.keys()
-        }
+        batch_edit = {k: v for k, v in batch_edit.items() if k in workspace.file_dict.keys()}
 
         return batch_edit
 
@@ -154,9 +152,7 @@ class DSCoSTEERRunner(CoSTEER):
                 f"Current code repo md5: {md5_hash(exp.experiment_workspace.all_codes)}",
             ),
         ]
-        exp = super().develop(
-            exp
-        )  # run strategy(code implementation & evaluation loops)
+        exp = super().develop(exp)  # run strategy(code implementation & evaluation loops)
         exp.sub_tasks = bak_sub_tasks
 
         # NOTE: after running the loops, we expect some results are generated
@@ -167,18 +163,12 @@ class DSCoSTEERRunner(CoSTEER):
             logger.error("Metrics file (scores.csv) is not generated.")
             raise RunnerError(f"Metrics file (scores.csv) is not generated")
         exp.result = pd.read_csv(score_fp, index_col=0)
-        exp.running_info.running_time = (
-            exp.experiment_workspace.running_info.running_time
-        )
+        exp.running_info.running_time = exp.experiment_workspace.running_info.running_time
 
         # 2) if mle-bench, then the submission format checking will be used.
         # DockerEnv for MLEBench submission validation
         if DS_RD_SETTING.if_using_mle_data:
-            score_fp = (
-                exp.experiment_workspace.workspace_path
-                / "test"
-                / "mle_submission_format_test.output"
-            )
+            score_fp = exp.experiment_workspace.workspace_path / "test" / "mle_submission_format_test.output"
             with score_fp.open() as f:
                 exp.format_check_result = f.read()
         return exp
