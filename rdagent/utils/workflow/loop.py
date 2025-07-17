@@ -60,7 +60,8 @@ class LoopMeta(type):
         """
         steps = LoopMeta._get_steps(bases)  # all the base classes of parents
         for name, attr in attrs.items():
-            if not name.startswith("_") and callable(attr):
+            if not name.startswith("_") and callable(attr) and not isinstance(attr, type):
+                # NOTE: `not isinstance(attr, type)` is trying to exclude class type attribute
                 if name not in steps and name not in ["load", "dump"]:  # incase user override the load/dump method
                     # NOTE: if we override the step in the subclass
                     # Then it is not the new step. So we skip it.
