@@ -21,8 +21,9 @@ from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.runner.eval import DSCoSTEERCoSTEEREvaluator
-from rdagent.utils.agent.ret import PythonBatchEditOut
+from rdagent.utils.agent.ret import PythonBatchEditOut, PythonBatchPatchOut
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.workflow import wait_retry
 
 
 class DSRunnerCoSTEERSettings(DSCoderCoSTEERSettings):
@@ -33,10 +34,12 @@ class DSRunnerCoSTEERSettings(DSCoderCoSTEERSettings):
 
     max_seconds: int = DS_RD_SETTING.full_timeout
     env_type: str = "docker"
+    diff_mode: bool = False
     # TODO: extract a function for env and conf.
 
 
 class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
+    @wait_retry(retry_n=5)
     def implement_one_task(
         self,
         target_task: CoSTEERTask,
@@ -44,29 +47,44 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         workspace: FBWorkspace | None = None,
         prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
+
         if prev_task_feedback is None:
-            # if no prev_tak_feedback, it is the first loop; we do not make any changes and goto evaluators directly.
+            # if no prev_task_feedback, it is the first loop; we do not make any changes and goto evaluators directly.
             return {}
+
+        # Output Agent Map
+        output_map = {
+            True: (PythonBatchPatchOut.get_spec(), PythonBatchPatchOut.extract_output),
+            False: (
+                PythonBatchEditOut.get_spec(with_del=False),
+                PythonBatchEditOut.extract_output,
+            ),
+        }
+        output_spec, extract_output_fn = output_map[self.settings.diff_mode]
+
         if prev_task_feedback.hyperparameter_tuning_decision:
-            task_information_str = target_task.get_task_information()
-            # 1. code
+            # Use system_refine for hyperparameter tuning
             system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
-                out_spec=PythonBatchEditOut.get_spec(with_del=False),
+                out_spec=output_spec,
+                diff_mode=self.settings.diff_mode,
             )
         else:
             task_information_str = target_task.get_task_information()
-            # 1. code
-            system_prompt = T(".prompts:DSCoSTEER.system_debugger").r(
+            # Use system_debugger for error fixing and debugging
+            system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
                 task_desc=task_information_str,
-                out_spec=PythonBatchEditOut.get_spec(with_del=False),
+                out_spec=output_spec,
+                diff_mode=self.settings.diff_mode,
             )
+
+        # Generate user prompt for both cases
         user_prompt = T(".prompts:DSCoSTEER.user").r(
             code=workspace.all_codes,
             feedback=prev_task_feedback,
             hyperparameter_tuning_suggestion=prev_task_feedback.hyperparameter_tuning_suggestion,
         )
 
-        batch_edit = PythonBatchEditOut.extract_output(
+        batch_edit = extract_output_fn(
             APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=user_prompt,
                 system_prompt=system_prompt,
@@ -112,7 +130,7 @@ class DSCoSTEERRunner(CoSTEER):
         settings = DSRunnerCoSTEERSettings()
         es = DSRunnerMultiProcessEvolvingStrategy(scen=scen, settings=settings)
 
-        # In runner, we don't need very big loops, so we set max_loop to 3
+        # In runner, we don't need very big loops, so we set max_loop to runner_max_loop
         super().__init__(
             *args,
             settings=settings,

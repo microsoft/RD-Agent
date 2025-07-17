@@ -52,8 +52,8 @@ def load_content(uri: str, caller_dir: Path | None = None, ftype: str = "yaml") 
     for file_path in file_path_l:
         try:
             if ftype == "yaml":
-                with file_path.open() as file:
-                    # Load the YAML file
+                # Parse the UTF-8 encoded YAML configuration for cross-platform compatibility
+                with file_path.open(encoding="utf-8") as file:
                     yaml_content = yaml.safe_load(file)
                 # Traverse the YAML content to get the desired template
                 for key in yaml_trace:
