@@ -734,7 +734,7 @@ class DSProposalV2ExpGen(ExpGen):
                                    exp_feedback_list_desc: str,
                                    sota_exp_desc: str,
                                    hypothesis_candidates:dict,
-                                   timer
+                                   timer: RDAgentTimer
                                   ):
         
         # time_use_current = 0
@@ -986,11 +986,19 @@ class DSProposalV2ExpGen(ExpGen):
                                     sota_exp_desc=sota_exp_desc,
                                     hypothesis_candidates =hypothesis_dict ,
                                     timer=timer)
+        component_map = {
+            "Model": HypothesisComponent.Model,
+            "Ensemble": HypothesisComponent.Ensemble,
+            "Workflow": HypothesisComponent.Workflow,
+            "FeatureEng": HypothesisComponent.FeatureEng,
+            "DataLoadSpec": HypothesisComponent.DataLoadSpec,
+        }
 
-        if response_dict["component"] != "Ensemble":
-            new_hypothesis = DSHypothesis(component=hypothesis_dict[response_dict["hypothesis"]].get("component", "Model"),hypothesis=response_dict["hypothesis"])
-        else:
-            new_hypothesis = DSHypothesis(component=HypothesisComponent.Ensemble,hypothesis=response_dict["hypothesis"])
+        comp_str = response_dict.get("component")
+        hypo_str = response_dict.get("hypothesis")
+
+        if comp_str in component_map and hypo_str is not None:
+            new_hypothesis = DSHypothesis(component=component_map[comp_str], hypothesis=hypo_str)
 
         pickled_problem_name= None
         # Step 3.5: Update knowledge base with the picked problem

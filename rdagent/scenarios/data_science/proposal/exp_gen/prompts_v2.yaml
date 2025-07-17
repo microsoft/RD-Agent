@@ -301,8 +301,7 @@ hypothesis_select:
     ## Final Output Format in JSON Schema:
     {{ hypothesis_output_format }}
     {% endif %}
-
-hypothesis_select:
+  
   user: |- 
     # Scenario Description
     {{ scenario_desc }}
