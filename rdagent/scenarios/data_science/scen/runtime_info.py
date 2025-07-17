@@ -8,17 +8,6 @@ def print_runtime_info():
     print(f"Python {sys.version} on {platform.system()} {platform.release()}")
 
 
-def get_installed_packages():
-    return {dist.metadata["Name"].lower(): dist.version for dist in distributions()}
-
-
-def print_filtered_packages(installed_packages, filtered_packages):
-    for package_name in filtered_packages:
-        version = installed_packages.get(package_name.lower())
-        if version:
-            print(f"{package_name}=={version}")
-
-
 def get_gpu_info():
     try:
         # Option 1: Use PyTorch
@@ -53,43 +42,4 @@ def get_gpu_info():
 
 if __name__ == "__main__":
     print_runtime_info()
-    # Allow the caller to pass a custom package list via command-line arguments.
-    # Example: `python runtime_info.py pandas torch scikit-learn`
-    # If no extra arguments are provided we fall back to the original default list
-    # to keep full backward-compatibility.
-    filtered_packages = (
-        sys.argv[1:]
-        if len(sys.argv) > 1
-        else [
-            "transformers",
-            "accelerate",
-            "torch",
-            "tensorflow",
-            "pandas",
-            "numpy",
-            "scikit-learn",
-            "scipy",
-            "xgboost",
-            "sklearn",
-            "lightgbm",
-            "vtk",
-            "opencv-python",
-            "keras",
-            "matplotlib",
-            "pydicom",
-        ]
-    )
-
-    installed_packages = get_installed_packages()
-
-    print_filtered_packages(installed_packages, filtered_packages)
-
-    # TODO: Handle missing packages.
-    # Report packages that are requested by the LLM but are not installed.
-    missing_pkgs = [pkg for pkg in filtered_packages if pkg.lower() not in installed_packages]
-    if missing_pkgs:
-        print("\n=== Missing Packages ===")
-        for pkg in missing_pkgs:
-            print(pkg)
-
     get_gpu_info()

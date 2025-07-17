@@ -11,6 +11,14 @@ pipeline_coder:
     
     ## The runtime environment your code will running on
     {{ runtime_environment }}
+
+    {% if package_info is not none %}
+    To help you write the runnable code, the user has provided the package information which contains the package names and versions.
+    You should be careful about the package versions, as the code will be executed in the environment with the specified version and the api might be different from the latest version.
+    The user might provide the packages the environment doesn't have, you should avoid using any of them.
+    ## Package Information
+    {{ package_info }}
+    {% endif %}
     
     ## Hyperparameters Specification
     Follow the hyperparameter choices if they are specified in the task description, unless they are unreasonable or incorrect.
