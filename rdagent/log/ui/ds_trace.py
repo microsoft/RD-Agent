@@ -10,12 +10,12 @@ from pathlib import Path
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from litellm import get_valid_models
 from streamlit import session_state as state
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
-from rdagent.oai.backend.litellm import LITELLM_SETTINGS
 from rdagent.log.ui.utils import curve_figure, load_times, trace_figure
 from rdagent.log.utils import (
     LogColors,
@@ -24,9 +24,10 @@ from rdagent.log.utils import (
     extract_loopid_func_name,
     is_valid_session,
 )
+from rdagent.oai.backend.litellm import LITELLM_SETTINGS
+from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
-from rdagent.oai.llm_utils import APIBackend
 
 if "show_stdout" not in state:
     state.show_stdout = False
@@ -40,6 +41,12 @@ if "log_path" not in state:
     state.log_path = None
 if "log_folder" not in state:
     state.log_folder = Path("./log")
+
+available_models = get_valid_models()
+LITELLM_SETTINGS.dump_chat_cache = False
+LITELLM_SETTINGS.dump_embedding_cache = False
+LITELLM_SETTINGS.use_chat_cache = False
+LITELLM_SETTINGS.use_embedding_cache = False
 
 
 def convert_defaultdict_to_dict(d):
@@ -243,7 +250,9 @@ def llm_log_win(llm_d: list):
             user = d["obj"]["user"]
             resp = d["obj"]["resp"]
             with st.expander(f"**LLM**", icon="🤖", expanded=False):
-                t1, t2, t3, t4 = st.tabs([":green[**Response**]", ":blue[**User**]", ":orange[**System**]", ":violet[**ChatBot**]"])
+                t1, t2, t3, t4 = st.tabs(
+                    [":green[**Response**]", ":blue[**User**]", ":orange[**System**]", ":violet[**ChatBot**]"]
+                )
                 with t1:
                     try:
                         rdict = json.loads(resp)
@@ -265,18 +274,49 @@ def llm_log_win(llm_d: list):
                 with t3:
                     show_text(system or "No system prompt available")
                 with t4:
-                    resp_c, input_c = st.columns(2)
-                    call_llm = resp_c.button("Call LLM", key=hashlib.md5(resp.encode()).hexdigest())
-                    sys_p = input_c.text_area(label="system", value=system, height="stretch")
-                    user_p = input_c.text_area(label="user", value=user, height="content")
-                    resp_new = ""
-                    if call_llm:
-                        pass
-                    try:
-                        rdict = json.loads(resp_new)
-                        resp_c.chat_message(name="assistant").json(rdict)
-                    except:
-                        resp_c.chat_message(name="assistant").code(resp_new, wrap_lines=True, line_numbers=True)
+                    input_c, resp_c = st.columns(2)
+                    key = hashlib.md5(resp.encode()).hexdigest()
+                    with input_c:
+                        btc1, btc2 = st.columns(2)
+                        trace_model = (
+                            state.data.get("settings", {})
+                            .get("LITELLM_SETTINGS", {})
+                            .get("chat_model", available_models[0])
+                        )
+                        trace_reasoning_effort = (
+                            state.data.get("settings", {}).get("LITELLM_SETTINGS", {}).get("reasoning_effort", None)
+                        )
+                        LITELLM_SETTINGS.chat_model = btc1.selectbox(
+                            "Chat Model",
+                            options=available_models,
+                            index=available_models.index(trace_model),
+                            key=key + "_chat_model",
+                        )
+                        LITELLM_SETTINGS.reasoning_effort = btc2.selectbox(
+                            "Reasoning Effort",
+                            options=[None, "low", "medium", "high"],
+                            index=[None, "low", "medium", "high"].index(trace_reasoning_effort),
+                            key=key + "_reasoning_effort",
+                        )
+                        json_mode = st.checkbox("JSON Mode", value=False, key=key + "_json_mode")
+                        sys_p = input_c.text_area(label="system", value=system, height="content")
+                        user_p = input_c.text_area(label="user", value=user, height="content")
+                    with resp_c:
+                        if st.button("Call LLM", key=key + "_call_llm"):
+                            with st.spinner("Calling LLM..."):
+                                try:
+                                    resp_new = APIBackend().build_messages_and_create_chat_completion(
+                                        user_prompt=user_p,
+                                        system_prompt=sys_p,
+                                        json_mode=json_mode,
+                                    )
+                                except Exception as e:
+                                    resp_new = f"Error: {e}"
+                            try:
+                                rdict = json.loads(resp_new)
+                                st.json(rdict)
+                            except:
+                                st.code(resp_new, wrap_lines=True, line_numbers=True)
 
 
 def hypothesis_win(hypo):
@@ -552,7 +592,7 @@ def summarize_win():
                 if k not in ["component", "hypothesis", "reason"]
             }
             df.loc[loop, "COST($)"] = sum(tc.content["cost"] for tc in state.token_costs[loop])
-            
+
             # Time Stats
             if loop in state.times and state.times[loop]:
                 exp_gen_time = coding_time = running_time = None
