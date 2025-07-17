@@ -142,6 +142,8 @@ class DataScienceScen(Scenario):
             use_raw_description=DS_RD_SETTING.use_raw_description,
             time_limit=None,
             eda_output=None,
+            sample_data_by_LLM=None,
+            debug_time_limit=None,
         )
 
     def get_scenario_all_desc(self, eda_output=None) -> str:
@@ -158,6 +160,8 @@ class DataScienceScen(Scenario):
             use_raw_description=DS_RD_SETTING.use_raw_description,
             time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
             eda_output=eda_output,
+            sample_data_by_LLM=DS_RD_SETTING.sample_data_by_LLM,
+            debug_time_limit=f"{DS_RD_SETTING.debug_timeout / 60 / 60 : .2f} hours",
         )
 
     def get_runtime_environment(self) -> str:

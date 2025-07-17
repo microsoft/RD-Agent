@@ -106,48 +106,6 @@ feedback_problem:
     # Current SOTA Implementation
     {{ sota_exp_desc }}
 
-scenario_description: |-
-  {% if use_raw_description -%}
-  ====== Background ======
-  {{ raw_description }}
-
-  {% else %}
-  ====== Background ======
-  {{ background }}
-  {% endif %}
-
-  {% if eda_output is not none %}The following is the output of the exploratory data analysis (EDA) performed on the dataset, You should carefully analyze it to better craft your feature engineering and model training strategies.
-  ====== Data Overview (EDA) ======
-  {{ eda_output }}
-  {% endif %}
-
-  ====== Submission Format ======
-  Please ensure your submission adheres to the following specifications:
-  {{ submission_specifications }}
-
-  ====== Important Guidelines ======
-  Before submitting your results, please note the following:
-  - We have numerous tests in place to check your code.
-  - Ensure your submission is genuine.
-  - Do not manipulate data or return values solely to pass preliminary tests, as this will not lead to successful final evaluation.
-
-  ====== Evaluation ======
-  {% if metric_name %}
-  The primary evaluation metric for this task is: **{{ metric_name }}**.
-  {% endif %}
-  This metric is considered better when it is **{% if metric_direction %}larger{% else %}smaller{% endif %}**.
-
-  {% if evaluation is not none %}
-  Additional Evaluation Details:
-  {{ evaluation }}
-  {% endif %}
-
-  {% if time_limit %}
-  ====== Time Limit ======
-  Your code's execution is limited to **{{ time_limit }}**. After this time limit, your code will be terminated. But remember your main target is to achieve the best performance and you have several times to modify your code. So please be bold to make the best use of all the time limit and don't be too conservative.
-  During this time limit, you have all the resources available to you. Please fully leverage all the computational resources(CPUs and GPUs) to achieve the best performance like choose a powerful model, use a large batch size, enable data sampler with big parallel.
-  {% endif %}
-
 hypothesis_gen:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
