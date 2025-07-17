@@ -53,9 +53,7 @@ def get_python_packages():
 
     # TODO: Handle missing packages.
     # Report packages that are requested by the LLM but are not installed.
-    missing_pkgs = [
-        pkg for pkg in packages_list if pkg.lower() not in installed_packages
-    ]
+    missing_pkgs = [pkg for pkg in packages_list if pkg.lower() not in installed_packages]
     if missing_pkgs:
         print("\n=== Missing Packages (Avoid using these packages) ===")
         for pkg in missing_pkgs:
