@@ -5,6 +5,7 @@ from importlib.metadata import distributions
 
 
 def print_runtime_info():
+    print("=== Python Runtime Info ===")
     print(f"Python {sys.version} on {platform.system()} {platform.release()}")
 
 
