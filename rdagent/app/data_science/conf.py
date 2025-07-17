@@ -115,5 +115,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     max_sota_retrieved_num: int = 10
     """The maximum number of SOTA experiments to retrieve in a LLM call"""
 
+    #### from a previous workspace
+    previous_workspace_path: str | None = None
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()
