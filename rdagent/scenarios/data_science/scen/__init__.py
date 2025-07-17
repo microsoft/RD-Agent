@@ -164,15 +164,27 @@ class DataScienceScen(Scenario):
             debug_time_limit=f"{DS_RD_SETTING.debug_timeout / 60 / 60 : .2f} hours",
         )
 
-    def get_runtime_environment(self) -> str:
+    def get_runtime_environment(self, pkgs: list[str] | None = None) -> str:
         # TODO:  add it into base class.  Environment should(i.e. `DSDockerConf`) should be part of the scenario class.
+        """Return runtime environment information.
+
+        If *pkgs* is provided, only versions for those packages will be queried; otherwise
+        it falls back to cached *self.required_packages* (if set in Draft stage) or the
+        default list defined inside ``runtime_info.py`` for backward-compatibility.
+        """
+        # Reuse package list cached during Draft stage when available.
+        if pkgs is None and hasattr(self, "required_packages"):
+            pkgs = getattr(self, "required_packages")  # type: ignore[arg-type]
+
         env = get_ds_env()
         implementation = FBWorkspace()
         fname = "runtime_info.py"
         implementation.inject_files(
             **{fname: (Path(__file__).absolute().resolve().parent / "runtime_info.py").read_text()}
         )
-        stdout = implementation.execute(env=env, entry=f"python {fname}")
+
+        pkg_args = " ".join(pkgs) if pkgs else ""
+        stdout = implementation.execute(env=env, entry=f"python {fname} {pkg_args}")
         return stdout
 
     def _get_data_folder_description(self) -> str:
