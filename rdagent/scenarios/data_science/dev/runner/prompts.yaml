@@ -19,10 +19,6 @@ DSCoSTEER_eval:
     The code is focusing on the following task
     {{ task_desc }}
 
-    ## Runtime Environment
-    You have following environment to run the code:
-    {{ runtime_environment }}
-
     ## Evaluation Guidelines
     1. Evaluate the code base based on several aspects, including execution correctness, return checking, and code quality.
     2. Ensure the code does not contain any incorrect, fabricated, or deceptive operations, such as mocking data, scores, or results.
