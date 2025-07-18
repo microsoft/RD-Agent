@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 from pydantic import BaseModel, Field
+from rdagent.oai.backend.base import RD_Agent_TIMER_wrapper
 
-from rdagent.log.timer import RDAgentTimer
 from rdagent.core.conf import RD_AGENT_SETTINGS
 import asyncio
 
@@ -466,17 +466,6 @@ class DSProposalV2ExpGen(ExpGen):
         super().__init__(*args, **kwargs)
         self.supports_response_schema = APIBackend().supports_response_schema()
 
-    async def async_gen(self, trace, loop):
-        """
-        generate the experiment and decide whether to stop yield generation and give up control to other routines.
-        """
-        # we give a default implementation here.
-        # The proposal is set to try best to generate the experiment in max-parallel level.
-        while True:
-            if loop.get_unfinished_loop_cnt(loop.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
-                return self.gen(trace, loop.timer)
-            await asyncio.sleep(1)
-
     def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_output_format=(
@@ -734,7 +723,6 @@ class DSProposalV2ExpGen(ExpGen):
                                    exp_feedback_list_desc: str,
                                    sota_exp_desc: str,
                                    hypothesis_candidates:dict,
-                                   timer: RDAgentTimer
                                   ):
         
         # time_use_current = 0
@@ -742,7 +730,7 @@ class DSProposalV2ExpGen(ExpGen):
         #     if exp.running_info.running_time is not None:
         #         time_use_current += exp.running_info.running_time
         # res_time = 12*3600 - time_use_current
-        res_time = timer.remain_time()
+        res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
 
         ensemble_timeout = DS_RD_SETTING.ensemble_timeout
         hypothesis_candidates =  str(json.dumps(hypothesis_candidates, indent=2))
@@ -876,7 +864,6 @@ class DSProposalV2ExpGen(ExpGen):
     def gen(
         self,
         trace: DSTrace, 
-        timer: RDAgentTimer
     ) -> DSExperiment:
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
         if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
@@ -984,8 +971,8 @@ class DSProposalV2ExpGen(ExpGen):
         response_dict= self.hypothesis_select_with_llm(scenario_desc=scenario_desc,
                                     exp_feedback_list_desc=exp_feedback_list_desc,
                                     sota_exp_desc=sota_exp_desc,
-                                    hypothesis_candidates =hypothesis_dict ,
-                                    timer=timer)
+                                    hypothesis_candidates =hypothesis_dict,
+                                    )
         component_map = {
             "Model": HypothesisComponent.Model,
             "Ensemble": HypothesisComponent.Ensemble,
