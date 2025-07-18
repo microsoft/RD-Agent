@@ -43,6 +43,12 @@ scenario_description: |-
   Your are also required to include a debug mode in your code, the debug code's execution is limited to **{{ debug_time_limit }}**. You should make sure 10 percent of the data training one epoch can be finished within this time limit. If not, your should propose a new debug strategy in your task.
   {% endif %}{% endif %}
 
+  {% if runtime_environment is not none %}
+  ====== Runtime Environment ======
+  You have following environment to run the code:
+  {{ runtime_environment }}
+  {% endif %}
+
 competition_description_template:
   system: |-
     You are a data science assistant that extracts structured information from unstructured text.
