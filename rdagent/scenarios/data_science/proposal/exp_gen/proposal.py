@@ -731,15 +731,16 @@ class DSProposalV2ExpGen(ExpGen):
         # res_time = 12*3600 - time_use_current
         res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
         total_time = RD_Agent_TIMER_wrapper.timer.all_duration
-        use_time = total_time.seconds - res_time.seconds
-        use_ratio = 100* use_time // total_time.seconds 
+        use_time =  round(total_time.total_seconds(),2) -  round(res_time.total_seconds(),2)
+        use_ratio = 100* use_time / round(total_time.total_seconds(),2)
+        use_ratio = round(use_ratio, 2)
 
         ensemble_timeout = DS_RD_SETTING.ensemble_timeout
         hypothesis_candidates =  str(json.dumps(hypothesis_candidates, indent=2))
 
         sys_prompt = T(".prompts_v2:hypothesis_select.system").r(
                 hypothesis_candidates = hypothesis_candidates,
-                res_time = res_time.seconds,
+                res_time = round(res_time.total_seconds(),2),
                 ensemble_timeout = ensemble_timeout,
                 use_ratio = use_ratio,
                 hypothesis_output_format = T(".prompts_v2:output_format.hypothesis_select_format").r(hypothesis_candidates = hypothesis_candidates)

@@ -147,7 +147,7 @@ scenario_description: |-
   ====== Time Limit ======
   Your code's execution is limited to {{ time_limit }}. After this time limit, your code will be terminated. However, remember that your primary objective is to achieve the best possible performance, and you're allowed to revise your code multiple times. So be bold — make full use of the entire time limit, and don’t be too conservative.
   During this period, you have full access to computational resources (CPUs and GPUs). Please take advantage of them: choose powerful models, use large batch sizes, and enable parallelism (e.g., large-scale data sampling or multi-GPU training) where applicable.
-  If your code involves ensemble training, note that the total time allowed for ensemble runs is {{ ensemble_limit }}. Make sure to plan your ensemble strategy wisely within this limit.
+  If your code involves ensemble training, note that the total time allowed for ensemble runs is {{ ensemble_limit }} seconds. Make sure to plan your ensemble strategy wisely within this limit.
   {% endif %}
 
 hypothesis_gen:
