@@ -604,7 +604,7 @@ class DSProposalV2ExpGen(ExpGen):
             resp_dict = {
                 h.caption: {
                     "reason": h.challenge,
-                    "component": h.component,
+                    "component": h.component.value,
                     "hypothesis": h.hypothesis,
                     "evaluation": {
                         "alignment_score": h.evaluation.alignment.score,
