@@ -60,7 +60,8 @@ pipeline_coder:
     - **Important Note on Error Handling**: Beyond data loading, avoid using try-except blocks to hide or suppress errors in data processing, analysis, or model training. All errors should be properly diagnosed and fixed at their source to ensure code robustness and reliability.
 
     ## Exploratory Data Analysis (EDA) (Required)
-    - Perform EDA and print the following (in the required schema):
+    Please follow this systematic methodology (in the required schema) for your analysis.
+    1. Initial Data Assessment & Sanitization:
       - Data shape
       - First 5 rows
       - Data types per column
@@ -68,7 +69,20 @@ pipeline_coder:
       - Unique values per column
       - Target variable distribution
       - Any other relevant insights
-    - The EDA part should be drafted in plain text sending to standard output with command print or other similar functions with no more than ten thousand characters in the following schema: 
+
+    2. Detailed Feature Analysis (A Non-Exhaustive Guide):
+    For Numerical & Categorical Features:
+      - Central Tendency & Dispersion
+      - Distribution Shape & Imbalance
+      - Outliers & Anomalies
+      - Cardinality & Granularity
+    For Text Features:
+      - Text Granularity & Scale
+      - Core Content & Topicality
+      - Linguistic Structure & Style
+      - Vocabulary Richness & Redundancy
+
+    3. The EDA part should be drafted in plain text sending to standard output with command print or other similar functions with no more than ten thousand characters in the following schema: 
       === Start of EDA part ===
       {EDA content}
       === End of EDA part ===
