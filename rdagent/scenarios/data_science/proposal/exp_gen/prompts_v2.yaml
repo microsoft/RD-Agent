@@ -145,8 +145,9 @@ scenario_description: |-
 
   {% if time_limit %}
   ====== Time Limit ======
-  Your code's execution is limited to **{{ time_limit }}**. After this time limit, your code will be terminated. But remember your main target is to achieve the best performance and you have several times to modify your code. So please be bold to make the best use of all the time limit and don't be too conservative.
-  During this time limit, you have all the resources available to you. Please fully leverage all the computational resources(CPUs and GPUs) to achieve the best performance like choose a powerful model, use a large batch size, enable data sampler with big parallel.
+  Your code's execution is limited to {{ time_limit }}. After this time limit, your code will be terminated. However, remember that your primary objective is to achieve the best possible performance, and you're allowed to revise your code multiple times. So be bold — make full use of the entire time limit, and don’t be too conservative.
+  During this period, you have full access to computational resources (CPUs and GPUs). Please take advantage of them: choose powerful models, use large batch sizes, and enable parallelism (e.g., large-scale data sampling or multi-GPU training) where applicable.
+  If your code involves ensemble training, note that the total time allowed for ensemble runs is {{ ensemble_limit }}. Make sure to plan your ensemble strategy wisely within this limit.
   {% endif %}
 
 hypothesis_gen:
@@ -269,10 +270,13 @@ hypothesis_select:
     If multiple hypotheses seem reasonable, select the one that is most robust or consistent with Previous Experiments and Feedbacks, pay attention to the runtime of each loop.
 
     If you believe that previous methods have reached their limits and the current setting only involves a single model, feel free to propose an ensemble solution. However, you **must** carefully allocate the training and runtime budget to ensure the **ensemble logic is well-executed and evaluated**, without compromising the performance of the previous models.
-
+    
     ### 1. Ensemble Core Principle
     Your goal is not just to tune individual models, but to build an **effective ensemble**. Make design decisions that lead to **strong overall ensemble performance**, not just strong base models.
     Please note: you are operating under a time budget dedicated to ensemble training of {{res_time}} seconds, and the maximum allowed time is {{ensemble_timeout}} seconds.
+    {{use_ratio}}% of the total ensemble time has been used. As this surpasses the 70% threshold, you are advised to shift focus toward optimizing the ensemble component rather than continuing with model, data, feature, or workflow exploration.
+    Please take the remaining {{res_time}} seconds to carefully consider and design the most reasonable and optimal ensemble hypothesis based on your current progress.
+
     Assume training a single model takes about 1 hour. For example, if you have roughly twice that time left, you can try training multiple models with different random seeds or data splits to reuse time effectively.
     If you have more time, you might consider training a multi-fold ensemble. Use your judgment to decide how many folds or seeds fit within your remaining time budget.
 
