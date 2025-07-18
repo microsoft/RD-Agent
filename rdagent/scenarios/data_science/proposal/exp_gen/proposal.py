@@ -252,6 +252,26 @@ class HypothesisList(BaseModel):
     )
 
 
+# Note: HypothesisCritique models removed since we use json_object mode for dynamic keys
+
+
+class SynthesizedHypothesis(BaseModel):
+    hypothesis_name: str = Field(description="Descriptive name for the new hypothesis (5-15 words).")
+    synthesized_hypothesis: str = Field(description="The new hypothesis statement that combines insights from multiple original hypotheses.")
+    synthesis_rationale: str = Field(
+        description="Explanation of how this new hypothesis combines insights from the original hypotheses and addresses their collective flaws."
+    )
+    component: HypothesisComponent = Field(description="The component tag of the synthesized hypothesis.")
+    source_insights: List[str] = Field(description="Brief descriptions of key insights taken from original hypotheses.")
+    evaluation: HypothesisEvaluation = Field(description="Evaluation scores for the synthesized hypothesis.")
+
+
+class SynthesizedHypothesesDict(BaseModel):
+    synthesized_hypotheses: List[SynthesizedHypothesis] = Field(
+        description="List of completely new hypotheses that synthesize insights from all original hypotheses."
+    )
+
+
 class CodingSketch(BaseModel):
     current_state: str = Field(
         description="A summary of the current `main.py` script that serves as the baseline for the planned changes. Focusing on parts that are related to the hypothesis. If `main.py` does not yet exist (i.e., it will be created from scratch based on this sketch), use the string 'N/A'."
@@ -629,6 +649,123 @@ class DSProposalV2ExpGen(ExpGen):
 
         return resp_dict
 
+    @wait_retry(retry_n=5)
+    def hypothesis_critique(
+        self,
+        hypothesis_dict: Dict,
+        scenario_desc: str,
+        sota_exp_desc: str,
+        exp_feedback_list_desc: str,
+    ) -> Dict:
+        """
+        Critique the generated hypotheses, identifying flaws and suggesting improvements.
+        """
+        hypotheses_formatted = ""
+        for i, (problem_name, hypothesis_data) in enumerate(hypothesis_dict.items()):
+            hypotheses_formatted += f"## {i+1}. **Problem Name:** {problem_name}\n"
+            hypotheses_formatted += f"**Component:** {hypothesis_data.get('component', 'Unknown')}\n"
+            hypotheses_formatted += f"**Hypothesis:** {hypothesis_data.get('hypothesis', 'Not provided')}\n"
+            hypotheses_formatted += f"**Reason:** {hypothesis_data.get('reason', 'Not provided')}\n\n"
+
+        sys_prompt = T(".prompts_v2:hypothesis_critique.system").r(
+            critique_output_format=T(".prompts_v2:output_format.critique").r(),
+        )
+        user_prompt = T(".prompts_v2:hypothesis_critique.user").r(
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+            hypotheses_formatted=hypotheses_formatted,
+        )
+
+        # Use json_object mode since hypothesis names are dynamic
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format={"type": "json_object"},
+            json_target_type=dict,
+        )
+        logger.info(f"Generated critiques:\n" + response)
+        
+        response_dict = json.loads(response)
+        critiques = response_dict.get("critiques", response_dict)
+
+        logger.info(f"Generated critiques for {len(critiques)} hypotheses")
+        return critiques
+
+    @wait_retry(retry_n=5)
+    def hypothesis_synthesize(
+        self,
+        hypothesis_dict: Dict,
+        critiques_dict: Dict,
+        scenario_desc: str,
+        sota_exp_desc: str,
+        scattering_count: int = 3,
+    ) -> List[Dict]:
+        """
+        Synthesize completely new hypotheses based on all original hypotheses and their critiques.
+        This follows the X-Masters approach: generate N new hypotheses from N original ones.
+        """
+        hypothesis_critique_pairs = ""
+        for i, problem_name in enumerate(hypothesis_dict.keys()):
+            hypothesis_data = hypothesis_dict[problem_name]
+            critique_data = critiques_dict.get(problem_name, {})
+            
+            hypothesis_critique_pairs += f"## Original Hypothesis {i+1}: {problem_name}\n"
+            hypothesis_critique_pairs += f"**Hypothesis:** {hypothesis_data.get('hypothesis', 'Not provided')}\n"
+            hypothesis_critique_pairs += f"**Component:** {hypothesis_data.get('component', 'Unknown')}\n"
+            hypothesis_critique_pairs += f"**Reasoning:** {hypothesis_data.get('reason', 'Not provided')}\n"
+            hypothesis_critique_pairs += f"**Critique:** {critique_data.get('critique', 'No critique available')}\n\n"
+
+        sys_prompt = T(".prompts_v2:hypothesis_rewrite.system").r(
+            scattering_count=scattering_count,
+            rewrite_output_format=T(".prompts_v2:output_format.rewrite").r(),
+        )
+        user_prompt = T(".prompts_v2:hypothesis_rewrite.user").r(
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            hypothesis_critique_pairs=hypothesis_critique_pairs,
+            scattering_count=scattering_count,
+        )
+
+        # Use json_object mode for consistency
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format={"type": "json_object"},
+            json_target_type=dict,
+        )
+
+        response_dict = json.loads(response)
+        synthesized_hypotheses = response_dict.get("synthesized_hypotheses", [])
+
+        logger.info(f"Generated {len(synthesized_hypotheses)} completely new synthesized hypotheses from {len(hypothesis_dict)} original hypotheses")
+        return synthesized_hypotheses
+
+    def convert_synthesized_hypotheses(self, synthesized_hypotheses_list: List[Dict]) -> Dict:
+        """
+        Convert synthesized hypotheses into the same format as original hypothesis_dict for scoring.
+        Maintains exact same structure as hypothesis_gen output for seamless integration.
+        """
+        converted = {}
+        for i, hypothesis in enumerate(synthesized_hypotheses_list):
+            # Use hypothesis_name as key, with fallback to index-based naming
+            hypothesis_key = hypothesis.get("hypothesis_name", f"synthesized_hypothesis_{i+1}")
+            
+            # Ensure exact same format as hypothesis_gen output
+            converted[hypothesis_key] = {
+                "hypothesis": hypothesis.get("synthesized_hypothesis", hypothesis.get("hypothesis", "")),
+                "reason": hypothesis.get("synthesis_rationale", hypothesis.get("reason", "")),
+                "component": hypothesis.get("component", "Model"),
+                "evaluation": hypothesis.get("evaluation", {
+                    "alignment_score": 7.0,
+                    "impact_score": 7.0, 
+                    "novelty_score": 7.0,
+                    "feasibility_score": 7.0,
+                    "risk_reward_balance_score": 7.0,
+                }),
+            }
+        return converted
+
     def compute_top_scores(
         self,
         hypothesis_dict: dict,
@@ -920,14 +1057,52 @@ class DSProposalV2ExpGen(ExpGen):
                 for name in pop_names:
                     hypothesis_dict.pop(name)
 
-        # Step 3: Select the best hypothesis
-        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+        # Step 2.1: Critic Stage - Evaluate and identify flaws in hypotheses
+        logger.info("Starting critic stage - evaluating hypotheses for flaws and improvements")
+        critiques_dict = self.hypothesis_critique(
             hypothesis_dict=hypothesis_dict,
-            problem_dict=all_problems,
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+        )
+
+        # Step 2.2: Synthesizer Stage - Generate completely new hypotheses (X-Masters approach)
+        logger.info("Starting synthesizer stage - generating completely new hypotheses")
+        scattering_count = len(hypothesis_dict)  # Generate same number of new hypotheses as original
+        synthesized_hypotheses_list = self.hypothesis_synthesize(
+            hypothesis_dict=hypothesis_dict,
+            critiques_dict=critiques_dict,
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            scattering_count=scattering_count,
+        )
+
+        # Step 2.3: Convert synthesized hypotheses for evaluation and selection
+        logger.info("Converting synthesized hypotheses for evaluation")
+        synthesized_hypothesis_dict = self.convert_synthesized_hypotheses(synthesized_hypotheses_list)
+        
+        # Create corresponding problem dictionary for synthesized hypotheses
+        # Each synthesized hypothesis becomes its own "problem" for selection purposes
+        synthesized_problems = {}
+        for hypothesis_name, hypothesis_data in synthesized_hypothesis_dict.items():
+            synthesized_problems[hypothesis_name] = {
+                "problem": f"Synthesized challenge: {hypothesis_data.get('hypothesis', '')}",
+                "reason": hypothesis_data.get('reason', ''),
+                "label": "SYNTHESIZED_HYPOTHESIS"
+            }
+        
+        # Following X-Masters: ONLY use the new synthesized hypotheses, discard original ones
+        # This ensures we select from the synthesized pool, not the original pool
+        logger.info(f"Generated {len(synthesized_hypothesis_dict)} completely new synthesized hypotheses, discarding {len(hypothesis_dict)} original hypotheses")
+
+        # Step 3: Select the best hypothesis from ONLY the synthesized hypotheses
+        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+            hypothesis_dict=synthesized_hypothesis_dict,
+            problem_dict=synthesized_problems,
         )
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
-            trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
+            trace.knowledge_base.update_pickled_problem(synthesized_problems, pickled_problem_name)
 
         return self.task_gen(
             component_desc=component_desc,

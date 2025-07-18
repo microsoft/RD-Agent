@@ -218,6 +218,95 @@ hypothesis_gen:
     # Identified Challenges{% if enable_idea_pool %} with Sampled Ideas{% endif %}
     {{ problems }}
 
+hypothesis_critique:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    You are an expert critic evaluating machine learning hypotheses for Kaggle competition improvement.
+    
+    Your task is to provide constructive critiques for each proposed hypothesis. For each hypothesis, analyze:
+    
+    ## 1. Technical Feasibility
+    - Can this be implemented with reasonable effort?
+    - Are there any obvious technical barriers or compatibility issues?
+    - Does it integrate well with the existing codebase?
+    
+    ## 2. Expected Impact
+    - Is this likely to improve the target metric?
+    - How significant might the improvement be?
+    - Are there any potential negative side effects?
+    
+    ## 3. Implementation Risks
+    - What could go wrong during implementation?
+    - Are there edge cases or failure modes to consider?
+    - How can risks be mitigated?
+    
+    ## 4. Specific Improvements
+    - What concrete steps would make this hypothesis better?
+    - Are there alternative approaches worth considering?
+    - What should be prioritized in implementation?
+    
+    Provide a comprehensive but concise critique for each hypothesis. Be constructive and actionable in your feedback.
+    
+    {% if critique_output_format is not none %}
+    ## Output Format
+    {{ critique_output_format }}
+    {% endif %}
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+    # Experiment History
+    {{ exp_feedback_list_desc }}
+
+    # Hypotheses to Critique
+    {{ hypotheses_formatted }}
+
+hypothesis_rewrite:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    You are an expert hypothesis synthesizer specializing in iterative improvement of machine learning solutions for Kaggle competitions.
+    
+    Based on all original hypotheses and their detailed critic feedback, your task is to synthesize and generate {{ scattering_count }} completely new hypotheses that combine the best insights from all original hypotheses while addressing identified flaws. This follows the X-Masters scattered-stacked design principle.
+    
+    ## Synthesis Guidelines:
+    1. **Cross-Pollinate Ideas**: Combine insights from different original hypotheses to create novel approaches
+    2. **Address Collective Flaws**: Tackle issues identified across multiple original hypotheses
+    3. **Leverage Collective Strengths**: Incorporate the best aspects from all original hypotheses
+    4. **Generate Diverse Approaches**: Create {{ scattering_count }} fundamentally different new hypotheses that explore various solution directions
+    5. **Maintain Feasibility**: Ensure all new hypotheses remain technically implementable within the scenario constraints
+    6. **Ensure Testability**: Each new hypothesis must be specific, actionable, and measurable
+    
+    ## Synthesis Strategy:
+    - **Hypothesis 1**: Conservative synthesis - combines proven strengths with minimal risk
+    - **Hypothesis 2**: Balanced synthesis - integrates multiple insights with moderate innovation
+    - **Hypothesis 3**: Aggressive synthesis - bold new approaches inspired by collective insights
+    
+    {% if rewrite_output_format is not none %}
+    ### Output Format
+    {{ rewrite_output_format }}
+    {% endif %}
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+    # Original Hypotheses and Their Critiques
+    {{ hypothesis_critique_pairs }}
+    
+    # Task
+    Generate {{ scattering_count }} completely new hypotheses that synthesize insights from ALL original hypotheses above. Each new hypothesis should:
+    1. Address problems identified across multiple original hypotheses
+    2. Combine strengths from different original hypotheses
+    3. Explore fundamentally different solution approaches
+    4. Be actionable and testable independently
+
 task_gen:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
@@ -461,6 +550,54 @@ output_format:
     {
       "problem name 1 (should be exactly same as the problem name provided)": 1, # The index which is same to the idea index provided in the input and must be integer.
       "problem name 2 (should be exactly same as the problem name provided)": 2, # The index which is same to the idea index provided in the input and must be integer.
+    }
+  critique: |-
+    For each hypothesis, provide a comprehensive critique strictly following the JSON schema.
+    Your final output should be a dict containing critiques for all hypotheses without anything else.
+    {
+      "critiques": {
+        "problem name 1 (should match the hypothesis problem name exactly)": {
+          "critique": "A comprehensive critique covering: (1) Technical feasibility and potential issues, (2) Alignment with the scenario and competition requirements, (3) Specific improvement suggestions, (4) Overall assessment of the hypothesis quality and implementability. Be constructive and actionable."
+        },
+        "problem name 2": {
+          "critique": "..."
+        }
+      }
+    }
+  rewrite: |-
+    Generate completely new hypotheses that synthesize insights from all original hypotheses, strictly following the JSON schema.
+    Your final output should be a dict containing the new synthesized hypotheses without anything else.
+    {
+      "synthesized_hypotheses": [
+        {
+          "hypothesis_name": "Descriptive name for the new hypothesis (5-15 words)",
+          "synthesized_hypothesis": "The new hypothesis statement that combines insights from multiple original hypotheses",
+          "synthesis_rationale": "Explanation of how this new hypothesis combines insights from the original hypotheses and addresses their collective flaws",
+          "component": "Component tag (DataLoadSpec/FeatureEng/Model/Ensemble/Workflow)",
+          "source_insights": ["Brief description of key insights taken from original hypothesis 1", "Brief description of key insights taken from original hypothesis 2", "..."],
+          "evaluation": {
+            "alignment_score": 8.5,
+            "impact_score": 7.0,
+            "novelty_score": 6.5,
+            "feasibility_score": 9.0,
+            "risk_reward_balance_score": 7.5
+          }
+        },
+        {
+          "hypothesis_name": "Descriptive name for the second new hypothesis",
+          "synthesized_hypothesis": "The second new hypothesis statement",
+          "synthesis_rationale": "Different synthesis approach combining other aspects of original hypotheses",
+          "component": "Component tag",
+          "source_insights": ["..."],
+          "evaluation": {
+            "alignment_score": 7.0,
+            "impact_score": 8.5,
+            "novelty_score": 8.0,
+            "feasibility_score": 6.5,
+            "risk_reward_balance_score": 7.0
+          }
+        }
+      ]
     }
 
 
