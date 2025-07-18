@@ -91,12 +91,9 @@ class CodingSketch(BaseModel):
     )
 
 
-def get_packages(self, pkgs: list[str] | None = None) -> str:
-    # TODO:  add it into base class.  Environment should(i.e. `DSDockerConf`) should be part of the scenario class.
+def get_packages(pkgs: list[str] | None = None) -> str:
     """Return runtime environment information."""
     # Reuse package list cached during Draft stage when available.
-    if pkgs is None and hasattr(self, "required_packages"):
-        pkgs = getattr(self, "required_packages")  # type: ignore[arg-type]
 
     env = get_ds_env()
     implementation = FBWorkspace()
