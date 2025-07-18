@@ -48,6 +48,10 @@ def load_content(uri: str, caller_dir: Path | None = None, ftype: str = "yaml") 
             Path(path_part.replace(".", "/")).with_suffix(f".{ftype}"),
             (PROJ_PATH / path_part.replace(".", "/")).with_suffix(f".{ftype}"),
         ]
+        # NOTE: for application's template to override the default template
+        if RD_AGENT_SETTINGS.app_tpl is not None:
+            file_path_l.insert(0, (PROJ_PATH / RD_AGENT_SETTINGS.app_tpl / path_part.replace(".", "/")).with_suffix(f".{ftype}"))
+            file_path_l.insert(0, (PROJ_PATH.parent / path_part.replace(".", "/")).with_suffix(f".{ftype}"))
 
     for file_path in file_path_l:
         try:
