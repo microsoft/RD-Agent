@@ -202,7 +202,7 @@ pipeline_eval:
 
     ### Step 2: Submission File Authenticity and Format
     - Goal: Verify that the code correctly generates the final submission in the expected format and that the submission is authentic.
-    - Guidlines:
+    - Guidelines:
       - The submission file must strictly match the required structure (correct columns, index format, data types). The index names and column names must be identical to the sample submission.
       - Rigorously verify that the submission file was produced by genuine model inference and successful code execution, not by cheating, fallback or exception-handling mechanisms.
         - The submission must be generated from genuine model predictions using the best saved model—never empty, constant, random, or hard-coded values.
@@ -234,7 +234,7 @@ pipeline_eval:
     {% if debug_mode %}
     ### Step 4: Debug Mode Compliance
     - Goal: Ensure the code follows debug mode requirements.
-    - Guidlines:
+    - Guidelines:
       - Sufficient debugging information (print statements, clear error messages) should be included to facilitate automatic improvement processes.
       - The code should be executed in debug mode with the command `python main.py --debug`.
       - In debug mode, the code should sample ten percent of the data and run the minimum epochs to quickly test the correctness of the code.
