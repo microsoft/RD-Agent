@@ -299,8 +299,8 @@ def llm_log_win(llm_d: list):
                             key=key + "_reasoning_effort",
                         )
                         json_mode = st.checkbox("JSON Mode", value=False, key=key + "_json_mode")
-                        sys_p = input_c.text_area(label="system", value=system, height="content")
-                        user_p = input_c.text_area(label="user", value=user, height="content")
+                        sys_p = input_c.text_area(label="system", value=system, height="content", key=key + "_system")
+                        user_p = input_c.text_area(label="user", value=user, height="content", key=key + "_user")
                     with resp_c:
                         if st.button("Call LLM", key=key + "_call_llm"):
                             with st.spinner("Calling LLM..."):
@@ -898,8 +898,10 @@ def get_state_data_range(state_data):
 
 # UI - Main
 if "competition" in state.data:
-    st.title(state.data["competition"])
-    st.markdown(f"[share_link](/ds_trace?log_folder={state.log_folder}&selection={state.log_path})")
+    st.title(
+        state.data["competition"]
+        + f" ([share_link](/ds_trace?log_folder={state.log_folder}&selection={state.log_path}))"
+    )
     summarize_win()
     min_id, max_id = get_state_data_range(state.data)
     if max_id > min_id:
