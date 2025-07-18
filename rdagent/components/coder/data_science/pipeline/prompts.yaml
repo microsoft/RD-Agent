@@ -89,7 +89,16 @@ pipeline_coder:
     python main.py --debug
     ```
     In debug mode, you should only sample ten percent of the training data and run the minimum epochs to quickly test the correctness of the code.
-    In debug mode, you should implement a timer to measure the time taken for your debug configuration and estimate the time required for the full run.
+    In debug mode, you should implement a timer to measure the time taken for your debug configuration and estimate the time required for the full run. Your timer should only measure the time taken for the training part, not the data loading or feature engineering part.
+    For example:
+    ```python
+    # Read data, feature engineering, etc.
+    start_time = time.time()
+    # Train your model
+    end_time = time.time()
+    debug_time = end_time - start_time
+    # post processing, saving model, etc.
+    ```
     In debug mode, your code should run faster, so the environment will set a shorter time limit than the standard time limit for your code.
     For example, you can sample ten percent of the training data and run for one epoch, then the full run with ten epochs will take one hundred times the time taken for the debug run. The scale is calculated by yourself depending on the data sampling and epoch number you choose. If your full run enables early stopping, the scale should be smaller considering the early stopping will stop the training earlier than the full epochs.
     You should sample the data after train valid split. When you split the data after sampling, you might get a class with only one sample which might cause the split strategy to fail.
@@ -193,7 +202,7 @@ pipeline_eval:
 
     ### Step 2: Submission File Authenticity and Format
     - Goal: Verify that the code correctly generates the final submission in the expected format and that the submission is authentic.
-    - Guidlines:
+    - Guidelines:
       - The submission file must strictly match the required structure (correct columns, index format, data types). The index names and column names must be identical to the sample submission.
       - Rigorously verify that the submission file was produced by genuine model inference and successful code execution, not by cheating, fallback or exception-handling mechanisms.
         - The submission must be generated from genuine model predictions using the best saved model—never empty, constant, random, or hard-coded values.
@@ -225,7 +234,7 @@ pipeline_eval:
     {% if debug_mode %}
     ### Step 4: Debug Mode Compliance
     - Goal: Ensure the code follows debug mode requirements.
-    - Guidlines:
+    - Guidelines:
       - Sufficient debugging information (print statements, clear error messages) should be included to facilitate automatic improvement processes.
       - The code should be executed in debug mode with the command `python main.py --debug`.
       - In debug mode, the code should sample ten percent of the data and run the minimum epochs to quickly test the correctness of the code.
