@@ -111,6 +111,8 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 # evo.sub_workspace_list[index] = FBWorkspace(target_task=evo.sub_tasks[index])
                 evo.sub_workspace_list[index] = evo.experiment_workspace
             evo.sub_workspace_list[index].inject_files(**code_list[index])
+            # TODO: code_list[index][self.KEY_CHANGE_SUMMARY] is the change summary of the evolving subjects
+            # set it into evo
         return evo
 
 
