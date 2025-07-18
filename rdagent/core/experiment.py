@@ -138,6 +138,7 @@ class FBWorkspace(Workspace):
             {}
         )  # The code injected into the folder, store them in the variable to reproduce the former result
         self.workspace_path: Path = RD_AGENT_SETTINGS.workspace_path / uuid.uuid4().hex
+        self.change_summary: str | None = None  # The change from the previous version of workspace
 
     @staticmethod
     def _format_code_dict(code_dict: dict[str, str]) -> str:

@@ -106,6 +106,7 @@ DSCoSTEER_eval:
 DSCoSTEER:
   system_debugger: |-
     {% include "scenarios.data_science.share:scen.role" %}
+
     You have successfully implemented the workflow on a sampled dataset and are now transitioning to the full dataset.
     The code base will be iteratively improved through a series of [coding] and [feedback] steps.
     The maximum number of evolution steps is {{ max_loop }}, and you are currently on [coding] step {{ cur_loop }}.
@@ -131,6 +132,29 @@ DSCoSTEER:
     2. You must output the COMPLETE and FULL code. Do not truncate, summarize, or omit any parts of the code. Include all imports, functions, classes, and the entire workflow from start to finish.
     {% endif %}
     3. Write a concise and structured code change summary. Clearly describe what was changed, specifying exactly what was changed from what to what (e.g., "Changed batch_size from 32 to 128"). Briefly explain the reasoning behind each modification.
+    
+    {% if queried_similar_successful_knowledge|length != 0 or queried_former_failed_knowledge|length != 0 %}
+    # Relevant Information for This Task
+    {% endif %}
+    
+    {% if queried_similar_successful_knowledge|length != 0 %}
+    ## Successful Implementations for Similar Models
+    ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{ loop.index }}:=====
+    {{ similar_successful_knowledge.target_task.get_task_information() }}
+    =====Code:=====
+    {{ similar_successful_knowledge.implementation.all_codes }}
+    {% endfor %} 
+    {% endif %}
+
+    {% if queried_former_failed_knowledge|length != 0 %}
+    ## Previous Failed Attempts
+    {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
+    =====Code:=====
+    {{ former_failed_knowledge.implementation.all_codes }}
+    =====Feedback:=====
+    {{ former_failed_knowledge.feedback }}
+    {% endfor %}
+    {% endif %}
 
     ## Output Format
     {% if out_spec %}
@@ -168,6 +192,30 @@ DSCoSTEER:
     2. You must output the COMPLETE and FULL code. Do not truncate, summarize, or omit any parts of the code. Include all imports, functions, classes, and the entire workflow from start to finish.
     {% endif %}
     3. Write a concise and structured code change summary. Clearly describe what was changed, specifying exactly what was changed from what to what (e.g., "Changed batch_size from 32 to 128"). Briefly explain the reasoning behind each modification.
+
+    {% if queried_similar_successful_knowledge|length != 0 or queried_former_failed_knowledge|length != 0 %}
+    # Relevant Information for This Task
+    {% endif %}
+    
+    {% if queried_similar_successful_knowledge|length != 0 %}
+    ## Successful Implementations for Similar Models
+    ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{ loop.index }}:=====
+    {{ similar_successful_knowledge.target_task.get_task_information() }}
+    =====Code:=====
+    {{ similar_successful_knowledge.implementation.all_codes }}
+    {% endfor %} 
+    {% endif %}
+
+    {% if queried_former_failed_knowledge|length != 0 %}
+    ## Previous Failed Attempts
+    {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
+    =====Code:=====
+    {{ former_failed_knowledge.implementation.all_codes }}
+    =====Feedback:=====
+    {{ former_failed_knowledge.feedback }}
+    {% endfor %}
+    {% endif %}
+
 
     ## Output Format
     {% if out_spec %}

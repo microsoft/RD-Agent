@@ -79,17 +79,10 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator]):
                     # TODO: Putting the evolving trace in here doesn't actually work
                     queried_knowledge = self.rag.query(evo, self.evolving_trace)
 
-                # 2.5 Brief evolving history
-                evolving_history = (
-                    len(self.evolving_trace) + 1,
-                    "\n".join(f"### Evolving Step {i + 1}\n{trace}" for i, trace in enumerate(self.evolving_trace)),
-                )
-
                 # 3. evolve
                 evo = self.evolving_strategy.evolve(
                     evo=evo,
                     evolving_trace=self.evolving_trace,
-                    evolving_history=evolving_history,
                     queried_knowledge=queried_knowledge,
                 )
 
@@ -99,7 +92,7 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator]):
                 # 5. Evaluation
                 if self.with_feedback:
                     es.feedback = (
-                        eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge, evolving_history=evolving_history)
+                        eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge)
                     )
                     logger.log_object(es.feedback, tag="evolving feedback")
 

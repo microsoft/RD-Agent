@@ -44,7 +44,6 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         self,
         target_task: CoSTEERTask,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
-        evolving_history: tuple = None,
         workspace: FBWorkspace | None = None,
         prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
@@ -52,6 +51,23 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         if prev_task_feedback is None:
             # if no prev_task_feedback, it is the first loop; we do not make any changes and goto evaluators directly.
             return {}
+
+        queried_similar_successful_knowledge = (
+            queried_knowledge.task_to_similar_task_successful_knowledge[pipeline_task_info]
+            if queried_knowledge is not None
+            else []
+        )
+        queried_former_failed_knowledge = (
+            queried_knowledge.task_to_former_failed_traces[pipeline_task_info] if queried_knowledge is not None else []
+        )
+        queried_former_failed_knowledge = (
+            [
+                knowledge
+                for knowledge in queried_former_failed_knowledge[0]
+                if knowledge.implementation.file_dict.get("main.py") != workspace.file_dict.get("main.py")
+            ],
+            queried_former_failed_knowledge[1],
+        )
 
         # Set output agent
         if self.settings.diff_mode:
@@ -64,17 +80,19 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         if prev_task_feedback.hyperparameter_tuning_decision:
             # Use system_refine for hyperparameter tuning
             system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
+                queried_similar_successful_knowledge=queried_similar_successful_knowledge,
+                queried_former_failed_knowledge=queried_former_failed_knowledge[0],
                 max_loop=DS_RD_SETTING.runner_max_loop,
-                cur_loop=evolving_history[0],
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,
             )
         else:
             task_information_str = target_task.get_task_information()
             # Use system_debugger for error fixing and debugging
-            system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
+            system_prompt = T(".prompts:DSCoSTEER.system_debugger").r(
+                queried_similar_successful_knowledge=queried_similar_successful_knowledge,
+                queried_former_failed_knowledge=queried_former_failed_knowledge[0],
                 max_loop=DS_RD_SETTING.runner_max_loop,
-                cur_loop=evolving_history[0],
                 task_desc=task_information_str,
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,
@@ -84,7 +102,6 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         user_prompt = T(".prompts:DSCoSTEER.user").r(
             code=workspace.all_codes,
             feedback=prev_task_feedback,
-            evolving_history=evolving_history[1],
             hyperparameter_tuning_suggestion=prev_task_feedback.hyperparameter_tuning_suggestion,
         )
         resp = APIBackend().build_messages_and_create_chat_completion(
@@ -110,9 +127,9 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if evo.sub_workspace_list[index] is None:
                 # evo.sub_workspace_list[index] = FBWorkspace(target_task=evo.sub_tasks[index])
                 evo.sub_workspace_list[index] = evo.experiment_workspace
+            if self.KEY_CHANGE_SUMMARY in code_list[index]:
+                evo.sub_workspace_list[index].change_summary = code_list[index].pop(self.KEY_CHANGE_SUMMARY)
             evo.sub_workspace_list[index].inject_files(**code_list[index])
-            # TODO: code_list[index][self.KEY_CHANGE_SUMMARY] is the change summary of the evolving subjects
-            # set it into evo
         return evo
 
 

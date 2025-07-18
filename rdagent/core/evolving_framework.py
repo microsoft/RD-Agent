@@ -32,9 +32,6 @@ class EvolvingKnowledgeBase(KnowledgeBase):
 class EvolvableSubjects(EvaluableObj):
     """The target object to be evolved"""
 
-    change_summary: str
-    """The change from the previous version of evolving subjects"""
-
     def clone(self) -> EvolvableSubjects:
         return copy.deepcopy(self)
 
@@ -54,13 +51,6 @@ class EvoStep:
     evolvable_subjects: EvolvableSubjects
     queried_knowledge: QueriedKnowledge | None = None
     feedback: Feedback | None = None
-    code_change_summary: str | None = None  # TODO: minrui
-
-    def __str__(self) -> str:
-        return f"""{str(self.feedback)}
-### Summary of Code Change
-{self.code_change_summary}
-"""
 
 
 class EvolvingStrategy(ABC):
