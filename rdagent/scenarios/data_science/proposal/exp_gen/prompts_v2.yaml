@@ -223,29 +223,55 @@ hypothesis_critique:
     {% include "scenarios.data_science.share:scen.role" %}
     You are an expert critic evaluating machine learning hypotheses for Kaggle competition improvement.
     
-    Your task is to provide constructive critiques for each proposed hypothesis. For each hypothesis, analyze:
+    Your task is to critique each hypothesis based on the same standards used for hypothesis generation. Focus on practical implementation concerns and actionable feedback.
     
-    ## 1. Technical Feasibility
-    - Can this be implemented with reasonable effort?
-    - Are there any obvious technical barriers or compatibility issues?
-    - Does it integrate well with the existing codebase?
+    ## Critique Guidelines
     
-    ## 2. Expected Impact
-    - Is this likely to improve the target metric?
-    - How significant might the improvement be?
-    - Are there any potential negative side effects?
+    Evaluate each hypothesis against the **core hypothesis generation requirements**:
     
-    ## 3. Implementation Risks
-    - What could go wrong during implementation?
-    - Are there edge cases or failure modes to consider?
-    - How can risks be mitigated?
+    ### 1. Specificity & Decisiveness
+    - **Is the hypothesis specific enough?** Avoid vague goals like "improve the model"
+    - **Is it decisive?** No alternatives like "try method A or method B"
+    - **Is it more informative than the problem?** Should not just restate the challenge
     
-    ## 4. Specific Improvements
-    - What concrete steps would make this hypothesis better?
-    - Are there alternative approaches worth considering?
-    - What should be prioritized in implementation?
+    ### 2. Testability & Actionability  
+    - **Can this be practically implemented?** Clear implementation path required
+    - **Is the expected outcome measurable?** Success/failure must be clearly defined
+    - **Does it provide clear guidance?** Implementation steps should be obvious
     
-    Provide a comprehensive but concise critique for each hypothesis. Be constructive and actionable in your feedback.
+    ### 3. Alignment & Relevance
+    - **Does it address the identified challenge directly?** Strong problem-solution alignment
+    - **Is it relevant to the current SOTA?** Should improve existing implementation
+    - **Will it impact the target metric?** Clear connection to performance improvement
+    
+    ### 4. Implementation Feasibility
+    - **Resource constraints:** Will this likely exceed time/memory limits based on history?
+    - **Technical complexity:** Can this be integrated with existing codebase reasonably?
+    - **Risk assessment:** What could go wrong and how likely is success?
+    
+    ### 5. Historical Context
+    - **Novelty check:** Has this been tried before? If yes, what makes it different?
+    - **Learning from failures:** Does this avoid known failure patterns?
+    - **Building on successes:** Does this leverage proven approaches appropriately?
+    
+    ## IMPORTANT CONSTRAINTS
+    **Remember these parameters are FIXED and cannot be changed:**
+    - **Time limits:** Competition time constraints are immutable
+    - **GPU/Hardware:** Available computational resources cannot be modified  
+    - **Dataset:** The dataset, its size, format, and characteristics are given
+    - **Evaluation metric:** The competition evaluation metric is fixed
+    
+    **Focus critiques on algorithmic, architectural, and implementation improvements within these constraints.**
+    
+    ## Critique Focus Areas
+    
+    For each hypothesis, provide:
+    1. **Strength identification:** What works well about this hypothesis?
+    2. **Critical issues:** What are the main problems or risks?
+    3. **Specific improvements:** Concrete suggestions to address identified issues  
+    4. **Implementation priorities:** What should be tackled first for quick validation?
+    
+    **Be direct and constructive.** Aim for critiques that will enable better hypothesis refinement.
     
     {% if critique_output_format is not none %}
     ## Output Format
@@ -270,20 +296,35 @@ hypothesis_rewrite:
     {% include "scenarios.data_science.share:scen.role" %}
     You are an expert hypothesis synthesizer specializing in iterative improvement of machine learning solutions for Kaggle competitions.
     
-    Based on all original hypotheses and their detailed critic feedback, your task is to synthesize and generate {{ scattering_count }} completely new hypotheses that combine the best insights from all original hypotheses while addressing identified flaws. This follows the X-Masters scattered-stacked design principle.
+    Based on all original hypotheses and their detailed critic feedback, your task is to generate improved versions of each hypothesis that address the identified flaws while leveraging insights from the critique analysis.
+    
+    ## Synthesis Methodology:
+    
+    ### For Each Original Hypothesis:
+    1. **Analyze Critique Feedback**: Carefully review the specific critique for this hypothesis
+    2. **Identify Critical Issues**: Extract the main problems, risks, or improvement suggestions
+    3. **Cross-Reference Insights**: Look at critiques of other hypotheses for additional insights that could improve this one
+    4. **Generate Improved Hypothesis**: Create a new hypothesis that:
+       - Addresses the specific flaws identified in the critique
+       - Incorporates relevant insights from other hypotheses' critiques
+       - Maintains the core intent of the original hypothesis
+       - Is more implementable and robust
     
     ## Synthesis Guidelines:
-    1. **Cross-Pollinate Ideas**: Combine insights from different original hypotheses to create novel approaches
-    2. **Address Collective Flaws**: Tackle issues identified across multiple original hypotheses
-    3. **Leverage Collective Strengths**: Incorporate the best aspects from all original hypotheses
-    4. **Generate Diverse Approaches**: Create {{ scattering_count }} fundamentally different new hypotheses that explore various solution directions
-    5. **Maintain Feasibility**: Ensure all new hypotheses remain technically implementable within the scenario constraints
-    6. **Ensure Testability**: Each new hypothesis must be specific, actionable, and measurable
+    1. **Address Specific Critiques**: Each new hypothesis must directly respond to the critique feedback for that hypothesis
+    2. **Maintain Problem Alignment**: Keep the same problem focus as the original hypothesis
+    3. **Improve Feasibility**: Use critique suggestions to make hypotheses more implementable
+    4. **Cross-Pollinate Safely**: Only incorporate insights from other hypotheses if they genuinely improve this specific hypothesis
+    5. **Preserve Testability**: Ensure each improved hypothesis remains specific, actionable, and measurable
+    6. **Focus on Implementation Success**: Prioritize changes that increase the likelihood of successful execution
     
-    ## Synthesis Strategy:
-    - **Hypothesis 1**: Conservative synthesis - combines proven strengths with minimal risk
-    - **Hypothesis 2**: Balanced synthesis - integrates multiple insights with moderate innovation
-    - **Hypothesis 3**: Aggressive synthesis - bold new approaches inspired by collective insights
+    ## Key Improvements to Target:
+    - **Resource Efficiency**: Address any time/memory concerns raised in critiques
+    - **Implementation Clarity**: Make hypotheses more specific and actionable based on feedback
+    - **Risk Mitigation**: Incorporate fallback strategies or simpler approaches when critiques identify high risks
+    - **Technical Feasibility**: Address integration challenges or dependency issues mentioned in critiques
+    
+    **IMPORTANT**: You must generate exactly one improved hypothesis for each original hypothesis, using the same problem name as the key. The output format must be identical to the hypothesis generation format.
     
     {% if rewrite_output_format is not none %}
     ### Output Format
@@ -301,11 +342,11 @@ hypothesis_rewrite:
     {{ hypothesis_critique_pairs }}
     
     # Task
-    Generate {{ scattering_count }} completely new hypotheses that synthesize insights from ALL original hypotheses above. Each new hypothesis should:
-    1. Address problems identified across multiple original hypotheses
-    2. Combine strengths from different original hypotheses
-    3. Explore fundamentally different solution approaches
-    4. Be actionable and testable independently
+    Generate improved versions of ALL original hypotheses above by addressing critique feedback. Each improved hypothesis should:
+    1. Address specific problems identified in its critique
+    2. Incorporate relevant insights from other hypotheses' critiques when beneficial
+    3. Maintain the same problem focus as the original hypothesis
+    4. Be more implementable and robust than the original
 
 task_gen:
   system: |-
@@ -565,39 +606,34 @@ output_format:
       }
     }
   rewrite: |-
-    Generate completely new hypotheses that synthesize insights from all original hypotheses, strictly following the JSON schema.
-    Your final output should be a dict containing the new synthesized hypotheses without anything else.
+    Generate improved hypotheses that address critique feedback, strictly following the JSON schema.
+    Your final output should be a dict containing the improved hypotheses without anything else.
+    Use the exact same problem names as keys from the original hypotheses.
     {
-      "synthesized_hypotheses": [
-        {
-          "hypothesis_name": "Descriptive name for the new hypothesis (5-15 words)",
-          "synthesized_hypothesis": "The new hypothesis statement that combines insights from multiple original hypotheses",
-          "synthesis_rationale": "Explanation of how this new hypothesis combines insights from the original hypotheses and addresses their collective flaws",
-          "component": "Component tag (DataLoadSpec/FeatureEng/Model/Ensemble/Workflow)",
-          "source_insights": ["Brief description of key insights taken from original hypothesis 1", "Brief description of key insights taken from original hypothesis 2", "..."],
-          "evaluation": {
-            "alignment_score": 8.5,
-            "impact_score": 7.0,
-            "novelty_score": 6.5,
-            "feasibility_score": 9.0,
-            "risk_reward_balance_score": 7.5
-          }
-        },
-        {
-          "hypothesis_name": "Descriptive name for the second new hypothesis",
-          "synthesized_hypothesis": "The second new hypothesis statement",
-          "synthesis_rationale": "Different synthesis approach combining other aspects of original hypotheses",
-          "component": "Component tag",
-          "source_insights": ["..."],
-          "evaluation": {
-            "alignment_score": 7.0,
-            "impact_score": 8.5,
-            "novelty_score": 8.0,
-            "feasibility_score": 6.5,
-            "risk_reward_balance_score": 7.0
-          }
+      "problem name 1 (should be exactly same as the original problem name)": {
+        "reason": "Explanation of how this improved hypothesis addresses the critique feedback and incorporates insights. Should be short with no more than two sentences.",
+        "component": "The component tag of the hypothesis. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
+        "hypothesis": "A concise, improved hypothesis statement that addresses the critique concerns. Limit it to one or two sentences that clearly specify the expected change or improvement.",
+        "evaluation": {
+          "alignment_score": 8.5,
+          "impact_score": 7.0,
+          "novelty_score": 6.5,
+          "feasibility_score": 9.0,
+          "risk_reward_balance_score": 7.5
         }
-      ]
+      },
+      "problem name 2 (should be exactly same as the original problem name)": {
+        "reason": "...",
+        "component": "...",
+        "hypothesis": "...",
+        "evaluation": {
+          "alignment_score": 7.0,
+          "impact_score": 8.5,
+          "novelty_score": 8.0,
+          "feasibility_score": 6.5,
+          "risk_reward_balance_score": 7.0
+        }
+      }
     }
 
 
