@@ -33,7 +33,7 @@ def main(
     step_n: Optional[int] = None,
     loop_n: Optional[int] = None,
     all_duration: str | None = None,
-    checkout: Annotated[bool, typer.Option(" /--no-checkout", " /-c")] = True,
+    checkout: Annotated[bool, typer.Option("--checkout/--no-checkout", "-c/-C")] = True,
     checkout_path: Optional[str] = None,
 ):
     """

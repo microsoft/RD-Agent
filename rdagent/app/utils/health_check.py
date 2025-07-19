@@ -135,9 +135,9 @@ def env_check():
 
 
 def health_check(
-    check_env: Annotated[bool, typer.Option(" /--no-check-env", " /-e")] = True,
-    check_docker: Annotated[bool, typer.Option(" /--no-check-docker", " /-d")] = True,
-    check_ports: Annotated[bool, typer.Option(" /--no-check-ports", " /-p")] = True,
+    check_env: Annotated[bool, typer.Option("--check-env/--no-check-env", "-e/-E")] = True,
+    check_docker: Annotated[bool, typer.Option("--check-docker/--no-check-docker", "-d/-D")] = True,
+    check_ports: Annotated[bool, typer.Option("--check-ports/--no-check-ports", "-p/-P")] = True,
 ):
     """
     Run the RD-Agent health check:
@@ -150,19 +150,19 @@ def health_check(
         check_docker (bool): Checks if Docker is installed and running.
         check_ports (bool): Whether to check if the default port (19899) is occupied.
     """
-    check_all = False
+    check_any = False
 
     if check_env:
-        check_all = True
+        check_any = True
         env_check()
     if check_docker:
-        check_all = True
+        check_any = True
         check_docker()
     if check_ports:
-        check_all = True
+        check_any = True
         check_and_list_free_ports()
 
-    if not check_all:
+    if not check_any:
         logger.warning("⚠️ All health check items are disabled. Please enable at least one check.")
 
 

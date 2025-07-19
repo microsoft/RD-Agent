@@ -14,7 +14,7 @@ from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 
 def main(
     path: Optional[str] = None,
-    checkout: Annotated[bool, typer.Option(" /--no-checkout", " /-c")] = True,
+    checkout: Annotated[bool, typer.Option("--checkout/--no-checkout", "-c/-C")] = True,
     checkout_path: Optional[str] = None,
     step_n: Optional[int] = None,
     loop_n: Optional[int] = None,

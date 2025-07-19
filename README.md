@@ -155,7 +155,7 @@ More details can be found in the [development setup](https://rdagent.readthedocs
   - whether the docker installation was successful.
   - whether the default port used by the [rdagent ui](https://github.com/microsoft/RD-Agent?tab=readme-ov-file#%EF%B8%8F-monitor-the-application-results) is occupied.
   ```sh
-  rdagent health_check --check_env False
+  rdagent health_check --no-check-env
   ```
 
 
@@ -332,7 +332,7 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   You can check if a port is occupied by running the following command.
 
   ```sh
-  rdagent health_check --check_env False --check_docker False
+  rdagent health_check --no-check-env --no-check-docker
   ```
 
 # 🏭 Scenarios
