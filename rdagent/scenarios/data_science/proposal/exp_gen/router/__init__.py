@@ -5,6 +5,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.draft.draft import DSDraftV2ExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 
+
 class DraftRouterExpGen(ExpGen):
     """
     A intelligent router for drafting and proposing.

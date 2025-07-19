@@ -55,13 +55,13 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         else:
             running_timeout_period = DS_RD_SETTING.full_timeout
         env = get_ds_env(
-                extra_volumes={
-                    f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": T(
-                        "scenarios.data_science.share:scen.input_path"
-                    ).r()
-                },
-                running_timeout_period=running_timeout_period,
-            )
+            extra_volumes={
+                f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": T(
+                    "scenarios.data_science.share:scen.input_path"
+                ).r()
+            },
+            running_timeout_period=running_timeout_period,
+        )
 
         stdout = implementation.execute(
             env=env, entry=get_clear_ws_cmd()

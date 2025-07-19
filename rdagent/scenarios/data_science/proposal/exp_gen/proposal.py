@@ -717,13 +717,11 @@ class DSProposalV2ExpGen(ExpGen):
             problem_desc=problem_dict.get("problem", "Problem description not provided"),
             problem_label=problem_dict.get("label", "FEEDBACK_PROBLEM"),
         )
-    
-    def hypothesis_select_with_llm(self,
-                                   scenario_desc: str,
-                                   exp_feedback_list_desc: str,
-                                   sota_exp_desc: str,
-                                   hypothesis_candidates:dict):
-        
+
+    def hypothesis_select_with_llm(
+        self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str, hypothesis_candidates: dict
+    ):
+
         # time_use_current = 0
         # for exp, feedback in trace.hist:
         #     if exp.running_info.running_time is not None:
@@ -731,19 +729,21 @@ class DSProposalV2ExpGen(ExpGen):
         # res_time = 12*3600 - time_use_current
         res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
         total_time = RD_Agent_TIMER_wrapper.timer.all_duration
-        use_time =  round(total_time.total_seconds(),2) -  round(res_time.total_seconds(),2)
-        use_ratio = 100* use_time / round(total_time.total_seconds(),2)
+        use_time = round(total_time.total_seconds(), 2) - round(res_time.total_seconds(), 2)
+        use_ratio = 100 * use_time / round(total_time.total_seconds(), 2)
         use_ratio = round(use_ratio, 2)
 
         ensemble_timeout = DS_RD_SETTING.ensemble_timeout
-        hypothesis_candidates =  str(json.dumps(hypothesis_candidates, indent=2))
+        hypothesis_candidates = str(json.dumps(hypothesis_candidates, indent=2))
 
         sys_prompt = T(".prompts_v2:hypothesis_select.system").r(
-                hypothesis_candidates = hypothesis_candidates,
-                res_time = round(res_time.total_seconds(),2),
-                ensemble_timeout = ensemble_timeout,
-                use_ratio = use_ratio,
-                hypothesis_output_format = T(".prompts_v2:output_format.hypothesis_select_format").r(hypothesis_candidates = hypothesis_candidates)
+            hypothesis_candidates=hypothesis_candidates,
+            res_time=round(res_time.total_seconds(), 2),
+            ensemble_timeout=ensemble_timeout,
+            use_ratio=use_ratio,
+            hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(
+                hypothesis_candidates=hypothesis_candidates
+            ),
         )
 
         user_prompt = T(".prompts_v2:hypothesis_select.user").r(
@@ -755,11 +755,14 @@ class DSProposalV2ExpGen(ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
+            response_format=HypothesisList if self.supports_response_schema else {"type": "json_object"},
+            json_target_type=(
+                Dict[str, Dict[str, str | Dict[str, str | int]]] if not self.supports_response_schema else None
+            ),
         )
 
         response_dict = json.loads(response)
         return response_dict
-
 
     def task_gen(
         self,
@@ -846,7 +849,7 @@ class DSProposalV2ExpGen(ExpGen):
             raw_description=trace.scen.raw_description,
             use_raw_description=DS_RD_SETTING.use_raw_description,
             time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
-            ensemble_limit = f"{DS_RD_SETTING.ensemble_timeout / 60 / 60 : .2f} hours",
+            ensemble_limit=f"{DS_RD_SETTING.ensemble_timeout / 60 / 60 : .2f} hours",
             eda_output=eda_output,
         )
 
@@ -868,7 +871,7 @@ class DSProposalV2ExpGen(ExpGen):
 
     def gen(
         self,
-        trace: DSTrace, 
+        trace: DSTrace,
     ) -> DSExperiment:
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
         if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
@@ -973,11 +976,12 @@ class DSProposalV2ExpGen(ExpGen):
         #     problem_dict=  all_problems,
         # )
 
-        response_dict= self.hypothesis_select_with_llm(scenario_desc=scenario_desc,
-                                    exp_feedback_list_desc=exp_feedback_list_desc,
-                                    sota_exp_desc=sota_exp_desc,
-                                    hypothesis_candidates =hypothesis_dict
-                                    )
+        response_dict = self.hypothesis_select_with_llm(
+            scenario_desc=scenario_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+            hypothesis_candidates=hypothesis_dict,
+        )
         component_map = {
             "Model": HypothesisComponent.Model,
             "Ensemble": HypothesisComponent.Ensemble,
@@ -992,7 +996,7 @@ class DSProposalV2ExpGen(ExpGen):
         if comp_str in component_map and hypo_str is not None:
             new_hypothesis = DSHypothesis(component=component_map[comp_str], hypothesis=hypo_str)
 
-        pickled_problem_name= None
+        pickled_problem_name = None
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
