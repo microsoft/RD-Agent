@@ -180,8 +180,7 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
         for i in range(5):
             check = True
             hist_snapshot = self.hist[:]
-            dag_parent_snapshot = self.dag_parent[:]
-            ancestors = (lambda f, i: [] if not (p := dag_parent_snapshot[i]) or p[0] == i else f(f, p[0]) + [i])(lambda f, i: f(f, i), curr)
+            ancestors = self.get_parents(curr)
             print(F"Iter {i}, curr {curr}, ancestors: {ancestors}")
             parent_exps = [hist_snapshot[i] for i in ancestors]
             parent_idx = self.exp2idx([i[0] for i in parent_exps])
@@ -192,7 +191,7 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
                         check = False
             if check:
                 return parent_exps
-        return [self.hist[i] for i in self.get_parents(selection[0])]
+        return [self.hist[i] for i in self.get_parents(curr)]
 
     def exp2idx(self, exp: Experiment | list[Experiment]) -> int | list[int] | None:
         if isinstance(exp, list):
