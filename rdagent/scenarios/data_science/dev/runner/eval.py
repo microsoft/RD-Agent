@@ -39,6 +39,22 @@ class DSCoSTEEREvalFeedback(CoSTEERSingleFeedback):
         self.hyperparameter_tuning_decision = hyperparameter_tuning_decision
         self.hyperparameter_tuning_suggestion = hyperparameter_tuning_suggestion
 
+    def __str__(self) -> str:
+        parts = [
+            "### Execution",
+            str(self.execution),
+            "### Return Check",
+            self.return_checking if self.return_checking is not None else "No return checking",
+            "### Code",
+            str(self.code),
+            "### Final Decision",
+            f"This implementation is {'SUCCESS' if self.final_decision else 'FAIL'}.",
+        ]
+        if self.hyperparameter_tuning_decision:
+            parts.append("### Hyperparameter Tuning Suggestion")
+            parts.append(str(self.hyperparameter_tuning_suggestion))
+        return "\n".join(parts)
+
 
 class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
 
@@ -130,6 +146,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
             stdout += f"\nSubmission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
 
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
+            max_loop=DS_RD_SETTING.runner_max_loop,
             scenario=self.scen.get_scenario_all_desc(eda_output=implementation.file_dict.get("EDA.md", None)),
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             task_desc=target_task.get_task_information(),

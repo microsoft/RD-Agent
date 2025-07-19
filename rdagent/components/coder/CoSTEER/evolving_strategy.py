@@ -19,6 +19,9 @@ from rdagent.core.utils import multiprocessing_wrapper
 
 
 class MultiProcessEvolvingStrategy(EvolvingStrategy):
+
+    KEY_CHANGE_SUMMARY = "__change_summary__"  # Optional key for the summary of the change of evolving subjects
+
     def __init__(self, scen: Scenario, settings: CoSTEERSettings):
         super().__init__(scen)
         self.settings = settings
@@ -51,6 +54,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         Return
         ------
         The new files {<filename>: <content>} to update the workspace.
+        - Special Keys: self.KEY_CHANGE_SUMMARY;
         """
         raise NotImplementedError
 

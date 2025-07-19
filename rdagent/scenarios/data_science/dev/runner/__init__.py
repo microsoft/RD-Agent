@@ -52,26 +52,47 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             # if no prev_task_feedback, it is the first loop; we do not make any changes and goto evaluators directly.
             return {}
 
-        # Output Agent Map
-        output_map = {
-            True: (PythonBatchPatchOut.get_spec(), PythonBatchPatchOut.extract_output),
-            False: (
-                PythonBatchEditOut.get_spec(with_del=False),
-                PythonBatchEditOut.extract_output,
-            ),
-        }
-        output_spec, extract_output_fn = output_map[self.settings.diff_mode]
+        queried_similar_successful_knowledge = (
+            queried_knowledge.task_to_similar_task_successful_knowledge[pipeline_task_info]
+            if queried_knowledge is not None
+            else []
+        )
+        queried_former_failed_knowledge = (
+            queried_knowledge.task_to_former_failed_traces[pipeline_task_info] if queried_knowledge is not None else []
+        )
+        queried_former_failed_knowledge = (
+            [
+                knowledge
+                for knowledge in queried_former_failed_knowledge[0]
+                if knowledge.implementation.file_dict.get("main.py") != workspace.file_dict.get("main.py")
+            ],
+            queried_former_failed_knowledge[1],
+        )
+
+        # Set output agent
+        if self.settings.diff_mode:
+            output_spec = PythonBatchPatchOut.get_spec()
+            extract_output_fn = PythonBatchPatchOut.extract_output
+        else:
+            output_spec = PythonBatchEditOut.get_spec(with_del=False)
+            extract_output_fn = PythonBatchEditOut.extract_output
 
         if prev_task_feedback.hyperparameter_tuning_decision:
             # Use system_refine for hyperparameter tuning
             system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
+                queried_similar_successful_knowledge=queried_similar_successful_knowledge,
+                queried_former_failed_knowledge=queried_former_failed_knowledge[0],
+                max_loop=DS_RD_SETTING.runner_max_loop,
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,
             )
         else:
             task_information_str = target_task.get_task_information()
             # Use system_debugger for error fixing and debugging
-            system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
+            system_prompt = T(".prompts:DSCoSTEER.system_debugger").r(
+                queried_similar_successful_knowledge=queried_similar_successful_knowledge,
+                queried_former_failed_knowledge=queried_former_failed_knowledge[0],
+                max_loop=DS_RD_SETTING.runner_max_loop,
                 task_desc=task_information_str,
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,
@@ -83,13 +104,11 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             feedback=prev_task_feedback,
             hyperparameter_tuning_suggestion=prev_task_feedback.hyperparameter_tuning_suggestion,
         )
-
-        batch_edit = extract_output_fn(
-            APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
-            )
+        resp = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=system_prompt,
         )
+        batch_edit = extract_output_fn(resp["code"])
 
         batch_edit = {k: v for k, v in batch_edit.items() if k in workspace.file_dict.keys()}
 
@@ -108,6 +127,8 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if evo.sub_workspace_list[index] is None:
                 # evo.sub_workspace_list[index] = FBWorkspace(target_task=evo.sub_tasks[index])
                 evo.sub_workspace_list[index] = evo.experiment_workspace
+            if self.KEY_CHANGE_SUMMARY in code_list[index]:
+                evo.sub_workspace_list[index].change_summary = code_list[index].pop(self.KEY_CHANGE_SUMMARY)
             evo.sub_workspace_list[index].inject_files(**code_list[index])
         return evo
 
