@@ -247,6 +247,13 @@ class HypothesisDetail(BaseModel):
     evaluation: HypothesisEvaluation = Field(description="Evaluate the quality of the hypothesis.")
 
 
+class HypothesisSimple(BaseModel):
+    hypothesis: str = Field(
+        description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
+    )
+    component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
+
+
 class HypothesisList(BaseModel):
     deduplicated_challenges: List[str] = Field(
         description="A list of deduplicated challenge captions. Each must retain its original wording. If multiple captions are semantically identical, keep the first one."
@@ -755,7 +762,7 @@ class DSProposalV2ExpGen(ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=HypothesisList if self.supports_response_schema else {"type": "json_object"},
+            response_format=HypothesisSimple if self.supports_response_schema else {"type": "json_object"},
             json_target_type=(
                 Dict[str, Dict[str, str | Dict[str, str | int]]] if not self.supports_response_schema else None
             ),
