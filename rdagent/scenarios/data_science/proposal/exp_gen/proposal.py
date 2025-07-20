@@ -201,29 +201,8 @@ class HypothesisComponent(str, Enum):
     Workflow = "Workflow"
 
 
-class HypothesisEvaluationReasoningScore(BaseModel):
-    reasoning: str = Field(
-        description="What is the quality of the hypothesis under this criteria? Answer in 1-2 sentence."
-    )
-    score: float = Field(description="The score of the hypothesis under this criteria between 1 and 10.")
 
 
-class HypothesisEvaluation(BaseModel):
-    alignment: HypothesisEvaluationReasoningScore = Field(
-        description="The alignment of the proposed hypothesis with the identified challenge."
-    )
-    impact: HypothesisEvaluationReasoningScore = Field(
-        description="The expected impact of the proposed hypothesis on the current SOTA implementation."
-    )
-    novelty: HypothesisEvaluationReasoningScore = Field(
-        description="The novelty of the proposed hypothesis compared to existing solutions."
-    )
-    feasibility: HypothesisEvaluationReasoningScore = Field(
-        description="The feasibility of implementing the proposed hypothesis in the current SOTA implementation."
-    )
-    risk_reward_balance: HypothesisEvaluationReasoningScore = Field(
-        description="The risk-reward balance of implementing the proposed hypothesis."
-    )
 
 
 class HypothesisDetail(BaseModel):
@@ -240,7 +219,6 @@ class HypothesisDetail(BaseModel):
         )
     )
     component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
-    evaluation: HypothesisEvaluation = Field(description="Evaluate the quality of the hypothesis.")
 
 
 class HypothesisList(BaseModel):
@@ -265,7 +243,6 @@ class SynthesizedHypothesis(BaseModel):
     )
     component: HypothesisComponent = Field(description="The component tag of the synthesized hypothesis.")
     source_insights: List[str] = Field(description="Brief descriptions of key insights taken from original hypotheses.")
-    evaluation: HypothesisEvaluation = Field(description="Evaluation scores for the synthesized hypothesis.")
 
 
 class SynthesizedHypothesesDict(BaseModel):
@@ -618,7 +595,7 @@ class DSProposalV2ExpGen(ExpGen):
             system_prompt=sys_prompt,
             response_format=HypothesisList if self.supports_response_schema else {"type": "json_object"},
             json_target_type=(
-                Dict[str, Dict[str, str | Dict[str, str | int]]] if not self.supports_response_schema else None
+                Dict[str, Dict[str, str]] if not self.supports_response_schema else None
             ),
         )
         if self.supports_response_schema:
@@ -628,13 +605,6 @@ class DSProposalV2ExpGen(ExpGen):
                     "reason": h.challenge,
                     "component": h.component.value,
                     "hypothesis": h.hypothesis,
-                    "evaluation": {
-                        "alignment_score": h.evaluation.alignment.score,
-                        "impact_score": h.evaluation.impact.score,
-                        "novelty_score": h.evaluation.novelty.score,
-                        "feasibility_score": h.evaluation.feasibility.score,
-                        "risk_reward_balance_score": h.evaluation.risk_reward_balance.score,
-                    },
                 }
                 for h in hypotheses.hypotheses
             }
@@ -698,7 +668,7 @@ class DSProposalV2ExpGen(ExpGen):
         return critiques
 
     @wait_retry(retry_n=5)
-    def hypothesis_synthesize(
+    def hypothesis_rewrite(
         self,
         hypothesis_dict: Dict,
         critiques_dict: Dict,
@@ -729,7 +699,6 @@ class DSProposalV2ExpGen(ExpGen):
             hypothesis_critique_pairs=hypothesis_critique_pairs,
         )
 
-        # Use json_object mode for consistency
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
@@ -740,113 +709,66 @@ class DSProposalV2ExpGen(ExpGen):
         improved_hypotheses_dict = json.loads(response)
 
         logger.info(
-            f"Generated improved versions of {len(improved_hypotheses_dict)} hypotheses based on critique feedback"
+            f"Generated rewritten versions of {len(improved_hypotheses_dict)} hypotheses based on critique feedback"
         )
         return improved_hypotheses_dict
 
-    def convert_synthesized_hypotheses(self, synthesized_hypotheses_dict: Dict) -> Dict:
-        """
-        Since synthesized hypotheses now use the same format as hypothesis_gen,
-        this function becomes a simple pass-through with validation.
-        """
-        # Validate that the format is correct and return as-is
-        for problem_name, hypothesis_data in synthesized_hypotheses_dict.items():
-            # Ensure required keys exist
-            required_keys = ["hypothesis", "reason", "component", "evaluation"]
-            for key in required_keys:
-                if key not in hypothesis_data:
-                    logger.warning(f"Missing key '{key}' in synthesized hypothesis '{problem_name}'")
 
-        return synthesized_hypotheses_dict
 
-    def compute_top_scores(
+    def select_hypothesis_simple(
         self,
-        hypothesis_dict: dict,
-    ) -> pd.Series:
-        """
-        Compute weighted total scores for each hypothesis and return the top five.
-        """
-        weights = {
-            "alignment_score": 0.2,
-            "impact_score": 0.4,
-            "novelty_score": 0.2,
-            "feasibility_score": 0.1,
-            "risk_reward_balance_score": 0.1,
-        }
-        scores_dict = {}
-        for problem_name in hypothesis_dict:
-            if "hypothesis" not in hypothesis_dict[problem_name]:
-                continue
-            scores_dict[problem_name] = {}
-            for score_key in weights:
-                if score_key not in hypothesis_dict[problem_name]["evaluation"]:
-                    scores_dict[problem_name][score_key] = 0
-                else:
-                    try:
-                        scores_dict[problem_name][score_key] = (
-                            float(hypothesis_dict[problem_name]["evaluation"][score_key]) * weights[score_key]
-                        )
-                    except (ValueError, TypeError):
-                        scores_dict[problem_name][score_key] = 0
-
-        scores = pd.DataFrame(scores_dict)
-        scores_sorted = scores.sum().sort_values(ascending=False)
-        return scores_sorted[:5]
-
-    def select_hypothesis(
-        self,
-        scores_sorted: pd.Series,
         hypothesis_dict: dict,
         problem_dict: dict,
-    ) -> int:
-        """
-        From the top five hypotheses (by weighted score), select one based on additional weighting rules
-        for 'inspired' flag and 'SCENARIO_PROBLEM' label. Returns the chosen hypothesis name and a
-        DSHypothesis instance.
-        """
-        # Increase the weight of the hypothesis that is inspired by the idea pool to 3x.
-        # Linear decay the weight of the scenario problem from 3x to 0x.
-        index_to_pick_pool_list = []
-        for j, problem_name in enumerate(scores_sorted.index):
-            if hypothesis_dict[problem_name].get("inspired", False):
-                index_to_pick_pool_list.extend([j] * 2)
-            if problem_dict[problem_name]["label"] == "SCENARIO_PROBLEM":
-                index_to_pick_pool_list.extend([j] * self.scen_prob_multiplier)
-            elif problem_dict[problem_name]["label"] == "FEEDBACK_PROBLEM":
-                index_to_pick_pool_list.extend([j] * (3 - self.scen_prob_multiplier))
-            else:
-                index_to_pick_pool_list.extend([j] * 1)
-        logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
-
-        # Create a random but reproducible integer
-        reproducible_int = int.from_bytes(bytes.fromhex(md5_hash(scores_sorted.to_string())), byteorder="big") % len(
-            index_to_pick_pool_list
-        )
-        return index_to_pick_pool_list[reproducible_int]
-
-    def hypothesis_rank(
-        self, hypothesis_dict: dict, problem_dict: dict, selected_idx: Optional[int] = None
     ) -> Tuple[str, DSHypothesis]:
         """
-        Wrapper method that computes the top five hypotheses by weighted scoring and then selects one
-        according to additional weighting rules.
+        Simple hypothesis selection based on weighting rules without scoring.
         """
-        scores_sorted = self.compute_top_scores(hypothesis_dict)
-        if selected_idx is None:
-            selected_idx = self.select_hypothesis(
-                scores_sorted=scores_sorted, hypothesis_dict=hypothesis_dict, problem_dict=problem_dict
-            )
+        hypothesis_names = [
+            problem_name 
+            for problem_name in hypothesis_dict 
+            if "hypothesis" in hypothesis_dict[problem_name]
+        ]
+        
+        if not hypothesis_names:
+            raise ValueError("No valid hypotheses available for selection")
+        
+        # Create weighted selection pool based on flags
+        index_to_pick_pool_list = []
+        for j, problem_name in enumerate(hypothesis_names):
+            # Default weight is 1
+            weight = 1
+            
+            # Increase weight for inspired hypotheses
+            if hypothesis_dict[problem_name].get("inspired", False):
+                weight += 2
+            
+            # Adjust weight based on problem type
+            if problem_dict[problem_name]["label"] == "SCENARIO_PROBLEM":
+                weight += self.scen_prob_multiplier
+            elif problem_dict[problem_name]["label"] == "FEEDBACK_PROBLEM":
+                weight += (3 - self.scen_prob_multiplier)
+            
+            index_to_pick_pool_list.extend([j] * weight)
+        
+        logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
 
-        max_score_problem_name = scores_sorted.index[selected_idx]
-        problem_dict = problem_dict.get(max_score_problem_name, {})
+        # Create a random but reproducible integer  
+        names_str = ",".join(hypothesis_names)
+        reproducible_int = int.from_bytes(bytes.fromhex(md5_hash(names_str)), byteorder="big") % len(
+            index_to_pick_pool_list
+        )
+        selected_idx = index_to_pick_pool_list[reproducible_int]
+        
+        selected_problem_name = hypothesis_names[selected_idx]
+        problem_data = problem_dict.get(selected_problem_name, {})
 
-        return max_score_problem_name, DSHypothesis(
-            component=hypothesis_dict[max_score_problem_name].get("component", "Model"),
-            hypothesis=hypothesis_dict[max_score_problem_name].get("hypothesis", "Hypothesis not provided"),
-            reason=hypothesis_dict[max_score_problem_name].get("reason", "Reason not provided"),
-            problem_name=max_score_problem_name,
-            problem_desc=problem_dict.get("problem", "Problem description not provided"),
-            problem_label=problem_dict.get("label", "FEEDBACK_PROBLEM"),
+        return selected_problem_name, DSHypothesis(
+            component=hypothesis_dict[selected_problem_name].get("component", "Model"),
+            hypothesis=hypothesis_dict[selected_problem_name].get("hypothesis", "Hypothesis not provided"),
+            reason=hypothesis_dict[selected_problem_name].get("reason", "Reason not provided"),
+            problem_name=selected_problem_name,
+            problem_desc=problem_data.get("problem", "Problem description not provided"),
+            problem_label=problem_data.get("label", "FEEDBACK_PROBLEM"),
         )
 
     def task_gen(
@@ -1051,48 +973,34 @@ class DSProposalV2ExpGen(ExpGen):
                     hypothesis_dict.pop(name)
 
         # Step 2.1: Critic Stage - Evaluate and identify flaws in hypotheses
-        logger.info("Starting critic stage - evaluating hypotheses for flaws and improvements")
+        logger.info(f"Starting critic stage - evaluating {len(hypothesis_dict)} hypotheses for flaws and improvements")
         critiques_dict = self.hypothesis_critique(
             hypothesis_dict=hypothesis_dict,
-            problems_dict=all_problems,  # 传递原始问题信息
+            problems_dict=all_problems, 
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
         )
+        logger.info(f"Generated critiques for {len(critiques_dict)} hypotheses")
 
-        # Step 2.2: Synthesizer Stage - Generate improved hypotheses based on critiques
-        logger.info("Starting synthesizer stage - generating improved hypotheses based on critique feedback")
-        improved_hypotheses_dict = self.hypothesis_synthesize(
+        # Step 2.2: Rewriter Stage - Generate improved hypotheses based on critiques
+        logger.info(f"Starting rewriter stage - generating improved hypotheses based on critique feedback")
+        improved_hypotheses_dict = self.hypothesis_rewrite(
             hypothesis_dict=hypothesis_dict,
             critiques_dict=critiques_dict,
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
         )
 
-        # Step 2.3: Validate and use improved hypotheses for selection
-        logger.info("Validating improved hypotheses for selection")
-        synthesized_hypothesis_dict = self.convert_synthesized_hypotheses(improved_hypotheses_dict)
+        # TODO 如果没有历史记录，就给出所有的改写过后的hypothesis，否则llm去选择一个最有希望的
 
-        # Use the original problem dictionary since we're improving existing problems
-        # but mark them as improved for tracking
-        improved_problems = {}
-        for problem_name, problem_data in all_problems.items():
-            if problem_name in synthesized_hypothesis_dict:
-                improved_problems[problem_name] = {
-                    **problem_data,
-                    "label": problem_data.get("label", "FEEDBACK_PROBLEM") + "_IMPROVED",
-                }
-
-        # Use improved hypotheses instead of original ones for selection
-        logger.info(
-            f"Generated improved versions of {len(synthesized_hypothesis_dict)} hypotheses, replacing original ones"
-        )
-
-        # Step 3: Select the best hypothesis from the improved hypotheses
-        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
-            hypothesis_dict=synthesized_hypothesis_dict,
+        # Step 3: Select the best hypothesis from the improved hypotheses (without scoring)
+        pickled_problem_name, new_hypothesis = self.select_hypothesis_simple(
+            hypothesis_dict=rewritten_hypothesis_dict,
             problem_dict=improved_problems,
         )
+        logger.info(f"Selected hypothesis: '{pickled_problem_name}' (rewritten: {improved_problems.get(pickled_problem_name, {}).get('rewritten', False)})")
+        
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(improved_problems, pickled_problem_name)
@@ -1103,7 +1011,7 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
             hypotheses=(
-                [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(all_problems, hypothesis_dict)
+                [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(improved_problems, rewritten_hypothesis_dict)
             ),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,

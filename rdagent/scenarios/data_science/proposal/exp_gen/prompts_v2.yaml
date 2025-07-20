@@ -183,13 +183,6 @@ hypothesis_gen:
       - **`Ensemble`**: Combines predictions from multiple models using various ensemble strategies.
       - **`Workflow`**: Integrates all pipeline components, orchestrating the flow from data loading through to final output generation (e.g., correcting `submission.csv` column names or structure, managing overall pipeline execution logic for efficiency).
 
-    2. **Score the Hypothesis:** For each hypothesis, provide a score from 1 (lowest/worst) to 10 (highest/best) on each of the following five dimensions. Base your scores on all provided information.
-      - **Challenge-Hypothesis Alignment (Score: 1-10):** How directly and effectively does the hypothesis address the core issues of the `Identified Challenge` it targets? A higher score means a stronger, more direct alignment.
-      - **Expected Impact (Score: 1-10):** What is the estimated magnitude of improvement (e.g., in the primary competition metric, efficiency, robustness, or successful execution) if this hypothesis is successfully implemented? Higher scores for greater positive impact.
-      - **Novelty (Score: 1-10):** How innovative or original is this hypothesis when compared to the approaches and ideas evident in the `previous SOTA experiments` and `previous failed experiments`? Assign a score of 1 if the hypothesis is a repeat or substantially similar to a previously attempted hypothesis (whether successful or failed), UNLESS the previous attempt clearly failed due to a trivial implementation bug and the current hypothesis proposes the correct implementation of the same core idea.
-      - **Feasibility (Score: 1-10):** How easily and practically can this hypothesis be implemented and *run to completion* within the existing SOTA codebase and operational constraints (e.g., allowed time for training/inference, available compute resources, overall complexity)? Higher scores for easier implementation and higher likelihood of successful execution.
-      - **Risk-Reward Balance (Score: 1-10):** Considering the potential for significant improvement (reward) versus the probability of failure, negative side-effects, or excessive resource consumption (risk), how optimal is this balance? A high score indicates a favorable balance.
-      - **Prioritization for Critical Challenges:** If a hypothesis directly and credibly addresses a **critical Challenge that caused prior experiment failures** (e.g., timeout, persistent data loading errors, incorrect submission format preventing any score), its **Expected Impact** and **Risk-Reward Balance** should generally be scored highly (e.g., 8-10), and **Feasibility** should also be high if the proposed solution is indeed simpler, more direct, or more efficient. This ensures such critical hypotheses are prioritized.
 
     {% if inject_diverse %}
     # Focus on Diversity!!
@@ -223,55 +216,63 @@ hypothesis_critique:
     {% include "scenarios.data_science.share:scen.role" %}
     You are an expert critic evaluating machine learning hypotheses for Kaggle competition improvement.
     
-    Your task is to critique each hypothesis based on the same standards used for hypothesis generation. Focus on practical implementation concerns and actionable feedback.
+    For each hypothesis, you need to provide a comprehensive critique that helps improve its quality and implementability.
     
-    ## Critique Guidelines
+    ## Your Critique Should Cover Four Key Areas:
     
-    Evaluate each hypothesis against the **core hypothesis generation requirements**:
+    ### 1. Technical Feasibility and Potential Issues
+    - **Implementation Complexity**: How difficult is this to code? What are the main technical challenges?
+    - **Resource Requirements**: Will this fit within time/memory constraints based on historical patterns?
+    - **Dependencies and Prerequisites**: What libraries, data structures, or preprocessing steps are needed?
+    - **Common Pitfalls**: What implementation mistakes should be avoided? What edge cases need handling?
+    - **Integration Challenges**: How will this interact with existing code? Any potential conflicts?
+    - **Pipeline Coordination**: For pipeline-focused tasks, does this hypothesis properly coordinate changes across multiple components?
     
-    ### 1. Specificity & Decisiveness
-    - **Is the hypothesis specific enough?** Avoid vague goals like "improve the model"
-    - **Is it decisive?** No alternatives like "try method A or method B"
-    - **Is it more informative than the problem?** Should not just restate the challenge
+    ### 2. Alignment with Scenario and Competition Requirements
+    - **Problem-Solution Fit**: Does this hypothesis actually address the root cause of the identified challenge?
+    - **Metric Impact**: Will this change meaningfully affect the competition's evaluation metric?
+    - **Competition Constraints**: Does this respect all competition rules and limitations?
+    - **Historical Context**: Has something similar been tried? What can we learn from past attempts?
+    - **SOTA Integration**: How does this build upon or modify the current best implementation?
+    - **Singular Focus**: Does this hypothesis test only one core concept, or does it bundle multiple independent ideas?
     
-    ### 2. Testability & Actionability  
-    - **Can this be practically implemented?** Clear implementation path required
-    - **Is the expected outcome measurable?** Success/failure must be clearly defined
-    - **Does it provide clear guidance?** Implementation steps should be obvious
+    ### 3. Specific Improvement Suggestions
+    - **Clarity Enhancements**: If the hypothesis is vague, suggest specific parameter values, model choices, or implementation details
+    - **Risk Mitigation**: Propose safeguards or fallback options for high-risk aspects
+    - **Efficiency Optimizations**: Suggest ways to reduce computational cost or implementation time
+    - **Validation Strategy**: Recommend how to quickly test if this is working before full implementation
+    - **Alternative Approaches**: If the core idea is good but implementation is problematic, suggest better ways to achieve the same goal
     
-    ### 3. Alignment & Relevance
-    - **Does it address the identified challenge directly?** Strong problem-solution alignment
-    - **Is it relevant to the current SOTA?** Should improve existing implementation
-    - **Will it impact the target metric?** Clear connection to performance improvement
+    ### 4. Overall Assessment of Quality and Implementability
+    - **Hypothesis Clarity**: Is it specific enough for a developer to implement without ambiguity?
+    - **Expected Impact**: Realistic assessment of potential improvement vs. effort required
+    - **Implementation Priority**: Should this be attempted immediately, after other changes, or reconsidered entirely?
+    - **Success Indicators**: What metrics or outputs will clearly show if this is working?
+    - **Key Recommendation**: Concise advice on whether to proceed, refine, or abandon this hypothesis
     
-    ### 4. Implementation Feasibility
-    - **Resource constraints:** Will this likely exceed time/memory limits based on history?
-    - **Technical complexity:** Can this be integrated with existing codebase reasonably?
-    - **Risk assessment:** What could go wrong and how likely is success?
+    ## Critical Reminders:
     
-    ### 5. Historical Context
-    - **Novelty check:** Has this been tried before? If yes, what makes it different?
-    - **Learning from failures:** Does this avoid known failure patterns?
-    - **Building on successes:** Does this leverage proven approaches appropriately?
+    - **Be Constructive**: Focus on how to make the hypothesis better, not just what's wrong
+    - **Be Specific**: Vague critiques like "needs improvement" are not helpful
+    - **Be Practical**: Consider real-world implementation constraints
+    - **Be Actionable**: Every criticism should come with a suggestion for improvement
     
-    ## IMPORTANT CONSTRAINTS
-    **Remember these parameters are FIXED and cannot be changed:**
-    - **Time limits:** Competition time constraints are immutable
-    - **GPU/Hardware:** Available computational resources cannot be modified  
-    - **Dataset:** The dataset, its size, format, and characteristics are given
-    - **Evaluation metric:** The competition evaluation metric is fixed
+    ## What NOT to Critique:
     
-    **Focus critiques on algorithmic, architectural, and implementation improvements within these constraints.**
+    - **Competition Constraints**: Don't suggest changing time limits, hardware, dataset size, or evaluation metrics
+    - **Problem Selection**: The identified challenges are given; critique the solution, not the problem
+    - **Past Decisions**: Focus on moving forward, not relitigating previous experiments
     
-    ## Critique Focus Areas
+    ## Example Critique Elements:
     
-    For each hypothesis, provide:
-    1. **Strength identification:** What works well about this hypothesis?
-    2. **Critical issues:** What are the main problems or risks?
-    3. **Specific improvements:** Concrete suggestions to address identified issues  
-    4. **Implementation priorities:** What should be tackled first for quick validation?
+    **Good**: "The hypothesis suggests 'optimize hyperparameters' but doesn't specify which ones. Focus on max_depth (try 3-10) and learning_rate (try 0.01-0.3) as these showed high variance in previous experiments."
     
-    **Be direct and constructive.** Aim for critiques that will enable better hypothesis refinement.
+    **Good**: "While ensemble averaging is proposed, weighted averaging based on validation scores would likely perform better given the model performance disparities shown in the SOTA feedback."
+    
+    **Bad**: "This might not work." (too vague)
+    **Bad**: "Just use more GPUs." (violates constraints)
+    
+    Remember: Your critique should empower the user to either implement the hypothesis confidently or refine it into something implementable.
     
     {% if critique_output_format is not none %}
     ## Output Format
@@ -294,40 +295,87 @@ hypothesis_critique:
 hypothesis_rewrite:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
-    You are an expert hypothesis synthesizer specializing in iterative improvement of machine learning solutions for Kaggle competitions.
+    You are an expert hypothesis rewriter specializing in iterative improvement of machine learning solutions for Kaggle competitions.
     
-    Based on all original hypotheses and their detailed critic feedback, your task is to generate improved versions of each hypothesis that address the identified flaws while leveraging insights from the critique analysis.
+    Based on all original hypotheses and their detailed critic feedback, your task is to rewrite and improve each hypothesis to address identified flaws while maintaining experimental flexibility.
     
-    ## Synthesis Methodology:
+    ## Core Rewriting Principles:
+    
+    ### 1. **Maintain Hypothesis Nature**
+    - Hypotheses are experimental proposals, NOT rigid specifications
+    - Keep appropriate abstraction level - specify direction, not every parameter
+    - Use ranges and options rather than fixed values when critique suggests alternatives
+    - Example: "reduce max_bin to 63-127 range" NOT "set max_bin=63"
+    
+    ### 2. **Interpret Critique Intelligently**
+    - When critique offers alternatives, choose the most suitable option, don't include all
+    - "Easier alternatives" means simpler replacements, not additional features
+    - Specific numbers in critiques are often examples, not mandates
+    - Focus on the underlying principle, not mechanical application
+    
+    ### 3. **Preserve Readability and Communication**
+    - Hypothesis statement should be 1-2 clear sentences focusing on the core idea
+    - Technical details belong in implementation notes, not the hypothesis itself
+    - Write for human understanding, not as configuration files
+    - Balance precision with clarity
+    
+    ## Rewrite Methodology:
     
     ### For Each Original Hypothesis:
-    1. **Analyze Critique Feedback**: Carefully review the specific critique for this hypothesis
-    2. **Identify Critical Issues**: Extract the main problems, risks, or improvement suggestions
-    3. **Cross-Reference Insights**: Look at critiques of other hypotheses for additional insights that could improve this one
-    4. **Generate Improved Hypothesis**: Create a new hypothesis that:
-       - Addresses the specific flaws identified in the critique
-       - Incorporates relevant insights from other hypotheses' critiques
-       - Maintains the core intent of the original hypothesis
-       - Is more implementable and robust
+    1. **Understand the Core Problem**: What fundamental issue does this hypothesis address?
+    2. **Extract Key Critique Insights**: What are the main risks or improvements suggested?
+    3. **Synthesize, Don't List**: Create a coherent improved approach, not a checklist of fixes
+    4. **Reflect Priority and Impact**: High-priority hypotheses deserve more careful design
     
-    ## Synthesis Guidelines:
-    1. **Address Specific Critiques**: Each new hypothesis must directly respond to the critique feedback for that hypothesis
-    2. **Maintain Problem Alignment**: Keep the same problem focus as the original hypothesis
-    3. **Improve Feasibility**: Use critique suggestions to make hypotheses more implementable
-    4. **Cross-Pollinate Safely**: Only incorporate insights from other hypotheses if they genuinely improve this specific hypothesis
-    5. **Preserve Testability**: Ensure each improved hypothesis remains specific, actionable, and measurable
-    6. **Focus on Implementation Success**: Prioritize changes that increase the likelihood of successful execution
+    ## Strategic Rewriting Guidelines:
     
-    ## Key Improvements to Target:
-    - **Resource Efficiency**: Address any time/memory concerns raised in critiques
-    - **Implementation Clarity**: Make hypotheses more specific and actionable based on feedback
-    - **Risk Mitigation**: Incorporate fallback strategies or simpler approaches when critiques identify high risks
-    - **Technical Feasibility**: Address integration challenges or dependency issues mentioned in critiques
+    ### Based on Critique Assessment:
+    - **High Priority + High Impact**: Craft detailed, well-thought-out hypotheses with clear success metrics
+    - **Medium Priority + Low Impact**: Keep simple and efficient, focus on easy wins
+    - **Negative Risk Identified**: Add explicit testing/validation gates before full implementation
     
-    **IMPORTANT**: You must generate exactly one improved hypothesis for each original hypothesis, using the same problem name as the key. The output format must be identical to the hypothesis generation format.
+    ### Common Rewrite Patterns:
+    1. **Parameter Tuning Critiques** → Suggest exploration ranges, not fixed values
+       - Bad: "set learning_rate=0.1, max_depth=10"  
+       - Good: "tune learning rate (0.05-0.2) and tree depth for optimal speed-accuracy tradeoff"
+    
+    2. **Alternative Suggestions** → Choose wisely, don't accumulate
+       - Bad: "add features A, B, C, and also alternatives D, E, F"
+       - Good: "add interaction features focusing on elevation-slope relationships"
+    
+    3. **Risk Warnings** → Build in safeguards
+       - Bad: "implement class weights"
+       - Good: "test class weighting via CV, proceed only if accuracy improves >0.2%"
+    
+    ### Quality Checklist:
+    - [ ] Is the hypothesis still experimental and flexible?
+    - [ ] Does it address the core critique without over-specifying?
+    - [ ] Is it readable in one breath?
+    - [ ] Does it reflect the expected impact level?
+    - [ ] Are success criteria clear but not overly rigid?
+    
+    ## What Makes a Good Rewritten Hypothesis:
+    
+    ### Example Transformation:
+    **Original**: "Train LightGBM with 10,000 rounds and specific parameters..."
+    **Critique**: "Too many rounds risky, use 2000 to start, lower max_bin to 63-127..."
+    **Bad Rewrite**: "Train LightGBM with exactly 2000 rounds, max_bin=63, all parameters fixed..."
+    **Good Rewrite**: "Establish GPU-accelerated LightGBM baseline by optimizing for speed (via reduced max_bin and moderate tree complexity) while maintaining >0.93 validation accuracy within 40-minute budget."
+    
+    The good rewrite:
+    - Addresses the core concern (speed vs accuracy tradeoff)
+    - Provides direction without rigid parameters
+    - Includes measurable success criteria
+    - Remains flexible for experimentation
+    
+    **IMPORTANT**: 
+    - Generate exactly one rewritten hypothesis for each original
+    - Maintain the same core problem focus
+    - Prioritize experimental flexibility over parameter rigidity
+    - Write hypotheses that guide exploration, not dictate implementation
     
     {% if rewrite_output_format is not none %}
-    ### Output Format
+    ## Output Format
     {{ rewrite_output_format }}
     {% endif %}
 
@@ -342,11 +390,11 @@ hypothesis_rewrite:
     {{ hypothesis_critique_pairs }}
     
     # Task
-    Generate improved versions of ALL original hypotheses above by addressing critique feedback. Each improved hypothesis should:
+    Rewrite ALL original hypotheses above by addressing critique feedback. Each rewritten hypothesis should:
     1. Address specific problems identified in its critique
-    2. Incorporate relevant insights from other hypotheses' critiques when beneficial
-    3. Maintain the same problem focus as the original hypothesis
-    4. Be more implementable and robust than the original
+    2. Maintain the same core problem focus as the original hypothesis (while allowing refinement of problem statement if helpful)
+    3. Incorporate relevant insights from other hypotheses' critiques when they genuinely improve this specific hypothesis
+    4. Be more implementable, robust, and specific than the original
 
 task_gen:
   system: |-
@@ -575,13 +623,6 @@ output_format:
         "reason": "Provide a clear, logical progression from problem identification to hypothesis formulation, grounded in evidence (e.g., trace history, domain principles, or competition constraints). Refer to the Hypothesis Guidelines for better understanding. Reason should be short with no more than two sentences.",
         "component": "The component tag of the hypothesis. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
         "hypothesis": "A concise, testable statement derived from previous experimental outcomes. Limit it to one or two sentences that clearly specify the expected change or improvement in the <component>'s performance.",
-        "evaluation": {
-          "alignment_score": "The alignment of the proposed hypothesis with the identified problem.",
-          "impact_score": "The expected impact of the proposed hypothesis on the current SOTA implementation.",
-          "novelty_score": "The novelty of the proposed hypothesis compared to existing solutions.",
-          "feasibility_score": "The feasibility of implementing the proposed hypothesis in the current SOTA implementation.",
-          "risk_reward_balance_score": "The risk-reward balance of implementing the proposed hypothesis.",
-        }
       },
     }
   idea: |-
@@ -606,33 +647,14 @@ output_format:
       }
     }
   rewrite: |-
-    Generate improved hypotheses that address critique feedback, strictly following the JSON schema.
-    Your final output should be a dict containing the improved hypotheses without anything else.
-    Use the exact same problem names as keys from the original hypotheses.
+    For each original hypothesis, rewrite it to address critique feedback, strictly following the JSON schema below. 
+    Your final output should be a dict containing all rewritten hypotheses without anything else.
     {
-      "problem name 1 (should be exactly same as the original problem name)": {
-        "reason": "Explanation of how this improved hypothesis addresses the critique feedback and incorporates insights. Should be short with no more than two sentences.",
+      "problem name 1 (may be refined for clarity while keeping core focus)": {
+        "reason": "Explanation of how this rewritten hypothesis addresses the critique feedback and what specific improvements were made. Should be short with no more than two sentences.",
         "component": "The component tag of the hypothesis. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
-        "hypothesis": "A concise, improved hypothesis statement that addresses the critique concerns. Limit it to one or two sentences that clearly specify the expected change or improvement.",
-        "evaluation": {
-          "alignment_score": 8.5,
-          "impact_score": 7.0,
-          "novelty_score": 6.5,
-          "feasibility_score": 9.0,
-          "risk_reward_balance_score": 7.5
-        }
-      },
-      "problem name 2 (should be exactly same as the original problem name)": {
-        "reason": "...",
-        "component": "...",
-        "hypothesis": "...",
-        "evaluation": {
-          "alignment_score": 7.0,
-          "impact_score": 8.5,
-          "novelty_score": 8.0,
-          "feasibility_score": 6.5,
-          "risk_reward_balance_score": 7.0
-        }
+        "hypothesis": "A concise, improved hypothesis statement that directly addresses critique concerns. Limit to one or two sentences that clearly specify the expected change or improvement. Should be more specific and actionable than the original.",
+        "problem": "The problem description of the rewritten hypothesis. Can be refined for clarity while keeping core focus."
       }
     }
 
