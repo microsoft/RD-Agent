@@ -8,7 +8,7 @@ loguru
 fire
 fuzzywuzzy
 openai
-litellm==1.72.4
+litellm>=1.73  # to support `from litellm import get_valid_models`
 azure.identity
 pyarrow
 rich
