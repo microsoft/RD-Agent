@@ -176,22 +176,7 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
         if self.is_selection_new_tree(selection):
             return []
 
-        curr = selection[0]
-        for i in range(5):
-            check = True
-            hist_snapshot = self.hist[:]
-            ancestors = self.get_parents(curr)
-            print(F"Iter {i}, curr {curr}, ancestors: {ancestors}")
-            parent_exps = [hist_snapshot[i] for i in ancestors]
-            parent_idx = self.exp2idx([i[0] for i in parent_exps])
-            print(F"Iter {i}, curr {curr}, parent_idx: {parent_idx}")
-            if parent_idx:
-                for i in parent_idx:
-                    if not self.is_parent(i, curr):
-                        check = False
-            if check:
-                return parent_exps
-        return [self.hist[i] for i in self.get_parents(curr)]
+        return [self.hist[i] for i in self.get_parents(selection[0])]
 
     def exp2idx(self, exp: Experiment | list[Experiment]) -> int | list[int] | None:
         if isinstance(exp, list):
