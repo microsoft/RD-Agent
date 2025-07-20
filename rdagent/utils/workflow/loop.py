@@ -97,6 +97,7 @@ class LoopBase:
     ] = ()  # you can define a list of error that will withdraw current loop
 
     EXCEPTION_KEY = "_EXCEPTION"
+    LOOP_IDX_KEY = "_LOOP_IDX"
     SENTINEL = -1
 
     _pbar: tqdm  # progress bar instance
@@ -213,6 +214,7 @@ class LoopBase:
 
                 next_step_idx = si + 1
                 step_forward = True
+                self.loop_prev_out[li][self.LOOP_IDX_KEY] = li  # NOTE: each step are aware are of current loop index
                 try:
                     # Call function with current loop's output, await if coroutine or use ProcessPoolExecutor for sync if required
                     if force_subproc:
