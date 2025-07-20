@@ -245,11 +245,12 @@ class CheckpointSelector:
         checkpoint_idx represents the place where we want to create a new node.
         the return value should be the idx of target node (the parent of the new generating node).
         - `(-1, )` represents starting from the latest trial in the trace - default value
-            - NOTE: we don't encourage to use this option;
-              - It is confusing when we have multiple traces.
-              - Even when in single trace....
+
+          - NOTE: we don't encourage to use this option; It is confusing when we have multiple traces.
+
         - `(idx, )` represents starting from the `idx`-th trial in the trace.
         - `None` represents starting from scratch (start a new trace)
+
 
         - More advanced selection strategies in `select.py`
         """
