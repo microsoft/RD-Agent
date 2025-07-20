@@ -115,7 +115,7 @@ class LoopBase:
         self.queue: asyncio.Queue[Any] = asyncio.Queue()
 
         # Store step results for all loops in a nested dictionary, following information will be stored:
-        # - loop_prev_out[loop_index][step_name]: the output of the step function 
+        # - loop_prev_out[loop_index][step_name]: the output of the step function
         # - loop_prev_out[loop_index][<special keys like LOOP_IDX_KEY or EXCEPTION_KEY>]: the special keys
         self.loop_prev_out: dict[int, dict[str, Any]] = defaultdict(dict)
         self.loop_trace = defaultdict(list[LoopTrace])  # the key is the number of loop
