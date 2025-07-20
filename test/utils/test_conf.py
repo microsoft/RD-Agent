@@ -11,7 +11,6 @@ class ConfUtils(unittest.TestCase):
 
     def test_conf(self):
 
-
         os.environ["MEM_LIMIT"] = "200g"
         os.environ["RUNNING_TIMEOUT_PERIOD"] = "None"
         assert QlibDockerConf().mem_limit == "200g"  # base class will affect subclasses
