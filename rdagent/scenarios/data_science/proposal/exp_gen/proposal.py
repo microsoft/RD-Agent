@@ -563,8 +563,6 @@ class DSProposalV2ExpGen(ExpGen):
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             hypothesis_output_format=(
                 T(".prompts_v2:output_format.hypothesis").r(pipeline=pipeline, enable_idea_pool=enable_idea_pool)
-                if not self.supports_response_schema
-                else None
             ),
             pipeline=pipeline,
             enable_idea_pool=enable_idea_pool,
@@ -580,21 +578,10 @@ class DSProposalV2ExpGen(ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=HypothesisList if self.supports_response_schema else {"type": "json_object"},
-            json_target_type=(Dict[str, Dict[str, str]] if not self.supports_response_schema else None),
+            response_format= {"type": "json_object"},
+            json_target_type=Dict[str, Dict[str, str]],
         )
-        if self.supports_response_schema:
-            hypotheses = HypothesisList(**json.loads(response))
-            resp_dict = {
-                h.caption: {
-                    "reason": h.challenge,
-                    "component": h.component.value,
-                    "hypothesis": h.hypothesis,
-                }
-                for h in hypotheses.hypotheses
-            }
-        else:
-            resp_dict = json.loads(response)
+        resp_dict = json.loads(response)
         logger.info(f"Generated hypotheses:\n" + json.dumps(resp_dict, indent=2))
 
         # make sure the problem name is aligned
