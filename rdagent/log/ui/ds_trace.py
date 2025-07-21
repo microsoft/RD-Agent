@@ -337,13 +337,13 @@ def llm_log_win(llm_d: list):
                                     )
                                 except Exception as e:
                                     resp_new = f"Error: {e}"
-                            try: # json format string
+                            try:  # json format string
                                 rdict = json.loads(resp_new)
                                 st.json(rdict)
                             except:
-                                try: # common string
+                                try:  # common string
                                     st.code(resp_new, wrap_lines=True, line_numbers=True)
-                                except: # response format type
+                                except:  # response format type
                                     st.write(resp_new)
 
 
