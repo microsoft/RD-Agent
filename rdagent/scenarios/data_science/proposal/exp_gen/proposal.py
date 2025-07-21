@@ -1,13 +1,11 @@
+import asyncio
 import json
+import re
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 from pydantic import BaseModel, Field
-from rdagent.oai.backend.base import RD_Agent_TIMER_wrapper
-from rdagent.log.timer import RDAgentTimer
-from rdagent.core.conf import RD_AGENT_SETTINGS
-import asyncio
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
@@ -16,9 +14,12 @@ from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.timer import RDAgentTimer
+from rdagent.oai.backend.base import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.feedback import ExperimentFeedback
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -31,7 +32,6 @@ from rdagent.scenarios.data_science.proposal.exp_gen.utils import get_packages
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
-import re
 
 _COMPONENT_META: Dict[str, Dict[str, Any]] = {
     "DataLoadSpec": {
@@ -1029,7 +1029,7 @@ class DSProposalV2ExpGen(ExpGen):
             scenario_desc=scenario_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
-            hypothesis_candidates=improved_hypothesis_dict,
+            hypothesis_candidates=improved_hypotheses_dict,
         )
         component_map = {
             "Model": HypothesisComponent.Model,
@@ -1046,7 +1046,7 @@ class DSProposalV2ExpGen(ExpGen):
             new_hypothesis = DSHypothesis(component=component_map[comp_str], hypothesis=hypo_str)
 
         pickled_problem_name = None
-        
+
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
