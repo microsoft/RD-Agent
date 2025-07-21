@@ -182,15 +182,12 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         Retrieve a list of experiments and feedbacks based on the return_type.
         """
         search_list = self.retrieve_search_list(search_type, selection=selection)
-        parent_idx = self.exp2idx([i[0] for i in search_list])
-        print(F"selection {selection}, parent_idx: {parent_idx}")
         final_component = self.COMPLETE_ORDER[-1]
         has_final_component = True if DS_RD_SETTING.coder_on_whole_pipeline else False
         SOTA_exp_and_feedback_list = []
         failed_exp_and_feedback_list_after_sota = []
         for exp, fb in search_list:
             if has_final_component:
-                print(F"selection: {selection}, exp {self.exp2idx(exp)}, {exp.hypothesis.hypothesis}")
                 if fb.decision:
                     SOTA_exp_and_feedback_list.append((exp, fb))
                     failed_exp_and_feedback_list_after_sota = []
