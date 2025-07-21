@@ -106,50 +106,6 @@ feedback_problem:
     # Current SOTA Implementation
     {{ sota_exp_desc }}
 
-scenario_description: |-
-  {% if use_raw_description -%}
-  ====== Background ======
-  {{ raw_description }}
-
-  {% else %}
-  ====== Background ======
-  {{ background }}
-
-  {% if eda_output is not none %}The following is the output of the exploratory data analysis (EDA) performed on the dataset, You should carefully analyze it to better craft your feature engineering and model training strategies.
-  ====== Data Overview (EDA) ======
-  {{ eda_output }}
-  {% endif %}
-
-  ====== Submission Format ======
-  Please ensure your submission adheres to the following specifications:
-  {{ submission_specifications }}
-
-  ====== Important Guidelines ======
-  Before submitting your results, please note the following:
-  - We have numerous tests in place to check your code.
-  - Ensure your submission is genuine.
-  - Do not manipulate data or return values solely to pass preliminary tests, as this will not lead to successful final evaluation.
-
-  {% endif %}
-
-  ====== Evaluation ======
-  {% if not use_raw_description and metric_name %}
-  The primary evaluation metric for this task is: **{{ metric_name }}**.
-  {% endif %}
-  This metric is considered better when it is **{% if metric_direction %}larger{% else %}smaller{% endif %}**.
-
-  {% if evaluation is not none %}
-  Additional Evaluation Details:
-  {{ evaluation }}
-  {% endif %}
-
-  {% if time_limit %}
-  ====== Time Limit ======
-  Your code's execution is limited to {{ time_limit }}. After this time limit, your code will be terminated. However, remember that your primary objective is to achieve the best possible performance, and you're allowed to revise your code multiple times. So be bold — make full use of the entire time limit, and don’t be too conservative.
-  During this period, you have full access to computational resources (CPUs and GPUs). Please take advantage of them: choose powerful models, use large batch sizes, and enable parallelism (e.g., large-scale data sampling or multi-GPU training) where applicable.
-  If your code involves ensemble training, note that the total time allowed for ensemble runs is {{ ensemble_limit }} seconds. Make sure to plan your ensemble strategy wisely within this limit.
-  {% endif %}
-
 hypothesis_gen:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
@@ -380,6 +336,11 @@ task_gen:
       - For GBDT models, prefer XGBoost or RandomForest over LightGBM unless the SOTA or hypothesis dictates otherwise.
       - For neural networks, prefer PyTorch or PyTorch based library (over TensorFlow) unless the SOTA or hypothesis dictates otherwise.
       - For neural networks, prefer fine-tuning pre-trained models over training from scratch.
+
+    ## Package Declaration
+    At the end of your design, **you MUST** provide a key `packages` in the final JSON output.  
+    It should be an **array of PyPI package names** (strings) that you expect to `import` in the forthcoming implementation.  
+    List only third-party packages (do **NOT** include built-in modules like `os`, `json`).  
 
     # Guidelines for Sketching the `main.py` Workflow
 

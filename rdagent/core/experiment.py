@@ -184,7 +184,7 @@ class FBWorkspace(Workspace):
             workspace_data_file_path = workspace_path / data_file_path.name
             if workspace_data_file_path.exists():
                 workspace_data_file_path.unlink()
-            if platform.system() == "Linux":
+            if platform.system() in ("Linux", "Darwin"):
                 os.symlink(data_file_path, workspace_data_file_path)
             if platform.system() == "Windows":
                 os.link(data_file_path, workspace_data_file_path)

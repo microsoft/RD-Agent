@@ -654,9 +654,7 @@ class APIBackend(ABC):
         raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
-    def _create_embedding_inner_function(  # type: ignore[no-untyped-def]
-        self, input_content_list: list[str], *args, **kwargs
-    ) -> list[list[float]]:  # noqa: ARG002
+    def _create_embedding_inner_function(self, input_content_list: list[str]) -> list[list[float]]:
         """
         Call the embedding function
         """

@@ -19,6 +19,7 @@ def sample_and_copy_subfolder(
     feature_path = input_dir / "X.npz"
     label_path = input_dir / "ARF_12h.csv"
 
+    # Load sparse features and label
     X_sparse = sparse.load_npz(feature_path)
     df_label = pd.read_csv(label_path)
 
@@ -34,6 +35,29 @@ def sample_and_copy_subfolder(
     df_sample.to_csv(output_dir / "ARF_12h.csv", index=False)
 
     print(f"[INFO] Sampled {n_keep} of {N} from {input_dir.name}")
+
+    # Copy additional files
+    for f in input_dir.glob("*"):
+        if f.name not in {"X.npz", "ARF_12h.csv"} and f.is_file():
+            shutil.copy(f, output_dir / f.name)
+            print(f"[COPY] Extra file: {f.name}")
+
+
+def copy_other_file(source: Path, target: Path):
+    for item in source.iterdir():
+        if item.name in {"train", "test"}:
+            continue
+
+        relative_path = item.relative_to(source)
+        target_path = target / relative_path
+
+        if item.is_dir():
+            shutil.copytree(item, target_path, dirs_exist_ok=True)
+            print(f"[COPY DIR] {item} -> {target_path}")
+        elif item.is_file():
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(item, target_path)
+            print(f"[COPY FILE] {item} -> {target_path}")
 
 
 def create_debug_data(
@@ -56,6 +80,9 @@ def create_debug_data(
             min_num=min_num,
             seed=42 if sub == "train" else 123,
         )
+    print(dataset_root.resolve())
+    print(output_root.resolve())
+    copy_other_file(source=dataset_root, target=output_root)
 
     print(f"\n[INFO] Sampling complete → Output in: {output_root}")
 

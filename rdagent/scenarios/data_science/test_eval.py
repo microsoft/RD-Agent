@@ -23,7 +23,7 @@ class TestEvalBase:
 
     @abstractmethod
     def enabled(self, competition) -> bool:
-        """able to eval or not"""
+        """support `eval` & `valid` or not"""
 
     @abstractmethod
     def get_sample_submission_name(self, competition: str) -> str:

@@ -40,15 +40,19 @@ class LiteLLMSettings(LLMSettings):
 
 
 LITELLM_SETTINGS = LiteLLMSettings()
-logger.info(f"{LITELLM_SETTINGS}")
-logger.log_object(LITELLM_SETTINGS.model_dump(), tag="LITELLM_SETTINGS")
 ACC_COST = 0.0
 
 
 class LiteLLMAPIBackend(APIBackend):
     """LiteLLM implementation of APIBackend interface"""
 
+    _has_logged_settings: bool = False
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        if not self.__class__._has_logged_settings:
+            logger.info(f"{LITELLM_SETTINGS}")
+            logger.log_object(LITELLM_SETTINGS.model_dump(), tag="LITELLM_SETTINGS")
+            self.__class__._has_logged_settings = True
         super().__init__(*args, **kwargs)
 
     def _calculate_token_from_messages(self, messages: list[dict[str, Any]]) -> int:
@@ -62,9 +66,7 @@ class LiteLLMAPIBackend(APIBackend):
         logger.info(f"{LogColors.CYAN}Token count: {LogColors.END} {num_tokens}", tag="debug_litellm_token")
         return num_tokens
 
-    def _create_embedding_inner_function(
-        self, input_content_list: list[str], *args: Any, **kwargs: Any
-    ) -> list[list[float]]:  # noqa: ARG002
+    def _create_embedding_inner_function(self, input_content_list: list[str]) -> list[list[float]]:
         """
         Call the embedding function
         """
@@ -78,8 +80,6 @@ class LiteLLMAPIBackend(APIBackend):
         response = embedding(
             model=model_name,
             input=input_content_list,
-            *args,
-            **kwargs,
         )
         response_list = [data["embedding"] for data in response.data]
         return response_list

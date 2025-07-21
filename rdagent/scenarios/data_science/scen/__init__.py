@@ -143,6 +143,9 @@ class DataScienceScen(Scenario):
             ensemble_limit=DS_RD_SETTING.ensemble_timeout,
             time_limit=None,
             eda_output=None,
+            sample_data_by_LLM=None,
+            debug_time_limit=None,
+            runtime_environment=self.get_runtime_environment(),
         )
 
     def get_scenario_all_desc(self, eda_output=None) -> str:
@@ -160,10 +163,14 @@ class DataScienceScen(Scenario):
             time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
             ensemble_limit=DS_RD_SETTING.ensemble_timeout,
             eda_output=eda_output,
+            sample_data_by_LLM=DS_RD_SETTING.sample_data_by_LLM,
+            debug_time_limit=f"{DS_RD_SETTING.debug_timeout / 60 / 60 : .2f} hours",
+            runtime_environment=self.get_runtime_environment(),
         )
 
     def get_runtime_environment(self) -> str:
         # TODO:  add it into base class.  Environment should(i.e. `DSDockerConf`) should be part of the scenario class.
+        """Return runtime environment information."""
         env = get_ds_env()
         implementation = FBWorkspace()
         fname = "runtime_info.py"
