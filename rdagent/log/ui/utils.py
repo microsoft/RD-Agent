@@ -612,7 +612,7 @@ def trace_figure(trace: Trace):
         """
         if hasattr(trace, "idx2loop_id"):
             # FIXME: only keep me after it is stable. Just for compatibility.
-            return f"L{trace.idx2loop_id[idx]}"
+            return f"L{trace.idx2loop_id[idx]} ({idx})"
         return f"L{idx}"
 
     # Add nodes and edges
@@ -668,7 +668,7 @@ def trace_figure(trace: Trace):
             nodes = layer_nodes[lvl]
             # For root nodes, sort directly by index
             if lvl == min(layer_nodes):
-                sorted_nodes = sorted(nodes, key=lambda n: int(n[1:]))
+                sorted_nodes = sorted(nodes, key=lambda n: int(n[1:].split(" ")[0]))
             else:
                 # Sort by average parent x, so children are below their parents
                 sorted_nodes = sorted(nodes, key=parent_avg_pos)
