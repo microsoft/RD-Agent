@@ -206,31 +206,6 @@ class HypothesisComponent(str, Enum):
     Workflow = "Workflow"
 
 
-class HypothesisEvaluationReasoningScore(BaseModel):
-    reasoning: str = Field(
-        description="What is the quality of the hypothesis under this criteria? Answer in 1-2 sentence."
-    )
-    score: float = Field(description="The score of the hypothesis under this criteria between 1 and 10.")
-
-
-class HypothesisEvaluation(BaseModel):
-    alignment: HypothesisEvaluationReasoningScore = Field(
-        description="The alignment of the proposed hypothesis with the identified challenge."
-    )
-    impact: HypothesisEvaluationReasoningScore = Field(
-        description="The expected impact of the proposed hypothesis on the current SOTA implementation."
-    )
-    novelty: HypothesisEvaluationReasoningScore = Field(
-        description="The novelty of the proposed hypothesis compared to existing solutions."
-    )
-    feasibility: HypothesisEvaluationReasoningScore = Field(
-        description="The feasibility of implementing the proposed hypothesis in the current SOTA implementation."
-    )
-    risk_reward_balance: HypothesisEvaluationReasoningScore = Field(
-        description="The risk-reward balance of implementing the proposed hypothesis."
-    )
-
-
 class HypothesisDetail(BaseModel):
     caption: str = Field(description="The caption of the challenge it is based on.")
     challenge: str = Field(
@@ -245,7 +220,6 @@ class HypothesisDetail(BaseModel):
         )
     )
     component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
-    evaluation: HypothesisEvaluation = Field(description="Evaluate the quality of the hypothesis.")
 
 
 class HypothesisSimple(BaseModel):
@@ -607,9 +581,7 @@ class DSProposalV2ExpGen(ExpGen):
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
             response_format=HypothesisList if self.supports_response_schema else {"type": "json_object"},
-            json_target_type=(
-                Dict[str, Dict[str, str | Dict[str, str | int]]] if not self.supports_response_schema else None
-            ),
+            json_target_type=(Dict[str, Dict[str, str]] if not self.supports_response_schema else None),
         )
         if self.supports_response_schema:
             hypotheses = HypothesisList(**json.loads(response))
@@ -618,13 +590,6 @@ class DSProposalV2ExpGen(ExpGen):
                     "reason": h.challenge,
                     "component": h.component.value,
                     "hypothesis": h.hypothesis,
-                    "evaluation": {
-                        "alignment_score": h.evaluation.alignment.score,
-                        "impact_score": h.evaluation.impact.score,
-                        "novelty_score": h.evaluation.novelty.score,
-                        "feasibility_score": h.evaluation.feasibility.score,
-                        "risk_reward_balance_score": h.evaluation.risk_reward_balance.score,
-                    },
                 }
                 for h in hypotheses.hypotheses
             }
@@ -641,94 +606,150 @@ class DSProposalV2ExpGen(ExpGen):
 
         return resp_dict
 
-    def compute_top_scores(
+    @wait_retry(retry_n=5)
+    def hypothesis_critique(
         self,
-        hypothesis_dict: dict,
-    ) -> pd.Series:
+        hypothesis_dict: Dict,
+        problems_dict: Dict,
+        scenario_desc: str,
+        sota_exp_desc: str,
+        exp_feedback_list_desc: str,
+    ) -> Dict:
         """
-        Compute weighted total scores for each hypothesis and return the top five.
+        Critique the generated hypotheses, identifying flaws and suggesting improvements.
         """
-        weights = {
-            "alignment_score": 0.2,
-            "impact_score": 0.4,
-            "novelty_score": 0.2,
-            "feasibility_score": 0.1,
-            "risk_reward_balance_score": 0.1,
-        }
-        scores_dict = {}
-        for problem_name in hypothesis_dict:
-            if "hypothesis" not in hypothesis_dict[problem_name]:
-                continue
-            scores_dict[problem_name] = {}
-            for score_key in weights:
-                if score_key not in hypothesis_dict[problem_name]["evaluation"]:
-                    scores_dict[problem_name][score_key] = 0
-                else:
-                    try:
-                        scores_dict[problem_name][score_key] = (
-                            float(hypothesis_dict[problem_name]["evaluation"][score_key]) * weights[score_key]
-                        )
-                    except (ValueError, TypeError):
-                        scores_dict[problem_name][score_key] = 0
+        hypotheses_formatted = ""
+        for i, (problem_name, hypothesis_data) in enumerate(hypothesis_dict.items()):
 
-        scores = pd.DataFrame(scores_dict)
-        scores_sorted = scores.sum().sort_values(ascending=False)
-        return scores_sorted[:5]
+            problem_info = problems_dict.get(problem_name, {})
+            hypotheses_formatted += f"## {i+1}. **Problem Name:** {problem_name}\n"
+            hypotheses_formatted += f"**Original Problem:** {problem_info.get('problem', 'Not available')}\n"
+            hypotheses_formatted += f"**Component:** {hypothesis_data.get('component', 'Unknown')}\n"
+            hypotheses_formatted += f"**Hypothesis:** {hypothesis_data.get('hypothesis', 'Not provided')}\n"
+            hypotheses_formatted += f"**Reason:** {hypothesis_data.get('reason', 'Not provided')}\n\n"
 
-    def select_hypothesis(
+        sys_prompt = T(".prompts_v2:hypothesis_critique.system").r(
+            critique_output_format=T(".prompts_v2:output_format.critique").r(),
+        )
+        user_prompt = T(".prompts_v2:hypothesis_critique.user").r(
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+            hypotheses_formatted=hypotheses_formatted,
+        )
+
+        # Use json_object mode since hypothesis names are dynamic
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format={"type": "json_object"},
+            json_target_type=dict,
+        )
+
+        response_dict = json.loads(response)
+        critiques = response_dict.get("critiques", response_dict)
+
+        logger.info(f"Generated critiques for {len(critiques)} hypothesis")
+        return critiques
+
+    @wait_retry(retry_n=5)
+    def hypothesis_rewrite(
         self,
-        scores_sorted: pd.Series,
+        hypothesis_dict: Dict,
+        critiques_dict: Dict,
+        scenario_desc: str,
+        sota_exp_desc: str,
+    ) -> Dict:
+        """
+        Generate improved hypotheses based on critique feedback for each original hypothesis.
+        Returns a dict with the same keys as hypothesis_dict, containing improved versions.
+        """
+        hypothesis_critique_pairs = ""
+        for i, problem_name in enumerate(hypothesis_dict.keys()):
+            hypothesis_data = hypothesis_dict[problem_name]
+            critique_data = critiques_dict.get(problem_name, {})
+
+            hypothesis_critique_pairs += f"## Original Hypothesis {i+1}: {problem_name}\n"
+            hypothesis_critique_pairs += f"**Hypothesis:** {hypothesis_data.get('hypothesis', 'Not provided')}\n"
+            hypothesis_critique_pairs += f"**Component:** {hypothesis_data.get('component', 'Unknown')}\n"
+            hypothesis_critique_pairs += f"**Reasoning:** {hypothesis_data.get('reason', 'Not provided')}\n"
+            hypothesis_critique_pairs += f"**Critique:** {critique_data.get('critique', 'No critique available')}\n\n"
+
+        sys_prompt = T(".prompts_v2:hypothesis_rewrite.system").r(
+            rewrite_output_format=T(".prompts_v2:output_format.rewrite").r(),
+        )
+        user_prompt = T(".prompts_v2:hypothesis_rewrite.user").r(
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            hypothesis_critique_pairs=hypothesis_critique_pairs,
+        )
+
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format={"type": "json_object"},
+            json_target_type=dict,
+        )
+
+        improved_hypotheses_dict = json.loads(response)
+
+        logger.info(
+            f"Generated rewritten versions of {len(improved_hypotheses_dict)} hypotheses based on critique feedback"
+        )
+        return improved_hypotheses_dict
+
+    def select_hypothesis_simple(
+        self,
         hypothesis_dict: dict,
         problem_dict: dict,
-    ) -> int:
+    ) -> Tuple[str, DSHypothesis]:
         """
-        From the top five hypotheses (by weighted score), select one based on additional weighting rules
-        for 'inspired' flag and 'SCENARIO_PROBLEM' label. Returns the chosen hypothesis name and a
-        DSHypothesis instance.
+        Simple hypothesis selection based on weighting rules without scoring.
         """
-        # Increase the weight of the hypothesis that is inspired by the idea pool to 3x.
-        # Linear decay the weight of the scenario problem from 3x to 0x.
+        hypothesis_names = [
+            problem_name for problem_name in hypothesis_dict if "hypothesis" in hypothesis_dict[problem_name]
+        ]
+
+        if not hypothesis_names:
+            raise ValueError("No valid hypotheses available for selection")
+
+        # Create weighted selection pool based on flags
         index_to_pick_pool_list = []
-        for j, problem_name in enumerate(scores_sorted.index):
+        for j, problem_name in enumerate(hypothesis_names):
+            # Default weight is 1
+            weight = 1
+
+            # Increase weight for inspired hypotheses
             if hypothesis_dict[problem_name].get("inspired", False):
-                index_to_pick_pool_list.extend([j] * 2)
+                weight += 2
+
+            # Adjust weight based on problem type
             if problem_dict[problem_name]["label"] == "SCENARIO_PROBLEM":
-                index_to_pick_pool_list.extend([j] * self.scen_prob_multiplier)
+                weight += self.scen_prob_multiplier
             elif problem_dict[problem_name]["label"] == "FEEDBACK_PROBLEM":
-                index_to_pick_pool_list.extend([j] * (3 - self.scen_prob_multiplier))
-            else:
-                index_to_pick_pool_list.extend([j] * 1)
+                weight += 3 - self.scen_prob_multiplier
+
+            index_to_pick_pool_list.extend([j] * weight)
+
         logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
 
         # Create a random but reproducible integer
-        reproducible_int = int.from_bytes(bytes.fromhex(md5_hash(scores_sorted.to_string())), byteorder="big") % len(
+        names_str = ",".join(hypothesis_names)
+        reproducible_int = int.from_bytes(bytes.fromhex(md5_hash(names_str)), byteorder="big") % len(
             index_to_pick_pool_list
         )
-        return index_to_pick_pool_list[reproducible_int]
+        selected_idx = index_to_pick_pool_list[reproducible_int]
 
-    def hypothesis_rank(
-        self, hypothesis_dict: dict, problem_dict: dict, selected_idx: Optional[int] = None
-    ) -> Tuple[str, DSHypothesis]:
-        """
-        Wrapper method that computes the top five hypotheses by weighted scoring and then selects one
-        according to additional weighting rules.
-        """
-        scores_sorted = self.compute_top_scores(hypothesis_dict)
-        if selected_idx is None:
-            selected_idx = self.select_hypothesis(
-                scores_sorted=scores_sorted, hypothesis_dict=hypothesis_dict, problem_dict=problem_dict
-            )
+        selected_problem_name = hypothesis_names[selected_idx]
+        problem_data = problem_dict.get(selected_problem_name, {})
 
-        max_score_problem_name = scores_sorted.index[selected_idx]
-        problem_dict = problem_dict.get(max_score_problem_name, {})
-
-        return max_score_problem_name, DSHypothesis(
-            component=hypothesis_dict[max_score_problem_name].get("component", "Model"),
-            hypothesis=hypothesis_dict[max_score_problem_name].get("hypothesis", "Hypothesis not provided"),
-            reason=hypothesis_dict[max_score_problem_name].get("reason", "Reason not provided"),
-            problem_name=max_score_problem_name,
-            problem_desc=problem_dict.get("problem", "Problem description not provided"),
-            problem_label=problem_dict.get("label", "FEEDBACK_PROBLEM"),
+        return selected_problem_name, DSHypothesis(
+            component=hypothesis_dict[selected_problem_name].get("component", "Model"),
+            hypothesis=hypothesis_dict[selected_problem_name].get("hypothesis", "Hypothesis not provided"),
+            reason=hypothesis_dict[selected_problem_name].get("reason", "Reason not provided"),
+            problem_name=selected_problem_name,
+            problem_desc=problem_data.get("problem", "Problem description not provided"),
+            problem_label=problem_data.get("label", "FEEDBACK_PROBLEM"),
         )
 
     def hypothesis_select_with_llm(
@@ -978,6 +999,26 @@ class DSProposalV2ExpGen(ExpGen):
                 for name in pop_names:
                     hypothesis_dict.pop(name)
 
+        # Step 2.1: Critic Stage - Evaluate and identify flaws in hypotheses
+        logger.info(f"Starting critic stage - evaluating {len(hypothesis_dict)} hypotheses for flaws and improvements")
+        critiques_dict = self.hypothesis_critique(
+            hypothesis_dict=hypothesis_dict,
+            problems_dict=all_problems,
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+        )
+        logger.info(f"Generated critiques for {len(critiques_dict)} hypotheses")
+
+        # Step 2.2: Rewriter Stage - Generate improved hypotheses based on critiques
+        logger.info(f"Starting rewriter stage - generating improved hypotheses based on critique feedback")
+        improved_hypotheses_dict = self.hypothesis_rewrite(
+            hypothesis_dict=hypothesis_dict,
+            critiques_dict=critiques_dict,
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+
         # Step 3: Select the best hypothesis
         # pickled_problem_name, new_hypothesis = self.hypothesis_rank(
         #     hypothesis_dict=hypothesis_dict,
@@ -988,7 +1029,7 @@ class DSProposalV2ExpGen(ExpGen):
             scenario_desc=scenario_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
-            hypothesis_candidates=hypothesis_dict,
+            hypothesis_candidates=improved_hypothesis_dict,
         )
         component_map = {
             "Model": HypothesisComponent.Model,
@@ -1005,6 +1046,7 @@ class DSProposalV2ExpGen(ExpGen):
             new_hypothesis = DSHypothesis(component=component_map[comp_str], hypothesis=hypo_str)
 
         pickled_problem_name = None
+        
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
@@ -1015,7 +1057,9 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
             hypotheses=(
-                [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(all_problems, hypothesis_dict)
+                [new_hypothesis]
+                if len(trace.hist) > 0
+                else self.get_all_hypotheses(all_problems, improved_hypotheses_dict)
             ),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
