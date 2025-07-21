@@ -225,6 +225,7 @@ class HypothesisList(BaseModel):
         description="A non-empty list of hypotheses proposed for the next iteration, each corresponding to one challenge. The list length should match the number of challenges."
     )
 
+
 class CodingSketch(BaseModel):
     current_state: str = Field(
         description="A summary of the current `main.py` script that serves as the baseline for the planned changes. Focusing on parts that are related to the hypothesis. If `main.py` does not yet exist (i.e., it will be created from scratch based on this sketch), use the string 'N/A'."
@@ -964,16 +965,14 @@ class DSProposalV2ExpGen(ExpGen):
 
         # Step 3: Select the best hypothesis from the improved hypotheses (without scoring)
         pickled_problem_name, new_hypothesis = self.select_hypothesis_simple(
-            hypothesis_dict=rewritten_hypothesis_dict,
-            problem_dict=improved_problems,
+            hypothesis_dict=improved_hypotheses_dict,
+            problem_dict=all_problems,
         )
-        logger.info(
-            f"Selected hypothesis: '{pickled_problem_name}' (rewritten: {improved_problems.get(pickled_problem_name, {}).get('rewritten', False)})"
-        )
+        logger.info(f"Selected hypothesis: '{pickled_problem_name}'")
 
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
-            trace.knowledge_base.update_pickled_problem(improved_problems, pickled_problem_name)
+            trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
 
         return self.task_gen(
             component_desc=component_desc,
@@ -983,7 +982,7 @@ class DSProposalV2ExpGen(ExpGen):
             hypotheses=(
                 [new_hypothesis]
                 if len(trace.hist) > 0
-                else self.get_all_hypotheses(improved_problems, rewritten_hypothesis_dict)
+                else self.get_all_hypotheses(all_problems, improved_hypotheses_dict)
             ),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
