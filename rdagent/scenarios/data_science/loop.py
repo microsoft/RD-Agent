@@ -200,6 +200,8 @@ class DataScienceRDLoop(RDLoop):
 
         exp: DSExperiment = None
 
+        cur_loop_id = prev_out[self.LOOP_IDX_KEY]
+
         e = prev_out.get(self.EXCEPTION_KEY, None)
         if e is None:
             exp = prev_out["running"]
@@ -210,18 +212,20 @@ class DataScienceRDLoop(RDLoop):
             # set the local selection to the trace as global selection, then set the DAG parent for the trace
             if exp.local_selection is not None:
                 self.trace.set_current_selection(exp.local_selection)
-            self.trace.sync_dag_parent_and_hist((exp, prev_out["feedback"]))
+            self.trace.sync_dag_parent_and_hist((exp, prev_out["feedback"]), cur_loop_id)
         else:
             exp: DSExperiment = prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"]
 
             # set the local selection to the trace as global selection, then set the DAG parent for the trace
             if exp.local_selection is not None:
                 self.trace.set_current_selection(exp.local_selection)
+
             self.trace.sync_dag_parent_and_hist(
                 (
                     exp,
                     ExperimentFeedback.from_exception(e),
-                )
+                ),
+                cur_loop_id,
             )
 
             if self.trace.sota_experiment() is None:
