@@ -57,16 +57,6 @@ class ParallelMultiTraceExpGen(ExpGen):
 
             if timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
 
-                if DS_RD_SETTING.enable_inject_knowledge_at_root:
-
-                    if len(trace.hist) == 0:
-                        # set the knowledge base option to True for the first trace
-                        DS_RD_SETTING.enable_knowledge_base = True
-
-                    else:
-                        # set the knowledge base option back to False for the other traces
-                        DS_RD_SETTING.enable_knowledge_base = False
-
                 if loop.get_unfinished_loop_cnt(loop.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
                     local_selection = await self.trace_scheduler.next(trace)
 

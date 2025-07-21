@@ -352,13 +352,6 @@ class ExpGen2TraceAndMergeV2(ExpGen):
         logger.info(f"Remain time: {timer.remain_time()}")
 
         if timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
-
-            if DS_RD_SETTING.enable_inject_knowledge_at_root:
-                if DS_RD_SETTING.knowledge_base_path is not None and DS_RD_SETTING.idea_pool_json_path is not None:
-                    if len(trace.hist) == 0:
-                        # set the knowledge base option to True for the first trace
-                        DS_RD_SETTING.enable_knowledge_base = True
-
             if DS_RD_SETTING.enable_multi_version_exp_gen:
                 exp_gen_version_list = DS_RD_SETTING.exp_gen_version_list.split(",")
                 for version in exp_gen_version_list:
@@ -407,16 +400,6 @@ class ExpGen2TraceAndMergeV3(ExpGen):
         logger.info(f"Remain time: {timer.remain_time()}")
 
         if timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
-
-            if DS_RD_SETTING.enable_inject_knowledge_at_root:
-
-                if len(trace.hist) == 0:
-                    # set the knowledge base option to True for the first trace
-                    DS_RD_SETTING.enable_knowledge_base = True
-
-                else:
-                    # set the knowledge base option back to False for the other traces
-                    DS_RD_SETTING.enable_knowledge_base = False
             return self.exp_gen.gen(trace)
         else:
             # disable reset in merging stage
