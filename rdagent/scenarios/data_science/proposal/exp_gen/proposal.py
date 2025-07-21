@@ -201,10 +201,6 @@ class HypothesisComponent(str, Enum):
     Workflow = "Workflow"
 
 
-
-
-
-
 class HypothesisDetail(BaseModel):
     caption: str = Field(description="The caption of the challenge it is based on.")
     challenge: str = Field(
@@ -228,28 +224,6 @@ class HypothesisList(BaseModel):
     hypotheses: List[HypothesisDetail] = Field(
         description="A non-empty list of hypotheses proposed for the next iteration, each corresponding to one challenge. The list length should match the number of challenges."
     )
-
-
-# Note: HypothesisCritique models removed since we use json_object mode for dynamic keys
-
-
-class SynthesizedHypothesis(BaseModel):
-    hypothesis_name: str = Field(description="Descriptive name for the new hypothesis (5-15 words).")
-    synthesized_hypothesis: str = Field(
-        description="The new hypothesis statement that combines insights from multiple original hypotheses."
-    )
-    synthesis_rationale: str = Field(
-        description="Explanation of how this new hypothesis combines insights from the original hypotheses and addresses their collective flaws."
-    )
-    component: HypothesisComponent = Field(description="The component tag of the synthesized hypothesis.")
-    source_insights: List[str] = Field(description="Brief descriptions of key insights taken from original hypotheses.")
-
-
-class SynthesizedHypothesesDict(BaseModel):
-    synthesized_hypotheses: List[SynthesizedHypothesis] = Field(
-        description="List of completely new hypotheses that synthesize insights from all original hypotheses."
-    )
-
 
 class CodingSketch(BaseModel):
     current_state: str = Field(
@@ -594,9 +568,7 @@ class DSProposalV2ExpGen(ExpGen):
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
             response_format=HypothesisList if self.supports_response_schema else {"type": "json_object"},
-            json_target_type=(
-                Dict[str, Dict[str, str]] if not self.supports_response_schema else None
-            ),
+            json_target_type=(Dict[str, Dict[str, str]] if not self.supports_response_schema else None),
         )
         if self.supports_response_schema:
             hypotheses = HypothesisList(**json.loads(response))
@@ -713,8 +685,6 @@ class DSProposalV2ExpGen(ExpGen):
         )
         return improved_hypotheses_dict
 
-
-
     def select_hypothesis_simple(
         self,
         hypothesis_dict: dict,
@@ -724,41 +694,39 @@ class DSProposalV2ExpGen(ExpGen):
         Simple hypothesis selection based on weighting rules without scoring.
         """
         hypothesis_names = [
-            problem_name 
-            for problem_name in hypothesis_dict 
-            if "hypothesis" in hypothesis_dict[problem_name]
+            problem_name for problem_name in hypothesis_dict if "hypothesis" in hypothesis_dict[problem_name]
         ]
-        
+
         if not hypothesis_names:
             raise ValueError("No valid hypotheses available for selection")
-        
+
         # Create weighted selection pool based on flags
         index_to_pick_pool_list = []
         for j, problem_name in enumerate(hypothesis_names):
             # Default weight is 1
             weight = 1
-            
+
             # Increase weight for inspired hypotheses
             if hypothesis_dict[problem_name].get("inspired", False):
                 weight += 2
-            
+
             # Adjust weight based on problem type
             if problem_dict[problem_name]["label"] == "SCENARIO_PROBLEM":
                 weight += self.scen_prob_multiplier
             elif problem_dict[problem_name]["label"] == "FEEDBACK_PROBLEM":
-                weight += (3 - self.scen_prob_multiplier)
-            
+                weight += 3 - self.scen_prob_multiplier
+
             index_to_pick_pool_list.extend([j] * weight)
-        
+
         logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
 
-        # Create a random but reproducible integer  
+        # Create a random but reproducible integer
         names_str = ",".join(hypothesis_names)
         reproducible_int = int.from_bytes(bytes.fromhex(md5_hash(names_str)), byteorder="big") % len(
             index_to_pick_pool_list
         )
         selected_idx = index_to_pick_pool_list[reproducible_int]
-        
+
         selected_problem_name = hypothesis_names[selected_idx]
         problem_data = problem_dict.get(selected_problem_name, {})
 
@@ -976,7 +944,7 @@ class DSProposalV2ExpGen(ExpGen):
         logger.info(f"Starting critic stage - evaluating {len(hypothesis_dict)} hypotheses for flaws and improvements")
         critiques_dict = self.hypothesis_critique(
             hypothesis_dict=hypothesis_dict,
-            problems_dict=all_problems, 
+            problems_dict=all_problems,
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
@@ -999,8 +967,10 @@ class DSProposalV2ExpGen(ExpGen):
             hypothesis_dict=rewritten_hypothesis_dict,
             problem_dict=improved_problems,
         )
-        logger.info(f"Selected hypothesis: '{pickled_problem_name}' (rewritten: {improved_problems.get(pickled_problem_name, {}).get('rewritten', False)})")
-        
+        logger.info(
+            f"Selected hypothesis: '{pickled_problem_name}' (rewritten: {improved_problems.get(pickled_problem_name, {}).get('rewritten', False)})"
+        )
+
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(improved_problems, pickled_problem_name)
@@ -1011,7 +981,9 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
             hypotheses=(
-                [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(improved_problems, rewritten_hypothesis_dict)
+                [new_hypothesis]
+                if len(trace.hist) > 0
+                else self.get_all_hypotheses(improved_problems, rewritten_hypothesis_dict)
             ),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,

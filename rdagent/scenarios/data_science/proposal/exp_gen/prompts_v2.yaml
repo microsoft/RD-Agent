@@ -654,7 +654,6 @@ output_format:
         "reason": "Explanation of how this rewritten hypothesis addresses the critique feedback and what specific improvements were made. Should be short with no more than two sentences.",
         "component": "The component tag of the hypothesis. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
         "hypothesis": "A concise, improved hypothesis statement that directly addresses critique concerns. Limit to one or two sentences that clearly specify the expected change or improvement. Should be more specific and actionable than the original.",
-        "problem": "The problem description of the rewritten hypothesis. Can be refined for clarity while keeping core focus."
       }
     }
 
