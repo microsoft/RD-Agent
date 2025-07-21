@@ -6,6 +6,8 @@ This will
 - autoamtically load dotenv
 """
 
+import sys
+
 from dotenv import load_dotenv
 
 load_dotenv(".env")
@@ -15,7 +17,7 @@ load_dotenv(".env")
 import subprocess
 from importlib.resources import path as rpath
 
-import fire
+import typer
 
 from rdagent.app.data_science.loop import main as data_science
 from rdagent.app.general_model.general_model import (
@@ -27,7 +29,9 @@ from rdagent.app.qlib_rd_loop.model import main as fin_model
 from rdagent.app.qlib_rd_loop.quant import main as fin_quant
 from rdagent.app.utils.health_check import health_check
 from rdagent.app.utils.info import collect_info
-from rdagent.log.mle_summary import grade_summary
+from rdagent.log.mle_summary import grade_summary as grade_summary
+
+app = typer.Typer()
 
 
 def ui(port=19899, log_dir="", debug=False, data_science=False):
@@ -57,19 +61,18 @@ def server_ui(port=19899):
     subprocess.run(["python", "rdagent/log/server/app.py", f"--port={port}"])
 
 
-def app():
-    fire.Fire(
-        {
-            "fin_factor": fin_factor,
-            "fin_factor_report": fin_factor_report,
-            "fin_model": fin_model,
-            "fin_quant": fin_quant,
-            "general_model": general_model,
-            "ui": ui,
-            "health_check": health_check,
-            "collect_info": collect_info,
-            "data_science": data_science,
-            "grade_summary": grade_summary,
-            "server_ui": server_ui,
-        }
-    )
+app.command(name="fin_factor")(fin_factor)
+app.command(name="fin_model")(fin_model)
+app.command(name="fin_quant")(fin_quant)
+app.command(name="fin_factor_report")(fin_factor_report)
+app.command(name="general_model")(general_model)
+app.command(name="data_science")(data_science)
+app.command(name="grade_summary")(grade_summary)
+app.command(name="ui")(ui)
+app.command(name="server_ui")(server_ui)
+app.command(name="health_check")(health_check)
+app.command(name="collect_info")(collect_info)
+
+
+if __name__ == "__main__":
+    app()

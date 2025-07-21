@@ -26,6 +26,14 @@ from rdagent.log.utils import (
 )
 from rdagent.oai.backend.litellm import LITELLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
+
+# Import necessary classes for the response format
+from rdagent.scenarios.data_science.proposal.exp_gen.proposal import (
+    CodingSketch,
+    HypothesisList,
+    ScenarioChallenges,
+    TraceChallenges,
+)
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 
@@ -229,6 +237,16 @@ def highlight_prompts_uri(uri):
 
 
 def llm_log_win(llm_d: list):
+    def to_str_recursive(obj):
+        if isinstance(obj, dict):
+            return {k: to_str_recursive(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [to_str_recursive(v) for v in obj]
+        elif isinstance(obj, tuple):
+            return tuple(to_str_recursive(v) for v in obj)
+        else:
+            return str(obj)
+
     for d in llm_d:
         if "debug_tpl" in d["tag"]:
             uri = d["obj"]["uri"]
@@ -244,7 +262,7 @@ def llm_log_win(llm_d: list):
                 with t2:
                     show_text(tpl, lang="django")
                 with t3:
-                    st.json(cxt)
+                    st.json(to_str_recursive(cxt))
         elif "debug_llm" in d["tag"]:
             system = d["obj"].get("system", None)
             user = d["obj"]["user"]
@@ -277,7 +295,7 @@ def llm_log_win(llm_d: list):
                     input_c, resp_c = st.columns(2)
                     key = hashlib.md5(resp.encode()).hexdigest()
                     with input_c:
-                        btc1, btc2 = st.columns(2)
+                        btc1, btc2, btc3 = st.columns(3)
                         trace_model = (
                             state.data.get("settings", {})
                             .get("LITELLM_SETTINGS", {})
@@ -298,6 +316,12 @@ def llm_log_win(llm_d: list):
                             index=[None, "low", "medium", "high"].index(trace_reasoning_effort),
                             key=key + "_reasoning_effort",
                         )
+                        rf = btc3.selectbox(
+                            "Response Format",
+                            options=[None, ScenarioChallenges, TraceChallenges, HypothesisList, CodingSketch],
+                            format_func=lambda x: x.__name__ if x else "None",
+                            key=key + "_response_format",
+                        )
                         json_mode = st.checkbox("JSON Mode", value=False, key=key + "_json_mode")
                         sys_p = input_c.text_area(label="system", value=system, height="content", key=key + "_system")
                         user_p = input_c.text_area(label="user", value=user, height="content", key=key + "_user")
@@ -309,14 +333,18 @@ def llm_log_win(llm_d: list):
                                         user_prompt=user_p,
                                         system_prompt=sys_p,
                                         json_mode=json_mode,
+                                        response_format=rf,
                                     )
                                 except Exception as e:
                                     resp_new = f"Error: {e}"
-                            try:
+                            try:  # json format string
                                 rdict = json.loads(resp_new)
                                 st.json(rdict)
                             except:
-                                st.code(resp_new, wrap_lines=True, line_numbers=True)
+                                try:  # common string
+                                    st.code(resp_new, wrap_lines=True, line_numbers=True)
+                                except:  # response format type
+                                    st.write(resp_new)
 
 
 def hypothesis_win(hypo):

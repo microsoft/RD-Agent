@@ -606,13 +606,22 @@ def trace_figure(trace: Trace):
     for i in range(len(trace.dag_parent)):
         levels[i] = len(trace.get_parents(i))
 
+    def get_display_name(idx: int):
+        """
+        Convert to index in the queue (enque id) to loop_idx for easier understanding.
+        """
+        if hasattr(trace, "idx2loop_id"):
+            # FIXME: only keep me after it is stable. Just for compatibility.
+            return f"L{trace.idx2loop_id[idx]}"
+        return f"L{idx}"
+
     # Add nodes and edges
     edges = []
     for i, parents in enumerate(trace.dag_parent):
         for parent in parents:
-            edges.append((f"L{parent}", f"L{i}"))
+            edges.append((get_display_name(parent), get_display_name(i)))
         if len(parents) == 0:
-            G.add_node(f"L{i}")
+            G.add_node(get_display_name(i))
     G.add_edges_from(edges)
 
     # Check if G is a path (a single line)
@@ -643,7 +652,7 @@ def trace_figure(trace: Trace):
         # Group nodes by number of ancestors, fewer ancestors are higher up
         layer_nodes = {}
         for idx, lvl in levels.items():
-            layer_nodes.setdefault(lvl, []).append(f"L{idx}")
+            layer_nodes.setdefault(lvl, []).append(get_display_name(idx))
 
         # Layout by level: y axis is -lvl, x axis is evenly distributed
         pos = {}

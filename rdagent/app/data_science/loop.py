@@ -1,7 +1,10 @@
 import asyncio
 from pathlib import Path
+from typing import Optional
 
 import fire
+import typer
+from typing_extensions import Annotated
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.utils import import_class
@@ -10,14 +13,15 @@ from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 
 
 def main(
-    path: str | None = None,
-    checkout: bool | str | Path = True,
-    step_n: int | None = None,
-    loop_n: int | None = None,
-    timeout: str | None = None,
+    path: Optional[str] = None,
+    checkout: Annotated[bool, typer.Option("--checkout/--no-checkout", "-c/-C")] = True,
+    checkout_path: Optional[str] = None,
+    step_n: Optional[int] = None,
+    loop_n: Optional[int] = None,
+    timeout: Optional[str] = None,
     competition="bms-molecular-translation",
     replace_timer=True,
-    exp_gen_cls: str | None = None,
+    exp_gen_cls: Optional[str] = None,
 ):
     """
 
@@ -26,12 +30,11 @@ def main(
     path :
         A path like `$LOG_PATH/__session__/1/0_propose`. This indicates that we restore the state after finishing step 0 in loop 1.
     checkout :
-        Used only when a path is provided.
-        Can be True, False, or a path.
-        Default is True.
+        Used to control the log session path. Boolean type, default is True.
         - If True, the new loop will use the existing folder and clear logs for sessions after the one corresponding to the given path.
         - If False, the new loop will use the existing folder but keep the logs for sessions after the one corresponding to the given path.
-        - If a path (or a str like Path) is provided, the new loop will be saved to that path, leaving the original path unchanged.
+    checkout_path:
+        If a checkout_path (or a str like Path) is provided, the new loop will be saved to that path, leaving the original path unchanged.
     step_n :
         Number of steps to run; if None, the process will run indefinitely until an error or KeyboardInterrupt occurs.
     loop_n :
@@ -52,6 +55,9 @@ def main(
         dotenv run -- python rdagent/app/data_science/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is an optional parameter
         rdagent kaggle --competition playground-series-s4e8  # This command is recommended.
     """
+    if not checkout_path is None:
+        checkout = Path(checkout_path)
+
     if competition is not None:
         DS_RD_SETTING.competition = competition
 
