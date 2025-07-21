@@ -11,7 +11,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, Generic, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
@@ -292,6 +292,14 @@ ASpecificWSForExperiment = TypeVar("ASpecificWSForExperiment", bound=Workspace)
 ASpecificWSForSubTasks = TypeVar("ASpecificWSForSubTasks", bound=Workspace)
 
 
+class ExperimentPlan(Dict[str, Any]):
+    """
+    A plan for the experiment, which is a dictionary that contains the plan to each stage.
+    """
+
+    pass
+
+
 class Experiment(
     ABC,
     Generic[ASpecificTask, ASpecificWSForExperiment, ASpecificWSForSubTasks],
@@ -337,6 +345,9 @@ class Experiment(
 
         # For parallel multi-trace support
         self.local_selection: tuple[int, ...] | None = None
+        self.plan: ExperimentPlan | None = (
+            None  # To store the planning information for this experiment, should be generated inside exp_gen.gen
+        )
 
     @property
     def result(self) -> object:
@@ -348,6 +359,7 @@ class Experiment(
 
 
 ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)
+ASpecificPlan = TypeVar("ASpecificPlan", bound=ExperimentPlan)
 
 TaskOrExperiment = TypeVar("TaskOrExperiment", Task, Experiment)
 
