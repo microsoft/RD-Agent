@@ -229,6 +229,13 @@ class HypothesisSimple(BaseModel):
     component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
 
 
+class HypothesisSimple(BaseModel):
+    hypothesis: str = Field(
+        description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
+    )
+    component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
+
+
 class HypothesisList(BaseModel):
     deduplicated_challenges: List[str] = Field(
         description="A list of deduplicated challenge captions. Each must retain its original wording. If multiple captions are semantically identical, keep the first one."
@@ -869,6 +876,20 @@ class DSProposalV2ExpGen(ExpGen):
             exp.pending_tasks_list.append([workflow_task])
         return exp
 
+    def get_scenario_all_desc(self, trace: DSTrace, eda_output=None) -> str:
+        return T(".prompts_v2:scenario_description").r(
+            background=trace.scen.background,
+            submission_specifications=trace.scen.submission_specifications,
+            evaluation=trace.scen.metric_description,
+            metric_name=trace.scen.metric_name,
+            metric_direction=trace.scen.metric_direction,
+            raw_description=trace.scen.raw_description,
+            use_raw_description=DS_RD_SETTING.use_raw_description,
+            time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
+            ensemble_limit=f"{DS_RD_SETTING.ensemble_timeout / 60 / 60 : .2f} hours",
+            eda_output=eda_output,
+        )
+
     def get_all_hypotheses(self, problem_dict: dict, hypothesis_dict: dict) -> list[DSHypothesis]:
         result = []
         for name, data in hypothesis_dict.items():
@@ -986,6 +1007,7 @@ class DSProposalV2ExpGen(ExpGen):
                 for name in pop_names:
                     hypothesis_dict.pop(name)
 
+
         # Step 2.1: Critic Stage - Evaluate and identify flaws in hypotheses
         logger.info(f"Starting critic stage - evaluating {len(hypothesis_dict)} hypotheses for flaws and improvements")
         critiques_dict = self.hypothesis_critique(
@@ -1007,17 +1029,13 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         # Step 3: Select the best hypothesis
-        # pickled_problem_name, new_hypothesis = self.hypothesis_rank(
-        #     hypothesis_dict=hypothesis_dict,
-        #     problem_dict=  all_problems,
-        # )
-
         response_dict = self.hypothesis_select_with_llm(
             scenario_desc=scenario_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
             hypothesis_candidates=improved_hypotheses_dict,
         )
+
         component_map = {
             "Model": HypothesisComponent.Model,
             "Ensemble": HypothesisComponent.Ensemble,
