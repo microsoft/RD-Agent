@@ -1,13 +1,11 @@
+import asyncio
 import json
+import re
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 from pydantic import BaseModel, Field
-from rdagent.oai.backend.base import RD_Agent_TIMER_wrapper
-from rdagent.log.timer import RDAgentTimer
-from rdagent.core.conf import RD_AGENT_SETTINGS
-import asyncio
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
@@ -16,9 +14,12 @@ from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.timer import RDAgentTimer
+from rdagent.oai.backend.base import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.feedback import ExperimentFeedback
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -30,7 +31,6 @@ from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
-import re
 
 _COMPONENT_META: Dict[str, Dict[str, Any]] = {
     "DataLoadSpec": {
@@ -583,8 +583,6 @@ class DSProposalV2ExpGen(ExpGen):
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             hypothesis_output_format=(
                 T(".prompts_v2:output_format.hypothesis").r(pipeline=pipeline, enable_idea_pool=enable_idea_pool)
-                if not self.supports_response_schema
-                else None
             ),
             pipeline=pipeline,
             enable_idea_pool=enable_idea_pool,
@@ -600,30 +598,10 @@ class DSProposalV2ExpGen(ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=HypothesisList if self.supports_response_schema else {"type": "json_object"},
-            json_target_type=(
-                Dict[str, Dict[str, str | Dict[str, str | int]]] if not self.supports_response_schema else None
-            ),
+            response_format={"type": "json_object"},
+            json_target_type=Dict[str, Dict[str, str | Dict[str, str | int]]],
         )
-        if self.supports_response_schema:
-            hypotheses = HypothesisList(**json.loads(response))
-            resp_dict = {
-                h.caption: {
-                    "reason": h.challenge,
-                    "component": h.component,
-                    "hypothesis": h.hypothesis,
-                    "evaluation": {
-                        "alignment_score": h.evaluation.alignment.score,
-                        "impact_score": h.evaluation.impact.score,
-                        "novelty_score": h.evaluation.novelty.score,
-                        "feasibility_score": h.evaluation.feasibility.score,
-                        "risk_reward_balance_score": h.evaluation.risk_reward_balance.score,
-                    },
-                }
-                for h in hypotheses.hypotheses
-            }
-        else:
-            resp_dict = json.loads(response)
+        resp_dict = json.loads(response)
         logger.info(f"Generated hypotheses:\n" + json.dumps(resp_dict, indent=2))
 
         # make sure the problem name is aligned
