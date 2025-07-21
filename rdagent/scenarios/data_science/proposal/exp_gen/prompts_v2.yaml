@@ -141,8 +141,9 @@ hypothesis_gen:
       - If there is no SOTA implementation yet (i.e., you are drafting the first implementation based on a foundational Challenge identified in the previous step), your primary hypothesis should focus on developing a baseline model that directly addresses the foundational Challenge and can run to completion reliably.
       - This initial hypothesis should define the core data processing, feature engineering, model choice, and submission generation steps in a clear and executable way. Avoid introducing unnecessary complexity in the first version, but you are not restricted to overly simple models—a reasonable, competitive baseline is acceptable as long as it is likely to run reliably.
     3. **Actionable Changes**:
-      - If a Challenge involves underperforming models (e.g., in an ensemble), propose specific actions like removing or replacing those models.
-      - If a Challenge relates to hyperparameter tuning, specify a definitive method or strategy such as "Use Optuna to perform hyperparameter tuning on the LightGBM model to address the suboptimal hyperparameter challenge."
+      - If a Challenge involves underperforming models, propose specific actions like removing or replacing those models.
+      - If a Challenge relates to hyperparameter tuning, recommend a specific method or strategy (e.g., "Use Optuna to perform hyperparameter tuning on the LightGBM model to address the 'suboptimal hyperparameter' challenge").
+
       - If a Challenge points to data loading, preprocessing, or submission format errors, the hypothesis must detail the exact changes required to rectify these issues.
     {% if enable_idea_pool %}
     4. **Idea Reference**: Provided ideas are methods, techniques, or tricks from high-performing implementations in other competitions addressing similar problems. Use them as inspiration if you find them suitable for the current Challenge.
@@ -180,7 +181,6 @@ hypothesis_gen:
       - **`DataLoadSpec`**: Responsible for loading raw competition data, ensuring data is converted to the correct types, and potentially providing an initial exploratory data analysis (EDA) summary. (e.g., fixing `zipfile.BadZipFile` by improving loading logic).
       - **`FeatureEng`**: Focuses on transforming raw data into meaningful features suitable for model consumption. Key responsibilities include maintaining data shape consistency, preventing data leakage during feature creation, and optimizing features for model performance. Feature engineering should be model-agnostic.
       - **`Model`**: Involves model building (developing new models to address the problem), model tuning (optimizing existing models for better performance), or model removal. This component also handles data operations or augmentations closely tied to a specific model framework (e.g., PyTorch `Datasets` & `DataLoaders`, TensorFlow `tf.data`, or fixing CUDA label errors by ensuring correct label mapping before loss calculation).
-      - **`Ensemble`**: Combines predictions from multiple models using various ensemble strategies.
       - **`Workflow`**: Integrates all pipeline components, orchestrating the flow from data loading through to final output generation (e.g., correcting `submission.csv` column names or structure, managing overall pipeline execution logic for efficiency).
 
 
@@ -190,7 +190,7 @@ hypothesis_gen:
     1. Check the previous experiments and feedbacks to find the problems that are not covered by the previous experiments.
     2. Check the current SOTA implementation and feedback to find the problems that are not covered by the current SOTA implementation.
     3. Think out of the box and explore the hypothesis that are not covered by the previous experiments and feedbacks, but are reasonable and aligned with the identified problems. 
-    4. Do not do incremental exploration on the previous problems, like lightgbm -> xgboost, or 1dCNN -> 2dCNN. Totally different hypothesis on model\data\feature\ensemble\workflow level are welcomed.
+    4. Do not do incremental exploration on the previous problems, like lightgbm -> xgboost, or 1dCNN -> 2dCNN. Totally different hypothesis on model\data\feature\workflow level are welcomed.
     {% endif %}
     
     {% if hypothesis_output_format is not none %}
@@ -210,6 +210,72 @@ hypothesis_gen:
 
     # Identified Challenges{% if enable_idea_pool %} with Sampled Ideas{% endif %}
     {{ problems }}
+
+hypothesis_select:
+  system: |-
+    You are a Kaggle Grandmaster with deep expertise in model evaluation and decision making. Based on the given example, please select the most appropriate hypothesis from the candidates. 
+    These hypotheses are sourced from `model/data/feature/workflow`. Choose the one that best matches the intent or logic of the prompt. 
+    Alternatively, if you determine that ensemble is the best option, you may propose a **ensemble hypothesis** (not present in the candidates), as long as it aligns with the runtime and training constraints.  
+    You are given the following hypothesis candidates:
+    {{ hypothesis_candidates }}
+    If multiple hypotheses seem reasonable, select the one that is most robust or consistent with Previous Experiments and Feedbacks, pay attention to the runtime of each loop.
+
+    If you believe that previous methods have reached their limits and the current setting only involves a single model, feel free to propose an ensemble solution. However, you **must** carefully allocate the training and runtime budget to ensure the **ensemble logic is well-executed and evaluated**, without compromising the performance of the previous models.
+    
+    ### 1. Ensemble Core Principle
+    Your goal is not just to tune individual models, but to build an **effective ensemble**. Make design decisions that lead to **strong overall ensemble performance**, not just strong base models.
+    Please note: you are operating under a time budget dedicated to ensemble training of {{res_time}} seconds, and the maximum allowed time is {{ensemble_timeout}} seconds.
+    {{use_ratio}}% of the total ensemble time has been used.
+    Please note: you are operating under a time budget dedicated to ensemble training of {{res_time}} seconds, and the maximum allowed time is {{ensemble_timeout}} seconds.  
+    {{use_ratio}}% of the total ensemble time has been used.
+
+    {% if use_ratio >= 70 %}
+    As this exceeds the 70% threshold, you are advised to **stop exploring individual model/feature/workflow hypotheses**.  
+    Instead, please focus on **designing a final ensemble hypothesis** that effectively leverages and combines the most promising components based on the historical performance of your previous trials.  
+    Use insights from earlier experiments (including successful models, valuable features, and workflows) to create a robust ensemble that captures their collective strength.
+    {% else %}
+    Please continue selecting the most promising hypothesis from the candidates to enhance your current code.
+    {% endif %}
+
+    Please take the remaining {{res_time}} seconds to carefully consider and design the most reasonable and optimal ensemble hypothesis based on your current progress.
+    Assume training a single model takes about 1 hour. For example, if you have roughly twice that time left, you can try training multiple models with different random seeds or data splits to reuse time effectively.
+    If you have more time, you might consider training a multi-fold ensemble. Use your judgment to decide how many folds or seeds fit within your remaining time budget.
+
+    ### 2. Training-Time Resource Allocation
+    - You may use **multiple folds** if justified, but you must **ensure the full pipeline completes within runtime limits**.
+    - Avoid reducing base model quality just to save time. For example:
+      - Freezing large parts of the model (e.g., embeddings)
+      - Using only embedding-level regression instead of full modeling
+      - Using extreme simplifications like LoRA or tiny backbones if they degrade performance
+
+    ### 3. Expectation on Ensemble Design
+    - Implement an ensemble strategy that **improves performance**.
+      This can be as simple as training the same model with different random seeds or data splits and averaging the outputs.
+      More advanced methods like stacking or blending are optional and can be used if beneficial.
+      Choose a practical and reliable ensemble approach within the available time and resources.
+    - Consider the resource budget as a whole: a strong ensemble depends on both good base models and effective combination.
+
+    ### 4. Final Reminder
+    You have full access to the training code, task definition, and previous results.
+    You should weigh trade-offs thoughtfully and pick a design that **maximizes ensemble performance without shortcuts** that hurt model quality or cause timeout.
+    - The current time budget is sufficient for thorough training and ensemble.
+    - If you believe the existing single-model code is already good, avoid large modifications.
+    - Avoid overly strict constraints; focus on **effectively using available time** to build a **robust ensemble**.
+
+    {% if hypothesis_output_format is not none %}
+    ## Final Output Format in JSON Schema:
+    {{ hypothesis_output_format }}
+    {% endif %}
+  
+  user: |- 
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Previous Experiments and Feedbacks
+    {{ exp_and_feedback_list_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
 
 hypothesis_critique:
   system: |-
@@ -419,12 +485,34 @@ task_gen:
       - Double-check that validation scores are saved correctly to `scores.csv` with specified 'Model' and metric columns, even for a single model run (include 'ensemble' row).
     8. **EDA improvement**: The user might provide you some EDA improvement suggestions based on the previous EDA output. If so, you should also include the EDA improvement in your sketch.
 
+    # Guidelines for Ensemble Implementation
+      You must carefully allocate the training and runtime budget to ensure the **ensemble logic is well-executed and evaluated**, without compromising model performance.
+      ### 1. Core Principle
+      Your goal is not just to tune individual models, but to build an **effective ensemble**. Make design decisions that lead to **strong overall ensemble performance**, not just strong base models.
+      ### 2. Training-Time Resource Allocation
+      - You may use **multiple folds** if justified, but you must **ensure the full pipeline completes within runtime limits**.
+      - Avoid reducing base model quality just to save time. For example:
+        -  Freezing large parts of the model (e.g., embeddings)
+        -  Using only embedding-level regression instead of full modeling
+        -  Using extreme simplifications like LoRA or tiny backbones if they degrade performance
+      ### 3. Expectation on Ensemble Design
+      - Implement an ensemble strategy that improves performance.
+        This can be as simple as training the same model with different random seeds or data splits and averaging the outputs.
+        More advanced methods like stacking or blending are optional and can be used if beneficial.
+        Feel free to choose a practical and reliable ensemble approach within the available time and resources.
+      - Consider the resource budget as a whole: a strong ensemble depends on both good base models and effective combination.
+      ### 4. Final Reminder
+      You have full access to the training code, task definition, and previous results.
+      You should weigh trade-offs thoughtfully and pick a design that maximizes ensemble performance without shortcuts that hurt model quality or cause timeout.
+      - The current time budget is sufficient for thorough training and ensemble.
+      - If you believe the existing single-model code is already good, avoid large modifications.
+      - Avoid overly strict constraints; focus on effectively using available time to build a robust ensemble.
+      
     # Hyperparameters Specification
     Follow the hyperparameters specification below when approaching hyperparameter selection.
     If you are confident in a specific value based on strong evidence, prior experiments, or clear rationale, specify the value clearly.
     {% include "scenarios.data_science.share:spec.hyperparameter" %}
 
-    
     {% if task_output_format is not none %}
 
     # Output Format
@@ -455,6 +543,10 @@ task_gen:
     {% endif %}
     {% endif %}
     
+
+
+
+
   user: |-
     # Competition Scenario Description
     {{ scenario_desc }}
@@ -469,8 +561,6 @@ task_gen:
     This sketch should implement the following hypotheses:
 
     {% for hypothesis in hypotheses %}
-    ## {{ hypothesis.problem_name }}
-    **Why:** {{ hypothesis.problem_desc }}
     **Hypothesis:** {{ hypothesis.hypothesis }}
 
     {% endfor %}
@@ -586,5 +676,15 @@ output_format:
       }
     }
 
+  hypothesis_select_format: |- 
+    Choose the best hypothesis from the provided hypothesis candidates {{ hypothesis_candidates }}.  
+    You must return a dictionary in the following format **for each selected hypothesis**:
 
+    {
+      "hypothesis": "...",  
+      "component": "..."  // Must be one of: 'DataLoadSpec', 'FeatureEng', 'Model', 'Workflow'
+    }
+
+    The **"hypothesis"** must be selected **from the provided hypothesis candidates** (do not generate new ones),  
+    **except** when you choose `"component": "Ensemble"`, in which case you should write your **own hypothesis**.
 

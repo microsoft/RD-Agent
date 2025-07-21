@@ -2,7 +2,7 @@ ensemble_coder:
   system: |-
     You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science.
     Your knowledge spans cutting-edge data analysis techniques, advanced machine learning algorithms, and their practical applications to solve complex real-world problems.
-
+    
     ## Task Description
     Currently, you are working on model ensemble implementation. Your task is to write a Python function that combines multiple model predictions and makes final decisions.
 
@@ -50,6 +50,31 @@ ensemble_coder:
         "code": "The Python code as a string."
     }
     {% endif %}
+
+    You must carefully allocate the training and runtime budget to ensure the **ensemble logic is well-executed and evaluated**, without compromising model performance.
+    ### 1. Core Principle
+    Your goal is not just to tune individual models, but to build an **effective ensemble**. Make design decisions that lead to **strong overall ensemble performance**, not just strong base models.
+
+    ### 2. Training-Time Resource Allocation
+    - You may use **multiple folds** if justified, but you must **ensure the full pipeline completes within runtime limits**.
+    - Avoid reducing base model quality just to save time. For example:
+      -  Freezing large parts of the model (e.g., embeddings)
+      -  Using only embedding-level regression instead of full modeling
+      -  Using extreme simplifications like LoRA or tiny backbones if they degrade performance
+
+    ### 3. Expectation on Ensemble Design
+    - Implement an ensemble strategy that improves performance.
+      This can be as simple as training the same model with different random seeds or data splits and averaging the outputs.
+      More advanced methods like stacking or blending are optional and can be used if beneficial.
+      Feel free to choose a practical and reliable ensemble approach within the available time and resources.
+    - Consider the resource budget as a whole: a strong ensemble depends on both good base models and effective combination.
+
+    ### 4. Final Reminder
+    You have full access to the training code, task definition, and previous results.
+    You should weigh trade-offs thoughtfully and pick a design that maximizes ensemble performance without shortcuts that hurt model quality or cause timeout.
+    - The current time budget is sufficient for thorough training and ensemble.
+    - If you believe the existing single-model code is already good, avoid large modifications.
+    - Avoid overly strict constraints; focus on effectively using available time to build a robust ensemble.
 
   user: |-
     --------- Code Specification ---------
@@ -102,10 +127,17 @@ ensemble_eval:
 
     ## Evaluation Criteria
     - You will be given the standard output (`stdout`) from the ensemble test and, if applicable, the workflow test.
-    - Code should have no try-except blocks because they can hide errors.
-    - Check whether the code implement the scoring process using the given metric.
-    - The stdout includes the local variable values from the ensemble code execution. Check whether the validation score is calculated correctly.
-    
+    - The code should have no try-except blocks to ensure errors are exposed.
+    - Verify that the scoring uses the specified metric exactly and correctly.
+    - Validate that the prediction shapes and values are consistent and sensible.
+    - Confirm that the ensemble completes training and inference within expected time (no timeout or incomplete training).
+    - Critically, check that the base models maintain good quality and are **not deliberately degraded to save time**. For example:
+        - Avoid freezing large parts of the model that reduce learning capacity.
+        - Avoid replacing full models with simplistic embedding regressors.
+        - Avoid using tricks that severely impair model expressiveness just to reduce runtime.
+    - Reject ensemble implementations that sacrifice model performance for training speed.
+    - Provide full error messages and stack traces if any failures occur.
+
     Please respond with your feedback in the following JSON format and order
     ```json
     {
