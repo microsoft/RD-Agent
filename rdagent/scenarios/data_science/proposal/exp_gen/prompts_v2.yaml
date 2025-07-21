@@ -276,8 +276,6 @@ hypothesis_select:
     Your goal is not just to tune individual models, but to build an **effective ensemble**. Make design decisions that lead to **strong overall ensemble performance**, not just strong base models.
     Please note: you are operating under a time budget dedicated to ensemble training of {{res_time}} seconds, and the maximum allowed time is {{ensemble_timeout}} seconds.
     {{use_ratio}}% of the total ensemble time has been used.
-    Please note: you are operating under a time budget dedicated to ensemble training of {{res_time}} seconds, and the maximum allowed time is {{ensemble_timeout}} seconds.  
-    {{use_ratio}}% of the total ensemble time has been used.
 
     {% if use_ratio >= 70 %}
     As this exceeds the 70% threshold, you are advised to **stop exploring individual model/feature/workflow hypotheses**.  
