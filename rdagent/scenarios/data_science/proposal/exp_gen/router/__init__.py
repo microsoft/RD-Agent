@@ -47,7 +47,6 @@ class ParallelMultiTraceExpGen(ExpGen):
         self.draft_exp_gen = DSDraftV2ExpGen(self.scen)
         self.merge_exp_gen = ExpGen2Hypothesis(self.scen)
         self.trace_scheduler: TraceScheduler = RoundRobinScheduler(DS_RD_SETTING.max_trace_num)
-        self.planner: ExpPlanner | None = None
         self.planner = import_class(DS_RD_SETTING.planner)(self.scen)
 
     def gen(
