@@ -44,7 +44,7 @@ describe: # some template to describe some object
 
   trace: |-
     {% if exp_and_feedback_list|length == 0 %}
-    No previous {% if type == "success" %}SOTA{% elif type == "failure" %}failed{% endif %} experiments available.
+    No previous {% if type == "success" %}SOTA{% elif type == "failed" %}failed{% endif %} experiments available.
     {% else %}
     {% for exp_and_feedback in exp_and_feedback_list %}
     ## Experiment Index: {{ loop.index }}
