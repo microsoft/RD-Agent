@@ -138,14 +138,7 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         # Ignore the selection argument and use all leaves instead.
-        leaves: list[int] = trace.get_leaves()
-        sota_selection = (leaves[0],)
-        if trace.sota_exp_to_submit is not None:
-            for i in range(1, len(leaves)):
-                if trace.is_parent(trace.exp2idx(trace.sota_exp_to_submit), leaves[i]):
-                    sota_selection = (leaves[i],)
-                    break
-        sota_exp_fb = trace.sota_experiment_fb(selection=sota_selection)
+        sota_exp_fb = trace.sota_experiment_fb(selection=trace.current_selection)
 
         if sota_exp_fb:
             sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
@@ -159,8 +152,9 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
 
         trace_fbs = []
         # find the best exp to merge
+        leaves: list[int] = trace.get_leaves()
         for leaf in leaves:
-            if leaf == sota_selection[0]:
+            if leaf == trace.current_selection[0]:
                 continue
 
             trace_fbs.append(
