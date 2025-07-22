@@ -91,7 +91,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
 
                     new_sota_exp_fb_list.extend(sota_exp_fb_list_per_trace)
 
-                sota_exp_fb_list = new_sota_exp_fb_list
+                sota_exp_fb_list = list(set(new_sota_exp_fb_list))
 
                 if len(sota_exp_fb_list) == 0:
                     logger.info("Auto SOTA selector: No SOTA in trace yet")
@@ -102,7 +102,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                     return sota_exp_fb_list[0][0]
                 else:
                     logger.info(
-                        f"Auto SOTA selector: {len(sota_exp_fb_list)} SOTA experiments found in all traces, calling LLM to select the best one"
+                        f"Auto SOTA selector: select {len(sota_exp_fb_list)} of {len(new_sota_exp_fb_list)} SOTA experiments found in all traces, calling LLM to select the best one"
                     )
 
             for i, (exp, ef) in enumerate(sota_exp_fb_list):
