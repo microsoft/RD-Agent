@@ -172,8 +172,8 @@ class QlibQuantScenario(Scenario):
         factor_env = get_factor_env()
         model_env = get_model_env()
         implementation = FBWorkspace()
-        fname = "env_info.py"
-        implementation.inject_files(**{fname: (Path(__file__).absolute().resolve().parent / "env_info.py").read_text()})
+        fname = "runtime_info.py"
+        implementation.inject_files(**{fname: (Path(__file__).absolute().resolve().parent / "runtime_info.py").read_text()})
         factor_stdout = implementation.execute(env=factor_env, entry=f"python {fname}")
         model_stdout = implementation.execute(env=model_env, entry=f"python {fname}")
         stdout = factor_stdout + "\n" + model_stdout
