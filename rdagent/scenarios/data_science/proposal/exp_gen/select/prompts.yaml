@@ -15,8 +15,6 @@ auto_sota_selector:
 
     2. **Generalizability**
 
-      * When **valid scores are getting close**, consider the following factors:
-
         * **Data Diversity**: Solutions that leverage more diverse data or input modalities (e.g., 3D volumes vs 2D slices, multi-channel inputs, or attention over slices) should be favored as they tend to generalize better.
         * **Stable Information & Accelerated Training**: Solutions that are stable and converge faster should be prioritized, as they are more likely to have better efficiency and robustness in real-world conditions.
         * **Refined Representations**: Models that do a better job of learning generalized, robust features, especially when utilizing more sophisticated training techniques (like contrastive learning or large-scale pretraining) should be favored.
