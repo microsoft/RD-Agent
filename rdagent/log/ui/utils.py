@@ -598,7 +598,7 @@ def curve_figure(scores: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def trace_figure(trace: Trace):
+def trace_figure(trace: Trace, merge_loops: list = []):
     G = nx.DiGraph()
 
     # Calculate the number of ancestors for each node (root node is 0, more ancestors means lower level)
@@ -610,7 +610,7 @@ def trace_figure(trace: Trace):
         """
         Convert to index in the queue (enque id) to loop_idx for easier understanding.
         """
-        if hasattr(trace, "idx2loop_id"):
+        if hasattr(trace, "idx2loop_id") and idx in trace.idx2loop_id:
             # FIXME: only keep me after it is stable. Just for compatibility.
             return f"L{trace.idx2loop_id[idx]} ({idx})"
         return f"L{idx}"
@@ -684,7 +684,8 @@ def trace_figure(trace: Trace):
                 pos[node] = (x, y)
 
     fig, ax = plt.subplots(figsize=(8, 6))
-    nx.draw(G, pos, with_labels=True, arrows=True, node_color="skyblue", node_size=100, font_size=5, ax=ax)
+    color_map = ["tomato" if node in [get_display_name(idx) for idx in merge_loops] else "skyblue" for node in G]
+    nx.draw(G, pos, with_labels=True, arrows=True, node_color=color_map, node_size=100, font_size=5, ax=ax)
     return fig
 
 

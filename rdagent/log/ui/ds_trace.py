@@ -588,7 +588,15 @@ def summarize_win():
             final_trace_loop_id = max_id
             while "record" not in state.data[final_trace_loop_id]:
                 final_trace_loop_id -= 1
-            st.pyplot(trace_figure(state.data[final_trace_loop_id]["record"]["trace"]))
+            merge_loops = []
+            for loop_id in state.llm_data.keys():
+                if "direct_exp_gen" not in state.llm_data[loop_id]:
+                    continue
+                if "scenarios.data_science.proposal.exp_gen.merge:trace" in [
+                    i["obj"]["uri"] for i in state.llm_data[loop_id]["direct_exp_gen"]["no_tag"] if "uri" in i["obj"]
+                ]:
+                    merge_loops.append(loop_id)
+            st.pyplot(trace_figure(state.data[final_trace_loop_id]["record"]["trace"], merge_loops))
         df = pd.DataFrame(
             columns=[
                 "Component",
