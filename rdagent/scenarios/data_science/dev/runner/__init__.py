@@ -51,7 +51,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         if prev_task_feedback is None:
             # if no prev_task_feedback, it is the first loop; we do not make any changes and goto evaluators directly.
             return {}
-
+        pipeline_task_info = target_task.get_task_information()
         queried_similar_successful_knowledge = (
             queried_knowledge.task_to_similar_task_successful_knowledge[pipeline_task_info]
             if queried_knowledge is not None
@@ -77,6 +77,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             output_spec = PythonBatchEditOut.get_spec(with_del=False)
             extract_output_fn = PythonBatchEditOut.extract_output
 
+
         if prev_task_feedback.hyperparameter_tuning_decision:
             # Use system_refine for hyperparameter tuning
             system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
@@ -98,21 +99,33 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 diff_mode=self.settings.diff_mode,
             )
 
-        # Generate user prompt for both cases
+        # Multi-turn chat session
+        session = APIBackend().build_chat_session(
+            session_system_prompt=system_prompt,
+        )
+
+        # Code
         user_prompt = T(".prompts:DSCoSTEER.user").r(
             code=workspace.all_codes,
             feedback=prev_task_feedback,
             hyperparameter_tuning_suggestion=prev_task_feedback.hyperparameter_tuning_suggestion,
+            queried_similar_successful_knowledge=queried_similar_successful_knowledge,
+            queried_former_failed_knowledge=queried_former_failed_knowledge[0],
         )
-        resp = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt,
-            system_prompt=system_prompt,
+        code =  session.build_chat_completion(user_prompt=user_prompt)
+        code_batch_edit = extract_output_fn(code)
+        code_batch_edit = {k: v for k, v in code_batch_edit.items() if k in workspace.file_dict.keys()}
+
+        # Change Summary
+        user_prompt = (
+            "Based on the previous conversation and your latest code modifications, "
+            "please provide a concise and structured summary of the changes you made to the original code. "
+            "Clearly specify what was changed and how, focusing on key modifications. "
+            "Limit your summary to plain text, no more than three sentences."
         )
-        batch_edit = extract_output_fn(resp["code"])
-
-        batch_edit = {k: v for k, v in batch_edit.items() if k in workspace.file_dict.keys()}
-
-        return batch_edit
+        change_summary = session.build_chat_completion(user_prompt=user_prompt)
+        code_batch_edit.update({"__change_summary__": change_summary})
+        return code_batch_edit
 
     def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
         """

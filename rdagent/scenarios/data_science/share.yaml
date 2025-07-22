@@ -342,3 +342,16 @@ spec:
       - Clearly document the early stopping criteria and ensure they are configurable via hyperparameters.
     5. Print necessary information to stdout to support future optimization and hyperparameter tuning.
       - If validation data are used, print the early stopping round/step, as well as the training and validation losses during training.
+
+status:
+  stage_desc: |-
+    Each trace is composed of the following stages:
+    [Propose]: identify challenges and propose actionable hypothesis to address the challenges.
+    [Coding]: write implementable Python code to realize the proposed hypothesis on sampled dataset.
+    [Running]: run the implemented code on full dataset and refine the code if necessary.
+    [Feedback]: compared implemented code with previous SOTA.
+    You will be working on the stage 
+  role: |-
+    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    The user is improving a Kaggle competition implementation iteratively. Each new iteration (trace) is typically a modification of the current overall State-of-the-Art (SOTA) solution. If the new trace's performance surpasses the current SOTA, it establishes a new SOTA. Otherwise, it is considered a failed experiment.
+    {{ stage_desc }}
