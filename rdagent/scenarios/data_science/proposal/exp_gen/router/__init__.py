@@ -15,7 +15,10 @@ from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.draft.draft import DSDraftV2ExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.merge import ExpGen2Hypothesis
-from rdagent.scenarios.data_science.proposal.exp_gen.planner import DSExperimentPlan
+from rdagent.scenarios.data_science.proposal.exp_gen.planner import (
+    DSExperimentPlan,
+    ExperimentPlan,
+)
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler import (
     RoundRobinScheduler,
@@ -47,7 +50,11 @@ class ParallelMultiTraceExpGen(ExpGen):
         self.planner: ExpPlanner | None = None
         self.planner = import_class(DS_RD_SETTING.planner)(self.scen)
 
-    def gen(self, trace: "DSTrace") -> "Experiment":
+    def gen(
+        self,
+        trace: "DSTrace",
+        plan: "ExperimentPlan" | None = None,
+    ) -> "Experiment":
         raise NotImplementedError(
             "ParallelMultiTraceExpGen is designed for async usage, please call async_gen instead."
         )

@@ -329,7 +329,11 @@ class HypothesisGen(ABC):
         self.scen = scen
 
     @abstractmethod
-    def gen(self, trace: Trace) -> Hypothesis:
+    def gen(
+        self,
+        trace: Trace,
+        plan: ExperimentPlan | None = None,
+    ) -> Hypothesis:
         # def gen(self, scenario_desc: str, ) -> Hypothesis:
         """
         Motivation of the variable `scenario_desc`:

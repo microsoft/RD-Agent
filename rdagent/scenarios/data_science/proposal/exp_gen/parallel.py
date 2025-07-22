@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.proposal import ExpGen
+from rdagent.core.proposal import ExperimentPlan, ExpGen
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
@@ -38,7 +38,11 @@ class ParallelMultiTraceExpGen(ExpGen):
         self.merge_exp_gen = ExpGen2Hypothesis(self.scen)
         self.trace_scheduler: TraceScheduler = RoundRobinScheduler(DS_RD_SETTING.max_trace_num)
 
-    def gen(self, trace: "DSTrace") -> "Experiment":
+    def gen(
+        self,
+        trace: "DSTrace",
+        plan: "ExperimentPlan" | None = None,
+    ) -> "Experiment":
         raise NotImplementedError(
             "ParallelMultiTraceExpGen is designed for async usage, please call async_gen instead."
         )
