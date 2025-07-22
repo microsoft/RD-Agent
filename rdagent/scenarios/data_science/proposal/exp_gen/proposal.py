@@ -295,8 +295,11 @@ def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None | DSDraft
 
 
 class DSProposalV1ExpGen(ExpGen):
-    def gen(self, trace: DSTrace,
-        plan: DSExperimentPlan | None = None,) -> DSExperiment:
+    def gen(
+        self,
+        trace: DSTrace,
+        plan: DSExperimentPlan | None = None,
+    ) -> DSExperiment:
         # Drafting Stage
         if draft_exp := draft_exp_in_decomposition(self.scen, trace):
             return draft_exp
