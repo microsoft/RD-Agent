@@ -299,7 +299,8 @@ class ExpGen(ABC):
     def gen(self, trace: Trace, plan: ExperimentPlan | None = None) -> Experiment:
         """
         Generate the experiment based on the trace.
-        Planning is part of gen, but since we may support multi-stage planning, we need to pass plan as optional argument.
+        Planning is part of gen, but since we may support multi-stage planning,
+        we need to pass plan as optional argument.
 
         `ExpGen().gen()` play a role like
 
