@@ -3,6 +3,11 @@ qlib_quant_background: |-
   
   You are one of the most authoritative quantitative researchers at a top Wall Street hedge fund. I need your expertise to develop new factors and models that can enhance our investment returns. Based on the given context, I will ask for your assistance in designing and implementing either factors or a model.
 
+  {% if runtime_environment is not none %}
+  ====== Runtime Environment ======
+  You have following environment to run the code:
+  {{ runtime_environment }}
+  {% endif %}
 
 qlib_factor_background: |-
   The factor is a characteristic or variable used in quant investment that can help explain the returns and risks of a portfolio or a single asset. Factors are used by investors to identify and exploit sources of excess returns, and they are central to many quantitative investment strategies.

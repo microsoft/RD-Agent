@@ -36,8 +36,8 @@ class FactorCoSTEERSettings(CoSTEERSettings):
 def get_factor_env(
     conf_type: Optional[str] = None,
     extra_volumes: dict = {},
-    running_timeout_period: int | None = 600,
-    enable_cache: bool | None = None,
+    running_timeout_period: int = 600,
+    enable_cache: Optional[bool] = None,
 ) -> Env:
     conf = FactorCoSTEERSettings()
     if hasattr(conf, "python_bin"):

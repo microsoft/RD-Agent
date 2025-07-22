@@ -45,7 +45,9 @@ class QlibQuantScenario(Scenario):
 
     def background(self, tag=None) -> str:
         assert tag in [None, "factor", "model"]
-        quant_background = "The background of the scenario is as follows:\n" + T(".prompts:qlib_quant_background").r()
+        quant_background = "The background of the scenario is as follows:\n" + T(".prompts:qlib_quant_background").r(
+            runtime_environment=self.get_runtime_environment(),
+        )
         factor_background = (
             "This time, I need your help with the research and development of the factor. The background of the factor scenario is as follows:\n"
             + T(".prompts:qlib_factor_background").r()
