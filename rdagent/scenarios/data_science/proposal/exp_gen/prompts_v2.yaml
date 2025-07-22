@@ -279,8 +279,8 @@ hypothesis_select:
     Please note: you are operating under a time budget dedicated to ensemble training of {{res_time}} seconds, and the maximum allowed time is {{ensemble_timeout}} seconds.  
     {{use_ratio}}% of the total ensemble time has been used.
 
-    {% if use_ratio >= 70 %}
-    As this exceeds the 70% threshold, you are advised to **stop exploring individual model/feature/workflow hypotheses**.  
+    {% if use_ratio >= 60 %}
+    As this exceeds the 60% threshold, you are advised to **stop exploring individual model/feature/workflow hypotheses**.  
     Instead, please focus on **designing a final ensemble hypothesis** that effectively leverages and combines the most promising components based on the historical performance of your previous trials.  
     Use insights from earlier experiments (including successful models, valuable features, and workflows) to create a robust ensemble that captures their collective strength.
     {% else %}
