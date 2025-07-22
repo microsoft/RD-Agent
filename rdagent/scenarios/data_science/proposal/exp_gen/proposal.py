@@ -629,6 +629,98 @@ class DSProposalV2ExpGen(ExpGen):
 
         return resp_dict
 
+    @wait_retry(retry_n=5)
+    def hypothesis_critique(
+        self,
+        hypothesis_dict: Dict,
+        problems_dict: Dict,
+        scenario_desc: str,
+        sota_exp_desc: str,
+        exp_feedback_list_desc: str,
+    ) -> Dict:
+        """
+        Critique the generated hypotheses, identifying flaws and suggesting improvements.
+        """
+        hypotheses_formatted = ""
+        for i, (problem_name, hypothesis_data) in enumerate(hypothesis_dict.items()):
+
+            problem_info = problems_dict.get(problem_name, {})
+            hypotheses_formatted += f"## {i+1}. **Problem Name:** {problem_name}\n"
+            hypotheses_formatted += f"**Original Problem:** {problem_info.get('problem', 'Not available')}\n"
+            hypotheses_formatted += f"**Component:** {hypothesis_data.get('component', 'Unknown')}\n"
+            hypotheses_formatted += f"**Hypothesis:** {hypothesis_data.get('hypothesis', 'Not provided')}\n"
+            hypotheses_formatted += f"**Reason:** {hypothesis_data.get('reason', 'Not provided')}\n\n"
+
+        sys_prompt = T(".prompts_v2:hypothesis_critique.system").r(
+            critique_output_format=T(".prompts_v2:output_format.critique").r(),
+        )
+        user_prompt = T(".prompts_v2:hypothesis_critique.user").r(
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+            hypotheses_formatted=hypotheses_formatted,
+        )
+
+        # Use json_object mode since hypothesis names are dynamic
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format={"type": "json_object"},
+            json_target_type=dict,
+        )
+
+        response_dict = json.loads(response)
+        critiques = response_dict.get("critiques", response_dict)
+
+        logger.info(f"Generated critiques for {len(critiques)} hypothesis")
+        return critiques
+
+    @wait_retry(retry_n=5)
+    def hypothesis_rewrite(
+        self,
+        hypothesis_dict: Dict,
+        critiques_dict: Dict,
+        scenario_desc: str,
+        sota_exp_desc: str,
+    ) -> Dict:
+        """
+        Generate improved hypotheses based on critique feedback for each original hypothesis.
+        Returns a dict with the same keys as hypothesis_dict, containing improved versions.
+        """
+        hypothesis_critique_pairs = ""
+        for i, problem_name in enumerate(hypothesis_dict.keys()):
+            hypothesis_data = hypothesis_dict[problem_name]
+            critique_data = critiques_dict.get(problem_name, {})
+
+            hypothesis_critique_pairs += f"## Original Hypothesis {i+1}: {problem_name}\n"
+            hypothesis_critique_pairs += f"**Hypothesis:** {hypothesis_data.get('hypothesis', 'Not provided')}\n"
+            hypothesis_critique_pairs += f"**Component:** {hypothesis_data.get('component', 'Unknown')}\n"
+            hypothesis_critique_pairs += f"**Reasoning:** {hypothesis_data.get('reason', 'Not provided')}\n"
+            hypothesis_critique_pairs += f"**Critique:** {critique_data.get('critique', 'No critique available')}\n\n"
+
+        sys_prompt = T(".prompts_v2:hypothesis_rewrite.system").r(
+            rewrite_output_format=T(".prompts_v2:output_format.rewrite").r(),
+        )
+        user_prompt = T(".prompts_v2:hypothesis_rewrite.user").r(
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            hypothesis_critique_pairs=hypothesis_critique_pairs,
+        )
+
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format={"type": "json_object"},
+            json_target_type=dict,
+        )
+
+        improved_hypotheses_dict = json.loads(response)
+
+        logger.info(
+            f"Generated rewritten versions of {len(improved_hypotheses_dict)} hypotheses based on critique feedback"
+        )
+        return improved_hypotheses_dict
+
     def compute_top_scores(
         self,
         hypothesis_dict: dict,
@@ -920,9 +1012,29 @@ class DSProposalV2ExpGen(ExpGen):
                 for name in pop_names:
                     hypothesis_dict.pop(name)
 
+        # Step 2.1: Critic Stage - Evaluate and identify flaws in hypotheses
+        logger.info(f"Starting critic stage - evaluating {len(hypothesis_dict)} hypotheses for flaws and improvements")
+        critiques_dict = self.hypothesis_critique(
+            hypothesis_dict=hypothesis_dict,
+            problems_dict=all_problems,
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+        )
+        logger.info(f"Generated critiques for {len(critiques_dict)} hypotheses")
+
+        # Step 2.2: Rewriter Stage - Generate improved hypotheses based on critiques
+        logger.info(f"Starting rewriter stage - generating improved hypotheses based on critique feedback")
+        improved_hypotheses_dict = self.hypothesis_rewrite(
+            hypothesis_dict=hypothesis_dict,
+            critiques_dict=critiques_dict,
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+
         # Step 3: Select the best hypothesis
         pickled_problem_name, new_hypothesis = self.hypothesis_rank(
-            hypothesis_dict=hypothesis_dict,
+            hypothesis_dict=improved_hypotheses_dict,
             problem_dict=all_problems,
         )
         # Step 3.5: Update knowledge base with the picked problem
@@ -935,7 +1047,9 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
             hypotheses=(
-                [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(all_problems, hypothesis_dict)
+                [new_hypothesis]
+                if len(trace.hist) > 0
+                else self.get_all_hypotheses(all_problems, improved_hypotheses_dict)
             ),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
