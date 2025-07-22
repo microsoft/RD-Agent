@@ -2,6 +2,7 @@ from copy import deepcopy
 from pathlib import Path
 
 # Factor
+from rdagent.components.coder.factor_coder.config import get_factor_env
 from rdagent.components.coder.factor_coder.factor import (
     FactorExperiment,
     FactorFBWorkspace,
@@ -9,12 +10,13 @@ from rdagent.components.coder.factor_coder.factor import (
 )
 
 # Model
+from rdagent.components.coder.model_coder.conf import get_model_env
 from rdagent.components.coder.model_coder.model import (
     ModelExperiment,
     ModelFBWorkspace,
     ModelTask,
 )
-from rdagent.core.experiment import Task
+from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
 from rdagent.scenarios.qlib.experiment.utils import get_data_folder_intro
 from rdagent.scenarios.qlib.experiment.workspace import QlibFBWorkspace
@@ -165,3 +167,14 @@ class QlibQuantScenario(Scenario):
             return common_description("model") + interface("model") + output("model") + simulator("model")
         elif action == "factor" or action == "model":
             return common_description(action) + interface(action) + output(action) + simulator(action)
+
+    def get_runtime_environment(self) -> str:
+        factor_env = get_factor_env()
+        model_env = get_model_env()
+        implementation = FBWorkspace()
+        fname = "env_info.py"
+        implementation.inject_files(**{fname: (Path(__file__).absolute().resolve().parent / "env_info.py").read_text()})
+        factor_stdout = implementation.execute(env=factor_env, entry=f"python {fname}")
+        model_stdout = implementation.execute(env=model_env, entry=f"python {fname}")
+        stdout = factor_stdout + "\n" + model_stdout
+        return stdout
