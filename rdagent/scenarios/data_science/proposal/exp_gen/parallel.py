@@ -93,12 +93,7 @@ class ParallelMultiTraceExpGen(ExpGen):
                         trace.set_current_selection(selection=(-1,))
                         return self.exp_gen.gen(trace)
                     else:
-                        local_selection = (leaves[0],)
-                        if trace.sota_exp_to_submit is not None:
-                            for i in range(1, len(leaves)):
-                                if trace.is_parent(trace.exp2idx(trace.sota_exp_to_submit), leaves[i]):
-                                    local_selection = (leaves[i],)
-                                    break
+                        local_selection = await self.trace_scheduler.next(trace)
                         trace.set_current_selection(local_selection)
                         exp = self.merge_exp_gen.gen(trace)
                         exp.set_local_selection(local_selection)
