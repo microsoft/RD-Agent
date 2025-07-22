@@ -1,4 +1,3 @@
-import re
 from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend

@@ -604,4 +604,3 @@ output_format:
 
     The **"hypothesis"** must be selected **from the provided hypothesis candidates** (do not generate new ones),  
     **except** when you choose `"component": "Ensemble"`, in which case you should write your **own hypothesis**.
-
