@@ -71,7 +71,7 @@ scen:  # customizable
     You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
   input_path: "./workspace_input/"
   cache_path: "./workspace_cache/"
-  pipeline_desc: |-
+  status_desc: |-
     You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
     The user is iteratively improving a Kaggle competition solution. Each new iteration (trace) typically modifies the current State-of-the-Art (SOTA) solution. If the new trace outperforms the current SOTA, it becomes the new SOTA; otherwise, it is considered a failed experiment.
     Each trace consists of the following stages:
