@@ -67,8 +67,8 @@ class DataScienceScen(Scenario):
         Generates a description of the current scenario status including stage details and timing information.
         
         Args:
-            stage (str): one of [Propose, Coding, Running, Feedback]
-            **kwargs: additional keyword arguments to be passed to the stage description
+            stage (str): One of [Propose, Coding, Running, Feedback]
+            **kwargs: Additional keyword arguments to be passed to the stage description
             
         Example:
             describe_current_status("Running", step="evaluator", max_loop=3, cur_loop=1)
