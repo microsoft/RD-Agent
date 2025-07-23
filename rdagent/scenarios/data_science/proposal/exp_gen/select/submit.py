@@ -39,6 +39,8 @@ class AutoSOTAexpSelector(SOTAexpSelector):
         self,
     ):
         print(f"Using auto SOTA policy")
+        self.dropped_pool: set[tuple[DSExperiment, ExperimentFeedback]] = set()
+        self.dropped_pool_threshold = 6
 
     @wait_retry(retry_n=5)
     def get_sota_exp_to_submit(self, trace: Trace) -> DSExperiment | None:
@@ -76,7 +78,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                 # multiple trace case, collect the latest SOTA experiments from each trace
                 new_sota_exp_fb_list: list[tuple[DSExperiment, ExperimentFeedback]] = []
                 # calculate the number of SOTA experiments to retrieve from each trace, prevent it from becoming zero
-                max_sota_retrieved_num_per_trace = max(DS_RD_SETTING.max_sota_retrieved_num // len(leaves), 2)
+                max_sota_retrieved_num_per_trace = max(DS_RD_SETTING.max_sota_retrieved_num // len(leaves), 5)
                 # recall, due to the integer division, the final number of SOTA experiments to retrieve may be different
                 for leaf in leaves:
                     sota_exp_fb_list_per_trace = trace.experiment_and_feedback_list_after_init(
@@ -91,7 +93,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
 
                     new_sota_exp_fb_list.extend(sota_exp_fb_list_per_trace)
 
-                sota_exp_fb_list = list(set(new_sota_exp_fb_list))
+                sota_exp_fb_list = list(set(new_sota_exp_fb_list) - self.dropped_pool)
 
                 if len(sota_exp_fb_list) == 0:
                     logger.info("Auto SOTA selector: No SOTA in trace yet")
@@ -104,6 +106,12 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                     logger.info(
                         f"Auto SOTA selector: select {len(sota_exp_fb_list)} of {len(new_sota_exp_fb_list)} SOTA experiments found in all traces, calling LLM to select the best one"
                     )
+                    if len(sota_exp_fb_list) > 10:
+                        sota_exp_fb_list = sorted(
+                            sota_exp_fb_list,
+                            key=lambda exp_fb: pd.DataFrame(exp_fb[0].result).loc["ensemble"].iloc[0],
+                            reverse=not trace.scen.metric_direction,
+                        )[-10:]
 
             for i, (exp, ef) in enumerate(sota_exp_fb_list):
                 if exp:
@@ -115,7 +123,10 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                         Description: {desc}
                         Final score: {current_final_score}\n\n"""
 
-            system_prompt = T(".prompts:auto_sota_selector.system").r(scenario=trace.scen.get_scenario_all_desc())
+            system_prompt = T(".prompts:auto_sota_selector.system").r(
+                eda_info=sota_exp_fb_list[0][0].experiment_workspace.file_dict.get("EDA.md", None),
+                drop_count=len(sota_exp_fb_list) - self.dropped_pool_threshold,
+            )
 
             user_prompt = T(".prompts:auto_sota_selector.user").r(
                 historical_sota_exp_with_desc_and_scores=SOAT_exp_with_desc_and_scores,
@@ -125,12 +136,27 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                 user_prompt=user_prompt,
                 system_prompt=system_prompt,
                 json_mode=True,
-                json_target_type=Dict[str, str | int],
+                json_target_type=Dict[str, str | int | list[int]],
             )
 
             response_dict = json.loads(response)
 
             sota_submit_idx = response_dict.get("selected_SOTA_idx", None)
+            dropped_sota_list = response_dict.get("dropped_SOTA_list", [])
+            if isinstance(dropped_sota_list, int):
+                dropped_sota_list = [dropped_sota_list]
+            elif isinstance(dropped_sota_list, str):
+                if dropped_sota_list.isdigit():
+                    dropped_sota_list = [int(dropped_sota_list)]
+                else:
+                    dropped_sota_list = []
+            for idx in dropped_sota_list:
+                if idx <= 0:
+                    continue
+                self.dropped_pool.add(sota_exp_fb_list[int(idx) - 1])
+                logger.info(
+                    f"Auto SOTA selector: add SOTA experiment No. {idx} to SOTA dropped pool"
+                )
 
             if sota_submit_idx and int(sota_submit_idx) - 1 < len(sota_exp_fb_list):
                 sota_submit = sota_exp_fb_list[int(sota_submit_idx) - 1]
