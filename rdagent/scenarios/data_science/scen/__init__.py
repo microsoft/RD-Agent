@@ -83,9 +83,9 @@ class DataScienceScen(Scenario):
         # Stage-specific description
         try:
             stage_desc = T(f"scenarios.data_science.share:scen.{stage.lower()}_desc").r(**kwargs)
-            return f"{status_desc}\n{stage_desc}"
+            return f"# Current Status Description\n{status_desc}\n## Current Stage Description\n{stage_desc}"
         except Exception as e:
-            return status_desc
+            return f"# Current Status Description\n{status_desc}"
 
     def reanalyze_competition_description(self):
         self.raw_description = self._get_description()
