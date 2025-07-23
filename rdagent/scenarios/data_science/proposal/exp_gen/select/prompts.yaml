@@ -74,7 +74,7 @@ auto_sota_selector:
         "explanation": "No SOTA experiments and feedbacks"
       }
 
-user: |-
+  user: |-
     # SOTA Experiments and Feedback
     {{ historical_sota_exp_with_desc_and_scores }}
 
