@@ -68,6 +68,28 @@ scen:  # customizable
     You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
   input_path: "./workspace_input/"
   cache_path: "./workspace_cache/"
+  pipeline_desc: |-
+    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    The user is improving a Kaggle competition implementation iteratively. Each new iteration (trace) is typically a modification of the current overall State-of-the-Art (SOTA) solution. If the new trace's performance surpasses the current SOTA, it successfully establishes a new SOTA. Otherwise, it is considered a failed experiment.
+    Each trace is composed of the following stages:
+    [Propose]: identify challenges and propose actionable hypothesis to address the challenges.
+    [Coding]: write implementable Python code to realize the proposed hypothesis on sampled dataset.
+    [Running]: run the implemented code on full dataset and refine the code if necessary.
+    [Feedback]: compared implemented code with previous SOTA.
+    You will be working on the [{{ stage }}] stage of {{ trace_idx }} trace.
+    Total time for this competition is {{ total_time }}, you have spent {{ cur_time }} on previous traces.
+  propose_desc: |-
+   Todo
+  coder_desc: |-
+   Todo
+  runner_desc: |-
+    You have successfully implemented the workflow on a sampled dataset and we are now transitioning to the full dataset.
+    The code base will be iteratively improved through a series of [evaluator] and [coder] step in this stage.
+    The [evaluator] step execute the code base on full dataset and evaluate the code base based on the execution result.
+    The [coder] step debug or refine the code base based on the evaluator feedback.
+    The maximum number of evolution steps is {{ max_loop }}, and you are currently on [{{ step }}] step of loop {{ cur_loop }}.
+  feedback_desc: |-
+    Todo
 
 component_description:
   DataLoadSpec: |-
@@ -342,16 +364,3 @@ spec:
       - Clearly document the early stopping criteria and ensure they are configurable via hyperparameters.
     5. Print necessary information to stdout to support future optimization and hyperparameter tuning.
       - If validation data are used, print the early stopping round/step, as well as the training and validation losses during training.
-
-status:
-  stage_desc: |-
-    Each trace is composed of the following stages:
-    [Propose]: identify challenges and propose actionable hypothesis to address the challenges.
-    [Coding]: write implementable Python code to realize the proposed hypothesis on sampled dataset.
-    [Running]: run the implemented code on full dataset and refine the code if necessary.
-    [Feedback]: compared implemented code with previous SOTA.
-    You will be working on the stage 
-  role: |-
-    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
-    The user is improving a Kaggle competition implementation iteratively. Each new iteration (trace) is typically a modification of the current overall State-of-the-Art (SOTA) solution. If the new trace's performance surpasses the current SOTA, it establishes a new SOTA. Otherwise, it is considered a failed experiment.
-    {{ stage_desc }}

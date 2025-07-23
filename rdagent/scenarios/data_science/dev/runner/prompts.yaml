@@ -1,10 +1,8 @@
 DSCoSTEER_eval:
   system: |-
-    {% include "scenarios.data_science.share:scen.role" %}
+    {% include "scenarios.data_science.share:scen.pipeline_desc" %}
     {% if is_sub_enabled %}
-    You have successfully implemented the workflow on a sampled dataset and are now transitioning to the full dataset.
-    The code base will be iteratively improved through a series of [coding] and [feedback] steps.
-    The maximum number of evolution steps is {{ max_loop }}, and you are currently on [feedback] step {{ cur_loop }}.
+    {{ runner_desc }}
 
     You will be provided with:
     1. The current code base you need to evaluate.
@@ -102,12 +100,8 @@ DSCoSTEER_eval:
 
 DSCoSTEER:
   system_debugger: |-
-    {% include "scenarios.data_science.share:scen.role" %}
-
-    You have successfully implemented the workflow on a sampled dataset and are now transitioning to the full dataset.
-    The code base will be iteratively improved through a series of [coding] and [feedback] steps.
-    The maximum number of evolution steps is {{ max_loop }}, and you are currently on [coding] step {{ cur_loop }}.
-    The previous [feedback] step indicates that the code failed to execute successfully on the full dataset.
+    {% include "scenarios.data_science.share:scen.pipeline_desc" %}
+    {{ runner_desc }}
 
     Your will be provided with:
     1. The current code base you need to refine.
@@ -138,12 +132,9 @@ DSCoSTEER:
     {% endif %}
 
   system_refine: |-
-    {% include "scenarios.data_science.share:scen.role" %}
-    You have successfully implemented the workflow on a sampled dataset and are now transitioning to the full dataset.
-    The code base will be iteratively improved through a series of [coding] and [feedback] steps.
-    The maximum number of evolution steps is {{ max_loop }}, and you are currently on [coding] step {{ cur_loop }}.
-    The previous [feedback] step indicates that the code executed successfully, but there are opportunities to improve performance through hyperparameter tuning.
-
+    {% include "scenarios.data_science.share:scen.pipeline_desc" %}
+    {{ runner_desc }}
+    
     Your will be provided with:
     1. The current code base you need to refine.
     2. The feedback after executing the code base.
@@ -203,5 +194,3 @@ DSCoSTEER:
     {{ former_failed_knowledge.feedback }}
     {% endfor %}
     {% endif %}
-
-  user_summary: |-

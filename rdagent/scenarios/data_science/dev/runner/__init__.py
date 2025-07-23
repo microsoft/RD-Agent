@@ -51,14 +51,16 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         if prev_task_feedback is None:
             # if no prev_task_feedback, it is the first loop; we do not make any changes and goto evaluators directly.
             return {}
-        pipeline_task_info = target_task.get_task_information()
+        
+        # Get previous runner loops
+        task_info = target_task.get_task_information()
         queried_similar_successful_knowledge = (
-            queried_knowledge.task_to_similar_task_successful_knowledge[pipeline_task_info]
+            queried_knowledge.task_to_similar_task_successful_knowledge[task_info]
             if queried_knowledge is not None
             else []
         )
         queried_former_failed_knowledge = (
-            queried_knowledge.task_to_former_failed_traces[pipeline_task_info] if queried_knowledge is not None else []
+            queried_knowledge.task_to_former_failed_traces[task_info] if queried_knowledge is not None else []
         )
         queried_former_failed_knowledge = (
             [
@@ -81,9 +83,13 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         if prev_task_feedback.hyperparameter_tuning_decision:
             # Use system_refine for hyperparameter tuning
             system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
+                runner_desc=T("scenarios.data_science.share:scen.runner_desc").r(
+                   max_loop=DS_RD_SETTING.runner_max_loop,
+                   step="coder",
+                   cur_loop=None,
+                ),
                 queried_similar_successful_knowledge=queried_similar_successful_knowledge,
                 queried_former_failed_knowledge=queried_former_failed_knowledge[0],
-                max_loop=DS_RD_SETTING.runner_max_loop,
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,
             )
@@ -91,9 +97,13 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             task_information_str = target_task.get_task_information()
             # Use system_debugger for error fixing and debugging
             system_prompt = T(".prompts:DSCoSTEER.system_debugger").r(
+                runner_desc=T("scenarios.data_science.share:scen.runner_desc").r(
+                   max_loop=DS_RD_SETTING.runner_max_loop,
+                   step="coder",
+                   cur_loop=None,
+                ),
                 queried_similar_successful_knowledge=queried_similar_successful_knowledge,
                 queried_former_failed_knowledge=queried_former_failed_knowledge[0],
-                max_loop=DS_RD_SETTING.runner_max_loop,
                 task_desc=task_information_str,
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,
