@@ -20,6 +20,7 @@ from importlib.resources import path as rpath
 import typer
 
 from rdagent.app.data_science.loop import main as data_science
+from rdagent.app.finetune.loop import main as finetune
 from rdagent.app.general_model.general_model import (
     extract_models_and_implement as general_model,
 )
@@ -34,7 +35,7 @@ from rdagent.log.mle_summary import grade_summary as grade_summary
 app = typer.Typer()
 
 
-def ui(port=19899, log_dir="", debug=False, data_science=False):
+def ui(port=19899, log_dir="", debug: bool = False, data_science: bool = False):
     """
     start web app to show the log traces.
     """
@@ -66,6 +67,7 @@ app.command(name="fin_model")(fin_model)
 app.command(name="fin_quant")(fin_quant)
 app.command(name="fin_factor_report")(fin_factor_report)
 app.command(name="general_model")(general_model)
+app.command(name="finetune")(finetune)
 app.command(name="data_science")(data_science)
 app.command(name="grade_summary")(grade_summary)
 app.command(name="ui")(ui)
