@@ -206,7 +206,7 @@ def unzip_data(unzip_file_path: str, unzip_target_path: str) -> None:
 
 
 @cache_with_pickle(hash_func=lambda x: x, force=True)
-def leaderboard_scores(competition: str) -> list[float]:
+def leaderboard_scores(competition: str) -> list[float]: # TODO: fix this
     from kaggle.api.kaggle_api_extended import KaggleApi
 
     api = KaggleApi()

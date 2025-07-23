@@ -136,7 +136,7 @@ def _log_path_hash_func(log_path: Path):
 
 
 @cache_with_pickle(_log_path_hash_func, force=True)
-def get_final_sota_exp(log_path: Path):
+def get_final_sota_exp(log_path: Path): # TODO: fix this because multi-trace
     sota_exp_paths = [i for i in log_path.rglob(f"**/SOTA experiment/**/*.pkl")]
     if len(sota_exp_paths) == 0:
         return None
@@ -146,11 +146,11 @@ def get_final_sota_exp(log_path: Path):
     return final_sota_exp
 
 
-@cache_with_pickle(_log_path_hash_func, force=True)
-def get_sota_exp_stat(log_path: Path):
+# @cache_with_pickle(_log_path_hash_func, force=True)
+def get_sota_exp_stat(log_path: Path) -> tuple[str | None, int | None, float | None]:
     trace_paths = [i for i in log_path.rglob(f"**/trace/**/*.pkl")]
     if len(trace_paths) == 0:
-        return None
+        return None, None, None
     final_trace_path = max(trace_paths, key=lambda x: int(re.match(r".*Loop_(\d+).*", str(x))[1]))
     with final_trace_path.open("rb") as f:
         final_trace = pickle.load(f)
@@ -161,7 +161,7 @@ def get_sota_exp_stat(log_path: Path):
         sota_exp = final_trace.sota_experiment()
 
     if sota_exp is None:
-        return None
+        return None, None, None
 
     sota_loop_id = None
     exp_paths = [
@@ -170,19 +170,19 @@ def get_sota_exp_stat(log_path: Path):
         if (match := re.search(r".*Loop_(\d+).*", str(i)))
     ]
     if len(exp_paths) == 0:
-        return None
+        return None, None, None
     exp_paths.sort(key=lambda x: x[1], reverse=True)
     for exp_path, loop_id in exp_paths:
         with open(exp_path, "rb") as f:
-            trace = pickle.load(f)
-            if trace.experiment_workspace.all_codes == sota_exp.experiment_workspace.all_codes:
+            exp = pickle.load(f)
+            if exp.experiment_workspace.all_codes == sota_exp.experiment_workspace.all_codes:
                 sota_loop_id = loop_id
                 break
 
     sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{sota_loop_id}/running/mle_score/**/*.pkl")]
     if len(sota_mle_score_paths) == 0:
         # sota exp is not evaluated by mle_score
-        return None
+        return None, None, None
     with sota_mle_score_paths[0].open("rb") as f:
         sota_mle_score = extract_json(pickle.load(f))
 
@@ -200,7 +200,7 @@ def get_sota_exp_stat(log_path: Path):
             sota_exp_stat = "valid_submission"
         elif sota_mle_score["submission_exists"]:
             sota_exp_stat = "made_submission"
-    return sota_exp_stat
+    return sota_exp_stat, sota_loop_id, sota_mle_score["score"]
 
 
 @cache_with_pickle(_log_path_hash_func, force=True)
@@ -244,7 +244,7 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
     * SOTA Exp: Version found by working backward from the last attempt to find the most recent
       successful experiment
 
-    * SOTA Exp (_to_submit): Version selected by LLM from all successful experiments for
+    * SOTA Exp (to_submit): Version selected by LLM from all successful experiments for
       competition submission, considering not only scores but also generalization ability
       and overfitting risk, totally decided by LLM
 
@@ -298,7 +298,7 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
                 if final_sota_result is not None:
                     v["sota_exp_score_valid"] = final_sota_result.loc["ensemble"].iloc[0]
 
-            v["sota_exp_stat_new"] = get_sota_exp_stat(Path(lf) / k)
+            v["sota_exp_stat_new"], v["sota_loop_id_new"], v["sota_exp_score_new"] = get_sota_exp_stat(Path(lf) / k)
             # change experiment name
             if "amlt" in lf:
                 summary[f"{lf[lf.rfind('amlt')+5:].split('/')[0]} - {k}"] = v
@@ -327,10 +327,12 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             "Gold",
             "Any Medal",
             "Best Result",
-            "SOTA Exp",
-            "SOTA Exp (_to_submit)",
             "SOTA Exp Score (valid)",
+            "SOTA Exp",
             "SOTA Exp Score",
+            "SOTA Exp (to_submit)",
+            "SOTA Exp Score (to_submit)",
+            "SOTA Loop ID (to_submit)",
             "Baseline Score",
             "Ours - Base",
             "Ours vs Base",
@@ -397,7 +399,9 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
                 baseline_score = baseline_df.loc[baseline_df["competition_id"] == v["competition"], "score"].item()
 
             base_df.loc[k, "SOTA Exp"] = v.get("sota_exp_stat", None)
-            base_df.loc[k, "SOTA Exp (_to_submit)"] = v["sota_exp_stat_new"]
+            base_df.loc[k, "SOTA Exp (to_submit)"] = v["sota_exp_stat_new"]
+            base_df.loc[k, "SOTA Exp Score (to_submit)"] = v.get("sota_exp_score_new", None)
+            base_df.loc[k, "SOTA Loop ID (to_submit)"] = v.get("sota_loop_id_new", None)
             if baseline_score is not None and v.get("sota_exp_score", None) is not None:
                 base_df.loc[k, "Ours - Base"] = v["sota_exp_score"] - baseline_score
             base_df.loc[k, "Ours vs Base"] = compare_score(v["sota_exp_score"], baseline_score)
@@ -539,7 +543,7 @@ def get_statistics_df(summary_df: pd.DataFrame) -> pd.DataFrame:
     sota_exp_stat = sota_exp_stat / summary_df.shape[0] * 100
 
     # SOTA Exp (trace.sota_exp_to_submit) 统计
-    se_counts_new = summary_df["SOTA Exp (_to_submit)"].value_counts(dropna=True)
+    se_counts_new = summary_df["SOTA Exp (to_submit)"].value_counts(dropna=True)
     se_counts_new.loc["made_submission"] = se_counts_new.sum()
     se_counts_new.loc["Any Medal"] = (
         se_counts_new.get("gold", 0) + se_counts_new.get("silver", 0) + se_counts_new.get("bronze", 0)
@@ -549,7 +553,7 @@ def get_statistics_df(summary_df: pd.DataFrame) -> pd.DataFrame:
         "above_median", 0
     )
 
-    sota_exp_stat_new = pd.Series(index=total_stat.index, dtype=int, name="SOTA Exp (_to_submit) 统计(%)")
+    sota_exp_stat_new = pd.Series(index=total_stat.index, dtype=int, name="SOTA Exp (to_submit) 统计(%)")
     sota_exp_stat_new.loc["Made Submission"] = se_counts_new.get("made_submission", 0)
     sota_exp_stat_new.loc["Valid Submission"] = se_counts_new.get("valid_submission", 0)
     sota_exp_stat_new.loc["Above Median"] = se_counts_new.get("above_median", 0)
