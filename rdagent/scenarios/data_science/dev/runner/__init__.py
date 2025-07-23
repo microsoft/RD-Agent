@@ -77,11 +77,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         if prev_task_feedback.hyperparameter_tuning_decision:
             # Use system_refine for hyperparameter tuning
             system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
-                runner_desc=T("scenarios.data_science.share:scen.runner_desc").r(
-                   max_loop=DS_RD_SETTING.runner_max_loop,
-                   step="coder",
-                   cur_loop=len(queried_former_failed_knowledge),
-                ),
+                status_desc=self.scen.describe_current_status,
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,
             )

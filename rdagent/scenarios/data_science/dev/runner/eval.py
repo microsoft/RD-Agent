@@ -159,11 +159,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
             stdout += f"\nSubmission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
 
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
-            runner_desc=T("scenarios.data_science.share:scen.runner_desc").r(
-                max_loop=DS_RD_SETTING.runner_max_loop,
-                step="evaluator",
-                cur_loop=len(queried_former_failed_knowledge),
-            ),
+            status_desc=self.scen.describe_current_status,
             scenario=self.scen.get_scenario_all_desc(eda_output=implementation.file_dict.get("EDA.md", None)),
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             task_desc=target_task.get_task_information(),

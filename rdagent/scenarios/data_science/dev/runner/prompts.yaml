@@ -1,9 +1,7 @@
 DSCoSTEER_eval:
   system: |-
-    {% include "scenarios.data_science.share:scen.pipeline_desc" %}
+    {{ status_desc }}
     {% if is_sub_enabled %}
-    {{ runner_desc }}
-
     You will be provided with:
     1. The current code base you need to evaluate.
     2. The stdout of the current code execution and testing.
@@ -105,8 +103,7 @@ DSCoSTEER_eval:
 
 DSCoSTEER:
   system_debugger: |-
-    {% include "scenarios.data_science.share:scen.pipeline_desc" %}
-    {{ runner_desc }}
+    {{ status_desc }}
 
     Your will be provided with:
     1. The current code base you need to refine.
@@ -137,9 +134,8 @@ DSCoSTEER:
     {% endif %}
 
   system_refine: |-
-    {% include "scenarios.data_science.share:scen.pipeline_desc" %}
-    {{ runner_desc }}
-    
+    {{ status_desc }}
+
     Your will be provided with:
     1. The current code base you need to refine.
     2. The feedback after executing the code base.
