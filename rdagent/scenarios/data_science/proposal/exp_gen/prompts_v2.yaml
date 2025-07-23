@@ -236,21 +236,28 @@ hypothesis_critique:
     - **Problem-Solution Fit**: Does this actually address the root cause of the identified challenge?
     - **Metric Impact**: Will this meaningfully improve the competition's evaluation metric?
     - **Historical Context**: Has similar approaches been tried? Key learnings from past attempts?
+    - **Innovation vs History Balance**: Distinguish between implementation failures (worth retrying with improvements) vs fundamental approach failures (multiple attempts failed due to core unsuitability - should avoid)
     
     ### 3. Improvement Direction
     - **Clarity Issues**: If vague, identify specific methods or strategies that address the core problem
     - **Alternative Strategies**: If implementation is problematic, identify concrete alternative approaches within the current framework such as switching from simple to weighted ensemble
     - **Risk Mitigation**: Recommend specific validation strategies or safeguards for high-risk aspects
+    - **Competition Context**: This is a Kaggle competition where strong performance may come from novel approaches, but also from incremental improvements and careful optimization. Balance innovation with practical enhancements.
     
-    ## Guidance Rules:
+    ## Guidance Rules
     
-    **IMPORTANT**: Be specific about methods and strategies, but avoid over-specifying implementation parameters. Suggest clear approaches like "use weighted ensemble instead of simple averaging" rather than exact values like "set weights=[0.3, 0.7]".
+    **IMPORTANT**: Be specific about methods and strategies, but avoid over-specifying implementation parameters. Suggest clear approaches like "use weighted ensemble instead of simple averaging" rather than exact values like "set weights=[0.3, 0.7]". Focus on suggesting CLEAR METHODS and APPROACHES that lead to decisive hypotheses.
+
+    ### Examples:
     
-    **Focus on suggesting CLEAR METHODS and APPROACHES that lead to decisive hypotheses.**
+    **Good Critiques:**
+    - "The hypothesis lacks specificity about which ensemble method to use. Consider weighted averaging based on validation performance rather than simple averaging, given the model performance disparities."
+    - "This hypothesis proposes LSTM for tabular data. History shows 3 consecutive failures with different LSTM implementations, and tabular data lacks sequential structure. Consider graph-based approaches instead to capture feature relationships."
     
-     **Good Critique**: "The hypothesis lacks specificity about which ensemble method to use. Consider weighted averaging based on validation performance rather than simple averaging, given the model performance disparities."
-     **Poor Critique**: "Set max_depth=10, learning_rate=0.05, and use 500 trees." (too specific)
-     **Poor Critique**: "This might not work." (too vague)
+    **Poor Critiques:**
+    - "Set max_depth=10, learning_rate=0.05, and use 500 trees." (too specific)
+    - "This might not work." (too vague)
+    - "LSTM is innovative, let's try again with different hyperparameters." (ignores fundamental mismatch)
     
     {% if critique_output_format is not none %}
     ## Output Format
@@ -282,6 +289,7 @@ hypothesis_rewrite:
     1. **Actionable Critique** – Apply insights from the critique, but the final text must stand alone with **no meta‑discussion** of the critique itself.
     2. **Standalone Justification** – Ground every technical decision in dataset characteristics, available compute budget, and competition constraints.
     3. **Decisive Specificity** – Remove all ambiguity; propose one clear action.
+    4. **Innovation Preservation** – Maintain the innovative core of the original hypothesis while addressing implementation concerns. Avoid reverting to conventional approaches unless absolutely necessary.
     
     ## Guidelines for Writing Rewritten Hypotheses
     
@@ -314,6 +322,10 @@ hypothesis_rewrite:
       - Maintain focus on the primary component while ensuring compatibility with the overall pipeline.
       - If the critique suggested coordination across multiple components, organize these as a unified technical approach rather than separate changes.
       - Ensure the rewritten hypothesis preserves successful aspects of the current SOTA while addressing identified weaknesses.
+    
+    6. **Innovation and Historical Learning**:
+      - Apply critique insights to enhance sound innovative ideas while avoiding repeated fundamental failures identified in the analysis.
+      - **Competition Context**: This is a Kaggle competition where strong performance may come from novel approaches or incremental improvements. Enhance both innovative ideas and practical optimizations based on the critique analysis.
     
     
     {% if rewrite_output_format is not none %}
