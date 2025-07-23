@@ -52,7 +52,10 @@ describe: # some template to describe some object
     {% if not pipeline %}Chosen Component: {{ exp_and_feedback[0].hypothesis.component }}{% endif %}
     Proposed Hypothesis: {{ exp_and_feedback[0].hypothesis.hypothesis }}
     {% if exp_and_feedback[1].code_change_summary  %}Code Change Summary: {{ exp_and_feedback[1].code_change_summary }}{% endif %}
-    Surpass Previous SOTA: {{ exp_and_feedback[1].decision }}
+    Surpass Previous SOTA: {{ exp_and_feedback[1].decision }}    
+    {% if exp_and_feedback[0].running_info.running_time is not none %}
+    Experiment Running Time: {{ exp_and_feedback[0].running_info.running_time }} seconds
+    {% endif %}
     {% if exp_and_feedback[0].result is none %}
     Experiment Score: Running buggy
     Experiment Error: {{ exp_and_feedback[1].reason }}

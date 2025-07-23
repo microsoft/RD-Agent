@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.proposal import ExpGen
+from rdagent.core.proposal import ExperimentPlan, ExpGen
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
@@ -38,7 +38,11 @@ class ParallelMultiTraceExpGen(ExpGen):
         self.merge_exp_gen = ExpGen2Hypothesis(self.scen)
         self.trace_scheduler: TraceScheduler = RoundRobinScheduler(DS_RD_SETTING.max_trace_num)
 
-    def gen(self, trace: "DSTrace") -> "Experiment":
+    def gen(
+        self,
+        trace: "DSTrace",
+        plan: "ExperimentPlan" | None = None,
+    ) -> "Experiment":
         raise NotImplementedError(
             "ParallelMultiTraceExpGen is designed for async usage, please call async_gen instead."
         )
@@ -56,16 +60,6 @@ class ParallelMultiTraceExpGen(ExpGen):
         while True:
 
             if timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
-
-                if DS_RD_SETTING.enable_inject_knowledge_at_root:
-
-                    if len(trace.hist) == 0:
-                        # set the knowledge base option to True for the first trace
-                        DS_RD_SETTING.enable_knowledge_base = True
-
-                    else:
-                        # set the knowledge base option back to False for the other traces
-                        DS_RD_SETTING.enable_knowledge_base = False
 
                 if loop.get_unfinished_loop_cnt(loop.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
                     local_selection = await self.trace_scheduler.next(trace)

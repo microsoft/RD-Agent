@@ -6,12 +6,17 @@ from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.core.proposal import ExpGen
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.router import DSExperimentPlan
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 
 
 class NaiveExpGen(ExpGen):
-    def gen(self, trace: DSTrace) -> DSExperiment:
+    def gen(
+        self,
+        trace: DSTrace,
+        plan: DSExperimentPlan | None = None,
+    ) -> DSExperiment:
         sota_exp = trace.sota_experiment()
         scenario_desc = trace.scen.get_scenario_all_desc()
         sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
