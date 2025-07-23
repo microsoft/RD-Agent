@@ -75,8 +75,8 @@ auto_sota_selector:
       }
 
   user: |-
-      # SOTA Experiments and Feedback
-      {{ historical_sota_exp_with_desc_and_scores }}
+    # SOTA Experiments and Feedback
+    {{ historical_sota_exp_with_desc_and_scores }}
 
 
 
