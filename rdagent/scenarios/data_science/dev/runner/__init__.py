@@ -54,11 +54,6 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         
         # Get previous runner loops
         task_info = target_task.get_task_information()
-        queried_similar_successful_knowledge = (
-            queried_knowledge.task_to_similar_task_successful_knowledge[task_info]
-            if queried_knowledge is not None
-            else []
-        )
         queried_former_failed_knowledge = (
             queried_knowledge.task_to_former_failed_traces[task_info] if queried_knowledge is not None else []
         )
@@ -86,10 +81,8 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 runner_desc=T("scenarios.data_science.share:scen.runner_desc").r(
                    max_loop=DS_RD_SETTING.runner_max_loop,
                    step="coder",
-                   cur_loop=None,
+                   cur_loop=len(queried_former_failed_knowledge),
                 ),
-                queried_similar_successful_knowledge=queried_similar_successful_knowledge,
-                queried_former_failed_knowledge=queried_former_failed_knowledge[0],
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,
             )
@@ -100,10 +93,8 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 runner_desc=T("scenarios.data_science.share:scen.runner_desc").r(
                    max_loop=DS_RD_SETTING.runner_max_loop,
                    step="coder",
-                   cur_loop=None,
+                   cur_loop=len(queried_former_failed_knowledge),
                 ),
-                queried_similar_successful_knowledge=queried_similar_successful_knowledge,
-                queried_former_failed_knowledge=queried_former_failed_knowledge[0],
                 task_desc=task_information_str,
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,
@@ -119,7 +110,6 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             code=workspace.all_codes,
             feedback=prev_task_feedback,
             hyperparameter_tuning_suggestion=prev_task_feedback.hyperparameter_tuning_suggestion,
-            queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
         )
         code =  session.build_chat_completion(user_prompt=user_prompt)

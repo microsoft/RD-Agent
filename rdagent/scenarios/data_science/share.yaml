@@ -84,7 +84,7 @@ scen:  # customizable
    Todo
   runner_desc: |-
     You have successfully implemented the workflow on a sampled dataset and we are now transitioning to the full dataset.
-    The code base will be iteratively improved through a series of [evaluator] and [coder] step in this stage.
+    The code base will be iteratively evolved through a series of [evaluator] and [coder] step in this stage.
     The [evaluator] step execute the code base on full dataset and evaluate the code base based on the execution result.
     The [coder] step debug or refine the code base based on the evaluator feedback.
     The maximum number of evolution steps is {{ max_loop }}, and you are currently on [{{ step }}] step of loop {{ cur_loop }}.

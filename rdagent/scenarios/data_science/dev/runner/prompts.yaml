@@ -86,7 +86,7 @@ DSCoSTEER_eval:
     {% endif %}
 
   user: |-
-    # Code base
+    # Current Code base
     {{ code }}
 
     ## Stdout of code execution and testing
@@ -96,6 +96,15 @@ DSCoSTEER_eval:
     The execution time for current code base: {{ time_spent }}.
     The total timeout: {{ timeout }}.
     The percent of timeout used: {{ percent_of_timeout_used }}.
+    
+    {% if queried_former_failed_knowledge|length != 0 %}
+    # Evolving History
+    {% for former_failed_knowledge in queried_former_failed_knowledge %} ## Attempt {{ loop.index }}:
+    ### Summary of Changes
+    {{ former_failed_knowledge.implementation.change_summary }}
+    ### Feedbacks
+    {{ former_failed_knowledge.feedback }}
+    {% endfor %}
     
 
 DSCoSTEER:
@@ -172,25 +181,11 @@ DSCoSTEER:
     {{ hyperparameter_tuning_suggestion }}
     {% endif %}
 
-    {% if queried_similar_successful_knowledge|length != 0 or queried_former_failed_knowledge|length != 0 %}
-    # Evolving History
-    {% endif %}
-
-    {% if queried_similar_successful_knowledge|length != 0 %}
-    ## Successful Implementations for Similar Models
-    ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{ loop.index }}:=====
-    {{ similar_successful_knowledge.target_task.get_task_information() }}
-    =====Code:=====
-    {{ similar_successful_knowledge.implementation.all_codes }}
-    {% endfor %} 
-    {% endif %}
-
     {% if queried_former_failed_knowledge|length != 0 %}
-    ## Previous Failed Attempts
-    {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
-    =====Code:=====
-    {{ former_failed_knowledge.implementation.all_codes }}
-    =====Feedback:=====
+    # Evolving History
+    {% for former_failed_knowledge in queried_former_failed_knowledge %} ## Attempt {{ loop.index }}:
+    ### Summary of Changes
+    {{ former_failed_knowledge.implementation.change_summary }}
+    ### Feedbacks
     {{ former_failed_knowledge.feedback }}
     {% endfor %}
-    {% endif %}
