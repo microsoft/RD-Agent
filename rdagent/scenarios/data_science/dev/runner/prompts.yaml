@@ -99,6 +99,7 @@ DSCoSTEER_eval:
     ### Feedbacks
     {{ former_failed_knowledge.feedback }}
     {% endfor %}
+    {% endif %}
     
 
 DSCoSTEER:
@@ -181,3 +182,5 @@ DSCoSTEER:
     ### Feedbacks
     {{ former_failed_knowledge.feedback }}
     {% endfor %}
+    {% endif %}
+
