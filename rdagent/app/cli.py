@@ -34,7 +34,7 @@ from rdagent.log.mle_summary import grade_summary as grade_summary
 app = typer.Typer()
 
 
-def ui(port=19899, log_dir="", debug=False, data_science=False):
+def ui(port=19899, log_dir="", debug: bool = False, data_science: bool = False):
     """
     start web app to show the log traces.
     """
