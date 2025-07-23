@@ -32,6 +32,7 @@ def main(
 
     # NOTE: due to finetune application
     DS_RD_SETTING.scen = "rdagent.app.finetune.scen.LLMFinetuneScen"
+    DS_RD_SETTING.hypothesis_gen = "rdagent.app.finetune.proposal.FinetuneExpGen"
     DS_RD_SETTING.competition = dataset
     DS_RD_SETTING.previous_workspace_path = str(Path(base_model).absolute())
     DS_RD_SETTING.enable_model_dump = True

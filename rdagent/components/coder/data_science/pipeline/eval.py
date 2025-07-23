@@ -101,7 +101,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 stdout += "Debug mode did not provide debug_time or estimated_time, it's a buggy implementation.\n"
             if DS_RD_SETTING.previous_workspace_path:
                 trace_fp = implementation.workspace_path / "trace.log"
-                if not self.scen.is_finetune and trace_fp.exists():
+                if trace_fp.exists():  # TODO: move to eval
                     text_to_search = trace_fp.read_text(encoding="utf-8")
                     pattern = r"base_model_workspace/models/[^/]+\.(pt|pth|h5|joblib)"
                     base_model = re.search(pattern, text_to_search)
