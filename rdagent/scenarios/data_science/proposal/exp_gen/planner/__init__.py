@@ -36,7 +36,7 @@ class DSExpPlannerHandCraft(ExpPlanner[DSExperimentPlan]):
 
         if not trace.sota_experiment():
             plan["exp_gen"]["draft"] = True
-        elif trace.sota_experiment() and remain_percent < 0.25:
+        elif trace.sota_experiment() and remain_percent > DS_RD_SETTING.model_architecture_suggestion_time_percent:
             plan["exp_gen"]["suggest_model_architecture"] = True
         # elif DS_RD_SETTING.merge_hours > 0:
         #     merge_percent = timedelta(hours=DS_RD_SETTING.merge_hours) / timer.all_duration

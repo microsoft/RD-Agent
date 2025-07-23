@@ -117,5 +117,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_draft_before_first_sota: bool = False
     enable_planner: bool = False
 
+    model_architecture_suggestion_time_percent: float = 0.75
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()
