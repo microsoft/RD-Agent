@@ -462,14 +462,11 @@ class DSProposalV2ExpGen(ExpGen):
         self.supports_response_schema = APIBackend().supports_response_schema()
 
     def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
-        if self.scen.is_finetune:
-            sys_prompt = T(".prompts_v2:scenario_problem.finetune").r()
-        else:
-            sys_prompt = T(".prompts_v2:scenario_problem.system").r(
-                problem_output_format=(
-                    T(".prompts_v2:output_format.problem").r() if not self.supports_response_schema else None
-                ),
-            )
+        sys_prompt = T(".prompts_v2:scenario_problem.system").r(
+            problem_output_format=(
+                T(".prompts_v2:output_format.problem").r() if not self.supports_response_schema else None
+            ),
+        )
         user_prompt = T(".prompts_v2:scenario_problem.user").r(
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
@@ -734,16 +731,11 @@ class DSProposalV2ExpGen(ExpGen):
         data_folder_info = self.scen.processed_data_folder_description
 
         workflow_check = not pipeline and hypotheses[0].component != "Workflow"
-        if self.scen.is_finetune:
-            sys_prompt = T(".prompts_v2:task_gen.finetune").r(
-                task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
-            )
-        else:
-            sys_prompt = T(".prompts_v2:task_gen.system").r(
-                task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
-                component_desc=component_desc,
-                workflow_check=workflow_check,
-            )
+        sys_prompt = T(".prompts_v2:task_gen.system").r(
+            task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
+            component_desc=component_desc,
+            workflow_check=workflow_check,
+        )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,
             data_folder_info=data_folder_info,

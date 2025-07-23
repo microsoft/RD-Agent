@@ -80,26 +80,16 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             queried_former_failed_knowledge[1],
         )
 
-        if self.scen.is_finetune:
-            system_prompt = T(".prompts:pipeline_coder.finetune").r(
-                task_desc=pipeline_task_info,
-                queried_former_failed_knowledge=queried_former_failed_knowledge[0],
-                out_spec=PythonAgentOut.get_spec(),
-                runtime_environment=runtime_environment,
-                enable_model_dump=DS_RD_SETTING.enable_model_dump,
-                enable_debug_mode=DS_RD_SETTING.sample_data_by_LLM,
-            )
-        else:
-            system_prompt = T(".prompts:pipeline_coder.system").r(
-                task_desc=pipeline_task_info,
-                queried_similar_successful_knowledge=queried_similar_successful_knowledge,
-                queried_former_failed_knowledge=queried_former_failed_knowledge[0],
-                out_spec=PythonAgentOut.get_spec(),
-                runtime_environment=runtime_environment,
-                enable_model_dump=DS_RD_SETTING.enable_model_dump,
-                enable_debug_mode=DS_RD_SETTING.sample_data_by_LLM,
-                previous_workspace_path=DS_RD_SETTING.previous_workspace_path,
-            )
+        system_prompt = T(".prompts:pipeline_coder.system").r(
+            task_desc=pipeline_task_info,
+            queried_similar_successful_knowledge=queried_similar_successful_knowledge,
+            queried_former_failed_knowledge=queried_former_failed_knowledge[0],
+            out_spec=PythonAgentOut.get_spec(),
+            runtime_environment=runtime_environment,
+            enable_model_dump=DS_RD_SETTING.enable_model_dump,
+            enable_debug_mode=DS_RD_SETTING.sample_data_by_LLM,
+            previous_workspace_path=DS_RD_SETTING.previous_workspace_path,
+        )
         user_prompt = T(".prompts:pipeline_coder.user").r(
             competition_info=competition_info,
             folder_spec=data_folder_info,

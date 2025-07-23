@@ -27,8 +27,6 @@ def main(
     ----------
     path :
         A path like `$LOG_PATH/__session__/1/0_propose`. This indicates that we restore the state after finishing step 0 in loop 1.
-    workspace:
-        A path like `$WORKSPACE_PATH`. This indicates that we restore the state from the workspace.
     checkout :
         Used only when a path is provided.
         Can be True, False, or a path.
@@ -44,8 +42,6 @@ def main(
         - If both step_n and loop_n are provided, the process will stop as soon as either condition is met.
     competition :
         Competition name.
-    dataset :
-        Dateset name, used for finetune.
     replace_timer :
         If a session is loaded, determines whether to replace the timer with session.timer.
     exp_gen_cls :
@@ -61,18 +57,8 @@ def main(
     if competition is not None:
         DS_RD_SETTING.competition = competition
 
-    if dataset is not None:
-        DS_RD_SETTING.competition = dataset
-        # set finetune scenario
-        DS_RD_SETTING.scen = "rdagent.scenarios.data_science.scen.LLMFinetuneScen"
-
     if not DS_RD_SETTING.competition:
         logger.error("Please specify competition name.")
-
-    if workspace is not None:
-        DS_RD_SETTING.previous_workspace_path = str(Path(workspace).absolute())
-        # model dump is neeeded
-        DS_RD_SETTING.enable_model_dump = True
 
     if path is None:
         kaggle_loop = DataScienceRDLoop(DS_RD_SETTING)

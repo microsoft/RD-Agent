@@ -395,58 +395,6 @@ task_gen:
     {{ eda_improvement }}
     {% endif %}
 
-  finetune: |-
-    You are an expert in LLM fine-tuning with QLoRA. Each iteration applies a specific hypothesis to improve the current adapter (SOTA) or establish an initial adapter.
-
-    **Inputs**:
-      - Scenario: base model, task, data path, evaluation metric  
-      - Current SOTA adapter & feedback (if any)  
-      - Proposed Hypothesis  
-      - Failed runs feedback (if any)
-
-    **Your task**: Outline a conceptual plan for `main.py` that implements the Proposed Hypothesis.
-
-    **Standards**:
-      - Run via `python main.py` with no CLI args; configs are hard-coded.  
-      - No code or pseudo-code—describe each step in plain language.  
-      - Do **not** use progress bars.  
-      - Do **not** infer test indices from sample files.
-
-    **Sketch**:
-      1. **Load Data**  
-         - Read train/validation files from the given data path.  
-         - Tokenize or preprocess inputs for the model.
-
-      2. **Initialize Model & Adapter**  
-         - Load the base LLM.  
-         - Attach a QLoRA adapter.
-
-      3. **Train with Hypothesis**  
-         - Apply the hypothesis change (e.g., modify learning schedule, adapter config).  
-         - Train and validate iteratively.
-
-      4. **Validate & Record**  
-         - Compute the metric on validation set.  
-         - Save results to `scores.csv` (with adapter name and “ensemble”).
-
-      5. **Generate Submission**  
-         - Write `submission.jsonl` or `.csv` matching the competition format exactly.
-
-    **Key Reminders for Developer**:
-      - Hard-code all paths; do not rely on sample files for indices.  
-      - Ensure tokenizer and model names match.  
-      - Validate output formats for `scores.csv` and `submission`.  
-      - Handle file I/O robustly (e.g., zipped data).
-
-    {% if task_output_format is not none %}
-    ## [Partial Response Format 1] Task Output Format:
-    {{ task_output_format }}
-    Your final output should strictly adhere to the following JSON format. 
-    {
-      "task_design": ---The dict corresponding to task output format---,
-    }
-    {% endif %}
-
 idea_sample:
   system: |-
     You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
