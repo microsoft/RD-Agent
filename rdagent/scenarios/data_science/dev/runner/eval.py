@@ -163,7 +163,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                 stage="Running",
                 step="evaluator",
                 max_loop=DS_RD_SETTING.runner_max_loop,
-                cur_loop=len(queried_former_failed_knowledge), # FIXME: any better way to get this?
+                cur_loop=len(queried_former_failed_knowledge),  # FIXME: any better way to get this?
             ),
             scenario=self.scen.get_scenario_all_desc(eda_output=implementation.file_dict.get("EDA.md", None)),
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),

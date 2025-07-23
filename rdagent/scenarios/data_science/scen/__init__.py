@@ -65,11 +65,11 @@ class DataScienceScen(Scenario):
     def describe_current_status(self, stage: str, **kwargs):
         """
         Generates a description of the current scenario status including stage details and timing information.
-        
+
         Args:
             stage (str): One of [Propose, Coding, Running, Feedback]
             **kwargs: Additional keyword arguments to be passed to the stage description
-            
+
         Example:
             describe_current_status("Running", step="evaluator", max_loop=3, cur_loop=1)
         """
@@ -79,7 +79,7 @@ class DataScienceScen(Scenario):
             total_time=self.timer.all_duration,
             remain_time=self.timer.remain_time(),
         )
-        
+
         # Stage-specific description
         try:
             stage_desc = T(f"scenarios.data_science.share:scen.{stage.lower()}_desc").r(**kwargs)

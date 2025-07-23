@@ -50,7 +50,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         if prev_task_feedback is None:
             # if no prev_task_feedback, it is the first loop; we do not make any changes and goto evaluators directly.
             return {}
-        
+
         # Get previous runner loops
         task_info = target_task.get_task_information()
         queried_former_failed_knowledge = (
@@ -73,7 +73,6 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             output_spec = PythonBatchEditOut.get_spec(with_del=False)
             extract_output_fn = PythonBatchEditOut.extract_output
 
-
         if prev_task_feedback.hyperparameter_tuning_decision:
             # Use system_refine for hyperparameter tuning
             system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
@@ -81,7 +80,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                     stage="Running",
                     step="coder",
                     max_loop=DS_RD_SETTING.runner_max_loop,
-                    cur_loop=len(queried_former_failed_knowledge), # FIXME: any better way to get this?
+                    cur_loop=len(queried_former_failed_knowledge),  # FIXME: any better way to get this?
                 ),
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,
@@ -94,7 +93,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                     stage="Running",
                     step="coder",
                     max_loop=DS_RD_SETTING.runner_max_loop,
-                    cur_loop=len(queried_former_failed_knowledge), # FIXME: any better way to get this?
+                    cur_loop=len(queried_former_failed_knowledge),  # FIXME: any better way to get this?
                 ),
                 task_desc=task_information_str,
                 out_spec=output_spec,
@@ -113,7 +112,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             hyperparameter_tuning_suggestion=prev_task_feedback.hyperparameter_tuning_suggestion,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
         )
-        code =  session.build_chat_completion(user_prompt=user_prompt)
+        code = session.build_chat_completion(user_prompt=user_prompt)
         code_batch_edit = extract_output_fn(code)
         code_batch_edit = {k: v for k, v in code_batch_edit.items() if k in workspace.file_dict.keys()}
 
