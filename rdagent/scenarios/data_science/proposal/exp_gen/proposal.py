@@ -670,7 +670,30 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         response_dict = json.loads(response)
-        critiques = response_dict.get("critiques", response_dict)
+
+        # Improved error handling and validation
+        if "critiques" in response_dict:
+            critiques = response_dict["critiques"]
+        else:
+            # If format is incorrect, try to extract critiques directly
+            # Validate that all expected problem names are present
+            expected_problems = set(hypothesis_dict.keys())
+            available_problems = set(response_dict.keys())
+
+            if expected_problems.issubset(available_problems):
+                critiques = response_dict
+            else:
+                raise ValueError(
+                    f"Critique response missing expected problems. Expected: {expected_problems}, Got: {available_problems}"
+                )
+
+        # Validate that we have critiques for all hypotheses
+        missing_critiques = set(hypothesis_dict.keys()) - set(critiques.keys())
+        if missing_critiques:
+            logger.warning(f"Missing critiques for problems: {missing_critiques}")
+            # Add default critiques for missing ones
+            for problem_name in missing_critiques:
+                critiques[problem_name] = {"critique": "No specific critique available for this hypothesis."}
 
         logger.info(f"Generated critiques for {len(critiques)} hypothesis")
         return critiques
@@ -715,6 +738,18 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         improved_hypotheses_dict = json.loads(response)
+
+        # Validate that we have rewritten hypotheses for all original hypotheses
+        expected_problems = set(hypothesis_dict.keys())
+        available_problems = set(improved_hypotheses_dict.keys())
+
+        if not expected_problems.issubset(available_problems):
+            missing_problems = expected_problems - available_problems
+            raise ValueError(f"Rewrite response missing expected problems. Missing: {missing_problems}")
+
+        # Note: We don't preserve 'inspired' field from original hypotheses
+        # because after critique and rewrite, the hypothesis may have changed significantly
+        # and the original inspiration may no longer be relevant
 
         logger.info(
             f"Generated rewritten versions of {len(improved_hypotheses_dict)} hypotheses based on critique feedback"
