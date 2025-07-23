@@ -62,30 +62,30 @@ class DataScienceScen(Scenario):
         )  # True indicates higher is better, False indicates lower is better
         self.timer = RD_Agent_TIMER_wrapper.timer
 
-def describe_current_status(self, stage: str, **kwargs):
-    """
-    Generates a description of the current scenario status including stage details and timing information.
-    
-    Args:
-        stage (str): one of [Propose, Coding, Running, Feedback]
-        **kwargs: additional keyword arguments to be passed to the stage description
+    def describe_current_status(self, stage: str, **kwargs):
+        """
+        Generates a description of the current scenario status including stage details and timing information.
         
-    Example:
-        describe_current_status("Running", step="evaluator", max_loop=3, cur_loop=1)
-    """
-    # Overall status description
-    status_desc = T("scenarios.data_science.share:scen.status_desc").r(
-        stage=stage,
-        total_time=self.timer.all_duration,
-        remain_time=self.timer.remain_time(),
-    )
-    
-    # Stage-specific description
-    try:
-        stage_desc = T(f"scenarios.data_science.share:scen.{stage.lower()}_desc").r(**kwargs)
-        return f"{status_desc}\n{stage_desc}"
-    except Exception as e:
-        return status_desc
+        Args:
+            stage (str): one of [Propose, Coding, Running, Feedback]
+            **kwargs: additional keyword arguments to be passed to the stage description
+            
+        Example:
+            describe_current_status("Running", step="evaluator", max_loop=3, cur_loop=1)
+        """
+        # Overall status description
+        status_desc = T("scenarios.data_science.share:scen.status_desc").r(
+            stage=stage,
+            total_time=self.timer.all_duration,
+            remain_time=self.timer.remain_time(),
+        )
+        
+        # Stage-specific description
+        try:
+            stage_desc = T(f"scenarios.data_science.share:scen.{stage.lower()}_desc").r(**kwargs)
+            return f"{status_desc}\n{stage_desc}"
+        except Exception as e:
+            return status_desc
 
     def reanalyze_competition_description(self):
         self.raw_description = self._get_description()
