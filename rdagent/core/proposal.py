@@ -8,7 +8,12 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
-from rdagent.core.experiment import ASpecificExp, Experiment
+from rdagent.core.experiment import (
+    ASpecificExp,
+    ASpecificPlan,
+    Experiment,
+    ExperimentPlan,
+)
 from rdagent.core.knowledge_base import KnowledgeBase
 from rdagent.core.scenario import Scenario
 
@@ -268,15 +273,34 @@ class SOTAexpSelector:
         """
 
 
+class ExpPlanner(ABC, Generic[ASpecificPlan]):
+    """
+    An abstract class for planning the experiment.
+    The planner should generate a plan for the experiment based on the trace.
+    """
+
+    def __init__(self, scen: Scenario) -> None:
+        self.scen = scen
+
+    @abstractmethod
+    def plan(self, trace: Trace) -> ASpecificPlan:
+        """
+        Generate a plan for the experiment based on the trace.
+        The plan should be a dictionary that contains the plan to each stage.
+        """
+
+
 class ExpGen(ABC):
 
     def __init__(self, scen: Scenario) -> None:
         self.scen = scen
 
     @abstractmethod
-    def gen(self, trace: Trace) -> Experiment:
+    def gen(self, trace: Trace, plan: ExperimentPlan | None = None) -> Experiment:
         """
         Generate the experiment based on the trace.
+        Planning is part of gen, but since we may support multi-stage planning,
+        we need to pass plan as optional argument.
 
         `ExpGen().gen()` play a role like
 
@@ -306,7 +330,11 @@ class HypothesisGen(ABC):
         self.scen = scen
 
     @abstractmethod
-    def gen(self, trace: Trace) -> Hypothesis:
+    def gen(
+        self,
+        trace: Trace,
+        plan: ExperimentPlan | None = None,
+    ) -> Hypothesis:
         # def gen(self, scenario_desc: str, ) -> Hypothesis:
         """
         Motivation of the variable `scenario_desc`:
