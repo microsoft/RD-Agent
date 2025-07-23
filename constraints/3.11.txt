@@ -5,4 +5,3 @@ psutil==6.1.0
 rich==13.9.2
 scipy==1.14.1
 tqdm==4.66.5
-litellm==1.72.4

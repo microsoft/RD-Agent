@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.proposal import ExpGen
+from rdagent.core.proposal import ExperimentPlan, ExpGen
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
@@ -38,7 +38,11 @@ class ParallelMultiTraceExpGen(ExpGen):
         self.merge_exp_gen = ExpGen2Hypothesis(self.scen)
         self.trace_scheduler: TraceScheduler = RoundRobinScheduler(DS_RD_SETTING.max_trace_num)
 
-    def gen(self, trace: "DSTrace") -> "Experiment":
+    def gen(
+        self,
+        trace: "DSTrace",
+        plan: "ExperimentPlan" | None = None,
+    ) -> "Experiment":
         raise NotImplementedError(
             "ParallelMultiTraceExpGen is designed for async usage, please call async_gen instead."
         )
@@ -57,16 +61,6 @@ class ParallelMultiTraceExpGen(ExpGen):
 
             if timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
 
-                if DS_RD_SETTING.enable_inject_knowledge_at_root:
-
-                    if len(trace.hist) == 0:
-                        # set the knowledge base option to True for the first trace
-                        DS_RD_SETTING.enable_knowledge_base = True
-
-                    else:
-                        # set the knowledge base option back to False for the other traces
-                        DS_RD_SETTING.enable_knowledge_base = False
-
                 if loop.get_unfinished_loop_cnt(loop.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
                     local_selection = await self.trace_scheduler.next(trace)
 
@@ -83,7 +77,7 @@ class ParallelMultiTraceExpGen(ExpGen):
             else:
                 # enter the merging stage
                 # make sure the all loops are finished
-                if loop.get_unfinished_loop_cnt(loop.loop_idx) < 1:
+                if loop.get_unfinished_loop_cnt(loop.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
                     # disable reset in merging stage
                     DS_RD_SETTING.coding_fail_reanalyze_threshold = 100000
                     DS_RD_SETTING.consecutive_errors = 100000
@@ -93,13 +87,15 @@ class ParallelMultiTraceExpGen(ExpGen):
                         trace.set_current_selection(selection=(-1,))
                         return self.exp_gen.gen(trace)
                     else:
-                        selection = (leaves[0],)
+                        local_selection = (leaves[0],)
                         if trace.sota_exp_to_submit is not None:
                             for i in range(1, len(leaves)):
                                 if trace.is_parent(trace.exp2idx(trace.sota_exp_to_submit), leaves[i]):
-                                    selection = (leaves[i],)
+                                    local_selection = (leaves[i],)
                                     break
-                        trace.set_current_selection(selection)
-                        return self.merge_exp_gen.gen(trace)
+                        trace.set_current_selection(local_selection)
+                        exp = self.merge_exp_gen.gen(trace)
+                        exp.set_local_selection(local_selection)
+                        return exp
 
             await asyncio.sleep(1)

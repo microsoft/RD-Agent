@@ -13,13 +13,18 @@ from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.planner import DSExperimentPlan
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
 
 
 class MergeExpGen(ExpGen):
-    def gen(self, trace: DSTrace) -> DSExperiment:
+    def gen(
+        self,
+        trace: DSTrace,
+        plan: DSExperimentPlan | None = None,
+    ) -> DSExperiment:
         # Ignore the selection argument and use all leaves instead.
         leaves: list[int] = trace.get_leaves()
         trace.set_current_selection((leaves[0],))  # override the current selection.
@@ -136,7 +141,11 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
                 return min(trace_scores, key=lambda item: item[1])[0]
         return next((i for i, leaf in enumerate(leaves) if leaf != trace.current_selection[0]))
 
-    def gen(self, trace: DSTrace) -> DSExperiment:
+    def gen(
+        self,
+        trace: DSTrace,
+        plan: DSExperimentPlan | None = None,
+    ) -> DSExperiment:
         # Ignore the selection argument and use all leaves instead.
         sota_exp_fb = trace.sota_experiment_fb(selection=trace.current_selection)
 
@@ -231,7 +240,11 @@ class ExpGen2TraceAndMerge(ExpGen):
         self.merge_exp_gen = MergeExpGen(self.scen)
         self.exp_gen = DataScienceRDLoop.default_exp_gen(self.scen)
 
-    def gen(self, trace: DSTrace) -> DSExperiment:
+    def gen(
+        self,
+        trace: DSTrace,
+        plan: DSExperimentPlan | None = None,
+    ) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
         logger.info(f"Remain time: {timer.remain_time()}")
 
@@ -257,7 +270,11 @@ class ExpGen2TraceAndMerge(ExpGen):
 
 
 class MergeExpGen_MultiTrace(ExpGen):
-    def gen(self, trace: DSTrace) -> DSExperiment:
+    def gen(
+        self,
+        trace: DSTrace,
+        plan: DSExperimentPlan | None = None,
+    ) -> DSExperiment:
         # Ignore the selection argument and use all leaves instead.
         leaves: list[int] = trace.get_leaves()
 
@@ -347,18 +364,13 @@ class ExpGen2TraceAndMergeV2(ExpGen):
         # )
         raise NotImplementedError("You should not switch version with proposal_version")
 
-    def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
+    def gen(
+        self, trace: DSTrace, plan: DSExperimentPlan | None = None, selection: tuple[int, ...] = (-1,)
+    ) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
         logger.info(f"Remain time: {timer.remain_time()}")
 
         if timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
-
-            if DS_RD_SETTING.enable_inject_knowledge_at_root:
-                if DS_RD_SETTING.knowledge_base_path is not None and DS_RD_SETTING.idea_pool_json_path is not None:
-                    if len(trace.hist) == 0:
-                        # set the knowledge base option to True for the first trace
-                        DS_RD_SETTING.enable_knowledge_base = True
-
             if DS_RD_SETTING.enable_multi_version_exp_gen:
                 exp_gen_version_list = DS_RD_SETTING.exp_gen_version_list.split(",")
                 for version in exp_gen_version_list:
@@ -402,21 +414,15 @@ class ExpGen2TraceAndMergeV3(ExpGen):
         self.merge_exp_gen = ExpGen2Hypothesis(self.scen)
         self.exp_gen = DataScienceRDLoop.default_exp_gen(self.scen)
 
-    def gen(self, trace: DSTrace) -> DSExperiment:
+    def gen(
+        self,
+        trace: DSTrace,
+        plan: DSExperimentPlan | None = None,
+    ) -> DSExperiment:
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
         logger.info(f"Remain time: {timer.remain_time()}")
 
         if timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
-
-            if DS_RD_SETTING.enable_inject_knowledge_at_root:
-
-                if len(trace.hist) == 0:
-                    # set the knowledge base option to True for the first trace
-                    DS_RD_SETTING.enable_knowledge_base = True
-
-                else:
-                    # set the knowledge base option back to False for the other traces
-                    DS_RD_SETTING.enable_knowledge_base = False
             return self.exp_gen.gen(trace)
         else:
             # disable reset in merging stage

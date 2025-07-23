@@ -3,7 +3,7 @@ import pandas as pd
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder import CoSTEER
 from rdagent.components.coder.CoSTEER import CoSTEER
-from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
+from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
     CoSTEERSingleFeedback,
@@ -14,7 +14,6 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
     MultiProcessEvolvingStrategy,
 )
 from rdagent.components.coder.CoSTEER.task import CoSTEERTask
-from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
 from rdagent.components.coder.data_science.share.eval import ModelDumpEvaluator
 from rdagent.core.exception import RunnerError
 from rdagent.core.scenario import Scenario
@@ -26,7 +25,7 @@ from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
 
 
-class DSRunnerCoSTEERSettings(DSCoderCoSTEERSettings):
+class DSRunnerCoSTEERSettings(CoSTEERSettings):
     """Data Science CoSTEER settings"""
 
     class Config:

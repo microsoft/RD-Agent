@@ -97,6 +97,7 @@ class LoopBase:
     ] = ()  # you can define a list of error that will withdraw current loop
 
     EXCEPTION_KEY = "_EXCEPTION"
+    LOOP_IDX_KEY = "_LOOP_IDX"
     SENTINEL = -1
 
     _pbar: tqdm  # progress bar instance
@@ -113,7 +114,9 @@ class LoopBase:
         self.step_idx: defaultdict[int, int] = defaultdict(int)  # dict from loop index to next step index
         self.queue: asyncio.Queue[Any] = asyncio.Queue()
 
-        # Store step results for all loops in a nested dictionary: loop_prev_out[loop_index][step_name]
+        # Store step results for all loops in a nested dictionary, following information will be stored:
+        # - loop_prev_out[loop_index][step_name]: the output of the step function
+        # - loop_prev_out[loop_index][<special keys like LOOP_IDX_KEY or EXCEPTION_KEY>]: the special keys
         self.loop_prev_out: dict[int, dict[str, Any]] = defaultdict(dict)
         self.loop_trace = defaultdict(list[LoopTrace])  # the key is the number of loop
         self.session_folder = Path(LOG_SETTINGS.trace_path) / "__session__"
@@ -213,6 +216,9 @@ class LoopBase:
 
                 next_step_idx = si + 1
                 step_forward = True
+                # NOTE: each step are aware are of current loop index
+                # It is very important to set it before calling the step function!
+                self.loop_prev_out[li][self.LOOP_IDX_KEY] = li
                 try:
                     # Call function with current loop's output, await if coroutine or use ProcessPoolExecutor for sync if required
                     if force_subproc:

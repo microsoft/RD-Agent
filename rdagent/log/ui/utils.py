@@ -598,7 +598,7 @@ def curve_figure(scores: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def trace_figure(trace: Trace):
+def trace_figure(trace: Trace, merge_loops: list = []):
     G = nx.DiGraph()
 
     # Calculate the number of ancestors for each node (root node is 0, more ancestors means lower level)
@@ -606,13 +606,24 @@ def trace_figure(trace: Trace):
     for i in range(len(trace.dag_parent)):
         levels[i] = len(trace.get_parents(i))
 
+    def get_display_name(idx: int):
+        """
+        Convert to index in the queue (enque id) to loop_idx for easier understanding.
+        """
+        if hasattr(trace, "idx2loop_id") and idx in trace.idx2loop_id:
+            # FIXME: only keep me after it is stable. Just for compatibility.
+            return f"L{trace.idx2loop_id[idx]} ({idx})"
+        return f"L{idx}"
+
     # Add nodes and edges
     edges = []
+    parents_record = {}
     for i, parents in enumerate(trace.dag_parent):
         for parent in parents:
-            edges.append((f"L{parent}", f"L{i}"))
+            edges.append((get_display_name(parent), get_display_name(i)))
         if len(parents) == 0:
-            G.add_node(f"L{i}")
+            G.add_node(get_display_name(i))
+        parents_record[get_display_name(i)] = [get_display_name(parent) for parent in parents]
     G.add_edges_from(edges)
 
     # Check if G is a path (a single line)
@@ -643,33 +654,27 @@ def trace_figure(trace: Trace):
         # Group nodes by number of ancestors, fewer ancestors are higher up
         layer_nodes = {}
         for idx, lvl in levels.items():
-            layer_nodes.setdefault(lvl, []).append(f"L{idx}")
+            layer_nodes.setdefault(lvl, []).append(get_display_name(idx))
 
         # Layout by level: y axis is -lvl, x axis is evenly distributed
         pos = {}
 
         def parent_avg_pos(node):
-            id = int(node[1:])
-            parents = trace.dag_parent[id]
-
-            if not parents:
-                return 0
-
-            parent_nodes = [f"L{p}" for p in parents]
+            parent_nodes = parents_record.get(node, [])
             parent_xs = [pos[p][0] for p in parent_nodes if p in pos]
             return sum(parent_xs) / len(parent_xs) if parent_xs else 0
 
         for lvl in sorted(layer_nodes):
             nodes = layer_nodes[lvl]
             # For root nodes, sort directly by index
-            if lvl == 0:
-                sorted_nodes = sorted(nodes, key=lambda n: int(n[1:]))
+            if lvl == min(layer_nodes):
+                sorted_nodes = sorted(nodes, key=lambda n: int(n[1:].split(" ")[0]))
             else:
                 # Sort by average parent x, so children are below their parents
                 sorted_nodes = sorted(nodes, key=parent_avg_pos)
             y = -lvl  # y decreases as level increases (children below parents)
             for i, node in enumerate(sorted_nodes):
-                if lvl == 0:
+                if lvl == min(layer_nodes):
                     x = i
                 else:
                     # Place child directly below average parent x, offset if multiple at same y
@@ -679,7 +684,8 @@ def trace_figure(trace: Trace):
                 pos[node] = (x, y)
 
     fig, ax = plt.subplots(figsize=(8, 6))
-    nx.draw(G, pos, with_labels=True, arrows=True, node_color="skyblue", node_size=100, font_size=5, ax=ax)
+    color_map = ["tomato" if node in [get_display_name(idx) for idx in merge_loops] else "skyblue" for node in G]
+    nx.draw(G, pos, with_labels=True, arrows=True, node_color=color_map, node_size=100, font_size=5, ax=ax)
     return fig
 
 

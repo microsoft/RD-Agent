@@ -66,9 +66,7 @@ class LiteLLMAPIBackend(APIBackend):
         logger.info(f"{LogColors.CYAN}Token count: {LogColors.END} {num_tokens}", tag="debug_litellm_token")
         return num_tokens
 
-    def _create_embedding_inner_function(
-        self, input_content_list: list[str], *args: Any, **kwargs: Any
-    ) -> list[list[float]]:  # noqa: ARG002
+    def _create_embedding_inner_function(self, input_content_list: list[str]) -> list[list[float]]:
         """
         Call the embedding function
         """
@@ -82,8 +80,6 @@ class LiteLLMAPIBackend(APIBackend):
         response = embedding(
             model=model_name,
             input=input_content_list,
-            *args,
-            **kwargs,
         )
         response_list = [data["embedding"] for data in response.data]
         return response_list
