@@ -419,8 +419,8 @@ def text_to_patch(text: str, orig: dict[str, str]) -> tuple[Patch, int]:
 
 def identify_files_needed(text: str, prefix: str | None = None) -> list[str]:
     lines = text.splitlines()
-    update_files = [line[len("*** Update File: "):] for line in lines if line.startswith("*** Update File: ")]
-    delete_files = [line[len("*** Delete File: "):] for line in lines if line.startswith("*** Delete File: ")]
+    update_files = [line[len("*** Update File: ") :] for line in lines if line.startswith("*** Update File: ")]
+    delete_files = [line[len("*** Delete File: ") :] for line in lines if line.startswith("*** Delete File: ")]
     all_files = update_files + delete_files
 
     if prefix is None:
@@ -431,7 +431,7 @@ def identify_files_needed(text: str, prefix: str | None = None) -> list[str]:
 
 def identify_files_added(text: str, prefix: str | None = None) -> list[str]:
     lines = text.splitlines()
-    added_files = [line[len("*** Add File: "):] for line in lines if line.startswith("*** Add File: ")]
+    added_files = [line[len("*** Add File: ") :] for line in lines if line.startswith("*** Add File: ")]
 
     if prefix is None:
         return added_files

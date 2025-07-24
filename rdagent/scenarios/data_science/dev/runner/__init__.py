@@ -89,7 +89,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
                 ),
-                prefix=workspace.workspace_path
+                prefix=workspace.workspace_path,
             )
         else:
             batch_edit = extract_output_fn(
