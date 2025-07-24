@@ -4,9 +4,6 @@ auto_sota_selector:
     {{ scenario }}
 
     You are tasked with reviewing the list of SOTA experiments and feedbacks, and selecting the most promising experiment to submit.
-    { % if drop_count > 0 %}
-    You should also drop {{ drop_count }} worst SOTA experiments to dropped_SOTA_list.
-    { % endif %}
 
     Please be objective and data-driven in your analysis. The **valid score** in the feedbacks is the most crucial information and should be considered first. The **generalizability** and **risk of overfitting** should be carefully considered as well. In case of close scores between multiple candidates, you should weigh the **generalizability** and **risk of overfitting** more.
 
@@ -64,19 +61,10 @@ auto_sota_selector:
 
     Your response should be short and concise, strictly adhere to the following JSON format:
 
-    { % if drop_count > 0 %}
-    {
-      "selected_SOTA_idx": [Experiment No.](positive integer),
-      "explanation": "A brief explanation text for your selection."
-      "dropped_SOTA_list": [list No. of experiments that should be dropped](positive integer)
-    }
-    { % else %}
     {
       "selected_SOTA_idx": [Experiment No.](positive integer),
       "explanation": "A brief explanation text for your selection."
     }
-    { % endif %}
-
 
     If you cannot make a selection, like no SOTA experiments and feedbacks, return 
       {
