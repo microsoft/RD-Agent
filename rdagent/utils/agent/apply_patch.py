@@ -487,7 +487,7 @@ def process_patch(
         raise DiffError("Patch text must start with *** Begin Patch")
     paths = identify_files_needed(text, prefix)
     orig = load_files(paths, open_fn)
-    patch, _fuzz = text_to_patch(text, orig)
+    patch, _fuzz = text_to_patch(text, orig, prefix)
     commit = patch_to_commit(patch, orig)
     batch_edit = apply_commit(commit, write_fn, remove_fn, inplace)
     return batch_edit
