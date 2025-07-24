@@ -18,7 +18,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     - For custom data science scenarios, use: "rdagent.scenarios.data_science.scen.DataScienceScen"
     """
 
-    hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.proposal.DSProposalV2ExpGen"
+    planner: str = "rdagent.scenarios.data_science.proposal.exp_gen.planner.DSExpPlannerHandCraft"
+    hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.router.ParallelMultiTraceExpGen"
     """Hypothesis generation class"""
 
     summarizer: str = "rdagent.scenarios.data_science.dev.feedback.DSExperiment2Feedback"
@@ -99,15 +100,12 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     # inject diverse when start a new sub-trace
     enable_inject_diverse: bool = False
 
-    # inject knowledge at the root of the trace
-    enable_inject_knowledge_at_root: bool = False
-
     # enable different version of DSExpGen for multi-trace
     enable_multi_version_exp_gen: bool = False
     exp_gen_version_list: str = "v3,v2"
 
     #### multi-trace: time for final multi-trace merge
-    merge_hours: int = 2
+    merge_hours: int = 0
     """The time for merge"""
 
     #### multi-trace: max SOTA-retrieved number, used in AutoSOTAexpSelector
@@ -118,6 +116,12 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     #### hypothesis selection method
     llm_select: bool = False
     """Use LLM to select the best hypothesis instead of rule-based ranking"""
+
+    #### enable draft before first sota experiment
+    enable_draft_before_first_sota: bool = False
+    enable_planner: bool = False
+
+    model_architecture_suggestion_time_percent: float = 0.75
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()

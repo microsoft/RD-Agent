@@ -16,7 +16,12 @@ from streamlit import session_state as state
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
-from rdagent.log.ui.utils import curve_figure, load_times, trace_figure
+from rdagent.log.ui.utils import (
+    curve_figure,
+    get_sota_exp_stat,
+    load_times,
+    trace_figure,
+)
 from rdagent.log.utils import (
     LogColors,
     extract_evoid,
@@ -49,6 +54,8 @@ if "log_path" not in state:
     state.log_path = None
 if "log_folder" not in state:
     state.log_folder = Path("./log")
+if "sota_info" not in state:
+    state.sota_info = None
 
 available_models = get_valid_models()
 LITELLM_SETTINGS.dump_chat_cache = False
@@ -551,7 +558,7 @@ def get_llm_call_stats(llm_data: dict) -> tuple[int, int]:
                 for d in v:
                     if "debug_llm" in d["tag"]:
                         total_llm_call += 1
-                        if filter_sys_prompt == d["obj"]["system"]:
+                        if "system" in d["obj"] and filter_sys_prompt == d["obj"]["system"]:
                             total_filter_call += 1
     return total_llm_call, total_filter_call
 
@@ -588,7 +595,15 @@ def summarize_win():
             final_trace_loop_id = max_id
             while "record" not in state.data[final_trace_loop_id]:
                 final_trace_loop_id -= 1
-            st.pyplot(trace_figure(state.data[final_trace_loop_id]["record"]["trace"]))
+            merge_loops = []
+            for loop_id in state.llm_data.keys():
+                if "direct_exp_gen" not in state.llm_data[loop_id]:
+                    continue
+                if "scenarios.data_science.proposal.exp_gen.merge:trace" in [
+                    i["obj"]["uri"] for i in state.llm_data[loop_id]["direct_exp_gen"]["no_tag"] if "uri" in i["obj"]
+                ]:
+                    merge_loops.append(loop_id)
+            st.pyplot(trace_figure(state.data[final_trace_loop_id]["record"]["trace"], merge_loops))
         df = pd.DataFrame(
             columns=[
                 "Component",
@@ -609,6 +624,7 @@ def summarize_win():
         )
 
         valid_results = {}
+        sota_loop_id = state.sota_info[1] if state.sota_info else None
         for loop in range(min_id, max_id + 1):
             loop_data = state.data[loop]
             df.loc[loop, "Component"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.component
@@ -656,7 +672,18 @@ def summarize_win():
                             state.data[loop]["mle_score"] is not None
                             and state.data[loop]["mle_score"]["score"] is not None
                         ):
-                            df.loc[loop, "Running Score (test)"] = str(state.data[loop]["mle_score"]["score"])
+                            medal_emoji = (
+                                "🥇"
+                                if state.data[loop]["mle_score"]["gold_medal"]
+                                else (
+                                    "🥈"
+                                    if state.data[loop]["mle_score"]["silver_medal"]
+                                    else "🥉" if state.data[loop]["mle_score"]["bronze_medal"] else ""
+                                )
+                            )
+                            df.loc[loop, "Running Score (test)"] = (
+                                f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
+                            )
                         else:
                             state.data[loop]["mle_score"] = mle_score_txt
                             df.loc[loop, "Running Score (test)"] = "❌"
@@ -669,7 +696,18 @@ def summarize_win():
                             mle_score_txt = mle_score_path.read_text()
                             state.data[loop]["mle_score"] = extract_json(mle_score_txt)
                             if state.data[loop]["mle_score"]["score"] is not None:
-                                df.loc[loop, "Running Score (test)"] = str(state.data[loop]["mle_score"]["score"])
+                                medal_emoji = (
+                                    "🥇"
+                                    if state.data[loop]["mle_score"]["gold_medal"]
+                                    else (
+                                        "🥈"
+                                        if state.data[loop]["mle_score"]["silver_medal"]
+                                        else "🥉" if state.data[loop]["mle_score"]["bronze_medal"] else ""
+                                    )
+                                )
+                                df.loc[loop, "Running Score (test)"] = (
+                                    f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
+                                )
                             else:
                                 state.data[loop]["mle_score"] = mle_score_txt
                                 df.loc[loop, "Running Score (test)"] = "❌"
@@ -678,7 +716,16 @@ def summarize_win():
                             df.loc[loop, "Running Score (test)"] = "❌"
                 else:
                     if isinstance(state.data[loop]["mle_score"], dict):
-                        df.loc[loop, "Running Score (test)"] = str(state.data[loop]["mle_score"]["score"])
+                        medal_emoji = (
+                            "🥇"
+                            if state.data[loop]["mle_score"]["gold_medal"]
+                            else (
+                                "🥈"
+                                if state.data[loop]["mle_score"]["silver_medal"]
+                                else "🥉" if state.data[loop]["mle_score"]["bronze_medal"] else ""
+                            )
+                        )
+                        df.loc[loop, "Running Score (test)"] = f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
                     else:
                         df.loc[loop, "Running Score (test)"] = "❌"
 
@@ -694,9 +741,16 @@ def summarize_win():
                         max(i for i in loop_data["coding"].keys() if isinstance(i, int)) + 1
                     )
             if "feedback" in loop_data:
-                df.loc[loop, "Feedback"] = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
+                fb_emoji_str = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
+                if sota_loop_id == loop:
+                    fb_emoji_str += " (💖SOTA)"
+                df.loc[loop, "Feedback"] = fb_emoji_str
             else:
                 df.loc[loop, "Feedback"] = "N/A"
+
+        if only_success:
+            df = df[df["Feedback"] == "✅"]
+        st.dataframe(df[df.columns[~df.columns.isin(["Hypothesis", "Reason", "Others"])]])
 
         # COST curve
         costs = df["COST($)"].astype(float)
@@ -715,10 +769,6 @@ def summarize_win():
             fig.data[1].name = "Cumulative COST($)"
             st.plotly_chart(fig)
 
-        if only_success:
-            df = df[df["Feedback"] == "✅"]
-        st.dataframe(df[df.columns[~df.columns.isin(["Hypothesis", "Reason", "Others"])]])
-
         # scores curve
         vscores = {}
         for k, vs in valid_results.items():
@@ -735,7 +785,8 @@ def summarize_win():
             ensemble_row = vscores.loc[["ensemble"]]
             vscores = pd.concat([ensemble_row, vscores.drop("ensemble")])
         vscores = vscores.T
-        vscores["test"] = df["Running Score (test)"]
+        test_scores = df["Running Score (test)"].str.replace(r"[🥇🥈🥉]\s*", "", regex=True)
+        vscores["test"] = test_scores
         vscores.index = [f"L{i}" for i in vscores.index]
         vscores.columns.name = metric_name
         with st.popover("Scores Curve", icon="📈", use_container_width=True):
@@ -897,6 +948,7 @@ with st.sidebar:
 
             state.times = load_times(state.log_folder / state.log_path)
             state.data, state.llm_data, state.token_costs = load_data(state.log_folder / state.log_path)
+            state.sota_info = get_sota_exp_stat(Path(state.log_folder) / state.log_path, to_submit=True)
             st.rerun()
     st.toggle("**Show LLM Log**", key="show_llm_log")
     st.toggle("*Show stdout*", key="show_stdout")

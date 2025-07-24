@@ -13,7 +13,7 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import cleanup_container
 
 
-def check_docker() -> None:
+def check_docker_status() -> None:
     container = None
     try:
         client = docker.from_env()
@@ -157,7 +157,7 @@ def health_check(
         env_check()
     if check_docker:
         check_any = True
-        check_docker()
+        check_docker_status()
     if check_ports:
         check_any = True
         check_and_list_free_ports()

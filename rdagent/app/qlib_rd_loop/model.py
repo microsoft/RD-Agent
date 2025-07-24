@@ -15,7 +15,13 @@ class ModelRDLoop(RDLoop):
     skip_loop_error = (ModelEmptyError,)
 
 
-def main(path=None, step_n=None, loop_n=None, all_duration=None, checkout=True):
+def main(
+    path=None,
+    step_n: int | None = None,
+    loop_n: int | None = None,
+    all_duration: str | None = None,
+    checkout: bool = True,
+):
     """
     Auto R&D Evolving loop for fintech models
 

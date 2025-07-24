@@ -3,6 +3,7 @@ from typing import Tuple
 
 from rdagent.core.experiment import Experiment
 from rdagent.core.proposal import (
+    ExperimentPlan,
     Hypothesis,
     Hypothesis2Experiment,
     HypothesisGen,
@@ -25,7 +26,11 @@ class LLMHypothesisGen(HypothesisGen):
     @abstractmethod
     def convert_response(self, response: str) -> Hypothesis: ...
 
-    def gen(self, trace: Trace) -> Hypothesis:
+    def gen(
+        self,
+        trace: Trace,
+        plan: ExperimentPlan | None = None,
+    ) -> Hypothesis:
         context_dict, json_flag = self.prepare_context(trace)
 
         system_prompt = T(".prompts:hypothesis_gen.system_prompt").r(

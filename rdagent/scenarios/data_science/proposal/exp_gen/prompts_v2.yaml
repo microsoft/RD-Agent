@@ -10,10 +10,11 @@ scenario_problem:
     Your task is to analyze the provided information (primarily the scenario and current SOTA, if available) and identify a concise list of **Key Challenges** or **Core Problems** relevant to achieving success in this competition and improving the target metric. Aim for **FEWER BUT BETTER** challenges (e.g., 2-3 critical challenges), focusing on the most impactful aspects that can be methodically addressed.
 
     ### Core Analysis Dimensions for Identifying Challenges
-    1. **SOTA Alignment Analysis**: (If SOTA is provided) Systematically compare the current SOTA implementation against dataset properties and domain knowledge to identify discrepancies or areas representing core challenges to overcome for enhancement.
-    2. **Gap Identification**: (If successful past solutions or common winning strategies are known/inferred) Examine what implicitly addressed problems or unexploited avenues these successful approaches highlight. These gaps can represent current challenges.
-    3. **Domain-Implementation Coherence Check**: Identify instances where technical approaches might violate domain constraints, oversimplify complex relationships, or miss domain-specific nuances. These incoherencies are challenges.
-    4. **Scenario-First Focus (No SOTA)**: If no SOTA implementation is available, the **primary identified challenge** should be foundational. It should focus on establishing a **reasonable baseline** that directly addresses the core task and evaluation metric. Avoid overly complex initial challenges.
+    - **Gap Identification**: (If successful past solutions or common winning strategies are known/inferred) Examine what implicitly addressed problems or unexploited avenues these successful approaches highlight. These gaps can represent current challenges.
+    - **Domain-Implementation Coherence Check**: Identify instances where technical approaches might violate domain constraints, oversimplify complex relationships, or miss domain-specific nuances. These incoherencies are challenges.
+    {% if plan.draft is false %}- **SOTA Alignment Analysis**: Systematically compare the current SOTA implementation against dataset properties and domain knowledge to identify discrepancies or areas representing core challenges to overcome for enhancement.
+    {% else %}- **Scenario-First Focus**: Since SOTA implementation is available, the **primary identified challenge** should be foundational. It should focus on establishing a **reasonable baseline** that directly addresses the core task and evaluation metric. Avoid overly complex initial challenges.
+    {% endif %}
 
     ## Key Challenges / Core Problems
     You **MUST** categorize each identified challenge into one of the following two types. This categorization should be based on the primary driver or nature of the challenge:
@@ -24,7 +25,7 @@ scenario_problem:
     1. The challenge should be specific and fine-grained. Avoid general or vague statements.
     2. The challenge should be technical or methodological. Focus on design and implementation strategies that need to be solved, not simple runtime bugs (unless the bug points to a deeper architectural challenge or a persistent efficiency problem).
     3. The challenge must be strictly aligned with the improvement of the target metric.
-    4. If no SOTA is available, at least one identified challenge must guide the creation of a baseline model that is feasible, potentially competitive, and able to run to completion.
+    {% if plan.draft is true %}4. If no SOTA is available, at least one identified challenge must guide the creation of a baseline model that is feasible, potentially competitive, and able to run to completion.{% endif %}
 
 
     {% if problem_output_format is not none %}
@@ -54,7 +55,6 @@ feedback_problem:
 
     ## Key Learnings and Unresolved Challenges
 
-    
     {% if inject_diverse %}
     ### Focus on Diversity!!
     Diversity is very critical in the analysis of scenario problems. You should closely check the history of previous experiments and feedbacks, and try to explore the problems/hypotheses that are not covered by the previous experiments.
@@ -137,10 +137,12 @@ hypothesis_gen:
       - Analyze the Identified Challenge to understand its root cause and potential impact on the competition's target metric or successful execution.
       - If the Challenge stems from past experiments (SOTA or failed), review the specifics of those experiments to ensure the proposed hypothesis offers a novel, more effective, or correctly implemented solution.
       - If the Challenge relates to persistent problems from failed experiments (e.g., experiments consistently failed due to time/memory constraints, or recurrent errors like incorrect data loading or submission formats), your hypothesis MUST propose a direct and robust tentative solution.
+    {% if plan.draft is true %}
     2. **Drafting the First Implementation (if no SOTA exists)**:
       - If there is no SOTA implementation yet (i.e., you are drafting the first implementation based on a foundational Challenge identified in the previous step), your primary hypothesis should focus on developing a baseline model that directly addresses the foundational Challenge and can run to completion reliably.
       - This initial hypothesis should define the core data processing, feature engineering, model choice, and submission generation steps in a clear and executable way. Avoid introducing unnecessary complexity in the first version, but you are not restricted to overly simple models—a reasonable, competitive baseline is acceptable as long as it is likely to run reliably.
-    3. **Actionable Changes**:
+    {% endif %}
+    {% if plan.draft is true %}3{% else %}2{% endif %}. **Actionable Changes**:
       - If a Challenge involves underperforming models (e.g., in an ensemble), propose specific actions like removing or replacing those models.
       - If a Challenge relates to hyperparameter tuning, recommend a specific method or strategy (e.g., "Use Optuna to perform hyperparameter tuning on the LightGBM model to address the 'suboptimal hyperparameter' challenge").
       - If a Challenge points to data loading, preprocessing, or submission format errors, the hypothesis must detail the exact changes required to rectify these issues.
@@ -198,6 +200,17 @@ hypothesis_gen:
     2. Check the current SOTA implementation and feedback to find the problems that are not covered by the current SOTA implementation.
     3. Think out of the box and explore the hypothesis that are not covered by the previous experiments and feedbacks, but are reasonable and aligned with the identified problems. 
     4. Do not do incremental exploration on the previous problems, like lightgbm -> xgboost, or 1dCNN -> 2dCNN. Totally different hypothesis on model\data\feature\ensemble\workflow level are welcomed.
+    {% endif %}
+
+    {% if plan.suggest_model_architecture is true %}
+    ## Current focus: Find the best model architecture!
+    The user has chose to focus on finding the best model architecture so far. This means if no problems are critical, you should focus on proposing a hypothesis that suggests a new model architecture or a significant change to the existing model architecture. This is the primary focus of the current iteration.
+    If the problem contains a critical challenge, you should still propose a hypothesis that addresses the critical challenge.
+    {% elif plan.suggest_ensemble is true %}
+    ## Current focus: Try to find the best ensemble strategy!
+    The user has chose to focus on finding the best ensemble strategy so far. This means if no problems are critical, you should focus on proposing a hypothesis that suggests a new ensemble strategy or try to increase the cross validation folds or the number of models in the ensemble. This is the primary focus of the current iteration.
+    Some scenarios like computer vision tasks may not typically use ensemble strategies, so you can ignore this focus if it does not apply.
+    If the problem contains a critical challenge, you should still propose a hypothesis that addresses the critical challenge.
     {% endif %}
     
     {% if hypothesis_output_format is not none %}
