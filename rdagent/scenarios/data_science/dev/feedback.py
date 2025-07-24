@@ -55,6 +55,34 @@ class DSExperiment2Feedback(Experiment2Feedback):
         else:
             diff_edition = []
 
+        sota_exp_and_feedback = trace.experiment_and_feedback_list_after_init(return_type="sota", with_index=True)
+        sota_valid_score_df = pd.DataFrame(
+            index=[index for index, exp, fb in sota_exp_and_feedback], columns=["score", "improvement"]
+        )
+        for row_index, (index, sota_exp, sota_fb) in enumerate(sota_exp_and_feedback):
+            sota_valid_score_df.loc[index, "score"] = (
+                sota_exp.result.loc["ensemble"].iloc[0] if sota_exp.result is not None else "N/A"
+            )
+            if row_index > 0:
+                improve_percent = (
+                    (
+                        ((sota_valid_score_df.loc[index, "score"] - sota_valid_score_df.iloc[row_index - 1]["score"]))
+                        / sota_valid_score_df.iloc[row_index - 1]["score"]
+                        * 100
+                    )
+                    if self.scen.evaluation_metric_direction
+                    else (
+                        ((sota_valid_score_df.iloc[row_index - 1]["score"] - sota_valid_score_df.loc[index, "score"]))
+                        / sota_valid_score_df.iloc[row_index - 1]["score"]
+                        * 100
+                    )
+                )
+                sota_valid_score_df.loc[index, "improvement"] = f"{improve_percent:.2f}%"
+        sota_valid_score_df["improvement"] = sota_valid_score_df["score"].diff()
+        all_sota_results_desc = T("scenarios.data_science.share:describe.sota_results").r(
+            sota_valid_score_dict=sota_valid_score_df.to_dict(orient="index"),
+        )
+
         # assumption:
         # The feedback should focus on experiment **improving**.
         # Assume that all the the sota exp is based on the previous sota experiment
@@ -78,6 +106,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
             diff_edition=diff_edition,
             feedback_desc=feedback_desc,
             cur_vs_sota_score=cur_vs_sota_score,
+            all_sota_results_desc=all_sota_results_desc,
         )
 
         resp_dict = json.loads(

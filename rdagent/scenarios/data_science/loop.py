@@ -324,6 +324,11 @@ class DataScienceRDLoop(RDLoop):
             )  # backup when upper code line is killed when running
             self.timer.add_duration(datetime.now() - start_archive_datetime)
 
+    def _check_exit_conditions_on_step(self, loop_id: Optional[int] = None, step_id: Optional[int] = None):
+        if step_id not in [self.steps.index("running"), self.steps.index("feedback")]:
+            # pass the check for running and feedbacks since they are very likely to be finished soon.
+            super()._check_exit_conditions_on_step(loop_id=loop_id, step_id=step_id)
+
     @classmethod
     def load(
         cls,
