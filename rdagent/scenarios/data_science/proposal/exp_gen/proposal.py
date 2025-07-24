@@ -15,6 +15,7 @@ from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.backend.base import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.feedback import ExperimentFeedback
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -656,8 +657,8 @@ class DSProposalV2ExpGen(ExpGen):
         )
         user_prompt = T(".prompts_v2:hypothesis_critique.user").r(
             scenario_desc=scenario_desc,
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
-            exp_feedback_list_desc=exp_feedback_list_desc,
             hypotheses_formatted=hypotheses_formatted,
         )
 
@@ -705,6 +706,7 @@ class DSProposalV2ExpGen(ExpGen):
         critiques_dict: Dict,
         scenario_desc: str,
         sota_exp_desc: str,
+        exp_feedback_list_desc: str,
     ) -> Dict:
         """
         Generate improved hypotheses based on critique feedback for each original hypothesis.
@@ -726,6 +728,7 @@ class DSProposalV2ExpGen(ExpGen):
         )
         user_prompt = T(".prompts_v2:hypothesis_rewrite.user").r(
             scenario_desc=scenario_desc,
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
             hypothesis_critique_pairs=hypothesis_critique_pairs,
         )
@@ -975,15 +978,19 @@ class DSProposalV2ExpGen(ExpGen):
             eda_output = sota_exp.experiment_workspace.file_dict.get("EDA.md", None)
         scenario_desc = self.scen.get_scenario_all_desc(eda_output=eda_output)
 
+        # the only sota exp
         sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
             exp=sota_exp, heading="Best of previous exploration of the scenario"
         )
 
+        # all exp and feedbacks
         exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
             exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
             type="all",
             pipeline=pipeline,
         )
+
+        # all failed exp and feedbacks
         failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
             exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
             type="failed",
@@ -1065,13 +1072,23 @@ class DSProposalV2ExpGen(ExpGen):
             critiques_dict=critiques_dict,
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
         )
 
         # Step 3: Select the best hypothesis
-        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
-            hypothesis_dict=improved_hypotheses_dict,
-            problem_dict=all_problems,
-        )
+        if DS_RD_SETTING.llm_select:
+            pickled_problem_name, new_hypothesis = self.hypothesis_llm_select(
+                hypothesis_dict=improved_hypotheses_dict,
+                problem_dict=all_problems,
+                scenario_desc=scenario_desc,
+                sota_exp_desc=sota_exp_desc,
+                exp_feedback_list_desc=exp_feedback_list_desc,
+            )
+        else:
+            pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+                hypothesis_dict=improved_hypotheses_dict,
+                problem_dict=all_problems,
+            )
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)

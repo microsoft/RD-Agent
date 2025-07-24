@@ -270,11 +270,11 @@ hypothesis_critique:
     # Scenario Description
     {{ scenario_desc }}
 
+    # Previous Experiments and Feedbacks
+    {{ exp_and_feedback_list_desc }}
+
     # Current SOTA Implementation
     {{ sota_exp_desc }}
-
-    # Experiment History
-    {{ exp_feedback_list_desc }}
 
     # Hypotheses to Critique
     {{ hypotheses_formatted }}
@@ -339,6 +339,9 @@ hypothesis_rewrite:
   user: |-
     # Scenario Description
     {{ scenario_desc }}
+
+    # Previous Experiments and Feedbacks
+    {{ exp_and_feedback_list_desc }}
 
     # Current SOTA Implementation
     {{ sota_exp_desc }}
