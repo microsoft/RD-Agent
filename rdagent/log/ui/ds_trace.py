@@ -706,6 +706,10 @@ def summarize_win():
             else:
                 df.loc[loop, "Feedback"] = "N/A"
 
+        if only_success:
+            df = df[df["Feedback"] == "✅"]
+        st.dataframe(df[df.columns[~df.columns.isin(["Hypothesis", "Reason", "Others"])]])
+
         # COST curve
         costs = df["COST($)"].astype(float)
         costs.index = [f"L{i}" for i in costs.index]
@@ -722,10 +726,6 @@ def summarize_win():
             fig.data[0].name = "COST($) per Loop"
             fig.data[1].name = "Cumulative COST($)"
             st.plotly_chart(fig)
-
-        if only_success:
-            df = df[df["Feedback"] == "✅"]
-        st.dataframe(df[df.columns[~df.columns.isin(["Hypothesis", "Reason", "Others"])]])
 
         # scores curve
         vscores = {}
