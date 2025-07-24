@@ -97,7 +97,7 @@ class PythonBatchPatchOut(AgentOut):
         patch_pattern = re.compile(r"(\*\*\* Begin Patch\s*(.*?)\s*\*\*\* End Patch)", re.DOTALL)
         matches = patch_pattern.findall(resp)
         for match in matches:
-            code_blocks.update(apply_patch_from_text(match, inplace=False, prefix=prefix))
+            code_blocks.update(apply_patch_from_text(match[0], inplace=False, prefix=prefix))
 
         # Step 2: apply the patch, this will modify the file in place
         return code_blocks
