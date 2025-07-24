@@ -10,6 +10,7 @@ import networkx as nx
 import pandas as pd
 import plotly.graph_objects as go
 import typer
+from matplotlib import pyplot as plt
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.core.proposal import Trace
@@ -604,6 +605,72 @@ def curve_figure(scores: pd.DataFrame) -> go.Figure:
             )
     fig.update_layout(title=f"Test and Valid scores (metric: {scores.columns.name})")
 
+    return fig
+
+
+def lite_curve_figure(summary):
+    cols = 3  # 每行几个图，可调整
+    rows = math.ceil(len(summary) / cols)
+
+    fig, axes = plt.subplots(rows, cols, figsize=(6 * cols, 4.5 * rows), squeeze=False)
+    axes = axes.flatten()  # 💡 扁平化 axes 结构，确保 ax.plot 不报错
+    colors = {"Bronze": "#cd7f32", "Silver": "#c0c0c0", "Gold": "#ffd700", "Median": "gray"}
+
+    for idx, competition in enumerate(summary.keys()):
+        data = summary[competition]
+        test_scores_df = pd.DataFrame.from_dict(data["test_scores"], orient="index", columns=["Test Score"])
+        test_scores_df.index.name = "Loop"
+        valid_scores_dict = data["valid_scores"]
+
+        # 提取 ensemble 验证分数
+        ensemble_scores = {}
+        for loop_id, df in valid_scores_dict.items():
+            if "ensemble" in df.index:
+                ensemble_scores[loop_id] = df.loc["ensemble"].iloc[0]
+
+        ensemble_valid_df = pd.DataFrame.from_dict(ensemble_scores, orient="index", columns=["Ensemble Valid Score"])
+        ensemble_valid_df.index.name = "Loop"
+
+        combined_df = pd.merge(ensemble_valid_df, test_scores_df, left_index=True, right_index=True, how="outer")
+        combined_df.sort_index(inplace=True)
+
+        bronze_threshold = data["bronze_threshold"]
+        silver_threshold = data["silver_threshold"]
+        gold_threshold = data["gold_threshold"]
+        sota_loop_id = data["sota_loop_id_new"]
+
+        # 当前 subplot
+        ax = axes[idx]
+        ax.plot(combined_df.index, combined_df["Ensemble Valid Score"], marker="o", markersize=4, label="Valid Score")
+        ax.plot(combined_df.index, combined_df["Test Score"], marker="s", markersize=4, label="Test Score")
+        ax.axhline(y=bronze_threshold, color=colors["Bronze"], linestyle="--", linewidth=2)
+        ax.axhline(y=silver_threshold, color=colors["Silver"], linestyle="--", linewidth=2)
+        ax.axhline(y=gold_threshold, color=colors["Gold"], linestyle="--", linewidth=2)
+
+        # 标记 SOTA loop
+        if sota_loop_id is not None and sota_loop_id in combined_df.index:
+            ax.axvline(x=sota_loop_id, color="red", linestyle=":", linewidth=2, alpha=0.7)
+            # 添加文本标注
+            ax.text(
+                sota_loop_id,
+                ax.get_ylim()[1] * 0.95,
+                f"L{sota_loop_id}",
+                ha="center",
+                va="top",
+                bbox=dict(boxstyle="round,pad=0.3", facecolor="red", alpha=0.3),
+            )
+
+        ax.set_title(f"{competition}")
+        ax.set_xlabel("Loop")
+        ax.set_ylabel("Score")
+        ax.grid(True)
+        ax.legend()
+
+    # 删除多余 subplot（如果有）
+    for j in range(len(summary), len(axes)):
+        fig.delaxes(axes[j])
+
+    plt.tight_layout()
     return fig
 
 
