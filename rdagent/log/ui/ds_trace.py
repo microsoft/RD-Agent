@@ -16,7 +16,7 @@ from streamlit import session_state as state
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
-from rdagent.log.ui.utils import curve_figure, load_times, trace_figure
+from rdagent.log.ui.utils import curve_figure, load_times, trace_figure, get_sota_exp_stat
 from rdagent.log.utils import (
     LogColors,
     extract_evoid,
@@ -49,6 +49,8 @@ if "log_path" not in state:
     state.log_path = None
 if "log_folder" not in state:
     state.log_folder = Path("./log")
+if "sota_info" not in state:
+    state.sota_info = None
 
 available_models = get_valid_models()
 LITELLM_SETTINGS.dump_chat_cache = False
@@ -617,6 +619,7 @@ def summarize_win():
         )
 
         valid_results = {}
+        sota_loop_id = state.sota_info[1] if state.sota_info else None
         for loop in range(min_id, max_id + 1):
             loop_data = state.data[loop]
             df.loc[loop, "Component"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.component
@@ -706,6 +709,8 @@ def summarize_win():
                     )
             if "feedback" in loop_data:
                 fb_emoji_str = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
+                if sota_loop_id == loop:
+                    fb_emoji_str += " (💖SOTA)"
                 df.loc[loop, "Feedback"] = fb_emoji_str
             else:
                 df.loc[loop, "Feedback"] = "N/A"
@@ -909,6 +914,7 @@ with st.sidebar:
 
             state.times = load_times(state.log_folder / state.log_path)
             state.data, state.llm_data, state.token_costs = load_data(state.log_folder / state.log_path)
+            state.sota_info = get_sota_exp_stat(Path(state.log_folder) / state.log_path, to_submit=True)
             st.rerun()
     st.toggle("**Show LLM Log**", key="show_llm_log")
     st.toggle("*Show stdout*", key="show_stdout")
