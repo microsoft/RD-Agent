@@ -70,7 +70,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
                         / sota_valid_score_df.iloc[row_index - 1]["score"]
                         * 100
                     )
-                    if self.scen.evaluation_metric_direction
+                    if self.scen.metric_direction
                     else (
                         ((sota_valid_score_df.iloc[row_index - 1]["score"] - sota_valid_score_df.loc[index, "score"]))
                         / sota_valid_score_df.iloc[row_index - 1]["score"]
