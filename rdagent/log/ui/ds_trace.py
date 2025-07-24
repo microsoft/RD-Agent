@@ -664,7 +664,8 @@ def summarize_win():
                             state.data[loop]["mle_score"] is not None
                             and state.data[loop]["mle_score"]["score"] is not None
                         ):
-                            df.loc[loop, "Running Score (test)"] = str(state.data[loop]["mle_score"]["score"])
+                            medal_emoji = "🥇" if state.data[loop]["mle_score"]["gold_medal"] else "🥈" if state.data[loop]["mle_score"]["silver_medal"] else "🥉" if state.data[loop]["mle_score"]["bronze_medal"] else ""
+                            df.loc[loop, "Running Score (test)"] = f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
                         else:
                             state.data[loop]["mle_score"] = mle_score_txt
                             df.loc[loop, "Running Score (test)"] = "❌"
@@ -677,7 +678,8 @@ def summarize_win():
                             mle_score_txt = mle_score_path.read_text()
                             state.data[loop]["mle_score"] = extract_json(mle_score_txt)
                             if state.data[loop]["mle_score"]["score"] is not None:
-                                df.loc[loop, "Running Score (test)"] = str(state.data[loop]["mle_score"]["score"])
+                                medal_emoji = "🥇" if state.data[loop]["mle_score"]["gold_medal"] else "🥈" if state.data[loop]["mle_score"]["silver_medal"] else "🥉" if state.data[loop]["mle_score"]["bronze_medal"] else ""
+                                df.loc[loop, "Running Score (test)"] = f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
                             else:
                                 state.data[loop]["mle_score"] = mle_score_txt
                                 df.loc[loop, "Running Score (test)"] = "❌"
@@ -686,7 +688,8 @@ def summarize_win():
                             df.loc[loop, "Running Score (test)"] = "❌"
                 else:
                     if isinstance(state.data[loop]["mle_score"], dict):
-                        df.loc[loop, "Running Score (test)"] = str(state.data[loop]["mle_score"]["score"])
+                        medal_emoji = "🥇" if state.data[loop]["mle_score"]["gold_medal"] else "🥈" if state.data[loop]["mle_score"]["silver_medal"] else "🥉" if state.data[loop]["mle_score"]["bronze_medal"] else ""
+                        df.loc[loop, "Running Score (test)"] = f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
                     else:
                         df.loc[loop, "Running Score (test)"] = "❌"
 
@@ -702,7 +705,8 @@ def summarize_win():
                         max(i for i in loop_data["coding"].keys() if isinstance(i, int)) + 1
                     )
             if "feedback" in loop_data:
-                df.loc[loop, "Feedback"] = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
+                fb_emoji_str = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
+                df.loc[loop, "Feedback"] = fb_emoji_str
             else:
                 df.loc[loop, "Feedback"] = "N/A"
 
