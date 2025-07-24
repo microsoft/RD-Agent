@@ -50,8 +50,10 @@ exp_feedback:
     Step 4: Identify validation score improvement source
     - The user also provides you all the ensemble validation scores of the SOTA experiments you can get the improve pattern of the validation score numbers.
     - Since the current validation score is obviously better than the SOTA `ensemble` validation score, you should analyze whether the current number based on all the history numbers following the patterns:
-      - If no much sota validation score is provided, you should consider accept the score as a valid improvement and set `"Replace Best Result": "yes"`.
-      - If the sota validation score has been stabilized or joggling for several rounds, you should be very careful to accept the current score as a valid improvement because it is likely that this validation score improvement is the cause of over-fit. Please proceed to Step 5 to check code change. If the code change and score improvement is reasonable then you can accept the current score as a valid improvement.
+      - If the sota validation score has been stabilized or joggling for several rounds, you should be very careful to accept the current score as a valid improvement because it is likely that this validation score improvement is the cause of over-fit. 
+        - If the code manipulate the validation dataset or modified the validation process. please set `"Replace Best Result": "no"` and explain in `"Reasoning"` starting with `[Validation Score Manipulation]`.
+        - If the improvement is based a big innovated code change, please proceed to Step 5 to check the code quality and give decision based on both the validation score and code quality.
+      - If no much sota validation score is provided, you should proceed to Step 5 to check the code quality and give decision based on both the validation score and code quality.
 
     Step 5: Analyze Code To get Better validation results
     - If the current `ensemble` validation score is similar to the SOTA `ensemble` validation score or suspicious validation improvement after several trials, give the decision based on the comparison between the current experiment and SOTA.
