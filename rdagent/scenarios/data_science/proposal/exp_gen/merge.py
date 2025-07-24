@@ -6,7 +6,7 @@ from typing import Dict, Tuple
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
-from rdagent.core.proposal import ExpGen
+from rdagent.core.proposal import ExperimentFeedback, ExpGen
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
 from rdagent.oai.llm_utils import APIBackend
@@ -159,29 +159,27 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
             sota_exp_desc = ""
             eda_output = None
 
-        trace_fbs = []
+        trace_fbs: list[tuple[DSExperiment, ExperimentFeedback]] = []
         # find the best exp to merge
         leaves: list[int] = trace.get_leaves()
+        max_sota_retrieved_num_per_trace = max(DS_RD_SETTING.max_sota_retrieved_num * 2 // len(leaves), 4)
         for leaf in leaves:
             if leaf == trace.current_selection[0]:
                 continue
 
-            trace_fbs.append(
+            trace_fbs.extend(
                 trace.experiment_and_feedback_list_after_init(
                     return_type="sota",
                     search_type="ancestors",
                     selection=(leaf,),
+                    max_retrieve_num=max_sota_retrieved_num_per_trace,
                 )
             )
 
-        num_to_slice = 20
-        if sum(len(fb_list) for fb_list in trace_fbs) > num_to_slice:
-            success_fb_trace_count = sum(1 for fb_list in trace_fbs if fb_list)
-            success_fb_list = [
-                fb for fb_list in trace_fbs for fb in fb_list[-(num_to_slice // success_fb_trace_count) :]
-            ]
-        else:
-            success_fb_list = [fb for fb_list in trace_fbs for fb in fb_list]
+        success_fb_list = list(set(trace_fbs))
+        logger.info(
+            f"Merge Hypothesis: select {len(success_fb_list)} from {len(trace_fbs)} SOTA experiments found in {len(leaves)} traces"
+        )
 
         if len(success_fb_list) > 0:
             exp_to_merge_fb_desc = T("scenarios.data_science.proposal.exp_gen.merge:trace").r(

@@ -259,7 +259,7 @@ class DataScienceRDLoop(RDLoop):
         logger.log_object(sota_exp_to_submit, tag="sota_exp_to_submit")
 
         logger.log_object(self.trace, tag="trace")
-        logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
+        logger.log_object(self.trace.sota_experiment(search_type="all"), tag="SOTA experiment")
 
         if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
             logger.log_object(self.trace.knowledge_base, tag="knowledge_base")
