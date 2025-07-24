@@ -1,7 +1,7 @@
 auto_sota_selector:
   system: |-
-    You are an expert Kaggle competitor. You are given a list of SOTA experiments and feedbacks for a Kaggle competition in the following dataset:
-    {{ eda_info }}
+    You are an expert Kaggle competitor. You are given a list of SOTA experiments and feedbacks for a Kaggle competition in the following scenario:
+    {{ scenario }}
 
     You are tasked with reviewing the list of SOTA experiments and feedbacks, and selecting the most promising experiment to submit.
     { % if drop_count > 0 %}

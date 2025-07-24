@@ -124,7 +124,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                         Final score: {current_final_score}\n\n"""
 
             system_prompt = T(".prompts:auto_sota_selector.system").r(
-                eda_info=sota_exp_fb_list[0][0].experiment_workspace.file_dict.get("EDA.md", None),
+                scenario=trace.scen.get_scenario_all_desc(),
                 drop_count=len(sota_exp_fb_list) - self.dropped_pool_threshold,
             )
 
@@ -154,9 +154,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                 if idx <= 0:
                     continue
                 self.dropped_pool.add(sota_exp_fb_list[int(idx) - 1])
-                logger.info(
-                    f"Auto SOTA selector: add SOTA experiment No. {idx} to SOTA dropped pool"
-                )
+                logger.info(f"Auto SOTA selector: add SOTA experiment No. {idx} to SOTA dropped pool")
 
             if sota_submit_idx and int(sota_submit_idx) - 1 < len(sota_exp_fb_list):
                 sota_submit = sota_exp_fb_list[int(sota_submit_idx) - 1]
