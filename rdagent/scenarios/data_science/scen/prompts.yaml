@@ -36,7 +36,7 @@ scenario_description: |-
 
   {% if time_limit %}
   ====== Time Limit On Full Code Execution ======
-  Your full code's execution is limited to **{{ time_limit }}**. After this time limit, your code will be terminated. But remember your main target is to achieve the best performance and you have several times to modify your code. So please be bold to make the best use of all the time limit and don't be too conservative.
+  Your full code's execution is limited to 5 hours. After this time limit, your code will be terminated. But remember your main target is to achieve the best performance and you have several times to modify your code. So please be bold to make the best use of all the time limit and don't be too conservative.
   During this time limit, you have all the resources available to you. Please fully leverage all the computational resources(CPUs and GPUs) to achieve the best performance like choose a powerful model, use a large batch size, enable data sampler with big parallel.
   {% if ensemble_limit is not none %}
   If your code involves ensemble training, note that the total time allowed for ensemble runs is {{ ensemble_limit }} seconds. Make sure to plan your ensemble strategy wisely within this limit.

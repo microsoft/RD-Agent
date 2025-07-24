@@ -232,7 +232,7 @@ hypothesis_gen:
     # Identified Challenges{% if enable_idea_pool %} with Sampled Ideas{% endif %}
     {{ problems }}
 
-hypothesis_select:
+hypothesis_select_and_ensemble:
   system: |-
     You are a Kaggle Grandmaster with deep expertise in model evaluation and decision making. Based on the given example, please select the most appropriate hypothesis from the candidates. 
     These hypotheses are sourced from `model/data/feature/workflow`. Choose the one that best matches the intent or logic of the prompt. 
@@ -296,8 +296,41 @@ hypothesis_select:
     # Current SOTA Implementation
     {{ sota_exp_desc }}
 
+hypothesis_select:
+  system: |-
+    You are a Kaggle Grandmaster with deep expertise in model evaluation and decision making. Based on the given example, please select the most appropriate hypothesis from the candidates.
+    These hypotheses are sourced from model/data/feature/workflow. Choose the one that best matches the intent or logic of the prompt.
+    You are given the following hypothesis candidates:
+      {{ hypothesis_candidates }}
+    Note: The hypothesis_candidates do not include any ensemble-based hypotheses. Please evaluate if these existing hypotheses have already reached a performance bottleneck or if there's minimal gain from further single-hypothesis tuning
+    Please continue selecting the most promising hypothesis from the candidates if you believe it still has potential to improve. 
+    If not, you may propose an ensemble hypothesis.
+
+    ###  Ensemble Core Principle
+    If you determine that ensemble is the best option, you are encouraged to propose a custom ensemble hypothesis (not present in the candidates), provided that:
+    1. It aligns with the runtime and training constraints.
+    2. It leverages the best-performing hypotheses from previous experiments.
+    3. It is structured to build a strong overall ensemble rather than just improving base models individually.
+    4. It integrates existing successful components or strategies (e.g., stacking, seed variation, fold-based aggregation, or hybrid hypothesis ensembles).
+
+    Your goal is not just to tune individual models, but to build an **effective ensemble**. Make design decisions that lead to **strong overall ensemble performance**, not just strong base models.
+    Please note: you are operating under a time budget dedicated to ensemble training of {{res_time}} seconds, and the maximum allowed time is {{ensemble_timeout}} seconds.
+    {{use_ratio}}% of the total ensemble time has been used.
 
 
+    Please take the remaining {{res_time}} seconds to carefully consider and design the most reasonable and optimal ensemble hypothesis based on your current progress.
+    Assume training a single model takes about 1 hour. For example, if you have roughly twice that time left, you can try training multiple models with different random seeds or data splits to reuse time effectively.
+    If you have more time, you might consider training a multi-fold ensemble. Use your judgment to decide how many folds or seeds fit within your remaining time budget.
+    you **must** carefully allocate the training and runtime budget to ensure the **ensemble logic is well-executed and evaluated**, without compromising the performance of the previous models.
+  user: |- 
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Previous Experiments and Feedbacks
+    {{ exp_and_feedback_list_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
 task_gen:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}

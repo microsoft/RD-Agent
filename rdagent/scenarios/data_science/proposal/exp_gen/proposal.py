@@ -725,15 +725,49 @@ class DSProposalV2ExpGen(ExpGen):
             problem_label=problem_dict.get("label", "FEEDBACK_PROBLEM"),
         )
 
-    def hypothesis_select_with_llm(
+    def hypothesis_select_with_llm_and_ensemble(
         self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str, hypothesis_candidates: dict
     ):
+        res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
+        total_time = RD_Agent_TIMER_wrapper.timer.all_duration
+        use_time = round(total_time.total_seconds(), 2) - round(res_time.total_seconds(), 2)
+        use_ratio = 100 * use_time / round(total_time.total_seconds(), 2)
+        use_ratio = round(use_ratio, 2)
 
-        # time_use_current = 0
-        # for exp, feedback in trace.hist:
-        #     if exp.running_info.running_time is not None:
-        #         time_use_current += exp.running_info.running_time
-        # res_time = 12*3600 - time_use_current
+        ensemble_timeout = DS_RD_SETTING.ensemble_timeout
+        hypothesis_candidates = str(json.dumps(hypothesis_candidates, indent=2))
+
+        sys_prompt = T(".prompts_v2:hypothesis_select_and_ensemble.system").r(
+            hypothesis_candidates=hypothesis_candidates,
+            res_time=round(res_time.total_seconds(), 2),
+            ensemble_timeout=ensemble_timeout,
+            use_ratio=use_ratio,
+            hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(
+                hypothesis_candidates=hypothesis_candidates
+            ),
+        )
+
+        user_prompt = T(".prompts_v2:hypothesis_select_and_ensemble.user").r(
+            scenario_desc=scenario_desc,
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format=HypothesisSimple if self.supports_response_schema else {"type": "json_object"},
+            json_target_type=(
+                Dict[str, Dict[str, str | Dict[str, str | int]]] if not self.supports_response_schema else None
+            ),
+        )
+
+        response_dict = json.loads(response)
+        return response_dict
+
+    def hypothesis_select_with_llm(
+            self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str, hypothesis_candidates: dict
+        ):
         res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
         total_time = RD_Agent_TIMER_wrapper.timer.all_duration
         use_time = round(total_time.total_seconds(), 2) - round(res_time.total_seconds(), 2)
@@ -980,13 +1014,22 @@ class DSProposalV2ExpGen(ExpGen):
         #     hypothesis_dict=hypothesis_dict,
         #     problem_dict=  all_problems,
         # )
+        if DS_RD_SETTING.only_select_hypothesis == True:
+            response_dict = self.hypothesis_select_with_llm(
+                scenario_desc=scenario_desc,
+                exp_feedback_list_desc=exp_feedback_list_desc,
+                sota_exp_desc=sota_exp_desc,
+                hypothesis_candidates=hypothesis_dict,
+            )
+        else:
+            response_dict = self.hypothesis_select_with_llm_and_ensemble(
+                scenario_desc=scenario_desc,
+                exp_feedback_list_desc=exp_feedback_list_desc,
+                sota_exp_desc=sota_exp_desc,
+                hypothesis_candidates=hypothesis_dict,
+            )
 
-        response_dict = self.hypothesis_select_with_llm(
-            scenario_desc=scenario_desc,
-            exp_feedback_list_desc=exp_feedback_list_desc,
-            sota_exp_desc=sota_exp_desc,
-            hypothesis_candidates=hypothesis_dict,
-        )
+
         component_map = {
             "Model": HypothesisComponent.Model,
             "Ensemble": HypothesisComponent.Ensemble,
