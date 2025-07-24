@@ -146,7 +146,7 @@ def get_final_sota_exp(log_path: Path): # TODO: fix this because multi-trace
     return final_sota_exp
 
 
-# @cache_with_pickle(_log_path_hash_func, force=True)
+@cache_with_pickle(_log_path_hash_func, force=True)
 def get_sota_exp_stat(log_path: Path) -> tuple[str | None, int | None, float | None]:
     trace_paths = [i for i in log_path.rglob(f"**/trace/**/*.pkl")]
     if len(trace_paths) == 0:

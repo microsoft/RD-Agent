@@ -551,7 +551,7 @@ def get_llm_call_stats(llm_data: dict) -> tuple[int, int]:
                 for d in v:
                     if "debug_llm" in d["tag"]:
                         total_llm_call += 1
-                        if filter_sys_prompt == d["obj"]["system"]:
+                        if "system" in d["obj"] and filter_sys_prompt == d["obj"]["system"]:
                             total_filter_call += 1
     return total_llm_call, total_filter_call
 
