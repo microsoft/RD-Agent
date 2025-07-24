@@ -43,7 +43,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     #### enable specification
     spec_enabled: bool = True
 
-    only_select_hypothesis: bool = False
+    only_select_hypothesis: bool = True
     #### proposal related
     # proposal_version: str = "v2" deprecated
 
