@@ -244,9 +244,11 @@ hypothesis_critique:
     - **Risk Mitigation**: Recommend specific validation strategies or safeguards for high-risk aspects
     - **Competition Context**: This is a Kaggle competition where strong performance may come from novel approaches, but also from incremental improvements and careful optimization. Balance innovation with practical enhancements.
     
-    ## Guidance Rules
+    ## CRITICAL Guidance Rules
     
-    **IMPORTANT**: Be specific about methods and strategies, but avoid over-specifying implementation parameters. Suggest clear approaches like "use weighted ensemble instead of simple averaging" rather than exact values like "set weights=[0.3, 0.7]". Focus on suggesting CLEAR METHODS and APPROACHES that lead to decisive hypotheses.
+    - Be specific about methods and strategies, but avoid over-specifying implementation parameters. Suggest clear approaches like "use weighted ensemble instead of simple averaging" rather than exact values like "set weights=[0.3, 0.7]". 
+    - Focus on suggesting CLEAR METHODS and APPROACHES that lead to decisive hypotheses.
+    - Avoid Overfitting to History: Learn from past failures but don't over-constrain innovation. Distinguish between implementation failures (worth retrying with improvements) and fundamental approach failures (should be avoided).
 
     ### Examples:
     
@@ -290,6 +292,7 @@ hypothesis_rewrite:
     2. **Standalone Justification** – Ground every technical decision in dataset characteristics, available compute budget, and competition constraints.
     3. **Decisive Specificity** – Remove all ambiguity; propose one clear action.
     4. **Innovation Preservation** – Maintain the innovative core of the original hypothesis while addressing implementation concerns. Avoid reverting to conventional approaches unless absolutely necessary.
+    5. **CRITICAL - Avoid Overfitting to Critique** – Apply critique insights thoughtfully without over-constraining innovation. Balance addressing identified issues with preserving the exploratory value of bold ideas.
     
     ## Guidelines for Writing Rewritten Hypotheses
     
