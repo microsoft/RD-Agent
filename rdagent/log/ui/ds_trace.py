@@ -4,16 +4,18 @@ import pickle
 import random
 import re
 from collections import defaultdict
-from datetime import timedelta
+from datetime import time, timedelta
 from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from litellm import get_valid_models
 from streamlit import session_state as state
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.storage import FileStorage
+from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.utils import curve_figure, load_times, trace_figure
 from rdagent.log.utils import (
     LogColors,
@@ -21,6 +23,16 @@ from rdagent.log.utils import (
     extract_json,
     extract_loopid_func_name,
     is_valid_session,
+)
+from rdagent.oai.backend.litellm import LITELLM_SETTINGS
+from rdagent.oai.llm_utils import APIBackend
+
+# Import necessary classes for the response format
+from rdagent.scenarios.data_science.proposal.exp_gen.proposal import (
+    CodingSketch,
+    HypothesisList,
+    ScenarioChallenges,
+    TraceChallenges,
 )
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
@@ -38,6 +50,12 @@ if "log_path" not in state:
 if "log_folder" not in state:
     state.log_folder = Path("./log")
 
+available_models = get_valid_models()
+LITELLM_SETTINGS.dump_chat_cache = False
+LITELLM_SETTINGS.dump_embedding_cache = False
+LITELLM_SETTINGS.use_chat_cache = False
+LITELLM_SETTINGS.use_embedding_cache = False
+
 
 def convert_defaultdict_to_dict(d):
     if isinstance(d, defaultdict):
@@ -45,7 +63,6 @@ def convert_defaultdict_to_dict(d):
     return d
 
 
-@st.cache_data(persist=True)
 def load_data(log_path: Path):
     data = defaultdict(lambda: defaultdict(dict))
     llm_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -132,6 +149,10 @@ def load_data(log_path: Path):
     )
 
 
+if UI_SETTING.enable_cache:
+    load_data = st.cache_data(persist=True)(load_data)
+
+
 def load_stdout(stdout_path: Path):
     if stdout_path.exists():
         stdout = stdout_path.read_text()
@@ -216,6 +237,16 @@ def highlight_prompts_uri(uri):
 
 
 def llm_log_win(llm_d: list):
+    def to_str_recursive(obj):
+        if isinstance(obj, dict):
+            return {k: to_str_recursive(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [to_str_recursive(v) for v in obj]
+        elif isinstance(obj, tuple):
+            return tuple(to_str_recursive(v) for v in obj)
+        else:
+            return str(obj)
+
     for d in llm_d:
         if "debug_tpl" in d["tag"]:
             uri = d["obj"]["uri"]
@@ -224,20 +255,22 @@ def llm_log_win(llm_d: list):
             tpl = d["obj"]["template"]
             cxt = d["obj"]["context"]
             rd = d["obj"]["rendered"]
-            with st.expander(highlight_prompts_uri(uri), expanded=False, icon="⚙️"):
+            with st.popover(highlight_prompts_uri(uri), icon="⚙️", use_container_width=True):
                 t1, t2, t3 = st.tabs([":green[**Rendered**]", ":blue[**Template**]", ":orange[**Context**]"])
                 with t1:
                     show_text(rd)
                 with t2:
                     show_text(tpl, lang="django")
                 with t3:
-                    st.json(cxt)
+                    st.json(to_str_recursive(cxt))
         elif "debug_llm" in d["tag"]:
             system = d["obj"].get("system", None)
             user = d["obj"]["user"]
             resp = d["obj"]["resp"]
-            with st.expander(f"**LLM**", expanded=False, icon="🤖"):
-                t1, t2, t3 = st.tabs([":green[**Response**]", ":blue[**User**]", ":orange[**System**]"])
+            with st.expander(f"**LLM**", icon="🤖", expanded=False):
+                t1, t2, t3, t4 = st.tabs(
+                    [":green[**Response**]", ":blue[**User**]", ":orange[**System**]", ":violet[**ChatBot**]"]
+                )
                 with t1:
                     try:
                         rdict = json.loads(resp)
@@ -258,6 +291,60 @@ def llm_log_win(llm_d: list):
                     show_text(user)
                 with t3:
                     show_text(system or "No system prompt available")
+                with t4:
+                    input_c, resp_c = st.columns(2)
+                    key = hashlib.md5(resp.encode()).hexdigest()
+                    with input_c:
+                        btc1, btc2, btc3 = st.columns(3)
+                        trace_model = (
+                            state.data.get("settings", {})
+                            .get("LITELLM_SETTINGS", {})
+                            .get("chat_model", available_models[0])
+                        )
+                        trace_reasoning_effort = (
+                            state.data.get("settings", {}).get("LITELLM_SETTINGS", {}).get("reasoning_effort", None)
+                        )
+                        LITELLM_SETTINGS.chat_model = btc1.selectbox(
+                            "Chat Model",
+                            options=available_models,
+                            index=available_models.index(trace_model),
+                            key=key + "_chat_model",
+                        )
+                        LITELLM_SETTINGS.reasoning_effort = btc2.selectbox(
+                            "Reasoning Effort",
+                            options=[None, "low", "medium", "high"],
+                            index=[None, "low", "medium", "high"].index(trace_reasoning_effort),
+                            key=key + "_reasoning_effort",
+                        )
+                        rf = btc3.selectbox(
+                            "Response Format",
+                            options=[None, ScenarioChallenges, TraceChallenges, HypothesisList, CodingSketch],
+                            format_func=lambda x: x.__name__ if x else "None",
+                            key=key + "_response_format",
+                        )
+                        json_mode = st.checkbox("JSON Mode", value=False, key=key + "_json_mode")
+                        sys_p = input_c.text_area(label="system", value=system, height="content", key=key + "_system")
+                        user_p = input_c.text_area(label="user", value=user, height="content", key=key + "_user")
+                    with resp_c:
+                        if st.button("Call LLM", key=key + "_call_llm"):
+                            with st.spinner("Calling LLM..."):
+                                try:
+                                    resp_new = APIBackend().build_messages_and_create_chat_completion(
+                                        user_prompt=user_p,
+                                        system_prompt=sys_p,
+                                        json_mode=json_mode,
+                                        response_format=rf,
+                                    )
+                                except Exception as e:
+                                    resp_new = f"Error: {e}"
+                            try:  # json format string
+                                rdict = json.loads(resp_new)
+                                st.json(rdict)
+                            except:
+                                try:  # common string
+                                    st.code(resp_new, wrap_lines=True, line_numbers=True)
+                                except:  # response format type
+                                    st.write(resp_new)
 
 
 def hypothesis_win(hypo):
@@ -469,6 +556,16 @@ def get_llm_call_stats(llm_data: dict) -> tuple[int, int]:
     return total_llm_call, total_filter_call
 
 
+def timedelta_to_str(td: timedelta | None) -> str:
+    if isinstance(td, timedelta):
+        total_seconds = int(td.total_seconds())
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    return td
+
+
 def summarize_win():
     st.header("Summary", divider="rainbow")
     with st.container(border=True):
@@ -491,7 +588,15 @@ def summarize_win():
             final_trace_loop_id = max_id
             while "record" not in state.data[final_trace_loop_id]:
                 final_trace_loop_id -= 1
-            st.pyplot(trace_figure(state.data[final_trace_loop_id]["record"]["trace"]))
+            merge_loops = []
+            for loop_id in state.llm_data.keys():
+                if "direct_exp_gen" not in state.llm_data[loop_id]:
+                    continue
+                if "scenarios.data_science.proposal.exp_gen.merge:trace" in [
+                    i["obj"]["uri"] for i in state.llm_data[loop_id]["direct_exp_gen"]["no_tag"] if "uri" in i["obj"]
+                ]:
+                    merge_loops.append(loop_id)
+            st.pyplot(trace_figure(state.data[final_trace_loop_id]["record"]["trace"], merge_loops))
         df = pd.DataFrame(
             columns=[
                 "Component",
@@ -507,8 +612,6 @@ def summarize_win():
                 "Exp Gen",
                 "Coding",
                 "Running",
-                "Start Time (UTC+8)",
-                "End Time (UTC+8)",
             ],
             index=range(min_id, max_id + 1),
         )
@@ -525,18 +628,24 @@ def summarize_win():
                 if k not in ["component", "hypothesis", "reason"]
             }
             df.loc[loop, "COST($)"] = sum(tc.content["cost"] for tc in state.token_costs[loop])
+
+            # Time Stats
             if loop in state.times and state.times[loop]:
-                df.loc[loop, "Time"] = str(sum((i.end - i.start for i in state.times[loop]), timedelta())).split(".")[0]
-                exp_gen_time = state.times[loop][0].end - state.times[loop][0].start
-                df.loc[loop, "Exp Gen"] = str(exp_gen_time).split(".")[0]
-                if len(state.times[loop]) > 1:
-                    coding_time = state.times[loop][1].end - state.times[loop][1].start
-                    df.loc[loop, "Coding"] = str(coding_time).split(".")[0]
-                if len(state.times[loop]) > 2:
-                    running_time = state.times[loop][2].end - state.times[loop][2].start
-                    df.loc[loop, "Running"] = str(running_time).split(".")[0]
-                df.loc[loop, "Start Time (UTC+8)"] = state.times[loop][0].start + timedelta(hours=8)
-                df.loc[loop, "End Time (UTC+8)"] = state.times[loop][-1].end + timedelta(hours=8)
+                exp_gen_time = coding_time = running_time = None
+                all_steps_time = timedelta()
+                for lpt in state.times[loop]:
+                    all_steps_time += lpt.end - lpt.start
+                    if lpt.step_idx == 0:
+                        exp_gen_time = lpt.end - lpt.start
+                    elif lpt.step_idx == 1:
+                        coding_time = lpt.end - lpt.start
+                    elif lpt.step_idx == 2:
+                        running_time = lpt.end - lpt.start
+                df.loc[loop, "Time"] = timedelta_to_str(all_steps_time)
+                df.loc[loop, "Exp Gen"] = timedelta_to_str(exp_gen_time)
+                df.loc[loop, "Coding"] = timedelta_to_str(coding_time)
+                df.loc[loop, "Running"] = timedelta_to_str(running_time)
+
             if "running" in loop_data and "no_tag" in loop_data["running"]:
                 try:
                     try:
@@ -701,10 +810,11 @@ def summarize_win():
         st1.markdown("### Time Statistics")
         time_stat_df = time_df.groupby("Component").sum()
         time_stat_df.loc["Total"] = time_stat_df.sum()
-        time_stat_df.loc[:, "Exp Gen(%)"] = time_stat_df["Exp Gen"] / time_stat_df["Time"] * 100
-        time_stat_df.loc[:, "Coding(%)"] = time_stat_df["Coding"] / time_stat_df["Time"] * 100
-        time_stat_df.loc[:, "Running(%)"] = time_stat_df["Running"] / time_stat_df["Time"] * 100
-        time_stat_df = time_stat_df.map(lambda x: str(x).split(".")[0] if pd.notnull(x) else "0:00:00")
+        time_stat_df.loc[:, "Exp Gen(%)"] = (time_stat_df["Exp Gen"] / time_stat_df["Time"] * 100).round(2)
+        time_stat_df.loc[:, "Coding(%)"] = (time_stat_df["Coding"] / time_stat_df["Time"] * 100).round(2)
+        time_stat_df.loc[:, "Running(%)"] = (time_stat_df["Running"] / time_stat_df["Time"] * 100).round(2)
+        for col in ["Time", "Exp Gen", "Coding", "Running"]:
+            time_stat_df[col] = time_stat_df[col].map(timedelta_to_str)
         st1.dataframe(time_stat_df)
 
 
@@ -747,7 +857,6 @@ def get_folders_sorted(log_path, sort_by_time=False):
             folders = sorted(folders, key=lambda folder: folder.stat().st_mtime, reverse=True)
         else:
             folders = sorted(folders, key=lambda folder: folder.name)
-        st.write(f"Found {len(folders)} folders")
     return [folder.name for folder in folders]
 
 
@@ -799,7 +908,7 @@ with st.sidebar:
             st.rerun()
     st.toggle("**Show LLM Log**", key="show_llm_log")
     st.toggle("*Show stdout*", key="show_stdout")
-    st.toggle("*Show save workspace feature*", key="show_save_input")
+    st.toggle("*Show save workspace*", key="show_save_input")
     st.markdown(
         f"""
 - [Summary](#summary)
@@ -825,8 +934,10 @@ def get_state_data_range(state_data):
 
 # UI - Main
 if "competition" in state.data:
-    st.title(state.data["competition"])
-    st.markdown(f"[share_link](/ds_trace?log_folder={state.log_folder}&selection={state.log_path})")
+    st.title(
+        state.data["competition"]
+        + f" ([share_link](/ds_trace?log_folder={state.log_folder}&selection={state.log_path}))"
+    )
     summarize_win()
     min_id, max_id = get_state_data_range(state.data)
     if max_id > min_id:

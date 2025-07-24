@@ -1,6 +1,4 @@
-import asyncio
 import json
-import re
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -14,11 +12,9 @@ from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
-from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
-from rdagent.log.timer import RDAgentTimer
 from rdagent.oai.backend.base import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.feedback import ExperimentFeedback
@@ -28,6 +24,8 @@ from rdagent.scenarios.data_science.proposal.exp_gen.draft.draft import (
     DSDraftExpGen,  # TODO: DSDraftExpGen should be moved to router in the further
 )
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
+from rdagent.scenarios.data_science.proposal.exp_gen.planner import DSExperimentPlan
+from rdagent.scenarios.data_science.proposal.exp_gen.utils import get_packages
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
@@ -286,6 +284,11 @@ class CodingSketch(BaseModel):
         "The content **must** be formatted using Markdown, with logical sections, key decision points, or implementation steps clearly organized by level-3 headings (i.e., `###`). "
         "This field should provide sufficient detail for a developer to understand the implementation flow, algorithms, data handling, and key logic points without ambiguity."
     )
+    packages: List[str] = Field(
+        default=None,
+        description="A list of third-party package names (PyPI) that the planned implementation will import. "
+        "Used to query the runtime environment dynamically. Leave `null` or omit if not applicable.",
+    )
 
 
 def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None | DSDraftExpGen:
@@ -300,7 +303,11 @@ def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None | DSDraft
 
 
 class DSProposalV1ExpGen(ExpGen):
-    def gen(self, trace: DSTrace) -> DSExperiment:
+    def gen(
+        self,
+        trace: DSTrace,
+        plan: DSExperimentPlan | None = None,
+    ) -> DSExperiment:
         # Drafting Stage
         if draft_exp := draft_exp_in_decomposition(self.scen, trace):
             return draft_exp
@@ -473,11 +480,17 @@ class DSProposalV2ExpGen(ExpGen):
         super().__init__(*args, **kwargs)
         self.supports_response_schema = APIBackend().supports_response_schema()
 
-    def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
+    def identify_scenario_problem(
+        self,
+        scenario_desc: str,
+        sota_exp_desc: str,
+        exp_gen_plan: Dict,
+    ) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_output_format=(
                 T(".prompts_v2:output_format.problem").r() if not self.supports_response_schema else None
             ),
+            plan=exp_gen_plan,
         )
         user_prompt = T(".prompts_v2:scenario_problem.user").r(
             scenario_desc=scenario_desc,
@@ -530,7 +543,13 @@ class DSProposalV2ExpGen(ExpGen):
         return problems
 
     def identify_problem(
-        self, current_sub_trace, scenario_desc, sota_exp_desc, exp_feedback_list_desc, inject_diverse
+        self,
+        current_sub_trace,
+        scenario_desc,
+        sota_exp_desc,
+        exp_feedback_list_desc,
+        inject_diverse,
+        exp_gen_plan,
     ) -> Dict:
         sota_exp_num = sum(1 for _, fb in current_sub_trace if fb.decision)
         failed_exp_num = len(current_sub_trace) - sota_exp_num
@@ -542,6 +561,7 @@ class DSProposalV2ExpGen(ExpGen):
             scen_problems = self.identify_scenario_problem(
                 scenario_desc=scenario_desc,
                 sota_exp_desc=sota_exp_desc,
+                exp_gen_plan=exp_gen_plan,
             )
             for problem_name in scen_problems:
                 scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
@@ -570,6 +590,7 @@ class DSProposalV2ExpGen(ExpGen):
         pipeline: bool,
         enable_idea_pool: bool,
         inject_diverse: bool = False,
+        exp_gen_plan: Optional[Dict] = None,
     ) -> Dict:
         problem_formatted_str = ""
         for i, (problem_name, problem_dict) in enumerate(problems.items()):
@@ -587,6 +608,7 @@ class DSProposalV2ExpGen(ExpGen):
             pipeline=pipeline,
             enable_idea_pool=enable_idea_pool,
             inject_diverse=inject_diverse,
+            plan=exp_gen_plan,
         )
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
             scenario_desc=scenario_desc,
@@ -811,6 +833,15 @@ class DSProposalV2ExpGen(ExpGen):
             name=task_name,
             description=task_desc,
         )
+
+        assert isinstance(task, PipelineTask), f"Task {task_name} is not a PipelineTask, got {type(task)}"
+        # only for llm with response schema.(TODO: support for non-schema llm?)
+        # If the LLM provides a "packages" field (list[str]), compute runtime environment now and cache it for subsequent prompts in later loops.
+        if isinstance(task_dict, dict) and "packages" in task_dict and isinstance(task_dict["packages"], list):
+            pkgs: list[str] = [str(p) for p in task_dict["packages"]]
+            # Persist for later stages
+            task.package_info = get_packages(pkgs)
+
         exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypotheses[0])
         if sota_exp is not None:
             exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
@@ -823,20 +854,6 @@ class DSProposalV2ExpGen(ExpGen):
             )
             exp.pending_tasks_list.append([workflow_task])
         return exp
-
-    def get_scenario_all_desc(self, trace: DSTrace, eda_output=None) -> str:
-        return T(".prompts_v2:scenario_description").r(
-            background=trace.scen.background,
-            submission_specifications=trace.scen.submission_specifications,
-            evaluation=trace.scen.metric_description,
-            metric_name=trace.scen.metric_name,
-            metric_direction=trace.scen.metric_direction,
-            raw_description=trace.scen.raw_description,
-            use_raw_description=DS_RD_SETTING.use_raw_description,
-            time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
-            ensemble_limit=f"{DS_RD_SETTING.ensemble_timeout / 60 / 60 : .2f} hours",
-            eda_output=eda_output,
-        )
 
     def get_all_hypotheses(self, problem_dict: dict, hypothesis_dict: dict) -> list[DSHypothesis]:
         result = []
@@ -857,6 +874,7 @@ class DSProposalV2ExpGen(ExpGen):
     def gen(
         self,
         trace: DSTrace,
+        plan: DSExperimentPlan | None = None,
     ) -> DSExperiment:
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
         if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
@@ -881,7 +899,7 @@ class DSProposalV2ExpGen(ExpGen):
             eda_output = None
         else:
             eda_output = sota_exp.experiment_workspace.file_dict.get("EDA.md", None)
-        scenario_desc = self.get_scenario_all_desc(trace, eda_output=eda_output)
+        scenario_desc = self.scen.get_scenario_all_desc(eda_output=eda_output)
 
         sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
             exp=sota_exp, heading="Best of previous exploration of the scenario"
@@ -916,6 +934,7 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
             inject_diverse=inject_diverse,
+            exp_gen_plan=plan.get("exp_gen") if plan else None,
         )
 
         # Step 1.5: Sample ideas from idea pool
@@ -938,6 +957,7 @@ class DSProposalV2ExpGen(ExpGen):
             pipeline=pipeline,
             enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
             inject_diverse=inject_diverse,
+            exp_gen_plan=plan.get("exp_gen") if plan else None,
         )
         if not pipeline:
             sota_exp_model_file_count = len(

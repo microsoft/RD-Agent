@@ -242,7 +242,7 @@ def summarize_folder(log_folder: Path, hours: int | None = None) -> None:
 # }
 
 
-def grade_summary(log_folder: str | Path) -> None:
+def grade_summary(log_folder: str) -> None:
     """
     Generate test scores for log traces in the log folder and save the summary.
     """

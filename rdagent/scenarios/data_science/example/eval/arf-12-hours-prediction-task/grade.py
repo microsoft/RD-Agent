@@ -4,14 +4,6 @@ import pandas as pd
 from sklearn.metrics import roc_auc_score
 
 
-class InvalidSubmissionError(Exception):
-    """
-    A custom exception for when the agent submission cannot be graded.
-    """
-
-    pass
-
-
 def prepare_for_auroc_metric(submission: pd.DataFrame, answers: pd.DataFrame, id_col: str, target_col: str) -> dict:
 
     # Answers checks

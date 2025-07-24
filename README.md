@@ -114,6 +114,8 @@ Additionally, you can take a closer look at the examples in our **[🖥️ Live 
 
 # ⚡ Quick start
 
+### RD-Agent currently only supports Linux.
+
 You can try above demos by running the following command:
 
 ### 🐳 Docker installation.
@@ -153,7 +155,7 @@ More details can be found in the [development setup](https://rdagent.readthedocs
   - whether the docker installation was successful.
   - whether the default port used by the [rdagent ui](https://github.com/microsoft/RD-Agent?tab=readme-ov-file#%EF%B8%8F-monitor-the-application-results) is occupied.
   ```sh
-  rdagent health_check
+  rdagent health_check --no-check-env
   ```
 
 
@@ -220,7 +222,15 @@ More details can be found in the [development setup](https://rdagent.readthedocs
   REASONING_THINK_RM=True
   ```
 
-- You can also use a deprecated backend if you only use `OpenAI API` or `Azure OpenAI` directly. For this deprecated setting and more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html).
+  You can also use a deprecated backend if you only use `OpenAI API` or `Azure OpenAI` directly. For this deprecated setting and more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html). 
+
+
+
+- If your environment configuration is complete, please execute the following commands to check if your configuration is valid. This step is necessary.
+
+  ```bash
+  rdagent health_check
+  ```
 
 ### 🚀 Run the Application
 
@@ -261,44 +271,70 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   rdagent general_model  "https://arxiv.org/pdf/2210.09789"
   ```
 
+- Run the **Automated Medical Prediction Model Evolution**: Medical self-loop model proposal and implementation application
+
+  ```bash
+  # Generally, you can run the data science program with the following command:
+  rdagent data_science --competition <your competition name>
+
+  # Specifically, you need to create a folder for storing competition files (e.g., competition description file, competition datasets, etc.), and configure the path to the folder in your environment. In addition, you need to use chromedriver when you download the competition descriptors, which you can follow for this specific example:
+
+  # 1. Download the dataset, extract it to the target folder.
+  wget https://github.com/SunsetWolf/rdagent_resource/releases/download/ds_data/arf-12-hours-prediction-task.zip
+  unzip arf-12-hours-prediction-task.zip -d ./git_ignore_folder/ds_data/
+
+  # 2. Configure environment variables in the `.env` file
+  dotenv set DS_LOCAL_DATA_PATH "$(pwd)/git_ignore_folder/ds_data"
+  dotenv set DS_CODER_ON_WHOLE_PIPELINE True
+  dotenv set DS_IF_USING_MLE_DATA False
+  dotenv set DS_SAMPLE_DATA_BY_LLM False
+  dotenv set DS_SCEN rdagent.scenarios.data_science.scen.DataScienceScen
+
+  # 3. run the application
+  rdagent data_science --competition arf-12-hours-prediction-task
+  ```
+
+  **NOTE:** For more information about the dataset, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/scens/data_science.html).
+
 - Run the **Automated Kaggle Model Tuning & Feature Engineering**:  self-loop model proposal and feature engineering implementation application <br />
-  > Using **sf-crime** *(San Francisco Crime Classification)* as an example. <br />
+  > Using **tabular-playground-series-dec-2021** as an example. <br />
   > 1. Register and login on the [Kaggle](https://www.kaggle.com/) website. <br />
   > 2. Configuring the Kaggle API. <br />
   > (1) Click on the avatar (usually in the top right corner of the page) -> `Settings` -> `Create New Token`, A file called `kaggle.json` will be downloaded. <br />
   > (2) Move `kaggle.json` to `~/.config/kaggle/` <br />
   > (3) Modify the permissions of the kaggle.json file. Reference command: `chmod 600 ~/.config/kaggle/kaggle.json` <br />
-  > 3. Join the competition: Click `Join the competition` -> `I Understand and Accept` at the bottom of the [competition details page](https://www.kaggle.com/competitions/sf-crime/data).
+  > 3. Join the competition: Click `Join the competition` -> `I Understand and Accept` at the bottom of the [competition details page](https://www.kaggle.com/competitions/tabular-playground-series-dec-2021/data).
   ```bash
   # Generally, you can run the Kaggle competition program with the following command:
   rdagent data_science --competition <your competition name>
 
-  # Specifically, you need to create a folder for storing competition files (e.g., competition description file, competition datasets, etc.), and configure the path to the folder in your environment. In addition, you need to use chromedriver when you download the competition descriptors, which you can follow for this specific example:
-  
-  # 1. Install chromedriver.
-
-  # 2. Add the competition description file path to the `.env` file.
-  mkdir -p ./git_ignore_folder/kaggle_data
-  dotenv set DS_LOCAL_DATA_PATH "$(pwd)/git_ignore_folder/kaggle_data"
+  # 1. Configure environment variables in the `.env` file
+  mkdir -p ./git_ignore_folder/ds_data
+  dotenv set DS_LOCAL_DATA_PATH "$(pwd)/git_ignore_folder/ds_data"
+  dotenv set DS_CODER_ON_WHOLE_PIPELINE True
   dotenv set DS_IF_USING_MLE_DATA True
+  dotenv set DS_SAMPLE_DATA_BY_LLM True
+  dotenv set DS_SCEN rdagent.scenarios.data_science.scen.KaggleScen
 
-  # 3. run the application
-  rdagent data_science --competition sf-crime
+  # 2. run the application
+  rdagent data_science --competition tabular-playground-series-dec-2021
   ```
 
 ### 🖥️ Monitor the Application Results
 - You can run the following command for our demo program to see the run logs.
 
   ```sh
-  rdagent ui --port 19899 --log_dir <your log folder like "log/">
+  rdagent ui --port 19899 --log_dir <your log folder like "log/"> --data_science <True or False>
   ```
 
-  **Note:** Although port 19899 is not commonly used, but before you run this demo, you need to check if port 19899 is occupied. If it is, please change it to another port that is not occupied.
+- About the `data_science` parameter: If you want to see the logs of the data science scenario, set the `data_science` parameter to `True`; otherwise set it to `False`.
+ 
+- Although port 19899 is not commonly used, but before you run this demo, you need to check if port 19899 is occupied. If it is, please change it to another port that is not occupied.
 
   You can check if a port is occupied by running the following command.
 
   ```sh
-  rdagent health_check
+  rdagent health_check --no-check-env --no-check-docker
   ```
 
 # 🏭 Scenarios

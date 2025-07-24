@@ -15,6 +15,7 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.planner import DSExperimentPlan
 from rdagent.scenarios.data_science.proposal.exp_gen.utils import (
     CodingSketch,
     get_component,
@@ -61,6 +62,7 @@ class DSDraftExpGen(ExpGen):
         self,
         component: COMPONENT,
         trace: DSTrace,
+        plan: DSExperimentPlan | None = None,
     ) -> DSExperiment:
         """Handle any component using a unified approach.
 
@@ -144,9 +146,8 @@ class DSDraftV2ExpGen(ExpGen):
         return json.loads(response)["tag"].lower()
 
     def knowledge_gen(self) -> str:
-        runtime_environment = self.scen.get_runtime_environment()
         general_knowledge = T(".prompts_draft:knowledge.general").r(
-            runtime_environment=runtime_environment,
+            runtime_environment=self.scen.get_runtime_environment(),
             component_desc=T(".prompts_draft:description.component_description").r(),
         )
         return f"{general_knowledge}"
@@ -235,7 +236,11 @@ class DSDraftV2ExpGen(ExpGen):
             exp.pending_tasks_list.append([workflow_task])
         return exp
 
-    def gen(self, trace: DSTrace) -> DSExperiment:
+    def gen(
+        self,
+        trace: DSTrace,
+        plan: DSExperimentPlan | None = None,
+    ) -> DSExperiment:
         # Step 0: Prepare
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
         if pipeline:

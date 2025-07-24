@@ -405,7 +405,7 @@ class DefaultSampler(DataSampler):
                 if (
                     str(fp.name) in sample_used_file_names
                     or str(fp.stem) in sample_used_file_names
-                    or fp in sample_used_file_paths
+                    or fp in sample_used_file_names
                 ):
                     used_files.append(fp)
                 else:

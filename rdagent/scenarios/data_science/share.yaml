@@ -44,7 +44,7 @@ describe: # some template to describe some object
 
   trace: |-
     {% if exp_and_feedback_list|length == 0 %}
-    No previous {% if type == "success" %}SOTA{% elif type == "failure" %}failed{% endif %} experiments available.
+    No previous {% if type == "success" %}SOTA{% elif type == "failed" %}failed{% endif %} experiments available.
     {% else %}
     {% for exp_and_feedback in exp_and_feedback_list %}
     ## Experiment Index: {{ loop.index }}
@@ -52,7 +52,7 @@ describe: # some template to describe some object
     {% if not pipeline %}Chosen Component: {{ exp_and_feedback[0].hypothesis.component }}{% endif %}
     Proposed Hypothesis: {{ exp_and_feedback[0].hypothesis.hypothesis }}
     {% if exp_and_feedback[1].code_change_summary  %}Code Change Summary: {{ exp_and_feedback[1].code_change_summary }}{% endif %}
-    Surpass Previous SOTA: {{ exp_and_feedback[1].decision }}
+    Surpass Previous SOTA: {{ exp_and_feedback[1].decision }}   
     {% if exp_and_feedback[0].running_info.running_time is not none %}
     Experiment Running Time: {{ exp_and_feedback[0].running_info.running_time }} seconds
     {% endif %}
@@ -343,3 +343,5 @@ spec:
         - The validation loss (or metric) reaches a predefined threshold indicating sufficient model performance.
         - The validation loss (or metric) remains stable (i.e., does not improve) for a set number of consecutive epochs.
       - Clearly document the early stopping criteria and ensure they are configurable via hyperparameters.
+    5. Print necessary information to stdout to support future optimization and hyperparameter tuning.
+      - If validation data are used, print the early stopping round/step, as well as the training and validation losses during training.
