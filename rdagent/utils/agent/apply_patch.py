@@ -124,7 +124,8 @@ class Parser:
         while not self.is_done(("*** End Patch",)):
             # ---------- UPDATE ---------- #
             path = self.read_str("*** Update File: ")
-            path = self.prefix + path
+            if self.prefix:
+                path = self.prefix + path
             if path:
                 if path in self.patch.actions:
                     raise DiffError(f"Duplicate update for file: {path}")
