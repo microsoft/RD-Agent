@@ -135,13 +135,13 @@ def all_summarize_win():
         def apply_func(cdf: pd.DataFrame):
             cp = cdf["Competition"].values[0]
             md = get_metric_direction(cp)
-            # If SOTA Exp Score (valid) column is empty, return the first index
-            if cdf["SOTA Exp Score (valid)"].dropna().empty:
+            # If SOTA Exp Score (valid, to_submit) column is empty, return the first index
+            if cdf["SOTA Exp Score (valid, to_submit)"].dropna().empty:
                 return cdf.index[0]
             if md:
-                best_idx = cdf["SOTA Exp Score (valid)"].idxmax()
+                best_idx = cdf["SOTA Exp Score (valid, to_submit)"].idxmax()
             else:
-                best_idx = cdf["SOTA Exp Score (valid)"].idxmin()
+                best_idx = cdf["SOTA Exp Score (valid, to_submit)"].idxmin()
             return best_idx
 
         best_idxs = base_df.groupby("Competition").apply(apply_func)
@@ -185,10 +185,10 @@ def all_summarize_win():
             lambda col: col.map(lambda val: "background-color: #F0FFF0"),
             subset=[
                 "Best Result",
-                "SOTA Exp",
-                "SOTA Exp (_to_submit)",
-                "SOTA Exp Score",
-                "SOTA Exp Score (valid)",
+                "SOTA Exp (to_submit)",
+                "SOTA LID (to_submit)",
+                "SOTA Exp Score (to_submit)",
+                "SOTA Exp Score (valid, to_submit)",
             ],
             axis=0,
         ),
