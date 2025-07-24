@@ -76,6 +76,7 @@ class Parser:
     index: int = 0
     patch: Patch = field(default_factory=Patch)
     fuzz: int = 0
+    prefix: str | None = None
 
     # ------------- low-level helpers -------------------------------------- #
     def _cur_line(self) -> str:
@@ -123,6 +124,7 @@ class Parser:
         while not self.is_done(("*** End Patch",)):
             # ---------- UPDATE ---------- #
             path = self.read_str("*** Update File: ")
+            path = self.prefix + path
             if path:
                 if path in self.patch.actions:
                     raise DiffError(f"Duplicate update for file: {path}")
@@ -403,7 +405,7 @@ def patch_to_commit(patch: Patch, orig: dict[str, str]) -> Commit:
 # --------------------------------------------------------------------------- #
 #  User-facing helpers
 # --------------------------------------------------------------------------- #
-def text_to_patch(text: str, orig: dict[str, str]) -> tuple[Patch, int]:
+def text_to_patch(text: str, orig: dict[str, str], prefix: str | None = None) -> tuple[Patch, int]:
     lines = text.splitlines()  # preserves blank lines, no strip()
     if (
         len(lines) < 2
@@ -412,7 +414,7 @@ def text_to_patch(text: str, orig: dict[str, str]) -> tuple[Patch, int]:
     ):
         raise DiffError("Invalid patch text - missing sentinels")
 
-    parser = Parser(current_files=orig, lines=lines, index=1)
+    parser = Parser(current_files=orig, lines=lines, index=1, prefix=prefix)
     parser.parse()
     return parser.patch, parser.fuzz
 
