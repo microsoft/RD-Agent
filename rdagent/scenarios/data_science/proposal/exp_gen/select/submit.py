@@ -104,12 +104,12 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                     logger.info(
                         f"Auto SOTA selector: select {len(sota_exp_fb_list)} of {len(new_sota_exp_fb_list)} SOTA experiments found in all traces, calling LLM to select the best one"
                     )
-                    if len(sota_exp_fb_list) > 10:
+                    if len(sota_exp_fb_list) > DS_RD_SETTING.max_sota_retrieved_num:
                         sota_exp_fb_list = sorted(
                             sota_exp_fb_list,
                             key=lambda exp_fb: pd.DataFrame(exp_fb[0].result).loc["ensemble"].iloc[0],
                             reverse=not trace.scen.metric_direction,
-                        )[-10:]
+                        )[-DS_RD_SETTING.max_sota_retrieved_num :]
 
             for i, (exp, ef) in enumerate(sota_exp_fb_list):
                 if exp:
