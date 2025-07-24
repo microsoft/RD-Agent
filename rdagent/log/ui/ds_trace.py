@@ -785,7 +785,8 @@ def summarize_win():
             ensemble_row = vscores.loc[["ensemble"]]
             vscores = pd.concat([ensemble_row, vscores.drop("ensemble")])
         vscores = vscores.T
-        vscores["test"] = df["Running Score (test)"]
+        test_scores = df["Running Score (test)"].str.replace(r"[🥇🥈🥉]\s*", "", regex=True)
+        vscores["test"] = test_scores
         vscores.index = [f"L{i}" for i in vscores.index]
         vscores.columns.name = metric_name
         with st.popover("Scores Curve", icon="📈", use_container_width=True):
