@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -15,6 +16,7 @@ from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.timer import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.feedback import ExperimentFeedback
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -726,7 +728,20 @@ class DSProposalV2ExpGen(ExpGen):
         """
         Use LLM to select the best hypothesis from all candidates.
         Returns the problem_name of the selected hypothesis.
+
+        Args:
+            hypothesis_dict: Dictionary containing hypothesis information
+            problem_dict: Dictionary containing problem information
+            scenario_desc: Description of the scenario
+            exp_feedback_list_desc: Description of experiment feedback list
+            sota_exp_desc: Description of SOTA experiment
         """
+
+        # Get timer information for time-aware selection
+        timer = RD_Agent_TIMER_wrapper.timer
+        total_time = timer.all_duration if timer.all_duration else timedelta(0)
+        remaining_time = timer.remain_time() if timer.remain_time() else timedelta(0)
+        timer_started = timer.started
 
         # Prepare all hypotheses information for LLM
         hypotheses_info = []
@@ -767,9 +782,30 @@ class DSProposalV2ExpGen(ExpGen):
                         hypotheses_str += f"  - {score_name}: {score_value}\n"
             hypotheses_str += "\n"
 
+        # Prepare time information as tuple for LLM (in seconds)
+        time_info = None
+        if timer_started:
+            total_time_val = total_time if total_time else timedelta(0)
+            remaining_time_val = remaining_time if remaining_time else timedelta(0)
+            # Convert to seconds
+            total_seconds = total_time_val.total_seconds()
+            remaining_seconds = remaining_time_val.total_seconds()
+            # Calculate time ratio (remaining/total)
+            time_ratio = remaining_seconds / total_seconds if total_seconds > 0 else 0
+            time_info = (total_seconds, remaining_seconds, time_ratio)
+            logger.info(
+                f"Time status enabled.Total Time: {total_seconds}s, Remaining Time: {remaining_seconds}s, Remaining Time Ratio: {time_ratio:.2f}"
+            )
+        else:
+            logger.warning(
+                f"Time status not enabled. If you don't set timeout, the LLM will not be aware of the time limit and would run indefinitely."
+            )
+
         # Generate system and user prompts
         sys_prompt = T(".prompts_v2:hypothesis_llm_select.system").r(
             hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_llm_select").r(),
+            enable_time=timer_started,
+            time_info=time_info,
         )
         user_prompt = T(".prompts_v2:hypothesis_llm_select.user").r(
             scenario_desc=scenario_desc,
@@ -788,9 +824,6 @@ class DSProposalV2ExpGen(ExpGen):
 
         result = json.loads(response)
         selected_problem_name = result.get("selected_problem_name", "")
-        reasoning = result.get("reasoning", "No reasoning provided")
-
-        logger.info(f"LLM selected hypothesis: {selected_problem_name}")
 
         return selected_problem_name
 

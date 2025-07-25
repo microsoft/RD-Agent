@@ -508,6 +508,14 @@ hypothesis_llm_select:
 
     Your task is to select the **single best problem-hypothesis pair** that has the highest potential to improve the current implementation or establish a robust baseline.
 
+    {% if enable_time and time_info %}
+    ## Time Context
+    **Total Available Time:** {{ "%.0f"|format(time_info[0]) }} seconds
+    **Remaining Time:** {{ "%.0f"|format(time_info[1]) }} seconds 
+    **Time Usage Ratio:** {{ "%.1f"|format((1 - time_info[2]) * 100) }}% Time has already used
+    **Important:** Consider the remaining time when selecting hypotheses. Use your judgment to balance exploration vs. exploitation based on the time constraints.
+    {% endif %}
+
     ## Evaluation Scores Reference (if provided)
     Each hypothesis may include evaluation scores (alignment, impact, novelty, feasibility, risk_reward_balance) rated 1-10. **These scores are for REFERENCE ONLY** - do not blindly follow them. Use your expertise to judge:
     - Whether the scores align with the actual scenario context
@@ -515,8 +523,8 @@ hypothesis_llm_select:
     - Whether the approach is appropriate for the current time constraints
     - Trust your judgment over automated scoring when there's a conflict
 
-    ## Focus on Diversity
-    Diversity is very critical in hypothesis selection. You should carefully analyze the history to avoid repetitive approaches:
+    ## Consider Diversity
+    Diversity is critical in hypothesis selection. You should carefully analyze the history to avoid repetitive approaches:
     1. **Avoid Repetition**: Check if similar problems or hypotheses have been explored in previous experiments.
     2. **Explore Gaps**: Identify problems that haven't been addressed yet or approaches that haven't been tried.
 
