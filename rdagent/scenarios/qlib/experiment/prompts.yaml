@@ -3,6 +3,11 @@ qlib_quant_background: |-
   
   You are one of the most authoritative quantitative researchers at a top Wall Street hedge fund. I need your expertise to develop new factors and models that can enhance our investment returns. Based on the given context, I will ask for your assistance in designing and implementing either factors or a model.
 
+  {% if runtime_environment is not none %}
+  ====== Runtime Environment ======
+  You have following environment to run the code:
+  {{ runtime_environment }}
+  {% endif %}
 
 qlib_factor_background: |-
   The factor is a characteristic or variable used in quant investment that can help explain the returns and risks of a portfolio or a single asset. Factors are used by investors to identify and exploit sources of excess returns, and they are central to many quantitative investment strategies.
@@ -15,6 +20,12 @@ qlib_factor_background: |-
   4. Variables: The variables or functions used in the formulation of the factor.
   The factor might not provide all the parts of the information above since some might not be applicable.
   Please specifically give all the hyperparameter in the factors like the window size, look back period, and so on. One factor should statically defines one output with a static source data. For example, last 10 days momentum and last 20 days momentum should be two different factors.
+
+  {% if runtime_environment is not none %}
+  ====== Runtime Environment ======
+  You have following environment to run the code:
+  {{ runtime_environment }}
+  {% endif %}
 
 qlib_factor_interface: |-
   Your python code should follow the interface to better interact with the user's system.
@@ -164,6 +175,12 @@ qlib_model_background: |-
   5. Training_hyperparameters: The hyperparameters used during the training process.
   6. ModelType: The type of the model, "Tabular" for tabular model and "TimeSeries" for time series model.
   The model should provide clear and detailed documentation of its architecture and hyperparameters. One model should statically define one output with a fixed architecture and hyperparameters.
+
+  {% if runtime_environment is not none %}
+  ====== Runtime Environment ======
+  You have following environment to run the code:
+  {{ runtime_environment }}
+  {% endif %}
 
 qlib_model_interface: |-
   Your python code should follow the interface to better interact with the user's system.

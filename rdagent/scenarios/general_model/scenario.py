@@ -50,3 +50,6 @@ The output of your code should be in the format:
 The simulator user can use to test your model:
 {self.simulator}
 """
+
+    def get_runtime_environment(self):
+        return None
