@@ -185,8 +185,19 @@ def select_one_trace(selector_name, trace_pkl_path, trace_folder):
     sota_result = json.load(open(trace_folder / f"{trace_pkl_path.stem.split('_')[0]}_loops.json", "r"))
 
     selected_sota_exp = selector.get_sota_exp_to_submit(trace)
-    selected_index = [index for index, exp_fdb in enumerate(trace.hist) if exp_fdb[0] is selected_sota_exp]
-    return selected_index[0] in sota_result["medal_loops"] if len(selected_index) > 0 else False
+
+    selected_index = trace.exp2idx(selected_sota_exp)
+    if hasattr(trace, "idx2loop_id") and selected_index in trace.idx2loop_id:
+        selected_loop = trace.idx2loop_id[selected_index]
+        logger.info(
+            f"Selector {selector_name} selected SOTA experiment: { sota_result['medal_loops']}, loop in trace: {selected_loop}, trace: {trace_pkl_path}"
+        )
+        return selected_loop in sota_result["medal_loops"]
+    else:
+        logger.info(
+            f"Selector {selector_name} selected SOTA experiment: { sota_result['medal_loops_index']}, index in trace: {selected_index}, trace: {trace_pkl_path}"
+        )
+        return selected_index in sota_result["medal_loops_index"]
 
 
 # TODO: more advanced sota exp selector (e.g. LLM-based, merge exp with multiple sub-trace)
