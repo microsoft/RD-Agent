@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -15,6 +16,7 @@ from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.timer import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.feedback import ExperimentFeedback
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -844,6 +846,117 @@ class DSProposalV2ExpGen(ExpGen):
         )
         return index_to_pick_pool_list[reproducible_int]
 
+    @wait_retry(retry_n=5)
+    def llm_select_hypothesis(
+        self,
+        hypothesis_dict: dict,
+        problem_dict: dict,
+        scenario_desc: str,
+        exp_feedback_list_desc: str,
+        sota_exp_desc: str,
+    ) -> str:
+        """
+        Use LLM to select the best hypothesis from all candidates.
+        Returns the problem_name of the selected hypothesis.
+
+        Args:
+            hypothesis_dict: Dictionary containing hypothesis information
+            problem_dict: Dictionary containing problem information
+            scenario_desc: Description of the scenario
+            exp_feedback_list_desc: Description of experiment feedback list
+            sota_exp_desc: Description of SOTA experiment
+        """
+
+        # Get timer information for time-aware selection
+        timer = RD_Agent_TIMER_wrapper.timer
+        total_time = timer.all_duration if timer.all_duration else timedelta(0)
+        remaining_time = timer.remain_time() if timer.remain_time() else timedelta(0)
+        timer_started = timer.started
+
+        # Prepare all hypotheses information for LLM
+        hypotheses_info = []
+        for i, (problem_name, hyp_data) in enumerate(hypothesis_dict.items()):
+            if "hypothesis" not in hyp_data:
+                continue
+
+            prob_data = problem_dict.get(problem_name, {})
+
+            hypothesis_info = {
+                "index": i,
+                "problem_name": problem_name,
+                "problem_desc": prob_data.get("problem", "Problem description not provided"),
+                "hypothesis": hyp_data.get("hypothesis", "Hypothesis not provided"),
+                "component": hyp_data.get("component", "Component not provided"),
+                "reason": hyp_data.get("reason", "Reason not provided"),
+                "evaluation_scores": hyp_data.get("evaluation", {}),
+            }
+            hypotheses_info.append(hypothesis_info)
+
+        # Format hypotheses for prompt
+        hypotheses_str = ""
+        for info in hypotheses_info:
+            hypotheses_str += f"## Hypothesis Number: {info['index']}\n**Problem Name:** {info['problem_name']}\n"
+            hypotheses_str += f"**Component:** {info['component']}\n"
+            hypotheses_str += f"**Problem Description:** {info['problem_desc']}\n"
+            hypotheses_str += f"**Hypothesis:** {info['hypothesis']}\n"
+            hypotheses_str += f"**Reason:** {info['reason']}\n"
+
+            if info["evaluation_scores"]:
+                eval_scores = info["evaluation_scores"]
+                hypotheses_str += "**Evaluation Scores:**\n"
+                for score_name, score_value in eval_scores.items():
+                    try:
+                        score_float = float(score_value)
+                        hypotheses_str += f"  - {score_name}: {score_float:.1f}/10\n"
+                    except (ValueError, TypeError):
+                        hypotheses_str += f"  - {score_name}: {score_value}\n"
+            hypotheses_str += "\n"
+
+        # Prepare time information as tuple for LLM (in seconds)
+        time_info = None
+        if timer_started:
+            total_time_val = total_time if total_time else timedelta(0)
+            remaining_time_val = remaining_time if remaining_time else timedelta(0)
+            # Convert to seconds
+            total_seconds = total_time_val.total_seconds()
+            remaining_seconds = remaining_time_val.total_seconds()
+            # Calculate time ratio (remaining/total)
+            time_ratio = remaining_seconds / total_seconds if total_seconds > 0 else 0
+            time_info = (total_seconds, remaining_seconds, time_ratio)
+            logger.info(
+                f"Time status enabled.Total Time: {total_seconds}s, Remaining Time: {remaining_seconds}s, Remaining Time Ratio: {time_ratio:.2f}"
+            )
+        else:
+            logger.warning(
+                f"Time status not enabled. If you don't set timeout, the LLM will not be aware of the time limit and would run indefinitely."
+            )
+
+        # Generate system and user prompts
+        sys_prompt = T(".prompts_v2:hypothesis_llm_select.system").r(
+            hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_llm_select").r(),
+            enable_time=timer_started,
+            time_info=time_info,
+        )
+        user_prompt = T(".prompts_v2:hypothesis_llm_select.user").r(
+            scenario_desc=scenario_desc,
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+            hypotheses_list=hypotheses_str,
+        )
+
+        # Call LLM to select best hypothesis
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format={"type": "json_object"},
+            json_target_type=Dict[str, str],
+        )
+
+        result = json.loads(response)
+        selected_problem_name = result.get("selected_problem_name", "")
+
+        return selected_problem_name
+
     def hypothesis_rank(
         self, hypothesis_dict: dict, problem_dict: dict, selected_idx: Optional[int] = None
     ) -> Tuple[str, DSHypothesis]:
@@ -1104,10 +1217,53 @@ class DSProposalV2ExpGen(ExpGen):
             improved_hypotheses_dict = hypothesis_dict.copy()  # Use original hypotheses as fallback
 
         # Step 3: Select the best hypothesis
-        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
-            hypothesis_dict=improved_hypotheses_dict,
-            problem_dict=all_problems,
-        )
+        if DS_RD_SETTING.llm_select_hypothesis:
+            # Use LLM to select the best hypothesis
+            try:
+                selected_problem_name = self.llm_select_hypothesis(
+                    hypothesis_dict=improved_hypotheses_dict,
+                    problem_dict=all_problems,
+                    scenario_desc=scenario_desc,
+                    exp_feedback_list_desc=exp_feedback_list_desc,
+                    sota_exp_desc=sota_exp_desc,
+                )
+                # Check if the selected problem name is valid
+                if selected_problem_name and selected_problem_name in improved_hypotheses_dict:
+                    pickled_problem_name = selected_problem_name
+                    new_hypothesis = DSHypothesis(
+                        component=improved_hypotheses_dict[pickled_problem_name].get("component", "Model"),
+                        hypothesis=improved_hypotheses_dict[pickled_problem_name].get(
+                            "hypothesis", "Hypothesis not provided"
+                        ),
+                        reason=improved_hypotheses_dict[pickled_problem_name].get("reason", "Reason not provided"),
+                        problem_name=pickled_problem_name,
+                        problem_desc=all_problems.get(pickled_problem_name, {}).get(
+                            "problem", "Problem description not provided"
+                        ),
+                        problem_label=all_problems.get(pickled_problem_name, {}).get("label", "FEEDBACK_PROBLEM"),
+                    )
+                    logger.info(f"LLM selected hypothesis: {pickled_problem_name}")
+                else:
+                    logger.warning(
+                        f"LLM selected invalid problem name '{selected_problem_name}', falling back to ranking method"
+                    )
+                    raise ValueError("Invalid LLM selection")
+            except Exception as e:
+                logger.warning(f"LLM selection failed: {e}, falling back to ranking method")
+                # Fallback to original ranking method
+                pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+                    hypothesis_dict=hypothesis_dict,
+                    problem_dict=all_problems,
+                )
+                logger.info(f"Fallback ranking method selected hypothesis: {pickled_problem_name}")
+        else:
+            # Use existing ranking method
+            pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+                hypothesis_dict=hypothesis_dict,
+                problem_dict=all_problems,
+            )
+            logger.info(f"Random ranking method selected hypothesis: {pickled_problem_name}")
+
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)

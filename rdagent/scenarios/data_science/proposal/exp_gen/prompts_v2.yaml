@@ -362,6 +362,71 @@ hypothesis_rewrite:
     # Original Hypotheses and Their Critiques
     {{ hypothesis_critique_pairs }}
 
+hypothesis_llm_select:
+  system: |-
+    You are a Kaggle Grandmaster with deep expertise in model evaluation and decision making. Your task is to select the most appropriate problem-hypothesis pair from the candidates that best addresses the current challenges.
+
+    ## Input Context and Selection Criteria
+    You will analyze the provided context including competition details, experiment history, current implementation status, and candidate problem-hypothesis pairs. Each candidate includes:
+    - Problem Name and Description: The specific issue or challenge identified
+    - Hypothesis: The proposed solution approach
+    - Component: Which part of the system it targets
+    - Reason: The rationale behind this approach
+    - Evaluation Scores (if provided): Reference metrics for assessment
+
+    When selecting the best problem-hypothesis pair, consider:
+
+    1. **Problem-Solution Fit**: Evaluate how well the hypothesis addresses its corresponding problem. The hypothesis should be a logical and effective solution to the stated problem.
+    2. **Problem Relevance**: Assess whether the identified problem is critical to the current stage of development and aligns with observed issues or failures.
+    3. **Hypothesis Quality**: Consider the soundness of the proposed approach - is it well-reasoned, technically feasible, and likely to succeed?
+    4. **Component Priority**: Determine which component needs attention most urgently based on current performance bottlenecks.
+    5. **Implementation Feasibility**: Balance the potential impact against practical constraints like time, resources, and complexity.
+    6. **Strategic Value**: When multiple options seem viable, prioritize based on current needs - sometimes a better solution to a known problem is more valuable than exploring entirely new directions, especially if previous attempts have failed or been suboptimal.
+
+    Your task is to select the **single best problem-hypothesis pair** that has the highest potential to improve the current implementation or establish a robust baseline.
+
+    {% if enable_time and time_info %}
+    ## Time Context
+    **Total Available Time:** {{ "%.0f"|format(time_info[0]) }} seconds
+    **Remaining Time:** {{ "%.0f"|format(time_info[1]) }} seconds 
+    **Time Usage Ratio:** {{ "%.1f"|format((1 - time_info[2]) * 100) }}% Time has already used
+    **Important:** Consider the remaining time when selecting hypotheses. Use your judgment to balance exploration vs. exploitation based on the time constraints.
+    {% endif %}
+
+    ## Evaluation Scores Reference (if provided)
+    Each hypothesis may include evaluation scores (alignment, impact, novelty, feasibility, risk_reward_balance) rated 1-10. **These scores are for REFERENCE ONLY** - do not blindly follow them. Use your expertise to judge:
+    - Whether the scores align with the actual scenario context
+    - If the problem-hypothesis pair makes practical sense given the current state
+    - Whether the approach is appropriate for the current time constraints
+    - Trust your judgment over automated scoring when there's a conflict
+
+    ## Consider Diversity
+    Diversity is critical in hypothesis selection. You should carefully analyze the history to avoid repetitive approaches:
+    1. **Avoid Repetition**: Check if similar problems or hypotheses have been explored in previous experiments.
+    2. **Explore Gaps**: Identify problems that haven't been addressed yet or approaches that haven't been tried.
+
+    ## Output Requirements
+    You must provide:
+    1. **Selected Problem Name**: The exact problem name of the chosen problem-hypothesis pair from the candidate list.
+    2. **Reasoning**: A clear explanation (2-3 sentences) of why this problem-hypothesis pair was selected, addressing both why the problem is important and why the hypothesis is the right solution.
+
+    {% if hypothesis_output_format %}
+    {{ hypothesis_output_format }}
+    {% endif %}
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Previous Experiments and Feedbacks
+    {{ exp_and_feedback_list_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+    # Hypothesis Candidates
+    {{ hypotheses_list }}
+
 
 task_gen:
   system: |-
@@ -607,7 +672,6 @@ output_format:
       "problem name 1 (should be exactly same as the problem name provided)": 1, # The index which is same to the idea index provided in the input and must be integer.
       "problem name 2 (should be exactly same as the problem name provided)": 2, # The index which is same to the idea index provided in the input and must be integer.
     }
-
   critique: |-
     For each hypothesis, provide a comprehensive critique strictly following the JSON schema.
     Your final output should be a dict containing critiques for all hypotheses without anything else.
@@ -639,4 +703,15 @@ output_format:
       }
     }
 
+  hypothesis_llm_select: |-
+    ### Output Format
+    Your response must be in JSON format:
+    ```json
+    {
+      "selected_problem_name": "should be exactly same as the candidate hypothesis's problem name without prefix or suffix",
+      "reasoning": "<explanation of selection rationale considering context and constraints>"
+    }
+    ```
+
+  
 

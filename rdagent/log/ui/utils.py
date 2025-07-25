@@ -149,15 +149,25 @@ def get_sota_exp_stat(
     """
     Get the SOTA experiment and its statistics from the log path.
 
-    Args:
-        - `log_path`: Path to the experiment log directory.
-        - `to_submit`: If True, returns sota_exp_to_submit; if False, returns common SOTA experiment.
+    Parameters
+    ----------
+    log_path : Path
+        Path to the experiment log directory.
+    to_submit : bool, default True
+        If True, returns sota_exp_to_submit; if False, returns common SOTA experiment.
 
-    Returns:
-        - `sota_exp`: The SOTA experiment object or None if not found.
-        - `sota_loop_id`: The loop ID of the SOTA experiment or None if not found.
-        - `sota_mle_score`: The MLE score dictionary of the SOTA experiment or None if not found.
-        - `sota_exp_stat`: The medal status string ("gold", "silver", "bronze", etc.) or None if not found.
+    Returns
+    -------
+    tuple[DSExperiment | None, int | None, dict | None, str | None]
+        A tuple containing:
+        - sota_exp : DSExperiment or None
+            The SOTA experiment object or None if not found.
+        - sota_loop_id : int or None
+            The loop ID of the SOTA experiment or None if not found.
+        - sota_mle_score : dict or None
+            The MLE score dictionary of the SOTA experiment or None if not found.
+        - sota_exp_stat : str or None
+            The medal status string ("gold", "silver", "bronze", etc.) or None if not found.
     """
     log_storage = FileStorage(log_path)
 
@@ -166,9 +176,18 @@ def get_sota_exp_stat(
         i.content for i in log_storage.iter_msg(tag=("sota_exp_to_submit" if to_submit else "SOTA experiment"))
     ]
     if len(sota_exp_list) == 0:
-        # no sota exp found
+        # if no sota exp found, try to find the last trace
+        trace_list = [i.content for i in log_storage.iter_msg(tag="trace")]
+        final_trace = trace_list[-1] if trace_list else None
+        if final_trace is not None:
+            sota_exp = final_trace.sota_exp_to_submit if to_submit else final_trace.sota_experiment(search_type="all")
+        else:
+            sota_exp = None
+    else:
+        sota_exp = sota_exp_list[-1]
+
+    if sota_exp is None:
         return None, None, None, None
-    sota_exp = sota_exp_list[-1]
 
     # find sota exp's loop id
     sota_loop_id = None
@@ -297,11 +316,12 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             sota_exp, v["sota_loop_id_new"], sota_report, v["sota_exp_stat_new"] = get_sota_exp_stat(
                 Path(lf) / k, to_submit=True
             )
-            try:
-                sota_result = sota_exp.result
-            except AttributeError:  # Compatible with old versions
-                sota_result = sota_exp.__dict__["result"]
-            v["sota_exp_score_valid_new"] = sota_result.loc["ensemble"].iloc[0] if sota_result is not None else None
+            if sota_exp is not None:
+                try:
+                    sota_result = sota_exp.result
+                except AttributeError:  # Compatible with old versions
+                    sota_result = sota_exp.__dict__["result"]
+                v["sota_exp_score_valid_new"] = sota_result.loc["ensemble"].iloc[0] if sota_result is not None else None
             v["sota_exp_score_new"] = sota_report["score"] if sota_report else None
             # change experiment name
             if "amlt" in lf:
