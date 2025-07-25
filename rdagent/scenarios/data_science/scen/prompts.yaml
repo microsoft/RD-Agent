@@ -66,6 +66,7 @@ competition_description_template:
       "Metric Evaluation Description": "A precise explanation of how the submissions are scored in this competition, including how the metric is calculated and any specific considerations.",
       "Metric Name": "The name of the metric which this competition use for scoring the submission."
       "Metric Direction": True or False as True means bigger metric number is better, False means smaller is better.
+      "Longer time limit required": "True or False, whether the competition scenario requires a longer time limit to the code. Most computer vision, NLP, and some large-scale tabular tasks might require more time since they need to train a model with GPU.",
     }
   user: |-
     Competition Description: 

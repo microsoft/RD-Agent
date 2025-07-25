@@ -57,7 +57,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                     "scenarios.data_science.share:scen.input_path"
                 ).r()
             },
-            running_timeout_period=DS_RD_SETTING.full_timeout,
+            running_timeout_period=self.scen.real_full_timeout(),
         )
 
         stdout = implementation.execute(
