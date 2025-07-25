@@ -15,7 +15,6 @@ from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
-from rdagent.oai.backend.base import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.feedback import ExperimentFeedback
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -1099,19 +1098,10 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         # Step 3: Select the best hypothesis
-        if DS_RD_SETTING.llm_select:
-            pickled_problem_name, new_hypothesis = self.hypothesis_llm_select(
-                hypothesis_dict=improved_hypotheses_dict,
-                problem_dict=all_problems,
-                scenario_desc=scenario_desc,
-                sota_exp_desc=sota_exp_desc,
-                exp_feedback_list_desc=exp_feedback_list_desc,
-            )
-        else:
-            pickled_problem_name, new_hypothesis = self.hypothesis_rank(
-                hypothesis_dict=improved_hypotheses_dict,
-                problem_dict=all_problems,
-            )
+        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+            hypothesis_dict=improved_hypotheses_dict,
+            problem_dict=all_problems,
+        )
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)

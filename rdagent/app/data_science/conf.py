@@ -113,10 +113,6 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     max_sota_retrieved_num: int = 10
     """The maximum number of SOTA experiments to retrieve in a LLM call"""
 
-    #### hypothesis selection method
-    llm_select: bool = False
-    """Use LLM to select the best hypothesis instead of rule-based ranking"""
-
     #### enable draft before first sota experiment
     enable_draft_before_first_sota: bool = False
     enable_planner: bool = False
