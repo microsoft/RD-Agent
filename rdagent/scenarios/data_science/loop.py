@@ -259,7 +259,7 @@ class DataScienceRDLoop(RDLoop):
         logger.log_object(sota_exp_to_submit, tag="sota_exp_to_submit")
 
         logger.log_object(self.trace, tag="trace")
-        logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
+        logger.log_object(self.trace.sota_experiment(search_type="all"), tag="SOTA experiment")
 
         if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
             logger.log_object(self.trace.knowledge_base, tag="knowledge_base")
@@ -323,6 +323,11 @@ class DataScienceRDLoop(RDLoop):
                 mid_workspace_tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_workspace_bak.tar"
             )  # backup when upper code line is killed when running
             self.timer.add_duration(datetime.now() - start_archive_datetime)
+
+    def _check_exit_conditions_on_step(self, loop_id: Optional[int] = None, step_id: Optional[int] = None):
+        if step_id not in [self.steps.index("running"), self.steps.index("feedback")]:
+            # pass the check for running and feedbacks since they are very likely to be finished soon.
+            super()._check_exit_conditions_on_step(loop_id=loop_id, step_id=step_id)
 
     @classmethod
     def load(

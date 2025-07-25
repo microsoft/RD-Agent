@@ -164,7 +164,7 @@ class LoopBase:
             self._pbar.close()
             del self._pbar
 
-    def _check_exit_conditions_on_step(self) -> None:
+    def _check_exit_conditions_on_step(self, loop_id: Optional[int] = None, step_id: Optional[int] = None) -> None:
         """Check if the loop should continue or terminate.
 
         Raises
@@ -270,7 +270,7 @@ class LoopBase:
                             step_index=next_step,
                             step_name=self.steps[next_step],
                         )
-                        self._check_exit_conditions_on_step()
+                        self._check_exit_conditions_on_step(loop_id=li, step_id=si)
                     else:
                         logger.warning(f"Step forward {si} of loop {li} is skipped.")
 

@@ -76,7 +76,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                 # multiple trace case, collect the latest SOTA experiments from each trace
                 new_sota_exp_fb_list: list[tuple[DSExperiment, ExperimentFeedback]] = []
                 # calculate the number of SOTA experiments to retrieve from each trace, prevent it from becoming zero
-                max_sota_retrieved_num_per_trace = max(DS_RD_SETTING.max_sota_retrieved_num // len(leaves), 2)
+                max_sota_retrieved_num_per_trace = max(DS_RD_SETTING.max_sota_retrieved_num // len(leaves), 5)
                 # recall, due to the integer division, the final number of SOTA experiments to retrieve may be different
                 for leaf in leaves:
                     sota_exp_fb_list_per_trace = trace.experiment_and_feedback_list_after_init(
@@ -91,7 +91,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
 
                     new_sota_exp_fb_list.extend(sota_exp_fb_list_per_trace)
 
-                sota_exp_fb_list = new_sota_exp_fb_list
+                sota_exp_fb_list = list(set(new_sota_exp_fb_list))
 
                 if len(sota_exp_fb_list) == 0:
                     logger.info("Auto SOTA selector: No SOTA in trace yet")
@@ -102,8 +102,14 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                     return sota_exp_fb_list[0][0]
                 else:
                     logger.info(
-                        f"Auto SOTA selector: {len(sota_exp_fb_list)} SOTA experiments found in all traces, calling LLM to select the best one"
+                        f"Auto SOTA selector: select {len(sota_exp_fb_list)} of {len(new_sota_exp_fb_list)} SOTA experiments found in all traces, calling LLM to select the best one"
                     )
+                    if len(sota_exp_fb_list) > DS_RD_SETTING.max_sota_retrieved_num:
+                        sota_exp_fb_list = sorted(
+                            sota_exp_fb_list,
+                            key=lambda exp_fb: pd.DataFrame(exp_fb[0].result).loc["ensemble"].iloc[0],
+                            reverse=not trace.scen.metric_direction,
+                        )[-DS_RD_SETTING.max_sota_retrieved_num :]
 
             for i, (exp, ef) in enumerate(sota_exp_fb_list):
                 if exp:
