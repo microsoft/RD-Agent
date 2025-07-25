@@ -1,12 +1,16 @@
 import json
+from pathlib import Path
+import pickle
 import random
 from typing import Dict, Tuple
 
+import fire
 import numpy as np
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.proposal import ExperimentFeedback, SOTAexpSelector, Trace
+from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -169,4 +173,67 @@ class BestValidSelector(SOTAexpSelector):
             return sota_exp_fb_list[0][0]
 
 
+def select_one_trace(selector_name, trace_pkl_path, trace_folder):
+    if selector_name == "global":
+        selector = GlobalSOTASelector()
+    elif selector_name == "auto":
+        selector = AutoSOTAexpSelector()
+    elif selector_name == "best_valid":
+        selector = BestValidSelector()
+
+    trace = pickle.load(trace_pkl_path.open("rb"))
+    sota_result = json.load(open(trace_folder / f"{trace_pkl_path.stem.split('_')[0]}_loops.json", "r"))
+
+    selected_sota_exp = selector.get_sota_exp_to_submit(trace)
+    selected_index = [index for index, exp_fdb in enumerate(trace.hist) if exp_fdb[0] is selected_sota_exp]
+    return selected_index[0] in sota_result["medal_loops"] if len(selected_index) > 0 else False
+
+
 # TODO: more advanced sota exp selector (e.g. LLM-based, merge exp with multiple sub-trace)
+def select_on_existing_trace(
+    selector_name: str,
+    trace_root,
+):
+    """
+    Offline select SOTA experiment from existing trace.
+    :param selector_name: name of the selector to use
+    :param trace_folder: folder containing the trace
+    """
+    result_dict = {}
+    for trace_folder in Path(trace_root).iterdir():
+        if not trace_folder.is_dir():
+            continue
+        trace_folder = Path(trace_folder)
+
+        # hit_list = []
+        # for trace_pkl_path in trace_folder.glob("*.pkl"):
+        #     hit_list.append(select_one_trace(selector_name, trace_pkl_path, trace_folder))
+
+        hit_list = multiprocessing_wrapper(
+            [
+                (select_one_trace, (selector_name, trace_pkl_path, trace_folder))
+                for trace_pkl_path in trace_folder.glob("*.pkl")
+            ],
+            n=8,
+        )
+
+        print(
+            f"Selector {selector_name} hit {sum(hit_list)} out of {len(hit_list)} traces, hit rate: {sum(hit_list) / len(hit_list) * 100:.2f}%"
+        )
+        result_dict[trace_folder.name] = {
+            "hit": sum(hit_list),
+            "total": len(hit_list),
+            "hit_rate": sum(hit_list) / len(hit_list) * 100,
+        }
+    all_hit = sum([result["hit"] for result in result_dict.values()])
+    all_total = sum([result["total"] for result in result_dict.values()])
+    result_dict["all"] = {
+        "hit": all_hit,
+        "total": all_total,
+        "hit_rate": all_hit / all_total * 100 if all_total > 0 else 0,
+    }
+    json.dump(result_dict, open(f"result_{selector_name}.json", "w"), indent=4)
+
+
+if __name__ == "__main__":
+    fire.Fire(select_on_existing_trace)

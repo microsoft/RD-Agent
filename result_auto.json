@@ -1,0 +1,32 @@
+{
+    "peaceful-muskox": {
+        "hit": 11,
+        "total": 38,
+        "hit_rate": 28.947368421052634
+    },
+    "talented-eft": {
+        "hit": 17,
+        "total": 38,
+        "hit_rate": 44.73684210526316
+    },
+    "communal-frog": {
+        "hit": 9,
+        "total": 37,
+        "hit_rate": 24.324324324324326
+    },
+    "champion-chipmunk": {
+        "hit": 14,
+        "total": 38,
+        "hit_rate": 36.84210526315789
+    },
+    "bold-buzzard": {
+        "hit": 15,
+        "total": 37,
+        "hit_rate": 40.54054054054054
+    },
+    "all": {
+        "hit": 66,
+        "total": 188,
+        "hit_rate": 35.1063829787234
+    }
+}
