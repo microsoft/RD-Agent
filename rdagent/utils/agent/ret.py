@@ -7,6 +7,7 @@ We think this part can be shared.
 import json
 import re
 from abc import abstractclassmethod
+from pathlib import Path
 from typing import Any
 
 from rdagent.utils.agent.apply_patch import apply_patch_from_text
@@ -91,7 +92,7 @@ class PythonBatchPatchOut(AgentOut):
         return T(".tpl:PythonBatchPatchOut").r()
 
     @classmethod
-    def extract_output(cls, resp: str, prefix: str | None = None) -> str:
+    def extract_output(cls, resp: str, prefix: Path | None = None) -> str:
         code_blocks = {}
         # Step 1: extract patch by pattern
         patch_pattern = re.compile(r"(\*\*\* Begin Patch\s*(.*?)\s*\*\*\* End Patch)", re.DOTALL)
