@@ -16,10 +16,11 @@ from rdagent.components.coder.model_coder.model import (
     ModelFBWorkspace,
     ModelTask,
 )
-from rdagent.core.experiment import FBWorkspace, Task
+from rdagent.core.experiment import Task
 from rdagent.core.scenario import Scenario
 from rdagent.scenarios.qlib.experiment.utils import get_data_folder_intro
 from rdagent.scenarios.qlib.experiment.workspace import QlibFBWorkspace
+from rdagent.scenarios.shared.get_runtime_info import runtime_environment
 from rdagent.utils.agent.tpl import T
 
 
@@ -173,12 +174,12 @@ class QlibQuantScenario(Scenario):
     def get_runtime_environment(self) -> str:
         factor_env = get_factor_env()
         model_env = get_model_env()
-        implementation = FBWorkspace()
-        fname = "runtime_info.py"
-        implementation.inject_files(
-            **{fname: (Path(__file__).absolute().resolve().parent / "runtime_info.py").read_text()}
+        factor_stdout = runtime_environment(env=factor_env)
+        model_stdout = runtime_environment(env=model_env)
+        stdout = (
+            "=== [Factor Environment] ===\n"
+            + factor_stdout.strip()
+            + "\n\n=== [Model Environment] ===\n"
+            + model_stdout.strip()
         )
-        factor_stdout = implementation.execute(env=factor_env, entry=f"python {fname}")
-        model_stdout = implementation.execute(env=model_env, entry=f"python {fname}")
-        stdout = factor_stdout + "\n" + model_stdout
         return stdout
