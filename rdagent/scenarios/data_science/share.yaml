@@ -77,6 +77,23 @@ scen:  # customizable
     You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
   input_path: "./workspace_input/"
   cache_path: "./workspace_cache/"
+  status_desc: |-
+    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    The user is iteratively improving a Kaggle competition solution. Each new iteration (trace) typically modifies the current State-of-the-Art (SOTA) solution. If the new trace outperforms the current SOTA, it becomes the new SOTA; otherwise, it is considered a failed experiment.
+    Each trace consists of the following stages:
+    [Propose]: Identify challenges from previous traces and propose actionable hypotheses to address them. This stage sets the direction for the trace.
+    [Coding]: Write implementable Python code to realize the proposed hypothesis on a sampled dataset.
+    [Running]: Execute the implemented code on the full dataset, obtain validation scores, and refine the code if necessary.
+    [Feedback]: Analyze the implemented code, compare it with the previous SOTA, and generate feedback.
+    You are currently working on the [{{ stage }}] stage.
+    The total time limit for this competition is {{ total_time }}, with {{ remain_time }} remaining for the rest of the traces.
+  running_desc: |-
+    You have successfully implemented the workflow on a sampled dataset and we are now transitioning to the full dataset.
+    The code base will be iteratively evolved through a series of [evaluator] and [coder] step in this stage.
+    The [evaluator] step execute the code base on full dataset and evaluate the code base based on the execution result.
+    The [coder] step debug or refine the code base based on the evaluator feedback.
+    The maximum number of evolution steps is {{ max_loop }}, and you are currently on [{{ step }}] step of loop {{ cur_loop }}.
+
 
 component_description:
   DataLoadSpec: |-
