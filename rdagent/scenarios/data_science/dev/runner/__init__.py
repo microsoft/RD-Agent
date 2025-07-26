@@ -83,12 +83,21 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             hyperparameter_tuning_suggestion=prev_task_feedback.hyperparameter_tuning_suggestion,
         )
 
-        batch_edit = extract_output_fn(
-            APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
+        if self.settings.diff_mode:
+            batch_edit = extract_output_fn(
+                APIBackend().build_messages_and_create_chat_completion(
+                    user_prompt=user_prompt,
+                    system_prompt=system_prompt,
+                ),
+                prefix=workspace.workspace_path,
             )
-        )
+        else:
+            batch_edit = extract_output_fn(
+                APIBackend().build_messages_and_create_chat_completion(
+                    user_prompt=user_prompt,
+                    system_prompt=system_prompt,
+                )
+            )
 
         batch_edit = {k: v for k, v in batch_edit.items() if k in workspace.file_dict.keys()}
 
