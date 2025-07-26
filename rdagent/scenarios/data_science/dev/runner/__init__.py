@@ -113,7 +113,10 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
         )
         code = session.build_chat_completion(user_prompt=user_prompt)
-        code_batch_edit = extract_output_fn(code)
+        if self.settings.diff_mode:
+            code_batch_edit = extract_output_fn(code, prefix=workspace.workspace_path)
+        else:
+            code_batch_edit = extract_output_fn(code)
         code_batch_edit = {k: v for k, v in code_batch_edit.items() if k in workspace.file_dict.keys()}
 
         # Change Summary
