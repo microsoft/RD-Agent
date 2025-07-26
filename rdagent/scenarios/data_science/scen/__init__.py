@@ -116,14 +116,14 @@ class DataScienceScen(Scenario):
 
     def real_debug_timeout(self):
         return (
-            DS_RD_SETTING.debug_timeout * DS_RD_SETTING.longer_timeout_multiplier
+            DS_RD_SETTING.debug_timeout * DS_RD_SETTING.coder_longer_timeout_multiplier
             if self.longer_time_limit_required
             else DS_RD_SETTING.debug_timeout
         )
 
     def real_full_timeout(self):
         return (
-            DS_RD_SETTING.full_timeout * DS_RD_SETTING.longer_timeout_multiplier
+            DS_RD_SETTING.full_timeout * DS_RD_SETTING.runner_longer_timeout_multiplier
             if self.longer_time_limit_required
             else DS_RD_SETTING.full_timeout
         )
