@@ -119,5 +119,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     model_architecture_suggestion_time_percent: float = 0.75
 
+    #### hypothesis selection method
+    llm_select_hypothesis: bool = True
+    """Whether to use LLM to select hypothesis. If True, use LLM selection; if False, use the existing ranking method."""
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()
