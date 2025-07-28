@@ -4,10 +4,7 @@ from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.scen import DataScienceScen
-from rdagent.scenarios.data_science.scen.utils import (
-    describe_data_folder_v2,
-    describe_model_folder,
-)
+from rdagent.scenarios.data_science.scen.utils import describe_data_folder_v2
 from rdagent.utils.agent.tpl import T
 
 

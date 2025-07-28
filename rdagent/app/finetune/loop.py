@@ -24,8 +24,8 @@ def main(
     .. code-block:: bash
         dotenv run -- python rdagent/app/finetune/loop.py --dataset shibing624/alpaca-zh
     """
-    if dataset:
-        logger.error("Please specify base model path and dataset name.")
+    if not dataset:
+        raise Exception("Please specify dataset name.")
 
     model_folder = Path(DS_RD_SETTING.local_data_path) / dataset / "prev_model"
     if not model_folder.exists():

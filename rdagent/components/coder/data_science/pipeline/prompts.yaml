@@ -125,7 +125,6 @@ pipeline_coder:
     }
     {% endif %}
 
-
   user: |-
     # Competition Information
     {{ competition_info }}
