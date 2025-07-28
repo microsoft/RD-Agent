@@ -103,7 +103,7 @@ class DSCoSTEERRunner(CoSTEER):
     ) -> None:
 
         eval_l = [DSCoSTEERCoSTEEREvaluator(scen=scen)]
-        if DS_RD_SETTING.enable_model_dump:
+        if DS_RD_SETTING.enable_model_dump and not DS_RD_SETTING.scen.endswith("LLMFinetuneScen"):
             eval_l.append(ModelDumpEvaluator(scen=scen, data_type="full"))
 
         eva = CoSTEERMultiEvaluator(
