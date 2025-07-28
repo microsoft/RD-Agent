@@ -65,12 +65,6 @@ describe: # some template to describe some object
     {% endif %}
     {% endfor %}
     {% endif %}
-  
-  sota_results: |-
-    All validation scores of the SOTA experiments:
-    {% for index, data in sota_valid_score_dict.items() %}
-    ## Trial index: {{ index }}, validation score: {{ data.score }}, validation score improvement: {{ data.improvement }}
-    {% endfor %}
 
 scen:  # customizable
   role: |-
