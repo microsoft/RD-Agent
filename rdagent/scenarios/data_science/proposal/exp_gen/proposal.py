@@ -767,6 +767,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         if not expected_problems.issubset(available_problems):
             missing_problems = expected_problems - available_problems
+            # Raise exception to trigger retry mechanism
             raise ValueError(f"Rewrite response missing expected problems. Missing: {missing_problems}")
 
         # Note: We don't preserve 'inspired' field from original hypotheses
@@ -1089,13 +1090,18 @@ class DSProposalV2ExpGen(ExpGen):
 
         # Step 2.2: Rewriter Stage - Generate improved hypotheses based on critiques
         logger.info(f"Starting rewriter stage - generating improved hypotheses based on critique feedback")
-        improved_hypotheses_dict = self.hypothesis_rewrite(
-            hypothesis_dict=hypothesis_dict,
-            critiques_dict=critiques_dict,
-            scenario_desc=scenario_desc,
-            sota_exp_desc=sota_exp_desc,
-            exp_feedback_list_desc=exp_feedback_list_desc,
-        )
+        try:
+            improved_hypotheses_dict = self.hypothesis_rewrite(
+                hypothesis_dict=hypothesis_dict,
+                critiques_dict=critiques_dict,
+                scenario_desc=scenario_desc,
+                sota_exp_desc=sota_exp_desc,
+                exp_feedback_list_desc=exp_feedback_list_desc,
+            )
+        except Exception as e:
+            logger.warning(f"Hypothesis rewrite failed after all retries: {e}")
+            logger.info(f"Using original hypotheses as fallback instead of improved versions")
+            improved_hypotheses_dict = hypothesis_dict.copy()  # Use original hypotheses as fallback
 
         # Step 3: Select the best hypothesis
         pickled_problem_name, new_hypothesis = self.hypothesis_rank(
