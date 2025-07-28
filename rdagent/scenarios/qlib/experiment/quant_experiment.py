@@ -49,13 +49,15 @@ class QlibQuantScenario(Scenario):
         quant_background = "The background of the scenario is as follows:\n" + T(".prompts:qlib_quant_background").r(
             runtime_environment=self.get_runtime_environment(),
         )
-        factor_background = (
-            "This time, I need your help with the research and development of the factor. The background of the factor scenario is as follows:\n"
-            + T(".prompts:qlib_factor_background").r()
+        factor_background = "This time, I need your help with the research and development of the factor. The background of the factor scenario is as follows:\n" + T(
+            ".prompts:qlib_factor_background"
+        ).r(
+            runtime_environment=self.get_runtime_environment(tag="factor"),
         )
-        model_background = (
-            "This time, I need your help with the research and development of the model. The background of the model scenario is as follows:\n"
-            + T(".prompts:qlib_model_background").r()
+        model_background = "This time, I need your help with the research and development of the model. The background of the model scenario is as follows:\n" + T(
+            ".prompts:qlib_model_background"
+        ).r(
+            runtime_environment=self.get_runtime_environment(tag="model"),
         )
 
         # TODO: There are some issues here
@@ -171,20 +173,30 @@ class QlibQuantScenario(Scenario):
         elif action == "factor" or action == "model":
             return common_description(action) + interface(action) + output(action) + simulator(action)
 
-    def get_runtime_environment(self) -> str:
-        # Use factor env to get the runtime environment
-        factor_env = get_factor_env()
-        factor_stdout = get_runtime_environment_by_env(env=factor_env)
+    def get_runtime_environment(self, tag: str = None) -> str:
+        assert tag in [None, "factor", "model"]
 
-        # Use model env to get the runtime environment
-        model_env = get_model_env()
-        model_stdout = get_runtime_environment_by_env(env=model_env)
+        if tag is None or tag == "factor":
+            # Use factor env to get the runtime environment
+            factor_env = get_factor_env()
+            factor_stdout = get_runtime_environment_by_env(env=factor_env)
+            if tag == "factor":
+                stdout = factor_stdout
 
-        # Combine the outputs from both environments
-        stdout = (
-            "=== [Environment to generate the factors] ===\n"
-            + factor_stdout.strip()
-            + "\n\n=== [Environment to train the models] ===\n"
-            + model_stdout.strip()
-        )
+        if tag is None or tag == "model":
+            # Use model env to get the runtime environment
+            model_env = get_model_env()
+            model_stdout = get_runtime_environment_by_env(env=model_env)
+            if tag == "model":
+                stdout = model_stdout
+
+        if tag is None:
+            # Combine the outputs from both environments
+            stdout = (
+                "=== [Environment to generate the factors] ===\n"
+                + factor_stdout.strip()
+                + "\n\n=== [Environment to train the models] ===\n"
+                + model_stdout.strip()
+            )
+
         return stdout
