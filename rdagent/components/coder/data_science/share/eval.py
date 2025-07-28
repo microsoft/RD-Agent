@@ -52,12 +52,8 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
             if self.data_type == "full"
             else self.scen.debug_path
         )
-
-        extra_volumes = {data_source_path: T("scenarios.data_science.share:scen.input_path").r()}
-        if DS_RD_SETTING.previous_workspace_path:
-            extra_volumes[DS_RD_SETTING.previous_workspace_path] = "./base_model_workspace/"
         env = get_ds_env(
-            extra_volumes=extra_volumes,
+            extra_volumes={data_source_path: T("scenarios.data_science.share:scen.input_path").r()},
             running_timeout_period=(
                 DS_RD_SETTING.full_timeout if self.data_type == "full" else DS_RD_SETTING.debug_timeout
             ),

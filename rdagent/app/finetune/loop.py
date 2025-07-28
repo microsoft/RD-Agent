@@ -10,25 +10,27 @@ from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 
 
 def main(
-    base_model: str | None = None,
+    model: str | None = None,
     dataset: str | None = None,
 ):
     """
-
     Parameters
     ----------
-    base_model :
-        A path like `./git_ignore_folder/qwen3`. This is the base model path.
     dataset :
         Dateset name, used for finetune.
 
     Auto R&D Evolving loop for models finetune.
     You can continue running a session by using the command:
     .. code-block:: bash
-        dotenv run -- python rdagent/app/finetune/loop.py --base_model git_ignore_folder/qwen3 --dataset shibing624/alpaca-zh.
+        dotenv run -- python rdagent/app/finetune/loop.py --dataset shibing624/alpaca-zh
     """
-    if not base_model or dataset:
+    if dataset:
         logger.error("Please specify base model path and dataset name.")
+
+    model_folder = Path(DS_RD_SETTING.local_data_path) / dataset / "prev_model"
+    if not model_folder.exists():
+        # NOTE: must be superuser to use mount.
+        raise Exception(f"Please put the model path to {model_folder}.")
 
     # NOTE: due to finetune application
     DS_RD_SETTING.scen = "rdagent.app.finetune.scen.LLMFinetuneScen"
