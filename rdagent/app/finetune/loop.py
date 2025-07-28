@@ -36,7 +36,6 @@ def main(
     DS_RD_SETTING.scen = "rdagent.app.finetune.scen.LLMFinetuneScen"
     DS_RD_SETTING.hypothesis_gen = "rdagent.app.finetune.proposal.FinetuneExpGen"
     DS_RD_SETTING.competition = dataset
-    DS_RD_SETTING.previous_workspace_path = str(Path(base_model).absolute())
     DS_RD_SETTING.enable_model_dump = True
     DS_RD_SETTING.debug_timeout = 3600 * 10
     DS_RD_SETTING.full_timeout = 3600 * 100
