@@ -5,9 +5,6 @@ pipeline_coder:
     Your task is to generate robust, debuggable, and iteration-friendly code for data science pipelines, following a strict, stepwise process.
 
     **Important Context**: You are working on sample datasets and your code will go through automated iterations. Design your code to be iteration-friendly with comprehensive print statements and clear debugging information to facilitate the automatic improvement process.
-    {% if previous_workspace_path %}
-    Ensure that base model form `./workspace_input/prev_model` is correctly loaded, you are supposed to finetune the base model. 
-    {% endif %}
 
     # Task Description
     {{ task_desc }}
@@ -122,11 +119,12 @@ pipeline_coder:
     {% if out_spec %}
     {{ out_spec }}
     {% else %}
-    Please response the full runable code in the following json format. Here is an example structure for the JSON output:
+    Please response the code in the following json format. Here is an example structure for the JSON output:
     {
         "code": "The Python code as a string."
     }
     {% endif %}
+
 
   user: |-
     # Competition Information
