@@ -11,13 +11,11 @@ from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 
 def main(
     path: str | None = None,
-    workspace: str | None = None,
     checkout: bool | str | Path = True,
     step_n: int | None = None,
     loop_n: int | None = None,
     timeout: str | None = None,
-    competition: str | None = None,
-    dataset: str | None = None,
+    competition="bms-molecular-translation",
     replace_timer=True,
     exp_gen_cls: str | None = None,
 ):
