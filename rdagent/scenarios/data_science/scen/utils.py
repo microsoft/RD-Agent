@@ -299,7 +299,6 @@ class FileTreeGenerator:
         max_lines: int = 200,
         priority_files: Set[str] = None,
         hide_base_name: bool = True,
-        default_base_name: str = ".",
     ):
         """
         Initialize the file tree generator.
@@ -313,7 +312,6 @@ class FileTreeGenerator:
         self.lines = []
         self.line_count = 0
         self.hide_base_name = hide_base_name
-        self.default_base_name = default_base_name
 
     def generate_tree(self, path: Union[str, Path]) -> str:
         """
@@ -333,7 +331,7 @@ class FileTreeGenerator:
             base_path = path.resolve()
             self.lines = []
             self.line_count = 0
-            self._add_line(f"{self.default_base_name if self.hide_base_name else path.name}/")
+            self._add_line(f"{'.' if self.hide_base_name else path.name}/")
             self._process_directory(path, 0, "", base_path)
         except MaxLinesExceededError:
             pass  # Expected when hitting line limit
@@ -579,6 +577,9 @@ class DataFolderDescriptor:
                         out.append(preview_json(fn, file_name))
                     elif fn.suffix == ".parquet":
                         out.append(preview_parquet(fn, file_name, simple=simple, show_nan_columns=show_nan_columns))
+                    elif fn.suffix == ".py" and "test" not in file_name:
+                        out.append(f"### {file_name}:")
+                        out.append(fn.read_text(encoding="utf-8"))
                     elif fn.suffix in plaintext_files:
                         if get_file_len_size(fn)[0] < 30:
                             with open(fn) as f:
@@ -586,6 +587,7 @@ class DataFolderDescriptor:
                                 if fn.suffix in code_files:
                                     content = f"```\n{content}\n```"
                                 out.append(f"-> {file_name} has content:\n\n{content}")
+
                 except Exception as e:
                     out.append(f"-> {file_name}: Error reading file - {str(e)[:100]}")
 
@@ -608,39 +610,6 @@ class DataFolderDescriptor:
         if len(result) > max_length and simple:
             return result[:max_length] + "\n... (truncated)"
 
-        return result
-
-    def describe_model_folder(
-        self,
-        base_path: Union[str, Path],
-    ) -> str:
-        """
-        Generate a textual preview of a directory, including an overview of the directory
-        structure and previews of individual files.
-        """
-        base_path = Path(base_path)
-
-        tree = f"## File tree:\n```\n{self.tree_generator.generate_tree(base_path)}```"
-        out = [tree]
-
-        out.append("\n## Script details:")
-
-        # Intelligently select a subset of files to preview
-        files_to_preview = self._select_files_for_preview(base_path)
-        for fn in files_to_preview:
-            try:
-                file_name = str(fn.relative_to(base_path))
-            except ValueError:
-                file_name = str(fn)
-
-            try:
-                if fn.suffix == ".py" and "test" not in file_name:
-                    out.append(f"### {file_name}:")
-                    out.append(fn.read_text(encoding="utf-8"))
-            except Exception as e:
-                out.append(f"-> {file_name}: Error reading file - {str(e)[:100]}")
-
-        result = "\n\n".join(out)
         return result
 
     def _select_files_for_preview(
@@ -706,15 +675,4 @@ def describe_data_folder_v2(
         simple=simple,
         show_nan_columns=show_nan_columns,
         max_length=max_length,
-    )
-
-
-def describe_model_folder(
-    base_path: Union[str, Path],
-    folder_name: str = "base_model_workspace",
-) -> str:
-    """Generate a data folder description using DataFolderDescriptor."""
-    descriptor = DataFolderDescriptor(tree_generator=FileTreeGenerator(default_base_name=f"./{folder_name}"))
-    return descriptor.describe_model_folder(
-        base_path,
     )

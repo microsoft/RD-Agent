@@ -50,6 +50,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> DSCoSTEEREvalFeedback:
+
         env = get_ds_env(
             extra_volumes={
                 f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": T(
