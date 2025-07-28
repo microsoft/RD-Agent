@@ -141,6 +141,7 @@ class DataScienceScen(Scenario):
             metric_direction=self.metric_direction,
             raw_description=self.raw_description,
             use_raw_description=DS_RD_SETTING.use_raw_description,
+            ensemble_limit=None,
             time_limit=None,
             eda_output=None,
             sample_data_by_LLM=None,
@@ -152,6 +153,7 @@ class DataScienceScen(Scenario):
         """
         eda_output depends on dynamic .md files from current workspace, not fixed.
         """
+        ensemble_timeout = getattr(DS_RD_SETTING, "ensemble_timeout", None)
         return T(".prompts:scenario_description").r(
             background=self.background,
             submission_specifications=self.submission_specifications,
@@ -161,6 +163,7 @@ class DataScienceScen(Scenario):
             raw_description=self.raw_description,
             use_raw_description=DS_RD_SETTING.use_raw_description,
             time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
+            ensemble_limit=f"{ensemble_timeout / 60 / 60:.2f} hours" if ensemble_timeout is not None else None,
             eda_output=eda_output,
             sample_data_by_LLM=DS_RD_SETTING.sample_data_by_LLM,
             debug_time_limit=f"{DS_RD_SETTING.debug_timeout / 60 / 60 : .2f} hours",
