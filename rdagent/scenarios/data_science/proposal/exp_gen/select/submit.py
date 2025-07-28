@@ -95,7 +95,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
 
                     new_sota_exp_fb_list.extend(sota_exp_fb_list_per_trace)
 
-                sota_exp_fb_list = new_sota_exp_fb_list
+                sota_exp_fb_list = list(set(new_sota_exp_fb_list))
 
                 if len(sota_exp_fb_list) == 0:
                     logger.info("Auto SOTA selector: No SOTA in trace yet")
@@ -106,8 +106,14 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                     return sota_exp_fb_list[0][0]
                 else:
                     logger.info(
-                        f"Auto SOTA selector: {len(sota_exp_fb_list)} SOTA experiments found in all traces, calling LLM to select the best one"
+                        f"Auto SOTA selector: select {len(sota_exp_fb_list)} of {len(new_sota_exp_fb_list)} SOTA experiments found in all traces, calling LLM to select the best one"
                     )
+                    if len(sota_exp_fb_list) > DS_RD_SETTING.max_sota_retrieved_num:
+                        sota_exp_fb_list = sorted(
+                            sota_exp_fb_list,
+                            key=lambda exp_fb: pd.DataFrame(exp_fb[0].result).loc["ensemble"].iloc[0],
+                            reverse=not trace.scen.metric_direction,
+                        )[-DS_RD_SETTING.max_sota_retrieved_num :]
 
             for i, (exp, ef) in enumerate(sota_exp_fb_list):
                 if exp:
@@ -174,6 +180,13 @@ class BestValidSelector(SOTAexpSelector):
 
 
 def select_one_trace(selector_name, trace_pkl_path, trace_folder):
+    sota_result = json.load(open(trace_folder / f"{trace_pkl_path.stem.split('_')[0]}_loops.json", "r"))
+    if not sota_result['medal_loops']:
+        logger.info(
+            f"Selector {selector_name} found no SOTA loops in trace: {trace_pkl_path}, skipping..."
+        )
+        return False
+
     if selector_name == "global":
         selector = GlobalSOTASelector()
     elif selector_name == "auto":
@@ -182,8 +195,6 @@ def select_one_trace(selector_name, trace_pkl_path, trace_folder):
         selector = BestValidSelector()
 
     trace = pickle.load(trace_pkl_path.open("rb"))
-    sota_result = json.load(open(trace_folder / f"{trace_pkl_path.stem.split('_')[0]}_loops.json", "r"))
-
     selected_sota_exp = selector.get_sota_exp_to_submit(trace)
 
     selected_index = trace.exp2idx(selected_sota_exp)
