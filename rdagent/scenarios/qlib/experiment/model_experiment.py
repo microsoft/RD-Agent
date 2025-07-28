@@ -10,7 +10,7 @@ from rdagent.components.coder.model_coder.model import (
 from rdagent.core.experiment import Task
 from rdagent.core.scenario import Scenario
 from rdagent.scenarios.qlib.experiment.workspace import QlibFBWorkspace
-from rdagent.scenarios.shared.get_runtime_info import runtime_environment
+from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 from rdagent.utils.agent.tpl import T
 
 
@@ -78,5 +78,5 @@ The simulator user can use to test your model:
 
     def get_runtime_environment(self):
         model_env = get_model_env()
-        stdout = runtime_environment(env=model_env)
+        stdout = get_runtime_environment_by_env(env=model_env)
         return stdout

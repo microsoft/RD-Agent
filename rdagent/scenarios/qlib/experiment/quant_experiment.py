@@ -20,7 +20,7 @@ from rdagent.core.experiment import Task
 from rdagent.core.scenario import Scenario
 from rdagent.scenarios.qlib.experiment.utils import get_data_folder_intro
 from rdagent.scenarios.qlib.experiment.workspace import QlibFBWorkspace
-from rdagent.scenarios.shared.get_runtime_info import runtime_environment
+from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 from rdagent.utils.agent.tpl import T
 
 
@@ -172,14 +172,19 @@ class QlibQuantScenario(Scenario):
             return common_description(action) + interface(action) + output(action) + simulator(action)
 
     def get_runtime_environment(self) -> str:
+        # Use factor env to get the runtime environment
         factor_env = get_factor_env()
+        factor_stdout = get_runtime_environment_by_env(env=factor_env)
+
+        # Use model env to get the runtime environment
         model_env = get_model_env()
-        factor_stdout = runtime_environment(env=factor_env)
-        model_stdout = runtime_environment(env=model_env)
+        model_stdout = get_runtime_environment_by_env(env=model_env)
+
+        # Combine the outputs from both environments
         stdout = (
-            "=== [Factor Environment] ===\n"
+            "=== [Environment to generate the factors] ===\n"
             + factor_stdout.strip()
-            + "\n\n=== [Model Environment] ===\n"
+            + "\n\n=== [Environment to train the models] ===\n"
             + model_stdout.strip()
         )
         return stdout

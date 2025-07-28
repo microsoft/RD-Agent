@@ -16,6 +16,7 @@ from rdagent.scenarios.kaggle.kaggle_crawler import (
     download_data,
     get_metric_direction,
 )
+from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 from rdagent.utils.agent.tpl import T
 
 
@@ -170,7 +171,7 @@ class DataScienceScen(Scenario):
         # TODO:  add it into base class.  Environment should(i.e. `DSDockerConf`) should be part of the scenario class.
         """Return runtime environment information."""
         ds_env = get_ds_env()
-        stdout = runtime_environment(env=ds_env)
+        stdout = get_runtime_environment_by_env(env=ds_env)
         return stdout
 
     def _get_data_folder_description(self) -> str:

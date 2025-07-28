@@ -11,7 +11,7 @@ from rdagent.core.experiment import Task
 from rdagent.core.scenario import Scenario
 from rdagent.scenarios.qlib.experiment.utils import get_data_folder_intro
 from rdagent.scenarios.qlib.experiment.workspace import QlibFBWorkspace
-from rdagent.scenarios.shared.get_runtime_info import runtime_environment
+from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 from rdagent.utils.agent.tpl import T
 
 
@@ -86,5 +86,5 @@ The simulator user can use to test your factor:
 
     def get_runtime_environment(self):
         factor_env = get_factor_env()
-        stdout = runtime_environment(env=factor_env)
+        stdout = get_runtime_environment_by_env(env=factor_env)
         return stdout
