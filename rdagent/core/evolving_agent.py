@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Generator
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from tqdm import tqdm
 
-if TYPE_CHECKING:
-    from rdagent.core.evolving_framework import EvolvableSubjects
+from rdagent.core.evolving_framework import EvolvableSubjects
 
 from rdagent.core.evaluation import EvaluableObj, Evaluator, Feedback
 from rdagent.core.evolving_framework import EvolvingStrategy, EvoStep
