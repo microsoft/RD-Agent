@@ -91,9 +91,8 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
 
                 # 5. Evaluation
                 if self.with_feedback:
-                    es.feedback = (
-                        eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge)
-                    )
+                    es.feedback = (eva if isinstance(eva, Feedback) else eva.evaluate(
+                        evo, queried_knowledge=queried_knowledge))
                     logger.log_object(es.feedback, tag="evolving feedback")
 
                 # 6. update trace
