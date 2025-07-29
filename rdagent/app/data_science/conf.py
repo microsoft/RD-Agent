@@ -118,6 +118,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_planner: bool = False
 
     model_architecture_suggestion_time_percent: float = 0.75
+    allow_longer_timeout: bool = False
     coder_longer_timeout_multiplier: int = 3
     runner_longer_timeout_multiplier: int = 2
 
