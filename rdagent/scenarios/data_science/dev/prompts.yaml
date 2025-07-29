@@ -81,7 +81,6 @@ exp_feedback:
       "Feedback for Hypothesis": Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences.",
       "Evaluation Aligned With Task": "yes or no",
       "Replace Best Result": "yes or no",
-      "Refine Decision": "yes or no",
       "Reasoning": "Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences.",
       "EDA Improvement": "improvement suggestion for EDA code, if needed, otherwise set to 'no'. If there is no EDA code, set to 'no'."
     }
@@ -215,7 +214,6 @@ exp_feedback_draft:
       "Feedback for Hypothesis": Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences.",
       "Evaluation Aligned With Task": "yes or no",
       "Replace Best Result": "yes or no",
-      "Refine Decision": "yes or no",
       "Reasoning": "Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences.",
       "EDA Improvement": "improvement suggestion for EDA code, if needed, otherwise set to 'no'. If there is no EDA code, set to 'no'."
     }
