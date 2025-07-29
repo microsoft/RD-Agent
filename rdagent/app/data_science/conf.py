@@ -126,5 +126,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_hypo_critique_rewrite: bool = True
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
 
+    #### mcp in coder
+    enable_context7: bool = True
+    """enable the use of context7 as mcp to search for relevant documents of current implementation errors"""
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()

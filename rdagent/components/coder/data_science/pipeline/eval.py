@@ -158,10 +158,14 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         else:
             eda_output = implementation.file_dict.get("EDA.md", None)
 
+        # extract enable_context7 from setting
+        enable_context7 = DS_RD_SETTING.enable_context7
+
         system_prompt = T(".prompts:pipeline_eval.system").r(
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             debug_mode=DS_RD_SETTING.sample_data_by_LLM,
             mle_check=(DS_RD_SETTING.sample_data_by_LLM and test_eval.is_sub_enabled(self.scen.competition)),
+            enable_context7=enable_context7,
         )
         user_prompt = T(".prompts:pipeline_eval.user").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
@@ -176,6 +180,10 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             user_prompt=user_prompt,
             init_kwargs_update_func=PipelineSingleFeedback.val_and_update_init_dict,
         )
+        if enable_context7:
+            # TODO: add mcp tool use
+            pass
+
         if score_ret_code != 0 and wfb.final_decision is True:
             wfb.final_decision = False
             wfb.return_checking += "\n" + score_check_text
