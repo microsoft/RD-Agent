@@ -50,6 +50,7 @@ class EvoStep(Generic[ASpecificEvolvableSubjects]):
 
     (optional) After evaluation, we get feedback `feedback`.
     """
+
     evolvable_subjects: ASpecificEvolvableSubjects
 
     queried_knowledge: QueriedKnowledge | None = None

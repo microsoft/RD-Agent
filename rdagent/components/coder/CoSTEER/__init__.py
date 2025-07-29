@@ -1,5 +1,5 @@
-from copy import deepcopy
 import pickle
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 
@@ -13,7 +13,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERRAGStrategyV2,
 )
 from rdagent.core.developer import Developer
-from rdagent.core.evolving_agent import EvolvingStrategy, RAGEvoAgent, RAGEvaluator
+from rdagent.core.evolving_agent import EvolvingStrategy, RAGEvaluator, RAGEvoAgent
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import Experiment
 from rdagent.log import rdagent_logger as logger

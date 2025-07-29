@@ -1,6 +1,6 @@
-from dataclasses import dataclass
 import json
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
@@ -33,6 +33,7 @@ class DSRunnerFeedback(CoSTEERSingleFeedback):
     Feedback for Data Science CoSTEER evaluation.
     This feedback is used to evaluate the code and execution of the Data Science CoSTEER task.
     """
+
     acceptable: bool | None = None
     hyperparameter_tuning_decision: bool | None = None
     hyperparameter_tuning_suggestion: str | None = None
