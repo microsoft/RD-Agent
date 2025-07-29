@@ -50,7 +50,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> DSCoSTEEREvalFeedback:
-        if len(queried_knowledge.task_to_former_failed_traces[target_task.get_task_information()])[0] == 0:
+        if len(queried_knowledge.task_to_former_failed_traces[target_task.get_task_information()][0]) == 0:
             enable_hyperparameter_tuning_check = True
         else:
             enable_hyperparameter_tuning_check = False
