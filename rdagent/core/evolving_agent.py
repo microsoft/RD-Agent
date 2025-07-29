@@ -6,10 +6,8 @@ from typing import Any, Generic, TypeVar
 
 from tqdm import tqdm
 
-from rdagent.core.evolving_framework import EvolvableSubjects
-
 from rdagent.core.evaluation import EvaluableObj, Evaluator, Feedback
-from rdagent.core.evolving_framework import EvolvingStrategy, EvoStep
+from rdagent.core.evolving_framework import EvolvableSubjects, EvolvingStrategy, EvoStep
 from rdagent.log import rdagent_logger as logger
 
 ASpecificEvaluator = TypeVar("ASpecificEvaluator", bound=Evaluator)
@@ -91,8 +89,9 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
 
                 # 5. Evaluation
                 if self.with_feedback:
-                    es.feedback = (eva if isinstance(eva, Feedback) else eva.evaluate(
-                        evo, queried_knowledge=queried_knowledge))
+                    es.feedback = (
+                        eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge)
+                    )
                     logger.log_object(es.feedback, tag="evolving feedback")
 
                 # 6. update trace
