@@ -1,5 +1,6 @@
 import json
 from enum import Enum
+from datetime import timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
@@ -15,6 +16,7 @@ from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.timer import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.feedback import ExperimentFeedback
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -471,6 +473,184 @@ class DSProposalV2ExpGen(ExpGen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.supports_response_schema = APIBackend().supports_response_schema()
+
+    def get_timer_info(self) -> Tuple[bool, Optional[Tuple[float, float, float]]]:
+        """
+        Get timer information for time-aware selection.
+
+        Returns:
+            Tuple containing:
+            - timer_started (bool): Whether the timer has been started
+            - time_info (Optional[Tuple[float, float, float]]):
+              If timer is started, returns (total_seconds, remaining_seconds, time_ratio)
+              If timer is not started, returns None
+        """
+        # Get timer information for time-aware selection
+        timer = RD_Agent_TIMER_wrapper.timer
+        total_time = timer.all_duration if timer.all_duration else timedelta(0)
+        remaining_time = timer.remain_time() if timer.remain_time() else timedelta(0)
+        timer_started = timer.started
+
+        time_info = None
+        if timer_started:
+            total_time_val = total_time if total_time else timedelta(0)
+            remaining_time_val = remaining_time if remaining_time else timedelta(0)
+            # Convert to seconds
+            total_seconds = total_time_val.total_seconds()
+            remaining_seconds = remaining_time_val.total_seconds()
+            # Calculate time ratio (remaining/total)
+            time_ratio = remaining_seconds / total_seconds if total_seconds > 0 else 0
+            time_info = (total_seconds, remaining_seconds, time_ratio)
+            logger.info(
+                f"Time status enabled. Total Time: {total_seconds}s, Remaining Time: {remaining_seconds}s, Remaining Time Ratio: {time_ratio:.2f}"
+            )
+        else:
+            logger.warning(
+                f"Time status not enabled. If you don't set timeout, the LLM will not be aware of the time limit and would run indefinitely."
+            )
+
+        return timer_started, time_info
+
+    def gen_convergence_hypothesis(
+        self,
+        hypothesis_dict: Dict,
+        problems_dict: Dict,
+        scenario_desc: str,
+        sota_exp_desc: str,
+        time_info: Tuple[float, float, float]
+    ) -> Tuple[str, DSHypothesis]:
+        """
+        Generate a convergence hypothesis when time usage exceeds 70%.
+        This function creates a conservative, convergence-based approach that combines
+        the best aspects of existing hypotheses rather than exploring new directions.
+        
+        Args:
+            hypothesis_dict: Dictionary of generated hypotheses
+            problems_dict: Dictionary of identified problems
+            scenario_desc: Description of the scenario
+            sota_exp_desc: Description of SOTA experiment
+            time_info: Tuple of (total_seconds, remaining_seconds, time_ratio)
+            
+        Returns:
+            Tuple of (problem_name, DSHypothesis) for the convergence approach
+        """
+        total_seconds, remaining_seconds, time_ratio = time_info
+        used_ratio = 1 - time_ratio
+        
+        logger.info(f"Time constraint triggered (remaining ratio: {time_ratio:.2f}, used ratio: {used_ratio:.2f}). Generating convergence hypothesis instead of exploring new directions.")
+        
+        # Select top hypotheses based on evaluation scores
+        top_hypotheses = []
+        for problem_name, hypothesis_data in hypothesis_dict.items():
+            if "evaluation" in hypothesis_data:
+                eval_data = hypothesis_data["evaluation"]
+                # Calculate weighted score prioritizing feasibility and alignment for time-constrained scenarios
+                weighted_score = (
+                    eval_data.get("feasibility_score", 0) * 0.4 +  # High weight on feasibility
+                    eval_data.get("alignment_score", 0) * 0.3 +     # Alignment with scenario
+                    eval_data.get("impact_score", 0) * 0.2 +        # Potential impact
+                    eval_data.get("risk_reward_balance_score", 0) * 0.1  # Low risk preference
+                )
+                top_hypotheses.append((problem_name, hypothesis_data, weighted_score))
+        
+        # Sort by weighted score and take top 3 for convergence
+        top_hypotheses.sort(key=lambda x: x[2], reverse=True)
+        selected_hypotheses = top_hypotheses[:3]
+        
+        # Format hypotheses for prompt
+        hypotheses_formatted = ""
+        for i, (problem_name, hypothesis_data, score) in enumerate(selected_hypotheses):
+            component = hypothesis_data.get("component", "Model")
+            hypothesis_text = hypothesis_data.get("hypothesis", "")
+            reason = hypothesis_data.get("reason", "")
+            hypotheses_formatted += f"## {i+1}. {problem_name} (Score: {score:.2f})\n"
+            hypotheses_formatted += f"**Component:** {component}\n"
+            hypotheses_formatted += f"**Hypothesis:** {hypothesis_text}\n"
+            hypotheses_formatted += f"**Reason:** {reason}\n\n"
+        
+        # Format problems for prompt
+        problems_formatted = ""
+        for problem_name, problem_data in problems_dict.items():
+            problems_formatted += f"## {problem_name}\n"
+            problems_formatted += f"{problem_data.get('problem', '')}\n"
+            problems_formatted += f"**Reason:** {problem_data.get('reason', '')}\n\n"
+        
+        # Use prompt template from prompts_v2.yaml
+        sys_prompt = T(".prompts_v2:convergence_hypothesis.system").r(
+            convergence_output_format=(
+                T(".prompts_v2:output_format.hypothesis").r() if not self.supports_response_schema else None
+            ),
+        )
+        user_prompt = T(".prompts_v2:convergence_hypothesis.user").r(
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            total_seconds=total_seconds,
+            remaining_seconds=remaining_seconds,
+            used_ratio=used_ratio * 100,  # Convert to percentage
+            time_ratio=time_ratio * 100,  # Convert to percentage
+            hypotheses_formatted=hypotheses_formatted,
+            problems_formatted=problems_formatted,
+        )
+        
+        # Generate convergence hypothesis using API
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format={"type": "json_object"},
+            json_target_type=Dict[str, Dict[str, str]],
+        )
+        
+        resp_dict = json.loads(response)
+        logger.info(f"Generated convergence hypothesis response:\n" + json.dumps(resp_dict, indent=2))
+        
+        # Extract the first (and should be only) hypothesis from response
+        convergence_problem_name = list(resp_dict.keys())[0]
+        convergence_data = resp_dict[convergence_problem_name]
+        
+        # Generate convergence problem description
+        convergence_problem_desc = (
+            f"With {remaining_seconds:.0f}s remaining ({time_ratio*100:.1f}% of total time), "
+            f"focus on a conservative convergence approach that combines the most feasible "
+            f"and well-aligned strategies from previous analysis."
+        )
+        
+        # Determine the most common component type for convergence, default to Ensemble if mixed
+        component_counts = {}
+        for _, hypothesis_data, _ in selected_hypotheses:
+            comp = hypothesis_data.get("component", "Model")
+            component_counts[comp] = component_counts.get(comp, 0) + 1
+        
+        # Use Ensemble component if we have mixed components or if it's the most common
+        if len(component_counts) > 1 or "Ensemble" in component_counts:
+            convergence_component = "Ensemble"
+        else:
+            convergence_component = max(component_counts.keys(), key=lambda k: component_counts[k])
+        
+        # Override component if specified in response
+        if "component" in convergence_data:
+            convergence_component = convergence_data["component"]
+        
+        # Add convergence problem to problems_dict for consistency
+        problems_dict[convergence_problem_name] = {
+            "problem": convergence_problem_desc,
+            "reason": "Time constraint triggered convergence strategy",
+            "label": "TIME_CONSTRAINED_CONVERGENCE"
+        }
+        
+        # Create DSHypothesis for convergence
+        convergence_hypothesis = DSHypothesis(
+            component=convergence_component,
+            hypothesis=convergence_data.get("hypothesis", "Convergence approach combining top hypotheses"),
+            reason=convergence_data.get("reason", f"Time-aware convergence strategy with {remaining_seconds:.0f}s remaining"),
+            problem_name=convergence_problem_name,
+            problem_desc=convergence_problem_desc,
+            problem_label="TIME_CONSTRAINED_CONVERGENCE"
+        )
+        
+        logger.info(f"Generated convergence hypothesis with component: {convergence_component}")
+        logger.info(f"Convergence combines {len(selected_hypotheses)} top-scoring hypotheses for time-efficient execution")
+        
+        return convergence_problem_name, convergence_hypothesis
 
     def identify_scenario_problem(
         self,
@@ -1077,37 +1257,59 @@ class DSProposalV2ExpGen(ExpGen):
                 for name in pop_names:
                     hypothesis_dict.pop(name)
 
-        # Step 2.1: Critic Stage - Evaluate and identify flaws in hypotheses
-        logger.info(f"Starting critic stage - evaluating {len(hypothesis_dict)} hypotheses for flaws and improvements")
-        critiques_dict = self.hypothesis_critique(
-            hypothesis_dict=hypothesis_dict,
-            problems_dict=all_problems,
-            scenario_desc=scenario_desc,
-            sota_exp_desc=sota_exp_desc,
-            exp_feedback_list_desc=exp_feedback_list_desc,
-        )
-        logger.info(f"Generated critiques for {len(critiques_dict)} hypotheses")
-
-        # Step 2.2: Rewriter Stage - Generate improved hypotheses based on critiques
-        logger.info(f"Starting rewriter stage - generating improved hypotheses based on critique feedback")
-        try:
-            improved_hypotheses_dict = self.hypothesis_rewrite(
+        # add time consideration
+        used_ratio=None
+        time_started, time_info = self.get_time_info()
+        if time_info:
+            # Calculate used ratio: (total_time - remaining_time) / total_time
+            total_time, remaining_time = time_info[0], time_info[1]
+            used_ratio = (total_time - remaining_time) / total_time if total_time > 0 else 0
+        
+        if time_info and used_ratio > 0.7:  # More than 70% time used
+            # Generate a convergence hypothesis that combines all previous hypotheses for a convergence approach
+            pickled_problem_name, new_hypothesis = self.gen_convergence_hypothesis(
                 hypothesis_dict=hypothesis_dict,
-                critiques_dict=critiques_dict,
+                problems_dict=all_problems,
+                scenario_desc=scenario_desc,
+                sota_exp_desc=sota_exp_desc,
+                time_info=time_info
+            )
+            # Use original hypotheses for consistency in later processing
+            improved_hypotheses_dict = hypothesis_dict.copy()
+            
+        else:
+            # Step 2.1: Critic Stage - Evaluate and identify flaws in hypotheses
+            logger.info(f"Starting critic stage - evaluating {len(hypothesis_dict)} hypotheses for flaws and improvements")
+            critiques_dict = self.hypothesis_critique(
+                hypothesis_dict=hypothesis_dict,
+                problems_dict=all_problems,
                 scenario_desc=scenario_desc,
                 sota_exp_desc=sota_exp_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
             )
-        except Exception as e:
-            logger.warning(f"Hypothesis rewrite failed after all retries: {e}")
-            logger.info(f"Using original hypotheses as fallback instead of improved versions")
-            improved_hypotheses_dict = hypothesis_dict.copy()  # Use original hypotheses as fallback
+            logger.info(f"Generated critiques for {len(critiques_dict)} hypotheses")
 
-        # Step 3: Select the best hypothesis
-        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
-            hypothesis_dict=improved_hypotheses_dict,
-            problem_dict=all_problems,
-        )
+            # Step 2.2: Rewriter Stage - Generate improved hypotheses based on critiques
+            logger.info(f"Starting rewriter stage - generating improved hypotheses based on critique feedback")
+            try:
+                improved_hypotheses_dict = self.hypothesis_rewrite(
+                    hypothesis_dict=hypothesis_dict,
+                    critiques_dict=critiques_dict,
+                    scenario_desc=scenario_desc,
+                    sota_exp_desc=sota_exp_desc,
+                    exp_feedback_list_desc=exp_feedback_list_desc,
+                )
+            except Exception as e:
+                logger.warning(f"Hypothesis rewrite failed after all retries: {e}")
+                logger.info(f"Using original hypotheses as fallback instead of improved versions")
+                improved_hypotheses_dict = hypothesis_dict.copy()  # Use original hypotheses as fallback
+
+            # Step 3: Select the best hypothesis
+            pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+                hypothesis_dict=improved_hypotheses_dict,
+                problem_dict=all_problems,
+            )
+        
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
