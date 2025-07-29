@@ -574,6 +574,30 @@ def get_llm_call_stats(llm_data: dict) -> tuple[int, int]:
     return total_llm_call, total_filter_call
 
 
+def get_timeout_stats(llm_data: dict):
+    timeout_stat = {
+        "coding": {
+            "total": 0,
+            "timeout": 0,
+        },
+        "running": {
+            "total": 0,
+            "timeout": 0,
+        },
+    }
+    for li, loop_d in llm_data.items():
+        for fn, loop_fn_d in loop_d.items():
+            for k, v in loop_fn_d.items():
+                for d in v:
+                    if "debug_tpl" in d["tag"] and "eval.user" in d["obj"]["uri"]:
+                        stdout = d["obj"]["context"]["stdout"]
+                        if "The running time exceeds" in stdout:  # Timeout case
+                            timeout_stat[fn]["timeout"] += 1
+                        timeout_stat[fn]["total"] += 1
+
+    return timeout_stat
+
+
 def timedelta_to_str(td: timedelta | None) -> str:
     if isinstance(td, timedelta):
         total_seconds = int(td.total_seconds())
@@ -588,7 +612,7 @@ def summarize_win():
     st.header("Summary", divider="rainbow")
     with st.container(border=True):
         min_id, max_id = get_state_data_range(state.data)
-        info0, info1, info2, info3, info4, info5 = st.columns([1, 1, 1, 1, 1, 1])
+        info0, info1, info2, info3, info4, info5, info6, info7 = st.columns(8)
         show_trace_dag = info0.toggle("Show trace DAG", key="show_trace_dag")
         only_success = info0.toggle("Only Success", key="only_success")
         with info1.popover("LITELLM", icon="⚙️"):
@@ -601,6 +625,19 @@ def summarize_win():
         llm_call, llm_filter_call = get_llm_call_stats(state.llm_data)
         info4.metric("LLM Calls", llm_call)
         info5.metric("LLM Filter Calls", f"{llm_filter_call}({round(llm_filter_call / llm_call * 100, 2)}%)")
+
+        timeout_stats = get_timeout_stats(state.llm_data)
+        info6.metric(
+            "Timeouts (Coding)",
+            f"{round(timeout_stats['coding']['timeout'] / timeout_stats['coding']['total'] * 100, 2)}%",
+            help=f"{timeout_stats['coding']['timeout']}/{timeout_stats['coding']['total']}",
+        )
+        info7.metric(
+            "Timeouts (Running)",
+            f"{round(timeout_stats['running']['timeout'] / timeout_stats['running']['total'] * 100, 2)}%",
+            help=f"{timeout_stats['running']['timeout']}/{timeout_stats['running']['total']}",
+        )
+
         if show_trace_dag:
             st.markdown("### Trace DAG")
             final_trace_loop_id = max_id
@@ -625,6 +662,7 @@ def summarize_win():
                 "Running Score (test)",
                 "Feedback",
                 "e-loops(coding)",
+                "e-loops(running)",
                 "COST($)",
                 "Time",
                 "Exp Gen",
@@ -750,6 +788,13 @@ def summarize_win():
                 else:
                     df.loc[loop, "e-loops(coding)"] = (
                         max(i for i in loop_data["coding"].keys() if isinstance(i, int)) + 1
+                    )
+            if "running" in loop_data:
+                if len([i for i in loop_data["running"].keys() if isinstance(i, int)]) == 0:
+                    df.loc[loop, "e-loops(running)"] = 0
+                else:
+                    df.loc[loop, "e-loops(running)"] = (
+                        max(i for i in loop_data["running"].keys() if isinstance(i, int)) + 1
                     )
             if "feedback" in loop_data:
                 fb_emoji_str = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
