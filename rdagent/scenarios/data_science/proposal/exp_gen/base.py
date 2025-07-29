@@ -171,7 +171,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         search_type: Literal["all", "ancestors"] = "ancestors",
         selection: tuple[int, ...] | None = None,
         max_retrieve_num: int | None = None,
-        with_index: bool = False,
     ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
         """
         Retrieve a list of experiments and feedbacks based on the return_type.
@@ -181,13 +180,13 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         has_final_component = True if DS_RD_SETTING.coder_on_whole_pipeline else False
         SOTA_exp_and_feedback_list = []
         failed_exp_and_feedback_list_after_sota = []
-        for index, (exp, fb) in enumerate(search_list):
+        for exp, fb in search_list:
             if has_final_component:
                 if fb.decision:
-                    SOTA_exp_and_feedback_list.append((index, exp, fb) if with_index else (exp, fb))
+                    SOTA_exp_and_feedback_list.append((exp, fb))
                     failed_exp_and_feedback_list_after_sota = []
                 else:
-                    failed_exp_and_feedback_list_after_sota.append((index, exp, fb) if with_index else (exp, fb))
+                    failed_exp_and_feedback_list_after_sota.append((exp, fb))
             if exp.hypothesis.component == final_component and fb:
                 has_final_component = True
         if max_retrieve_num is not None and (SOTA_exp_and_feedback_list or failed_exp_and_feedback_list_after_sota):

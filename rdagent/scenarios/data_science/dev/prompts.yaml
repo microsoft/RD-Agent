@@ -40,23 +40,15 @@ exp_feedback:
     - Directly compare the current `ensemble` validation score to the SOTA `ensemble` validation score. Do not focus on individual models unless anomalies are significant.
     - Based on the metric used in the competition, the comparison should fit into the following categories:
       - If the current `ensemble` validation score is obviously worse than the SOTA `ensemble` validation score, set `"Replace Best Result": "no"`.
-      - If the current `ensemble` validation score is obviously better than the SOTA `ensemble` validation score, proceed to Step 4.
-      - If the current `ensemble` validation score is similar to the SOTA `ensemble` validation score or both reach the ceiling performance, proceed to Step 5.
+      - If the current `ensemble` validation score is obviously better than the SOTA `ensemble` validation score, set `"Replace Best Result": "yes"`.
+      - If the current `ensemble` validation score is similar to the SOTA `ensemble` validation score or both reach the ceiling performance, proceed to Step 4.
     - Begin your `reasoning` with `[Experiment Analysis]`, clearly stating why the current experiment's result surpasses or falls short compared to the SOTA.
     - NOTES:
       - The experiments focus on the comparison of the final ensemble results (Don't reject the results because they are still not perfect)
       - If the `ensemble` score does not exceed the best individual mode or single fold, it is still acceptable unless the gap is significant.
     
-    Step 4: Identify validation score improvement source
-    - The user also provides you all the ensemble validation scores of the SOTA experiments you can get the improve pattern of the validation score numbers.
-    - Since the current validation score is obviously better than the SOTA `ensemble` validation score, you should analyze whether the current number based on all the history numbers following the patterns:
-      - If the sota validation score has been stabilized or joggling for several rounds, you should be very careful to accept the current score as a valid improvement because it is likely that this validation score improvement is the cause of over-fit. 
-        - If the code manipulate the validation dataset or modified the validation process. please set `"Replace Best Result": "no"` and explain in `"Reasoning"` starting with `[Validation Score Manipulation]`.
-        - If the improvement is based a big innovated code change, please proceed to Step 5 to check the code quality and give decision based on both the validation score and code quality.
-      - If no much sota validation score is provided, you should proceed to Step 5 to check the code quality and give decision based on both the validation score and code quality.
-
-    Step 5: Analyze Code To get Better validation results
-    - If the current `ensemble` validation score is similar to the SOTA `ensemble` validation score or suspicious validation improvement after several trials, give the decision based on the comparison between the current experiment and SOTA.
+    Step 4: Analyze Code With Similar validation Results
+    - If the current `ensemble` validation score is similar to the SOTA `ensemble` validation score, give the decision based on the comparison between the current experiment and SOTA.
     - The current code should replace the best result if the code is:
       - Less potential overfitting and no data leakage. The code should not modify the validation and test set distributions.
       - Using best practices and modeling techniques. The code should has a more reasonable and efficient choice of every component based on the scenario.

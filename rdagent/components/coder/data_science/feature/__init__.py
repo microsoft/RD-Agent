@@ -138,5 +138,6 @@ class FeatureCoSTEER(CoSTEER):
             evolving_version=2,
             scen=scen,
             max_loop=DS_RD_SETTING.coder_max_loop,
+            max_seconds=scen.real_debug_timeout() * settings.max_seconds_multiplier,
             **kwargs,
         )

@@ -111,6 +111,23 @@ class DataScienceScen(Scenario):
         )
         self.metric_name = response_json_analysis.get("Metric Name", "custom_metric")
         self.metric_direction_guess = response_json_analysis.get("Metric Direction", True)
+        self.longer_time_limit_required = response_json_analysis.get(
+            "Longer time limit required", False
+        )  # True or False, whether the competition scenario requires a longer time limit to the code.
+
+    def real_debug_timeout(self):
+        return (
+            DS_RD_SETTING.debug_timeout * DS_RD_SETTING.coder_longer_timeout_multiplier
+            if self.longer_time_limit_required and DS_RD_SETTING.allow_longer_timeout
+            else DS_RD_SETTING.debug_timeout
+        )
+
+    def real_full_timeout(self):
+        return (
+            DS_RD_SETTING.full_timeout * DS_RD_SETTING.runner_longer_timeout_multiplier
+            if self.longer_time_limit_required and DS_RD_SETTING.allow_longer_timeout
+            else DS_RD_SETTING.full_timeout
+        )
 
     @property
     def background(self) -> str:
@@ -160,10 +177,10 @@ class DataScienceScen(Scenario):
             metric_direction=self.metric_direction,
             raw_description=self.raw_description,
             use_raw_description=DS_RD_SETTING.use_raw_description,
-            time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
+            time_limit=f"{self.real_full_timeout() / 60 / 60 : .2f} hours",
             eda_output=eda_output,
             sample_data_by_LLM=DS_RD_SETTING.sample_data_by_LLM,
-            debug_time_limit=f"{DS_RD_SETTING.debug_timeout / 60 / 60 : .2f} hours",
+            debug_time_limit=f"{self.real_debug_timeout() / 60 / 60 : .2f} hours",
             runtime_environment=self.get_runtime_environment(),
         )
 
