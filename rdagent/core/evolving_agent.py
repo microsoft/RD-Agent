@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Generator
+from re import A
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from tqdm import tqdm
@@ -14,9 +15,10 @@ from rdagent.core.evolving_framework import EvolvingStrategy, EvoStep
 from rdagent.log import rdagent_logger as logger
 
 ASpecificEvaluator = TypeVar("ASpecificEvaluator", bound=Evaluator)
+ASpecificEvolvableSubjects = TypeVar("ASpecificEvolvableSubjects", bound=EvolvableSubjects)
 
 
-class EvoAgent(ABC, Generic[ASpecificEvaluator]):
+class EvoAgent(ABC, Generic[ASpecificEvaluator, ASpecificEvolvableSubjects]):
 
     def __init__(self, max_loop: int, evolving_strategy: EvolvingStrategy) -> None:
         self.max_loop = max_loop
@@ -25,9 +27,9 @@ class EvoAgent(ABC, Generic[ASpecificEvaluator]):
     @abstractmethod
     def multistep_evolve(
         self,
-        evo: EvolvableSubjects,
+        evo: ASpecificEvolvableSubjects,
         eva: ASpecificEvaluator | Feedback,
-    ) -> Generator[EvolvableSubjects, None, None]:
+    ) -> Generator[ASpecificEvolvableSubjects, None, None]:
         """
         yield EvolvableSubjects for caller for easier process control and logging.
         """
@@ -44,7 +46,7 @@ class RAGEvaluator(Evaluator):
         raise NotImplementedError
 
 
-class RAGEvoAgent(EvoAgent[RAGEvaluator]):
+class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[ASpecificEvolvableSubjects]):
 
     def __init__(
         self,
@@ -58,16 +60,16 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator]):
     ) -> None:
         super().__init__(max_loop, evolving_strategy)
         self.rag = rag
-        self.evolving_trace: list[EvoStep] = []
+        self.evolving_trace: list[EvoStep[ASpecificEvolvableSubjects]] = []
         self.with_knowledge = with_knowledge
         self.with_feedback = with_feedback
         self.knowledge_self_gen = knowledge_self_gen
 
     def multistep_evolve(
         self,
-        evo: EvolvableSubjects,
+        evo: ASpecificEvolvableSubjects,
         eva: RAGEvaluator | Feedback,
-    ) -> Generator[EvolvableSubjects, None, None]:
+    ) -> Generator[ASpecificEvolvableSubjects, None, None]:
         for evo_loop_id in tqdm(range(self.max_loop), "Implementing"):
             with logger.tag(f"evo_loop_{evo_loop_id}"):
                 # 1. knowledge self-evolving
@@ -87,7 +89,7 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator]):
                 )
 
                 # 4. Pack evolve results
-                es = EvoStep(evo, queried_knowledge)
+                es = EvoStep[ASpecificEvolvableSubjects](evo, queried_knowledge)
 
                 # 5. Evaluation
                 if self.with_feedback:
