@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Generator
-from re import A
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from tqdm import tqdm

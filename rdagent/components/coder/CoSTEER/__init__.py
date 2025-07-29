@@ -125,6 +125,7 @@ class CoSTEER(Developer[Experiment]):
             evo_exp = self._exp_postprocess_by_feedback(evo_exp, self._get_last_fb())
         except CoderError:
             if fallback_evo_exp is not None:
+                logger.info("Fallback to the fallback solution.")
                 evo_exp = fallback_evo_exp
             else:
                 raise
