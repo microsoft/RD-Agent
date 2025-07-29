@@ -461,7 +461,7 @@ def running_win(data, base_exp, llm_data=None, sota_exp=None):
         workspace_win(
             data["no_tag"].experiment_workspace,
             cmp_workspace=sota_exp.experiment_workspace if sota_exp else None,
-            cmp_name="last SOTA",
+            cmp_name="last SOTA(to_submit)",
         )
         st.subheader("Result")
         try:
@@ -520,15 +520,21 @@ def main_win(loop_id, llm_data=None):
             llm_data=llm_data["coding"] if llm_data else None,
         )
     if "running" in loop_data:
+        # get last SOTA_exp_to_submit
+        current_trace = loop_data["record"]["trace"]
+        parent_idxs = current_trace.get_parents(current_trace.get_current_selection()[0])
+        if len(parent_idxs) >= 2 and hasattr(current_trace, "idx2loop_id"):
+            parent_idx = parent_idxs[-2]
+            parent_loop_id = current_trace.idx2loop_id[parent_idx]
+            sota_exp = state.data[parent_loop_id]["record"].get("sota_exp_to_submit", None)
+        else:
+            sota_exp = None
+
         running_win(
             loop_data["running"],
             base_exp=loop_data["coding"]["no_tag"],
             llm_data=llm_data["running"] if llm_data else None,
-            sota_exp=(
-                state.data[loop_id - 1].get("record", {}).get("SOTA experiment", None)
-                if (loop_id - 1) in state.data
-                else None
-            ),
+            sota_exp=sota_exp,
         )
     if "feedback" in loop_data:
         feedback_win(loop_data["feedback"], llm_data.get("feedback", None) if llm_data else None)
