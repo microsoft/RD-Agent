@@ -1,0 +1,14 @@
+# MCP Context7 Configuration
+# Configuration for MCP client and OpenAI integration
+
+# MCP server URL
+mcp_url: http://localhost:8123/mcp
+
+# OpenAI model configuration
+openai_model: gpt-4.1
+
+# OpenAI API key
+openai_api_key: sk-1234
+
+# OpenAI API base URL
+openai_api_base: http://10.150.240.117:38888

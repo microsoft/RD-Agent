@@ -1,5 +1,6 @@
 # tess successfully running.
 # (GPT) if it aligns with the spec & rationality of the spec.
+import asyncio
 import json
 import re
 from pathlib import Path
@@ -17,7 +18,9 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 )
 from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
 from rdagent.components.coder.data_science.utils import remove_eda_part
+from rdagent.components.mcp import query_context7
 from rdagent.core.experiment import FBWorkspace, Task
+from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.test_eval import get_test_eval
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
@@ -180,9 +183,25 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             user_prompt=user_prompt,
             init_kwargs_update_func=PipelineSingleFeedback.val_and_update_init_dict,
         )
-        if enable_context7:
-            # TODO: add mcp tool use
-            pass
+
+        if enable_context7 and wfb.requires_documentation_search is True:
+            # Import and use context7 for documentation search
+            try:
+                # Run context7 query asynchronously
+                context7_result = asyncio.run(query_context7(stdout))
+
+                if context7_result:
+                    logger.info("Context7: Documentation search completed successfully")
+                    wfb.execution += f"\n\n### Context7 Documentation Search Result:\n{context7_result}"
+                else:
+                    logger.warning("Context7: Documentation search failed or no results found")
+                    wfb.execution += (
+                        "\n\n### Context7 Documentation Search: No relevant documentation found or search failed."
+                    )
+
+            except Exception as e:
+                logger.error(f"Context7: Query failed - {str(e)}")
+                wfb.execution += f"\n\n### Context7 Error: Failed to query documentation - {str(e)}"
 
         if score_ret_code != 0 and wfb.final_decision is True:
             wfb.final_decision = False
