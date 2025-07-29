@@ -33,6 +33,9 @@ class CoSTEERSettings(ExtendedBaseSettings):
     new_knowledge_base_path: Union[str, None] = None
     """Path to the new knowledge base"""
 
+    enable_filelock: bool = False
+    filelock_path: Union[str, None] = None
+
     max_seconds_multiplier: int = 10**6
 
 

@@ -70,7 +70,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         else:
             task_information_str = target_task.get_task_information()
             # Use system_debugger for error fixing and debugging
-            system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
+            system_prompt = T(".prompts:DSCoSTEER.system_debugger").r(
                 task_desc=task_information_str,
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,

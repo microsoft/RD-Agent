@@ -400,6 +400,8 @@ task_gen:
       - Handle missing values and outliers appropriately as guided by the hypothesis or SOTA.
       - Ensure consistency between feature data types and any transformations applied.
       - Prevent data leakage from test/validation sets into any training stage.
+      - Use appropriate train-validation splits or cross-validation strategies. Some dataset might not be suitable for StratifiedShuffleSplit since some categories may not be present in the test set. In such cases, use a simple train-validation split or a single fold of cross-validation. Implement a try except block to handle potential errors if you are using StratifiedShuffleSplit.
+      - Use appropriate cross-validation strategies. Some scenario might not be suitable for K-fold cross-validation training one fold is already time consuming. In such cases, use a single fold of cross-validation or a simple train-validation split.
     6. **Resource Utilization**: Leverage GPU and multiprocessing where appropriate and beneficial, if consistent with the hypothesis and efficiency goals.
     7. **Metric Calculation and Storage (`scores.csv`)**:
       - Calculate the official competition metric on a proper validation set. Save results to `scores.csv`.

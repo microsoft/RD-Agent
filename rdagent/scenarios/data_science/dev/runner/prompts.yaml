@@ -25,11 +25,12 @@ DSCoSTEER_eval:
     3. Confirm that the prediction file (`submission.csv`) is generated using only the test dataset, and its format matches the sample submission.
     If the code does not satisfy the requirements:
     - Set "final_decision" to false.
-    - set "hyperparameter_tuning_decision" to false.
-    - Set "hyperparameter_tuning_suggestion" to an empty string.
+    {% if enable_hyperparameter_tuning_check %}- set "hyperparameter_tuning_decision" to false.
+    - Set "hyperparameter_tuning_suggestion" to an empty string.{% endif %}
     If the code satisfy the requirements:
     - Proceed to the next evaluation.
 
+    {% if enable_hyperparameter_tuning_check %}
     # Evaluation 2: Hyperparameter
     ## Evaluation Description
     The user will provide you the time spent on the whole code execution and the timeout of the code execution. You should decide whether the hyperparameter is reasonable based on the time.
@@ -48,6 +49,7 @@ DSCoSTEER_eval:
     If the code does not satisfy the requirements:
     - Set "hyperparameter_tuning_decision" to false.
     - Set "hyperparameter_tuning_suggestion" to an empty string.
+    {% endif %}
 
     ## Output format
     Please respond with your feedback in the following JSON format and order without anything else:

@@ -31,6 +31,7 @@ from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
 from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.base import DataScienceScen
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.utils.workflow.misc import wait_retry
@@ -215,6 +216,8 @@ class DataScienceRDLoop(RDLoop):
             self.trace.sync_dag_parent_and_hist((exp, prev_out["feedback"]), cur_loop_id)
         else:
             exp: DSExperiment = prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"]
+            if isinstance(self.scen, DataScienceScen) and DS_RD_SETTING.allow_longer_timeout:
+                self.scen.increase_timeout()
 
             # set the local selection to the trace as global selection, then set the DAG parent for the trace
             if exp.local_selection is not None:
