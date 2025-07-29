@@ -120,7 +120,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     model_architecture_suggestion_time_percent: float = 0.75
 
     #### hypothesis critique and rewrite
-    enable_hypo_critique_rewrite: bool = False
+    enable_hypo_critique_rewrite: bool = True
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
 
 
