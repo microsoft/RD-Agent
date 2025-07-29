@@ -155,7 +155,7 @@ hypothesis_gen:
     1. **Be Specific and Decisive**:
       - Clearly state the exact, unambiguous change(s) being proposed. Avoid vague goals like "improve the model" or "optimize the pipeline."
       - The hypothesis must propose a single, clear course of action. Do not suggest alternatives (e.g., "try method A or method B").
-      - The hypothesis statement must be direct and definitive, without phrases like "for example," "e.g.," or "might involve."
+      - The hypothesis statement must be direct and definitive, without phrases like "for example," "e.g.," "might involve," "consider," "try," or "explore."
       - The hypothesis must be more informative and decisive than the Challenge it addresses. It should not simply restate the Challenge or suggest a general approach without specifics.
     2. **Ensure Testability and Actionability**:
       - The hypothesis must describe an action or change that can be practically implemented and tested.
@@ -230,6 +230,138 @@ hypothesis_gen:
 
     # Identified Challenges{% if enable_idea_pool %} with Sampled Ideas{% endif %}
     {{ problems }}
+
+hypothesis_critique:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    You are an expert critic evaluating machine learning hypotheses for Kaggle competition improvement.
+    
+    For each hypothesis, provide a focused critique that identifies key issues and suggests improvements while preserving the experimental nature of hypotheses.
+    
+    ## Three Core Evaluation Areas:
+    
+    ### 1. Feasibility Assessment
+    - **Technical Risk**: Major implementation challenges or resource constraints that could cause failure
+    - **Integration Issues**: Conflicts with existing code or pipeline components
+    - **Constraint Violations**: Whether this respects competition time/memory limits based on historical patterns
+    
+    ### 2. Alignment Check  
+    - **Problem-Solution Fit**: Does this actually address the root cause of the identified challenge?
+    - **Metric Impact**: Will this meaningfully improve the competition's evaluation metric?
+    - **Historical Context**: Has similar approaches been tried? Key learnings from past attempts?
+    - **Innovation vs History Balance**: Distinguish between implementation failures (worth retrying with improvements) vs fundamental approach failures (multiple attempts failed due to core unsuitability - should avoid)
+    
+    ### 3. Improvement Direction
+    - **Clarity Issues**: If vague, identify specific methods or strategies that address the core problem
+    - **Alternative Strategies**: If implementation is problematic, identify concrete alternative approaches within the current framework such as switching from simple to weighted ensemble
+    - **Risk Mitigation**: Recommend specific validation strategies or safeguards for high-risk aspects
+    - **Competition Context**: This is a Kaggle competition where strong performance may come from novel approaches, but also from incremental improvements and careful optimization. Balance innovation with practical enhancements.
+    
+    ## CRITICAL Guidance Rules
+    
+    - Be specific about methods and strategies, but avoid over-specifying implementation parameters. Suggest clear approaches like "use weighted ensemble instead of simple averaging" rather than exact values like "set weights=[0.3, 0.7]". 
+    - Focus on suggesting CLEAR METHODS and APPROACHES that lead to decisive hypotheses.
+    - Avoid Overfitting to History: Learn from past failures but don't over-constrain innovation. Distinguish between implementation failures (worth retrying with improvements) and fundamental approach failures (should be avoided).
+
+    ### Examples:
+    
+    **Good Critiques:**
+    - "The hypothesis lacks specificity about which ensemble method to use. Consider weighted averaging based on validation performance rather than simple averaging, given the model performance disparities."
+    - "This hypothesis proposes LSTM for tabular data. History shows 3 consecutive failures with different LSTM implementations, and tabular data lacks sequential structure. Consider graph-based approaches instead to capture feature relationships."
+    
+    **Poor Critiques:**
+    - "Set max_depth=10, learning_rate=0.05, and use 500 trees." (too specific)
+    - "This might not work." (too vague)
+    - "LSTM is innovative, let's try again with different hyperparameters." (ignores fundamental mismatch)
+    
+    {% if critique_output_format is not none %}
+    ## Output Format
+    {{ critique_output_format }}
+    {% endif %}
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Previous Experiments and Feedbacks
+    {{ exp_and_feedback_list_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+    # Hypotheses to Critique
+    {{ hypotheses_formatted }}
+
+hypothesis_rewrite:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    You are an expert hypothesis rewriter specializing in iterative improvement of machine learning solutions for Kaggle competitions.
+    
+    ## Task
+    Transform each **original hypothesis and its critique** into a **single, specific, testable technical hypothesis** that can be implemented immediately.
+    
+    ## Core Principles
+    1. **Actionable Critique** – Apply insights from the critique, but the final text must stand alone with **no meta‑discussion** of the critique itself.
+    2. **Standalone Justification** – Ground every technical decision in dataset characteristics, available compute budget, and competition constraints.
+    3. **Decisive Specificity** – Remove all ambiguity; propose one clear action.
+    4. **Innovation Preservation** – Maintain the innovative core of the original hypothesis while addressing implementation concerns. Avoid reverting to conventional approaches unless absolutely necessary.
+    5. **CRITICAL - Avoid Overfitting to Critique** – Apply critique insights thoughtfully without over-constraining innovation. Balance addressing identified issues with preserving the exploratory value of bold ideas.
+    
+    ## Guidelines for Writing Rewritten Hypotheses
+    
+    1. **Critique-Informed Specificity**:
+      - Address technical gaps identified in the critique and replace vague terms with specific algorithms, methods, or parameters.
+      - Transform general suggestions from the critique into concrete, implementable actions.
+      - If the critique highlighted feasibility issues, propose alternative approaches that maintain the hypothesis's core intent while being more practical.
+      - The rewritten hypothesis must be more specific than the original, incorporating the critique's guidance without explicitly referencing it.
+    
+    2. **Standalone Technical Justification**:
+      - Ground every technical decision in observable dataset characteristics (e.g., data size, feature types, class distribution).
+      - Reference competition constraints (time limits, evaluation metrics, submission format) to justify approach choices.
+      - Ensure the hypothesis can be understood and implemented without needing to read the original hypothesis or critique.
+      - Include rationale for why the specific method/algorithm chosen is suitable for the current scenario.
+    
+    3. **Enhanced Actionability and Precision**:
+      - Replace any remaining ambiguity with decisive technical choices (e.g., "ensemble method" → "weighted averaging based on validation performance").
+      - Specify validation strategies that will confirm the hypothesis's effectiveness.
+      - Define clear success criteria or expected outcomes that can be measured.
+      - If the original hypothesis bundled multiple ideas, focus on the most impactful one identified through the critique.
+    
+    4. **Risk Mitigation and Implementation Clarity**:
+      - If the critique identified implementation risks, incorporate specific mitigation strategies into the rewritten hypothesis.
+      - Address resource constraint concerns by proposing efficient alternatives or optimizations.
+      - Ensure the hypothesis addresses root causes rather than symptoms, as guided by the critique analysis.
+      - Make the hypothesis robust against common failure modes identified in the critique.
+    
+    5. **Pipeline Integration and Component Focus**:
+      - Clearly specify how the proposed changes integrate with existing SOTA components.
+      - Maintain focus on the primary component while ensuring compatibility with the overall pipeline.
+      - If the critique suggested coordination across multiple components, organize these as a unified technical approach rather than separate changes.
+      - Ensure the rewritten hypothesis preserves successful aspects of the current SOTA while addressing identified weaknesses.
+    
+    6. **Innovation and Historical Learning**:
+      - Apply critique insights to enhance sound innovative ideas while avoiding repeated fundamental failures identified in the analysis.
+      - **Competition Context**: This is a Kaggle competition where strong performance may come from novel approaches or incremental improvements. Enhance both innovative ideas and practical optimizations based on the critique analysis.
+    
+    
+    {% if rewrite_output_format is not none %}
+    ## Output Format
+    {{ rewrite_output_format }}
+    {% endif %}
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Previous Experiments and Feedbacks
+    {{ exp_and_feedback_list_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+    # Original Hypotheses and Their Critiques
+    {{ hypothesis_critique_pairs }}
+
 
 task_gen:
   system: |-
@@ -476,5 +608,35 @@ output_format:
       "problem name 2 (should be exactly same as the problem name provided)": 2, # The index which is same to the idea index provided in the input and must be integer.
     }
 
+  critique: |-
+    For each hypothesis, provide a comprehensive critique strictly following the JSON schema.
+    Your final output should be a dict containing critiques for all hypotheses without anything else.
+    {
+      "critiques": {
+        "problem name 1 (should match the hypothesis problem name exactly)": {
+          "critique": "A comprehensive critique covering: (1) Technical feasibility and potential issues, (2) Alignment with the scenario and competition requirements, (3) Specific improvement suggestions, (4) Overall assessment of the hypothesis quality and implementability. Be constructive and actionable."
+        },
+        "problem name 2": {
+          "critique": "..."
+        }
+      }
+    }
+  rewrite: |-
+    For each original hypothesis, rewrite it to address critique feedback, strictly following the JSON schema below. 
+    Your final output should be a dict containing all rewritten hypotheses without anything else.
+    {
+      "problem name 1 (should be exactly same as the original problem name without prefix or suffix)": {
+        "reason": "Independent justification for why this hypothesis makes sense given the current scenario, dataset characteristics, and competition requirements. DO NOT reference critique feedback or suggestions. Should be short with no more than two sentences focusing on the fundamental problem context.",
+        "component": "The component tag of the hypothesis. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
+        "hypothesis": "A concise, improved hypothesis statement that directly addresses critique concerns. Limit to one or two sentences that clearly specify the expected change or improvement. Should be more specific and actionable than the original.",
+        "evaluation": {
+          "alignment_score": "Score from 1 (lowest/worst) to 10 (highest/best). How directly and effectively does the hypothesis address the core issues of the identified problem it targets? A higher score means a stronger, more direct alignment.",
+          "impact_score": "Score from 1 (lowest/worst) to 10 (highest/best). What is the estimated magnitude of improvement (e.g., in the primary competition metric, efficiency, robustness, or successful execution) if this hypothesis is successfully implemented? Higher scores for greater positive impact.",
+          "novelty_score": "Score from 1 (lowest/worst) to 10 (highest/best). How innovative or original is this hypothesis when compared to the approaches and ideas evident in the previous SOTA experiments and previous failed experiments? Assign a score of 1 if the hypothesis is a repeat or substantially similar to a previously attempted hypothesis (whether successful or failed), UNLESS the previous attempt clearly failed due to a trivial implementation bug and the current hypothesis proposes the correct implementation of the same core idea.",
+          "feasibility_score": "Score from 1 (lowest/worst) to 10 (highest/best). How easily and practically can this hypothesis be implemented and run to completion within the existing SOTA codebase and operational constraints (e.g., allowed time for training/inference, available compute resources, overall complexity)? Higher scores for easier implementation and higher likelihood of successful execution.",
+          "risk_reward_balance_score": "Score from 1 (lowest/worst) to 10 (highest/best). Considering the potential for significant improvement (reward) versus the probability of failure, negative side-effects, or excessive resource consumption (risk), how optimal is this balance? A high score indicates a favorable balance. If a hypothesis directly and credibly addresses a critical challenge that caused prior experiment failures (e.g., timeout, persistent data loading errors, incorrect submission format preventing any score), this should generally be scored highly (e.g., 8-10).",
+        }
+      }
+    }
 
 
