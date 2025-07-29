@@ -14,6 +14,7 @@ class LLMFinetuneScen(DataScienceScen):
     def __init__(self, competition: str) -> None:
         self._download_data(competition=competition)
         super().__init__(competition)
+        self._analysis_competition_description()
 
     def _get_data_folder_description(self) -> str:
         folder_desc = describe_data_folder_v2(

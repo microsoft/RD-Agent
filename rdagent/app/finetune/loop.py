@@ -4,6 +4,7 @@ from pathlib import Path
 import fire
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
@@ -37,8 +38,9 @@ def main(
     DS_RD_SETTING.hypothesis_gen = "rdagent.app.finetune.proposal.FinetuneExpGen"
     DS_RD_SETTING.competition = dataset
     DS_RD_SETTING.enable_model_dump = True
-    DS_RD_SETTING.debug_timeout = 3600 * 10
-    DS_RD_SETTING.full_timeout = 3600 * 100
+    RD_AGENT_SETTINGS.app_tpl = "app/finetune/tpl"
+    DS_RD_SETTING.debug_timeout = 36000  # 10 hours
+    DS_RD_SETTING.full_timeout = 360000  # 100 hours
     rd_loop: DataScienceRDLoop = DataScienceRDLoop(DS_RD_SETTING)
     asyncio.run(rd_loop.run())
 

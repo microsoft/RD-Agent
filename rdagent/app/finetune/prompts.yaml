@@ -11,4 +11,3 @@ competition_background: |-
   - **Fine-Tuning Method**: QLoRA (4-bit quantized LoRA)  
   - **Training Dataset**:  
     > {{ raw_description }}
-
