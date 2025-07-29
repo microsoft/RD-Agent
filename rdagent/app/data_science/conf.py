@@ -115,5 +115,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     max_sota_retrieved_num: int = 10
     """The maximum number of SOTA experiments to retrieve in a LLM call"""
 
+    #### hypothesis critique and rewrite
+    enable_hypo_critique_rewrite: bool = True
+    """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()
