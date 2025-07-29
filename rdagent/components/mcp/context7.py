@@ -11,6 +11,10 @@ from pathlib import Path
 from typing import Optional
 
 import yaml
+from llama_index.core.agent.workflow import ReActAgent
+from llama_index.core.workflow import Context
+from llama_index.llms.openai import OpenAI
+from llama_index.tools.mcp import aget_tools_from_mcp_url
 
 from rdagent.log import rdagent_logger as logger
 
@@ -27,31 +31,16 @@ def load_config():
             config = yaml.safe_load(f)
         return config
     except Exception as e:
-        logger.warning(f"Failed to load config.yaml: {e}, using default values")
-        return {
-            "mcp_url": "http://localhost:8123/mcp",
-            "openai_model": "gpt-4.1",
-            "openai_api_key": "sk-1234",
-            "openai_api_base": "http://10.150.240.117:38888",
-        }
+        logger.error(f"Failed to load config.yaml: {e}.")
 
 
 async def query_context7(
     error_message: str,
-    mcp_url: str = None,
-    openai_model: str = None,
-    openai_api_key: str = None,
-    openai_api_base: str = None,
 ) -> Optional[str]:
     """Query context7 documentation for error resolution.
 
     Args:
         error_message: The error message or traceback to search for
-        mcp_url: The MCP server URL (default from environment or fallback)
-        openai_model: OpenAI model name (default from environment or fallback)
-        openai_api_key: OpenAI API key (default from environment or fallback)
-        openai_api_base: OpenAI API base URL (default from environment or fallback)
-
     Returns:
         Documentation search result as string, or None if failed
     """
@@ -60,19 +49,13 @@ async def query_context7(
         config = load_config()
 
         # Set values with priority: parameter > environment variable > config file
-        mcp_url = mcp_url or os.getenv("MCP_URL") or config.get("mcp_url")
-        openai_model = openai_model or os.getenv("OPENAI_MODEL") or config.get("openai_model")
-        openai_api_key = openai_api_key or os.getenv("OPENAI_API_KEY") or config.get("openai_api_key")
-        openai_api_base = openai_api_base or os.getenv("OPENAI_API_BASE") or config.get("openai_api_base")
+        mcp_url = config.get("mcp_url")
+        openai_model = config.get("openai_model")
+        openai_api_key = config.get("openai_api_key")
+        openai_api_base = config.get("openai_api_base")
 
         # Record start time for execution timing
         start_time = time.time()
-
-        # Import required modules
-        from llama_index.core.agent.workflow import ReActAgent
-        from llama_index.core.workflow import Context
-        from llama_index.llms.openai import OpenAI
-        from llama_index.tools.mcp import aget_tools_from_mcp_url
 
         logger.info(f"Context7 execution started at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}")
 
