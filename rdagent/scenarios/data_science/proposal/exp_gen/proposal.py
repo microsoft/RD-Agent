@@ -1077,31 +1077,41 @@ class DSProposalV2ExpGen(ExpGen):
                 for name in pop_names:
                     hypothesis_dict.pop(name)
 
-        # Step 2.1: Critic Stage - Evaluate and identify flaws in hypotheses
-        logger.info(f"Starting critic stage - evaluating {len(hypothesis_dict)} hypotheses for flaws and improvements")
-        critiques_dict = self.hypothesis_critique(
-            hypothesis_dict=hypothesis_dict,
-            problems_dict=all_problems,
-            scenario_desc=scenario_desc,
-            sota_exp_desc=sota_exp_desc,
-            exp_feedback_list_desc=exp_feedback_list_desc,
-        )
-        logger.info(f"Generated critiques for {len(critiques_dict)} hypotheses")
+        # Step 2.1 & 2.2: Hypothesis Critique and Rewrite Stage (controlled by enable_hypo_critique_rewrite)
+        if DS_RD_SETTING.enable_hypo_critique_rewrite:
+            logger.info(f"Hypothesis critique and rewrite enabled - processing {len(hypothesis_dict)} hypotheses")
 
-        # Step 2.2: Rewriter Stage - Generate improved hypotheses based on critiques
-        logger.info(f"Starting rewriter stage - generating improved hypotheses based on critique feedback")
-        try:
-            improved_hypotheses_dict = self.hypothesis_rewrite(
-                hypothesis_dict=hypothesis_dict,
-                critiques_dict=critiques_dict,
-                scenario_desc=scenario_desc,
-                sota_exp_desc=sota_exp_desc,
-                exp_feedback_list_desc=exp_feedback_list_desc,
+            # Critic Stage - Evaluate and identify flaws in hypotheses
+            logger.info(
+                f"Starting critic stage - evaluating {len(hypothesis_dict)} hypotheses for flaws and improvements"
             )
-        except Exception as e:
-            logger.warning(f"Hypothesis rewrite failed after all retries: {e}")
-            logger.info(f"Using original hypotheses as fallback instead of improved versions")
-            improved_hypotheses_dict = hypothesis_dict.copy()  # Use original hypotheses as fallback
+            try:
+                critiques_dict = self.hypothesis_critique(
+                    hypothesis_dict=hypothesis_dict,
+                    problems_dict=all_problems,
+                    scenario_desc=scenario_desc,
+                    sota_exp_desc=sota_exp_desc,
+                    exp_feedback_list_desc=exp_feedback_list_desc,
+                )
+                logger.info(f"Generated critiques for {len(critiques_dict)} hypotheses")
+
+                # Rewriter Stage - Generate improved hypotheses based on critiques
+                logger.info(f"Starting rewriter stage - generating improved hypotheses based on critique feedback")
+                improved_hypotheses_dict = self.hypothesis_rewrite(
+                    hypothesis_dict=hypothesis_dict,
+                    critiques_dict=critiques_dict,
+                    scenario_desc=scenario_desc,
+                    sota_exp_desc=sota_exp_desc,
+                    exp_feedback_list_desc=exp_feedback_list_desc,
+                )
+                logger.info(f"Successfully completed hypothesis critique and rewrite process")
+            except Exception as e:
+                logger.warning(f"Hypothesis critique and rewrite failed: {e}")
+                logger.info(f"Using original hypotheses as fallback instead of improved versions")
+                improved_hypotheses_dict = hypothesis_dict.copy()  # Use original hypotheses as fallback
+        else:
+            logger.info(f"Hypothesis critique and rewrite disabled - using original {len(hypothesis_dict)} hypotheses")
+            improved_hypotheses_dict = hypothesis_dict.copy()  # Use original hypotheses directly
 
         # Step 3: Select the best hypothesis
         pickled_problem_name, new_hypothesis = self.hypothesis_rank(
