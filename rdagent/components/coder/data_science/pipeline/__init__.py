@@ -39,7 +39,10 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
 from rdagent.components.coder.data_science.pipeline.eval import PipelineCoSTEEREvaluator
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
-from rdagent.components.coder.data_science.share.eval import ModelDumpEvaluator
+from rdagent.components.coder.data_science.share.eval import (
+    ModelDumpEvaluator,
+    PrevModelLoadEvaluator,
+)
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
@@ -142,6 +145,8 @@ class PipelineCoSTEER(CoSTEER):
         eval_l = [PipelineCoSTEEREvaluator(scen=scen)]
         if DS_RD_SETTING.enable_model_dump and not DS_RD_SETTING.scen.endswith("LLMFinetuneScen"):
             eval_l.append(ModelDumpEvaluator(scen=scen, data_type="sample"))
+        if DS_RD_SETTING.scen.endswith("FinetuneScen"):
+            eval_l.insert(0, PrevModelLoadEvaluator(scen=scen))
 
         eva = CoSTEERMultiEvaluator(
             single_evaluator=eval_l, scen=scen
