@@ -126,6 +126,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     #### hypothesis critique and rewrite
     enable_hypo_critique_rewrite: bool = True
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
+    enable_scale_check: bool = False
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()
