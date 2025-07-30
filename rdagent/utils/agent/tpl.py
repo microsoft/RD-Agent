@@ -57,8 +57,6 @@ def load_content(uri: str, caller_dir: Path | None = None, ftype: str = "yaml") 
                 0, (Path("rdagent") / RD_AGENT_SETTINGS.app_tpl / path_part.replace(".", "/")).with_suffix(f".{ftype}")
             )
             file_path_l.insert(0, (Path("rdagent").parent / path_part.replace(".", "/")).with_suffix(f".{ftype}"))
-    print(file_path_l)
-    assert 1 == 4
 
     for file_path in file_path_l:
         try:
