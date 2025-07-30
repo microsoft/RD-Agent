@@ -109,6 +109,7 @@ class CoSTEER(Developer[Experiment]):
             assert isinstance(evo_exp, Experiment)  # multiple inheritance
             if self._get_last_fb().is_acceptable():
                 fallback_evo_exp = deepcopy(evo_exp)
+                fallback_evo_exp.create_ws_ckp()  # NOTE: creating checkpoints for saving files in the workspace to prevent inplace mutation.
 
             logger.log_object(evo_exp.sub_workspace_list, tag="evolving code")
             for sw in evo_exp.sub_workspace_list:
@@ -127,6 +128,7 @@ class CoSTEER(Developer[Experiment]):
             if fallback_evo_exp is not None:
                 logger.info("Fallback to the fallback solution.")
                 evo_exp = fallback_evo_exp
+                evo_exp.recover_ws_ckp()  # NOTE: recovering checkpoints for restoring files in the workspace to prevent inplace mutation.
             else:
                 raise
 
