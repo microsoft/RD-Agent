@@ -181,6 +181,9 @@ class CoSTEERMultiFeedback(Feedback):
     def __iter__(self):
         return iter(self.feedback_list)
 
+    def is_acceptable(self) -> bool:
+        return all(feedback.is_acceptable() for feedback in self.feedback_list)
+
     def finished(self) -> bool:
         """
         In some implementations, tasks may fail multiple times, leading agents to skip the implementation.
