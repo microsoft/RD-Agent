@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 from abc import ABC, abstractmethod
-from copyreg import pickle
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -78,14 +77,14 @@ class EvolvingStrategy(ABC):
 class RAGStrategy(ABC):
     """Retrieval Augmentation Generation Strategy"""
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.knowledgebase: EvolvingKnowledgeBase = self.load_or_init_knowledge_base(*args, **kwargs)
 
     @abstractmethod
     def load_or_init_knowledge_base(
         self,
-        *args,
-        **kwargs,
+        *args: Any,
+        **kwargs: Any,
     ) -> EvolvingKnowledgeBase:
         pass
 
@@ -113,13 +112,12 @@ class RAGStrategy(ABC):
         """
 
     @abstractmethod
-    def dump_knowledge_base(self, *args, **kwargs) -> None:
+    def dump_knowledge_base(self, *args: Any, **kwargs: Any) -> None:
         pass
 
     @abstractmethod
-    def load_dumped_knowledge_base(self, *args, **kwargs) -> None:
+    def load_dumped_knowledge_base(self, *args: Any, **kwargs: Any) -> None:
         """This is to load the dumped knowledge base.
         It's mainly used in parallel coding of which several coder shares the same knowledge base.
         Then the agent should load the knowledge base from others before updating it.
         """
-        pass

@@ -10,6 +10,8 @@ from tqdm import tqdm
 if TYPE_CHECKING:
     from rdagent.core.evolving_framework import EvolvableSubjects
 
+from contextlib import nullcontext
+
 from rdagent.core.evaluation import EvaluableObj, Evaluator, Feedback
 from rdagent.core.evolving_framework import EvolvingStrategy, EvoStep
 from rdagent.log import rdagent_logger as logger
@@ -103,7 +105,7 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator]):
 
                 # 6. knowledge self-evolving
                 if self.knowledge_self_gen and self.rag is not None:
-                    with FileLock(self.filelock_path) if self.enable_filelock else None:
+                    with FileLock(self.filelock_path) if self.enable_filelock else nullcontext():  # type: ignore[arg-type]
                         self.rag.load_dumped_knowledge_base()
                         self.rag.generate_knowledge(self.evolving_trace)
                         self.rag.dump_knowledge_base()
