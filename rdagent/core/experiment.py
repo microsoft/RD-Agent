@@ -308,7 +308,13 @@ class FBWorkspace(Workspace):
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
             for file_path in self.workspace_path.rglob("*"):
-                if file_path.is_file():
+                if file_path.is_symlink():
+                    # Preserve symbolic links within the archive
+                    zi = zipfile.ZipInfo(str(file_path.relative_to(self.workspace_path)))
+                    zi.create_system = 3  # indicates Unix
+                    zi.external_attr = (0o120777 << 16)  # symlink file type + 0777 perms
+                    zf.writestr(zi, os.readlink(file_path))
+                elif file_path.is_file():
                     zf.write(file_path, file_path.relative_to(self.workspace_path))
         self.ws_ckp = buf.getvalue()
 
@@ -323,7 +329,21 @@ class FBWorkspace(Workspace):
         self.workspace_path.mkdir(parents=True, exist_ok=True)
         buf = io.BytesIO(self.ws_ckp)
         with zipfile.ZipFile(buf, "r") as zf:
-            zf.extractall(self.workspace_path)
+            for info in zf.infolist():
+                dest_path = self.workspace_path / info.filename
+                # File type bits (upper 4) are in high 16 bits of external_attr
+                mode = (info.external_attr >> 16) & 0o170000
+                if mode == 0o120000:  # Symlink
+                    dest_path.parent.mkdir(parents=True, exist_ok=True)
+                    link_target = zf.read(info).decode()
+                    os.symlink(link_target, dest_path)
+                else:
+                    if info.is_dir():
+                        dest_path.mkdir(parents=True, exist_ok=True)
+                    else:
+                        dest_path.parent.mkdir(parents=True, exist_ok=True)
+                        with dest_path.open("wb") as f:
+                            f.write(zf.read(info))
 
     def __str__(self) -> str:
         return f"Workspace[{self.workspace_path=}" + (
