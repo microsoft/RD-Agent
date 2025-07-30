@@ -47,7 +47,10 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        env = get_ds_env(extra_volumes={self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()})
+        env = get_ds_env(
+            extra_volumes={self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()},
+            running_timeout_period=self.scen.real_debug_timeout(),
+        )
 
         fname = "test/ensemble_test.txt"
         test_code = (DIRNAME / "eval_tests" / "ensemble_test.txt").read_text()

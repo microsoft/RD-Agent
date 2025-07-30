@@ -218,6 +218,7 @@ class DataLoaderCoSTEER(CoSTEER):
             evolving_version=2,
             scen=scen,
             max_loop=DS_RD_SETTING.coder_max_loop,
+            max_seconds=scen.real_debug_timeout() * settings.max_seconds_multiplier,
             **kwargs,
         )
 
@@ -230,7 +231,7 @@ class DataLoaderCoSTEER(CoSTEER):
                     "scenarios.data_science.share:scen.input_path"
                 ).r()
             },
-            running_timeout_period=DS_RD_SETTING.full_timeout,
+            running_timeout_period=self.scen.real_full_timeout(),
         )
 
         stdout = new_exp.experiment_workspace.execute(env=env, entry=f"python test/data_loader_test.py")

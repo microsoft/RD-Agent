@@ -207,12 +207,25 @@ def unzip_data(unzip_file_path: str, unzip_target_path: str) -> None:
 
 @cache_with_pickle(hash_func=lambda x: x, force=True)
 def leaderboard_scores(competition: str) -> list[float]:
+    import pandas as pd
     from kaggle.api.kaggle_api_extended import KaggleApi
+
+    from rdagent.core.conf import RD_AGENT_SETTINGS
 
     api = KaggleApi()
     api.authenticate()
-    ll = api.competition_leaderboard_view(competition)
-    return [float(x.score) for x in ll]
+
+    # download leaderboard zip file by api
+    lb_path = Path(f"{RD_AGENT_SETTINGS.pickle_cache_folder_path_str}/leaderboards/{competition}")
+    api.competition_leaderboard_download(competition, path=lb_path)
+
+    # unzip the leaderboard zip file
+    unzip_data(f"{lb_path}/{competition}.zip", lb_path)
+    csv_path = list(lb_path.glob("*.csv"))[0]
+
+    # read the csv file and return the scores
+    df = pd.read_csv(csv_path)
+    return df["Score"].tolist()
 
 
 def get_metric_direction(competition: str) -> bool:

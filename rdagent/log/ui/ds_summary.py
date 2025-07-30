@@ -18,6 +18,7 @@ from rdagent.log.ui.utils import (
     curve_figure,
     get_statistics_df,
     get_summary_df,
+    lite_curve_figure,
     percent_df,
 )
 from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
@@ -47,42 +48,47 @@ def days_summarize_win():
 
 
 def curves_win(summary: dict):
-    for k, v in summary.items():
-        with st.container(border=True):
-            st.markdown(f"**:blue[{k}] - :violet[{v['competition']}]**")
-            try:
-                tscores = {k: v for k, v in v["test_scores"].items()}
-                tscores = pd.Series(tscores)
-                vscores = {}
-                for k, vs in v["valid_scores"].items():
-                    if not vs.index.is_unique:
-                        st.warning(
-                            f"Loop {k}'s valid scores index are not unique, only the last one will be kept to show."
-                        )
-                        st.write(vs)
-                    vscores[k] = vs[~vs.index.duplicated(keep="last")].iloc[:, 0]
-                if len(vscores) > 0:
-                    metric_name = list(vscores.values())[0].name
-                else:
-                    metric_name = "None"
-                vscores = pd.DataFrame(vscores)
-                if "ensemble" in vscores.index:
-                    ensemble_row = vscores.loc[["ensemble"]]
-                    vscores = pd.concat([ensemble_row, vscores.drop("ensemble")])
-                vscores = vscores.T
-                vscores["test"] = tscores
-                vscores.index = [f"L{i}" for i in vscores.index]
-                vscores.columns.name = metric_name
+    # draw curves
+    cbwin1, cbwin2 = st.columns(2)
+    if cbwin1.toggle("Show Curves", key="show_curves"):
+        for k, v in summary.items():
+            with st.container(border=True):
+                st.markdown(f"**:blue[{k}] - :violet[{v['competition']}]**")
+                try:
+                    tscores = {k: v for k, v in v["test_scores"].items()}
+                    tscores = pd.Series(tscores)
+                    vscores = {}
+                    for k, vs in v["valid_scores"].items():
+                        if not vs.index.is_unique:
+                            st.warning(
+                                f"Loop {k}'s valid scores index are not unique, only the last one will be kept to show."
+                            )
+                            st.write(vs)
+                        vscores[k] = vs[~vs.index.duplicated(keep="last")].iloc[:, 0]
+                    if len(vscores) > 0:
+                        metric_name = list(vscores.values())[0].name
+                    else:
+                        metric_name = "None"
+                    vscores = pd.DataFrame(vscores)
+                    if "ensemble" in vscores.index:
+                        ensemble_row = vscores.loc[["ensemble"]]
+                        vscores = pd.concat([ensemble_row, vscores.drop("ensemble")])
+                    vscores = vscores.T
+                    vscores["test"] = tscores
+                    vscores.index = [f"L{i}" for i in vscores.index]
+                    vscores.columns.name = metric_name
 
-                st.plotly_chart(curve_figure(vscores))
-            except Exception as e:
-                import traceback
+                    st.plotly_chart(curve_figure(vscores))
+                except Exception as e:
+                    import traceback
 
-                st.markdown("- Error: " + str(e))
-                st.code(traceback.format_exc())
-                st.markdown("- Valid Scores: ")
-                # st.write({k: type(v) for k, v in v["valid_scores"].items()})
-                st.json(v["valid_scores"])
+                    st.markdown("- Error: " + str(e))
+                    st.code(traceback.format_exc())
+                    st.markdown("- Valid Scores: ")
+                    # st.write({k: type(v) for k, v in v["valid_scores"].items()})
+                    st.json(v["valid_scores"])
+    if cbwin2.toggle("Show Curves (Lite)", key="show_curves_lite"):
+        st.pyplot(lite_curve_figure(summary))
 
 
 def all_summarize_win():
@@ -135,13 +141,13 @@ def all_summarize_win():
         def apply_func(cdf: pd.DataFrame):
             cp = cdf["Competition"].values[0]
             md = get_metric_direction(cp)
-            # If SOTA Exp Score (valid) column is empty, return the first index
-            if cdf["SOTA Exp Score (valid)"].dropna().empty:
+            # If SOTA Exp Score (valid, to_submit) column is empty, return the first index
+            if cdf["SOTA Exp Score (valid, to_submit)"].dropna().empty:
                 return cdf.index[0]
             if md:
-                best_idx = cdf["SOTA Exp Score (valid)"].idxmax()
+                best_idx = cdf["SOTA Exp Score (valid, to_submit)"].idxmax()
             else:
-                best_idx = cdf["SOTA Exp Score (valid)"].idxmin()
+                best_idx = cdf["SOTA Exp Score (valid, to_submit)"].idxmin()
             return best_idx
 
         best_idxs = base_df.groupby("Competition").apply(apply_func)
@@ -185,10 +191,10 @@ def all_summarize_win():
             lambda col: col.map(lambda val: "background-color: #F0FFF0"),
             subset=[
                 "Best Result",
-                "SOTA Exp",
-                "SOTA Exp (_to_submit)",
-                "SOTA Exp Score",
-                "SOTA Exp Score (valid)",
+                "SOTA Exp (to_submit)",
+                "SOTA LID (to_submit)",
+                "SOTA Exp Score (to_submit)",
+                "SOTA Exp Score (valid, to_submit)",
             ],
             axis=0,
         ),
@@ -233,8 +239,7 @@ def all_summarize_win():
 
     # write curve
     st.subheader("Curves", divider="rainbow")
-    if st.toggle("Show Curves", key="show_curves"):
-        curves_win(summary)
+    curves_win(summary)
 
 
 with st.container(border=True):

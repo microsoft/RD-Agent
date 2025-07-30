@@ -76,10 +76,15 @@ class FileStorage(Storage):
         r"(?P<caller>.+:.+:\d+) - "
     )
 
-    def iter_msg(self, tag: str | None = None) -> Generator[Message, None, None]:
+    def iter_msg(self, tag: str | None = None, pattern: str | None = None) -> Generator[Message, None, None]:
         msg_l = []
 
-        pkl_files = "**/*.pkl" if tag is None else f"**/{tag.replace('.','/')}/**/*.pkl"
+        if pattern:
+            pkl_files = pattern
+        elif tag:
+            pkl_files = f"**/{tag.replace('.','/')}/**/*.pkl"
+        else:
+            pkl_files = "**/*.pkl"
         for file in self.path.glob(pkl_files):
             if file.name == "debug_llm.pkl":
                 continue

@@ -33,8 +33,8 @@ DSCoSTEER_eval:
     # Evaluation 2: Hyperparameter
     ## Evaluation Description
     The user will provide you the time spent on the whole code execution and the timeout of the code execution. You should decide whether the hyperparameter is reasonable based on the time.
-    For example, if the code uses only a very small portion of the allowed time, and hyperparameters like `n_estimators` or `epochs` have low values, with early stopping not being triggered and possible signs of underfitting, you should suggest increasing these hyperparameters.
-    You should also notice other resources utilization hyper-parameters,
+    If the code uses only a very small portion (below 25%) of the allowed time, and hyperparameters like `n_estimators` or `epochs` have low values, with early stopping not being triggered and possible signs of underfitting, you should suggest increasing these hyperparameters.
+    You should also notice other resources utilization hyper-parameters.
     For example, if you are using a GPU with large memory, and the batch size is set very low, you should suggest increasing the batch size if it is not reasonable.
 
     ## Evaluation Guidelines
@@ -56,9 +56,9 @@ DSCoSTEER_eval:
         "execution": "Describe whether the whole code base executed successfully and generating the final submission. Include any errors or issues encountered, and retain all error messages and traceback details.",
         "return_checking": "Verify the generated files, particularly the submission file. Ensure that its format matches the sample submission",
         "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
-        "final_decision": <true/false>,
         "hyperparameter_tuning_decision": <true/false>,
         "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,
+        "final_decision": <true/false>,
     }
     ```
     {% else %}
@@ -71,9 +71,9 @@ DSCoSTEER_eval:
         "execution": "Describe whether the code executed successfully. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information.",
         "return_checking": "Describe the expected file to be generated.",
         "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
-        "final_decision": <true/false>,
         "hyperparameter_tuning_decision": <true/false>,
         "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,
+        "final_decision": <true/false>,
     }
     ```
     {% endif %}

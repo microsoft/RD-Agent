@@ -57,7 +57,10 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        env = get_ds_env(extra_volumes={self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()})
+        env = get_ds_env(
+            extra_volumes={self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()},
+            running_timeout_period=self.scen.real_debug_timeout(),
+        )
 
         if_model_removed = False
 

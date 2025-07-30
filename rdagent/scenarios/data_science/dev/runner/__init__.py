@@ -31,7 +31,7 @@ class DSRunnerCoSTEERSettings(CoSTEERSettings):
     class Config:
         env_prefix = "DS_Runner_CoSTEER_"
 
-    max_seconds: int = DS_RD_SETTING.full_timeout
+    max_seconds_multiplier: int = 1
     env_type: str = "docker"
     diff_mode: bool = False
     # TODO: extract a function for env and conf.
@@ -83,12 +83,21 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             hyperparameter_tuning_suggestion=prev_task_feedback.hyperparameter_tuning_suggestion,
         )
 
-        batch_edit = extract_output_fn(
-            APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
+        if self.settings.diff_mode:
+            batch_edit = extract_output_fn(
+                APIBackend().build_messages_and_create_chat_completion(
+                    user_prompt=user_prompt,
+                    system_prompt=system_prompt,
+                ),
+                prefix=workspace.workspace_path,
             )
-        )
+        else:
+            batch_edit = extract_output_fn(
+                APIBackend().build_messages_and_create_chat_completion(
+                    user_prompt=user_prompt,
+                    system_prompt=system_prompt,
+                )
+            )
 
         batch_edit = {k: v for k, v in batch_edit.items() if k in workspace.file_dict.keys()}
 
@@ -138,6 +147,7 @@ class DSCoSTEERRunner(CoSTEER):
             evolving_version=2,
             scen=scen,
             max_loop=DS_RD_SETTING.runner_max_loop,
+            max_seconds=scen.real_full_timeout() * settings.max_seconds_multiplier,
             **kwargs,
         )
 

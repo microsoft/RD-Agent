@@ -71,13 +71,13 @@ class ParallelMultiTraceExpGen(ExpGen):
         while True:
             if loop.get_unfinished_loop_cnt(loop.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
                 # set trace current selection
+                leaves: list[int] = trace.get_leaves()
                 if not timer.started or timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
                     local_selection = await self.trace_scheduler.next(trace)
 
                     # set the local selection as the global current selection for the trace
                     trace.set_current_selection(local_selection)
                 else:
-                    leaves: list[int] = trace.get_leaves()
                     if len(leaves) < 2:
                         local_selection = (-1,)
                         trace.set_current_selection(selection=local_selection)

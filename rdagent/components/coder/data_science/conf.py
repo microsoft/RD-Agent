@@ -19,7 +19,7 @@ class DSCoderCoSTEERSettings(CoSTEERSettings):
     class Config:
         env_prefix = "DS_Coder_CoSTEER_"
 
-    max_seconds: int = DS_RD_SETTING.debug_timeout * 4
+    max_seconds_multiplier: int = 4
     env_type: str = "docker"
     # TODO: extract a function for env and conf.
 
@@ -28,7 +28,7 @@ class DSCoderCoSTEERSettings(CoSTEERSettings):
     Extra evaluators
 
     The evaluator follows the following assumptions:
-    - It runs after previous evaluator (So the running results are alreadly there)
+    - It runs after previous evaluator (So the running results are already there)
 
     It is not a complete feature due to it is only implemented in DS Pipeline & Coder.
 

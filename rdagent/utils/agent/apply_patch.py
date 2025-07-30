@@ -12,6 +12,7 @@ import pathlib
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 
 
 # --------------------------------------------------------------------------- #
@@ -76,6 +77,7 @@ class Parser:
     index: int = 0
     patch: Patch = field(default_factory=Patch)
     fuzz: int = 0
+    prefix: Path | None = None
 
     # ------------- low-level helpers -------------------------------------- #
     def _cur_line(self) -> str:
@@ -123,6 +125,8 @@ class Parser:
         while not self.is_done(("*** End Patch",)):
             # ---------- UPDATE ---------- #
             path = self.read_str("*** Update File: ")
+            if self.prefix:
+                path = str(self.prefix / path)
             if path:
                 if path in self.patch.actions:
                     raise DiffError(f"Duplicate update for file: {path}")
@@ -137,6 +141,8 @@ class Parser:
 
             # ---------- DELETE ---------- #
             path = self.read_str("*** Delete File: ")
+            if self.prefix:
+                path = str(self.prefix / path)
             if path:
                 if path in self.patch.actions:
                     raise DiffError(f"Duplicate delete for file: {path}")
@@ -147,6 +153,8 @@ class Parser:
 
             # ---------- ADD ---------- #
             path = self.read_str("*** Add File: ")
+            if self.prefix:
+                path = str(self.prefix / path)
             if path:
                 if path in self.patch.actions:
                     raise DiffError(f"Duplicate add for file: {path}")
@@ -403,7 +411,7 @@ def patch_to_commit(patch: Patch, orig: dict[str, str]) -> Commit:
 # --------------------------------------------------------------------------- #
 #  User-facing helpers
 # --------------------------------------------------------------------------- #
-def text_to_patch(text: str, orig: dict[str, str]) -> tuple[Patch, int]:
+def text_to_patch(text: str, orig: dict[str, str], prefix: Path | None = None) -> tuple[Patch, int]:
     lines = text.splitlines()  # preserves blank lines, no strip()
     if (
         len(lines) < 2
@@ -412,21 +420,31 @@ def text_to_patch(text: str, orig: dict[str, str]) -> tuple[Patch, int]:
     ):
         raise DiffError("Invalid patch text - missing sentinels")
 
-    parser = Parser(current_files=orig, lines=lines, index=1)
+    parser = Parser(current_files=orig, lines=lines, index=1, prefix=prefix)
     parser.parse()
     return parser.patch, parser.fuzz
 
 
-def identify_files_needed(text: str) -> list[str]:
+def identify_files_needed(text: str, prefix: Path | None = None) -> list[str]:
     lines = text.splitlines()
-    return [line[len("*** Update File: ") :] for line in lines if line.startswith("*** Update File: ")] + [
-        line[len("*** Delete File: ") :] for line in lines if line.startswith("*** Delete File: ")
-    ]
+    update_files = [line[len("*** Update File: ") :] for line in lines if line.startswith("*** Update File: ")]
+    delete_files = [line[len("*** Delete File: ") :] for line in lines if line.startswith("*** Delete File: ")]
+    all_files = update_files + delete_files
+
+    if prefix is None:
+        return all_files
+    else:
+        return [str(prefix / file) for file in all_files]
 
 
-def identify_files_added(text: str) -> list[str]:
+def identify_files_added(text: str, prefix: Path | None = None) -> list[str]:
     lines = text.splitlines()
-    return [line[len("*** Add File: ") :] for line in lines if line.startswith("*** Add File: ")]
+    added_files = [line[len("*** Add File: ") :] for line in lines if line.startswith("*** Add File: ")]
+
+    if prefix is None:
+        return added_files
+    else:
+        return [str(prefix / file) for file in added_files]
 
 
 # --------------------------------------------------------------------------- #
@@ -468,12 +486,13 @@ def process_patch(
     write_fn: Callable[[str, str], None],
     remove_fn: Callable[[str], None],
     inplace: bool = False,
+    prefix: Path | None = None,
 ) -> str:
     if not text.startswith("*** Begin Patch"):
         raise DiffError("Patch text must start with *** Begin Patch")
-    paths = identify_files_needed(text)
+    paths = identify_files_needed(text, prefix)
     orig = load_files(paths, open_fn)
-    patch, _fuzz = text_to_patch(text, orig)
+    patch, _fuzz = text_to_patch(text, orig, prefix)
     commit = patch_to_commit(patch, orig)
     batch_edit = apply_commit(commit, write_fn, remove_fn, inplace)
     return batch_edit
@@ -501,13 +520,13 @@ def remove_file(path: str) -> None:
 # --------------------------------------------------------------------------- #
 #  CLI entry-point
 # --------------------------------------------------------------------------- #
-def apply_patch_from_text(patch_text: str, inplace: bool = False) -> str:
+def apply_patch_from_text(patch_text: str, inplace: bool = False, prefix: Path | None = None) -> str:
     """Apply patch text to filesystem, same as main() but with parameter input"""
     if not patch_text:
         raise DiffError("Patch text cannot be empty")
 
     try:
-        result = process_patch(patch_text, open_file, write_file, remove_file, inplace)
+        result = process_patch(patch_text, open_file, write_file, remove_file, inplace, prefix)
         return result
     except DiffError as exc:
         raise exc
