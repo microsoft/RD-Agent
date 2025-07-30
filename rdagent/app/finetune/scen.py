@@ -35,16 +35,23 @@ class LLMFinetuneScen(DataScienceScen):
             logger.info(f"{save_path} already exists.")
         else:
             logger.info(f"Downloading {competition} to {save_path}")
-            command = f"huggingface-cli download {competition} --repo-type dataset --local-dir {save_path}"
             try:
-                import os
+                from huggingface_hub import snapshot_download
 
-                os.system(command)
+                snapshot_download(
+                    repo_id=competition,
+                    repo_type="dataset",
+                    local_dir=save_path,
+                    local_dir_use_symlinks=False,
+                )
             except ImportError:
                 raise ImportError(
-                    "Please install huggingface-cli first. "
+                    "Please install huggingface_hub first. "
                     'You can install it with `pip install -U "huggingface_hub[cli]"`.'
                 )
+            except Exception as e:
+                logger.error(f"Error when downloading {competition}: {e}")
+                raise e
 
     def _get_description(self):
         if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}/README.md")).exists():

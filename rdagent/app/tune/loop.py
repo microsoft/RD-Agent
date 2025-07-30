@@ -4,7 +4,7 @@ from pathlib import Path
 import fire
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.app.finetune.conf import init_finetune_settings
+from rdagent.app.tune.conf import init_finetune_settings
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
