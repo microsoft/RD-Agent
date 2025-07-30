@@ -312,7 +312,7 @@ class FBWorkspace(Workspace):
                     zi = zipfile.ZipInfo(str(file_path.relative_to(self.workspace_path)))
                     zi.create_system = 3  # indicates Unix
                     zi.external_attr = 0o120777 << 16  # symlink file type + 0777 perms
-                    zf.writestr(zi, os.readlink(file_path))
+                    zf.writestr(zi, str(file_path.readlink()))
                 elif file_path.is_file():
                     zf.write(file_path, file_path.relative_to(self.workspace_path))
         self.ws_ckp = buf.getvalue()
@@ -323,7 +323,8 @@ class FBWorkspace(Workspace):
         :py:meth:`create_ws_ckp`.
         """
         if self.ws_ckp is None:
-            raise RuntimeError("Workspace checkpoint doesn't exist. Call `create_ws_ckp` first.")
+            msg = "Workspace checkpoint doesn't exist. Call `create_ws_ckp` first."
+            raise RuntimeError(msg)
         shutil.rmtree(self.workspace_path, ignore_errors=True)
         self.workspace_path.mkdir(parents=True, exist_ok=True)
         buf = io.BytesIO(self.ws_ckp)
@@ -332,7 +333,8 @@ class FBWorkspace(Workspace):
                 dest_path = self.workspace_path / info.filename
                 # File type bits (upper 4) are in high 16 bits of external_attr
                 mode = (info.external_attr >> 16) & 0o170000
-                if mode == 0o120000:  # Symlink
+                symlink_mode = 0o120000  # Constant for symlink file type in Unix
+                if mode == symlink_mode:  # Symlink
                     dest_path.parent.mkdir(parents=True, exist_ok=True)
                     link_target = zf.read(info).decode()
                     os.symlink(link_target, dest_path)
