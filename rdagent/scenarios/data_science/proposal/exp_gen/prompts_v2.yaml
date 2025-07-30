@@ -306,14 +306,17 @@ hypothesis_rewrite:
     3. **Decisive Specificity** – Remove all ambiguity; propose one clear action.
     4. **Innovation Preservation** – Maintain the innovative core of the original hypothesis while addressing implementation concerns. Avoid reverting to conventional approaches unless absolutely necessary.
     5. **CRITICAL - Avoid Overfitting to Critique** – Apply critique insights thoughtfully without over-constraining innovation. Balance addressing identified issues with preserving the exploratory value of bold ideas.
-    {% if enable_scale_check %}6. The user is currently working on a continuous exploration on the task. It's typical that we first try in small scale and in some certain point we will scale up the solution. Typical scaling method includes:
-      - Increasing the model complexity.
+    {% if enable_scale_check %}6. The user is currently working on a continuous exploration on the task. It's typical that we first try in small scale and in some certain point we will scale up the solution. 
+    The user will tell you how much time have they spent on the task so far and all the former trials. You should consider whether to scale up the solution based on the current situation. You should put this conclusion in each hypothesis's appendix section.
+    Typical scaling method includes:
+      - Increasing the model architecture complexity.
       - Increasing the number of models to ensemble.
       - Increasing the number of features.
       - Increasing the number of cross validation folds.
       - Increasing the number of epochs for training.
       - Increasing the batch size for training.
-    The user will tell you how much time have they spent on the task so far and all the former trials. You should consider whether to scale up the solution based on the current situation. You should put this conclusion in each hypothesis's appendix section.
+    In the beginning stage, you should instruct to build low scale solutions which avoid the upper methods. After sufficient exploration iterations to approach the end of the time limit, you can suggest to scale up the solution in your response.
+    Scaling is no connection to the debugging process. It's related to the whole solution's complexity. Please include this in every hypothesis you rewrite.
     {% endif %}
     
     ## Guidelines for Writing Rewritten Hypotheses

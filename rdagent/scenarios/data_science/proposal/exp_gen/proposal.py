@@ -988,6 +988,7 @@ class DSProposalV2ExpGen(ExpGen):
                     problem_name=name,
                     problem_desc=problem_data.get("problem", "Problem description not provided"),
                     problem_label=problem_data.get("label", "FEEDBACK_PROBLEM"),
+                    appendix=data.get("appendix", None),
                 )
             )
         return result
