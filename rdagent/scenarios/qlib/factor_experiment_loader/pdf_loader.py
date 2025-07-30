@@ -82,9 +82,9 @@ def classify_report_from_dict(
                 user_prompt=content,
                 system_prompt=classify_prompt,
             )
-            > LLM_SETTINGS.chat_token_limit
+            > APIBackend().chat_token_limit
         ):
-            content = content[: -(LLM_SETTINGS.chat_token_limit // 100)]
+            content = content[: -(APIBackend().chat_token_limit // 100)]
 
         vote_list = []
         for _ in range(vote_time):
@@ -367,7 +367,7 @@ def __check_factor_duplication_simulate_json_mode(
             APIBackend().build_messages_and_calculate_token(
                 user_prompt=current_df.to_string(), system_prompt=T(".prompts:factor_duplicate_system").r()
             )
-            > LLM_SETTINGS.chat_token_limit
+            > APIBackend().chat_token_limit
         ):
             working_list.append(current_df.iloc[: current_df.shape[0] // 2, :])
             working_list.append(current_df.iloc[current_df.shape[0] // 2 :, :])
