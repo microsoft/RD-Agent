@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import io
 import os
 import platform
 import re
 import shutil
 import typing
-import io
-import zipfile
 import uuid
+import zipfile
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from copy import deepcopy
@@ -112,7 +112,6 @@ class Workspace(ABC, Generic[ASpecificTask, ASpecificFeedback]):
         """
         Restore the workspace from the checkpoint created by :py:meth:`create_ws_ckp`.
         """
-
 
 
 ASpecificWS = TypeVar("ASpecificWS", bound=Workspace)
@@ -312,7 +311,7 @@ class FBWorkspace(Workspace):
                     # Preserve symbolic links within the archive
                     zi = zipfile.ZipInfo(str(file_path.relative_to(self.workspace_path)))
                     zi.create_system = 3  # indicates Unix
-                    zi.external_attr = (0o120777 << 16)  # symlink file type + 0777 perms
+                    zi.external_attr = 0o120777 << 16  # symlink file type + 0777 perms
                     zf.writestr(zi, os.readlink(file_path))
                 elif file_path.is_file():
                     zf.write(file_path, file_path.relative_to(self.workspace_path))
