@@ -925,11 +925,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
-            system_prompt=  # The above code seems to be a comment in Python. Comments in Python start
-            # with a hash symbol (#) and are used to provide explanations or notes
-            # within the code. In this case, the comment appears to be indicating that
-            # the code snippet is related to the system prompt.
-            sys_prompt,
+            system_prompt=sys_prompt,
             response_format=CodingSketch if self.supports_response_schema else {"type": "json_object"},
             json_target_type=Dict[str, str | Dict[str, str]] if not self.supports_response_schema else None,
         )
