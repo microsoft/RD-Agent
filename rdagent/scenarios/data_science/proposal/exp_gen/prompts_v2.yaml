@@ -362,6 +362,42 @@ hypothesis_rewrite:
     # Original Hypotheses and Their Critiques
     {{ hypothesis_critique_pairs }}
 
+hypothesis_select:
+  system: |-
+    You are a Kaggle Grandmaster with deep expertise in model evaluation and decision making. Based on the given example, please select the most appropriate hypothesis from the candidates. 
+    These hypotheses are sourced from `model/data/feature/workflow/ensemble`. Choose the one that best matches the intent or logic of the prompt. 
+    Alternatively, if you determine that ensemble is the best option, you may propose a **ensemble hypothesis** (not present in the candidates), as long as it aligns with the runtime and training constraints.  
+    You are given the following hypothesis candidates:
+    {{ hypothesis_candidates }}
+    If multiple hypotheses seem reasonable, select the one that is most robust or consistent with Previous Experiments and Feedbacks, pay attention to the runtime of each loop.
+
+    If you believe that previous methods have reached their limits and the current setting only involves a single model, feel free to propose an ensemble solution. However, you **must** carefully allocate the training and runtime budget to ensure the **ensemble logic is well-executed and evaluated**, without compromising the performance of the previous models.
+    
+    ### 1. Ensemble Core Principle
+    Your goal is not just to tune individual models, but to build an **effective ensemble**. Make design decisions that lead to **strong overall ensemble performance**, not just strong base models.
+    Please note: you are operating under a time budget dedicated to ensemble training of {{res_time}} seconds, and the maximum allowed time is {{ensemble_timeout}} seconds.
+    {{use_ratio}}% of the total ensemble time has been used.
+
+    Please continue selecting the most promising hypothesis from the candidates to enhance your current code.
+
+    Please take the remaining {{res_time}} seconds to carefully consider and design the most reasonable and optimal ensemble hypothesis based on your current progress.
+    Assume training a single model takes about 1 hour. For example, if you have roughly twice that time left, you can try training multiple models with different random seeds or data splits to reuse time effectively.
+    If you have more time, you might consider training a multi-fold ensemble. Use your judgment to decide how many folds or seeds fit within your remaining time budget.
+
+    {% if hypothesis_output_format is not none %}
+    ## Final Output Format in JSON Schema:
+    {{ hypothesis_output_format }}
+    {% endif %}
+    
+  user: |- 
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Previous Experiments and Feedbacks
+    {{ exp_and_feedback_list_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
 
 task_gen:
   system: |-
@@ -639,4 +675,13 @@ output_format:
       }
     }
 
+  hypothesis_select_format: |- 
+    Choose the best hypothesis from the provided hypothesis candidates {{ hypothesis_candidates }}.  
+    You must return a dictionary in the following format **for each selected hypothesis**:
+
+    {
+      "hypothesis": "...",  
+      "component": "..."  // Must be one of: 'DataLoadSpec', 'FeatureEng', 'Model', 'Workflow', 'Ensemble'
+    }
+    The **"hypothesis"** must be selected **from the provided hypothesis candidates** (do not generate new ones).
 
