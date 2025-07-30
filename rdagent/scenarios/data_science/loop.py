@@ -216,6 +216,7 @@ class DataScienceRDLoop(RDLoop):
             self.trace.sync_dag_parent_and_hist((exp, prev_out["feedback"]), cur_loop_id)
         else:
             exp: DSExperiment = prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"]
+            # TODO: distinguish timeout error & other exception.
             if isinstance(self.trace.scen, DataScienceScen) and DS_RD_SETTING.allow_longer_timeout:
                 self.trace.scen.increase_timeout()
 
