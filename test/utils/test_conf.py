@@ -29,14 +29,14 @@ class ConfUtils(unittest.TestCase):
         assert QlibDockerConf().enable_cache is True
 
     def test_ds_costeer_conf(self):
-        os.environ["DS_CODER_COSTEER_MAX_SECONDS"] = "1000"
+        os.environ["DS_CODER_COSTEER_MAX_SECONDS_MULTIPLIER"] = "1000"
         coder_conf = DSCoderCoSTEERSettings()
         runner_conf = DSRunnerCoSTEERSettings()
-        print(coder_conf.max_seconds)
-        print(runner_conf.max_seconds)
-        assert coder_conf.max_seconds == 1000
+        print(coder_conf.max_seconds_multiplier)
+        print(runner_conf.max_seconds_multiplier)
+        assert coder_conf.max_seconds_multiplier == 1000
         # NOTE: coder's config should not affect runner's config
-        assert runner_conf.max_seconds == DS_RD_SETTING.full_timeout
+        assert runner_conf.max_seconds_multiplier == 1
         os.environ["DS_RUNNER_COSTEER_MAX_SECONDS"] = "2000"
         assert DSRunnerCoSTEERSettings().max_seconds == 2000
 

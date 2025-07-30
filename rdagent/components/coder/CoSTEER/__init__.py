@@ -28,6 +28,7 @@ class CoSTEER(Developer[Experiment]):
         es: EvolvingStrategy,
         evolving_version: int,
         *args,
+        max_seconds: int | None = None,
         with_knowledge: bool = True,
         with_feedback: bool = True,
         knowledge_self_gen: bool = True,
@@ -37,7 +38,7 @@ class CoSTEER(Developer[Experiment]):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.max_loop = settings.max_loop if max_loop is None else max_loop
-        self.max_seconds = settings.max_seconds
+        self.max_seconds = max_seconds
         self.knowledge_base_path = (
             Path(settings.knowledge_base_path) if settings.knowledge_base_path is not None else None
         )
@@ -105,7 +106,7 @@ class CoSTEER(Developer[Experiment]):
             logger.log_object(evo_exp.sub_workspace_list, tag="evolving code")
             for sw in evo_exp.sub_workspace_list:
                 logger.info(f"evolving workspace: {sw}")
-            if (datetime.now() - start_datetime).seconds > self.max_seconds:
+            if self.max_seconds is not None and (datetime.now() - start_datetime).seconds > self.max_seconds:
                 logger.info(f"Reached max time limit {self.max_seconds} seconds, stop evolving")
                 break
             if RD_Agent_TIMER_wrapper.timer.started and RD_Agent_TIMER_wrapper.timer.is_timeout():

@@ -259,7 +259,14 @@ pipeline_eval:
       - Data sampling should only be applied in debug mode. Always use the full data in the full run.
       - The label classes number should be the same as the full run even in debug mode.
     - If the code passes this step: Finalize evaluation.
-    - If the code does not pass this step: Clearly document the debug mode compliance issues and reject the implementation.
+    - If the code does not pass this step: Clearly document the debug mode compliance issues and reject the implementation.{% endif %}
+
+    {% if mle_check %}
+    ### Step 5: Test format check
+    - The user has done a format check for your submission. Since you didn't sample any test data, your debug mode output should be the same format as the full run.
+    - The user will put the check result in the "Submission check" section of the execution output.
+    - If the submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should give the conclusion that the code executed successfully. If no other code related issues are found, set the "final_decision" to true.
+    - If the submission check returns an error message, you should set the "final_decision" to false and clearly document the issues in the "return_checking" field.
     {% endif %}
 
     ## Output Format
