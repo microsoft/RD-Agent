@@ -209,12 +209,13 @@ pipeline_eval:
     - Notes:
       - Model performance is not evaluated in this step; focus solely on successful execution.
       - Warnings are acceptable if they do not interfere with successful code execution.
+      - **Environment Constraint**: The coding environment is fixed and pre-configured. No package installation or modification is allowed. Code must use only existing pre-installed packages.
     - If the code execute successfully:
       - Proceed to Step 2 and overlook the remaining steps in Step 1.
     - If the code does not execute successfully:
       - Set the "final_decision" to false.
       {% if enable_context7 %}
-      - If the problem can be resolved by consulting documentation, set the "requires_documentation_search" to true.
+      - Given that my package/environment is fixed and unchangeable, first you should go through the code and the execution output,if the problem could be solved by looking up the official documentation to confirm feature/API availability, compatible usage, or official alternatives in the fixed environment, set the "requires_documentation_search" to true.
       {% endif %}
       - Write complete analysis in the "execution" field.
 
@@ -281,6 +282,7 @@ pipeline_eval:
         "execution": "Describe whether the code executed successfully, correctly integrating all components and generating the final submission. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information. If errors occurred, analyze the root causes: (1) Are they fundamental algorithmic/approach issues, or (2) Implementation details that can be easily fixed, or (3) Environment/dependency problems?",
         "return_checking": "Examine the generated files by cross-referencing the code logic and stdout output. Verify: (1) Format matches sample submission (index, column names, CSV content); (2) **File generation authenticity**: Is the file genuinely produced by successful model execution, or is it a result of exception handling/fallback mechanisms? Cite specific code sections and stdout evidence.",
         "code": "Begin explicitly with [Code analysis] or [Evaluation error]. Provide structured analysis: (1) **Technical Appropriateness**: Does the chosen approach (algorithms, data processing, validation strategy) match this problem's data characteristics and competition requirements? (2) **Effective Components**: What specific parts work well and why are they effective for this problem type? (3) **Issues & Improvements**: Identify concrete problems and suggest actionable improvement directions (without providing actual code). (4) **Code Quality**: Assess readability, structure, and adherence to specifications.",
+        "error_message": "If the code execution has problems, extract the error information from the execution output as-is, otherwise set to empty string.",
         "final_decision": <true/false>
     }
     ```
@@ -300,6 +302,7 @@ pipeline_eval:
         "execution": "Describe whether the code executed successfully. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information. If errors occurred, analyze the root causes: (1) Are they fundamental algorithmic/approach issues, or (2) Implementation details that can be easily fixed, or (3) Environment/dependency problems?",
         "return_checking": "Describe the expected file to be generated.",
         "code": "Provide structured analysis: (1) **Technical Appropriateness**: Does the chosen approach (algorithms, data processing, validation strategy) match this problem's data characteristics and requirements? (2) **Effective Components**: What specific parts work well and why are they effective for this problem type? (3) **Issues & Improvements**: Identify concrete problems and suggest actionable improvement directions (without providing actual code). (4) **Code Quality**: Assess readability, structure, and adherence to specifications.",
+        "error_message": "If the code execution has problems, extract the error information from the execution output as-is, otherwise set to empty string.",
         "final_decision": <true/false>
     }
     ```
