@@ -33,8 +33,7 @@ def main(
     if not model_folder.exists():
         raise Exception(f"Please put the model path to {model_folder}.")
 
-    init_finetune_settings(dataset)
-    rd_loop: DataScienceRDLoop = DataScienceRDLoop(DS_RD_SETTING)
+    rd_loop: DataScienceRDLoop = DataScienceRDLoop(init_finetune_settings(dataset))
     asyncio.run(rd_loop.run())
 
 

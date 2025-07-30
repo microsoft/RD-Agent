@@ -31,7 +31,8 @@ class LLMFinetuneScen(ExtendedBaseSettings):
 def init_finetune_settings(competition: str) -> None:
     """Initialize finetune settings"""
     LLM_FINETUNE_SETTINGS = LLMFinetuneScen()
-    RD_AGENT_SETTINGS.app_tpl = RD_AGENT_SETTINGS.app_tpl
+    RD_AGENT_SETTINGS.app_tpl = LLM_FINETUNE_SETTINGS.app_tpl
     global DS_RD_SETTING
     DS_RD_SETTING = DS_RD_SETTING.model_copy(update=LLM_FINETUNE_SETTINGS.model_dump())
     DS_RD_SETTING.competition = competition
+    return DS_RD_SETTING

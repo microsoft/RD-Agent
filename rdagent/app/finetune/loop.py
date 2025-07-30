@@ -5,7 +5,6 @@ import fire
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.app.finetune.conf import init_finetune_settings
-from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
@@ -33,8 +32,7 @@ def main(
     if not model_folder.exists():
         raise Exception(f"Please put the model path to {model_folder}.")
 
-    init_finetune_settings(dataset)
-    rd_loop: DataScienceRDLoop = DataScienceRDLoop(DS_RD_SETTING)
+    rd_loop: DataScienceRDLoop = DataScienceRDLoop(init_finetune_settings(dataset))
     asyncio.run(rd_loop.run())
 
 
