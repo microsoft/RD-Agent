@@ -26,6 +26,7 @@ class FinetuneExpGen(DSProposalV2ExpGen):
             eda_output = sota_exp.experiment_workspace.file_dict.get("EDA.md", None)
         scenario_desc = self.scen.get_scenario_all_desc(eda_output=eda_output)
 
+        # TODO: this is a over simplified version. More features will be added after more survey
         sota_exp_desc = "No previous SOTA experiments available."
         failed_exp_feedback_list_desc = "No previous experiments available."
 
