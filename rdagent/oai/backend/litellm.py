@@ -206,6 +206,9 @@ class LiteLLMAPIBackend(APIBackend):
     @property
     def chat_token_limit(self) -> int:
         try:
-            return get_max_tokens(LITELLM_SETTINGS.chat_model)
+            max_tokens = get_max_tokens(LITELLM_SETTINGS.chat_model)
+            if max_tokens is None:
+                return super().chat_token_limit
+            return max_tokens
         except Exception as e:
             return super().chat_token_limit

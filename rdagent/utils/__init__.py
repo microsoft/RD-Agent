@@ -122,7 +122,7 @@ def filter_redundant_text(stdout: str) -> str:
     filtered_stdout = try_regex_sub(r"\s*\n\s*", filtered_stdout, replace_with="\n")
 
     # remove repeated lines
-    lines_to_count = {}
+    lines_to_count: dict[str, int] = {}
     filtered_stdout_lines = filtered_stdout.splitlines()
     for line in filtered_stdout_lines:
         lines_to_count[line] = lines_to_count.get(line, 0) + 1
