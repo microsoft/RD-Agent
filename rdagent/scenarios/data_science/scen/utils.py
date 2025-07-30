@@ -573,7 +573,7 @@ class DataFolderDescriptor:
                 try:
                     if "prev_model" in file_name:
                         # NOTE: for finetune model.
-                        if fn.suffix == ".py":
+                        if fn.suffix == ".py" and "test" not in file_name:
                             out.append(f"### {file_name}:")
                             out.append(fn.read_text(encoding="utf-8"))
                     else:

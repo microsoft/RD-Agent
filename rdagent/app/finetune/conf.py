@@ -28,11 +28,8 @@ class LLMFinetuneScen(ExtendedBaseSettings):
     app_tpl: str = "app/finetune/tpl"
 
 
-def init_finetune_settings(competition: str) -> None:
-    """Initialize finetune settings"""
-    LLM_FINETUNE_SETTINGS = LLMFinetuneScen()
-    RD_AGENT_SETTINGS.app_tpl = LLM_FINETUNE_SETTINGS.app_tpl
-    global DS_RD_SETTING
-    DS_RD_SETTING = DS_RD_SETTING.model_copy(update=LLM_FINETUNE_SETTINGS.model_dump())
-    DS_RD_SETTING.competition = competition
-    return DS_RD_SETTING
+LLM_FINETUNE_SETTINGS = LLMFinetuneScen()
+RD_AGENT_SETTINGS.app_tpl = LLM_FINETUNE_SETTINGS.app_tpl
+for field_name, new_value in LLM_FINETUNE_SETTINGS.model_dump().items():
+    if hasattr(DS_RD_SETTING, field_name):
+        setattr(DS_RD_SETTING, field_name, new_value)

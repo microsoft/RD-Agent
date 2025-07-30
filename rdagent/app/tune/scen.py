@@ -15,6 +15,6 @@ class DSFinetuneScen(DataScienceScen):
         folder_desc = describe_data_folder_v2(
             Path(DS_RD_SETTING.local_data_path) / self.competition,
             show_nan_columns=DS_RD_SETTING.show_nan_columns,
-            max_length=12000,  # more context for model script
+            max_length=20000,  # more context for model script
         )
         return folder_desc

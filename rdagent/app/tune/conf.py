@@ -25,11 +25,8 @@ class DSFinetuneScen(ExtendedBaseSettings):
     app_tpl: str = "app/tune/tpl"
 
 
-def init_finetune_settings(competition: str) -> None:
-    """Initialize finetune settings"""
-    DS_FINETUNE_SETTINGS = DSFinetuneScen()
-    RD_AGENT_SETTINGS.app_tpl = DS_FINETUNE_SETTINGS.app_tpl
-    global DS_RD_SETTING
-    DS_RD_SETTING = DS_RD_SETTING.model_copy(update=DS_FINETUNE_SETTINGS.model_dump())
-    DS_RD_SETTING.competition = competition
-    return DS_RD_SETTING
+DS_FINETUNE_SETTINGS = DSFinetuneScen()
+RD_AGENT_SETTINGS.app_tpl = DS_FINETUNE_SETTINGS.app_tpl
+for field_name, new_value in DS_FINETUNE_SETTINGS.model_dump().items():
+    if hasattr(DS_RD_SETTING, field_name):
+        setattr(DS_RD_SETTING, field_name, new_value)
