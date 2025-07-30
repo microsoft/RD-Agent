@@ -889,7 +889,7 @@ class DSProposalV2ExpGen(ExpGen):
             problem_name=max_score_problem_name,
             problem_desc=problem_dict.get("problem", "Problem description not provided"),
             problem_label=problem_dict.get("label", "FEEDBACK_PROBLEM"),
-            appendix=problem_dict.get("appendix", None),
+            appendix=hypothesis_dict[max_score_problem_name].get("appendix", None),
         )
 
     def task_gen(
