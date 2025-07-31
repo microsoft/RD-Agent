@@ -28,7 +28,6 @@ DSCoSTEER_eval:
     - Set "final_decision" to false.
     {% if enable_hyperparameter_tuning_check %}- set "hyperparameter_tuning_decision" to false.
     - Set "hyperparameter_tuning_suggestion" to an empty string.
-    - Set "final_decision" to false.
     If the code satisfy the requirements:
     - Set "acceptable" to true.
     - Proceed to the next evaluation.
