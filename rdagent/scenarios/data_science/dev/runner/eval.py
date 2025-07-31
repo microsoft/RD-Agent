@@ -50,6 +50,10 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> DSCoSTEEREvalFeedback:
+        if len(queried_knowledge.task_to_former_failed_traces[target_task.get_task_information()][0]) == 0:
+            enable_hyperparameter_tuning_check = True
+        else:
+            enable_hyperparameter_tuning_check = False
 
         env = get_ds_env(
             extra_volumes={
@@ -133,6 +137,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
             scenario=self.scen.get_scenario_all_desc(eda_output=implementation.file_dict.get("EDA.md", None)),
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             task_desc=target_task.get_task_information(),
+            enable_hyperparameter_tuning_check=enable_hyperparameter_tuning_check,
         )
         user_prompt = T(".prompts:DSCoSTEER_eval.user").r(
             code=implementation.all_codes,

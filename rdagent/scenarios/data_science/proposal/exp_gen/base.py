@@ -22,6 +22,7 @@ class DSHypothesis(Hypothesis):
         problem_name: str | None = None,
         problem_desc: str | None = None,
         problem_label: Literal["SCENARIO_PROBLEM", "FEEDBACK_PROBLEM"] = "FEEDBACK_PROBLEM",
+        appendix: str | None = None,
     ) -> None:
         super().__init__(
             hypothesis, reason, concise_reason, concise_observation, concise_justification, concise_knowledge
@@ -30,6 +31,7 @@ class DSHypothesis(Hypothesis):
         self.problem_name = problem_name
         self.problem_desc = problem_desc
         self.problem_label = problem_label
+        self.appendix = appendix
 
     def __str__(self) -> str:
         if self.hypothesis is None:
@@ -44,6 +46,8 @@ class DSHypothesis(Hypothesis):
         lines.append(f"Hypothesis: {self.hypothesis}")
         if self.reason is not None:
             lines.append(f"Reason: {self.reason}")
+        if self.appendix is not None:
+            lines.append(f"Appendix: {self.appendix}")
         return "\n".join(lines)
 
 

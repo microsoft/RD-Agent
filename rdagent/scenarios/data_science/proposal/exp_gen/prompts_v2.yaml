@@ -306,6 +306,18 @@ hypothesis_rewrite:
     3. **Decisive Specificity** – Remove all ambiguity; propose one clear action.
     4. **Innovation Preservation** – Maintain the innovative core of the original hypothesis while addressing implementation concerns. Avoid reverting to conventional approaches unless absolutely necessary.
     5. **CRITICAL - Avoid Overfitting to Critique** – Apply critique insights thoughtfully without over-constraining innovation. Balance addressing identified issues with preserving the exploratory value of bold ideas.
+    {% if enable_scale_check %}6. The user is currently working on a continuous exploration on the task. It's typical that we first try in small scale and in some certain point we will scale up the solution. 
+    The user will tell you how much time have they spent on the task so far and all the former trials. You should consider whether to scale up the solution based on the current situation. You should put this conclusion in each hypothesis's appendix section.
+    Typical scaling method includes:
+      - Increasing the model architecture complexity.
+      - Increasing the number of models to ensemble.
+      - Increasing the number of features.
+      - Increasing the number of cross validation folds.
+      - Increasing the number of epochs for training.
+      - Increasing the batch size for training.
+    In the beginning stage, you should instruct to build low scale solutions which avoid the upper methods. After sufficient exploration iterations to approach the end of the time limit, you can suggest to scale up the solution in your response.
+    Scaling is no connection to the debugging process. It's related to the whole solution's complexity. Please include this in every hypothesis you rewrite.
+    {% endif %}
     
     ## Guidelines for Writing Rewritten Hypotheses
     
@@ -362,6 +374,11 @@ hypothesis_rewrite:
     # Original Hypotheses and Their Critiques
     {{ hypothesis_critique_pairs }}
 
+    {% if time_status is not none %}
+    # Time Status
+    {{ time_status }}
+    {% endif %}
+
 
 task_gen:
   system: |-
@@ -400,6 +417,8 @@ task_gen:
       - Handle missing values and outliers appropriately as guided by the hypothesis or SOTA.
       - Ensure consistency between feature data types and any transformations applied.
       - Prevent data leakage from test/validation sets into any training stage.
+      - Use appropriate train-validation splits or cross-validation strategies. Some dataset might not be suitable for StratifiedShuffleSplit since some categories may not be present in the test set. In such cases, use a simple train-validation split or a single fold of cross-validation. Implement a try except block to handle potential errors if you are using StratifiedShuffleSplit.
+      - Use appropriate cross-validation strategies. Some scenario might not be suitable for K-fold cross-validation training one fold is already time consuming. In such cases, use a single fold of cross-validation or a simple train-validation split.
     6. **Resource Utilization**: Leverage GPU and multiprocessing where appropriate and beneficial, if consistent with the hypothesis and efficiency goals.
     7. **Metric Calculation and Storage (`scores.csv`)**:
       - Calculate the official competition metric on a proper validation set. Save results to `scores.csv`.
@@ -629,6 +648,7 @@ output_format:
         "reason": "Independent justification for why this hypothesis makes sense given the current scenario, dataset characteristics, and competition requirements. DO NOT reference critique feedback or suggestions. Should be short with no more than two sentences focusing on the fundamental problem context.",
         "component": "The component tag of the hypothesis. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
         "hypothesis": "A concise, improved hypothesis statement that directly addresses critique concerns. Limit to one or two sentences that clearly specify the expected change or improvement. Should be more specific and actionable than the original.",
+        {% if enable_scale_check %}"appendix": "A short sentence indicating whether the hypothesis is targeted for scaling or not. Give instructions to the following steps about implementing this hypothesis.", {% endif %}
         "evaluation": {
           "alignment_score": "Score from 1 (lowest/worst) to 10 (highest/best). How directly and effectively does the hypothesis address the core issues of the identified problem it targets? A higher score means a stronger, more direct alignment.",
           "impact_score": "Score from 1 (lowest/worst) to 10 (highest/best). What is the estimated magnitude of improvement (e.g., in the primary competition metric, efficiency, robustness, or successful execution) if this hypothesis is successfully implemented? Higher scores for greater positive impact.",

@@ -114,20 +114,33 @@ class DataScienceScen(Scenario):
         self.longer_time_limit_required = response_json_analysis.get(
             "Longer time limit required", False
         )  # True or False, whether the competition scenario requires a longer time limit to the code.
+        self.timeout_increase_count = 0
 
     def real_debug_timeout(self):
         return (
-            DS_RD_SETTING.debug_timeout * DS_RD_SETTING.coder_longer_timeout_multiplier
+            DS_RD_SETTING.debug_timeout
+            * min(
+                DS_RD_SETTING.coder_longer_timeout_multiplier_upper,
+                self.timeout_increase_count * DS_RD_SETTING.timeout_increase_stage + 1,
+            )
             if self.longer_time_limit_required and DS_RD_SETTING.allow_longer_timeout
             else DS_RD_SETTING.debug_timeout
         )
 
     def real_full_timeout(self):
         return (
-            DS_RD_SETTING.full_timeout * DS_RD_SETTING.runner_longer_timeout_multiplier
+            DS_RD_SETTING.full_timeout
+            * min(
+                DS_RD_SETTING.runner_longer_timeout_multiplier_upper,
+                self.timeout_increase_count * DS_RD_SETTING.timeout_increase_stage + 1,
+            )
             if self.longer_time_limit_required and DS_RD_SETTING.allow_longer_timeout
             else DS_RD_SETTING.full_timeout
         )
+
+    def increase_timeout(self):
+        """Increase the timeout multiplier for the scenario."""
+        self.timeout_increase_count += 1
 
     @property
     def background(self) -> str:

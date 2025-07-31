@@ -25,7 +25,7 @@ DSCoSTEER_eval:
     3. Confirm that the prediction file (`submission.csv`) is generated using only the test dataset, and its format matches the sample submission.
     If the code does not satisfy the requirements:
     - Set "final_decision" to false.
-    - set "hyperparameter_tuning_decision" to false.
+    {% if enable_hyperparameter_tuning_check %}- set "hyperparameter_tuning_decision" to false.
     - Set "hyperparameter_tuning_suggestion" to an empty string.
     If the code satisfy the requirements:
     - Proceed to the next evaluation.
@@ -48,6 +48,7 @@ DSCoSTEER_eval:
     If the code does not satisfy the requirements:
     - Set "hyperparameter_tuning_decision" to false.
     - Set "hyperparameter_tuning_suggestion" to an empty string.
+    {% endif %}
 
     ## Output format
     Please respond with your feedback in the following JSON format and order without anything else:
@@ -55,15 +56,36 @@ DSCoSTEER_eval:
     {
         "execution": "Describe whether the whole code base executed successfully and generating the final submission. Include any errors or issues encountered, and retain all error messages and traceback details.",
         "return_checking": "Verify the generated files, particularly the submission file. Ensure that its format matches the sample submission",
-        "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
+        "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",{% if enable_hyperparameter_tuning_check %}
         "hyperparameter_tuning_decision": <true/false>,
-        "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,
+        "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,{% endif %}
         "final_decision": <true/false>,
     }
     ```
     {% else %}
     The user will provide you the whole code base, some logs generated during the execution of the whole workflow. Your evaluation scope includes whether the workflow code executes successfully.
     No need to check the detail of submission file.
+    {% if enable_hyperparameter_tuning_check %}
+
+    # Evaluation: Hyperparameter
+    ## Evaluation Description
+    The user will provide you the time spent on the whole code execution and the timeout of the code execution. You should decide whether the hyperparameter is reasonable based on the time.
+    If the code uses only a very small portion (below 25%) of the allowed time, and hyperparameters like `n_estimators` or `epochs` have low values, with early stopping not being triggered and possible signs of underfitting, you should suggest increasing these hyperparameters.
+    You should also notice other resources utilization hyper-parameters.
+    For example, if you are using a GPU with large memory, and the batch size is set very low, you should suggest increasing the batch size if it is not reasonable.
+
+    ## Evaluation Guidelines
+    1. The code execution time or resource utilization suggest that there is room for improvement in the hyperparameters.
+    2. The code must apply early stopping strategy already (in order to prevent overfitting).
+    3. Your suggestion should have a strong chance of improving the model's performance. Focus on the most obvious and impactful opportunities for quick improvement by leveraging more training time. Don't explore hyperparameters with low confidence.  If there are no obvious and impactful opportunities and the code runs well, please accept it.
+    If the code satisfy the requirements:
+    - Set "hyperparameter_tuning_decision" to true.
+    - Set "final_decision" to false.
+    - Provide a reasonable suggestion in "hyperparameter_tuning_suggestion". The "hyperparameter_tuning_suggestion" should begin with a clear observation, followed by your suggestion. For example: "[Observation] The maximum number of epochs was reached, but the validation loss is still going down and early stopping was not activated. Only 15% of the allowed time was used. [Suggestion] We recommend increasing epochs to 100 to avoid underfitting and further improve model performance."
+    If the code does not satisfy the requirements:
+    - Set "hyperparameter_tuning_decision" to false.
+    - Set "hyperparameter_tuning_suggestion" to an empty string.
+    {% endif %}
 
     Please respond with your feedback in the following JSON format and order
     ```json
@@ -71,8 +93,8 @@ DSCoSTEER_eval:
         "execution": "Describe whether the code executed successfully. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information.",
         "return_checking": "Describe the expected file to be generated.",
         "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
-        "hyperparameter_tuning_decision": <true/false>,
-        "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,
+        {% if enable_hyperparameter_tuning_check %}"hyperparameter_tuning_decision": <true/false>,
+        "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,{% endif %}
         "final_decision": <true/false>,
     }
     ```
