@@ -39,6 +39,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     ### specific feature
 
+    ### notebook integration
+    enable_notebook_conversion: bool = False
+
     #### enable specification
     spec_enabled: bool = True
 

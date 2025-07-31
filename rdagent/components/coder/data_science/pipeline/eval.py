@@ -17,6 +17,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 )
 from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
 from rdagent.components.coder.data_science.utils import remove_eda_part
+from rdagent.components.coder.data_science.share.notebook import NotebookConverter
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.scenarios.data_science.test_eval import get_test_eval
 from rdagent.utils.agent.tpl import T
@@ -69,6 +70,17 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             result = implementation.run(
                 env=env, entry=f"strace -e trace=file -f -o trace.log python -m coverage run main.py"
             )
+
+        nb_conversion_ret_code = 0
+        nb_conversion_check_text = ""
+        if DS_RD_SETTING.enable_notebook_conversion:
+            notebook_converter = NotebookConverter()
+            error_msg = notebook_converter.validate_code_format(implementation)
+            if error_msg is not None:
+                nb_conversion_check_text = error_msg
+                nb_conversion_ret_code = 1
+            else:
+                notebook_converter.convert(target_task, implementation, result.stdout)
 
         sample_submission_check = True
         test_eval = get_test_eval()
@@ -167,7 +179,9 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
             task_desc=target_task.get_task_information(),
             stdout=stdout.strip(),
-            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
+            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(
+                enable_notebook_conversion=DS_RD_SETTING.enable_notebook_conversion,
+            ),
             code=implementation.file_dict["main.py"],
         )
         wfb = build_cls_from_json_with_retry(
@@ -187,4 +201,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             wfb.return_checking += (
                 "\nSample submission file check failed. Code should not open the sample submission file."
             )
+        if nb_conversion_ret_code != 0 and wfb.final_decision is True:
+            wfb.final_decision = False
+            wfb.return_checking += "\n" + nb_conversion_check_text
         return wfb

@@ -89,6 +89,7 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             package_info=target_task.package_info,
             enable_model_dump=DS_RD_SETTING.enable_model_dump,
             enable_debug_mode=DS_RD_SETTING.sample_data_by_LLM,
+            enable_notebook_conversion=DS_RD_SETTING.enable_notebook_conversion,
         )
         user_prompt = T(".prompts:pipeline_coder.user").r(
             competition_info=competition_info,
