@@ -460,7 +460,7 @@ def main():
         print(f"estimated_time: {estimated_time:.1f}")
         print("=== End of Debug Information ===")
 
-    print("\nSection: Ensemble Strategy and Final Predictions")
+    print("Section: Ensemble Strategy and Final Predictions")
     all_oof_true = np.concatenate(oof_true)
     all_oof_pred = np.concatenate(oof_pred)
     oof_auc = roc_auc_score(all_oof_true, all_oof_pred)

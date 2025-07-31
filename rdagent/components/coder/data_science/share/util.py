@@ -317,6 +317,9 @@ def split_code_and_output_into_sections(code: str, stdout: str) -> list[CodeSect
             if code_section is not None
             else (None, None)
         )
+        # Strip whitespaces for the cell
+        if cleaned_code is not None:
+            cleaned_code = cleaned_code.strip()
         result_sections.append(
             CodeSection(
                 name=name, code=cleaned_code, comments=comments, output=output_section
@@ -324,6 +327,8 @@ def split_code_and_output_into_sections(code: str, stdout: str) -> list[CodeSect
         )
 
     # Small optimization: move function definitions to the sections where they are first called
+    # TODO: this doesn't handle nested function references, e.g., fn A calls fn B which calls fn C
+    # currently will not move C to the section where A is called
     for name, segment in functions:
         for section in result_sections:
             if is_function_called(section["code"], name):

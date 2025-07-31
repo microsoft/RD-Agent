@@ -50,7 +50,8 @@ class NotebookConverter:
         Build a notebook based on the current progression.
         """
         # Handle argparse in the code to ensure it works in a notebook environment
-        if "argparse" in code:
+        should_handle_argparse = "argparse" in code
+        if should_handle_argparse:
             code = (
                 "\n".join(
                     [
@@ -63,8 +64,8 @@ class NotebookConverter:
                         ),
                     ]
                 )
-                + "\n"
-                + code
+                + "\n\n"
+                + code.lstrip()
             )
 
         sections = split_code_and_output_into_sections(code=code, stdout=stdout)
@@ -82,6 +83,14 @@ class NotebookConverter:
             )
             intro_content = MarkdownAgentOut.extract_output(resp)
             notebook.cells.append(nbformat.v4.new_markdown_cell(intro_content))
+
+        # Remove `import sys` if it was added for argparse handling
+        if (
+            should_handle_argparse
+            and len(sections)
+            and "import sys" in sections[0]["code"]
+        ):
+            sections[0]["code"] = sections[0]["code"].replace("import sys\n", "")
 
         for section in sections:
             # Create a markdown cell for the section name and comments

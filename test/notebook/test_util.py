@@ -1,3 +1,4 @@
+import os
 import unittest
 
 from rdagent.components.coder.data_science.share.util import (
@@ -12,6 +13,8 @@ from rdagent.components.coder.data_science.share.util import (
     split_code_sections,
     split_output_sections,
 )
+
+test_files_dir = os.path.join(os.path.dirname(__file__), "testfiles")
 
 
 class TestExtractFunctionBody(unittest.TestCase):
@@ -951,7 +954,7 @@ class TestSplitCodeAndOutputIntoSections(unittest.TestCase):
 
     def test_complex(self):
         self.maxDiff = None
-        with open("./testfiles/main.py", "r") as f:
+        with open(os.path.join(test_files_dir, "main.py"), "r") as f:
             code = f.read()
         output = ""
         sections = split_code_and_output_into_sections(code=code, stdout=output)
@@ -1034,7 +1037,7 @@ class CactusDataset(Dataset):
             },
             {
                 "name": "Data Loading and Preprocessing",
-                "comments": None,
+                "comments": "This section loads the train and test data, performs EDA, and prepares the dataset.",
                 "output": None,
                 "code": """def compute_class_weight(y):
     counts = np.bincount(y)
@@ -1097,9 +1100,7 @@ class_weights, n_pos, n_neg, imbalance_ratio, need_weights = compute_class_weigh
 print(f"Class stats: Pos={n_pos}, Neg={n_neg}, Imbalance Ratio(majority/minority)={imbalance_ratio:.3f}")
 print(f"Use class weights: {need_weights}, Class weights: {class_weights if class_weights is not None else '[1.0,1.0]'}")
 if class_weights is not None:
-    np.save(os.path.join(MODEL_DIR, "class_weights.npy"), class_weights)
-
-""".rstrip(),
+    np.save(os.path.join(MODEL_DIR, "class_weights.npy"), class_weights)""",
             },
             {
                 "name": "Feature Engineering",
@@ -1116,9 +1117,7 @@ train_df['fold'] = folds
 print(f"Assigned stratified {cv_fold}-fold indices. Fold sample counts:")
 for f in range(cv_fold):
     dist = train_df.loc[train_df['fold'] == f, 'has_cactus'].value_counts().to_dict()
-    print(f"  Fold {f}: n={len(train_df[train_df['fold'] == f])} class dist={dist}")
-
-""".rstrip(),
+    print(f"  Fold {f}: n={len(train_df[train_df['fold'] == f])} class dist={dist}")""",
             },
             {
                 "name": "Model Training and Evaluation",
@@ -1439,8 +1438,7 @@ if DEBUG:
     print("=== Start of Debug Information ===")
     print(f"debug_time: {debug_time:.1f}")
     print(f"estimated_time: {estimated_time:.1f}")
-    print("=== End of Debug Information ===")
-""".rstrip(),
+    print("=== End of Debug Information ===")""",
             },
             {
                 "name": "Ensemble Strategy and Final Predictions",
@@ -1478,8 +1476,7 @@ for fold in range(cv_fold):
     fold_test_pred = np.concatenate(preds)
     test_pred_list.append(fold_test_pred)
     print(f"Loaded fold {fold} for test prediction.")
-test_probs = np.mean(test_pred_list, axis=0)
-""".rstrip(),
+test_probs = np.mean(test_pred_list, axis=0)""",
             },
             {
                 "name": "Submission File Generation",
@@ -1497,8 +1494,7 @@ scores_df = pd.DataFrame({
 })
 scores_df.set_index('Model', inplace=True)
 scores_df.to_csv("scores.csv")
-print(f"Saved cross-validation scores to scores.csv")
-""".rstrip(),
+print(f"Saved cross-validation scores to scores.csv")""",
             },
         ]
 
