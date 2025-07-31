@@ -350,6 +350,8 @@ class FBWorkspace(Workspace):
                         dest_path.parent.mkdir(parents=True, exist_ok=True)
                         with dest_path.open("wb") as f:
                             f.write(zf.read(info))
+        # NOTE: very important to reduce the size of the object
+        self.ws_ckp = None
 
     def __str__(self) -> str:
         return f"Workspace[{self.workspace_path=}" + (
