@@ -222,7 +222,9 @@ class TraceLengthScheduler(ProbabilisticScheduler):
             temperature: Temperature parameter for softmax calculation.
             inverse: If True, shorter traces get higher potential.
         """
-        logger.info(f"TraceLengthScheduler: max_trace_num={max_trace_num}, temperature={temperature}, inverse={inverse}")
+        logger.info(
+            f"TraceLengthScheduler: max_trace_num={max_trace_num}, temperature={temperature}, inverse={inverse}"
+        )
         super().__init__(max_trace_num, temperature)
         self.inverse = inverse
 

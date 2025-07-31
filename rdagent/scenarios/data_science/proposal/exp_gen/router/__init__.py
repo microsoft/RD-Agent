@@ -22,11 +22,9 @@ from rdagent.scenarios.data_science.proposal.exp_gen.planner import (
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler import (
     RoundRobinScheduler,
-    TraceScheduler,
     SOTABasedScheduler,
+    TraceScheduler,
 )
-
-
 
 if TYPE_CHECKING:
     from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
