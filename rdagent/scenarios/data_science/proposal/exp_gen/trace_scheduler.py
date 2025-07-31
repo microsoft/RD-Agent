@@ -198,7 +198,10 @@ class ProbabilisticScheduler(TraceScheduler):
 
 class TraceLengthScheduler(ProbabilisticScheduler):
     """
-    A scheduler that prefers longer traces (more experiments).
+    A scheduler that prefers longer traces (more experiments)
+      -- default: prefer to expand the trace that has more experiments (quicker to get the result).
+      -- if inverse=True, prefer to expand the trace that has less experiments.
+
     """
 
     def __init__(self, max_trace_num: int, temperature: float = 1.0, inverse: bool = False):
@@ -247,27 +250,6 @@ class SOTABasedScheduler(ProbabilisticScheduler):
 
         return float(sota_count)
 
-
-class ComponentCompletionScheduler(ProbabilisticScheduler):
-    """
-    A scheduler that prefers traces that have completed more components.
-    """
-
-    def calculate_potential(self, trace: DSTrace, leaf_id: int) -> float:
-        """
-        Calculate potential based on the number of completed components in the trace.
-        """
-        # Get the path from root to this leaf
-        path = trace.get_parents(leaf_id)
-        completed_components = set()
-
-        for node_id in path:
-            if node_id < len(trace.hist):
-                exp, feedback = trace.hist[node_id]
-                if feedback.decision and hasattr(exp.hypothesis, "component"):
-                    completed_components.add(exp.hypothesis.component)
-
-        return float(len(completed_components))
 
 
 class RandomScheduler(ProbabilisticScheduler):
