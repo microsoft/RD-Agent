@@ -1,5 +1,6 @@
 import json
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
@@ -26,21 +27,24 @@ from rdagent.utils.fmt import shrink_text
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
-class DSCoSTEEREvalFeedback(CoSTEERSingleFeedback):
+@dataclass
+class DSRunnerFeedback(CoSTEERSingleFeedback):
     """
     Feedback for Data Science CoSTEER evaluation.
     This feedback is used to evaluate the code and execution of the Data Science CoSTEER task.
     """
 
-    def __init__(
-        self, *args, hyperparameter_tuning_decision: bool = None, hyperparameter_tuning_suggestion: str = None, **kwargs
-    ):
-        super().__init__(*args, **kwargs)
-        self.hyperparameter_tuning_decision = hyperparameter_tuning_decision
-        self.hyperparameter_tuning_suggestion = hyperparameter_tuning_suggestion
+    acceptable: bool | None = None
+    hyperparameter_tuning_decision: bool | None = None
+    hyperparameter_tuning_suggestion: str | None = None
+
+    def is_acceptable(self) -> bool:
+        if self.acceptable is not None:
+            return self.acceptable
+        return super().is_acceptable()
 
 
-class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
+class DSRunnerEvaluator(CoSTEEREvaluator):
 
     def evaluate(
         self,
@@ -49,7 +53,9 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         gt_implementation: FBWorkspace,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
-    ) -> DSCoSTEEREvalFeedback:
+    ) -> DSRunnerFeedback:
+        # Only enalbe hyperparameter tuning on the first evaluation.
+        # Avoid too much time cunsumming.
         if len(queried_knowledge.task_to_former_failed_traces[target_task.get_task_information()][0]) == 0:
             enable_hyperparameter_tuning_check = True
         else:
@@ -158,10 +164,10 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         )
 
         feedback = build_cls_from_json_with_retry(
-            DSCoSTEEREvalFeedback,
+            DSRunnerFeedback,
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            init_kwargs_update_func=DSCoSTEEREvalFeedback.val_and_update_init_dict,
+            init_kwargs_update_func=DSRunnerFeedback.val_and_update_init_dict,
         )
 
         if feedback and not DS_RD_SETTING.coder_on_whole_pipeline:
@@ -180,7 +186,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                         break
 
                 if not use_one_model:
-                    feedback.final_decision = False
+                    feedback.acceptable = feedback.final_decision = False
                     logger.warning("No model script is used in `main.py`.")
                     feedback.code += "\n[Error] No model script is used in `main.py`."
 
@@ -196,7 +202,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                     logger.warning(f"Unused scripts: {unused_files}")
                     error_files = set(unused_files).intersection(set(must_have_files))
                     if error_files:
-                        feedback.final_decision = False
+                        feedback.acceptable = feedback.final_decision = False
                         logger.warning(f"{error_files} must be used in `main.py`.")
                         feedback.code += f"\n[Error] {error_files} must be used in `main.py`."
                     elif use_one_model:
@@ -204,9 +210,9 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                         implementation.inject_files(**{file: implementation.DEL_KEY for file in unused_files})
 
         if score_ret_code != 0:
-            feedback.final_decision = False
+            feedback.acceptable = feedback.final_decision = False
             feedback.return_checking += "\n" + score_check_text
         if submission_ret_code != 0:
-            feedback.final_decision = False
+            feedback.acceptable = feedback.final_decision = False
             feedback.return_checking += "\nSubmission file check failed."
         return feedback

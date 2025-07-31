@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from rdagent.core.evaluation import EvaluableObj
 from rdagent.core.knowledge_base import KnowledgeBase
@@ -36,8 +36,11 @@ class EvolvableSubjects(EvaluableObj):
         return copy.deepcopy(self)
 
 
+ASpecificEvolvableSubjects = TypeVar("ASpecificEvolvableSubjects", bound=EvolvableSubjects)
+
+
 @dataclass
-class EvoStep:
+class EvoStep(Generic[ASpecificEvolvableSubjects]):
     """At a specific step,
     based on
     - previous trace
@@ -48,23 +51,24 @@ class EvoStep:
     (optional) After evaluation, we get feedback `feedback`.
     """
 
-    evolvable_subjects: EvolvableSubjects
+    evolvable_subjects: ASpecificEvolvableSubjects
+
     queried_knowledge: QueriedKnowledge | None = None
     feedback: Feedback | None = None
 
 
-class EvolvingStrategy(ABC):
+class EvolvingStrategy(ABC, Generic[ASpecificEvolvableSubjects]):
     def __init__(self, scen: Scenario) -> None:
         self.scen = scen
 
     @abstractmethod
     def evolve(
         self,
-        *evo: EvolvableSubjects,
-        evolving_trace: list[EvoStep] | None = None,
+        *evo: ASpecificEvolvableSubjects,
+        evolving_trace: list[EvoStep[ASpecificEvolvableSubjects]] | None = None,
         queried_knowledge: QueriedKnowledge | None = None,
         **kwargs: Any,
-    ) -> EvolvableSubjects:
+    ) -> ASpecificEvolvableSubjects:
         """The evolving trace is a list of (evolvable_subjects, feedback) ordered
         according to the time.
 
@@ -74,7 +78,7 @@ class EvolvingStrategy(ABC):
         """
 
 
-class RAGStrategy(ABC):
+class RAGStrategy(ABC, Generic[ASpecificEvolvableSubjects]):
     """Retrieval Augmentation Generation Strategy"""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -91,7 +95,7 @@ class RAGStrategy(ABC):
     @abstractmethod
     def query(
         self,
-        evo: EvolvableSubjects,
+        evo: ASpecificEvolvableSubjects,
         evolving_trace: list[EvoStep],
         **kwargs: Any,
     ) -> QueriedKnowledge | None:
@@ -100,7 +104,7 @@ class RAGStrategy(ABC):
     @abstractmethod
     def generate_knowledge(
         self,
-        evolving_trace: list[EvoStep],
+        evolving_trace: list[EvoStep[ASpecificEvolvableSubjects]],
         *,
         return_knowledge: bool = False,
         **kwargs: Any,

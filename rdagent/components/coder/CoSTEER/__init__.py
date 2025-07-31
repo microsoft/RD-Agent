@@ -1,4 +1,5 @@
 import pickle
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 
@@ -10,8 +11,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERRAGStrategyV2,
 )
 from rdagent.core.developer import Developer
-from rdagent.core.evaluation import Evaluator
-from rdagent.core.evolving_agent import EvolvingStrategy, RAGEvoAgent
+from rdagent.core.evolving_agent import EvolvingStrategy, RAGEvaluator, RAGEvoAgent
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import Experiment
 from rdagent.log import rdagent_logger as logger
@@ -22,15 +22,13 @@ class CoSTEER(Developer[Experiment]):
     def __init__(
         self,
         settings: CoSTEERSettings,
-        eva: Evaluator,
+        eva: RAGEvaluator,
         es: EvolvingStrategy,
         *args,
         evolving_version: int = 2,
         max_seconds: int | None = None,
         with_knowledge: bool = True,
-        with_feedback: bool = True,
         knowledge_self_gen: bool = True,
-        filter_final_evo: bool = True,
         max_loop: int | None = None,
         **kwargs,
     ) -> None:
@@ -47,9 +45,7 @@ class CoSTEER(Developer[Experiment]):
         )
 
         self.with_knowledge = with_knowledge
-        self.with_feedback = with_feedback
         self.knowledge_self_gen = knowledge_self_gen
-        self.filter_final_evo = filter_final_evo
         self.evolving_strategy = es
         self.evaluator = eva
         self.evolving_version = evolving_version
@@ -71,25 +67,37 @@ class CoSTEER(Developer[Experiment]):
             )
         )
 
+    def _get_last_fb(self) -> CoSTEERMultiFeedback:
+        fb = self.evolve_agent.evolving_trace[-1].feedback
+        assert fb is not None, "feedback is None"
+        assert isinstance(fb, CoSTEERMultiFeedback), "feedback must be of type CoSTEERMultiFeedback"
+        return fb
+
     def develop(self, exp: Experiment) -> Experiment:
 
         # init intermediate items
         evo_exp = EvolvingItem.from_experiment(exp)
 
-        self.evolve_agent = RAGEvoAgent(
+        self.evolve_agent = RAGEvoAgent[EvolvingItem](
             max_loop=self.max_loop,
             evolving_strategy=self.evolving_strategy,
             rag=self.rag,
             with_knowledge=self.with_knowledge,
-            with_feedback=self.with_feedback,
+            with_feedback=True,
             knowledge_self_gen=self.knowledge_self_gen,
             enable_filelock=self.settings.enable_filelock,
             filelock_path=self.settings.filelock_path,
         )
 
+        # Evolving the solution
         start_datetime = datetime.now()
+        fallback_evo_exp = None
         for evo_exp in self.evolve_agent.multistep_evolve(evo_exp, self.evaluator):
             assert isinstance(evo_exp, Experiment)  # multiple inheritance
+            if self._get_last_fb().is_acceptable():
+                fallback_evo_exp = deepcopy(evo_exp)
+                fallback_evo_exp.create_ws_ckp()  # NOTE: creating checkpoints for saving files in the workspace to prevent inplace mutation.
+
             logger.log_object(evo_exp.sub_workspace_list, tag="evolving code")
             for sw in evo_exp.sub_workspace_list:
                 logger.info(f"evolving workspace: {sw}")
@@ -100,8 +108,16 @@ class CoSTEER(Developer[Experiment]):
                 logger.info("Global timer is timeout, stop evolving")
                 break
 
-        if self.with_feedback and self.filter_final_evo:
-            evo_exp = self._exp_postprocess_by_feedback(evo_exp, self.evolve_agent.evolving_trace[-1].feedback)
+        # if the final feedback is not finished(therefore acceptable), we will use the fallback solution.
+        try:
+            evo_exp = self._exp_postprocess_by_feedback(evo_exp, self._get_last_fb())
+        except CoderError:
+            if fallback_evo_exp is not None:
+                logger.info("Fallback to the fallback solution.")
+                evo_exp = fallback_evo_exp
+                evo_exp.recover_ws_ckp()  # NOTE: recovering checkpoints for restoring files in the workspace to prevent inplace mutation.
+            else:
+                raise
 
         exp.sub_workspace_list = evo_exp.sub_workspace_list
         exp.experiment_workspace = evo_exp.experiment_workspace

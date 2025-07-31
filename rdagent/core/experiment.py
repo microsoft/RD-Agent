@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import io
 import os
 import platform
 import re
 import shutil
 import typing
 import uuid
+import zipfile
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from copy import deepcopy
@@ -98,6 +100,19 @@ class Workspace(ABC, Generic[ASpecificTask, ASpecificFeedback]):
         Get all the code files in the workspace as a single string.
         """
 
+    # when the workspace is mutable inplace, provide support for creating checkpoints and recovering.
+    @abstractmethod
+    def create_ws_ckp(self) -> None:
+        """
+        Create an in-memory checkpoint of the workspace so it can be restored later.
+        """
+
+    @abstractmethod
+    def recover_ws_ckp(self) -> None:
+        """
+        Restore the workspace from the checkpoint created by :py:meth:`create_ws_ckp`.
+        """
+
 
 ASpecificWS = TypeVar("ASpecificWS", bound=Workspace)
 
@@ -138,6 +153,8 @@ class FBWorkspace(Workspace):
             {}
         )  # The code injected into the folder, store them in the variable to reproduce the former result
         self.workspace_path: Path = RD_AGENT_SETTINGS.workspace_path / uuid.uuid4().hex
+        # In-memory checkpoint data created by ``create_ws_ckp``.
+        self.ws_ckp: bytes | None = None
 
     @staticmethod
     def _format_code_dict(code_dict: dict[str, str]) -> str:
@@ -282,6 +299,58 @@ class FBWorkspace(Workspace):
         )
         return result
 
+    def create_ws_ckp(self) -> None:
+        """
+        Zip the contents of ``workspace_path`` and persist the archive on
+        ``self.ws_ckp`` for later restoration via :py:meth:`recover_ws_ckp`.
+        """
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            for file_path in self.workspace_path.rglob("*"):
+                # Only include regular files up to 100 KB so that the checkpoint
+                # remains lightweight. Larger files (for example, datasets) are
+                # expected to be recreated or mounted separately.
+                if file_path.is_symlink():
+                    # Preserve symbolic links within the archive
+                    zi = zipfile.ZipInfo(str(file_path.relative_to(self.workspace_path)))
+                    zi.create_system = 3  # indicates Unix
+                    zi.external_attr = 0o120777 << 16  # symlink file type + 0777 perms
+                    zf.writestr(zi, str(file_path.readlink()))
+                elif file_path.is_file():
+                    size_limit = RD_AGENT_SETTINGS.workspace_ckp_size_limit
+                    if size_limit <= 0 or file_path.stat().st_size <= size_limit:
+                        zf.write(file_path, file_path.relative_to(self.workspace_path))
+        self.ws_ckp = buf.getvalue()
+
+    def recover_ws_ckp(self) -> None:
+        """
+        Restore the workspace directory from the in-memory checkpoint created by
+        :py:meth:`create_ws_ckp`.
+        """
+        if self.ws_ckp is None:
+            msg = "Workspace checkpoint doesn't exist. Call `create_ws_ckp` first."
+            raise RuntimeError(msg)
+        shutil.rmtree(self.workspace_path, ignore_errors=True)
+        self.workspace_path.mkdir(parents=True, exist_ok=True)
+        buf = io.BytesIO(self.ws_ckp)
+        with zipfile.ZipFile(buf, "r") as zf:
+            for info in zf.infolist():
+                dest_path = self.workspace_path / info.filename
+                # File type bits (upper 4) are in high 16 bits of external_attr
+                mode = (info.external_attr >> 16) & 0o170000
+                symlink_mode = 0o120000  # Constant for symlink file type in Unix
+                if mode == symlink_mode:  # Symlink
+                    dest_path.parent.mkdir(parents=True, exist_ok=True)
+                    link_target = zf.read(info).decode()
+                    os.symlink(link_target, dest_path)
+                else:
+                    if info.is_dir():
+                        dest_path.mkdir(parents=True, exist_ok=True)
+                    else:
+                        dest_path.parent.mkdir(parents=True, exist_ok=True)
+                        with dest_path.open("wb") as f:
+                            f.write(zf.read(info))
+
     def __str__(self) -> str:
         return f"Workspace[{self.workspace_path=}" + (
             "]" if self.target_task is None else f",{self.target_task.name=}]"
@@ -354,6 +423,21 @@ class Experiment(
     @result.setter
     def result(self, value: object) -> None:
         self.running_info.result = value
+
+    # when the workspace is mutable inplace, provide support for creating checkpoints and recovering.
+    def create_ws_ckp(self) -> None:
+        if self.experiment_workspace is not None:
+            self.experiment_workspace.create_ws_ckp()
+        for ws in self.sub_workspace_list:
+            if ws is not None:
+                ws.create_ws_ckp()
+
+    def recover_ws_ckp(self) -> None:
+        if self.experiment_workspace is not None:
+            self.experiment_workspace.recover_ws_ckp()
+        for ws in self.sub_workspace_list:
+            if ws is not None:
+                ws.recover_ws_ckp()
 
 
 ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)
