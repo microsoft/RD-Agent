@@ -32,7 +32,7 @@ async def query_context7(
         # Load configuration using pydantic settings
         settings = get_context7_settings()
         print(settings)
-        # Initialize cache - 默认开启，永久缓存
+        # Initialize cache - enabled by default, permanent caching
         cache = get_mcp_cache() if settings.cache_enabled else None
 
         # Check query cache first
@@ -45,17 +45,17 @@ async def query_context7(
 
         # Record start time for execution timing
         start_time = time.time()
-        
+
         # Try to get tools from cache first
         tools = cache.get_tools(settings.mcp_url) if cache else None
-        
+
         if tools is None:
             # Cache miss or cache disabled, load tools from URL
             tool_start_time = time.time()
             tools = await aget_tools_from_mcp_url(settings.mcp_url)
             tool_end_time = time.time()
             logger.info(f"Context7 tool loading time: {tool_end_time - tool_start_time:.2f} seconds")
-            
+
             # Cache the tools for future use
             if cache:
                 cache.set_tools(settings.mcp_url, tools)
@@ -75,7 +75,7 @@ async def query_context7(
         # Construct query with error message and context7 instruction
         # TODO: how to fix the agent to force the two tools to be used
         # TODO: how to extend to more apis (currently only gpt models through llama_index)
-        
+
         query = f"""{error_message}
 
 IMPORTANT INSTRUCTIONS:
@@ -126,7 +126,7 @@ Please search the documentation and provide a practical, copy-paste solution."""
         logger.info(f"Context7 execution completed at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
 
         result = str(response)
-        
+
         # Cache the query result
         if cache:
             cache.set_query_result(error_message, result)
@@ -142,7 +142,7 @@ Please search the documentation and provide a practical, copy-paste solution."""
 async def main():
     """Main function for testing context7 functionality."""
     error_msg = """### TRACEBACK: Traceback (most recent call last):\nFile \"/workspace/RD-Agent/git_ignore_folder/RD-Agent_workspace/55141c6414284b9f8512f998b4b91043/main.py\", line 540, in <module>\nmain()\nFile \"/workspace/RD-Agent/git_ignore_folder/RD-Agent_workspace/55141c6414284b9f8/512f998b4b91043/main.py\", line 440, in main\ntrain_transforms = build_transforms('train')\n^^^^^^^^^^^^^^^^^^^^^^^^^\nFile \"/workspace/RD-Agent/git_ignore_folder/RD-Agent_workspace/55141c6414284b9f8512f998b4b91043/main.py\", line 149, in build_transforms\nA.RandAugment(n=2, m=9),\n^^^^^^^^^^^^^\nAttributeError: module 'albumentations' has no attribute 'RandAugment'\n### SUPPLEMENTARY_INFO: import albumentations as A\nfrom albumentations.pytorch import ToTensorV2"""
-    
+
     result = await query_context7(error_msg)
     print(result)
 
