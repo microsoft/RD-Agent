@@ -64,7 +64,11 @@ class TestFBWorkspace(unittest.TestCase):
         }
         self.assertEqual(recovered_files, original_files)
 
-        # Verify large files (>100 KB) are excluded from the checkpoint.
+        # Verify large files (>100 KB) are excluded when a size-limit is configured.
+        from rdagent.core.conf import RD_AGENT_SETTINGS as _SETTINGS
+
+        _SETTINGS.workspace_ckp_size_limit = 100 * 1024  # set limit temporarily for this test
+
         large_file = ws.workspace_path / "large.bin"
         large_file.write_bytes(b"0" * (110 * 1024))  # 110 KB dummy content
         ws.create_ws_ckp()
