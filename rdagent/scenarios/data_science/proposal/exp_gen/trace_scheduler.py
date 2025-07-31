@@ -251,7 +251,6 @@ class SOTABasedScheduler(ProbabilisticScheduler):
         return float(sota_count)
 
 
-
 class RandomScheduler(ProbabilisticScheduler):
     """
     A scheduler that selects traces randomly with uniform distribution.
