@@ -7,6 +7,8 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import TYPE_CHECKING
 
+from rdagent.log import rdagent_logger as logger
+
 if TYPE_CHECKING:
     from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace
 
@@ -84,6 +86,7 @@ class RoundRobinScheduler(BaseScheduler):
     """
 
     def __init__(self, max_trace_num: int):
+        logger.info(f"RoundRobinScheduler: max_trace_num={max_trace_num}")
         self.max_trace_num = max_trace_num
         self._last_selected_leaf_id = -1
         super().__init__()
@@ -219,6 +222,7 @@ class TraceLengthScheduler(ProbabilisticScheduler):
             temperature: Temperature parameter for softmax calculation.
             inverse: If True, shorter traces get higher potential.
         """
+        logger.info(f"TraceLengthScheduler: max_trace_num={max_trace_num}, temperature={temperature}, inverse={inverse}")
         super().__init__(max_trace_num, temperature)
         self.inverse = inverse
 
@@ -248,6 +252,7 @@ class SOTABasedScheduler(ProbabilisticScheduler):
             temperature: Temperature parameter for softmax calculation.
             inverse: If True, fewer SOTA results get higher potential.
         """
+        logger.info(f"SOTABasedScheduler: max_trace_num={max_trace_num}, temperature={temperature}, inverse={inverse}")
         super().__init__(max_trace_num, temperature)
         self.inverse = inverse
 
