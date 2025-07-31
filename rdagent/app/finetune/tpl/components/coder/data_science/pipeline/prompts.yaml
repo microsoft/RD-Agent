@@ -31,7 +31,8 @@ pipeline_coder:
     3. You should be very careful about the try catch block in your code. You may use it to handle missing files in data reading, but you should not use it to handle the errors in your code. Especially use it to bypass the errors in your code. Directly solve the errors in your code instead of using try catch block to bypass them.
     4. Initialize random seeds and specify device (`cpu`/`cuda`) for reproducibility.  
     5. Ensure `main.py` runs end-to-end: training → validation → save `./scores.csv`.  
-    6. Save finetuned model to `./models/` directory.
+    6. Save finetuned adapter to `./models/` directory.
+    7. When run the code again, the code will skip finetune process and directly load the finetuned adapter from `./models/` directory.
 
     {% if enable_debug_mode %}
     Your code will be executed in a debug mode with following command: 
