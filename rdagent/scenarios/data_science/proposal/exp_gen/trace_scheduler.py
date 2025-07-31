@@ -42,37 +42,37 @@ class BaseScheduler(TraceScheduler):
         self.rec_commit_idx = 0  # the node before rec_idx is already committed.
         self.uncommited_rec_status = defaultdict(int)  # the uncommited record status
 
-
-    async def next(self, trace: DSTrace):
+    async def next(self, trace: DSTrace) -> tuple[int, ...]:
         """
         Atomically selects the next leaf node from the trace in order.
         """
         while True:
             # step 0: Commit the pending selections
             for i in range(self.rec_commit_idx, len(trace.dag_parent)):
-
-                if trace.dag_parent[i] == trace.NEW_ROOT:
+                parent_of_i = trace.dag_parent[i]
+                if parent_of_i == trace.NEW_ROOT:
                     self.uncommited_rec_status[trace.NEW_ROOT] -= 1
                 else:
-                    for p in trace.dag_parent[i]:
+                    for p in parent_of_i:
                         self.uncommited_rec_status[p] -= 1
-
             self.rec_commit_idx = len(trace.hist)
 
-
             parents = self.select(trace)
-            if parents == trace.NEW_ROOT:
-                self.uncommited_rec_status[trace.NEW_ROOT] += 1
-            for p in parents:
-                self.uncommited_rec_status[parents] += 1
+
+            if parents is not None:
+                if parents == trace.NEW_ROOT:
+                    self.uncommited_rec_status[trace.NEW_ROOT] += 1
+                else:
+                    for p in parents:
+                        self.uncommited_rec_status[p] += 1
+                return parents
 
             await asyncio.sleep(1)
 
-
     @abstractmethod
-    def select(self, trace: DSTrace) -> tuple[int, ...]:
-        ...
-
+    def select(self, trace: DSTrace) -> tuple[int, ...] | None:
+        """Selects the parent nodes for the new experiment, or None if no selection can be made."""
+        raise NotImplementedError
 
 
 class RoundRobinScheduler(BaseScheduler):
@@ -88,35 +88,22 @@ class RoundRobinScheduler(BaseScheduler):
         self._last_selected_leaf_id = -1
         super().__init__()
 
-    async def next(self, trace: DSTrace) -> tuple[int, ...]:
+    def select(self, trace: DSTrace) -> tuple[int, ...] | None:
         """
         Atomically selects the next leaf node from the trace in order.
+        If no suitable selection is found, return None.
         """
-        while True:
-            # step 0: Commit the pending selections
-            for i in range(self.rec_commit_idx, len(trace.dag_parent)):
+        # Policy: if we have fewer traces than our target, start a new one.
+        if trace.sub_trace_count + self.uncommited_rec_status[trace.NEW_ROOT] < self.max_trace_num:
+            return trace.NEW_ROOT
 
-                if trace.dag_parent[i] == trace.NEW_ROOT:
-                    self.uncommited_rec_status[trace.NEW_ROOT] -= 1
-                else:
-                    for p in trace.dag_parent[i]:
-                        self.uncommited_rec_status[p] -= 1
+        # Step2: suggest a selection to a not expanding leave
+        leaves = trace.get_leaves()
+        for leaf in leaves:
+            if self.uncommited_rec_status[leaf] == 0:
+                return (leaf,)
 
-            self.rec_commit_idx = len(trace.hist)
-
-            # step 1: select the parant trace to expand
-            # Policy: if we have fewer traces than our target, start a new one.
-            if trace.sub_trace_count + self.uncommited_rec_status[trace.NEW_ROOT] < self.max_trace_num:
-                self.uncommited_rec_status[trace.NEW_ROOT] += 1
-                return trace.NEW_ROOT
-
-            # Step2: suggest a selection to a not expanding leave
-            leaves = trace.get_leaves()
-            for leaf in leaves:
-                if self.uncommited_rec_status[leaf] == 0:
-                    self.uncommited_rec_status[leaf] += 1
-                    return (leaf,)
-            await asyncio.sleep(1)
+        return None
 
 
 # ======================================================================================
@@ -124,7 +111,7 @@ class RoundRobinScheduler(BaseScheduler):
 # ======================================================================================
 
 
-class ProbabilisticScheduler(TraceScheduler):
+class ProbabilisticScheduler(BaseScheduler):
     """
     A concurrency-safe scheduling strategy that samples the next trace to expand
     based on a probability distribution derived from a potential function.
@@ -143,8 +130,7 @@ class ProbabilisticScheduler(TraceScheduler):
 
         self.max_trace_num = max_trace_num
         self.temperature = temperature
-        self.rec_commit_idx = 0
-        self.uncommited_rec_status = defaultdict(int)
+        super().__init__()
 
     def calculate_potential(self, trace: DSTrace, leaf_id: int) -> float:
         """
@@ -187,50 +173,35 @@ class ProbabilisticScheduler(TraceScheduler):
 
         return [exp_p / sum_exp for exp_p in exp_potentials]
 
-    async def next(self, trace: DSTrace) -> tuple[int, ...]:
+    def select(self, trace: DSTrace) -> tuple[int, ...] | None:
         """
         Selects the next leaf node based on probabilistic sampling.
         """
-        while True:
-            # Step 0: Commit the pending selections. This logic is identical to
-            # RoundRobinScheduler as it's about state synchronization.
-            for i in range(self.rec_commit_idx, len(trace.dag_parent)):
-                if trace.dag_parent[i] == trace.NEW_ROOT:
-                    self.uncommited_rec_status[trace.NEW_ROOT] -= 1
-                else:
-                    for p in trace.dag_parent[i]:
-                        self.uncommited_rec_status[p] -= 1
-            self.rec_commit_idx = len(trace.hist)
+        # Step 1: If we have fewer traces than our target, start a new one.
+        # This policy prioritizes reaching the desired number of traces.
+        if trace.sub_trace_count + self.uncommited_rec_status[trace.NEW_ROOT] < self.max_trace_num:
+            return trace.NEW_ROOT
 
-            # Step 1: If we have fewer traces than our target, start a new one.
-            # This policy prioritizes reaching the desired number of traces.
-            if trace.sub_trace_count + self.uncommited_rec_status[trace.NEW_ROOT] < self.max_trace_num:
-                self.uncommited_rec_status[trace.NEW_ROOT] += 1
-                return trace.NEW_ROOT
+        # Step 2: Probabilistically select a leaf to expand.
+        leaves = trace.get_leaves()
+        available_leaves = [leaf for leaf in leaves if self.uncommited_rec_status[leaf] == 0]
 
-            # Step 2: Probabilistically select a leaf to expand.
-            leaves = trace.get_leaves()
-            available_leaves = [leaf for leaf in leaves if self.uncommited_rec_status[leaf] == 0]
+        if not available_leaves:
+            return None
 
-            if not available_leaves:
-                await asyncio.sleep(1)
-                continue
+        # Calculate potential for each available leaf
+        potentials = [self.calculate_potential(trace, leaf) for leaf in available_leaves]
 
-            # Calculate potential for each available leaf
-            potentials = [self.calculate_potential(trace, leaf) for leaf in available_leaves]
+        if any(p < 0 for p in potentials):
+            raise ValueError("Potential function returned a negative value.")
 
-            if any(p < 0 for p in potentials):
-                raise ValueError("Potential function returned a negative value.")
+        # Convert potentials to probabilities using softmax
+        probabilities = self._softmax_probabilities(potentials)
 
-            # Convert potentials to probabilities using softmax
-            probabilities = self._softmax_probabilities(potentials)
+        # Select a leaf based on probabilities
+        selected_leaf = random.choices(available_leaves, weights=probabilities, k=1)[0]
 
-            # Select a leaf based on probabilities
-            selected_leaf = random.choices(available_leaves, weights=probabilities, k=1)[0]
-
-            # Mark the selected leaf as "pending expansion"
-            self.uncommited_rec_status[selected_leaf] += 1
-            return (selected_leaf,)
+        return (selected_leaf,)
 
 
 class TraceLengthScheduler(ProbabilisticScheduler):
