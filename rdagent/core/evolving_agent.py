@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Generator
+from contextlib import nullcontext
 from typing import Any, Generic, TypeVar
 
 from filelock import FileLock
 from tqdm import tqdm
 
-from contextlib import nullcontext
 from rdagent.core.evaluation import EvaluableObj, Evaluator, Feedback
 from rdagent.core.evolving_framework import EvolvableSubjects, EvolvingStrategy, EvoStep
 from rdagent.log import rdagent_logger as logger
