@@ -8,10 +8,12 @@ class CodeSection(TypedDict):
     """
     Represents a section of the original Python source code, to be converted to a notebook cell.
     """
+
     name: Optional[str]
     code: Optional[str]
     comments: Optional[str]
     output: Optional[str]
+
 
 def extract_function_body(source_code: str, function_name: str) -> Optional[str]:
     """
@@ -26,10 +28,11 @@ def extract_function_body(source_code: str, function_name: str) -> Optional[str]
             lines = source_code.splitlines()
             start = node.body[0].lineno
             end = node.body[-1].end_lineno
-            body_lines = lines[start - 1:end]
+            body_lines = lines[start - 1 : end]
             indent_level = len(body_lines[0]) - len(body_lines[0].lstrip())
             return "\n".join(line[indent_level:] for line in body_lines)
     return None
+
 
 def split_sections(text: str, section_header_regex: str) -> tuple[Optional[str], list[str]]:
     """
@@ -56,17 +59,20 @@ def split_sections(text: str, section_header_regex: str) -> tuple[Optional[str],
 
     return header_section, sections
 
+
 def split_code_sections(source_code: str) -> tuple[Optional[str], list[str]]:
     """
     Split code into sections based on the section headers.
     """
     return split_sections(source_code, r'^\s*print\(["\']Section:')
 
+
 def split_output_sections(stdout: str) -> tuple[Optional[str], list[str]]:
     """
     Split output into sections based on the section headers.
     """
-    return split_sections(stdout, r'^\s*Section: ')
+    return split_sections(stdout, r"^\s*Section: ")
+
 
 def extract_comment_under_first_print(source_code) -> tuple[Optional[str], str]:
     """
@@ -81,7 +87,7 @@ def extract_comment_under_first_print(source_code) -> tuple[Optional[str], str]:
     first_print_lineno = None
     for node in ast.walk(parsed):
         if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
-            if getattr(node.value.func, 'id', None) == 'print':
+            if getattr(node.value.func, "id", None) == "print":
                 first_print_lineno = node.lineno
                 break
 
@@ -106,6 +112,7 @@ def extract_comment_under_first_print(source_code) -> tuple[Optional[str], str]:
 
     return comments_str, cleaned_code
 
+
 def extract_first_section_name_from_code(source_code):
     """
     Extract the first section name from the source code.
@@ -114,7 +121,7 @@ def extract_first_section_name_from_code(source_code):
     for node in ast.walk(parsed):
         if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
             call = node.value
-            if getattr(call.func, 'id', None) == 'print' and call.args:
+            if getattr(call.func, "id", None) == "print" and call.args:
                 arg0 = call.args[0]
                 if isinstance(arg0, ast.Constant) and isinstance(arg0.value, str):
                     # Match "Section: ..." pattern
@@ -122,6 +129,7 @@ def extract_first_section_name_from_code(source_code):
                     if m:
                         return m.group(1).strip()
     return None
+
 
 def extract_first_section_name_from_output(stdout: str) -> Optional[str]:
     """
@@ -131,6 +139,7 @@ def extract_first_section_name_from_output(stdout: str) -> Optional[str]:
     if match:
         return match.group(1).strip()
     return None
+
 
 def is_function_called(source_code: str, func_name: str) -> bool:
     """
@@ -148,6 +157,7 @@ def is_function_called(source_code: str, func_name: str) -> bool:
                 return True
     return False
 
+
 def remove_function(source_code: str, function_name: str) -> str:
     """
     Remove a function definition from the source code.
@@ -163,6 +173,7 @@ def remove_function(source_code: str, function_name: str) -> str:
 
     return source_code
 
+
 def remove_main_block(source_code: str) -> str:
     """
     Remove the if __name__ == "__main__": block from the source code.
@@ -174,11 +185,16 @@ def remove_main_block(source_code: str) -> str:
     for node in tree.body:
         if isinstance(node, ast.If):
             test = node.test
-            if (isinstance(test, ast.Compare) and
-                isinstance(test.left, ast.Name) and test.left.id == "__name__" and
-                len(test.ops) == 1 and isinstance(test.ops[0], ast.Eq) and
-                len(test.comparators) == 1 and isinstance(test.comparators[0], ast.Constant) and
-                test.comparators[0].value == "__main__"):
+            if (
+                isinstance(test, ast.Compare)
+                and isinstance(test.left, ast.Name)
+                and test.left.id == "__name__"
+                and len(test.ops) == 1
+                and isinstance(test.ops[0], ast.Eq)
+                and len(test.comparators) == 1
+                and isinstance(test.comparators[0], ast.Constant)
+                and test.comparators[0].value == "__main__"
+            ):
 
                 # Remove lines corresponding to this block
                 start_lineno = node.lineno - 1
@@ -186,6 +202,7 @@ def remove_main_block(source_code: str) -> str:
                 return "\n".join(lines[:start_lineno] + lines[end_lineno:])
 
     return source_code
+
 
 def split_code_and_output_into_sections(code: str, stdout: str) -> list[CodeSection]:
     """
@@ -208,7 +225,9 @@ def split_code_and_output_into_sections(code: str, stdout: str) -> list[CodeSect
                 functions.append((node.name, segment))
 
     # Split the main function body into sections based on print("Section: <section name>") code
-    main_fn_top_level_section, main_fn_sections = split_code_sections(main_function_body) if main_function_body else (None, [])
+    main_fn_top_level_section, main_fn_sections = (
+        split_code_sections(main_function_body) if main_function_body else (None, [])
+    )
 
     # Split the output into sections based on "Section: " headers
     output_top_level_section, output_sections = split_output_sections(stdout)
@@ -223,7 +242,9 @@ def split_code_and_output_into_sections(code: str, stdout: str) -> list[CodeSect
         elif output_section:
             # If only output section is available, extract the section name from it
             name = extract_first_section_name_from_output(output_section)
-        comments, cleaned_code = extract_comment_under_first_print(code_section) if code_section is not None else (None, None)
+        comments, cleaned_code = (
+            extract_comment_under_first_print(code_section) if code_section is not None else (None, None)
+        )
         result_sections.append(CodeSection(name=name, code=cleaned_code, comments=comments, output=output_section))
 
     # Small optimization: move function definitions to the sections where they are first called
@@ -236,7 +257,19 @@ def split_code_and_output_into_sections(code: str, stdout: str) -> list[CodeSect
                 break
 
     # Inject the top-level code at the beginning of the sections
-    top_level_code = top_level_code.rstrip() + "\n\n" + main_fn_top_level_section.lstrip() if main_fn_top_level_section else top_level_code
-    result_sections.insert(0, CodeSection(name=None, code=top_level_code, comments=None, output=output_top_level_section))
+    top_level_code = (
+        top_level_code.rstrip() + "\n\n" + main_fn_top_level_section.lstrip()
+        if main_fn_top_level_section
+        else top_level_code
+    )
+    result_sections.insert(
+        0,
+        CodeSection(
+            name=None,
+            code=top_level_code,
+            comments=None,
+            output=output_top_level_section,
+        ),
+    )
 
     return result_sections

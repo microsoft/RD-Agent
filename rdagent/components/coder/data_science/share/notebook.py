@@ -1,6 +1,7 @@
 """
 Handles conversion from a Python file to a Jupyter notebook.
 """
+
 import nbformat
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -20,6 +21,7 @@ class NotebookConverter:
     """
     Builder responsible for writing a Jupyter notebook for a workspace.
     """
+
     def __init__(self):
         self.notebook_name = "main.ipynb"
 
@@ -53,8 +55,7 @@ class NotebookConverter:
             code=code,
         )
         resp = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt,
-            system_prompt=system_prompt
+            user_prompt=user_prompt, system_prompt=system_prompt
         )
         intro_content = MarkdownAgentOut.extract_output(resp)
         notebook.cells.append(nbformat.v4.new_markdown_cell(intro_content))
