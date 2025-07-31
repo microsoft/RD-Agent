@@ -61,17 +61,17 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         }
         output_spec, extract_output_fn = output_map[self.settings.diff_mode]
 
-        if prev_task_feedback.hyperparameter_tuning_decision:
-            # Use system_refine for hyperparameter tuning
-            system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
+        if prev_task_feedback.final_decision is False:
+            task_information_str = target_task.get_task_information()
+            # Use system_debugger for error fixing and debugging
+            system_prompt = T(".prompts:DSCoSTEER.system_debugger").r(
+                task_desc=task_information_str,
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,
             )
         else:
-            task_information_str = target_task.get_task_information()
-            # Use system_debugger for error fixing and debugging
+            # Use system_refine for hyperparameter tuning
             system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
-                task_desc=task_information_str,
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,
             )
@@ -152,12 +152,13 @@ class DSCoSTEERRunner(CoSTEER):
         )
 
     def develop(self, exp):
-        bak_sub_tasks = exp.sub_tasks
+        bak_sub_tasks = exp.pending_tasks_list
         exp.sub_tasks = [
             CoSTEERTask(
                 name="Debug running solution",
                 description=f"You'll be provided with the source code and the running and testing stdout. "
                 "Please check the error messages and debug the source code if any errors occur.\n"
+                f"Original task: {bak_sub_tasks[0][0].get_task_information()}\n"
                 f"Current code repo md5: {md5_hash(exp.experiment_workspace.all_codes)}",
             ),
         ]

@@ -32,8 +32,12 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     ## Coding Related
     coding_fail_reanalyze_threshold: int = 3
 
+    debug_recommend_timeout: int = 600
+    """The recommend time limit for running on debugging data"""
     debug_timeout: int = 600
     """The timeout limit for running on debugging data"""
+    full_recommend_timeout: int = 3600
+    """The recommend time limit for running on full data"""
     full_timeout: int = 3600
     """The timeout limit for running on full data"""
 
@@ -119,12 +123,14 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     model_architecture_suggestion_time_percent: float = 0.75
     allow_longer_timeout: bool = False
-    coder_longer_timeout_multiplier: int = 3
-    runner_longer_timeout_multiplier: int = 2
+    coder_longer_timeout_multiplier_upper: int = 3
+    runner_longer_timeout_multiplier_upper: int = 2
+    timeout_increase_stage: float = 0.3
 
     #### hypothesis critique and rewrite
     enable_hypo_critique_rewrite: bool = True
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
+    enable_scale_check: bool = False
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()

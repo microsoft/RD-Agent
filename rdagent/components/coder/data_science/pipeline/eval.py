@@ -158,10 +158,17 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         else:
             eda_output = implementation.file_dict.get("EDA.md", None)
 
+        queried_similar_successful_knowledge = (
+            queried_knowledge.task_to_similar_task_successful_knowledge[target_task.get_task_information()]
+            if queried_knowledge is not None
+            else []
+        )
+
         system_prompt = T(".prompts:pipeline_eval.system").r(
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             debug_mode=DS_RD_SETTING.sample_data_by_LLM,
             mle_check=(DS_RD_SETTING.sample_data_by_LLM and test_eval.is_sub_enabled(self.scen.competition)),
+            queried_similar_successful_knowledge=queried_similar_successful_knowledge,
         )
         user_prompt = T(".prompts:pipeline_eval.user").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
