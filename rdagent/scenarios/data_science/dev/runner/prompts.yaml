@@ -24,10 +24,12 @@ DSCoSTEER_eval:
     2. Ensure the code does not contain any incorrect, fabricated, or deceptive operations, such as mocking data, scores, or results.
     3. Confirm that the prediction file (`submission.csv`) is generated using only the test dataset, and its format matches the sample submission.
     If the code does not satisfy the requirements:
+    - Set "acceptable" to false.
     - Set "final_decision" to false.
     {% if enable_hyperparameter_tuning_check %}- set "hyperparameter_tuning_decision" to false.
     - Set "hyperparameter_tuning_suggestion" to an empty string.
     If the code satisfy the requirements:
+    - Set "acceptable" to true.
     - Proceed to the next evaluation.
 
     # Evaluation 2: Hyperparameter
@@ -56,7 +58,8 @@ DSCoSTEER_eval:
     {
         "execution": "Describe whether the whole code base executed successfully and generating the final submission. Include any errors or issues encountered, and retain all error messages and traceback details.",
         "return_checking": "Verify the generated files, particularly the submission file. Ensure that its format matches the sample submission",
-        "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",{% if enable_hyperparameter_tuning_check %}
+        "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
+        "acceptable": <true/false: if the solution has paased execution, return_checking, and code verification, then it is a valid solution and acceptable. Otherwise it is not acceptable.>,{% if enable_hyperparameter_tuning_check %}
         "hyperparameter_tuning_decision": <true/false>,
         "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,{% endif %}
         "final_decision": <true/false>,
@@ -78,10 +81,12 @@ DSCoSTEER_eval:
     1. The code execution time or resource utilization suggest that there is room for improvement in the hyperparameters.
     2. The code must apply early stopping strategy already (in order to prevent overfitting).
     3. Your suggestion should have a strong chance of improving the model's performance. Focus on the most obvious and impactful opportunities for quick improvement by leveraging more training time. Don't explore hyperparameters with low confidence.  If there are no obvious and impactful opportunities and the code runs well, please accept it.
+
     If the code satisfy the requirements:
     - Set "hyperparameter_tuning_decision" to true.
-    - Set "final_decision" to false.
     - Provide a reasonable suggestion in "hyperparameter_tuning_suggestion". The "hyperparameter_tuning_suggestion" should begin with a clear observation, followed by your suggestion. For example: "[Observation] The maximum number of epochs was reached, but the validation loss is still going down and early stopping was not activated. Only 15% of the allowed time was used. [Suggestion] We recommend increasing epochs to 100 to avoid underfitting and further improve model performance."
+    - Set "final_decision" to false.
+
     If the code does not satisfy the requirements:
     - Set "hyperparameter_tuning_decision" to false.
     - Set "hyperparameter_tuning_suggestion" to an empty string.
@@ -93,6 +98,7 @@ DSCoSTEER_eval:
         "execution": "Describe whether the code executed successfully. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information.",
         "return_checking": "Describe the expected file to be generated.",
         "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
+        "acceptable": <true/false: if the solution has paased execution, return_checking, and code verification, then it is a valid solution and acceptable. Otherwise it is not acceptable.>,
         {% if enable_hyperparameter_tuning_check %}"hyperparameter_tuning_decision": <true/false>,
         "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,{% endif %}
         "final_decision": <true/false>,

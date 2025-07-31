@@ -19,7 +19,7 @@ from rdagent.core.exception import RunnerError
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
-from rdagent.scenarios.data_science.dev.runner.eval import DSCoSTEERCoSTEEREvaluator
+from rdagent.scenarios.data_science.dev.runner.eval import DSRunnerEvaluator
 from rdagent.utils.agent.ret import PythonBatchEditOut, PythonBatchPatchOut
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
@@ -128,7 +128,7 @@ class DSCoSTEERRunner(CoSTEER):
         **kwargs,
     ) -> None:
 
-        eval_l = [DSCoSTEERCoSTEEREvaluator(scen=scen)]
+        eval_l = [DSRunnerEvaluator(scen=scen)]
         if DS_RD_SETTING.enable_model_dump:
             eval_l.append(ModelDumpEvaluator(scen=scen, data_type="full"))
 
