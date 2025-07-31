@@ -444,7 +444,7 @@ class Experiment(
                 except RuntimeError:
                     # the FBWorkspace is shared between experiment_workspace and sub_workspace_list,
                     # so recover_ws_ckp will raise RuntimeError if a workspace is recovered twice.
-                    pass
+                    print("recover_ws_ckp failed due to one workspace is recovered twice.")
 
 
 ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)
