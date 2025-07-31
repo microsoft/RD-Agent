@@ -158,6 +158,7 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
         user_prompt = T(".prompts:DSCoSTEER_eval.user").r(
             code=implementation.all_codes,
             stdout=shrink_text(stdout),
+            score=score_df.to_string() if score_ret_code == 0 else None,
             time_spent=f"{implementation.running_info.running_time:.2f} seconds",
             timeout=f"{env.conf.running_timeout_period} seconds",
             percent_of_timeout_used=f"{time_spent_ratio * 100:.2f}%",
