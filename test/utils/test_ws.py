@@ -63,3 +63,10 @@ class TestFBWorkspace(unittest.TestCase):
             if p.is_file() or p.is_symlink()
         }
         self.assertEqual(recovered_files, original_files)
+
+        # Verify large files (>100 KB) are excluded from the checkpoint.
+        large_file = ws.workspace_path / "large.bin"
+        large_file.write_bytes(b"0" * (110 * 1024))  # 110 KB dummy content
+        ws.create_ws_ckp()
+        ws.recover_ws_ckp()
+        self.assertFalse((ws.workspace_path / "large.bin").exists())

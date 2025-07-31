@@ -305,8 +305,12 @@ class FBWorkspace(Workspace):
         ``self.ws_ckp`` for later restoration via :py:meth:`recover_ws_ckp`.
         """
         buf = io.BytesIO()
+        SIZE_LIMIT = 100 * 1024  # 100 KB
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
             for file_path in self.workspace_path.rglob("*"):
+                # Only include regular files up to 100 KB so that the checkpoint
+                # remains lightweight. Larger files (for example, datasets) are
+                # expected to be recreated or mounted separately.
                 if file_path.is_symlink():
                     # Preserve symbolic links within the archive
                     zi = zipfile.ZipInfo(str(file_path.relative_to(self.workspace_path)))
@@ -314,7 +318,8 @@ class FBWorkspace(Workspace):
                     zi.external_attr = 0o120777 << 16  # symlink file type + 0777 perms
                     zf.writestr(zi, str(file_path.readlink()))
                 elif file_path.is_file():
-                    zf.write(file_path, file_path.relative_to(self.workspace_path))
+                    if file_path.stat().st_size <= SIZE_LIMIT:
+                        zf.write(file_path, file_path.relative_to(self.workspace_path))
         self.ws_ckp = buf.getvalue()
 
     def recover_ws_ckp(self) -> None:
