@@ -241,6 +241,16 @@ class SOTABasedScheduler(ProbabilisticScheduler):
     A scheduler that prefers traces with more SOTA (State of the Art) results.
     """
 
+    def __init__(self, max_trace_num: int, temperature: float = 1.0, inverse: bool = False):
+        """
+        Args:
+            max_trace_num: The target number of parallel traces.
+            temperature: Temperature parameter for softmax calculation.
+            inverse: If True, fewer SOTA results get higher potential.
+        """
+        super().__init__(max_trace_num, temperature)
+        self.inverse = inverse
+
     def calculate_potential(self, trace: DSTrace, leaf_id: int) -> float:
         """
         Calculate potential based on the number of SOTA results in the trace.
@@ -256,6 +266,9 @@ class SOTABasedScheduler(ProbabilisticScheduler):
                 if feedback.decision:
                     sota_count += 1
 
+        if self.inverse:
+            # Add 1 to avoid division by zero and give traces with 0 SOTAs the highest potential.
+            return 1.0 / (sota_count + 1)
         return float(sota_count)
 
 
