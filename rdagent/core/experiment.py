@@ -439,7 +439,12 @@ class Experiment(
             self.experiment_workspace.recover_ws_ckp()
         for ws in self.sub_workspace_list:
             if ws is not None:
-                ws.recover_ws_ckp()
+                try:
+                    ws.recover_ws_ckp()
+                except RuntimeError:
+                    # the FBWorkspace is shared between experiment_workspace and sub_workspace_list,
+                    # so recover_ws_ckp will raise RuntimeError if a workspace is recovered twice.
+                    print("recover_ws_ckp failed due to one workspace is recovered twice.")
 
 
 ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)
