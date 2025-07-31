@@ -33,8 +33,8 @@ DSCoSTEER_eval:
     # Evaluation 2: Hyperparameter
     ## Evaluation Description
     The user will provide you the time spent on the whole code execution and the timeout of the code execution. You should decide whether the hyperparameter is reasonable based on the time.
-    If the code uses only a very small portion (below 25%) of the allowed time, and hyperparameters like `n_estimators` or `epochs` have low values, with early stopping not being triggered and possible signs of underfitting, you should suggest increasing these hyperparameters.
-    You should also notice other resources utilization hyper-parameters.
+    For example, if the code uses only a very small portion of the allowed time, and hyperparameters like `n_estimators` or `epochs` have low values, with early stopping not being triggered and possible signs of underfitting, you should suggest increasing these hyperparameters.
+    You should also notice other resources utilization hyper-parameters,
     For example, if you are using a GPU with large memory, and the batch size is set very low, you should suggest increasing the batch size if it is not reasonable.
 
     ## Evaluation Guidelines

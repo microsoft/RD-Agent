@@ -127,6 +127,17 @@ class DataScienceScen(Scenario):
             else DS_RD_SETTING.debug_timeout
         )
 
+    def recommend_debug_timeout(self):
+        return (
+            DS_RD_SETTING.debug_recommend_timeout
+            * min(
+                DS_RD_SETTING.coder_longer_timeout_multiplier_upper,
+                self.timeout_increase_count * DS_RD_SETTING.timeout_increase_stage + 1,
+            )
+            if self.longer_time_limit_required and DS_RD_SETTING.allow_longer_timeout
+            else DS_RD_SETTING.debug_timeout
+        )
+
     def real_full_timeout(self):
         return (
             DS_RD_SETTING.full_timeout
@@ -136,6 +147,17 @@ class DataScienceScen(Scenario):
             )
             if self.longer_time_limit_required and DS_RD_SETTING.allow_longer_timeout
             else DS_RD_SETTING.full_timeout
+        )
+
+    def recommend_full_timeout(self):
+        return (
+            DS_RD_SETTING.full_recommend_timeout
+            * min(
+                DS_RD_SETTING.runner_longer_timeout_multiplier_upper,
+                self.timeout_increase_count * DS_RD_SETTING.timeout_increase_stage + 1,
+            )
+            if self.longer_time_limit_required and DS_RD_SETTING.allow_longer_timeout
+            else DS_RD_SETTING.full_recommend_timeout
         )
 
     def increase_timeout(self):
@@ -172,9 +194,11 @@ class DataScienceScen(Scenario):
             raw_description=self.raw_description,
             use_raw_description=DS_RD_SETTING.use_raw_description,
             time_limit=None,
+            recommend_time_limit=None,
             eda_output=None,
             sample_data_by_LLM=None,
             debug_time_limit=None,
+            recommend_debug_time_limit=None,
             runtime_environment=self.get_runtime_environment(),
         )
 
@@ -191,9 +215,11 @@ class DataScienceScen(Scenario):
             raw_description=self.raw_description,
             use_raw_description=DS_RD_SETTING.use_raw_description,
             time_limit=f"{self.real_full_timeout() / 60 / 60 : .2f} hours",
+            recommend_time_limit=f"{self.recommend_full_timeout() / 60 / 60 : .2f} hours",
             eda_output=eda_output,
             sample_data_by_LLM=DS_RD_SETTING.sample_data_by_LLM,
-            debug_time_limit=f"{self.real_debug_timeout() / 60 / 60 : .2f} hours",
+            debug_time_limit=f"{self.real_debug_timeout() / 60 : .2f} minutes",
+            recommend_debug_time_limit=f"{self.recommend_debug_timeout() / 60 : .2f} minutes",
             runtime_environment=self.get_runtime_environment(),
         )
 
