@@ -194,9 +194,11 @@ class DataScienceScen(Scenario):
             raw_description=self.raw_description,
             use_raw_description=DS_RD_SETTING.use_raw_description,
             time_limit=None,
+            recommend_time_limit=None,
             eda_output=None,
             sample_data_by_LLM=None,
             debug_time_limit=None,
+            recommend_debug_time_limit=None,
             runtime_environment=self.get_runtime_environment(),
         )
 
