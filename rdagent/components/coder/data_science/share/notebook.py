@@ -51,15 +51,17 @@ class NotebookConverter:
         # Handle argparse in the code to ensure it works in a notebook environment
         if "argparse" in code:
             code = (
-                [
-                    "import sys",
-                    "# hack to allow argparse to work in notebook",
-                    (
-                        'sys.argv = ["main.py", "--debug"]'
-                        if use_debug_flag
-                        else 'sys.argv = ["main.py"]'
-                    ),
-                ].join("\n")
+                "\n".join(
+                    [
+                        "import sys",
+                        "# hack to allow argparse to work in notebook",
+                        (
+                            'sys.argv = ["main.py", "--debug"]'
+                            if use_debug_flag
+                            else 'sys.argv = ["main.py"]'
+                        ),
+                    ]
+                )
                 + "\n"
                 + code
             )
