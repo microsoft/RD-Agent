@@ -37,7 +37,45 @@ class TraceScheduler(ABC):
         raise NotImplementedError
 
 
-class RoundRobinScheduler(TraceScheduler):
+class BaseScheduler(TraceScheduler):
+    def __init__(self):
+        self.rec_commit_idx = 0  # the node before rec_idx is already committed.
+        self.uncommited_rec_status = defaultdict(int)  # the uncommited record status
+
+
+    async def next(self, trace: DSTrace):
+        """
+        Atomically selects the next leaf node from the trace in order.
+        """
+        while True:
+            # step 0: Commit the pending selections
+            for i in range(self.rec_commit_idx, len(trace.dag_parent)):
+
+                if trace.dag_parent[i] == trace.NEW_ROOT:
+                    self.uncommited_rec_status[trace.NEW_ROOT] -= 1
+                else:
+                    for p in trace.dag_parent[i]:
+                        self.uncommited_rec_status[p] -= 1
+
+            self.rec_commit_idx = len(trace.hist)
+
+
+            parents = self.select(trace)
+            if p == trace.NEW_ROOT:
+                self.uncommited_rec_status[trace.NEW_ROOT] += 1
+            for p in parents:
+                self.uncommited_rec_status[parents] += 1
+
+            await asyncio.sleep(1)
+
+
+    @abstractmethod
+    def select(self, trace: DSTrace) -> tuple[int, ...]:
+        ...
+
+
+
+class RoundRobinScheduler(BaseScheduler):
     """
     A concurrency-safe scheduling strategy that cycles through active traces
     in a round-robin fashion.
@@ -48,8 +86,7 @@ class RoundRobinScheduler(TraceScheduler):
     def __init__(self, max_trace_num: int):
         self.max_trace_num = max_trace_num
         self._last_selected_leaf_id = -1
-        self.rec_commit_idx = 0  # the node before rec_idx is already committed.
-        self.uncommited_rec_status = defaultdict(int)  # the uncommited record status
+        super().__init__()
 
     async def next(self, trace: DSTrace) -> tuple[int, ...]:
         """
