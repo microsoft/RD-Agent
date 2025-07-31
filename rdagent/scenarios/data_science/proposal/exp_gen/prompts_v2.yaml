@@ -193,6 +193,7 @@ hypothesis_gen:
       - **Risk-Reward Balance (Score: 1-10):** Considering the potential for significant improvement (reward) versus the probability of failure, negative side-effects, or excessive resource consumption (risk), how optimal is this balance? A high score indicates a favorable balance.
       - **Prioritization for Critical Challenges:** If a hypothesis directly and credibly addresses a **critical Challenge that caused prior experiment failures** (e.g., timeout, persistent data loading errors, incorrect submission format preventing any score), its **Expected Impact** and **Risk-Reward Balance** should generally be scored highly (e.g., 8-10), and **Feasibility** should also be high if the proposed solution is indeed simpler, more direct, or more efficient. This ensures such critical hypotheses are prioritized.
 
+    3. Please generate 2 hypotheses, as concise as possible, no more than 2 sentences each.
     {% if inject_diverse %}
     # Focus on Diversity!!
     Diversity is very critical in the analysis of scenario problems. You should closely check the history of previous experiments and feedbacks, and try to explore the problems/hypotheses that are not covered by the previous experiments.
