@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import math
+import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import TYPE_CHECKING
@@ -22,7 +24,7 @@ class TraceScheduler(ABC):
 
         For proposing selections, we have to follow the rules
         - Suggest selection: suggest a selection that is suitable for the current trace.
-        - Suggested should be garenteed to be recorded at last!!!
+        - Suggested should be garenteed to be recorded at last!!!!
         - If no suitable selection is found, the function should async wait!!!!
 
         Args:
@@ -84,59 +86,6 @@ class RoundRobinScheduler(TraceScheduler):
 # Probabilistic Scheduler and its potential functions
 # ======================================================================================
 
-import random
-from typing import Callable
-
-
-if TYPE_CHECKING:
-    from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace
-
-
-PotentialFunc = Callable[[DSTrace, int], float]
-"""
-A function that calculates a potential score for a given trace leaf.
-Args:
-    trace (DSTrace): The entire experiment history.
-    leaf_id (int): The index of the leaf node to evaluate.
-Returns:
-    float: A non-negative potential score. Higher means more likely to be selected.
-"""
-
-
-def random_potential(trace: DSTrace, leaf_id: int) -> float:
-    """Assigns a random potential, leading to uniform random selection."""
-    return random.random()
-
-
-def trace_length_potential(trace: DSTrace, leaf_id: int, inverse: bool = False) -> float:
-    """
-    Calculates potential based on the length of the trace leading to the leaf.
-    Longer traces get higher potential by default.
-    If inverse=True, shorter traces get higher potential.
-    NOTE: This is an example and assumes `trace.get_path_to_root(leaf_id)` exists.
-    """
-    # This is a hypothetical way to get the path length.
-    path_len = len(trace.get_path_to_root(leaf_id))
-    if path_len == 0:
-        return 1.0
-    return 1.0 / path_len if inverse else float(path_len)
-
-
-def sota_potential(trace: DSTrace, leaf_id: int) -> float:
-    """
-    Calculates potential based on the number of SOTA results in the trace.
-    NOTE: This is an example and assumes `trace.hist[i]['is_sota']` exists
-    and `trace.get_path_to_root(leaf_id)` exists.
-    The actual implementation will depend on the structure of `DSTrace`.
-    """
-    path = trace.get_path_to_root(leaf_id)
-    sota_count = 0
-    for node_id in path:
-        # This is a hypothetical way to check for SOTA.
-        if trace.hist[node_id].get("is_sota", False):
-            sota_count += 1
-    return float(sota_count)
-
 
 class ProbabilisticScheduler(TraceScheduler):
     """
@@ -144,19 +93,62 @@ class ProbabilisticScheduler(TraceScheduler):
     based on a probability distribution derived from a potential function.
     """
 
-    def __init__(self, max_trace_num: int, potential_fn: PotentialFunc = random_potential):
+    def __init__(self, max_trace_num: int, temperature: float = 1.0):
         """
         Args:
             max_trace_num: The target number of parallel traces.
-            potential_fn: A function that takes (DSTrace, leaf_id) and returns a
-                          float potential score. Defaults to random potential.
+            temperature: Temperature parameter for softmax calculation. Higher values make selection more uniform.
         """
         if max_trace_num <= 0:
             raise ValueError("max_trace_num must be positive.")
+        if temperature <= 0:
+            raise ValueError("temperature must be positive.")
+        
         self.max_trace_num = max_trace_num
-        self.potential_fn = potential_fn
+        self.temperature = temperature
         self.rec_commit_idx = 0
         self.uncommited_rec_status = defaultdict(int)
+
+    def calculate_potential(self, trace: DSTrace, leaf_id: int) -> float:
+        """
+        Calculate potential score for a given leaf node.
+        This is the base implementation that provides uniform distribution.
+        
+        Args:
+            trace: The DSTrace object containing the full experiment history.
+            leaf_id: The index of the leaf node to evaluate.
+            
+        Returns:
+            float: A potential score. Higher means more likely to be selected.
+        """
+        return 1.0  # Uniform distribution by default
+
+    def _softmax_probabilities(self, potentials: list[float]) -> list[float]:
+        """
+        Convert potential scores to probabilities using softmax.
+        
+        Args:
+            potentials: List of potential scores.
+            
+        Returns:
+            List of probabilities that sum to 1.
+        """
+        if not potentials:
+            return []
+        
+        # Apply temperature scaling
+        scaled_potentials = [p / self.temperature for p in potentials]
+        
+        # Compute softmax
+        max_potential = max(scaled_potentials)
+        exp_potentials = [math.exp(p - max_potential) for p in scaled_potentials]
+        sum_exp = sum(exp_potentials)
+        
+        if sum_exp == 0:
+            # If all potentials are very small, return uniform distribution
+            return [1.0 / len(potentials)] * len(potentials)
+        
+        return [exp_p / sum_exp for exp_p in exp_potentials]
 
     async def next(self, trace: DSTrace) -> tuple[int, ...]:
         """
@@ -188,19 +180,103 @@ class ProbabilisticScheduler(TraceScheduler):
                 continue
 
             # Calculate potential for each available leaf
-            potentials = [self.potential_fn(trace, leaf) for leaf in available_leaves]
+            potentials = [self.calculate_potential(trace, leaf) for leaf in available_leaves]
 
             if any(p < 0 for p in potentials):
                 raise ValueError("Potential function returned a negative value.")
 
-            total_potential = sum(potentials)
+            # Convert potentials to probabilities using softmax
+            probabilities = self._softmax_probabilities(potentials)
 
-            # Select a leaf. If total potential is 0, select uniformly.
-            if total_potential > 0:
-                selected_leaf = random.choices(available_leaves, weights=potentials, k=1)[0]
-            else:
-                selected_leaf = random.choice(available_leaves)
+            # Select a leaf based on probabilities
+            selected_leaf = random.choices(available_leaves, weights=probabilities, k=1)[0]
 
             # Mark the selected leaf as "pending expansion"
             self.uncommited_rec_status[selected_leaf] += 1
             return (selected_leaf,)
+
+
+class TraceLengthScheduler(ProbabilisticScheduler):
+    """
+    A scheduler that prefers longer traces (more experiments).
+    """
+    
+    def __init__(self, max_trace_num: int, temperature: float = 1.0, inverse: bool = False):
+        """
+        Args:
+            max_trace_num: The target number of parallel traces.
+            temperature: Temperature parameter for softmax calculation.
+            inverse: If True, shorter traces get higher potential.
+        """
+        super().__init__(max_trace_num, temperature)
+        self.inverse = inverse
+
+    def calculate_potential(self, trace: DSTrace, leaf_id: int) -> float:
+        """
+        Calculate potential based on the length of the trace leading to the leaf.
+        """
+        # Get the path from root to this leaf using existing method
+        path = trace.get_parents(leaf_id)
+        path_len = len(path)
+        
+        if path_len == 0:
+            return 1.0
+        
+        return 1.0 / path_len if self.inverse else float(path_len)
+
+
+class SOTABasedScheduler(ProbabilisticScheduler):
+    """
+    A scheduler that prefers traces with more SOTA (State of the Art) results.
+    """
+    
+    def calculate_potential(self, trace: DSTrace, leaf_id: int) -> float:
+        """
+        Calculate potential based on the number of SOTA results in the trace.
+        """
+        # Get the path from root to this leaf
+        path = trace.get_parents(leaf_id)
+        sota_count = 0
+        
+        for node_id in path:
+            # Check if this experiment was successful (decision=True)
+            if node_id < len(trace.hist):
+                exp, feedback = trace.hist[node_id]
+                if feedback.decision:
+                    sota_count += 1
+        
+        return float(sota_count)
+
+
+class ComponentCompletionScheduler(ProbabilisticScheduler):
+    """
+    A scheduler that prefers traces that have completed more components.
+    """
+    
+    def calculate_potential(self, trace: DSTrace, leaf_id: int) -> float:
+        """
+        Calculate potential based on the number of completed components in the trace.
+        """
+        # Get the path from root to this leaf
+        path = trace.get_parents(leaf_id)
+        completed_components = set()
+        
+        for node_id in path:
+            if node_id < len(trace.hist):
+                exp, feedback = trace.hist[node_id]
+                if feedback.decision and hasattr(exp.hypothesis, 'component'):
+                    completed_components.add(exp.hypothesis.component)
+        
+        return float(len(completed_components))
+
+
+class RandomScheduler(ProbabilisticScheduler):
+    """
+    A scheduler that selects traces randomly with uniform distribution.
+    """
+    
+    def calculate_potential(self, trace: DSTrace, leaf_id: int) -> float:
+        """
+        Return random potential for uniform random selection.
+        """
+        return random.random()
