@@ -1,70 +1,66 @@
-"""Utility functions for Context7 MCP configuration.
+"""Context7 MCP configuration using pydantic BaseSettings.
 
-This module provides configuration loading functions for Context7 MCP integration,
-using existing LITELLM_SETTINGS configuration without creating new prefixes.
+This module provides clean configuration management for Context7 MCP integration.
 """
 
 import os
-from typing import Dict, Optional
+from typing import Optional
 
-from rdagent.log import rdagent_logger as logger
-from rdagent.oai.backend.litellm import LITELLM_SETTINGS
-from rdagent.oai.llm_conf import LLM_SETTINGS
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-def load_mcp_config() -> Dict[str, Optional[str]]:
-    """Load MCP configuration using existing LLM settings.
-
-    Returns:
-        Dict containing model, api_key, api_base, and mcp_url configuration
+class Context7Settings(BaseSettings):
+    """Context7 MCP configuration settings.
+    
+    All settings can be configured via environment variables with CONTEXT7_ prefix.
     """
-    try:
-        # Priority 1: Use LLM_SETTINGS as base configuration with fallback to None
-        selected_config = {
-            "model": getattr(LLM_SETTINGS, "chat_model", None),
-            "api_key": getattr(LLM_SETTINGS, "openai_api_key", None),
-            "api_base": os.getenv("OPENAI_API_BASE"),
-            "mcp_url": os.getenv("CONTEXT7_MCP_URL", "http://localhost:8123/mcp"),
-        }
+    
+    # MCP服务配置
+    mcp_url: str = Field(
+        default="http://localhost:8123/mcp",
+        description="MCP service URL for Context7"
+    )
+    
+    # LLM配置
+    model: str = Field(
+        default="gpt-4-turbo",
+        description="LLM model name"
+    )
+    api_key: Optional[str] = Field(
+        default=None,
+        description="OpenAI API key"
+    )
+    api_base: Optional[str] = Field(
+        default=None,
+        description="OpenAI API base URL"
+    )
+    
+    # 缓存配置
+    cache_enabled: bool = Field(
+        default=True,
+        description="Enable MCP caching (permanent cache)"
+    )
+    
+    model_config = SettingsConfigDict(
+        env_prefix="CONTEXT7_",
+        extra="ignore",
+    )
+    
+    def model_post_init(self, __context):
+        """Post-initialization fallback to common environment variables."""
+        # 简单的环境变量回退机制
+        if self.api_key is None:
+            self.api_key = os.getenv("OPENAI_API_KEY")
+        
+        if self.api_base is None:
+            self.api_base = os.getenv("OPENAI_API_BASE")
 
-        # Priority 2: Use LITELLM_SETTINGS only if LLM_SETTINGS values are None
-        if selected_config["model"] is None and hasattr(LITELLM_SETTINGS, "chat_model") and LITELLM_SETTINGS.chat_model:
-            selected_config["model"] = LITELLM_SETTINGS.chat_model
 
-        if (
-            selected_config["api_key"] is None
-            and hasattr(LITELLM_SETTINGS, "openai_api_key")
-            and LITELLM_SETTINGS.openai_api_key
-        ):
-            selected_config["api_key"] = LITELLM_SETTINGS.openai_api_key
+# 全局配置实例
+context7_settings = Context7Settings()
 
-        # Extract specific model for 'coding' or 'running' tags directly
-        if LITELLM_SETTINGS.chat_model_map:
-            # Directly extract 'coding' model if available
-            if "coding" in LITELLM_SETTINGS.chat_model_map:
-                coding_config = LITELLM_SETTINGS.chat_model_map["coding"]
-                selected_config["model"] = coding_config["model"]
-                # Extract API key from coding config if available
-                if "api_key" in coding_config:
-                    selected_config["api_key"] = coding_config["api_key"]
 
-            # Fallback to 'running' model if 'coding' not available
-            elif "running" in LITELLM_SETTINGS.chat_model_map:
-                running_config = LITELLM_SETTINGS.chat_model_map["running"]
-                selected_config["model"] = running_config["model"]
-                # Extract API key from running config if available
-                if "api_key" in running_config:
-                    selected_config["api_key"] = running_config["api_key"]
-
-        # If still no API key, try to get from environment variables
-        if not selected_config["api_key"]:
-            selected_config["api_key"] = os.getenv("OPENAI_API_KEY") or os.getenv("LITELLM_PROXY_API_KEY")
-
-        return selected_config
-
-    except ImportError as e:
-        logger.error(f"Error importing LLM_SETTINGS: {e}")
-        return {"model": None, "api_key": None, "api_base": None, "mcp_url": None}
-    except Exception as e:
-        logger.error(f"Error accessing LLM_SETTINGS: {e}")
-        return {"model": None, "api_key": None, "api_base": None, "mcp_url": None}
+def get_context7_settings() -> Context7Settings:
+    """Get the global Context7 settings instance."""
+    return context7_settings

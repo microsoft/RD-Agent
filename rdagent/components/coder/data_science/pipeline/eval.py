@@ -187,7 +187,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         if enable_context7 and wfb.requires_documentation_search is True:
             try:
                 # Run context7 query asynchronously
-                context7_result = asyncio.run(query_context7(stdout))
+                context7_result = asyncio.run(query_context7(wfb.error_message))
                 if context7_result:
                     logger.info("Context7: Documentation search completed successfully")
                     wfb.execution += f"\n\n### Context7 Documentation Search Result:\n{context7_result}"

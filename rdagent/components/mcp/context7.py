@@ -13,7 +13,8 @@ from llama_index.core.workflow import Context
 from llama_index.llms.openai import OpenAI
 from llama_index.tools.mcp import aget_tools_from_mcp_url
 
-from rdagent.components.mcp.util import load_mcp_config
+from rdagent.components.mcp.cache import get_mcp_cache
+from rdagent.components.mcp.util import get_context7_settings
 from rdagent.log import rdagent_logger as logger
 
 
@@ -28,22 +29,41 @@ async def query_context7(
         Documentation search result as string, or None if failed
     """
     try:
-        # Load configuration using existing LLM settings
-        config = load_mcp_config()
-        mcp_url = config.get("mcp_url")
-        openai_model = config.get("model")
-        openai_api_key = config.get("api_key")
-        openai_api_base = config.get("api_base")
+        # Load configuration using pydantic settings
+        settings = get_context7_settings()
+        print(settings)
+        # Initialize cache - 默认开启，永久缓存
+        cache = get_mcp_cache() if settings.cache_enabled else None
+
+        # Check query cache first
+        if cache:
+            cached_result = cache.get_query_result(error_message)
+            if cached_result:
+                logger.info("Returning cached query result")
+                cache.log_cache_stats()
+                return cached_result
 
         # Record start time for execution timing
         start_time = time.time()
-        tool_start_time = time.time()
-        tools = await aget_tools_from_mcp_url(mcp_url)
-        tool_end_time = time.time()
-        logger.info(f"Context7 tool loading time: {tool_end_time - tool_start_time:.2f} seconds")
+        
+        # Try to get tools from cache first
+        tools = cache.get_tools(settings.mcp_url) if cache else None
+        
+        if tools is None:
+            # Cache miss or cache disabled, load tools from URL
+            tool_start_time = time.time()
+            tools = await aget_tools_from_mcp_url(settings.mcp_url)
+            tool_end_time = time.time()
+            logger.info(f"Context7 tool loading time: {tool_end_time - tool_start_time:.2f} seconds")
+            
+            # Cache the tools for future use
+            if cache:
+                cache.set_tools(settings.mcp_url, tools)
+        else:
+            logger.info("Using cached tools, loading time: 0.00 seconds")
 
         # Initialize LLM with OpenAI configuration
-        llm = OpenAI(model=openai_model, api_key=openai_api_key, api_base=openai_api_base)
+        llm = OpenAI(model=settings.model, api_key=settings.api_key, api_base=settings.api_base)
 
         # Create ReAct agent with loaded tools
         agent = ReActAgent(tools=tools, llm=llm, verbose=True)
@@ -55,18 +75,43 @@ async def query_context7(
         # Construct query with error message and context7 instruction
         # TODO: how to fix the agent to force the two tools to be used
         # TODO: how to extend to more apis (currently only gpt models through llama_index)
-        query = f"""
-To solve this error: {error_message}
+        
+        query = f"""{error_message}
 
-Please follow these exact steps:
-1. First use resolve-library-id to find the library ID for albumentations
-2. Then use get-library-docs to get the documentation for albumentations  
-3. Then use resolve-library-id to find the library ID for albucore
-4. Then use get-library-docs to get the documentation for albucore
-5. Provide a solution based on both documentations
+IMPORTANT INSTRUCTIONS:
+1. ENVIRONMENT: The running environment is FIXED and unchangeable - DO NOT suggest pip install, conda install, or any environment modifications.
 
-You MUST use both resolve-library-id and get-library-docs tools for each library.
-"""
+2. SOLUTION REQUIREMENTS: 
+   - Provide WORKING CODE that directly replaces the problematic code
+   - Include specific import statements if needed
+   - Show the exact API usage from the official documentation
+   - If the original API doesn't exist, provide the correct alternative API with identical functionality
+
+3. RESPONSE FORMAT:
+   - Start with a brief explanation of the root cause
+   - Provide the corrected code block that can be directly copy-pasted
+   - Include any necessary import changes
+   - If multiple solutions exist, show the most straightforward one first
+
+4. DOCUMENTATION SEARCH: Use context7 to find the official API documentation and provide solutions based on the actual available methods and parameters.
+
+5. AVOID: Version upgrade suggestions, environment setup, debugging commands, or theoretical explanations without concrete code solutions.
+
+Example response format:
+```
+The error occurs because [brief explanation].
+
+Solution - Replace the problematic code with:
+```python
+# Corrected imports (if needed)
+import library as lib
+
+# Working replacement code
+corrected_code_here
+```
+```
+
+Please search the documentation and provide a practical, copy-paste solution."""
 
         # Execute agent query
         response = await agent.run(query, ctx=ctx)
@@ -80,7 +125,14 @@ You MUST use both resolve-library-id and get-library-docs tools for each library
         logger.info(f"Context7 total execution time: {total_time:.2f} seconds")
         logger.info(f"Context7 execution completed at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
 
-        return str(response)
+        result = str(response)
+        
+        # Cache the query result
+        if cache:
+            cache.set_query_result(error_message, result)
+            cache.log_cache_stats()
+
+        return result
 
     except Exception as e:
         logger.error(f"Context7 query failed: {str(e)}")
@@ -89,19 +141,8 @@ You MUST use both resolve-library-id and get-library-docs tools for each library
 
 async def main():
     """Main function for testing context7 functionality."""
-    error_msg = """Traceback (most recent call last):
-File "/workspace/RD-Agent/git_ignore_folder/RD-Agent_workspace/7f247f1f37894dd1a1e3057552e1972d/main.py", line 13, in <module>
-import albumentations as A
-File "/opt/conda/envs/kaggle/lib/python3.11/site-packages/albumentations/__init__.py", line 6, in <module>
-from .augmentations import *
-File "/opt/conda/envs/kaggle/lib/python3.11/site-packages/albumentations/augmentations/__init__.py", line 1, in <module>
-from .blur.functional import *
-File "/opt/conda/envs/kaggle/lib/python3.11/site-packages/albumentations/augmentations/blur/__init__.py", line 1, in <module>
-from .functional import *
-File "/opt/conda/envs/kaggle/lib/python3.11/site-packages/albumentations/augmentations/blur/functional.py", line 9, in <module>
-from albucore.utils import clipped, maybe_process_in_chunks, preserve_channel_dim
-ImportError: cannot import name 'preserve_channel_dim' from 'albucore.utils' (/opt/conda/envs/kaggle/lib/python3.11/site-packages/albucore/utils.py)
-This is likely due to (3) environment/dependency problems and not an algorithmic or syntax issue."""
+    error_msg = """### TRACEBACK: Traceback (most recent call last):\nFile \"/workspace/RD-Agent/git_ignore_folder/RD-Agent_workspace/55141c6414284b9f8512f998b4b91043/main.py\", line 540, in <module>\nmain()\nFile \"/workspace/RD-Agent/git_ignore_folder/RD-Agent_workspace/55141c6414284b9f8/512f998b4b91043/main.py\", line 440, in main\ntrain_transforms = build_transforms('train')\n^^^^^^^^^^^^^^^^^^^^^^^^^\nFile \"/workspace/RD-Agent/git_ignore_folder/RD-Agent_workspace/55141c6414284b9f8512f998b4b91043/main.py\", line 149, in build_transforms\nA.RandAugment(n=2, m=9),\n^^^^^^^^^^^^^\nAttributeError: module 'albumentations' has no attribute 'RandAugment'\n### SUPPLEMENTARY_INFO: import albumentations as A\nfrom albumentations.pytorch import ToTensorV2"""
+    
     result = await query_context7(error_msg)
     print(result)
 
