@@ -1,14 +1,20 @@
 """
 Handles conversion from a Python file to a Jupyter notebook.
 """
+import nbformat
+
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.components.coder.data_science.share.util import (
+    extract_first_section_name_from_code,
+    extract_function_body,
+    split_code_and_output_into_sections,
+)
 from rdagent.core.experiment import FBWorkspace, Task
-from rdagent.components.coder.data_science.share.util import extract_function_body, extract_first_section_name_from_code, split_code_and_output_into_sections
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.ret import MarkdownAgentOut
 from rdagent.utils.agent.tpl import T
-from rdagent.log import rdagent_logger as logger
-import nbformat
+
 
 class NotebookConverter:
     """

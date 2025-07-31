@@ -3,6 +3,7 @@ import re
 from itertools import zip_longest
 from typing import Optional, TypedDict
 
+
 class CodeSection(TypedDict):
     """
     Represents a section of the original Python source code, to be converted to a notebook cell.

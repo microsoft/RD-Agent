@@ -1,17 +1,18 @@
 import unittest
 
 from rdagent.components.coder.data_science.share.util import (
-    extract_function_body,
-    split_code_sections,
-    split_output_sections,
     extract_comment_under_first_print,
     extract_first_section_name_from_code,
     extract_first_section_name_from_output,
+    extract_function_body,
     is_function_called,
     remove_function,
     remove_main_block,
-    split_code_and_output_into_sections
+    split_code_and_output_into_sections,
+    split_code_sections,
+    split_output_sections,
 )
+
 
 class TestExtractFunctionBody(unittest.TestCase):
     def test_happy_path(self):
