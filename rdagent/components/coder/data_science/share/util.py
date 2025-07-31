@@ -36,9 +36,7 @@ def extract_function_body(source_code: str, function_name: str) -> Optional[str]
     return None
 
 
-def split_sections(
-    text: str, section_header_regex: str
-) -> tuple[Optional[str], list[str]]:
+def split_sections(text: str, section_header_regex: str) -> tuple[Optional[str], list[str]]:
     """
     Split text into sections based on the section headers.
     """
@@ -110,9 +108,7 @@ def extract_comment_under_first_print(source_code) -> tuple[Optional[str], str]:
         elif i > first_print_lineno:
             break  # stop after hitting actual code line
 
-    cleaned_lines = [
-        line for idx, line in enumerate(lines) if idx not in lines_to_remove
-    ]
+    cleaned_lines = [line for idx, line in enumerate(lines) if idx not in lines_to_remove]
     cleaned_code = "\n".join(cleaned_lines)
     comments_str = "\n".join(all_comments) if all_comments else None
 
@@ -313,18 +309,12 @@ def split_code_and_output_into_sections(code: str, stdout: str) -> list[CodeSect
             # If only output section is available, extract the section name from it
             name = extract_first_section_name_from_output(output_section)
         comments, cleaned_code = (
-            extract_comment_under_first_print(code_section)
-            if code_section is not None
-            else (None, None)
+            extract_comment_under_first_print(code_section) if code_section is not None else (None, None)
         )
         # Strip whitespaces for the cell
         if cleaned_code is not None:
             cleaned_code = cleaned_code.strip()
-        result_sections.append(
-            CodeSection(
-                name=name, code=cleaned_code, comments=comments, output=output_section
-            )
-        )
+        result_sections.append(CodeSection(name=name, code=cleaned_code, comments=comments, output=output_section))
 
     # Small optimization: move function definitions to the sections where they are first called
     # TODO: this doesn't handle nested function references, e.g., fn A calls fn B which calls fn C

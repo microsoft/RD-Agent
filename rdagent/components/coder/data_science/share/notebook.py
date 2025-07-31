@@ -57,11 +57,7 @@ class NotebookConverter:
                     [
                         "import sys",
                         "# hack to allow argparse to work in notebook",
-                        (
-                            'sys.argv = ["main.py", "--debug"]'
-                            if use_debug_flag
-                            else 'sys.argv = ["main.py"]'
-                        ),
+                        ('sys.argv = ["main.py", "--debug"]' if use_debug_flag else 'sys.argv = ["main.py"]'),
                     ]
                 )
                 + "\n\n"
@@ -85,11 +81,7 @@ class NotebookConverter:
             notebook.cells.append(nbformat.v4.new_markdown_cell(intro_content))
 
         # Remove `import sys` if it was added for argparse handling
-        if (
-            should_handle_argparse
-            and len(sections)
-            and "import sys" in sections[0]["code"]
-        ):
+        if should_handle_argparse and len(sections) and "import sys" in sections[0]["code"]:
             sections[0]["code"] = sections[0]["code"].replace("import sys\n", "")
 
         for section in sections:
@@ -108,11 +100,7 @@ class NotebookConverter:
                 if section["output"]:
                     # For simplicity, treat all output as coming from stdout
                     # TODO: support Jupyter kernel execution and handle outputs appropriately here
-                    cell.outputs = [
-                        nbformat.v4.new_output(
-                            "stream", name="stdout", text=section["output"]
-                        )
-                    ]
+                    cell.outputs = [nbformat.v4.new_output("stream", name="stdout", text=section["output"])]
                 notebook.cells.append(cell)
 
         # Save the notebook or return it as a string
@@ -126,9 +114,7 @@ class NotebookConverter:
 
 if __name__ == "__main__":
     converter = NotebookConverter()
-    parser = argparse.ArgumentParser(
-        description="Convert Python code to Jupyter notebook."
-    )
+    parser = argparse.ArgumentParser(description="Convert Python code to Jupyter notebook.")
     parser.add_argument("inputfile", type=str, help="Path to the input Python file.")
     parser.add_argument("outfile", type=str, help="Path to the output Notebook file.")
     parser.add_argument(
@@ -137,9 +123,7 @@ if __name__ == "__main__":
         default="",
         help="Standard output from the code execution.",
     )
-    parser.add_argument(
-        "--debug", action="store_true", help="Use debug flag to modify sys.argv."
-    )
+    parser.add_argument("--debug", action="store_true", help="Use debug flag to modify sys.argv.")
     args = parser.parse_args()
     converter.convert(
         task=None,

@@ -43,16 +43,10 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         target_task_information = target_task.get_task_information()
         if (
             queried_knowledge is not None
-            and target_task_information
-            in queried_knowledge.success_task_to_knowledge_dict
+            and target_task_information in queried_knowledge.success_task_to_knowledge_dict
         ):
-            return queried_knowledge.success_task_to_knowledge_dict[
-                target_task_information
-            ].feedback
-        elif (
-            queried_knowledge is not None
-            and target_task_information in queried_knowledge.failed_task_info_set
-        ):
+            return queried_knowledge.success_task_to_knowledge_dict[target_task_information].feedback
+        elif queried_knowledge is not None and target_task_information in queried_knowledge.failed_task_info_set:
             return PipelineSingleFeedback(
                 execution="This task has failed too many times, skip implementation.",
                 return_checking="This task has failed too many times, skip implementation.",
@@ -61,11 +55,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             )
 
         env = get_ds_env(
-            extra_volumes={
-                self.scen.debug_path: T(
-                    "scenarios.data_science.share:scen.input_path"
-                ).r()
-            },
+            extra_volumes={self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()},
             running_timeout_period=self.scen.real_debug_timeout(),
         )
 
@@ -103,18 +93,12 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
         sample_submission_check = True
         test_eval = get_test_eval()
-        if (
-            sample_submission_file_name := test_eval.get_sample_submission_name(
-                self.scen.competition
-            )
-        ) is not None:
+        if (sample_submission_file_name := test_eval.get_sample_submission_name(self.scen.competition)) is not None:
             # check whether code ever opens the sample submission file
             if (implementation.workspace_path / "trace.log").exists():
                 opened_trace_lines = [
                     line
-                    for line in (implementation.workspace_path / "trace.log")
-                    .read_text()
-                    .splitlines()
+                    for line in (implementation.workspace_path / "trace.log").read_text().splitlines()
                     if "openat" in line and sample_submission_file_name in line
                 ]
                 if len(opened_trace_lines) > 0:
@@ -128,13 +112,9 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             stdout += f"Code ran successfully.\n Following the stdout of the debug mode run:\n{result.stdout.strip()}\n"
         if DS_RD_SETTING.sample_data_by_LLM:
             debug_time, full_estimated_time = None, None
-            if match := re.search(
-                r"debug_time:\s*(\d+(?:.\d+)?)", result.stdout, re.DOTALL
-            ):
+            if match := re.search(r"debug_time:\s*(\d+(?:.\d+)?)", result.stdout, re.DOTALL):
                 debug_time = float(match.group(1))
-            if match := re.search(
-                r"estimated_time:\s*(\d+(?:.\d+)?)", result.stdout, re.DOTALL
-            ):
+            if match := re.search(r"estimated_time:\s*(\d+(?:.\d+)?)", result.stdout, re.DOTALL):
                 full_estimated_time = float(match.group(1))
             if debug_time is not None and full_estimated_time is not None:
                 stdout += f"Debug mode ran in {debug_time:.2f} seconds, estimated full run time is {full_estimated_time:.2f} seconds. The estimated time is {full_estimated_time / env.conf.running_timeout_period * 100:.2f}% the debug time."
@@ -143,9 +123,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
             test_eval = get_test_eval()
             if test_eval.enabled(self.scen.competition):
-                submission_check_out, submission_ret_code = test_eval.valid(
-                    self.scen.competition, implementation
-                )
+                submission_check_out, submission_ret_code = test_eval.valid(self.scen.competition, implementation)
                 stdout += f"\n### Submission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
 
         score_fp = implementation.workspace_path / "scores.csv"
@@ -167,9 +145,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                     score_check_text += "\n[Error] The file 'scores.csv' doesn't contain the ensemble model."
                     score_ret_code = 1
                 if score_ret_code != 0:
-                    score_check_text += (
-                        f"The dataframe in file 'scores.csv' is:\n{score_df}"
-                    )
+                    score_check_text += f"The dataframe in file 'scores.csv' is:\n{score_df}"
 
                 # Check metric name (columns)
                 if score_df.columns.tolist() != [self.scen.metric_name]:
@@ -191,13 +167,9 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         else:
             # Check submission file
             base_check_code = T(".eval_tests.submission_format_test", ftype="txt").r()
-            implementation.inject_files(
-                **{"test/submission_format_test.py": base_check_code}
-            )
+            implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
             # stdout += "----Submission Check 1-----\n"
-            submission_result = implementation.run(
-                env=env, entry="python test/submission_format_test.py"
-            )
+            submission_result = implementation.run(env=env, entry="python test/submission_format_test.py")
             submission_check_out = submission_result.stdout
             submission_ret_code = submission_result.exit_code
             stdout += "\n" + submission_check_out
@@ -208,9 +180,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             eda_output = implementation.file_dict.get("EDA.md", None)
 
         queried_similar_successful_knowledge = (
-            queried_knowledge.task_to_similar_task_successful_knowledge[
-                target_task.get_task_information()
-            ]
+            queried_knowledge.task_to_similar_task_successful_knowledge[target_task.get_task_information()]
             if queried_knowledge is not None
             else []
         )
@@ -218,10 +188,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         system_prompt = T(".prompts:pipeline_eval.system").r(
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             debug_mode=DS_RD_SETTING.sample_data_by_LLM,
-            mle_check=(
-                DS_RD_SETTING.sample_data_by_LLM
-                and test_eval.is_sub_enabled(self.scen.competition)
-            ),
+            mle_check=(DS_RD_SETTING.sample_data_by_LLM and test_eval.is_sub_enabled(self.scen.competition)),
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
         )
         user_prompt = T(".prompts:pipeline_eval.user").r(
@@ -247,7 +214,9 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             wfb.return_checking += "\nSubmission file check failed."
         if sample_submission_check is False and wfb.final_decision is True:
             wfb.final_decision = False
-            wfb.return_checking += "\nSample submission file check failed. Code should not open the sample submission file."
+            wfb.return_checking += (
+                "\nSample submission file check failed. Code should not open the sample submission file."
+            )
         if nb_conversion_ret_code != 0 and wfb.final_decision is True:
             wfb.final_decision = False
             wfb.return_checking += "\n" + nb_conversion_check_text
