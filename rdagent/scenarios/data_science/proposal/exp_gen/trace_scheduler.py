@@ -103,7 +103,7 @@ class ProbabilisticScheduler(TraceScheduler):
             raise ValueError("max_trace_num must be positive.")
         if temperature <= 0:
             raise ValueError("temperature must be positive.")
-        
+
         self.max_trace_num = max_trace_num
         self.temperature = temperature
         self.rec_commit_idx = 0
@@ -113,11 +113,11 @@ class ProbabilisticScheduler(TraceScheduler):
         """
         Calculate potential score for a given leaf node.
         This is the base implementation that provides uniform distribution.
-        
+
         Args:
             trace: The DSTrace object containing the full experiment history.
             leaf_id: The index of the leaf node to evaluate.
-            
+
         Returns:
             float: A potential score. Higher means more likely to be selected.
         """
@@ -126,28 +126,28 @@ class ProbabilisticScheduler(TraceScheduler):
     def _softmax_probabilities(self, potentials: list[float]) -> list[float]:
         """
         Convert potential scores to probabilities using softmax.
-        
+
         Args:
             potentials: List of potential scores.
-            
+
         Returns:
             List of probabilities that sum to 1.
         """
         if not potentials:
             return []
-        
+
         # Apply temperature scaling
         scaled_potentials = [p / self.temperature for p in potentials]
-        
+
         # Compute softmax
         max_potential = max(scaled_potentials)
         exp_potentials = [math.exp(p - max_potential) for p in scaled_potentials]
         sum_exp = sum(exp_potentials)
-        
+
         if sum_exp == 0:
             # If all potentials are very small, return uniform distribution
             return [1.0 / len(potentials)] * len(potentials)
-        
+
         return [exp_p / sum_exp for exp_p in exp_potentials]
 
     async def next(self, trace: DSTrace) -> tuple[int, ...]:
@@ -200,7 +200,7 @@ class TraceLengthScheduler(ProbabilisticScheduler):
     """
     A scheduler that prefers longer traces (more experiments).
     """
-    
+
     def __init__(self, max_trace_num: int, temperature: float = 1.0, inverse: bool = False):
         """
         Args:
@@ -218,10 +218,10 @@ class TraceLengthScheduler(ProbabilisticScheduler):
         # Get the path from root to this leaf using existing method
         path = trace.get_parents(leaf_id)
         path_len = len(path)
-        
+
         if path_len == 0:
             return 1.0
-        
+
         return 1.0 / path_len if self.inverse else float(path_len)
 
 
@@ -229,7 +229,7 @@ class SOTABasedScheduler(ProbabilisticScheduler):
     """
     A scheduler that prefers traces with more SOTA (State of the Art) results.
     """
-    
+
     def calculate_potential(self, trace: DSTrace, leaf_id: int) -> float:
         """
         Calculate potential based on the number of SOTA results in the trace.
@@ -237,14 +237,14 @@ class SOTABasedScheduler(ProbabilisticScheduler):
         # Get the path from root to this leaf
         path = trace.get_parents(leaf_id)
         sota_count = 0
-        
+
         for node_id in path:
             # Check if this experiment was successful (decision=True)
             if node_id < len(trace.hist):
                 exp, feedback = trace.hist[node_id]
                 if feedback.decision:
                     sota_count += 1
-        
+
         return float(sota_count)
 
 
@@ -252,7 +252,7 @@ class ComponentCompletionScheduler(ProbabilisticScheduler):
     """
     A scheduler that prefers traces that have completed more components.
     """
-    
+
     def calculate_potential(self, trace: DSTrace, leaf_id: int) -> float:
         """
         Calculate potential based on the number of completed components in the trace.
@@ -260,13 +260,13 @@ class ComponentCompletionScheduler(ProbabilisticScheduler):
         # Get the path from root to this leaf
         path = trace.get_parents(leaf_id)
         completed_components = set()
-        
+
         for node_id in path:
             if node_id < len(trace.hist):
                 exp, feedback = trace.hist[node_id]
-                if feedback.decision and hasattr(exp.hypothesis, 'component'):
+                if feedback.decision and hasattr(exp.hypothesis, "component"):
                     completed_components.add(exp.hypothesis.component)
-        
+
         return float(len(completed_components))
 
 
@@ -274,7 +274,7 @@ class RandomScheduler(ProbabilisticScheduler):
     """
     A scheduler that selects traces randomly with uniform distribution.
     """
-    
+
     def calculate_potential(self, trace: DSTrace, leaf_id: int) -> float:
         """
         Return random potential for uniform random selection.
