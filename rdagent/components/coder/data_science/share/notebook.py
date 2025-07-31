@@ -40,11 +40,30 @@ class NotebookConverter:
 
         return None
 
-    def convert(self, task: Task, ws: FBWorkspace, stdout: str) -> None:
+    def convert(
+        self, task: Task, ws: FBWorkspace, stdout: str, use_debug_flag: bool
+    ) -> None:
         """
         Build a notebook based on the current progression.
         """
         code = ws.file_dict["main.py"]
+
+        # Handle argparse in the code to ensure it works in a notebook environment
+        if "argparse" in code:
+            code = (
+                [
+                    "import sys",
+                    "# hack to allow argparse to work in notebook",
+                    (
+                        'sys.argv = ["main.py", "--debug"]'
+                        if use_debug_flag
+                        else 'sys.argv = ["main.py"]'
+                    ),
+                ].join("\n")
+                + "\n"
+                + code
+            )
+
         sections = split_code_and_output_into_sections(code=code, stdout=stdout)
         notebook = nbformat.v4.new_notebook()
 
@@ -76,7 +95,11 @@ class NotebookConverter:
                 if section["output"]:
                     # For simplicity, treat all output as coming from stdout
                     # TODO: support Jupyter kernel execution and handle outputs appropriately here
-                    cell.outputs = [nbformat.v4.new_output("stream", name="stdout", text=section["output"])]
+                    cell.outputs = [
+                        nbformat.v4.new_output(
+                            "stream", name="stdout", text=section["output"]
+                        )
+                    ]
                 notebook.cells.append(cell)
 
         # Save the notebook to the workspace

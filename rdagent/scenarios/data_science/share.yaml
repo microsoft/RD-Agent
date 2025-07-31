@@ -274,7 +274,7 @@ component_spec:
       - Code should be modular and organized into functions, with a clear main() function that orchestrates the workflow.
       - Divide the code in the main() function body into sections.
         - Each section will be a print statement, 1-2 lines of comments, and then a block of code.
-        - For example, each section should look like this:
+        - For example, each section should look like this (all print statements are at top level and not in a block):
           ```python
           print("Section: Data Loading and Preprocessing")
           <comments for this section>
