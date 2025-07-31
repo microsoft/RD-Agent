@@ -121,6 +121,15 @@ def filter_redundant_text(stdout: str) -> str:
     # Collapse any excessive blank lines/spaces
     filtered_stdout = try_regex_sub(r"\s*\n\s*", filtered_stdout, replace_with="\n")
 
+    # remove repeated lines
+    lines_to_count: dict[str, int] = {}
+    filtered_stdout_lines = filtered_stdout.splitlines()
+    for line in filtered_stdout_lines:
+        lines_to_count[line] = lines_to_count.get(line, 0) + 1
+    filtered_stdout = "\n".join(
+        [line for line in filtered_stdout_lines if lines_to_count[line] <= len(filtered_stdout_lines) // 10]
+    )
+
     # Iteratively ask the LLM for additional filtering patterns (up to 3 rounds)
     for _ in range(3):
         truncated_stdout = filtered_stdout
@@ -133,11 +142,11 @@ def filter_redundant_text(stdout: str) -> str:
                 user_prompt=user_prompt,
                 system_prompt=system_prompt,
             )
-            if stdout_token_size < LLM_SETTINGS.chat_token_limit * 0.1:
+            if stdout_token_size < APIBackend().chat_token_limit * 0.1:
                 return truncated_stdout
-            elif stdout_token_size > LLM_SETTINGS.chat_token_limit * 0.6:
-                head = truncated_stdout[: int(LLM_SETTINGS.chat_token_limit * 0.3)]
-                tail = truncated_stdout[-int(LLM_SETTINGS.chat_token_limit * 0.3) :]
+            elif stdout_token_size > APIBackend().chat_token_limit * 0.6:
+                head = truncated_stdout[: int(APIBackend().chat_token_limit * 0.3)]
+                tail = truncated_stdout[-int(APIBackend().chat_token_limit * 0.3) :]
                 truncated_stdout = head + tail
             else:
                 break

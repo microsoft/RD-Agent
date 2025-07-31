@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import pickle
 import random
 import re
 from itertools import combinations
@@ -51,6 +52,53 @@ class CoSTEERKnowledge(Knowledge):
 """
 
 
+class CoSTEERRAGStrategy(RAGStrategy):
+    def __init__(self, *args, dump_knowledge_base_path: Path = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.dump_knowledge_base_path = dump_knowledge_base_path
+
+    def load_or_init_knowledge_base(
+        self, former_knowledge_base_path: Path = None, component_init_list: list = [], evolving_version: int = 2
+    ) -> EvolvingKnowledgeBase:
+        if former_knowledge_base_path is not None and former_knowledge_base_path.exists():
+            knowledge_base = pickle.load(open(former_knowledge_base_path, "rb"))
+            if evolving_version == 1 and not isinstance(knowledge_base, CoSTEERKnowledgeBaseV1):
+                raise ValueError("The former knowledge base is not compatible with the current version")
+            elif evolving_version == 2 and not isinstance(
+                knowledge_base,
+                CoSTEERKnowledgeBaseV2,
+            ):
+                raise ValueError("The former knowledge base is not compatible with the current version")
+        else:
+            knowledge_base = (
+                CoSTEERKnowledgeBaseV2(
+                    init_component_list=component_init_list,
+                )
+                if evolving_version == 2
+                else CoSTEERKnowledgeBaseV1()
+            )
+        return knowledge_base
+
+    def dump_knowledge_base(self):
+        if self.dump_knowledge_base_path is None:
+            logger.warning("Dump knowledge base path is not set, skip dumping.")
+        else:
+            if not self.dump_knowledge_base_path.parent.exists():
+                self.dump_knowledge_base_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.dump_knowledge_base_path, "wb") as f:
+                pickle.dump(self.knowledgebase, f)
+
+    def load_dumped_knowledge_base(self, *args, **kwargs):
+        if self.dump_knowledge_base_path is None:
+            logger.warning("Dump knowledge base path is not set, skip dumping.")
+        elif not Path(self.dump_knowledge_base_path).exists():
+            logger.info(f"Dumped knowledge base {self.dump_knowledge_base_path} does not exist, skip loading.")
+        else:
+            with open(self.dump_knowledge_base_path, "rb") as f:
+                self.knowledgebase = pickle.load(f)
+            logger.info(f"Loaded dumped knowledge base from {self.dump_knowledge_base_path}")
+
+
 class CoSTEERQueriedKnowledge(QueriedKnowledge):
     def __init__(self, success_task_to_knowledge_dict: dict = {}, failed_task_info_set: set = set()) -> None:
         self.success_task_to_knowledge_dict = success_task_to_knowledge_dict
@@ -85,9 +133,9 @@ class CoSTEERQueriedKnowledgeV1(CoSTEERQueriedKnowledge):
         super().__init__(*args, **kwargs)
 
 
-class CoSTEERRAGStrategyV1(RAGStrategy):
-    def __init__(self, knowledgebase: CoSTEERKnowledgeBaseV1, settings: CoSTEERSettings) -> None:
-        super().__init__(knowledgebase)
+class CoSTEERRAGStrategyV1(CoSTEERRAGStrategy):
+    def __init__(self, settings: CoSTEERSettings, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.current_generated_trace_count = 0
         self.settings = settings
 
@@ -213,9 +261,9 @@ class CoSTEERQueriedKnowledgeV2(CoSTEERQueriedKnowledgeV1):
         )
 
 
-class CoSTEERRAGStrategyV2(RAGStrategy):
-    def __init__(self, knowledgebase: CoSTEERKnowledgeBaseV2, settings: CoSTEERSettings) -> None:
-        super().__init__(knowledgebase)
+class CoSTEERRAGStrategyV2(CoSTEERRAGStrategy):
+    def __init__(self, settings: CoSTEERSettings, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.current_generated_trace_count = 0
         self.settings = settings
 
@@ -249,6 +297,12 @@ class CoSTEERRAGStrategyV2(RAGStrategy):
                         target_task_information not in self.knowledgebase.success_task_to_knowledge_dict
                         and implementation is not None
                     ):
+                        if target_task_information not in self.knowledgebase.task_to_component_nodes:
+                            self.knowledgebase.task_to_component_nodes[target_task_information] = (
+                                self.analyze_component(
+                                    target_task_information,
+                                )
+                            )
                         self.knowledgebase.working_trace_knowledge.setdefault(target_task_information, []).append(
                             single_knowledge,
                         )  # save to working trace
@@ -465,7 +519,6 @@ class CoSTEERRAGStrategyV2(RAGStrategy):
                     self.knowledgebase.task_to_component_nodes[target_task_information] = self.analyze_component(
                         target_task_information,
                     )
-
                 component_analysis_result = self.knowledgebase.task_to_component_nodes[target_task_information]
 
                 if len(component_analysis_result) > 1:
@@ -557,12 +610,14 @@ class CoSTEERRAGStrategyV2(RAGStrategy):
                 queried_from_gt_knowledge_list = [
                     knowledge
                     for knowledge in queried_knowledge_list
-                    if knowledge.feedback is not None and knowledge.feedback.final_decision_based_on_gt == True
+                    if knowledge.feedback is not None
+                    and (
+                        hasattr(knowledge.feedback, "final_decision_based_on_gt")
+                        and knowledge.feedback.final_decision_based_on_gt == True
+                    )
                 ]
                 queried_without_gt_knowledge_list = [
-                    knowledge
-                    for knowledge in queried_knowledge_list
-                    if knowledge.feedback is not None and knowledge.feedback.final_decision_based_on_gt == False
+                    knowledge for knowledge in queried_knowledge_list if knowledge not in queried_from_gt_knowledge_list
                 ]
                 queried_from_gt_knowledge_count = max(
                     min((v2_query_component_limit // 2 + 1), len(queried_from_gt_knowledge_list)),
