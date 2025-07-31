@@ -61,7 +61,7 @@ class BaseScheduler(TraceScheduler):
 
 
             parents = self.select(trace)
-            if p == trace.NEW_ROOT:
+            if parents == trace.NEW_ROOT:
                 self.uncommited_rec_status[trace.NEW_ROOT] += 1
             for p in parents:
                 self.uncommited_rec_status[parents] += 1
