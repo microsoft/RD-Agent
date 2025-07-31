@@ -2,15 +2,17 @@
 Handles conversion from a Python file to a Jupyter notebook.
 """
 
+import argparse
+from typing import Optional
+
 import nbformat
 
-from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.share.util import (
     extract_first_section_name_from_code,
     extract_function_body,
     split_code_and_output_into_sections,
 )
-from rdagent.core.experiment import FBWorkspace, Task
+from rdagent.core.experiment import Task
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.ret import MarkdownAgentOut
@@ -22,14 +24,10 @@ class NotebookConverter:
     Builder responsible for writing a Jupyter notebook for a workspace.
     """
 
-    def __init__(self):
-        self.notebook_name = "main.ipynb"
-
-    def validate_code_format(self, ws: FBWorkspace) -> str | None:
+    def validate_code_format(self, code: str) -> str | None:
         """
         Returns None if the code format is valid, otherwise returns an error message.
         """
-        code = ws.file_dict["main.py"]
         main_function_body = extract_function_body(code, "main")
         if not main_function_body:
             return "[Error] No main function found in the code. Please ensure that the main function is defined and contains the necessary print statements to divide sections."
@@ -41,13 +39,16 @@ class NotebookConverter:
         return None
 
     def convert(
-        self, task: Task, ws: FBWorkspace, stdout: str, use_debug_flag: bool
-    ) -> None:
+        self,
+        task: Optional[Task],
+        code: str,
+        stdout: str,
+        outfile: Optional[str] = None,
+        use_debug_flag: bool = False,
+    ) -> str:
         """
         Build a notebook based on the current progression.
         """
-        code = ws.file_dict["main.py"]
-
         # Handle argparse in the code to ensure it works in a notebook environment
         if "argparse" in code:
             code = (
@@ -70,16 +71,17 @@ class NotebookConverter:
         notebook = nbformat.v4.new_notebook()
 
         # Use LLM to generate an intro cell for the notebook
-        system_prompt = T(".prompts:notebookconverter.system").r()
-        user_prompt = T(".prompts:notebookconverter.user").r(
-            plan=task.get_task_information(),
-            code=code,
-        )
-        resp = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt, system_prompt=system_prompt
-        )
-        intro_content = MarkdownAgentOut.extract_output(resp)
-        notebook.cells.append(nbformat.v4.new_markdown_cell(intro_content))
+        if task:
+            system_prompt = T(".prompts:notebookconverter.system").r()
+            user_prompt = T(".prompts:notebookconverter.user").r(
+                plan=task.get_task_information(),
+                code=code,
+            )
+            resp = APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt, system_prompt=system_prompt
+            )
+            intro_content = MarkdownAgentOut.extract_output(resp)
+            notebook.cells.append(nbformat.v4.new_markdown_cell(intro_content))
 
         for section in sections:
             # Create a markdown cell for the section name and comments
@@ -104,7 +106,36 @@ class NotebookConverter:
                     ]
                 notebook.cells.append(cell)
 
-        # Save the notebook to the workspace
-        with open((ws.workspace_path / self.notebook_name), "w", encoding="utf-8") as f:
-            nbformat.write(notebook, f)
-            logger.info(f"Notebook written to {ws.workspace_path / self.notebook_name}")
+        # Save the notebook or return it as a string
+        if outfile:
+            with open((outfile), "w", encoding="utf-8") as f:
+                nbformat.write(notebook, f)
+                logger.info(f"Notebook written to {outfile}")
+
+        return nbformat.writes(notebook)
+
+
+if __name__ == "__main__":
+    converter = NotebookConverter()
+    parser = argparse.ArgumentParser(
+        description="Convert Python code to Jupyter notebook."
+    )
+    parser.add_argument("inputfile", type=str, help="Path to the input Python file.")
+    parser.add_argument("outfile", type=str, help="Path to the output Notebook file.")
+    parser.add_argument(
+        "--stdout",
+        type=str,
+        default="",
+        help="Standard output from the code execution.",
+    )
+    parser.add_argument(
+        "--debug", action="store_true", help="Use debug flag to modify sys.argv."
+    )
+    args = parser.parse_args()
+    converter.convert(
+        task=None,
+        code=open(args.inputfile, "r").read(),
+        stdout=args.stdout,
+        outfile=args.outfile,
+        use_debug_flag=False,
+    )

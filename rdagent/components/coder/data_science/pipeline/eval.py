@@ -75,27 +75,29 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             # Because coder runs on full data, we need to run debug mode in advance to save time
             result = implementation.run(
                 env=env,
-                entry=f"strace -e trace=file -f -o trace.log python -m coverage run main.py --debug",
+                entry=f"python -m coverage run main.py --debug",
             )
         else:
             result = implementation.run(
                 env=env,
-                entry=f"strace -e trace=file -f -o trace.log python -m coverage run main.py",
+                entry=f"python -m coverage run main.py",
             )
 
         nb_conversion_ret_code = 0
         nb_conversion_check_text = ""
         if DS_RD_SETTING.enable_notebook_conversion:
             notebook_converter = NotebookConverter()
-            error_msg = notebook_converter.validate_code_format(implementation)
+            code = implementation.file_dict["main.py"]
+            error_msg = notebook_converter.validate_code_format(code)
             if error_msg is not None:
                 nb_conversion_check_text = error_msg
                 nb_conversion_ret_code = 1
             else:
                 notebook_converter.convert(
-                    target_task,
-                    implementation,
-                    result.stdout,
+                    task=target_task,
+                    code=code,
+                    stdout=result.stdout,
+                    outfile=implementation.workspace_path / "main.ipynb",
                     use_debug_flag=DS_RD_SETTING.sample_data_by_LLM,
                 )
 
@@ -206,7 +208,9 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             eda_output = implementation.file_dict.get("EDA.md", None)
 
         queried_similar_successful_knowledge = (
-            queried_knowledge.task_to_similar_task_successful_knowledge[target_task.get_task_information()]
+            queried_knowledge.task_to_similar_task_successful_knowledge[
+                target_task.get_task_information()
+            ]
             if queried_knowledge is not None
             else []
         )
@@ -214,7 +218,10 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         system_prompt = T(".prompts:pipeline_eval.system").r(
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             debug_mode=DS_RD_SETTING.sample_data_by_LLM,
-            mle_check=(DS_RD_SETTING.sample_data_by_LLM and test_eval.is_sub_enabled(self.scen.competition)),
+            mle_check=(
+                DS_RD_SETTING.sample_data_by_LLM
+                and test_eval.is_sub_enabled(self.scen.competition)
+            ),
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
         )
         user_prompt = T(".prompts:pipeline_eval.user").r(

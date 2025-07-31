@@ -1,7 +1,9 @@
 import ast
+import io
 import re
+import tokenize
 from itertools import zip_longest
-from typing import Optional, TypedDict
+from typing import List, Optional, Tuple, TypedDict
 
 
 class CodeSection(TypedDict):
@@ -34,7 +36,9 @@ def extract_function_body(source_code: str, function_name: str) -> Optional[str]
     return None
 
 
-def split_sections(text: str, section_header_regex: str) -> tuple[Optional[str], list[str]]:
+def split_sections(
+    text: str, section_header_regex: str
+) -> tuple[Optional[str], list[str]]:
     """
     Split text into sections based on the section headers.
     """
@@ -106,7 +110,9 @@ def extract_comment_under_first_print(source_code) -> tuple[Optional[str], str]:
         elif i > first_print_lineno:
             break  # stop after hitting actual code line
 
-    cleaned_lines = [line for idx, line in enumerate(lines) if idx not in lines_to_remove]
+    cleaned_lines = [
+        line for idx, line in enumerate(lines) if idx not in lines_to_remove
+    ]
     cleaned_code = "\n".join(cleaned_lines)
     comments_str = "\n".join(all_comments) if all_comments else None
 
@@ -204,6 +210,77 @@ def remove_main_block(source_code: str) -> str:
     return source_code
 
 
+def extract_top_level_functions_with_decorators_and_comments(
+    code: str,
+) -> List[Tuple[str, str]]:
+    """
+    Returns list of (function_name, source_segment) for top-level functions (excluding "main"),
+    including decorators and contiguous preceding comments.
+    """
+    # Parse AST to get function nodes
+    tree = ast.parse(code)
+    lines = code.splitlines(keepends=True)
+
+    # Precompute which line numbers have comment tokens
+    comment_lines = set()
+    tokgen = tokenize.generate_tokens(io.StringIO(code).readline)
+    for tok_type, _, (srow, _), (_, _), _ in tokgen:
+        if tok_type == tokenize.COMMENT:
+            comment_lines.add(srow)
+
+    functions = []
+
+    for node in tree.body:  # only top-level
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        if node.name == "main":
+            continue
+
+        # Determine the starting line: earliest decorator if present, else the def/async line
+        if node.decorator_list:
+            start_lineno = min(d.lineno for d in node.decorator_list)
+        else:
+            start_lineno = node.lineno
+
+        # Extend upward to include contiguous comment lines (no intervening non-blank/non-comment)
+        span_start = start_lineno
+        curr = span_start - 1  # check line above; lines are 1-based
+        while curr > 0:
+            line_text = lines[curr - 1]
+            if curr in comment_lines:
+                span_start = curr
+                curr -= 1
+                continue
+            if line_text.strip() == "":
+                # blank line: include it and keep scanning upward
+                span_start = curr
+                curr -= 1
+                continue
+            break  # encountered code or something else; stop
+
+        # Determine end line of the function definition including its body
+        # Prefer end_lineno if available (Python 3.8+)
+        if hasattr(node, "end_lineno") and node.end_lineno is not None:
+            span_end = node.end_lineno
+        else:
+            # Fallback: get last lineno from the deepest child in body
+            def _max_lineno(n):
+                max_ln = getattr(n, "lineno", 0)
+                for child in ast.iter_child_nodes(n):
+                    ln = _max_lineno(child)
+                    if ln > max_ln:
+                        max_ln = ln
+                return max_ln
+
+            span_end = _max_lineno(node)
+
+        # Slice the original source lines
+        segment = "".join(lines[span_start - 1 : span_end])
+        functions.append((node.name, segment))
+
+    return functions
+
+
 def split_code_and_output_into_sections(code: str, stdout: str) -> list[CodeSection]:
     """
     Converts a Python script and its output into a list of CodeSections.
@@ -215,14 +292,7 @@ def split_code_and_output_into_sections(code: str, stdout: str) -> list[CodeSect
     top_level_code = remove_main_block(remove_function(code, "main"))
 
     main_function_body = extract_function_body(code, "main")
-    functions: tuple[str, str] = []
-    tree = ast.parse(code)
-    for node in tree.body:
-        if isinstance(node, ast.FunctionDef):
-            segment = ast.get_source_segment(code, node)
-            if node.name != "main":
-                # Track function name and code segment for later processing
-                functions.append((node.name, segment))
+    functions = extract_top_level_functions_with_decorators_and_comments(top_level_code)
 
     # Split the main function body into sections based on print("Section: <section name>") code
     main_fn_top_level_section, main_fn_sections = (
@@ -243,17 +313,22 @@ def split_code_and_output_into_sections(code: str, stdout: str) -> list[CodeSect
             # If only output section is available, extract the section name from it
             name = extract_first_section_name_from_output(output_section)
         comments, cleaned_code = (
-            extract_comment_under_first_print(code_section) if code_section is not None else (None, None)
+            extract_comment_under_first_print(code_section)
+            if code_section is not None
+            else (None, None)
         )
-        result_sections.append(CodeSection(name=name, code=cleaned_code, comments=comments, output=output_section))
+        result_sections.append(
+            CodeSection(
+                name=name, code=cleaned_code, comments=comments, output=output_section
+            )
+        )
 
     # Small optimization: move function definitions to the sections where they are first called
-    for fn in functions:
-        name, segment = fn
+    for name, segment in functions:
         for section in result_sections:
             if is_function_called(section["code"], name):
-                section["code"] = segment.rstrip() + "\n\n" + section["code"].lstrip()
-                top_level_code = remove_function(top_level_code, name)
+                section["code"] = segment.strip() + "\n\n" + section["code"].lstrip()
+                top_level_code = top_level_code.replace(segment, "")
                 break
 
     # Inject the top-level code at the beginning of the sections
