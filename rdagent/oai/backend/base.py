@@ -681,3 +681,7 @@ class APIBackend(ABC):
         Call the chat completion function
         """
         raise NotImplementedError("Subclasses must implement this method")
+
+    @property
+    def chat_token_limit(self) -> int:
+        return LLM_SETTINGS.chat_token_limit

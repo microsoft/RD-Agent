@@ -63,11 +63,6 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         data_folder_info = self.scen.processed_data_folder_description
         pipeline_task_info = target_task.get_task_information()
 
-        queried_similar_successful_knowledge = (
-            queried_knowledge.task_to_similar_task_successful_knowledge[pipeline_task_info]
-            if queried_knowledge is not None
-            else []
-        )
         queried_former_failed_knowledge = (
             queried_knowledge.task_to_former_failed_traces[pipeline_task_info] if queried_knowledge is not None else []
         )
@@ -82,7 +77,6 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         system_prompt = T(".prompts:pipeline_coder.system").r(
             task_desc=pipeline_task_info,
-            queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
             out_spec=PythonAgentOut.get_spec(),
             runtime_environment=self.scen.get_runtime_environment(),
