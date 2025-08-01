@@ -326,7 +326,7 @@ def split_code_and_output_into_sections(code: str, stdout: str) -> list[CodeSect
     # currently will not move C to the section where A is called
     for name, segment in functions:
         for section in result_sections:
-            if is_function_called(section["code"], name):
+            if section["code"] and is_function_called(section["code"], name):
                 section["code"] = segment.strip() + "\n\n" + section["code"].lstrip()
                 top_level_code = top_level_code.replace(segment, "")
                 break

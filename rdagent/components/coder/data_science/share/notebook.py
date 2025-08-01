@@ -51,19 +51,6 @@ class NotebookConverter:
         """
         # Handle argparse in the code to ensure it works in a notebook environment
         should_handle_argparse = "argparse" in code
-        if should_handle_argparse:
-            code = (
-                "\n".join(
-                    [
-                        "import sys",
-                        "# hack to allow argparse to work in notebook",
-                        ('sys.argv = ["main.py", "--debug"]' if use_debug_flag else 'sys.argv = ["main.py"]'),
-                    ]
-                )
-                + "\n\n"
-                + code.lstrip()
-            )
-
         sections = split_code_and_output_into_sections(code=code, stdout=stdout)
         notebook = nbformat.v4.new_notebook()
 
@@ -80,9 +67,23 @@ class NotebookConverter:
             intro_content = MarkdownAgentOut.extract_output(resp)
             notebook.cells.append(nbformat.v4.new_markdown_cell(intro_content))
 
-        # Remove `import sys` if it was added for argparse handling
-        if should_handle_argparse and len(sections) and "import sys" in sections[0]["code"]:
-            sections[0]["code"] = sections[0]["code"].replace("import sys\n", "")
+        if should_handle_argparse:
+            # Remove extra `import sys` since it will be added for argparse handling
+            if "import sys\n" in sections[0]["code"]:
+                sections[0]["code"] = sections[0]["code"].replace("import sys\n", "")
+
+            # Add sys.argv modification for argparse handling
+            sections[0]["code"] = (
+                "\n".join(
+                    [
+                        "import sys",
+                        "# hack to allow argparse to work in notebook",
+                        ('sys.argv = ["main.py", "--debug"]' if use_debug_flag else 'sys.argv = ["main.py"]'),
+                    ]
+                )
+                + "\n\n"
+                + sections[0]["code"].lstrip()
+            )
 
         for section in sections:
             # Create a markdown cell for the section name and comments

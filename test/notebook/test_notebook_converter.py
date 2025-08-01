@@ -45,6 +45,107 @@ class TestNotebookConverter(unittest.TestCase):
                 "[Error] No sections found in the code. Expected to see 'print(\"Section: <section name>\")' as section dividers. Also make sure that they are actually run and not just comments.",
             )
 
+    def test_argparse_happy_path(self):
+        code = """import argparse
+parser = argparse.ArgumentParser(description='Test script')
+parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+args = parser.parse_args()
+
+def main():
+    print(args.debug)
+    print("Section: Data Loading")
+    # Load dataset from CSV into a DataFrame
+    load_data()
+
+if __name__ == "__main__":
+    main()"""
+        notebookJson = json.loads(
+            self.converter.convert(
+                task=None,
+                code=code,
+                stdout="",
+                use_debug_flag=True,
+            )
+        )
+        self.assertEqual(
+            "".join(notebookJson["cells"][0]["source"]),
+            """import sys
+# hack to allow argparse to work in notebook
+sys.argv = ["main.py", "--debug"]
+
+import argparse
+parser = argparse.ArgumentParser(description='Test script')
+parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+args = parser.parse_args()
+
+print(args.debug)""",
+        )
+
+        self.assertEqual(
+            "".join(notebookJson["cells"][1]["source"]),
+            """## Data Loading
+Load dataset from CSV into a DataFrame
+""",
+        )
+        self.assertEqual(
+            "".join(notebookJson["cells"][2]["source"]),
+            """print("Section: Data Loading")
+load_data()""",
+        )
+
+    def test_argparse_with_dupe_sys(self):
+        code = """import argparse
+import sys
+parser = argparse.ArgumentParser(description='Test script')
+parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+args = parser.parse_args()
+
+print(sys)
+
+def main():
+    print(args.debug)
+    print("Section: Data Loading")
+    # Load dataset from CSV into a DataFrame
+    load_data()
+
+if __name__ == "__main__":
+    main()"""
+        notebookJson = json.loads(
+            self.converter.convert(
+                task=None,
+                code=code,
+                stdout="",
+                use_debug_flag=True,
+            )
+        )
+        self.assertEqual(
+            "".join(notebookJson["cells"][0]["source"]),
+            """import sys
+# hack to allow argparse to work in notebook
+sys.argv = ["main.py", "--debug"]
+
+import argparse
+parser = argparse.ArgumentParser(description='Test script')
+parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+args = parser.parse_args()
+
+print(sys)
+
+print(args.debug)""",
+        )
+
+        self.assertEqual(
+            "".join(notebookJson["cells"][1]["source"]),
+            """## Data Loading
+Load dataset from CSV into a DataFrame
+""",
+        )
+        self.assertEqual(
+            "".join(notebookJson["cells"][2]["source"]),
+            """print("Section: Data Loading")
+load_data()""",
+        )
+
     def test_convert(self):
         with open(os.path.join(test_files_dir, "main.py"), "r") as f:
             code = f.read()

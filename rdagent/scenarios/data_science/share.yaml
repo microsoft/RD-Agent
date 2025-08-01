@@ -295,6 +295,9 @@ component_spec:
                 <rest of function>
 
             <any helper code>
+
+            if __name__ == "__main__":
+                main()
             ```
         - Section headers must always be print("Section: <name>") at the top level of main().
           - Do not put them inside if/else blocks.
@@ -302,6 +305,7 @@ component_spec:
           - Do not put them outside of the main() function.
         - Do not add comments or dividers before the print statement — comments must come after the print line.
         - Section names should be concise and descriptive (e.g., "Data Loading", "Model Training").
+        - Do not call return or exit in the middle of the main() function. Raise an exception if you need to stop execution early.
       {% endif %}
 
     2. File Handling:
