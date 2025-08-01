@@ -22,7 +22,7 @@ def main(
     Auto R&D Evolving loop for models finetune.
     You can continue running a session by using the command:
     .. code-block:: bash
-        dotenv run -- python rdagent/app/finetune/loop.py --competition aerial-cactus-identification
+        dotenv run -- python rdagent/app/finetune/data_science/loop.py --competition aerial-cactus-identification
     """
     if not competition:
         raise Exception("Please specify competition name.")

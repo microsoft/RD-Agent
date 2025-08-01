@@ -22,7 +22,7 @@ def main(
     Auto R&D Evolving loop for models finetune.
     You can continue running a session by using the command:
     .. code-block:: bash
-        dotenv run -- python rdagent/app/finetune/loop.py --dataset shibing624/alpaca-zh
+        dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh
     """
     if not dataset:
         raise Exception("Please specify dataset name.")

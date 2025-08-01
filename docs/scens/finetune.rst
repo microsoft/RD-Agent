@@ -77,7 +77,7 @@ Override either value in **.env**:
     
     .. code-block:: sh
 
-        dotenv run -- python rdagent/app/tune/loop.py --competition <Competition ID>
+        dotenv run -- python rdagent/app/finetune/data_science/loop.py --competition <Competition ID>
 
   - Then, you can run the test set score corresponding to each round of the loop.
 

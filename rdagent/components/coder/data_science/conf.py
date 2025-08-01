@@ -22,6 +22,8 @@ class DSCoderCoSTEERSettings(CoSTEERSettings):
     max_seconds: int = DS_RD_SETTING.debug_timeout * 4
     env_type: str = "docker"
     # TODO: extract a function for env and conf.
+    extra_evaluator: list[str] = []
+    """Extra evaluators to use"""
 
 
 def get_ds_env(
