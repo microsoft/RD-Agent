@@ -350,6 +350,8 @@ class FBWorkspace(Workspace):
                         dest_path.parent.mkdir(parents=True, exist_ok=True)
                         with dest_path.open("wb") as f:
                             f.write(zf.read(info))
+        # NOTE: very important to reduce the size of the object
+        self.ws_ckp = None
 
     def __str__(self) -> str:
         return f"Workspace[{self.workspace_path=}" + (
@@ -437,7 +439,12 @@ class Experiment(
             self.experiment_workspace.recover_ws_ckp()
         for ws in self.sub_workspace_list:
             if ws is not None:
-                ws.recover_ws_ckp()
+                try:
+                    ws.recover_ws_ckp()
+                except RuntimeError:
+                    # the FBWorkspace is shared between experiment_workspace and sub_workspace_list,
+                    # so recover_ws_ckp will raise RuntimeError if a workspace is recovered twice.
+                    print("recover_ws_ckp failed due to one workspace is recovered twice.")
 
 
 ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)

@@ -145,7 +145,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
                             "lr": str(sota_training_hyperparameters.get("lr", "2e-4")),
                             "early_stop": str(sota_training_hyperparameters.get("early_stop", 10)),
                             "batch_size": str(sota_training_hyperparameters.get("batch_size", 256)),
-                            "weight_decay": str(sota_training_hyperparameters.get("weight_decay", 0.0)),
+                            "weight_decay": str(sota_training_hyperparameters.get("weight_decay", 0.0001)),
                         }
                     )
                 sota_model_type = sota_model_exp.sub_tasks[0].model_type
