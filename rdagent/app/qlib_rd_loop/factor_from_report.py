@@ -12,7 +12,7 @@ from rdagent.components.document_reader.document_reader import (
     load_and_process_pdfs_by_langchain,
 )
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.proposal import Hypothesis
+from rdagent.core.proposal import Hypothesis, HypothesisFeedback
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
@@ -136,8 +136,25 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
         logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
 
+    def feedback(self, prev_out: dict[str, Any]):
+        e = prev_out.get(self.EXCEPTION_KEY, None)
+        if e is not None:
+            feedback = HypothesisFeedback(
+                observations=str(e),
+                hypothesis_evaluation="",
+                new_hypothesis="",
+                reason="",
+                decision=False,
+            )
+            logger.log_object(feedback, tag="feedback")
+            self.trace.hist.append((prev_out["direct_exp_gen"]["exp_gen"], feedback))
+        else:
+            feedback = self.summarizer.generate_feedback(prev_out["running"], self.trace)
+            logger.log_object(feedback, tag="feedback")
+            self.trace.hist.append((prev_out["running"], feedback))
 
-def main(report_folder=None, path=None, all_duration: str | None = None, checkout: bool = True):
+
+def main(report_folder=None, path=None, all_duration=None, checkout=True):
     """
     Auto R&D Evolving loop for fintech factors (the factors are extracted from finance reports).
 
