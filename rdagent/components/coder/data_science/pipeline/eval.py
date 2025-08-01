@@ -1,10 +1,7 @@
 # tess successfully running.
 # (GPT) if it aligns with the spec & rationality of the spec.
 import asyncio
-
-# Use thread pool to avoid async context conflicts
 import concurrent.futures
-import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -294,7 +291,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 # Execute in thread pool to avoid event loop conflicts
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                     future = executor.submit(run_context7_sync)
-                    context7_result = future.result(timeout=150)  # 150s timeout, sufficient time for retry mechanism
+                    context7_result = future.result(timeout=120)  # 120s timeout, sufficient time for retry mechanism
 
                 if context7_result:
                     logger.info("Context7: Documentation search completed successfully")

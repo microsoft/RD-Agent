@@ -29,29 +29,24 @@ from rdagent.log import rdagent_logger as logger
     wait=wait_exponential(multiplier=1, min=3, max=20),  # Exponential backoff: 3s, 6s, 12s
     retry=retry_if_exception_type(
         (
-            # Network and connection related errors
             ConnectionError,
             TimeoutError,
-            # Async and cancel scope related errors
             RuntimeError,
-            # Other recoverable system errors
             OSError,
         )
     ),
 )
-async def _query_context7_with_retry(
-    error_message: str,
-) -> Optional[str]:
+async def _query_context7_with_retry(error_message: str, verbose: bool = False) -> Optional[str]:
     """Internal function with retry mechanism for Context7 queries.
 
     Args:
         error_message: The error message or traceback to search for
+        verbose: Enable verbose logging for ReAct agent (default: False)
     Returns:
         Documentation search result as string, or None if failed
     """
     # Load configuration using pydantic settings
     settings = get_context7_settings()
-    print(settings)
     # Initialize cache - enabled by default, permanent caching
     cache = get_mcp_cache() if settings.cache_enabled else None
 
@@ -86,7 +81,7 @@ async def _query_context7_with_retry(
     llm = OpenAI(model=settings.model, api_key=settings.api_key, api_base=settings.api_base)
 
     # Create ReAct agent with loaded tools
-    agent = ReActAgent(tools=tools, llm=llm, verbose=True)
+    agent = ReActAgent(tools=tools, llm=llm, verbose=verbose)
     ctx = Context(agent)
 
     # Record time for agent execution
@@ -155,18 +150,17 @@ Please search the documentation and provide a practical, copy-paste solution."""
     return result
 
 
-async def query_context7(
-    error_message: str,
-) -> Optional[str]:
+async def query_context7(error_message: str, verbose: bool = False) -> Optional[str]:
     """Query context7 documentation for error resolution with retry mechanism.
 
     Args:
         error_message: The error message or traceback to search for
+        verbose: Enable verbose logging for ReAct agent (default: False)
     Returns:
         Documentation search result as string, or None if failed
     """
     try:
-        return await _query_context7_with_retry(error_message)
+        return await _query_context7_with_retry(error_message, verbose)
     except (ConnectionError, TimeoutError, RuntimeError, OSError) as e:
         # These are retryable errors, but retries have failed
         logger.error(f"Context7 query failed after retries due to {type(e).__name__}: {str(e)}")
@@ -175,24 +169,3 @@ async def query_context7(
         # Other non-retryable errors (e.g., configuration errors, authentication failures)
         logger.error(f"Context7 query failed due to non-retryable error {type(e).__name__}: {str(e)}")
         return None
-
-
-# example
-# async def main():
-#     """Main function for testing context7 functionality."""
-#     error_msg = """### TRACEBACK: Traceback (most recent call last):\nTraceback (most recent call last):
-# File "/workspace/RD-Agent/git_ignore_folder/RD-Agent_workspace/862e5d2ff8d4489b91c38c5be5001b44/main.py", line 400, in <module>
-# main()
-# File "/workspace/RD-Agent/git_ignore_folder/RD-Agent_workspace/862e5d2ff8d4489b91c38c5be5001b44/main.py", line 285, in main
-# sample_weight, groups, adv_auc = adversarial_validation(train_df, test_df, features, debug=DEBUG, random_state=random_state)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# File "/workspace/RD-Agent/git_ignore_folder/RD-Agent_workspace/862e5d2ff8d4489b91c38c5be5001b44/main.py", line 162, in adversarial_validation
-# adv_clf.fit(
-# TypeError: LGBMClassifier.fit() got an unexpected keyword argument 'early_stopping_rounds'"""
-
-#     result = await query_context7(error_msg)
-#     print(result)
-
-
-# if __name__ == "__main__":
-#     asyncio.run(main())
