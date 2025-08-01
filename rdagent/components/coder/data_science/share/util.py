@@ -3,7 +3,7 @@ import io
 import re
 import tokenize
 from itertools import zip_longest
-from typing import List, Optional, Tuple, TypedDict
+from typing import List, Optional, Set, Tuple, TypedDict
 
 
 class CodeSection(TypedDict):
@@ -218,11 +218,16 @@ def extract_top_level_functions_with_decorators_and_comments(
     lines = code.splitlines(keepends=True)
 
     # Precompute which line numbers have comment tokens
-    comment_lines = set()
-    tokgen = tokenize.generate_tokens(io.StringIO(code).readline)
-    for tok_type, _, (srow, _), (_, _), _ in tokgen:
+    comment_lines: Set[int] = set()
+    lines = code.splitlines(keepends=True)  # preserve exact line content for prefix checks
+
+    tokgen = tokenize.generate_tokens(io.StringIO(code).readline)  # yields (type, string, start, end, line)
+    for tok_type, _, (srow, scol), _, _ in tokgen:
         if tok_type == tokenize.COMMENT:
-            comment_lines.add(srow)
+            # everything before the comment on that line must be whitespace
+            prefix = lines[srow - 1][:scol]
+            if prefix.strip() == "":
+                comment_lines.add(srow)
 
     functions = []
 

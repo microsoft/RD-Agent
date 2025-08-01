@@ -6,6 +6,7 @@ from rdagent.components.coder.data_science.share.util import (
     extract_first_section_name_from_code,
     extract_first_section_name_from_output,
     extract_function_body,
+    extract_top_level_functions_with_decorators_and_comments,
     is_function_called,
     remove_function,
     remove_main_block,
@@ -706,6 +707,146 @@ class TestRemoveMainBlock(unittest.TestCase):
         cleaned_code = remove_main_block(code)
         expected_code = ""
         self.assertEqual(cleaned_code, expected_code)
+
+
+class TestExtractTopLevelFunctions(unittest.TestCase):
+    def test_happy_path(self):
+        code = S(
+            [
+                "# This is the main function",
+                "",
+                "# Some more comments",
+                "def foo():",
+                "    print('Hello World')",
+                "",
+                "def bar():",
+                "    print('Helper function')",
+            ]
+        )
+        functions = extract_top_level_functions_with_decorators_and_comments(code)
+        expected_fns = [
+            (
+                "foo",
+                S(
+                    [
+                        "# This is the main function",
+                        "",
+                        "# Some more comments",
+                        "def foo():",
+                        "    print('Hello World')",
+                        "",
+                    ]
+                ),
+            ),
+            (
+                "bar",
+                S(
+                    [
+                        "",
+                        "def bar():",
+                        "    print('Helper function')",
+                    ]
+                ),
+            ),
+        ]
+        self.assertEqual(len(functions), 2)
+        for idx, (name, segment) in enumerate(functions):
+            expected_name, expected_segment = expected_fns[idx]
+            self.assertIn(name, expected_name, "Function name should match")
+            self.assertIn(segment, expected_segment, "Function segment should match")
+
+    def test_empty(self):
+        code = ""
+        functions = extract_top_level_functions_with_decorators_and_comments(code)
+        self.assertEqual(len(functions), 0)
+
+    def test_stop_at_code(self):
+        code = S(
+            [
+                "# This is the main function",
+                "foo = 123",
+                "# Some more comments",
+                "def foo():",
+                "    print('Hello World')",
+                "",
+                "def bar():",
+                "    print('Helper function')",
+            ]
+        )
+        functions = extract_top_level_functions_with_decorators_and_comments(code)
+        expected_fns = [
+            (
+                "foo",
+                S(
+                    [
+                        "# Some more comments",
+                        "def foo():",
+                        "    print('Hello World')",
+                        "",
+                    ]
+                ),
+            ),
+            (
+                "bar",
+                S(
+                    [
+                        "",
+                        "def bar():",
+                        "    print('Helper function')",
+                    ]
+                ),
+            ),
+        ]
+        self.assertEqual(len(functions), 2)
+        for idx, (name, segment) in enumerate(functions):
+            expected_name, expected_segment = expected_fns[idx]
+            self.assertIn(name, expected_name, "Function name should match")
+            self.assertIn(segment, expected_segment, "Function segment should match")
+
+    def test_trailing_comment(self):
+        code = S(
+            [
+                "# This is the main function",
+                "",
+                "# Some more comments",
+                "def foo():",
+                "    print('Hello World') # trailing comment",
+                "",
+                "def bar():",
+                "    print('Helper function')",
+            ]
+        )
+        functions = extract_top_level_functions_with_decorators_and_comments(code)
+        expected_fns = [
+            (
+                "foo",
+                S(
+                    [
+                        "# This is the main function",
+                        "",
+                        "# Some more comments",
+                        "def foo():",
+                        "    print('Hello World') # trailing comment",
+                        "",
+                    ]
+                ),
+            ),
+            (
+                "bar",
+                S(
+                    [
+                        "",
+                        "def bar():",
+                        "    print('Helper function')",
+                    ]
+                ),
+            ),
+        ]
+        self.assertEqual(len(functions), 2)
+        for idx, (name, segment) in enumerate(functions):
+            expected_name, expected_segment = expected_fns[idx]
+            self.assertIn(name, expected_name, "Function name should match")
+            self.assertIn(segment, expected_segment, "Function segment should match")
 
 
 class TestSplitCodeAndOutputIntoSections(unittest.TestCase):
