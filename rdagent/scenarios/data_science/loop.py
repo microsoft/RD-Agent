@@ -31,6 +31,7 @@ from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
 from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.base import DataScienceScen
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.utils.workflow.misc import wait_retry
@@ -39,17 +40,21 @@ from rdagent.utils.workflow.misc import wait_retry
 def clean_workspace(workspace_root: Path) -> None:
     """
     Clean the workspace folder and only keep the essential files to save more space.
+    workspace_root might contain a file in parallel with the folders, we should directly remove it.
 
     # remove all files and folders in the workspace except for .py, .md, and .csv files to avoid large workspace dump
     """
-    for file_and_folder in workspace_root.iterdir():
-        if file_and_folder.is_dir():
-            if file_and_folder.is_symlink():
+    if workspace_root.is_file():
+        workspace_root.unlink()
+    else:
+        for file_and_folder in workspace_root.iterdir():
+            if file_and_folder.is_dir():
+                if file_and_folder.is_symlink():
+                    file_and_folder.unlink()
+                else:
+                    shutil.rmtree(file_and_folder)
+            elif file_and_folder.is_file() and file_and_folder.suffix not in [".py", ".md", ".csv"]:
                 file_and_folder.unlink()
-            else:
-                shutil.rmtree(file_and_folder)
-        elif file_and_folder.is_file() and file_and_folder.suffix not in [".py", ".md", ".csv"]:
-            file_and_folder.unlink()
 
 
 @wait_retry()
@@ -215,6 +220,9 @@ class DataScienceRDLoop(RDLoop):
             self.trace.sync_dag_parent_and_hist((exp, prev_out["feedback"]), cur_loop_id)
         else:
             exp: DSExperiment = prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"]
+            # TODO: distinguish timeout error & other exception.
+            if isinstance(self.trace.scen, DataScienceScen) and DS_RD_SETTING.allow_longer_timeout:
+                self.trace.scen.increase_timeout()
 
             # set the local selection to the trace as global selection, then set the DAG parent for the trace
             if exp.local_selection is not None:

@@ -61,7 +61,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
                 )
-                < LLM_SETTINGS.chat_token_limit
+                < APIBackend().chat_token_limit
             ):
                 break
             elif len(queried_former_failed_knowledge_to_render) > 1:
