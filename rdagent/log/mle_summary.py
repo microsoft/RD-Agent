@@ -9,6 +9,7 @@ import pandas as pd
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
+from rdagent.log.ui.utils import get_sota_exp_stat
 from rdagent.log.utils import extract_json, extract_loopid_func_name, is_valid_session
 from rdagent.log.utils.folder import get_first_session_file_after_duration
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -24,23 +25,21 @@ from rdagent.utils.workflow import LoopBase
 def save_grade_info(log_trace_path: Path):
     test_eval = get_test_eval()
 
-    is_mle = isinstance(test_eval, MLETestEval)
     trace_storage = FileStorage(log_trace_path)
-    for msg in trace_storage.iter_msg():
-        if "competition" in msg.tag:
-            competition = msg.content
+    for msg in trace_storage.iter_msg(tag="competition"):
+        competition = msg.content
 
-        if "running" in msg.tag:
-            if isinstance(msg.content, DSExperiment):
-                # TODO:  mle_score.txt is not a general name now.
-                # Please use a more general name like test_score.txt
-                try:
-                    mle_score_str = test_eval.eval(competition, msg.content.experiment_workspace)
-                    trace_storage.log(
-                        mle_score_str, tag=f"{msg.tag}.mle_score.pid", save_type="pkl", timestamp=msg.timestamp
-                    )
-                except Exception as e:
-                    print(f"Error in {log_trace_path}: {e}", traceback.format_exc())
+    for msg in trace_storage.iter_msg(tag="running"):
+        if isinstance(msg.content, DSExperiment):
+            # TODO:  mle_score.txt is not a general name now.
+            # Please use a more general name like test_score.txt
+            try:
+                mle_score_str = test_eval.eval(competition, msg.content.experiment_workspace)
+                trace_storage.log(
+                    mle_score_str, tag=f"{msg.tag}.mle_score.pid", save_type="pkl", timestamp=msg.timestamp
+                )
+            except Exception as e:
+                print(f"Error in {log_trace_path}: {e}", traceback.format_exc())
 
 
 def save_all_grade_info(log_folder: str | Path) -> None:
