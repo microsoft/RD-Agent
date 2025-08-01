@@ -43,3 +43,4 @@ The supported scenarios are listed below:
     model_agent_fin
     model_copilot_general
     data_science
+    finetune

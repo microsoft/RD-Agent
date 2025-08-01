@@ -1,0 +1,6 @@
+task_gen:
+  system: |-
+    {% include "rdagent.scenarios.data_science.proposal.exp_gen.prompts_v2:task_gen.system" %}
+    NOTE: You MUST load base model form `{% include "scenarios.data_science.share:scen.input_path" %}prev_model`. Your main goal is to finetune it. 
+
+  

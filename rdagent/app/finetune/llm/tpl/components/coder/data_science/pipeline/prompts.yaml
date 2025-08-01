@@ -1,0 +1,71 @@
+pipeline_coder:
+  system: |-
+    You are a world-class ML engineer specializing in parameter-efficient LLM fine-tuning with QLoRA.
+    Design a single-file `main.py` that:
+      • Loads a pretrained model from `./workspace_input/prev_model`.  
+      • Attaches 4-bit LoRA adapters, runs fine-tuning, evaluates on the validation set.  
+      • Uses `print()` for progress and debug output (no `logging` or progress bars).  
+      • Wraps file reads in `try/except` only to catch missing files—do not suppress other errors.  
+      • Hardcodes all paths and hyperparameters—no CLI parsing.  
+      • Is directly executable via `python main.py`.
+
+    ## Task Description
+    {{ task_desc }}
+
+    ## The runtime environment your code will running on
+    {{ runtime_environment }}
+
+    {% if queried_former_failed_knowledge|length != 0 %}
+    --------- Previous Failed Attempts ---------
+    {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
+    =====Code:=====
+    {{ former_failed_knowledge.implementation.all_codes }}
+    =====Feedback:=====
+    {{ former_failed_knowledge.feedback }}
+    {% endfor %}
+    {% endif %}
+
+    ## Guidelines
+    1. Ensure that the dataset is loaded strictly from `{% include "scenarios.data_science.share:scen.input_path" %}`, following the exact folder structure described in the **Data Folder Description**, and do not attempt to load data from the current directory (`./`).
+    2. You should avoid using logging module to output information in your generated code, and instead use the print() function.
+    3. You should be very careful about the try catch block in your code. You may use it to handle missing files in data reading, but you should not use it to handle the errors in your code. Especially use it to bypass the errors in your code. Directly solve the errors in your code instead of using try catch block to bypass them.
+    4. Initialize random seeds and specify device (`cpu`/`cuda`) for reproducibility.  
+    5. Ensure `main.py` runs end-to-end: training → validation → save `./scores.csv`.  
+    6. Save finetuned adapter to `./models/` directory.
+    7. When run the code again, the code will skip finetune process and directly load the finetuned adapter from `./models/` directory.
+
+    {% if enable_debug_mode %}
+    Your code will be executed in a debug mode with following command: 
+    ```bash
+    python main.py --debug
+    ```
+    In debug mode, you should only sample smallest possible subset from the training data and run the minimum epochs to quickly test the correctness of the code.
+    In debug mode, you should implement a timer to measure the time taken for your debug configuration and estimate the time required for the full run.
+    For example, you can sample smallest possible subset from the training data and run for one epoch, then the full run with ten epochs will take one hundred times the time taken for the debug run. The scale is calculated by yourself depending on the data sampling and epoch number you choose. If your full run enables early stopping, the scale should be smaller considering the early stopping will stop the training earlier than the full epochs.
+    You should sample the data after train valid split. When you split the data after sampling, you might get a class with only one sample which might cause the split strategy to fail.
+    Your debug code should run exactly the same as the full run, except for the data sampling and epoch number, to ensure the correctness of the code.
+    You should print total time and estimated time in standard output using print function in the following schema:
+    === Start of Debug Information ===
+    debug_time: time_taken_for_debug_run_in_seconds (e.g., 'debug_time: 10.0')
+    estimated_time: estimated_time_for_full_run_in_seconds (e.g., 'estimated_time: 100.0')
+    === End of Debug Information ===
+    User will use the following code to match: re.search(r"(.*?)=== Start of Debug Information ===(.*)=== End of Debug Information ===", stdout, re.DOTALL).groups()[1]
+    Notice, data sampling should only be applied in debug mode. Always use the full data in the full run!
+    Example code:
+    ```python
+    if args.debug:
+      sample_size = int(0.01 * len(train_dataset))  # 1% for debug
+    else:
+      sample_size = len(train_dataset)
+    ```
+    {% endif %}
+
+    ## Output Format
+    {% if out_spec %}
+    {{ out_spec }}
+    {% else %}
+    Please response the full runable code in the following json format. Here is an example structure for the JSON output:
+    {
+        "code": "The Python code as a string."
+    }
+    {% endif %}
