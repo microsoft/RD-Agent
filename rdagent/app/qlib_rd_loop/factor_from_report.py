@@ -12,14 +12,13 @@ from rdagent.components.document_reader.document_reader import (
     load_and_process_pdfs_by_langchain,
 )
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.proposal import Hypothesis
+from rdagent.core.proposal import Hypothesis, HypothesisFeedback
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 from rdagent.scenarios.qlib.factor_experiment_loader.pdf_loader import (
     FactorExperimentLoaderFromPDFfiles,
 )
-from rdagent.core.proposal import HypothesisFeedback
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import LoopMeta
 
@@ -153,6 +152,7 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
             feedback = self.summarizer.generate_feedback(prev_out["running"], self.trace)
             logger.log_object(feedback, tag="feedback")
             self.trace.hist.append((prev_out["running"], feedback))
+
 
 def main(report_folder=None, path=None, all_duration=None, checkout=True):
     """
