@@ -639,14 +639,24 @@ def summarize_win():
         )
 
         timeout_stats = get_timeout_stats(state.llm_data)
+        coding_timeout_pct = (
+            round(timeout_stats["coding"]["timeout"] / timeout_stats["coding"]["total"] * 100, 2)
+            if timeout_stats["coding"]["total"] > 0
+            else 0
+        )
         info6.metric(
             "Timeouts (C)",
-            f"{round(timeout_stats['coding']['timeout'] / timeout_stats['coding']['total'] * 100, 2)}%",
+            f"{coding_timeout_pct}%",
             help=f"{timeout_stats['coding']['timeout']}/{timeout_stats['coding']['total']}",
+        )
+        running_timeout_pct = (
+            round(timeout_stats["running"]["timeout"] / timeout_stats["running"]["total"] * 100, 2)
+            if timeout_stats["running"]["total"] > 0
+            else 0
         )
         info7.metric(
             "Timeouts (R)",
-            f"{round(timeout_stats['running']['timeout'] / timeout_stats['running']['total'] * 100, 2)}%",
+            f"{running_timeout_pct}%",
             help=f"{timeout_stats['running']['timeout']}/{timeout_stats['running']['total']}",
         )
 
