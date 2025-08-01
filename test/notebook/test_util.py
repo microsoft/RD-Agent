@@ -258,6 +258,59 @@ class TestSplitCodeSections(unittest.TestCase):
         )
         self.assertListEqual(sections, [])
 
+    def test_ignores_indented_calls(self):
+        code = S(
+            [
+                "# This is the main function",
+                "setup_workspace()",
+                "print('Section: Data Loading')",
+                "# Load data",
+                "data = load_data()",
+                "if some_condition():",
+                '    print("Section: Data Processing")',
+                "    # Process data",
+                "    processed_data = process_data(data)",
+                "",
+                "def print_section():",
+                "    print('Section: Another Section')",
+                "",
+                "print('Section: Finalization')",
+                "# Finalize",
+                "finalize()",
+            ]
+        )
+        header, sections = split_code_sections(code)
+        self.assertEqual(
+            header,
+            S(
+                [
+                    "# This is the main function",
+                    "setup_workspace()",
+                ]
+            ),
+        )
+        self.assertListEqual(
+            sections,
+            [
+                S(
+                    [
+                        "print('Section: Data Loading')",
+                        "# Load data",
+                        "data = load_data()",
+                        "if some_condition():",
+                        '    print("Section: Data Processing")',
+                        "    # Process data",
+                        "    processed_data = process_data(data)",
+                        "",
+                        "def print_section():",
+                        "    print('Section: Another Section')",
+                        "",
+                    ]
+                ),
+                S(["print('Section: Finalization')", "# Finalize", "finalize()"]),
+            ],
+        )
+
 
 class TestSplitOutputSections(unittest.TestCase):
     def test_happy_path(self):
@@ -371,7 +424,8 @@ class TestSplitOutputSections(unittest.TestCase):
         output = S(
             [
                 "Setting up workspace...",
-                "Loading data..." "Processing data...",
+                "Loading data...",
+                "Processing data...",
             ]
         )
         header, sections = split_output_sections(output)
@@ -380,11 +434,45 @@ class TestSplitOutputSections(unittest.TestCase):
             S(
                 [
                     "Setting up workspace...",
-                    "Loading data..." "Processing data...",
+                    "Loading data...",
+                    "Processing data...",
                 ]
             ),
         )
         self.assertListEqual(sections, [])
+
+    def test_ignore_spaces(self):
+        output = S(
+            [
+                "Setting up workspace...",
+                " Section: Data Loading",
+                "Loading data...",
+                "Section: Data Processing",
+                "Processing data...",
+            ]
+        )
+        header, sections = split_output_sections(output)
+        self.assertEqual(
+            header,
+            S(
+                [
+                    "Setting up workspace...",
+                    " Section: Data Loading",
+                    "Loading data...",
+                ]
+            ),
+        )
+        self.assertListEqual(
+            sections,
+            [
+                S(
+                    [
+                        "Section: Data Processing",
+                        "Processing data...",
+                    ]
+                ),
+            ],
+        )
 
 
 class TestExtractSectionComments(unittest.TestCase):

@@ -62,6 +62,23 @@ class TestNotebookConverter(unittest.TestCase):
                 "Converted notebook should match expected output",
             )
 
+    def test_convert_2(self):
+        with open(os.path.join(test_files_dir, "main2.py"), "r") as f:
+            code = f.read()
+            notebookJson = self.converter.convert(
+                task=None,
+                code=code,
+                stdout="",
+                # outfile=os.path.join(test_files_dir, "main2.ipynb"), # Uncomment this to save to the file
+            )
+        with open(os.path.join(test_files_dir, "main2.ipynb"), "r") as f:
+            expected_notebook = f.read()
+            self.assertEqual(
+                normalize_nb_json_for_comparison(notebookJson),
+                normalize_nb_json_for_comparison(expected_notebook),
+                "Converted notebook should match expected output",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -66,14 +66,14 @@ def split_code_sections(source_code: str) -> tuple[Optional[str], list[str]]:
     """
     Split code into sections based on the section headers.
     """
-    return split_sections(source_code, r'^\s*print\(["\']Section:')
+    return split_sections(source_code, r'^print\(["\']Section:')
 
 
 def split_output_sections(stdout: str) -> tuple[Optional[str], list[str]]:
     """
     Split output into sections based on the section headers.
     """
-    return split_sections(stdout, r"^\s*Section: ")
+    return split_sections(stdout, r"^Section: ")
 
 
 def extract_comment_under_first_print(source_code) -> tuple[Optional[str], str]:
