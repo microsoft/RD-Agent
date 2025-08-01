@@ -1,73 +1,75 @@
-.. _data_science_agent:
+========================================
+Fine-tuning an Existing Model
+=============================
 
-=======================
-Data Science Agent
-=======================
+## **🎯 Scenario: Continue Training on a Pre-trained Model**
 
-**🤖 Automated Feature Engineering & Model Tuning Evolution**
-------------------------------------------------------------------------------------------
-The Data Science Agent is an agent that can automatically perform feature engineering and model tuning. It can be used to solve various data science problems, such as image classification, time series forecasting, and text classification.
+In this workflow the **Data Science Agent** starts from a *previously trained* model (and its training script), performs additional fine-tuning on new data, and then re-uses the updated weights for subsequent inference runs.
 
-🧭 Example Guide
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+🚧 Directory Structure
 
-- 🔧 **Set up RD-Agent Environment**
+```
 
-  - Before you start, please make sure you have installed RD-Agent and configured the environment for RD-Agent correctly. If you want to know how to install and configure the RD-Agent, please refer to the `documentation <../installation_and_configuration.html>`_.
+Your competition folder (here called ``custom_data``) must contain **one extra sub-directory** named ``prev_model`` where you keep the old weights and the code that produced them:
 
-- 🔩 **Setting the Environment variables at .env file**
+.. code-block:: text
 
-  - Determine the path where the data will be stored and add it to the ``.env`` file.
+   ds_data
+   └── custom_data
+       ├── train.csv
+       ├── test.csv
+       ├── sample_submission.csv      # optional
+       ├── description.md             # optional
+       ├── sample.py                  # optional
+       └── prev_model                 # ← NEW
+           ├── models/                #   previous checkpoints (e.g. *.bin, *.pt, *.ckpt)
+           └── main.py                  #   training/inference scripts you used before
 
-  .. code-block:: sh
+If your competition provides custom grading/validation scripts, keep them under ``ds_data/eval/custom_data`` exactly as before.
 
-    dotenv set DS_LOCAL_DATA_PATH <your local directory>/ds_data
-    dotenv set DS_SCEN rdagent.scenarios.data_science.scen.DataScienceScen
+🔧 Environment Setup
+~~~~~~~~~~~~~~~~~~~~~~
 
-- 📥 **Prepare Competition Data**
+Add or update the following variables in **.env** (examples shown):
 
-  - Data Science competition data typically consists of three components: a competition description file (in Markdown format), the competition dataset, and evaluation scripts. For reference, an example of a custom user-defined dataset is provided in ``rdagent/scenarios/data_science/example``.
+.. code-block:: sh
 
-    - **Correct directory structure (Here is an example of competition data with id custom_data)**
+   # required for all Data-Science runs
+   dotenv set DS_LOCAL_DATA_PATH <your local path>/ds_data
 
-      .. code-block:: text
+   # optional: choose docker / conda, etc.
+   dotenv set DS_CODER_COSTEER_ENV_TYPE docker
 
-        ds_data
-        └── eval
-        | └── custom_data
-        |    └── grade.py
-        |    └── valid.py
-        |    └── test.csv
-        └── custom_data
-          └── train.csv
-          └── test.csv
-          └── sample_submission.csv
-          └── description.md
-          └── sample.py
-        
-      - ``ds_data/custom_data/train.csv:`` Necessary training data in csv or parquet format, or training images.
+🚀 How It Works at Runtime
+```
 
-      - ``ds_data/custom_data/description.md:`` (Optional) Competition description file.
+1. **First run**
 
-      - ``ds_data/custom_data/sample_submission.csv:`` (Optional) Competition sample submission file.
+   * `rdagent` detects `prev_model/models`.
+   * It loads the latest checkpoint and prepare the fine-tuning based on code found under `prev_model/*.py` (or your own pipeline if you override it).
+   * Fine-tuned weights are written to `./workspace_input/models`.
 
-      - ``ds_data/custom_data/sample.py:`` (Optional) Sample code for generating debug data from the competition dataset. If not provided, R&D-Agent will use its default sampling logic. For details, see the ``create_debug_data`` function in ``rdagent/scenarios/data_science/debug/data.py``.
+2. **Subsequent runs**
 
-      - ``ds_data/eval/custom_data/grade.py:`` (Optional) Competition grade script, in order to calculate the score for the submission.
+   * When you execute `python ./workspace_input/main.py`, the script first looks for a checkpoint in `./workspace_input/models`.
+   * If found, it **skips fine-tuning** and goes straight to prediction / submission generation.
 
-      - ``ds_data/eval/custom_data/valid.py:`` (Optional) Competition validation script, in order to check if the submission format is correct.
+⏰ Managing Timeouts
 
-      - ``ds_data/eval/custom_data/submission_test.csv:`` (Optional) Competition test label file.
+```
 
-- 🔧 **Set up Environment for Custom User-defined Dataset**
+By default:
 
-  .. code-block:: sh
+* **Debug loop**: 1 hour (``DS_DEBUG_TIMEOUT=3600`` seconds)  
+* **Full run**  : 3 hours (``DS_FULL_TIMEOUT=10800`` seconds)
 
-      dotenv set DS_SCEN rdagent.scenarios.data_science.scen.DataScienceScen
-      dotenv set DS_LOCAL_DATA_PATH rdagent/scenarios/data_science/example
-      dotenv set DS_IF_USING_MLE_DATA False
-      dotenv set DS_CODER_ON_WHOLE_PIPELINE True
-      dotenv set DS_CODER_COSTEER_ENV_TYPE docker
+Override either value in **.env**:
+
+.. code-block:: sh
+
+   # give the debug loop 45 min and the full loop 6 h
+   dotenv set DS_DEBUG_TIMEOUT 2700
+   dotenv set DS_FULL_TIMEOUT 21600
 
 - 🚀 **Run the Application**
 
@@ -75,7 +77,7 @@ The Data Science Agent is an agent that can automatically perform feature engine
     
     .. code-block:: sh
 
-        rdagent data_science --competition <Competition ID>
+        dotenv run -- python rdagent/app/tune/loop.py --competition <Competition ID>
 
   - Then, you can run the test set score corresponding to each round of the loop.
 
@@ -160,3 +162,4 @@ The Data Science Agent is an agent that can automatically perform feature engine
 
       # This example sets the model to "o3-mini". For some models, the reasoning effort shoule be set to "None".
       dotenv set LITELLM_CHAT_MODEL_MAP '{"coding":{"model":"o3-mini","reasoning_effort":"high"},"running":{"model":"o3-mini","reasoning_effort":"high"}}'
+
