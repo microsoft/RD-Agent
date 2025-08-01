@@ -91,6 +91,14 @@ async def _query_context7_with_retry(error_message: str, verbose: bool = False) 
     # TODO: how to fix the agent to force the two tools to be used
     # TODO: how to extend to more apis (currently only gpt models through llama_index)
 
+    # ADD SPECIAL CASE FOR TIMM LIBRARY
+    timm_trigger = error_message.lower().count("timm") >= 3
+    if timm_trigger:
+        timm_trigger_text = "6.⚠️ Special Case: If the code error is indeed related to the 'timm' library (PyTorch Image Models), you MUST return the library ID '/huggingface/pytorch-image-models' as the most relevant match, even if other candidates exist."
+    else:
+        timm_trigger_text = ""
+    # END OF SPECIAL CASE FOR TIMM LIBRARY
+
     query = f"""{error_message}
 
 IMPORTANT INSTRUCTIONS:
@@ -111,6 +119,8 @@ IMPORTANT INSTRUCTIONS:
 4. DOCUMENTATION SEARCH: Use context7 to find the official API documentation and provide solutions based on the actual available methods and parameters.
 
 5. AVOID: Version upgrade suggestions, environment setup, debugging commands, or theoretical explanations without concrete code solutions.
+
+{timm_trigger_text}
 
 Example response format:
 ```
