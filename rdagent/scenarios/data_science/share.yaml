@@ -285,11 +285,6 @@ component_spec:
           <code for this section>
           ```
         - Do NOT add any comments before the print statement.
-        - The first section should be the data loading and preprocessing.
-        - The second section should be the feature engineering.
-        - The third section should be the model training and evaluation.
-        - The fourth section should be the ensemble strategy and final predictions.
-        - The last section should be the submission file generation.
       {% endif %}
       
     2. File Handling:
