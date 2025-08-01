@@ -8,8 +8,6 @@ In this workflow the **Data Science Agent** starts from a *previously trained* m
 
 🚧 Directory Structure
 
-```
-
 Your competition folder (here called ``custom_data``) must contain **one extra sub-directory** named ``prev_model`` where you keep the old weights and the code that produced them:
 
 .. code-block:: text
@@ -41,7 +39,6 @@ Add or update the following variables in **.env** (examples shown):
    dotenv set DS_CODER_COSTEER_ENV_TYPE docker
 
 🚀 How It Works at Runtime
-```
 
 1. **First run**
 
@@ -56,7 +53,6 @@ Add or update the following variables in **.env** (examples shown):
 
 ⏰ Managing Timeouts
 
-```
 
 By default:
 
