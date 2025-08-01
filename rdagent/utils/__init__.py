@@ -127,7 +127,7 @@ def filter_redundant_text(stdout: str) -> str:
     for line in filtered_stdout_lines:
         lines_to_count[line] = lines_to_count.get(line, 0) + 1
     filtered_stdout = "\n".join(
-        [line for line in filtered_stdout_lines if lines_to_count[line] <= len(filtered_stdout_lines) // 10]
+        [line for line in filtered_stdout_lines if lines_to_count[line] <= max(len(filtered_stdout_lines) // 10, 10)]
     )
 
     # Iteratively ask the LLM for additional filtering patterns (up to 3 rounds)

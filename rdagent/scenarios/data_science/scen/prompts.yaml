@@ -34,21 +34,20 @@ scenario_description: |-
   {{ evaluation }}
   {% endif %}
 
-  {% if time_limit %}
+  {% if time_limit is not none %}
   ====== Time Limit On Full Code Execution ======
   Your full code's execution is limited to **{{ time_limit }}**. After this time limit, your code will be terminated and all time and resources are wasted. Always make sure your code will not run longer than this time limit.
   During this time limit, you have all the resources available to you. Please fully leverage all the computational resources(CPUs and GPUs) to achieve the best performance like choose a powerful model, use a large batch size, enable data sampler with big parallel.
-  {% if sample_data_by_LLM is not none and sample_data_by_LLM is true %}
+  {% endif %}{% if debug_time_limit is not none%}
   ====== Time Limit On Debug Mode Code Execution ======
   Your are also required to include a debug mode in your code, the debug code's execution is limited to **{{ debug_time_limit }}**. You should make sure 10 percent of the data training one epoch can be finished within this time limit. If not, your should propose a new debug strategy in your task.
-  {% endif %}
+  {% endif %}{% if recommend_time_limit is not none %}
   ====== Recommend Time Spent On Full Code Execution ======
   You should always prioritize performance over time spent since some tasks requires very little time to run the code to achieve the best performance while some tasks might need a lot of time to train one or more large models.
-  We recommend you to spend less than **{{ recommend_time_limit }}** on the full code execution to boost efficiency. This is a recommended time limit, you can spend more time on the code execution if you think it is necessary. But always remember to not exceed the time limit.
-  {% if sample_data_by_LLM is not none and sample_data_by_LLM is true %}
+  We recommend you to spend less than **{{ recommend_time_limit }}** on the full code execution to boost efficiency. This is a recommended time limit, you can spend more time on the code execution if you think it is very necessary. But your code could be terminated sometime after this recommend time limit.
+  {% endif %}{% if recommend_debug_time_limit is not none %}
   ====== Recommend Time Spent On Debug Mode Code Execution ======
-  We recommend you to spend less than **{{ recommend_debug_time_limit }}** on the debug mode code execution to boost efficiency. This is a recommended time limit, you can spend more time on the debug mode code execution if you think it is necessary. But always remember to not exceed the time limit.
-  {% endif %}
+  We recommend you to spend less than **{{ recommend_debug_time_limit }}** on the debug mode code execution to boost efficiency. This is a recommended time limit, you can spend more time on the debug mode code execution if you think it is very necessary. But your code could be terminated sometime after this recommend time limit.
   {% endif %}
 
   {% if runtime_environment is not none %}
