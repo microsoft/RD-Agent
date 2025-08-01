@@ -77,7 +77,7 @@ class CoSTEERSingleFeedback(Feedback):
         return data
 
     @classmethod
-    def merge(cls, feedback_li: list[CoSTEERSingleFeedback]) -> CoSTEERSingleFeedback:
+    def merge(cls, feedback_li: list["CoSTEERSingleFeedback"]) -> "CoSTEERSingleFeedback":
         # NOTE:
         # Here we don't know the detailed design of each feedback, we just know they are CoSTEERSingleFeedback
         # So we merge them only based on CoSTEERSingleFeedback's attributes

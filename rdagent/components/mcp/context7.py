@@ -12,71 +12,81 @@ from llama_index.core.agent.workflow import ReActAgent
 from llama_index.core.workflow import Context
 from llama_index.llms.openai import OpenAI
 from llama_index.tools.mcp import aget_tools_from_mcp_url
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from rdagent.components.mcp.cache import get_mcp_cache
 from rdagent.components.mcp.util import get_context7_settings
 from rdagent.log import rdagent_logger as logger
 
 
-async def query_context7(
+@retry(
+    stop=stop_after_attempt(3),  # 重试2次，总共执行3次
+    wait=wait_exponential(multiplier=1, min=4, max=30),  # 指数退避：4秒、8秒、16秒
+    retry=retry_if_exception_type((Exception,)),  # 对所有异常都重试
+)
+async def _query_context7_with_retry(
     error_message: str,
 ) -> Optional[str]:
-    """Query context7 documentation for error resolution.
+    """Internal function with retry mechanism for Context7 queries.
 
     Args:
         error_message: The error message or traceback to search for
     Returns:
         Documentation search result as string, or None if failed
     """
-    try:
-        # Load configuration using pydantic settings
-        settings = get_context7_settings()
-        print(settings)
-        # Initialize cache - enabled by default, permanent caching
-        cache = get_mcp_cache() if settings.cache_enabled else None
+    # Load configuration using pydantic settings
+    settings = get_context7_settings()
+    print(settings)
+    # Initialize cache - enabled by default, permanent caching
+    cache = get_mcp_cache() if settings.cache_enabled else None
 
-        # Check query cache first
+    # Check query cache first
+    if cache:
+        cached_result = cache.get_query_result(error_message)
+        if cached_result:
+            logger.info("Returning cached query result")
+            cache.log_cache_stats()
+            return cached_result
+
+    # Record start time for execution timing
+    start_time = time.time()
+
+    # Try to get tools from cache first
+    tools = cache.get_tools(settings.mcp_url) if cache else None
+
+    if tools is None:
+        # Cache miss or cache disabled, load tools from URL
+        tool_start_time = time.time()
+        tools = await aget_tools_from_mcp_url(settings.mcp_url)
+        tool_end_time = time.time()
+        logger.info(f"Context7 tool loading time: {tool_end_time - tool_start_time:.2f} seconds")
+
+        # Cache the tools for future use
         if cache:
-            cached_result = cache.get_query_result(error_message)
-            if cached_result:
-                logger.info("Returning cached query result")
-                cache.log_cache_stats()
-                return cached_result
+            cache.set_tools(settings.mcp_url, tools)
+    else:
+        logger.info("Using cached tools, loading time: 0.00 seconds")
 
-        # Record start time for execution timing
-        start_time = time.time()
+    # Initialize LLM with OpenAI configuration
+    llm = OpenAI(model=settings.model, api_key=settings.api_key, api_base=settings.api_base)
 
-        # Try to get tools from cache first
-        tools = cache.get_tools(settings.mcp_url) if cache else None
+    # Create ReAct agent with loaded tools
+    agent = ReActAgent(tools=tools, llm=llm, verbose=True)
+    ctx = Context(agent)
 
-        if tools is None:
-            # Cache miss or cache disabled, load tools from URL
-            tool_start_time = time.time()
-            tools = await aget_tools_from_mcp_url(settings.mcp_url)
-            tool_end_time = time.time()
-            logger.info(f"Context7 tool loading time: {tool_end_time - tool_start_time:.2f} seconds")
+    # Record time for agent execution
+    agent_start_time = time.time()
 
-            # Cache the tools for future use
-            if cache:
-                cache.set_tools(settings.mcp_url, tools)
-        else:
-            logger.info("Using cached tools, loading time: 0.00 seconds")
+    # Construct query with error message and context7 instruction
+    # TODO: how to fix the agent to force the two tools to be used
+    # TODO: how to extend to more apis (currently only gpt models through llama_index)
 
-        # Initialize LLM with OpenAI configuration
-        llm = OpenAI(model=settings.model, api_key=settings.api_key, api_base=settings.api_base)
-
-        # Create ReAct agent with loaded tools
-        agent = ReActAgent(tools=tools, llm=llm, verbose=True)
-        ctx = Context(agent)
-
-        # Record time for agent execution
-        agent_start_time = time.time()
-
-        # Construct query with error message and context7 instruction
-        # TODO: how to fix the agent to force the two tools to be used
-        # TODO: how to extend to more apis (currently only gpt models through llama_index)
-
-        query = f"""{error_message}
+    query = f"""{error_message}
 
 IMPORTANT INSTRUCTIONS:
 1. ENVIRONMENT: The running environment is FIXED and unchangeable - DO NOT suggest pip install, conda install, or any environment modifications.
@@ -113,39 +123,60 @@ corrected_code_here
 
 Please search the documentation and provide a practical, copy-paste solution."""
 
-        # Execute agent query
-        response = await agent.run(query, ctx=ctx)
+    # Execute agent query
+    response = await agent.run(query, ctx=ctx)
 
-        agent_end_time = time.time()
-        logger.info(f"Context7 agent execution time: {agent_end_time - agent_start_time:.2f} seconds")
+    agent_end_time = time.time()
+    logger.info(f"Context7 agent execution time: {agent_end_time - agent_start_time:.2f} seconds")
 
-        # Calculate and display total execution time
-        end_time = time.time()
-        total_time = end_time - start_time
-        logger.info(f"Context7 total execution time: {total_time:.2f} seconds")
-        logger.info(f"Context7 execution completed at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
+    # Calculate and display total execution time
+    end_time = time.time()
+    total_time = end_time - start_time
+    logger.info(f"Context7 total execution time: {total_time:.2f} seconds")
+    logger.info(f"Context7 execution completed at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
 
-        result = str(response)
+    result = str(response)
 
-        # Cache the query result
-        if cache:
-            cache.set_query_result(error_message, result)
-            cache.log_cache_stats()
+    # Cache the query result
+    if cache:
+        cache.set_query_result(error_message, result)
+        cache.log_cache_stats()
 
-        return result
+    return result
 
+
+async def query_context7(
+    error_message: str,
+) -> Optional[str]:
+    """Query context7 documentation for error resolution with retry mechanism.
+
+    Args:
+        error_message: The error message or traceback to search for
+    Returns:
+        Documentation search result as string, or None if failed
+    """
+    try:
+        return await _query_context7_with_retry(error_message)
     except Exception as e:
-        logger.error(f"Context7 query failed: {str(e)}")
+        logger.error(f"Context7 query failed after retries: {str(e)}")
         return None
 
 
-async def main():
-    """Main function for testing context7 functionality."""
-    error_msg = """### TRACEBACK: Traceback (most recent call last):\nFile \"/workspace/RD-Agent/git_ignore_folder/RD-Agent_workspace/55141c6414284b9f8512f998b4b91043/main.py\", line 540, in <module>\nmain()\nFile \"/workspace/RD-Agent/git_ignore_folder/RD-Agent_workspace/55141c6414284b9f8/512f998b4b91043/main.py\", line 440, in main\ntrain_transforms = build_transforms('train')\n^^^^^^^^^^^^^^^^^^^^^^^^^\nFile \"/workspace/RD-Agent/git_ignore_folder/RD-Agent_workspace/55141c6414284b9f8512f998b4b91043/main.py\", line 149, in build_transforms\nA.RandAugment(n=2, m=9),\n^^^^^^^^^^^^^\nAttributeError: module 'albumentations' has no attribute 'RandAugment'\n### SUPPLEMENTARY_INFO: import albumentations as A\nfrom albumentations.pytorch import ToTensorV2"""
+# async def main():
+#     """Main function for testing context7 functionality."""
+#     error_msg = """### TRACEBACK: Traceback (most recent call last):\nTraceback (most recent call last):
+# File "/workspace/RD-Agent/git_ignore_folder/RD-Agent_workspace/862e5d2ff8d4489b91c38c5be5001b44/main.py", line 400, in <module>
+# main()
+# File "/workspace/RD-Agent/git_ignore_folder/RD-Agent_workspace/862e5d2ff8d4489b91c38c5be5001b44/main.py", line 285, in main
+# sample_weight, groups, adv_auc = adversarial_validation(train_df, test_df, features, debug=DEBUG, random_state=random_state)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# File "/workspace/RD-Agent/git_ignore_folder/RD-Agent_workspace/862e5d2ff8d4489b91c38c5be5001b44/main.py", line 162, in adversarial_validation
+# adv_clf.fit(
+# TypeError: LGBMClassifier.fit() got an unexpected keyword argument 'early_stopping_rounds'"""
 
-    result = await query_context7(error_msg)
-    print(result)
+#     result = await query_context7(error_msg)
+#     print(result)
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     asyncio.run(main())

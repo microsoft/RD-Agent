@@ -123,7 +123,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     runner_longer_timeout_multiplier: int = 2
 
     #### hypothesis critique and rewrite
-    enable_hypo_critique_rewrite: bool = True
+    enable_hypo_critique_rewrite: bool = False
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
 
     #### mcp in coder
