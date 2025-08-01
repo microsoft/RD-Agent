@@ -114,15 +114,21 @@ DSCoSTEER_eval:
     ## Stdout of code execution and testing
     {{ stdout }}
 
-    # The time spend on code execution and timeout
-    {{ time_spent }}
-
-    ## The timeout of code execution
-    {{ timeout }}
-
-    ## The percent of timeout used
-    {{ percent_of_timeout_used }}
-
+    ## Execution time and timeout
+    The execution time for current code base: {{ time_spent }}.
+    The total timeout: {{ timeout }}.
+    The percent of timeout used: {{ percent_of_timeout_used }}.
+    
+    {% if queried_former_failed_knowledge|length != 0 %}
+    # Evolving History
+    {% for former_failed_knowledge in queried_former_failed_knowledge %} ## Attempt {{ loop.index }}:
+    ### Summary of Changes
+    {{ former_failed_knowledge.implementation.change_summary }}
+    ### Feedbacks
+    {{ former_failed_knowledge.feedback }}
+    {% endfor %}
+    {% endif %}
+    
 DSCoSTEER:
   system_debugger: |-
     {% include "scenarios.data_science.share:scen.role" %}
@@ -194,4 +200,14 @@ DSCoSTEER:
     {% if hyperparameter_tuning_suggestion is not none %}
     ## Hyperparameter Tuning Suggestion
     {{ hyperparameter_tuning_suggestion }}
+    {% endif %}
+
+    {% if queried_former_failed_knowledge|length != 0 %}
+    # Evolving History
+    {% for former_failed_knowledge in queried_former_failed_knowledge %} ## Attempt {{ loop.index }}:
+    ### Summary of Changes
+    {{ former_failed_knowledge.implementation.change_summary }}
+    ### Feedbacks
+    {{ former_failed_knowledge.feedback }}
+    {% endfor %}
     {% endif %}
