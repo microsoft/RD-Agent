@@ -1,7 +1,8 @@
+import os
+
 from pydantic_settings import SettingsConfigDict
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
 from rdagent.core.conf import RD_AGENT_SETTINGS, ExtendedBaseSettings
 
 
@@ -28,7 +29,9 @@ class DSFinetuneScen(ExtendedBaseSettings):
 
 DS_FINETUNE_SETTINGS = DSFinetuneScen()
 RD_AGENT_SETTINGS.app_tpl = DS_FINETUNE_SETTINGS.app_tpl
-DSCoderCoSTEERSettings.extra_evaluator = ["rdagent.components.coder.data_science.share.eval.PrevModelLoadEvaluator"]
+os.environ["DS_CODER_COSTEER_EXTRA_EVALUATOR"] = (
+    '["rdagent.components.coder.data_science.share.eval.PrevModelLoadEvaluator"]'
+)
 for field_name, new_value in DS_FINETUNE_SETTINGS.model_dump().items():
     if hasattr(DS_RD_SETTING, field_name):
         setattr(DS_RD_SETTING, field_name, new_value)

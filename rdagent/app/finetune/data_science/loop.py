@@ -3,7 +3,7 @@ from pathlib import Path
 
 import fire
 
-from rdagent.app.tune.conf import DS_RD_SETTING
+from rdagent.app.finetune.data_science.conf import DS_RD_SETTING
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
@@ -11,7 +11,7 @@ from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 
 def main(
     model: str | None = None,
-    dataset: str | None = None,
+    competition: str | None = None,
 ):
     """
     Parameters

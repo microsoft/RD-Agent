@@ -3,7 +3,7 @@ from pathlib import Path
 
 import fire
 
-from rdagent.app.finetune.conf import DS_RD_SETTING
+from rdagent.app.finetune.llm.conf import DS_RD_SETTING
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
