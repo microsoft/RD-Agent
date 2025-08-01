@@ -180,7 +180,6 @@ class DataScienceScen(Scenario):
             time_limit=None,
             recommend_time_limit=None,
             eda_output=None,
-            sample_data_by_LLM=None,
             debug_time_limit=None,
             recommend_debug_time_limit=None,
             runtime_environment=self.get_runtime_environment(),
@@ -198,12 +197,17 @@ class DataScienceScen(Scenario):
             metric_direction=self.metric_direction,
             raw_description=self.raw_description,
             use_raw_description=DS_RD_SETTING.use_raw_description,
-            time_limit=f"{self.real_full_timeout() / 60 / 60 : .2f} hours",
-            recommend_time_limit=f"{self.recommend_full_timeout() / 60 / 60 : .2f} hours",
+            time_limit=f"{self.real_full_timeout() / 60 / 60 : .2f} hours" if DS_RD_SETTING.show_hard_limit else None,
+            recommend_time_limit=(
+                f"{self.recommend_full_timeout() / 60 / 60 : .2f} hours" if DS_RD_SETTING.sample_data_by_LLM else None
+            ),
             eda_output=eda_output,
-            sample_data_by_LLM=DS_RD_SETTING.sample_data_by_LLM,
-            debug_time_limit=f"{self.real_debug_timeout() / 60 : .2f} minutes",
-            recommend_debug_time_limit=f"{self.recommend_debug_timeout() / 60 : .2f} minutes",
+            debug_time_limit=(
+                f"{self.real_debug_timeout() / 60 : .2f} minutes" if DS_RD_SETTING.show_hard_limit else None
+            ),
+            recommend_debug_time_limit=(
+                f"{self.recommend_debug_timeout() / 60 : .2f} minutes" if DS_RD_SETTING.sample_data_by_LLM else None
+            ),
             runtime_environment=self.get_runtime_environment(),
         )
 
