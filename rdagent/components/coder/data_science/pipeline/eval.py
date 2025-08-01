@@ -1,6 +1,9 @@
 # tess successfully running.
 # (GPT) if it aligns with the spec & rationality of the spec.
 import asyncio
+
+# Use thread pool to avoid async context conflicts
+import concurrent.futures
 import json
 import re
 from dataclasses import dataclass
@@ -27,11 +30,6 @@ from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 
 DIRNAME = Path(__file__).absolute().resolve().parent
-
-import nest_asyncio
-
-# 直接应用 nest_asyncio，多次调用是安全的
-nest_asyncio.apply()
 
 
 @dataclass
@@ -279,18 +277,28 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             user_prompt=user_prompt,
             init_kwargs_update_func=PipelineSingleFeedback.val_and_update_init_dict,
         )
-        # TODO:
-        wfb.requires_documentation_search = True
-        wfb.error_message = """### TRACEBACK: Traceback (most recent call last):\nFile \"/kaggle/workspace/main.py\", line 486, in <module>\nmain()\nFile \"/kaggle/workspace/main.py\", line 451, in main\noof_lgbm, lgbm_test_probs, accs_lgbm = fit_lightgbm(\nFile \"/kaggle/workspace/main.py\", line 240, in fit_lightgbm\ngbm.fit(\nTypeError: LGBMClassifier.fit() got an unexpected keyword argument 'early_stopping_rounds'\n### SUPPLEMENTARY_INFO: gbm.fit(..., early_stopping_rounds=..., ...)"""
 
         if enable_context7 and wfb.requires_documentation_search is True:
             try:
-                # Run context7 query asynchronously
-                context7_result = asyncio.run(query_context7(wfb.error_message))
+
+                def run_context7_sync():
+                    """Run Context7 query in a new event loop"""
+                    # Create new event loop to avoid conflicts with existing loop
+                    new_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    try:
+                        return new_loop.run_until_complete(query_context7(wfb.error_message))
+                    finally:
+                        new_loop.close()
+
+                # Execute in thread pool to avoid event loop conflicts
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(run_context7_sync)
+                    context7_result = future.result(timeout=150)  # 150s timeout, sufficient time for retry mechanism
+
                 if context7_result:
                     logger.info("Context7: Documentation search completed successfully")
                     wfb.error_message += f"\n\n### Relevant Documentation Reference:\nThe following high-confidence documentation was automatically retrieved based on the error above. This can serve as a reliable reference for understanding correct API usage and resolving the issue:\n\n{context7_result}"
-
                 else:
                     logger.warning("Context7: Documentation search failed or no results found")
             except Exception as e:

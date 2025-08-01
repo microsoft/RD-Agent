@@ -25,9 +25,19 @@ from rdagent.log import rdagent_logger as logger
 
 
 @retry(
-    stop=stop_after_attempt(3),  # 重试2次，总共执行3次
-    wait=wait_exponential(multiplier=1, min=4, max=30),  # 指数退避：4秒、8秒、16秒
-    retry=retry_if_exception_type((Exception,)),  # 对所有异常都重试
+    stop=stop_after_attempt(3),  # Retry 2 times, total 3 attempts
+    wait=wait_exponential(multiplier=1, min=3, max=20),  # Exponential backoff: 3s, 6s, 12s
+    retry=retry_if_exception_type(
+        (
+            # Network and connection related errors
+            ConnectionError,
+            TimeoutError,
+            # Async and cancel scope related errors
+            RuntimeError,
+            # Other recoverable system errors
+            OSError,
+        )
+    ),
 )
 async def _query_context7_with_retry(
     error_message: str,
@@ -157,11 +167,17 @@ async def query_context7(
     """
     try:
         return await _query_context7_with_retry(error_message)
+    except (ConnectionError, TimeoutError, RuntimeError, OSError) as e:
+        # These are retryable errors, but retries have failed
+        logger.error(f"Context7 query failed after retries due to {type(e).__name__}: {str(e)}")
+        return None
     except Exception as e:
-        logger.error(f"Context7 query failed after retries: {str(e)}")
+        # Other non-retryable errors (e.g., configuration errors, authentication failures)
+        logger.error(f"Context7 query failed due to non-retryable error {type(e).__name__}: {str(e)}")
         return None
 
 
+# example
 # async def main():
 #     """Main function for testing context7 functionality."""
 #     error_msg = """### TRACEBACK: Traceback (most recent call last):\nTraceback (most recent call last):
