@@ -133,5 +133,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
     enable_scale_check: bool = False
 
+    #### hypothesis selection method
+    llm_select_hypothesis: bool = True
+    """Whether to use LLM to select hypothesis. If True, use LLM selection; if False, use the existing ranking method."""
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()

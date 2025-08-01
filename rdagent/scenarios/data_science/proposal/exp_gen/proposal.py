@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -15,6 +16,7 @@ from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.timer import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.feedback import ExperimentFeedback
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -89,6 +91,70 @@ class ScenarioChallengeCategory(str, Enum):
     DATASET_DRIVEN = "dataset-driven"
     DOMAIN_INFORMED = "domain-informed"
 
+class HypothesisComponent(str, Enum):
+    DataLoadSpec = "DataLoadSpec"
+    FeatureEng = "FeatureEng"
+    Model = "Model"
+    Ensemble = "Ensemble"
+    Workflow = "Workflow"
+
+
+class HypothesisEvaluationReasoningScore(BaseModel):
+    reasoning: str = Field(
+        description="What is the quality of the hypothesis under this criteria? Answer in 1-2 sentence."
+    )
+    score: float = Field(description="The score of the hypothesis under this criteria between 1 and 10.")
+
+
+class HypothesisEvaluation(BaseModel):
+    alignment: HypothesisEvaluationReasoningScore = Field(
+        description="The alignment of the proposed hypothesis with the identified challenge."
+    )
+    impact: HypothesisEvaluationReasoningScore = Field(
+        description="The expected impact of the proposed hypothesis on the current SOTA implementation."
+    )
+    novelty: HypothesisEvaluationReasoningScore = Field(
+        description="The novelty of the proposed hypothesis compared to existing solutions."
+    )
+    feasibility: HypothesisEvaluationReasoningScore = Field(
+        description="The feasibility of implementing the proposed hypothesis in the current SOTA implementation."
+    )
+    risk_reward_balance: HypothesisEvaluationReasoningScore = Field(
+        description="The risk-reward balance of implementing the proposed hypothesis."
+    )
+
+
+class HypothesisDetail(BaseModel):
+    caption: str = Field(description="The caption of the challenge it is based on.")
+    challenge: str = Field(
+        description="Reaffirm the challenge within the current context (e.g., trace history, domain principles, or competition constraints). It should be no more than 2-3 sentences."
+    )
+    hypothesis: str = Field(
+        description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
+    )
+    metric_impact: str = Field(
+        description=(
+            "Brief explanation (max 2 sentences) of the expected impact of the hypothesis on the target metric."
+        )
+    )
+    component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
+    evaluation: HypothesisEvaluation = Field(description="Evaluate the quality of the hypothesis.")
+
+
+class HypothesisSimple(BaseModel):
+    hypothesis: str = Field(
+        description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
+    )
+    component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
+
+
+class HypothesisList(BaseModel):
+    deduplicated_challenges: List[str] = Field(
+        description="A list of deduplicated challenge captions. Each must retain its original wording. If multiple captions are semantically identical, keep the first one."
+    )
+    hypotheses: List[HypothesisDetail] = Field(
+        description="A non-empty list of hypotheses proposed for the next iteration, each corresponding to one challenge. The list length should match the number of challenges."
+    )
 
 class ScenarioChallengeDetail(BaseModel):
     reasoning: str = Field(
@@ -866,6 +932,48 @@ class DSProposalV2ExpGen(ExpGen):
         )
         return index_to_pick_pool_list[reproducible_int]
 
+
+    def hypothesis_select_with_llm(
+            self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str, hypothesis_candidates: dict
+        ):
+        res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
+        total_time = RD_Agent_TIMER_wrapper.timer.all_duration
+        use_time = round(total_time.total_seconds(), 2) - round(res_time.total_seconds(), 2)
+        use_ratio = 100 * use_time / round(total_time.total_seconds(), 2)
+        use_ratio = round(use_ratio, 2)
+
+        ensemble_timeout = DS_RD_SETTING.full_timeout
+        hypothesis_candidates = str(json.dumps(hypothesis_candidates, indent=2))
+
+        sys_prompt = T(".prompts_v2:hypothesis_select.system").r(
+            hypothesis_candidates=hypothesis_candidates,
+            res_time=round(res_time.total_seconds(), 2),
+            ensemble_timeout=ensemble_timeout,
+            use_ratio=use_ratio,
+            hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(
+                hypothesis_candidates=hypothesis_candidates
+            ),
+        )
+
+        user_prompt = T(".prompts_v2:hypothesis_select.user").r(
+            scenario_desc=scenario_desc,
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format=HypothesisSimple if self.supports_response_schema else {"type": "json_object"},
+            json_target_type=(
+                Dict[str, Dict[str, str | Dict[str, str | int]]] if not self.supports_response_schema else None
+            ),
+        )
+
+        response_dict = json.loads(response)
+        return response_dict
+
+
     def hypothesis_rank(
         self, hypothesis_dict: dict, problem_dict: dict, selected_idx: Optional[int] = None
     ) -> Tuple[str, DSHypothesis]:
@@ -1138,10 +1246,31 @@ class DSProposalV2ExpGen(ExpGen):
             improved_hypotheses_dict = hypothesis_dict.copy()  # Use original hypotheses directly
 
         # Step 3: Select the best hypothesis
-        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
-            hypothesis_dict=improved_hypotheses_dict,
-            problem_dict=all_problems,
-        )
+        if DS_RD_SETTING.llm_select_hypothesis:
+            # Use LLM to select the best hypothesis
+                response_dict = self.hypothesis_select_with_llm(
+                scenario_desc=scenario_desc,
+                exp_feedback_list_desc=exp_feedback_list_desc,
+                sota_exp_desc=sota_exp_desc,
+                hypothesis_candidates=improved_hypotheses_dict,
+            )
+         
+        component_map = {
+            "Model": HypothesisComponent.Model,
+            "Ensemble": HypothesisComponent.Ensemble,
+            "Workflow": HypothesisComponent.Workflow,
+            "FeatureEng": HypothesisComponent.FeatureEng,
+            "DataLoadSpec": HypothesisComponent.DataLoadSpec,
+        }
+
+        comp_str = response_dict.get("component")
+        hypo_str = response_dict.get("hypothesis")
+
+        if comp_str in component_map and hypo_str is not None:
+            new_hypothesis = DSHypothesis(component=component_map[comp_str], hypothesis=hypo_str)
+
+        pickled_problem_name = None
+        
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
