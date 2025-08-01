@@ -52,7 +52,7 @@ networkx
 # kaggle crawler
 selenium
 kaggle
-nbformat
+nbformat # also used for notebook conversion
 
 # tool
 setuptools-scm

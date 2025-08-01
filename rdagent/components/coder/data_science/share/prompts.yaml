@@ -89,3 +89,25 @@ docdev:
     ```
     {% endfor %}
 
+notebookconverter:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %} Your task is to provide a summary for a data science solution.
+
+    You will be given:
+    - The original implementation plan for the script.
+    - A Python script that contains code and output.
+
+    Your task is to generate markdown content that includes a title and a short paragraph summarizing the technique in model training, the type of model produced and any other noteworthy details in the solution.
+
+    The return content should be like the format below(Please note that "````" is used to avoid confliction of "```" in markdown file)
+    ````markdown
+    # <The title of the notebook>
+    <the content of markdown file>
+    ````
+
+  user: |-
+    --------------- The implementation plan ---------------
+    {{plan}}
+
+    --------------- The Python script content ---------------
+    {{code}}

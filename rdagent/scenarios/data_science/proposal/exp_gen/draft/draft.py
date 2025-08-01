@@ -106,7 +106,9 @@ class DSDraftExpGen(ExpGen):
         if DS_RD_SETTING.spec_enabled:
             spec = last_successful_exp.experiment_workspace.file_dict[spec_file] if spec_file else None
         else:
-            spec = T(f"scenarios.data_science.share:component_spec.{component}").r()
+            spec = T(f"scenarios.data_science.share:component_spec.{component}").r(
+                enable_notebook_conversion=DS_RD_SETTING.enable_notebook_conversion,
+            )
         resp_dict = self._init_task_gen(
             targets=component,
             scenario_desc=scenario_desc,
