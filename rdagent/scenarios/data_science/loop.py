@@ -31,6 +31,7 @@ from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
 from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.base import DataScienceScen
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.utils.workflow.misc import wait_retry
@@ -39,17 +40,21 @@ from rdagent.utils.workflow.misc import wait_retry
 def clean_workspace(workspace_root: Path) -> None:
     """
     Clean the workspace folder and only keep the essential files to save more space.
+    workspace_root might contain a file in parallel with the folders, we should directly remove it.
 
     # remove all files and folders in the workspace except for .py, .md, and .csv files to avoid large workspace dump
     """
-    for file_and_folder in workspace_root.iterdir():
-        if file_and_folder.is_dir():
-            if file_and_folder.is_symlink():
+    if workspace_root.is_file():
+        workspace_root.unlink()
+    else:
+        for file_and_folder in workspace_root.iterdir():
+            if file_and_folder.is_dir():
+                if file_and_folder.is_symlink():
+                    file_and_folder.unlink()
+                else:
+                    shutil.rmtree(file_and_folder)
+            elif file_and_folder.is_file() and file_and_folder.suffix not in [".py", ".md", ".csv"]:
                 file_and_folder.unlink()
-            else:
-                shutil.rmtree(file_and_folder)
-        elif file_and_folder.is_file() and file_and_folder.suffix not in [".py", ".md", ".csv"]:
-            file_and_folder.unlink()
 
 
 @wait_retry()
@@ -200,6 +205,8 @@ class DataScienceRDLoop(RDLoop):
 
         exp: DSExperiment = None
 
+        cur_loop_id = prev_out[self.LOOP_IDX_KEY]
+
         e = prev_out.get(self.EXCEPTION_KEY, None)
         if e is None:
             exp = prev_out["running"]
@@ -210,18 +217,23 @@ class DataScienceRDLoop(RDLoop):
             # set the local selection to the trace as global selection, then set the DAG parent for the trace
             if exp.local_selection is not None:
                 self.trace.set_current_selection(exp.local_selection)
-            self.trace.sync_dag_parent_and_hist((exp, prev_out["feedback"]))
+            self.trace.sync_dag_parent_and_hist((exp, prev_out["feedback"]), cur_loop_id)
         else:
             exp: DSExperiment = prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"]
+            # TODO: distinguish timeout error & other exception.
+            if isinstance(self.trace.scen, DataScienceScen) and DS_RD_SETTING.allow_longer_timeout:
+                self.trace.scen.increase_timeout()
 
             # set the local selection to the trace as global selection, then set the DAG parent for the trace
             if exp.local_selection is not None:
                 self.trace.set_current_selection(exp.local_selection)
+
             self.trace.sync_dag_parent_and_hist(
                 (
                     exp,
                     ExperimentFeedback.from_exception(e),
-                )
+                ),
+                cur_loop_id,
             )
 
             if self.trace.sota_experiment() is None:
@@ -255,7 +267,7 @@ class DataScienceRDLoop(RDLoop):
         logger.log_object(sota_exp_to_submit, tag="sota_exp_to_submit")
 
         logger.log_object(self.trace, tag="trace")
-        logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
+        logger.log_object(self.trace.sota_experiment(search_type="all"), tag="SOTA experiment")
 
         if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
             logger.log_object(self.trace.knowledge_base, tag="knowledge_base")
@@ -319,6 +331,11 @@ class DataScienceRDLoop(RDLoop):
                 mid_workspace_tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_workspace_bak.tar"
             )  # backup when upper code line is killed when running
             self.timer.add_duration(datetime.now() - start_archive_datetime)
+
+    def _check_exit_conditions_on_step(self, loop_id: Optional[int] = None, step_id: Optional[int] = None):
+        if step_id not in [self.steps.index("running"), self.steps.index("feedback")]:
+            # pass the check for running and feedbacks since they are very likely to be finished soon.
+            super()._check_exit_conditions_on_step(loop_id=loop_id, step_id=step_id)
 
     @classmethod
     def load(

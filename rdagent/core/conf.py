@@ -55,6 +55,11 @@ class RDAgentSettings(ExtendedBaseSettings):
 
     # workspace conf
     workspace_path: Path = Path.cwd() / "git_ignore_folder" / "RD-Agent_workspace"
+    workspace_ckp_size_limit: int = 0
+    """
+    the checkpoint for the workspace is a zip file.
+    0 (or any value <=0) means *no* size limit for files in workspace checkpoints
+    """
 
     # multi processing conf
     multi_proc_n: int = 1

@@ -22,6 +22,7 @@ class DSHypothesis(Hypothesis):
         problem_name: str | None = None,
         problem_desc: str | None = None,
         problem_label: Literal["SCENARIO_PROBLEM", "FEEDBACK_PROBLEM"] = "FEEDBACK_PROBLEM",
+        appendix: str | None = None,
     ) -> None:
         super().__init__(
             hypothesis, reason, concise_reason, concise_observation, concise_justification, concise_knowledge
@@ -30,6 +31,7 @@ class DSHypothesis(Hypothesis):
         self.problem_name = problem_name
         self.problem_desc = problem_desc
         self.problem_label = problem_label
+        self.appendix = appendix
 
     def __str__(self) -> str:
         if self.hypothesis is None:
@@ -44,23 +46,17 @@ class DSHypothesis(Hypothesis):
         lines.append(f"Hypothesis: {self.hypothesis}")
         if self.reason is not None:
             lines.append(f"Reason: {self.reason}")
+        if self.appendix is not None:
+            lines.append(f"Appendix: {self.appendix}")
         return "\n".join(lines)
 
 
 class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
     def __init__(self, scen: DataScienceScen, knowledge_base: KnowledgeBase | None = None) -> None:
-        self.scen: DataScienceScen = scen
-        self.hist: list[tuple[DSExperiment, ExperimentFeedback]] = []
-        """
-        The dag_parent is a list of tuples, each tuple is the parent index of the current node.
-        The first element of the tuple is the parent index, the rest are the parent indexes of the parent (not implemented yet).
-        If the current node is the root node without parent, the tuple is empty.
-        """
-        self.dag_parent: list[tuple[int, ...]] = []  # List of tuples representing parent indices in the DAG structure.
-        # () represents no parent; (1,) presents one parent; (1, 2) represents two parents.
+        super().__init__(scen, knowledge_base)
 
-        self.knowledge_base = knowledge_base
-        self.current_selection: tuple[int, ...] = (-1,)
+        # NOTE: this line is just for linting.
+        self.hist: list[tuple[DSExperiment, ExperimentFeedback] | None] = []
 
         self.sota_exp_to_submit: DSExperiment | None = None  # grab the global best exp to submit
 
@@ -95,6 +91,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
     def sync_dag_parent_and_hist(
         self,
         exp_and_fb: tuple[Experiment, ExperimentFeedback],
+        cur_loop_id: int,
     ) -> None:
         """
         Adding corresponding parent index to the dag_parent when the hist is going to be changed.
@@ -114,6 +111,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
             self.dag_parent.append((current_node_idx,))
         self.hist.append(exp_and_fb)
+        self.idx2loop_id[len(self.hist) - 1] = cur_loop_id
 
     def retrieve_search_list(
         self,

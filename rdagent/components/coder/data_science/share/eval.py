@@ -55,7 +55,7 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
         env = get_ds_env(
             extra_volumes={data_source_path: T("scenarios.data_science.share:scen.input_path").r()},
             running_timeout_period=(
-                DS_RD_SETTING.full_timeout if self.data_type == "full" else DS_RD_SETTING.debug_timeout
+                self.scen.real_full_timeout() if self.data_type == "full" else self.scen.real_debug_timeout()
             ),
         )
 

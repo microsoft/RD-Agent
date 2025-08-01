@@ -8,7 +8,12 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
-from rdagent.core.experiment import ASpecificExp, Experiment
+from rdagent.core.experiment import (
+    ASpecificExp,
+    ASpecificPlan,
+    Experiment,
+    ExperimentPlan,
+)
 from rdagent.core.knowledge_base import KnowledgeBase
 from rdagent.core.scenario import Scenario
 
@@ -127,11 +132,29 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
 
     def __init__(self, scen: ASpecificScen, knowledge_base: ASpecificKB | None = None) -> None:
         self.scen: ASpecificScen = scen
+
+        # BEGIN: graph structure -------------------------
         self.hist: list[Trace.NodeType] = (
             []
         )  # List of tuples containing experiments and their feedback, organized over time.
         self.dag_parent: list[tuple[int, ...]] = []  # List of tuples representing parent indices in the DAG structure.
-        # (,) represents no parent; (1,) presents one parent; (1, 2) represents two parents.
+        # Definition:
+        # - (,) represents no parent (root node in one tree);
+        # - (1,) presents one parent;
+        # - (1, 2) represents two parents (Multiple parent is not implemented yet).
+        # Syntax sugar for the parent relationship:
+        # - Only for selection:
+        #    - (-1,) indicates that select the last record node as parent.
+
+        # NOTE: the sequence of hist and dag_parent is organized by the order to record the experiment.
+        # So it may be different from the order of the loop_id.
+        # So we need an extra mapping to map the enqueue id back to the loop id.
+        self.idx2loop_id: dict[int, int] = {}
+
+        # Design discussion:
+        # - If we unifiy the loop_id and the enqueue id, we will have less recognition burden.
+        # - If we use different id for loop and enqueue, we don't have to handle the placeholder logic.
+        # END: graph structure -------------------------
 
         # TODO: self.hist is 2-tuple now, remove hypothesis from it, change old code for this later.
         self.knowledge_base: ASpecificKB | None = knowledge_base
@@ -227,8 +250,12 @@ class CheckpointSelector:
         checkpoint_idx represents the place where we want to create a new node.
         the return value should be the idx of target node (the parent of the new generating node).
         - `(-1, )` represents starting from the latest trial in the trace - default value
+
+          - NOTE: we don't encourage to use this option; It is confusing when we have multiple traces.
+
         - `(idx, )` represents starting from the `idx`-th trial in the trace.
         - `None` represents starting from scratch (start a new trace)
+
 
         - More advanced selection strategies in `select.py`
         """
@@ -246,15 +273,34 @@ class SOTAexpSelector:
         """
 
 
+class ExpPlanner(ABC, Generic[ASpecificPlan]):
+    """
+    An abstract class for planning the experiment.
+    The planner should generate a plan for the experiment based on the trace.
+    """
+
+    def __init__(self, scen: Scenario) -> None:
+        self.scen = scen
+
+    @abstractmethod
+    def plan(self, trace: Trace) -> ASpecificPlan:
+        """
+        Generate a plan for the experiment based on the trace.
+        The plan should be a dictionary that contains the plan to each stage.
+        """
+
+
 class ExpGen(ABC):
 
     def __init__(self, scen: Scenario) -> None:
         self.scen = scen
 
     @abstractmethod
-    def gen(self, trace: Trace) -> Experiment:
+    def gen(self, trace: Trace, plan: ExperimentPlan | None = None) -> Experiment:
         """
         Generate the experiment based on the trace.
+        Planning is part of gen, but since we may support multi-stage planning,
+        we need to pass plan as optional argument.
 
         `ExpGen().gen()` play a role like
 
@@ -284,7 +330,11 @@ class HypothesisGen(ABC):
         self.scen = scen
 
     @abstractmethod
-    def gen(self, trace: Trace) -> Hypothesis:
+    def gen(
+        self,
+        trace: Trace,
+        plan: ExperimentPlan | None = None,
+    ) -> Hypothesis:
         # def gen(self, scenario_desc: str, ) -> Hypothesis:
         """
         Motivation of the variable `scenario_desc`:

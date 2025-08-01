@@ -53,7 +53,10 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        env = get_ds_env(extra_volumes={self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()})
+        env = get_ds_env(
+            extra_volumes={self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()},
+            running_timeout_period=self.scen.real_debug_timeout(),
+        )
 
         stdout = ""
         implementation.execute(env=env, entry=get_clear_ws_cmd())
@@ -96,6 +99,11 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 stdout += f"Debug mode ran in {debug_time:.2f} seconds, estimated full run time is {full_estimated_time:.2f} seconds. The estimated time is {full_estimated_time / env.conf.running_timeout_period * 100:.2f}% the debug time."
             else:
                 stdout += "Debug mode did not provide debug_time or estimated_time, it's a buggy implementation.\n"
+
+            test_eval = get_test_eval()
+            if test_eval.enabled(self.scen.competition):
+                submission_check_out, submission_ret_code = test_eval.valid(self.scen.competition, implementation)
+                stdout += f"\n### Submission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
 
         score_fp = implementation.workspace_path / "scores.csv"
         score_ret_code = 0
@@ -150,9 +158,17 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         else:
             eda_output = implementation.file_dict.get("EDA.md", None)
 
+        queried_similar_successful_knowledge = (
+            queried_knowledge.task_to_similar_task_successful_knowledge[target_task.get_task_information()]
+            if queried_knowledge is not None
+            else []
+        )
+
         system_prompt = T(".prompts:pipeline_eval.system").r(
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             debug_mode=DS_RD_SETTING.sample_data_by_LLM,
+            mle_check=(DS_RD_SETTING.sample_data_by_LLM and test_eval.is_sub_enabled(self.scen.competition)),
+            queried_similar_successful_knowledge=queried_similar_successful_knowledge,
         )
         user_prompt = T(".prompts:pipeline_eval.user").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),

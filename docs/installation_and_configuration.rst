@@ -107,6 +107,46 @@ Besides, when you are using reasoning models, the response might include the tho
 
 For more details on LiteLLM requirements, refer to the `official LiteLLM documentation <https://docs.litellm.ai/docs>`_.
 
+Configuration Example 2: Azure OpenAI Setup
+-------------------------------------------
+Here’s a sample configuration specifically for Azure OpenAI, based on the `official LiteLLM documentation <https://docs.litellm.ai/docs>`_:
+
+If you're using Azure OpenAI, below is a working example using the Python SDK, following the `LiteLLM Azure OpenAI documentation <https://docs.litellm.ai/docs/providers/azure/>`_:
+
+   .. code-block:: Properties
+
+      from litellm import completion
+      import os
+      
+      # Set Azure OpenAI environment variables
+      os.environ["AZURE_API_KEY"] = "<your_azure_api_key>"
+      os.environ["AZURE_API_BASE"] = "<your_azure_api_base>"
+      os.environ["AZURE_API_VERSION"] = "<version>"
+      
+      # Make a request to your Azure deployment
+      response = completion(
+        "azure/<your_deployment_name>",
+        messages = [{ "content": "Hello, how are you?", "role": "user" }]
+      )
+
+To align with the Python SDK example above, you can configure the `CHAT_MODEL` based on the `response` model setting and use the corresponding `os.environ` variables by writing them into your local `.env` file as follows:
+
+   .. code-block:: Properties
+
+      cat << EOF > .env
+      # CHAT MODEL: Azure OpenAI via LiteLLM
+      CHAT_MODEL=azure/<your_deployment_name>
+      AZURE_API_BASE=https://<your_azure_base>.openai.azure.com/
+      AZURE_API_KEY=<your_azure_api_key>
+      AZURE_API_VERSION=<version>
+      
+      # EMBEDDING MODEL: Using SiliconFlow via litellm_proxy
+      EMBEDDING_MODEL=litellm_proxy/BAAI/bge-large-en-v1.5
+      LITELLM_PROXY_API_KEY=<your_siliconflow_api_key>
+      LITELLM_PROXY_API_BASE=https://api.siliconflow.cn/v1
+      EOF
+
+This configuration allows you to call Azure OpenAI through LiteLLM while using an external provider (e.g., SiliconFlow) for embeddings.
 
 Configuration(deprecated)
 =========================

@@ -38,7 +38,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 )
 from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
 from rdagent.components.coder.data_science.pipeline.eval import PipelineCoSTEEREvaluator
-from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
+from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.share.eval import ModelDumpEvaluator
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
@@ -54,21 +54,15 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     def implement_one_task(
         self,
-        target_task: DataLoaderTask,
+        target_task: PipelineTask,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
         workspace: FBWorkspace | None = None,
         prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
         competition_info = self.scen.get_scenario_all_desc(eda_output=workspace.file_dict.get("EDA.md", None))
-        runtime_environment = self.scen.get_runtime_environment()
         data_folder_info = self.scen.processed_data_folder_description
         pipeline_task_info = target_task.get_task_information()
 
-        queried_similar_successful_knowledge = (
-            queried_knowledge.task_to_similar_task_successful_knowledge[pipeline_task_info]
-            if queried_knowledge is not None
-            else []
-        )
         queried_former_failed_knowledge = (
             queried_knowledge.task_to_former_failed_traces[pipeline_task_info] if queried_knowledge is not None else []
         )
@@ -83,10 +77,10 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         system_prompt = T(".prompts:pipeline_coder.system").r(
             task_desc=pipeline_task_info,
-            queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
             out_spec=PythonAgentOut.get_spec(),
-            runtime_environment=runtime_environment,
+            runtime_environment=self.scen.get_runtime_environment(),
+            package_info=target_task.package_info,
             enable_model_dump=DS_RD_SETTING.enable_model_dump,
             enable_debug_mode=DS_RD_SETTING.sample_data_by_LLM,
         )
@@ -146,6 +140,10 @@ class PipelineCoSTEER(CoSTEER):
         for evaluator in settings.extra_evaluator:
             eval_l.append(import_class(evaluator)(scen=scen))
 
+        for extra_eval in DSCoderCoSTEERSettings().extra_eval:
+            kls = import_class(extra_eval)
+            eval_l.append(kls(scen=scen))
+
         eva = CoSTEERMultiEvaluator(
             single_evaluator=eval_l, scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
@@ -159,5 +157,6 @@ class PipelineCoSTEER(CoSTEER):
             evolving_version=2,
             scen=scen,
             max_loop=DS_RD_SETTING.coder_max_loop,
+            max_seconds=scen.real_debug_timeout() * settings.max_seconds_multiplier,
             **kwargs,
         )

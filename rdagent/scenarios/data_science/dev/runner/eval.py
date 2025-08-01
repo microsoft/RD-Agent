@@ -1,5 +1,6 @@
 import json
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
@@ -26,21 +27,24 @@ from rdagent.utils.fmt import shrink_text
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
-class DSCoSTEEREvalFeedback(CoSTEERSingleFeedback):
+@dataclass
+class DSRunnerFeedback(CoSTEERSingleFeedback):
     """
     Feedback for Data Science CoSTEER evaluation.
     This feedback is used to evaluate the code and execution of the Data Science CoSTEER task.
     """
 
-    def __init__(
-        self, *args, hyperparameter_tuning_decision: bool = None, hyperparameter_tuning_suggestion: str = None, **kwargs
-    ):
-        super().__init__(*args, **kwargs)
-        self.hyperparameter_tuning_decision = hyperparameter_tuning_decision
-        self.hyperparameter_tuning_suggestion = hyperparameter_tuning_suggestion
+    acceptable: bool | None = None
+    hyperparameter_tuning_decision: bool | None = None
+    hyperparameter_tuning_suggestion: str | None = None
+
+    def is_acceptable(self) -> bool:
+        if self.acceptable is not None:
+            return self.acceptable
+        return super().is_acceptable()
 
 
-class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
+class DSRunnerEvaluator(CoSTEEREvaluator):
 
     def evaluate(
         self,
@@ -49,7 +53,13 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         gt_implementation: FBWorkspace,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
-    ) -> DSCoSTEEREvalFeedback:
+    ) -> DSRunnerFeedback:
+        # Only enalbe hyperparameter tuning on the first evaluation.
+        # Avoid too much time cunsumming.
+        if len(queried_knowledge.task_to_former_failed_traces[target_task.get_task_information()][0]) == 0:
+            enable_hyperparameter_tuning_check = True
+        else:
+            enable_hyperparameter_tuning_check = False
 
         env = get_ds_env(
             extra_volumes={
@@ -57,7 +67,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                     "scenarios.data_science.share:scen.input_path"
                 ).r()
             },
-            running_timeout_period=DS_RD_SETTING.full_timeout,
+            running_timeout_period=self.scen.real_full_timeout(),
         )
 
         stdout = implementation.execute(
@@ -129,25 +139,35 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
             submission_check_out, submission_ret_code = test_eval.valid(self.scen.competition, implementation)
             stdout += f"\nSubmission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
 
+        time_spent_ratio = implementation.running_info.running_time / env.conf.running_timeout_period
+        if (
+            DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning is not None
+            and time_spent_ratio > DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning
+        ):
+            enable_hyperparameter_tuning_check = False
+            logger.info(
+                f"Time spent ratio {time_spent_ratio:.2f} exceeds the limit {DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning}, hyperparameter tuning is disabled."
+            )
+
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=implementation.file_dict.get("EDA.md", None)),
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             task_desc=target_task.get_task_information(),
-            runtime_environment=self.scen.get_runtime_environment(),
+            enable_hyperparameter_tuning_check=enable_hyperparameter_tuning_check,
         )
         user_prompt = T(".prompts:DSCoSTEER_eval.user").r(
             code=implementation.all_codes,
             stdout=shrink_text(stdout),
             time_spent=f"{implementation.running_info.running_time:.2f} seconds",
             timeout=f"{env.conf.running_timeout_period} seconds",
-            percent_of_timeout_used=f"{(implementation.running_info.running_time / env.conf.running_timeout_period) * 100:.2f}%",
+            percent_of_timeout_used=f"{time_spent_ratio * 100:.2f}%",
         )
 
         feedback = build_cls_from_json_with_retry(
-            DSCoSTEEREvalFeedback,
+            DSRunnerFeedback,
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            init_kwargs_update_func=DSCoSTEEREvalFeedback.val_and_update_init_dict,
+            init_kwargs_update_func=DSRunnerFeedback.val_and_update_init_dict,
         )
 
         if feedback and not DS_RD_SETTING.coder_on_whole_pipeline:
@@ -166,7 +186,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                         break
 
                 if not use_one_model:
-                    feedback.final_decision = False
+                    feedback.acceptable = feedback.final_decision = False
                     logger.warning("No model script is used in `main.py`.")
                     feedback.code += "\n[Error] No model script is used in `main.py`."
 
@@ -182,7 +202,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                     logger.warning(f"Unused scripts: {unused_files}")
                     error_files = set(unused_files).intersection(set(must_have_files))
                     if error_files:
-                        feedback.final_decision = False
+                        feedback.acceptable = feedback.final_decision = False
                         logger.warning(f"{error_files} must be used in `main.py`.")
                         feedback.code += f"\n[Error] {error_files} must be used in `main.py`."
                     elif use_one_model:
@@ -190,9 +210,9 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                         implementation.inject_files(**{file: implementation.DEL_KEY for file in unused_files})
 
         if score_ret_code != 0:
-            feedback.final_decision = False
+            feedback.acceptable = feedback.final_decision = False
             feedback.return_checking += "\n" + score_check_text
         if submission_ret_code != 0:
-            feedback.final_decision = False
+            feedback.acceptable = feedback.final_decision = False
             feedback.return_checking += "\nSubmission file check failed."
         return feedback

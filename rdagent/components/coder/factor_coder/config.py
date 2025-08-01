@@ -1,6 +1,14 @@
+import os
+from typing import Optional
+
 from pydantic_settings import SettingsConfigDict
 
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
+from rdagent.utils.env import (
+    CondaConf,
+    Env,
+    LocalEnv,
+)
 
 
 class FactorCoSTEERSettings(CoSTEERSettings):
@@ -23,6 +31,23 @@ class FactorCoSTEERSettings(CoSTEERSettings):
 
     python_bin: str = "python"
     """Path to the Python binary"""
+
+
+def get_factor_env(
+    conf_type: Optional[str] = None,
+    extra_volumes: dict = {},
+    running_timeout_period: int = 600,
+    enable_cache: Optional[bool] = None,
+) -> Env:
+    conf = FactorCoSTEERSettings()
+    if hasattr(conf, "python_bin"):
+        env = LocalEnv(conf=(CondaConf(conda_env_name=os.environ.get("CONDA_DEFAULT_ENV"))))
+    env.conf.extra_volumes = extra_volumes.copy()
+    env.conf.running_timeout_period = running_timeout_period
+    if enable_cache is not None:
+        env.conf.enable_cache = enable_cache
+    env.prepare()
+    return env
 
 
 FACTOR_COSTEER_SETTINGS = FactorCoSTEERSettings()
