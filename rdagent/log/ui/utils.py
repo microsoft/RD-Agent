@@ -313,16 +313,22 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             v["coding_time"] = str(coding_time).split(".")[0]
             v["running_time"] = str(running_time).split(".")[0]
 
-            sota_exp, v["sota_loop_id_new"], sota_report, v["sota_exp_stat_new"] = get_sota_exp_stat(
+            # overwrite sota_exp_stat in summary.pkl because it may not be correct in multi-trace
+            _, _, sota_report, v["sota_exp_stat"] = get_sota_exp_stat(Path(lf) / k, to_submit=False)
+            v["sota_exp_score"] = sota_report["score"] if sota_report else None
+
+            sota_exp_submit, v["sota_loop_id_new"], sota_submit_report, v["sota_exp_stat_new"] = get_sota_exp_stat(
                 Path(lf) / k, to_submit=True
             )
-            if sota_exp is not None:
+            if sota_exp_submit is not None:
                 try:
-                    sota_result = sota_exp.result
+                    sota_submit_result = sota_exp_submit.result
                 except AttributeError:  # Compatible with old versions
-                    sota_result = sota_exp.__dict__["result"]
-                v["sota_exp_score_valid_new"] = sota_result.loc["ensemble"].iloc[0] if sota_result is not None else None
-            v["sota_exp_score_new"] = sota_report["score"] if sota_report else None
+                    sota_submit_result = sota_exp_submit.__dict__["result"]
+                v["sota_exp_score_valid_new"] = (
+                    sota_submit_result.loc["ensemble"].iloc[0] if sota_submit_result is not None else None
+                )
+            v["sota_exp_score_new"] = sota_submit_report["score"] if sota_submit_report else None
             # change experiment name
             if "amlt" in lf:
                 summary[f"{lf[lf.rfind('amlt')+5:].split('/')[0]} - {k}"] = v
