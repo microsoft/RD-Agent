@@ -197,9 +197,9 @@ def get_sota_exp_stat(
     ]
     running_exps.sort(key=lambda x: x[1], reverse=True)
     for exp, loop_id in running_exps:
-        if exp.experiment_workspace.all_codes == sota_exp.experiment_workspace.all_codes and str(exp.hypothesis) == str(
-            sota_exp.hypothesis
-        ):
+        if exp.experiment_workspace.all_codes == sota_exp.experiment_workspace.all_codes and "".join(
+            str(i) for i in exp.hypothesis.__dict__.values()
+        ) == "".join(str(i) for i in sota_exp.hypothesis.__dict__.values()):
             sota_loop_id = loop_id
             break
 
