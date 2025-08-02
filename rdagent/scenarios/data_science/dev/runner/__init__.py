@@ -61,7 +61,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         }
         output_spec, extract_output_fn = output_map[self.settings.diff_mode]
 
-        if prev_task_feedback.final_decision is False:
+        if prev_task_feedback.acceptable is False:
             task_information_str = target_task.get_task_information()
             # Use system_debugger for error fixing and debugging
             system_prompt = T(".prompts:DSCoSTEER.system_debugger").r(
