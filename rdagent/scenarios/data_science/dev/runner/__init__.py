@@ -50,20 +50,12 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         if prev_task_feedback is None:
             # if no prev_task_feedback, it is the first loop; we do not make any changes and goto evaluators directly.
             return {}
-        
-        # Get previous runner loops
+
+        # Get evolving history
         task_info = target_task.get_task_information()
         queried_former_failed_knowledge = (
             queried_knowledge.task_to_former_failed_traces[task_info] if queried_knowledge is not None else []
-        )
-        queried_former_failed_knowledge = (
-            [
-                knowledge
-                for knowledge in queried_former_failed_knowledge[0]
-                if knowledge.implementation.file_dict.get("main.py") != workspace.file_dict.get("main.py")
-            ],
-            queried_former_failed_knowledge[1],
-        )
+        )[0]
 
         # Set output agent
         if self.settings.diff_mode:
@@ -73,7 +65,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             output_spec = PythonBatchEditOut.get_spec(with_del=False)
             extract_output_fn = PythonBatchEditOut.extract_output
 
-        if prev_task_feedback.final_decision is False:
+        if prev_task_feedback.acceptable is False:
             task_information_str = target_task.get_task_information()
             # Use system_debugger for error fixing and debugging
             system_prompt = T(".prompts:DSCoSTEER.system_debugger").r(
@@ -97,8 +89,10 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         user_prompt = T(".prompts:DSCoSTEER.user").r(
             code=workspace.all_codes,
             feedback=prev_task_feedback,
-            hyperparameter_tuning_suggestion=prev_task_feedback.hyperparameter_tuning_suggestion,
-            queried_former_failed_knowledge=queried_former_failed_knowledge[0],
+            hyperparameter_tuning_suggestion=(
+                prev_task_feedback.hyperparameter_tuning_suggestion if prev_task_feedback.acceptable else None
+            ),
+            queried_former_failed_knowledge=queried_former_failed_knowledge,
         )
 
         code = session.build_chat_completion(user_prompt=user_prompt)
@@ -117,7 +111,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
         change_summary = session.build_chat_completion(user_prompt=user_prompt)
         code_batch_edit.update({"__change_summary__": change_summary})
-        
+
         return code_batch_edit
 
     def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
