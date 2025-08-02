@@ -114,6 +114,9 @@ DSCoSTEER_eval:
     ## Stdout of code execution and testing
     {{ stdout }}
 
+    ## The valid score of the generated submission.csv
+    {{ score }}
+
     # The time spend on code execution and timeout
     {{ time_spent }}
 
