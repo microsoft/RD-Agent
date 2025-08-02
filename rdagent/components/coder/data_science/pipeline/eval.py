@@ -254,7 +254,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
         # extract enable_context7 from setting
         enable_context7 = DS_RD_SETTING.enable_context7
-        
+
         queried_similar_successful_knowledge = (
             queried_knowledge.task_to_similar_task_successful_knowledge[target_task.get_task_information()]
             if queried_knowledge is not None
