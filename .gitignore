@@ -178,3 +178,4 @@ rdagent/app/benchmark/factor/example.json
 # UI Server resources
 videos/
 static/
+rdagent/components/mcp/langchain.py

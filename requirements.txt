@@ -67,3 +67,7 @@ genson
 mlflow
 azureml-mlflow
 types-pytz
+
+# mcp
+llama-index
+llama-index-tools-mcp
