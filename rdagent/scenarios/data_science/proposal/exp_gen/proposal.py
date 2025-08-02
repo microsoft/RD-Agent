@@ -23,7 +23,10 @@ from rdagent.scenarios.data_science.proposal.exp_gen.draft.draft import (
     DSDraftExpGen,  # TODO: DSDraftExpGen should be moved to router in the further
 )
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
-from rdagent.scenarios.data_science.proposal.exp_gen.planner import DSExperimentPlan
+from rdagent.scenarios.data_science.proposal.exp_gen.planner import (
+    DSExperimentPlan,
+    RD_Agent_TIMER_wrapper,
+)
 from rdagent.scenarios.data_science.proposal.exp_gen.utils import get_packages
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
@@ -742,14 +745,28 @@ class DSProposalV2ExpGen(ExpGen):
             hypothesis_critique_pairs += f"**Reasoning:** {hypothesis_data.get('reason', 'Not provided')}\n"
             hypothesis_critique_pairs += f"**Critique:** {critique_data.get('critique', 'No critique available')}\n\n"
 
+        time_status = None
+        if DS_RD_SETTING.enable_scale_check and RD_Agent_TIMER_wrapper.timer.started:
+            remain_time = RD_Agent_TIMER_wrapper.timer.remain_time()
+            all_duration = RD_Agent_TIMER_wrapper.timer.all_duration
+            remain_percent = remain_time / all_duration
+            time_status = (
+                f"Remain time: {remain_time.total_seconds() / 3600:.2f} hours, "
+                f"{remain_percent:.2%} remaining of total time: {all_duration.total_seconds() / 3600:.2f} hours."
+            )
+
         sys_prompt = T(".prompts_v2:hypothesis_rewrite.system").r(
-            rewrite_output_format=T(".prompts_v2:output_format.rewrite").r(),
+            rewrite_output_format=T(".prompts_v2:output_format.rewrite").r(
+                enable_scale_check=DS_RD_SETTING.enable_scale_check
+            ),
+            enable_scale_check=DS_RD_SETTING.enable_scale_check,
         )
         user_prompt = T(".prompts_v2:hypothesis_rewrite.user").r(
             scenario_desc=scenario_desc,
             exp_and_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
             hypothesis_critique_pairs=hypothesis_critique_pairs,
+            time_status=time_status,
         )
 
         response = APIBackend().build_messages_and_create_chat_completion(
@@ -763,7 +780,12 @@ class DSProposalV2ExpGen(ExpGen):
 
         # Validate that we have rewritten hypotheses for all original hypotheses
         expected_problems = set(hypothesis_dict.keys())
-        available_problems = set(improved_hypotheses_dict.keys())
+        available_problems = set(  # The code snippet provided is a comment in Python. It appears to be
+            # a placeholder for a function or variable named
+            # `improved_hypotheses_dict`. The actual implementation of this
+            # function or variable is not provided in the code snippet.
+            improved_hypotheses_dict.keys()
+        )
 
         if not expected_problems.issubset(available_problems):
             missing_problems = expected_problems - available_problems
@@ -867,6 +889,7 @@ class DSProposalV2ExpGen(ExpGen):
             problem_name=max_score_problem_name,
             problem_desc=problem_dict.get("problem", "Problem description not provided"),
             problem_label=problem_dict.get("label", "FEEDBACK_PROBLEM"),
+            appendix=hypothesis_dict[max_score_problem_name].get("appendix", None),
         )
 
     def task_gen(
@@ -965,6 +988,7 @@ class DSProposalV2ExpGen(ExpGen):
                     problem_name=name,
                     problem_desc=problem_data.get("problem", "Problem description not provided"),
                     problem_label=problem_data.get("label", "FEEDBACK_PROBLEM"),
+                    appendix=data.get("appendix", None),
                 )
             )
         return result

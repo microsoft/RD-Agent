@@ -7,6 +7,7 @@ from litellm import (
     completion,
     completion_cost,
     embedding,
+    get_max_tokens,
     supports_function_calling,
     supports_response_schema,
     token_counter,
@@ -201,3 +202,13 @@ class LiteLLMAPIBackend(APIBackend):
         Check if the backend supports function calling
         """
         return supports_response_schema(model=LITELLM_SETTINGS.chat_model) and LITELLM_SETTINGS.enable_response_schema
+
+    @property
+    def chat_token_limit(self) -> int:
+        try:
+            max_tokens = get_max_tokens(LITELLM_SETTINGS.chat_model)
+            if max_tokens is None:
+                return super().chat_token_limit
+            return max_tokens
+        except Exception as e:
+            return super().chat_token_limit

@@ -75,6 +75,8 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         evolving_trace: list[EvoStep] = [],
         **kwargs,
     ) -> EvolvingItem:
+        code_list = [None for _ in range(len(evo.sub_tasks))]
+
         # 1.找出需要evolve的task
         to_be_finished_task_index: list[int] = []
         for index, target_task in enumerate(evo.sub_tasks):
@@ -82,9 +84,9 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
             if target_task_desc in queried_knowledge.success_task_to_knowledge_dict:
                 # NOTE: very weird logic:
                 # it depends on the knowledge to set the already finished task
-                evo.sub_workspace_list[index] = queried_knowledge.success_task_to_knowledge_dict[
+                code_list[index] = queried_knowledge.success_task_to_knowledge_dict[
                     target_task_desc
-                ].implementation
+                ].implementation.file_dict
             elif (
                 target_task_desc not in queried_knowledge.success_task_to_knowledge_dict
                 and target_task_desc not in queried_knowledge.failed_task_info_set
@@ -111,7 +113,6 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
             ],
             n=RD_AGENT_SETTINGS.multi_proc_n,
         )
-        code_list = [None for _ in range(len(evo.sub_tasks))]
         for index, target_index in enumerate(to_be_finished_task_index):
             code_list[target_index] = result[index]
 

@@ -25,7 +25,7 @@ class EvolvingItem(Experiment, EvolvableSubjects):
             self.sub_gt_implementations = sub_gt_implementations
 
     @classmethod
-    def from_experiment(cls, exp: Experiment) -> Experiment:
+    def from_experiment(cls, exp: Experiment) -> "EvolvingItem":
         ei = cls(sub_tasks=exp.sub_tasks)
         ei.based_experiments = exp.based_experiments
         ei.experiment_workspace = exp.experiment_workspace
