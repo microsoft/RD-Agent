@@ -62,6 +62,7 @@ class DSRunnerFeedback(CoSTEERSingleFeedback):
             parts.append(str(self.hyperparameter_tuning_suggestion))
         return "\n".join(parts)
 
+
 DSCoSTEEREvalFeedback = DSRunnerFeedback  # FIXME: Alias for backward compatibility
 
 
@@ -99,15 +100,7 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
         task_info = target_task.get_task_information()
         queried_former_failed_knowledge = (
             queried_knowledge.task_to_former_failed_traces[task_info] if queried_knowledge is not None else []
-        )
-        queried_former_failed_knowledge = (
-            [
-                knowledge
-                for knowledge in queried_former_failed_knowledge[0]
-                if knowledge.implementation.file_dict.get("main.py") != implementation.file_dict.get("main.py")
-            ],
-            queried_former_failed_knowledge[1],
-        )
+        )[0]
 
         # execute workflow
         result = implementation.run(env=env, entry="python -m coverage run main.py")
@@ -196,16 +189,17 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
             time_spent=f"{implementation.running_info.running_time:.2f} seconds",
             timeout=f"{env.conf.running_timeout_period} seconds",
             percent_of_timeout_used=f"{time_spent_ratio * 100:.2f}%",
-            queried_former_failed_knowledge=queried_former_failed_knowledge[0],
+            queried_former_failed_knowledge=queried_former_failed_knowledge,
         )
 
         feedback = build_cls_from_json_with_retry(
             DSRunnerFeedback,
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            init_kwargs_update_func=DSRunnerFeedback.val_and_update_init_dict,
+            # init_kwargs_update_func=DSRunnerFeedback.val_and_update_init_dict,
         )
         feedback.score = score_df.to_string() if score_ret_code == 0 else None
+        feedback.final_decision = feedback.acceptable and (not feedback.hyperparameter_tuning_decision)
 
         if feedback and not DS_RD_SETTING.coder_on_whole_pipeline:
             # remove unused files
