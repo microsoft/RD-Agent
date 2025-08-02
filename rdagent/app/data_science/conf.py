@@ -126,6 +126,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     coder_longer_timeout_multiplier_upper: int = 3
     runner_longer_timeout_multiplier_upper: int = 2
     timeout_increase_stage: float = 0.3
+    show_hard_limit: bool = True
 
     #### hypothesis critique and rewrite
     enable_hypo_critique_rewrite: bool = True
