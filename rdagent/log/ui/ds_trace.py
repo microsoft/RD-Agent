@@ -33,6 +33,7 @@ from rdagent.oai.backend.litellm import LITELLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
 
 # Import necessary classes for the response format
+from rdagent.components.coder.data_science.pipeline.eval import DSCoderFeedback
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import (
     CodingSketch,
     HypothesisList,
