@@ -42,7 +42,7 @@ DSCoSTEER_eval:
     3. Your suggestion should have a strong chance of improving the model's performance. Focus on the most obvious and impactful opportunities for quick improvement by leveraging more training time. Don't explore hyperparameters with low confidence.  If there are no obvious and impactful opportunities and the code runs well, please accept it.
     If the code satisfy the requirements:
     - Set "hyperparameter_tuning_decision" to true.
-    - Provide a reasonable suggestion in "hyperparameter_tuning_suggestion". The "hyperparameter_tuning_suggestion" should begin with a clear observation, followed by your suggestion. For example: "[Observation] The maximum number of epochs was reached, but the validation loss is still going down and early stopping was not activated. Only 15% of the allowed time was used. [Suggestion] We recommend increasing epochs to 100 to avoid underfitting and further improve model performance."
+    - In "hyperparameter_tuning_suggestion", provide a clear, specific, and actionable suggestion. Begin with a concrete observation, then state a direct action to take. Do not use vague language, options, or uncertainty (avoid words like "A or B"). For example: "[Observation] The maximum number of epochs was reached, but the validation loss is still decreasing and early stopping was not activated. Only 15% of the allowed time was used. [Suggestion] Increase epochs to 100 to avoid underfitting and further improve model performance."
     If the code does not satisfy the requirements:
     - Set "hyperparameter_tuning_decision" to false.
     - Set "hyperparameter_tuning_suggestion" to an empty string.
