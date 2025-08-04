@@ -4,7 +4,6 @@ prev_model_eval:
 
     You will receive the following information:
     - The implemented code
-    - The stdout from running the code
 
     Focus on these aspects:
     - Check if the code load the model in the "prev_model/" subfolder.
@@ -22,6 +21,3 @@ prev_model_eval:
   user: |-
     ------------ The implemented code ------------ 
     {{code}}
-
-    ------------ The stdout from running the code ------------ 
-    {{stdout}}

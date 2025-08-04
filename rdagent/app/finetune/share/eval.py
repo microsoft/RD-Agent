@@ -41,11 +41,7 @@ class PrevModelLoadEvaluator(CoSTEEREvaluator):
 
         system_prompt = T(".prompts:prev_model_eval.system").r()
         user_prompt = T(".prompts:prev_model_eval.user").r(
-            stdout=stdout.strip(),
             code=implementation.all_codes,
-            model_folder_files=model_folder_files,
-            scores_content_before=scores_content_before,
-            scores_content_after=scores_content_after,
         )
 
         csfb = build_cls_from_json_with_retry(
