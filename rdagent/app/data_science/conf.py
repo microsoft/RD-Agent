@@ -136,7 +136,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     #### mcp in coder
     enable_context7: bool = True
     """enable the use of context7 as mcp to search for relevant documents of current implementation errors"""
-    
+
     #### enable runner code change summary
     runner_enable_code_change_summary: bool = True
 
