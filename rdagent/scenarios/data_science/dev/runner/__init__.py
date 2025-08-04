@@ -88,6 +88,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         # Code
         user_prompt = T(".prompts:DSCoSTEER.user").r(
             code=workspace.all_codes,
+            change_summary=workspace.change_summary,
             feedback=prev_task_feedback,
             hyperparameter_tuning_suggestion=(
                 prev_task_feedback.hyperparameter_tuning_suggestion if prev_task_feedback.acceptable else None
@@ -102,15 +103,16 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             code_batch_edit = extract_output_fn(code)
         code_batch_edit = {k: v for k, v in code_batch_edit.items() if k in workspace.file_dict.keys()}
 
-        # Change Summary
-        user_prompt = (
-            "Based on the previous conversation and your latest code modifications, "
-            "please provide a concise and structured summary of the changes you made to the original code. "
-            "Clearly specify what was changed and how, focusing on key modifications. "
-            "Limit your summary to plain text, no more than three sentences."
-        )
-        change_summary = session.build_chat_completion(user_prompt=user_prompt)
-        code_batch_edit.update({"__change_summary__": change_summary})
+        if DS_RD_SETTING.runner_enable_code_change_summary:
+            # Change Summary
+            user_prompt = (
+                "Based on the previous conversation and your latest code modifications, "
+                "please provide a concise and structured summary of the changes you made to the original code. "
+                "Clearly specify what was changed and how, focusing on key modifications. "
+                "Limit your summary to plain text, no more than three sentences."
+            )
+            change_summary = session.build_chat_completion(user_prompt=user_prompt)
+            code_batch_edit.update({"__change_summary__": change_summary})
 
         return code_batch_edit
 

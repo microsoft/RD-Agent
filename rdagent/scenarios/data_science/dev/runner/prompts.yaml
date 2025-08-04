@@ -106,6 +106,9 @@ DSCoSTEER_eval:
   user: |-
     # Current Code base
     {{ code }}
+    {% if change_summary is not none %}
+    # Current Code Change Summary
+    {{ change_summary }}{% endif %}
 
     ## Stdout of code execution and testing
     {{ stdout }}

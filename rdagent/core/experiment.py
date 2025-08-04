@@ -343,13 +343,12 @@ class FBWorkspace(Workspace):
                     dest_path.parent.mkdir(parents=True, exist_ok=True)
                     link_target = zf.read(info).decode()
                     os.symlink(link_target, dest_path)
+                elif info.is_dir():
+                    dest_path.mkdir(parents=True, exist_ok=True)
                 else:
-                    if info.is_dir():
-                        dest_path.mkdir(parents=True, exist_ok=True)
-                    else:
-                        dest_path.parent.mkdir(parents=True, exist_ok=True)
-                        with dest_path.open("wb") as f:
-                            f.write(zf.read(info))
+                    dest_path.parent.mkdir(parents=True, exist_ok=True)
+                    with dest_path.open("wb") as f:
+                        f.write(zf.read(info))
         # NOTE: very important to reduce the size of the object
         self.ws_ckp = None
 

@@ -534,19 +534,17 @@ def main_win(loop_id, llm_data=None):
         )
     if "running" in loop_data:
         # get last SOTA_exp_to_submit
-        current_trace = loop_data["record"]["trace"]
-        current_selection = current_trace.get_current_selection()
-        if len(current_selection) > 0:  # TODO: Why current_selection can be "()"?
-            current_idx = current_selection[0]
-            parent_idxs = current_trace.get_parents(current_idx)
-            if len(parent_idxs) >= 2 and hasattr(current_trace, "idx2loop_id"):
-                parent_idx = parent_idxs[-2]
-                parent_loop_id = current_trace.idx2loop_id[parent_idx]
-                sota_exp = state.data[parent_loop_id]["record"].get("sota_exp_to_submit", None)
-            else:
-                sota_exp = None
-        else:
-            sota_exp = None
+        sota_exp = None
+        if "record" in loop_data:
+            current_trace = loop_data["record"]["trace"]
+            current_selection = current_trace.get_current_selection()
+            if len(current_selection) > 0:  # TODO: Why current_selection can be "()"?
+                current_idx = current_selection[0]
+                parent_idxs = current_trace.get_parents(current_idx)
+                if len(parent_idxs) >= 2 and hasattr(current_trace, "idx2loop_id"):
+                    parent_idx = parent_idxs[-2]
+                    parent_loop_id = current_trace.idx2loop_id[parent_idx]
+                    sota_exp = state.data[parent_loop_id]["record"].get("sota_exp_to_submit", None)
 
         running_win(
             loop_data["running"],
