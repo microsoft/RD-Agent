@@ -112,7 +112,13 @@ pipeline_coder:
     ```
     In debug mode, your code should run faster, so the environment will set a shorter time limit than the standard time limit for your code.
     For example, you can sample ten percent of the training data and run for one epoch, then the full run with ten epochs will take one hundred times the time taken for the debug run. The scale is calculated by yourself depending on the data sampling and epoch number you choose. If your full run enables early stopping, the scale should be smaller considering the early stopping will stop the training earlier than the full epochs.
-    Be careful about the train-valid split strategy. StratifiedShuffleSplit is highly risk since the data has some categories with only one sample. If you use StratifiedShuffleSplit, you should consider using a try-except block to catch the error and use a different split strategy if the error occurs.
+    Be careful about the train-valid split strategy. StratifiedShuffleSplit is highly risk since the data has some categories with only one sample. If you use StratifiedShuffleSplit, you should consider using a try-except block to catch the error and use a different split strategy if the error occurs. Example code:
+    ```python
+    try:
+      fold_indices = StratifiedKFold(...).split(train_X, train_y) or StratifiedShuffleSplit(...).split(train_X, train_y)
+    except Exception as e:
+        fold_indices = KFold(...).split(train_X, train_y) or other split strategy
+    ```
     You should sample the data after train valid split. When you split the data after sampling, you might get a class with only one sample which might cause the split strategy to fail. 
     Your debug code should run exactly the same as the full run, except for the data sampling and epoch number, to ensure the correctness of the code.
     You should print total time and estimated time in standard output using print function in the following schema:
