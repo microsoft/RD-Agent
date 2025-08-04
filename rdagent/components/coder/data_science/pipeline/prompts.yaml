@@ -26,7 +26,7 @@ pipeline_coder:
     {% include "scenarios.data_science.share:spec.hyperparameter" %}
     
     # Specification your code should follow
-    {% include "scenarios.data_science.share:component_spec.Pipeline" %}
+    {{ spec }}
 
     {% if queried_former_failed_knowledge|length != 0 %}
     ## Previous Failed Attempts
@@ -112,10 +112,10 @@ pipeline_coder:
     ```
     In debug mode, your code should run faster, so the environment will set a shorter time limit than the standard time limit for your code.
     For example, you can sample ten percent of the training data and run for one epoch, then the full run with ten epochs will take one hundred times the time taken for the debug run. The scale is calculated by yourself depending on the data sampling and epoch number you choose. If your full run enables early stopping, the scale should be smaller considering the early stopping will stop the training earlier than the full epochs.
-    Be careful about the train-valid split strategy. StratifiedShuffleSplit is highly risk since the data has some categories with only one sample. If you use StratifiedShuffleSplit, you should consider using a try-except block to catch the error and use a different split strategy if the error occurs. Example code:
+    Be careful about the train-valid split strategy. Stratified related split is highly risk since the data has some categories with only one sample. If you use Stratified related split, you should consider using a try-except block to catch the error and use a different split strategy if the error occurs. Example code:
     ```python
     try:
-      fold_indices = StratifiedKFold(...).split(train_X, train_y) or StratifiedShuffleSplit(...).split(train_X, train_y)
+      fold_indices = StratifiedKFold(...).split(train_X, train_y) or StratifiedShuffleSplit or StratifiedSubsetSampler etc.
     except Exception as e:
         fold_indices = KFold(...).split(train_X, train_y) or other split strategy
     ```
@@ -206,10 +206,9 @@ pipeline_eval:
     3. A code implementation and its execution output.
     Your task is to rigorously evaluate the code implementation against the provided scenario and task description, ensuring it meets all requirements, adheres to the specified structure, and executes successfully.
 
-    {% if is_sub_enabled %}
-    ## Evaluation Steps
+    ## Evaluation Aspects
     
-    ### Step 1: Execution Success
+    ### Execution Success
     - Goal: Ensure the code executes successfully without any errors.
     - Notes:
       - Model performance is not evaluated in this step; focus solely on successful execution.
@@ -219,22 +218,7 @@ pipeline_eval:
     - If the code does not execute successfully:
       - Set the "final_decision" to false and write complete analysis in the "execution" field.
 
-    ### Step 2: Submission File Authenticity and Format
-    - Goal: Verify that the code correctly generates the final submission in the expected format and that the submission is authentic.
-    - Guidelines:
-      - The submission file must strictly match the required structure (correct columns, index format, data types). The index names and column names must be identical to the sample submission.
-      - Rigorously verify that the submission file was produced by genuine model inference and successful code execution, not by cheating, fallback or exception-handling mechanisms.
-        - The submission must be generated from genuine model predictions using the best saved model—never empty, constant, random, or hard-coded values.
-        - Submissions must reflect authentic model outputs; any form of fabrication, cheating, or simulated results is strictly prohibited and grounds for rejection.
-        - Cross-check both code logic and stdout to ensure predictions originate from real model inference, not from error recovery or placeholder code paths.
-      - Only check the format of the submission since only part of the data is provided; the submission might have a different index than the sample submission data.
-      - Verify honest failure reporting if training issues occur.
-    - If the code passes this step:
-      - Proceed to Step 3.
-    - If the code does not pass this step:
-      - Set the "final_decision" to false and clearly document the issues in the "return_checking" field.
-
-    ### Step 3: Competition Alignment
+    ### Competition Alignment
     - Goal: Confirm strict adherence to the competition's evaluation rules and experimental setup.
     - Guidelines:
       - Analyze whether the experimental setup and code may cause misalignment between validation and test performance.
@@ -251,7 +235,7 @@ pipeline_eval:
       - Begin the "code" with `[Evaluation error]`, explicitly document any evaluation alignment issues causing experiment failure.
 
     {% if debug_mode %}
-    ### Step 4: Debug Mode Compliance
+    ### Debug Mode Compliance
     - Goal: Ensure the code follows debug mode requirements.
     - Guidelines:
       - Sufficient debugging information (print statements, clear error messages) should be included to facilitate automatic improvement processes.
@@ -263,15 +247,31 @@ pipeline_eval:
       - Debug time should be reasonable and the estimated time should be reasonable based on the debug time.
       - Data sampling should only be applied in debug mode. Always use the full data in the full run.
       - The label classes number should be the same as the full run even in debug mode.
-    - If the code passes this step: Finalize evaluation.
+    - If the code passes this step: Proceed to Next Aspects.
     - If the code does not pass this step: Clearly document the debug mode compliance issues and reject the implementation.{% endif %}
 
+
+    ### Submission File Format Check
     {% if mle_check %}
-    ### Step 5: Test format check
     - The user has done a format check for your submission. Since you didn't sample any test data, your debug mode output should be the same format as the full run.
     - The user will put the check result in the "Submission check" section of the execution output.
     - If the submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should give the conclusion that the code executed successfully. If no other code related issues are found, set the "final_decision" to true.
     - If the submission check returns an error message, you should set the "final_decision" to false and clearly document the issues in the "return_checking" field.
+    {% elif is_sub_enabled %}
+    - Goal: Verify that the code correctly generates the final submission in the expected format and that the submission is authentic.
+    - Guidelines:
+      - The submission file must strictly match the required structure (correct columns, index format, data types). The index names and column names must be identical to the format specified in the Competition Information's '====== Submission Format ======' section.
+      - Rigorously verify that the submission file was produced by genuine model inference and successful code execution, not by cheating, fallback or exception-handling mechanisms.
+        - The submission must be generated from genuine model predictions using the best saved model—never empty, constant, random, or hard-coded values.
+        - Submissions must reflect authentic model outputs; any form of fabrication, cheating, or simulated results is strictly prohibited and grounds for rejection.
+        - Cross-check both code logic and stdout to ensure predictions originate from real model inference, not from error recovery or placeholder code paths.
+      - Only check the format of the submission since only part of the data is provided; the submission might have a different index than expected due to data sampling.
+      - Verify honest failure reporting if training issues occur.
+    - If the code passes this step, Finalize evaluation.
+    - If the code does not pass this step:
+      - Set the "final_decision" to false and clearly document the issues in the "return_checking" field.
+    {% else %}
+      Submission File Format Check is not conducted since no target submission format is provided. You should consider this submission file is valid.
     {% endif %}
 
     {% if queried_similar_successful_knowledge|length != 0 %}
@@ -290,35 +290,16 @@ pipeline_eval:
     Please respond with your feedback in the following JSON format without anything else.
     ```json
     {
-        "execution": "Describe whether the code executed successfully, correctly integrating all components and generating the final submission. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information. If errors occurred, analyze the root causes: (1) Are they fundamental algorithmic/approach issues, or (2) Implementation details that can be easily fixed, or (3) Environment/dependency problems?",
-        "return_checking": "Examine the generated files by cross-referencing the code logic and stdout output. Verify: (1) Format matches sample submission (index, column names, CSV content); (2) **File generation authenticity**: Is the file genuinely produced by successful model execution, or is it a result of exception handling/fallback mechanisms? Cite specific code sections and stdout evidence.",
+        "execution": "Describe whether the code executed successfully. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information. If errors occurred, analyze the root causes: (1) Are they fundamental algorithmic/approach issues, or (2) Implementation details that can be easily fixed, or (3) Environment/dependency problems?",
+        "return_checking": "Examine the generated files by cross-referencing the code logic and stdout output. Verify: (1) Format matches required submission format (index, column names, CSV content); (2) **File generation authenticity**: Is the file genuinely produced by successful model execution, or is it a result of exception handling/fallback mechanisms? Cite specific code sections and stdout evidence.",
         "code": "Begin explicitly with [Code analysis] or [Evaluation error]. Provide structured analysis: (1) **Technical Appropriateness**: Does the chosen approach (algorithms, data processing, validation strategy) match this problem's data characteristics and competition requirements? (2) **Effective Components**: What specific parts work well and why are they effective for this problem type? (3) **Issues & Improvements**: Identify concrete problems and suggest actionable improvement directions (without providing actual code). (4) **Code Quality**: Assess readability, structure, and adherence to specifications.",
         "final_decision": <true/false>
     }
     ```
-    {% else %}
-    ## Evaluation Scope
-    Your focus is to check whether the workflow code executes successfully.
 
-    You will be given the execution output (`stdout`) to determine correctness.  
-
-    [Note] 
-    1. Model performance is NOT a concern in this evaluation—only correct execution and formatting matter.
-
-    Please respond with your feedback in the following JSON format and order
-    ```json
-    {
-        "execution": "Describe whether the code executed successfully. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information. If errors occurred, analyze the root causes: (1) Are they fundamental algorithmic/approach issues, or (2) Implementation details that can be easily fixed, or (3) Environment/dependency problems?",
-        "return_checking": "Describe the expected file to be generated.",
-        "code": "Provide structured analysis: (1) **Technical Appropriateness**: Does the chosen approach (algorithms, data processing, validation strategy) match this problem's data characteristics and requirements? (2) **Effective Components**: What specific parts work well and why are they effective for this problem type? (3) **Issues & Improvements**: Identify concrete problems and suggest actionable improvement directions (without providing actual code). (4) **Code Quality**: Assess readability, structure, and adherence to specifications.",
-        "final_decision": <true/false>
-    }
-    ```
-    {% endif %}
-# NOTE: when is_sub_enabled == False, we don't have any checking about the return. So it is just placeholder currently
 
   user: |-
-    # Competition Scenario
+    # Competition Information
     {{ scenario }}
 
     # Task Description

@@ -165,7 +165,7 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
 
         if test_eval.enabled(self.scen.competition):
             submission_check_out, submission_ret_code = test_eval.valid(self.scen.competition, implementation)
-            stdout += f"\nSubmission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
+            stdout += f"\n### Submission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
 
         time_spent_ratio = implementation.running_info.running_time / env.conf.running_timeout_period
         if (
@@ -179,12 +179,12 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
 
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=implementation.file_dict.get("EDA.md", None)),
-            is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             task_desc=target_task.get_task_information(),
             enable_hyperparameter_tuning_check=enable_hyperparameter_tuning_check,
         )
         user_prompt = T(".prompts:DSCoSTEER_eval.user").r(
             code=implementation.all_codes,
+            change_summary=implementation.change_summary,
             stdout=shrink_text(stdout),
             time_spent=f"{implementation.running_info.running_time:.2f} seconds",
             timeout=f"{env.conf.running_timeout_period} seconds",
