@@ -53,7 +53,7 @@ class DSRunnerFeedback(CoSTEERSingleFeedback):
             "### Code",
             str(self.code),
             "### Validation Score",
-            f"The validation score is {self.score}" if self.score else "Not available",
+            f"{self.score}" if self.score else "Not available",
             "### Final Decision",
             f"This implementation is {'PASSED' if self.acceptable else 'FAILED'}.",
         ]
