@@ -390,19 +390,30 @@ def evolving_win(data, key, llm_data=None, base_workspace=None):
         if evo_id in data:
             if state.show_llm_log and llm_data is not None:
                 llm_log_win(llm_data[evo_id])
-            if data[evo_id]["evolving code"][0] is not None:
+
+            # get evolving workspace
+            if "evolving code" in data[evo_id] and data[evo_id]["evolving code"][0] is not None:
+                evolving_code_workspace = data[evo_id]["evolving code"][0]
+            else:
+                evolving_code_workspace = None
+
+            if evolving_code_workspace is not None:
                 st.subheader("codes")
                 workspace_win(
-                    data[evo_id]["evolving code"][0],
+                    evolving_code_workspace,
                     cmp_workspace=data[evo_id - 1]["evolving code"][0] if evo_id > 0 else base_workspace,
                     cmp_name="last evolving code" if evo_id > 0 else "base workspace",
                 )
                 fb = data[evo_id]["evolving feedback"][0]
                 st.subheader("evolving feedback" + ("✅" if bool(fb) else "❌"))
-                f1, f2, f3 = st.tabs(["execution", "return_checking", "code"])
+                f1, f2, f3, f4 = st.tabs(["execution", "return_checking", "code", "others"])
+                other_attributes = {
+                    k: v for k, v in fb.__dict__.items() if k not in ["execution", "return_checking", "code"]
+                }
                 f1.code(fb.execution, wrap_lines=True)
                 f2.code(fb.return_checking, wrap_lines=True)
                 f3.code(fb.code, wrap_lines=True)
+                f4.json(other_attributes)
             else:
                 st.write("data[evo_id]['evolving code'][0] is None.")
                 st.write(data[evo_id])
