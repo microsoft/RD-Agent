@@ -46,7 +46,7 @@ class DSHypothesis(Hypothesis):
         lines.append(f"Hypothesis: {self.hypothesis}")
         if self.reason is not None:
             lines.append(f"Reason: {self.reason}")
-        if self.appendix is not None:
+        if hasattr(self, "appendix") and self.appendix is not None:  # FIXME: compatibility with old traces
             lines.append(f"Appendix: {self.appendix}")
         return "\n".join(lines)
 

@@ -44,6 +44,9 @@ class DSRunnerFeedback(CoSTEERSingleFeedback):
         return super().is_acceptable()
 
 
+DSCoSTEEREvalFeedback = DSRunnerFeedback  # FIXME: Alias for backward compatibility
+
+
 class DSRunnerEvaluator(CoSTEEREvaluator):
 
     def evaluate(
