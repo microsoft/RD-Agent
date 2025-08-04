@@ -100,11 +100,6 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             else:
                 stdout += "Debug mode did not provide debug_time or estimated_time, it's a buggy implementation.\n"
 
-            test_eval = get_test_eval()
-            if test_eval.enabled(self.scen.competition):
-                submission_check_out, submission_ret_code = test_eval.valid(self.scen.competition, implementation)
-                stdout += f"\n### Submission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
-
         score_fp = implementation.workspace_path / "scores.csv"
         score_ret_code = 0
         score_check_text = ""
@@ -141,7 +136,11 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
                 score_ret_code = 1
 
-        if not test_eval.is_sub_enabled(self.scen.competition):
+        test_eval = get_test_eval()
+        if DS_RD_SETTING.sample_data_by_LLM and test_eval.enabled(self.scen.competition):
+            submission_check_out, submission_ret_code = test_eval.valid(self.scen.competition, implementation)
+            stdout += f"\n### Submission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
+        elif not test_eval.is_sub_enabled(self.scen.competition):
             submission_ret_code = 0
         else:
             # Check submission file
@@ -167,14 +166,14 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         system_prompt = T(".prompts:pipeline_eval.system").r(
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             debug_mode=DS_RD_SETTING.sample_data_by_LLM,
-            mle_check=(DS_RD_SETTING.sample_data_by_LLM and test_eval.is_sub_enabled(self.scen.competition)),
+            mle_check=DS_RD_SETTING.sample_data_by_LLM,
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
         )
         user_prompt = T(".prompts:pipeline_eval.user").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
             task_desc=target_task.get_task_information(),
             stdout=stdout.strip(),
-            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
+            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(metric_name=self.scen.metric_name),
             code=implementation.file_dict["main.py"],
         )
         wfb = build_cls_from_json_with_retry(

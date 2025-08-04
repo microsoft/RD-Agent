@@ -913,6 +913,7 @@ class DSProposalV2ExpGen(ExpGen):
             task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
             component_desc=component_desc,
             workflow_check=workflow_check,
+            metric_name=self.scen.metric_name,
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,

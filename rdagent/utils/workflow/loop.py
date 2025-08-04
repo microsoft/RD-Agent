@@ -10,10 +10,10 @@ Postscripts:
 
 import asyncio
 import concurrent.futures
-import datetime
 import pickle
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Optional, Union, cast
 
@@ -72,8 +72,8 @@ class LoopMeta(type):
 
 @dataclass
 class LoopTrace:
-    start: datetime.datetime  # the start time of the trace
-    end: datetime.datetime  # the end time of the trace
+    start: datetime  # the start time of the trace
+    end: datetime  # the end time of the trace
     step_idx: int
     # TODO: more information about the trace
 
@@ -211,7 +211,7 @@ class LoopBase:
             self.tracker.log_workflow_state()
 
             with logger.tag(f"Loop_{li}.{name}"):
-                start = datetime.datetime.now(datetime.timezone.utc)
+                start = datetime.now(timezone.utc)
                 func: Callable[..., Any] = cast(Callable[..., Any], getattr(self, name))
 
                 next_step_idx = si + 1
@@ -236,8 +236,15 @@ class LoopBase:
                     self.loop_prev_out[li][name] = result
 
                     # Record the trace
-                    end = datetime.datetime.now(datetime.timezone.utc)
+                    end = datetime.now(timezone.utc)
                     self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
+                    logger.log_object(
+                        {
+                            "start_time": start,
+                            "end_time": end,
+                        },
+                        tag="time_info",
+                    )
                     # Save snapshot after completing the step
                     self.dump(self.session_folder / f"{li}" / f"{si}_{name}")
                 except Exception as e:

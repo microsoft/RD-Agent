@@ -2,8 +2,7 @@ describe: # some template to describe some object
   # exp is a template used fo
   exp: |-
     ## {{ heading | default('Best solution of previous exploration of the scenario') }}
-    {% if exp %}
-    ### Code
+    {% if exp %}### Code
     Here is the complete code of the solution.
     {{ exp.experiment_workspace.all_codes }}
 
@@ -27,8 +26,7 @@ describe: # some template to describe some object
     {% endif %}
     {% endif %}
 
-    {% else %}
-    No previous complete experiment available.
+    {% else %}No previous complete experiment available.
     {% endif %}
 
   feedback: |-
@@ -241,7 +239,7 @@ component_spec:
         ```
 
     4. Submission File:
-      - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements (refer to `sample_submission` in the Folder Description for the correct structure).
+      - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements as detailed in the '====== Submission Format ======' section of the Competition Information (DO NOT read the sample_submission.csv file directly in the code).
       - Present the required submission format explicitly and ensure the output adheres to it.
 
     5. Code Standards:
@@ -285,7 +283,7 @@ component_spec:
 
     4. Code Standards:
       - DO NOT use progress bars (e.g., `tqdm`).
-      - DO NOT use the sample submission file to extract test index information.
+      - **CRITICAL: DO NOT read, load, or access the sample_submission.csv file in the code. Extract column names and format requirements from the '====== Submission Format ======' section in the # Competition Information instead.**
       - DO NOT exclude features inadvertently during this process.
 
     5. NOTES
@@ -306,13 +304,12 @@ component_spec:
       - The evaluation should be based on k-fold cross-validation but only if that's an appropriate evaluation for the task at hand. Store the mean validation score of k-fold cross-validation in `scores.csv` on each model. Refer to the hyperparameter specification for rules to set the CV folds.
       - Even if only one model is present, compute the ensemble score and store it under `"ensemble"`.
       - The index of `scores.csv` should include the model name and the "ensemble" strategy. "ensemble" should be exactly in the index with all lower case letters. Ensemble is the result from several models. If only one model is present, the ensemble score should be the same as the model score.
-      - The column names in `scores.csv` should be:
-        - Model: The name of the model or ensemble strategy.
-        - <metric_name>: The calculated metric value for that model or ensemble strategy. The metric name can be found in the scenario description. The metric name should be exactly the same as the one in the scenario description since user will use it to check the result.
+      - The column names in `scores.csv` should be ["{{ metric_name }}"] where metric_name is the name of the metric used for evaluation. Only one column is required.
+      - The column name should be exactly the same to "{{ metric_name }}" since user will use it to pick the result.
       - Validation metrics should be aligned across all ideas and implementations. Avoid proposing ideas that might affect the validation metrics and modifying the related code.
 
     9. Submission File:
-      - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements (refer to `sample_submission` in the Folder Description for the correct structure).
+      - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements as detailed in the '====== Submission Format ======' section of the Competition Information (DO NOT read the sample_submission.csv file directly in the code).
       - Present the required submission format explicitly and ensure the output adheres to it.
     
     10. Preferred Packages:
