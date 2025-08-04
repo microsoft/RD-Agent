@@ -100,11 +100,6 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             else:
                 stdout += "Debug mode did not provide debug_time or estimated_time, it's a buggy implementation.\n"
 
-            test_eval = get_test_eval()
-            if test_eval.enabled(self.scen.competition):
-                submission_check_out, submission_ret_code = test_eval.valid(self.scen.competition, implementation)
-                stdout += f"\n### Submission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
-
         score_fp = implementation.workspace_path / "scores.csv"
         score_ret_code = 0
         score_check_text = ""
@@ -141,7 +136,11 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
                 score_ret_code = 1
 
-        if not test_eval.is_sub_enabled(self.scen.competition):
+        test_eval = get_test_eval()
+        if DS_RD_SETTING.sample_data_by_LLM and test_eval.enabled(self.scen.competition):
+            submission_check_out, submission_ret_code = test_eval.valid(self.scen.competition, implementation)
+            stdout += f"\n### Submission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
+        elif not test_eval.is_sub_enabled(self.scen.competition):
             submission_ret_code = 0
         else:
             # Check submission file

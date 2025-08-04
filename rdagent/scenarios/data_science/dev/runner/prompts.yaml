@@ -78,6 +78,8 @@ DSCoSTEER_eval:
     1. The code execution time or resource utilization suggest that there is room for improvement in the hyperparameters.
     2. The code must apply early stopping strategy already (in order to prevent overfitting).
     3. Your suggestion should have a strong chance of improving the model's performance. Focus on the most obvious and impactful opportunities for quick improvement by leveraging more training time. Don't explore hyperparameters with low confidence.  If there are no obvious and impactful opportunities and the code runs well, please accept it.
+    4. Only include the suggestions in your response without leak any time limit information because the user might over-fit the model to the time limit.
+    5. Never make your judgment only based on the time spent, you should also consider the code and the stdout.
 
     If the code satisfy the requirements:
     - Set "hyperparameter_tuning_decision" to true.
