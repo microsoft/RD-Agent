@@ -32,9 +32,7 @@ class LLMFinetuneScen(ExtendedBaseSettings):
 
 LLM_FINETUNE_SETTINGS = LLMFinetuneScen()
 RD_AGENT_SETTINGS.app_tpl = LLM_FINETUNE_SETTINGS.app_tpl
-os.environ["DS_CODER_COSTEER_EXTRA_EVALUATOR"] = (
-    '["rdagent.components.coder.data_science.share.eval.PrevModelLoadEvaluator"]'
-)
+os.environ["DS_CODER_COSTEER_EXTRA_EVALUATOR"] = '["rdagent.app.finetune.share.eval.PrevModelLoadEvaluator"]'
 for field_name, new_value in LLM_FINETUNE_SETTINGS.model_dump().items():
     if hasattr(DS_RD_SETTING, field_name):
         setattr(DS_RD_SETTING, field_name, new_value)
