@@ -257,16 +257,16 @@ class ChatSession:
         messages = self.build_chat_completion_message(user_prompt)
 
         with logger.tag(f"session_{self.conversation_id}"):
-            start_time = time.time()
+            start_time = datetime.now(pytz.timezone("Asia/Shanghai"))
             response: str = self.api_backend._try_create_chat_completion_or_embedding(  # noqa: SLF001
                 *args,
                 messages=messages,
                 chat_completion=True,
                 **kwargs,
             )
-            end_time = time.time()
+            end_time = datetime.now(pytz.timezone("Asia/Shanghai"))
             logger.log_object(
-                {"user": user_prompt, "resp": response, "duration": end_time - start_time}, tag="debug_llm"
+                {"user": user_prompt, "resp": response, "start": start_time, "end": end_time}, tag="debug_llm"
             )
 
         messages.append(
@@ -409,7 +409,7 @@ class APIBackend(ABC):
             shrink_multiple_break=shrink_multiple_break,
         )
 
-        start_time = time.time()
+        start_time = datetime.now(pytz.timezone("Asia/Shanghai"))
         resp = self._try_create_chat_completion_or_embedding(  # type: ignore[misc]
             *args,
             messages=messages,
@@ -417,11 +417,11 @@ class APIBackend(ABC):
             chat_cache_prefix=chat_cache_prefix,
             **kwargs,
         )
-        end_time = time.time()
+        end_time = datetime.now(pytz.timezone("Asia/Shanghai"))
         if isinstance(resp, list):
             raise ValueError("The response of _try_create_chat_completion_or_embedding should be a string.")
         logger.log_object(
-            {"system": system_prompt, "user": user_prompt, "resp": resp, "duration": end_time - start_time},
+            {"system": system_prompt, "user": user_prompt, "resp": resp, "start": start_time, "end": end_time},
             tag="debug_llm",
         )
         return resp
