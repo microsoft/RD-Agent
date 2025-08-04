@@ -2,8 +2,7 @@ describe: # some template to describe some object
   # exp is a template used fo
   exp: |-
     ## {{ heading | default('Best solution of previous exploration of the scenario') }}
-    {% if exp %}
-    ### Code
+    {% if exp %}### Code
     Here is the complete code of the solution.
     {{ exp.experiment_workspace.all_codes }}
 
@@ -27,8 +26,7 @@ describe: # some template to describe some object
     {% endif %}
     {% endif %}
 
-    {% else %}
-    No previous complete experiment available.
+    {% else %}No previous complete experiment available.
     {% endif %}
 
   feedback: |-
