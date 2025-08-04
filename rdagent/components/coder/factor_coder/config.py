@@ -4,7 +4,11 @@ from typing import Optional
 from pydantic_settings import SettingsConfigDict
 
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
-from rdagent.utils.env import CondaConf, Env, LocalEnv
+from rdagent.utils.env import (
+    CondaConf,
+    Env,
+    LocalEnv,
+)
 
 
 class FactorCoSTEERSettings(CoSTEERSettings):
