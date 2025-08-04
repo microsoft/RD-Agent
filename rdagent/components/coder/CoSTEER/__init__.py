@@ -92,6 +92,7 @@ class CoSTEER(Developer[Experiment]):
         # Evolving the solution
         start_datetime = datetime.now()
         fallback_evo_exp = None
+        reached_max_seconds = False
         for evo_exp in self.evolve_agent.multistep_evolve(evo_exp, self.evaluator):
             assert isinstance(evo_exp, Experiment)  # multiple inheritance
             if self._get_last_fb().is_acceptable():
@@ -103,6 +104,7 @@ class CoSTEER(Developer[Experiment]):
                 logger.info(f"evolving workspace: {sw}")
             if self.max_seconds is not None and (datetime.now() - start_datetime).seconds > self.max_seconds:
                 logger.info(f"Reached max time limit {self.max_seconds} seconds, stop evolving")
+                reached_max_seconds = True
                 break
             if RD_Agent_TIMER_wrapper.timer.started and RD_Agent_TIMER_wrapper.timer.is_timeout():
                 logger.info("Global timer is timeout, stop evolving")
@@ -111,13 +113,14 @@ class CoSTEER(Developer[Experiment]):
         # if the final feedback is not finished(therefore acceptable), we will use the fallback solution.
         try:
             evo_exp = self._exp_postprocess_by_feedback(evo_exp, self._get_last_fb())
-        except CoderError:
+        except CoderError as e:
             if fallback_evo_exp is not None:
                 logger.info("Fallback to the fallback solution.")
                 evo_exp = fallback_evo_exp
                 evo_exp.recover_ws_ckp()  # NOTE: recovering checkpoints for restoring files in the workspace to prevent inplace mutation.
             else:
-                raise
+                e.caused_by_timeout = reached_max_seconds
+                raise e
 
         exp.sub_workspace_list = evo_exp.sub_workspace_list
         exp.experiment_workspace = evo_exp.experiment_workspace

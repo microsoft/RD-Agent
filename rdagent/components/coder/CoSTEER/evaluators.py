@@ -42,7 +42,7 @@ class CoSTEERSingleFeedback(Feedback):
     return_checking: str | None  # including every check in the testing (constraints about the generated value)
     # value_feedback, shape_feedback, value_generated_flag
     code: str
-    final_decision: bool
+    final_decision: bool | None = None
 
     @staticmethod
     def val_and_update_init_dict(data: dict) -> dict:

@@ -430,7 +430,7 @@ task_gen:
     9. **Preferred Packages Notes**:
       - You can choose the most proper packages for the task to best achieve the hypothesis.
       - When facing a choice between two packages which both can achieve the same goal, you should choose the one which is more commonly used and less likely to cause bugs in coding. Especially those you are not familiar with.
-      - For GBDT models, prefer XGBoost or RandomForest over LightGBM unless the SOTA or hypothesis dictates otherwise.
+      - For GBDT models, prefer XGBoost or RandomForest over LightGBM unless the SOTA or hypothesis dictates otherwise. Prefer not using GPU for GBDT models unless the SOTA or hypothesis dictates otherwise.
       - For neural networks, prefer PyTorch or PyTorch based library (over TensorFlow) unless the SOTA or hypothesis dictates otherwise.
       - For neural networks, prefer fine-tuning pre-trained models over training from scratch.
 

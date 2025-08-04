@@ -25,13 +25,10 @@ DSCoSTEER_eval:
     3. Confirm that the prediction file (`submission.csv`) is generated using only the test dataset, and its format matches the sample submission.
     If the code does not satisfy the requirements:
     - Set "acceptable" to false.
-    - Set "final_decision" to false.
-    {% if enable_hyperparameter_tuning_check %}- set "hyperparameter_tuning_decision" to false.
-    - Set "hyperparameter_tuning_suggestion" to an empty string.
     If the code satisfy the requirements:
     - Set "acceptable" to true.
-    - Proceed to the next evaluation.
 
+    {% if enable_hyperparameter_tuning_check %}
     # Evaluation 2: Hyperparameter
     ## Evaluation Description
     The user will provide you the time spent on the whole code execution and the timeout of the code execution. You should decide whether the hyperparameter is reasonable based on the time.
@@ -45,8 +42,7 @@ DSCoSTEER_eval:
     3. Your suggestion should have a strong chance of improving the model's performance. Focus on the most obvious and impactful opportunities for quick improvement by leveraging more training time. Don't explore hyperparameters with low confidence.  If there are no obvious and impactful opportunities and the code runs well, please accept it.
     If the code satisfy the requirements:
     - Set "hyperparameter_tuning_decision" to true.
-    - Set "final_decision" to false.
-    - Provide a reasonable suggestion in "hyperparameter_tuning_suggestion". The "hyperparameter_tuning_suggestion" should begin with a clear observation, followed by your suggestion. For example: "[Observation] The maximum number of epochs was reached, but the validation loss is still going down and early stopping was not activated. Only 15% of the allowed time was used. [Suggestion] We recommend increasing epochs to 100 to avoid underfitting and further improve model performance."
+    - In "hyperparameter_tuning_suggestion", provide a clear, specific, and actionable suggestion. Begin with a concrete observation, then state a direct action to take. Do not use vague language, options, or uncertainty (avoid words like "A or B"). For example: "[Observation] The maximum number of epochs was reached, but the validation loss is still decreasing and early stopping was not activated. Only 15% of the allowed time was used. [Suggestion] Increase epochs to 100 to avoid underfitting and further improve model performance."
     If the code does not satisfy the requirements:
     - Set "hyperparameter_tuning_decision" to false.
     - Set "hyperparameter_tuning_suggestion" to an empty string.
@@ -59,10 +55,11 @@ DSCoSTEER_eval:
         "execution": "Describe whether the whole code base executed successfully and generating the final submission. Include any errors or issues encountered, and retain all error messages and traceback details.",
         "return_checking": "Verify the generated files, particularly the submission file. Ensure that its format matches the sample submission",
         "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
-        "acceptable": <true/false: if the solution has paased execution, return_checking, and code verification, then it is a valid solution and acceptable. Otherwise it is not acceptable.>,{% if enable_hyperparameter_tuning_check %}
+        "acceptable": <true/false: if the solution has passed execution, return_checking, and code verification, then it is a valid solution and acceptable. Otherwise it is not acceptable.>,
+        {% if enable_hyperparameter_tuning_check %}
         "hyperparameter_tuning_decision": <true/false>,
-        "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,{% endif %}
-        "final_decision": <true/false>,
+        "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,
+        {% endif %}
     }
     ```
     {% else %}
@@ -101,28 +98,35 @@ DSCoSTEER_eval:
         "acceptable": <true/false: if the solution has paased execution, return_checking, and code verification, then it is a valid solution and acceptable. Otherwise it is not acceptable.>,
         {% if enable_hyperparameter_tuning_check %}"hyperparameter_tuning_decision": <true/false>,
         "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,{% endif %}
-        "final_decision": <true/false>,
     }
     ```
     {% endif %}
 # NOTE: when is_sub_enabled == False, we don't have any checking about the return. So it is just placeholder currently
 
   user: |-
-    # Code base
+    # Current Code base
     {{ code }}
+    {% if change_summary is not none %}
+    # Current Code Change Summary
+    {{ change_summary }}{% endif %}
 
     ## Stdout of code execution and testing
     {{ stdout }}
 
-    # The time spend on code execution and timeout
-    {{ time_spent }}
-
-    ## The timeout of code execution
-    {{ timeout }}
-
-    ## The percent of timeout used
-    {{ percent_of_timeout_used }}
-
+    ## Execution time and timeout
+    The execution time for current code base: {{ time_spent }}.
+    The total timeout: {{ timeout }}.
+    The percent of timeout used: {{ percent_of_timeout_used }}.
+    
+    {% if queried_former_failed_knowledge|length != 0 %}
+    # Evolving History
+    {% for former_failed_knowledge in queried_former_failed_knowledge %}## Attempt {{ loop.index }}:
+    ### Summary of Changes
+    {{ former_failed_knowledge.implementation.change_summary }}
+    {{ former_failed_knowledge.feedback }}
+    {% endfor %}
+    {% endif %}
+    
 DSCoSTEER:
   system_debugger: |-
     {% include "scenarios.data_science.share:scen.role" %}
@@ -132,7 +136,6 @@ DSCoSTEER:
     1. Code base.
     2. Task description, which is the task the code is trying to solve.
     3. Feedback generated during the execution of the whole workflow.
-    4. Suggestions for hyperparameter tuning.
     Your job is to debug the whole code base, try to correct the errors, and ensure that the workflow can execute successfully on the full dataset.
 
     ## Task description
@@ -185,13 +188,23 @@ DSCoSTEER:
     {% endif %}
 
   user: |-
-    # Code Base
+    # Current Code Base
     {{ code }}
 
-    ## Feedback
+    ## Feedback of Current Code Base
     {{ feedback }}
 
     {% if hyperparameter_tuning_suggestion is not none %}
     ## Hyperparameter Tuning Suggestion
     {{ hyperparameter_tuning_suggestion }}
+    {% endif %}
+
+    {% if queried_former_failed_knowledge|length != 0 %}
+    # Evolving History
+    {% for former_failed_knowledge in queried_former_failed_knowledge %}## Attempt {{ loop.index }}:
+    ### Summary of Changes
+    {{ former_failed_knowledge.implementation.change_summary }}
+    ### Validation Scores
+    {{ former_failed_knowledge.feedback.score }}
+    {% endfor %}
     {% endif %}
