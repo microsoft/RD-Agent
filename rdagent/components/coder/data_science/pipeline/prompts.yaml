@@ -222,12 +222,12 @@ pipeline_eval:
     ### Step 2: Submission File Authenticity and Format
     - Goal: Verify that the code correctly generates the final submission in the expected format and that the submission is authentic.
     - Guidelines:
-      - The submission file must strictly match the required structure (correct columns, index format, data types). The index names and column names must be identical to the sample submission.
+      - The submission file must strictly match the required structure (correct columns, index format, data types). The index names and column names must be identical to the format specified in the Competition Information's '====== Submission Format ======' section.
       - Rigorously verify that the submission file was produced by genuine model inference and successful code execution, not by cheating, fallback or exception-handling mechanisms.
         - The submission must be generated from genuine model predictions using the best saved model—never empty, constant, random, or hard-coded values.
         - Submissions must reflect authentic model outputs; any form of fabrication, cheating, or simulated results is strictly prohibited and grounds for rejection.
         - Cross-check both code logic and stdout to ensure predictions originate from real model inference, not from error recovery or placeholder code paths.
-      - Only check the format of the submission since only part of the data is provided; the submission might have a different index than the sample submission data.
+      - Only check the format of the submission since only part of the data is provided; the submission might have a different index than expected due to data sampling.
       - Verify honest failure reporting if training issues occur.
     - If the code passes this step:
       - Proceed to Step 3.
@@ -291,7 +291,7 @@ pipeline_eval:
     ```json
     {
         "execution": "Describe whether the code executed successfully, correctly integrating all components and generating the final submission. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information. If errors occurred, analyze the root causes: (1) Are they fundamental algorithmic/approach issues, or (2) Implementation details that can be easily fixed, or (3) Environment/dependency problems?",
-        "return_checking": "Examine the generated files by cross-referencing the code logic and stdout output. Verify: (1) Format matches sample submission (index, column names, CSV content); (2) **File generation authenticity**: Is the file genuinely produced by successful model execution, or is it a result of exception handling/fallback mechanisms? Cite specific code sections and stdout evidence.",
+        "return_checking": "Examine the generated files by cross-referencing the code logic and stdout output. Verify: (1) Format matches required submission format (index, column names, CSV content); (2) **File generation authenticity**: Is the file genuinely produced by successful model execution, or is it a result of exception handling/fallback mechanisms? Cite specific code sections and stdout evidence.",
         "code": "Begin explicitly with [Code analysis] or [Evaluation error]. Provide structured analysis: (1) **Technical Appropriateness**: Does the chosen approach (algorithms, data processing, validation strategy) match this problem's data characteristics and competition requirements? (2) **Effective Components**: What specific parts work well and why are they effective for this problem type? (3) **Issues & Improvements**: Identify concrete problems and suggest actionable improvement directions (without providing actual code). (4) **Code Quality**: Assess readability, structure, and adherence to specifications.",
         "final_decision": <true/false>
     }
@@ -318,7 +318,7 @@ pipeline_eval:
 # NOTE: when is_sub_enabled == False, we don't have any checking about the return. So it is just placeholder currently
 
   user: |-
-    # Competition Scenario
+    # Competition Information
     {{ scenario }}
 
     # Task Description

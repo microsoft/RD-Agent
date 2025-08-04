@@ -239,7 +239,7 @@ component_spec:
         ```
 
     4. Submission File:
-      - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements (refer to `sample_submission` in the Folder Description for the correct structure).
+      - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements as detailed in the '====== Submission Format ======' section of the Competition Information (DO NOT read the sample_submission.csv file directly in the code).
       - Present the required submission format explicitly and ensure the output adheres to it.
 
     5. Code Standards:
@@ -283,7 +283,7 @@ component_spec:
 
     4. Code Standards:
       - DO NOT use progress bars (e.g., `tqdm`).
-      - DO NOT use the sample submission file to extract test index information.
+      - **CRITICAL: DO NOT read, load, or access the sample_submission.csv file in the code. Extract column names and format requirements from the '====== Submission Format ======' section in the # Competition Information instead.**
       - DO NOT exclude features inadvertently during this process.
 
     5. NOTES
@@ -309,7 +309,7 @@ component_spec:
       - Validation metrics should be aligned across all ideas and implementations. Avoid proposing ideas that might affect the validation metrics and modifying the related code.
 
     9. Submission File:
-      - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements (refer to `sample_submission` in the Folder Description for the correct structure).
+      - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements as detailed in the '====== Submission Format ======' section of the Competition Information (DO NOT read the sample_submission.csv file directly in the code).
       - Present the required submission format explicitly and ensure the output adheres to it.
     
     10. Preferred Packages:
