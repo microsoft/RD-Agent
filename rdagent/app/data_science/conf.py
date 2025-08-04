@@ -89,6 +89,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     max_trace_num: int = 3
     """The maximum number of traces to grow before merging"""
 
+    scheduler_temperature: float = 1.0
+    """The temperature for the trace scheduler for softmax calculation, used in ProbabilisticScheduler"""
+
     #### multi-trace:checkpoint selector
     selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.select.expand.LatestCKPSelector"
     """The name of the selector to use"""

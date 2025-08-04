@@ -85,7 +85,7 @@ class RoundRobinScheduler(BaseScheduler):
     NOTE: we don't need to use asyncio.Lock here as the kickoff_loop ensures the ExpGen is always sequential, instead of parallel.
     """
 
-    def __init__(self, max_trace_num: int):
+    def __init__(self, max_trace_num: int, *args, **kwargs):
         logger.info(f"RoundRobinScheduler: max_trace_num={max_trace_num}")
         self.max_trace_num = max_trace_num
         self._last_selected_leaf_id = -1
@@ -120,7 +120,7 @@ class ProbabilisticScheduler(BaseScheduler):
     based on a probability distribution derived from a potential function.
     """
 
-    def __init__(self, max_trace_num: int, temperature: float = 1.0):
+    def __init__(self, max_trace_num: int, temperature: float = 1.0, *args, **kwargs):
         """
         Args:
             max_trace_num: The target number of parallel traces.
@@ -215,7 +215,7 @@ class TraceLengthScheduler(ProbabilisticScheduler):
 
     """
 
-    def __init__(self, max_trace_num: int, temperature: float = 1.0, inverse: bool = False):
+    def __init__(self, max_trace_num: int, temperature: float = 1.0, inverse: bool = False, *args, **kwargs):
         """
         Args:
             max_trace_num: The target number of parallel traces.
@@ -247,7 +247,7 @@ class SOTABasedScheduler(ProbabilisticScheduler):
     A scheduler that prefers traces with more SOTA (State of the Art) results.
     """
 
-    def __init__(self, max_trace_num: int, temperature: float = 1.0, inverse: bool = False):
+    def __init__(self, max_trace_num: int, temperature: float = 1.0, inverse: bool = False, *args, **kwargs):
         """
         Args:
             max_trace_num: The target number of parallel traces.
