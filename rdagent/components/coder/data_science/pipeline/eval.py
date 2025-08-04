@@ -166,7 +166,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         system_prompt = T(".prompts:pipeline_eval.system").r(
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             debug_mode=DS_RD_SETTING.sample_data_by_LLM,
-            mle_check=(DS_RD_SETTING.sample_data_by_LLM and test_eval.is_sub_enabled(self.scen.competition)),
+            mle_check=DS_RD_SETTING.sample_data_by_LLM,
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
         )
         user_prompt = T(".prompts:pipeline_eval.user").r(
