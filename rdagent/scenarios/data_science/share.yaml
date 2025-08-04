@@ -308,7 +308,7 @@ component_spec:
       - The index of `scores.csv` should include the model name and the "ensemble" strategy. "ensemble" should be exactly in the index with all lower case letters. Ensemble is the result from several models. If only one model is present, the ensemble score should be the same as the model score.
       - The column names in `scores.csv` should be:
         - Model: The name of the model or ensemble strategy.
-        - <metric_name>: The calculated metric value for that model or ensemble strategy. The metric name can be found in the scenario description. The metric name should be exactly the same as the one in the scenario description since user will use it to check the result.
+        - {{ metric_name }}: The calculated metric value for that model or ensemble strategy. The metric name should be exactly the same as the one in the scenario description since user will use it to check the result.
       - Validation metrics should be aligned across all ideas and implementations. Avoid proposing ideas that might affect the validation metrics and modifying the related code.
 
     9. Submission File:

@@ -26,7 +26,7 @@ pipeline_coder:
     {% include "scenarios.data_science.share:spec.hyperparameter" %}
     
     # Specification your code should follow
-    {% include "scenarios.data_science.share:component_spec.Pipeline" %}
+    {{ spec }}
 
     {% if queried_former_failed_knowledge|length != 0 %}
     ## Previous Failed Attempts

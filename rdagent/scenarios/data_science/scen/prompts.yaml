@@ -25,7 +25,7 @@ scenario_description: |-
 
   ====== Evaluation ======
   {% if metric_name %}
-  The primary evaluation metric for this task is: **{{ metric_name }}**.
+  The primary evaluation metric for this task is: **{{ metric_name }}**, **which should be the column name in `scores.csv`**.
   {% endif %}
   This metric is considered better when it is **{% if metric_direction %}larger{% else %}smaller{% endif %}**.
 

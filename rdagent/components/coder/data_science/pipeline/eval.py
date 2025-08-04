@@ -174,7 +174,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
             task_desc=target_task.get_task_information(),
             stdout=stdout.strip(),
-            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
+            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(metric_name=self.scen.metric_name),
             code=implementation.file_dict["main.py"],
         )
         wfb = build_cls_from_json_with_retry(
