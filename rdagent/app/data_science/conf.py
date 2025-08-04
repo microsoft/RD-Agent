@@ -132,7 +132,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_hypo_critique_rewrite: bool = True
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
     enable_scale_check: bool = False
-    
+
     #### enable runner code change summary
     runner_enable_code_change_summary: bool = True
 
