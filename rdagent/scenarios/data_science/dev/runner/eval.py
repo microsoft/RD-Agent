@@ -196,7 +196,9 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
             # init_kwargs_update_func=DSRunnerFeedback.val_and_update_init_dict,
         )
         feedback.score = score_df.to_string() if score_ret_code == 0 else None
-        feedback.final_decision = feedback.acceptable and (not feedback.hyperparameter_tuning_decision) # If hyperparameter_tuning_decision is None, it's considered as False, so the final_decision dependents on the acceptable
+        feedback.final_decision = feedback.acceptable and (
+            not feedback.hyperparameter_tuning_decision
+        )  # If hyperparameter_tuning_decision is None, it's considered as False, so the final_decision dependents on the acceptable
 
         if feedback and not DS_RD_SETTING.coder_on_whole_pipeline:
             # remove unused files
