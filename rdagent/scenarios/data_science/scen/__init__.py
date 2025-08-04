@@ -60,6 +60,7 @@ class DataScienceScen(Scenario):
         self.metric_direction: bool = (
             self._get_direction()
         )  # True indicates higher is better, False indicates lower is better
+        self.timeout_increase_count = 0
 
     def reanalyze_competition_description(self):
         self.raw_description = self._get_description()
@@ -114,7 +115,6 @@ class DataScienceScen(Scenario):
         self.longer_time_limit_required = response_json_analysis.get(
             "Longer time limit required", False
         )  # True or False, whether the competition scenario requires a longer time limit to the code.
-        self.timeout_increase_count = 0
 
     def real_debug_timeout(self):
         return (

@@ -221,7 +221,15 @@ class DataScienceRDLoop(RDLoop):
         else:
             exp: DSExperiment = prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"]
             # TODO: distinguish timeout error & other exception.
-            if isinstance(self.trace.scen, DataScienceScen) and DS_RD_SETTING.allow_longer_timeout:
+            if (
+                isinstance(self.trace.scen, DataScienceScen)
+                and DS_RD_SETTING.allow_longer_timeout
+                and isinstance(e, CoderError)
+                and e.caused_by_timeout
+            ):
+                logger.info(
+                    f"Timeout error occurred: {e}. Increasing timeout for the current scenario from {self.trace.scen.timeout_increase_count} to {self.trace.scen.timeout_increase_count + 1}."
+                )
                 self.trace.scen.increase_timeout()
 
             # set the local selection to the trace as global selection, then set the DAG parent for the trace
