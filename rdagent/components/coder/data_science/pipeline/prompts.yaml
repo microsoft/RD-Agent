@@ -227,7 +227,7 @@ pipeline_eval:
         - The submission must be generated from genuine model predictions using the best saved model—never empty, constant, random, or hard-coded values.
         - Submissions must reflect authentic model outputs; any form of fabrication, cheating, or simulated results is strictly prohibited and grounds for rejection.
         - Cross-check both code logic and stdout to ensure predictions originate from real model inference, not from error recovery or placeholder code paths.
-      - Only check the format of the submission since only part of the data is provided; the submission might have a different index than expected due to data sampling.
+      {% if not mle_check%}- Only check the format of the submission since only part of the data is provided; the submission might have a different index than expected due to data sampling.{% endif %}
       - Verify honest failure reporting if training issues occur.
     - If the code passes this step:
       - Proceed to Step 3.
