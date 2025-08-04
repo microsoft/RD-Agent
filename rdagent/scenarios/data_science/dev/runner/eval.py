@@ -185,6 +185,7 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
         )
         user_prompt = T(".prompts:DSCoSTEER_eval.user").r(
             code=implementation.all_codes,
+            change_summary=implementation.change_summary,
             stdout=shrink_text(stdout),
             time_spent=f"{implementation.running_info.running_time:.2f} seconds",
             timeout=f"{env.conf.running_timeout_period} seconds",

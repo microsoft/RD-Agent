@@ -190,6 +190,9 @@ DSCoSTEER:
   user: |-
     # Current Code Base
     {{ code }}
+    {% if change_summary is not none %}
+    # Current Code Change Summary
+    {{ change_summary }}{% endif %}
 
     ## Feedback of Current Code Base
     {{ feedback }}
