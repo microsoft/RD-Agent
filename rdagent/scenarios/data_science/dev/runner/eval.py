@@ -76,13 +76,6 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> DSRunnerFeedback:
-        # Only enalbe hyperparameter tuning on the first evaluation.
-        # Avoid too much time cunsumming.
-        if len(queried_knowledge.task_to_former_failed_traces[target_task.get_task_information()][0]) == 0:
-            enable_hyperparameter_tuning_check = True
-        else:
-            enable_hyperparameter_tuning_check = False
-
         env = get_ds_env(
             extra_volumes={
                 f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": T(
@@ -168,6 +161,14 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
             stdout += f"\n### Submission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
 
         time_spent_ratio = implementation.running_info.running_time / env.conf.running_timeout_period
+        # Only enable hyperparameter tuning on the first evaluation.
+        # Avoid too much time consuming.
+        enable_hyperparameter_tuning_check = False
+        if len(queried_knowledge.task_to_former_failed_traces[target_task.get_task_information()][0]) == 0 and (
+            time_spent_ratio < DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning
+        ):
+            enable_hyperparameter_tuning_check = True
+
         if (
             DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning is not None
             and time_spent_ratio > DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning

@@ -318,7 +318,10 @@ class FBWorkspace(Workspace):
                     zf.writestr(zi, str(file_path.readlink()))
                 elif file_path.is_file():
                     size_limit = RD_AGENT_SETTINGS.workspace_ckp_size_limit
-                    if size_limit <= 0 or file_path.stat().st_size <= size_limit:
+                    if (
+                        RD_AGENT_SETTINGS.workspace_ckp_white_list_names is not None
+                        and file_path.name in RD_AGENT_SETTINGS.workspace_ckp_white_list_names
+                    ) or (size_limit <= 0 or file_path.stat().st_size <= size_limit):
                         zf.write(file_path, file_path.relative_to(self.workspace_path))
         self.ws_ckp = buf.getvalue()
 
