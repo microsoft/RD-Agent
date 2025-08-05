@@ -1,8 +1,4 @@
-import json
-from typing import Dict
-
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
     CoSTEERSingleFeedback,
@@ -14,6 +10,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
 from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
+from rdagent.components.coder.data_science.share.ds_costeer import DSCoSTEER
 from rdagent.components.coder.data_science.workflow.eval import (
     WorkflowGeneralCaseSpecEvaluator,
 )
@@ -111,7 +108,7 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         return evo
 
 
-class WorkflowCoSTEER(CoSTEER):
+class WorkflowCoSTEER(DSCoSTEER):
     def __init__(
         self,
         scen: Scenario,
@@ -131,6 +128,5 @@ class WorkflowCoSTEER(CoSTEER):
             evolving_version=2,
             scen=scen,
             max_loop=DS_RD_SETTING.coder_max_loop,
-            max_seconds=scen.real_debug_timeout() * settings.max_seconds_multiplier,
             **kwargs,
         )

@@ -135,6 +135,26 @@ pipeline_coder:
     else:
       sample_size = len(train_dataset)
     ```
+    In debug mode, to increase efficiency, you only need to perform inference on the first sample of the test set to generate a valid prediction for `submission.csv`. For all other samples in the test set, you should use a placeholder value (e.g., 0 or a default value) to fill the prediction column. This ensures that the generated `submission.csv` has the same number of rows as the full run and passes the format check.
+    Example code:
+    ```python
+    all_preds = []
+    for i, batch in enumerate(test_loader):
+        # In debug mode, use placeholders for all batches after the first one to improve efficiency.
+        if args.debug and i > 0:
+            # The shape and data type of the placeholder must match the model's actual output.
+            # Here, we assume `predictions` is a NumPy array.
+            placeholder = np.zeros_like(predictions)
+            all_preds.append(placeholder)
+            continue
+
+        # In full mode, or for the first batch in debug mode, perform actual model inference.
+        predictions = model.predict(batch)
+        all_preds.append(predictions)
+
+    # final_predictions = np.concatenate(all_preds)
+    # ... then create and save submission.csv
+    ```
     You should be very careful about the label classes number in the debug mode. The label classes should be the same as the full run even when you are in the debug mode. The label classes number is often used to build the model.
     {% endif %}
 
