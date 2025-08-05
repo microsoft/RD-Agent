@@ -185,7 +185,9 @@ More details can be found in the [development setup](https://rdagent.readthedocs
   OPENAI_API_KEY=<replace_with_your_openai_api_key>
   ```
 
-  *Configuration Example: `Azure OpenAI` Setup ( Assume that the `Azure OpenAI API Key` support for embedded models ) :*
+  *Configuration Example: `Azure OpenAI` Setup :*
+
+  > Before using this configuration, please confirm in advance that your `Azure OpenAI API key` supports `embedded models`.
 
   ```bash
   cat << EOF  > .env
