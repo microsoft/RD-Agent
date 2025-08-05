@@ -26,24 +26,34 @@ def get_python_packages():
     # Example: `python package_info.py pandas torch scikit-learn`
     # If no extra arguments are provided we fall back to the original default list
     # to keep full backward-compatibility.
-    packages_list = [  # default packages
-        "transformers",
+
+    packages_list = [
         "accelerate",
-        "torch",
-        "tensorflow",
-        "pandas",
+        "albumentations",
+        "catboost",
+        "datasets",
+        "imbalanced-learn",
+        "lightgbm",
+        "matplotlib",
         "numpy",
+        "opencv-python",
+        "optuna",
+        "pandas",
+        "pillow",
+        "pyarrow",
         "scikit-learn",
         "scipy",
+        "sentence-transformers",
+        "sentencepiece",
+        "shap",
+        "timm",
+        "tokenizers",
+        "torch",
+        "torchvision",
+        "transformers",
         "xgboost",
-        "sklearn",
-        "lightgbm",
-        "vtk",
-        "opencv-python",
-        "keras",
-        "matplotlib",
-        "pydicom",
     ]
+
     if len(sys.argv) > 1:
         packages_list = list(set(packages_list) | set(sys.argv[1:]))
 
