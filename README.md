@@ -173,7 +173,7 @@ More details can be found in the [development setup](https://rdagent.readthedocs
 
   **Option 1: Unified API base for both models**
 
-  *Configuration Example: OpenAI Setup*:
+  *Configuration Example: `OpenAI` Setup :*
 
   ```bash
   cat << EOF  > .env
@@ -185,7 +185,7 @@ More details can be found in the [development setup](https://rdagent.readthedocs
   OPENAI_API_KEY=<replace_with_your_openai_api_key>
   ```
 
-  *Configuration Example: Azure OpenAI Setup:*
+  *Configuration Example: `Azure OpenAI` Setup ( Assume that the `Azure OpenAI API Key` support for embedded models ) :*
 
   ```bash
   cat << EOF  > .env
@@ -215,7 +215,7 @@ More details can be found in the [development setup](https://rdagent.readthedocs
   LITELLM_PROXY_API_BASE=https://api.siliconflow.cn/v1
   ```
 
-  *Configuration Example: DeepSeek Setup:*
+  *Configuration Example: `DeepSeek` Setup :*
 
   >Since many users encounter configuration errors when setting up DeepSeek. Here's a complete working example for DeepSeek Setup:
   ```bash
