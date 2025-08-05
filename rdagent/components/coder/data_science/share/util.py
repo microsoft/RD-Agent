@@ -36,18 +36,32 @@ def extract_function_body(source_code: str, function_name: str) -> Optional[str]
     return None
 
 
-def split_sections(text: str, section_header_regex: str) -> tuple[Optional[str], list[str]]:
+def split_sections(
+    text: str, section_header_regex: str, known_sections: Optional[list[str]] = None
+) -> tuple[Optional[str], list[str], list[str]]:
     """
     Split text into sections based on the section headers.
     """
     sections = []
+    section_names = []
     current_section = []
+    next_section_name_index = 0
     for line in text.splitlines():
-        if re.search(section_header_regex, line):
+        match = re.match(section_header_regex, line)
+        extracted_section_name = match.group(1).strip() if match else None
+        if extracted_section_name and (
+            not known_sections
+            or (
+                next_section_name_index < len(known_sections)
+                and extracted_section_name == known_sections[next_section_name_index]
+            )
+        ):
             if current_section:
                 sections.append("\n".join(current_section))
                 current_section = []
             current_section.append(line)
+            section_names.append(extracted_section_name)
+            next_section_name_index += 1
         else:
             current_section.append(line)
     if current_section:
@@ -59,21 +73,22 @@ def split_sections(text: str, section_header_regex: str) -> tuple[Optional[str],
         header_section = sections[0]
         sections = sections[1:]
 
-    return header_section, sections
+    return header_section, sections, section_names
 
 
 def split_code_sections(source_code: str) -> tuple[Optional[str], list[str]]:
     """
     Split code into sections based on the section headers.
     """
-    return split_sections(source_code, r'^print\(["\']Section:')
+    return split_sections(source_code, r'^print\(["\']Section: (.+)["\']\)')
 
 
-def split_output_sections(stdout: str) -> tuple[Optional[str], list[str]]:
+def split_output_sections(stdout: str, known_sections: list[str]) -> tuple[Optional[str], list[str]]:
     """
     Split output into sections based on the section headers.
     """
-    return split_sections(stdout, r"^Section: ")
+    header_section, sections, _ = split_sections(stdout, r"^Section: (.+)", known_sections=known_sections)
+    return header_section, sections
 
 
 def extract_comment_under_first_print(source_code) -> tuple[Optional[str], str]:
@@ -296,12 +311,12 @@ def split_code_and_output_into_sections(code: str, stdout: str) -> list[CodeSect
     functions = extract_top_level_functions_with_decorators_and_comments(top_level_code)
 
     # Split the main function body into sections based on print("Section: <section name>") code
-    main_fn_top_level_section, main_fn_sections = (
-        split_code_sections(main_function_body) if main_function_body else (None, [])
+    main_fn_top_level_section, main_fn_sections, known_section_names = (
+        split_code_sections(main_function_body) if main_function_body else (None, [], [])
     )
 
     # Split the output into sections based on "Section: " headers
-    output_top_level_section, output_sections = split_output_sections(stdout)
+    output_top_level_section, output_sections = split_output_sections(stdout, known_section_names)
 
     # Merge code and outputs into code sections
     result_sections: list[CodeSection] = []

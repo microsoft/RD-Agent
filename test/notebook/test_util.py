@@ -109,7 +109,7 @@ class TestSplitCodeSections(unittest.TestCase):
                 "processed_data = process_data(data)",
             ]
         )
-        header, sections = split_code_sections(code)
+        header, sections, section_names = split_code_sections(code)
         self.assertEqual(
             header,
             S(
@@ -138,6 +138,7 @@ class TestSplitCodeSections(unittest.TestCase):
                 ),
             ],
         )
+        self.assertListEqual(section_names, ["Data Loading", "Data Processing"])
 
     def test_happy_path_no_header(self):
         code = S(
@@ -153,7 +154,7 @@ class TestSplitCodeSections(unittest.TestCase):
                 "processed_data = process_data(data)",
             ]
         )
-        header, sections = split_code_sections(code)
+        header, sections, section_names = split_code_sections(code)
         self.assertEqual(header, None)
         self.assertListEqual(
             sections,
@@ -181,6 +182,7 @@ class TestSplitCodeSections(unittest.TestCase):
                 ),
             ],
         )
+        self.assertListEqual(section_names, ["Setup", "Data Loading", "Data Processing"])
 
     def test_wrong_format(self):
         code = S(
@@ -195,7 +197,7 @@ class TestSplitCodeSections(unittest.TestCase):
                 "processed_data = process_data(data)",
             ]
         )
-        header, sections = split_code_sections(code)
+        header, sections, section_names = split_code_sections(code)
         self.assertEqual(
             header,
             S(
@@ -212,24 +214,28 @@ class TestSplitCodeSections(unittest.TestCase):
             ),
         )
         self.assertListEqual(sections, [])
+        self.assertListEqual(section_names, [])
 
     def test_empty(self):
         code = ""
-        header, sections = split_code_sections(code)
+        header, sections, section_names = split_code_sections(code)
         self.assertEqual(header, None)
         self.assertListEqual(sections, [])
+        self.assertListEqual(section_names, [])
 
     def test_single_no_sections(self):
         code = "print('foo')"
-        header, sections = split_code_sections(code)
+        header, sections, section_names = split_code_sections(code)
         self.assertEqual(header, "print('foo')")
         self.assertListEqual(sections, [])
+        self.assertListEqual(section_names, [])
 
     def test_single_with_section(self):
         code = "print('Section: foo')"
-        header, sections = split_code_sections(code)
+        header, sections, section_names = split_code_sections(code)
         self.assertEqual(header, None)
         self.assertListEqual(sections, ["print('Section: foo')"])
+        self.assertListEqual(section_names, ["foo"])
 
     def test_no_sections(self):
         code = S(
@@ -242,7 +248,7 @@ class TestSplitCodeSections(unittest.TestCase):
                 "processed_data = process_data(data)",
             ]
         )
-        header, sections = split_code_sections(code)
+        header, sections, section_names = split_code_sections(code)
         self.assertEqual(
             header,
             S(
@@ -257,6 +263,7 @@ class TestSplitCodeSections(unittest.TestCase):
             ),
         )
         self.assertListEqual(sections, [])
+        self.assertListEqual(section_names, [])
 
     def test_ignores_indented_calls(self):
         code = S(
@@ -279,7 +286,7 @@ class TestSplitCodeSections(unittest.TestCase):
                 "finalize()",
             ]
         )
-        header, sections = split_code_sections(code)
+        header, sections, section_names = split_code_sections(code)
         self.assertEqual(
             header,
             S(
@@ -310,6 +317,7 @@ class TestSplitCodeSections(unittest.TestCase):
                 S(["print('Section: Finalization')", "# Finalize", "finalize()"]),
             ],
         )
+        self.assertListEqual(section_names, ["Data Loading", "Finalization"])
 
 
 class TestSplitOutputSections(unittest.TestCase):
@@ -323,7 +331,7 @@ class TestSplitOutputSections(unittest.TestCase):
                 "Processing data...",
             ]
         )
-        header, sections = split_output_sections(output)
+        header, sections = split_output_sections(output, known_sections=["Data Loading", "Data Processing"])
         self.assertEqual(
             header,
             S(
@@ -356,7 +364,7 @@ class TestSplitOutputSections(unittest.TestCase):
                 "Processing data...",
             ]
         )
-        header, sections = split_output_sections(output)
+        header, sections = split_output_sections(output, known_sections=["Setup", "Data Loading", "Data Processing"])
         self.assertEqual(header, None)
         self.assertListEqual(
             sections,
@@ -387,7 +395,7 @@ class TestSplitOutputSections(unittest.TestCase):
                 "Processing data...",
             ]
         )
-        header, sections = split_output_sections(output)
+        header, sections = split_output_sections(output, known_sections=["Data Loading", "Data Processing"])
         self.assertEqual(
             header,
             S(
@@ -404,19 +412,19 @@ class TestSplitOutputSections(unittest.TestCase):
 
     def test_empty(self):
         output = ""
-        header, sections = split_output_sections(output)
+        header, sections = split_output_sections(output, known_sections=["Data Loading", "Data Processing"])
         self.assertEqual(header, None)
         self.assertListEqual(sections, [])
 
     def test_single_no_sections(self):
         output = "foo"
-        header, sections = split_output_sections(output)
+        header, sections = split_output_sections(output, known_sections=["foo"])
         self.assertEqual(header, "foo")
         self.assertListEqual(sections, [])
 
     def test_single_with_section(self):
         output = "Section: foo"
-        header, sections = split_output_sections(output)
+        header, sections = split_output_sections(output, known_sections=["foo"])
         self.assertEqual(header, None)
         self.assertListEqual(sections, ["Section: foo"])
 
@@ -428,7 +436,7 @@ class TestSplitOutputSections(unittest.TestCase):
                 "Processing data...",
             ]
         )
-        header, sections = split_output_sections(output)
+        header, sections = split_output_sections(output, known_sections=["Data Loading", "Data Processing"])
         self.assertEqual(
             header,
             S(
@@ -451,13 +459,47 @@ class TestSplitOutputSections(unittest.TestCase):
                 "Processing data...",
             ]
         )
-        header, sections = split_output_sections(output)
+        header, sections = split_output_sections(output, known_sections=["Data Loading", "Data Processing"])
         self.assertEqual(
             header,
             S(
                 [
                     "Setting up workspace...",
                     " Section: Data Loading",
+                    "Loading data...",
+                    "Section: Data Processing",
+                    "Processing data...",
+                ]
+            ),
+        )
+        self.assertListEqual(sections, [])
+
+    def test_ignore_unknown_section(self):
+        output = S(
+            [
+                "Setting up workspace...",
+                "Section: Data Loading (1/5)",
+                "Section: Data Loading (2/5)",
+                "Section: Data Loading (3/5)",
+                "Section: Data Loading (4/5)",
+                "Section: Data Loading (5/5)",
+                "Loading data...",
+                "Section: Data Processing",
+                "Section: Data Processing (Sub task)",
+                "Processing data...",
+            ]
+        )
+        header, sections = split_output_sections(output, known_sections=["Data Processing"])
+        self.assertEqual(
+            header,
+            S(
+                [
+                    "Setting up workspace...",
+                    "Section: Data Loading (1/5)",
+                    "Section: Data Loading (2/5)",
+                    "Section: Data Loading (3/5)",
+                    "Section: Data Loading (4/5)",
+                    "Section: Data Loading (5/5)",
                     "Loading data...",
                 ]
             ),
@@ -468,6 +510,7 @@ class TestSplitOutputSections(unittest.TestCase):
                 S(
                     [
                         "Section: Data Processing",
+                        "Section: Data Processing (Sub task)",
                         "Processing data...",
                     ]
                 ),
@@ -1178,6 +1221,126 @@ class TestSplitCodeAndOutputIntoSections(unittest.TestCase):
                     ]
                 ),
                 "output": None,
+            },
+        )
+
+    def test_ignored_sections(self):
+        code = S(
+            [
+                "# Some notebook comments",
+                "import pandas as pd",
+                "",
+                "RANDOM_SEED = 42",
+                "" "def setup():",
+                "    print('Setting up workspace...')",
+                "",
+                "def load_data():",
+                "    return []",
+                "",
+                "def process_data(data):",
+                "    return data",
+                "",
+                "def main():",
+                "    setup()",
+                "    print('Section: Data Loading')",
+                "    if some_condition():",
+                "        print('Section: Data Loading (sub task)')",
+                "    # Load data",
+                "    data = load_data()",
+                "",
+                "    print('Section: Data Processing')",
+                "    # Process data",
+                "    for i in range(3):",
+                "        print(f'Section: Data Processing {i}')",
+                "    processed_data = process_data(data)",
+            ]
+        )
+        output = S(
+            [
+                "Setting up workspace...",
+                "Section: Data Loading",
+                "Section: Data Loading (sub task)",
+                "Loading data...",
+                "Section: Data Processing",
+                "Section: Data Processing 0",
+                "Section: Data Processing 1",
+                "Section: Data Processing 2",
+                "Processing data...",
+            ]
+        )
+        sections = split_code_and_output_into_sections(code=code, stdout=output)
+        self.assertEqual(len(sections), 3)
+        self.assertDictEqual(
+            sections[0],
+            {
+                "name": None,
+                "comments": None,
+                "code": S(
+                    [
+                        "# Some notebook comments",
+                        "import pandas as pd",
+                        "",
+                        "RANDOM_SEED = 42",
+                        "" "def setup():",
+                        "    print('Setting up workspace...')",
+                        "",
+                        "setup()",
+                    ]
+                ),
+                "output": S(["Setting up workspace..."]),
+            },
+        )
+        self.assertDictEqual(
+            sections[1],
+            {
+                "name": "Data Loading",
+                "comments": None,
+                "code": S(
+                    [
+                        "def load_data():",
+                        "    return []",
+                        "",
+                        "print('Section: Data Loading')",
+                        "if some_condition():",
+                        "    print('Section: Data Loading (sub task)')",
+                        "# Load data",
+                        "data = load_data()",
+                    ]
+                ),
+                "output": S(
+                    [
+                        "Section: Data Loading",
+                        "Section: Data Loading (sub task)",
+                        "Loading data...",
+                    ]
+                ),
+            },
+        )
+        self.assertDictEqual(
+            sections[2],
+            {
+                "name": "Data Processing",
+                "comments": "Process data",
+                "code": S(
+                    [
+                        "def process_data(data):",
+                        "    return data",
+                        "",
+                        "print('Section: Data Processing')",
+                        "for i in range(3):",
+                        "    print(f'Section: Data Processing {i}')",
+                        "processed_data = process_data(data)",
+                    ]
+                ),
+                "output": S(
+                    [
+                        "Section: Data Processing",
+                        "Section: Data Processing 0",
+                        "Section: Data Processing 1",
+                        "Section: Data Processing 2",
+                        "Processing data...",
+                    ]
+                ),
             },
         )
 
