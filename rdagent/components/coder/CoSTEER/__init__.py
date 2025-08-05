@@ -1,4 +1,3 @@
-import pickle
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
@@ -26,7 +25,6 @@ class CoSTEER(Developer[Experiment]):
         es: EvolvingStrategy,
         *args,
         evolving_version: int = 2,
-        max_seconds: int | None = None,
         with_knowledge: bool = True,
         knowledge_self_gen: bool = True,
         max_loop: int | None = None,
@@ -36,7 +34,6 @@ class CoSTEER(Developer[Experiment]):
         self.settings = settings
 
         self.max_loop = settings.max_loop if max_loop is None else max_loop
-        self.max_seconds = max_seconds
         self.knowledge_base_path = (
             Path(settings.knowledge_base_path) if settings.knowledge_base_path is not None else None
         )
@@ -67,6 +64,13 @@ class CoSTEER(Developer[Experiment]):
             )
         )
 
+    def get_develop_max_seconds(self) -> int | None:
+        """
+        Get the maximum seconds for the develop task.
+        Sub classes might override this method to provide a different value.
+        """
+        return None
+
     def _get_last_fb(self) -> CoSTEERMultiFeedback:
         fb = self.evolve_agent.evolving_trace[-1].feedback
         assert fb is not None, "feedback is None"
@@ -76,6 +80,7 @@ class CoSTEER(Developer[Experiment]):
     def develop(self, exp: Experiment) -> Experiment:
 
         # init intermediate items
+        max_seconds = self.get_develop_max_seconds()
         evo_exp = EvolvingItem.from_experiment(exp)
 
         self.evolve_agent = RAGEvoAgent[EvolvingItem](
@@ -102,8 +107,8 @@ class CoSTEER(Developer[Experiment]):
             logger.log_object(evo_exp.sub_workspace_list, tag="evolving code")
             for sw in evo_exp.sub_workspace_list:
                 logger.info(f"evolving workspace: {sw}")
-            if self.max_seconds is not None and (datetime.now() - start_datetime).seconds > self.max_seconds:
-                logger.info(f"Reached max time limit {self.max_seconds} seconds, stop evolving")
+            if max_seconds is not None and (datetime.now() - start_datetime).seconds > max_seconds:
+                logger.info(f"Reached max time limit {max_seconds} seconds, stop evolving")
                 reached_max_seconds = True
                 break
             if RD_Agent_TIMER_wrapper.timer.started and RD_Agent_TIMER_wrapper.timer.is_timeout():
@@ -140,7 +145,7 @@ class CoSTEER(Developer[Experiment]):
         failed_feedbacks = [
             f"- feedback{index + 1:02d}:\n  - execution: {f.execution}\n  - return_checking: {f.return_checking}\n  - code: {f.code}"
             for index, f in enumerate(feedback)
-            if f is not None and not f.final_decision
+            if f is not None and not f.is_acceptable()
         ]
 
         if len(failed_feedbacks) == len(feedback):

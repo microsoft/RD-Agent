@@ -162,9 +162,14 @@ class DSCoSTEERRunner(CoSTEER):
             evolving_version=2,
             scen=scen,
             max_loop=DS_RD_SETTING.runner_max_loop,
-            max_seconds=scen.real_full_timeout() * settings.max_seconds_multiplier,
             **kwargs,
         )
+
+    def get_develop_max_seconds(self) -> int | None:
+        """
+        The coder uses the scenario's real debug timeout as the maximum seconds for development.
+        """
+        return int(self.scen.real_full_timeout() * self.settings.max_seconds_multiplier)
 
     def develop(self, exp):
         bak_sub_tasks = exp.pending_tasks_list

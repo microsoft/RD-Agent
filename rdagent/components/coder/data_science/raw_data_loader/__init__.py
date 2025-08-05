@@ -22,13 +22,10 @@ File structure
     - Each coder could be tested.
 """
 
-import json
 import re
 from pathlib import Path
-from typing import Dict
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
     CoSTEERSingleFeedback,
@@ -47,6 +44,7 @@ from rdagent.components.coder.data_science.raw_data_loader.eval import (
     DataLoaderCoSTEEREvaluator,
 )
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
+from rdagent.components.coder.data_science.share.ds_costeer import DSCoSTEER
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
@@ -197,7 +195,7 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         return evo
 
 
-class DataLoaderCoSTEER(CoSTEER):
+class DataLoaderCoSTEER(DSCoSTEER):
     def __init__(
         self,
         scen: Scenario,
@@ -218,7 +216,6 @@ class DataLoaderCoSTEER(CoSTEER):
             evolving_version=2,
             scen=scen,
             max_loop=DS_RD_SETTING.coder_max_loop,
-            max_seconds=scen.real_debug_timeout() * settings.max_seconds_multiplier,
             **kwargs,
         )
 
