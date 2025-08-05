@@ -25,7 +25,7 @@ class Context7Settings(BaseSettings):
     api_base: Optional[str] = Field(default=None, description="OpenAI API base URL")
 
     # Cache configuration
-    cache_enabled: bool = Field(default=True, description="Enable MCP caching (permanent cache)")
+    cache_enabled: bool = Field(default=False, description="Enable MCP caching (permanent cache)")
 
     model_config = SettingsConfigDict(
         env_prefix="CONTEXT7_",

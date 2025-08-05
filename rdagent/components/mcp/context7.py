@@ -36,11 +36,14 @@ from rdagent.log import rdagent_logger as logger
         )
     ),
 )
-async def _query_context7_with_retry(error_message: str, verbose: bool = False) -> Optional[str]:
+async def _query_context7_with_retry(
+    error_message: str, full_code: Optional[str] = None, verbose: bool = False
+) -> Optional[str]:
     """Internal function with retry mechanism for Context7 queries.
 
     Args:
         error_message: The error message or traceback to search for
+        full_code: Complete code context for better understanding (optional)
         verbose: Enable verbose logging for ReAct agent (default: False)
     Returns:
         Documentation search result as string, or None if failed
@@ -99,26 +102,40 @@ async def _query_context7_with_retry(error_message: str, verbose: bool = False) 
         timm_trigger_text = ""
     # END OF SPECIAL CASE FOR TIMM LIBRARY
 
-    query = f"""{error_message}
+    # Build context information
+    context_info = ""
+    if full_code:
+        context_info += f"\n\nCURRENT CODE CONTEXT:\n```python\n{full_code}\n```\n"
+
+    query = f"""ERROR MESSAGE:
+{error_message}
+{context_info}
 
 IMPORTANT INSTRUCTIONS:
 1. ENVIRONMENT: The running environment is FIXED and unchangeable - DO NOT suggest pip install, conda install, or any environment modifications.
 
-2. SOLUTION REQUIREMENTS: 
-   - Provide WORKING CODE that directly replaces the problematic code
-   - Include specific import statements if needed
-   - Show the exact API usage from the official documentation
-   - If the original API doesn't exist, provide the correct alternative API with identical functionality
+2. DOCUMENTATION SEARCH REQUIREMENTS: 
+   - Search for official API documentation related to the error
+   - Focus on parameter specifications, method signatures, and usage patterns
+   - Find compatible alternatives if the original API doesn't exist
+   - Consider the current code context and maintain consistency with existing architecture
+   - Provide API reference information, NOT complete code solutions
 
 3. RESPONSE FORMAT:
    - Start with a brief explanation of the root cause
-   - Provide the corrected code block that can be directly copy-pasted
-   - Include any necessary import changes
-   - If multiple solutions exist, show the most straightforward one first
+   - Provide relevant API documentation excerpts
+   - List available parameters and their descriptions
+   - Show method signatures and basic usage patterns
+   - If multiple API options exist, document all viable alternatives
 
-4. DOCUMENTATION SEARCH: Use context7 to find the official API documentation and provide solutions based on the actual available methods and parameters.
+4. STRICT CONSTRAINTS:
+   - DO NOT provide complete working code replacements
+   - DO NOT suggest hardware configuration changes (CPU/GPU)
+   - DO NOT recommend architecture or framework changes
+   - DO NOT provide performance optimization suggestions
+   - ONLY provide API documentation and parameter information
 
-5. AVOID: Version upgrade suggestions, environment setup, debugging commands, or theoretical explanations without concrete code solutions.
+5. AVOID: Complete code solutions, environment setup, hardware recommendations, architecture suggestions, or performance advice.
 
 {timm_trigger_text}
 
@@ -126,17 +143,16 @@ Example response format:
 ```
 The error occurs because [brief explanation].
 
-Solution - Replace the problematic code with:
-```python
-# Corrected imports (if needed)
-import library as lib
-
-# Working replacement code
-corrected_code_here
+API Documentation:
+- Method: library.function_name(param1, param2, ...)
+- Parameters:
+  * param1 (type): description
+  * param2 (type): description
+- Usage pattern: Basic syntax without complete implementation
+- Alternative APIs (if applicable): list of alternative methods with signatures
 ```
-```
 
-Please search the documentation and provide a practical, copy-paste solution."""
+Please search the documentation and provide API reference information only."""
 
     # Execute agent query
     response = await agent.run(query, ctx=ctx)
@@ -160,17 +176,18 @@ Please search the documentation and provide a practical, copy-paste solution."""
     return result
 
 
-async def query_context7(error_message: str, verbose: bool = False) -> Optional[str]:
+async def query_context7(error_message: str, full_code: Optional[str] = None, verbose: bool = False) -> Optional[str]:
     """Query context7 documentation for error resolution with retry mechanism.
 
     Args:
         error_message: The error message or traceback to search for
+        full_code: Complete code context for better understanding (optional)
         verbose: Enable verbose logging for ReAct agent (default: False)
     Returns:
         Documentation search result as string, or None if failed
     """
     try:
-        return await _query_context7_with_retry(error_message, verbose)
+        return await _query_context7_with_retry(error_message, full_code, verbose)
     except (ConnectionError, TimeoutError, RuntimeError, OSError) as e:
         # These are retryable errors, but retries have failed
         logger.error(f"Context7 query failed after retries due to {type(e).__name__}: {str(e)}")

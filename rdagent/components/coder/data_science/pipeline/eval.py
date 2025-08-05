@@ -290,7 +290,9 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                     new_loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(new_loop)
                     try:
-                        return new_loop.run_until_complete(query_context7(wfb.error_message))
+                        return new_loop.run_until_complete(
+                            query_context7(error_message=wfb.error_message, full_code=implementation.all_codes)
+                        )
                     finally:
                         new_loop.close()
 
@@ -301,7 +303,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
                 if context7_result:
                     logger.info("Context7: Documentation search completed successfully")
-                    wfb.error_message += f"\n\n### Relevant Documentation Reference:\nThe following high-confidence documentation was automatically retrieved based on the error above. This can serve as a reliable reference for understanding correct API usage and resolving the issue:\n\n{context7_result}"
+                    wfb.error_message += f"\n\n### API Documentation Reference:\nThe following API documentation was retrieved based on the error. This provides factual information about API changes or parameter specifications only:\n\n{context7_result}"
                 else:
                     logger.warning("Context7: Documentation search failed or no results found")
             except Exception as e:
