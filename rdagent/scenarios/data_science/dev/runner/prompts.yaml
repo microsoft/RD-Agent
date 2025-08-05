@@ -36,17 +36,53 @@ DSCoSTEER_eval:
     For example, if you are using a GPU with large memory, and the batch size is set very low, you should suggest increasing the batch size if it is not reasonable.
 
     ## Evaluation Guidelines
-    1. The code execution time or resource utilization suggest that there is room for improvement in the hyperparameters.
-    2. The code must apply early stopping strategy already (in order to prevent overfitting).
-    3. Your suggestion should have a strong chance of improving the model's performance. Focus on the most obvious and impactful opportunities for quick improvement by leveraging more training time. Don't explore hyperparameters with low confidence.  If there are no obvious and impactful opportunities and the code runs well, please accept it.
-    4. Only include the suggestions in your response without leak any time limit information because the user might over-fit the model to the time limit.
-    5. Never make your judgment only based on the time spent, you should also consider the code and the stdout.
-    If the code satisfy the requirements:
+    1. **Understand the Task Type**  
+     First, determine whether the task is in NLP, Computer Vision (CV), or Tabular data, based on the code, data, or stdout output. This is crucial for identifying which hyperparameters matter most.
+    - For **NLP** tasks:
+     - Prioritize checking `max_len` / `sequence length`, model size (e.g., using a small transformer like DistilBERT).
+     - Suggest increasing these if they are small and the model underperforms.
+    - For **CV** tasks:
+     - Prioritize checking `image_size`, backbone network size, and batch size.
+     - Suggest increasing input size or using a deeper architecture if results are poor and only small resources are used.
+    - For **Tabular** tasks:
+     - Check tree depth, number of leaves, embedding strategy, feature preprocessing.
+
+    2. **Be Cautious: Only Suggest Tuning with Strong Evidence**  
+     Do **not** suggest hyperparameter tuning unless there is **clear, strong evidence** that doing so will meaningfully improve the model's performance.
+    - Avoid tuning **just because** there is remaining time.
+    - Avoid suggesting larger models or more training unless current signs point to clear underfitting and under-utilization.
+    - Pay attention to validation curves, early stopping status, and signs of model bottlenecks.
+
+    3. **Check Model Capacity vs Performance**  
+     If the model performs poorly (e.g., very low validation accuracy or high validation loss), avoid recommending more training time (e.g., increasing epochs). Instead, suggest increasing model capacity or input dimension first.
+
+    4. **Handle Early Stopping Properly**  
+     - If early stopping was triggered and the validation loss plateaued, do not suggest increasing epochs.
+     - If early stopping was not triggered, and validation performance is still improving, suggest increasing training iterations or related capacity parameters.
+
+    5. **Suggest Only When Beneficial**  
+     Only provide hyperparameter suggestions if they are **likely to significantly improve the model’s performance**, and **if there's clear room to use more resources**. Don’t suggest changes if:
+    - The model already performs well
+    - Training is near time/resource limits
+    - The model shows signs of overfitting
+    - Or if tuning is speculative and not grounded in actual model behavior
+
+    6. **Do Not Leak Time Limit Information**  
+    Never mention the actual time limit or how much time was left in your suggestion. This prevents overfitting to time constraints.
+
+
+    If and only if BOTH of the following conditions are met:
+    1. The code satisfies the requirement, and
+    2. According to the Evaluation Guidelines (1-6), there is strong evidence that tuning certain hyperparameters would significantly improve performance,
+
+    Then:
     - Set "hyperparameter_tuning_decision" to true.
-    - In "hyperparameter_tuning_suggestion", provide a clear, specific, and actionable suggestion. Begin with a concrete observation, then state a direct action to take. Do not use vague language, options, or uncertainty (avoid words like "A or B"). For example: "[Observation] The maximum number of epochs was reached, but the validation loss is still decreasing and early stopping was not activated. Only small portion of the allowed time was used. [Suggestion] Increase epochs to 100 to avoid underfitting and further improve model performance."
-    If the code does not satisfy the requirements:
+    - In "hyperparameter_tuning_suggestion", provide a clear, specific, and actionable suggestion. Begin with a concrete observation, then state a direct action to take. Do not use vague language, options, or uncertainty (avoid words like "A or B"). 
+
+    Otherwise (if either condition is not met):
     - Set "hyperparameter_tuning_decision" to false.
     - Set "hyperparameter_tuning_suggestion" to an empty string.
+
     {% endif %}
 
     ## Output format
