@@ -19,6 +19,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
 
+
 class HypothesisComponent(str, Enum):
     DataLoadSpec = "DataLoadSpec"
     FeatureEng = "FeatureEng"
@@ -26,11 +27,13 @@ class HypothesisComponent(str, Enum):
     Ensemble = "Ensemble"
     Workflow = "Workflow"
 
+
 class HypothesisSimple(BaseModel):
     hypothesis: str = Field(
         description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
     )
     component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
+
 
 class MergeExpGen(ExpGen):
     def gen(self, trace: DSTrace) -> DSExperiment:
@@ -451,6 +454,7 @@ class ExpGen2TraceAndMergeV3(ExpGen):
                 trace.set_current_selection(selection)
                 return self.merge_exp_gen.gen(trace)
 
+
 class ExpGen3Hypothesis(DSProposalV2ExpGen):
     @wait_retry(retry_n=5)
     def hypothesis_gen(
@@ -598,6 +602,7 @@ class ExpGen3Hypothesis(DSProposalV2ExpGen):
             )
 
         component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
+        scenario_desc = trace.scen.get_scenario_all_desc(eda_output=eda_output)
         hypothesis_dict = self.hypothesis_gen(
             component_desc=component_desc,
             exp_feedback_list_desc=exp_to_merge_fb_desc,
@@ -607,11 +612,11 @@ class ExpGen3Hypothesis(DSProposalV2ExpGen):
         )
 
         response_dict = self.hypothesis_select_with_llm(
-                    scenario_desc=scenario_desc,
-                    exp_feedback_list_desc=exp_to_merge_fb_desc,
-                    sota_exp_desc=sota_exp_desc,
-                    hypothesis_candidates=hypothesis_dict,
-                )
+            scenario_desc=scenario_desc,
+            exp_feedback_list_desc=exp_to_merge_fb_desc,
+            sota_exp_desc=sota_exp_desc,
+            hypothesis_candidates=hypothesis_dict,
+        )
         component_map = {
             "Model": HypothesisComponent.Model,
             "Ensemble": HypothesisComponent.Ensemble,
@@ -626,7 +631,6 @@ class ExpGen3Hypothesis(DSProposalV2ExpGen):
         if comp_str in component_map and hypo_str is not None:
             new_hypothesis = DSHypothesis(component=component_map[comp_str], hypothesis=hypo_str)
 
-
         all_problems = None
         pickled_problem_name = None
         # all_problems = {}
@@ -636,11 +640,8 @@ class ExpGen3Hypothesis(DSProposalV2ExpGen):
         #     selected_idx=0,
         # )
 
-
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
-
-        scenario_desc = trace.scen.get_scenario_all_desc(eda_output=eda_output)
 
         return self.task_gen(
             component_desc=component_desc,

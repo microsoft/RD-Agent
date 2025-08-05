@@ -10,7 +10,7 @@ from rdagent.core.proposal import ExpGen
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
-from rdagent.scenarios.data_science.proposal.exp_gen.merge import ExpGen2Hypothesis,ExpGen3Hypothesis
+from rdagent.scenarios.data_science.proposal.exp_gen.merge import ExpGen2Hypothesis, ExpGen3Hypothesis
 from rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler import (
     RoundRobinScheduler,
     TraceScheduler,
@@ -103,9 +103,6 @@ if TYPE_CHECKING:
 #                         return self.merge_exp_gen.gen(trace)
 
 #             await asyncio.sleep(1)
-
-
-
 
 
 class ParallelMultiTraceExpGen(ExpGen):
