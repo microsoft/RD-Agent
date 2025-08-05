@@ -388,7 +388,9 @@ class DSProposalV1ExpGen(ExpGen):
             if DS_RD_SETTING.spec_enabled:
                 task_spec = sota_exp.experiment_workspace.file_dict[component_info["spec_file"]]
             else:
-                task_spec = T(f"scenarios.data_science.share:component_spec.{component}").r()
+                task_spec = T(f"scenarios.data_science.share:component_spec.{component}").r(
+                    enable_notebook_conversion=DS_RD_SETTING.enable_notebook_conversion,
+                )
             system_prompt = T(".prompts:direct_exp_gen.system").r(
                 targets=component_info["target_name"],
                 component=component,
