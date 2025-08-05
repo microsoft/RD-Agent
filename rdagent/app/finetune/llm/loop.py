@@ -3,7 +3,8 @@ from pathlib import Path
 
 import fire
 
-from rdagent.app.finetune.llm.conf import DS_RD_SETTING
+from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.app.finetune.llm.conf import update_settings
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
@@ -30,7 +31,7 @@ def main(
     model_folder = Path(DS_RD_SETTING.local_data_path) / dataset / "prev_model"
     if not model_folder.exists():
         raise Exception(f"Please put the model path to {model_folder}.")
-    DS_RD_SETTING.competition = dataset
+    update_settings(dataset)
     rd_loop: DataScienceRDLoop = DataScienceRDLoop(DS_RD_SETTING)
     asyncio.run(rd_loop.run())
 
