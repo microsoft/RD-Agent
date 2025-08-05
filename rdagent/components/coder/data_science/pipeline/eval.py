@@ -16,6 +16,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledgeV2,
 )
 from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
+from rdagent.components.coder.data_science.share.notebook import NotebookConverter
 from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.scenarios.data_science.test_eval import get_test_eval
@@ -69,6 +70,24 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             result = implementation.run(
                 env=env, entry=f"strace -e trace=file -f -o trace.log python -m coverage run main.py"
             )
+
+        nb_conversion_ret_code = 0
+        nb_conversion_check_text = ""
+        if DS_RD_SETTING.enable_notebook_conversion:
+            notebook_converter = NotebookConverter()
+            code = implementation.file_dict["main.py"]
+            error_msg = notebook_converter.validate_code_format(code)
+            if error_msg is not None:
+                nb_conversion_check_text = error_msg
+                nb_conversion_ret_code = 1
+            else:
+                notebook_converter.convert(
+                    task=target_task,
+                    code=code,
+                    stdout=result.stdout,
+                    outfile=implementation.workspace_path / "main.ipynb",
+                    use_debug_flag=DS_RD_SETTING.sample_data_by_LLM,
+                )
 
         sample_submission_check = True
         test_eval = get_test_eval()
@@ -173,7 +192,10 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
             task_desc=target_task.get_task_information(),
             stdout=stdout.strip(),
-            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(metric_name=self.scen.metric_name),
+            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(
+                metric_name=self.scen.metric_name,
+                enable_notebook_conversion=DS_RD_SETTING.enable_notebook_conversion,
+            ),
             code=implementation.file_dict["main.py"],
         )
         wfb = build_cls_from_json_with_retry(
@@ -193,4 +215,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             wfb.return_checking += (
                 "\nSample submission file check failed. Code should not open the sample submission file."
             )
+        if nb_conversion_ret_code != 0 and wfb.final_decision is True:
+            wfb.final_decision = False
+            wfb.return_checking += "\n" + nb_conversion_check_text
         return wfb

@@ -60,7 +60,7 @@ if __name__ == "__main__":
     print(
         json.dumps(
             {
-                "competition_id": "arf-12-hour-prediction-task",
+                "competition_id": "arf-12-hours-prediction-task",
                 "score": score,
             }
         )
