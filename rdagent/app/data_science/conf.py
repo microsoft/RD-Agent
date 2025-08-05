@@ -44,6 +44,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     ### specific feature
 
+    ### notebook integration
+    enable_notebook_conversion: bool = False
+
     #### enable specification
     spec_enabled: bool = True
 
@@ -136,6 +139,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_hypo_critique_rewrite: bool = True
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
     enable_scale_check: bool = False
+
+    #### enable runner code change summary
+    runner_enable_code_change_summary: bool = True
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()

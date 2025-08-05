@@ -388,7 +388,9 @@ class DSProposalV1ExpGen(ExpGen):
             if DS_RD_SETTING.spec_enabled:
                 task_spec = sota_exp.experiment_workspace.file_dict[component_info["spec_file"]]
             else:
-                task_spec = T(f"scenarios.data_science.share:component_spec.{component}").r()
+                task_spec = T(f"scenarios.data_science.share:component_spec.{component}").r(
+                    enable_notebook_conversion=DS_RD_SETTING.enable_notebook_conversion,
+                )
             system_prompt = T(".prompts:direct_exp_gen.system").r(
                 targets=component_info["target_name"],
                 component=component,
@@ -913,6 +915,7 @@ class DSProposalV2ExpGen(ExpGen):
             task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
             component_desc=component_desc,
             workflow_check=workflow_check,
+            metric_name=self.scen.metric_name,
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,
