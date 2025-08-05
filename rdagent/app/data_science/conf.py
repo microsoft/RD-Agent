@@ -129,11 +129,15 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     coder_longer_timeout_multiplier_upper: int = 3
     runner_longer_timeout_multiplier_upper: int = 2
     timeout_increase_stage: float = 0.3
+    show_hard_limit: bool = True
 
     #### hypothesis critique and rewrite
     enable_hypo_critique_rewrite: bool = True
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
     enable_scale_check: bool = False
+
+    #### enable runner code change summary
+    runner_enable_code_change_summary: bool = True
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()

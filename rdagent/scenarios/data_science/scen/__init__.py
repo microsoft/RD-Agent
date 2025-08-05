@@ -60,6 +60,7 @@ class DataScienceScen(Scenario):
         self.metric_direction: bool = (
             self._get_direction()
         )  # True indicates higher is better, False indicates lower is better
+        self.timeout_increase_count = 0
 
     def reanalyze_competition_description(self):
         self.raw_description = self._get_description()
@@ -114,7 +115,6 @@ class DataScienceScen(Scenario):
         self.longer_time_limit_required = response_json_analysis.get(
             "Longer time limit required", False
         )  # True or False, whether the competition scenario requires a longer time limit to the code.
-        self.timeout_increase_count = 0
 
     def real_debug_timeout(self):
         return (
@@ -180,7 +180,6 @@ class DataScienceScen(Scenario):
             time_limit=None,
             recommend_time_limit=None,
             eda_output=None,
-            sample_data_by_LLM=None,
             debug_time_limit=None,
             recommend_debug_time_limit=None,
             runtime_environment=self.get_runtime_environment(),
@@ -198,12 +197,17 @@ class DataScienceScen(Scenario):
             metric_direction=self.metric_direction,
             raw_description=self.raw_description,
             use_raw_description=DS_RD_SETTING.use_raw_description,
-            time_limit=f"{self.real_full_timeout() / 60 / 60 : .2f} hours",
-            recommend_time_limit=f"{self.recommend_full_timeout() / 60 / 60 : .2f} hours",
+            time_limit=f"{self.real_full_timeout() / 60 / 60 : .2f} hours" if DS_RD_SETTING.show_hard_limit else None,
+            recommend_time_limit=(
+                f"{self.recommend_full_timeout() / 60 / 60 : .2f} hours" if DS_RD_SETTING.sample_data_by_LLM else None
+            ),
             eda_output=eda_output,
-            sample_data_by_LLM=DS_RD_SETTING.sample_data_by_LLM,
-            debug_time_limit=f"{self.real_debug_timeout() / 60 : .2f} minutes",
-            recommend_debug_time_limit=f"{self.recommend_debug_timeout() / 60 : .2f} minutes",
+            debug_time_limit=(
+                f"{self.real_debug_timeout() / 60 : .2f} minutes" if DS_RD_SETTING.show_hard_limit else None
+            ),
+            recommend_debug_time_limit=(
+                f"{self.recommend_debug_timeout() / 60 : .2f} minutes" if DS_RD_SETTING.sample_data_by_LLM else None
+            ),
             runtime_environment=self.get_runtime_environment(),
         )
 
