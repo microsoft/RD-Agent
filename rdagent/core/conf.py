@@ -104,4 +104,3 @@ class RDAgentSettings(ExtendedBaseSettings):
 
 
 RD_AGENT_SETTINGS = RDAgentSettings()
-tmp = 1
