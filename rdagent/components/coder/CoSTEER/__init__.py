@@ -77,6 +77,17 @@ class CoSTEER(Developer[Experiment]):
         assert isinstance(fb, CoSTEERMultiFeedback), "feedback must be of type CoSTEERMultiFeedback"
         return fb
 
+    def compare_and_pick_fb(self, base_fb: CoSTEERMultiFeedback | None, new_fb: CoSTEERMultiFeedback | None) -> bool:
+        """
+        Compare new feedback with the fallback feedback.
+
+        Returns:
+            bool: True if the new feedback better and False if the new feedback is worse or invalid.
+        """
+        if new_fb is not None and new_fb.is_acceptable():
+            return True
+        return False
+
     def develop(self, exp: Experiment) -> Experiment:
 
         # init intermediate items
@@ -97,11 +108,18 @@ class CoSTEER(Developer[Experiment]):
         # Evolving the solution
         start_datetime = datetime.now()
         fallback_evo_exp = None
+        fallback_evo_fb = None
         reached_max_seconds = False
         for evo_exp in self.evolve_agent.multistep_evolve(evo_exp, self.evaluator):
             assert isinstance(evo_exp, Experiment)  # multiple inheritance
-            if self._get_last_fb().is_acceptable():
+            evo_fb = self._get_last_fb()
+            fallback_decision = self.compare_and_pick_fb(
+                base_fb=fallback_evo_fb,
+                new_fb=evo_fb,
+            )
+            if fallback_decision:
                 fallback_evo_exp = deepcopy(evo_exp)
+                fallback_evo_fb = deepcopy(evo_fb)
                 fallback_evo_exp.create_ws_ckp()  # NOTE: creating checkpoints for saving files in the workspace to prevent inplace mutation.
 
             logger.log_object(evo_exp.sub_workspace_list, tag="evolving code")

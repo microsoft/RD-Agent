@@ -110,6 +110,9 @@ class DSExperiment2Feedback(Experiment2Feedback):
             ),
             eda_improvement=dict_get_with_warning(resp_dict, "EDA Improvement", "no"),  # EDA improvement suggestion
         )
+        
+        # Add acceptable field to the feedback object for UI display
+        hypothesis_feedback.acceptable = convert2bool(dict_get_with_warning(resp_dict, "Acceptable", "no"))
 
         if hypothesis_feedback and DS_RD_SETTING.enable_knowledge_base:
             ds_idea = DSIdea(
