@@ -181,16 +181,11 @@ class DSCoSTEERRunner(CoSTEER):
         new_fb = new_fb[0]
 
         def compare_scores(s1, s2) -> bool:
+            if s2 is None:
+                return False
             if s1 is None:
-                if s2 is None:  # FIXME: is this possible?
-                    return False
-                if s2 is not None:
-                    return True
-            else:
-                if s2 is None:  # new is invalid
-                    return False
-                else:
-                    return (s2 > s1) == self.scen.metric_direction
+                return True
+            return (s2 > s1) == self.scen.metric_direction
 
         return compare_scores(base_fb.score, new_fb.score)
 
