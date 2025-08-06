@@ -83,5 +83,6 @@ class KaggleBasePropSetting(ExtendedBaseSettings):
 
     only_enable_tuning_in_merge: bool = False
     """Whether to enable hyperparameter tuning in the merge stage"""
-    
+
+
 KAGGLE_IMPLEMENT_SETTING = KaggleBasePropSetting()
