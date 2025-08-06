@@ -18,71 +18,55 @@ DSCoSTEER_eval:
     The code is focusing on the following task
     {{ task_desc }}
 
-    ## Evaluation Guidelines
+    ## Evaluation Criteria
     1. Evaluate the code base based on several aspects, including execution correctness, return checking, and code quality.
     2. Ensure the code does not contain any incorrect, fabricated, or deceptive operations, such as mocking data, scores, or results.
     3. Confirm that the prediction file (`submission.csv`) is generated using only the test dataset, and its format matches the sample submission. Please refer to Submission check section including the format check to the submission.
-    If the code does not satisfy the requirements:
+    If the code does not satisfy any of the criteria:
     - Set "acceptable" to false.
-    If the code satisfy the requirements:
+    If the code satisfy all the criteria:
     - Set "acceptable" to true.
 
     {% if enable_hyperparameter_tuning_check %}
     # Evaluation 2: Hyperparameter
-    ## Evaluation Description
     The user will provide you the time spent on the whole code execution and the timeout of the code execution. You should decide whether the hyperparameter is reasonable based on the time.
     For example, if the code uses only a very small portion of the allowed time, and hyperparameters like `n_estimators` or `epochs` have low values, with early stopping not being triggered and possible signs of underfitting, you should suggest increasing these hyperparameters.
     You should also notice other resources utilization hyper-parameters.
     For example, if you are using a GPU with large memory, and the batch size is set very low, you should suggest increasing the batch size if it is not reasonable.
 
-    ## Evaluation Guidelines
-    1. **Understand the Task Type**  
-     First, determine whether the task is in NLP, Computer Vision (CV), or Tabular data, based on the code, data, or stdout output. This is crucial for identifying which hyperparameters matter most.
-    - For **NLP** tasks:
-     - Prioritize checking `max_len` / `sequence length`, model size (e.g., using a small transformer like DistilBERT).
-     - Suggest increasing these if they are small and the model underperforms.
-    - For **CV** tasks:
-     - Prioritize checking `image_size`, backbone network size, and batch size.
-     - Suggest increasing input size or using a deeper architecture if results are poor and only small resources are used.
-    - For **Tabular** tasks:
-     - Check tree depth, number of leaves, embedding strategy, feature preprocessing.
-
-    2. **Be Cautious: Only Suggest Tuning with Strong Evidence**  
-     Do **not** suggest hyperparameter tuning unless there is **clear, strong evidence** that doing so will meaningfully improve the model's performance.
-    - Avoid tuning **just because** there is remaining time.
-    - Avoid suggesting larger models or more training unless current signs point to clear underfitting and under-utilization.
-    - Pay attention to validation curves, early stopping status, and signs of model bottlenecks.
-
-    3. **Check Model Capacity vs Performance**  
-     If the model performs poorly (e.g., very low validation accuracy or high validation loss), avoid recommending more training time (e.g., increasing epochs). Instead, suggest increasing model capacity or input dimension first.
-
-    4. **Handle Early Stopping Properly**  
-     - If early stopping was triggered and the validation loss plateaued, do not suggest increasing epochs.
-     - If early stopping was not triggered, and validation performance is still improving, suggest increasing training iterations or related capacity parameters.
-
-    5. **Suggest Only When Beneficial**  
-     Only provide hyperparameter suggestions if they are **likely to significantly improve the model’s performance**, and **if there's clear room to use more resources**. Don’t suggest changes if:
-    - The model already performs well
-    - Training is near time/resource limits
-    - The model shows signs of overfitting
-    - Or if tuning is speculative and not grounded in actual model behavior
-
-    6. **Do Not Leak Time Limit Information**  
-    Never mention the actual time limit or how much time was left in your suggestion. This prevents overfitting to time constraints.
-
-
-    If and only if BOTH of the following conditions are met:
-    1. The code satisfies the requirement, and
-    2. According to the Evaluation Guidelines (1-6), there is strong evidence that tuning certain hyperparameters would significantly improve performance,
-
-    Then:
-    - Set "hyperparameter_tuning_decision" to true.
-    - In "hyperparameter_tuning_suggestion", provide a clear, specific, and actionable suggestion. Begin with a concrete observation, then state a direct action to take. Do not use vague language, options, or uncertainty (avoid words like "A or B"). 
-
-    Otherwise (if either condition is not met):
+    ## Evaluation Criteria
+    1. The code execution time or resource utilization suggest that there is room for improvement in the hyperparameters.
+    2. The code must apply early stopping strategy already (in order to prevent overfitting).
+    3. Your suggestion should have a strong chance of improving the model's performance. Focus on the most obvious and impactful opportunities for quick improvement by leveraging more training time. Don't explore hyperparameters with low confidence.  If there are no obvious and impactful opportunities and the code runs well, please accept it.
+    4. Only include the suggestions in your response without leak any time limit information because the user might over-fit the model to the time limit.
+    5. Never make your judgment only based on the time spent, you should also consider the code and the stdout.
+    In the "reasoning", provide step-by-step reasoning for your hyperparameter tuning evaluation. The reasoning should check whether the code satisfy all of the criteria.
+    If the code does not satisfy any of the criteria:
     - Set "hyperparameter_tuning_decision" to false.
     - Set "hyperparameter_tuning_suggestion" to an empty string.
+    If the code satisfy all the criteria:
+    - Set "hyperparameter_tuning_decision" to true.
+    - In "hyperparameter_tuning_suggestion", provide a clear, specific, and actionable suggestion. Begin with a concrete observation, then state a direct action to take. Do not use vague language, options, or uncertainty (avoid words like "A or B"). For example: "[Observation] The maximum number of epochs was reached, but the validation loss is still decreasing and early stopping was not activated. Only small portion of the allowed time was used. [Suggestion] Increase epochs to 100 to avoid underfitting and further improve model performance."
 
+    ## Hyperparameter Tuning Guidelines
+    1. Task-specific Hyperparameters
+       - NLP: Review `max_len`/sequence length, model size (e.g., transformer type), learning rate, batch size. Suggest increases only if underfitting or low resource usage is evident.
+       - CV: Review `image_size`, backbone network size, batch size, learning rate, augmentation strategies. Suggest increases if results are poor and resources are under-utilized.
+       - Tabular: Review tree depth, number of leaves, embedding strategy, feature preprocessing, learning rate, regularization parameters.
+    2. Model Capacity
+       - If performance is poor (e.g., low validation accuracy or high loss), consider increasing model capacity, input dimension, or number of layers if resources allow.
+       - Suggest regularization (dropout, weight decay) if overfitting is observed.
+    3. Epochs
+       - If early stopping was applied and triggered, do not suggest increasing epochs.
+       - If early stopping was not triggered and validation performance is still improving, consider suggesting more training iterations or epochs.
+       - Do not increase epochs without applying early stopping.
+    4. Batch Size
+       - If memory resources are sufficient and batch size is low, suggest increasing batch size for faster training.
+       - If out-of-memory errors occur, suggest reducing batch size.
+    5. Learning Rate
+       - If training is slow or stuck, consider adjusting the learning rate (increase if underfitting, decrease if unstable training).
+    6. Data Augmentation
+       - For CV and NLP, suggest adding or tuning data augmentation if overfitting or poor generalization is observed.
     {% endif %}
 
     ## Output format
@@ -93,8 +77,11 @@ DSCoSTEER_eval:
         "return_checking": "Verify the generated files, particularly the submission file. Ensure that its format is valid",
         "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
         "acceptable": <true/false: if the solution has passed execution, return_checking, and code verification, then it is a valid solution and acceptable. Otherwise it is not acceptable.>,
-        {% if enable_hyperparameter_tuning_check %}"hyperparameter_tuning_decision": <true/false>,
-        "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,{% endif %}
+        {% if enable_hyperparameter_tuning_check %}
+        "reasoning": "Provide step-by-step reasoning for hyperparameter tuning evaluation.",
+        "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,
+        "hyperparameter_tuning_decision": <true/false>,
+        {% endif %}
     }
     ```
 

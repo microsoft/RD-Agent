@@ -78,6 +78,12 @@ class CoSTEER(Developer[Experiment]):
         return fb
 
     def compare_and_pick_fb(self, base_fb: CoSTEERMultiFeedback | None, new_fb: CoSTEERMultiFeedback | None) -> bool:
+        """
+        Compare new feedback with the fallback feedback.
+
+        Returns:
+            bool: True if the new feedback better and False if the new feedback is worse or invalid.
+        """
         if new_fb is not None and new_fb.is_acceptable():
             return True
         return False

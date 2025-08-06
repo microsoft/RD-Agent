@@ -190,7 +190,11 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
             user_prompt=user_prompt,
             # init_kwargs_update_func=DSRunnerFeedback.val_and_update_init_dict,
         )
-        feedback.score = score_df.loc["ensemble"].iloc[0] if score_ret_code == 0 else None
+        try:
+            feedback.score = score_df.loc["ensemble"].iloc[0] if score_ret_code == 0 else None
+        except:
+            logger.error("Failed to get the score from scores.csv.")
+            feedback.score = None
         feedback.final_decision = feedback.acceptable and (
             not feedback.hyperparameter_tuning_decision
         )  # If hyperparameter_tuning_decision is None, it's considered as False, so the final_decision dependents on the acceptable
