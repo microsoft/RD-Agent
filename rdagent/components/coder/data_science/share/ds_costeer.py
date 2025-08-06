@@ -10,7 +10,11 @@ class DSCoSTEER(CoSTEER):
         return int(self.scen.real_debug_timeout() * self.settings.max_seconds_multiplier)
 
     def compare_and_pick_fb(self, base_fb: CoSTEERMultiFeedback | None, new_fb: CoSTEERMultiFeedback | None) -> bool:
-        # In data science, we only have a single feedback
+        # In data science, we only have a single feedback.
+        # Note: new_fb should always exists as indicated by _get_last_fb() function.
+        if base_fb is None:
+            return True
+
         base_fb = base_fb[0]
         new_fb = new_fb[0]
 
