@@ -64,15 +64,26 @@ exp_feedback:
     - You should provide your feedback based on the current code and SOTA code. Especially focus on the feature engineering part.
     - For example, if the code truncate the line with N words, you can suggest to print the mean, median or quantile of the length of the line for better understanding of the data in the next rounds of experiments.
 
+    Step 6: Overall Acceptability Assessment
+
+    - Determine the overall acceptability of the experiment based on the comprehensive evaluation from previous steps:
+      - Set `"Acceptable": "yes"` ONLY if ALL of the following conditions are met:
+        * Step 1: Submission format is valid
+        * Step 2: Evaluation methodology is aligned with competition requirements  
+        * Step 4: Current code demonstrates clear improvements over SOTA (better practices, efficiency, or interpretability)
+      - Set `"Acceptable": "no"` if ANY of the above conditions fail
+    - This acceptability assessment serves as a final quality gate to ensure only truly valuable experiments are accepted
+
     Provide detailed and constructive feedback structured as follows without anything else:
     {
       "Submission Format Check": "yes or no",
       "First Valid Submission": "yes or no",
       "Code Change Summary": "Clearly summarize the changes made to the code (please cover the most important changes while being concise); during development, extra modifications may be made beyond the intent of the hypothesis, so these changes should also be included to provide complete information",
       "Observations": "Clearly summarize current and SOTA ensemble results with exact scores and notable patterns. Limit to no more than three concise, data-focused sentences. Your observation must be grounded by explicit evidence from scenario description or code implementation, not just validation scores.",
-      "Feedback for Hypothesis": Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences.",
+      "Feedback for Hypothesis": "Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences.",
       "Evaluation Aligned With Task": "yes or no",
       "Replace Best Result": "yes or no",
+      "Acceptable": "yes or no",
       "Reasoning": "Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences.",
       "EDA Improvement": "improvement suggestion for EDA code, if needed, otherwise set to 'no'. If there is no EDA code, set to 'no'."
     }
