@@ -1,6 +1,7 @@
 import json
 import re
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -15,6 +16,7 @@ from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.timer import RD_Agent_TIMER_wrapper
 from rdagent.scenarios.data_science.test_eval import (
     MLETestEval,
     NoTestEvalError,
@@ -23,8 +25,6 @@ from rdagent.scenarios.data_science.test_eval import (
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 from rdagent.utils.fmt import shrink_text
-from rdagent.log.timer import RD_Agent_TIMER_wrapper
-from datetime import timedelta
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -171,8 +171,8 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
         c2 = time_spent_ratio < DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning
 
         # 3. If we enable tuning in merge, we only tuning hyperparameter in merge stage.
-        if DS_RD_SETTING.enable_tuning_in_merge:
-            c3 = (timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours))
+        if DS_RD_SETTING.only_enable_tuning_in_merge:
+            c3 = timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours)
         else:
             c3 = True
 
