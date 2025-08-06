@@ -77,7 +77,7 @@ class DSCoderFeedback(CoSTEERSingleFeedback):
 
         if self.error_message is not None:
             # Check if error_message contains Context7 documentation results
-            if "### Relevant Documentation Reference:" in self.error_message:
+            if "### API Documentation Reference:" in self.error_message:
                 base_str += f"-------------------Error Analysis & Documentation Search Results ------------------\n{self.error_message}\n"
             else:
                 base_str += f"-------------------Error Message------------------\n{self.error_message}\n"
