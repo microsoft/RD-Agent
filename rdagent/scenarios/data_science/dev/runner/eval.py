@@ -37,6 +37,7 @@ class DSRunnerFeedback(CoSTEERSingleFeedback):
     """
 
     acceptable: bool | None = None
+    reasoning: str | None = None
     hyperparameter_tuning_decision: bool | None = None
     hyperparameter_tuning_suggestion: str | None = None
     score: str | None = None
