@@ -23,6 +23,8 @@ from rdagent.scenarios.data_science.test_eval import (
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 from rdagent.utils.fmt import shrink_text
+from rdagent.log.timer import RD_Agent_TIMER_wrapper
+from datetime import timedelta
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -155,7 +157,7 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
         submission_check_out = ""
         submission_ret_code = 0
         test_eval = get_test_eval()
-
+        timer = RD_Agent_TIMER_wrapper.timer
         if test_eval.enabled(self.scen.competition):
             submission_check_out, submission_ret_code = test_eval.valid(self.scen.competition, implementation)
             stdout += f"\n### Submission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
@@ -164,10 +166,27 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
         # Only enable hyperparameter tuning on the first evaluation.
         # Avoid too much time consuming.
         enable_hyperparameter_tuning_check = False
-        if len(queried_knowledge.task_to_former_failed_traces[target_task.get_task_information()][0]) == 0 and (
-            time_spent_ratio < DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning
-        ):
-            enable_hyperparameter_tuning_check = True
+        tuning_in_merge = DS_RD_SETTING.tuning_in_merge
+        tuning_in_last_time = DS_RD_SETTING.tuning_in_last_time
+        res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
+        total_time = RD_Agent_TIMER_wrapper.timer.all_duration
+        use_time =  round(total_time.total_seconds(),2) -  round(res_time.total_seconds(),2)
+        use_ratio = 100* use_time / round(total_time.total_seconds(),2)
+        use_ratio = round(use_ratio, 2)
+
+        if tuning_in_last_time or tuning_in_last_time:
+            # merge stage
+            if tuning_in_merge and timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
+                enable_hyperparameter_tuning_check = True
+            # last time stage
+            if tuning_in_last_time and use_ratio >= 70:
+                enable_hyperparameter_tuning_check = True
+    
+        else:
+            if len(queried_knowledge.task_to_former_failed_traces[target_task.get_task_information()][0]) == 0 and (
+                time_spent_ratio < DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning
+            ):
+                enable_hyperparameter_tuning_check = True
 
         if (
             DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning is not None
