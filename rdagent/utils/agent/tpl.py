@@ -56,7 +56,7 @@ def load_content(uri: str, caller_dir: Path | None = None, ftype: str = "yaml") 
             file_path_l.insert(
                 0, (PROJ_PATH / RD_AGENT_SETTINGS.app_tpl / path_part.replace(".", "/")).with_suffix(f".{ftype}")
             )
-            # NOTE: when we can both load tpl from tpl; to avoid recursive extension. 
+            # NOTE: when we can both load tpl from tpl; to avoid recursive extension.
             # e.g. we want app_tpl/a.b.c extend rdagent/a.b.c;  so we allow specifying in a upper
             #        level. for example,  rdagent.a.b.c;
             file_path_l.insert(0, (PROJ_PATH.parent / path_part.replace(".", "/")).with_suffix(f".{ftype}"))
