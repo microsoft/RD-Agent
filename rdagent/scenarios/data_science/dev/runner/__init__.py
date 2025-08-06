@@ -1,11 +1,11 @@
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.components.coder import CoSTEER
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
+    CoSTEERMultiFeedback,
     CoSTEERSingleFeedback,
 )
 from rdagent.components.coder.CoSTEER.evolvable_subjects import FBWorkspace
@@ -19,7 +19,7 @@ from rdagent.core.exception import RunnerError
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
-from rdagent.scenarios.data_science.dev.runner.eval import DSCoSTEERCoSTEEREvaluator
+from rdagent.scenarios.data_science.dev.runner.eval import DSRunnerEvaluator
 from rdagent.utils.agent.ret import PythonBatchEditOut, PythonBatchPatchOut
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
@@ -31,7 +31,7 @@ class DSRunnerCoSTEERSettings(CoSTEERSettings):
     class Config:
         env_prefix = "DS_Runner_CoSTEER_"
 
-    max_seconds: int = DS_RD_SETTING.full_timeout
+    max_seconds_multiplier: int = 1
     env_type: str = "docker"
     diff_mode: bool = False
     # TODO: extract a function for env and conf.
@@ -51,48 +51,70 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             # if no prev_task_feedback, it is the first loop; we do not make any changes and goto evaluators directly.
             return {}
 
-        # Output Agent Map
-        output_map = {
-            True: (PythonBatchPatchOut.get_spec(), PythonBatchPatchOut.extract_output),
-            False: (
-                PythonBatchEditOut.get_spec(with_del=False),
-                PythonBatchEditOut.extract_output,
-            ),
-        }
-        output_spec, extract_output_fn = output_map[self.settings.diff_mode]
+        # Get evolving history
+        task_info = target_task.get_task_information()
+        queried_former_failed_knowledge = (
+            queried_knowledge.task_to_former_failed_traces[task_info] if queried_knowledge is not None else []
+        )[0]
 
-        if prev_task_feedback.hyperparameter_tuning_decision:
+        # Set output agent
+        if self.settings.diff_mode:
+            output_spec = PythonBatchPatchOut.get_spec()
+            extract_output_fn = PythonBatchPatchOut.extract_output
+        else:
+            output_spec = PythonBatchEditOut.get_spec(with_del=False)
+            extract_output_fn = PythonBatchEditOut.extract_output
+
+        if prev_task_feedback.acceptable is False:
+            task_information_str = target_task.get_task_information()
+            # Use system_debugger for error fixing and debugging
+            system_prompt = T(".prompts:DSCoSTEER.system_debugger").r(
+                task_desc=task_information_str,
+                out_spec=output_spec,
+                diff_mode=self.settings.diff_mode,
+            )
+        else:
             # Use system_refine for hyperparameter tuning
             system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,
             )
-        else:
-            task_information_str = target_task.get_task_information()
-            # Use system_debugger for error fixing and debugging
-            system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
-                task_desc=task_information_str,
-                out_spec=output_spec,
-                diff_mode=self.settings.diff_mode,
-            )
 
-        # Generate user prompt for both cases
+        # Start multi-turn chat session
+        session = APIBackend().build_chat_session(
+            session_system_prompt=system_prompt,
+        )
+
+        # Code
         user_prompt = T(".prompts:DSCoSTEER.user").r(
             code=workspace.all_codes,
+            change_summary=workspace.change_summary,
             feedback=prev_task_feedback,
-            hyperparameter_tuning_suggestion=prev_task_feedback.hyperparameter_tuning_suggestion,
+            hyperparameter_tuning_suggestion=(
+                prev_task_feedback.hyperparameter_tuning_suggestion if prev_task_feedback.acceptable else None
+            ),
+            queried_former_failed_knowledge=queried_former_failed_knowledge,
         )
 
-        batch_edit = extract_output_fn(
-            APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
+        code = session.build_chat_completion(user_prompt=user_prompt)
+        if self.settings.diff_mode:
+            code_batch_edit = extract_output_fn(code, prefix=workspace.workspace_path)
+        else:
+            code_batch_edit = extract_output_fn(code)
+        code_batch_edit = {k: v for k, v in code_batch_edit.items() if k in workspace.file_dict.keys()}
+
+        if DS_RD_SETTING.runner_enable_code_change_summary:
+            # Change Summary
+            user_prompt = (
+                "Based on the previous conversation and your latest code modifications, "
+                "please provide a concise and structured summary of the changes you made to the original code. "
+                "Clearly specify what was changed and how, focusing on key modifications. "
+                "Limit your summary to plain text, no more than three sentences."
             )
-        )
+            change_summary = session.build_chat_completion(user_prompt=user_prompt)
+            code_batch_edit.update({"__change_summary__": change_summary})
 
-        batch_edit = {k: v for k, v in batch_edit.items() if k in workspace.file_dict.keys()}
-
-        return batch_edit
+        return code_batch_edit
 
     def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
         """
@@ -107,6 +129,8 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if evo.sub_workspace_list[index] is None:
                 # evo.sub_workspace_list[index] = FBWorkspace(target_task=evo.sub_tasks[index])
                 evo.sub_workspace_list[index] = evo.experiment_workspace
+            if self.KEY_CHANGE_SUMMARY in code_list[index]:
+                evo.sub_workspace_list[index].change_summary = code_list[index].pop(self.KEY_CHANGE_SUMMARY)
             evo.sub_workspace_list[index].inject_files(**code_list[index])
         return evo
 
@@ -119,7 +143,7 @@ class DSCoSTEERRunner(CoSTEER):
         **kwargs,
     ) -> None:
 
-        eval_l = [DSCoSTEERCoSTEEREvaluator(scen=scen)]
+        eval_l = [DSRunnerEvaluator(scen=scen)]
         if DS_RD_SETTING.enable_model_dump:
             eval_l.append(ModelDumpEvaluator(scen=scen, data_type="full"))
 
@@ -141,13 +165,38 @@ class DSCoSTEERRunner(CoSTEER):
             **kwargs,
         )
 
+    def get_develop_max_seconds(self) -> int | None:
+        """
+        The coder uses the scenario's real debug timeout as the maximum seconds for development.
+        """
+        return int(self.scen.real_full_timeout() * self.settings.max_seconds_multiplier)
+
+    def compare_and_pick_fb(self, base_fb: CoSTEERMultiFeedback | None, new_fb: CoSTEERMultiFeedback | None) -> bool:
+        # In data science, we only have a single feedback.
+        # Note: new_fb should always exists as indicated by _get_last_fb() function.
+        if base_fb is None:
+            return True
+
+        base_fb = base_fb[0]
+        new_fb = new_fb[0]
+
+        def compare_scores(s1, s2) -> bool:
+            if s2 is None:
+                return False
+            if s1 is None:
+                return True
+            return (s2 > s1) == self.scen.metric_direction
+
+        return compare_scores(base_fb.score, new_fb.score)
+
     def develop(self, exp):
-        bak_sub_tasks = exp.sub_tasks
+        bak_sub_tasks = exp.pending_tasks_list
         exp.sub_tasks = [
             CoSTEERTask(
                 name="Debug running solution",
                 description=f"You'll be provided with the source code and the running and testing stdout. "
                 "Please check the error messages and debug the source code if any errors occur.\n"
+                f"Original task: {bak_sub_tasks[0][0].get_task_information()}\n"
                 f"Current code repo md5: {md5_hash(exp.experiment_workspace.all_codes)}",
             ),
         ]

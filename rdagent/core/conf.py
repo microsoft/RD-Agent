@@ -55,6 +55,12 @@ class RDAgentSettings(ExtendedBaseSettings):
 
     # workspace conf
     workspace_path: Path = Path.cwd() / "git_ignore_folder" / "RD-Agent_workspace"
+    workspace_ckp_size_limit: int = 0
+    workspace_ckp_white_list_names: list[str] | None = None
+    """
+    the checkpoint for the workspace is a zip file.
+    0 (or any value <=0) means *no* size limit for files in workspace checkpoints
+    """
 
     # multi processing conf
     multi_proc_n: int = 1
@@ -95,6 +101,9 @@ class RDAgentSettings(ExtendedBaseSettings):
 
     def is_force_subproc(self) -> bool:
         return self.subproc_step or self.get_max_parallel() > 1
+
+    # Template:
+    app_tpl: str | None = None  # for application to override the default template, example: "app/fintune/tpl"
 
 
 RD_AGENT_SETTINGS = RDAgentSettings()

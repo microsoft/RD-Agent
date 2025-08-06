@@ -172,6 +172,9 @@ More details can be found in the [development setup](https://rdagent.readthedocs
 - **Using LiteLLM (Default)**: We now support LiteLLM as a backend for integration with multiple LLM providers. You can configure in multiple ways:
 
   **Option 1: Unified API base for both models**
+
+  *Configuration Example: `OpenAI` Setup :*
+
   ```bash
   cat << EOF  > .env
   # Set to any model supported by LiteLLM.
@@ -180,6 +183,19 @@ More details can be found in the [development setup](https://rdagent.readthedocs
   # Configure unified API base
   OPENAI_API_BASE=<your_unified_api_base>
   OPENAI_API_KEY=<replace_with_your_openai_api_key>
+  ```
+
+  *Configuration Example: `Azure OpenAI` Setup :*
+
+  > Before using this configuration, please confirm in advance that your `Azure OpenAI API key` supports `embedded models`.
+
+  ```bash
+  cat << EOF  > .env
+  EMBEDDING_MODEL=azure/<Model deployment supporting embedding>
+  CHAT_MODEL=azure/<your deployment name>
+  AZURE_API_KEY=<replace_with_your_openai_api_key>
+  AZURE_API_BASE=<your_unified_api_base>
+  AZURE_API_VERSION=<azure api version>
   ```
 
   **Option 2: Separate API bases for Chat and Embedding models**
@@ -201,7 +217,7 @@ More details can be found in the [development setup](https://rdagent.readthedocs
   LITELLM_PROXY_API_BASE=https://api.siliconflow.cn/v1
   ```
 
-  **Configuration Example: DeepSeek Setup**:
+  *Configuration Example: `DeepSeek` Setup :*
 
   >Since many users encounter configuration errors when setting up DeepSeek. Here's a complete working example for DeepSeek Setup:
   ```bash

@@ -1,0 +1,4 @@
+pipeline_coder:
+  system: |-
+    {% include "rdagent.components.coder.data_science.pipeline.prompts:pipeline_coder.system" %}
+    NOTE: Ensure that base model form `{% include "scenarios.data_science.share:scen.input_path" %}prev_model` is correctly loaded, you are supposed to finetune the base model. 

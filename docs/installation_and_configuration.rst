@@ -148,6 +148,17 @@ To align with the Python SDK example above, you can configure the `CHAT_MODEL` b
 
 This configuration allows you to call Azure OpenAI through LiteLLM while using an external provider (e.g., SiliconFlow) for embeddings.
 
+If your `Azure OpenAI API Key`` supports `embedding model`, you can refer to the following configuration example.
+
+   .. code-block:: Properties
+
+      cat << EOF  > .env
+      EMBEDDING_MODEL=azure/<Model deployment supporting embedding>
+      CHAT_MODEL=azure/<your deployment name>
+      AZURE_API_KEY=<replace_with_your_openai_api_key>
+      AZURE_API_BASE=<your_unified_api_base>
+      AZURE_API_VERSION=<azure api version>
+
 Configuration(deprecated)
 =========================
 
