@@ -100,9 +100,22 @@ class CoSTEER(Developer[Experiment]):
         reached_max_seconds = False
         for evo_exp in self.evolve_agent.multistep_evolve(evo_exp, self.evaluator):
             assert isinstance(evo_exp, Experiment)  # multiple inheritance
-            if self._get_last_fb().is_acceptable():
-                fallback_evo_exp = deepcopy(evo_exp)
-                fallback_evo_exp.create_ws_ckp()  # NOTE: creating checkpoints for saving files in the workspace to prevent inplace mutation.
+            last_fb = self._get_last_fb()
+            if last_fb.is_acceptable():
+                def compare_scores(s1, s2) -> bool:
+                    if s1 is None:
+                        if s2 is None: # FIXME: is this possible?
+                            return False
+                        if s2 is not None:
+                            return True
+                    else:
+                        if s2 is None: # new is invalid
+                            return False
+                        else:
+                            return ((s2 > s1) == self.scen.metric_direction)
+                if compare_scores(fallback_evo_exp.score, evo_exp.score):
+                    fallback_evo_exp = deepcopy(evo_exp)
+                    fallback_evo_exp.create_ws_ckp()  # NOTE: creating checkpoints for saving files in the workspace to prevent inplace mutation.
 
             logger.log_object(evo_exp.sub_workspace_list, tag="evolving code")
             for sw in evo_exp.sub_workspace_list:
