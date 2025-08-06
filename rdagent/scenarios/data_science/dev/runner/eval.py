@@ -169,15 +169,6 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
         ):
             enable_hyperparameter_tuning_check = True
 
-        if (
-            DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning is not None
-            and time_spent_ratio > DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning
-        ):
-            enable_hyperparameter_tuning_check = False
-            logger.info(
-                f"Time spent ratio {time_spent_ratio:.2f} exceeds the limit {DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning}, hyperparameter tuning is disabled."
-            )
-
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=implementation.file_dict.get("EDA.md", None)),
             task_desc=target_task.get_task_information(),

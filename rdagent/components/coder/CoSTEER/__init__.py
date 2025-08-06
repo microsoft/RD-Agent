@@ -77,6 +77,11 @@ class CoSTEER(Developer[Experiment]):
         assert isinstance(fb, CoSTEERMultiFeedback), "feedback must be of type CoSTEERMultiFeedback"
         return fb
 
+    def compare_and_pick_fb(self, base_fb: CoSTEERMultiFeedback | None, new_fb: CoSTEERMultiFeedback | None) -> bool:
+        if base_fb is not None and base_fb.is_acceptable():
+            return True
+        return False
+
     def develop(self, exp: Experiment) -> Experiment:
 
         # init intermediate items
@@ -97,25 +102,19 @@ class CoSTEER(Developer[Experiment]):
         # Evolving the solution
         start_datetime = datetime.now()
         fallback_evo_exp = None
+        fallback_evo_fb = None
         reached_max_seconds = False
         for evo_exp in self.evolve_agent.multistep_evolve(evo_exp, self.evaluator):
             assert isinstance(evo_exp, Experiment)  # multiple inheritance
-            last_fb = self._get_last_fb()
-            if last_fb.is_acceptable():
-                def compare_scores(s1, s2) -> bool:
-                    if s1 is None:
-                        if s2 is None: # FIXME: is this possible?
-                            return False
-                        if s2 is not None:
-                            return True
-                    else:
-                        if s2 is None: # new is invalid
-                            return False
-                        else:
-                            return ((s2 > s1) == self.scen.metric_direction)
-                if compare_scores(fallback_evo_exp.score, evo_exp.score):
-                    fallback_evo_exp = deepcopy(evo_exp)
-                    fallback_evo_exp.create_ws_ckp()  # NOTE: creating checkpoints for saving files in the workspace to prevent inplace mutation.
+            evo_fb = self._get_last_fb()
+            fallback_decision = self.compare_and_pick_fb(
+                base_fb = fallback_evo_fb,
+                new_fb = evo_fb,
+            )
+            if fallback_decision:
+                fallback_evo_exp = deepcopy(evo_exp)
+                fallback_evo_fb = deepcopy(evo_fb)
+                fallback_evo_exp.create_ws_ckp()  # NOTE: creating checkpoints for saving files in the workspace to prevent inplace mutation.
 
             logger.log_object(evo_exp.sub_workspace_list, tag="evolving code")
             for sw in evo_exp.sub_workspace_list:
