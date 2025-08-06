@@ -82,7 +82,7 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
             running_timeout_period = DS_RD_SETTING.ensemble_timeout
         else:
             running_timeout_period = self.scen.real_full_timeout()
-        
+
         env = get_ds_env(
             extra_volumes={
                 f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": T(
