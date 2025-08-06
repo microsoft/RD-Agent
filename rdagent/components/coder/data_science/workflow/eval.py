@@ -105,8 +105,8 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                     score_check_text += f"\n[Error] The scores dataframe does not contain the correct model names as index.\ncorrect model names are: {model_set_in_folder.union({'ensemble'})}\nscore_df is:\n{score_df}"
                     score_ret_code = 1
 
-                # Check metric name (columns)
-                if score_df.columns.tolist() != [self.scen.metric_name]:
+                # Check metric name (columns) - case insensitive
+                if [col.lower() for col in score_df.columns.tolist()] != [self.scen.metric_name.lower()]:
                     score_check_text += f"\n[Error] The scores dataframe does not contain the correct column names.\nCorrect columns is: ['{self.scen.metric_name}']\nBut got: {score_df.columns.tolist()}"
                     score_ret_code = 1
 
