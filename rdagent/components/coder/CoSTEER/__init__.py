@@ -78,7 +78,7 @@ class CoSTEER(Developer[Experiment]):
         return fb
 
     def compare_and_pick_fb(self, base_fb: CoSTEERMultiFeedback | None, new_fb: CoSTEERMultiFeedback | None) -> bool:
-        if base_fb is not None and base_fb.is_acceptable():
+        if new_fb is not None and new_fb.is_acceptable():
             return True
         return False
 
@@ -108,8 +108,8 @@ class CoSTEER(Developer[Experiment]):
             assert isinstance(evo_exp, Experiment)  # multiple inheritance
             evo_fb = self._get_last_fb()
             fallback_decision = self.compare_and_pick_fb(
-                base_fb = fallback_evo_fb,
-                new_fb = evo_fb,
+                base_fb=fallback_evo_fb,
+                new_fb=evo_fb,
             )
             if fallback_decision:
                 fallback_evo_exp = deepcopy(evo_exp)
