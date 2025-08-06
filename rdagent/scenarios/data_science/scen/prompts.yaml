@@ -24,9 +24,7 @@ scenario_description: |-
   - Do not manipulate data or return values solely to pass preliminary tests, as this will not lead to successful final evaluation.
 
   ====== Evaluation ======
-  {% if metric_name %}
-  The primary evaluation metric for this task is: **{{ metric_name }}**.
-  {% endif %}
+  {% if metric_name %}The primary evaluation metric for this task is: **{{ metric_name }}**, **which should be the column name in `scores.csv`**.{% endif %}
   This metric is considered better when it is **{% if metric_direction %}larger{% else %}smaller{% endif %}**.
 
   {% if evaluation is not none %}

@@ -20,6 +20,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     planner: str = "rdagent.scenarios.data_science.proposal.exp_gen.planner.DSExpPlannerHandCraft"
     hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.router.ParallelMultiTraceExpGen"
+    trace_scheduler: str = "rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler.RoundRobinScheduler"
     """Hypothesis generation class"""
 
     summarizer: str = "rdagent.scenarios.data_science.dev.feedback.DSExperiment2Feedback"
@@ -42,6 +43,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """The timeout limit for running on full data"""
 
     ### specific feature
+
+    ### notebook integration
+    enable_notebook_conversion: bool = False
 
     #### enable specification
     spec_enabled: bool = True
@@ -87,6 +91,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     ### multi-trace related
     max_trace_num: int = 3
     """The maximum number of traces to grow before merging"""
+
+    scheduler_temperature: float = 1.0
+    """The temperature for the trace scheduler for softmax calculation, used in ProbabilisticScheduler"""
 
     #### multi-trace:checkpoint selector
     selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.select.expand.LatestCKPSelector"
@@ -136,6 +143,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     #### hypothesis selection method
     llm_select_hypothesis: bool = True
     """Whether to use LLM to select hypothesis. If True, use LLM selection; if False, use the existing ranking method."""
+    #### enable runner code change summary
+    runner_enable_code_change_summary: bool = True
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()

@@ -294,7 +294,12 @@ class FileTreeGenerator:
     Smart file tree generator with symlink handling and intelligent truncation.
     """
 
-    def __init__(self, max_lines: int = 200, priority_files: Set[str] = None, hide_base_name: bool = True):
+    def __init__(
+        self,
+        max_lines: int = 200,
+        priority_files: Set[str] = None,
+        hide_base_name: bool = True,
+    ):
         """
         Initialize the file tree generator.
 
@@ -566,19 +571,26 @@ class DataFolderDescriptor:
                     file_name = str(fn)
 
                 try:
-                    if fn.suffix == ".csv":
-                        out.append(preview_csv(fn, file_name, simple=simple, show_nan_columns=show_nan_columns))
-                    elif fn.suffix == ".json":
-                        out.append(preview_json(fn, file_name))
-                    elif fn.suffix == ".parquet":
-                        out.append(preview_parquet(fn, file_name, simple=simple, show_nan_columns=show_nan_columns))
-                    elif fn.suffix in plaintext_files:
-                        if get_file_len_size(fn)[0] < 30:
-                            with open(fn) as f:
-                                content = f.read()
-                                if fn.suffix in code_files:
-                                    content = f"```\n{content}\n```"
-                                out.append(f"-> {file_name} has content:\n\n{content}")
+                    if "prev_model" in file_name:
+                        # NOTE: for finetune model.
+                        if fn.suffix == ".py" and "test" not in file_name:
+                            out.append(f"### {file_name}:")
+                            out.append(fn.read_text(encoding="utf-8"))
+                    else:
+                        if fn.suffix == ".csv":
+                            out.append(preview_csv(fn, file_name, simple=simple, show_nan_columns=show_nan_columns))
+                        elif fn.suffix == ".json":
+                            out.append(preview_json(fn, file_name))
+                        elif fn.suffix == ".parquet":
+                            out.append(preview_parquet(fn, file_name, simple=simple, show_nan_columns=show_nan_columns))
+                        elif fn.suffix in plaintext_files:
+                            if get_file_len_size(fn)[0] < 30:
+                                with open(fn) as f:
+                                    content = f.read()
+                                    if fn.suffix in code_files:
+                                        content = f"```\n{content}\n```"
+                                    out.append(f"-> {file_name} has content:\n\n{content}")
+
                 except Exception as e:
                     out.append(f"-> {file_name}: Error reading file - {str(e)[:100]}")
 

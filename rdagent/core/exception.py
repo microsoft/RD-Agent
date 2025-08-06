@@ -20,6 +20,7 @@ class CoderError(WorkflowError):
     """
 
     # NOTE: it corresponds to the error of **component**
+    caused_by_timeout: bool = False  # whether the error is caused by timeout
 
 
 class CodeFormatError(CoderError):

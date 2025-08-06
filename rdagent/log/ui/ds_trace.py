@@ -390,19 +390,30 @@ def evolving_win(data, key, llm_data=None, base_workspace=None):
         if evo_id in data:
             if state.show_llm_log and llm_data is not None:
                 llm_log_win(llm_data[evo_id])
-            if data[evo_id]["evolving code"][0] is not None:
+
+            # get evolving workspace
+            if "evolving code" in data[evo_id] and data[evo_id]["evolving code"][0] is not None:
+                evolving_code_workspace = data[evo_id]["evolving code"][0]
+            else:
+                evolving_code_workspace = None
+
+            if evolving_code_workspace is not None:
                 st.subheader("codes")
                 workspace_win(
-                    data[evo_id]["evolving code"][0],
+                    evolving_code_workspace,
                     cmp_workspace=data[evo_id - 1]["evolving code"][0] if evo_id > 0 else base_workspace,
                     cmp_name="last evolving code" if evo_id > 0 else "base workspace",
                 )
                 fb = data[evo_id]["evolving feedback"][0]
                 st.subheader("evolving feedback" + ("✅" if bool(fb) else "❌"))
-                f1, f2, f3 = st.tabs(["execution", "return_checking", "code"])
+                f1, f2, f3, f4 = st.tabs(["execution", "return_checking", "code", "others"])
+                other_attributes = {
+                    k: v for k, v in fb.__dict__.items() if k not in ["execution", "return_checking", "code"]
+                }
                 f1.code(fb.execution, wrap_lines=True)
                 f2.code(fb.return_checking, wrap_lines=True)
                 f3.code(fb.code, wrap_lines=True)
+                f4.json(other_attributes)
             else:
                 st.write("data[evo_id]['evolving code'][0] is None.")
                 st.write(data[evo_id])
@@ -523,19 +534,17 @@ def main_win(loop_id, llm_data=None):
         )
     if "running" in loop_data:
         # get last SOTA_exp_to_submit
-        current_trace = loop_data["record"]["trace"]
-        current_selection = current_trace.get_current_selection()
-        if len(current_selection) > 0:  # TODO: Why current_selection can be "()"?
-            current_idx = current_selection[0]
-            parent_idxs = current_trace.get_parents(current_idx)
-            if len(parent_idxs) >= 2 and hasattr(current_trace, "idx2loop_id"):
-                parent_idx = parent_idxs[-2]
-                parent_loop_id = current_trace.idx2loop_id[parent_idx]
-                sota_exp = state.data[parent_loop_id]["record"].get("sota_exp_to_submit", None)
-            else:
-                sota_exp = None
-        else:
-            sota_exp = None
+        sota_exp = None
+        if "record" in loop_data:
+            current_trace = loop_data["record"]["trace"]
+            current_selection = current_trace.get_current_selection()
+            if len(current_selection) > 0:  # TODO: Why current_selection can be "()"?
+                current_idx = current_selection[0]
+                parent_idxs = current_trace.get_parents(current_idx)
+                if len(parent_idxs) >= 2 and hasattr(current_trace, "idx2loop_id"):
+                    parent_idx = parent_idxs[-2]
+                    parent_loop_id = current_trace.idx2loop_id[parent_idx]
+                    sota_exp = state.data[parent_loop_id]["record"].get("sota_exp_to_submit", None)
 
         running_win(
             loop_data["running"],
