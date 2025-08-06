@@ -353,6 +353,8 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
                     elif step_name == "running":
                         all_time += step_duration
                         running_time += step_duration
+                    elif step_name in ["feedback", "record"]:
+                        all_time += step_duration
             v["exec_time"] = str(all_time).split(".")[0]
             v["exp_gen_time"] = str(exp_gen_time).split(".")[0]
             v["coding_time"] = str(coding_time).split(".")[0]

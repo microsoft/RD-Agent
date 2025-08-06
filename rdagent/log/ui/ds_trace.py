@@ -753,6 +753,8 @@ def summarize_win():
                     elif step_name == "running":
                         running_time += step_duration
                         all_steps_time += step_duration
+                    elif step_name in ["feedback", "record"]:
+                        all_steps_time += step_duration
             df.loc[loop, "Time"] = timedelta_to_str(all_steps_time)
             df.loc[loop, "Exp Gen"] = timedelta_to_str(exp_gen_time)
             df.loc[loop, "Coding"] = timedelta_to_str(coding_time)
