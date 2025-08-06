@@ -45,7 +45,7 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 APIBackend().build_messages_and_calculate_token(
                     user_prompt=error_summary_user_prompt, system_prompt=error_summary_system_prompt
                 )
-                < LLM_SETTINGS.chat_token_limit
+                < APIBackend().chat_token_limit
             ):
                 break
             elif len(queried_similar_error_knowledge_to_render) > 0:
@@ -124,7 +124,7 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             )
             if (
                 APIBackend().build_messages_and_calculate_token(user_prompt=user_prompt, system_prompt=system_prompt)
-                < LLM_SETTINGS.chat_token_limit
+                < APIBackend().chat_token_limit
             ):
                 break
             elif len(queried_former_failed_knowledge_to_render) > 1:

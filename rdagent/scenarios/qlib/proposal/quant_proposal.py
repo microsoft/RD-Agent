@@ -61,7 +61,7 @@ class QlibQuantHypothesisGen(FactorAndModelHypothesisGen):
         # ========= LLM ==========
         elif QUANT_PROP_SETTING.action_selection == "llm":
             hypothesis_and_feedback = (
-                T("scenarios.qlib.prompts:hypothesis_and_feedback").render(trace=trace)
+                T("scenarios.qlib.prompts:hypothesis_and_feedback").r(trace=trace)
                 if len(trace.hist) > 0
                 else "No previous hypothesis and feedback available since it's the first round."
             )

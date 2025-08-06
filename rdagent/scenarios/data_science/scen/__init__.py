@@ -60,6 +60,7 @@ class DataScienceScen(Scenario):
         self.metric_direction: bool = (
             self._get_direction()
         )  # True indicates higher is better, False indicates lower is better
+        self.timeout_increase_count = 0
 
     def reanalyze_competition_description(self):
         self.raw_description = self._get_description()
@@ -117,17 +118,35 @@ class DataScienceScen(Scenario):
 
     def real_debug_timeout(self):
         return (
-            DS_RD_SETTING.debug_timeout * DS_RD_SETTING.coder_longer_timeout_multiplier
+            DS_RD_SETTING.debug_timeout
+            * min(
+                DS_RD_SETTING.coder_longer_timeout_multiplier_upper,
+                self.timeout_increase_count * DS_RD_SETTING.timeout_increase_stage + 1,
+            )
             if self.longer_time_limit_required and DS_RD_SETTING.allow_longer_timeout
             else DS_RD_SETTING.debug_timeout
         )
 
+    def recommend_debug_timeout(self):
+        return DS_RD_SETTING.debug_recommend_timeout
+
     def real_full_timeout(self):
         return (
-            DS_RD_SETTING.full_timeout * DS_RD_SETTING.runner_longer_timeout_multiplier
+            DS_RD_SETTING.full_timeout
+            * min(
+                DS_RD_SETTING.runner_longer_timeout_multiplier_upper,
+                self.timeout_increase_count * DS_RD_SETTING.timeout_increase_stage + 1,
+            )
             if self.longer_time_limit_required and DS_RD_SETTING.allow_longer_timeout
             else DS_RD_SETTING.full_timeout
         )
+
+    def recommend_full_timeout(self):
+        return DS_RD_SETTING.full_recommend_timeout
+
+    def increase_timeout(self):
+        """Increase the timeout multiplier for the scenario."""
+        self.timeout_increase_count += 1
 
     @property
     def background(self) -> str:
@@ -159,9 +178,10 @@ class DataScienceScen(Scenario):
             raw_description=self.raw_description,
             use_raw_description=DS_RD_SETTING.use_raw_description,
             time_limit=None,
+            recommend_time_limit=None,
             eda_output=None,
-            sample_data_by_LLM=None,
             debug_time_limit=None,
+            recommend_debug_time_limit=None,
             runtime_environment=self.get_runtime_environment(),
         )
 
@@ -177,10 +197,17 @@ class DataScienceScen(Scenario):
             metric_direction=self.metric_direction,
             raw_description=self.raw_description,
             use_raw_description=DS_RD_SETTING.use_raw_description,
-            time_limit=f"{self.real_full_timeout() / 60 / 60 : .2f} hours",
+            time_limit=f"{self.real_full_timeout() / 60 / 60 : .2f} hours" if DS_RD_SETTING.show_hard_limit else None,
+            recommend_time_limit=(
+                f"{self.recommend_full_timeout() / 60 / 60 : .2f} hours" if DS_RD_SETTING.sample_data_by_LLM else None
+            ),
             eda_output=eda_output,
-            sample_data_by_LLM=DS_RD_SETTING.sample_data_by_LLM,
-            debug_time_limit=f"{self.real_debug_timeout() / 60 / 60 : .2f} hours",
+            debug_time_limit=(
+                f"{self.real_debug_timeout() / 60 : .2f} minutes" if DS_RD_SETTING.show_hard_limit else None
+            ),
+            recommend_debug_time_limit=(
+                f"{self.recommend_debug_timeout() / 60 : .2f} minutes" if DS_RD_SETTING.sample_data_by_LLM else None
+            ),
             runtime_environment=self.get_runtime_environment(),
         )
 

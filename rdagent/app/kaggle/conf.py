@@ -75,5 +75,8 @@ class KaggleBasePropSetting(ExtendedBaseSettings):
     mini_case: bool = False
     """Enable mini-case study for experiments"""
 
+    time_ratio_limit_to_enable_hyperparameter_tuning: float = 1
+    """Time ratio limit to enable hyperparameter tuning, if not change, hyperparameter tuning is always enabled in the first evolution."""
+
 
 KAGGLE_IMPLEMENT_SETTING = KaggleBasePropSetting()
