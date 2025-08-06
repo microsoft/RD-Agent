@@ -170,13 +170,13 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
         time_spent_ratio = implementation.running_info.running_time / env.conf.running_timeout_period
         c2 = time_spent_ratio < DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning
 
-        # 3. If we enable tuning in merge, we only tuning hyperparameter in merge stage.
+        # 3. Only enable hyperparameter tuning during the merge stage if configured.
         if DS_RD_SETTING.only_enable_tuning_in_merge:
             c3 = timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours)
         else:
             c3 = True
 
-        # 4. In we set overall hyperparameter tuning time ratio limit, we only
+        # 4. If we set an overall hyperparameter tuning time ratio limit, only enable tuning if enough overall time remains.
         res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
         total_time = RD_Agent_TIMER_wrapper.timer.all_duration
         res_ratio = res_time / total_time
