@@ -1,195 +1,192 @@
 DSCoSTEER_eval:
-  system: |-
-    {% include "scenarios.data_science.share:scen.role" %}
-    You will be provided with:
-    1. `Code base`: The code base of the solution
-    2. `The stdout of code execution and testing`: The generated stdout when executing the code base and corresponding testing
-    3, `The time spent on code execution`: The time spent on the code execution
-    4. `The timeout of code execution`: the time limitation of the code execution
-    5. `The percent of timeout used`: the percentage of the time limitation used
-    Your task is to perform the following evaluation(s):
+   system: |-
+      % include "scenarios.data_science.share:scen.role" %}
+      You will be provided with:
+      1. `Code base`: The code base of the solution
+      2. `The stdout of code execution and testing`: The generated stdout when executing the code base and corresponding testing
+      3, `The time spent on code execution`: The time spent on the code execution
+      4. `The timeout of code execution`: the time limitation of the code execution
+      5. `The percent of timeout used`: the percentage of the time limitation used
+      Your task is to perform the following evaluation(s):
 
-    # Evaluation 1: Code Correctness
-    ## Scenario
-    The code is focusing on the following scenario:
-    {{ scenario }}
+      # Evaluation 1: Code Correctness
+      ## Scenario
+      The code is focusing on the following scenario:
+      {{ scenario }}
 
-    ## Target Task Description
-    The code is focusing on the following task
-    {{ task_desc }}
+      ## Target Task Description
+      The code is focusing on the following task
+      {{ task_desc }}
 
-    ## Evaluation Criteria
-    1. Evaluate the code base based on several aspects, including execution correctness, return checking, and code quality.
-    2. Ensure the code does not contain any incorrect, fabricated, or deceptive operations, such as mocking data, scores, or results.
-    3. Confirm that the prediction file (`submission.csv`) is generated using only the test dataset, and its format matches the sample submission. Please refer to Submission check section including the format check to the submission.
-    If the code does not satisfy any of the criteria:
-    - Set "acceptable" to false.
-    If the code satisfy all the criteria:
-    - Set "acceptable" to true.
+      ## Evaluation Criteria
+      1. Evaluate the code base based on several aspects, including execution correctness, return checking, and code quality.
+      2. Ensure the code does not contain any incorrect, fabricated, or deceptive operations, such as mocking data, scores, or results.
+      3. Confirm that the prediction file (`submission.csv`) is generated using only the test dataset, and its format matches the sample submission. Please refer to Submission check section including the format check to the submission.
+      If the code does not satisfy any of the criteria:
+      - Set "acceptable" to false.
+      If the code satisfy all the criteria:
+      - Set "acceptable" to true.
 
-    {% if enable_hyperparameter_tuning_check %}
-    # Evaluation 2: Hyperparameter
-    The user will provide you the time spent on the whole code execution and the timeout of the code execution. You should decide whether the hyperparameter is reasonable based on the time.
-    For example, if the code uses only a very small portion of the allowed time, and hyperparameters like `n_estimators` or `epochs` have low values, with early stopping not being triggered and possible signs of underfitting, you should suggest increasing these hyperparameters.
-    You should also notice other resources utilization hyper-parameters.
-    For example, if you are using a GPU with large memory, and the batch size is set very low, you should suggest increasing the batch size if it is not reasonable.
+      {% if enable_hyperparameter_tuning_check %}
+      # Evaluation 2: Hyperparameter
+      The user will provide you the time spent on the whole code execution and the timeout of the code execution. You should decide whether the hyperparameter is reasonable based on the time.
+      For example, if the code uses only a very small portion of the allowed time, and hyperparameters like `n_estimators` or `epochs` have low values, with early stopping not being triggered and possible signs of underfitting, you should suggest increasing these hyperparameters.
+      You should also notice other resources utilization hyper-parameters.
+      For example, if you are using a GPU with large memory, and the batch size is set very low, you should suggest increasing the batch size if it is not reasonable.
 
-    ## Evaluation Criteria
-    1. The code execution time or resource utilization suggest that there is room for improvement in the hyperparameters.
-    2. The code must apply early stopping strategy already (in order to prevent overfitting).
-    3. Your suggestion should have a strong chance of improving the model's performance. Focus on the most obvious and impactful opportunities for quick improvement by leveraging more training time. Don't explore hyperparameters with low confidence.  If there are no obvious and impactful opportunities and the code runs well, please accept it.
-    4. Only include the suggestions in your response without leak any time limit information because the user might over-fit the model to the time limit.
-    5. Never make your judgment only based on the time spent, you should also consider the code and the stdout.
-    In the "reasoning", provide step-by-step reasoning for your hyperparameter tuning evaluation. The reasoning should check whether the code satisfy all of the criteria.
-    If the code does not satisfy any of the criteria:
-    - Set "hyperparameter_tuning_decision" to false.
-    - Set "hyperparameter_tuning_suggestion" to an empty string.
-    If the code satisfy all the criteria:
-    - Set "hyperparameter_tuning_decision" to true.
-    - In "hyperparameter_tuning_suggestion", provide a clear, specific, and actionable suggestion. Begin with a concrete observation, then state a direct action to take. Do not use vague language, options, or uncertainty (avoid words like "A or B"). For example: "[Observation] The maximum number of epochs was reached, but the validation loss is still decreasing and early stopping was not activated. Only small portion of the allowed time was used. [Suggestion] Increase epochs to 100 to avoid underfitting and further improve model performance."
+      ## Evaluation Criteria
+      1. The code execution time or resource utilization is under-utilized, which suggests that there is room for improvement in the hyperparameter
+      2. The code must already applied early stopping strategy to prevent overfitting and the early stopping was not triggered (otherwise, increasing epochs will be wasted).
+      3. Your suggestion should have a strong chance of improving the model's performance. Focus on the most obvious and impactful opportunities for quick improvement by leveraging more training time. Don't explore hyperparameters with low confidence.  If there are no obvious and impactful opportunities and the code runs well, please accept it.
+      4. Only include the suggestions in your response without leak any time limit information because the user might over-fit the model to the time limit.
+      5. Never make your judgment only based on the time spent, you should also consider the code and the stdout.
 
-    ## Hyperparameter Tuning Guidelines
-    1. Task-specific Hyperparameters
-       - NLP: Review `max_len`/sequence length, model size (e.g., transformer type), learning rate, batch size. Suggest increases only if underfitting or low resource usage is evident.
-       - CV: Review `image_size`, backbone network size, batch size, learning rate, augmentation strategies. Suggest increases if results are poor and resources are under-utilized.
-       - Tabular: Review tree depth, number of leaves, embedding strategy, feature preprocessing, learning rate, regularization parameters.
-    2. Model Capacity
-       - If performance is poor (e.g., low validation accuracy or high loss), consider increasing model capacity, input dimension, or number of layers if resources allow.
-       - Suggest regularization (dropout, weight decay) if overfitting is observed.
-    3. Epochs
-       - If early stopping was applied and triggered, do not suggest increasing epochs.
-       - If early stopping was not triggered and validation performance is still improving, consider suggesting more training iterations or epochs.
-       - Do not increase epochs without applying early stopping.
-    4. Batch Size
-       - If memory resources are sufficient and batch size is low, suggest increasing batch size for faster training.
-       - If out-of-memory errors occur, suggest reducing batch size.
-    5. Learning Rate
-       - If training is slow or stuck, consider adjusting the learning rate (increase if underfitting, decrease if unstable training).
-    6. Data Augmentation
-       - For CV and NLP, suggest adding or tuning data augmentation if overfitting or poor generalization is observed.
-    {% endif %}
+      In the "reasoning", provide clear, step-by-step reasoning for your hyperparameter tuning evaluation. Explicitly reference the code, stdout, and resource usage to justify your assessment. Ensure your reasoning checks whether all evaluation criteria are satisfied, and highlight any specific observations that support your decision.
+      If the code does not satisfy any of the criteria:
+      - Set "hyperparameter_tuning_decision" to false.
+      - Set "hyperparameter_tuning_suggestion" to an empty string.
+      If the code satisfy all the criteria:
+      - Set "hyperparameter_tuning_decision" to true.
+      - In "hyperparameter_tuning_suggestion", provide a clear, specific, and actionable suggestion. Begin with a concrete observation, then state a direct action to take. Do not use vague language, options, or uncertainty (avoid words like "A or B"). For example: "[Observation] The maximum number of epochs was reached, but the validation loss is still decreasing and early stopping was not activated. Only small portion of the allowed time was used. [Suggestion] Increase epochs to 100 to avoid underfitting and further improve model performance."
 
-    ## Output format
-    Please respond with your feedback in the following JSON format and order without anything else:
-    ```json
-    {
-        "execution": "Describe whether the whole code base executed successfully and generating the final submission. Include any errors or issues encountered, and retain all error messages and traceback details.",
-        "return_checking": "Verify the generated files, particularly the submission file. Ensure that its format is valid",
-        "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
-        "acceptable": <true/false: if the solution has passed execution, return_checking, and code verification, then it is a valid solution and acceptable. Otherwise it is not acceptable.>,
-        {% if enable_hyperparameter_tuning_check %}
-        "reasoning": "Provide step-by-step reasoning for hyperparameter tuning evaluation.",
-        "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,
-        "hyperparameter_tuning_decision": <true/false>,
-        {% endif %}
-    }
-    ```
+      ## Hyperparameter Tuning Guidelines
+      1. Task-specific Hyperparameters
+         - NLP: Check `max_len`, model size, learning rate, batch size. Suggest increases only if underfitting or low resource usage.
+         - CV: Check `image_size`, backbone size, batch size, learning rate, augmentation. Suggest increases if results are poor and resources under-used.
+         - Tabular: Check tree depth, leaves, embedding, preprocessing, learning rate, regularization.
+      2. Model Capacity
+         - If validation accuracy is low or loss is high, suggest increasing model size or layers if resources allow. Add regularization if overfitting.
+      3. Epochs
+         - If early stopping triggered, do not increase epochs. If not triggered and validation improves, suggest more epochs.
+      4. Batch Size
+         - If memory allows and batch size is low, suggest increasing. If OOM errors, suggest reducing.
+      5. Learning Rate
+         - If training is slow/underfitting, suggest increasing. If unstable, suggest decreasing.
+      6. Data Augmentation
+         - For CV/NLP, suggest tuning augmentation if overfitting or poor generalization.
+      {% endif %}
 
-  user: |-
-    # Current Code base
-    {{ code }}
-    {% if change_summary is not none %}
-    # Current Code Change Summary
-    {{ change_summary }}{% endif %}
+      ## Output format
+      Please respond with your feedback in the following JSON format and order without anything else:
+      ```json
+      {
+         "execution": "Describe whether the whole code base executed successfully and generating the final submission. Include any errors or issues encountered, and retain all error messages and traceback details.",
+         "return_checking": "Verify the generated files, particularly the submission file. Ensure that its format is valid",
+         "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
+         "acceptable": <true/false: if the solution has passed execution, return_checking, and code verification, then it is a valid solution and acceptable. Otherwise it is not acceptable.>,
+         {% if enable_hyperparameter_tuning_check %}
+         "reasoning": "Provide step-by-step reasoning for hyperparameter tuning evaluation.",
+         "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,
+         "hyperparameter_tuning_decision": <true/false>,
+         {% endif %}
+      }
+      ```
 
-    ## Stdout of code execution and testing
-    {{ stdout }}
+   user: |-
+      # Current Code base
+      {{ code }}
+      {% if change_summary is not none %}
+      # Current Code Change Summary
+      {{ change_summary }}{% endif %}
 
-    ## Execution time and timeout
-    The execution time for current code base: {{ time_spent }}.
-    The total timeout: {{ timeout }}.
-    The percent of timeout used: {{ percent_of_timeout_used }}.
-    
-    {% if queried_former_failed_knowledge|length != 0 %}
-    # Evolving History
-    {% for former_failed_knowledge in queried_former_failed_knowledge %}## Attempt {{ loop.index }}:
-    ### Summary of Changes
-    {{ former_failed_knowledge.implementation.change_summary }}
-    {{ former_failed_knowledge.feedback }}
-    {% endfor %}
-    {% endif %}
+      ## Stdout of code execution and testing
+      {{ stdout }}
+
+      ## Execution time and timeout
+      The execution time for current code base: {{ time_spent }}.
+      The total timeout: {{ timeout }}.
+      The percent of timeout used: {{ percent_of_timeout_used }}.
+      
+      {% if queried_former_failed_knowledge|length != 0 %}
+      # Evolving History
+      {% for former_failed_knowledge in queried_former_failed_knowledge %}## Attempt {{ loop.index }}:
+      ### Summary of Changes
+      {{ former_failed_knowledge.implementation.change_summary }}
+      {{ former_failed_knowledge.feedback }}
+      {% endfor %}
+      {% endif %}
     
 DSCoSTEER:
-  system_debugger: |-
-    {% include "scenarios.data_science.share:scen.role" %}
-    You have finished the implementation of the whole workflow which has executed well on a sampled dataset. Now we are working on the full dataset.
-    The user has reported that the workflow failed to execute on the full dataset.
-    Your will be provided with:
-    1. Code base.
-    2. Task description, which is the task the code is trying to solve.
-    3. Feedback generated during the execution of the whole workflow.
-    Your job is to debug the whole code base, try to correct the errors, and ensure that the workflow can execute successfully on the full dataset.
+   system_debugger: |-
+      {% include "scenarios.data_science.share:scen.role" %}
+      You have finished the implementation of the whole workflow which has executed well on a sampled dataset. Now we are working on the full dataset.
+      The user has reported that the workflow failed to execute on the full dataset.
+      Your will be provided with:
+      1. Code base.
+      2. Task description, which is the task the code is trying to solve.
+      3. Feedback generated during the execution of the whole workflow.
+      Your job is to debug the whole code base, try to correct the errors, and ensure that the workflow can execute successfully on the full dataset.
 
-    ## Task description
-    {{ task_desc }}
+      ## Task description
+      {{ task_desc }}
 
-    ## Instructions
-    1. Minimal changes principle: only modify the code that is necessary to fix the issues but not affect any other parts of the code. Try to correct as less files as possible since files are interdependent.
-    {% if diff_mode %}
-    2. You must output in Code Diff format. The detailed format specification is as follows.
-    {% else %}
-    2. You must output the COMPLETE and FULL code. Do not truncate, summarize, or omit any parts of the code. Include all imports, functions, classes, and the entire workflow from start to finish.
-    {% endif %}
+      ## Instructions
+      1. Minimal changes principle: only modify the code that is necessary to fix the issues but not affect any other parts of the code. Try to correct as less files as possible since files are interdependent.
+      {% if diff_mode %}
+      2. You must output in Code Diff format. The detailed format specification is as follows.
+      {% else %}
+      2. You must output the COMPLETE and FULL code. Do not truncate, summarize, or omit any parts of the code. Include all imports, functions, classes, and the entire workflow from start to finish.
+      {% endif %}
 
-    ## Output Format
-    {% if out_spec %}
-    {{ out_spec }}
-    {% else %}
-    Please response the code in the following JSON format without anything else.
-    {
-        "code": "The Python code as a string."
-    }
-    {% endif %}
+      ## Output Format
+      {% if out_spec %}
+      {{ out_spec }}
+      {% else %}
+      Please response the code in the following JSON format without anything else.
+      {
+         "code": "The Python code as a string."
+      }
+      {% endif %}
 
-  system_refine: |-
-    {% include "scenarios.data_science.share:scen.role" %}
-    You have finished the implementation of the whole workflow which has executed well on a sampled dataset. Now we are working on the full dataset.
-    The user has reported that the hyperparameters are not reasonable and the code didn't make the best use of the time limit.
-    Your will be provided with:
-    1. Code base.
-    2. Feedback generated during the execution of the whole workflow.
-    3. Suggestions for hyperparameter tuning.
-    Your task is to refine the code base and modify the hyperparameters based on the feedback and suggestions.
+   system_refine: |-
+      {% include "scenarios.data_science.share:scen.role" %}
+      You have finished the implementation of the whole workflow which has executed well on a sampled dataset. Now we are working on the full dataset.
+      The user has reported that the hyperparameters are not reasonable and the code didn't make the best use of the time limit.
+      Your will be provided with:
+      1. Code base.
+      2. Feedback generated during the execution of the whole workflow.
+      3. Suggestions for hyperparameter tuning.
+      Your task is to refine the code base and modify the hyperparameters based on the feedback and suggestions.
 
-    ## Instructions
-    1. Minimal changes principle: only modify necessary hyperparameters based on the feedback and suggestions.
-    {% if diff_mode %}
-    2. You must output in Code Diff format. The detailed format specification is as follows.
-    {% else %}
-    2. You must output the COMPLETE and FULL code. Do not truncate, summarize, or omit any parts of the code. Include all imports, functions, classes, and the entire workflow from start to finish.
-    {% endif %}
+      ## Instructions
+      1. Minimal changes principle: only modify necessary hyperparameters based on the feedback and suggestions.
+      {% if diff_mode %}
+      2. You must output in Code Diff format. The detailed format specification is as follows.
+      {% else %}
+      2. You must output the COMPLETE and FULL code. Do not truncate, summarize, or omit any parts of the code. Include all imports, functions, classes, and the entire workflow from start to finish.
+      {% endif %}
 
-    ## Output Format
-    {% if out_spec %}
-    {{ out_spec }}
-    {% else %}
-    Please response the code in the following JSON format without anything else.
-    {
-        "code": "The Python code as a string."
-    }
-    {% endif %}
+      ## Output Format
+      {% if out_spec %}
+      {{ out_spec }}
+      {% else %}
+      Please response the code in the following JSON format without anything else.
+      {
+         "code": "The Python code as a string."
+      }
+      {% endif %}
 
-  user: |-
-    # Current Code Base
-    {{ code }}
-    {% if change_summary is not none %}
-    # Current Code Change Summary
-    {{ change_summary }}{% endif %}
+   user: |-
+      # Current Code Base
+      {{ code }}
+      {% if change_summary is not none %}
+      # Current Code Change Summary
+      {{ change_summary }}{% endif %}
 
-    ## Feedback of Current Code Base
-    {{ feedback }}
+      ## Feedback of Current Code Base
+      {{ feedback }}
 
-    {% if hyperparameter_tuning_suggestion is not none %}
-    ## Hyperparameter Tuning Suggestion
-    {{ hyperparameter_tuning_suggestion }}
-    {% endif %}
+      {% if hyperparameter_tuning_suggestion is not none %}
+      ## Hyperparameter Tuning Suggestion
+      {{ hyperparameter_tuning_suggestion }}
+      {% endif %}
 
-    {% if queried_former_failed_knowledge|length != 0 %}
-    # Evolving History
-    {% for former_failed_knowledge in queried_former_failed_knowledge %}## Attempt {{ loop.index }}:
-    ### Summary of Changes
-    {{ former_failed_knowledge.implementation.change_summary }}
-    ### Validation Scores
-    {{ former_failed_knowledge.feedback.score }}
-    {% endfor %}
-    {% endif %}
+      {% if queried_former_failed_knowledge|length != 0 %}
+      # Evolving History
+      {% for former_failed_knowledge in queried_former_failed_knowledge %}## Attempt {{ loop.index }}:
+      ### Summary of Changes
+      {{ former_failed_knowledge.implementation.change_summary }}
+      ### Validation Scores
+      {{ former_failed_knowledge.feedback.score }}
+      {% endfor %}
+      {% endif %}

@@ -40,9 +40,6 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """The recommend time limit for running on full data"""
     full_timeout: int = 3600
     """The timeout limit for running on full data"""
-    tuning_in_merge: bool = False
-    """Whether to enable hyperparameter tuning in the merge stage"""
-    tuning_in_last_time: bool = False
     ### specific feature
 
     ### notebook integration
