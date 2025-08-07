@@ -35,7 +35,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """The timeout limit for running on debugging data"""
     full_timeout: int = 3600
     """The timeout limit for running on full data"""
-
+    ensemble_timeout: int = 18000
     ### specific feature
 
     #### enable specification
