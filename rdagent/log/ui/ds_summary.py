@@ -154,50 +154,7 @@ def all_summarize_win():
         base_df["Select"] = base_df.index.isin(best_idxs.values)
 
     base_df = st.data_editor(
-        base_df.style.apply(
-            lambda col: col.map(lambda val: "background-color: #F0F8FF"),
-            subset=[
-                "Baseline Score",
-                "Bronze Threshold",
-                "Silver Threshold",
-                "Gold Threshold",
-                "Medium Threshold",
-            ],
-            axis=0,
-        )
-        .apply(
-            lambda col: col.map(lambda val: "background-color: #FFFFE0"),
-            subset=[
-                "Ours - Base",
-                "Ours vs Base",
-                "Ours vs Bronze",
-                "Ours vs Silver",
-                "Ours vs Gold",
-            ],
-            axis=0,
-        )
-        .apply(
-            lambda col: col.map(lambda val: "background-color: #E6E6FA"),
-            subset=[
-                "Script Time",
-                "Exec Time",
-                "Exp Gen",
-                "Coding",
-                "Running",
-            ],
-            axis=0,
-        )
-        .apply(
-            lambda col: col.map(lambda val: "background-color: #F0FFF0"),
-            subset=[
-                "Best Result",
-                "SOTA Exp (to_submit)",
-                "SOTA LID (to_submit)",
-                "SOTA Exp Score (to_submit)",
-                "SOTA Exp Score (valid, to_submit)",
-            ],
-            axis=0,
-        ),
+        base_df,
         column_config={
             "Select": st.column_config.CheckboxColumn("Select", help="Stat this trace.", disabled=False),
         },
@@ -218,32 +175,43 @@ def all_summarize_win():
         st.text(markdown_table)
     with stat_win_right:
         Loop_counts = base_df["Total Loops"]
-        fig = px.histogram(Loop_counts, nbins=10, title="Total Loops Histogram (nbins=10)")
+
+        # Create histogram
+        fig = px.histogram(
+            Loop_counts, nbins=15, title="Distribution of Total Loops", color_discrete_sequence=["#3498db"]
+        )
+        fig.update_layout(title_font_size=16, title_font_color="#2c3e50")
+
+        # Calculate statistics
         mean_value = Loop_counts.mean()
         median_value = Loop_counts.median()
-        fig.add_vline(
-            x=mean_value,
-            line_color="orange",
-            annotation_text="Mean",
-            annotation_position="top right",
-            line_width=3,
+
+        # Add mean and median lines
+        fig.add_vline(x=mean_value, line_color="#e74c3c", line_width=3)
+        fig.add_vline(x=median_value, line_color="#f39c12", line_width=3)
+
+        fig.add_annotation(
+            x=0.02,
+            y=0.95,
+            xref="paper",
+            yref="paper",
+            text=f"<span style='color:#e74c3c; font-weight:bold'>Mean: {mean_value:.1f}</span><br><span style='color:#f39c12; font-weight:bold'>Median: {median_value:.1f}</span>",
+            showarrow=False,
+            bgcolor="rgba(255,255,255,0.9)",
+            bordercolor="rgba(128,128,128,0.5)",
+            borderwidth=1,
+            font=dict(size=12, color="#333333"),
         )
-        fig.add_vline(
-            x=median_value,
-            line_color="red",
-            annotation_text="Median",
-            annotation_position="top right",
-            line_width=3,
-        )
-        st.plotly_chart(fig)
+
+        st.plotly_chart(fig, use_container_width=True)
 
     # write curve
     st.subheader("Curves", divider="rainbow")
     curves_win(summary)
 
 
-with st.container(border=True):
-    if st.toggle("近3天平均", key="show_3days"):
-        days_summarize_win()
+# with st.container(border=True):
+#     if st.toggle("近3天平均", key="show_3days"):
+#         days_summarize_win()
 with st.container(border=True):
     all_summarize_win()
