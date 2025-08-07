@@ -352,6 +352,7 @@ component_spec:
       - You can choose the most proper packages to achieve the task.
       - When facing a choice between two packages which both can achieve the same goal, you should choose the one which is more commonly used and less likely to cause bugs in coding. Especially those you are not familiar with.
       - For GBDT models, prefer XGBoost or RandomForest over LightGBM unless the SOTA or hypothesis dictates otherwise.
+      - To use GPU in training, always implement a check to ensure that the GPU is available and use it if possible. Fallback to CPU if GPU is not available. Especially in GBDT models, you might get error when you call `fit` method without checking the GPU availability. Add a try except block to handle this case.
       - For neural networks, prefer PyTorch or PyTorch based library (over TensorFlow) unless the SOTA or hypothesis dictates otherwise.
       - For neural networks, prefer fine-tuning pre-trained models over training from scratch.
 
