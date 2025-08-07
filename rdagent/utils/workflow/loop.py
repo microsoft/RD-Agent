@@ -10,7 +10,7 @@ Postscripts:
 
 import asyncio
 import concurrent.futures
-import psutil, os
+import os
 import pickle
 from collections import defaultdict
 from dataclasses import dataclass
@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Optional, Union, cast
 
+import psutil
 from tqdm.auto import tqdm
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
@@ -353,8 +354,11 @@ class LoopBase:
             try:
                 # run one kickoff_loop and execute_loop
                 tasks = [
-                    asyncio.create_task(t) for t in
-                    [self.kickoff_loop(), *[self.execute_loop() for _ in range(RD_AGENT_SETTINGS.get_max_parallel())]]
+                    asyncio.create_task(t)
+                    for t in [
+                        self.kickoff_loop(),
+                        *[self.execute_loop() for _ in range(RD_AGENT_SETTINGS.get_max_parallel())],
+                    ]
                 ]
                 await asyncio.gather(*tasks)
                 break
