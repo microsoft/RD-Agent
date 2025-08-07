@@ -26,8 +26,7 @@ def get_python_packages():
     # Example: `python package_info.py pandas torch scikit-learn`
     # If no extra arguments are provided we fall back to the original default list
     # to keep full backward-compatibility.
-
-     packages_list = [  # default packages
+    packages_list = [  # default packages
         "transformers",
         "accelerate",
         "torch",
@@ -45,7 +44,6 @@ def get_python_packages():
         "matplotlib",
         "pydicom",
     ]
-
     if len(sys.argv) > 1:
         packages_list = list(set(packages_list) | set(sys.argv[1:]))
 
