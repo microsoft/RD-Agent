@@ -502,7 +502,7 @@ class LoopBase:
         self.semaphores = {}
 
 
-def kill_subprocesses():
+def kill_subprocesses() -> None:
     """
     Due to the coroutine-based nature of the workflow, the event loop of the main process can't
     stop all the subprocesses start by `curr_loop.run_in_executor`. So we need to kill them manually.
