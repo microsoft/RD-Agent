@@ -216,7 +216,6 @@ pipeline_coder:
     {% endif %}
     {% endif %}
 
-
 pipeline_eval:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}

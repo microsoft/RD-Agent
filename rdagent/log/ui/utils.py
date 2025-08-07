@@ -1,13 +1,15 @@
 import math
 import pickle
 import re
-from collections import deque
+from collections import defaultdict, deque
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Literal
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import pandas as pd
+import plotly.express as px
 import plotly.graph_objects as go
 import typer
 from matplotlib import pyplot as plt
@@ -17,7 +19,7 @@ from rdagent.core.proposal import Trace
 from rdagent.core.utils import cache_with_pickle
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
-from rdagent.log.utils import extract_json
+from rdagent.log.utils import extract_json, extract_loopid_func_name
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
@@ -230,7 +232,7 @@ def get_sota_exp_stat(
 
 
 @cache_with_pickle(_log_path_hash_func, force=True)
-def load_times(log_path: Path):
+def load_times_deprecated(log_path: Path):
     try:
         session_path = log_path / "__session__"
         max_li = max(int(p.name) for p in session_path.iterdir() if p.is_dir() and p.name.isdigit())
@@ -241,6 +243,44 @@ def load_times(log_path: Path):
     except Exception as e:
         rd_times = {}
     return rd_times
+
+
+@cache_with_pickle(_log_path_hash_func, force=True)
+def load_times_info(log_path: Path) -> dict[int, dict[str, dict[Literal["start_time", "end_time"], datetime]]]:
+    """
+    Load timing information for each loop and step.
+
+    Returns
+    -------
+    dict[int, dict[str, dict[Literal["start_time", "end_time"], datetime]]]
+        Dictionary with loop IDs as keys, where each value contains step names
+        mapping to their start and end times.
+
+        Example:
+            {
+                1: {
+                    "exp_gen": {
+                        "start_time": datetime(2024, 1, 1, 10, 0, 0),
+                        "end_time": datetime(2024, 1, 1, 10, 15, 30)
+                    },
+                    "coding": {
+                        "start_time": datetime(2024, 1, 1, 10, 15, 30),
+                        "end_time": datetime(2024, 1, 1, 10, 45, 12)
+                    }
+                },
+            }
+    """
+    log_storage = FileStorage(log_path)
+    time_msgs = list(log_storage.iter_msg(tag="time_info"))
+    exp_gen_time_msgs = list(log_storage.iter_msg(tag="exp_gen_time_info"))
+    times_info = defaultdict(dict)
+    for msg in time_msgs:
+        li, fn = extract_loopid_func_name(msg.tag)
+        times_info[int(li)][fn] = msg.content
+    for msg in exp_gen_time_msgs:
+        li, fn = extract_loopid_func_name(msg.tag)
+        times_info[int(li)]["exp_gen"] = msg.content
+    return times_info
 
 
 def _log_folders_summary_hash_func(log_folders: list[str], hours: int | None = None):
@@ -300,14 +340,21 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             coding_time = timedelta()
             running_time = timedelta()
             all_time = timedelta()
-            times_info = load_times(Path(lf) / k)
-            for time_info in times_info.values():
-                all_time += sum((ti.end - ti.start for ti in time_info), timedelta())
-                exp_gen_time += time_info[0].end - time_info[0].start
-                if len(time_info) > 1:
-                    coding_time += time_info[1].end - time_info[1].start
-                if len(time_info) > 2:
-                    running_time += time_info[2].end - time_info[2].start
+            times_info = load_times_info(Path(lf) / k)
+            for loop_times in times_info.values():
+                for step_name, step_time in loop_times.items():
+                    step_duration = step_time["end_time"] - step_time["start_time"]
+                    if step_name == "exp_gen":
+                        exp_gen_time += step_duration
+                        all_time += step_duration
+                    elif step_name == "coding":
+                        coding_time += step_duration
+                        all_time += step_duration
+                    elif step_name == "running":
+                        all_time += step_duration
+                        running_time += step_duration
+                    elif step_name in ["feedback", "record"]:
+                        all_time += step_duration
             v["exec_time"] = str(all_time).split(".")[0]
             v["exp_gen_time"] = str(exp_gen_time).split(".")[0]
             v["coding_time"] = str(coding_time).split(".")[0]
@@ -788,6 +835,120 @@ def trace_figure(trace: Trace, merge_loops: list = []):
     fig, ax = plt.subplots(figsize=(8, 6))
     color_map = ["tomato" if node in [get_display_name(idx) for idx in merge_loops] else "skyblue" for node in G]
     nx.draw(G, pos, with_labels=True, arrows=True, node_color=color_map, node_size=100, font_size=5, ax=ax)
+    return fig
+
+
+def timeline_figure(times_dict: dict[int, dict[str, dict[Literal["start_time", "end_time"], datetime]]]) -> go.Figure:
+    # Prepare data for px.timeline
+    timeline_data = []
+    step_names = ["exp_gen", "coding", "running", "feedback", "record"]
+
+    # Beautiful color palette with gradients
+    colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA726", "#5A0069"]
+    color_map = {step: color for step, color in zip(step_names, colors)}
+
+    for loop_id, steps in times_dict.items():
+        for step_name, timing in steps.items():
+            if step_name in step_names:
+                duration = timing["end_time"] - timing["start_time"]
+                timeline_data.append(
+                    {
+                        "Start": timing["start_time"],
+                        "Finish": timing["end_time"],
+                        "Step": step_name,
+                        "Loop_ID": f"Loop {loop_id}",
+                        "Duration": str(duration).split(".")[0],  # Remove microseconds
+                    }
+                )
+
+    # Create DataFrame and sort by loop ID in descending order
+    df = pd.DataFrame(timeline_data)
+    df["loop_sort"] = df["Loop_ID"].str.extract("(\d+)").astype(int)
+    df = df.sort_values("loop_sort", ascending=False)
+
+    # Create timeline with enhanced styling
+    fig = px.timeline(
+        df,
+        x_start="Start",
+        x_end="Finish",
+        y="Loop_ID",
+        color="Step",
+        color_discrete_map=color_map,
+        title="🚀 Data Science Loop Timeline",
+        hover_data={"Duration": True, "Loop_ID": False, "Step": False},
+        hover_name="Step",
+    )
+
+    # Enhanced styling and layout
+    fig.update_traces(
+        marker=dict(line=dict(width=1, color="rgba(255,255,255,0.8)"), opacity=0.85),
+        width=0.9,  # Increased from 0.8 to make bars thicker and reduce spacing
+        hovertemplate="<b>%{hovertext}</b><br>"
+        + "Start: %{base}<br>"
+        + "End: %{x}<br>"
+        + "Duration: %{customdata[0]}<br>"
+        + "<extra></extra>",
+    )
+
+    # Beautiful layout with gradients and shadows
+    fig.update_layout(
+        title=dict(text="Data Science Loop Timeline", x=0.0, font=dict(size=24, color="#2C3E50", family="Arial Black")),
+        xaxis=dict(
+            title="⏰ Time",
+            showgrid=True,
+            gridwidth=1,
+            gridcolor="rgba(176, 196, 222, 0.4)",
+            zeroline=False,
+            tickfont=dict(size=12, color="#34495E"),
+            title_font=dict(size=14, color="#2C3E50", family="Arial"),
+        ),
+        yaxis=dict(
+            title="🔄 Loop ID",
+            showgrid=True,
+            gridwidth=1,
+            gridcolor="rgba(176, 196, 222, 0.4)",
+            zeroline=False,
+            tickfont=dict(size=12, color="#34495E"),
+            title_font=dict(size=14, color="#2C3E50", family="Arial"),
+        ),
+        plot_bgcolor="rgba(248, 249, 250, 0.8)",
+        paper_bgcolor="white",
+        height=max(200, len(times_dict) * 25),  # Reduced from 300 and 30 to 200 and 25
+        margin=dict(l=100, r=60, t=80, b=60),
+        legend=dict(
+            x=0.98,
+            y=0.98,
+            xanchor="right",
+            yanchor="top",
+            bgcolor="rgba(255,255,255,0.9)",
+            bordercolor="rgba(0,0,0,0.2)",
+            borderwidth=1,
+            title_font=dict(size=12, color="#2C3E50"),
+            font=dict(size=11, color="#34495E"),
+            traceorder="normal",
+        ),
+        font=dict(family="Arial, sans-serif"),
+        template="plotly_white",
+    )
+
+    # Reorder legend to match step_names order
+    fig.data = sorted(
+        fig.data, key=lambda trace: step_names.index(trace.name) if trace.name in step_names else len(step_names)
+    )
+
+    # Add subtle shadow effect
+    fig.add_shape(
+        type="rect",
+        xref="paper",
+        yref="paper",
+        x0=0,
+        y0=0,
+        x1=1,
+        y1=1,
+        line=dict(color="rgba(0,0,0,0.1)", width=2),
+        fillcolor="rgba(0,0,0,0.02)",
+    )
+
     return fig
 
 

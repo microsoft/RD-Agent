@@ -22,7 +22,8 @@ from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.utils import (
     curve_figure,
     get_sota_exp_stat,
-    load_times,
+    load_times_info,
+    timeline_figure,
     trace_figure,
 )
 from rdagent.log.utils import (
@@ -171,9 +172,11 @@ def load_stdout(stdout_path: Path):
 
 # UI windows
 def task_win(task):
-    with st.container(border=True):
-        st.markdown(f"**:violet[{task.name}]**")
+    with st.expander(f"**:violet[{task.name}]**", expanded=False):
         st.markdown(task.description)
+        if hasattr(task, "package_info"):
+            st.markdown(f"**:blue[Package Info:]**")
+            st.code(task.package_info)
         if hasattr(task, "architecture"):  # model task
             st.markdown(
                 f"""
@@ -186,14 +189,17 @@ def task_win(task):
 
 def workspace_win(workspace, cmp_workspace=None, cmp_name="last code."):
     show_files = {k: v for k, v in workspace.file_dict.items() if "test" not in k}
-
     if len(show_files) > 0:
         if cmp_workspace:
             diff = generate_diff_from_dict(cmp_workspace.file_dict, show_files, "main.py")
             with st.popover(f":violet[**Diff with {cmp_name}**]", use_container_width=True, icon="🔍"):
                 st.code("".join(diff), language="diff", wrap_lines=True, line_numbers=True)
+
+        rtime = workspace.running_info.running_time
+        time_str = timedelta_to_str(timedelta(seconds=rtime) if rtime else None) or "00:00:00"
+
         with st.popover(
-            f"Files in :blue[{replace_ep_path(workspace.workspace_path)}]", use_container_width=True, icon="📂"
+            f"⏱️{time_str} 📂Files in :blue[{replace_ep_path(workspace.workspace_path)}]", use_container_width=True
         ):
             code_tabs = st.tabs(show_files.keys())
             for ct, codename in zip(code_tabs, show_files.keys()):
@@ -277,7 +283,18 @@ def llm_log_win(llm_d: list):
             system = d["obj"].get("system", None)
             user = d["obj"]["user"]
             resp = d["obj"]["resp"]
-            with st.expander(f"**LLM**", icon="🤖", expanded=False):
+            start_time = d["obj"].get("start", "")
+            end_time = d["obj"].get("end", "")
+            if start_time and end_time:
+                start_str = start_time.strftime("%m-%d %H:%M:%S")
+                end_str = end_time.strftime("%m-%d %H:%M:%S")
+                duration = end_time - start_time
+                time_info_str = (
+                    f"🕰️:blue[**{start_str} ~ {end_str}**] ⏳:violet[**{round(duration.total_seconds(), 2)}s**]"
+                )
+            else:
+                time_info_str = ""
+            with st.expander(f"**LLM** {time_info_str}", icon="🤖", expanded=False):
                 t1, t2, t3, t4 = st.tabs(
                     [":green[**Response**]", ":blue[**User**]", ":orange[**System**]", ":violet[**ChatBot**]"]
                 )
@@ -368,13 +385,13 @@ def exp_gen_win(exp_gen_data, llm_data=None):
     st.header("Exp Gen", divider="blue", anchor="exp-gen")
     if state.show_llm_log and llm_data is not None:
         llm_log_win(llm_data["no_tag"])
-    st.subheader("Hypothesis")
+    st.subheader("💡 Hypothesis")
     hypothesis_win(exp_gen_data["no_tag"].hypothesis)
 
-    st.subheader("pending_tasks")
+    st.subheader("📋 pending_tasks")
     for tasks in exp_gen_data["no_tag"].pending_tasks_list:
         task_win(tasks[0])
-    st.subheader("Exp Workspace")
+    st.subheader("📁 Exp Workspace")
     workspace_win(exp_gen_data["no_tag"].experiment_workspace)
 
 
@@ -574,8 +591,8 @@ def replace_ep_path(p: Path):
 def get_llm_call_stats(llm_data: dict) -> tuple[int, int]:
     total_llm_call = 0
     total_filter_call = 0
-    total_call_seconds = 0
-    filter_call_seconds = 0
+    total_call_duration = timedelta()
+    filter_call_duration = timedelta()
     filter_sys_prompt = T("rdagent.utils.prompts:filter_redundant_text.system").r()
     for li, loop_d in llm_data.items():
         for fn, loop_fn_d in loop_d.items():
@@ -583,12 +600,14 @@ def get_llm_call_stats(llm_data: dict) -> tuple[int, int]:
                 for d in v:
                     if "debug_llm" in d["tag"]:
                         total_llm_call += 1
-                        total_call_seconds += d["obj"].get("duration", 0)
+                        total_call_duration += d["obj"].get("end", timedelta()) - d["obj"].get("start", timedelta())
                         if "system" in d["obj"] and filter_sys_prompt == d["obj"]["system"]:
                             total_filter_call += 1
-                            filter_call_seconds += d["obj"].get("duration", 0)
+                            filter_call_duration += d["obj"].get("end", timedelta()) - d["obj"].get(
+                                "start", timedelta()
+                            )
 
-    return total_llm_call, total_filter_call, total_call_seconds, filter_call_seconds
+    return total_llm_call, total_filter_call, total_call_duration, filter_call_duration
 
 
 def get_timeout_stats(llm_data: dict):
@@ -639,13 +658,12 @@ def summarize_win():
         with info3.popover("RDLOOP", icon="⚙️"):
             st.write(state.data.get("settings", {}).get("RDLOOP_SETTINGS", "No settings found."))
 
-        llm_call, llm_filter_call, llm_call_seconds, llm_filter_call_seconds = get_llm_call_stats(state.llm_data)
-        info4.metric("LLM Calls", llm_call, help=timedelta_to_str(timedelta(seconds=llm_call_seconds)))
+        llm_call, llm_filter_call, llm_call_duration, filter_call_duration = get_llm_call_stats(state.llm_data)
+        info4.metric("LLM Calls", llm_call, help=timedelta_to_str(llm_call_duration))
         info5.metric(
             "LLM Filter Calls",
             llm_filter_call,
-            delta=-round(llm_filter_call / llm_call, 5),
-            help=timedelta_to_str(timedelta(seconds=llm_filter_call_seconds)),
+            help=timedelta_to_str(filter_call_duration),
         )
 
         timeout_stats = get_timeout_stats(state.llm_data)
@@ -670,11 +688,9 @@ def summarize_win():
             help=f"{timeout_stats['running']['timeout']}/{timeout_stats['running']['total']}",
         )
 
+        final_trace = list(FileStorage(state.log_folder / state.log_path).iter_msg(tag="record.trace"))[-1].content
         if show_trace_dag:
             st.markdown("### Trace DAG")
-            final_trace_loop_id = max_id
-            while "record" not in state.data[final_trace_loop_id]:
-                final_trace_loop_id -= 1
             merge_loops = []
             for loop_id in state.llm_data.keys():
                 if "direct_exp_gen" not in state.llm_data[loop_id]:
@@ -683,15 +699,32 @@ def summarize_win():
                     i["obj"]["uri"] for i in state.llm_data[loop_id]["direct_exp_gen"]["no_tag"] if "uri" in i["obj"]
                 ]:
                     merge_loops.append(loop_id)
-            st.pyplot(trace_figure(state.data[final_trace_loop_id]["record"]["trace"], merge_loops))
+            st.pyplot(trace_figure(final_trace, merge_loops))
+
+        # Find all root nodes (for grouping loops by trace)
+        root_nodes = {}
+        parent_nodes = {}
+        for node in range(len(final_trace.hist)):
+            parents = final_trace.get_parents(node)
+            root_nodes[node] = parents[0]
+            parent_nodes[node] = parents[-2] if len(parents) > 1 else None
+        root_nodes = {final_trace.idx2loop_id[n]: final_trace.idx2loop_id[r] for n, r in root_nodes.items()}
+        parent_nodes = {
+            final_trace.idx2loop_id[n]: final_trace.idx2loop_id[r] if r is not None else r
+            for n, r in parent_nodes.items()
+        }
+
+        # Generate Summary Table
         df = pd.DataFrame(
             columns=[
+                "Root N",
+                "Parent N",
                 "Component",
                 "Hypothesis",
                 "Reason",
                 "Others",
-                "Running Score (valid)",
-                "Running Score (test)",
+                "Run Score (valid)",
+                "Run Score (test)",
                 "Feedback",
                 "e-loops(c)",
                 "e-loops(r)",
@@ -708,6 +741,8 @@ def summarize_win():
         sota_loop_id = state.sota_info[1] if state.sota_info else None
         for loop in range(min_id, max_id + 1):
             loop_data = state.data[loop]
+            df.loc[loop, "Parent N"] = parent_nodes.get(loop, None)
+            df.loc[loop, "Root N"] = root_nodes.get(loop, None)
             df.loc[loop, "Component"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.component
             df.loc[loop, "Hypothesis"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.hypothesis
             df.loc[loop, "Reason"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.reason
@@ -719,21 +754,28 @@ def summarize_win():
             df.loc[loop, "COST($)"] = sum(tc.content["cost"] for tc in state.token_costs[loop])
 
             # Time Stats
-            if loop in state.times and state.times[loop]:
-                exp_gen_time = coding_time = running_time = None
-                all_steps_time = timedelta()
-                for lpt in state.times[loop]:
-                    all_steps_time += lpt.end - lpt.start
-                    if lpt.step_idx == 0:
-                        exp_gen_time = lpt.end - lpt.start
-                    elif lpt.step_idx == 1:
-                        coding_time = lpt.end - lpt.start
-                    elif lpt.step_idx == 2:
-                        running_time = lpt.end - lpt.start
-                df.loc[loop, "Time"] = timedelta_to_str(all_steps_time)
-                df.loc[loop, "Exp Gen"] = timedelta_to_str(exp_gen_time)
-                df.loc[loop, "Coding"] = timedelta_to_str(coding_time)
-                df.loc[loop, "Running"] = timedelta_to_str(running_time)
+            exp_gen_time = timedelta()
+            coding_time = timedelta()
+            running_time = timedelta()
+            all_steps_time = timedelta()
+            if loop in state.times:
+                for step_name, step_time in state.times[loop].items():
+                    step_duration = step_time["end_time"] - step_time["start_time"]
+                    if step_name == "exp_gen":
+                        exp_gen_time += step_duration
+                        all_steps_time += step_duration
+                    elif step_name == "coding":
+                        coding_time += step_duration
+                        all_steps_time += step_duration
+                    elif step_name == "running":
+                        running_time += step_duration
+                        all_steps_time += step_duration
+                    elif step_name in ["feedback", "record"]:
+                        all_steps_time += step_duration
+            df.loc[loop, "Time"] = timedelta_to_str(all_steps_time)
+            df.loc[loop, "Exp Gen"] = timedelta_to_str(exp_gen_time)
+            df.loc[loop, "Coding"] = timedelta_to_str(coding_time)
+            df.loc[loop, "Running"] = timedelta_to_str(running_time)
 
             if "running" in loop_data and "no_tag" in loop_data["running"]:
                 try:
@@ -741,10 +783,10 @@ def summarize_win():
                         running_result = loop_data["running"]["no_tag"].result
                     except AttributeError as e:  # Compatible with old versions
                         running_result = loop_data["running"]["no_tag"].__dict__["result"]
-                    df.loc[loop, "Running Score (valid)"] = str(round(running_result.loc["ensemble"].iloc[0], 5))
+                    df.loc[loop, "Run Score (valid)"] = str(round(running_result.loc["ensemble"].iloc[0], 5))
                     valid_results[loop] = running_result
                 except:
-                    df.loc[loop, "Running Score (valid)"] = "❌"
+                    df.loc[loop, "Run Score (valid)"] = "❌"
                 if "mle_score" not in state.data[loop]:
                     if "mle_score" in loop_data["running"]:
                         mle_score_txt = loop_data["running"]["mle_score"]
@@ -762,12 +804,10 @@ def summarize_win():
                                     else "🥉" if state.data[loop]["mle_score"]["bronze_medal"] else ""
                                 )
                             )
-                            df.loc[loop, "Running Score (test)"] = (
-                                f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
-                            )
+                            df.loc[loop, "Run Score (test)"] = f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
                         else:
                             state.data[loop]["mle_score"] = mle_score_txt
-                            df.loc[loop, "Running Score (test)"] = "❌"
+                            df.loc[loop, "Run Score (test)"] = "❌"
                     else:
                         mle_score_path = (
                             replace_ep_path(loop_data["running"]["no_tag"].experiment_workspace.workspace_path)
@@ -786,15 +826,15 @@ def summarize_win():
                                         else "🥉" if state.data[loop]["mle_score"]["bronze_medal"] else ""
                                     )
                                 )
-                                df.loc[loop, "Running Score (test)"] = (
+                                df.loc[loop, "Run Score (test)"] = (
                                     f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
                                 )
                             else:
                                 state.data[loop]["mle_score"] = mle_score_txt
-                                df.loc[loop, "Running Score (test)"] = "❌"
+                                df.loc[loop, "Run Score (test)"] = "❌"
                         except Exception as e:
                             state.data[loop]["mle_score"] = str(e)
-                            df.loc[loop, "Running Score (test)"] = "❌"
+                            df.loc[loop, "Run Score (test)"] = "❌"
                 else:
                     if isinstance(state.data[loop]["mle_score"], dict):
                         medal_emoji = (
@@ -806,13 +846,13 @@ def summarize_win():
                                 else "🥉" if state.data[loop]["mle_score"]["bronze_medal"] else ""
                             )
                         )
-                        df.loc[loop, "Running Score (test)"] = f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
+                        df.loc[loop, "Run Score (test)"] = f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
                     else:
-                        df.loc[loop, "Running Score (test)"] = "❌"
+                        df.loc[loop, "Run Score (test)"] = "❌"
 
             else:
-                df.loc[loop, "Running Score (valid)"] = "N/A"
-                df.loc[loop, "Running Score (test)"] = "N/A"
+                df.loc[loop, "Run Score (valid)"] = "N/A"
+                df.loc[loop, "Run Score (test)"] = "N/A"
 
             if "coding" in loop_data:
                 if len([i for i in loop_data["coding"].keys() if isinstance(i, int)]) == 0:
@@ -834,24 +874,43 @@ def summarize_win():
 
         if only_success:
             df = df[df["Feedback"] == "✅"]
-        st.dataframe(df[df.columns[~df.columns.isin(["Hypothesis", "Reason", "Others"])]])
 
-        # COST curve
-        costs = df["COST($)"].astype(float)
-        costs.index = [f"L{i}" for i in costs.index]
-        cumulative_costs = costs.cumsum()
-        with st.popover("COST Curve", icon="💰", use_container_width=True):
-            fig = px.line(
-                x=costs.index,
-                y=[costs.values, cumulative_costs.values],
-                labels={"x": "Loop", "value": "COST($)"},
-                title="COST($) per Loop & Cumulative COST($)",
-                markers=True,
-            )
-            fig.update_traces(mode="lines+markers")
-            fig.data[0].name = "COST($) per Loop"
-            fig.data[1].name = "Cumulative COST($)"
-            st.plotly_chart(fig)
+        # Add color styling based on root_nodes
+        def style_dataframe_by_root(df, root_nodes):
+            # Create a color map for different root nodes - using colors that work well in both light and dark modes
+            unique_roots = list(set(root_nodes.values()))
+            colors = [
+                "rgba(255, 99, 132, 0.3)",
+                "rgba(54, 162, 235, 0.3)",
+                "rgba(75, 192, 75, 0.3)",
+                "rgba(255, 159, 64, 0.3)",
+                "rgba(153, 102, 255, 0.2)",
+                "rgba(255, 205, 86, 0.2)",
+                "rgba(199, 199, 199, 0.2)",
+                "rgba(83, 102, 255, 0.2)",
+            ]
+            root_color_map = {root: colors[i % len(colors)] for i, root in enumerate(unique_roots)}
+
+            # Create styling function
+            def apply_color(row):
+                loop_id = row.name
+                if loop_id in root_nodes:
+                    root_id = root_nodes[loop_id]
+                    color = root_color_map.get(root_id, "rgba(128, 128, 128, 0.1)")
+                    return [f"background-color: {color}"] * len(row)
+                return [""] * len(row)
+
+            return df.style.apply(apply_color, axis=1)
+
+        styled_df = style_dataframe_by_root(
+            df[df.columns[~df.columns.isin(["Hypothesis", "Reason", "Others"])]], root_nodes
+        )
+        st.dataframe(styled_df)
+
+        # timeline figure
+        if state.times:
+            with st.popover("Timeline", icon="⏱️", use_container_width=True):
+                st.plotly_chart(timeline_figure(state.times))
 
         # scores curve
         vscores = {}
@@ -869,7 +928,7 @@ def summarize_win():
             ensemble_row = vscores.loc[["ensemble"]]
             vscores = pd.concat([ensemble_row, vscores.drop("ensemble")])
         vscores = vscores.T
-        test_scores = df["Running Score (test)"].str.replace(r"[🥇🥈🥉]\s*", "", regex=True)
+        test_scores = df["Run Score (test)"].str.replace(r"[🥇🥈🥉]\s*", "", regex=True)
         vscores["test"] = test_scores
         vscores.index = [f"L{i}" for i in vscores.index]
         vscores.columns.name = metric_name
@@ -889,7 +948,7 @@ def summarize_win():
 
         def comp_stat_func(x: pd.DataFrame):
             total_num = x.shape[0]
-            valid_num = x[x["Running Score (test)"] != "N/A"].shape[0]
+            valid_num = x[x["Run Score (test)"] != "N/A"].shape[0]
             success_num = x[x["Feedback"] == "✅"].shape[0]
             avg_e_loops = x["e-loops(c)"].mean()
             return pd.Series(
@@ -907,7 +966,7 @@ def summarize_win():
 
         # component statistics
         comp_df = (
-            df.loc[:, ["Component", "Running Score (test)", "Feedback", "e-loops(c)"]]
+            df.loc[:, ["Component", "Run Score (test)", "Feedback", "e-loops(c)"]]
             .groupby("Component")
             .apply(comp_stat_func, include_groups=False)
         )
@@ -921,8 +980,8 @@ def summarize_win():
         comp_df["Valid Rate"] = comp_df["Valid Rate"].apply(lambda x: f"{x}%")
         comp_df["Success Rate"] = comp_df["Success Rate"].apply(lambda x: f"{x}%")
         comp_df.loc["Total", "Avg e-loops(c)"] = round(df["e-loops(c)"].mean(), 2)
-        st2.markdown("### Component Statistics")
-        st2.dataframe(comp_df)
+        with st2.popover("Component Statistics", icon="📊", use_container_width=True):
+            st.dataframe(comp_df)
 
         # component time statistics
         time_df = df.loc[:, ["Component", "Time", "Exp Gen", "Coding", "Running"]]
@@ -934,7 +993,6 @@ def summarize_win():
                 "Running": "timedelta64[ns]",
             }
         )
-        st1.markdown("### Time Statistics")
         time_stat_df = time_df.groupby("Component").sum()
         time_stat_df.loc["Total"] = time_stat_df.sum()
         time_stat_df.loc[:, "Exp Gen(%)"] = (time_stat_df["Exp Gen"] / time_stat_df["Time"] * 100).round(2)
@@ -942,7 +1000,25 @@ def summarize_win():
         time_stat_df.loc[:, "Running(%)"] = (time_stat_df["Running"] / time_stat_df["Time"] * 100).round(2)
         for col in ["Time", "Exp Gen", "Coding", "Running"]:
             time_stat_df[col] = time_stat_df[col].map(timedelta_to_str)
-        st1.dataframe(time_stat_df)
+        with st1.popover("Time Statistics", icon="⏱️", use_container_width=True):
+            st.dataframe(time_stat_df)
+
+        # COST curve
+        costs = df["COST($)"].astype(float)
+        costs.index = [f"L{i}" for i in costs.index]
+        cumulative_costs = costs.cumsum()
+        with st.popover("COST Curve", icon="💰", use_container_width=True):
+            fig = px.line(
+                x=costs.index,
+                y=[costs.values, cumulative_costs.values],
+                labels={"x": "Loop", "value": "COST($)"},
+                title="COST($) per Loop & Cumulative COST($)",
+                markers=True,
+            )
+            fig.update_traces(mode="lines+markers")
+            fig.data[0].name = "COST($) per Loop"
+            fig.data[1].name = "Cumulative COST($)"
+            st.plotly_chart(fig)
 
 
 def stdout_win(loop_id: int):
@@ -1030,7 +1106,7 @@ with st.sidebar:
                 st.toast("Please select a log path first!", icon="🟡")
                 st.stop()
 
-            state.times = load_times(state.log_folder / state.log_path)
+            state.times = load_times_info(state.log_folder / state.log_path)
             state.data, state.llm_data, state.token_costs = load_data(state.log_folder / state.log_path)
             state.sota_info = get_sota_exp_stat(Path(state.log_folder) / state.log_path, to_submit=True)
             st.rerun()

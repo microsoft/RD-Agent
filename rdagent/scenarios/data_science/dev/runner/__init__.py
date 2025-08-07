@@ -1,11 +1,11 @@
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.components.coder import CoSTEER
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
+    CoSTEERMultiFeedback,
     CoSTEERSingleFeedback,
 )
 from rdagent.components.coder.CoSTEER.evolvable_subjects import FBWorkspace
@@ -170,6 +170,24 @@ class DSCoSTEERRunner(CoSTEER):
         The coder uses the scenario's real debug timeout as the maximum seconds for development.
         """
         return int(self.scen.real_full_timeout() * self.settings.max_seconds_multiplier)
+
+    def compare_and_pick_fb(self, base_fb: CoSTEERMultiFeedback | None, new_fb: CoSTEERMultiFeedback | None) -> bool:
+        # In data science, we only have a single feedback.
+        # Note: new_fb should always exists as indicated by _get_last_fb() function.
+        if base_fb is None:
+            return True
+
+        base_fb = base_fb[0]
+        new_fb = new_fb[0]
+
+        def compare_scores(s1, s2) -> bool:
+            if s2 is None:
+                return False
+            if s1 is None:
+                return True
+            return (s2 > s1) == self.scen.metric_direction
+
+        return compare_scores(base_fb.score, new_fb.score)
 
     def develop(self, exp):
         bak_sub_tasks = exp.pending_tasks_list

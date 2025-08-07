@@ -235,16 +235,6 @@ class LoopBase:
                     # Store result in the nested dictionary
                     self.loop_prev_out[li][name] = result
 
-                    # Record the trace
-                    end = datetime.now(timezone.utc)
-                    self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
-                    logger.log_object(
-                        {
-                            "start_time": start,
-                            "end_time": end,
-                        },
-                        tag="time_info",
-                    )
                     # Save snapshot after completing the step
                     self.dump(self.session_folder / f"{li}" / f"{si}_{name}")
                 except Exception as e:
@@ -264,6 +254,16 @@ class LoopBase:
                     else:
                         raise  # re-raise unhandled exceptions
                 finally:
+                    # Record the trace
+                    end = datetime.now(timezone.utc)
+                    self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
+                    logger.log_object(
+                        {
+                            "start_time": start,
+                            "end_time": end,
+                        },
+                        tag="time_info",
+                    )
                     if step_forward:
                         # Increment step index
                         self.step_idx[li] = next_step_idx

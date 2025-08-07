@@ -22,6 +22,8 @@ class DSCoderCoSTEERSettings(CoSTEERSettings):
     max_seconds_multiplier: int = 4
     env_type: str = "docker"
     # TODO: extract a function for env and conf.
+    extra_evaluator: list[str] = []
+    """Extra evaluators to use"""
 
     extra_eval: list[str] = []
     """

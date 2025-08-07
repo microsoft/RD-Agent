@@ -141,6 +141,8 @@ class PipelineCoSTEER(DSCoSTEER):
         eval_l = [PipelineCoSTEEREvaluator(scen=scen)]
         if DS_RD_SETTING.enable_model_dump:
             eval_l.append(ModelDumpEvaluator(scen=scen, data_type="sample"))
+        for evaluator in settings.extra_evaluator:
+            eval_l.append(import_class(evaluator)(scen=scen))
 
         for extra_eval in DSCoderCoSTEERSettings().extra_eval:
             kls = import_class(extra_eval)
