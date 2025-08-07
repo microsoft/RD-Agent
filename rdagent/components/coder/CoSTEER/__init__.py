@@ -133,17 +133,16 @@ class CoSTEER(Developer[Experiment]):
                 logger.info("Global timer is timeout, stop evolving")
                 break
 
-        # if the final feedback is not finished(therefore acceptable), we will use the fallback solution.
         try:
-            evo_exp = self._exp_postprocess_by_feedback(evo_exp, self._get_last_fb())
-        except CoderError as e:
+            # Fallback is required because we might not choose the last acceptable evo to submit.
             if fallback_evo_exp is not None:
                 logger.info("Fallback to the fallback solution.")
                 evo_exp = fallback_evo_exp
-                evo_exp.recover_ws_ckp()  # NOTE: recovering checkpoints for restoring files in the workspace to prevent inplace mutation.
-            else:
-                e.caused_by_timeout = reached_max_seconds
-                raise e
+                evo_exp.recover_ws_ckp()
+            evo_exp = self._exp_postprocess_by_feedback(evo_exp, self._get_last_fb())
+        except CoderError as e:
+            e.caused_by_timeout = reached_max_seconds
+            raise e
 
         exp.sub_workspace_list = evo_exp.sub_workspace_list
         exp.experiment_workspace = evo_exp.experiment_workspace

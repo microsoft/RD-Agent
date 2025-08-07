@@ -662,7 +662,6 @@ def summarize_win():
         info5.metric(
             "LLM Filter Calls",
             llm_filter_call,
-            delta=-round(llm_filter_call / llm_call, 5),
             help=timedelta_to_str(filter_call_duration),
         )
 
@@ -688,11 +687,9 @@ def summarize_win():
             help=f"{timeout_stats['running']['timeout']}/{timeout_stats['running']['total']}",
         )
 
+        final_trace = list(FileStorage(state.log_folder / state.log_path).iter_msg(tag="record.trace"))[-1].content
         if show_trace_dag:
             st.markdown("### Trace DAG")
-            final_trace_loop_id = max_id
-            while "record" not in state.data[final_trace_loop_id]:
-                final_trace_loop_id -= 1
             merge_loops = []
             for loop_id in state.llm_data.keys():
                 if "direct_exp_gen" not in state.llm_data[loop_id]:
@@ -701,15 +698,32 @@ def summarize_win():
                     i["obj"]["uri"] for i in state.llm_data[loop_id]["direct_exp_gen"]["no_tag"] if "uri" in i["obj"]
                 ]:
                     merge_loops.append(loop_id)
-            st.pyplot(trace_figure(state.data[final_trace_loop_id]["record"]["trace"], merge_loops))
+            st.pyplot(trace_figure(final_trace, merge_loops))
+
+        # Find all root nodes (for grouping loops by trace)
+        root_nodes = {}
+        parent_nodes = {}
+        for node in range(len(final_trace.hist)):
+            parents = final_trace.get_parents(node)
+            root_nodes[node] = parents[0]
+            parent_nodes[node] = parents[-2] if len(parents) > 1 else None
+        root_nodes = {final_trace.idx2loop_id[n]: final_trace.idx2loop_id[r] for n, r in root_nodes.items()}
+        parent_nodes = {
+            final_trace.idx2loop_id[n]: final_trace.idx2loop_id[r] if r is not None else r
+            for n, r in parent_nodes.items()
+        }
+
+        # Generate Summary Table
         df = pd.DataFrame(
             columns=[
+                "Root N",
+                "Parent N",
                 "Component",
                 "Hypothesis",
                 "Reason",
                 "Others",
-                "Running Score (valid)",
-                "Running Score (test)",
+                "Run Score (valid)",
+                "Run Score (test)",
                 "Feedback",
                 "e-loops(c)",
                 "e-loops(r)",
@@ -726,6 +740,8 @@ def summarize_win():
         sota_loop_id = state.sota_info[1] if state.sota_info else None
         for loop in range(min_id, max_id + 1):
             loop_data = state.data[loop]
+            df.loc[loop, "Parent N"] = parent_nodes.get(loop, None)
+            df.loc[loop, "Root N"] = root_nodes.get(loop, None)
             df.loc[loop, "Component"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.component
             df.loc[loop, "Hypothesis"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.hypothesis
             df.loc[loop, "Reason"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.reason
@@ -766,10 +782,10 @@ def summarize_win():
                         running_result = loop_data["running"]["no_tag"].result
                     except AttributeError as e:  # Compatible with old versions
                         running_result = loop_data["running"]["no_tag"].__dict__["result"]
-                    df.loc[loop, "Running Score (valid)"] = str(round(running_result.loc["ensemble"].iloc[0], 5))
+                    df.loc[loop, "Run Score (valid)"] = str(round(running_result.loc["ensemble"].iloc[0], 5))
                     valid_results[loop] = running_result
                 except:
-                    df.loc[loop, "Running Score (valid)"] = "❌"
+                    df.loc[loop, "Run Score (valid)"] = "❌"
                 if "mle_score" not in state.data[loop]:
                     if "mle_score" in loop_data["running"]:
                         mle_score_txt = loop_data["running"]["mle_score"]
@@ -787,12 +803,10 @@ def summarize_win():
                                     else "🥉" if state.data[loop]["mle_score"]["bronze_medal"] else ""
                                 )
                             )
-                            df.loc[loop, "Running Score (test)"] = (
-                                f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
-                            )
+                            df.loc[loop, "Run Score (test)"] = f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
                         else:
                             state.data[loop]["mle_score"] = mle_score_txt
-                            df.loc[loop, "Running Score (test)"] = "❌"
+                            df.loc[loop, "Run Score (test)"] = "❌"
                     else:
                         mle_score_path = (
                             replace_ep_path(loop_data["running"]["no_tag"].experiment_workspace.workspace_path)
@@ -811,15 +825,15 @@ def summarize_win():
                                         else "🥉" if state.data[loop]["mle_score"]["bronze_medal"] else ""
                                     )
                                 )
-                                df.loc[loop, "Running Score (test)"] = (
+                                df.loc[loop, "Run Score (test)"] = (
                                     f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
                                 )
                             else:
                                 state.data[loop]["mle_score"] = mle_score_txt
-                                df.loc[loop, "Running Score (test)"] = "❌"
+                                df.loc[loop, "Run Score (test)"] = "❌"
                         except Exception as e:
                             state.data[loop]["mle_score"] = str(e)
-                            df.loc[loop, "Running Score (test)"] = "❌"
+                            df.loc[loop, "Run Score (test)"] = "❌"
                 else:
                     if isinstance(state.data[loop]["mle_score"], dict):
                         medal_emoji = (
@@ -831,13 +845,13 @@ def summarize_win():
                                 else "🥉" if state.data[loop]["mle_score"]["bronze_medal"] else ""
                             )
                         )
-                        df.loc[loop, "Running Score (test)"] = f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
+                        df.loc[loop, "Run Score (test)"] = f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
                     else:
-                        df.loc[loop, "Running Score (test)"] = "❌"
+                        df.loc[loop, "Run Score (test)"] = "❌"
 
             else:
-                df.loc[loop, "Running Score (valid)"] = "N/A"
-                df.loc[loop, "Running Score (test)"] = "N/A"
+                df.loc[loop, "Run Score (valid)"] = "N/A"
+                df.loc[loop, "Run Score (test)"] = "N/A"
 
             if "coding" in loop_data:
                 if len([i for i in loop_data["coding"].keys() if isinstance(i, int)]) == 0:
@@ -859,7 +873,38 @@ def summarize_win():
 
         if only_success:
             df = df[df["Feedback"] == "✅"]
-        st.dataframe(df[df.columns[~df.columns.isin(["Hypothesis", "Reason", "Others"])]])
+
+        # Add color styling based on root_nodes
+        def style_dataframe_by_root(df, root_nodes):
+            # Create a color map for different root nodes - using colors that work well in both light and dark modes
+            unique_roots = list(set(root_nodes.values()))
+            colors = [
+                "rgba(255, 99, 132, 0.3)",
+                "rgba(54, 162, 235, 0.3)",
+                "rgba(75, 192, 75, 0.3)",
+                "rgba(255, 159, 64, 0.3)",
+                "rgba(153, 102, 255, 0.2)",
+                "rgba(255, 205, 86, 0.2)",
+                "rgba(199, 199, 199, 0.2)",
+                "rgba(83, 102, 255, 0.2)",
+            ]
+            root_color_map = {root: colors[i % len(colors)] for i, root in enumerate(unique_roots)}
+
+            # Create styling function
+            def apply_color(row):
+                loop_id = row.name
+                if loop_id in root_nodes:
+                    root_id = root_nodes[loop_id]
+                    color = root_color_map.get(root_id, "rgba(128, 128, 128, 0.1)")
+                    return [f"background-color: {color}"] * len(row)
+                return [""] * len(row)
+
+            return df.style.apply(apply_color, axis=1)
+
+        styled_df = style_dataframe_by_root(
+            df[df.columns[~df.columns.isin(["Hypothesis", "Reason", "Others"])]], root_nodes
+        )
+        st.dataframe(styled_df)
 
         # timeline figure
         if state.times:
@@ -882,7 +927,7 @@ def summarize_win():
             ensemble_row = vscores.loc[["ensemble"]]
             vscores = pd.concat([ensemble_row, vscores.drop("ensemble")])
         vscores = vscores.T
-        test_scores = df["Running Score (test)"].str.replace(r"[🥇🥈🥉]\s*", "", regex=True)
+        test_scores = df["Run Score (test)"].str.replace(r"[🥇🥈🥉]\s*", "", regex=True)
         vscores["test"] = test_scores
         vscores.index = [f"L{i}" for i in vscores.index]
         vscores.columns.name = metric_name
@@ -902,7 +947,7 @@ def summarize_win():
 
         def comp_stat_func(x: pd.DataFrame):
             total_num = x.shape[0]
-            valid_num = x[x["Running Score (test)"] != "N/A"].shape[0]
+            valid_num = x[x["Run Score (test)"] != "N/A"].shape[0]
             success_num = x[x["Feedback"] == "✅"].shape[0]
             avg_e_loops = x["e-loops(c)"].mean()
             return pd.Series(
@@ -920,7 +965,7 @@ def summarize_win():
 
         # component statistics
         comp_df = (
-            df.loc[:, ["Component", "Running Score (test)", "Feedback", "e-loops(c)"]]
+            df.loc[:, ["Component", "Run Score (test)", "Feedback", "e-loops(c)"]]
             .groupby("Component")
             .apply(comp_stat_func, include_groups=False)
         )
