@@ -336,25 +336,25 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             else:
                 v["script_time"] = None
 
-            exp_gen_time = timedelta()
-            coding_time = timedelta()
-            running_time = timedelta()
-            all_time = timedelta()
             times_info = load_times_info(Path(lf) / k)
+
+            exp_gen_time = coding_time = running_time = timedelta()
+            start_times, end_times = [], []
+
             for loop_times in times_info.values():
                 for step_name, step_time in loop_times.items():
-                    step_duration = step_time["end_time"] - step_time["start_time"]
+                    duration = step_time["end_time"] - step_time["start_time"]
+                    start_times.append(step_time["start_time"])
+                    end_times.append(step_time["end_time"])
+
                     if step_name == "exp_gen":
-                        exp_gen_time += step_duration
-                        all_time += step_duration
+                        exp_gen_time += duration
                     elif step_name == "coding":
-                        coding_time += step_duration
-                        all_time += step_duration
+                        coding_time += duration
                     elif step_name == "running":
-                        all_time += step_duration
-                        running_time += step_duration
-                    elif step_name in ["feedback", "record"]:
-                        all_time += step_duration
+                        running_time += duration
+
+            all_time = (max(end_times) - min(start_times)) if start_times else timedelta()
             v["exec_time"] = str(all_time).split(".")[0]
             v["exp_gen_time"] = str(exp_gen_time).split(".")[0]
             v["coding_time"] = str(coding_time).split(".")[0]
