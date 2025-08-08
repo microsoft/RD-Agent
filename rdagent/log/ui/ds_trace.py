@@ -524,7 +524,7 @@ def feedback_win(fb_data, llm_data=None):
 
 
 def sota_win(sota_exp, trace):
-    st.header("SOTA Experiment", divider="rainbow", anchor="sota-exp")
+    st.subheader("SOTA Experiment", divider="rainbow", anchor="sota-exp")
     if hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None:
         st.markdown(":orange[trace.**sota_exp_to_submit**]")
         sota_exp = trace.sota_exp_to_submit
@@ -572,6 +572,9 @@ def main_win(loop_id, llm_data=None):
     if "feedback" in loop_data:
         feedback_win(loop_data["feedback"], llm_data.get("feedback", None) if llm_data else None)
     if "record" in loop_data and "SOTA experiment" in loop_data["record"]:
+        st.header("Record", divider="violet", anchor="record")
+        if state.show_llm_log and llm_data is not None and "record" in llm_data:
+            llm_log_win(llm_data["record"]["no_tag"])
         sota_win(loop_data["record"]["SOTA experiment"], loop_data["record"]["trace"])
 
 
@@ -707,11 +710,12 @@ def summarize_win():
             parents = final_trace.get_parents(node)
             root_nodes[node] = parents[0]
             parent_nodes[node] = parents[-2] if len(parents) > 1 else None
-        root_nodes = {final_trace.idx2loop_id[n]: final_trace.idx2loop_id[r] for n, r in root_nodes.items()}
-        parent_nodes = {
-            final_trace.idx2loop_id[n]: final_trace.idx2loop_id[r] if r is not None else r
-            for n, r in parent_nodes.items()
-        }
+        if hasattr(final_trace, "idx2loop_id"):
+            root_nodes = {final_trace.idx2loop_id[n]: final_trace.idx2loop_id[r] for n, r in root_nodes.items()}
+            parent_nodes = {
+                final_trace.idx2loop_id[n]: final_trace.idx2loop_id[r] if r is not None else r
+                for n, r in parent_nodes.items()
+            }
 
         # Generate Summary Table
         df = pd.DataFrame(
@@ -748,7 +752,7 @@ def summarize_win():
             df.at[loop, "Others"] = {
                 k: v
                 for k, v in loop_data["direct_exp_gen"]["no_tag"].hypothesis.__dict__.items()
-                if k not in ["component", "hypothesis", "reason"]
+                if k not in ["component", "hypothesis", "reason"] and v is not None
             }
             df.loc[loop, "COST($)"] = sum(tc.content["cost"] for tc in state.token_costs[loop])
 
@@ -872,7 +876,7 @@ def summarize_win():
                 df.loc[loop, "Feedback"] = "N/A"
 
         if only_success:
-            df = df[df["Feedback"] == "✅"]
+            df = df[df["Feedback"].str.contains("✅", na=False)]
 
         # Add color styling based on root_nodes
         def style_dataframe_by_root(df, root_nodes):
@@ -935,13 +939,28 @@ def summarize_win():
             st.plotly_chart(curve_figure(vscores))
 
         st.markdown("### Hypotheses Table")
+        hypotheses_df = df.iloc[:, :8].copy()
+        others_expanded = pd.json_normalize(hypotheses_df["Others"].fillna({}))
+
+        hypotheses_df = hypotheses_df.drop("Others", axis=1)
+        hypotheses_df = hypotheses_df.drop("Parent N", axis=1)
+        hypotheses_df = pd.concat([hypotheses_df.iloc[:, :4], others_expanded, hypotheses_df.iloc[:, 4:]], axis=1)
+
+        styled_hypotheses_table = style_dataframe_by_root(hypotheses_df, root_nodes)
         st.dataframe(
-            df.iloc[:, :8],
+            styled_hypotheses_table,
             row_height=100,
             column_config={
-                "Others": st.column_config.JsonColumn(width="medium"),
-                "Reason": st.column_config.TextColumn(width="medium"),
-                "Hypothesis": st.column_config.TextColumn(width="large"),
+                k: st.column_config.TextColumn(
+                    k,
+                    width=(
+                        "small"
+                        if k
+                        in ["Component", "Root N", "Parent N", "Run Score (valid)", "Run Score (test)", "problem_label"]
+                        else "medium"
+                    ),
+                )
+                for k in hypotheses_df.columns
             },
         )
 
@@ -1119,7 +1138,8 @@ with st.sidebar:
 - [Coding](#coding)
 - [Running](#running)
 - [Feedback](#feedback)
-- [SOTA Experiment](#sota-exp)
+- [Record](#record)
+    - [SOTA Experiment](#sota-exp)
 """
     )
 

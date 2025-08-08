@@ -139,7 +139,7 @@ def all_summarize_win():
     if bt1.toggle("Select Best", key="select_best"):
 
         def apply_func(cdf: pd.DataFrame):
-            cp = cdf["Competition"].values[0]
+            cp = base_df.loc[cdf.index[0], "Competition"]
             md = get_metric_direction(cp)
             # If SOTA Exp Score (valid, to_submit) column is empty, return the first index
             if cdf["SOTA Exp Score (valid, to_submit)"].dropna().empty:
@@ -150,7 +150,7 @@ def all_summarize_win():
                 best_idx = cdf["SOTA Exp Score (valid, to_submit)"].idxmin()
             return best_idx
 
-        best_idxs = base_df.groupby("Competition").apply(apply_func)
+        best_idxs = base_df.groupby("Competition").apply(apply_func, include_groups=False)
         base_df["Select"] = base_df.index.isin(best_idxs.values)
 
     base_df = st.data_editor(
