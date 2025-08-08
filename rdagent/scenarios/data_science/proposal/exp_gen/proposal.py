@@ -731,6 +731,7 @@ class DSProposalV2ExpGen(ExpGen):
         scenario_desc: str,
         sota_exp_desc: str,
         exp_feedback_list_desc: str,
+        trace: DSTrace,
     ) -> Dict:
         """
         Generate improved hypotheses based on critique feedback for each original hypothesis.
@@ -748,6 +749,9 @@ class DSProposalV2ExpGen(ExpGen):
             hypothesis_critique_pairs += f"**Critique:** {critique_data.get('critique', 'No critique available')}\n\n"
 
         time_status = None
+        time_max = 3*3600#trace.hist.runing_info.get("time_max", None)
+        full_time = DS_RD_SETTING.full_timeout
+
         if DS_RD_SETTING.enable_scale_check and RD_Agent_TIMER_wrapper.timer.started:
             remain_time = RD_Agent_TIMER_wrapper.timer.remain_time()
             all_duration = RD_Agent_TIMER_wrapper.timer.all_duration
@@ -762,6 +766,8 @@ class DSProposalV2ExpGen(ExpGen):
                 enable_scale_check=DS_RD_SETTING.enable_scale_check
             ),
             enable_scale_check=DS_RD_SETTING.enable_scale_check,
+            time_max = time_max,
+            full_time = full_time
         )
         user_prompt = T(".prompts_v2:hypothesis_rewrite.user").r(
             scenario_desc=scenario_desc,

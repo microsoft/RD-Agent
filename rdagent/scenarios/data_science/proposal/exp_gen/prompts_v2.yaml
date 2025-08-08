@@ -359,6 +359,20 @@ hypothesis_rewrite:
       - **Competition Context**: This is a Kaggle competition where strong performance may come from novel approaches or incremental improvements. Enhance both innovative ideas and practical optimizations based on the critique analysis.
     
     
+    ## Guidelines for Filtering Hypotheses
+      Please note: You may delete some of the hypotheses based on the checklist below. In the end, retain only one or two hypotheses.
+      - Time Limit Check
+        If any hypothesis is likely to exceed the maximum runtime {full_time} hours, please delete it.
+
+      - Runtime Assessment
+        The current maximum runtime of the code is {time_max} hours.
+         Please assess whether this is a time-intensive competition—specifically, if the runtime of a single hypothesis falls within 50% to 90% of the total allowed time {full_time} hours.
+         In such cases, you must remove any hypotheses that are likely to exceed the time limit, especially those involving ensemble models or an excessive number of cross-validation folds.
+         If the competition is not time-intensive, ensure that the expected runtime of each retained hypothesis does not exceed 1.5 × {time max} hours, unless you have strong confidence that the hypothesis—despite its high computational cost—will lead to significantly better performance or results.
+
+     - Retention Condition
+       If the above conditions are met, you do not need to delete any hypotheses.
+
     {% if rewrite_output_format is not none %}
     ## Output Format
     {{ rewrite_output_format }}
