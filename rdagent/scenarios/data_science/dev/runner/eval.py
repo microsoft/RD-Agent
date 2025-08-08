@@ -201,6 +201,19 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
             queried_former_failed_knowledge=queried_former_failed_knowledge,
         )
 
+        system_prompt = T(".prompts:DSCoSTEER_eval.user").r(
+            code=implementation.all_codes,
+            change_summary=implementation.change_summary,
+            stdout=shrink_text(stdout),
+            time_spent=f"{implementation.running_info.running_time:.2f} seconds",
+            timeout=f"{env.conf.running_timeout_period} seconds",
+            percent_of_timeout_used=f"{time_spent_ratio * 100:.2f}%",
+            queried_former_failed_knowledge=queried_former_failed_knowledge,
+        )
+        
+        # 
+
+
         feedback = build_cls_from_json_with_retry(
             DSRunnerFeedback,
             system_prompt=system_prompt,
