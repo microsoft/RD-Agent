@@ -930,7 +930,7 @@ class DSProposalV2ExpGen(ExpGen):
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
             response_format=CodingSketch if self.supports_response_schema else {"type": "json_object"},
-            json_target_type=Dict[str, str | Dict[str, str]] if not self.supports_response_schema else None,
+            json_target_type=Dict[str, str | List[str] | Dict[str, str]] if not self.supports_response_schema else None,
         )
 
         task_dict = json.loads(response)
