@@ -347,21 +347,64 @@ class LoopBase:
             0  # if we rerun the loop, we should revert the loop index to 0 to make sure every loop is correctly kicked
         )
 
+        GRACE_SEC = 3600
         while True:
-            try:
-                # run one kickoff_loop and execute_loop
-                await asyncio.gather(
-                    self.kickoff_loop(), *[self.execute_loop() for _ in range(RD_AGENT_SETTINGS.get_max_parallel())]
-                )
+            # 1) Start all workers
+            tasks = [
+                asyncio.create_task(self.kickoff_loop(), name="kickoff"),
+                *[
+                    asyncio.create_task(self.execute_loop(), name=f"worker-{i}")
+                    for i in range(RD_AGENT_SETTINGS.get_max_parallel())
+                ],
+            ]
+
+            # 2) Wait until *any* task finishes or raises
+            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION)
+
+            # 3) Inspect the first exception, if any
+            first_exc = None
+            for t in done:
+                exc = t.exception()
+                if exc is None:
+                    continue
+                first_exc = exc
                 break
-            except self.LoopResumeError as e:
-                logger.warning(f"Stop all the routines and resume loop: {e}")
+
+            # === 3-A Timer timeout: grant grace period, then exit ===
+            if isinstance(first_exc, self.LoopTerminationError):
+                logger.warning(f"Timer timeout raised; waiting up to {GRACE_SEC}s for running tasks to finish...")
+                # Allow remaining tasks to finish on their own (max GRACE_SEC seconds)
+                _, still_pending = await asyncio.wait(pending, timeout=GRACE_SEC)
+
+                # Cancel and collect tasks that are still pending after the grace period
+                for p in still_pending:
+                    p.cancel()
+                await asyncio.gather(*still_pending, return_exceptions=True)
+                break
+
+            # === 3-B Withdraw & resume scenario ===
+            elif isinstance(first_exc, self.LoopResumeError):
+                logger.warning(f"Stop all the routines and resume loop: {first_exc}")
+                # Immediately cancel remaining tasks
+                for p in pending:
+                    p.cancel()
+                await asyncio.gather(*pending, return_exceptions=True)
                 self.loop_idx = 0
-            except self.LoopTerminationError as e:
-                logger.warning(f"Reach stop criterion and stop loop: {e}")
+                continue
+
+            # === 3-C Any other unexpected exception: re-raise ===
+            elif first_exc is not None:
+                for p in pending:
+                    p.cancel()
+                await asyncio.gather(*pending, return_exceptions=True)
+                raise first_exc
+
+            # === 3-D All tasks finished cleanly ===
+            else:
                 break
-            finally:
-                self.close_pbar()
+
+        # 4) Close progress bar
+        self.close_pbar()
 
     def withdraw_loop(self, loop_idx: int) -> None:
         prev_session_dir = self.session_folder / str(loop_idx - 1)
