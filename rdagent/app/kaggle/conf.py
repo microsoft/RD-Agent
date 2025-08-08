@@ -78,11 +78,5 @@ class KaggleBasePropSetting(ExtendedBaseSettings):
     time_ratio_limit_to_enable_hyperparameter_tuning: float = 1
     """Time ratio limit to enable hyperparameter tuning, if not change, hyperparameter tuning is always enabled in the first evolution."""
 
-    overall_time_ratio_limit_to_enable_hyperparameter_tuning: float = 0
-    """Overall time ratio limit to enable hyperparameter tuning, if not change, hyperparameter tuning is always enabled in the first evolution."""
-
-    only_enable_tuning_in_merge: bool = False
-    """Whether to enable hyperparameter tuning in the merge stage"""
-
 
 KAGGLE_IMPLEMENT_SETTING = KaggleBasePropSetting()
