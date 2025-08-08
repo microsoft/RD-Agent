@@ -574,6 +574,14 @@ class DSProposalV2ExpGen(ExpGen):
             for problem_name in fb_problems:
                 fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
                 all_problems[problem_name] = fb_problems[problem_name]
+
+        # Add persistent model problem  -- Persistent problem is a problem that is not related to the current scenario or feedback, but is a problem that is likely to be encountered in the future.
+        all_problems["Potential Model Architecture and Hyperparameter Tuning"] = {
+            "problem": "Model architecture and hyperparameter optimization may not be fully explored, current model might be suboptimal in terms of architecture complexity, regularization techniques, or hyperparameter settings for this specific dataset and task.",
+            "reason": "Model optimization is a critical component that consistently impacts performance across different datasets and scenarios, even with good feature engineering and data preprocessing, suboptimal model configuration can significantly limit the final performance.",
+            "label": "PERSISTENT_PROBLEM",
+        }
+
         return all_problems
 
     @wait_retry(retry_n=5)
@@ -864,6 +872,8 @@ class DSProposalV2ExpGen(ExpGen):
                 index_to_pick_pool_list.extend([j] * self.scen_prob_multiplier)
             elif problem_dict[problem_name]["label"] == "FEEDBACK_PROBLEM":
                 index_to_pick_pool_list.extend([j] * (3 - self.scen_prob_multiplier))
+            elif problem_dict[problem_name]["label"] == "PERSISTENT_PROBLEM":
+                index_to_pick_pool_list.extend([j] * 2)  # Persistent problems have moderate stable weight
             else:
                 index_to_pick_pool_list.extend([j] * 1)
         logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
