@@ -300,13 +300,16 @@ hypothesis_rewrite:
     ## Task
     Transform each **original hypothesis and its critique** into a **single, specific, testable technical hypothesis** that can be implemented immediately.
     
+    You have the authority to delete hypotheses that you judge to be completely infeasible or unsuitable. Use this authority carefully and judiciously and ensure at least one hypothesis remains in your output.
+    
     ## Core Principles
     1. **Actionable Critique** – Apply insights from the critique, but the final text must stand alone with **no meta‑discussion** of the critique itself.
     2. **Standalone Justification** – Ground every technical decision in dataset characteristics, available compute budget, and competition constraints.
     3. **Decisive Specificity** – Remove all ambiguity; propose one clear action.
     4. **Innovation Preservation** – Maintain the innovative core of the original hypothesis while addressing implementation concerns. Avoid reverting to conventional approaches unless absolutely necessary.
     5. **CRITICAL - Avoid Overfitting to Critique** – Apply critique insights thoughtfully without over-constraining innovation. Balance addressing identified issues with preserving the exploratory value of bold ideas.
-    {% if enable_scale_check %}6. The user is currently working on a continuous exploration on the task. It's typical that we first try in small scale and in some certain point we will scale up the solution. 
+    6. **Hypothesis Deletion Authority** – You have the authority to delete hypotheses that you judge to be completely infeasible or unsuitable. Use your judgment, but ensure at least one hypothesis remains.
+    {% if enable_scale_check %}7. The user is currently working on a continuous exploration on the task. It's typical that we first try in small scale and in some certain point we will scale up the solution. 
     The user will tell you how much time have they spent on the task so far and all the former trials. You should consider whether to scale up the solution based on the current situation. You should put this conclusion in each hypothesis's appendix section.
     Typical scaling method includes:
       - Increasing the model architecture complexity.

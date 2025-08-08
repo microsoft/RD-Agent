@@ -780,19 +780,25 @@ class DSProposalV2ExpGen(ExpGen):
 
         improved_hypotheses_dict = json.loads(response)
 
-        # Validate that we have rewritten hypotheses for all original hypotheses
+        # Validate rewritten hypotheses (now allows deletion of hypotheses)
         expected_problems = set(hypothesis_dict.keys())
-        available_problems = set(  # The code snippet provided is a comment in Python. It appears to be
-            # a placeholder for a function or variable named
-            # `improved_hypotheses_dict`. The actual implementation of this
-            # function or variable is not provided in the code snippet.
-            improved_hypotheses_dict.keys()
-        )
+        available_problems = set(improved_hypotheses_dict.keys())
 
-        if not expected_problems.issubset(available_problems):
-            missing_problems = expected_problems - available_problems
+        # Check if all available problems are valid (subset of expected)
+        if not available_problems.issubset(expected_problems):
+            unexpected_problems = available_problems - expected_problems
             # Raise exception to trigger retry mechanism
-            raise ValueError(f"Rewrite response missing expected problems. Missing: {missing_problems}")
+            raise ValueError(f"Rewrite response contains unexpected problems. Unexpected: {unexpected_problems}")
+
+        # Check if at least one hypothesis remains
+        if len(available_problems) == 0:
+            # Raise exception to trigger retry mechanism
+            raise ValueError("Rewrite response deleted all hypotheses. At least one hypothesis must remain.")
+
+        # Log deleted hypotheses if any
+        deleted_problems = expected_problems - available_problems
+        if deleted_problems:
+            logger.info(f"Deleted {len(deleted_problems)} hypotheses during rewrite: {deleted_problems}")
 
         # Note: We don't preserve 'inspired' field from original hypotheses
         # because after critique and rewrite, the hypothesis may have changed significantly
