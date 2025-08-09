@@ -158,6 +158,19 @@ pipeline_coder:
     You should be very careful about the label classes number in the debug mode. The label classes should be the same as the full run even when you are in the debug mode. The label classes number is often used to build the model.
     {% endif %}
 
+    ## Ensemble Guidelines:
+    {% if task_desc == "Ensemble" %}
+    - The code should have no try-except blocks to ensure errors are exposed.
+    - Verify that the scoring uses the specified metric exactly and correctly.
+    - Validate that the prediction shapes and values are consistent and sensible.
+    - Confirm that the ensemble completes training and inference within expected time (no timeout or incomplete training).
+    - Critically, check that the base models maintain good quality and are **not deliberately degraded to save time**. For example:
+        - Avoid freezing large parts of the model that reduce learning capacity.
+        - Avoid replacing full models with simplistic embedding regressors.
+        - Avoid using tricks that severely impair model expressiveness just to reduce runtime.
+    {% endif %}
+
+
     ## General Guidelines
     1. Code correctness is the top priority. Ensure your code is runnable and produces the expected output even if some task requirements are not fully met because the task itself might contain some errors like the wrong package name or wrong package function names.
     2. Use the print() function for all output; do not use the logging module.
