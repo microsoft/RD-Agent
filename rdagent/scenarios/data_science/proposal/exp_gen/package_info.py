@@ -154,5 +154,15 @@ def get_python_packages():
             print(pkg)
 
 
+def print_available_packages_prompt():
+    """Print the available packages prompt to stdout for external consumption"""
+    prompt = get_available_packages_prompt()
+    print(prompt)
+
+
 if __name__ == "__main__":
-    get_python_packages()
+    # Check if we should print available packages prompt
+    if len(sys.argv) > 1 and sys.argv[1] == "--packages-prompt":
+        print_available_packages_prompt()
+    else:
+        get_python_packages()
