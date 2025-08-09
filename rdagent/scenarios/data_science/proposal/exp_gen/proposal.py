@@ -30,7 +30,10 @@ from rdagent.scenarios.data_science.proposal.exp_gen.planner import (
     DSExperimentPlan,
     RD_Agent_TIMER_wrapper,
 )
-from rdagent.scenarios.data_science.proposal.exp_gen.utils import get_available_packages_prompt, get_packages
+from rdagent.scenarios.data_science.proposal.exp_gen.utils import (
+    get_available_packages_prompt,
+    get_packages,
+)
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
