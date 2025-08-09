@@ -101,8 +101,6 @@ hypothesis_gen:
       - Besides, do not compromise performance merely for efficiency since the current SOTA implementation do not encounter the constraints. You should think about how to balance the efficiency and performance so that your new hypothesis can be executed successfully and achieve satisfactory performance. 
     3. Multi-Branch Learning
       - When multiple branches (e.g., tabular, image, ensemble, workflow) have been explored, extract stable wins (changes that improved results repeatedly) and fragile wins (improvements with high variance or heavy cost).
-      - Prefer single-variable changes; if a proposal touches multiple components, split it into multiple hypotheses.
-      - When porting ideas from other branches, state the minimal integration and the specific acceptance/rollback condition.
       
     # Task 2: Hypothesis Evaluation
     ## Evaluation Instruction
