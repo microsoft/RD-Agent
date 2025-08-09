@@ -753,6 +753,8 @@ class DSProposalV2ExpGen(ExpGen):
         time_status = None
         time_max = max(time_list)/ 3600 #2*3600
         full_time = DS_RD_SETTING.full_timeout / 3600
+        merge_hours = DS_RD_SETTING.merge_hours
+        remain_time = RD_Agent_TIMER_wrapper.timer.remain_time() / 3600
 
         if DS_RD_SETTING.enable_scale_check and RD_Agent_TIMER_wrapper.timer.started:
             remain_time = RD_Agent_TIMER_wrapper.timer.remain_time()
@@ -769,7 +771,9 @@ class DSProposalV2ExpGen(ExpGen):
             ),
             enable_scale_check=DS_RD_SETTING.enable_scale_check,
             time_max = time_max,
-            full_time = full_time
+            full_time = full_time,
+            merge_hours = merge_hours,
+            remain_time = remain_time
         )
         user_prompt = T(".prompts_v2:hypothesis_rewrite.user").r(
             scenario_desc=scenario_desc,
