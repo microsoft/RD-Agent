@@ -364,13 +364,13 @@ hypothesis_rewrite:
     - **Time Limit Check**  
       Remove any hypothesis whose estimated runtime is greater than {{full_time}} hours **and** has no strong potential for significantly better results.
 
-    {% set safe_margin = 1.0 %}  # in hours
+
     {% if time_max < 0 %}
     - **Initial Stage**  
       - Since runtime information is not yet available, keep most hypotheses.  
       - Remove only those that are clearly excessive (e.g., > {{full_time}} hours) or overly complex.  
 
-    {% elif time_max >= (full_time - safe_margin) %}
+    {% elif time_max >= full_time*0.5 %}
     - **High Runtime Case**  
       - Current max runtime ({{time_max}} h) leaves little room for extra runs.  
       - Avoid high-fold (e.g., 5-fold) or heavy ensembles.  
