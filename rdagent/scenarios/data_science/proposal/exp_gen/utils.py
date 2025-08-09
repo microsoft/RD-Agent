@@ -104,15 +104,3 @@ def get_packages(pkgs: list[str] | None = None) -> str:
     stdout = implementation.execute(env=env, entry=f"python {fname} {pkg_args}")
     return stdout
 
-
-def get_packages_prompt() -> str:
-    """Return available packages prompt information."""
-    # Reuse package prompt cached during Draft stage when available.
-
-    env = get_ds_env()
-    implementation = FBWorkspace()
-    fname = "package_info.py"
-    implementation.inject_files(**{fname: (Path(__file__).absolute().resolve().parent / "package_info.py").read_text()})
-
-    stdout = implementation.execute(env=env, entry=f"python {fname} --prompt")
-    return stdout

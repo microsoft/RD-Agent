@@ -111,8 +111,4 @@ def get_python_packages():
 
 
 if __name__ == "__main__":
-    # Check for special argument to get prompt instead of package list
-    if len(sys.argv) > 1 and sys.argv[1] == "--prompt":
-        print(get_available_packages_prompt())
-    else:
-        get_python_packages()
+    get_python_packages()
