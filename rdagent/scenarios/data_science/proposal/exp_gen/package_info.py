@@ -6,6 +6,116 @@ def get_installed_packages():
     return {dist.metadata["Name"].lower(): dist.version for dist in distributions()}
 
 
+# Kaggle competition packages - based on usage frequency
+PYTHON_BASE_PACKAGES = ["catboost", "lightgbm", "numpy", "optuna", "pandas", "scikit-learn", "scipy", "shap", "xgboost"]
+
+PYTHON_ADVANCED_PACKAGES = [
+    "accelerate",
+    "albumentations",
+    "category_encoders",
+    "cudf-cu12",
+    "cuml-cu12",
+    "datasets",
+    "featuretools",
+    "imbalanced-learn",
+    "opencv-python",
+    "pillow",
+    "polars",
+    "sentence-transformers",
+    "spacy",
+    "tensorflow",
+    "timm",
+    "tokenizers",
+    "torch",
+    "torchvision",
+    "transformers",
+]
+
+PYTHON_AUTO_ML_PACKAGES = ["autogluon"]
+
+
+def get_available_packages_prompt():
+    """Generate prompt template for dynamically detected available packages"""
+    installed_packages = get_installed_packages()
+
+    # Check which packages are actually installed
+    base_available = [pkg for pkg in PYTHON_BASE_PACKAGES if pkg.lower() in installed_packages]
+    advanced_available = [pkg for pkg in PYTHON_ADVANCED_PACKAGES if pkg.lower() in installed_packages]
+    automl_available = [pkg for pkg in PYTHON_AUTO_ML_PACKAGES if pkg.lower() in installed_packages]
+
+    # Build prompt
+    prompt_parts = ["# Available packages in environment:\n"]
+
+    if base_available:
+        prompt_parts.append("## 【Basic Libraries】(general tools for data science tasks):")
+        prompt_parts.append(f"- {', '.join(base_available)}")
+        prompt_parts.append("")
+
+    if advanced_available:
+        prompt_parts.append("## 【Advanced Tools】(specialized for specific domains):")
+        prompt_parts.append(f"- {', '.join(advanced_available)}")
+        prompt_parts.append("")
+
+    if automl_available:
+        prompt_parts.append("## 【AutoML Tools】(automated machine learning):")
+        prompt_parts.append(f"- {', '.join(automl_available)}")
+        prompt_parts.append("")
+
+    prompt_parts.append(
+        "You should choose appropriate tool combinations based on the specific context and current situation."
+    )
+
+    return "\n".join(prompt_parts).strip()
+
+
+def get_persistent_problem_guidelines():
+    """Generate guidelines for PERSISTENT_PROBLEM scenarios - focusing on model architecture"""
+    guidelines = [
+        "## Model Architecture Selection Guidelines",
+        "",
+        "Focus on **model architecture** - choosing the right model type and structure for your specific problem.",
+        "",
+        "### **History-Aware Architecture Selection**",
+        "",
+        "1. **Learn from Experiment History**",
+        "   - **Check what's been tried**: Review previous experiments to understand current baseline status",
+        "   - **Identify gaps**: What architectures haven't been properly tested yet?",
+        "   - **Build on success**: If baseline exists and works, focus on targeted improvements",
+        "",
+        "2. **Context-Driven Strategy**",
+        "   - **No baseline yet**: Start with reliable methods (XGBoost, RandomForest) to establish foundation",
+        "   - **Baseline established**: Explore modern alternatives (LightGBM, CatBoost) for potential gains",
+        "   - **Modern methods tested**: Consider advanced techniques (ensembles, custom) if justified by results",
+        "",
+        "3. ** Single Focus Per Hypothesis**",
+        "   - **One goal at a time**: Each hypothesis should focus on either establishing baseline OR testing innovation, not both",
+        "   - **Avoid feature creep**: Don't try to implement multiple improvements in one hypothesis",
+        "   - **Clear hypothesis scope**: Define exactly what this hypothesis is testing before proposing",
+        "   - **Iterative approach**: Build incrementally - baseline first, then one innovation at a time",
+        "",
+        "4. **Timely Fallback Principle**",
+        "   - **Monitor performance closely**: If advanced methods show no clear improvement, retreat quickly",
+        "   - **Don't chase complexity**: Advanced doesn't always mean better - simple often wins",
+        "   - **Fallback triggers**: Performance drop, training instability, or unclear benefits = immediate retreat",
+        "   - **Preserve what works**: Always maintain access to your best-performing solution",
+        "",
+        "5. **Computational Constraints**",
+        "   - Training time limitations: Choose models that converge quickly",
+        "   - Inference requirements: Balance accuracy with prediction speed",
+        "   - Memory constraints: Consider model size and batch processing needs",
+        "",
+        "### 💡 **Key Reminder**",
+        "**One hypothesis, one goal**: Each hypothesis should test exactly one architectural change - either establish baseline OR test one specific innovation. Keep scope focused for clear results.",
+    ]
+    return "\n".join(guidelines)
+
+
+def get_all_available_packages():
+    """Get flattened list of all packages"""
+    all_packages = PYTHON_BASE_PACKAGES + PYTHON_ADVANCED_PACKAGES + PYTHON_AUTO_ML_PACKAGES
+    return sorted(set(all_packages))
+
+
 def print_filtered_packages(installed_packages, filtered_packages):
     to_print = []
     for package_name in filtered_packages:
@@ -26,24 +136,8 @@ def get_python_packages():
     # Example: `python package_info.py pandas torch scikit-learn`
     # If no extra arguments are provided we fall back to the original default list
     # to keep full backward-compatibility.
-    packages_list = [  # default packages
-        "transformers",
-        "accelerate",
-        "torch",
-        "tensorflow",
-        "pandas",
-        "numpy",
-        "scikit-learn",
-        "scipy",
-        "xgboost",
-        "sklearn",
-        "lightgbm",
-        "vtk",
-        "opencv-python",
-        "keras",
-        "matplotlib",
-        "pydicom",
-    ]
+    # Use our Kaggle-optimized package list as default
+    packages_list = get_all_available_packages()
     if len(sys.argv) > 1:
         packages_list = list(set(packages_list) | set(sys.argv[1:]))
 
