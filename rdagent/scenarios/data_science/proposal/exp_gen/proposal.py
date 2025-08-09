@@ -752,9 +752,9 @@ class DSProposalV2ExpGen(ExpGen):
         critiques_dict: Dict,
         scenario_desc: str,
         sota_exp_desc: str,
+        trace: DSTrace,
         exp_feedback_list_desc: str,
         packages_prompt: str = "",
-        trace: DSTrace,
     ) -> Dict:
         """
         Generate improved hypotheses based on critique feedback for each original hypothesis.
