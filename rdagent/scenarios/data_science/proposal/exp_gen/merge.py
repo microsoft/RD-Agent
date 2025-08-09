@@ -187,6 +187,9 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
                 selection=(leaf,),
                 max_retrieve_num=max_sota_retrieved_num_per_trace,
             )
+            if not exp_fbs:
+                continue
+            
             trace_leaf_summaries.append(
                 {
                     "leaf_id": leaf_id,
