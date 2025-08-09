@@ -757,12 +757,12 @@ class DSProposalV2ExpGen(ExpGen):
         remain_time = RD_Agent_TIMER_wrapper.timer.remain_time().total_seconds()  / 3600
 
         if DS_RD_SETTING.enable_scale_check and RD_Agent_TIMER_wrapper.timer.started:
-            remain_time = RD_Agent_TIMER_wrapper.timer.remain_time()
-            all_duration = RD_Agent_TIMER_wrapper.timer.all_duration
+            remain_time = RD_Agent_TIMER_wrapper.timer.remain_time().total_seconds()
+            all_duration = RD_Agent_TIMER_wrapper.timer.all_duration.total_seconds()
             remain_percent = remain_time / all_duration
             time_status = (
-                f"Remain time: {remain_time.total_seconds() / 3600:.2f} hours, "
-                f"{remain_percent:.2%} remaining of total time: {all_duration.total_seconds() / 3600:.2f} hours."
+                f"Remain time: {remain_time / 3600:.2f} hours, "
+                f"{remain_percent:.2%} remaining of total time: {all_duration / 3600:.2f} hours."
             )
 
         sys_prompt = T(".prompts_v2:hypothesis_rewrite.system").r(
