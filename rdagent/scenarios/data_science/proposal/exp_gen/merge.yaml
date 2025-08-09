@@ -42,6 +42,39 @@ trace: |-
     {% endif %}
     {% endfor %}
     {% endif %}
+merge_trace: |-
+    {% if not trace_leaf_summaries or trace_leaf_summaries|length == 0 %}
+    No trace leaves {% if type == "success" %}with SOTA{% elif type == "failure" %}containing failed{% endif %} experiments available.
+    {% else %}
+    {% for leaf in trace_leaf_summaries %}
+    # Trace Leaf: {{ leaf.leaf_id }}
+    ### Recent Experiments (max 4)
+    {% if not leaf.experiments or leaf.experiments|length == 0 %}
+    No eligible experiments found on this leaf.
+    {% else %}
+    {% for exp_and_feedback in leaf.experiments %}
+    ## Experiment {{ loop.index }}
+    Target Problem: {{ exp_and_feedback[0].hypothesis.problem_desc }}
+    Proposed Hypothesis: {{ exp_and_feedback[0].hypothesis.hypothesis }}
+    Surpass Previous SOTA: {{ exp_and_feedback[1].decision }}
+    {% if exp_and_feedback[0].result is none %}
+    Experiment Score: Running buggy
+    Experiment Error: {{ exp_and_feedback[1].reason }}
+    {% else %}
+    Experiment Score: {{ exp_and_feedback[0].result.loc["ensemble"].iloc[0] }}
+    Experiment Feedback: {{ exp_and_feedback[1].reason }}
+    {% if exp_and_feedback[1].code_change_summary %}Code Change Summary: {{ exp_and_feedback[1].code_change_summary }}{% endif %}
+    {% endif %}
+    {% endfor %}
+    {% if leaf.best_exp %}
+    ### Best Code (last experiment)
+    {{ leaf.best_exp.experiment_workspace.all_codes }}
+    {% else %}
+    No final code available for this leaf.
+    {% endif %}
+    {% endif %}
+    {% endfor %}
+    {% endif %}
 hypothesis_gen:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
@@ -66,7 +99,11 @@ hypothesis_gen:
     2. Note on Time/Memory Constraints
       - If prior experiments failed due to time/memory limitations, assume your new hypothesis will face the same constraints. In this case, prioritize efficiency and **ONLY** response to the problems related to time/memory constraints in your response dictionary.
       - Besides, do not compromise performance merely for efficiency since the current SOTA implementation do not encounter the constraints. You should think about how to balance the efficiency and performance so that your new hypothesis can be executed successfully and achieve satisfactory performance. 
-
+    3. Multi-Branch Learning
+      - When multiple branches (e.g., tabular, image, ensemble, workflow) have been explored, extract stable wins (changes that improved results repeatedly) and fragile wins (improvements with high variance or heavy cost).
+      - Prefer single-variable changes; if a proposal touches multiple components, split it into multiple hypotheses.
+      - When porting ideas from other branches, state the minimal integration and the specific acceptance/rollback condition.
+      
     # Task 2: Hypothesis Evaluation
     ## Evaluation Instruction
     Firstly, you should tag the hypothesis with one of the following components. If the hypothesis is related to multiple components, you should choose the most relevant one.

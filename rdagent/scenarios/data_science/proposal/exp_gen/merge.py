@@ -176,34 +176,34 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
                 )
             )
 
-        success_fb_list = list(set(trace_fbs))
-        logger.info(
-            f"Merge Hypothesis: select {len(success_fb_list)} from {len(trace_fbs)} SOTA experiments found in {len(leaves)} traces"
+        trace_leaf_summaries = []
+        for leaf_id, leaf in enumerate(leaves):
+            if leaf == trace.current_selection[0]:
+                continue
+
+            exp_fbs = trace.experiment_and_feedback_list_after_init(
+                return_type="sota",
+                search_type="ancestors",
+                selection=(leaf,),
+                max_retrieve_num=max_sota_retrieved_num_per_trace,
+            )
+            trace_leaf_summaries.append(
+                {
+                    "leaf_id": leaf_id,
+                    "experiments": exp_fbs,
+                    "best_exp": exp_fbs[-1][0],
+                }
+            )
+
+        merge_fb_desc = T("scenarios.data_science.proposal.exp_gen.merge:merge_trace").r(
+            trace_leaf_summaries=trace_leaf_summaries,
+            success_trial_desc="These trials are the steps or changes that led to the success of the solution to be merged",
         )
-
-        if len(success_fb_list) > 0:
-            exp_to_merge_fb_desc = T("scenarios.data_science.proposal.exp_gen.merge:trace").r(
-                exp_and_feedback_list=success_fb_list,
-                type="success",
-                heading="Successful iterations:",
-                success_trial_desc="These trials are the steps or changes that led to the success of the solution to be merged",
-                pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
-            )
-        else:
-            exp_index = self.get_exp_index(trace)
-            exp_to_merge_fb = trace.sota_experiment_fb(selection=(exp_index,))
-            if exp_to_merge_fb is None:
-                exp_to_merge_fb = trace.hist[exp_index]
-
-            exp_to_merge_fb_desc = T("scenarios.data_science.share:describe.feedback").r(
-                exp_and_feedback=exp_to_merge_fb,
-                heading="The feedback for the solution to be merged",
-            )
 
         component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
         hypothesis_dict = self.hypothesis_gen(
             component_desc=component_desc,
-            exp_feedback_list_desc=exp_to_merge_fb_desc,
+            exp_feedback_list_desc=merge_fb_desc,
             sota_exp_desc=sota_exp_desc,
             enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
             pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
