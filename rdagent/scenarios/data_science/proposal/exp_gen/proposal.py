@@ -23,6 +23,9 @@ from rdagent.scenarios.data_science.proposal.exp_gen.draft.draft import (
     DSDraftExpGen,  # TODO: DSDraftExpGen should be moved to router in the further
 )
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
+from rdagent.scenarios.data_science.proposal.exp_gen.package_info import (
+    get_available_packages_prompt,
+)
 from rdagent.scenarios.data_science.proposal.exp_gen.planner import (
     DSExperimentPlan,
     RD_Agent_TIMER_wrapper,
@@ -601,6 +604,12 @@ class DSProposalV2ExpGen(ExpGen):
         for i, (problem_name, problem_dict) in enumerate(problems.items()):
             problem_formatted_str += f"## {i+1}. {problem_name}\n"
             problem_formatted_str += f"{problem_dict['problem']}\n"
+
+            # Add package information for persistent problems
+            if problem_dict.get("label") == "PERSISTENT_PROBLEM":
+                packages_prompt = get_available_packages_prompt()
+                problem_formatted_str += f"\n{packages_prompt}\n"
+
             if "idea" in problem_dict:
                 idea_formatted_str = DSIdea(problem_dict["idea"]).to_formatted_str()
                 problem_formatted_str += f"Sampled Idea by user: \n{idea_formatted_str}\n"
