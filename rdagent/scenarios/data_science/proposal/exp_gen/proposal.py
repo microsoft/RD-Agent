@@ -770,6 +770,7 @@ class DSProposalV2ExpGen(ExpGen):
                 enable_scale_check=DS_RD_SETTING.enable_scale_check
             ),
             enable_scale_check=DS_RD_SETTING.enable_scale_check,
+            time_started=RD_Agent_TIMER_wrapper.timer.started,
             time_max=time_max,
             full_time=full_time,
             merge_hours=merge_hours,
