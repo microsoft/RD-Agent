@@ -307,7 +307,7 @@ hypothesis_rewrite:
     ## Task
     Transform each **original hypothesis and its critique** into a **single, specific, testable technical hypothesis** that can be implemented immediately.
     
-    You have the authority to delete hypotheses that you judge to be completely infeasible or unsuitable. Use this authority carefully and judiciously and ensure at least one hypothesis remains in your output.
+    **You have the authority to delete hypotheses that you judge to be completely infeasible or unsuitable, but ensure at least one hypothesis remains in your output.**
     
     ## Core Principles
     1. **Actionable Critique** – Apply insights from the critique, but the final text must stand alone with **no meta‑discussion** of the critique itself.
@@ -677,8 +677,8 @@ output_format:
       }
     }
   rewrite: |-
-    For each original hypothesis, rewrite it to address critique feedback, strictly following the JSON schema below. 
-    Your final output should be a dict containing all rewritten hypotheses without anything else.
+    For each original hypothesis, either rewrite it to address critique feedback or delete it if it's completely infeasible, strictly following the JSON schema below.
+    Your final output should be a dict containing the rewritten hypotheses (excluding any deleted ones) without anything else.
     {
       "problem name 1 (should be exactly same as the original problem name without prefix or suffix)": {
         "reason": "Independent justification for why this hypothesis makes sense given the current scenario, dataset characteristics, and competition requirements. DO NOT reference critique feedback or suggestions. Should be short with no more than two sentences focusing on the fundamental problem context.",
