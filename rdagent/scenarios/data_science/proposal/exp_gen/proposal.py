@@ -754,7 +754,7 @@ class DSProposalV2ExpGen(ExpGen):
         time_max = max(time_list)/ 3600 #2*3600
         full_time = DS_RD_SETTING.full_timeout / 3600
         merge_hours = DS_RD_SETTING.merge_hours
-        remain_time = RD_Agent_TIMER_wrapper.timer.remain_time() / 3600
+        remain_time = RD_Agent_TIMER_wrapper.timer.remain_time().total_seconds()  / 3600
 
         if DS_RD_SETTING.enable_scale_check and RD_Agent_TIMER_wrapper.timer.started:
             remain_time = RD_Agent_TIMER_wrapper.timer.remain_time()
