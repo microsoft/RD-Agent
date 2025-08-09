@@ -749,8 +749,10 @@ class DSProposalV2ExpGen(ExpGen):
             hypothesis_critique_pairs += f"**Critique:** {critique_data.get('critique', 'No critique available')}\n\n"
 
         time_status = None
-        time_max = 3*3600#trace.hist.runing_info.get("time_max", None)
-        full_time = DS_RD_SETTING.full_timeout
+        time_list = [tr[0].running_info.running_time for tr in trace.hist[:-1]]
+        time_status = None
+        time_max = max(time_list)/ 3600 #2*3600
+        full_time = DS_RD_SETTING.full_timeout / 3600
 
         if DS_RD_SETTING.enable_scale_check and RD_Agent_TIMER_wrapper.timer.started:
             remain_time = RD_Agent_TIMER_wrapper.timer.remain_time()
@@ -1142,6 +1144,7 @@ class DSProposalV2ExpGen(ExpGen):
                     scenario_desc=scenario_desc,
                     sota_exp_desc=sota_exp_desc,
                     exp_feedback_list_desc=exp_feedback_list_desc,
+                    trace = trace
                 )
                 logger.info(f"Successfully completed hypothesis critique and rewrite process")
             except Exception as e:

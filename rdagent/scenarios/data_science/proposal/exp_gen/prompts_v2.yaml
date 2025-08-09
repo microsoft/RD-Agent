@@ -366,12 +366,13 @@ hypothesis_rewrite:
 
       - Runtime Assessment
         The current maximum runtime of the code is {time_max} hours.
-         Please assess whether this is a time-intensive competition—specifically, if the runtime of a single hypothesis falls within 50% to 90% of the total allowed time {full_time} hours.
-         In such cases, you must remove any hypotheses that are likely to exceed the time limit, especially those involving ensemble models or an excessive number of cross-validation folds.
-         If the competition is not time-intensive, ensure that the expected runtime of each retained hypothesis does not exceed 1.5 × {time max} hours, unless you have strong confidence that the hypothesis—despite its high computational cost—will lead to significantly better performance or results.
+        Please assess whether this is a time-intensive competition—specifically, if the runtime of a single hypothesis falls within 50% to 100% of the total allowed time {full_time} hours. In such cases, you must remove any hypotheses that are likely to exceed the time limit, especially those involving ensemble models or an excessive number of cross-validation folds.
 
-     - Retention Condition
-       If the above conditions are met, you do not need to delete any hypotheses.
+      - Retention Condition 
+        If the competition is not time-intensive, ensure that the expected runtime of each retained hypothesis does not exceed 1.5 × {time_max} hours, unless you have strong confidence that the hypothesis—despite its high computational cost—will lead to significantly better performance or results. You can consider keeping this hypotheses.
+      
+      - Critical Challenge Addressing
+        If a hypothesis addresses a critical challenge that has caused prior experiment failures, it should be removed.
 
     {% if rewrite_output_format is not none %}
     ## Output Format
