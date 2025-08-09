@@ -193,6 +193,10 @@ hypothesis_gen:
       - **Risk-Reward Balance (Score: 1-10):** Considering the potential for significant improvement (reward) versus the probability of failure, negative side-effects, or excessive resource consumption (risk), how optimal is this balance? A high score indicates a favorable balance.
       - **Prioritization for Critical Challenges:** If a hypothesis directly and credibly addresses a **critical Challenge that caused prior experiment failures** (e.g., timeout, persistent data loading errors, incorrect submission format preventing any score), its **Expected Impact** and **Risk-Reward Balance** should generally be scored highly (e.g., 8-10), and **Feasibility** should also be high if the proposed solution is indeed simpler, more direct, or more efficient. This ensures such critical hypotheses are prioritized.
 
+    {% if additional_guidelines %}
+    {{ additional_guidelines }}
+    {% endif %}
+
     {% if inject_diverse %}
     # Focus on Diversity!!
     Diversity is very critical in the analysis of scenario problems. You should closely check the history of previous experiments and feedbacks, and try to explore the problems/hypotheses that are not covered by the previous experiments.
@@ -250,6 +254,7 @@ hypothesis_critique:
     - **Metric Impact**: Will this meaningfully improve the competition's evaluation metric?
     - **Historical Context**: Has similar approaches been tried? Key learnings from past attempts?
     - **Innovation vs History Balance**: Distinguish between implementation failures (worth retrying with improvements) vs fundamental approach failures (multiple attempts failed due to core unsuitability - should avoid)
+    - **Tool Selection Appropriateness**: Are the suggested tools/packages well-suited for the problem? Consider both modern capabilities and traditional reliability
     
     ### 3. Improvement Direction
     - **Clarity Issues**: If vague, identify specific methods or strategies that address the core problem
@@ -268,11 +273,13 @@ hypothesis_critique:
     **Good Critiques:**
     - "The hypothesis lacks specificity about which ensemble method to use. Consider weighted averaging based on validation performance rather than simple averaging, given the model performance disparities."
     - "This hypothesis proposes LSTM for tabular data. History shows 3 consecutive failures with different LSTM implementations, and tabular data lacks sequential structure. Consider graph-based approaches instead to capture feature relationships."
+    - "The hypothesis jumps to LightGBM without establishing a baseline. Consider starting with XGBoost to ensure a working solution, then explore LightGBM for potential improvements if the baseline performs adequately."
     
     **Poor Critiques:**
     - "Set max_depth=10, learning_rate=0.05, and use 500 trees." (too specific)
     - "This might not work." (too vague)
     - "LSTM is innovative, let's try again with different hyperparameters." (ignores fundamental mismatch)
+    - "Use the latest deep learning model because it's new." (ignores problem-solution fit)
     
     {% if critique_output_format is not none %}
     ## Output Format
@@ -323,6 +330,12 @@ hypothesis_rewrite:
     {% endif %}
     
     ## Guidelines for Writing Rewritten Hypotheses
+    
+    ### Available Tools Consideration
+    - When rewriting, consider if the hypothesis leverages appropriate tools from the available packages
+    - Balance innovation with practical tool selection - prefer modern packages when they offer clear advantages
+    - Ensure tool choices align with the problem requirements and constraints
+    - Be pragmatic: use whatever works best - whether it's a cutting-edge transformer or traditional logistic regression
     
     1. **Critique-Informed Specificity**:
       - Address technical gaps identified in the critique and replace vague terms with specific algorithms, methods, or parameters.
@@ -382,6 +395,10 @@ hypothesis_rewrite:
     {{ time_status }}
     {% endif %}
 
+    {% if packages_prompt is not none %}
+    {{ packages_prompt }}
+    {% endif %}
+
 
 task_gen:
   system: |-
@@ -437,6 +454,15 @@ task_gen:
       - For GBDT models, prefer XGBoost or RandomForest over LightGBM unless the SOTA or hypothesis dictates otherwise. Prefer not using GPU for GBDT models unless the SOTA or hypothesis dictates otherwise.
       - For neural networks, prefer PyTorch or PyTorch based library (over TensorFlow) unless the SOTA or hypothesis dictates otherwise.
       - For neural networks, prefer fine-tuning pre-trained models over training from scratch.
+
+    10. **Adaptive Architecture Selection Strategy**:
+      - **History assessment**: Review what architectures/approaches have been tried in previous experiments and their outcomes.
+      - **Context-driven decisions**: Base architecture choice on experiment maturity rather than fixed preferences.
+      - **IF no working solution exists**: Focus on establishing reliable baseline first.
+      - **IF baseline established**: Consider exploring alternative architectures for potential improvements.
+      - **IF alternatives tested**: Evaluate advanced techniques only if previous approaches show measurable benefits.
+      - **Avoid repetition**: Don't retry failed approaches unless addressing specific implementation issues identified in feedback.
+      - **Performance-guided progression**: Let actual results from previous experiments guide complexity level choice.
 
     ## Package Declaration
     At the end of your design, **you MUST** provide a key `packages` in the final JSON output.  

@@ -25,6 +25,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.draft.draft import (
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
 from rdagent.scenarios.data_science.proposal.exp_gen.package_info import (
     get_available_packages_prompt,
+    get_persistent_problem_guidelines,
 )
 from rdagent.scenarios.data_science.proposal.exp_gen.planner import (
     DSExperimentPlan,
@@ -579,9 +580,9 @@ class DSProposalV2ExpGen(ExpGen):
                 all_problems[problem_name] = fb_problems[problem_name]
 
         # Add persistent model problem  -- Persistent problem is a problem that is not related to the current scenario or feedback, but is a problem that is likely to be encountered in the future.
-        all_problems["Potential Model Architecture and Hyperparameter Tuning"] = {
-            "problem": "Model architecture and hyperparameter optimization may not be fully explored, current model might be suboptimal in terms of architecture complexity, regularization techniques, or hyperparameter settings for this specific dataset and task.",
-            "reason": "Model optimization is a critical component that consistently impacts performance across different datasets and scenarios, even with good feature engineering and data preprocessing, suboptimal model configuration can significantly limit the final performance.",
+        all_problems["Potential Model Architecture Optimization"] = {
+            "problem": "Current model architecture may not be optimal for this specific dataset and task characteristics, the chosen model type might not be the best fit for the data structure, size, and problem complexity.",
+            "reason": "Model architecture selection is fundamental to performance, as different model types have varying strengths for different data types and problem characteristics, choosing the right architecture is often more impactful than hyperparameter tuning.",
             "label": "PERSISTENT_PROBLEM",
         }
 
@@ -597,25 +598,27 @@ class DSProposalV2ExpGen(ExpGen):
         problems: dict,
         pipeline: bool,
         enable_idea_pool: bool,
+        packages_prompt: str = "",
         inject_diverse: bool = False,
         exp_gen_plan: Optional[Dict] = None,
     ) -> Dict:
         problem_formatted_str = ""
         for i, (problem_name, problem_dict) in enumerate(problems.items()):
             problem_formatted_str += f"## {i+1}. {problem_name}\n"
-            problem_formatted_str += f"{problem_dict['problem']}\n"
-
-            # Add package information for persistent problems
-            if problem_dict.get("label") == "PERSISTENT_PROBLEM":
-                packages_prompt = get_available_packages_prompt()
-                problem_formatted_str += f"\n{packages_prompt}\n"
+            problem_formatted_str += f"Statement: {problem_dict['problem']}\n"
+            problem_formatted_str += f"Reason: {problem_dict['reason']}\n"
 
             if "idea" in problem_dict:
                 idea_formatted_str = DSIdea(problem_dict["idea"]).to_formatted_str()
                 problem_formatted_str += f"Sampled Idea by user: \n{idea_formatted_str}\n"
             problem_formatted_str += "\n\n"
 
+        # add available packages prompt
+        if packages_prompt:
+            problem_formatted_str += f"\n{packages_prompt}\n"
+
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
+            additional_guidelines=get_persistent_problem_guidelines(),
             hypothesis_output_format=(
                 T(".prompts_v2:output_format.hypothesis").r(pipeline=pipeline, enable_idea_pool=enable_idea_pool)
                 if not self.supports_response_schema
@@ -748,6 +751,7 @@ class DSProposalV2ExpGen(ExpGen):
         scenario_desc: str,
         sota_exp_desc: str,
         exp_feedback_list_desc: str,
+        packages_prompt: str = "",
     ) -> Dict:
         """
         Generate improved hypotheses based on critique feedback for each original hypothesis.
@@ -786,6 +790,7 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             hypothesis_critique_pairs=hypothesis_critique_pairs,
             time_status=time_status,
+            packages_prompt=packages_prompt,
         )
 
         response = APIBackend().build_messages_and_create_chat_completion(
@@ -1081,6 +1086,9 @@ class DSProposalV2ExpGen(ExpGen):
         else:
             inject_diverse = False
 
+        # add available packages prompt
+        packages_prompt = get_available_packages_prompt()
+
         # Step 1: Identify problems
         all_problems = self.identify_problem(
             current_sub_trace=trace.get_parent_exps(),
@@ -1112,6 +1120,7 @@ class DSProposalV2ExpGen(ExpGen):
             enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
             inject_diverse=inject_diverse,
             exp_gen_plan=plan.get("exp_gen") if plan else None,
+            packages_prompt=packages_prompt,
         )
         if not pipeline:
             sota_exp_model_file_count = len(
@@ -1155,6 +1164,7 @@ class DSProposalV2ExpGen(ExpGen):
                     scenario_desc=scenario_desc,
                     sota_exp_desc=sota_exp_desc,
                     exp_feedback_list_desc=exp_feedback_list_desc,
+                    packages_prompt=packages_prompt,
                 )
                 logger.info(f"Successfully completed hypothesis critique and rewrite process")
             except Exception as e:

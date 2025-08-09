@@ -103,4 +103,3 @@ def get_packages(pkgs: list[str] | None = None) -> str:
     pkg_args = " ".join(pkgs) if pkgs else ""
     stdout = implementation.execute(env=env, entry=f"python {fname} {pkg_args}")
     return stdout
-

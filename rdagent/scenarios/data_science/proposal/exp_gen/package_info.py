@@ -44,26 +44,70 @@ def get_available_packages_prompt():
     automl_available = [pkg for pkg in PYTHON_AUTO_ML_PACKAGES if pkg.lower() in installed_packages]
 
     # Build prompt
-    prompt_parts = ["Available packages in environment:\n"]
+    prompt_parts = ["# Available packages in environment:\n"]
 
     if base_available:
-        prompt_parts.append("【Basic Libraries】(core tools for most competitions):")
+        prompt_parts.append("## 【Basic Libraries】(general tools for data science tasks):")
         prompt_parts.append(f"- {', '.join(base_available)}")
         prompt_parts.append("")
 
     if advanced_available:
-        prompt_parts.append("【Advanced Tools】(specialized for specific domains):")
+        prompt_parts.append("## 【Advanced Tools】(specialized for specific domains):")
         prompt_parts.append(f"- {', '.join(advanced_available)}")
         prompt_parts.append("")
 
     if automl_available:
-        prompt_parts.append("【AutoML Tools】(automated machine learning):")
+        prompt_parts.append("## 【AutoML Tools】(automated machine learning):")
         prompt_parts.append(f"- {', '.join(automl_available)}")
         prompt_parts.append("")
 
-    prompt_parts.append("Choose appropriate tool combinations based on the competition type.")
+    prompt_parts.append(
+        "You should choose appropriate tool combinations based on the specific context and current situation."
+    )
 
     return "\n".join(prompt_parts).strip()
+
+
+def get_persistent_problem_guidelines():
+    """Generate guidelines for PERSISTENT_PROBLEM scenarios - focusing on model architecture"""
+    guidelines = [
+        "## Model Architecture Selection Guidelines",
+        "",
+        "Focus on **model architecture** - choosing the right model type and structure for your specific problem.",
+        "",
+        "### **History-Aware Architecture Selection**",
+        "",
+        "1. **Learn from Experiment History**",
+        "   - **Check what's been tried**: Review previous experiments to understand current baseline status",
+        "   - **Identify gaps**: What architectures haven't been properly tested yet?",
+        "   - **Build on success**: If baseline exists and works, focus on targeted improvements",
+        "",
+        "2. **Context-Driven Strategy**",
+        "   - **No baseline yet**: Start with reliable methods (XGBoost, RandomForest) to establish foundation",
+        "   - **Baseline established**: Explore modern alternatives (LightGBM, CatBoost) for potential gains",
+        "   - **Modern methods tested**: Consider advanced techniques (ensembles, custom) if justified by results",
+        "",
+        "3. ** Single Focus Per Hypothesis**",
+        "   - **One goal at a time**: Each hypothesis should focus on either establishing baseline OR testing innovation, not both",
+        "   - **Avoid feature creep**: Don't try to implement multiple improvements in one hypothesis",
+        "   - **Clear hypothesis scope**: Define exactly what this hypothesis is testing before proposing",
+        "   - **Iterative approach**: Build incrementally - baseline first, then one innovation at a time",
+        "",
+        "4. **Timely Fallback Principle**",
+        "   - **Monitor performance closely**: If advanced methods show no clear improvement, retreat quickly",
+        "   - **Don't chase complexity**: Advanced doesn't always mean better - simple often wins",
+        "   - **Fallback triggers**: Performance drop, training instability, or unclear benefits = immediate retreat",
+        "   - **Preserve what works**: Always maintain access to your best-performing solution",
+        "",
+        "5. **Computational Constraints**",
+        "   - Training time limitations: Choose models that converge quickly",
+        "   - Inference requirements: Balance accuracy with prediction speed",
+        "   - Memory constraints: Consider model size and batch processing needs",
+        "",
+        "### 💡 **Key Reminder**",
+        "**One hypothesis, one goal**: Each hypothesis should test exactly one architectural change - either establish baseline OR test one specific innovation. Keep scope focused for clear results.",
+    ]
+    return "\n".join(guidelines)
 
 
 def get_all_available_packages():
