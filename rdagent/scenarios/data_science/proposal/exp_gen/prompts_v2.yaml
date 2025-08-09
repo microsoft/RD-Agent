@@ -370,7 +370,38 @@ hypothesis_rewrite:
     6. **Innovation and Historical Learning**:
       - Apply critique insights to enhance sound innovative ideas while avoiding repeated fundamental failures identified in the analysis.
       - **Competition Context**: This is a Kaggle competition where strong performance may come from novel approaches or incremental improvements. Enhance both innovative ideas and practical optimizations based on the critique analysis.
-    
+  
+    {% if time_started %}
+    {%if remain_time > merge_hours %}
+    ## Guidelines for Filtering Hypotheses
+
+    - **Time Limit Check**  
+      Remove any hypothesis whose estimated runtime is greater than {{full_time}} hours **and** has no strong potential for significantly better results.
+
+
+    {% if time_max < 0 %}
+    - **Initial Stage**  
+      - Since runtime information is not yet available, keep most hypotheses.  
+      - Remove only those that are clearly excessive (e.g., > {{full_time}} hours) or overly complex.  
+
+    {% elif time_max >= full_time*0.5 %}
+    - **High Runtime Case**  
+      - Current max runtime ({{time_max}} h) leaves little room for extra runs.  
+      - Avoid high-fold (e.g., 5-fold) or heavy ensembles.  
+      - Maximum recommended folds: {{ (full_time // time_max) | int }}  
+      - Remove hypotheses that are clearly excessive (e.g., > {{full_time}} hours)
+
+    {% else %}
+    - **Low Runtime Case**  
+      - Current max runtime ({{time_max}} h) is far from the time limit.  
+      - Prefer hypotheses with runtimes ≤ {{full_time}} hours.  
+      - Hypotheses slightly above {{time_max}} can be retained only with strong justification.  
+    {% endif %}
+
+    - **Past Failure Risks**  
+      Remove any hypothesis that contains elements known to have caused previous experiment failures.
+    {% endif %}
+    {% endif %}
     
     {% if rewrite_output_format is not none %}
     ## Output Format

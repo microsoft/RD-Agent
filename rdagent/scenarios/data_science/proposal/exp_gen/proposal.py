@@ -753,6 +753,7 @@ class DSProposalV2ExpGen(ExpGen):
         scenario_desc: str,
         sota_exp_desc: str,
         exp_feedback_list_desc: str,
+        trace: DSTrace,
         packages_prompt: str = "",
     ) -> Dict:
         """
@@ -771,20 +772,32 @@ class DSProposalV2ExpGen(ExpGen):
             hypothesis_critique_pairs += f"**Critique:** {critique_data.get('critique', 'No critique available')}\n\n"
 
         time_status = None
-        if DS_RD_SETTING.enable_scale_check and RD_Agent_TIMER_wrapper.timer.started:
-            remain_time = RD_Agent_TIMER_wrapper.timer.remain_time()
-            all_duration = RD_Agent_TIMER_wrapper.timer.all_duration
-            remain_percent = remain_time / all_duration
-            time_status = (
-                f"Remain time: {remain_time.total_seconds() / 3600:.2f} hours, "
-                f"{remain_percent:.2%} remaining of total time: {all_duration.total_seconds() / 3600:.2f} hours."
-            )
+        remain_time = None
+        time_list = [-3600] + [tr[0].running_info.running_time for tr in trace.hist[:-1]]
+        time_max = max(time_list) / 3600
+        full_time = self.scen.real_full_timeout()
+        merge_hours = DS_RD_SETTING.merge_hours
+
+        if RD_Agent_TIMER_wrapper.timer.started:
+            remain_time = RD_Agent_TIMER_wrapper.timer.remain_time().total_seconds() / 3600
+            if DS_RD_SETTING.enable_scale_check:
+                all_duration = RD_Agent_TIMER_wrapper.timer.all_duration.total_seconds()
+                remain_percent = remain_time / all_duration
+                time_status = (
+                    f"Remain time: {remain_time / 3600:.2f} hours, "
+                    f"{remain_percent:.2%} remaining of total time: {all_duration / 3600:.2f} hours."
+                )
 
         sys_prompt = T(".prompts_v2:hypothesis_rewrite.system").r(
             rewrite_output_format=T(".prompts_v2:output_format.rewrite").r(
                 enable_scale_check=DS_RD_SETTING.enable_scale_check
             ),
             enable_scale_check=DS_RD_SETTING.enable_scale_check,
+            time_started=RD_Agent_TIMER_wrapper.timer.started,
+            time_max=time_max,
+            full_time=full_time,
+            merge_hours=merge_hours,
+            remain_time=remain_time,
         )
         user_prompt = T(".prompts_v2:hypothesis_rewrite.user").r(
             scenario_desc=scenario_desc,
@@ -1167,6 +1180,7 @@ class DSProposalV2ExpGen(ExpGen):
                     sota_exp_desc=sota_exp_desc,
                     exp_feedback_list_desc=exp_feedback_list_desc,
                     packages_prompt=packages_prompt,
+                    trace=trace,
                 )
                 logger.info(f"Successfully completed hypothesis critique and rewrite process")
             except Exception as e:
