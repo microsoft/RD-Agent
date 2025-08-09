@@ -749,7 +749,7 @@ class DSProposalV2ExpGen(ExpGen):
             hypothesis_critique_pairs += f"**Critique:** {critique_data.get('critique', 'No critique available')}\n\n"
 
         time_status = None
-        time_list = [tr[0].running_info.running_time for tr in trace.hist[:-1]]
+        time_list = [-3600]+ [tr[0].running_info.running_time for tr in trace.hist[:-1]]
         time_status = None
         time_max = max(time_list)/ 3600 #2*3600
         full_time = DS_RD_SETTING.full_timeout / 3600
