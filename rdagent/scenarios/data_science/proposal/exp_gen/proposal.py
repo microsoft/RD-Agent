@@ -778,12 +778,11 @@ class DSProposalV2ExpGen(ExpGen):
         full_time = self.scen.real_full_timeout()
         merge_hours = DS_RD_SETTING.merge_hours
 
-        if RD_Agent_TIMER_wrapper.timer.started:
-            remain_time = RD_Agent_TIMER_wrapper.timer.remain_time().total_seconds() / 3600
-            if DS_RD_SETTING.enable_scale_check:
-                all_duration = RD_Agent_TIMER_wrapper.timer.all_duration.total_seconds()
-                remain_percent = remain_time / all_duration
-                time_status = (
+        remain_time = RD_Agent_TIMER_wrapper.timer.remain_time().total_seconds() / 3600
+        if DS_RD_SETTING.enable_scale_check:
+            all_duration = RD_Agent_TIMER_wrapper.timer.all_duration.total_seconds()
+            remain_percent = remain_time / all_duration
+            time_status = (
                     f"Remain time: {remain_time / 3600:.2f} hours, "
                     f"{remain_percent:.2%} remaining of total time: {all_duration / 3600:.2f} hours."
                 )
@@ -793,7 +792,6 @@ class DSProposalV2ExpGen(ExpGen):
                 enable_scale_check=DS_RD_SETTING.enable_scale_check
             ),
             enable_scale_check=DS_RD_SETTING.enable_scale_check,
-            time_started=RD_Agent_TIMER_wrapper.timer.started,
             time_max=time_max,
             full_time=full_time,
             merge_hours=merge_hours,
