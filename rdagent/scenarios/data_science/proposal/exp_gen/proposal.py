@@ -754,6 +754,13 @@ class DSProposalV2ExpGen(ExpGen):
         time_max = max(time_list) / 3600
         full_time = self.scen.real_full_timeout()
         merge_hours = DS_RD_SETTING.merge_hours
+        
+        time_list_success = [-3600] + [tr[0].running_info.running_time for tr in trace.hist[:-1] if getattr(tr[1], "decision", False)
+            ]
+        if (max(time_list_success)/ 3600)*1.8 > merge_hours:
+            DS_RD_SETTING.merge_hours = 0  # give up merge 
+            merge_hours = 0
+            DS_RD_SETTING.smooth_flag = True
 
         if RD_Agent_TIMER_wrapper.timer.started:
             remain_time = RD_Agent_TIMER_wrapper.timer.remain_time().total_seconds() / 3600
@@ -1015,6 +1022,48 @@ class DSProposalV2ExpGen(ExpGen):
             )
         return result
 
+    def hypothesis_smooth(self,
+                                   scenario_desc: str,
+                                   exp_feedback_list_desc: str,
+                                   sota_exp_desc: str,
+                                   hypothesis_candidates:dict):
+        
+        # time_use_current = 0
+        # for exp, feedback in trace.hist:
+        #     if exp.running_info.running_time is not None:
+        #         time_use_current += exp.running_info.running_time
+        # res_time = 12*3600 - time_use_current
+        res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
+        total_time = RD_Agent_TIMER_wrapper.timer.all_duration
+        use_time =  round(total_time.total_seconds(),2) -  round(res_time.total_seconds(),2)
+        use_ratio = 100* use_time / round(total_time.total_seconds(),2)
+        use_ratio = round(use_ratio, 2)
+
+        ensemble_timeout = round(res_time.total_seconds(),2) #DS_RD_SETTING.ensemble_timeout
+        hypothesis_candidates =  str(json.dumps(hypothesis_candidates, indent=2))
+
+        sys_prompt = T(".prompts_v2:hypothesis_smooth.system").r(
+                hypothesis_candidates = hypothesis_candidates,
+                res_time = round(res_time.total_seconds(),2),
+                ensemble_timeout = ensemble_timeout,
+                use_ratio = use_ratio,
+                hypothesis_output_format = T(".prompts_v2:output_format.hypothesis_smooth_format").r(hypothesis_candidates = hypothesis_candidates)
+        )
+
+        user_prompt = T(".prompts_v2:hypothesis_smooth.user").r(
+            scenario_desc=scenario_desc,
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+        )
+
+        response_dict = json.loads(response)
+        return response_dict
+
     def gen(
         self,
         trace: DSTrace,
@@ -1161,10 +1210,42 @@ class DSProposalV2ExpGen(ExpGen):
             improved_hypotheses_dict = hypothesis_dict.copy()  # Use original hypotheses directly
 
         # Step 3: Select the best hypothesis
-        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
-            hypothesis_dict=improved_hypotheses_dict,
-            problem_dict=all_problems,
-        )
+
+        res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
+        total_time = RD_Agent_TIMER_wrapper.timer.all_duration
+        use_time =  round(total_time.total_seconds(),2) -  round(res_time.total_seconds(),2)
+        use_ratio = 100* use_time / round(total_time.total_seconds(),2)
+        use_ratio = round(use_ratio, 2) 
+
+        if DS_RD_SETTING.smooth_flag and use_ratio>70:
+            response_dict = self.hypothesis_smooth(scenario_desc=scenario_desc,
+                                    exp_feedback_list_desc=exp_feedback_list_desc,
+                                    sota_exp_desc=sota_exp_desc,
+                                    hypothesis_candidates =hypothesis_dict
+                                        )
+            component_map = {
+                "Model": HypothesisComponent.Model,
+                "Ensemble": HypothesisComponent.Ensemble,
+                "Workflow": HypothesisComponent.Workflow,
+                "FeatureEng": HypothesisComponent.FeatureEng,
+                "DataLoadSpec": HypothesisComponent.DataLoadSpec,
+            }
+
+            comp_str = response_dict.get("component")
+            hypo_str = response_dict.get("hypothesis")
+
+            if comp_str in component_map and hypo_str is not None:
+                new_hypothesis = DSHypothesis(component=component_map[comp_str], hypothesis=hypo_str)
+
+            pickled_problem_name = None
+            
+        else:
+            pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+                hypothesis_dict=improved_hypotheses_dict,
+                problem_dict=all_problems,
+            )
+
+
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
