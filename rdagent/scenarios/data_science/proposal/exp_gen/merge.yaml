@@ -44,7 +44,7 @@ trace: |-
     {% endif %}
 merge_trace: |-
     {% if not trace_leaf_summaries or trace_leaf_summaries|length == 0 %}
-    No trace leaves {% if type == "success" %}with SOTA{% elif type == "failure" %}containing failed{% endif %} experiments available.
+    No trace leaves with SOTA experiments available.
     {% else %}
     {% for leaf in trace_leaf_summaries %}
     # Trace Leaf: {{ leaf.leaf_id }}
