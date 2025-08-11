@@ -41,6 +41,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """The recommend time limit for running on full data"""
     full_timeout: int = 3600
     """The timeout limit for running on full data"""
+    ## smooth model
+    smooth_flag: bool = False
 
     ### specific feature
 

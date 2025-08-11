@@ -378,7 +378,7 @@ hypothesis_rewrite:
       Remove any hypothesis whose estimated runtime is greater than {{full_time}} hours **and** has no strong potential for significantly better results.
 
 
-    {% if time_max < 0 %}
+    {% if time_max <= 0 %}
     - **Initial Stage**  
       - Since runtime information is not yet available, keep most hypotheses.  
       - Remove only those that are clearly excessive (e.g., > {{full_time}} hours) or overly complex.  
@@ -387,7 +387,7 @@ hypothesis_rewrite:
     - **High Runtime Case**  
       - Current max runtime ({{time_max}} h) leaves little room for extra runs.  
       - Avoid high-fold (e.g., 5-fold) or heavy ensembles.  
-      - Maximum recommended folds: {{ (full_time // time_max) | int }}  
+      - Maximum recommended folds: {{ (full_time // time_max) | int }} (max 5 folds)
       - Remove hypotheses that are clearly excessive (e.g., > {{full_time}} hours)
 
     {% else %}
@@ -428,6 +428,55 @@ hypothesis_rewrite:
     {{ packages_prompt }}
     {% endif %}
 
+hypothesis_smooth:
+  system: |-
+    You are a Kaggle Grandmaster with deep expertise in model evaluation and decision making. Based on the given example, please select the most appropriate hypothesis from the candidates. 
+    These hypotheses are sourced from `model/data/feature/workflow`. Choose the one that best matches the intent or logic of the prompt. 
+    Alternatively, if you determine that ensemble is the best option, you may propose a **ensemble hypothesis** (not present in the candidates), as long as it aligns with the runtime and training constraints.  
+    You are given the following hypothesis candidates:
+    {{ hypothesis_candidates }}
+    If multiple hypotheses seem reasonable, select the one that is most robust or consistent with Previous Experiments and Feedbacks, pay attention to the runtime of each loop.
+
+    If you believe that previous methods have reached their limits and the current setting only involves a single model, feel free to propose an ensemble solution. However, you **must** carefully allocate the training and runtime budget to ensure the **ensemble logic is well-executed and evaluated**, without compromising the performance of the previous models.
+    
+    ### 1. Ensemble Core Principle
+    Your goal is not just to tune individual models, but to build an **effective ensemble**. Make design decisions that lead to **strong overall ensemble performance**, not just strong base models.
+    Please note: you are operating under a time budget dedicated to ensemble training of {{res_time}} seconds, and the maximum allowed time is {{ensemble_timeout}} seconds.
+    {{use_ratio}}% of the total ensemble time has been used.
+    
+    As this exceeds the 70% threshold, you are advised to **stop exploring individual model/feature/workflow hypotheses**.  
+    Instead, please focus on **designing a final ensemble hypothesis** that effectively leverages and combines the most promising components based on the historical performance of your previous trials.  
+    Use insights from earlier experiments (including successful models, valuable features, and workflows) to create a robust ensemble that captures their collective strength.
+
+    Please take the remaining {{res_time}} seconds to carefully consider and design the most reasonable and optimal ensemble hypothesis based on your current progress.
+    Assume training a single model takes about 1 hour. For example, if you have roughly twice that time left, you can try training multiple models with different random seeds or data splits to reuse time effectively.
+    If you have more time, you might consider training a multi-fold ensemble. Use your judgment to decide how many folds or seeds fit within your remaining time budget.
+
+    ### 2. Training-Time Resource Allocation
+    - You may use **multiple folds** if justified, but you must **ensure the full pipeline completes within runtime limits**.
+    - Avoid reducing base model quality just to save time. For example:
+      - Freezing large parts of the model (e.g., embeddings)
+      - Using only embedding-level regression instead of full modeling
+      - Using extreme simplifications like LoRA or tiny backbones if they degrade performance
+
+    ### 3. Expectation on Ensemble Design
+    - Implement an ensemble strategy that **improves performance**.
+      This can be as simple as training the same model with different random seeds or data splits and averaging the outputs.
+      More advanced methods like stacking or blending are optional and can be used if beneficial.
+      Choose a practical and reliable ensemble approach within the available time and resources.
+    - Consider the resource budget as a whole: a strong ensemble depends on both good base models and effective combination.
+
+    ### 4. Final Reminder
+    You have full access to the training code, task definition, and previous results.
+    You should weigh trade-offs thoughtfully and pick a design that **maximizes ensemble performance without shortcuts** that hurt model quality or cause timeout.
+    - The current time budget is sufficient for thorough training and ensemble.
+    - If you believe the existing single-model code is already good, avoid large modifications.
+    - Avoid overly strict constraints; focus on **effectively using available time** to build a **robust ensemble**.
+
+    {% if hypothesis_output_format is not none %}
+    ## Final Output Format in JSON Schema:
+    {{ hypothesis_output_format }}
+    {% endif %}
 
 task_gen:
   system: |-
@@ -725,3 +774,14 @@ output_format:
     }
 
 
+  hypothesis_smooth_format: |- 
+    Choose the best hypothesis from the provided hypothesis candidates {{ hypothesis_candidates }}.  
+    You must return a dictionary in the following format **for each selected hypothesis**:
+
+    {
+      "hypothesis": "...",  
+      "component": "..."  // Must be one of: 'DataLoadSpec', 'FeatureEng', 'Model', 'Workflow'
+    }
+
+    The **"hypothesis"** must be selected **from the provided hypothesis candidates** (do not generate new ones),  
+    **except** when you choose `"component": "Ensemble"`, in which case you should write your **own hypothesis**.
