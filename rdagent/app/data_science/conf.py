@@ -117,7 +117,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     This is different from `enable_inject_diverse` which is for non-parallel cases."""
 
     diversity_injection_strategy: str = (
-        "rdagent.scenarios.data_science.proposal.exp_gen.diversity_strategy.InjectAtRootStrategy"
+        "rdagent.scenarios.data_science.proposal.exp_gen.diversity_strategy.InjectUntilSOTAGainedStrategy"
     )
     """The strategy to use for injecting diversity context."""
 
