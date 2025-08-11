@@ -11,7 +11,10 @@ from rdagent.log import rdagent_logger as logger
 
 if TYPE_CHECKING:
     from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-    from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace, DSHypothesis
+    from rdagent.scenarios.data_science.proposal.exp_gen.base import (
+        DSHypothesis,
+        DSTrace,
+    )
 
 
 class TraceScheduler(ABC):

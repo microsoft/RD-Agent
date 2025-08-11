@@ -98,10 +98,7 @@ class ParallelMultiTraceExpGen(ExpGen):
                 ds_plan = self.planner.plan(trace) if DS_RD_SETTING.enable_planner else DSExperimentPlan()
 
                 try:
-                    if (
-                        DS_RD_SETTING.enable_cross_trace_diversity
-                        and local_selection == trace.NEW_ROOT
-                    ):
+                    if DS_RD_SETTING.enable_cross_trace_diversity and local_selection == trace.NEW_ROOT:
                         uncommitted_hypotheses = self.trace_scheduler.get_uncommitted_hypotheses()
                         committed_hypotheses = trace.get_committed_root_hypotheses()
                         all_hypotheses = uncommitted_hypotheses + committed_hypotheses
