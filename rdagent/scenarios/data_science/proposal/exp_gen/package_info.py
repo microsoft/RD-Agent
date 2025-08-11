@@ -12,12 +12,12 @@ PYTHON_BASE_PACKAGES = ["catboost", "lightgbm", "numpy", "optuna", "pandas", "sc
 PYTHON_ADVANCED_PACKAGES = [
     "accelerate",
     "albumentations",
+    "bayesian-optimization",
     "category_encoders",
-    "cudf-cu12",
-    "cuml-cu12",
     "datasets",
     "featuretools",
     "imbalanced-learn",
+    "nltk",
     "opencv-python",
     "pillow",
     "polars",
@@ -31,8 +31,6 @@ PYTHON_ADVANCED_PACKAGES = [
     "transformers",
 ]
 
-PYTHON_AUTO_ML_PACKAGES = ["autogluon"]
-
 
 def get_available_packages_prompt():
     """Generate prompt template for dynamically detected available packages"""
@@ -41,7 +39,6 @@ def get_available_packages_prompt():
     # Check which packages are actually installed
     base_available = [pkg for pkg in PYTHON_BASE_PACKAGES if pkg.lower() in installed_packages]
     advanced_available = [pkg for pkg in PYTHON_ADVANCED_PACKAGES if pkg.lower() in installed_packages]
-    automl_available = [pkg for pkg in PYTHON_AUTO_ML_PACKAGES if pkg.lower() in installed_packages]
 
     # Build prompt
     prompt_parts = ["# Available packages in environment:\n"]
@@ -56,13 +53,8 @@ def get_available_packages_prompt():
         prompt_parts.append(f"- {', '.join(advanced_available)}")
         prompt_parts.append("")
 
-    if automl_available:
-        prompt_parts.append("## 【AutoML Tools】(automated machine learning):")
-        prompt_parts.append(f"- {', '.join(automl_available)}")
-        prompt_parts.append("")
-
     prompt_parts.append(
-        "You should choose appropriate tool combinations based on the specific context and current situation."
+        "You should choose appropriate tool combinations based on the specific context and current situation. Feel free to use any other packages you think are necessary to achieve the best performance."
     )
 
     return "\n".join(prompt_parts).strip()
@@ -112,7 +104,7 @@ def get_persistent_problem_guidelines():
 
 def get_all_available_packages():
     """Get flattened list of all packages"""
-    all_packages = PYTHON_BASE_PACKAGES + PYTHON_ADVANCED_PACKAGES + PYTHON_AUTO_ML_PACKAGES
+    all_packages = PYTHON_BASE_PACKAGES + PYTHON_ADVANCED_PACKAGES
     return sorted(set(all_packages))
 
 
