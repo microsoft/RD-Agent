@@ -56,3 +56,13 @@ class InjectUntilSOTAGainedStrategy(DiversityContextStrategy):
 
         # Check for SOTA within the specific sub-trace.
         return trace.sota_experiment(selection=local_selection) is None
+
+
+class AlwaysInjectStrategy(DiversityContextStrategy):
+    """
+    A strategy that always injects diversity context.
+    """
+
+    def should_inject(self, trace: DSTrace, local_selection: tuple[int, ...]) -> bool:
+        """Always returns True to indicate that context should be injected."""
+        return True
