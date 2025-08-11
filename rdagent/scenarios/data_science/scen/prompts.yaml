@@ -54,6 +54,11 @@ scenario_description: |-
   {{ runtime_environment }}
   {% endif %}
 
+  {% if available_packages is not none %}
+  ====== Available Packages ======
+  {{ available_packages }}
+  {% endif %}
+
 competition_description_template:
   system: |-
     You are a data science assistant that extracts structured information from unstructured text.
