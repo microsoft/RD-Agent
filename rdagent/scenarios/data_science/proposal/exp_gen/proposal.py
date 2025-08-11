@@ -14,6 +14,7 @@ from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoader
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
+from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.feedback import ExperimentFeedback
@@ -482,14 +483,14 @@ class DSProposalV2ExpGen(ExpGen):
         scenario_desc: str,
         sota_exp_desc: str,
         exp_gen_plan: Dict,
-        cross_trace_hypotheses: str | None = None,
+        cross_trace_context: str | None = None,
     ) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_output_format=(
                 T(".prompts_v2:output_format.problem").r() if not self.supports_response_schema else None
             ),
             plan=exp_gen_plan,
-            cross_trace_hypotheses=cross_trace_hypotheses,
+            cross_trace_context=cross_trace_context,
         )
         user_prompt = T(".prompts_v2:scenario_problem.user").r(
             scenario_desc=scenario_desc,
@@ -549,7 +550,7 @@ class DSProposalV2ExpGen(ExpGen):
         exp_feedback_list_desc,
         inject_diverse,
         exp_gen_plan,
-        cross_trace_hypotheses_str: str | None = None,
+        cross_trace_context_str: str | None = None,
     ) -> Dict:
         sota_exp_num = sum(1 for _, fb in current_sub_trace if fb.decision)
         failed_exp_num = len(current_sub_trace) - sota_exp_num
@@ -562,7 +563,7 @@ class DSProposalV2ExpGen(ExpGen):
                 scenario_desc=scenario_desc,
                 sota_exp_desc=sota_exp_desc,
                 exp_gen_plan=exp_gen_plan,
-                cross_trace_hypotheses=cross_trace_hypotheses_str,
+                cross_trace_context=cross_trace_context_str,
             )
             for problem_name in scen_problems:
                 scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
@@ -908,6 +909,7 @@ class DSProposalV2ExpGen(ExpGen):
         pipeline: bool,
         failed_exp_feedback_list_desc: str,
         fb_to_sota_exp: ExperimentFeedback | None = None,
+        trace: DSTrace | None = None,
     ) -> DSExperiment:
         if pipeline:
             component_info = get_component("Pipeline")
@@ -915,11 +917,20 @@ class DSProposalV2ExpGen(ExpGen):
             component_info = get_component(hypotheses[0].component)
         data_folder_info = self.scen.processed_data_folder_description
         workflow_check = not pipeline and hypotheses[0].component != "Workflow"
+
+        cross_trace_context_str = None
+        if trace and trace.contextual_info:
+            formatted_context = []
+            for hypo, task_desc in trace.contextual_info:
+                formatted_context.append(f"Hypothesis: {hypo.hypothesis}\nTask Plan: {task_desc}")
+            cross_trace_context_str = "\n---\n".join(formatted_context)
+
         sys_prompt = T(".prompts_v2:task_gen.system").r(
             task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
             component_desc=component_desc,
             workflow_check=workflow_check,
             metric_name=self.scen.metric_name,
+            cross_trace_context=cross_trace_context_str,
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,
@@ -1049,10 +1060,15 @@ class DSProposalV2ExpGen(ExpGen):
             pipeline=pipeline,
         )
 
-        cross_trace_hypotheses_str = None
-        if trace.contextual_hypotheses:
+        cross_trace_context_str = None
+        if trace.contextual_info:
             inject_diverse = True  # reuse this flag to inject diverse idea in hypothesis gen
-            cross_trace_hypotheses_str = "\n".join([str(h) for h in trace.contextual_hypotheses])
+            # Format the context for the prompt
+            formatted_context = []
+            for hypo, task_desc in trace.contextual_info:
+                formatted_context.append(f"Hypothesis: {hypo.hypothesis}\nTask Plan: {task_desc}")
+            cross_trace_context_str = "\n---\n".join(formatted_context)
+            logger.info(f"Injecting cross-trace context:\n{cross_trace_context_str}")
 
         # Step 1: Identify problems
         all_problems = self.identify_problem(
@@ -1062,7 +1078,7 @@ class DSProposalV2ExpGen(ExpGen):
             exp_feedback_list_desc=exp_feedback_list_desc,
             inject_diverse=inject_diverse,
             exp_gen_plan=plan.get("exp_gen") if plan else None,
-            cross_trace_hypotheses_str=cross_trace_hypotheses_str,
+            cross_trace_context_str=cross_trace_context_str,
         )
 
         # Step 1.5: Sample ideas from idea pool
@@ -1161,4 +1177,5 @@ class DSProposalV2ExpGen(ExpGen):
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
             fb_to_sota_exp=fb_to_sota_exp,
+            trace=trace,
         )

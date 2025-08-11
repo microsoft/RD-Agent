@@ -16,12 +16,13 @@ scenario_problem:
     {% else %}- **Scenario-First Focus**: Since SOTA implementation is available, the **primary identified challenge** should be foundational. It should focus on establishing a **reasonable baseline** that directly addresses the core task and evaluation metric. Avoid overly complex initial challenges.
     {% endif %}
 
-    {% if cross_trace_hypotheses is not none %}
+    {% if cross_trace_context is not none %}
     ### Focus on Cross-Trace Diversity!!
     You are starting a new exploration trace in parallel with others. To maximize exploration efficiency, your primary goal is to identify challenges that lead to **different and diverse** solutions compared to what other traces are already attempting.
-    Here are the hypotheses currently being explored in other parallel traces:
-    {{ cross_trace_hypotheses }}
-
+    Here are the hypotheses and implementation plans currently being explored in other parallel traces:
+    ---
+    {{ cross_trace_context }}
+    ---
     Your generated challenges **MUST** guide the agent towards fundamentally different approaches, for example, different backbone models, different feature engineering methods, different ensemble strategies, different workflow optimizations, etc. Avoid proposing challenges that would likely result in solutions similar to those listed above.
     {% endif %}
 
@@ -401,6 +402,16 @@ task_gen:
     4. **Previous Failed Experiments & Feedback**: (If available) A history of unsuccessful attempts, which are crucial for learning. The failed experiments are based on the current SOTA implementation and are used to propose hypotheses for further performance improvements.
 
     Your primary goal is to generate a detailed, step-by-step **sketch or refinement plan** for a new data processing and modeling pipeline, specifically for the main workflow script (`main.py`), that effectively implements the `Proposed Hypothesis`. This sketch will guide a developer to write the code correctly.
+
+    {% if cross_trace_context is not none %}
+    ### Focus on Cross-Trace Diversity!!
+    To maximize exploration efficiency, your primary goal is to generate a sketch that leads to a **different and diverse** solution compared to what other traces are already attempting.
+    Here are the hypotheses and implementation plans currently being explored in other parallel traces:
+    ---
+    {{ cross_trace_context }}
+    ---
+    Your generated implementation plan **MUST** be fundamentally different from the plans listed above. Avoid proposing a sketch that would likely result in a similar implementation.
+    {% endif %}
 
     # BACKGROUND CONTEXT: Pipeline Implementation Standards & Constraints
 

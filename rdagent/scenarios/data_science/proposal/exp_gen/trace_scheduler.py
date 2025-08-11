@@ -56,8 +56,15 @@ class BaseScheduler(TraceScheduler):
         if loop_id in self.uncommitted_experiments:
             del self.uncommitted_experiments[loop_id]
 
-    def get_uncommitted_hypotheses(self) -> list[DSHypothesis]:
-        return [exp.hypothesis for exp in self.uncommitted_experiments.values()]
+    def get_uncommitted_context(self) -> list[tuple[DSHypothesis, str]]:
+        """Get the context (hypothesis and task description) of all uncommitted experiments."""
+        context = []
+        for exp in self.uncommitted_experiments.values():
+            if exp.hypothesis and exp.pending_tasks_list:
+                # Extract description from the first task of the first stage
+                task_desc = exp.pending_tasks_list[0][0].description
+                context.append((exp.hypothesis, task_desc))
+        return context
 
     async def next(self, trace: DSTrace) -> tuple[int, ...]:
         """

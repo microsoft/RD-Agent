@@ -53,6 +53,8 @@ class ParallelMultiTraceExpGen(ExpGen):
             DS_RD_SETTING.scheduler_temperature,
         )
         self.planner = import_class(DS_RD_SETTING.planner)(self.scen)
+        if DS_RD_SETTING.enable_cross_trace_diversity:
+            self.diversity_strategy = import_class(DS_RD_SETTING.diversity_injection_strategy)()
 
     def gen(
         self,
@@ -98,12 +100,14 @@ class ParallelMultiTraceExpGen(ExpGen):
                 ds_plan = self.planner.plan(trace) if DS_RD_SETTING.enable_planner else DSExperimentPlan()
 
                 try:
-                    if DS_RD_SETTING.enable_cross_trace_diversity and local_selection == trace.NEW_ROOT:
-                        uncommitted_hypotheses = self.trace_scheduler.get_uncommitted_hypotheses()
-                        committed_hypotheses = trace.get_committed_root_hypotheses()
-                        all_hypotheses = uncommitted_hypotheses + committed_hypotheses
-                        logger.info(f"Injecting {len(all_hypotheses)} diverse hypotheses for new trace generation.")
-                        trace.set_contextual_hypotheses(all_hypotheses)
+                    if DS_RD_SETTING.enable_cross_trace_diversity and self.diversity_strategy.should_inject(
+                        trace, local_selection
+                    ):
+                        uncommitted_context = self.trace_scheduler.get_uncommitted_context()
+                        committed_context = trace.get_committed_root_context()
+                        all_context = uncommitted_context + committed_context
+                        logger.info(f"Injecting {len(all_context)} diverse contexts for new trace generation.")
+                        trace.set_contextual_info(all_context)
 
                     start = datetime.now(timezone.utc)
                     exp_gen_type = ""
@@ -143,6 +147,6 @@ class ParallelMultiTraceExpGen(ExpGen):
                     return exp
                 finally:
                     # always clean up contextual hypotheses
-                    trace.set_contextual_hypotheses(None)
+                    trace.set_contextual_info(None)
 
             await asyncio.sleep(1)
