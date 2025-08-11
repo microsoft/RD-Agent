@@ -60,7 +60,24 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
         self.sota_exp_to_submit: DSExperiment | None = None  # grab the global best exp to submit
 
+        # for cross-trace diversity injection
+        self.contextual_hypotheses: list[DSHypothesis] | None = None
+
     COMPLETE_ORDER = ("DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow")
+
+    def set_contextual_hypotheses(self, hypotheses: list[DSHypothesis] | None) -> None:
+        """Set contextual hypotheses for diversity injection."""
+        self.contextual_hypotheses = hypotheses
+
+    def get_committed_root_hypotheses(self) -> list[DSHypothesis]:
+        """Get the hypotheses of all committed root experiments (first experiment in each trace)."""
+        root_hypotheses = []
+        for i, parents in enumerate(self.dag_parent):
+            if parents == self.NEW_ROOT:
+                exp, _ = self.hist[i]
+                if exp and exp.hypothesis:
+                    root_hypotheses.append(exp.hypothesis)
+        return root_hypotheses
 
     def set_sota_exp_to_submit(self, exp: DSExperiment) -> None:
         self.sota_exp_to_submit = exp

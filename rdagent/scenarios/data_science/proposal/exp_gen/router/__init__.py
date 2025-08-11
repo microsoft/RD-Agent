@@ -97,39 +97,55 @@ class ParallelMultiTraceExpGen(ExpGen):
 
                 ds_plan = self.planner.plan(trace) if DS_RD_SETTING.enable_planner else DSExperimentPlan()
 
-                start = datetime.now(timezone.utc)
-                exp_gen_type = ""
-                if (
-                    (not timer.started or timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours))
-                    and trace.sota_experiment(selection=local_selection) is None
-                    and DS_RD_SETTING.enable_draft_before_first_sota
-                ):
-                    exp = self.draft_exp_gen.gen(trace, plan=ds_plan)
-                    exp_gen_type = type(self.draft_exp_gen).__name__
-                elif (
-                    timer.started
-                    and timer.remain_time() < timedelta(hours=DS_RD_SETTING.merge_hours)
-                    and len(leaves) >= 2
-                ):
-                    DS_RD_SETTING.coding_fail_reanalyze_threshold = 100000
-                    DS_RD_SETTING.consecutive_errors = 100000
-                    exp = self.merge_exp_gen.gen(trace, plan=ds_plan)
-                    exp_gen_type = type(self.merge_exp_gen).__name__
-                else:
-                    # If there is a sota experiment in the sub-trace and not in merge time, we use default exp_gen
-                    exp = self.exp_gen.gen(trace, plan=ds_plan)
-                    exp_gen_type = type(self.exp_gen).__name__
-                end = datetime.now(timezone.utc)
-                logger.log_object(
-                    {
-                        "exp_gen_type": exp_gen_type,
-                        "start_time": start,
-                        "end_time": end,
-                    },
-                    tag="exp_gen_time_info",
-                )
-                exp.set_local_selection(local_selection)
-                exp.plan = ds_plan
-                return exp
+                try:
+                    if (
+                        DS_RD_SETTING.enable_cross_trace_diversity
+                        and local_selection == trace.NEW_ROOT
+                    ):
+                        uncommitted_hypotheses = self.trace_scheduler.get_uncommitted_hypotheses()
+                        committed_hypotheses = trace.get_committed_root_hypotheses()
+                        all_hypotheses = uncommitted_hypotheses + committed_hypotheses
+                        logger.info(f"Injecting {len(all_hypotheses)} diverse hypotheses for new trace generation.")
+                        trace.set_contextual_hypotheses(all_hypotheses)
+
+                    start = datetime.now(timezone.utc)
+                    exp_gen_type = ""
+                    if (
+                        (not timer.started or timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours))
+                        and trace.sota_experiment(selection=local_selection) is None
+                        and DS_RD_SETTING.enable_draft_before_first_sota
+                    ):
+                        exp = self.draft_exp_gen.gen(trace, plan=ds_plan)
+                        exp_gen_type = type(self.draft_exp_gen).__name__
+                    elif (
+                        timer.started
+                        and timer.remain_time() < timedelta(hours=DS_RD_SETTING.merge_hours)
+                        and len(leaves) >= 2
+                    ):
+                        DS_RD_SETTING.coding_fail_reanalyze_threshold = 100000
+                        DS_RD_SETTING.consecutive_errors = 100000
+                        exp = self.merge_exp_gen.gen(trace, plan=ds_plan)
+                        exp_gen_type = type(self.merge_exp_gen).__name__
+                    else:
+                        # If there is a sota experiment in the sub-trace and not in merge time, we use default exp_gen
+                        exp = self.exp_gen.gen(trace, plan=ds_plan)
+                        exp_gen_type = type(self.exp_gen).__name__
+                    end = datetime.now(timezone.utc)
+                    logger.log_object(
+                        {
+                            "exp_gen_type": exp_gen_type,
+                            "start_time": start,
+                            "end_time": end,
+                        },
+                        tag="exp_gen_time_info",
+                    )
+                    exp.set_local_selection(local_selection)
+                    exp.plan = ds_plan
+                    # Register the newly created experiment before returning
+                    self.trace_scheduler.register_uncommitted_exp(exp, loop.loop_idx)
+                    return exp
+                finally:
+                    # always clean up contextual hypotheses
+                    trace.set_contextual_hypotheses(None)
 
             await asyncio.sleep(1)

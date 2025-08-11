@@ -10,7 +10,8 @@ from typing import TYPE_CHECKING
 from rdagent.log import rdagent_logger as logger
 
 if TYPE_CHECKING:
-    from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace
+    from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+    from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace, DSHypothesis
 
 
 class TraceScheduler(ABC):
@@ -43,6 +44,17 @@ class BaseScheduler(TraceScheduler):
     def __init__(self):
         self.rec_commit_idx = 0  # the node before rec_idx is already committed.
         self.uncommited_rec_status = defaultdict(int)  # the uncommited record status
+        self.uncommitted_experiments: dict[int, DSExperiment] = {}  # loop_id -> DSExperiment
+
+    def register_uncommitted_exp(self, exp: DSExperiment, loop_id: int):
+        self.uncommitted_experiments[loop_id] = exp
+
+    def deregister_uncommitted_exp(self, loop_id: int):
+        if loop_id in self.uncommitted_experiments:
+            del self.uncommitted_experiments[loop_id]
+
+    def get_uncommitted_hypotheses(self) -> list[DSHypothesis]:
+        return [exp.hypothesis for exp in self.uncommitted_experiments.values()]
 
     async def next(self, trace: DSTrace) -> tuple[int, ...]:
         """
@@ -50,6 +62,7 @@ class BaseScheduler(TraceScheduler):
         """
         while True:
             # step 0: Commit the pending selections
+            committed_loop_ids = set()
             for i in range(self.rec_commit_idx, len(trace.dag_parent)):
                 parent_of_i = trace.dag_parent[i]
                 if parent_of_i == trace.NEW_ROOT:
@@ -57,6 +70,11 @@ class BaseScheduler(TraceScheduler):
                 else:
                     for p in parent_of_i:
                         self.uncommited_rec_status[p] -= 1
+                committed_loop_ids.add(trace.idx2loop_id[i])
+
+            for loop_id in committed_loop_ids:
+                self.deregister_uncommitted_exp(loop_id)
+
             self.rec_commit_idx = len(trace.hist)
 
             parents = self.select(trace)

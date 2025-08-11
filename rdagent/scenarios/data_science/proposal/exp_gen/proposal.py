@@ -482,12 +482,14 @@ class DSProposalV2ExpGen(ExpGen):
         scenario_desc: str,
         sota_exp_desc: str,
         exp_gen_plan: Dict,
+        cross_trace_hypotheses: str | None = None,
     ) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_output_format=(
                 T(".prompts_v2:output_format.problem").r() if not self.supports_response_schema else None
             ),
             plan=exp_gen_plan,
+            cross_trace_hypotheses=cross_trace_hypotheses,
         )
         user_prompt = T(".prompts_v2:scenario_problem.user").r(
             scenario_desc=scenario_desc,
@@ -547,6 +549,7 @@ class DSProposalV2ExpGen(ExpGen):
         exp_feedback_list_desc,
         inject_diverse,
         exp_gen_plan,
+        cross_trace_hypotheses_str: str | None = None,
     ) -> Dict:
         sota_exp_num = sum(1 for _, fb in current_sub_trace if fb.decision)
         failed_exp_num = len(current_sub_trace) - sota_exp_num
@@ -559,6 +562,7 @@ class DSProposalV2ExpGen(ExpGen):
                 scenario_desc=scenario_desc,
                 sota_exp_desc=sota_exp_desc,
                 exp_gen_plan=exp_gen_plan,
+                cross_trace_hypotheses=cross_trace_hypotheses_str,
             )
             for problem_name in scen_problems:
                 scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
@@ -1045,16 +1049,10 @@ class DSProposalV2ExpGen(ExpGen):
             pipeline=pipeline,
         )
 
-        # NOTE: we currently don't support inject diverse problems for the parallel + multi-trace mode,
-        if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
-            if len(trace.current_selection) == 0:
-                # start a new sub-trace, and inject diverse problems.
-                inject_diverse = True
-                logger.info("Start a new sub-trace, and inject diverse problems.")
-            else:
-                inject_diverse = False
-        else:
-            inject_diverse = False
+        cross_trace_hypotheses_str = None
+        if trace.contextual_hypotheses:
+            inject_diverse = True  # reuse this flag to inject diverse idea in hypothesis gen
+            cross_trace_hypotheses_str = "\n".join([str(h) for h in trace.contextual_hypotheses])
 
         # Step 1: Identify problems
         all_problems = self.identify_problem(
@@ -1064,6 +1062,7 @@ class DSProposalV2ExpGen(ExpGen):
             exp_feedback_list_desc=exp_feedback_list_desc,
             inject_diverse=inject_diverse,
             exp_gen_plan=plan.get("exp_gen") if plan else None,
+            cross_trace_hypotheses_str=cross_trace_hypotheses_str,
         )
 
         # Step 1.5: Sample ideas from idea pool

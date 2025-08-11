@@ -16,6 +16,15 @@ scenario_problem:
     {% else %}- **Scenario-First Focus**: Since SOTA implementation is available, the **primary identified challenge** should be foundational. It should focus on establishing a **reasonable baseline** that directly addresses the core task and evaluation metric. Avoid overly complex initial challenges.
     {% endif %}
 
+    {% if cross_trace_hypotheses is not none %}
+    ### Focus on Cross-Trace Diversity!!
+    You are starting a new exploration trace in parallel with others. To maximize exploration efficiency, your primary goal is to identify challenges that lead to **different and diverse** solutions compared to what other traces are already attempting.
+    Here are the hypotheses currently being explored in other parallel traces:
+    {{ cross_trace_hypotheses }}
+
+    Your generated challenges **MUST** guide the agent towards fundamentally different approaches, for example, different backbone models, different feature engineering methods, different ensemble strategies, different workflow optimizations, etc. Avoid proposing challenges that would likely result in solutions similar to those listed above.
+    {% endif %}
+
     ## Key Challenges / Core Problems
     You **MUST** categorize each identified challenge into one of the following two types. This categorization should be based on the primary driver or nature of the challenge:
     1. **Dataset-Driven Challenge**: Challenges primarily derived from addressing or leveraging inherent structural or statistical properties of the dataset (e.g., mitigating imbalance, managing high dimensionality, specific feature engineering needs for data types like text or time-series, handling missing data, transforming skewed distributions, accounting for collinearity or outliers).
