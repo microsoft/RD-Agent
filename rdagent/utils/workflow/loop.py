@@ -10,6 +10,7 @@ Postscripts:
 
 import asyncio
 import concurrent.futures
+import os
 import pickle
 from collections import defaultdict
 from dataclasses import dataclass
@@ -17,6 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Optional, Union, cast
 
+import psutil
 from tqdm.auto import tqdm
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
@@ -347,18 +349,28 @@ class LoopBase:
             0  # if we rerun the loop, we should revert the loop index to 0 to make sure every loop is correctly kicked
         )
 
+        tasks: list[asyncio.Task] = []
         while True:
             try:
                 # run one kickoff_loop and execute_loop
-                await asyncio.gather(
-                    self.kickoff_loop(), *[self.execute_loop() for _ in range(RD_AGENT_SETTINGS.get_max_parallel())]
-                )
+                tasks = [
+                    asyncio.create_task(t)
+                    for t in [
+                        self.kickoff_loop(),
+                        *[self.execute_loop() for _ in range(RD_AGENT_SETTINGS.get_max_parallel())],
+                    ]
+                ]
+                await asyncio.gather(*tasks)
                 break
             except self.LoopResumeError as e:
                 logger.warning(f"Stop all the routines and resume loop: {e}")
                 self.loop_idx = 0
+                # cancel all previous tasks before resuming all loops.
+                for t in tasks:
+                    t.cancel()
             except self.LoopTerminationError as e:
                 logger.warning(f"Reach stop criterion and stop loop: {e}")
+                kill_subprocesses()  # NOTE: coroutine-based workflow can't automatically stop subprocesses.
                 break
             finally:
                 self.close_pbar()
@@ -488,3 +500,25 @@ class LoopBase:
         self.__dict__.update(state)
         self.queue = asyncio.Queue()
         self.semaphores = {}
+
+
+def kill_subprocesses() -> None:
+    """
+    Due to the coroutine-based nature of the workflow, the event loop of the main process can't
+    stop all the subprocesses start by `curr_loop.run_in_executor`. So we need to kill them manually.
+    Otherwise, the subprocesses will keep running in the background and the the main process keeps waiting.
+    """
+    current_proc = psutil.Process(os.getpid())
+    for child in current_proc.children(recursive=True):
+        try:
+            print(f"Terminating subprocess PID {child.pid} ({child.name()})")
+            child.terminate()
+        except Exception as ex:
+            print(f"Could not terminate subprocess {child.pid}: {ex}")
+    _, alive = psutil.wait_procs(current_proc.children(recursive=True), timeout=3)
+    for p in alive:
+        try:
+            print(f"Killing still alive subprocess PID {p.pid} ({p.name()})")
+            p.kill()
+        except Exception as ex:
+            print(f"Could not kill subprocess {p.pid}: {ex}")
