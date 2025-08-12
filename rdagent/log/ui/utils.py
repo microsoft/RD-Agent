@@ -234,6 +234,7 @@ def get_sota_exp_stat(
 def _get_score_stat_hash_func(log_path: Path, sota_loop_id: int) -> str:
     return _log_path_hash_func(log_path) + str(sota_loop_id)
 
+
 @cache_with_pickle(_get_score_stat_hash_func, force=True)
 def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, bool]:
     """
@@ -255,46 +256,66 @@ def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, boo
         - submit_is_merge : bool
             True if the sota loop is a merge loop.
     """
-    log_storage = FileStorage(log_path)
-    # find sota exp's loop id
-    running_exps: list[tuple[DSExperiment, int]] = [
-        (i.content, int(re.search(r".*Loop_(\d+).*", str(i.tag))[1]))
-        for i in log_storage.iter_msg(pattern="**/running/mle_score/pid/*.pkl")
-    ]
-
-    scores_before_merge = []
+    valid_before_merge = []
+    test_before_merge = []
+    valid_after_merge = []
+    test_after_merge = []
     submit_is_merge = False
+    best_is_merge = False
     is_lower_better = False
-    for _, loop_id in running_exps:
-        mle_info = log_storage.iter_msg(tag=f"Loop_{loop_id}.running.mle_score")
-        if not mle_info:
-            continue
-        try:
-            mle_score = extract_json([i.content for i in mle_info][0])
-        except Exception as e:
-            # mle score not found, skip this loop
-            continue
+    valid_improve = False
+    test_improve = False
+    total_merge_loops = 0
 
-        loop_trace = list(log_path.glob(f"Loop_{loop_id}/direct_exp_gen/debug_tpl/*/*.pkl"))
+    log_storage = FileStorage(log_path)
+
+    for loop_trace in log_path.glob("Loop_*/direct_exp_gen/*/*.pkl"):
+        loop_id = int(re.search(r".*Loop_(\d+).*", str(loop_trace)).group(1))
+        direct_exp_gen = list(log_path.glob(f"Loop_{loop_id}/direct_exp_gen/debug_tpl/*/*.pkl"))
+        if not direct_exp_gen:
+            continue
         is_merge = False
-        for trace_path in loop_trace:
-            with trace_path.open("rb") as f:
+        for exp_gen_path in direct_exp_gen:
+            with exp_gen_path.open("rb") as f:
                 tr = pickle.load(f)
             uri = tr.get("uri") if isinstance(tr, dict) else getattr(tr, "uri", None)
             if isinstance(uri, str) and "scenarios.data_science.proposal.exp_gen.merge" in uri:
                 is_merge = True
+                total_merge_loops += 1
                 if sota_loop_id == loop_id:
                     submit_is_merge = True
                 break
-       
+
+        try:
+            mle_score = extract_json(
+                [i.content for i in log_storage.iter_msg(tag=f"Loop_{loop_id}.running.mle_score")][0]
+            )
+            assert mle_score
+        except Exception as e:
+            # mle score not found, skip this loop
+            continue
+
         is_lower_better = mle_score.get("is_lower_better", False)
-        if not is_merge:
-            scores_before_merge.append(mle_score["score"])
-    if scores_before_merge:
-        score_before_merge = min(scores_before_merge) if is_lower_better else max(scores_before_merge)
+        if mle_score["score"]:
+            exp = next(log_storage.iter_msg(pattern=f"Loop_{loop_id}/running/*/*.pkl")).content
+            if is_merge:
+                valid_after_merge.append(pd.DataFrame(exp.result).loc["ensemble"].iloc[0])
+                test_after_merge.append(mle_score["score"])
+            else:
+                valid_before_merge.append(pd.DataFrame(exp.result).loc["ensemble"].iloc[0])
+                test_before_merge.append(mle_score["score"])
+    if is_lower_better:
+        if valid_after_merge:
+            valid_improve = not valid_before_merge or min(valid_after_merge) < min(valid_before_merge)
+        if test_after_merge:
+            test_improve = not test_before_merge or min(test_after_merge) < min(test_before_merge)
     else:
-        score_before_merge = None
-    return score_before_merge, submit_is_merge
+        if valid_after_merge:
+            valid_improve = not valid_before_merge or max(valid_after_merge) > max(valid_before_merge)
+        if test_after_merge:
+            test_improve = not test_before_merge or max(test_after_merge) > max(test_before_merge)
+    merge_success_rate = 0 if not total_merge_loops else len(test_after_merge) / total_merge_loops
+    return valid_improve, test_improve, submit_is_merge, merge_success_rate
 
 
 @cache_with_pickle(_log_path_hash_func, force=True)
@@ -432,7 +453,9 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             sota_exp_submit, v["sota_loop_id_new"], sota_submit_report, v["sota_exp_stat_new"] = get_sota_exp_stat(
                 Path(lf) / k, to_submit=True
             )
-            v["score_before_merge"], v["submit_is_merge"] = get_score_stat(Path(lf) / k,  v["sota_loop_id_new"])
+            v["valid_improve"], v["test_improve"], v["submit_is_merge"], v["merge_success_rate"] = get_score_stat(
+                Path(lf) / k, v["sota_loop_id_new"]
+            )
             if sota_exp_submit is not None:
                 try:
                     sota_submit_result = sota_exp_submit.result
@@ -543,9 +566,10 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
 
             base_df.loc[k, "SOTA Exp"] = v.get("sota_exp_stat", None)
             base_df.loc[k, "SOTA Exp Score"] = v.get("sota_exp_score", None)
-            base_df.loc[k, "SOTA Exp Score (before_merge)"] = v.get("score_before_merge", None)
-            base_df.loc[k, "SOTA is Merge"] = v.get("submit_is_merge", None)
-
+            base_df.loc[k, "Valid improve"] = v.get("valid_improve", None)
+            base_df.loc[k, "Test improve"] = v.get("test_improve", None)
+            base_df.loc[k, "Submit is Merge"] = v.get("submit_is_merge", None)
+            base_df.loc[k, "Merge success rate"] = v.get("merge_success_rate", None)
             base_df.loc[k, "SOTA Exp (to_submit)"] = v["sota_exp_stat_new"]
             base_df.loc[k, "SOTA Exp Score (to_submit)"] = v.get("sota_exp_score_new", None)
             base_df.loc[k, "SOTA LID (to_submit)"] = v.get("sota_loop_id_new", None)
@@ -584,13 +608,15 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             "Ours vs Base": float,
             "SOTA Exp Score": float,
             "SOTA Exp Score (valid, to_submit)": float,
-            "SOTA Exp Score (before_merge)": float,
-            "SOTA is Merge": bool,
             "Baseline Score": float,
             "Bronze Threshold": float,
             "Silver Threshold": float,
             "Gold Threshold": float,
             "Medium Threshold": float,
+            "Valid improve": bool,
+            "Test improve": bool,
+            "Submit is Merge": bool,
+            "Merge success rate": float,
         }
     )
     return summary, base_df
