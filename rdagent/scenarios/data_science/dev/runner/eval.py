@@ -171,6 +171,7 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
         c2 = time_spent_ratio < DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning
 
         # 3. Only enable hyperparameter tuning during the merge stage if configured.
+        # TODO: it is not restricted in merge stage now for fast implementation.
         timer = RD_Agent_TIMER_wrapper.timer
         res_time = timer.remain_time()
         if DS_RD_SETTING.only_enable_tuning_in_merge:
