@@ -4,23 +4,40 @@ import pickle
 import random
 import re
 from collections import defaultdict
-from datetime import timedelta
+from datetime import time, timedelta
 from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from litellm import get_valid_models
 from streamlit import session_state as state
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.storage import FileStorage
-from rdagent.log.ui.utils import curve_figure, load_times, trace_figure
+from rdagent.log.ui.conf import UI_SETTING
+from rdagent.log.ui.utils import (
+    curve_figure,
+    get_sota_exp_stat,
+    load_times,
+    trace_figure,
+)
 from rdagent.log.utils import (
     LogColors,
     extract_evoid,
     extract_json,
     extract_loopid_func_name,
     is_valid_session,
+)
+from rdagent.oai.backend.litellm import LITELLM_SETTINGS
+from rdagent.oai.llm_utils import APIBackend
+
+# Import necessary classes for the response format
+from rdagent.scenarios.data_science.proposal.exp_gen.proposal import (
+    CodingSketch,
+    HypothesisList,
+    ScenarioChallenges,
+    TraceChallenges,
 )
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
@@ -37,6 +54,14 @@ if "log_path" not in state:
     state.log_path = None
 if "log_folder" not in state:
     state.log_folder = Path("./log")
+if "sota_info" not in state:
+    state.sota_info = None
+
+available_models = get_valid_models()
+LITELLM_SETTINGS.dump_chat_cache = False
+LITELLM_SETTINGS.dump_embedding_cache = False
+LITELLM_SETTINGS.use_chat_cache = False
+LITELLM_SETTINGS.use_embedding_cache = False
 
 
 def convert_defaultdict_to_dict(d):
@@ -45,7 +70,6 @@ def convert_defaultdict_to_dict(d):
     return d
 
 
-@st.cache_data(persist=True)
 def load_data(log_path: Path):
     data = defaultdict(lambda: defaultdict(dict))
     llm_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -132,6 +156,10 @@ def load_data(log_path: Path):
     )
 
 
+if UI_SETTING.enable_cache:
+    load_data = st.cache_data(persist=True)(load_data)
+
+
 def load_stdout(stdout_path: Path):
     if stdout_path.exists():
         stdout = stdout_path.read_text()
@@ -161,9 +189,11 @@ def workspace_win(workspace, cmp_workspace=None, cmp_name="last code."):
     if len(show_files) > 0:
         if cmp_workspace:
             diff = generate_diff_from_dict(cmp_workspace.file_dict, show_files, "main.py")
-            with st.expander(f":violet[**Diff with {cmp_name}**]"):
+            with st.popover(f":violet[**Diff with {cmp_name}**]", use_container_width=True, icon="🔍"):
                 st.code("".join(diff), language="diff", wrap_lines=True, line_numbers=True)
-        with st.expander(f"Files in :blue[{replace_ep_path(workspace.workspace_path)}]"):
+        with st.popover(
+            f"Files in :blue[{replace_ep_path(workspace.workspace_path)}]", use_container_width=True, icon="📂"
+        ):
             code_tabs = st.tabs(show_files.keys())
             for ct, codename in zip(code_tabs, show_files.keys()):
                 with ct:
@@ -216,6 +246,16 @@ def highlight_prompts_uri(uri):
 
 
 def llm_log_win(llm_d: list):
+    def to_str_recursive(obj):
+        if isinstance(obj, dict):
+            return {k: to_str_recursive(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [to_str_recursive(v) for v in obj]
+        elif isinstance(obj, tuple):
+            return tuple(to_str_recursive(v) for v in obj)
+        else:
+            return str(obj)
+
     for d in llm_d:
         if "debug_tpl" in d["tag"]:
             uri = d["obj"]["uri"]
@@ -224,20 +264,22 @@ def llm_log_win(llm_d: list):
             tpl = d["obj"]["template"]
             cxt = d["obj"]["context"]
             rd = d["obj"]["rendered"]
-            with st.expander(highlight_prompts_uri(uri), expanded=False, icon="⚙️"):
+            with st.popover(highlight_prompts_uri(uri), icon="⚙️", use_container_width=True):
                 t1, t2, t3 = st.tabs([":green[**Rendered**]", ":blue[**Template**]", ":orange[**Context**]"])
                 with t1:
                     show_text(rd)
                 with t2:
                     show_text(tpl, lang="django")
                 with t3:
-                    st.json(cxt)
+                    st.json(to_str_recursive(cxt))
         elif "debug_llm" in d["tag"]:
             system = d["obj"].get("system", None)
             user = d["obj"]["user"]
             resp = d["obj"]["resp"]
-            with st.expander(f"**LLM**", expanded=False, icon="🤖"):
-                t1, t2, t3 = st.tabs([":green[**Response**]", ":blue[**User**]", ":orange[**System**]"])
+            with st.expander(f"**LLM**", icon="🤖", expanded=False):
+                t1, t2, t3, t4 = st.tabs(
+                    [":green[**Response**]", ":blue[**User**]", ":orange[**System**]", ":violet[**ChatBot**]"]
+                )
                 with t1:
                     try:
                         rdict = json.loads(resp)
@@ -258,6 +300,60 @@ def llm_log_win(llm_d: list):
                     show_text(user)
                 with t3:
                     show_text(system or "No system prompt available")
+                with t4:
+                    input_c, resp_c = st.columns(2)
+                    key = hashlib.md5(resp.encode()).hexdigest()
+                    with input_c:
+                        btc1, btc2, btc3 = st.columns(3)
+                        trace_model = (
+                            state.data.get("settings", {})
+                            .get("LITELLM_SETTINGS", {})
+                            .get("chat_model", available_models[0])
+                        )
+                        trace_reasoning_effort = (
+                            state.data.get("settings", {}).get("LITELLM_SETTINGS", {}).get("reasoning_effort", None)
+                        )
+                        LITELLM_SETTINGS.chat_model = btc1.selectbox(
+                            "Chat Model",
+                            options=available_models,
+                            index=available_models.index(trace_model),
+                            key=key + "_chat_model",
+                        )
+                        LITELLM_SETTINGS.reasoning_effort = btc2.selectbox(
+                            "Reasoning Effort",
+                            options=[None, "low", "medium", "high"],
+                            index=[None, "low", "medium", "high"].index(trace_reasoning_effort),
+                            key=key + "_reasoning_effort",
+                        )
+                        rf = btc3.selectbox(
+                            "Response Format",
+                            options=[None, ScenarioChallenges, TraceChallenges, HypothesisList, CodingSketch],
+                            format_func=lambda x: x.__name__ if x else "None",
+                            key=key + "_response_format",
+                        )
+                        json_mode = st.checkbox("JSON Mode", value=False, key=key + "_json_mode")
+                        sys_p = input_c.text_area(label="system", value=system, height="content", key=key + "_system")
+                        user_p = input_c.text_area(label="user", value=user, height="content", key=key + "_user")
+                    with resp_c:
+                        if st.button("Call LLM", key=key + "_call_llm"):
+                            with st.spinner("Calling LLM..."):
+                                try:
+                                    resp_new = APIBackend().build_messages_and_create_chat_completion(
+                                        user_prompt=user_p,
+                                        system_prompt=sys_p,
+                                        json_mode=json_mode,
+                                        response_format=rf,
+                                    )
+                                except Exception as e:
+                                    resp_new = f"Error: {e}"
+                            try:  # json format string
+                                rdict = json.loads(resp_new)
+                                st.json(rdict)
+                            except:
+                                try:  # common string
+                                    st.code(resp_new, wrap_lines=True, line_numbers=True)
+                                except:  # response format type
+                                    st.write(resp_new)
 
 
 def hypothesis_win(hypo):
@@ -367,7 +463,7 @@ def running_win(data, base_exp, llm_data=None, sota_exp=None):
         workspace_win(
             data["no_tag"].experiment_workspace,
             cmp_workspace=sota_exp.experiment_workspace if sota_exp else None,
-            cmp_name="last SOTA",
+            cmp_name="last SOTA(to_submit)",
         )
         st.subheader("Result")
         try:
@@ -426,15 +522,26 @@ def main_win(loop_id, llm_data=None):
             llm_data=llm_data["coding"] if llm_data else None,
         )
     if "running" in loop_data:
+        # get last SOTA_exp_to_submit
+        current_trace = loop_data["record"]["trace"]
+        current_selection = current_trace.get_current_selection()
+        if len(current_selection) > 0:  # TODO: Why current_selection can be "()"?
+            current_idx = current_selection[0]
+            parent_idxs = current_trace.get_parents(current_idx)
+            if len(parent_idxs) >= 2 and hasattr(current_trace, "idx2loop_id"):
+                parent_idx = parent_idxs[-2]
+                parent_loop_id = current_trace.idx2loop_id[parent_idx]
+                sota_exp = state.data[parent_loop_id]["record"].get("sota_exp_to_submit", None)
+            else:
+                sota_exp = None
+        else:
+            sota_exp = None
+
         running_win(
             loop_data["running"],
             base_exp=loop_data["coding"]["no_tag"],
             llm_data=llm_data["running"] if llm_data else None,
-            sota_exp=(
-                state.data[loop_id - 1].get("record", {}).get("SOTA experiment", None)
-                if (loop_id - 1) in state.data
-                else None
-            ),
+            sota_exp=sota_exp,
         )
     if "feedback" in loop_data:
         feedback_win(loop_data["feedback"], llm_data.get("feedback", None) if llm_data else None)
@@ -457,6 +564,8 @@ def replace_ep_path(p: Path):
 def get_llm_call_stats(llm_data: dict) -> tuple[int, int]:
     total_llm_call = 0
     total_filter_call = 0
+    total_call_seconds = 0
+    filter_call_seconds = 0
     filter_sys_prompt = T("rdagent.utils.prompts:filter_redundant_text.system").r()
     for li, loop_d in llm_data.items():
         for fn, loop_fn_d in loop_d.items():
@@ -464,16 +573,53 @@ def get_llm_call_stats(llm_data: dict) -> tuple[int, int]:
                 for d in v:
                     if "debug_llm" in d["tag"]:
                         total_llm_call += 1
-                        if filter_sys_prompt == d["obj"]["system"]:
+                        total_call_seconds += d["obj"].get("duration", 0)
+                        if "system" in d["obj"] and filter_sys_prompt == d["obj"]["system"]:
                             total_filter_call += 1
-    return total_llm_call, total_filter_call
+                            filter_call_seconds += d["obj"].get("duration", 0)
+
+    return total_llm_call, total_filter_call, total_call_seconds, filter_call_seconds
+
+
+def get_timeout_stats(llm_data: dict):
+    timeout_stat = {
+        "coding": {
+            "total": 0,
+            "timeout": 0,
+        },
+        "running": {
+            "total": 0,
+            "timeout": 0,
+        },
+    }
+    for li, loop_d in llm_data.items():
+        for fn, loop_fn_d in loop_d.items():
+            for k, v in loop_fn_d.items():
+                for d in v:
+                    if "debug_tpl" in d["tag"] and "eval.user" in d["obj"]["uri"]:
+                        stdout = d["obj"]["context"]["stdout"]
+                        if "The running time exceeds" in stdout:  # Timeout case
+                            timeout_stat[fn]["timeout"] += 1
+                        timeout_stat[fn]["total"] += 1
+
+    return timeout_stat
+
+
+def timedelta_to_str(td: timedelta | None) -> str:
+    if isinstance(td, timedelta):
+        total_seconds = int(td.total_seconds())
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    return td
 
 
 def summarize_win():
     st.header("Summary", divider="rainbow")
     with st.container(border=True):
         min_id, max_id = get_state_data_range(state.data)
-        info0, info1, info2, info3, info4, info5 = st.columns([1, 1, 1, 1, 1, 1])
+        info0, info1, info2, info3, info4, info5, info6, info7 = st.columns(8)
         show_trace_dag = info0.toggle("Show trace DAG", key="show_trace_dag")
         only_success = info0.toggle("Only Success", key="only_success")
         with info1.popover("LITELLM", icon="⚙️"):
@@ -483,15 +629,51 @@ def summarize_win():
         with info3.popover("RDLOOP", icon="⚙️"):
             st.write(state.data.get("settings", {}).get("RDLOOP_SETTINGS", "No settings found."))
 
-        llm_call, llm_filter_call = get_llm_call_stats(state.llm_data)
-        info4.metric("LLM Calls", llm_call)
-        info5.metric("LLM Filter Calls", f"{llm_filter_call}({round(llm_filter_call / llm_call * 100, 2)}%)")
+        llm_call, llm_filter_call, llm_call_seconds, llm_filter_call_seconds = get_llm_call_stats(state.llm_data)
+        info4.metric("LLM Calls", llm_call, help=timedelta_to_str(timedelta(seconds=llm_call_seconds)))
+        info5.metric(
+            "LLM Filter Calls",
+            llm_filter_call,
+            delta=-round(llm_filter_call / llm_call, 5),
+            help=timedelta_to_str(timedelta(seconds=llm_filter_call_seconds)),
+        )
+
+        timeout_stats = get_timeout_stats(state.llm_data)
+        coding_timeout_pct = (
+            round(timeout_stats["coding"]["timeout"] / timeout_stats["coding"]["total"] * 100, 2)
+            if timeout_stats["coding"]["total"] > 0
+            else 0
+        )
+        info6.metric(
+            "Timeouts (C)",
+            f"{coding_timeout_pct}%",
+            help=f"{timeout_stats['coding']['timeout']}/{timeout_stats['coding']['total']}",
+        )
+        running_timeout_pct = (
+            round(timeout_stats["running"]["timeout"] / timeout_stats["running"]["total"] * 100, 2)
+            if timeout_stats["running"]["total"] > 0
+            else 0
+        )
+        info7.metric(
+            "Timeouts (R)",
+            f"{running_timeout_pct}%",
+            help=f"{timeout_stats['running']['timeout']}/{timeout_stats['running']['total']}",
+        )
+
         if show_trace_dag:
             st.markdown("### Trace DAG")
             final_trace_loop_id = max_id
             while "record" not in state.data[final_trace_loop_id]:
                 final_trace_loop_id -= 1
-            st.pyplot(trace_figure(state.data[final_trace_loop_id]["record"]["trace"]))
+            merge_loops = []
+            for loop_id in state.llm_data.keys():
+                if "direct_exp_gen" not in state.llm_data[loop_id]:
+                    continue
+                if "scenarios.data_science.proposal.exp_gen.merge:trace" in [
+                    i["obj"]["uri"] for i in state.llm_data[loop_id]["direct_exp_gen"]["no_tag"] if "uri" in i["obj"]
+                ]:
+                    merge_loops.append(loop_id)
+            st.pyplot(trace_figure(state.data[final_trace_loop_id]["record"]["trace"], merge_loops))
         df = pd.DataFrame(
             columns=[
                 "Component",
@@ -501,19 +683,19 @@ def summarize_win():
                 "Running Score (valid)",
                 "Running Score (test)",
                 "Feedback",
-                "e-loops(coding)",
+                "e-loops(c)",
+                "e-loops(r)",
                 "COST($)",
                 "Time",
                 "Exp Gen",
                 "Coding",
                 "Running",
-                "Start Time (UTC+8)",
-                "End Time (UTC+8)",
             ],
             index=range(min_id, max_id + 1),
         )
 
         valid_results = {}
+        sota_loop_id = state.sota_info[1] if state.sota_info else None
         for loop in range(min_id, max_id + 1):
             loop_data = state.data[loop]
             df.loc[loop, "Component"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.component
@@ -525,18 +707,24 @@ def summarize_win():
                 if k not in ["component", "hypothesis", "reason"]
             }
             df.loc[loop, "COST($)"] = sum(tc.content["cost"] for tc in state.token_costs[loop])
+
+            # Time Stats
             if loop in state.times and state.times[loop]:
-                df.loc[loop, "Time"] = str(sum((i.end - i.start for i in state.times[loop]), timedelta())).split(".")[0]
-                exp_gen_time = state.times[loop][0].end - state.times[loop][0].start
-                df.loc[loop, "Exp Gen"] = str(exp_gen_time).split(".")[0]
-                if len(state.times[loop]) > 1:
-                    coding_time = state.times[loop][1].end - state.times[loop][1].start
-                    df.loc[loop, "Coding"] = str(coding_time).split(".")[0]
-                if len(state.times[loop]) > 2:
-                    running_time = state.times[loop][2].end - state.times[loop][2].start
-                    df.loc[loop, "Running"] = str(running_time).split(".")[0]
-                df.loc[loop, "Start Time (UTC+8)"] = state.times[loop][0].start + timedelta(hours=8)
-                df.loc[loop, "End Time (UTC+8)"] = state.times[loop][-1].end + timedelta(hours=8)
+                exp_gen_time = coding_time = running_time = None
+                all_steps_time = timedelta()
+                for lpt in state.times[loop]:
+                    all_steps_time += lpt.end - lpt.start
+                    if lpt.step_idx == 0:
+                        exp_gen_time = lpt.end - lpt.start
+                    elif lpt.step_idx == 1:
+                        coding_time = lpt.end - lpt.start
+                    elif lpt.step_idx == 2:
+                        running_time = lpt.end - lpt.start
+                df.loc[loop, "Time"] = timedelta_to_str(all_steps_time)
+                df.loc[loop, "Exp Gen"] = timedelta_to_str(exp_gen_time)
+                df.loc[loop, "Coding"] = timedelta_to_str(coding_time)
+                df.loc[loop, "Running"] = timedelta_to_str(running_time)
+
             if "running" in loop_data and "no_tag" in loop_data["running"]:
                 try:
                     try:
@@ -555,7 +743,18 @@ def summarize_win():
                             state.data[loop]["mle_score"] is not None
                             and state.data[loop]["mle_score"]["score"] is not None
                         ):
-                            df.loc[loop, "Running Score (test)"] = str(state.data[loop]["mle_score"]["score"])
+                            medal_emoji = (
+                                "🥇"
+                                if state.data[loop]["mle_score"]["gold_medal"]
+                                else (
+                                    "🥈"
+                                    if state.data[loop]["mle_score"]["silver_medal"]
+                                    else "🥉" if state.data[loop]["mle_score"]["bronze_medal"] else ""
+                                )
+                            )
+                            df.loc[loop, "Running Score (test)"] = (
+                                f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
+                            )
                         else:
                             state.data[loop]["mle_score"] = mle_score_txt
                             df.loc[loop, "Running Score (test)"] = "❌"
@@ -568,7 +767,18 @@ def summarize_win():
                             mle_score_txt = mle_score_path.read_text()
                             state.data[loop]["mle_score"] = extract_json(mle_score_txt)
                             if state.data[loop]["mle_score"]["score"] is not None:
-                                df.loc[loop, "Running Score (test)"] = str(state.data[loop]["mle_score"]["score"])
+                                medal_emoji = (
+                                    "🥇"
+                                    if state.data[loop]["mle_score"]["gold_medal"]
+                                    else (
+                                        "🥈"
+                                        if state.data[loop]["mle_score"]["silver_medal"]
+                                        else "🥉" if state.data[loop]["mle_score"]["bronze_medal"] else ""
+                                    )
+                                )
+                                df.loc[loop, "Running Score (test)"] = (
+                                    f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
+                                )
                             else:
                                 state.data[loop]["mle_score"] = mle_score_txt
                                 df.loc[loop, "Running Score (test)"] = "❌"
@@ -577,7 +787,16 @@ def summarize_win():
                             df.loc[loop, "Running Score (test)"] = "❌"
                 else:
                     if isinstance(state.data[loop]["mle_score"], dict):
-                        df.loc[loop, "Running Score (test)"] = str(state.data[loop]["mle_score"]["score"])
+                        medal_emoji = (
+                            "🥇"
+                            if state.data[loop]["mle_score"]["gold_medal"]
+                            else (
+                                "🥈"
+                                if state.data[loop]["mle_score"]["silver_medal"]
+                                else "🥉" if state.data[loop]["mle_score"]["bronze_medal"] else ""
+                            )
+                        )
+                        df.loc[loop, "Running Score (test)"] = f"{medal_emoji} {state.data[loop]['mle_score']['score']}"
                     else:
                         df.loc[loop, "Running Score (test)"] = "❌"
 
@@ -587,15 +806,25 @@ def summarize_win():
 
             if "coding" in loop_data:
                 if len([i for i in loop_data["coding"].keys() if isinstance(i, int)]) == 0:
-                    df.loc[loop, "e-loops(coding)"] = 0
+                    df.loc[loop, "e-loops(c)"] = 0
                 else:
-                    df.loc[loop, "e-loops(coding)"] = (
-                        max(i for i in loop_data["coding"].keys() if isinstance(i, int)) + 1
-                    )
+                    df.loc[loop, "e-loops(c)"] = max(i for i in loop_data["coding"].keys() if isinstance(i, int)) + 1
+            if "running" in loop_data:
+                if len([i for i in loop_data["running"].keys() if isinstance(i, int)]) == 0:
+                    df.loc[loop, "e-loops(r)"] = 0
+                else:
+                    df.loc[loop, "e-loops(r)"] = max(i for i in loop_data["running"].keys() if isinstance(i, int)) + 1
             if "feedback" in loop_data:
-                df.loc[loop, "Feedback"] = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
+                fb_emoji_str = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
+                if sota_loop_id == loop:
+                    fb_emoji_str += " (💖SOTA)"
+                df.loc[loop, "Feedback"] = fb_emoji_str
             else:
                 df.loc[loop, "Feedback"] = "N/A"
+
+        if only_success:
+            df = df[df["Feedback"] == "✅"]
+        st.dataframe(df[df.columns[~df.columns.isin(["Hypothesis", "Reason", "Others"])]])
 
         # COST curve
         costs = df["COST($)"].astype(float)
@@ -614,10 +843,6 @@ def summarize_win():
             fig.data[1].name = "Cumulative COST($)"
             st.plotly_chart(fig)
 
-        if only_success:
-            df = df[df["Feedback"] == "✅"]
-        st.dataframe(df[df.columns[~df.columns.isin(["Hypothesis", "Reason", "Others"])]])
-
         # scores curve
         vscores = {}
         for k, vs in valid_results.items():
@@ -634,7 +859,8 @@ def summarize_win():
             ensemble_row = vscores.loc[["ensemble"]]
             vscores = pd.concat([ensemble_row, vscores.drop("ensemble")])
         vscores = vscores.T
-        vscores["test"] = df["Running Score (test)"]
+        test_scores = df["Running Score (test)"].str.replace(r"[🥇🥈🥉]\s*", "", regex=True)
+        vscores["test"] = test_scores
         vscores.index = [f"L{i}" for i in vscores.index]
         vscores.columns.name = metric_name
         with st.popover("Scores Curve", icon="📈", use_container_width=True):
@@ -655,7 +881,7 @@ def summarize_win():
             total_num = x.shape[0]
             valid_num = x[x["Running Score (test)"] != "N/A"].shape[0]
             success_num = x[x["Feedback"] == "✅"].shape[0]
-            avg_e_loops = x["e-loops(coding)"].mean()
+            avg_e_loops = x["e-loops(c)"].mean()
             return pd.Series(
                 {
                     "Loop Num": total_num,
@@ -663,7 +889,7 @@ def summarize_win():
                     "Success Loop": success_num,
                     "Valid Rate": round(valid_num / total_num * 100, 2),
                     "Success Rate": round(success_num / total_num * 100, 2),
-                    "Avg e-loops(coding)": round(avg_e_loops, 2),
+                    "Avg e-loops(c)": round(avg_e_loops, 2),
                 }
             )
 
@@ -671,7 +897,7 @@ def summarize_win():
 
         # component statistics
         comp_df = (
-            df.loc[:, ["Component", "Running Score (test)", "Feedback", "e-loops(coding)"]]
+            df.loc[:, ["Component", "Running Score (test)", "Feedback", "e-loops(c)"]]
             .groupby("Component")
             .apply(comp_stat_func, include_groups=False)
         )
@@ -684,7 +910,7 @@ def summarize_win():
         )
         comp_df["Valid Rate"] = comp_df["Valid Rate"].apply(lambda x: f"{x}%")
         comp_df["Success Rate"] = comp_df["Success Rate"].apply(lambda x: f"{x}%")
-        comp_df.loc["Total", "Avg e-loops(coding)"] = round(df["e-loops(coding)"].mean(), 2)
+        comp_df.loc["Total", "Avg e-loops(c)"] = round(df["e-loops(c)"].mean(), 2)
         st2.markdown("### Component Statistics")
         st2.dataframe(comp_df)
 
@@ -701,10 +927,11 @@ def summarize_win():
         st1.markdown("### Time Statistics")
         time_stat_df = time_df.groupby("Component").sum()
         time_stat_df.loc["Total"] = time_stat_df.sum()
-        time_stat_df.loc[:, "Exp Gen(%)"] = time_stat_df["Exp Gen"] / time_stat_df["Time"] * 100
-        time_stat_df.loc[:, "Coding(%)"] = time_stat_df["Coding"] / time_stat_df["Time"] * 100
-        time_stat_df.loc[:, "Running(%)"] = time_stat_df["Running"] / time_stat_df["Time"] * 100
-        time_stat_df = time_stat_df.map(lambda x: str(x).split(".")[0] if pd.notnull(x) else "0:00:00")
+        time_stat_df.loc[:, "Exp Gen(%)"] = (time_stat_df["Exp Gen"] / time_stat_df["Time"] * 100).round(2)
+        time_stat_df.loc[:, "Coding(%)"] = (time_stat_df["Coding"] / time_stat_df["Time"] * 100).round(2)
+        time_stat_df.loc[:, "Running(%)"] = (time_stat_df["Running"] / time_stat_df["Time"] * 100).round(2)
+        for col in ["Time", "Exp Gen", "Coding", "Running"]:
+            time_stat_df[col] = time_stat_df[col].map(timedelta_to_str)
         st1.dataframe(time_stat_df)
 
 
@@ -747,7 +974,6 @@ def get_folders_sorted(log_path, sort_by_time=False):
             folders = sorted(folders, key=lambda folder: folder.stat().st_mtime, reverse=True)
         else:
             folders = sorted(folders, key=lambda folder: folder.name)
-        st.write(f"Found {len(folders)} folders")
     return [folder.name for folder in folders]
 
 
@@ -796,10 +1022,11 @@ with st.sidebar:
 
             state.times = load_times(state.log_folder / state.log_path)
             state.data, state.llm_data, state.token_costs = load_data(state.log_folder / state.log_path)
+            state.sota_info = get_sota_exp_stat(Path(state.log_folder) / state.log_path, to_submit=True)
             st.rerun()
     st.toggle("**Show LLM Log**", key="show_llm_log")
     st.toggle("*Show stdout*", key="show_stdout")
-    st.toggle("*Show save workspace feature*", key="show_save_input")
+    st.toggle("*Show save workspace*", key="show_save_input")
     st.markdown(
         f"""
 - [Summary](#summary)
@@ -825,8 +1052,10 @@ def get_state_data_range(state_data):
 
 # UI - Main
 if "competition" in state.data:
-    st.title(state.data["competition"])
-    st.markdown(f"[share_link](/ds_trace?log_folder={state.log_folder}&selection={state.log_path})")
+    st.title(
+        state.data["competition"]
+        + f" ([share_link](/ds_trace?log_folder={state.log_folder}&selection={state.log_path}))"
+    )
     summarize_win()
     min_id, max_id = get_state_data_range(state.data)
     if max_id > min_id:

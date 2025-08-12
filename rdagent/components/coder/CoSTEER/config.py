@@ -17,12 +17,12 @@ class CoSTEERSettings(ExtendedBaseSettings):
 
     fail_task_trial_limit: int = 20
 
-    v1_query_former_trace_limit: int = 5
-    v1_query_similar_success_limit: int = 5
+    v1_query_former_trace_limit: int = 3
+    v1_query_similar_success_limit: int = 3
 
     v2_query_component_limit: int = 1
     v2_query_error_limit: int = 1
-    v2_query_former_trace_limit: int = 1
+    v2_query_former_trace_limit: int = 3
     v2_add_fail_attempt_to_latest_successful_execution: bool = False
     v2_error_summary: bool = False
     v2_knowledge_sampler: float = 1.0
@@ -33,7 +33,10 @@ class CoSTEERSettings(ExtendedBaseSettings):
     new_knowledge_base_path: Union[str, None] = None
     """Path to the new knowledge base"""
 
-    max_seconds: int = 10**6
+    enable_filelock: bool = False
+    filelock_path: Union[str, None] = None
+
+    max_seconds_multiplier: int = 10**6
 
 
 CoSTEER_SETTINGS = CoSTEERSettings()

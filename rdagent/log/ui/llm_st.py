@@ -8,6 +8,7 @@ from pathlib import Path
 import streamlit as st
 from streamlit import session_state
 
+from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.utils import extract_evoid, extract_loopid_func_name
 
 st.set_page_config(layout="wide", page_title="debug_llm", page_icon="🎓", initial_sidebar_state="expanded")
@@ -18,7 +19,6 @@ parser.add_argument("--log_dir", type=str, help="Path to the log directory")
 args = parser.parse_args()
 
 
-@st.cache_data
 def get_folders_sorted(log_path):
     """缓存并返回排序后的文件夹列表，并加入进度打印"""
     with st.spinner("正在加载文件夹列表..."):
@@ -29,6 +29,10 @@ def get_folders_sorted(log_path):
         )
         st.write(f"找到 {len(folders)} 个文件夹")
     return [folder.name for folder in folders]
+
+
+if UI_SETTING.enable_cache:
+    get_folders_sorted = st.cache_data(get_folders_sorted)
 
 
 # 设置主日志路径

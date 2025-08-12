@@ -234,7 +234,6 @@ class Env(Generic[ASpecificEnvConf]):
                         f"The running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
                     )
                     log_output += f"\n\nThe running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
-                log_output += f"\nTotal running time: {end - start:.3f} seconds."
                 return EnvResult(log_output, return_code, end - start)
             except Exception as e:
                 if retry_index == self.conf.retry_count:
@@ -451,7 +450,7 @@ class LocalConf(EnvConf):
     """path like <path1>:<path2>:<path3>, which will be prepend to bin path."""
 
     retry_count: int = 0  # retry count for; run `retry_count + 1` times
-    live_output: bool = False
+    live_output: bool = True
 
 
 ASpecificLocalConf = TypeVar("ASpecificLocalConf", bound=LocalConf)

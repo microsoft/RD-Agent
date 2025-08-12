@@ -269,9 +269,7 @@ class DeprecBackend(APIBackend):
         """
         return False
 
-    def _create_embedding_inner_function(  # type: ignore[no-untyped-def]
-        self, input_content_list: list[str], *args, **kwargs
-    ) -> list[list[float]]:  # noqa: ARG002
+    def _create_embedding_inner_function(self, input_content_list: list[str]) -> list[list[float]]:
         content_to_embedding_dict = {}
         for sliced_filtered_input_content_list in [
             input_content_list[i : i + LLM_SETTINGS.embedding_max_str_num]

@@ -1,6 +1,7 @@
 from copy import deepcopy
 from pathlib import Path
 
+from rdagent.components.coder.model_coder.conf import get_model_env
 from rdagent.components.coder.model_coder.model import (
     ModelExperiment,
     ModelFBWorkspace,
@@ -9,6 +10,7 @@ from rdagent.components.coder.model_coder.model import (
 from rdagent.core.experiment import Task
 from rdagent.core.scenario import Scenario
 from rdagent.scenarios.qlib.experiment.workspace import QlibFBWorkspace
+from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 from rdagent.utils.agent.tpl import T
 
 
@@ -22,7 +24,11 @@ class QlibModelExperiment(ModelExperiment[ModelTask, QlibFBWorkspace, ModelFBWor
 class QlibModelScenario(Scenario):
     def __init__(self) -> None:
         super().__init__()
-        self._background = deepcopy(T(".prompts:qlib_model_background").r())
+        self._background = deepcopy(
+            T(".prompts:qlib_model_background").r(
+                runtime_environment=self.get_runtime_environment(),
+            )
+        )
         self._output_format = deepcopy(T(".prompts:qlib_model_output_format").r())
         self._interface = deepcopy(T(".prompts:qlib_model_interface").r())
         self._simulator = deepcopy(T(".prompts:qlib_model_simulator").r())
@@ -69,3 +75,8 @@ The output of your code should be in the format:
 The simulator user can use to test your model:
 {self.simulator}
 """
+
+    def get_runtime_environment(self):
+        model_env = get_model_env()
+        stdout = get_runtime_environment_by_env(env=model_env)
+        return stdout

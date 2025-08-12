@@ -68,7 +68,6 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         # return a workspace with "load_data.py", "spec/load_data.md" inside
         # assign the implemented code to the new workspace.
         competition_info = self.scen.get_scenario_all_desc(eda_output=workspace.file_dict.get("EDA.md", None))
-        runtime_environment = self.scen.get_runtime_environment()
         data_folder_info = self.scen.processed_data_folder_description
         data_loader_task_info = target_task.get_task_information()
 
@@ -96,7 +95,7 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         if DS_RD_SETTING.spec_enabled:
             if "spec/data_loader.md" not in workspace.file_dict:  # Only generate the spec once
                 system_prompt = T(".prompts:spec.system").r(
-                    runtime_environment=runtime_environment,
+                    runtime_environment=self.scen.get_runtime_environment(),
                     task_desc=data_loader_task_info,
                     competition_info=competition_info,
                     folder_spec=data_folder_info,
@@ -219,6 +218,7 @@ class DataLoaderCoSTEER(CoSTEER):
             evolving_version=2,
             scen=scen,
             max_loop=DS_RD_SETTING.coder_max_loop,
+            max_seconds=scen.real_debug_timeout() * settings.max_seconds_multiplier,
             **kwargs,
         )
 
@@ -231,7 +231,7 @@ class DataLoaderCoSTEER(CoSTEER):
                     "scenarios.data_science.share:scen.input_path"
                 ).r()
             },
-            running_timeout_period=DS_RD_SETTING.full_timeout,
+            running_timeout_period=self.scen.real_full_timeout(),
         )
 
         stdout = new_exp.experiment_workspace.execute(env=env, entry=f"python test/data_loader_test.py")

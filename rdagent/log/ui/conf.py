@@ -18,5 +18,7 @@ class UIBasePropSetting(ExtendedBaseSettings):
 
     trace_folder: str = "./traces"
 
+    enable_cache: bool = True
+
 
 UI_SETTING = UIBasePropSetting()

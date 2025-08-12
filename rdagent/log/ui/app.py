@@ -71,15 +71,9 @@ SIMILAR_SCENARIOS = (
 
 def filter_log_folders(main_log_path):
     """
-    The webpage only displays valid folders.
-    If the __session__ folder exists in a subfolder of the log folder, it is considered a valid folder,
-    otherwise it is considered an invalid folder.
+    Filter and return the log folders relative to the main log path.
     """
-    folders = [
-        folder.relative_to(main_log_path)
-        for folder in main_log_path.iterdir()
-        if folder.is_dir() and folder.joinpath("__session__").exists() and folder.joinpath("__session__").is_dir()
-    ]
+    folders = [folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
     folders = sorted(folders, key=lambda x: x.name)
     return folders
 
