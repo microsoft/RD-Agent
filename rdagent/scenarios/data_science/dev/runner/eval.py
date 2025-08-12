@@ -174,13 +174,13 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
         timer = RD_Agent_TIMER_wrapper.timer
         res_time = timer.remain_time()
         if DS_RD_SETTING.only_enable_tuning_in_merge:
-            c3 = res_time >= timedelta(hours=DS_RD_SETTING.merge_hours)
+            c3 = res_time <= timedelta(hours=DS_RD_SETTING.merge_hours)
         else:
             c3 = True
 
         # 4. The current time spent on global is less than the time limit ratio for whole timeout.
         res_ratio = res_time / timer.all_duration
-        c4 = (1-res_ratio) <= DS_RD_SETTING.overall_time_ratio_limit_to_enable_hyperparameter_tuning
+        c4 = res_ratio <= DS_RD_SETTING.res_time_ratio_limit_to_enable_hyperparameter_tuning
 
         # Only enable hyperparameter tuning check if all conditions are met
         enable_hyperparameter_tuning_check = c1 and c2 and c3 and c4
