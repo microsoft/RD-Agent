@@ -566,10 +566,10 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
 
             base_df.loc[k, "SOTA Exp"] = v.get("sota_exp_stat", None)
             base_df.loc[k, "SOTA Exp Score"] = v.get("sota_exp_score", None)
-            base_df.loc[k, "Valid improve"] = v.get("valid_improve", None)
-            base_df.loc[k, "Test improve"] = v.get("test_improve", None)
-            base_df.loc[k, "Submit is Merge"] = v.get("submit_is_merge", None)
-            base_df.loc[k, "Merge success rate"] = v.get("merge_success_rate", None)
+            base_df.loc[k, "Valid Improve"] = v.get("valid_improve", None)
+            base_df.loc[k, "Test Improve"] = v.get("test_improve", None)
+            base_df.loc[k, "Submit Merge"] = v.get("submit_is_merge", None)
+            base_df.loc[k, "Merge Success"] = v.get("merge_success_rate", None)
             base_df.loc[k, "SOTA Exp (to_submit)"] = v["sota_exp_stat_new"]
             base_df.loc[k, "SOTA Exp Score (to_submit)"] = v.get("sota_exp_score_new", None)
             base_df.loc[k, "SOTA LID (to_submit)"] = v.get("sota_loop_id_new", None)
@@ -613,10 +613,10 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             "Silver Threshold": float,
             "Gold Threshold": float,
             "Medium Threshold": float,
-            "Valid improve": bool,
-            "Test improve": bool,
-            "Submit is Merge": bool,
-            "Merge success rate": float,
+            "Valid Improve": bool,
+            "Test Improve": bool,
+            "Submit Merge": bool,
+            "Merge Success": float,
         }
     )
     return summary, base_df
