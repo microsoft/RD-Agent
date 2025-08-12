@@ -65,10 +65,19 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             output_spec = PythonBatchEditOut.get_spec(with_del=False)
             extract_output_fn = PythonBatchEditOut.extract_output
 
+        # Status description
+        status_desc=self.scen.describe_current_status(
+            stage="Running",
+            step="coder",
+            max_loop=DS_RD_SETTING.runner_max_loop,
+            cur_loop=len(queried_former_failed_knowledge)-1,
+        )
+
         if prev_task_feedback.acceptable is False:
             task_information_str = target_task.get_task_information()
             # Use system_debugger for error fixing and debugging
             system_prompt = T(".prompts:DSCoSTEER.system_debugger").r(
+                status_desc=status_desc,
                 task_desc=task_information_str,
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,
@@ -76,6 +85,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         else:
             # Use system_refine for hyperparameter tuning
             system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
+                status_desc=status_desc,
                 out_spec=output_spec,
                 diff_mode=self.settings.diff_mode,
             )
