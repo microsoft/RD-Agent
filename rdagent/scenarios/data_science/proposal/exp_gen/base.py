@@ -5,6 +5,7 @@ from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.evolving_framework import KnowledgeBase
 from rdagent.core.experiment import Experiment
 from rdagent.core.proposal import ExperimentFeedback, Hypothesis, Trace
+from rdagent.core.utils import import_class
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
 
@@ -60,7 +61,29 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
         self.sota_exp_to_submit: DSExperiment | None = None  # grab the global best exp to submit
 
+        self.uncommitted_experiments: dict[int, DSExperiment] = {}  # loop_id -> DSExperiment
+
+    def should_inject_diversity(self, current_selection: tuple[int, ...] | None = None) -> bool:
+        """
+        Check if diversity context should be injected based on the current selection.
+        This function calls the diversity strategy's should_inject method.
+        """
+        if current_selection is None:
+            current_selection = self.get_current_selection()
+        return (
+            import_class(DS_RD_SETTING.diversity_injection_strategy)().should_inject(self, current_selection)
+            if DS_RD_SETTING.enable_cross_trace_diversity
+            else False
+        )
+
     COMPLETE_ORDER = ("DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow")
+
+    def register_uncommitted_exp(self, exp: DSExperiment, loop_id: int):
+        self.uncommitted_experiments[loop_id] = exp
+
+    def deregister_uncommitted_exp(self, loop_id: int):
+        if loop_id in self.uncommitted_experiments:
+            del self.uncommitted_experiments[loop_id]
 
     def set_sota_exp_to_submit(self, exp: DSExperiment) -> None:
         self.sota_exp_to_submit = exp
@@ -88,6 +111,31 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         leaves = list(sorted(all_indices - parent_indices))
         return leaves
 
+    def get_sibling_exps(self, current_selection: tuple[int, ...] | None = None):
+        """
+        Get the sibling experiments of the current selection.
+        Include the committed and uncommitted experiments.
+        """
+        if current_selection is None:
+            current_selection = self.get_current_selection()
+        ignore_leaf_idx = [current_selection[0]] if current_selection != self.NEW_ROOT else []
+        sibling_exps = []
+        touched_node_set = set()
+        for idx in range(len(self.dag_parent)):
+            touched_node_set.add(idx)
+            if self.dag_parent[idx] == self.NEW_ROOT:
+                continue
+            for parent in self.dag_parent[idx]:
+                touched_node_set.remove(parent)
+        for loop_idx, exp in self.uncommitted_experiments.items():
+            sibling_exps.append(exp)
+            if (exp_parent_idx := exp.local_selection[0] if exp.local_selection != self.NEW_ROOT else None) is not None:
+                touched_node_set.remove(exp_parent_idx)
+        for idx in touched_node_set:
+            if idx not in ignore_leaf_idx:
+                sibling_exps.append(self.hist[idx][0])
+        return sibling_exps
+
     def sync_dag_parent_and_hist(
         self,
         exp_and_fb: tuple[Experiment, ExperimentFeedback],
@@ -112,6 +160,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             self.dag_parent.append((current_node_idx,))
         self.hist.append(exp_and_fb)
         self.idx2loop_id[len(self.hist) - 1] = cur_loop_id
+        self.deregister_uncommitted_exp(cur_loop_id)
 
     def retrieve_search_list(
         self,
