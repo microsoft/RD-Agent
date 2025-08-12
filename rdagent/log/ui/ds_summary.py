@@ -169,7 +169,6 @@ def all_summarize_win():
     # 统计选择的比赛
     base_df = base_df[base_df["Select"]]
     st.markdown(f"**统计的比赛数目: :red[{base_df.shape[0]}]**")
-
     stat_win_left, stat_win_right = st.columns(2)
     with stat_win_left:
         stat_df = get_statistics_df(base_df)
@@ -179,7 +178,6 @@ def all_summarize_win():
 | Valid Improve {valid_rate * 100:.2f}% | Test Improve {test_rate * 100:.2f}% | Submit Merge {submit_merge_rate * 100:.2f}% | Merge Success {merge_success_avg * 100:.2f}% |
 """
         st.text(markdown_table)
-
     with stat_win_right:
         Loop_counts = base_df["Total Loops"]
 
