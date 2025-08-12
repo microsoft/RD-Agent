@@ -377,24 +377,25 @@ hypothesis_rewrite:
     - **Time Limit Check**  
       Remove any hypothesis whose estimated runtime is greater than {{full_time}} hours **and** has no strong potential for significantly better results.
 
-
     {% if time_max <= 0 %}
     - **Initial Stage**  
       - Since runtime information is not yet available, keep most hypotheses.  
       - Remove only those that are clearly excessive (e.g., > {{full_time}} hours) or overly complex.  
 
     {% elif time_max >= full_time*0.5 %}
-    - **High Runtime Case**  
-      - Current max runtime ({{time_max}} h) leaves little room for extra runs.  
+    - **High Runtime Scenario**  
+      - Current max runtime ({{time_max:.1f}} h) consumes significant portion(>50%) of the {{full_time}} hour limit.
       - Avoid high-fold (e.g., 5-fold) or heavy ensembles.  
-      - Maximum recommended folds: {{ (full_time // time_max) | int }} (max 5 folds)
-      - Remove hypotheses that are clearly excessive (e.g., > {{full_time}} hours)
+      - Maximum recommended folds: 1 fold (max 2 folds)
+      - Remove any hypothesis likely to exceed {{full_time}} hours total runtime.
 
     {% else %}
-    - **Low Runtime Case**  
-      - Current max runtime ({{time_max}} h) is far from the time limit.  
-      - Prefer hypotheses with runtimes ≤ {{full_time}} hours.  
-      - Hypotheses slightly above {{time_max}} can be retained only with strong justification.  
+    - **Moderate Runtime Scenario**  
+      - Current max runtime ({{time_max:.1f}} h) is well within the {{full_time}} hour limit.
+      - **Strategy**: Balance exploration with time efficiency.
+      - Can consider more complex hypotheses, but prioritize those with clear improvement potential.
+      - Acceptable runtime range: up to {{time_max}} hours per hypothesis.
+      - Remove hypotheses without strong justification for their complexity.
     {% endif %}
 
     - **Past Failure Risks**  

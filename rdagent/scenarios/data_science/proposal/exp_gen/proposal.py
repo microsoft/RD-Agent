@@ -775,7 +775,9 @@ class DSProposalV2ExpGen(ExpGen):
         remain_time = None
         # Filter out None values when collecting running times
         time_list = [-3600] + [
-            tr[0].running_info.running_time for tr in trace.retrieve_search_list(search_type="ancestors") if tr[0].running_info.running_time is not None
+            tr[0].running_info.running_time
+            for tr in trace.retrieve_search_list(search_type="ancestors")
+            if tr[0].running_info.running_time is not None
         ]
         time_max = max(time_list) / 3600
         full_time = self.scen.real_full_timeout() / 3600
@@ -789,9 +791,9 @@ class DSProposalV2ExpGen(ExpGen):
         ]
 
         if len(time_list_success) > 1 and (max(time_list_success) / 3600) * 2 > merge_hours:
-           DS_RD_SETTING.merge_hours = 0  # give up merge
-           merge_hours = 0
-           DS_RD_SETTING.smooth_flag = True
+            DS_RD_SETTING.merge_hours = 0  # give up merge
+            merge_hours = 0
+            DS_RD_SETTING.smooth_flag = True
 
         remain_time = RD_Agent_TIMER_wrapper.timer.remain_time().total_seconds() / 3600
         if DS_RD_SETTING.enable_scale_check:
