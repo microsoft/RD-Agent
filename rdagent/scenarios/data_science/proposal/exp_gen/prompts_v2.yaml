@@ -335,7 +335,7 @@ hypothesis_rewrite:
     - When rewriting, consider if the hypothesis leverages appropriate tools from the available packages
     - Balance innovation with practical tool selection - prefer modern packages when they offer clear advantages
     - Ensure tool choices align with the problem requirements and constraints
-    - Be pragmatic: use whatever works best - whether it's a cutting-edge transformer or traditional logistic regression
+    - Be pragmatic: use whatever works best for the task - whether it's a cutting-edge transformer or traditional logistic regression
     
     1. **Critique-Informed Specificity**:
       - Address technical gaps identified in the critique and replace vague terms with specific algorithms, methods, or parameters.
@@ -449,11 +449,13 @@ task_gen:
       - Ensure validation metrics and processes are consistent across all parts of the pipeline. Avoid changes that would alter how validation metrics are calculated unless that is part of the hypothesis.
     8. **Submission File (`submission.csv`)**: Generate `submission.csv` in the **exact format** required (column names, order, data types), as detailed in the '====== Submission Format ======' section of the Competition Scenario Description (DO NOT read the sample_submission.csv file directly in the code). This is a critical step.
     9. **Preferred Packages Notes**:
-      - You can choose the most proper packages for the task to best achieve the hypothesis.
-      - When facing a choice between two packages which both can achieve the same goal, you should choose the one which is more commonly used and less likely to cause bugs in coding. Especially those you are not familiar with.
-      - For GBDT models, prefer XGBoost or RandomForest over LightGBM unless the SOTA or hypothesis dictates otherwise. Prefer not using GPU for GBDT models unless the SOTA or hypothesis dictates otherwise.
-      - For neural networks, prefer PyTorch or PyTorch based library (over TensorFlow) unless the SOTA or hypothesis dictates otherwise.
-      - For neural networks, prefer fine-tuning pre-trained models over training from scratch.
+      - The `Available Packages` section in the Competition Scenario Description includes general and specific recommendations. Choose packages that best support the hypothesis and constraints; you may deviate with clear justification grounded in data, code reuse, and efficiency.
+      - Do not select packages solely because you are familiar with them.
+      - When facing a choice between two packages which both can achieve the same goal, you should choose the one which is more 
+      commonly used and less likely to cause bugs in coding.
+      - For GBDT, default to CPU. Enable GPU only if profiling on this environment shows clear, reproducible speedups without stability regressions; document the versions and settings used.
+      - For deep learning frameworks, align with the current codebase and available pretrained assets. If unconstrained, default to PyTorch or PyTorch‑based libraries given ecosystem and template support; prioritize consistency and reuse over brand preferences.
+      - For deep learning, favor fine-tuning well‑validated pretrained models over training from scratch when applicable to the task.
 
     10. **Adaptive Architecture Selection Strategy**:
       - **History assessment**: Review what architectures/approaches have been tried in previous experiments and their outcomes.

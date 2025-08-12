@@ -1,4 +1,5 @@
 import json
+import random
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -892,6 +893,9 @@ class DSProposalV2ExpGen(ExpGen):
                 index_to_pick_pool_list.extend([j] * 2)  # Persistent problems have moderate stable weight
             else:
                 index_to_pick_pool_list.extend([j] * 1)
+
+        random.seed(42)
+        random.shuffle(index_to_pick_pool_list)
         logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
 
         # Create a random but reproducible integer
