@@ -114,6 +114,10 @@ def all_summarize_win():
     if not summary:
         return
 
+    valid_rate = float(base_df["Valid improve"].mean())
+    test_rate = float(base_df["Test improve"].mean())
+    submit_merge_rate = float(base_df["Submit is Merge"].mean())
+    merge_success_avg = float(base_df["Merge success rate"].mean())
     base_df = percent_df(base_df)
     base_df.insert(0, "Select", True)
     bt1, bt2 = st.columns(2)
@@ -165,14 +169,17 @@ def all_summarize_win():
     # 统计选择的比赛
     base_df = base_df[base_df["Select"]]
     st.markdown(f"**统计的比赛数目: :red[{base_df.shape[0]}]**")
+
     stat_win_left, stat_win_right = st.columns(2)
     with stat_win_left:
         stat_df = get_statistics_df(base_df)
         st.dataframe(stat_df.round(2))
         markdown_table = f"""
 | xxx | {stat_df.iloc[0,1]:.1f} | {stat_df.iloc[1,1]:.1f} | {stat_df.iloc[2,1]:.1f} | {stat_df.iloc[3,1]:.1f} | {stat_df.iloc[4,1]:.1f} | {stat_df.iloc[5,1]:.1f} | {stat_df.iloc[6,1]:.1f}   |
+| Valid Improve {valid_rate * 100:.2f}% | Test Improve {test_rate * 100:.2f}% | Submit Merge {submit_merge_rate * 100:.2f}% | Merge Success {merge_success_avg * 100:.2f}% |
 """
         st.text(markdown_table)
+
     with stat_win_right:
         Loop_counts = base_df["Total Loops"]
 
