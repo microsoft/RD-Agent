@@ -288,9 +288,7 @@ def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, boo
             loop_id = int(re.search(r"\d+", all_trace[loop_index].tag).group())
 
         is_merge = False
-        direct_exp_gen = log_storage.iter_msg(
-            pattern=f"Loop_{loop_id}/direct_exp_gen/debug_tpl/*/*.pkl"
-        )
+        direct_exp_gen = log_storage.iter_msg(pattern=f"Loop_{loop_id}/direct_exp_gen/debug_tpl/*/*.pkl")
         for tr in direct_exp_gen:
             uri = tr.content.get("uri") if isinstance(tr.content, dict) else getattr(tr.content, "uri", None)
             if isinstance(uri, str) and "scenarios.data_science.proposal.exp_gen.merge" in uri:
