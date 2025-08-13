@@ -353,7 +353,7 @@ component_spec:
       - Do not select packages solely because you are familiar with them.
       - When facing a choice between two packages which both can achieve the same goal, you should choose the one which is more 
       commonly used and less likely to cause bugs in coding.
-      - For GBDT, default to CPU. Enable GPU only if profiling on this environment shows clear, reproducible speedups without stability regressions; document the versions and settings used.
+      - For GBDT, default to CPU. Enable GPU for GBDT only if profiling on this environment shows clear, reproducible speedups without stability regressions; document the versions and settings used.
       - For deep learning frameworks, align with the current codebase and available pretrained assets. If unconstrained, default to PyTorch or PyTorch‑based libraries given ecosystem and template support; prioritize consistency and reuse over brand preferences.
       - For deep learning, favor fine-tuning well‑validated pretrained models over training from scratch when applicable to the task.
 
