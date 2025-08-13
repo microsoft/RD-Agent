@@ -18,7 +18,11 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.feedback import ExperimentFeedback
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.base import (
+    DSCombinedHypothesis,
+    DSHypothesis,
+    DSTrace,
+)
 from rdagent.scenarios.data_science.proposal.exp_gen.draft.draft import (
     DSDraftExpGen,  # TODO: DSDraftExpGen should be moved to router in the further
 )
@@ -966,7 +970,12 @@ class DSProposalV2ExpGen(ExpGen):
             # Persist for later stages
             task.package_info = get_packages(pkgs)
 
-        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypotheses[0])
+        # When no sota_exp, combine all hypotheses to preserve information
+        if len(hypotheses) > 1:
+            combined_hypothesis = DSCombinedHypothesis(hypotheses)
+            exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=combined_hypothesis)
+        else:
+            exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypotheses[0])
         if sota_exp is not None:
             exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
 

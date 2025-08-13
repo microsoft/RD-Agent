@@ -91,27 +91,26 @@ exp_feedback:
   user: |-
     We are currently in a process of validating hypotheses to iteratively improve our models for Kaggle competitions. Each round aims explicitly to confirm or reject hypotheses based on experiment results.
     
-    ## SOTA Solution
+    # SOTA Solution
     {{ sota_desc }}
 
-    ## Current Solution
-    ### Task of Current Solution
+    # Current Solution
+    ## Task of Current Solution
     {{ cur_exp.pending_tasks_list[0][0].get_task_information() }}
 
     {% if cur_exp.hypothesis %}
-    The experiment was designed based on the following hypothesis:
+    ## The experiment was designed based on the following hypothesis:
     {{ cur_exp.hypothesis }}
-    
-    Modified code according to hypothesis:
-    {% else %}
-    Modified code:
     {% endif %}
 
+    {% if diff_edition and diff_edition|length > 0 %}
+    ## Code Changes:
     {% for de in diff_edition %}
     {{ de }}
     {% endfor %}
+    {% endif %}
 
-    ### Final Results of the Current Solution
+    ## Final Results of the Current Solution
     1. Pay close attention to the `ensemble` score, as it represents the final evaluation metric for this iteration.
     2. If any individual model significantly outperforms the ensemble, this may indicate an issue in the ensemble method. But if the final `ensemble` score surpasses the current SOTA, you should update the SOTA record. However, it seems that there are noticeable issues in the ensemble component, be sure to highlight them explicitly.
 
@@ -125,11 +124,11 @@ exp_feedback:
     {% endif %}
     
     {% if cur_exp.format_check_result is not none %}
-    ### Submission format check to current solution:
+    ## Submission format check to current solution:
     {{ cur_exp.format_check_result }}
     {% endif %}
     
-    ### Complete Code of Current Solution
+    ## Complete Code of Current Solution
     {{ cur_exp.experiment_workspace.all_codes }}
 
     ## Feedback of past experiments
