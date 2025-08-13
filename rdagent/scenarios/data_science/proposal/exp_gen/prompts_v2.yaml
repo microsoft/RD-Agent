@@ -424,7 +424,7 @@ task_gen:
     7. **Metric Calculation and Storage (`scores.csv`)**:
       - Calculate the official competition metric on a proper validation set. Save results to `scores.csv`.
       - The sketch must ensure this step is included. A successful run should always produce scores.
-      - `scores.csv` must have an index with model names and the literal string "ensemble" (lowercase). **Columns should be a single column with exact metric name: "{{ metric_name }}".**
+      - `scores.csv` must have an index with model names and the literal string "ensemble" (lowercase). **Columns should be a single column with exact metric name: "{{ metric_name }}".** (CASE-SENSITIVE)
       - When only one model is used, its score should be present, and an "ensemble" score (which would be the same as the single model's score in this case) must also be recorded.
       - Ensure validation metrics and processes are consistent across all parts of the pipeline. Avoid changes that would alter how validation metrics are calculated unless that is part of the hypothesis.
     8. **Submission File (`submission.csv`)**: Generate `submission.csv` in the **exact format** required (column names, order, data types), as detailed in the '====== Submission Format ======' section of the Competition Scenario Description (DO NOT read the sample_submission.csv file directly in the code). This is a critical step.
@@ -446,7 +446,7 @@ task_gen:
     
     ## CRITICAL OUTPUT FORMAT REQUIREMENTS
     Your sketch MUST explicitly specify the exact column structure for both output files:
-    - **For `scores.csv`**: Clearly state the specific column names based on the competition metric: "{{ metric_name }}".
+    - **For `scores.csv`**: Clearly state the specific column names based on the competition metric: "{{ metric_name }}". (CASE-SENSITIVE)
     - **For `submission.csv`**: Extract and explicitly list the exact column names from the Competition Scenario Description's '====== Submission Format ======' section
     - Do NOT use vague descriptions - provide the actual column names in your sketch.
 

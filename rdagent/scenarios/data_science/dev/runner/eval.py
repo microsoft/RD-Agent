@@ -141,8 +141,8 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
                         score_check_text += f"\n[Error] The scores dataframe does not contain the correct model names as index.\ncorrect model names are: {model_set_in_folder.union({'ensemble'})}\nscore_df is:\n{score_df}"
                         score_ret_code = 1
 
-                # Check metric name (columns)
-                if score_df.columns.tolist() != [self.scen.metric_name]:
+                # Check metric name (columns) - case insensitive
+                if [col.lower() for col in score_df.columns.tolist()] != [self.scen.metric_name.lower()]:
                     score_check_text += f"\n[Error] The scores dataframe does not contain the correct column names.\nCorrect columns is: ['{self.scen.metric_name}']\nBut got: {score_df.columns.tolist()}"
                     score_ret_code = 1
 
@@ -169,15 +169,6 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
         ):
             enable_hyperparameter_tuning_check = True
 
-        if (
-            DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning is not None
-            and time_spent_ratio > DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning
-        ):
-            enable_hyperparameter_tuning_check = False
-            logger.info(
-                f"Time spent ratio {time_spent_ratio:.2f} exceeds the limit {DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning}, hyperparameter tuning is disabled."
-            )
-
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=implementation.file_dict.get("EDA.md", None)),
             task_desc=target_task.get_task_information(),
@@ -199,7 +190,11 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
             user_prompt=user_prompt,
             # init_kwargs_update_func=DSRunnerFeedback.val_and_update_init_dict,
         )
-        feedback.score = score_df.to_string() if score_ret_code == 0 else None
+        try:
+            feedback.score = score_df.loc["ensemble"].iloc[0] if score_ret_code == 0 else None
+        except:
+            logger.error("Failed to get the score from scores.csv.")
+            feedback.score = None
         feedback.final_decision = feedback.acceptable and (
             not feedback.hyperparameter_tuning_decision
         )  # If hyperparameter_tuning_decision is None, it's considered as False, so the final_decision dependents on the acceptable
