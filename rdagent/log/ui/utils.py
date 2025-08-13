@@ -277,15 +277,20 @@ def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, boo
     best_score = None
     best_stat = None
     total_merge_loops = 0
-
     log_storage = FileStorage(log_path)
+    all_trace = list(log_storage.iter_msg(tag="trace"))
+    final_trace = all_trace[-1].content
 
-    for loop_trace in log_path.glob("Loop_*/direct_exp_gen/*/*.pkl"):
-        loop_id = int(re.search(r".*Loop_(\d+).*", str(loop_trace)).group(1))
-        direct_exp_gen = log_storage.iter_msg(pattern=f"Loop_{loop_id}/direct_exp_gen/debug_tpl/*/*.pkl")
-        if not direct_exp_gen:
-            continue
+    for loop_index, (exp, fb) in enumerate(final_trace.hist):
+        if hasattr(final_trace, "idx2loop_id"):
+            loop_id = final_trace.idx2loop_id[loop_index]
+        else:
+            loop_id = int(re.search(r"\d+", all_trace[loop_index].tag).group())
+
         is_merge = False
+        direct_exp_gen = log_storage.iter_msg(
+            pattern=f"Loop_{loop_id}/direct_exp_gen/debug_tpl/*/*.pkl"
+        )
         for tr in direct_exp_gen:
             uri = tr.content.get("uri") if isinstance(tr.content, dict) else getattr(tr.content, "uri", None)
             if isinstance(uri, str) and "scenarios.data_science.proposal.exp_gen.merge" in uri:
@@ -294,45 +299,47 @@ def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, boo
                 if sota_loop_id == loop_id:
                     submit_is_merge = True
                 break
+        if not fb.decision:
+            continue
 
         try:
             mle_score = extract_json(
                 [i.content for i in log_storage.iter_msg(tag=f"Loop_{loop_id}.running.mle_score")][0]
             )
-            assert mle_score
-        except Exception as e:
-            # mle score not found, skip this loop
+        except Exception:
+            continue
+
+        if not mle_score:
             continue
 
         is_lower_better = mle_score.get("is_lower_better", False)
-        if mle_score["score"]:
-            feedback = next(log_storage.iter_msg(pattern=f"Loop_{loop_id}/feedback/*/*.pkl"), None)
-            if not feedback or not feedback.content.decision:
-                continue
-            exp = next(log_storage.iter_msg(pattern=f"Loop_{loop_id}/running/*/*.pkl")).content
-            all_report.append((pd.DataFrame(exp.result).loc["ensemble"].iloc[0], mle_score))
-            if is_merge:
-                valid_after_merge.append(pd.DataFrame(exp.result).loc["ensemble"].iloc[0])
-                test_after_merge.append(mle_score["score"])
-            else:
-                valid_before_merge.append(pd.DataFrame(exp.result).loc["ensemble"].iloc[0])
-                test_before_merge.append(mle_score["score"])
+        valid_score = pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
+        all_report.append((valid_score, mle_score))
+
+        if is_merge:
+            valid_after_merge.append(valid_score)
+            test_after_merge.append(mle_score["score"])
+        else:
+            valid_before_merge.append(valid_score)
+            test_before_merge.append(mle_score["score"])
+
     if all_report:
         all_report.sort(key=lambda x: x[0])
-        best_score = all_report[0][1] if is_lower_better else all_report[-1][1]
-        best_stat = map_stat(best_score)
-        best_score = best_score["score"]
+        best_score_dict = all_report[0][1] if is_lower_better else all_report[-1][1]
+        best_stat = map_stat(best_score_dict)
+        best_score = best_score_dict["score"]
+
     if is_lower_better:
         if valid_after_merge:
             valid_improve = not valid_before_merge or min(valid_after_merge) < min(valid_before_merge)
         if test_after_merge:
             test_improve = not test_before_merge or min(test_after_merge) < min(test_before_merge)
-
     else:
         if valid_after_merge:
             valid_improve = not valid_before_merge or max(valid_after_merge) > max(valid_before_merge)
         if test_after_merge:
             test_improve = not test_before_merge or max(test_after_merge) > max(test_before_merge)
+
     merge_sota_rate = 0 if not total_merge_loops else len(test_after_merge) / total_merge_loops
     return best_score, best_stat, valid_improve, test_improve, submit_is_merge, merge_sota_rate
 
