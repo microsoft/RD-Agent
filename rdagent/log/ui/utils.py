@@ -251,10 +251,14 @@ def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, boo
     -------
     tuple[float | None, float | None]
         A tuple containing:
-        - score_before_merge : float or None
-            The score before merging experiments or None if not applicable.
+        - valid_improve : bool
+            True if valid score is improved during merge period.
+        - test_improve : bool
+            True if test score is improved during merge period.
         - submit_is_merge : bool
             True if the sota loop is a merge loop.
+        - merge_success_rate : float | None
+            The merge success rate.
     """
     valid_before_merge = []
     test_before_merge = []
