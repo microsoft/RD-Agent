@@ -1,6 +1,71 @@
 import sys
 from importlib.metadata import distributions
 
+# Kaggle competition packages - based on usage frequency
+PYTHON_BASE_PACKAGES = ["catboost", "lightgbm", "numpy", "optuna", "pandas", "scikit-learn", "scipy", "shap", "xgboost"]
+
+PYTHON_ADVANCED_PACKAGES = [
+    "accelerate",
+    "albumentations",
+    "bayesian-optimization",
+    "category_encoders",
+    "datasets",
+    "featuretools",
+    "imbalanced-learn",
+    "nltk",
+    "opencv-python",
+    "pillow",
+    "polars",
+    "sentence-transformers",
+    "spacy",
+    "tensorflow",
+    "timm",
+    "tokenizers",
+    "torch",
+    "torchvision",
+    "transformers",
+]
+
+
+def get_all_excepted_packages():
+    """Get flattened list of all packages"""
+    all_packages = PYTHON_BASE_PACKAGES + PYTHON_ADVANCED_PACKAGES
+    return sorted(set(all_packages))
+
+
+def get_available_recommended_packages_prompt():
+    """Generate prompt template for dynamically detected available packages"""
+    installed_packages = get_installed_packages()
+
+    # Check which packages are actually installed
+    base_available = [pkg for pkg in PYTHON_BASE_PACKAGES if pkg.lower() in installed_packages]
+    advanced_available = [pkg for pkg in PYTHON_ADVANCED_PACKAGES if pkg.lower() in installed_packages]
+
+    # Build prompt
+    prompt_parts = ["# Available packages in environment:\n"]
+
+    if base_available:
+        prompt_parts.append("## [Basic Libraries] (general tools for data science tasks):")
+        prompt_parts.append(f"- {', '.join(base_available)}")
+        prompt_parts.append("")
+
+    if advanced_available:
+        prompt_parts.append("## [Advanced Tools] (specialized for specific domains):")
+        prompt_parts.append(f"- {', '.join(advanced_available)}")
+        prompt_parts.append("")
+
+    prompt_parts.append(
+        "You should choose appropriate tool combinations based on the specific context and current situation. Feel free to use any other packages you think are necessary to achieve the best performance."
+    )
+
+    return "\n".join(prompt_parts).strip()
+
+
+def print_available_packages_prompt():
+    """Print the available packages prompt to stdout for external consumption"""
+    prompt = get_available_recommended_packages_prompt()
+    print(prompt)
+
 
 def get_installed_packages():
     return {dist.metadata["Name"].lower(): dist.version for dist in distributions()}
@@ -26,24 +91,7 @@ def get_python_packages():
     # Example: `python package_info.py pandas torch scikit-learn`
     # If no extra arguments are provided we fall back to the original default list
     # to keep full backward-compatibility.
-    packages_list = [  # default packages
-        "transformers",
-        "accelerate",
-        "torch",
-        "tensorflow",
-        "pandas",
-        "numpy",
-        "scikit-learn",
-        "scipy",
-        "xgboost",
-        "sklearn",
-        "lightgbm",
-        "vtk",
-        "opencv-python",
-        "keras",
-        "matplotlib",
-        "pydicom",
-    ]
+    packages_list = get_all_excepted_packages()
     if len(sys.argv) > 1:
         packages_list = list(set(packages_list) | set(sys.argv[1:]))
 
@@ -61,4 +109,8 @@ def get_python_packages():
 
 
 if __name__ == "__main__":
-    get_python_packages()
+    # Check if we should print available packages prompt
+    if len(sys.argv) > 1 and sys.argv[1] == "--packages-prompt":
+        print_available_packages_prompt()
+    else:
+        get_python_packages()
