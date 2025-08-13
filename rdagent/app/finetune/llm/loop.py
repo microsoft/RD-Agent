@@ -1,4 +1,5 @@
 import asyncio
+import os
 from pathlib import Path
 
 import fire
@@ -28,9 +29,22 @@ def main(
     if not dataset:
         raise Exception("Please specify dataset name.")
 
-    model_folder = Path(DS_RD_SETTING.local_data_path) / dataset / "prev_model"
-    if not model_folder.exists():
-        raise Exception(f"Please put the model path to {model_folder}.")
+    ft_root_str = os.environ.get("FT_FILE_PATH")
+    if not ft_root_str:
+        raise Exception("Please set FT_FILE_PATH in your .env.")
+    ft_root = Path(ft_root_str)
+    if not ft_root.exists():
+        raise Exception(f"FT_FILE_PATH does not exist: {ft_root}")
+    prev_dir = ft_root / "prev_model" / dataset
+    model_dir = ft_root / "model" / dataset
+    dataset_dir = ft_root / "dataset" / dataset
+    if not dataset_dir.exists():
+        raise Exception(f"Dataset not found: {dataset_dir}")
+    # Require at least one of prev_model or model to exist for finetune
+    if not prev_dir.exists() and not model_dir.exists():
+        raise Exception(
+            f"Neither prev_model nor model exists for '{dataset}'. Please create one of: {prev_dir} or {model_dir}"
+        )
     update_settings(dataset)
     rd_loop: DataScienceRDLoop = DataScienceRDLoop(DS_RD_SETTING)
     asyncio.run(rd_loop.run())
