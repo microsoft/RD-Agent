@@ -379,7 +379,7 @@ hypothesis_select:
   system: |-
     You are a Kaggle Grandmaster with deep expertise in model evaluation and decision making.  
     Your task: Return the most appropriate hypothesis to improve the current solution.
-    list hypothesis_candidates :
+    hypothesis_candidates :
     {{hypothesis_candidates}}
     ## Hypothesis Source
     - The list `hypothesis_candidates` is for REFERENCE ONLY.
@@ -409,25 +409,24 @@ hypothesis_select:
         - Guidance: Combine useful aspects of several hypotheses into a single, simple idea. Ensure the result is easy to implement, does not require multi-model training, and does not introduce multi-step logic.
     {% elif use_ratio > 70 %}
     ### Stage = Ensemble
-    - This stage focuses on maximizing overall performance by combining multiple models or hypotheses. The goal is to build a strong ensemble within the remaining time budget ({{ res_time }} sec, max {{ full_time }} sec). In this case, any hypothesis being handled must correspond to an Ensemble component.
+    - This stage focuses on maximizing overall performance by combining multiple models or hypotheses. The goal is to build a strong ensemble within the remaining time budget ({{ res_time }} hours, max {{ full_time }} hours). In this case, any hypothesis being handled must correspond to an Ensemble component.
     {%if res_time > merge_hours %}
     - **Time Limit Guidance**
       {% if time_max < 0 %}
-      - Initial Stage: runtime info unavailable, keep most hypotheses.
-      - Remove only those clearly excessive (e.g., > {{ full_time }} sec) or overly complex.
+      - Initial Case: runtime info unavailable, keep most hypotheses if component is Ensemble.
+      - Remove only those clearly excessive (e.g., > {{ full_time }} hours) or overly complex.
       {% elif time_max >= full_time * 0.5 %}
-      - High Runtime Case: current max runtime ({{ time_max }} sec) leaves little room for extra runs.
+      - High Runtime Case: current max runtime ({{ time_max }} hours) leaves little room for extra runs.
       - Avoid high-fold or heavy ensembles.
       - Maximum recommended folds: {{ (full_time // time_max) | int }}
-      - Remove hypotheses clearly excessive (> {{ full_time }} sec)
+      - Remove hypotheses clearly excessive (> {{ full_time }} hours)
       {% else %}
-      - Low Runtime Case: current max runtime ({{ time_max }} sec) is far from the time limit.
-      - Prefer hypotheses with runtimes ≤ {{ full_time }} sec.
-      - Hypotheses slightly above {{ time_max }} can be retained only with strong justification.
+      - Low Runtime Case: current max runtime ({{ time_max }} hours) is far from the time limit.
+      - Prefer hypotheses with runtimes ≤ {{ full_time }} hours.
+      - Hypotheses slightly above {{ time_max }} hours can be retained only with strong justification.
       {% endif %}
     {% endif %}
-
-    - You may take one of three actions, considering the remaining time and runtime guidance:
+    According to the previous Time Limit Guidance. You may take one of three actions, considering the remaining time and runtime guidance:
 
       1. **Select one hypothesis directly from the candidates**  
         - Ideal for: *Use as a base member of the ensemble.*  

@@ -945,7 +945,7 @@ class DSProposalV2ExpGen(ExpGen):
         use_ratio = 100 * use_time / round(total_time.total_seconds(), 2)
         use_ratio = round(use_ratio, 2)
 
-        full_time = self.scen.real_full_timeout()
+        full_time = self.scen.real_full_timeout() / 3600
         time_list_success = [-3600] + [tr[0].running_info.running_time for tr in trace.retrieve_search_list(search_type="ancestors") if getattr(tr[1], "decision", False)
             ]        
         time_max = max(time_list_success) / 3600
@@ -953,10 +953,10 @@ class DSProposalV2ExpGen(ExpGen):
         hypothesis_candidates = str(json.dumps(hypothesis_candidates, indent=2))
         sys_prompt = T(".prompts_v2:hypothesis_select.system").r(
             hypothesis_candidates=hypothesis_candidates,
-            res_time=round(res_time.total_seconds(), 2)/3600,
+            res_time=round(res_time.total_seconds()/3600, 2),
             full_time=full_time,
             use_ratio=use_ratio,
-            time_max = time_max,
+            time_max = round(time_max, 2),
             merge_hours = DS_RD_SETTING.merge_hours,
             hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(
                 hypothesis_candidates=hypothesis_candidates
