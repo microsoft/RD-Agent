@@ -1,6 +1,7 @@
 import json
 import re
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -15,6 +16,7 @@ from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.timer import RD_Agent_TIMER_wrapper
 from rdagent.scenarios.data_science.test_eval import (
     MLETestEval,
     NoTestEvalError,
@@ -141,8 +143,8 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
                         score_check_text += f"\n[Error] The scores dataframe does not contain the correct model names as index.\ncorrect model names are: {model_set_in_folder.union({'ensemble'})}\nscore_df is:\n{score_df}"
                         score_ret_code = 1
 
-                # Check metric name (columns)
-                if score_df.columns.tolist() != [self.scen.metric_name]:
+                # Check metric name (columns) - case insensitive
+                if [col.lower() for col in score_df.columns.tolist()] != [self.scen.metric_name.lower()]:
                     score_check_text += f"\n[Error] The scores dataframe does not contain the correct column names.\nCorrect columns is: ['{self.scen.metric_name}']\nBut got: {score_df.columns.tolist()}"
                     score_ret_code = 1
 
@@ -160,23 +162,29 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
             submission_check_out, submission_ret_code = test_eval.valid(self.scen.competition, implementation)
             stdout += f"\n### Submission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
 
-        time_spent_ratio = implementation.running_info.running_time / env.conf.running_timeout_period
-        # Only enable hyperparameter tuning on the first evaluation.
-        # Avoid too much time consuming.
-        enable_hyperparameter_tuning_check = False
-        if len(queried_knowledge.task_to_former_failed_traces[target_task.get_task_information()][0]) == 0 and (
-            time_spent_ratio < DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning
-        ):
-            enable_hyperparameter_tuning_check = True
+        # Whether to enable hyperparameter tuning check
+        # 1. This is the first loop of evaluation.
+        c1 = len(queried_knowledge.task_to_former_failed_traces[target_task.get_task_information()][0]) == 0
 
-        if (
-            DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning is not None
-            and time_spent_ratio > DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning
-        ):
-            enable_hyperparameter_tuning_check = False
-            logger.info(
-                f"Time spent ratio {time_spent_ratio:.2f} exceeds the limit {DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning}, hyperparameter tuning is disabled."
-            )
+        # 2. The current time spent on runner is less than the time limit ratio for runner timeout.
+        time_spent_ratio = implementation.running_info.running_time / env.conf.running_timeout_period
+        c2 = time_spent_ratio < DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning
+
+        # 3. Only enable hyperparameter tuning during the merge stage if configured.
+        # TODO: it is not restricted in merge stage now for fast implementation.
+        timer = RD_Agent_TIMER_wrapper.timer
+        res_time = timer.remain_time()
+        if DS_RD_SETTING.only_enable_tuning_in_merge:
+            c3 = res_time <= timedelta(hours=DS_RD_SETTING.merge_hours)
+        else:
+            c3 = True
+
+        # 4. The current time spent on global is less than the time limit ratio for whole timeout.
+        res_ratio = res_time / timer.all_duration
+        c4 = res_ratio <= DS_RD_SETTING.res_time_ratio_limit_to_enable_hyperparameter_tuning
+
+        # Only enable hyperparameter tuning check if all conditions are met
+        enable_hyperparameter_tuning_check = c1 and c2 and c3 and c4
 
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=implementation.file_dict.get("EDA.md", None)),
@@ -199,7 +207,11 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
             user_prompt=user_prompt,
             # init_kwargs_update_func=DSRunnerFeedback.val_and_update_init_dict,
         )
-        feedback.score = score_df.to_string() if score_ret_code == 0 else None
+        try:
+            feedback.score = score_df.loc["ensemble"].iloc[0] if score_ret_code == 0 else None
+        except:
+            logger.error("Failed to get the score from scores.csv.")
+            feedback.score = None
         feedback.final_decision = feedback.acceptable and (
             not feedback.hyperparameter_tuning_decision
         )  # If hyperparameter_tuning_decision is None, it's considered as False, so the final_decision dependents on the acceptable

@@ -57,8 +57,9 @@ DSCoSTEER_eval:
         "return_checking": "Verify the generated files, particularly the submission file. Ensure that its format is valid",
         "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
         "acceptable": <true/false: if the solution has passed execution, return_checking, and code verification, then it is a valid solution and acceptable. Otherwise it is not acceptable.>,
-        {% if enable_hyperparameter_tuning_check %}"hyperparameter_tuning_decision": <true/false>,
-        "hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,{% endif %}
+        {% if enable_hyperparameter_tuning_check %}"hyperparameter_tuning_suggestion": <suggestion in plain text for hyperparameter tuning>,
+        "hyperparameter_tuning_decision": <true/false>,
+        {% endif %}
     }
     ```
 
