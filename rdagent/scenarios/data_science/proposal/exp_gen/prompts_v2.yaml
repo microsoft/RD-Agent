@@ -358,7 +358,6 @@ hypothesis_rewrite:
       - Apply critique insights to enhance sound innovative ideas while avoiding repeated fundamental failures identified in the analysis.
       - **Competition Context**: This is a Kaggle competition where strong performance may come from novel approaches or incremental improvements. Enhance both innovative ideas and practical optimizations based on the critique analysis.
   
-    {% if time_started %}
     {%if remain_time > merge_hours %}
     ## Guidelines for Filtering Hypotheses
 
@@ -387,7 +386,6 @@ hypothesis_rewrite:
 
     - **Past Failure Risks**  
       Remove any hypothesis that contains elements known to have caused previous experiment failures.
-    {% endif %}
     {% endif %}
     
     {% if rewrite_output_format is not none %}

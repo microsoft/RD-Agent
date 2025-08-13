@@ -750,24 +750,24 @@ class DSProposalV2ExpGen(ExpGen):
 
         time_status = None
         remain_time = None
-        time_list = [-3600] + [tr[0].running_info.running_time for tr in trace.hist[:-1]]
+        time_list = [-3600] + [tr[0].running_info.running_time for tr in trace.retrieve_search_list(search_type="ancestors")]
         time_max = max(time_list) / 3600
         full_time = self.scen.real_full_timeout()
         merge_hours = DS_RD_SETTING.merge_hours
         
-        time_list_success = [-3600] + [tr[0].running_info.running_time for tr in trace.hist[:-1] if getattr(tr[1], "decision", False)
+        time_list_success = [-3600] + [tr[0].running_info.running_time for tr in trace.retrieve_search_list(search_type="ancestors") if getattr(tr[1], "decision", False)
             ]
         if (max(time_list_success)/ 3600)*1.8 > merge_hours:
             DS_RD_SETTING.merge_hours = 0  # give up merge 
             merge_hours = 0
             DS_RD_SETTING.smooth_flag = True
 
-        if RD_Agent_TIMER_wrapper.timer.started:
-            remain_time = RD_Agent_TIMER_wrapper.timer.remain_time().total_seconds() / 3600
-            if DS_RD_SETTING.enable_scale_check:
-                all_duration = RD_Agent_TIMER_wrapper.timer.all_duration.total_seconds()
-                remain_percent = remain_time / all_duration
-                time_status = (
+        
+        remain_time = RD_Agent_TIMER_wrapper.timer.remain_time().total_seconds() / 3600
+        if DS_RD_SETTING.enable_scale_check:
+            all_duration = RD_Agent_TIMER_wrapper.timer.all_duration.total_seconds()
+            remain_percent = remain_time / all_duration
+            time_status = (
                     f"Remain time: {remain_time / 3600:.2f} hours, "
                     f"{remain_percent:.2%} remaining of total time: {all_duration / 3600:.2f} hours."
                 )
@@ -777,7 +777,6 @@ class DSProposalV2ExpGen(ExpGen):
                 enable_scale_check=DS_RD_SETTING.enable_scale_check
             ),
             enable_scale_check=DS_RD_SETTING.enable_scale_check,
-            time_started=RD_Agent_TIMER_wrapper.timer.started,
             time_max=time_max,
             full_time=full_time,
             merge_hours=merge_hours,
