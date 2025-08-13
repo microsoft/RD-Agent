@@ -286,10 +286,8 @@ def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, boo
         if not direct_exp_gen:
             continue
         is_merge = False
-        for exp_gen_path in direct_exp_gen:
-            with exp_gen_path.open("rb") as f:
-                tr = pickle.load(f)
-            uri = tr.get("uri") if isinstance(tr, dict) else getattr(tr, "uri", None)
+        for tr in direct_exp_gen:
+            uri = tr.content.get("uri") if isinstance(tr.content, dict) else getattr(tr.content, "uri", None)
             if isinstance(uri, str) and "scenarios.data_science.proposal.exp_gen.merge" in uri:
                 is_merge = True
                 total_merge_loops += 1
