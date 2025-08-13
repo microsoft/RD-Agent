@@ -193,7 +193,7 @@ hypothesis_gen:
       - **Risk-Reward Balance (Score: 1-10):** Considering the potential for significant improvement (reward) versus the probability of failure, negative side-effects, or excessive resource consumption (risk), how optimal is this balance? A high score indicates a favorable balance.
       - **Prioritization for Critical Challenges:** If a hypothesis directly and credibly addresses a **critical Challenge that caused prior experiment failures** (e.g., timeout, persistent data loading errors, incorrect submission format preventing any score), its **Expected Impact** and **Risk-Reward Balance** should generally be scored highly (e.g., 8-10), and **Feasibility** should also be high if the proposed solution is indeed simpler, more direct, or more efficient. This ensures such critical hypotheses are prioritized.
 
-    3. Please generate 2 hypotheses, as concise as possible, no more than 2 sentences each.
+    3. Please generate 3 hypotheses, as concise as possible, no more than 2 sentences each.
     {% if inject_diverse %}
     # Focus on Diversity!!
     Diversity is very critical in the analysis of scenario problems. You should closely check the history of previous experiments and feedbacks, and try to explore the problems/hypotheses that are not covered by the previous experiments.
@@ -409,7 +409,7 @@ hypothesis_select:
         - Guidance: Combine useful aspects of several hypotheses into a single, simple idea. Ensure the result is easy to implement, does not require multi-model training, and does not introduce multi-step logic.
     {% elif use_ratio > 70 %}
     ### Stage = Ensemble
-    - This stage focuses on maximizing overall performance by combining multiple models or hypotheses. The goal is to build a strong ensemble within the remaining time budget ({{ res_time }} sec, max {{ full_time }} sec).
+    - This stage focuses on maximizing overall performance by combining multiple models or hypotheses. The goal is to build a strong ensemble within the remaining time budget ({{ res_time }} sec, max {{ full_time }} sec). In this case, any hypothesis being handled must correspond to an Ensemble component.
     {%if res_time > merge_hours %}
     - **Time Limit Guidance**
       {% if time_max < 0 %}
@@ -535,7 +535,17 @@ task_gen:
       - For GBDT models, prefer XGBoost or RandomForest over LightGBM unless the SOTA or hypothesis dictates otherwise. Prefer not using GPU for GBDT models unless the SOTA or hypothesis dictates otherwise.
       - For neural networks, prefer PyTorch or PyTorch based library (over TensorFlow) unless the SOTA or hypothesis dictates otherwise.
       - For neural networks, prefer fine-tuning pre-trained models over training from scratch.
+    10. File Handling & DataFrame Generation: Generate a pandas DataFrame with columns [“id”, “path”, “fold”].
+      - id: a unique identifier for each sample.
+      - path: the file path of the corresponding sample.
+      - split: indicates the assignment of each sample for data splitting. Two modes are supported:
+        - K-Fold (optional): assign integers 0, 1, …, K-1 for each fold.
+        - Train/Test Split (optional): assign "train" or "test" for each sample according to the split ratio (e.g., 8:2).
+        - Ensure reproducibility: the DataFrame must be generated exactly the same way every time the script runs, e.g., by fixing the random seed 42.
+      Data Splitting: use this DataFrame to perform dataset splitting, selecting samples for training and testing based on the fold column.
+    11. Hypothesis Handling: At the initial stage, multiple hypotheses may be proposed simultaneously. If some hypotheses overlap, select the most promising one for implementation and ignore redundant overlapping hypotheses. Each implemented hypothesis should remain an independent task.
 
+    Ensure reproducibility: the DataFrame must be generated exactly the same way every time the script runs, regardless of system or runtime conditions (e.g., by fixing the random seed).
     ## Package Declaration
     At the end of your design, **you MUST** provide a key `packages` in the final JSON output.  
     It should be an **array of PyPI package names** (strings) that you expect to `import` in the forthcoming implementation.  
