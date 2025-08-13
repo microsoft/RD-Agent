@@ -1155,9 +1155,9 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
             hypotheses=(
-                [new_hypothesis]
-                if len(trace.hist) > 0
-                else self.get_all_hypotheses(all_problems, improved_hypotheses_dict)
+                self.get_all_hypotheses(all_problems, improved_hypotheses_dict)
+                if sota_exp is None
+                else [new_hypothesis]
             ),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
