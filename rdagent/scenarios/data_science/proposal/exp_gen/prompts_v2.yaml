@@ -377,31 +377,100 @@ hypothesis_rewrite:
 
 hypothesis_select:
   system: |-
-    You are a Kaggle Grandmaster with deep expertise in model evaluation and decision making. Based on the given example, please select the most appropriate hypothesis from the candidates. 
-    These hypotheses are sourced from `model/data/feature/workflow/ensemble`. Choose the one that best matches the intent or logic of the prompt. 
-    Alternatively, if you determine that ensemble is the best option, you may propose a **ensemble hypothesis** (not present in the candidates), as long as it aligns with the runtime and training constraints.  
-    You are given the following hypothesis candidates:
-    {{ hypothesis_candidates }}
-    If multiple hypotheses seem reasonable, select the one that is most robust or consistent with Previous Experiments and Feedbacks, pay attention to the runtime of each loop.
+    You are a Kaggle Grandmaster with deep expertise in model evaluation and decision making.  
+    Your task: Return the most appropriate hypothesis to improve the current solution.
+    list hypothesis_candidates :
+    {{hypothesis_candidates}}
+    ## Hypothesis Source
+    - The list `hypothesis_candidates` is for REFERENCE ONLY.
+    - You may:
+      1. Select one hypothesis directly from the candidates.
+      2. Modify an existing hypothesis from the candidates.
+      3. Create a new hypothesis, considering the current stage, by integrating advantages from multiple candidates or from historical hypotheses.
 
-    If you believe that previous methods have reached their limits and the current setting only involves a single model, feel free to propose an ensemble solution. However, you **must** carefully allocate the training and runtime budget to ensure the **ensemble logic is well-executed and evaluated**, without compromising the performance of the previous models.
-    
-    ### 1. Ensemble Core Principle
-    Your goal is not just to tune individual models, but to build an **effective ensemble**. Make design decisions that lead to **strong overall ensemble performance**, not just strong base models.
-    Please note: you are operating under a time budget dedicated to ensemble training of {{res_time}} seconds, and the maximum allowed time is {{ensemble_timeout}} seconds.
-    {{use_ratio}}% of the total ensemble time has been used.
+    ## Hypothesis Generation Guidelines
+    ## Stage Constraints
 
-    Please continue selecting the most promising hypothesis from the candidates to enhance your current code.
+    {% if use_ratio < 10 %}
+    ### Stage = Draft
+    - This stage is focused on rapid, easy-to-implement hypotheses. Performance gains can be modest, but the code must be simple and safe to integrate.
+    - You may take one of three actions:
 
-    Please take the remaining {{res_time}} seconds to carefully consider and design the most reasonable and optimal ensemble hypothesis based on your current progress.
-    Assume training a single model takes about 1 hour. For example, if you have roughly twice that time left, you can try training multiple models with different random seeds or data splits to reuse time effectively.
-    If you have more time, you might consider training a multi-fold ensemble. Use your judgment to decide how many folds or seeds fit within your remaining time budget.
+      1. **Select one hypothesis directly from the candidates**  
+        - Ideal for: *Simple, quick-to-implement hypotheses — minimal code changes, modest gains acceptable.*  
+        - Guidance: Pick an existing hypothesis that addresses the current bottleneck or potential improvement without modification. This is the fastest way to produce working code.
+
+      2. **Modify an existing hypothesis from the candidates**  
+        - Ideal for: *Focus on small tweaks: loss function, learning rate schedule, light augmentation, minor architecture change.*  
+        - Guidance: Make small adjustments to an existing hypothesis to better fit the current code or dataset. Examples include adjusting the loss function, tuning hyperparameters, or applying lightweight augmentations.
+
+      3. **Create a new hypothesis, considering the Draft stage, by integrating advantages from multiple candidates or historical hypotheses**  
+        - Ideal for: *Avoid complex multi-model or multi-step designs.*  
+        - Guidance: Combine useful aspects of several hypotheses into a single, simple idea. Ensure the result is easy to implement, does not require multi-model training, and does not introduce multi-step logic.
+    {% elif use_ratio > 70 %}
+    ### Stage = Ensemble
+    - This stage focuses on maximizing overall performance by combining multiple models or hypotheses. The goal is to build a strong ensemble within the remaining time budget ({{ res_time }} sec, max {{ full_time }} sec).
+    {%if res_time > merge_hours %}
+    - **Time Limit Guidance**
+      {% if time_max < 0 %}
+      - Initial Stage: runtime info unavailable, keep most hypotheses.
+      - Remove only those clearly excessive (e.g., > {{ full_time }} sec) or overly complex.
+      {% elif time_max >= full_time * 0.5 %}
+      - High Runtime Case: current max runtime ({{ time_max }} sec) leaves little room for extra runs.
+      - Avoid high-fold or heavy ensembles.
+      - Maximum recommended folds: {{ (full_time // time_max) | int }}
+      - Remove hypotheses clearly excessive (> {{ full_time }} sec)
+      {% else %}
+      - Low Runtime Case: current max runtime ({{ time_max }} sec) is far from the time limit.
+      - Prefer hypotheses with runtimes ≤ {{ full_time }} sec.
+      - Hypotheses slightly above {{ time_max }} can be retained only with strong justification.
+      {% endif %}
+    {% endif %}
+
+    - You may take one of three actions, considering the remaining time and runtime guidance:
+
+      1. **Select one hypothesis directly from the candidates**  
+        - Ideal for: *Use as a base member of the ensemble.*  
+        - Guidance: Pick candidates that complement other ensemble members or cover weaknesses in existing models, but ensure their runtime fits within the remaining budget.
+
+      2. **Modify an existing hypothesis from the candidates**  
+        - Ideal for: *Adapt candidates to better fit ensemble logic.*  
+        - Guidance: Adjust hyperparameters, loss weighting, or augmentations to improve diversity or complementarity, ensuring changes do not exceed available runtime.
+
+      3. **Create a new hypothesis, considering the Ensemble stage and runtime limits, by integrating advantages from multiple candidates or historical hypotheses**  
+        - Ideal for: *Combine complementary strengths to form a new ensemble member.*  
+        - Guidance: Merge the best parts of several hypotheses into one that is simple enough to implement but adds unique information to the ensemble. Consider strategies like weighted averaging, stacking, or OOF-based blending, making sure the total training time fits the remaining budget.
+
+    {% else %}
+
+    ### Stage = Improvement
+    - This stage focuses on achieving meaningful improvement without overcomplicating code. The goal is to pick or refine hypotheses that give the largest gain efficiently.
+
+    - You may take one of three actions:
+
+      1. **Select one hypothesis directly from the candidates**  
+        - Ideal for: *Pick the single most promising hypothesis from candidates.*  
+        - Guidance: Choose the hypothesis with the highest expected impact. Minimal modification is acceptable if it slightly improves fit to the current code or dataset.
+
+      2. **Modify an existing hypothesis from the candidates**  
+        - Ideal for: *Refine or simplify it for faster iteration while keeping meaningful potential gain.*  
+        - Guidance: Make targeted changes that improve effectiveness or efficiency without turning it into a complex multi-model or multi-step solution. Examples: small hyperparameter tweaks, adjusting augmentation probabilities, or minor architecture adjustments.
+
+      3. **Create a new hypothesis, considering the Improvement stage, by integrating advantages from multiple candidates or historical hypotheses**  
+        - Ideal for: *Avoid major rewrites or large ensembles at this stage.*  
+        - Guidance: Combine the strongest parts of a few candidates into a single hypothesis that is still simple enough to implement quickly and fits within the current runtime constraints.
+
+    {% endif %}
+
 
     {% if hypothesis_output_format is not none %}
     ## Final Output Format in JSON Schema:
     {{ hypothesis_output_format }}
     {% endif %}
     
+
+
+
   user: |- 
     # Scenario Description
     {{ scenario_desc }}
@@ -699,12 +768,9 @@ output_format:
     }
 
   hypothesis_select_format: |- 
-    Choose the best hypothesis from the provided hypothesis candidates {{ hypothesis_candidates }}.  
-    You must return a dictionary in the following format **for each selected hypothesis**:
-
+    You must return a dictionary in the following format for hypothesis
     {
       "hypothesis": "...",  
       "component": "..."  // Must be one of: 'DataLoadSpec', 'FeatureEng', 'Model', 'Workflow', 'Ensemble'
     }
-    The **"hypothesis"** must be selected **from the provided hypothesis candidates** (do not generate new ones).
 

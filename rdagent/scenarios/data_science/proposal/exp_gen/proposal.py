@@ -936,22 +936,28 @@ class DSProposalV2ExpGen(ExpGen):
 
 
     def hypothesis_select_with_llm(
-            self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str, hypothesis_candidates: dict
+            self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str, hypothesis_candidates: dict, trace: DSTrace
         ):
         res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
+
         total_time = RD_Agent_TIMER_wrapper.timer.all_duration
         use_time = round(total_time.total_seconds(), 2) - round(res_time.total_seconds(), 2)
         use_ratio = 100 * use_time / round(total_time.total_seconds(), 2)
         use_ratio = round(use_ratio, 2)
 
-        ensemble_timeout = DS_RD_SETTING.full_timeout
+        full_time = self.scen.real_full_timeout()
+        time_list_success = [-3600] + [tr[0].running_info.running_time for tr in trace.retrieve_search_list(search_type="ancestors") if getattr(tr[1], "decision", False)
+            ]        
+        time_max = max(time_list_success) / 3600
+        
         hypothesis_candidates = str(json.dumps(hypothesis_candidates, indent=2))
-
         sys_prompt = T(".prompts_v2:hypothesis_select.system").r(
             hypothesis_candidates=hypothesis_candidates,
-            res_time=round(res_time.total_seconds(), 2),
-            ensemble_timeout=ensemble_timeout,
+            res_time=round(res_time.total_seconds(), 2)/3600,
+            full_time=full_time,
             use_ratio=use_ratio,
+            time_max = time_max,
+            merge_hours = DS_RD_SETTING.merge_hours,
             hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(
                 hypothesis_candidates=hypothesis_candidates
             ),
@@ -1213,7 +1219,7 @@ class DSProposalV2ExpGen(ExpGen):
                     hypothesis_dict.pop(name)
 
         # Step 2.1 & 2.2: Hypothesis Critique and Rewrite Stage (controlled by enable_hypo_critique_rewrite)
-        if DS_RD_SETTING.enable_hypo_critique_rewrite:
+        if DS_RD_SETTING.enable_hypo_critique_rewrite and len(trace.hist) > 0:
             logger.info(f"Hypothesis critique and rewrite enabled - processing {len(hypothesis_dict)} hypotheses")
 
             # Critic Stage - Evaluate and identify flaws in hypotheses
@@ -1248,31 +1254,35 @@ class DSProposalV2ExpGen(ExpGen):
             logger.info(f"Hypothesis critique and rewrite disabled - using original {len(hypothesis_dict)} hypotheses")
             improved_hypotheses_dict = hypothesis_dict.copy()  # Use original hypotheses directly
 
+
+        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+                hypothesis_dict=hypothesis_dict,
+                problem_dict=all_problems,
+            )
+
         # Step 3: Select the best hypothesis
         if DS_RD_SETTING.llm_select_hypothesis:
             # Use LLM to select the best hypothesis
-                response_dict = self.hypothesis_select_with_llm(
-                scenario_desc=scenario_desc,
-                exp_feedback_list_desc=exp_feedback_list_desc,
-                sota_exp_desc=sota_exp_desc,
-                hypothesis_candidates=improved_hypotheses_dict,
-            )
-         
-        component_map = {
+            response_dict = self.hypothesis_select_with_llm(
+            scenario_desc=scenario_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+            hypothesis_candidates=hypothesis_dict,
+            trace = trace
+        )
+            component_map = {
             "Model": HypothesisComponent.Model,
             "Ensemble": HypothesisComponent.Ensemble,
             "Workflow": HypothesisComponent.Workflow,
             "FeatureEng": HypothesisComponent.FeatureEng,
             "DataLoadSpec": HypothesisComponent.DataLoadSpec,
         }
+            comp_str = response_dict.get("component")
+            hypo_str = response_dict.get("hypothesis")
 
-        comp_str = response_dict.get("component")
-        hypo_str = response_dict.get("hypothesis")
-
-        if comp_str in component_map and hypo_str is not None:
-            new_hypothesis = DSHypothesis(component=component_map[comp_str], hypothesis=hypo_str)
-
-        pickled_problem_name = None
+            if comp_str in component_map and hypo_str is not None:
+                new_hypothesis = DSHypothesis(component=component_map[comp_str], hypothesis=hypo_str)
+            pickled_problem_name = None
         
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
@@ -1286,7 +1296,7 @@ class DSProposalV2ExpGen(ExpGen):
             hypotheses=(
                 [new_hypothesis]
                 if len(trace.hist) > 0
-                else self.get_all_hypotheses(all_problems, improved_hypotheses_dict)
+                    else self.get_all_hypotheses(all_problems, hypothesis_dict)
             ),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
