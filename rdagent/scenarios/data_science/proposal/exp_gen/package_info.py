@@ -27,13 +27,13 @@ PYTHON_ADVANCED_PACKAGES = [
 ]
 
 
-def get_all_available_packages():
+def get_all_excepted_packages():
     """Get flattened list of all packages"""
     all_packages = PYTHON_BASE_PACKAGES + PYTHON_ADVANCED_PACKAGES
     return sorted(set(all_packages))
 
 
-def get_available_packages_prompt():
+def get_available_recommended_packages_prompt():
     """Generate prompt template for dynamically detected available packages"""
     installed_packages = get_installed_packages()
 
@@ -45,12 +45,12 @@ def get_available_packages_prompt():
     prompt_parts = ["# Available packages in environment:\n"]
 
     if base_available:
-        prompt_parts.append("## 【Basic Libraries】(general tools for data science tasks):")
+        prompt_parts.append("## [Basic Libraries] (general tools for data science tasks):")
         prompt_parts.append(f"- {', '.join(base_available)}")
         prompt_parts.append("")
 
     if advanced_available:
-        prompt_parts.append("## 【Advanced Tools】(specialized for specific domains):")
+        prompt_parts.append("## [Advanced Tools] (specialized for specific domains):")
         prompt_parts.append(f"- {', '.join(advanced_available)}")
         prompt_parts.append("")
 
@@ -63,7 +63,7 @@ def get_available_packages_prompt():
 
 def print_available_packages_prompt():
     """Print the available packages prompt to stdout for external consumption"""
-    prompt = get_available_packages_prompt()
+    prompt = get_available_recommended_packages_prompt()
     print(prompt)
 
 
@@ -91,7 +91,7 @@ def get_python_packages():
     # Example: `python package_info.py pandas torch scikit-learn`
     # If no extra arguments are provided we fall back to the original default list
     # to keep full backward-compatibility.
-    packages_list = get_all_available_packages()
+    packages_list = get_all_excepted_packages()
     if len(sys.argv) > 1:
         packages_list = list(set(packages_list) | set(sys.argv[1:]))
 
