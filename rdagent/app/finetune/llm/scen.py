@@ -3,6 +3,7 @@ from pathlib import Path
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.scenarios.data_science.scen.utils import describe_data_folder_v2
 from rdagent.utils.agent.tpl import T
@@ -11,14 +12,46 @@ from rdagent.utils.agent.tpl import T
 class LLMFinetuneScen(DataScienceScen):
     """LLMFinetuneScen Scenario"""
 
-    def __init__(self, competition: str) -> None:
-        self._download_data(competition=competition)
-        super().__init__(competition)
-        self._analysis_competition_description()
+    def __init__(self, dataset: str) -> None:
+        """Initialize LLM finetune scenario without calling base __init__.
+
+        Only keep logic needed for LLM finetuning datasets.
+        """
+        local_path = DS_RD_SETTING.local_data_path
+        dataset_path = Path(local_path) / dataset
+
+        # 1) Ensure dataset exists (download if missing)
+        if not dataset_path.exists():
+            logger.info(f"{dataset_path} does not exist. Try to download from hub.")
+            self._download_data(competition=dataset)
+
+        # 2) Basic attributes (align with downstream expectations)
+        self.competition = dataset  # keep field name for downstream compatibility
+        self.metric_name = None
+
+        # 3) Debug path: LLM scenario uses the full dataset folder directly
+        # self.debug_path = str(dataset_path)
+
+        # 4) Description and folder summary
+        self.raw_description = self._get_description()
+        self.processed_data_folder_description = self._get_data_folder_description()
+
+        # 5) Analyze dataset description (override of competition analysis)
+        self._analysis_dataset_description()
+
+        # 6) Direction and timeout tracking
+        self.metric_direction = self._get_direction()
+        self.timeout_increase_count = 0
+
+    @property
+    def dataset(self) -> str:
+        # Align naming for LLM scenario; the base class uses `competition`.
+        return self.competition
 
     def _get_data_folder_description(self) -> str:
         folder_desc = describe_data_folder_v2(
-            Path(DS_RD_SETTING.local_data_path) / self.competition, show_nan_columns=DS_RD_SETTING.show_nan_columns
+            Path(DS_RD_SETTING.local_data_path) / self.competition,
+            show_nan_columns=DS_RD_SETTING.show_nan_columns,
         )
         return folder_desc
 
@@ -60,6 +93,36 @@ class LLMFinetuneScen(DataScienceScen):
 
     def _get_direction(self):
         return True
+
+    # ===== use dataset analysis instead of competition analysis =====
+    def _analysis_dataset_description(self):
+        sys_prompt = T(".prompts:dataset_description_template.system").r()
+        user_prompt = T(".prompts:dataset_description_template.user").r(
+            raw_description=self.raw_description,
+            data_folder_description=self._get_data_folder_description(),
+        )
+        response_analysis = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=dict,
+        )
+        # keep the same fields as DataScienceScen for downstream reuse
+        try:
+            import json
+
+            parsed = json.loads(response_analysis)
+        except Exception:
+            parsed = {}
+
+        self.task_type = parsed.get("Task Type", "LLM Fine-tuning")
+        self.data_type = parsed.get("Data Type", "Text (Natural Language)")
+        self.brief_description = parsed.get("Brief Description", "")
+        self.dataset_description = parsed.get("Dataset Description", "")
+        self.model_output_channel = parsed.get("Channels per Sample", 1)
+        self.metric_description = parsed.get("Evaluation Metric Description", "")
+        self.metric_name = parsed.get("Metric Name", "custom_metric")
+        self.metric_direction_guess = parsed.get("Metric Direction", True)
 
     @property
     def rich_style_description(self) -> str:

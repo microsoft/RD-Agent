@@ -30,7 +30,9 @@ class LLMFinetuneScen(ExtendedBaseSettings):
     app_tpl: str = "app/finetune/llm/tpl"
 
 
-def update_settings(competition: str):
+def update_settings(
+    dataset: str,
+):  # TODO: add model, change competition to model_dataset(qizhengli)
     """
     Update the RD_AGENT_SETTINGS with the values from LLM_FINETUNE_SETTINGS.
     """
@@ -40,4 +42,5 @@ def update_settings(competition: str):
     for field_name, new_value in LLM_FINETUNE_SETTINGS.model_dump().items():
         if hasattr(DS_RD_SETTING, field_name):
             setattr(DS_RD_SETTING, field_name, new_value)
-    DS_RD_SETTING.competition = competition
+    # Downstream framework still uses competition field, here use dataset to assign value
+    DS_RD_SETTING.competition = dataset
