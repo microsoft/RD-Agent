@@ -136,9 +136,9 @@ class UndirectedGraph(Graph):
         -------
 
         """
-        if (tmp_node := self.get_node(node.id)):
+        if tmp_node := self.get_node(node.id):
             node = tmp_node
-        elif (tmp_node := self.find_node(content=node.content, label=node.label)):
+        elif tmp_node := self.find_node(content=node.content, label=node.label):
             node = tmp_node
         else:
             # same_node = self.semantic_search(node=node.content, similarity_threshold=same_node_threshold, topk_k=1)
@@ -150,9 +150,9 @@ class UndirectedGraph(Graph):
             self.nodes.update({node.id: node})
 
         if neighbor is not None:
-            if (tmp_neighbor := self.get_node(neighbor.id)):
+            if tmp_neighbor := self.get_node(neighbor.id):
                 neighbor = tmp_neighbor
-            elif (tmp_neighbor := self.find_node(content=neighbor.content, label=node.label)):
+            elif tmp_neighbor := self.find_node(content=neighbor.content, label=node.label):
                 neighbor = tmp_neighbor
             else:
                 # same_node = self.semantic_search(node=neighbor.content,
