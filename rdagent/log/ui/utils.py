@@ -140,6 +140,24 @@ def _log_path_hash_func(log_path: Path) -> str:
     return md5_hash(hash_str)
 
 
+def map_stat(sota_mle_score: dict | None) -> str:
+    sota_exp_stat = None
+    if sota_mle_score:  # sota exp's grade output
+        if sota_mle_score["gold_medal"]:
+            sota_exp_stat = "gold"
+        elif sota_mle_score["silver_medal"]:
+            sota_exp_stat = "silver"
+        elif sota_mle_score["bronze_medal"]:
+            sota_exp_stat = "bronze"
+        elif sota_mle_score["above_median"]:
+            sota_exp_stat = "above_median"
+        elif sota_mle_score["valid_submission"]:
+            sota_exp_stat = "valid_submission"
+        elif sota_mle_score["submission_exists"]:
+            sota_exp_stat = "made_submission"
+    return sota_exp_stat
+
+
 def _get_sota_exp_stat_hash_func(log_path: Path, to_submit: bool = True) -> str:
     return _log_path_hash_func(log_path) + str(to_submit)
 
@@ -214,21 +232,7 @@ def get_sota_exp_stat(
         # sota exp is not tested yet
         return sota_exp, sota_loop_id, None, None
 
-    sota_exp_stat = None
-    if sota_mle_score:  # sota exp's grade output
-        if sota_mle_score["gold_medal"]:
-            sota_exp_stat = "gold"
-        elif sota_mle_score["silver_medal"]:
-            sota_exp_stat = "silver"
-        elif sota_mle_score["bronze_medal"]:
-            sota_exp_stat = "bronze"
-        elif sota_mle_score["above_median"]:
-            sota_exp_stat = "above_median"
-        elif sota_mle_score["valid_submission"]:
-            sota_exp_stat = "valid_submission"
-        elif sota_mle_score["submission_exists"]:
-            sota_exp_stat = "made_submission"
-    return sota_exp, sota_loop_id, sota_mle_score, sota_exp_stat
+    return sota_exp, sota_loop_id, sota_mle_score, map_stat(sota_mle_score)
 
 
 def _get_score_stat_hash_func(log_path: Path, sota_loop_id: int) -> str:
@@ -257,25 +261,28 @@ def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, boo
             True if test score is improved during merge period.
         - submit_is_merge : bool
             True if the sota loop is a merge loop.
-        - merge_success_rate : float | None
-            The merge success rate.
+        - merge_sota_rate : float | None
+            The merge sota rate.
     """
     valid_before_merge = []
     test_before_merge = []
     valid_after_merge = []
     test_after_merge = []
+    all_report = []
     submit_is_merge = False
     best_is_merge = False
     is_lower_better = False
     valid_improve = False
     test_improve = False
+    best_score = None
+    best_stat = None
     total_merge_loops = 0
 
     log_storage = FileStorage(log_path)
 
     for loop_trace in log_path.glob("Loop_*/direct_exp_gen/*/*.pkl"):
         loop_id = int(re.search(r".*Loop_(\d+).*", str(loop_trace)).group(1))
-        direct_exp_gen = list(log_path.glob(f"Loop_{loop_id}/direct_exp_gen/debug_tpl/*/*.pkl"))
+        direct_exp_gen = log_storage.iter_msg(pattern=f"Loop_{loop_id}/direct_exp_gen/debug_tpl/*/*.pkl")
         if not direct_exp_gen:
             continue
         is_merge = False
@@ -301,25 +308,35 @@ def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, boo
 
         is_lower_better = mle_score.get("is_lower_better", False)
         if mle_score["score"]:
+            feedback = next(log_storage.iter_msg(pattern=f"Loop_{loop_id}/feedback/*/*.pkl"), None)
+            if not feedback or not feedback.content.decision:
+                continue
             exp = next(log_storage.iter_msg(pattern=f"Loop_{loop_id}/running/*/*.pkl")).content
+            all_report.append((pd.DataFrame(exp.result).loc["ensemble"].iloc[0], mle_score))
             if is_merge:
                 valid_after_merge.append(pd.DataFrame(exp.result).loc["ensemble"].iloc[0])
                 test_after_merge.append(mle_score["score"])
             else:
                 valid_before_merge.append(pd.DataFrame(exp.result).loc["ensemble"].iloc[0])
                 test_before_merge.append(mle_score["score"])
+    if all_report:
+        all_report.sort(key=lambda x: x[0])
+        best_score = all_report[0][1] if is_lower_better else all_report[-1][1]
+        best_stat = map_stat(best_score)
+        best_score = best_score["score"]
     if is_lower_better:
         if valid_after_merge:
             valid_improve = not valid_before_merge or min(valid_after_merge) < min(valid_before_merge)
         if test_after_merge:
             test_improve = not test_before_merge or min(test_after_merge) < min(test_before_merge)
+
     else:
         if valid_after_merge:
             valid_improve = not valid_before_merge or max(valid_after_merge) > max(valid_before_merge)
         if test_after_merge:
             test_improve = not test_before_merge or max(test_after_merge) > max(test_before_merge)
-    merge_success_rate = 0 if not total_merge_loops else len(test_after_merge) / total_merge_loops
-    return valid_improve, test_improve, submit_is_merge, merge_success_rate
+    merge_sota_rate = 0 if not total_merge_loops else len(test_after_merge) / total_merge_loops
+    return best_score, best_stat, valid_improve, test_improve, submit_is_merge, merge_sota_rate
 
 
 @cache_with_pickle(_log_path_hash_func, force=True)
@@ -452,14 +469,17 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             v["running_time"] = str(running_time).split(".")[0]
 
             # overwrite sota_exp_stat in summary.pkl because it may not be correct in multi-trace
-            _, _, sota_report, v["sota_exp_stat"] = get_sota_exp_stat(Path(lf) / k, to_submit=False)
-            v["sota_exp_score"] = sota_report["score"] if sota_report else None
             sota_exp_submit, v["sota_loop_id_new"], sota_submit_report, v["sota_exp_stat_new"] = get_sota_exp_stat(
                 Path(lf) / k, to_submit=True
             )
-            v["valid_improve"], v["test_improve"], v["submit_is_merge"], v["merge_success_rate"] = get_score_stat(
-                Path(lf) / k, v["sota_loop_id_new"]
-            )
+            (
+                v["sota_exp_score"],
+                v["sota_exp_stat"],
+                v["valid_improve"],
+                v["test_improve"],
+                v["submit_is_merge"],
+                v["merge_sota_rate"],
+            ) = get_score_stat(Path(lf) / k, v["sota_loop_id_new"])
             if sota_exp_submit is not None:
                 try:
                     sota_submit_result = sota_exp_submit.result
@@ -573,7 +593,7 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             base_df.loc[k, "Valid Improve"] = v.get("valid_improve", None)
             base_df.loc[k, "Test Improve"] = v.get("test_improve", None)
             base_df.loc[k, "Submit Merge"] = v.get("submit_is_merge", None)
-            base_df.loc[k, "Merge Success"] = v.get("merge_success_rate", None)
+            base_df.loc[k, "Merge Sota"] = v.get("merge_sota_rate", None)
             base_df.loc[k, "SOTA Exp (to_submit)"] = v["sota_exp_stat_new"]
             base_df.loc[k, "SOTA Exp Score (to_submit)"] = v.get("sota_exp_score_new", None)
             base_df.loc[k, "SOTA LID (to_submit)"] = v.get("sota_loop_id_new", None)
@@ -620,7 +640,7 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             "Valid Improve": bool,
             "Test Improve": bool,
             "Submit Merge": bool,
-            "Merge Success": float,
+            "Merge Sota": float,
         }
     )
     return summary, base_df
