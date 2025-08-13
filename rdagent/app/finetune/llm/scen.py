@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -25,6 +26,37 @@ class LLMFinetuneScen(DataScienceScen):
             logger.info(f"{dataset_path} does not exist. Try to download from hub.")
             self._download_data(competition=dataset)
 
+        # 1.1) Ensure prev_model and model are visible under dataset_path for mounting to workspace_input
+        try:
+            ft_root = Path(local_path).parent  # FT_FILE_PATH
+            prev_src = ft_root / "prev_model" / dataset
+            model_src = ft_root / "model" / dataset
+            prev_dst = dataset_path / "prev_model"
+            model_dst = dataset_path / "model"
+
+            def _ensure_link(src: Path, dst: Path) -> None:
+                if src.exists():
+                    if dst.is_symlink() or dst.exists():
+                        return
+                    try:
+                        dst.symlink_to(src, target_is_directory=True)
+                    except Exception:
+                        # Fallback to creating the directory if symlink not allowed
+                        if src.is_dir():
+                            # Do not copy content here to keep cost low; rely on direct mount via dataset folder
+                            pass
+
+            # Prefer prev_model; if missing and model exists, expose model as prev_model for compatibility
+            if prev_src.exists():
+                _ensure_link(prev_src, prev_dst)
+            elif model_src.exists():
+                _ensure_link(model_src, prev_dst)
+            # Also expose model separately if exists
+            if model_src.exists():
+                _ensure_link(model_src, model_dst)
+        except Exception:
+            pass
+
         # 2) Basic attributes (align with downstream expectations)
         self.competition = dataset  # keep field name for downstream compatibility
         self.metric_name = None
@@ -39,8 +71,7 @@ class LLMFinetuneScen(DataScienceScen):
         # 5) Analyze dataset description (override of competition analysis)
         self._analysis_dataset_description()
 
-        # 6) Direction and timeout tracking
-        self.metric_direction = self._get_direction()
+        # 6) timeout tracking
         self.timeout_increase_count = 0
 
     @property
@@ -90,9 +121,6 @@ class LLMFinetuneScen(DataScienceScen):
         if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}/README.md")).exists():
             logger.info(f"{self.competition}/Found README.md, loading from local file.")
             return fp.read_text()
-
-    def _get_direction(self):
-        return True
 
     # ===== use dataset analysis instead of competition analysis =====
     def _analysis_dataset_description(self):
