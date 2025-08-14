@@ -105,8 +105,9 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
                     full_path_str = match.group(1)
                     if full_path_str.startswith(input_path):
                         opened_files.add(Path(full_path_str).resolve())
-            
+
             from rdagent.scenarios.data_science.scen.utils import FileTreeGenerator
+
             tree_gen = FileTreeGenerator(
                 max_lines=200, hide_base_name=True, allowed_paths=list(opened_files)  # pass opened files filter
             )
