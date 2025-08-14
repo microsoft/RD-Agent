@@ -108,6 +108,55 @@ def get_python_packages():
             print(pkg)
 
 
+def get_persistent_problem_guidelines():
+    """Generate guidelines for PERSISTENT_PROBLEM scenarios - focusing on model architecture"""
+    guidelines = [
+        "## Model Architecture Selection Guidelines",
+        "",
+        "Focus on **model architecture** - choosing the right model type and structure for your specific problem.",
+        "",
+        "### **History-Aware Architecture Selection**",
+        "",
+        "1. **Learn from Experiment History**",
+        "   - **Check what's been tried**: Review previous experiments to understand current baseline status",
+        "   - **Identify gaps**: What architectures haven't been properly tested yet?",
+        "   - **Build on success**: If baseline exists and works, focus on targeted improvements",
+        "",
+        "2. **Context-Driven Strategy**",
+        "   - **No baseline yet**: Start with reliable methods (XGBoost, RandomForest) to establish foundation",
+        "   - **Baseline established**: Explore modern alternatives (LightGBM, CatBoost) for potential gains",
+        "   - **Modern methods tested**: Consider advanced techniques (ensembles, custom) if justified by results",
+        "",
+        "3. ** Single Focus Per Hypothesis**",
+        "   - **One goal at a time**: Each hypothesis should focus on either establishing baseline OR testing innovation, not both",
+        "   - **Avoid feature creep**: Don't try to implement multiple improvements in one hypothesis",
+        "   - **Clear hypothesis scope**: Define exactly what this hypothesis is testing before proposing",
+        "   - **Iterative approach**: Build incrementally - baseline first, then one innovation at a time",
+        "",
+        "4. **Timely Fallback Principle**",
+        "   - **Monitor performance closely**: If advanced methods show no clear improvement, retreat quickly",
+        "   - **Don't chase complexity**: Advanced doesn't always mean better - simple often wins",
+        "   - **Fallback triggers**: Performance drop, training instability, or unclear benefits = immediate retreat",
+        "   - **Preserve what works**: Always maintain access to your best-performing solution",
+        "",
+        "5. **Computational Constraints**",
+        "   - Training time limitations: Choose models that converge quickly",
+        "   - Inference requirements: Balance accuracy with prediction speed",
+        "   - Memory constraints: Consider model size and batch processing needs",
+        "",
+        "6. **Model Selection Trade-offs (When Stuck)**",
+        "   - **⚠️ Use with caution**: Only pivot when multiple attempts with same paradigm clearly fail",
+        "   - **Complexity vs Simplicity**: If complex models keep failing, pivot to simple tree methods (XGBoost/RandomForest)",
+        "   - **Domain paradigms**: NLP stuck with transformers? Try rule-based. CV stuck with CNN? Try traditional features",
+        "   - **Speed vs Accuracy**: Trade some accuracy for faster, more reliable models that actually complete training",
+        "   - **Proven vs Novel**: When innovation fails repeatedly, choose proven methods over cutting-edge approaches",
+        "",
+        "### 💡 **Key Reminder**",
+        "**One hypothesis, one goal**: Each hypothesis should test exactly one architectural change - either establish baseline OR test one specific innovation. Keep scope focused for clear results.",
+    ]
+    return "\n".join(guidelines)
+
+
 if __name__ == "__main__":
     # Check if we should print available packages prompt
     if len(sys.argv) > 1 and sys.argv[1] == "--packages-prompt":

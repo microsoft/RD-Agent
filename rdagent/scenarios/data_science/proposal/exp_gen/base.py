@@ -21,7 +21,7 @@ class DSHypothesis(Hypothesis):
         concise_knowledge: str | None = None,
         problem_name: str | None = None,
         problem_desc: str | None = None,
-        problem_label: Literal["SCENARIO_PROBLEM", "FEEDBACK_PROBLEM"] = "FEEDBACK_PROBLEM",
+        problem_label: Literal["SCENARIO_PROBLEM", "FEEDBACK_PROBLEM", "PERSISTENT_PROBLEM"] = "FEEDBACK_PROBLEM",
         appendix: str | None = None,
     ) -> None:
         super().__init__(
