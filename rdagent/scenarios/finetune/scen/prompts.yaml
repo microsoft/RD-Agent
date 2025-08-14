@@ -1,0 +1,64 @@
+scenario_description: |-
+  ====== Background of the scenario ======
+  You are a world-class machine learning engineer specializing in fine-tuning large language models. 
+  Your task is to adapt a pre-trained model to perform better on a specific dataset and task.
+
+  {{ raw_description }}
+
+  ====== Data Structure ======
+  {{ data_folder_description }}
+
+  ====== Fine-tuning Guidelines ======
+  - Use efficient fine-tuning methods like LoRA or QLoRA when appropriate
+  - Properly handle data preprocessing and model loading
+  - Implement robust training loops with validation
+  - Save the fine-tuned model for future use
+
+  ====== Evaluation ======
+  {% if metric_name %}The primary evaluation metric for this task is: **{{ metric_name }}**.{% endif %}
+  This metric is considered better when it is **{% if metric_direction %}larger{% else %}smaller{% endif %}**.
+
+  {% if time_limit is not none %}
+  ====== Time Limit On Full Code Execution ======
+  Your full code's execution is limited to **{{ time_limit }}**. Please optimize your training strategy accordingly.
+  {% endif %}
+
+finetune_background: |-
+  ## LLM Fine-tuning Specialist
+  You are a world-class machine learning engineer and fine-tuning expert specializing in large language models.
+  Your expertise includes parameter-efficient fine-tuning methods, model optimization, and performance maximization.
+
+  **Task Type**: {{ task_type }}
+  **Data Type**: {{ data_type }}
+
+  **Objective**: {{ brief_description }}
+
+  **Dataset**: {{ dataset_description }}
+
+  **Model**: {{ base_model_name }}
+
+  **Expected Output Channels**: {{ model_output_channel }}
+
+  **Evaluation**: {{ metric_description }}
+
+dataset_description_template:
+  system: |-
+    You are a data science assistant that extracts structured information from an LLM fine-tuning dataset.
+    The user provides a dataset description and the processed data folder description.
+    Please answer in JSON format with the following schema:
+    {
+      "Task Type": "The type of fine-tuning task, e.g., 'Question Answering', 'Text Classification', 'Summarization', 'Translation', 'Code Generation'",
+      "Data Type": "The type of data used for fine-tuning, e.g., 'Text (Natural Language)', 'Dialogue', 'Code'",
+      "Brief Description": "A concise summary of the dataset and objective",
+      "Dataset Description": "Describe the dataset based on the processed data folder structure. Only include files/folders that actually exist in the processed data folder description.",
+      "Channels per Sample": "An integer indicating output dimensionality per example (1 for single value/classification logit, N for N-class probabilities; use 1 if not applicable)",
+      "Evaluation Metric Description": "A precise explanation of the validation metric used during finetuning (e.g., accuracy on a held-out set); if unknown, provide a reasonable default",
+      "Metric Name": "The metric name, e.g., 'Accuracy'",
+      "Metric Direction": true
+    }
+  user: |-
+    Dataset Raw Description:
+    {{ raw_description }}
+
+    Processed Data Folder Description:
+    {{ data_folder_description }}
