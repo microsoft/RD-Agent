@@ -65,29 +65,32 @@ class WorkflowTracker:
         if not RD_AGENT_SETTINGS.enable_mlflow or mlflow is None:
             return
 
-        # Log workflow progress
-        mlflow.log_metric("loop_index", self.loop_base.loop_idx)
-        mlflow.log_metric("step_index", self.loop_base.step_idx[self.loop_base.loop_idx])
+        try:
+            # Log workflow progress
+            mlflow.log_metric("loop_index", self.loop_base.loop_idx)
+            mlflow.log_metric("step_index", self.loop_base.step_idx[self.loop_base.loop_idx])
 
-        current_local_datetime = datetime.datetime.now(pytz.timezone("Asia/Shanghai"))
-        float_like_datetime = self._datetime_to_float(current_local_datetime)
-        mlflow.log_metric("current_datetime", float_like_datetime)
+            current_local_datetime = datetime.datetime.now(pytz.timezone("Asia/Shanghai"))
+            float_like_datetime = self._datetime_to_float(current_local_datetime)
+            mlflow.log_metric("current_datetime", float_like_datetime)
 
-        # Log API status
-        mlflow.log_metric("api_fail_count", RD_Agent_TIMER_wrapper.api_fail_count)
-        latest_api_fail_time = RD_Agent_TIMER_wrapper.latest_api_fail_time
-        if latest_api_fail_time is not None:
-            float_like_datetime = self._datetime_to_float(latest_api_fail_time)
-            mlflow.log_metric("lastest_api_fail_time", float_like_datetime)
+            # Log API status
+            mlflow.log_metric("api_fail_count", RD_Agent_TIMER_wrapper.api_fail_count)
+            latest_api_fail_time = RD_Agent_TIMER_wrapper.latest_api_fail_time
+            if latest_api_fail_time is not None:
+                float_like_datetime = self._datetime_to_float(latest_api_fail_time)
+                mlflow.log_metric("lastest_api_fail_time", float_like_datetime)
 
-        # Log timer status if timer is started
-        if self.loop_base.timer.started:
-            remain_time = self.loop_base.timer.remain_time()
-            assert remain_time is not None
-            mlflow.log_metric("remain_time", remain_time.seconds)
-            mlflow.log_metric(
-                "remain_percent",
-                remain_time / self.loop_base.timer.all_duration * 100,
-            )
+            # Log timer status if timer is started
+            if self.loop_base.timer.started:
+                remain_time = self.loop_base.timer.remain_time()
+                assert remain_time is not None
+                mlflow.log_metric("remain_time", remain_time.seconds)
+                mlflow.log_metric(
+                    "remain_percent",
+                    remain_time / self.loop_base.timer.all_duration * 100,
+                )
 
-    # Keep only the log_workflow_state method as it's the primary entry point now
+        # Keep only the log_workflow_state method as it's the primary entry point now
+        except Exception as e:
+            logger.warning(f"Error in log_workflow_state: {e}")
