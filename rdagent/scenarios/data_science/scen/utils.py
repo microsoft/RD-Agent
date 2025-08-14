@@ -299,6 +299,7 @@ class FileTreeGenerator:
         max_lines: int = 200,
         priority_files: Set[str] = None,
         hide_base_name: bool = True,
+        allowed_paths: Set[Path] = None,
     ):
         """
         Initialize the file tree generator.
@@ -312,6 +313,7 @@ class FileTreeGenerator:
         self.lines = []
         self.line_count = 0
         self.hide_base_name = hide_base_name
+        self.allowed_paths = allowed_paths if allowed_paths else None
 
     def generate_tree(self, path: Union[str, Path]) -> str:
         """
@@ -416,6 +418,13 @@ class FileTreeGenerator:
         try:
             # Get directory contents, filter out system files
             items = [p for p in path.iterdir() if not p.name.startswith(".") and p.name not in system_names]
+
+            # Filter by allowed paths if provided
+            if self.allowed_paths is not None:
+                print(items[:20])
+                print(self.allowed_paths[:20])
+                items = [p for p in items if p in self.allowed_paths]
+
             dirs = sorted([p for p in items if p.is_dir()])
             files = sorted([p for p in items if p.is_file()])
 

@@ -50,9 +50,7 @@ dump_model_eval:
     {{stdout}}
 
     ------------ File opened by the code ------------
-    {% for f in opened_trace_lines %}
-    - {{ f }}
-    {% endfor %}
+    {{opened_trace_lines}}
 
     ------------ The file list in "models/" subfolder ------------
     {% for f in model_folder_files %}

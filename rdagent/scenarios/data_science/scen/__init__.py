@@ -16,7 +16,10 @@ from rdagent.scenarios.kaggle.kaggle_crawler import (
     download_data,
     get_metric_direction,
 )
-from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env, check_runtime_environment
+from rdagent.scenarios.shared.get_runtime_info import (
+    check_runtime_environment,
+    get_runtime_environment_by_env,
+)
 from rdagent.utils.agent.tpl import T
 
 

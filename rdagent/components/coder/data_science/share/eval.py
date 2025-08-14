@@ -14,6 +14,7 @@ from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_
 from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
+from rdagent.scenarios.data_science.scen.utils import FileTreeGenerator
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 
@@ -87,7 +88,7 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
             str(file.relative_to(implementation.workspace_path)) for file in model_folder.iterdir() if file.is_file()
         ]
 
-        opened_trace_lines = []
+        opened_trace_lines = None
         if (implementation.workspace_path / "trace.log").exists():
             input_path = T("scenarios.data_science.share:scen.input_path").r()
             first_level_children = set()
@@ -95,6 +96,7 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
             path_regex = re.compile(r'openat\(.+?,\s*"([^"]+)"')
             log_content = (implementation.workspace_path / "trace.log").read_text()
 
+            opened_files = set()
             for line in log_content.splitlines():
                 if "openat" not in line or input_path not in line:
                     continue
@@ -103,14 +105,14 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
                 if match:
                     full_path_str = match.group(1)
                     if full_path_str.startswith(input_path):
-                        try:
-                            relative_path = Path(full_path_str).relative_to(input_path)
-                            if relative_path.parts:
-                                first_level_children.add(relative_path.parts[0])
-                        except ValueError:
-                            continue
+                        opened_files.add(Path(full_path_str).resolve())
 
-            opened_trace_lines = sorted(list(first_level_children))
+            tree_gen = FileTreeGenerator(
+                max_lines=200, hide_base_name=True, allowed_paths=list(opened_files)  # pass opened files filter
+            )
+
+            opened_trace_lines = tree_gen.generate_tree(Path(input_path).resolve())
+            # Limitation: training and test are expected to be different files.
 
         # this will assert the generation of necessary files
         for f in ["submission.csv", "scores.csv"]:
