@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.finetune.utils import prev_model_dirname
+from rdagent.utils.agent.tpl import T
 
 
 def extract_dataset_info(competition: str) -> Dict[str, Any]:
@@ -123,68 +124,23 @@ def _find_model_path() -> Optional[Path]:
 
 
 def build_finetune_description(dataset_info: Dict[str, Any], model_info: Dict[str, Any]) -> str:
-    """Build comprehensive fine-tuning task description."""
-    parts = [
-        "# LLM Fine-tuning Task",
-        "",
-        f"Fine-tune model `{model_info['name']}` using dataset `{dataset_info['name']}`.",
-        "",
-        "## Dataset Information",
-    ]
-
-    if dataset_info["description"]:
-        parts.extend(["", dataset_info["description"]])
-
-    if dataset_info["files"]:
-        parts.extend(["", f"**Data files:** {', '.join(dataset_info['files'][:5])}"])
-
-    if dataset_info["samples"]:
-        parts.extend(["", "**Sample data:**"])
-        for i, sample in enumerate(dataset_info["samples"], 1):
-            parts.extend([f"```json", json.dumps(sample, ensure_ascii=False, indent=2), "```"])
-
-    parts.extend(["", "## Model Information", f"**Model:** {model_info['name']}"])
-
-    if model_info["specs"]:
-        parts.append(f"**Specifications:** {model_info['specs']}")
-
-    if model_info["description"]:
-        parts.extend(["", model_info["description"]])
-
-    parts.extend(
-        [
-            "",
-            "## Fine-tuning Objective",
-            "Adapt the base model to perform better on the specific task defined by the dataset.",
-            "The fine-tuning process should properly load the model, process the data, and optimize performance.",
-        ]
+    """Build comprehensive fine-tuning task description using template."""
+    return T(".prompts:task_description").r(
+        model_name=model_info["name"],
+        dataset_name=dataset_info["name"],
+        dataset_description=dataset_info.get("description", ""),
+        dataset_files=dataset_info.get("files", [])[:5],  # Max 5 files
+        dataset_samples=dataset_info.get("samples", []),
+        model_specs=model_info.get("specs", ""),
+        model_description=model_info.get("description", ""),
     )
-
-    return "\n".join(parts)
 
 
 def build_folder_description(competition: str) -> str:
-    """Build concise folder structure description for fine-tuning."""
+    """Build concise folder structure description for fine-tuning using template."""
     from rdagent.scenarios.data_science.scen.utils import describe_data_folder_v2
 
     dataset_path = Path(FT_RD_SETTING.local_data_path) / competition
-
-    # Get basic folder structure
     basic_desc = describe_data_folder_v2(dataset_path, show_nan_columns=FT_RD_SETTING.show_nan_columns)
 
-    parts = [
-        "# Fine-tuning Data Structure",
-        "",
-        "## Dataset Files",
-        basic_desc,
-        "",
-        "## Model Access Paths",
-        "- Load training data from: `./workspace_input/`",
-        "- Load pre-trained model from: `./workspace_input/prev_model/`",
-        "- Alternative model path: `./workspace_input/model/`",
-        "",
-        "## Expected Output",
-        "Save fine-tuned model to the designated output directory after training.",
-    ]
-
-    return "\n".join(parts)
+    return T(".prompts:data_folder_description").r(basic_description=basic_desc)

@@ -41,6 +41,57 @@ finetune_background: |-
 
   **Evaluation**: {{ metric_description }}
 
+task_description: |-
+  # LLM Fine-tuning Task
+
+  Fine-tune model `{{ model_name }}` using dataset `{{ dataset_name }}`.
+
+  ## Dataset Information
+  {% if dataset_description %}
+  {{ dataset_description }}
+  {% endif %}
+
+  {% if dataset_files %}
+  **Data files:** {{ dataset_files | join(', ') }}
+  {% endif %}
+
+  {% if dataset_samples %}
+  **Sample data:**
+  {% for sample in dataset_samples %}
+  ```json
+  {{ sample | tojson(indent=2) }}
+  ```
+  {% endfor %}
+  {% endif %}
+
+  ## Model Information
+  **Model:** {{ model_name }}
+  {% if model_specs %}
+  **Specifications:** {{ model_specs }}
+  {% endif %}
+
+  {% if model_description %}
+  {{ model_description }}
+  {% endif %}
+
+  ## Fine-tuning Objective
+  Adapt the base model to perform better on the specific task defined by the dataset.
+  The fine-tuning process should properly load the model, process the data, and optimize performance.
+
+data_folder_description: |-
+  # Fine-tuning Data Structure
+
+  ## Dataset Files
+  {{ basic_description }}
+
+  ## Model Access Paths
+  - Load training data from: `./workspace_input/`
+  - Load pre-trained model from: `./workspace_input/prev_model/`
+  - Alternative model path: `./workspace_input/model/`
+
+  ## Expected Output
+  Save fine-tuned model to the designated output directory after training.
+
 dataset_description_template:
   system: |-
     You are a data science assistant that extracts structured information from an LLM fine-tuning dataset.
