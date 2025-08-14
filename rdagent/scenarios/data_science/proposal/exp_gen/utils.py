@@ -103,3 +103,16 @@ def get_packages(pkgs: list[str] | None = None) -> str:
     pkg_args = " ".join(pkgs) if pkgs else ""
     stdout = implementation.execute(env=env, entry=f"python {fname} {pkg_args}")
     return stdout
+
+
+def get_available_packages_prompt() -> str:
+    """Generate prompt template for dynamically detected available packages."""
+    # Use the same approach as get_packages but call the packages prompt functionality
+
+    env = get_ds_env()
+    implementation = FBWorkspace()
+    fname = "package_info.py"
+    implementation.inject_files(**{fname: (Path(__file__).absolute().resolve().parent / "package_info.py").read_text()})
+
+    stdout = implementation.execute(env=env, entry=f"python {fname} --packages-prompt")
+    return stdout.strip()
