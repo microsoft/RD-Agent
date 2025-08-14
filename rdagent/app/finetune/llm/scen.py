@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
@@ -18,7 +18,7 @@ class LLMFinetuneScen(DataScienceScen):
 
         Only keep logic needed for LLM finetuning datasets.
         """
-        local_path = DS_RD_SETTING.local_data_path
+        local_path = FT_RD_SETTING.local_data_path
         dataset_path = Path(local_path) / dataset
 
         # 1) Ensure dataset exists (download if missing)
@@ -29,8 +29,12 @@ class LLMFinetuneScen(DataScienceScen):
         # 1.1) Ensure prev_model and model are visible under dataset_path for mounting to workspace_input
         try:
             ft_root = Path(local_path).parent  # FT_FILE_PATH
-            prev_src = ft_root / "prev_model" / dataset
-            model_src = ft_root / "model" / dataset
+            model_name = FT_RD_SETTING.base_model_name
+            # Expected: prev_model/<baseModel_dataset>/, model/<baseModel>/
+            prev_src = (
+                ft_root / "prev_model" / f"{model_name}_{dataset}" if model_name else ft_root / "prev_model" / dataset
+            )
+            model_src = ft_root / "model" / model_name if model_name else None
             prev_dst = dataset_path / "prev_model"
             model_dst = dataset_path / "model"
 
@@ -49,10 +53,10 @@ class LLMFinetuneScen(DataScienceScen):
             # Prefer prev_model; if missing and model exists, expose model as prev_model for compatibility
             if prev_src.exists():
                 _ensure_link(prev_src, prev_dst)
-            elif model_src.exists():
+            elif model_src is not None and model_src.exists():
                 _ensure_link(model_src, prev_dst)
             # Also expose model separately if exists
-            if model_src.exists():
+            if model_src is not None and model_src.exists():
                 _ensure_link(model_src, model_dst)
         except Exception:
             pass
@@ -61,8 +65,8 @@ class LLMFinetuneScen(DataScienceScen):
         self.competition = dataset  # keep field name for downstream compatibility
         self.metric_name = None
 
-        # 3) Debug path: LLM scenario uses the full dataset folder directly
-        # self.debug_path = str(dataset_path)
+        # 3) Debug path: use the dataset folder as mount root so `prev_model/` symlink is inside it
+        self.debug_path = str(dataset_path)
 
         # 4) Description and folder summary
         self.raw_description = self._get_description()
@@ -74,6 +78,18 @@ class LLMFinetuneScen(DataScienceScen):
         # 6) timeout tracking
         self.timeout_increase_count = 0
 
+    def real_debug_timeout(self):
+        return FT_RD_SETTING.debug_timeout
+
+    def recommend_debug_timeout(self):
+        return FT_RD_SETTING.debug_recommend_timeout
+
+    def real_full_timeout(self):
+        return FT_RD_SETTING.full_timeout
+
+    def recommend_full_timeout(self):
+        return FT_RD_SETTING.full_recommend_timeout
+
     @property
     def dataset(self) -> str:
         # Align naming for LLM scenario; the base class uses `competition`.
@@ -81,8 +97,8 @@ class LLMFinetuneScen(DataScienceScen):
 
     def _get_data_folder_description(self) -> str:
         folder_desc = describe_data_folder_v2(
-            Path(DS_RD_SETTING.local_data_path) / self.competition,
-            show_nan_columns=DS_RD_SETTING.show_nan_columns,
+            Path(FT_RD_SETTING.local_data_path) / self.competition,
+            show_nan_columns=FT_RD_SETTING.show_nan_columns,
         )
         return folder_desc
 
@@ -94,7 +110,7 @@ class LLMFinetuneScen(DataScienceScen):
         ----------
         - competition (str): Dateset ID, like "shibing624/alpaca-zh".
         """
-        save_path = f"{DS_RD_SETTING.local_data_path}/{competition}"
+        save_path = f"{FT_RD_SETTING.local_data_path}/{competition}"
         if Path(save_path).exists():
             logger.info(f"{save_path} already exists.")
         else:
@@ -118,7 +134,7 @@ class LLMFinetuneScen(DataScienceScen):
                 raise e
 
     def _get_description(self):
-        if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}/README.md")).exists():
+        if (fp := Path(f"{FT_RD_SETTING.local_data_path}/{self.competition}/README.md")).exists():
             logger.info(f"{self.competition}/Found README.md, loading from local file.")
             return fp.read_text()
 

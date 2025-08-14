@@ -4,8 +4,7 @@ from pathlib import Path
 
 import fire
 
-from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.app.finetune.llm.conf import update_settings
+from rdagent.app.finetune.llm.conf import FT_RD_SETTING, update_settings
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
@@ -24,7 +23,7 @@ def main(
     Auto R&D Evolving loop for models finetune.
     You can continue running a session by using the command:
     .. code-block:: bash
-        dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh
+        dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh --model qwen3-1.7B-local
     """
     if not dataset:
         raise Exception("Please specify dataset name.")
@@ -35,8 +34,8 @@ def main(
     ft_root = Path(ft_root_str)
     if not ft_root.exists():
         raise Exception(f"FT_FILE_PATH does not exist: {ft_root}")
-    prev_dir = ft_root / "prev_model" / dataset
-    model_dir = ft_root / "model" / dataset
+    prev_dir = ft_root / "prev_model" / f"{model}_{dataset}"
+    model_dir = ft_root / "model" / model
     dataset_dir = ft_root / "dataset" / dataset
     if not dataset_dir.exists():
         raise Exception(f"Dataset not found: {dataset_dir}")
@@ -45,8 +44,9 @@ def main(
         raise Exception(
             f"Neither prev_model nor model exists for '{dataset}'. Please create one of: {prev_dir} or {model_dir}"
         )
-    update_settings(dataset)
-    rd_loop: DataScienceRDLoop = DataScienceRDLoop(DS_RD_SETTING)
+    update_settings(dataset, model)
+    # Use LLM-specific setting instance instead of global DS_RD_SETTING
+    rd_loop: DataScienceRDLoop = DataScienceRDLoop(FT_RD_SETTING)
     asyncio.run(rd_loop.run())
 
 
