@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from typing import Literal
 
@@ -77,12 +78,38 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
         implementation.execute(env=env, entry=get_clear_ws_cmd(stage="before_inference"))
 
         # Execute the main script
-        stdout = remove_eda_part(implementation.execute(env=env, entry="python main.py"))
+        stdout = remove_eda_part(
+            implementation.execute(env=env, entry="strace -e trace=file -f -o trace.log python main.py --inference")
+        )
 
         # walk model_folder and list the files
         model_folder_files = [
             str(file.relative_to(implementation.workspace_path)) for file in model_folder.iterdir() if file.is_file()
         ]
+
+        opened_trace_lines = []
+        if (implementation.workspace_path / "trace.log").exists():
+            input_path = T("scenarios.data_science.share:scen.input_path").r()
+            first_level_children = set()
+            path_regex = re.compile(r'openat\(.+?,\s*"([^"]+)"')
+            log_content = (implementation.workspace_path / "trace.log").read_text()
+
+            for line in log_content.splitlines():
+                if "openat" not in line or input_path not in line:
+                    continue
+
+                match = path_regex.search(line)
+                if match:
+                    full_path_str = match.group(1)
+                    if full_path_str.startswith(input_path):
+                        try:
+                            relative_path = Path(full_path_str).relative_to(input_path)
+                            if relative_path.parts:
+                                first_level_children.add(relative_path.parts[0])
+                        except ValueError:
+                            continue
+
+            opened_trace_lines = sorted(list(first_level_children))
 
         # this will assert the generation of necessary files
         for f in ["submission.csv", "scores.csv"]:
@@ -125,6 +152,7 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
             model_folder_files=model_folder_files,
             scores_content_before=scores_content_before,
             scores_content_after=scores_content_after,
+            opened_trace_lines=opened_trace_lines,
         )
 
         csfb = build_cls_from_json_with_retry(
