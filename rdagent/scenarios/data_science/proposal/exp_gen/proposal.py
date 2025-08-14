@@ -486,12 +486,14 @@ class DSProposalV2ExpGen(ExpGen):
         scenario_desc: str,
         sota_exp_desc: str,
         exp_gen_plan: Dict,
+        is_draft: bool = False,
     ) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_output_format=(
                 T(".prompts_v2:output_format.problem").r() if not self.supports_response_schema else None
             ),
             plan=exp_gen_plan,
+            is_draft=is_draft,
         )
         user_prompt = T(".prompts_v2:scenario_problem.user").r(
             scenario_desc=scenario_desc,
@@ -551,6 +553,7 @@ class DSProposalV2ExpGen(ExpGen):
         exp_feedback_list_desc,
         inject_diverse,
         exp_gen_plan,
+        is_draft: bool = False,
     ) -> Dict:
         sota_exp_num = sum(1 for _, fb in current_sub_trace if fb.decision)
         failed_exp_num = len(current_sub_trace) - sota_exp_num
@@ -563,6 +566,7 @@ class DSProposalV2ExpGen(ExpGen):
                 scenario_desc=scenario_desc,
                 sota_exp_desc=sota_exp_desc,
                 exp_gen_plan=exp_gen_plan,
+                is_draft=is_draft,
             )
             for problem_name in scen_problems:
                 scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
@@ -592,6 +596,7 @@ class DSProposalV2ExpGen(ExpGen):
         enable_idea_pool: bool,
         inject_diverse: bool = False,
         exp_gen_plan: Optional[Dict] = None,
+        is_draft: bool = False,
     ) -> Dict:
         problem_formatted_str = ""
         for i, (problem_name, problem_dict) in enumerate(problems.items()):
@@ -604,7 +609,9 @@ class DSProposalV2ExpGen(ExpGen):
 
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             hypothesis_output_format=(
-                T(".prompts_v2:output_format.hypothesis").r(pipeline=pipeline, enable_idea_pool=enable_idea_pool)
+                T(".prompts_v2:output_format.hypothesis").r(
+                    pipeline=pipeline, enable_idea_pool=enable_idea_pool, is_draft=is_draft
+                )
                 if not self.supports_response_schema
                 else None
             ),
@@ -612,6 +619,7 @@ class DSProposalV2ExpGen(ExpGen):
             enable_idea_pool=enable_idea_pool,
             inject_diverse=inject_diverse,
             plan=exp_gen_plan,
+            is_draft=is_draft,
         )
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
             scenario_desc=scenario_desc,
@@ -666,6 +674,7 @@ class DSProposalV2ExpGen(ExpGen):
         scenario_desc: str,
         sota_exp_desc: str,
         exp_feedback_list_desc: str,
+        is_draft: bool = False,
     ) -> Dict:
         """
         Critique the generated hypotheses, identifying flaws and suggesting improvements.
@@ -682,6 +691,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         sys_prompt = T(".prompts_v2:hypothesis_critique.system").r(
             critique_output_format=T(".prompts_v2:output_format.critique").r(),
+            is_draft=is_draft,
         )
         user_prompt = T(".prompts_v2:hypothesis_critique.user").r(
             scenario_desc=scenario_desc,
@@ -735,6 +745,7 @@ class DSProposalV2ExpGen(ExpGen):
         scenario_desc: str,
         sota_exp_desc: str,
         exp_feedback_list_desc: str,
+        is_draft: bool = False,
     ) -> Dict:
         """
         Generate improved hypotheses based on critique feedback for each original hypothesis.
@@ -763,9 +774,10 @@ class DSProposalV2ExpGen(ExpGen):
 
         sys_prompt = T(".prompts_v2:hypothesis_rewrite.system").r(
             rewrite_output_format=T(".prompts_v2:output_format.rewrite").r(
-                enable_scale_check=DS_RD_SETTING.enable_scale_check
+                enable_scale_check=DS_RD_SETTING.enable_scale_check, is_draft=is_draft
             ),
             enable_scale_check=DS_RD_SETTING.enable_scale_check,
+            is_draft=is_draft,
         )
         user_prompt = T(".prompts_v2:hypothesis_rewrite.user").r(
             scenario_desc=scenario_desc,
@@ -908,6 +920,7 @@ class DSProposalV2ExpGen(ExpGen):
         pipeline: bool,
         failed_exp_feedback_list_desc: str,
         fb_to_sota_exp: ExperimentFeedback | None = None,
+        is_draft: bool = False,
     ) -> DSExperiment:
         if pipeline:
             component_info = get_component("Pipeline")
@@ -920,6 +933,7 @@ class DSProposalV2ExpGen(ExpGen):
             component_desc=component_desc,
             workflow_check=workflow_check,
             metric_name=self.scen.metric_name,
+            is_draft=is_draft,
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,
@@ -1065,6 +1079,9 @@ class DSProposalV2ExpGen(ExpGen):
         else:
             inject_diverse = False
 
+        # is_draft means there is no sota exp yet and we should give a plan which has no conflict with other hypotheses so that they can merge together.
+        is_draft = sota_exp is None
+
         # Step 1: Identify problems
         all_problems = self.identify_problem(
             current_sub_trace=trace.get_parent_exps(),
@@ -1073,6 +1090,7 @@ class DSProposalV2ExpGen(ExpGen):
             exp_feedback_list_desc=exp_feedback_list_desc,
             inject_diverse=inject_diverse,
             exp_gen_plan=plan.get("exp_gen") if plan else None,
+            is_draft=is_draft,
         )
 
         # Step 1.5: Sample ideas from idea pool
@@ -1096,6 +1114,7 @@ class DSProposalV2ExpGen(ExpGen):
             enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
             inject_diverse=inject_diverse,
             exp_gen_plan=plan.get("exp_gen") if plan else None,
+            is_draft=is_draft,
         )
         if not pipeline:
             sota_exp_model_file_count = len(
@@ -1128,6 +1147,7 @@ class DSProposalV2ExpGen(ExpGen):
                     scenario_desc=scenario_desc,
                     sota_exp_desc=sota_exp_desc,
                     exp_feedback_list_desc=exp_feedback_list_desc,
+                    is_draft=is_draft,
                 )
                 logger.info(f"Generated critiques for {len(critiques_dict)} hypotheses")
 
@@ -1139,6 +1159,7 @@ class DSProposalV2ExpGen(ExpGen):
                     scenario_desc=scenario_desc,
                     sota_exp_desc=sota_exp_desc,
                     exp_feedback_list_desc=exp_feedback_list_desc,
+                    is_draft=is_draft,
                 )
                 logger.info(f"Successfully completed hypothesis critique and rewrite process")
             except Exception as e:
@@ -1171,4 +1192,5 @@ class DSProposalV2ExpGen(ExpGen):
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
             fb_to_sota_exp=fb_to_sota_exp,
+            is_draft=is_draft,
         )

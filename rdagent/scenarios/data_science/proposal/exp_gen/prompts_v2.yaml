@@ -26,6 +26,7 @@ scenario_problem:
     2. The challenge should be technical or methodological. Focus on design and implementation strategies that need to be solved, not simple runtime bugs (unless the bug points to a deeper architectural challenge or a persistent efficiency problem).
     3. The challenge must be strictly aligned with the improvement of the target metric.
     {% if plan.draft is true %}4. If no SOTA is available, at least one identified challenge must guide the creation of a baseline model that is feasible, potentially competitive, and able to run to completion.{% endif %}
+    {% if is_draft %}{% if plan.draft is true %}5{% else %}4{% endif %}. **Unified System Compatibility**: All identified challenges should be compatible with each other and addressable within a single, coherent system design. Avoid challenges that would require contradictory approaches or conflicting architectural decisions. Focus on challenges that can be systematically solved together without creating design tensions.{% endif %}
 
 
     {% if problem_output_format is not none %}
@@ -167,7 +168,13 @@ hypothesis_gen:
     4. **Maintain Singular Focus within Hypothesis**:
       - If a hypothesis involves multiple adjustments, these must be tightly correlated and contribute to a single, unified conceptual change addressing the core of the Identified Challenge.
       - Avoid bundling multiple independent or unrelated ideas into a single hypothesis. Each hypothesis should test one core concept.
-    5. **Address the Overall Pipeline (for Pipeline-Focused Tasks)**:
+    {% if is_draft %}5. **System Harmony and Integration**:
+      - Since this is the draft stage, ensure all proposed hypotheses work harmoniously together within a single, unified system architecture.
+      - Avoid proposing hypotheses that would create conflicting requirements or contradictory design decisions.
+      - Prioritize hypotheses that complement each other and can be integrated seamlessly into a coherent solution.
+      - Consider how each hypothesis contributes to the overall system design rather than optimizing components in isolation.
+    {% endif %}
+    {% if is_draft %}6{% else %}5{% endif %}. **Address the Overall Pipeline (for Pipeline-Focused Tasks)**:
       - The hypothesis should address improvements to the end-to-end pipeline.
       - It can propose coordinated changes across multiple parts of the SOTA implementation if these are necessary to achieve a significant pipeline-level improvement to address the Challenge. (Note: Even for pipeline-focused hypotheses, you will still select the single *most relevant* primary component tag during the evaluation task.)
 
@@ -255,7 +262,8 @@ hypothesis_critique:
     - **Clarity Issues**: If vague, identify specific methods or strategies that address the core problem
     - **Alternative Strategies**: If implementation is problematic, identify concrete alternative approaches within the current framework such as switching from simple to weighted ensemble
     - **Risk Mitigation**: Recommend specific validation strategies or safeguards for high-risk aspects
-    - **Competition Context**: This is a Kaggle competition where strong performance may come from novel approaches, but also from incremental improvements and careful optimization. Balance innovation with practical enhancements.
+    {% if is_draft %}- **System Integration**: Evaluate how well the hypothesis fits with other components in a unified system design. Identify potential conflicts or synergies with other hypotheses and suggest improvements for better system coherence.
+    {% endif %}- **Competition Context**: This is a Kaggle competition where strong performance may come from novel approaches, but also from incremental improvements and careful optimization. Balance innovation with practical enhancements.
     
     ## CRITICAL Guidance Rules
     
@@ -306,7 +314,8 @@ hypothesis_rewrite:
     3. **Decisive Specificity** – Remove all ambiguity; propose one clear action.
     4. **Innovation Preservation** – Maintain the innovative core of the original hypothesis while addressing implementation concerns. Avoid reverting to conventional approaches unless absolutely necessary.
     5. **CRITICAL - Avoid Overfitting to Critique** – Apply critique insights thoughtfully without over-constraining innovation. Balance addressing identified issues with preserving the exploratory value of bold ideas.
-    {% if enable_scale_check %}6. The user is currently working on a continuous exploration on the task. It's typical that we first try in small scale and in some certain point we will scale up the solution. 
+    {% if is_draft %}6. **System Coherence** – Since this is the draft stage, ensure the rewritten hypothesis maintains compatibility with other system components. Avoid solutions that would create architectural conflicts or contradictory design decisions within the overall system.{% endif %}
+    {% if enable_scale_check %}{% if is_draft %}7{% else %}6{% endif %}. The user is currently working on a continuous exploration on the task. It's typical that we first try in small scale and in some certain point we will scale up the solution. 
     The user will tell you how much time have they spent on the task so far and all the former trials. You should consider whether to scale up the solution based on the current situation. You should put this conclusion in each hypothesis's appendix section.
     Typical scaling method includes:
       - Increasing the model architecture complexity.
@@ -350,6 +359,7 @@ hypothesis_rewrite:
       - Maintain focus on the primary component while ensuring compatibility with the overall pipeline.
       - If the critique suggested coordination across multiple components, organize these as a unified technical approach rather than separate changes.
       - Ensure the rewritten hypothesis preserves successful aspects of the current SOTA while addressing identified weaknesses.
+      {% if is_draft %}- For draft stage, prioritize hypotheses that complement other proposed solutions and avoid architectural conflicts within the overall system design.{% endif %}
     
     6. **Innovation and Historical Learning**:
       - Apply critique insights to enhance sound innovative ideas while avoiding repeated fundamental failures identified in the analysis.
@@ -465,7 +475,13 @@ task_gen:
     5. **Specificity and Clarity**:
       - Be unambiguous. Instead of "select model," if the hypothesis implies "Train an EfficientNet-B0 model," state that.
       - The sketch must be definitive. No open-ended options or phrases like "for example," or "e.g.," within a step's action.
-    6. **Resource Constraints & Efficiency**:
+    {% if is_draft %}6. **Unified System Design**:
+      - Since this is the draft stage with multiple hypotheses to implement, ensure your sketch promotes a coherent, integrated system design.
+      - Consider how different components (data loading, preprocessing, modeling, etc.) work together harmoniously.
+      - Avoid design decisions that would conflict with implementing other proposed hypotheses in the same system.
+      - Prioritize architectural choices that support multiple system requirements rather than optimizing for individual components in isolation.
+    {% endif %}
+    {% if is_draft %}7{% else %}6{% endif %}. **Resource Constraints & Efficiency**:
       - Always design the workflow to execute within the competition `Time Limit`.
       - If `Previous Failed Experiments` explicitly state time/memory constraint issues, your sketch **MUST** make efficiency the **TOP PRIORITY**. Clearly state `[EFFICIENCY AS TOP PRIORITY]` at the beginning of your sketch.
       - The sketch must then detail *specific measures* to achieve this.
@@ -474,14 +490,14 @@ task_gen:
       - If you plan to prioritize efficiency, you can modify the parts which is not related to the hypothesis. Which means your task should still able to validate the hypothesis.
       - Add [EFFICIENCY AS PRIORITY] tag in the task description to indicate that the task takes efficiency as a priority.
       - Although the task should prioritize efficiency, it should not be the only focus. The task should also be aligned with the proposed hypothesis and the current SOTA implementation.
-    7. **Reminders of Common Mistakes (Especially for New `main.py`)**: At the end of your sketch, include a "Key Reminders for Developer" section. Add the following reminders if appropriate.
+    {% if is_draft %}8{% else %}7{% endif %}. **Reminders of Common Mistakes (Especially for New `main.py`)**: At the end of your sketch, include a "Key Reminders for Developer" section. Add the following reminders if appropriate.
       - Ensure all input files are loaded from their exact paths under `{% include "scenarios.data_science.share:scen.input_path" %}` (e.g., `{% include "scenarios.data_science.share:scen.input_path" %}<competition_name>/train.csv`)."
       - Verify `submission.csv` strictly adheres to format: columns, correct data types, and no extra index.
       - "Implement correct label mapping for classification tasks (e.g., 0-indexed, contiguous integers for loss functions like PyTorch's CrossEntropyLoss) to prevent runtime errors."
       - Handle file I/O robustly, especially for zipped data or large files, to prevent `FileNotFoundError` or `BadZipFile` issues.
       - Confirm no `tqdm` or other progress bars are in the final script.
       - Double-check that validation scores are saved correctly to `scores.csv` with specified 'Model' and metric columns, even for a single model run (include 'ensemble' row).
-    8. **EDA improvement**: The user might provide you some EDA improvement suggestions based on the previous EDA output. If so, you should also include the EDA improvement in your sketch.
+    {% if is_draft %}9{% else %}8{% endif %}. **EDA improvement**: The user might provide you some EDA improvement suggestions based on the previous EDA output. If so, you should also include the EDA improvement in your sketch.
 
     # Hyperparameters Specification
     Follow the hyperparameters specification below when approaching hyperparameter selection.
