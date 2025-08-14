@@ -652,6 +652,7 @@ class DSProposalV2ExpGen(ExpGen):
         problems: dict,
         pipeline: bool,
         enable_idea_pool: bool,
+        begin_flag: bool,
         inject_diverse: bool = False,
         exp_gen_plan: Optional[Dict] = None,
     ) -> Dict:
@@ -674,6 +675,7 @@ class DSProposalV2ExpGen(ExpGen):
             enable_idea_pool=enable_idea_pool,
             inject_diverse=inject_diverse,
             plan=exp_gen_plan,
+            begin_flag = begin_flag
         )
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
             scenario_desc=scenario_desc,
@@ -936,7 +938,7 @@ class DSProposalV2ExpGen(ExpGen):
 
 
     def hypothesis_select_with_llm(
-            self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str, hypothesis_candidates: dict, trace: DSTrace
+            self, scenario_desc: str, exp_feedback_list_desc: str,extra_exp_feedback_list_desc: str, sota_exp_desc: str, hypothesis_candidates: dict, trace: DSTrace
         ):
         res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
 
@@ -959,7 +961,8 @@ class DSProposalV2ExpGen(ExpGen):
             time_max = round(time_max, 2),
             merge_hours = DS_RD_SETTING.merge_hours,
             hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(
-                hypothesis_candidates=hypothesis_candidates
+            hypothesis_candidates=hypothesis_candidates,
+            extra_exp_feedback_list_desc =extra_exp_feedback_list_desc
             ),
         )
 
@@ -1159,6 +1162,11 @@ class DSProposalV2ExpGen(ExpGen):
             pipeline=pipeline,
         )
 
+        if len(trace.hist) > 0:
+            extra_exp_feedback_list = [tr[0].hypothesis for tr in trace.experiment_and_feedback_list_after_init(return_type="all",search_type="all") if getattr(tr[1], "decision", False)]
+        else:
+            extra_exp_feedback_list = None
+
         # NOTE: we currently don't support inject diverse problems for the parallel + multi-trace mode,
         if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
             if len(trace.current_selection) == 0:
@@ -1190,6 +1198,7 @@ class DSProposalV2ExpGen(ExpGen):
                 competition_desc=self.scen.get_competition_full_desc(),
             )
 
+        begin_flag = len(trace.hist) == 0
         # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
         hypothesis_dict = self.hypothesis_gen(
             component_desc=component_desc,
@@ -1201,6 +1210,7 @@ class DSProposalV2ExpGen(ExpGen):
             enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
             inject_diverse=inject_diverse,
             exp_gen_plan=plan.get("exp_gen") if plan else None,
+            begin_flag = begin_flag
         )
         if not pipeline:
             sota_exp_model_file_count = len(
@@ -1263,9 +1273,13 @@ class DSProposalV2ExpGen(ExpGen):
         # Step 3: Select the best hypothesis
         if DS_RD_SETTING.llm_select_hypothesis:
             # Use LLM to select the best hypothesis
+            if extra_exp_feedback_list is not None:
+                extra_exp_feedback_list_desc = "\n".join(f"{i+1}. {hypothesis}" for i, hypothesis in enumerate(extra_exp_feedback_list))
+
             response_dict = self.hypothesis_select_with_llm(
             scenario_desc=scenario_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
+            extra_exp_feedback_list_desc = extra_exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
             hypothesis_candidates=hypothesis_dict,
             trace = trace

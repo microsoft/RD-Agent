@@ -194,6 +194,17 @@ hypothesis_gen:
       - **Prioritization for Critical Challenges:** If a hypothesis directly and credibly addresses a **critical Challenge that caused prior experiment failures** (e.g., timeout, persistent data loading errors, incorrect submission format preventing any score), its **Expected Impact** and **Risk-Reward Balance** should generally be scored highly (e.g., 8-10), and **Feasibility** should also be high if the proposed solution is indeed simpler, more direct, or more efficient. This ensures such critical hypotheses are prioritized.
 
     3. Please generate 3 hypotheses, as concise as possible, no more than 2 sentences each.
+
+    {%if begin_flag %}
+    We are now at the beginning stage. Please generate hypotheses that are as unique as possible.
+    Each hypothesis should handle a different component. For example, you can generate four distinct hypotheses for: 
+      - DataLoadSpec
+      - FeatureEng
+      - Model
+      - Workflow
+    The goal is to make these components together form a complete code solution. Avoid generating complex ensemble solutions such as 5-fold CV or stacked models at this stage.
+    {% endif %}
+
     {% if inject_diverse %}
     # Focus on Diversity!!
     Diversity is very critical in the analysis of scenario problems. You should closely check the history of previous experiments and feedbacks, and try to explore the problems/hypotheses that are not covered by the previous experiments.
@@ -379,14 +390,20 @@ hypothesis_select:
   system: |-
     You are a Kaggle Grandmaster with deep expertise in model evaluation and decision making.  
     Your task: Return the most appropriate hypothesis to improve the current solution.
-    hypothesis_candidates :
-    {{hypothesis_candidates}}
     ## Hypothesis Source
+    hypothesis_candidates are the hypotheses proposed in the current experiment. Please give them priority:
+    {{hypothesis_candidates}}
+
     - The list `hypothesis_candidates` is for REFERENCE ONLY.
     - You may:
       1. Select one hypothesis directly from the candidates.
       2. Modify an existing hypothesis from the candidates.
       3. Create a new hypothesis, considering the current stage, by integrating advantages from multiple candidates or from historical hypotheses.
+
+    {% if extra_exp_feedback_list_desc %}
+    The following are additional hypotheses that have been approved by other experiments. They can also serve as references and be considered part of the Hypothesis Source:
+    {{ extra_exp_feedback_list_desc }}
+    {% endif %}
 
     ## Hypothesis Generation Guidelines
     ## Stage Constraints
@@ -438,7 +455,7 @@ hypothesis_select:
 
       3. **Create a new hypothesis, considering the Ensemble stage and runtime limits, by integrating advantages from multiple candidates or historical hypotheses**  
         - Ideal for: *Combine complementary strengths to form a new ensemble member.*  
-        - Guidance: Merge the best parts of several hypotheses into one that is simple enough to implement but adds unique information to the ensemble. Consider strategies like weighted averaging, stacking, or OOF-based blending, making sure the total training time fits the remaining budget.
+        - Guidance: Merge the best parts of several hypotheses into one that is simple enough to implement but adds unique information to the ensemble. Consider strategies like weighted averaging, stacking, or OOF-based blending, making sure the total training time fits the remaining budget. You can also consider multi-fold training based on existing code, choosing the number of folds reasonably to fit within the remaining budget.
 
     {% else %}
 
@@ -453,7 +470,7 @@ hypothesis_select:
 
       2. **Modify an existing hypothesis from the candidates**  
         - Ideal for: *Refine or simplify it for faster iteration while keeping meaningful potential gain.*  
-        - Guidance: Make targeted changes that improve effectiveness or efficiency without turning it into a complex multi-model or multi-step solution. Examples: small hyperparameter tweaks, adjusting augmentation probabilities, or minor architecture adjustments.
+        - Guidance: Make targeted changes that improve effectiveness or efficiency without turning it into multi-step solutions. Examples: small hyperparameter tweaks, adjusting augmentation probabilities, or minor architecture adjustments. For CV competitions, you can also consider larger image sizes or using the latest models; for NLP competitions, consider adjusting MAXLEN or adopting the newest model architectures.
 
       3. **Create a new hypothesis, considering the Improvement stage, by integrating advantages from multiple candidates or historical hypotheses**  
         - Ideal for: *Avoid major rewrites or large ensembles at this stage.*  
@@ -467,8 +484,6 @@ hypothesis_select:
     {{ hypothesis_output_format }}
     {% endif %}
     
-
-
 
   user: |- 
     # Scenario Description
