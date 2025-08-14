@@ -5,6 +5,7 @@ from pydantic_settings import SettingsConfigDict
 from rdagent.app.data_science.conf import DataScienceBasePropSetting
 from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
 from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.scenarios.finetune.utils import prev_model_dirname
 from rdagent.utils.env import (
     CondaConf,
     DockerEnv,
@@ -17,7 +18,6 @@ from rdagent.utils.env import (
 class LLMFinetunePropSetting(DataScienceBasePropSetting):
     """LLM Fine-tune dedicated property settings.
 
-    - Override scenario and hypothesis generator
     - Adjust timeouts and template
     - Use FT_ env prefix for overrides
     """
@@ -25,7 +25,7 @@ class LLMFinetunePropSetting(DataScienceBasePropSetting):
     model_config = SettingsConfigDict(env_prefix="FT_", protected_namespaces=())
 
     # Components
-    scen: str = "rdagent.app.finetune.llm.scen.LLMFinetuneScen"
+    scen: str = "rdagent.scenarios.finetune.scen.LLMFinetuneScen"
     hypothesis_gen: str = "rdagent.app.finetune.llm.proposal.FinetuneExpGen"
 
     # Timeouts (longer for LLM training)
@@ -37,7 +37,8 @@ class LLMFinetunePropSetting(DataScienceBasePropSetting):
     enable_model_dump: bool = True
 
     # App template
-    app_tpl: str = "app/finetune/llm/tpl"
+    # point finetune app template to scenarios/finetune
+    app_tpl: str = "scenarios/finetune"
 
     # FT root path support (for mounting dataset root)
     # FT_FILE_PATH/dataset/<dataset>/, FT_FILE_PATH/model/<baseModel>/, FT_FILE_PATH/prev_model/<baseModel_dataset>/
@@ -45,6 +46,15 @@ class LLMFinetunePropSetting(DataScienceBasePropSetting):
 
     # LLM-specific fields
     base_model_name: str | None = None
+    # Use dataset instead of competition for LLM fine-tuning
+    dataset: str = ""
+
+    @property
+    def task(self) -> str:
+        """Generate task name using prev_model_dirname function."""
+        if self.base_model_name and self.dataset:
+            return prev_model_dirname(self.base_model_name, self.dataset)
+        return ""
 
 
 # Global setting instance for LLM finetuning scenario
@@ -91,8 +101,8 @@ def update_settings(
     """
     RD_AGENT_SETTINGS.app_tpl = FT_RD_SETTING.app_tpl
     os.environ["DS_CODER_COSTEER_EXTRA_EVALUATOR"] = '["rdagent.app.finetune.share.eval.PrevModelLoadEvaluator"]'
-    # Update FT setting instance (no longer rely on DS_RD_SETTING in LLM loop)
-    FT_RD_SETTING.competition = dataset
+    # Update FT setting instance (use dataset instead of competition in LLM loop)
+    FT_RD_SETTING.dataset = dataset
     FT_RD_SETTING.base_model_name = model
     # If FT_FILE_PATH is configured, directly mount from its dataset directory
     if FT_RD_SETTING.file_path:
