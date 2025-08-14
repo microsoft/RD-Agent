@@ -1,11 +1,10 @@
 import os
-import shutil
 
 from pydantic_settings import SettingsConfigDict
 
-from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.app.data_science.conf import DataScienceBasePropSetting
 from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
-from rdagent.core.conf import RD_AGENT_SETTINGS, ExtendedBaseSettings
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.utils.env import (
     CondaConf,
     DockerEnv,
@@ -15,40 +14,46 @@ from rdagent.utils.env import (
 )
 
 
-class LLMFinetuneScen(ExtendedBaseSettings):
+class LLMFinetunePropSetting(DataScienceBasePropSetting):
+    """LLM Fine-tune dedicated property settings.
+
+    - Override scenario and hypothesis generator
+    - Adjust timeouts and template
+    - Use FT_ env prefix for overrides
+    """
+
     model_config = SettingsConfigDict(env_prefix="FT_", protected_namespaces=())
+
+    # Components
     scen: str = "rdagent.app.finetune.llm.scen.LLMFinetuneScen"
-    """
-    Scenario class for data science tasks.
-    - For Kaggle competitions, use: "rdagent.scenarios.data_science.scen.KaggleScen"
-    - For custom data science scenarios, use: "rdagent.scenarios.data_science.scen.DataScienceScen"
-    - For LLM finetune scenarios, use: "rdagent.app.finetune.llm.scen.LLMFinetuneScen"
-    - For Data science finetune scenarios, use: "rdagent.app.finetune.data_science.scen.DSFinetuneScen"
-    """
-
     hypothesis_gen: str = "rdagent.app.finetune.llm.proposal.FinetuneExpGen"
-    """Hypothesis generation class"""
 
+    # Timeouts (longer for LLM training)
     debug_timeout: int = 36000
-    """The timeout limit for running on debugging data"""
     full_timeout: int = 360000
-    """The timeout limit for running on full data"""
 
+    # Pipeline behavior
     coder_on_whole_pipeline: bool = True
     enable_model_dump: bool = True
+
+    # App template
     app_tpl: str = "app/finetune/llm/tpl"
 
-    # Base directory for finetune workspace declared in `.env` as FT_FILE_PATH
-    # Expected structure under this directory:
-    #   dataset/<name of dataset>/
-    #   model/<name of baseModel>/
-    #   prev_model/<baseModel_dataset>/
+    # FT root path support (for mounting dataset root)
+    # FT_FILE_PATH/dataset/<dataset>/, FT_FILE_PATH/model/<baseModel>/, FT_FILE_PATH/prev_model/<baseModel_dataset>/
     file_path: str | None = None
+
+    # LLM-specific fields
+    base_model_name: str | None = None
+
+
+# Global setting instance for LLM finetuning scenario
+FT_RD_SETTING = LLMFinetunePropSetting()
 
 
 def get_ft_env(
     extra_volumes: dict = {},
-    running_timeout_period: int | None = DS_RD_SETTING.debug_timeout,
+    running_timeout_period: int | None = FT_RD_SETTING.debug_timeout,
     enable_cache: bool | None = None,
 ) -> Env:
     """LLM finetune dedicated environment construction function, equivalent to the responsibility of get_ds_env.
@@ -79,18 +84,16 @@ def get_ft_env(
 
 def update_settings(
     dataset: str,
-):  # TODO: add model, change competition to model_dataset(qizhengli)
+    model: str,
+):
     """
     Update the RD_AGENT_SETTINGS with the values from LLM_FINETUNE_SETTINGS.
     """
-    LLM_FINETUNE_SETTINGS = LLMFinetuneScen()
-    RD_AGENT_SETTINGS.app_tpl = LLM_FINETUNE_SETTINGS.app_tpl
+    RD_AGENT_SETTINGS.app_tpl = FT_RD_SETTING.app_tpl
     os.environ["DS_CODER_COSTEER_EXTRA_EVALUATOR"] = '["rdagent.app.finetune.share.eval.PrevModelLoadEvaluator"]'
-    for field_name, new_value in LLM_FINETUNE_SETTINGS.model_dump().items():
-        if hasattr(DS_RD_SETTING, field_name):
-            setattr(DS_RD_SETTING, field_name, new_value)
+    # Update FT setting instance (no longer rely on DS_RD_SETTING in LLM loop)
+    FT_RD_SETTING.competition = dataset
+    FT_RD_SETTING.base_model_name = model
     # If FT_FILE_PATH is configured, directly mount from its dataset directory
-    if LLM_FINETUNE_SETTINGS.file_path:
-        DS_RD_SETTING.local_data_path = os.path.join(LLM_FINETUNE_SETTINGS.file_path, "dataset")
-    # Downstream still uses the competition field; dataset is in the form "<baseModel>_<dataset>"
-    DS_RD_SETTING.competition = dataset
+    if FT_RD_SETTING.file_path:
+        FT_RD_SETTING.local_data_path = os.path.join(FT_RD_SETTING.file_path, "dataset")
