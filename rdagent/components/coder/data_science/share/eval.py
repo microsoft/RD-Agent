@@ -14,7 +14,6 @@ from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_
 from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
-from rdagent.scenarios.data_science.scen.utils import FileTreeGenerator
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 
@@ -106,7 +105,8 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
                     full_path_str = match.group(1)
                     if full_path_str.startswith(input_path):
                         opened_files.add(Path(full_path_str).resolve())
-
+            
+            from rdagent.scenarios.data_science.scen.utils import FileTreeGenerator
             tree_gen = FileTreeGenerator(
                 max_lines=200, hide_base_name=True, allowed_paths=list(opened_files)  # pass opened files filter
             )
