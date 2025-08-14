@@ -421,8 +421,6 @@ class FileTreeGenerator:
 
             # Filter by allowed paths if provided
             if self.allowed_paths is not None:
-                print(items[:20])
-                print(self.allowed_paths[:20])
                 items = [p for p in items if p in self.allowed_paths]
 
             dirs = sorted([p for p in items if p.is_dir()])
