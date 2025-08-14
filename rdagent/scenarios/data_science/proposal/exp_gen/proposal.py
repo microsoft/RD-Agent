@@ -960,10 +960,8 @@ class DSProposalV2ExpGen(ExpGen):
             use_ratio=use_ratio,
             time_max = round(time_max, 2),
             merge_hours = DS_RD_SETTING.merge_hours,
-            hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(
-            hypothesis_candidates=hypothesis_candidates,
-            extra_exp_feedback_list_desc =extra_exp_feedback_list_desc
-            ),
+            extra_exp_feedback_list_desc =extra_exp_feedback_list_desc,
+            hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(),
         )
 
         user_prompt = T(".prompts_v2:hypothesis_select.user").r(
@@ -1275,7 +1273,8 @@ class DSProposalV2ExpGen(ExpGen):
             # Use LLM to select the best hypothesis
             if extra_exp_feedback_list is not None:
                 extra_exp_feedback_list_desc = "\n".join(f"{i+1}. {hypothesis}" for i, hypothesis in enumerate(extra_exp_feedback_list))
-
+            else:
+                extra_exp_feedback_list_desc = None
             response_dict = self.hypothesis_select_with_llm(
             scenario_desc=scenario_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
