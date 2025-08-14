@@ -8,5 +8,7 @@ def get_runtime_environment_by_env(env: Env) -> str:
     implementation = FBWorkspace()
     fname = "runtime_info.py"
     implementation.inject_files(**{fname: (Path(__file__).absolute().resolve().parent / "runtime_info.py").read_text()})
-    stdout = implementation.execute(env=env, entry=f"python {fname}")
+    stdout = implementation.execute(
+        env=env, entry=f"strace -e trace=file -f -o /dev/null python -m coverage run {fname}"
+    )
     return stdout
