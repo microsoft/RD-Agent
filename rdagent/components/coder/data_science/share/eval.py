@@ -91,6 +91,7 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
         if (implementation.workspace_path / "trace.log").exists():
             input_path = T("scenarios.data_science.share:scen.input_path").r()
             first_level_children = set()
+            # matching path in string like `openat(AT_FDCWD, "/home/user/project/main.py", O_RDONLY) = 5`
             path_regex = re.compile(r'openat\(.+?,\s*"([^"]+)"')
             log_content = (implementation.workspace_path / "trace.log").read_text()
 
