@@ -322,7 +322,12 @@ class ExpGen(ABC):
         # The proposal is set to try best to generate the experiment in max-parallel level.
         while True:
             if loop.get_unfinished_loop_cnt(loop.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
-                return self.gen(trace)
+                exp = self.gen(trace)
+
+                # Yield control to allow other coroutines (like coding) to start immediately
+                await asyncio.sleep(0)
+
+                return exp
             await asyncio.sleep(1)
 
 

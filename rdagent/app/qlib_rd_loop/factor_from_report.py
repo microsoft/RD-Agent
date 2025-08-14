@@ -128,6 +128,10 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
                 exp.sub_tasks = exp.sub_tasks[: FACTOR_FROM_REPORT_PROP_SETTING.max_factors_per_exp]
                 logger.log_object(exp.hypothesis, tag="hypothesis generation")
                 logger.log_object(exp.sub_tasks, tag="experiment generation")
+
+                # Yield control to allow other coroutines (like coding) to start immediately
+                await asyncio.sleep(0)
+
                 return exp
             await asyncio.sleep(1)
 

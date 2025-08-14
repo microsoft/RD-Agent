@@ -130,6 +130,11 @@ class ParallelMultiTraceExpGen(ExpGen):
                 )
                 exp.set_local_selection(local_selection)
                 exp.plan = ds_plan
+
+                # Yield control to allow other coroutines (like coding) to start immediately
+                # This enables true parallelism between exp_gen and coding phases
+                await asyncio.sleep(0)
+
                 return exp
 
             await asyncio.sleep(1)

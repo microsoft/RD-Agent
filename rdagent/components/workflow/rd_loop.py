@@ -58,6 +58,10 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
             if self.get_unfinished_loop_cnt(self.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
                 hypo = self._propose()
                 exp = self._exp_gen(hypo)
+
+                # Yield control to allow other coroutines (like coding) to start immediately
+                await asyncio.sleep(0)
+
                 return {"propose": hypo, "exp_gen": exp}
             await asyncio.sleep(1)
 

@@ -75,6 +75,10 @@ class QuantRDLoop(RDLoop):
                 else:
                     exp = self.model_hypothesis2experiment.convert(hypo, self.trace)
                 logger.log_object(exp.sub_tasks, tag="experiment generation")
+
+                # Yield control to allow other coroutines (like coding) to start immediately
+                await asyncio.sleep(0)
+
                 return {"propose": hypo, "exp_gen": exp}
             await asyncio.sleep(1)
 
