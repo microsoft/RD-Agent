@@ -32,6 +32,7 @@ from rdagent.log.utils import (
 )
 from rdagent.oai.backend.litellm import LITELLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.data_science.proposal.exp_gen.base import DSCombinedHypothesis
 
 # Import necessary classes for the response format
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import (
@@ -749,11 +750,20 @@ def summarize_win():
             df.loc[loop, "Component"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.component
             df.loc[loop, "Hypothesis"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.hypothesis
             df.loc[loop, "Reason"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.reason
-            df.at[loop, "Others"] = {
-                k: v
-                for k, v in loop_data["direct_exp_gen"]["no_tag"].hypothesis.__dict__.items()
-                if k not in ["component", "hypothesis", "reason"] and v is not None
-            }
+            # Convert DSHypothesis objects to serializable format
+            others_dict = {}
+            for k, v in loop_data["direct_exp_gen"]["no_tag"].hypothesis.__dict__.items():
+                if k not in ["component", "hypothesis", "reason"] and v is not None:
+                    # Handle DSHypothesis objects
+                    if k == "original_hypotheses" and hasattr(v, "__iter__"):
+                        # Convert list of DSHypothesis objects to string representation
+                        others_dict[k] = [str(item) if hasattr(item, "__dict__") else item for item in v]
+                    elif hasattr(v, "__dict__"):
+                        # Convert single DSHypothesis object to string
+                        others_dict[k] = str(v)
+                    else:
+                        others_dict[k] = v
+            df.at[loop, "Others"] = others_dict
             df.loc[loop, "COST($)"] = sum(tc.content["cost"] for tc in state.token_costs[loop])
 
             # Time Stats
