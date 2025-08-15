@@ -969,7 +969,9 @@ class DSProposalV2ExpGen(ExpGen):
         logits = alpha * sim_matrix + beta * torch.tanh(score_diff_matrix)
         probs = torch.softmax(logits, dim=1)
 
-        sampled_indices = torch.multinomial(probs, num_samples=2).squeeze(1)
+        num_candidates = probs.size(-1)
+        n_samples = min(2, num_candidates)
+        sampled_indices = torch.multinomial(probs, num_samples=n_samples).squeeze(1)
         sampled_history_list = [(history_list[i], history_scores[i]) for i in sampled_indices]
 
         return sampled_history_list

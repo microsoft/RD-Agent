@@ -400,6 +400,7 @@ hypothesis_select:
     {% if extra_exp_feedback_list_desc %}
     The following are additional hypotheses that have been approved by other experiments. 
     If any of these hypotheses have a score significantly higher than the current SOTA, you may want to prioritize considering them:  
+    Additional hypotheses:
     {{ extra_exp_feedback_list_desc }}
     {% endif %}
     {% else %}
@@ -407,7 +408,8 @@ hypothesis_select:
     {% if extra_exp_feedback_list_desc %}
     Current SOTA score is currently unavailable!
     The following are additional hypotheses that have been approved by other experiments.  
-    They can also serve as references and are part of the Hypothesis Source to help you quickly reach or surpass the current SOTA:  
+    You can also serve as references and are part of the Hypothesis Source to help you quickly reach or surpass the current SOTA:  
+    Additional hypotheses:
     {{ extra_exp_feedback_list_desc }}
     {% endif %}
 
@@ -439,7 +441,7 @@ hypothesis_select:
       3. **Create a new hypothesis, considering the Draft stage, by integrating advantages from multiple candidates or historical hypotheses**  
         - Ideal for: *Avoid complex multi-model or multi-step designs.*  
         - Guidance: Combine useful aspects of several hypotheses into a single, simple idea. Ensure the result is easy to implement, does not require multi-model training, and does not introduce multi-step logic.
-    {% elif use_ratio > 70 %}
+    {% elif use_ratio > 75 %}
     ### Stage = Ensemble
     - This stage focuses on maximizing overall performance by combining multiple models or hypotheses. The goal is to build a strong ensemble within the remaining time budget ({{ res_time }} hours, max {{ full_time }} hours). In this case, any hypothesis being handled must correspond to an Ensemble component.
     {%if res_time > merge_hours %}
