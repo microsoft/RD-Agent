@@ -203,6 +203,7 @@ hypothesis_gen:
       - Model
       - Workflow
     The goal is to make these components together form a complete code solution. Avoid generating complex ensemble solutions such as 5-fold CV or stacked models at this stage.
+    Special requirement for Hypothesis: It must be extremely simple, trivial, and easy to implement — something that could be tested quickly with minimal code changes.
     {% endif %}
 
     {% if inject_diverse %}
