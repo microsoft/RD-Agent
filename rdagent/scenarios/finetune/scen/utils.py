@@ -37,15 +37,16 @@ def extract_dataset_info(competition: str) -> Dict[str, Any]:
     return info
 
 
-def extract_model_info() -> Dict[str, Any]:
+def extract_model_info(base_model_name: str = None) -> Dict[str, Any]:
     """Extract model information from config and metadata."""
+    model_name = base_model_name or FT_RD_SETTING.base_model_name
     info = {
-        "name": FT_RD_SETTING.base_model_name or "Unknown",
+        "name": model_name or "Unknown",
         "description": "",
         "specs": "",
     }
 
-    if not FT_RD_SETTING.base_model_name:
+    if not model_name:
         return info
 
     # Find model path

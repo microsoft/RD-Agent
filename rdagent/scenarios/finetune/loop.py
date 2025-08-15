@@ -3,43 +3,32 @@ from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
 from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
-from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
 
 
 class FinetuneRDLoop(DataScienceRDLoop):
-    """A minimal RD loop tailored for LLM fine-tuning.
+    """Minimal LLM finetune loop for early-stage single-run development.
 
-    - Uses the LLM finetune scenario specified by PROP_SETTING.scen
-    - Focuses on Pipeline coder only
-    - Reuses DS runner and feedback
+    - Runs only once, no loop or history memory
+    - Only supports Pipeline tasks
+    - Trace, SOTA selection, and feedback are removed
     """
 
     def __init__(self, PROP_SETTING):
         logger.log_object(PROP_SETTING.task, tag="task")
 
+        # Basic scenario setup
         scen = import_class(PROP_SETTING.scen)()
         logger.log_object(PROP_SETTING.model_dump(), tag="RDLOOP_SETTINGS")
 
-        # exp generation
-        self.ckp_selector = import_class(PROP_SETTING.selector_name)()
-        self.sota_exp_selector = import_class(PROP_SETTING.sota_exp_selector_name)()
+        # Core components: experiment generator, coder, runner
         self.exp_gen = import_class(PROP_SETTING.hypothesis_gen)(scen)
-
-        # minimal coder set: only Pipeline
         self.pipeline_coder = PipelineCoSTEER(scen)
-
-        # runner & summarizer
         self.runner = DSCoSTEERRunner(scen)
-        self.summarizer = DSExperiment2Feedback(scen)
 
-        # trace
-        self.trace = DSTrace(scen=scen)
-
-        # initialize loop base
+        # Initialize loop base
         super(RDLoop, self).__init__()
 
     def coding(self, prev_out: dict):
@@ -63,4 +52,28 @@ class FinetuneRDLoop(DataScienceRDLoop):
             new_exp = self.runner.develop(exp)
             logger.log_object(new_exp)
             exp = new_exp
+        return exp
+
+    async def direct_exp_gen(self, prev_out: dict):
+        """Experiment generation - single run, no history dependency"""
+        exp = await self.exp_gen.async_gen(None, self)
+        logger.log_object(exp)
+        return exp
+
+    def feedback(self, prev_out: dict):
+        """Skip feedback phase, directly return simple success feedback"""
+        logger.info("Skipping feedback generation for single-run finetune")
+        # Directly pass the running result to the record phase
+        return prev_out.get("running")
+
+    def record(self, prev_out: dict):
+        """Simple record of experiment result"""
+        exp: DSExperiment = prev_out.get("feedback") or prev_out.get("running")
+
+        if exp:
+            logger.log_object(exp, tag="experiment_completed")
+            logger.info("Finetune experiment completed successfully")
+        else:
+            logger.info("Finetune experiment failed or not executed")
+
         return exp
