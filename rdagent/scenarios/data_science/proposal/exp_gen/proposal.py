@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 from pydantic import BaseModel, Field
+import torch
+from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
@@ -936,9 +938,45 @@ class DSProposalV2ExpGen(ExpGen):
         )
         return index_to_pick_pool_list[reproducible_int]
 
+    def cosine_similarity_matrix_torch(self, A, B):
+        dot_products = torch.matmul(A, B.T)
+        A_norms = torch.norm(A, dim=1, keepdim=True)
+        B_norms = torch.norm(B, dim=1, keepdim=True).T
+        return dot_products / (A_norms * B_norms)
+
+
+    def prob_dis(self, current_sota_score , history_scores, hypothesis_candidates, hypothesis_history, competition):
+        target_texts = [v["hypothesis"] for v in hypothesis_candidates.values()]
+        target_embs = torch.tensor(APIBackend().create_embedding(target_texts), dtype=torch.float32)
+
+        history_list = [line.split(". ", 1)[1] for line in hypothesis_history.split("\n") if ". " in line]
+        if not history_list:
+            return []
+        history_embs = torch.tensor(APIBackend().create_embedding(history_list), dtype=torch.float32)
+        sim_matrix = self.cosine_similarity_matrix_torch(target_embs, history_embs)
+        candidate_scores = [current_sota_score for i in range(len(target_texts) )]
+        candidate_scores = torch.tensor(candidate_scores, dtype=torch.float32).unsqueeze(1)
+        history_scores = torch.tensor(history_scores, dtype=torch.float32).unsqueeze(0)
+        bigger_is_better = get_metric_direction(competition)
+        if bigger_is_better:
+            score_diff_matrix = candidate_scores - history_scores
+        else:
+            score_diff_matrix = history_scores - candidate_scores
+        alpha, beta = 1.0, 1.0
+        if current_sota_score == -1:
+            alpha, beta = 1.0, 0
+
+        logits = alpha * sim_matrix + beta * torch.tanh(score_diff_matrix)
+        probs = torch.softmax(logits, dim=1)
+
+        sampled_indices = torch.multinomial(probs, num_samples=2).squeeze(1)
+        sampled_history_list = [(history_list[i], history_scores[i]) for i in sampled_indices]
+
+        return sampled_history_list
+        
 
     def hypothesis_select_with_llm(
-            self, scenario_desc: str, exp_feedback_list_desc: str,extra_exp_feedback_list_desc: str, sota_exp_desc: str, hypothesis_candidates: dict, trace: DSTrace
+            self, scenario_desc: str, exp_feedback_list_desc: str,extra_exp_feedback_list_desc: str, exp_feedback_scores: list, sota_exp_desc: str, hypothesis_candidates: dict, trace: DSTrace
         ):
         res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
 
@@ -951,8 +989,22 @@ class DSProposalV2ExpGen(ExpGen):
         time_list_success = [-3600] + [tr[0].running_info.running_time for tr in trace.retrieve_search_list(search_type="ancestors") if getattr(tr[1], "decision", False)
             ]        
         time_max = max(time_list_success) / 3600
-        
+        sota_flag = (hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None)
+
         hypothesis_candidates = str(json.dumps(hypothesis_candidates, indent=2))
+        if sota_flag:
+            current_sota_score = trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0].round(3)
+        else:
+            current_sota_score = -1
+        competition = trace.scen.competition
+
+        if extra_exp_feedback_list_desc and len(trace.hist) > 0 and exp_feedback_scores:
+            extra_exp_feedback_list_desc = self.prob_dis(current_sota_score, exp_feedback_scores, hypothesis_candidates,extra_exp_feedback_list_desc, competition)
+            extra_exp_feedback_list_str = "\n".join(f"{i+1}. {hypothesis} (score: {score:.3f})" 
+                                        for i, (hypothesis, score) in enumerate(extra_exp_feedback_list_desc))
+        else:
+            extra_exp_feedback_list_str = None
+
         sys_prompt = T(".prompts_v2:hypothesis_select.system").r(
             hypothesis_candidates=hypothesis_candidates,
             res_time=round(res_time.total_seconds()/3600, 2),
@@ -960,8 +1012,10 @@ class DSProposalV2ExpGen(ExpGen):
             use_ratio=use_ratio,
             time_max = round(time_max, 2),
             merge_hours = DS_RD_SETTING.merge_hours,
-            extra_exp_feedback_list_desc =extra_exp_feedback_list_desc,
+            extra_exp_feedback_list_desc =extra_exp_feedback_list_str,
             hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(),
+            sota_flag =sota_flag,
+            current_sota_score = current_sota_score
         )
 
         user_prompt = T(".prompts_v2:hypothesis_select.user").r(
@@ -1162,9 +1216,10 @@ class DSProposalV2ExpGen(ExpGen):
 
         if len(trace.hist) > 0:
             extra_exp_feedback_list = [tr[0].hypothesis for tr in trace.experiment_and_feedback_list_after_init(return_type="all",search_type="all") if getattr(tr[1], "decision", False)]
+            exp_feedback_scores = [tr[0].result.loc["ensemble"].iloc[0].round(3) for tr in trace.experiment_and_feedback_list_after_init(return_type="all",search_type="all") if getattr(tr[1], "decision", False)]
         else:
             extra_exp_feedback_list = None
-
+            exp_feedback_scores = None
         # NOTE: we currently don't support inject diverse problems for the parallel + multi-trace mode,
         if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
             if len(trace.current_selection) == 0:
@@ -1273,12 +1328,15 @@ class DSProposalV2ExpGen(ExpGen):
             # Use LLM to select the best hypothesis
             if extra_exp_feedback_list is not None:
                 extra_exp_feedback_list_desc = "\n".join(f"{i+1}. {hypothesis}" for i, hypothesis in enumerate(extra_exp_feedback_list))
+
             else:
                 extra_exp_feedback_list_desc = None
+
             response_dict = self.hypothesis_select_with_llm(
             scenario_desc=scenario_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
             extra_exp_feedback_list_desc = extra_exp_feedback_list_desc,
+            exp_feedback_scores = exp_feedback_scores,
             sota_exp_desc=sota_exp_desc,
             hypothesis_candidates=hypothesis_dict,
             trace = trace

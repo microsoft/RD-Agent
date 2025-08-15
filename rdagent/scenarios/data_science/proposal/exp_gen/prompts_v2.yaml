@@ -394,10 +394,25 @@ hypothesis_select:
     hypothesis_candidates are the hypotheses proposed in the current experiment. Please give them priority:
     {{hypothesis_candidates}}
 
+    {%if sota_flag %}
+    Current SOTA score: {{current_sota_score}}
+    
     {% if extra_exp_feedback_list_desc %}
-    The following are additional hypotheses that have been approved by other experiments. They can also serve as references and be considered part of the Hypothesis Source:
+    The following are additional hypotheses that have been approved by other experiments. 
+    If any of these hypotheses have a score significantly higher than the current SOTA, you may want to prioritize considering them:  
     {{ extra_exp_feedback_list_desc }}
     {% endif %}
+    {% else %}
+
+    {% if extra_exp_feedback_list_desc %}
+    Current SOTA score is currently unavailable!
+    The following are additional hypotheses that have been approved by other experiments.  
+    They can also serve as references and are part of the Hypothesis Source to help you quickly reach or surpass the current SOTA:  
+    {{ extra_exp_feedback_list_desc }}
+    {% endif %}
+
+    {%endif %}
+
 
     - The list `hypothesis_candidates` is for REFERENCE ONLY.
     - You may:
@@ -473,7 +488,7 @@ hypothesis_select:
         - Guidance: Make targeted changes that improve effectiveness or efficiency without turning it into multi-step solutions.
               Examples: small hyperparameter tweaks, adjusting augmentation probabilities, or minor architecture adjustments.
               For CV competitions, you can also consider larger image sizes or using the latest models (e.g., Swin Transformer, Vision Transformer (ViT), EfficientNetV2).
-              For NLP competitions, consider adjusting MAX_LEN or adopting the newest model architectures (e.g., DeBERTa, RoBERTa).
+              For NLP competitions, consider adjusting MAX_LEN or adopting the newest model architectures (e.g., DeBERTa v3-large/base, RoBERTa).
       3. **Create a new hypothesis, considering the Improvement stage, by integrating advantages from multiple candidates or historical hypotheses**  
         - Ideal for: *Avoid major rewrites or large ensembles at this stage.*  
         - Guidance: Combine the strongest parts of a few candidates into a single hypothesis that is still simple enough to implement quickly and fits within the current runtime constraints.
