@@ -97,16 +97,14 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
 
             opened_files = set()
             for line in log_content.splitlines():
-                if "openat" not in line or abs_input_path not in line:
+                if "openat" not in line or (abs_input_path not in line and input_path not in line):
                     continue
 
                 match = path_regex.search(line)
                 if match:
-                    full_path_str = match.group(1)
-                    if full_path_str.startswith(abs_input_path):
-                        opened_files.add(
-                            Path(data_source_path).resolve() / Path(full_path_str).relative_to(abs_input_path)
-                        )
+                    full_path = Path(match.group(1)).resolve()
+                    if str(full_path).startswith(abs_input_path):
+                        opened_files.add(Path(data_source_path).resolve() / full_path.relative_to(abs_input_path))
 
             from rdagent.scenarios.data_science.scen.utils import FileTreeGenerator
 
