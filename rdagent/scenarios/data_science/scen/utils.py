@@ -299,6 +299,7 @@ class FileTreeGenerator:
         max_lines: int = 200,
         priority_files: Set[str] = None,
         hide_base_name: bool = True,
+        allowed_paths: Set[Path] | None = None,
     ):
         """
         Initialize the file tree generator.
@@ -307,6 +308,7 @@ class FileTreeGenerator:
             max_lines: Maximum output lines to prevent overly long output
             priority_files: File extensions to prioritize for display
             hide_base_name: Hide the base name of the directory
+            allowed_paths: Set of allowed paths to include in the tree
 
         """
         self.max_lines = max_lines
@@ -314,14 +316,31 @@ class FileTreeGenerator:
         self.lines = []
         self.line_count = 0
         self.hide_base_name = hide_base_name
+        self.allowed_paths = allowed_paths
+        self._lookup_set: Set[Path] | None = None
 
-    def generate_tree(self, path: Union[str, Path], allowed_paths: Set[Path] | None = None) -> str:
+    def _build_lookup_set(self):
+        """
+        Build the lookup set for allowed paths.
+        """
+        if self.allowed_paths is None:
+            self._lookup_set = None
+            return
+
+        self._lookup_set = set()
+        for path in self.allowed_paths:
+            self._lookup_set.add(path)
+            for parent in path.parents:
+                if str(parent) == ".":
+                    continue
+                self._lookup_set.add(parent)
+
+    def generate_tree(self, path: Union[str, Path]) -> str:
         """
         Generate a tree structure of files in a directory.
 
         Args:
             path: Target directory path
-            allowed_paths: Set of allowed paths to include in the tree
 
         Returns:
             str: Tree structure representation
@@ -330,12 +349,13 @@ class FileTreeGenerator:
             FileTreeGenerationError: If tree generation fails
         """
         try:
+            self._build_lookup_set()
             path = Path(path)
             base_path = path.resolve()
             self.lines = []
             self.line_count = 0
             self._add_line(f"{'.' if self.hide_base_name else path.name}/")
-            self._process_directory(path, 0, "", base_path, allowed_paths)
+            self._process_directory(path, 0, "", base_path)
         except MaxLinesExceededError:
             pass  # Expected when hitting line limit
         except Exception as e:
@@ -401,9 +421,7 @@ class FileTreeGenerator:
         self.lines.append(text)
         self.line_count += 1
 
-    def _process_directory(
-        self, path: Path, depth: int, prefix: str, base_path: Path, allowed_paths: Set[Path] | None = None
-    ) -> None:
+    def _process_directory(self, path: Path, depth: int, prefix: str, base_path: Path) -> None:
         """
         Process a single directory.
 
@@ -412,6 +430,7 @@ class FileTreeGenerator:
             depth: Current depth in the tree
             prefix: Prefix for tree formatting
             base_path: Base path for symlink detection
+
 
         Raises:
             DirectoryPermissionError: If directory access is denied
@@ -423,8 +442,8 @@ class FileTreeGenerator:
             items = [p for p in path.iterdir() if not p.name.startswith(".") and p.name not in system_names]
 
             # Filter by allowed paths if provided
-            if allowed_paths is not None:
-                items = [p for p in items if p in allowed_paths]
+            if self._lookup_set is not None:
+                items = [p for p in items if p in self._lookup_set]
 
             dirs = sorted([p for p in items if p.is_dir()])
             files = sorted([p for p in items if p.is_file()])

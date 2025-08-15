@@ -103,14 +103,12 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
                 if match:
                     full_path_str = match.group(1)
                     if full_path_str.startswith(input_path):
-                        opened_files.add(Path(data_source_path) / Path(full_path_str).relative_to(input_path))
+                        opened_files.add(Path(data_source_path).resolve() / Path(full_path_str).relative_to(input_path))
 
             from rdagent.scenarios.data_science.scen.utils import FileTreeGenerator
 
-            tree_gen = FileTreeGenerator()
-            opened_trace_lines = tree_gen.generate_tree(
-                Path(data_source_path).resolve(), allowed_paths=opened_files
-            )  # pass opened files filter
+            tree_gen = FileTreeGenerator(allowed_paths=opened_files)  # pass opened files filter
+            opened_trace_lines = tree_gen.generate_tree(Path(data_source_path).resolve())
             # Limitation: training and test are expected to be different files.
 
         # this will assert the generation of necessary files
