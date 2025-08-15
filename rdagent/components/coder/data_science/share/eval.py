@@ -108,8 +108,6 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
             from rdagent.scenarios.data_science.scen.utils import FileTreeGenerator
 
             tree_gen = FileTreeGenerator()
-            print(f"opened_trace_lines: {list(opened_files)[:5]}")
-            print(f"data_source_path: {Path(data_source_path).resolve()}")
             opened_trace_lines = tree_gen.generate_tree(
                 Path(data_source_path).resolve(), allowed_paths=opened_files
             )  # pass opened files filter
