@@ -299,6 +299,7 @@ class FileTreeGenerator:
         max_lines: int = 200,
         priority_files: Set[str] = None,
         hide_base_name: bool = True,
+        allowed_paths: Set[Path] | None = None,
     ):
         """
         Initialize the file tree generator.
@@ -306,12 +307,33 @@ class FileTreeGenerator:
         Args:
             max_lines: Maximum output lines to prevent overly long output
             priority_files: File extensions to prioritize for display
+            hide_base_name: Hide the base name of the directory
+            allowed_paths: Set of allowed paths to include in the tree
+
         """
         self.max_lines = max_lines
         self.priority_files = priority_files or {".csv", ".json", ".parquet", ".md", ".txt"}
         self.lines = []
         self.line_count = 0
         self.hide_base_name = hide_base_name
+        self.allowed_paths = allowed_paths
+        self._lookup_set: Set[Path] | None = None
+
+    def _build_lookup_set(self):
+        """
+        Build the lookup set for allowed paths.
+        """
+        if self.allowed_paths is None:
+            self._lookup_set = None
+            return
+
+        self._lookup_set = set()
+        for path in self.allowed_paths:
+            self._lookup_set.add(path)
+            for parent in path.parents:
+                if str(parent) == ".":
+                    continue
+                self._lookup_set.add(parent)
 
     def generate_tree(self, path: Union[str, Path]) -> str:
         """
@@ -327,6 +349,7 @@ class FileTreeGenerator:
             FileTreeGenerationError: If tree generation fails
         """
         try:
+            self._build_lookup_set()
             path = Path(path)
             base_path = path.resolve()
             self.lines = []
@@ -408,6 +431,7 @@ class FileTreeGenerator:
             prefix: Prefix for tree formatting
             base_path: Base path for symlink detection
 
+
         Raises:
             DirectoryPermissionError: If directory access is denied
             FileTreeGenerationError: If processing fails
@@ -416,6 +440,11 @@ class FileTreeGenerator:
         try:
             # Get directory contents, filter out system files
             items = [p for p in path.iterdir() if not p.name.startswith(".") and p.name not in system_names]
+
+            # Filter by allowed paths if provided
+            if self._lookup_set is not None:
+                items = [p for p in items if p in self._lookup_set]
+
             dirs = sorted([p for p in items if p.is_dir()])
             files = sorted([p for p in items if p.is_file()])
 
