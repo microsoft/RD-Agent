@@ -299,7 +299,6 @@ class FileTreeGenerator:
         max_lines: int = 200,
         priority_files: Set[str] = None,
         hide_base_name: bool = True,
-        allowed_paths: Set[Path] = None,
     ):
         """
         Initialize the file tree generator.
@@ -307,20 +306,22 @@ class FileTreeGenerator:
         Args:
             max_lines: Maximum output lines to prevent overly long output
             priority_files: File extensions to prioritize for display
+            hide_base_name: Hide the base name of the directory
+
         """
         self.max_lines = max_lines
         self.priority_files = priority_files or {".csv", ".json", ".parquet", ".md", ".txt"}
         self.lines = []
         self.line_count = 0
         self.hide_base_name = hide_base_name
-        self.allowed_paths = allowed_paths if allowed_paths else None
 
-    def generate_tree(self, path: Union[str, Path]) -> str:
+    def generate_tree(self, path: Union[str, Path], allowed_paths: Set[Path] | None = None) -> str:
         """
         Generate a tree structure of files in a directory.
 
         Args:
             path: Target directory path
+            allowed_paths: Set of allowed paths to include in the tree
 
         Returns:
             str: Tree structure representation
@@ -334,7 +335,7 @@ class FileTreeGenerator:
             self.lines = []
             self.line_count = 0
             self._add_line(f"{'.' if self.hide_base_name else path.name}/")
-            self._process_directory(path, 0, "", base_path)
+            self._process_directory(path, 0, "", base_path, allowed_paths)
         except MaxLinesExceededError:
             pass  # Expected when hitting line limit
         except Exception as e:
@@ -400,7 +401,9 @@ class FileTreeGenerator:
         self.lines.append(text)
         self.line_count += 1
 
-    def _process_directory(self, path: Path, depth: int, prefix: str, base_path: Path) -> None:
+    def _process_directory(
+        self, path: Path, depth: int, prefix: str, base_path: Path, allowed_paths: Set[Path] | None = None
+    ) -> None:
         """
         Process a single directory.
 
@@ -420,8 +423,8 @@ class FileTreeGenerator:
             items = [p for p in path.iterdir() if not p.name.startswith(".") and p.name not in system_names]
 
             # Filter by allowed paths if provided
-            if self.allowed_paths is not None:
-                items = [p for p in items if p in self.allowed_paths]
+            if allowed_paths is not None:
+                items = [p for p in items if p in allowed_paths]
 
             dirs = sorted([p for p in items if p.is_dir()])
             files = sorted([p for p in items if p.is_file()])

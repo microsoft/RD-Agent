@@ -90,7 +90,6 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
         opened_trace_lines = None
         if (implementation.workspace_path / "trace.log").exists():
             input_path = T("scenarios.data_science.share:scen.input_path").r()
-            first_level_children = set()
             # matching path in string like `openat(AT_FDCWD, "/home/user/project/main.py", O_RDONLY) = 5`
             path_regex = re.compile(r'openat\(.+?,\s*"([^"]+)"')
             log_content = (implementation.workspace_path / "trace.log").read_text()
@@ -104,15 +103,16 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
                 if match:
                     full_path_str = match.group(1)
                     if full_path_str.startswith(input_path):
-                        opened_files.add(Path(full_path_str).resolve())
+                        opened_files.add(Path(data_source_path) / Path(full_path_str).relative_to(input_path))
 
             from rdagent.scenarios.data_science.scen.utils import FileTreeGenerator
 
-            tree_gen = FileTreeGenerator(
-                max_lines=200, hide_base_name=True, allowed_paths=list(opened_files)  # pass opened files filter
-            )
-
-            opened_trace_lines = tree_gen.generate_tree(Path(input_path).resolve())
+            tree_gen = FileTreeGenerator()
+            print(f"opened_trace_lines: {list(opened_files)[:5]}")
+            print(f"data_source_path: {Path(data_source_path).resolve()}")
+            opened_trace_lines = tree_gen.generate_tree(
+                Path(data_source_path).resolve(), allowed_paths=opened_files
+            )  # pass opened files filter
             # Limitation: training and test are expected to be different files.
 
         # this will assert the generation of necessary files
