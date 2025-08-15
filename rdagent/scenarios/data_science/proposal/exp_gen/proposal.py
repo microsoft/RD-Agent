@@ -972,7 +972,7 @@ class DSProposalV2ExpGen(ExpGen):
         num_candidates = probs.size(-1)
         n_samples = min(2, num_candidates)
         sampled_indices = torch.multinomial(probs, num_samples=n_samples).squeeze(1)
-        sampled_history_list = [(history_list[i], history_scores[i]) for i in sampled_indices]
+        sampled_history_list = [(history_list[i], history_scores[0, i]) for i in sampled_indices]
 
         return sampled_history_list
         
@@ -1001,7 +1001,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         if extra_exp_feedback_list_desc and len(trace.hist) > 0 and exp_feedback_scores:
             extra_exp_feedback_list_desc = self.prob_dis(current_sota_score, exp_feedback_scores, hypothesis_candidates,extra_exp_feedback_list_desc, competition)
-            extra_exp_feedback_list_str = "\n".join(f"{i+1}. {hypothesis} (score: {score:.3f})" 
+            extra_exp_feedback_list_str = "\n".join(f"{i+1}. {hypothesis} (score: {score.item():.3f})" 
                                         for i, (hypothesis, score) in enumerate(extra_exp_feedback_list_desc))
         else:
             extra_exp_feedback_list_str = None
