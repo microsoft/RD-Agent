@@ -482,7 +482,7 @@ class APIBackend(ABC):
                 elif hasattr(e, "message") and embedding and "maximum context length" in e.message:
                     # Use simple gradual truncation
                     try:
-                        from rdagent.oai.embedding_utils import (
+                        from rdagent.oai.utils.embedding import (
                             get_embedding_max_length,
                             smart_text_truncate,
                         )
