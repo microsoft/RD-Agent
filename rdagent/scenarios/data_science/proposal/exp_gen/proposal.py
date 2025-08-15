@@ -991,7 +991,6 @@ class DSProposalV2ExpGen(ExpGen):
         time_max = max(time_list_success) / 3600
         sota_flag = (hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None)
 
-        hypothesis_candidates = str(json.dumps(hypothesis_candidates, indent=2))
         if sota_flag:
             current_sota_score = trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0].round(3)
         else:
@@ -1004,6 +1003,7 @@ class DSProposalV2ExpGen(ExpGen):
                                         for i, (hypothesis, score) in enumerate(extra_exp_feedback_list_desc))
         else:
             extra_exp_feedback_list_str = None
+        hypothesis_candidates = str(json.dumps(hypothesis_candidates, indent=2))
 
         sys_prompt = T(".prompts_v2:hypothesis_select.system").r(
             hypothesis_candidates=hypothesis_candidates,
