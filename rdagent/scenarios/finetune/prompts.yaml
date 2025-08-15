@@ -14,10 +14,6 @@ scenario_description: |-
   - Implement robust training loops with validation
   - Save the fine-tuned model for future use
 
-  ====== Evaluation ======
-  {% if metric_name %}The primary evaluation metric for this task is: **{{ metric_name }}**.{% endif %}
-  This metric is considered better when it is **{% if metric_direction %}larger{% else %}smaller{% endif %}**.
-
   {% if time_limit is not none %}
   ====== Time Limit On Full Code Execution ======
   Your full code's execution is limited to **{{ time_limit }}**. Please optimize your training strategy accordingly.
@@ -37,10 +33,6 @@ finetune_background: |-
 
   **Model**: {{ base_model_name }}
 
-  **Expected Output Channels**: {{ model_output_channel }}
-
-  **Evaluation**: {{ metric_description }}
-
 dataset_description_template:
   system: |-
     You are a data science assistant that extracts structured information from an LLM fine-tuning dataset.
@@ -50,11 +42,7 @@ dataset_description_template:
       "Task Type": "The type of fine-tuning task, e.g., 'Question Answering', 'Text Classification', 'Summarization', 'Translation', 'Code Generation'",
       "Data Type": "The type of data used for fine-tuning, e.g., 'Text (Natural Language)', 'Dialogue', 'Code'",
       "Brief Description": "A concise summary of the dataset and objective",
-      "Dataset Description": "Describe the dataset based on the processed data folder structure. Only include files/folders that actually exist in the processed data folder description.",
-      "Channels per Sample": "An integer indicating output dimensionality per example (1 for single value/classification logit, N for N-class probabilities; use 1 if not applicable)",
-      "Evaluation Metric Description": "A precise explanation of the validation metric used during finetuning (e.g., accuracy on a held-out set); if unknown, provide a reasonable default",
-      "Metric Name": "The metric name, e.g., 'Accuracy'",
-      "Metric Direction": true
+      "Dataset Description": "Describe the dataset based on the processed data folder structure. Only include files/folders that actually exist in the processed data folder description."
     }
   user: |-
     Dataset Raw Description:

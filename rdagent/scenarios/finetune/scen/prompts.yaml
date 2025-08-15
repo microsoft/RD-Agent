@@ -14,19 +14,43 @@ scenario_description: |-
   - Implement robust training loops with validation
   - Save the fine-tuned model for future use
 
-  ====== Evaluation ======
-  {% if metric_name %}The primary evaluation metric for this task is: **{{ metric_name }}**.{% endif %}
-  This metric is considered better when it is **{% if metric_direction %}larger{% else %}smaller{% endif %}**.
-
   {% if time_limit is not none %}
   ====== Time Limit On Full Code Execution ======
   Your full code's execution is limited to **{{ time_limit }}**. Please optimize your training strategy accordingly.
   {% endif %}
 
 finetune_background: |-
-  ## LLM Fine-tuning Specialist
-  You are a world-class machine learning engineer and fine-tuning expert specializing in large language models.
-  Your expertise includes parameter-efficient fine-tuning methods, model optimization, and performance maximization.
+  ## LLaMA Factory Fine-tuning Expert
+  You are an elite machine learning engineer specializing in LLaMA Factory, the comprehensive LLM fine-tuning framework.
+  You have deep expertise in leveraging LLaMA Factory's powerful capabilities for optimal model fine-tuning.
+
+  ### LLaMA Factory Expertise:
+  - **Training Methods**: SFT (Supervised Fine-tuning), RLHF, DPO (Direct Preference Optimization), KTO, SimPO
+  - **Fine-tuning Techniques**: Full Fine-tuning, LoRA, QLoRA, DoRA, AdaLoRA, LongLoRA, LLaMA-Pro
+  - **Model Support**: LLaMA, Qwen, Baichuan, ChatGLM, Yi, Mistral, Gemma, and 100+ models
+  - **Advanced Features**: Multi-modal training, Agent tuning, Chain-of-Thought fine-tuning
+
+  ### Technical Mastery:
+  - **Data Processing**: Alpaca, ShareGPT, Multi-turn conversation, Tool calling formats
+  - **Quantization**: Int4/Int8 quantization, GPTQ, AWQ, GGUF export
+  - **Distributed Training**: DeepSpeed ZeRO, FSDP, multi-GPU optimization
+  - **Memory Optimization**: Gradient checkpointing, flash attention, sequence packing
+  - **Model Operations**: Model merging, adapter export, checkpoint resume
+
+
+  ### LLaMA Factory Workflow:
+  1. **Data Preparation**: Format datasets according to LLaMA Factory standards
+  2. **Configuration**: Set up training arguments via YAML or CLI
+  3. **Training**: Launch training with optimal hyperparameters
+  4. **Monitoring**: Track training progress
+  5. **Testing**: Test model performance on validation sets
+  6. **Export**: Convert and merge models for deployment
+
+  ### Platform Integration:
+  - **Web UI**: Intuitive interface for non-technical users
+  - **API Mode**: Programmatic access for advanced users
+  - **Cloud Support**: Integration with various cloud platforms
+  - **MLOps**: Wandb logging, experiment tracking, model versioning
 
   **Task Type**: {{ task_type }}
   **Data Type**: {{ data_type }}
@@ -35,16 +59,17 @@ finetune_background: |-
 
   **Dataset**: {{ dataset_description }}
 
-  **Model**: {{ base_model_name }}
+  **Base Model**: {{ base_model_name }}
 
-  **Expected Output Channels**: {{ model_output_channel }}
 
-  **Evaluation**: {{ metric_description }}
+
+  ---
+  **Framework**: Using LLaMA Factory for efficient and scalable fine-tuning
 
 task_description: |-
-  # LLM Fine-tuning Task
+  # LLaMA Factory Fine-tuning Task
 
-  Fine-tune model `{{ model_name }}` using dataset `{{ dataset_name }}`.
+  Fine-tune model `{{ model_name }}` using dataset `{{ dataset_name }}` with LLaMA Factory framework.
 
   ## Dataset Information
   {% if dataset_description %}
@@ -74,9 +99,30 @@ task_description: |-
   {{ model_description }}
   {% endif %}
 
-  ## Fine-tuning Objective
-  Adapt the base model to perform better on the specific task defined by the dataset.
-  The fine-tuning process should properly load the model, process the data, and optimize performance.
+  ## LLaMA Factory Implementation Guide
+
+  ### 1. Data Preparation
+  - Convert dataset to LLaMA Factory format (Alpaca/ShareGPT/MS-Agent)
+  - Create dataset configuration YAML with proper template mapping
+  - Validate data quality and format consistency
+
+  ### 2. Training Configuration
+  - Configure training arguments: learning rate, batch size, epochs
+  - Select fine-tuning method: SFT, LoRA, QLoRA, DPO, or Full Fine-tuning
+  - Set up quantization options (4-bit/8-bit) for memory efficiency
+  - Configure model-specific parameters and adapter settings
+
+  ### 3. Training Execution
+  - Use LLaMA Factory CLI: `llamafactory-cli train config.yaml`
+  - Monitor training progress with built-in logging
+  - Implement multi-GPU training if resources available
+  - Set up checkpoint saving and resume capabilities
+
+  ### 4. Model Export & Deployment
+  - Merge LoRA adapters if using PEFT methods
+  - Export to various formats (GGUF, AWQ, GPTQ) for deployment
+  - Test model inference with LLaMA Factory's chat interface
+  - Validate model performance on test datasets
 
 data_folder_description: |-
   # Fine-tuning Data Structure
@@ -101,11 +147,8 @@ dataset_description_template:
       "Task Type": "The type of fine-tuning task, e.g., 'Question Answering', 'Text Classification', 'Summarization', 'Translation', 'Code Generation'",
       "Data Type": "The type of data used for fine-tuning, e.g., 'Text (Natural Language)', 'Dialogue', 'Code'",
       "Brief Description": "A concise summary of the dataset and objective",
-      "Dataset Description": "Describe the dataset based on the processed data folder structure. Only include files/folders that actually exist in the processed data folder description.",
-      "Channels per Sample": "An integer indicating output dimensionality per example (1 for single value/classification logit, N for N-class probabilities; use 1 if not applicable)",
-      "Evaluation Metric Description": "A precise explanation of the validation metric used during finetuning (e.g., accuracy on a held-out set); if unknown, provide a reasonable default",
-      "Metric Name": "The metric name, e.g., 'Accuracy'",
-      "Metric Direction": true
+      "Dataset Description": "Describe the dataset based on the processed data folder structure. Only include files/folders that actually exist in the processed data folder description."
+
     }
   user: |-
     Dataset Raw Description:

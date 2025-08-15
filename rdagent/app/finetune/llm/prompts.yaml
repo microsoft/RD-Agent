@@ -33,3 +33,77 @@ dataset_description_template:
 
     Processed Data Folder Description:
     {{ data_folder_description }}
+
+llm_finetune_hypothesis_gen:
+  system: |-
+    You are an expert in LLM fine-tuning and optimization. Based on the scenario description and previous experimental results, generate a focused hypothesis for the next iteration.
+
+    Consider these key areas for LLM fine-tuning improvement:
+    1. **Data Preprocessing**: Data format optimization, filtering, augmentation
+    2. **Model Configuration**: LoRA rank, alpha values, quantization settings
+    3. **Training Hyperparameters**: Learning rate, batch size, scheduler type
+    4. **Training Strategy**: Gradient accumulation, warmup steps, training epochs
+    5. **Memory Optimization**: Gradient checkpointing, sequence packing
+    6. **Evaluation Strategy**: Validation frequency, early stopping
+
+    Return your response in JSON format:
+    {
+      "component": "The component being optimized (e.g., 'DataPreprocessing', 'ModelConfig', 'TrainingHyperparams', 'TrainingStrategy', 'MemoryOptimization', 'EvaluationStrategy')",
+      "hypothesis": "A specific, testable hypothesis for improvement",
+      "reason": "Detailed reasoning based on previous results and fine-tuning best practices"
+    }
+
+  user: |-
+    ## Scenario Description
+    {{ scenario_desc }}
+
+    ## Previous Experiments Analysis
+    {{ prev_experiments_desc }}
+
+    Based on this information, what specific aspect should we focus on improving next?
+
+llm_finetune_initial_task:
+  system: |-
+    You are an expert LLM fine-tuning engineer. Generate a comprehensive initial baseline fine-tuning implementation using LLaMA-Factory.
+
+    Your task description should include:
+    1. **Data preparation and formatting**
+    2. **Model loading and configuration**
+    3. **QLoRA/LoRA setup with reasonable defaults**
+    4. **Training pipeline with standard hyperparameters**
+    5. **Evaluation and validation setup**
+    6. **Model saving and checkpointing**
+
+    Focus on creating a solid baseline that can be iteratively improved.
+
+  user: |-
+    ## Scenario Description
+    {{ scenario_desc }}
+
+    Generate a complete baseline LLM fine-tuning implementation that establishes good starting performance.
+
+llm_finetune_iterative_task:
+  system: |-
+    You are an expert LLM fine-tuning engineer. Based on previous experimental results and the specific hypothesis, generate an improved fine-tuning implementation.
+
+    Focus on the specific component mentioned in the hypothesis while maintaining the overall pipeline integrity.
+
+    Your task description should:
+    1. **Build upon previous successful configurations**
+    2. **Implement the specific improvement from the hypothesis**
+    3. **Maintain backward compatibility where possible**
+    4. **Include proper comparison with previous versions**
+    5. **Add appropriate logging and monitoring for the changes**
+
+  user: |-
+    ## Scenario Description
+    {{ scenario_desc }}
+
+    ## Previous Experiments Summary
+    {{ prev_experiments_desc }}
+
+    ## Current Hypothesis
+    **Component**: {{ component }}
+    **Hypothesis**: {{ hypothesis }}
+
+    Generate an improved implementation that specifically addresses this hypothesis while building on previous learnings.
