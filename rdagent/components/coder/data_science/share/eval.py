@@ -90,20 +90,23 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
         opened_trace_lines = None
         if (implementation.workspace_path / "trace.log").exists():
             input_path = T("scenarios.data_science.share:scen.input_path").r()
+            abs_input_path = str(Path(input_path).resolve())
             # matching path in string like `openat(AT_FDCWD, "/home/user/project/main.py", O_RDONLY) = 5`
             path_regex = re.compile(r'openat\(.+?,\s*"([^"]+)"')
             log_content = (implementation.workspace_path / "trace.log").read_text()
 
             opened_files = set()
             for line in log_content.splitlines():
-                if "openat" not in line or input_path not in line:
+                if "openat" not in line or abs_input_path not in line:
                     continue
 
                 match = path_regex.search(line)
                 if match:
                     full_path_str = match.group(1)
-                    if full_path_str.startswith(input_path):
-                        opened_files.add(Path(data_source_path).resolve() / Path(full_path_str).relative_to(input_path))
+                    if full_path_str.startswith(abs_input_path):
+                        opened_files.add(
+                            Path(data_source_path).resolve() / Path(full_path_str).relative_to(abs_input_path)
+                        )
 
             from rdagent.scenarios.data_science.scen.utils import FileTreeGenerator
 
