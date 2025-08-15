@@ -480,9 +480,34 @@ class APIBackend(ABC):
                 ):
                     kwargs["add_json_in_prompt"] = True
                 elif hasattr(e, "message") and embedding and "maximum context length" in e.message:
-                    kwargs["input_content_list"] = [
-                        content[: len(content) // 2] for content in kwargs.get("input_content_list", [])
-                    ]
+                    # Use simple gradual truncation
+                    try:
+                        from rdagent.oai.embedding_utils import (
+                            get_embedding_max_length,
+                            smart_text_truncate,
+                        )
+
+                        # Get the model name from kwargs or use a default
+                        model_name = kwargs.get("model", "text-embedding-3-small")
+                        max_tokens = get_embedding_max_length(model_name)
+
+                        # Apply gradual truncation to each content item
+                        new_content_list = []
+                        for content in kwargs.get("input_content_list", []):
+                            truncated_content = smart_text_truncate(content, max_tokens)
+                            new_content_list.append(truncated_content)
+
+                        kwargs["input_content_list"] = new_content_list
+                        logger.info(
+                            f"Applied gradual truncation to {len(new_content_list)} content items using max_tokens={max_tokens}"
+                        )
+
+                    except ImportError:
+                        # Fallback to simple halving if embedding_utils is not available
+                        logger.warning("Embedding utils not available, falling back to simple halving")
+                        kwargs["input_content_list"] = [
+                            content[: len(content) // 2] for content in kwargs.get("input_content_list", [])
+                        ]
                 else:
                     RD_Agent_TIMER_wrapper.api_fail_count += 1
                     RD_Agent_TIMER_wrapper.latest_api_fail_time = datetime.now(pytz.timezone("Asia/Shanghai"))
