@@ -38,17 +38,113 @@ class DSHypothesis(Hypothesis):
             return f"No hypothesis available. Trying to construct the first runnable {self.component} component."
 
         lines = []
+
+        # Problem section - split name and description for clarity
         if self.problem_name is not None:
             lines.append(f"Target Problem Name: {self.problem_name}")
-        if self.problem_desc is not None:
-            lines.append(f"Target Problem: {self.problem_desc}")
+            if self.problem_desc is not None:
+                lines.append(f"Target Problem Description: {self.problem_desc}")
+            lines.append("")  # Empty line for separation
+
+        # Component
         lines.append(f"Chosen Component: {self.component}")
-        lines.append(f"Hypothesis: {self.hypothesis}")
+        lines.append("")
+
+        # Hypothesis
+        lines.append(f"Experiment Hypothesis: {self.hypothesis}")
+        lines.append("")
+
+        # Reasoning
         if self.reason is not None:
             lines.append(f"Reason: {self.reason}")
+            lines.append("")
+
+        # Additional info
         if hasattr(self, "appendix") and self.appendix is not None:  # FIXME: compatibility with old traces
             lines.append(f"Appendix: {self.appendix}")
-        return "\n".join(lines)
+
+        return "\n".join(lines).rstrip()
+
+
+class DSCombinedHypothesis(DSHypothesis):
+    """
+    A combined hypothesis that merges multiple individual hypotheses.
+    This preserves information when multiple hypotheses are generated but only one can be used.
+    """
+
+    def __init__(self, hypothesis_list: list[DSHypothesis]) -> None:
+        if not hypothesis_list:
+            raise ValueError("hypothesis_list cannot be empty")
+
+        # Merge multiple hypotheses into combined strings
+        combined_hypothesis = "\n\n".join(
+            [f"Approach {i+1}: {h.hypothesis}" for i, h in enumerate(hypothesis_list) if h.hypothesis]
+        )
+
+        combined_reason = "\n\n".join(
+            [f"Approach {i+1} Reason: {h.reason}" for i, h in enumerate(hypothesis_list) if h.reason]
+        )
+
+        combined_problem_name = " | ".join([h.problem_name for h in hypothesis_list if h.problem_name])
+
+        combined_problem_desc = "\n\n".join(
+            [f"{h.problem_name}: {h.problem_desc}" for h in hypothesis_list if h.problem_desc]
+        )
+
+        # For no-sota case, force to use Workflow component
+        main_component = "Workflow"
+
+        super().__init__(
+            component=main_component,
+            hypothesis=combined_hypothesis,
+            reason=combined_reason,
+            problem_name=combined_problem_name,
+            problem_desc=combined_problem_desc,
+            problem_label=hypothesis_list[0].problem_label,
+            appendix="\n\n".join([h.appendix for h in hypothesis_list if h.appendix]) or None,
+        )
+
+        # Store original hypotheses for potential future use
+        self.original_hypotheses = hypothesis_list
+
+    def __str__(self) -> str:
+        lines = [f"Combined Hypothesis ({len(self.original_hypotheses)} approaches for {self.component} component)"]
+        lines.append("")
+
+        # Problems section - using new PROBLEMS label style
+        if self.original_hypotheses and any(h.problem_name and h.problem_desc for h in self.original_hypotheses):
+            lines.append("Target Problems and Descriptions:")
+            for h in self.original_hypotheses:
+                if h.problem_name and h.problem_desc:
+                    lines.append(f"• {h.problem_name}: {h.problem_desc}")
+            lines.append("")
+
+        # Component - matching DSHypothesis style
+        lines.append(f"Chosen Component: {self.component}")
+        lines.append("")
+
+        # Proposed solutions - renamed from "Hypothesis" for clarity
+        if any(h.hypothesis for h in self.original_hypotheses):
+            lines.append("Experiment Hypotheses:")
+            for i, h in enumerate(self.original_hypotheses, 1):
+                if h.hypothesis:
+                    lines.append(f"{i}. {h.hypothesis}")
+            lines.append("")
+
+        # Reasoning - matching DSHypothesis style
+        if any(h.reason for h in self.original_hypotheses):
+            lines.append("Reason:")
+            for i, h in enumerate(self.original_hypotheses, 1):
+                if h.reason:
+                    lines.append(f"{i}. {h.reason}")
+            lines.append("")
+
+        # Additional info - matching DSHypothesis style
+        appendix_items = [h.appendix for h in self.original_hypotheses if h.appendix]
+        if appendix_items:
+            lines.append(f"Appendix: {'; '.join(appendix_items)}")
+
+        return "\n".join(lines).rstrip()
 
 
 class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
