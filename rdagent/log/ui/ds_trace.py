@@ -697,9 +697,9 @@ def summarize_win():
             for loop_id in state.llm_data.keys():
                 if "direct_exp_gen" not in state.llm_data[loop_id]:
                     continue
-                if "scenarios.data_science.proposal.exp_gen.merge:trace" in [
-                    i["obj"]["uri"] for i in state.llm_data[loop_id]["direct_exp_gen"]["no_tag"] if "uri" in i["obj"]
-                ]:
+                if "scenarios.data_science.proposal.exp_gen.merge" in "".join(
+                    [i["obj"]["uri"] for i in state.llm_data[loop_id]["direct_exp_gen"]["no_tag"] if "uri" in i["obj"]]
+                ):
                     merge_loops.append(loop_id)
             st.pyplot(trace_figure(final_trace, merge_loops))
 

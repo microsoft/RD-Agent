@@ -13,7 +13,7 @@ from rdagent.core.scenario import Scenario
 from rdagent.log.utils import dict_get_with_warning
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
 from rdagent.utils import convert2bool
 from rdagent.utils.agent.tpl import T

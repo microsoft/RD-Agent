@@ -114,6 +114,10 @@ def all_summarize_win():
     if not summary:
         return
 
+    valid_rate = float(base_df["Valid Improve"].mean())
+    test_rate = float(base_df["Test Improve"].mean())
+    submit_merge_rate = float(base_df["Submit Merge"].mean())
+    merge_sota_avg = float(base_df["Merge Sota"].mean())
     base_df = percent_df(base_df)
     base_df.insert(0, "Select", True)
     bt1, bt2 = st.columns(2)
@@ -171,6 +175,7 @@ def all_summarize_win():
         st.dataframe(stat_df.round(2))
         markdown_table = f"""
 | xxx | {stat_df.iloc[0,1]:.1f} | {stat_df.iloc[1,1]:.1f} | {stat_df.iloc[2,1]:.1f} | {stat_df.iloc[3,1]:.1f} | {stat_df.iloc[4,1]:.1f} | {stat_df.iloc[5,1]:.1f} | {stat_df.iloc[6,1]:.1f}   |
+| Valid Improve {valid_rate * 100:.2f}% | Test Improve {test_rate * 100:.2f}% | Submit Merge {submit_merge_rate * 100:.2f}% | Merge Sota {merge_sota_avg * 100:.2f}% |
 """
         st.text(markdown_table)
     with stat_win_right:

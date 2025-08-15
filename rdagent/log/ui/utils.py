@@ -140,6 +140,24 @@ def _log_path_hash_func(log_path: Path) -> str:
     return md5_hash(hash_str)
 
 
+def map_stat(sota_mle_score: dict | None) -> str:
+    sota_exp_stat = None
+    if sota_mle_score:  # sota exp's grade output
+        if sota_mle_score["gold_medal"]:
+            sota_exp_stat = "gold"
+        elif sota_mle_score["silver_medal"]:
+            sota_exp_stat = "silver"
+        elif sota_mle_score["bronze_medal"]:
+            sota_exp_stat = "bronze"
+        elif sota_mle_score["above_median"]:
+            sota_exp_stat = "above_median"
+        elif sota_mle_score["valid_submission"]:
+            sota_exp_stat = "valid_submission"
+        elif sota_mle_score["submission_exists"]:
+            sota_exp_stat = "made_submission"
+    return sota_exp_stat
+
+
 def _get_sota_exp_stat_hash_func(log_path: Path, to_submit: bool = True) -> str:
     return _log_path_hash_func(log_path) + str(to_submit)
 
@@ -214,21 +232,114 @@ def get_sota_exp_stat(
         # sota exp is not tested yet
         return sota_exp, sota_loop_id, None, None
 
-    sota_exp_stat = None
-    if sota_mle_score:  # sota exp's grade output
-        if sota_mle_score["gold_medal"]:
-            sota_exp_stat = "gold"
-        elif sota_mle_score["silver_medal"]:
-            sota_exp_stat = "silver"
-        elif sota_mle_score["bronze_medal"]:
-            sota_exp_stat = "bronze"
-        elif sota_mle_score["above_median"]:
-            sota_exp_stat = "above_median"
-        elif sota_mle_score["valid_submission"]:
-            sota_exp_stat = "valid_submission"
-        elif sota_mle_score["submission_exists"]:
-            sota_exp_stat = "made_submission"
-    return sota_exp, sota_loop_id, sota_mle_score, sota_exp_stat
+    return sota_exp, sota_loop_id, sota_mle_score, map_stat(sota_mle_score)
+
+
+def _get_score_stat_hash_func(log_path: Path, sota_loop_id: int) -> str:
+    return _log_path_hash_func(log_path) + str(sota_loop_id)
+
+
+@cache_with_pickle(_get_score_stat_hash_func, force=True)
+def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, bool]:
+    """
+    Get the scores before and after merge period.
+
+    Parameters
+    ----------
+    log_path : Path
+        Path to the experiment log directory.
+    sota_loop_id : int
+        The loop ID of the SOTA experiment to check for merge status.
+
+    Returns
+    -------
+    tuple[float | None, float | None]
+        A tuple containing:
+        - valid_improve : bool
+            True if valid score is improved during merge period.
+        - test_improve : bool
+            True if test score is improved during merge period.
+        - submit_is_merge : bool
+            True if the sota loop is a merge loop.
+        - merge_sota_rate : float | None
+            The merge sota rate.
+    """
+    valid_before_merge = []
+    test_before_merge = []
+    valid_after_merge = []
+    test_after_merge = []
+    all_report = []
+    submit_is_merge = False
+    best_is_merge = False
+    is_lower_better = False
+    valid_improve = False
+    test_improve = False
+    best_score = None
+    best_stat = None
+    total_merge_loops = 0
+    log_storage = FileStorage(log_path)
+    all_trace = list(log_storage.iter_msg(tag="trace"))
+    final_trace = all_trace[-1].content
+
+    for loop_index, (exp, fb) in enumerate(final_trace.hist):
+        if hasattr(final_trace, "idx2loop_id"):
+            loop_id = final_trace.idx2loop_id[loop_index]
+        else:
+            loop_id = int(re.search(r"\d+", all_trace[loop_index].tag).group())
+
+        is_merge = False
+        direct_exp_gen = log_storage.iter_msg(pattern=f"Loop_{loop_id}/direct_exp_gen/debug_tpl/*/*.pkl")
+        for tr in direct_exp_gen:
+            uri = tr.content.get("uri") if isinstance(tr.content, dict) else getattr(tr.content, "uri", None)
+            if isinstance(uri, str) and "scenarios.data_science.proposal.exp_gen.merge" in uri:
+                is_merge = True
+                total_merge_loops += 1
+                if sota_loop_id == loop_id:
+                    submit_is_merge = True
+                break
+        if not fb.decision:
+            continue
+
+        try:
+            mle_score = extract_json(
+                [i.content for i in log_storage.iter_msg(tag=f"Loop_{loop_id}.running.mle_score")][0]
+            )
+        except Exception:
+            continue
+
+        if not mle_score:
+            continue
+
+        is_lower_better = mle_score.get("is_lower_better", False)
+        valid_score = pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
+        all_report.append((valid_score, mle_score))
+
+        if is_merge:
+            valid_after_merge.append(valid_score)
+            test_after_merge.append(mle_score["score"])
+        else:
+            valid_before_merge.append(valid_score)
+            test_before_merge.append(mle_score["score"])
+
+    if all_report:
+        all_report.sort(key=lambda x: x[0])
+        best_score_dict = all_report[0][1] if is_lower_better else all_report[-1][1]
+        best_stat = map_stat(best_score_dict)
+        best_score = best_score_dict["score"]
+
+    if is_lower_better:
+        if valid_after_merge:
+            valid_improve = not valid_before_merge or min(valid_after_merge) < min(valid_before_merge)
+        if test_after_merge:
+            test_improve = not test_before_merge or min(test_after_merge) < min(test_before_merge)
+    else:
+        if valid_after_merge:
+            valid_improve = not valid_before_merge or max(valid_after_merge) > max(valid_before_merge)
+        if test_after_merge:
+            test_improve = not test_before_merge or max(test_after_merge) > max(test_before_merge)
+
+    merge_sota_rate = 0 if not total_merge_loops else len(test_after_merge) / total_merge_loops
+    return best_score, best_stat, valid_improve, test_improve, submit_is_merge, merge_sota_rate
 
 
 @cache_with_pickle(_log_path_hash_func, force=True)
@@ -361,12 +472,17 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             v["running_time"] = str(running_time).split(".")[0]
 
             # overwrite sota_exp_stat in summary.pkl because it may not be correct in multi-trace
-            _, _, sota_report, v["sota_exp_stat"] = get_sota_exp_stat(Path(lf) / k, to_submit=False)
-            v["sota_exp_score"] = sota_report["score"] if sota_report else None
-
             sota_exp_submit, v["sota_loop_id_new"], sota_submit_report, v["sota_exp_stat_new"] = get_sota_exp_stat(
                 Path(lf) / k, to_submit=True
             )
+            (
+                v["sota_exp_score"],
+                v["sota_exp_stat"],
+                v["valid_improve"],
+                v["test_improve"],
+                v["submit_is_merge"],
+                v["merge_sota_rate"],
+            ) = get_score_stat(Path(lf) / k, v["sota_loop_id_new"])
             if sota_exp_submit is not None:
                 try:
                     sota_submit_result = sota_exp_submit.result
@@ -477,7 +593,10 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
 
             base_df.loc[k, "SOTA Exp"] = v.get("sota_exp_stat", None)
             base_df.loc[k, "SOTA Exp Score"] = v.get("sota_exp_score", None)
-
+            base_df.loc[k, "Valid Improve"] = v.get("valid_improve", None)
+            base_df.loc[k, "Test Improve"] = v.get("test_improve", None)
+            base_df.loc[k, "Submit Merge"] = v.get("submit_is_merge", None)
+            base_df.loc[k, "Merge Sota"] = v.get("merge_sota_rate", None)
             base_df.loc[k, "SOTA Exp (to_submit)"] = v["sota_exp_stat_new"]
             base_df.loc[k, "SOTA Exp Score (to_submit)"] = v.get("sota_exp_score_new", None)
             base_df.loc[k, "SOTA LID (to_submit)"] = v.get("sota_loop_id_new", None)
@@ -521,6 +640,10 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             "Silver Threshold": float,
             "Gold Threshold": float,
             "Medium Threshold": float,
+            "Valid Improve": bool,
+            "Test Improve": bool,
+            "Submit Merge": bool,
+            "Merge Sota": float,
         }
     )
     return summary, base_df
