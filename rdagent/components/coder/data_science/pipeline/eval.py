@@ -1,7 +1,9 @@
 # tess successfully running.
 # (GPT) if it aligns with the spec & rationality of the spec.
-import json
+import asyncio
+import concurrent.futures
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
@@ -18,14 +20,104 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
 from rdagent.components.coder.data_science.share.notebook import NotebookConverter
 from rdagent.components.coder.data_science.utils import remove_eda_part
+from rdagent.components.mcp import query_context7
 from rdagent.core.experiment import FBWorkspace, Task
+from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.test_eval import get_test_eval
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
-PipelineSingleFeedback = CoSTEERSingleFeedback
+
+@dataclass
+class DSCoderFeedback(CoSTEERSingleFeedback):
+    """
+    Feedback for Data Science CoSTEER evaluation.
+    This feedback is used to evaluate the code and execution of the Data Science CoSTEER task.
+    """
+
+    requires_documentation_search: bool | None = None
+    error_message: str | None = None
+
+    @staticmethod
+    def val_and_update_init_dict(data: dict) -> dict:
+        # First call parent class validation method to handle base fields
+        data = CoSTEERSingleFeedback.val_and_update_init_dict(data)
+
+        # Validate new fields
+        if "requires_documentation_search" in data:
+            if isinstance(data["requires_documentation_search"], str):
+                if data["requires_documentation_search"] == "false" or data["requires_documentation_search"] == "False":
+                    data["requires_documentation_search"] = False
+                elif data["requires_documentation_search"] == "true" or data["requires_documentation_search"] == "True":
+                    data["requires_documentation_search"] = True
+                else:
+                    raise ValueError(
+                        f"'requires_documentation_search' string value must be 'true', 'True', 'false', or 'False', not '{data['requires_documentation_search']}'"
+                    )
+            elif data["requires_documentation_search"] is not None and not isinstance(
+                data["requires_documentation_search"], bool
+            ):
+                raise ValueError(
+                    f"'requires_documentation_search' must be a boolean, string, or None, not {type(data['requires_documentation_search'])}"
+                )
+
+        if "error_message" in data:
+            if data["error_message"] is not None and not isinstance(data["error_message"], str):
+                raise ValueError(f"'error_message' must be a string or None, not {type(data['error_message'])}")
+
+        return data
+
+    def __str__(self) -> str:
+        base_str = super().__str__()
+
+        if self.requires_documentation_search is not None:
+            base_str += f"-------------------Documentation Search Required------------------\n{self.requires_documentation_search}\n"
+
+        if self.error_message is not None:
+            # Check if error_message contains Context7 documentation results
+            if "### API Documentation Reference:" in self.error_message:
+                base_str += f"-------------------Error Analysis & Documentation Search Results ------------------\n{self.error_message}\n"
+            else:
+                base_str += f"-------------------Error Message------------------\n{self.error_message}\n"
+
+        return base_str
+
+    @classmethod
+    def merge(cls, feedback_li: list[CoSTEERSingleFeedback]) -> "DSCoderFeedback":
+        # Call parent class merge method to handle base fields
+        merged_fb = super().merge(feedback_li)
+
+        # Convert to DSCoderFeedback type if needed
+        if not isinstance(merged_fb, DSCoderFeedback):
+            merged_fb = DSCoderFeedback(
+                execution=merged_fb.execution,
+                return_checking=merged_fb.return_checking,
+                code=merged_fb.code,
+                final_decision=merged_fb.final_decision,
+            )
+
+        # Merge error_message fields
+        error_messages = [
+            fb.error_message for fb in feedback_li if isinstance(fb, DSCoderFeedback) and fb.error_message is not None
+        ]
+        if error_messages:
+            merged_fb.error_message = "\n\n".join(error_messages)
+
+        # Merge requires_documentation_search fields (True if any is True)
+        requires_search = [
+            fb.requires_documentation_search
+            for fb in feedback_li
+            if isinstance(fb, DSCoderFeedback) and fb.requires_documentation_search is not None
+        ]
+        if requires_search:
+            merged_fb.requires_documentation_search = any(requires_search)
+
+        return merged_fb
+
+
+PipelineSingleFeedback = DSCoderFeedback
 PipelineMultiFeedback = CoSTEERMultiFeedback
 
 
@@ -51,6 +143,8 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 execution="This task has failed too many times, skip implementation.",
                 return_checking="This task has failed too many times, skip implementation.",
                 code="This task has failed too many times, skip implementation.",
+                error_message="This task has failed too many times, skip implementation.",
+                requires_documentation_search=False,
                 final_decision=False,
             )
 
@@ -176,6 +270,9 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         else:
             eda_output = implementation.file_dict.get("EDA.md", None)
 
+        # extract enable_context7 from setting
+        enable_context7 = DS_RD_SETTING.enable_context7
+
         queried_similar_successful_knowledge = (
             queried_knowledge.task_to_similar_task_successful_knowledge[target_task.get_task_information()]
             if queried_knowledge is not None
@@ -185,6 +282,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         system_prompt = T(".prompts:pipeline_eval.system").r(
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             debug_mode=DS_RD_SETTING.sample_data_by_LLM,
+            enable_context7=enable_context7,
             mle_check=DS_RD_SETTING.sample_data_by_LLM,
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
         )
@@ -204,6 +302,35 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             user_prompt=user_prompt,
             init_kwargs_update_func=PipelineSingleFeedback.val_and_update_init_dict,
         )
+
+        if enable_context7 and wfb.requires_documentation_search is True:
+            try:
+
+                def run_context7_sync():
+                    """Run Context7 query in a new event loop"""
+                    # Create new event loop to avoid conflicts with existing loop
+                    new_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    try:
+                        return new_loop.run_until_complete(
+                            query_context7(error_message=wfb.error_message, full_code=implementation.all_codes)
+                        )
+                    finally:
+                        new_loop.close()
+
+                # Execute in thread pool to avoid event loop conflicts
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(run_context7_sync)
+                    context7_result = future.result(timeout=120)  # 120s timeout, sufficient time for retry mechanism
+
+                if context7_result:
+                    logger.info("Context7: Documentation search completed successfully")
+                    wfb.error_message += f"\n\n### API Documentation Reference:\nThe following API documentation was retrieved based on the error. This provides factual information about API changes or parameter specifications only:\n\n{context7_result}"
+                else:
+                    logger.warning("Context7: Documentation search failed or no results found")
+            except Exception as e:
+                logger.error(f"Context7: Query failed - {str(e)}")
+
         if score_ret_code != 0 and wfb.final_decision is True:
             wfb.final_decision = False
             wfb.return_checking += "\n" + score_check_text
