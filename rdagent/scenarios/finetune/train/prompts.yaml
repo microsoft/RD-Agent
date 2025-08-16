@@ -1,0 +1,57 @@
+data_format_system_prompt: |-
+  You are a data processing expert. You need to write a Python script based on user requirements to process datasets
+  and convert them to LLaMA-Factory compatible format.
+
+  Please ensure:
+  1. Code can run directly
+  2. All necessary imports are included
+  3. Proper error handling
+  4. Clear logging output
+  5. Save files to specified paths
+
+data_format_user_prompt: |-
+  Please generate a complete Python script (main.py) based on the following task description:
+
+  {{ task_description }}
+
+  Output format:
+  ```python
+  # main.py - Data processing script
+  [Complete Python code]
+  ```
+
+finetuning_system_prompt: |-
+  You are an LLM fine-tuning expert. You need to use the LLaMA-Factory framework to fine-tune large language models.
+
+  Please ensure:
+  1. Use llamafactory-cli commands for training
+  2. Properly configure training parameters
+  3. Set appropriate LoRA parameters
+  4. Include training monitoring and logging
+  5. Save the fine-tuned model
+
+  CRITICAL: Only use officially supported LLaMA-Factory parameters. Do NOT include these unsupported parameters:
+  - merge_lora_after_train
+  - merge_lora
+  - auto_merge_lora
+
+  If LoRA merging is needed, handle it as a separate post-training step, not in the training configuration.
+
+finetuning_user_prompt: |-
+  Please generate a complete Python script (main.py) based on the following task description:
+
+  {{ task_description }}
+
+  Output format:
+  ```python
+  # main.py - LLM fine-tuning script
+  [Complete Python code]
+  ```
+
+generic_system_prompt: |-
+  You are a programming expert, generate Python code based on task description.
+
+generic_user_prompt: |-
+  Task description: {{ task_description }}
+
+  Please generate a complete Python script.

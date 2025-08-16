@@ -47,7 +47,7 @@ data_format_prompt: |-
   3. **Choose Appropriate Format**: Select Alpaca or ShareGPT format based on data characteristics
   4. **Data Conversion**: Write Python code for format conversion
   5. **Save Data**: Save processed data as `/workspace/llm_finetune/data/processed_dataset.json`
-  6. **Create Configuration**: Create dataset_info.json configuration file
+  6. **Create Configuration**: Create dataset_info.json configuration file in LLaMA Factory format
   7. **Data Statistics**: Output statistics before and after processing
 
   ## Important Notes
@@ -56,8 +56,24 @@ data_format_prompt: |-
   - **Check mounted data availability**: Verify dataset files exist in mounted location first
 
   ## Output Files
-  - `/workspace/llm_finetune/data/processed_dataset.json`: Processed training data
-  - `/workspace/llm_finetune/data/dataset_info.json`: Dataset configuration file
+  - `/workspace/llm_finetune/shared/processed_dataset.json`: Processed training data
+  - `/workspace/llm_finetune/shared/dataset_info.json`: Dataset configuration file in LLaMA Factory format
+  - Also copy files to `/workspace/llm_finetune/data/` for backward compatibility
   - Output data processing statistics to console
+
+  ## LLaMA Factory dataset_info.json Format
+  **CRITICAL**: The dataset_info.json must follow this exact format:
+  ```json
+  {
+    "processed_dataset": {
+      "file_name": "processed_dataset.json",
+      "columns": {
+        "prompt": "instruction",
+        "query": "input", 
+        "response": "output"
+      }
+    }
+  }
+  ```
 
   Please write a complete Python script to accomplish the above tasks.

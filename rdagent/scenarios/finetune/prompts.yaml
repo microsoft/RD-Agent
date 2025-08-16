@@ -14,10 +14,12 @@ finetuning_prompt: |-
 
   ## Available Resources
   - Raw dataset: `/workspace/llm_finetune/data/raw/{{ dataset }}/` (mounted from host)
-  - Processed dataset: `/workspace/llm_finetune/data/processed_dataset.json`
-  - Dataset configuration: `/workspace/llm_finetune/data/dataset_info.json`
+  - Processed dataset: `/workspace/llm_finetune/shared/processed_dataset.json` (from data processing step)
+  - Dataset configuration: `/workspace/llm_finetune/shared/dataset_info.json` (from data processing step)  
   - Base model: `{{ model }}`
   - Output directory: `/workspace/llm_finetune/output/`
+
+  **IMPORTANT**: Copy dataset files to `/workspace/llm_finetune/data/` before training to ensure LLaMA Factory can find them.
 
   ## Fine-tuning Configuration Suggestions
 
@@ -42,11 +44,15 @@ finetuning_prompt: |-
   ## Task Requirements
 
   1. **Environment Check**: Verify LLaMA-Factory installation and GPU availability
-  2. **Parameter Configuration**: Set appropriate training parameters
-  3. **Start Training**: Use llamafactory-cli for fine-tuning
-  4. **Monitor Training**: Output training progress and metrics
-  5. **Save Model**: Ensure fine-tuned model is properly saved
-  6. **Test Inference**: Simple test of the fine-tuned model
+     - **CRITICAL**: LLaMA-Factory is pre-installed in the Docker environment. DO NOT install it via pip.
+     - The correct command is `llamafactory-cli`, NOT `llama-factory-cli`
+     - Simply check if the command exists using `llamafactory-cli --help`
+  2. **Data Setup**: Copy shared dataset files to expected locations
+  3. **Parameter Configuration**: Set appropriate training parameters  
+  4. **Start Training**: Use llamafactory-cli for fine-tuning
+  5. **Monitor Training**: Output training progress and metrics
+  6. **Save Model**: Ensure fine-tuned model is properly saved
+  7. **Test Inference**: Simple test of the fine-tuned model
 
   ## Output Requirements
   - Fine-tuned model saved in `/workspace/llm_finetune/output/`
@@ -111,6 +117,7 @@ llamafactory_guide: |-
 
   ### dataset
   dataset: processed_dataset
+  dataset_dir: /workspace/llm_finetune/data
   template: default
   cutoff_len: 2048
 
