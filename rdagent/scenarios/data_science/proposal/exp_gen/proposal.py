@@ -949,7 +949,9 @@ class DSProposalV2ExpGen(ExpGen):
         target_texts = [v["hypothesis"] for v in hypothesis_candidates.values()]
         target_embs = torch.tensor(APIBackend().create_embedding(target_texts), dtype=torch.float32)
 
-        history_list = [line.split(". ", 1)[1] for line in hypothesis_history.split("\n") if ". " in line]
+        #history_list = [line.split(". ", 1)[1] for line in hypothesis_history.split("\n") if ". " in line]
+        history_list = [line.strip() for line in hypothesis_history.split("\n") if line.strip().startswith("Hypothesis:")]
+        
         if not history_list:
             return []
         history_embs = torch.tensor(APIBackend().create_embedding(history_list), dtype=torch.float32)
