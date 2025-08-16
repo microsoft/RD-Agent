@@ -972,7 +972,10 @@ class DSProposalV2ExpGen(ExpGen):
         num_candidates = probs.size(-1)
         n_samples = min(2, num_candidates)
         sampled_indices = torch.multinomial(probs, num_samples=n_samples).squeeze(1)
-        sampled_history_list = [(history_list[i], history_scores[0, i]) for i in sampled_indices]
+        flat_indices = sampled_indices.flatten().unique().tolist()
+        if len(flat_indices) > 3:
+            flat_indices = flat_indices[:3]
+        sampled_history_list = [(history_list[i], history_scores[0, i]) for i in flat_indices]
 
         return sampled_history_list
         
