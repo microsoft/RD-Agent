@@ -3,6 +3,7 @@ Code generator specifically designed for LLM fine-tuning tasks
 """
 
 import json
+import re
 from typing import Any, Dict, List
 
 from rdagent.components.coder.data_science.pipeline import PipelineCoSTEER
@@ -13,13 +14,16 @@ from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.finetune.tasks import DataFormatTask, FineTuningTask
 from rdagent.utils.agent.tpl import T
 
+from .utils import create_parameter_validator
+
 
 class LLMPipelineCoSTEER(PipelineCoSTEER):
     """LLM fine-tuning specific code generator for data processing and fine-tuning tasks"""
 
     def __init__(self, scen: Scenario):
         super().__init__(scen)
-        logger.info("Initialized LLM Pipeline CoSTEER")
+        self.parameter_validator = create_parameter_validator()
+        logger.info("Initialized LLM Pipeline CoSTEER with parameter validator")
 
     def develop(self, exp: DSExperiment) -> DSExperiment:
         """Develop LLM fine-tuning experiment"""
@@ -55,30 +59,9 @@ class LLMPipelineCoSTEER(PipelineCoSTEER):
         """Generate data format conversion code"""
         logger.info("Generating data format conversion code")
 
-        # Use LLM to generate data processing code
-        system_prompt = """
-        You are a data processing expert. You need to write a Python script based on user requirements to process datasets
-        and convert them to LLaMA-Factory compatible format.
-        
-        Please ensure:
-        1. Code can run directly
-        2. All necessary imports are included
-        3. Proper error handling
-        4. Clear logging output
-        5. Save files to specified paths
-        """
-
-        user_prompt = f"""
-        Please generate a complete Python script (main.py) based on the following task description:
-        
-        {task.description}
-        
-        Output format:
-        ```python
-        # main.py - Data processing script
-        [Complete Python code]
-        ```
-        """
+        # Generate prompts from templates
+        system_prompt = T("scenarios.finetune.train.prompts:data_format_system_prompt").r()
+        user_prompt = T("scenarios.finetune.train.prompts:data_format_user_prompt").r(task_description=task.description)
 
         # Call LLM to generate code
         response = self._call_llm(system_prompt, user_prompt)
@@ -94,43 +77,20 @@ class LLMPipelineCoSTEER(PipelineCoSTEER):
         """Generate fine-tuning code"""
         logger.info("Generating fine-tuning code")
 
-        system_prompt = """
-        You are an LLM fine-tuning expert. You need to use the LLaMA-Factory framework to fine-tune large language models.
-        
-        Please ensure:
-        1. Use llamafactory-cli commands for training
-        2. Properly configure training parameters
-        3. Set appropriate LoRA parameters
-        4. Include training monitoring and logging
-        5. Save the fine-tuned model
-        
-        CRITICAL: Only use officially supported LLaMA-Factory parameters. Do NOT include these unsupported parameters:
-        - merge_lora_after_train
-        - merge_lora
-        - auto_merge_lora
-        
-        If LoRA merging is needed, handle it as a separate post-training step, not in the training configuration.
-        """
-
-        user_prompt = f"""
-        Please generate a complete Python script (main.py) based on the following task description:
-        
-        {task.description}
-        
-        Output format:
-        ```python
-        # main.py - LLM fine-tuning script
-        [Complete Python code]
-        ```
-        """
+        # Generate prompts from templates
+        system_prompt = T("scenarios.finetune.train.prompts:finetuning_system_prompt").r()
+        user_prompt = T("scenarios.finetune.train.prompts:finetuning_user_prompt").r(task_description=task.description)
 
         # Call LLM to generate code
         response = self._call_llm(system_prompt, user_prompt)
         code = self._extract_code_from_response(response)
 
+        # Validate and filter LLaMA Factory parameters in the generated code
+        validated_code = self._validate_llamafactory_config_in_code(code)
+
         # Create workspace
         workspace = FBWorkspace()
-        workspace.inject_files(**{"main.py": code})
+        workspace.inject_files(**{"main.py": validated_code})
 
         return workspace
 
@@ -138,8 +98,9 @@ class LLMPipelineCoSTEER(PipelineCoSTEER):
         """Generate generic code"""
         logger.info("Generating generic code")
 
-        system_prompt = "You are a programming expert, generate Python code based on task description."
-        user_prompt = f"Task description: {task.description}\n\nPlease generate a complete Python script."
+        # Generate prompts from templates
+        system_prompt = T("scenarios.finetune.train.prompts:generic_system_prompt").r()
+        user_prompt = T("scenarios.finetune.train.prompts:generic_user_prompt").r(task_description=task.description)
 
         response = self._call_llm(system_prompt, user_prompt)
         code = self._extract_code_from_response(response)
@@ -166,7 +127,6 @@ class LLMPipelineCoSTEER(PipelineCoSTEER):
     def _extract_code_from_response(self, response: str) -> str:
         """Extract code from LLM response"""
         # Find code blocks
-        import re
 
         # Find ```python...``` format code blocks
         pattern = r"```python\s*\n(.*?)\n```"
@@ -185,6 +145,62 @@ class LLMPipelineCoSTEER(PipelineCoSTEER):
         # If no code block found, return entire response
         logger.warning("No code block found in LLM response")
         return response.strip()
+
+    def _validate_llamafactory_config_in_code(self, code: str) -> str:
+        """Validate and filter LLaMA Factory configuration in the generated code."""
+        try:
+            import yaml
+
+            # Find YAML configurations in the code
+            yaml_patterns = [
+                # Direct YAML content in multi-line strings
+                r'"""([^"]*(?:model_name_or_path|dataset|lora_rank)[^"]*)"""',
+                r"'''([^']*(?:model_name_or_path|dataset|lora_rank)[^']*)'''",
+                # YAML configurations in variables or file writes
+                r'config\s*=\s*[\'"]([^\'"]*(?:model_name_or_path|dataset|lora_rank)[^\'"]*)[\'"]',
+                # YAML content being written to files
+                r'\.write\([\'"]([^\'"]*(?:model_name_or_path|dataset|lora_rank)[^\'"]*)[\'"]',
+                # YAML dump or save operations
+                r"yaml\.(?:dump|safe_dump)\s*\(\s*([^)]*)",
+            ]
+
+            modified_code = code
+            config_validated = False
+
+            for pattern in yaml_patterns:
+                matches = re.finditer(pattern, code, re.DOTALL | re.IGNORECASE)
+                for match in matches:
+                    try:
+                        yaml_content = match.group(1)
+                        # Try to parse as YAML
+                        config_dict = yaml.safe_load(yaml_content)
+                        if isinstance(config_dict, dict):
+                            # Validate using parameter validator
+                            validated_config = self.parameter_validator.validate_config_dict(config_dict)
+                            if validated_config != config_dict:
+                                logger.info("LLaMA Factory configuration validated and filtered")
+                                validated_yaml = yaml.dump(
+                                    validated_config,
+                                    default_flow_style=False,
+                                    sort_keys=False,
+                                )
+                                modified_code = modified_code.replace(yaml_content, validated_yaml)
+                                config_validated = True
+                    except yaml.YAMLError:
+                        # Not valid YAML, continue
+                        continue
+                    except Exception as e:
+                        logger.warning(f"Error validating YAML config: {e}")
+                        continue
+
+            if config_validated:
+                logger.info("Applied LLaMA Factory parameter validation to generated code")
+
+            return modified_code
+
+        except Exception as e:
+            logger.error(f"Error validating LLaMA Factory config in code: {e}")
+            return code
 
     def _get_fallback_code(self) -> str:
         """Get fallback code"""
