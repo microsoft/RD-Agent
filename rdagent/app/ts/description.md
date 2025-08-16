@@ -16,8 +16,6 @@ Here is the list of available instruments:
 ## Requirements
 - When working with time series data, always split your data based on time. The validation set must only contain data from later dates than the training set, and the test set must come after the validation set. This prevents data leakage and ensures fair model evaluation.
 - Make sure your validation data covers a period of more than **12 months** (the validation evaluation in scores.csv should also cover the same length!). This helps ensure that your evaluation of the prediction is reliable and robust. We only need a very short period of test time, e.g., 3 months. Please leave most of the data for training and validation.
-- When measuring performance using correlation, apply a rolling mean to smooth out results, as shifts in label distribution can make raw correlations appear stronger than they are.  
-  - For example: `val_corr = val_pred_s.rolling(window=200).corr(val_target_s).mean()`
 - Always print out key details about your dataset, including:
   - The instruments you used
   - The points in time used to split the data
