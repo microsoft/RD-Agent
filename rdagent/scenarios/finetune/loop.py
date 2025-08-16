@@ -7,6 +7,14 @@ from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 
+# Import LLM-specific components
+try:
+    from rdagent.app.finetune.llm.runner import LLMFinetuneRunner
+
+    LLM_RUNNER_AVAILABLE = True
+except ImportError:
+    LLM_RUNNER_AVAILABLE = False
+
 
 class FinetuneRDLoop(DataScienceRDLoop):
     """Minimal LLM finetune loop for early-stage single-run development.
@@ -26,7 +34,14 @@ class FinetuneRDLoop(DataScienceRDLoop):
         # Core components: experiment generator, coder, runner
         self.exp_gen = import_class(PROP_SETTING.hypothesis_gen)(scen)
         self.pipeline_coder = PipelineCoSTEER(scen)
-        self.runner = DSCoSTEERRunner(scen)
+
+        # Use LLM-specific runner if available, otherwise fallback to DS runner
+        if LLM_RUNNER_AVAILABLE:
+            self.runner = LLMFinetuneRunner(scen, use_pipeline_evaluator=True)
+            logger.info("Using LLM-specific runner with Docker environment")
+        else:
+            self.runner = DSCoSTEERRunner(scen)
+            logger.warning("LLM runner not available, using DS runner as fallback")
 
         # Initialize loop base
         super(RDLoop, self).__init__()
