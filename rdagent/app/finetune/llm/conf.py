@@ -9,8 +9,8 @@ from rdagent.scenarios.finetune.utils import prev_model_dirname
 from rdagent.utils.env import (
     CondaConf,
     DockerEnv,
-    DSDockerConf,
     Env,
+    LLMDockerConf,
     LocalEnv,
 )
 
@@ -75,9 +75,9 @@ def get_ft_env(
     """
     conf = DSCoderCoSTEERSettings()
 
-    # TODO: add a dedicated llm docker and conda env
+    # Use dedicated LLM docker and conda env
     if conf.env_type == "docker":
-        env = DockerEnv(conf=DSDockerConf())
+        env = DockerEnv(conf=LLMDockerConf())
     elif conf.env_type == "conda":
         # Use a dedicated llm conda env name
         env = LocalEnv(conf=CondaConf(conda_env_name="llm_finetune"))

@@ -174,7 +174,10 @@ class Env(Generic[ASpecificEnvConf]):
         with zipfile.ZipFile(zip_file_path, "w") as z:
             for root, _, files in os.walk(folder_path):
                 for file in files:
-                    z.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), folder_path))
+                    z.write(
+                        os.path.join(root, file),
+                        os.path.relpath(os.path.join(root, file), folder_path),
+                    )
 
     def unzip_a_file_into_a_folder(self, zip_file_path: str, folder_path: str) -> None:
         """
@@ -195,7 +198,11 @@ class Env(Generic[ASpecificEnvConf]):
         """
 
     def check_output(
-        self, entry: str | None = None, local_path: str = ".", env: dict | None = None, **kwargs: dict
+        self,
+        entry: str | None = None,
+        local_path: str = ".",
+        env: dict | None = None,
+        **kwargs: dict,
     ) -> str:
         """
         Run the folder under the environment.
@@ -306,9 +313,10 @@ class Env(Generic[ASpecificEnvConf]):
             for name in [
                 _get_path_stem(T("scenarios.data_science.share:scen.cache_path").r()),
                 _get_path_stem(T("scenarios.data_science.share:scen.input_path").r()),
+                "data",  # Skip data directory (contains read-only raw data)
             ]:
-                find_cmd += f" ! -name {name}"
-            chmod_cmd = f"{find_cmd} -exec chmod -R 777 {{}} +"
+                chmod_cmd += f" ! -name {name}"
+            chmod_cmd += ")"
             return chmod_cmd
 
         if self.conf.running_timeout_period is None:
@@ -521,7 +529,12 @@ class LocalEnv(Env[ASpecificLocalConf]):
             # Setup environment
             if env is None:
                 env = {}
-            path = [*self.conf.bin_path.split(":"), "/bin/", "/usr/bin/", *env.get("PATH", "").split(":")]
+            path = [
+                *self.conf.bin_path.split(":"),
+                "/bin/",
+                "/usr/bin/",
+                *env.get("PATH", "").split(":"),
+            ]
             env["PATH"] = ":".join(path)
 
             if entry is None:
@@ -706,7 +719,10 @@ class QlibDockerConf(DockerConf):
     mount_path: str = "/workspace/qlib_workspace/"
     default_entry: str = "qrun conf.yaml"
     extra_volumes: dict = {
-        str(Path("~/.qlib/").expanduser().resolve().absolute()): {"bind": "/root/.qlib/", "mode": "rw"}
+        str(Path("~/.qlib/").expanduser().resolve().absolute()): {
+            "bind": "/root/.qlib/",
+            "mode": "rw",
+        }
     }
     shm_size: str | None = "16g"
     enable_gpu: bool = True
@@ -767,6 +783,24 @@ class MLEBDockerConf(DockerConf):
     enable_cache: bool = False
 
 
+class LLMDockerConf(DockerConf):
+    model_config = SettingsConfigDict(env_prefix="LLM_DOCKER_")
+
+    build_from_dockerfile: bool = True
+    dockerfile_folder_path: Path = (
+        Path(__file__).parent.parent / "scenarios" / "finetune" / "docker" / "llm_finetune_docker"
+    )
+    image: str = "local_llm_finetune:latest"
+    mount_path: str = "/workspace/llm_finetune/"
+    default_entry: str = "llamafactory-cli version"  # Default command to verify installation
+
+    running_timeout_period: int | None = 36000  # 10 hours for training
+    mem_limit: str | None = "48g"  # Large memory for LLM training
+    shm_size: str | None = "16g"  # Shared memory for multi-GPU training
+    enable_gpu: bool = True  # Enable GPU for LLM training
+    enable_cache: bool = False  # Disable cache to avoid conflicts during training
+
+
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
 class DockerEnv(Env[DockerConf]):
     # TODO: Save the output into a specific file
@@ -783,7 +817,9 @@ class DockerEnv(Env[DockerConf]):
         ):
             logger.info(f"Building the image from dockerfile: {self.conf.dockerfile_folder_path}")
             resp_stream = client.api.build(
-                path=str(self.conf.dockerfile_folder_path), tag=self.conf.image, network_mode=self.conf.network
+                path=str(self.conf.dockerfile_folder_path),
+                tag=self.conf.image,
+                network_mode=self.conf.network,
             )
             if isinstance(resp_stream, str):
                 logger.info(resp_stream)
@@ -795,7 +831,10 @@ class DockerEnv(Env[DockerConf]):
                         if line.strip():
                             status_dict = json.loads(line)
                             if "error" in status_dict:
-                                p.update(task, description=f"[red]error: {status_dict['error']}")
+                                p.update(
+                                    task,
+                                    description=f"[red]error: {status_dict['error']}",
+                                )
                                 raise docker.errors.BuildError(status_dict["error"], "")
                             if "stream" in status_dict:
                                 p.update(task, description=status_dict["stream"])
@@ -812,7 +851,11 @@ class DockerEnv(Env[DockerConf]):
                 status_task = sp.add_task("[bright_magenta]layer status", progress="")
                 for line in image_pull:
                     if "error" in line:
-                        sp.update(status_task, description=f"[red]error", progress=line["error"])
+                        sp.update(
+                            status_task,
+                            description=f"[red]error",
+                            progress=line["error"],
+                        )
                         raise docker.errors.APIError(line["error"])
 
                     layer_id = line["id"]
@@ -828,7 +871,10 @@ class DockerEnv(Env[DockerConf]):
                     if status == "Pull complete" or status == "Already exists":
                         completed_layers += 1
 
-                    sp.update(main_task, progress=f"[green]{completed_layers}[white]/{len(layer_set)} layers completed")
+                    sp.update(
+                        main_task,
+                        progress=f"[green]{completed_layers}[white]/{len(layer_set)} layers completed",
+                    )
                     sp.update(
                         status_task,
                         description=f"[bright_magenta]layer {layer_id} [yellow]{status}",
@@ -895,7 +941,10 @@ class DockerEnv(Env[DockerConf]):
                 volumes[lp] = rp if isinstance(rp, dict) else {"bind": rp, "mode": self.conf.extra_volume_mode}
             cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
-            volumes[cache_path] = {"bind": T("scenarios.data_science.share:scen.cache_path").r(), "mode": "rw"}
+            volumes[cache_path] = {
+                "bind": T("scenarios.data_science.share:scen.cache_path").r(),
+                "mode": "rw",
+            }
         for lp, rp in running_extra_volume.items():
             volumes[lp] = rp if isinstance(rp, dict) else {"bind": rp, "mode": self.conf.extra_volume_mode}
 
