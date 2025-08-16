@@ -43,11 +43,31 @@ class LLMFinetuneRDLoop:
                 "mode": "ro",
             }
 
+        # Get finetune base directory from config
+        finetune_base_dir = Path(ft_rd_setting.file_path)
+        finetune_base_dir.mkdir(parents=True, exist_ok=True)
+
         # Ensure output directory is visible outside container and writable
-        output_dir = Path.cwd() / "llm_finetune_output"
-        output_dir.mkdir(exist_ok=True)
+        output_dir = finetune_base_dir / "llm_finetune_output"
+        # Clean output directory for fresh start
+        import shutil
+
+        if output_dir.exists():
+            shutil.rmtree(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
         data_volumes[str(output_dir)] = {
             "bind": "/workspace/llm_finetune/output",
+            "mode": "rw",
+        }
+
+        # Create shared workspace directory to persist data between steps
+        self.shared_workspace_dir = finetune_base_dir / "llm_finetune_shared_workspace"
+        # Clean shared workspace for fresh start
+        if self.shared_workspace_dir.exists():
+            shutil.rmtree(self.shared_workspace_dir)
+        self.shared_workspace_dir.mkdir(parents=True, exist_ok=True)
+        data_volumes[str(self.shared_workspace_dir)] = {
+            "bind": "/workspace/llm_finetune/shared",
             "mode": "rw",
         }
 
@@ -61,6 +81,7 @@ class LLMFinetuneRDLoop:
         )
 
         logger.info(f"Initialized LLM finetune loop for {model} on {dataset}")
+        logger.info(f"Shared workspace: {self.shared_workspace_dir}")
 
     def run(self):
         """Run LLM fine-tuning pipeline"""
@@ -129,6 +150,10 @@ class LLMFinetuneRDLoop:
             logger.error(f"{step_name} experiment is not ready to run")
             return
 
+        # Final parameter validation for fine-tuning step
+        if "Fine-tuning" in step_name:
+            self._validate_generated_config(exp)
+
         # Execute experiment
         workspace = exp.experiment_workspace
         if workspace and hasattr(workspace, "run"):
@@ -138,6 +163,36 @@ class LLMFinetuneRDLoop:
                 logger.info(f"{step_name} output:\n{result.stdout}")
         else:
             logger.warning(f"No executable workspace found for {step_name}")
+
+    def _validate_generated_config(self, exp: DSExperiment):
+        """Final validation of generated configuration before execution."""
+        try:
+            from rdagent.scenarios.finetune.train.utils import (
+                create_parameter_validator,
+            )
+
+            workspace = exp.experiment_workspace
+            if workspace and hasattr(workspace, "file_dict"):
+                main_py = workspace.file_dict.get("main.py", "")
+
+                # Quick check for known problematic parameters
+                problematic_params = [
+                    "merge_lora_after_train",
+                    "merge_lora",
+                    "auto_merge_lora",
+                ]
+                found_issues = [param for param in problematic_params if param in main_py]
+
+                if found_issues:
+                    logger.warning(f"Pre-execution check: Found potentially problematic parameters: {found_issues}")
+                    logger.warning(
+                        "These parameters may cause training to fail. Consider reviewing the generated configuration."
+                    )
+                else:
+                    logger.info("Pre-execution parameter validation: No obvious issues detected")
+
+        except Exception as e:
+            logger.warning(f"Error during pre-execution validation: {e}")
 
     def _get_dataset_samples(self) -> str:
         """Get dataset samples (simplified implementation)"""
