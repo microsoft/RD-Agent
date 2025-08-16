@@ -1,5 +1,4 @@
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
-from rdagent.app.finetune.llm.eval import LLMFinetuneEvaluator, LLMPipelineEvaluator
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiEvaluator
 from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
@@ -7,6 +6,10 @@ from rdagent.components.coder.data_science.share.eval import ModelDumpEvaluator
 from rdagent.core.scenario import Scenario
 from rdagent.scenarios.data_science.dev.runner import (
     DSRunnerMultiProcessEvolvingStrategy,
+)
+from rdagent.scenarios.finetune.train.eval import (
+    LLMFinetuneEvaluator,
+    LLMPipelineEvaluator,
 )
 
 
