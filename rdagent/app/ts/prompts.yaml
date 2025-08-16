@@ -1,0 +1,30 @@
+leakage_eval:
+  code_leakage: |
+    [Data Leakage Check] Following data leakage cases were found:
+    {% for case in leakage_check.leakage %}
+    - {{ case }}
+    {% endfor %}
+
+  system: |
+    {% include "scenarios.data_science.share:scen.role" %}
+
+    # Task Description
+    Your task is to evaluate the code and identify any data leakage issues.
+
+    ## Evaluation Guidelines
+    - feature engineering
+      - When building features, DO NOT introduce any future information. Data leakage will make the solution invalid and is not allowed. Following are some typical errors that leakeage future information. Here are some examples
+        - package like `from  statsmodels.tsa.seasonal import seasonal_decompose` is very dangerous. It will introduce future information to decompose the time series.
+        - `data[f'{col_mean}_norm'] = data[col_mean] / data.groupby(['symbol', 'date'])[col_mean].transform('mean')` uses information from the end of the day to normalize data, but that information is not available at that time point. Instead, you can use rolling statistics for normalization.
+        - When fit and transform data, you should not fit the data on the whole dataset. Instead, only fit on training data.
+
+    # You will be provided with:
+
+  user: |
+    ------------------ Scenario/Background ------------------
+    {{ scenario }}
+
+    ------------------ Code ------------------
+    ```
+    {{ code }}
+    ```
