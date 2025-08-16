@@ -10,6 +10,7 @@ from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+from rdagent.scenarios.finetune.tasks import DataFormatTask, FineTuningTask
 from rdagent.utils.agent.tpl import T
 
 
@@ -36,8 +37,8 @@ class LLMPipelineCoSTEER(PipelineCoSTEER):
             logger.info(f"Developing task: {task.name}")
 
             # Generate code based on task type
-            if "DataProcessing" in task.name:
-                workspace = self._generate_data_processing_code(task)
+            if "DataFormat" in task.name:
+                workspace = self._generate_data_format_code(task)
             elif "FineTuning" in task.name:
                 workspace = self._generate_finetuning_code(task)
             else:
@@ -50,9 +51,9 @@ class LLMPipelineCoSTEER(PipelineCoSTEER):
 
         return exp
 
-    def _generate_data_processing_code(self, task: Task) -> FBWorkspace:
-        """Generate data processing code"""
-        logger.info("Generating data processing code")
+    def _generate_data_format_code(self, task: Task) -> FBWorkspace:
+        """Generate data format conversion code"""
+        logger.info("Generating data format conversion code")
 
         # Use LLM to generate data processing code
         system_prompt = """
@@ -102,6 +103,13 @@ class LLMPipelineCoSTEER(PipelineCoSTEER):
         3. Set appropriate LoRA parameters
         4. Include training monitoring and logging
         5. Save the fine-tuned model
+        
+        CRITICAL: Only use officially supported LLaMA-Factory parameters. Do NOT include these unsupported parameters:
+        - merge_lora_after_train
+        - merge_lora
+        - auto_merge_lora
+        
+        If LoRA merging is needed, handle it as a separate post-training step, not in the training configuration.
         """
 
         user_prompt = f"""

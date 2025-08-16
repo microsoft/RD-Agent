@@ -1,52 +1,140 @@
-scenario_description: |-
-  ====== Background of the scenario ======
-  You are a world-class machine learning engineer specializing in fine-tuning large language models. 
-  Your task is to adapt a pre-trained model to perform better on a specific dataset and task.
+finetuning_prompt: |-
+  # LLM Fine-tuning Task
 
-  {{ raw_description }}
+  ## Objective
+  Use LLaMA-Factory framework to fine-tune model `{{ model }}` on dataset `{{ dataset }}`.
 
-  ====== Data Structure ======
-  {{ data_folder_description }}
+  ## Current Runtime Environment
+  ```
+  {{ runtime_info }}
+  ```
 
-  ====== Fine-tuning Guidelines ======
-  - Use efficient fine-tuning methods like LoRA or QLoRA when appropriate
-  - Properly handle data preprocessing and model loading
-  - Implement robust training loops with validation
-  - Save the fine-tuned model for future use
+  ## LLaMA-Factory Usage Guide
+  {{ llamafactory_guide }}
 
-  {% if time_limit is not none %}
-  ====== Time Limit On Full Code Execution ======
-  Your full code's execution is limited to **{{ time_limit }}**. Please optimize your training strategy accordingly.
-  {% endif %}
+  ## Available Resources
+  - Raw dataset: `/workspace/llm_finetune/data/raw/{{ dataset }}/` (mounted from host)
+  - Processed dataset: `/workspace/llm_finetune/data/processed_dataset.json`
+  - Dataset configuration: `/workspace/llm_finetune/data/dataset_info.json`
+  - Base model: `{{ model }}`
+  - Output directory: `/workspace/llm_finetune/output/`
 
-finetune_background: |-
-  ## LLM Fine-tuning Specialist
-  You are a world-class machine learning engineer and fine-tuning expert specializing in large language models.
-  Your expertise includes parameter-efficient fine-tuning methods, model optimization, and performance maximization.
+  ## Fine-tuning Configuration Suggestions
 
-  **Task Type**: {{ task_type }}
-  **Data Type**: {{ data_type }}
+  ### Basic Parameters
+  - model_name_or_path: {{ model }}
+  - dataset: processed_dataset
+  - output_dir: /workspace/llm_finetune/output
+  - num_train_epochs: 3
+  - learning_rate: 5e-5
+  - per_device_train_batch_size: 2
+  - gradient_accumulation_steps: 4
+  - warmup_steps: 100
+  - logging_steps: 10
+  - save_steps: 500
 
-  **Objective**: {{ brief_description }}
+  ### LoRA Parameters (Recommended for fast fine-tuning)
+  - lora_r: 16
+  - lora_alpha: 32
+  - lora_dropout: 0.1
+  - lora_target: q_proj,v_proj
 
-  **Dataset**: {{ dataset_description }}
+  ## Task Requirements
 
-  **Model**: {{ base_model_name }}
+  1. **Environment Check**: Verify LLaMA-Factory installation and GPU availability
+  2. **Parameter Configuration**: Set appropriate training parameters
+  3. **Start Training**: Use llamafactory-cli for fine-tuning
+  4. **Monitor Training**: Output training progress and metrics
+  5. **Save Model**: Ensure fine-tuned model is properly saved
+  6. **Test Inference**: Simple test of the fine-tuned model
 
-dataset_description_template:
-  system: |-
-    You are a data science assistant that extracts structured information from an LLM fine-tuning dataset.
-    The user provides a dataset description and the processed data folder description.
-    Please answer in JSON format with the following schema:
-    {
-      "Task Type": "The type of fine-tuning task, e.g., 'Question Answering', 'Text Classification', 'Summarization', 'Translation', 'Code Generation'",
-      "Data Type": "The type of data used for fine-tuning, e.g., 'Text (Natural Language)', 'Dialogue', 'Code'",
-      "Brief Description": "A concise summary of the dataset and objective",
-      "Dataset Description": "Describe the dataset based on the processed data folder structure. Only include files/folders that actually exist in the processed data folder description."
-    }
-  user: |-
-    Dataset Raw Description:
-    {{ raw_description }}
+  ## Output Requirements
+  - Fine-tuned model saved in `/workspace/llm_finetune/output/`
+  - Training logs and metrics output to console
+  - Output model path and basic information after completion
 
-    Processed Data Folder Description:
-    {{ data_folder_description }}
+  Please write a complete Python script to accomplish the above fine-tuning task. Use llamafactory-cli command-line tool for training.
+
+llamafactory_guide: |-
+  ## LLaMA-Factory CLI Usage Guide
+
+  ### Basic Command Format
+  ```bash
+  llamafactory-cli train config.yaml
+  ```
+
+  ### Main Parameter Descriptions
+
+  #### Model Parameters
+  - `model_name_or_path`: Model name or path
+  - `model_revision`: Model version (optional)
+  - `quantization_bit`: Quantization bits (4, 8, 16)
+  - `rope_scaling`: RoPE scaling method
+
+  #### Data Parameters  
+  - `dataset`: Dataset name (defined in dataset_info.json)
+  - `template`: Conversation template (e.g., default, alpaca, chatgl)
+  - `max_source_length`: Maximum input sequence length
+  - `max_target_length`: Maximum output sequence length
+
+  #### Training Parameters
+  - `output_dir`: Output directory
+  - `num_train_epochs`: Number of training epochs
+  - `learning_rate`: Learning rate
+  - `per_device_train_batch_size`: Batch size per device
+  - `gradient_accumulation_steps`: Gradient accumulation steps
+  - `warmup_steps`: Warmup steps
+  - `logging_steps`: Logging interval
+  - `save_steps`: Model save interval
+
+  #### LoRA Parameters
+  - `finetuning_type`: lora
+  - `lora_rank`: LoRA rank
+  - `lora_alpha`: LoRA alpha parameter
+  - `lora_dropout`: LoRA dropout rate
+  - `lora_target`: Target modules (e.g., q_proj,v_proj,o_proj,gate_proj,up_proj,down_proj)
+
+  #### Example Configuration File config.yaml
+  ```yaml
+  ### model
+  model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
+  trust_remote_code: true
+
+  ### method
+  stage: sft
+  do_train: true
+  finetuning_type: lora
+  lora_rank: 16
+  lora_alpha: 32
+  lora_dropout: 0.1
+  lora_target: all
+
+  ### dataset
+  dataset: processed_dataset
+  template: default
+  cutoff_len: 2048
+
+  ### output
+  output_dir: /workspace/llm_finetune/output
+  logging_steps: 10
+  save_steps: 500
+  overwrite_output_dir: true
+
+  ### train
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 4
+  learning_rate: 5.0e-5
+  num_train_epochs: 3.0
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.1
+  fp16: true
+  ```
+
+  **IMPORTANT**: Use this exact configuration format for LLaMA-Factory.
+
+  **CRITICAL**: Only use the parameters shown in the example above. Do NOT add any parameters not explicitly listed in this template, especially avoid parameters like:
+  - merge_lora_after_train (NOT supported)
+  - merge_lora (NOT supported) 
+  - auto_merge_lora (NOT supported)
+
+  If you need to merge LoRA adapters, this should be done as a separate post-training step, not as a training parameter.

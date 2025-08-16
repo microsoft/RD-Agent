@@ -1,0 +1,63 @@
+data_format_prompt: |-
+  # Data Format Conversion Task
+
+  ## Objective
+  Convert dataset `{{ dataset }}` to LLaMA-Factory compatible format and save to appropriate location.
+
+  ## Current Runtime Environment
+  ```
+  {{ runtime_info }}
+  ```
+
+  ## Dataset Samples
+  Here are the first few samples from the dataset:
+  ```json
+  {{ data_samples }}
+  ```
+
+  ## LLaMA-Factory Data Format Requirements
+
+  ### Alpaca Format (Recommended)
+  ```json
+  [
+    {
+      "instruction": "User instruction",
+      "input": "Input content (optional)", 
+      "output": "Expected output"
+    }
+  ]
+  ```
+
+  ### ShareGPT Format
+  ```json
+  [
+    {
+      "conversations": [
+        {"from": "human", "value": "User message"},
+        {"from": "gpt", "value": "Assistant reply"}
+      ]
+    }
+  ]
+  ```
+
+  ## Task Requirements
+
+  1. **Load Dataset**: Load dataset from `/workspace/llm_finetune/data/raw/{{ dataset }}/` (Docker mounted path)
+  2. **Analyze Original Data Format**: Identify the field structure of the dataset
+  3. **Choose Appropriate Format**: Select Alpaca or ShareGPT format based on data characteristics
+  4. **Data Conversion**: Write Python code for format conversion
+  5. **Save Data**: Save processed data as `/workspace/llm_finetune/data/processed_dataset.json`
+  6. **Create Configuration**: Create dataset_info.json configuration file
+  7. **Data Statistics**: Output statistics before and after processing
+
+  ## Important Notes
+  - **Always use Docker mounted paths**: `/workspace/llm_finetune/data/raw/{{ dataset }}/` for input data
+  - **Do not use local filesystem paths**: Avoid paths like `/home/` or absolute local paths
+  - **Check mounted data availability**: Verify dataset files exist in mounted location first
+
+  ## Output Files
+  - `/workspace/llm_finetune/data/processed_dataset.json`: Processed training data
+  - `/workspace/llm_finetune/data/dataset_info.json`: Dataset configuration file
+  - Output data processing statistics to console
+
+  Please write a complete Python script to accomplish the above tasks.

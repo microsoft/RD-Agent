@@ -9,15 +9,15 @@ from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 
 
 @dataclass
-class DataProcessingTask(PipelineTask):
-    """Data processing task: convert raw dataset to LLaMA-Factory format"""
+class DataFormatTask(PipelineTask):
+    """Data format conversion task: convert raw dataset to LLaMA-Factory format"""
 
-    name: str = "DataProcessing"
+    name: str = "DataFormat"
     description: str = "Convert raw dataset to LLaMA-Factory format"
     dataset_name: str = ""
 
     def get_task_information(self) -> str:
-        return f"DataProcessing_{self.dataset_name}"
+        return f"DataFormat_{self.dataset_name}"
 
 
 @dataclass
@@ -36,9 +36,9 @@ class FineTuningTask(PipelineTask):
 def create_llm_finetune_tasks(dataset: str, model: str) -> list[PipelineTask]:
     """Create LLM fine-tuning task list"""
 
-    data_task = DataProcessingTask(
-        name="DataProcessing",
-        description=f"Process dataset {dataset} for LLaMA-Factory format",
+    data_task = DataFormatTask(
+        name="DataFormat",
+        description=f"Convert dataset {dataset} to LLaMA-Factory format",
         dataset_name=dataset,
     )
 

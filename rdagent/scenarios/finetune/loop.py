@@ -1,94 +1,159 @@
-from rdagent.components.coder.data_science.pipeline import PipelineCoSTEER
-from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
-from rdagent.components.workflow.rd_loop import RDLoop
+"""
+LLM Fine-tuning Loop Implementation
+
+Simplified LLM fine-tuning loop with two main steps:
+1. Data format conversion
+2. Model fine-tuning
+"""
+
+from pathlib import Path
+
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.loop import DataScienceRDLoop
+from rdagent.scenarios.finetune.tasks import create_llm_finetune_tasks
 
 # Import LLM-specific components
-try:
-    from rdagent.app.finetune.llm.runner import LLMFinetuneRunner
-
-    LLM_RUNNER_AVAILABLE = True
-except ImportError:
-    LLM_RUNNER_AVAILABLE = False
+from rdagent.scenarios.finetune.train.coder import LLMPipelineCoSTEER
+from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
+from rdagent.utils.agent.tpl import T
 
 
-class FinetuneRDLoop(DataScienceRDLoop):
-    """Minimal LLM finetune loop for early-stage single-run development.
+class LLMFinetuneRDLoop:
+    """LLM fine-tuning loop with two steps: data format conversion -> fine-tuning"""
 
-    - Runs only once, no loop or history memory
-    - Only supports Pipeline tasks
-    - Trace, SOTA selection, and feedback are removed
-    """
+    def __init__(self, dataset: str, model: str, ft_rd_setting):
+        self.dataset = dataset
+        self.model = model
+        self.ft_rd_setting = ft_rd_setting
 
-    def __init__(self, PROP_SETTING):
-        logger.log_object(PROP_SETTING.task, tag="task")
+        # Create scenario
+        scen_class = import_class(ft_rd_setting.scen)
+        self.scen = scen_class()
 
-        # Basic scenario setup
-        scen = import_class(PROP_SETTING.scen)()
-        logger.log_object(PROP_SETTING.model_dump(), tag="RDLOOP_SETTINGS")
+        # Create code generator
+        self.coder = LLMPipelineCoSTEER(self.scen)
 
-        # Core components: experiment generator, coder, runner
-        self.exp_gen = import_class(PROP_SETTING.hypothesis_gen)(scen)
-        self.pipeline_coder = PipelineCoSTEER(scen)
+        # Create environment with volume mapping for data visibility
+        data_volumes = {}
+        if ft_rd_setting.local_data_path:
+            # Input data should be read-only to protect original data
+            data_volumes[ft_rd_setting.local_data_path] = {
+                "bind": "/workspace/llm_finetune/data/raw",
+                "mode": "ro",
+            }
 
-        # Use LLM-specific runner if available, otherwise fallback to DS runner
-        if LLM_RUNNER_AVAILABLE:
-            self.runner = LLMFinetuneRunner(scen, use_pipeline_evaluator=True)
-            logger.info("Using LLM-specific runner with Docker environment")
+        # Ensure output directory is visible outside container and writable
+        output_dir = Path.cwd() / "llm_finetune_output"
+        output_dir.mkdir(exist_ok=True)
+        data_volumes[str(output_dir)] = {
+            "bind": "/workspace/llm_finetune/output",
+            "mode": "rw",
+        }
+
+        # Import get_ft_env here to avoid circular imports
+        from rdagent.app.finetune.llm.conf import get_ft_env
+
+        self.env = get_ft_env(
+            extra_volumes=data_volumes,
+            running_timeout_period=None,  # No time limit
+            enable_cache=False,
+        )
+
+        logger.info(f"Initialized LLM finetune loop for {model} on {dataset}")
+
+    def run(self):
+        """Run LLM fine-tuning pipeline"""
+        logger.info("Starting LLM fine-tuning pipeline...")
+
+        # Step 1: Data format conversion
+        logger.info("Step 1: Converting dataset format...")
+        data_exp = self._create_data_format_experiment()
+        data_exp = self.coder.develop(data_exp)
+        self._execute_experiment(data_exp, "Data Format Conversion")
+
+        # Step 2: Model fine-tuning
+        logger.info("Step 2: Fine-tuning model...")
+        finetune_exp = self._create_finetuning_experiment()
+        finetune_exp = self.coder.develop(finetune_exp)
+        self._execute_experiment(finetune_exp, "Model Fine-tuning")
+
+        logger.info("LLM fine-tuning pipeline completed!")
+
+    def _create_data_format_experiment(self) -> DSExperiment:
+        """Create data format conversion experiment"""
+
+        # Get runtime environment information
+        runtime_info = get_runtime_environment_by_env(self.env)
+
+        # Get dataset samples (simplified implementation)
+        data_samples = self._get_dataset_samples()
+
+        # Create data format conversion task
+        task = create_llm_finetune_tasks(self.dataset, self.model)[0]  # First task is data format conversion
+
+        # Set task description using template
+        task.description = T("scenarios.finetune.data_process.prompts:data_format_prompt").r(
+            dataset=self.dataset, runtime_info=runtime_info, data_samples=data_samples
+        )
+
+        return DSExperiment(pending_tasks_list=[[task]])
+
+    def _create_finetuning_experiment(self) -> DSExperiment:
+        """Create fine-tuning experiment"""
+
+        # Get runtime environment information
+        runtime_info = get_runtime_environment_by_env(self.env)
+
+        # Get LLaMA-Factory usage guide
+        llamafactory_guide = T("scenarios.finetune.prompts:llamafactory_guide").r()
+
+        # Create fine-tuning task
+        task = create_llm_finetune_tasks(self.dataset, self.model)[1]  # Second task is fine-tuning
+
+        # Set task description using template
+        task.description = T("scenarios.finetune.prompts:finetuning_prompt").r(
+            model=self.model,
+            dataset=self.dataset,
+            runtime_info=runtime_info,
+            llamafactory_guide=llamafactory_guide,
+        )
+
+        return DSExperiment(pending_tasks_list=[[task]])
+
+    def _execute_experiment(self, exp: DSExperiment, step_name: str):
+        """Execute experiment"""
+        logger.info(f"Executing {step_name}...")
+
+        if not exp.is_ready_to_run():
+            logger.error(f"{step_name} experiment is not ready to run")
+            return
+
+        # Execute experiment
+        workspace = exp.experiment_workspace
+        if workspace and hasattr(workspace, "run"):
+            result = workspace.run(env=self.env, entry="python main.py")
+            logger.info(f"{step_name} execution result: {result.exit_code}")
+            if result.stdout:
+                logger.info(f"{step_name} output:\n{result.stdout}")
         else:
-            self.runner = DSCoSTEERRunner(scen)
-            logger.warning("LLM runner not available, using DS runner as fallback")
+            logger.warning(f"No executable workspace found for {step_name}")
 
-        # Initialize loop base
-        super(RDLoop, self).__init__()
-
-    def coding(self, prev_out: dict):
-        exp = prev_out["direct_exp_gen"]
-        for tasks in exp.pending_tasks_list:
-            exp.sub_tasks = tasks
-            with logger.tag(f"{exp.sub_tasks[0].__class__.__name__}"):
-                # Only support Pipeline task in LLM finetune
-                if isinstance(exp.sub_tasks[0], PipelineTask):
-                    exp = self.pipeline_coder.develop(exp)
+    def _get_dataset_samples(self) -> str:
+        """Get dataset samples (simplified implementation)"""
+        try:
+            # In Docker environment, dataset is mounted at /workspace/llm_finetune/data/raw
+            dataset_path = Path("/workspace/llm_finetune/data/raw") / self.dataset
+            if dataset_path.exists():
+                # Simple processing, return first few samples
+                return f"Dataset path: {dataset_path}\nPlease load and analyze the dataset from this path."
+            else:
+                # Fallback to local path for non-Docker environments
+                local_dataset_path = Path(self.ft_rd_setting.local_data_path) / self.dataset
+                if local_dataset_path.exists():
+                    return f"Dataset path: {local_dataset_path}\nPlease load and analyze the dataset from this path."
                 else:
-                    # Fallback: treat all tasks as pipeline for simplicity
-                    exp = self.pipeline_coder.develop(exp)
-            exp.sub_tasks = []
-        logger.log_object(exp)
-        return exp
-
-    def running(self, prev_out: dict):
-        exp: DSExperiment = prev_out["coding"]
-        if exp.is_ready_to_run():
-            new_exp = self.runner.develop(exp)
-            logger.log_object(new_exp)
-            exp = new_exp
-        return exp
-
-    async def direct_exp_gen(self, prev_out: dict):
-        """Experiment generation - single run, no history dependency"""
-        exp = await self.exp_gen.async_gen(None, self)
-        logger.log_object(exp)
-        return exp
-
-    def feedback(self, prev_out: dict):
-        """Skip feedback phase, directly return simple success feedback"""
-        logger.info("Skipping feedback generation for single-run finetune")
-        # Directly pass the running result to the record phase
-        return prev_out.get("running")
-
-    def record(self, prev_out: dict):
-        """Simple record of experiment result"""
-        exp: DSExperiment = prev_out.get("feedback") or prev_out.get("running")
-
-        if exp:
-            logger.log_object(exp, tag="experiment_completed")
-            logger.info("Finetune experiment completed successfully")
-        else:
-            logger.info("Finetune experiment failed or not executed")
-
-        return exp
+                    return f"Dataset {self.dataset} not found. Please ensure it's available at the expected path."
+        except Exception as e:
+            logger.warning(f"Could not load dataset samples: {e}")
+            return f"Dataset: {self.dataset}\nPlease download and analyze the dataset."
