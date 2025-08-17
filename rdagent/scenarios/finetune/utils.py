@@ -24,6 +24,7 @@ def ensure_ft_assets_exist(model: str | None, dataset: str, ft_root: Path) -> No
     dataset_dir = ft_root / "dataset" / dataset
     if not dataset_dir.exists():
         try:
+            logger.info(f"Downloading dataset '{dataset}' to {dataset_dir}")
             download_dataset(dataset, out_dir_root=str(ft_root / "dataset"))
         except Exception as e:
             raise Exception(f"Failed to download dataset '{dataset}' to {dataset_dir}: {e}") from e
@@ -34,9 +35,10 @@ def ensure_ft_assets_exist(model: str | None, dataset: str, ft_root: Path) -> No
         model_dir = ft_root / "model" / model
         if not prev_dir.exists() and not model_dir.exists():
             try:
+                logger.info(f"Downloading model '{model}' to {model_dir}")
                 download_model(model, out_dir_root=str(ft_root / "model"))
             except Exception as e:
                 raise Exception(
                     f"Failed to download model '{model}' to {model_dir}: {e}. "
-                    f"At least one of prev_model or model is required."
+                    f"At least one of prev_model or model is required.",
                 ) from e
