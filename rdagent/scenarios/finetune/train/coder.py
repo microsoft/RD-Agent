@@ -2,16 +2,13 @@
 Code generator specifically designed for LLM fine-tuning tasks
 """
 
-import json
 import re
-from typing import Any, Dict, List
 
 from rdagent.components.coder.data_science.pipeline import PipelineCoSTEER
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.finetune.tasks import DataFormatTask, FineTuningTask
 from rdagent.utils.agent.tpl import T
 
 from .utils import create_parameter_validator
@@ -59,9 +56,11 @@ class LLMPipelineCoSTEER(PipelineCoSTEER):
         """Generate data format conversion code"""
         logger.info("Generating data format conversion code")
 
-        # Generate prompts from templates
-        system_prompt = T("scenarios.finetune.train.prompts:data_format_system_prompt").r()
-        user_prompt = T("scenarios.finetune.train.prompts:data_format_user_prompt").r(task_description=task.description)
+        # Generate prompts from templates - use data_process prompts for data formatting
+        system_prompt = T("scenarios.finetune.data_process.prompts:data_format_system_prompt").r()
+        user_prompt = T("scenarios.finetune.data_process.prompts:data_format_user_prompt").r(
+            task_description=task.description,
+        )
 
         # Call LLM to generate code
         response = self._call_llm(system_prompt, user_prompt)
@@ -77,9 +76,9 @@ class LLMPipelineCoSTEER(PipelineCoSTEER):
         """Generate fine-tuning code"""
         logger.info("Generating fine-tuning code")
 
-        # Generate prompts from templates
-        system_prompt = T("scenarios.finetune.train.prompts:finetuning_system_prompt").r()
-        user_prompt = T("scenarios.finetune.train.prompts:finetuning_user_prompt").r(task_description=task.description)
+        # Generate prompts from templates - use local train prompts for fine-tuning
+        system_prompt = T(".prompts:finetuning_system_prompt").r()
+        user_prompt = T(".prompts:finetuning_user_prompt").r(task_description=task.description)
 
         # Call LLM to generate code
         response = self._call_llm(system_prompt, user_prompt)
@@ -98,9 +97,9 @@ class LLMPipelineCoSTEER(PipelineCoSTEER):
         """Generate generic code"""
         logger.info("Generating generic code")
 
-        # Generate prompts from templates
-        system_prompt = T("scenarios.finetune.train.prompts:generic_system_prompt").r()
-        user_prompt = T("scenarios.finetune.train.prompts:generic_user_prompt").r(task_description=task.description)
+        # Generate prompts from templates - use local train prompts for generic code
+        system_prompt = T(".prompts:generic_system_prompt").r()
+        user_prompt = T(".prompts:generic_user_prompt").r(task_description=task.description)
 
         response = self._call_llm(system_prompt, user_prompt)
         code = self._extract_code_from_response(response)
@@ -117,7 +116,9 @@ class LLMPipelineCoSTEER(PipelineCoSTEER):
         try:
             api = APIBackend()
             response = api.build_messages_and_create_chat_completion(
-                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=False
+                user_prompt=user_prompt,
+                system_prompt=system_prompt,
+                json_mode=False,
             )
             return response
         except Exception as e:

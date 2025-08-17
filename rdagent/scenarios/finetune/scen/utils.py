@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.log import rdagent_logger as logger
@@ -10,7 +10,7 @@ from rdagent.scenarios.finetune.utils import prev_model_dirname
 from rdagent.utils.agent.tpl import T
 
 
-def extract_dataset_info(competition: str) -> Dict[str, Any]:
+def extract_dataset_info(competition: str) -> dict[str, Any]:
     """Extract dataset information from files and metadata."""
     dataset_path = Path(FT_RD_SETTING.local_data_path) / competition
     info = {"name": competition, "description": "", "samples": [], "files": []}
@@ -37,7 +37,7 @@ def extract_dataset_info(competition: str) -> Dict[str, Any]:
     return info
 
 
-def extract_model_info(base_model_name: str = None) -> Dict[str, Any]:
+def extract_model_info(base_model_name: str = None) -> dict[str, Any]:
     """Extract model information from config and metadata."""
     model_name = base_model_name or FT_RD_SETTING.base_model_name
     info = {
@@ -58,7 +58,7 @@ def extract_model_info(base_model_name: str = None) -> Dict[str, Any]:
     config_path = model_path / "config.json"
     if config_path.exists():
         try:
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 config = json.load(f)
                 specs = []
                 for key in [
@@ -87,16 +87,16 @@ def extract_model_info(base_model_name: str = None) -> Dict[str, Any]:
     return info
 
 
-def _extract_data_samples(file_path: Path, info: Dict[str, Any]) -> None:
+def _extract_data_samples(file_path: Path, info: dict[str, Any]) -> None:
     """Extract sample data from file for analysis."""
     try:
         if file_path.suffix == ".json":
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 data = json.load(f)
                 if isinstance(data, list):
                     info["samples"] = data[:2]  # First 2 samples
         elif file_path.suffix == ".jsonl":
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 info["samples"] = [json.loads(line) for i, line in enumerate(f) if i < 2]
         elif file_path.suffix == ".csv":
             import pandas as pd
@@ -107,7 +107,7 @@ def _extract_data_samples(file_path: Path, info: Dict[str, Any]) -> None:
         logger.warning(f"Failed to extract samples from {file_path}: {e}")
 
 
-def _find_model_path() -> Optional[Path]:
+def _find_model_path() -> Path | None:
     """Find model directory in standard locations."""
     if not FT_RD_SETTING.file_path or not FT_RD_SETTING.base_model_name:
         return None
@@ -124,7 +124,7 @@ def _find_model_path() -> Optional[Path]:
     return None
 
 
-def build_finetune_description(dataset_info: Dict[str, Any], model_info: Dict[str, Any]) -> str:
+def build_finetune_description(dataset_info: dict[str, Any], model_info: dict[str, Any]) -> str:
     """Build comprehensive fine-tuning task description using template."""
     return T(".prompts:task_description").r(
         model_name=model_info["name"],

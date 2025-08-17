@@ -1,25 +1,68 @@
-data_format_system_prompt: |-
-  You are a data processing expert. You need to write a Python script based on user requirements to process datasets
-  and convert them to LLaMA-Factory compatible format.
+# Fine-tuning task description template
+finetuning_task_prompt: |-
+  # LLM Fine-tuning Task
 
-  Please ensure:
-  1. Code can run directly
-  2. All necessary imports are included
-  3. Proper error handling
-  4. Clear logging output
-  5. Save files to specified paths
+  ## Objective
+  Use LLaMA-Factory framework to fine-tune model `{{ model }}` on dataset `{{ dataset }}`.
 
-data_format_user_prompt: |-
-  Please generate a complete Python script (main.py) based on the following task description:
-
-  {{ task_description }}
-
-  Output format:
-  ```python
-  # main.py - Data processing script
-  [Complete Python code]
+  ## Current Runtime Environment
+  ```
+  {{ runtime_info }}
   ```
 
+  ## LLaMA-Factory Usage Guide
+  {{ llamafactory_guide }}
+
+  ## Available Resources
+  - Raw dataset: `/workspace/llm_finetune/data/raw/{{ dataset }}/` (mounted from host)
+  - Processed dataset: `/workspace/llm_finetune/shared/processed_dataset.json` (from data processing step)
+  - Dataset configuration: `/workspace/llm_finetune/shared/dataset_info.json` (from data processing step)  
+  - Base model: `{{ model }}`
+  - Output directory: `/workspace/llm_finetune/output/`
+
+  **IMPORTANT**: Copy dataset files to `/workspace/llm_finetune/data/` before training to ensure LLaMA Factory can find them.
+
+  ## Fine-tuning Configuration Suggestions
+
+  ### Basic Parameters
+  - model_name_or_path: {{ model }}
+  - dataset: processed_dataset
+  - output_dir: /workspace/llm_finetune/output
+  - num_train_epochs: 3
+  - learning_rate: 5e-5
+  - per_device_train_batch_size: 2
+  - gradient_accumulation_steps: 4
+  - warmup_steps: 100
+  - logging_steps: 10
+  - save_steps: 500
+
+  ### LoRA Parameters (Recommended for fast fine-tuning)
+  - lora_r: 16
+  - lora_alpha: 32
+  - lora_dropout: 0.1
+  - lora_target: q_proj,v_proj
+
+  ## Task Requirements
+
+  1. **Environment Check**: Verify LLaMA-Factory installation and GPU availability
+     - **CRITICAL**: LLaMA-Factory is pre-installed in the Docker environment. DO NOT install it via pip.
+     - The correct command is `llamafactory-cli`, NOT `llama-factory-cli`
+     - Simply check if the command exists using `llamafactory-cli --help`
+  2. **Data Setup**: Copy shared dataset files to expected locations
+  3. **Parameter Configuration**: Set appropriate training parameters  
+  4. **Start Training**: Use llamafactory-cli for fine-tuning
+  5. **Monitor Training**: Output training progress and metrics
+  6. **Save Model**: Ensure fine-tuned model is properly saved
+  7. **Test Inference**: Simple test of the fine-tuned model
+
+  ## Output Requirements
+  - Fine-tuned model saved in `/workspace/llm_finetune/output/`
+  - Training logs and metrics output to console
+  - Output model path and basic information after completion
+
+  Please write a complete Python script to accomplish the above fine-tuning task. Use llamafactory-cli command-line tool for training.
+
+# Fine-tuning conversation prompts
 finetuning_system_prompt: |-
   You are an LLM fine-tuning expert. You need to use the LLaMA-Factory framework to fine-tune large language models.
 
@@ -48,6 +91,93 @@ finetuning_user_prompt: |-
   [Complete Python code]
   ```
 
+# LLaMA-Factory framework usage guide (standalone template)
+llamafactory_guide: |-
+  ## LLaMA-Factory CLI Usage Guide
+
+  ### Basic Command Format
+  ```bash
+  llamafactory-cli train config.yaml
+  ```
+
+  ### Main Parameter Descriptions
+
+  #### Model Parameters
+  - `model_name_or_path`: Model name or path
+  - `model_revision`: Model version (optional)
+  - `quantization_bit`: Quantization bits (4, 8, 16)
+  - `rope_scaling`: RoPE scaling method
+
+  #### Data Parameters  
+  - `dataset`: Dataset name (defined in dataset_info.json)
+  - `template`: Conversation template (e.g., default, alpaca, chatgl)
+  - `max_source_length`: Maximum input sequence length
+  - `max_target_length`: Maximum output sequence length
+
+  #### Training Parameters
+  - `output_dir`: Output directory
+  - `num_train_epochs`: Number of training epochs
+  - `learning_rate`: Learning rate
+  - `per_device_train_batch_size`: Batch size per device
+  - `gradient_accumulation_steps`: Gradient accumulation steps
+  - `warmup_steps`: Warmup steps
+  - `logging_steps`: Logging interval
+  - `save_steps`: Model save interval
+
+  #### LoRA Parameters
+  - `finetuning_type`: lora
+  - `lora_rank`: LoRA rank
+  - `lora_alpha`: LoRA alpha parameter
+  - `lora_dropout`: LoRA dropout rate
+  - `lora_target`: Target modules (e.g., q_proj,v_proj,o_proj,gate_proj,up_proj,down_proj)
+
+  #### Example Configuration File config.yaml
+  ```yaml
+  ### model
+  model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
+  trust_remote_code: true
+
+  ### method
+  stage: sft
+  do_train: true
+  finetuning_type: lora
+  lora_rank: 16
+  lora_alpha: 32
+  lora_dropout: 0.1
+  lora_target: all
+
+  ### dataset
+  dataset: processed_dataset
+  dataset_dir: /workspace/llm_finetune/data
+  template: default
+  cutoff_len: 2048
+
+  ### output
+  output_dir: /workspace/llm_finetune/output
+  logging_steps: 10
+  save_steps: 500
+  overwrite_output_dir: true
+
+  ### train
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 4
+  learning_rate: 5.0e-5
+  num_train_epochs: 3.0
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.1
+  fp16: true
+  ```
+
+  **IMPORTANT**: Use this exact configuration format for LLaMA-Factory.
+
+  **CRITICAL**: Only use the parameters shown in the example above. Do NOT add any parameters not explicitly listed in this template, especially avoid parameters like:
+  - merge_lora_after_train (NOT supported)
+  - merge_lora (NOT supported) 
+  - auto_merge_lora (NOT supported)
+
+  If you need to merge LoRA adapters, this should be done as a separate post-training step, not as a training parameter.
+
+# Generic code generation prompts
 generic_system_prompt: |-
   You are a programming expert, generate Python code based on task description.
 
