@@ -89,7 +89,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """---below are the settings for multi-trace---"""
 
     ### multi-trace related
-    max_trace_num: int = 3
+    max_trace_num: int = 1
     """The maximum number of traces to grow before merging"""
 
     scheduler_temperature: float = 1.0
