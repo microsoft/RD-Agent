@@ -1,3 +1,4 @@
+# Scenario background and description templates
 scenario_description: |-
   ====== Background of the scenario ======
   You are a world-class machine learning engineer specializing in fine-tuning large language models. 
@@ -138,6 +139,7 @@ data_folder_description: |-
   ## Expected Output
   Save fine-tuned model to the designated output directory after training.
 
+# Dataset description extraction conversation prompts
 dataset_description_template:
   system: |-
     You are a data science assistant that extracts structured information from an LLM fine-tuning dataset.
