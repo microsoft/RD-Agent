@@ -22,6 +22,7 @@ from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.timer import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_conf import LLM_SETTINGS
+from rdagent.oai.utils.embedding import truncate_content_list
 from rdagent.utils import md5_hash
 
 try:
@@ -466,6 +467,7 @@ class APIBackend(ABC):
         max_retry = LLM_SETTINGS.max_retry if LLM_SETTINGS.max_retry is not None else max_retry
         timeout_count = 0
         violation_count = 0
+        embedding_truncated = False  # Track if we've already tried truncation
         for i in range(max_retry):
             API_start_time = datetime.now()
             try:
@@ -479,10 +481,25 @@ class APIBackend(ABC):
                     or "\\'messages\\' must contain the word \\'json\\' in some form" in e.message
                 ):
                     kwargs["add_json_in_prompt"] = True
-                elif hasattr(e, "message") and embedding and "maximum context length" in e.message:
-                    kwargs["input_content_list"] = [
-                        content[: len(content) // 2] for content in kwargs.get("input_content_list", [])
-                    ]
+                too_long_error_message = "maximum context length" in e.message or "input must have less than" in e.message  # type: ignore[attr-defined]
+
+                if hasattr(e, "message") and embedding and too_long_error_message:
+                    if not embedding_truncated:
+                        # Handle embedding text too long error - truncate once and retry
+                        model_name = LLM_SETTINGS.embedding_model
+                        logger.warning(f"Embedding text too long for model {model_name}, truncating content")
+
+                        # Apply truncation to content list and continue to retry
+                        original_content_list = kwargs.get("input_content_list", [])
+                        kwargs["input_content_list"] = truncate_content_list(original_content_list, model_name)
+                        embedding_truncated = True  # Mark that we've tried truncation
+                        # Continue to next iteration to retry embedding with truncated content
+                    else:
+                        # Already tried truncation, raise error with guidance
+                        raise RuntimeError(
+                            f"Embedding failed even after truncation. "
+                            f"Please set LLM_SETTINGS.embedding_max_length to a smaller value."
+                        ) from e
                 else:
                     RD_Agent_TIMER_wrapper.api_fail_count += 1
                     RD_Agent_TIMER_wrapper.latest_api_fail_time = datetime.now(pytz.timezone("Asia/Shanghai"))
