@@ -111,6 +111,16 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     # inject diverse when start a new sub-trace
     enable_inject_diverse: bool = False
 
+    # inject diverse from other traces when start a new sub-trace
+    enable_cross_trace_diversity: bool = True
+    """Enable cross-trace diversity injection when starting a new sub-trace.
+    This is different from `enable_inject_diverse` which is for non-parallel cases."""
+
+    diversity_injection_strategy: str = (
+        "rdagent.scenarios.data_science.proposal.exp_gen.diversity_strategy.InjectUntilSOTAGainedStrategy"
+    )
+    """The strategy to use for injecting diversity context."""
+
     # enable different version of DSExpGen for multi-trace
     enable_multi_version_exp_gen: bool = False
     exp_gen_version_list: str = "v3,v2"
