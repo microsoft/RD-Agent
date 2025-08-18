@@ -16,6 +16,17 @@ scenario_problem:
     {% else %}- **Scenario-First Focus**: Since SOTA implementation is available, the **primary identified challenge** should be foundational. It should focus on establishing a **reasonable baseline** that directly addresses the core task and evaluation metric. Avoid overly complex initial challenges.
     {% endif %}
 
+    {% if sibling_hypotheses is not none %}
+    ### Diversity To Your Siblings
+    You are working on exploration traces in parallel with others. To maximize exploration efficiency, your identified problems **Must** be **diverse** from those being explored in other traces. 
+    Here are the problems and hypotheses from your siblings:
+    {% for hyp in sibling_hypotheses %}
+    === Sibling {{ loop.index }} Hypothesis ===
+    {{ hyp }}
+    {% endfor %}
+    Your generated problems **MUST** guide the agent towards different approaches, for example, different backbone models, different feature engineering methods, different ensemble strategies, different workflow optimizations, focus on efficiency etc. Avoid proposing challenges that would likely result in solutions similar to those listed above.
+    {% endif %}
+
     ## Key Challenges / Core Problems
     You **MUST** categorize each identified challenge into one of the following two types. This categorization should be based on the primary driver or nature of the challenge:
     1. **Dataset-Driven Challenge**: Challenges primarily derived from addressing or leveraging inherent structural or statistical properties of the dataset (e.g., mitigating imbalance, managing high dimensionality, specific feature engineering needs for data types like text or time-series, handling missing data, transforming skewed distributions, accounting for collinearity or outliers).
@@ -90,6 +101,17 @@ feedback_problem:
     3. Clearly state the learning or articulate the challenge.
     4. Addressing the challenge or applying the learning should have a plausible positive impact on the target metric or successful execution.
     5. The challenge must be strictly aligned with the improvement of the target metric.
+    
+    {% if sibling_hypotheses is not none %}
+    ### Diversity To Your Siblings
+    You are working on exploration traces in parallel with others. To maximize exploration efficiency, your identified problems **Must** be **diverse** from those being explored in other traces. 
+    Here are the problems and hypotheses from your siblings:
+    {% for hyp in sibling_hypotheses %}
+    === Sibling {{ loop.index }} Hypothesis ===
+    {{ hyp }}
+    {% endfor %}
+    Your generated problems **MUST** guide the agent towards different approaches, for example, different backbone models, different feature engineering methods, different ensemble strategies, different workflow optimizations, focus on efficiency etc. Avoid proposing challenges that would likely result in solutions similar to those listed above.
+    {% endif %}
     
     {% if problem_output_format is not none %}
     ### Output Format
@@ -192,6 +214,17 @@ hypothesis_gen:
       - **Feasibility (Score: 1-10):** How easily and practically can this hypothesis be implemented and *run to completion* within the existing SOTA codebase and operational constraints (e.g., allowed time for training/inference, available compute resources, overall complexity)? Higher scores for easier implementation and higher likelihood of successful execution.
       - **Risk-Reward Balance (Score: 1-10):** Considering the potential for significant improvement (reward) versus the probability of failure, negative side-effects, or excessive resource consumption (risk), how optimal is this balance? A high score indicates a favorable balance.
       - **Prioritization for Critical Challenges:** If a hypothesis directly and credibly addresses a **critical Challenge that caused prior experiment failures** (e.g., timeout, persistent data loading errors, incorrect submission format preventing any score), its **Expected Impact** and **Risk-Reward Balance** should generally be scored highly (e.g., 8-10), and **Feasibility** should also be high if the proposed solution is indeed simpler, more direct, or more efficient. This ensures such critical hypotheses are prioritized.
+
+    {% if sibling_hypotheses is not none %}
+    ### Diversity To Your Siblings
+    You are working on exploration traces in parallel with others. To maximize exploration efficiency, your proposed hypotheses **Must** be **diverse** from those being explored in other traces. 
+    Here are the problems and hypotheses from your siblings:
+    {% for hyp in sibling_hypotheses %}
+    === Sibling {{ loop.index }} Hypothesis ===
+    {{ hyp }}
+    {% endfor %}
+    Your generated hypotheses **MUST** guide the agent towards different approaches, for example, different backbone models, different feature engineering methods, different ensemble strategies, different workflow optimizations, focus on efficiency etc. Avoid proposing hypotheses that are similar to those listed above.
+    {% endif %}
 
     {% if inject_diverse %}
     # Focus on Diversity!!
@@ -364,6 +397,16 @@ hypothesis_rewrite:
       - Apply critique insights to enhance sound innovative ideas while avoiding repeated fundamental failures identified in the analysis.
       - **Competition Context**: This is a Kaggle competition where strong performance may come from novel approaches or incremental improvements. Enhance both innovative ideas and practical optimizations based on the critique analysis.
     
+    {% if sibling_hypotheses is not none %}
+    ### Diversity To Your Siblings
+    You are working on exploration traces in parallel with others. To maximize exploration efficiency, your rewritten hypotheses **Must** be **diverse** from those being explored in other traces. 
+    Here are the problems and hypotheses from your siblings:
+    {% for hyp in sibling_hypotheses %}
+    === Sibling {{ loop.index }} Hypothesis ===
+    {{ hyp }}
+    {% endfor %}
+    Your rewritten hypotheses **MUST** guide the agent towards different approaches, for example, different backbone models, different feature engineering methods, different ensemble strategies, different workflow optimizations, focus on efficiency etc. Avoid proposing hypotheses that are similar to those listed above.
+    {% endif %}
     
     {% if rewrite_output_format is not none %}
     ## Output Format
@@ -405,6 +448,17 @@ task_gen:
     4. **Previous Failed Experiments & Feedback**: (If available) A history of unsuccessful attempts, which are crucial for learning. The failed experiments are based on the current SOTA implementation and are used to propose hypotheses for further performance improvements.
 
     Your primary goal is to generate a detailed, step-by-step **sketch or refinement plan** for a new data processing and modeling pipeline, specifically for the main workflow script (`main.py`), that effectively implements the `Proposed Hypothesis`. This sketch will guide a developer to write the code correctly.
+
+    {% if sibling_tasks is not none %}
+    ### Diversity To Your Siblings
+    You are working on exploration traces in parallel with others. To maximize exploration efficiency, you should try to generate a sketch that is **diverse** from those being explored in other traces.
+    Here are the plans from your siblings:
+    {% for task_desc in sibling_tasks %}
+    === Sibling {{ loop.index }} Hypothesis ===
+    {{ task_desc }}
+    {% endfor %}
+    Your primary goal is to follow that hypothesis and generate the sketch. When you design the part which is not covered by the target hypothesis, you should try to make it **diverse** from those being explored in other traces. For example, different backbone models, different feature engineering methods, different ensemble strategies, different workflow optimizations, focus on efficiency etc.
+    {% endif %}
 
     # BACKGROUND CONTEXT: Pipeline Implementation Standards & Constraints
 
