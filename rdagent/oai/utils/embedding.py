@@ -1,137 +1,89 @@
 """
-Simple embedding utilities for handling token limits and text truncation.
+Embedding utilities for handling token limits and text truncation with retry strategies.
 """
 
-import re
-from typing import List, Optional
+from typing import Optional
+
+from litellm import get_max_tokens, token_counter
 
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_conf import LLM_SETTINGS
+
+# Common embedding model token limits
+EMBEDDING_MODEL_LIMITS = {
+    "text-embedding-ada-002": 8191,
+    "text-embedding-3-small": 8191,
+    "text-embedding-3-large": 8191,
+    # Add more models as needed...
+}
 
 
-def get_embedding_max_length(model_name: str) -> int:
+def get_embedding_max_tokens(model: str) -> int:
     """
-    Get max token length for embedding model, with simple fallback.
+    Get maximum token limit for embedding model.
+
+    Three-level fallback strategy:
+    1. Use litellm.get_max_tokens()
+    2. Query EMBEDDING_MODEL_LIMITS mapping
+    3. Use default value 8192
 
     Args:
-        model_name: Name of the embedding model
+        model: Model name
 
     Returns:
-        Maximum token length (defaults to 8192)
+        Maximum token limit
     """
+    # Level 1: Try litellm
     try:
-        from litellm import get_max_tokens
-
-        max_tokens = get_max_tokens(model_name)
+        max_tokens = get_max_tokens(model)
         if max_tokens and max_tokens > 0:
             return max_tokens
     except Exception as e:
-        logger.warning(f"Failed to get max tokens for {model_name}: {e}")
+        logger.warning(f"Failed to get max tokens for {model}: {e}")
 
-    # Default fallback
-    return 8192
+    # Level 2: Query mapping table
+    # Remove prefix (e.g., "provider/model" -> "model")
+    model_name = model.split("/")[-1] if "/" in model else model
+    if model_name in EMBEDDING_MODEL_LIMITS:
+        return EMBEDDING_MODEL_LIMITS[model_name]
+
+    # Level 3: fallback to LLM_SETTINGS.embedding_max_length
+    default_max_tokens = LLM_SETTINGS.embedding_max_length
+    logger.warning(f"Unknown embedding model {model}, using default max_tokens={default_max_tokens}")
+    return default_max_tokens
 
 
-def estimate_token_count(text: str) -> int:
+def estimate_token_count(text: str, model: str = "text-embedding-3-small") -> int:
     """
-    Rough estimation of token count for text.
-    Based on conservative heuristic: 1 token ≈ 2 characters (for embedding models).
+    Calculate token count using litellm's token_counter.
 
     Args:
         text: Input text
+        model: Model name
 
     Returns:
-        Estimated token count
+        Actual token count
     """
-    # Conservative heuristic: ~2 characters per token for embedding models
-    return len(text) // 2
+    try:
+        return token_counter(model=model, text=text)
+    except Exception as e:
+        logger.warning(f"Failed to count tokens for {model}: {e}. Using fallback estimation.")
+        # Simple fallback: ~0.5 tokens per character
+        return len(text) // 2
 
 
-def estimate_max_string_length(max_tokens: int) -> int:
+def trim_text_for_embedding(
+    text: str, model: str, max_tokens: Optional[int] = None, retry_count: int = 0, apply_safety_margin: bool = True
+) -> str:
     """
-    Estimate maximum string length based on token limit.
+    Truncate text for embedding model using binary search with retry support.
 
     Args:
-        max_tokens: Maximum token limit
-
-    Returns:
-        Estimated maximum string length
-    """
-    # Conservative estimation: 1.8 characters per token for embedding models
-    return int(max_tokens * 1.8)
-
-
-def truncate_text_gradually(text: str, max_tokens: int, steps: int = 5) -> str:
-    """
-    Gradually truncate text using step-wise approach.
-
-    Args:
-        text: Input text to truncate
-        max_tokens: Maximum token limit
-        steps: Number of truncation steps to try
-
-    Returns:
-        Truncated text that should be within token limits
-    """
-    if not text:
-        return text
-
-    estimated_tokens = estimate_token_count(text)
-    if estimated_tokens <= max_tokens:
-        return text
-
-    # Log warning about truncation
-    estimated_max_length = estimate_max_string_length(max_tokens)
-    logger.warning(
-        f"Text too long for embedding model: "
-        f"estimated {estimated_tokens} tokens > {max_tokens} limit. "
-        f"Estimated max string length: {estimated_max_length} chars. "
-        f"Will truncate gradually in {steps} steps."
-    )
-
-    # Calculate truncation steps
-    reduction_per_step = 0.8  # Reduce by 20% each step
-
-    current_text = text
-    for step in range(steps):
-        # Try different truncation strategies
-        if step == 0:
-            # First try: truncate to estimated safe length
-            target_length = estimate_max_string_length(max_tokens)
-            current_text = text[:target_length]
-        else:
-            # Subsequent tries: gradually reduce further
-            current_length = len(current_text)
-            new_length = int(current_length * reduction_per_step)
-            current_text = current_text[:new_length]
-
-        # Check if current text is likely within limits
-        estimated_tokens = estimate_token_count(current_text)
-        if estimated_tokens <= max_tokens:
-            if step > 0:
-                logger.info(
-                    f"Truncation successful: Step {step + 1} -> {len(current_text)} chars (estimated {estimated_tokens} tokens)"
-                )
-                logger.info(f"Truncated text start: {current_text[:50]}...")
-                logger.info(f"Truncated text end: ...{current_text[-50:]}")
-            return current_text
-
-    # If we still haven't succeeded, do a final aggressive truncation
-    final_length = estimate_max_string_length(max_tokens // 2)  # Very conservative
-    current_text = text[:final_length]
-    logger.warning(f" Final aggressive truncation: {final_length} chars (target {max_tokens//2} tokens)")
-    logger.info(f" Final truncated text start: {current_text[:50]}...")
-    logger.info(f" Final truncated text end: ...{current_text[-50:]}")
-
-    return current_text
-
-
-def smart_text_truncate(text: str, max_tokens: int) -> str:
-    """
-    Smart text truncation that tries to preserve meaning.
-
-    Args:
-        text: Input text to truncate
-        max_tokens: Maximum token limit
+        text: Input text
+        model: Model name
+        max_tokens: Maximum token limit, auto-detected if None
+        retry_count: Current retry attempt (0 = first attempt)
+        apply_safety_margin: Whether to apply safety margin (can be disabled for forced limits)
 
     Returns:
         Truncated text
@@ -139,17 +91,125 @@ def smart_text_truncate(text: str, max_tokens: int) -> str:
     if not text:
         return text
 
-    estimated_tokens = estimate_token_count(text)
-    if estimated_tokens <= max_tokens:
+    # Get model's maximum token limit
+    if max_tokens is None:
+        base_max_tokens = get_embedding_max_tokens(model)
+        # Apply retry strategy: reduce by 50% on each retry
+        if retry_count > 3:
+            # Ultimate fallback after 3 failed attempts
+            max_tokens = 512
+        elif retry_count >= 1:
+            # Reduce by 50% on each retry for first 3 attempts
+            # retry_count=1 -> use base_max_tokens (first actual retry)
+            # retry_count=2 -> use base_max_tokens // 2
+            # retry_count=3 -> use base_max_tokens // 4
+            max_tokens = base_max_tokens // (2 ** (retry_count - 1))
+        else:
+            max_tokens = base_max_tokens
+
+    # Apply safety margin only if requested (default) and not in ultimate fallback mode
+    if apply_safety_margin and retry_count <= 3:
+        safe_max_tokens = int(max_tokens * 0.9)
+    else:
+        # For forced limits or ultimate fallback, use the limit directly
+        safe_max_tokens = max_tokens
+
+    # Calculate current token count
+    current_tokens = estimate_token_count(text, model)
+
+    if current_tokens <= safe_max_tokens:
         return text
 
-    # Use gradual truncation
-    truncated = truncate_text_gradually(text, max_tokens)
+    logger.warning(
+        f"Text too long for embedding model {model} (retry #{retry_count}): "
+        f"{current_tokens} tokens > {safe_max_tokens} limit "
+        f"{'(with safety margin)' if apply_safety_margin and retry_count <= 3 else '(forced limit)'}. "
+        f"Using binary search to truncate."
+    )
 
-    # Try to end at a sentence boundary if possible
-    sentences = re.split(r"[.!?]+", truncated)
-    if len(sentences) > 1:
-        # Remove the last potentially incomplete sentence
-        truncated = ".".join(sentences[:-1]) + "."
+    # Binary search by words
+    words = text.split()
+    if not words:
+        # Edge case: empty after split
+        return ""
 
-    return truncated.strip()
+    left, right = 0, len(words)
+
+    while left < right:
+        mid = (left + right + 1) // 2
+        truncated_text = " ".join(words[:mid])
+        tokens = estimate_token_count(truncated_text, model)
+
+        if tokens <= safe_max_tokens:
+            left = mid
+        else:
+            right = mid - 1
+
+    # Check if we found a valid word-level truncation
+    if left > 0:
+        result_text = " ".join(words[:left])
+        final_tokens = estimate_token_count(result_text, model)
+
+        logger.warning(
+            f"Binary search truncation completed (retry #{retry_count}): "
+            f"{len(words)} -> {left} words, {current_tokens} -> {final_tokens} tokens"
+        )
+
+        return result_text
+
+    # Fallback: character-level truncation if even first word is too long
+    logger.warning(f"Even first word exceeds token limit. Using character-level fallback.")
+
+    # Binary search by characters
+    left, right = 0, len(text)
+
+    while left < right:
+        mid = (left + right + 1) // 2
+        truncated_text = text[:mid]
+        tokens = estimate_token_count(truncated_text, model)
+
+        if tokens <= safe_max_tokens:
+            left = mid
+        else:
+            right = mid - 1
+
+    result_text = text[:left]
+    final_tokens = estimate_token_count(result_text, model)
+
+    logger.warning(
+        f"Character-level truncation completed (retry #{retry_count}): "
+        f"{len(text)} -> {left} chars, {current_tokens} -> {final_tokens} tokens"
+    )
+
+    return result_text
+
+
+def truncate_content_list_with_retry(content_list: list[str], model: str, retry_count: int = 0) -> list[str]:
+    """
+    Truncate a list of content strings with retry strategy.
+
+    Args:
+        content_list: List of content strings to truncate
+        model: Model name
+        retry_count: Current retry attempt
+
+    Returns:
+        List of truncated content strings
+    """
+    truncated_list = []
+    for content in content_list:
+        truncated_content = trim_text_for_embedding(
+            content,
+            model,
+            max_tokens=None,  # Let the function handle retry logic internally
+            retry_count=retry_count,
+            apply_safety_margin=(retry_count <= 3),  # Disable safety margin for ultimate fallback
+        )
+        truncated_list.append(truncated_content)
+
+    if retry_count > 0:
+        logger.warning(
+            f"Applied retry truncation #{retry_count} to {len(content_list)} content items for model {model}"
+        )
+
+    return truncated_list

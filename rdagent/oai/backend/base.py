@@ -22,6 +22,7 @@ from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.timer import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_conf import LLM_SETTINGS
+from rdagent.oai.utils.embedding import truncate_content_list_with_retry
 from rdagent.utils import md5_hash
 
 try:
@@ -466,6 +467,7 @@ class APIBackend(ABC):
         max_retry = LLM_SETTINGS.max_retry if LLM_SETTINGS.max_retry is not None else max_retry
         timeout_count = 0
         violation_count = 0
+        truncation_retry_count = 0  # Track truncation retries to prevent infinite loops
         for i in range(max_retry):
             API_start_time = datetime.now()
             try:
@@ -480,34 +482,27 @@ class APIBackend(ABC):
                 ):
                     kwargs["add_json_in_prompt"] = True
                 elif hasattr(e, "message") and embedding and "maximum context length" in e.message:
-                    # Use simple gradual truncation
-                    try:
-                        from rdagent.oai.utils.embedding import (
-                            get_embedding_max_length,
-                            smart_text_truncate,
+                    # Handle embedding text too long error with progressive truncation
+                    truncation_retry_count += 1
+                    if truncation_retry_count > 4:
+                        logger.error(
+                            f"Too many truncation retries ({truncation_retry_count}). "
+                            f"Even ultimate fallback failed. Aborting."
                         )
+                        raise RuntimeError(
+                            f"Failed to truncate text after {truncation_retry_count} attempts. "
+                            f"Check embedding model configuration or input content."
+                        ) from e
 
-                        # Get the model name from kwargs or use a default
-                        model_name = kwargs.get("model", "text-embedding-3-small")
-                        max_tokens = get_embedding_max_length(model_name)
+                    # Use the centralized retry logic from embedding utils
+                    model_name = LLM_SETTINGS.embedding_model
+                    logger.warning(f"Embedding truncation retry #{truncation_retry_count} for model {model_name}")
 
-                        # Apply gradual truncation to each content item
-                        new_content_list = []
-                        for content in kwargs.get("input_content_list", []):
-                            truncated_content = smart_text_truncate(content, max_tokens)
-                            new_content_list.append(truncated_content)
-
-                        kwargs["input_content_list"] = new_content_list
-                        logger.info(
-                            f"Applied gradual truncation to {len(new_content_list)} content items using max_tokens={max_tokens}"
-                        )
-
-                    except ImportError:
-                        # Fallback to simple halving if embedding_utils is not available
-                        logger.warning("Embedding utils not available, falling back to simple halving")
-                        kwargs["input_content_list"] = [
-                            content[: len(content) // 2] for content in kwargs.get("input_content_list", [])
-                        ]
+                    # Apply retry truncation strategy to content list
+                    original_content_list = kwargs.get("input_content_list", [])
+                    kwargs["input_content_list"] = truncate_content_list_with_retry(
+                        original_content_list, model_name, truncation_retry_count
+                    )
                 else:
                     RD_Agent_TIMER_wrapper.api_fail_count += 1
                     RD_Agent_TIMER_wrapper.latest_api_fail_time = datetime.now(pytz.timezone("Asia/Shanghai"))
