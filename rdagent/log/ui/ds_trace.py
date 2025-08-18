@@ -482,7 +482,7 @@ def running_win(data, base_exp, llm_data=None, sota_exp=None):
         {k: v for k, v in data.items() if isinstance(k, int)},
         key="running",
         llm_data=llm_data if llm_data else None,
-        base_workspace=base_exp.experiment_workspace,
+        base_workspace=base_exp.experiment_workspace if base_exp else None,
     )
     if state.show_llm_log and llm_data is not None:
         llm_log_win(common_llm_data)
@@ -565,7 +565,7 @@ def main_win(loop_id, llm_data=None):
 
         running_win(
             loop_data["running"],
-            base_exp=loop_data["coding"]["no_tag"],
+            base_exp=loop_data["coding"].get("no_tag", None),
             llm_data=llm_data["running"] if llm_data else None,
             sota_exp=sota_exp,
         )
@@ -627,7 +627,7 @@ def get_timeout_stats(llm_data: dict):
         for fn, loop_fn_d in loop_d.items():
             for k, v in loop_fn_d.items():
                 for d in v:
-                    if "debug_tpl" in d["tag"] and "eval.user" in d["obj"]["uri"]:
+                    if "debug_tpl" in d["tag"] and "eval.user" in d["obj"]["uri"] and "stdout" in d["obj"]["context"]:
                         stdout = d["obj"]["context"]["stdout"]
                         if "The running time exceeds" in stdout:  # Timeout case
                             timeout_stat[fn]["timeout"] += 1
