@@ -986,11 +986,11 @@ class DSProposalV2ExpGen(ExpGen):
         sampled_history_list = [best_entry] +[(history_list[i], history_scores[0, i]) for i in flat_indices]
         return sampled_history_list
     
-    def get_path(node, parent_nodes):
+    def get_path(self,node, parent_nodes):
         path = [node]   
         parent = parent_nodes.get(node)
         if parent is not None:
-            path.extend(get_path(parent, parent_nodes)) 
+            path.extend(self.get_path(parent, parent_nodes)) 
         return path
 
     def get_current_exp_score_list(self,trace,competition):
@@ -1010,7 +1010,7 @@ class DSProposalV2ExpGen(ExpGen):
         #current_parent_loop_id = trace.idx2loop_id[current_parent_record_id]# loop id 
         loop_id2idx = {v: k for k, v in trace.idx2loop_id.items()}
         
-        loop_id_list = get_path(trace.idx2loop_id[current_parent_record_id], parent_nodes)
+        loop_id_list = self.get_path(trace.idx2loop_id[current_parent_record_id], parent_nodes)
 
         score_list  = [(loop_id,trace.hist[loop_id2idx[loop_id]][0].result.loc["ensemble"].iloc[0].round(3)) for loop_id in loop_id_list if trace.hist[loop_id2idx[loop_id]][1].decision == True]
         if score_list:
