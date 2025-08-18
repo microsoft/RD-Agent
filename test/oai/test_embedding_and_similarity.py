@@ -24,7 +24,6 @@ class TestEmbedding(unittest.TestCase):
         assert similarity is not None
         assert isinstance(similarity, float)
         min_similarity_threshold = 0.8
-        print(f"similarity: {similarity}")
         assert similarity >= min_similarity_threshold
 
     def test_embedding_long_text_truncation(self) -> None:
@@ -44,7 +43,6 @@ class TestEmbedding(unittest.TestCase):
         assert emb is not None
         assert isinstance(emb, list)
         assert len(emb) > 0
-        print("✅ Long text embedding test passed - truncation mechanism working correctly")
 
 
 if __name__ == "__main__":
