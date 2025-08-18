@@ -868,7 +868,9 @@ def summarize_win():
                 else:
                     df.loc[loop, "e-loops(r)"] = max(i for i in loop_data["running"].keys() if isinstance(i, int)) + 1
             if "feedback" in loop_data:
-                fb_emoji_str = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
+                fb_emoji_str = (
+                    "✅" if "no_tag" in loop_data["feedback"] and bool(loop_data["feedback"]["no_tag"]) else "❌"
+                )
                 if sota_loop_id == loop:
                     fb_emoji_str += " (💖SOTA)"
                 df.loc[loop, "Feedback"] = fb_emoji_str
