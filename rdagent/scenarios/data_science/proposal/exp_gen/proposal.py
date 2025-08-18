@@ -27,7 +27,10 @@ from rdagent.scenarios.data_science.proposal.exp_gen.planner import (
     DSExperimentPlan,
     RD_Agent_TIMER_wrapper,
 )
-from rdagent.scenarios.data_science.proposal.exp_gen.utils import get_packages
+from rdagent.scenarios.data_science.proposal.exp_gen.utils import (
+    get_available_packages_prompt,
+    get_packages,
+)
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
@@ -600,17 +603,27 @@ class DSProposalV2ExpGen(ExpGen):
         enable_idea_pool: bool,
         inject_diverse: bool = False,
         exp_gen_plan: Optional[Dict] = None,
+        packages_prompt: str = "",
         sibling_exp: List[DSExperiment] | None = None,
     ) -> Dict:
         problem_formatted_str = ""
         for i, (problem_name, problem_dict) in enumerate(problems.items()):
             problem_formatted_str += f"## {i+1}. {problem_name}\n"
-            problem_formatted_str += f"{problem_dict['problem']}\n"
+            problem_formatted_str += f"Statement: {problem_dict['problem']}\n"
+            problem_formatted_str += f"Reason: {problem_dict['reason']}\n"
             if "idea" in problem_dict:
                 idea_formatted_str = DSIdea(problem_dict["idea"]).to_formatted_str()
                 problem_formatted_str += f"Sampled Idea by user: \n{idea_formatted_str}\n"
             problem_formatted_str += "\n\n"
         sibling_hypotheses = [exp.hypothesis for exp in sibling_exp] if sibling_exp else None
+
+        # add available packages prompt
+        if packages_prompt:
+            problem_formatted_str += f"\n{packages_prompt}\n"
+
+        # add available packages prompt
+        if packages_prompt:
+            problem_formatted_str += f"\n{packages_prompt}\n"
 
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             hypothesis_output_format=(
@@ -746,6 +759,7 @@ class DSProposalV2ExpGen(ExpGen):
         scenario_desc: str,
         sota_exp_desc: str,
         exp_feedback_list_desc: str,
+        packages_prompt: str = "",
         sibling_exp: List[DSExperiment] | None = None,
     ) -> Dict:
         """
@@ -788,6 +802,7 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             hypothesis_critique_pairs=hypothesis_critique_pairs,
             time_status=time_status,
+            packages_prompt=packages_prompt,
         )
 
         response = APIBackend().build_messages_and_create_chat_completion(
@@ -1079,6 +1094,9 @@ class DSProposalV2ExpGen(ExpGen):
         else:
             inject_diverse = False
 
+        # add available packages prompt
+        packages_prompt = get_available_packages_prompt()
+
         sibling_exp = trace.get_sibling_exps() if trace.should_inject_diversity() else None
 
         # Step 1: Identify problems
@@ -1113,6 +1131,7 @@ class DSProposalV2ExpGen(ExpGen):
             enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
             inject_diverse=inject_diverse,
             exp_gen_plan=plan.get("exp_gen") if plan else None,
+            packages_prompt=packages_prompt,
             sibling_exp=sibling_exp,
         )
         if not pipeline:
@@ -1157,6 +1176,7 @@ class DSProposalV2ExpGen(ExpGen):
                     scenario_desc=scenario_desc,
                     sota_exp_desc=sota_exp_desc,
                     exp_feedback_list_desc=exp_feedback_list_desc,
+                    packages_prompt=packages_prompt,
                     sibling_exp=sibling_exp,
                 )
                 logger.info(f"Successfully completed hypothesis critique and rewrite process")

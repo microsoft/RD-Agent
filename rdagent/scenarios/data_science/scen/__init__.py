@@ -10,13 +10,19 @@ from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.debug.data import create_debug_data
+from rdagent.scenarios.data_science.proposal.exp_gen.utils import (
+    get_available_packages_prompt,
+)
 from rdagent.scenarios.data_science.scen.utils import describe_data_folder_v2
 from rdagent.scenarios.kaggle.kaggle_crawler import (
     crawl_descriptions,
     download_data,
     get_metric_direction,
 )
-from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
+from rdagent.scenarios.shared.get_runtime_info import (
+    check_runtime_environment,
+    get_runtime_environment_by_env,
+)
 from rdagent.utils.agent.tpl import T
 
 
@@ -25,6 +31,7 @@ class DataScienceScen(Scenario):
 
     def __init__(self, competition: str) -> None:
 
+        check_runtime_environment(get_ds_env())
         # 1) prepare data
         if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
             logger.error(f"Please prepare data for competition {competition} first.")
@@ -209,6 +216,7 @@ class DataScienceScen(Scenario):
                 f"{self.recommend_debug_timeout() / 60 : .2f} minutes" if DS_RD_SETTING.sample_data_by_LLM else None
             ),
             runtime_environment=self.get_runtime_environment(),
+            available_packages_prompt=get_available_packages_prompt(),
         )
 
     def get_runtime_environment(self) -> str:

@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from typing import Literal
 
@@ -77,12 +78,39 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
         implementation.execute(env=env, entry=get_clear_ws_cmd(stage="before_inference"))
 
         # Execute the main script
-        stdout = remove_eda_part(implementation.execute(env=env, entry="python main.py"))
+        stdout = remove_eda_part(
+            implementation.execute(env=env, entry="strace -e trace=file -f -o trace.log python main.py --inference")
+        )
 
         # walk model_folder and list the files
         model_folder_files = [
             str(file.relative_to(implementation.workspace_path)) for file in model_folder.iterdir() if file.is_file()
         ]
+
+        opened_trace_lines = None
+        if (implementation.workspace_path / "trace.log").exists():
+            input_path = T("scenarios.data_science.share:scen.input_path").r()
+            abs_input_path = str(Path(input_path).resolve())
+            # matching path in string like `openat(AT_FDCWD, "/home/user/project/main.py", O_RDONLY) = 5`
+            path_regex = re.compile(r'openat\(.+?,\s*"([^"]+)"')
+            log_content = (implementation.workspace_path / "trace.log").read_text()
+
+            opened_files = set()
+            for line in log_content.splitlines():
+                if "openat" not in line or (abs_input_path not in line and input_path not in line):
+                    continue
+
+                match = path_regex.search(line)
+                if match:
+                    full_path = Path(match.group(1)).resolve()
+                    if str(full_path).startswith(abs_input_path):
+                        opened_files.add(Path(data_source_path).resolve() / full_path.relative_to(abs_input_path))
+
+            from rdagent.scenarios.data_science.scen.utils import FileTreeGenerator
+
+            tree_gen = FileTreeGenerator(allowed_paths=opened_files)  # pass opened files filter
+            opened_trace_lines = tree_gen.generate_tree(Path(data_source_path).resolve())
+            # Limitation: training and test are expected to be different files.
 
         # this will assert the generation of necessary files
         for f in ["submission.csv", "scores.csv"]:
@@ -125,6 +153,7 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
             model_folder_files=model_folder_files,
             scores_content_before=scores_content_before,
             scores_content_after=scores_content_after,
+            opened_trace_lines=opened_trace_lines,
         )
 
         csfb = build_cls_from_json_with_retry(
