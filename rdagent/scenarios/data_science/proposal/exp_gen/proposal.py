@@ -35,7 +35,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.utils import get_packages
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
-
+import math
 _COMPONENT_META: Dict[str, Dict[str, Any]] = {
     "DataLoadSpec": {
         "target_name": "Data loader and specification generation",
@@ -945,7 +945,7 @@ class DSProposalV2ExpGen(ExpGen):
         return dot_products / (A_norms * B_norms)
 
 
-    def prob_dis(self, current_sota_score , history_scores, hypothesis_candidates, hypothesis_history, competition):
+    def prob_dis(self, current_sota_score_in_current_trace , history_scores, hypothesis_candidates, hypothesis_history, competition,path_length):
         target_texts = [v["hypothesis"] for v in hypothesis_candidates.values()]
         target_embs = torch.tensor(APIBackend().create_embedding(target_texts), dtype=torch.float32)
 
@@ -956,31 +956,71 @@ class DSProposalV2ExpGen(ExpGen):
             return []
         history_embs = torch.tensor(APIBackend().create_embedding(history_list), dtype=torch.float32)
         sim_matrix = self.cosine_similarity_matrix_torch(target_embs, history_embs)
-        candidate_scores = [current_sota_score for i in range(len(target_texts) )]
+        candidate_scores = [current_sota_score_in_current_trace for i in range(len(target_texts) )]
         candidate_scores = torch.tensor(candidate_scores, dtype=torch.float32).unsqueeze(1)
         history_scores = torch.tensor(history_scores, dtype=torch.float32).unsqueeze(0)
         bigger_is_better = get_metric_direction(competition)
         if bigger_is_better:
-            score_diff_matrix = candidate_scores - history_scores
+            score_diff_matrix = history_scores - candidate_scores 
         else:
-            score_diff_matrix = history_scores - candidate_scores
+            score_diff_matrix = candidate_scores - history_scores
         alpha, beta = 1.0, 1.0
-        if current_sota_score == -1:
+        if current_sota_score_in_current_trace == -1:
             alpha, beta = 1.0, 0
-
-        logits = alpha * sim_matrix + beta * torch.tanh(score_diff_matrix)
+        gamma = math.log(2) / 30
+        logits = alpha * sim_matrix * math.exp(-gamma * path_length) + beta * torch.tanh(score_diff_matrix)
         probs = torch.softmax(logits, dim=1)
 
         num_candidates = probs.size(-1)
         n_samples = min(2, num_candidates)
         sampled_indices = torch.multinomial(probs, num_samples=n_samples).squeeze(1)
         flat_indices = sampled_indices.flatten().unique().tolist()
-        if len(flat_indices) > 3:
-            flat_indices = flat_indices[:3]
-        sampled_history_list = [(history_list[i], history_scores[0, i]) for i in flat_indices]
-
+        if bigger_is_better:
+            best_idx = history_scores[0].argmax().item()
+            best_entry = (history_list[best_idx], history_scores[0, best_idx])
+        else:
+            best_idx = history_scores[0].argmin().item()
+            best_entry = (history_list[best_idx], history_scores[0, best_idx])
+        if len(flat_indices) > 2:
+            flat_indices = flat_indices[:2]
+        sampled_history_list = [best_entry] +[(history_list[i], history_scores[0, i]) for i in flat_indices]
         return sampled_history_list
+    
+    def get_path(node, parent_nodes):
+        path = [node]   
+        parent = parent_nodes.get(node)
+        if parent is not None:
+            path.extend(get_path(parent, parent_nodes)) 
+        return path
+
+    def get_current_exp_score_list(self,trace,competition):
+        parent_nodes = {}
+        for node in range(len(trace.hist)):
+            parents = trace.get_parents(node)
+            parent_nodes[node] = parents[-2] if len(parents) > 1 else None
+        if hasattr(trace, "idx2loop_id"):
+            parent_nodes = {
+                trace.idx2loop_id[n]: trace.idx2loop_id[r] if r is not None else r
+                for n, r in parent_nodes.items()
+            }
+        if trace.current_selection:
+            current_parent_record_id  = trace.current_selection[0] # record id 
+        else:
+            return -1,0
+        #current_parent_loop_id = trace.idx2loop_id[current_parent_record_id]# loop id 
+        loop_id2idx = {v: k for k, v in trace.idx2loop_id.items()}
         
+        loop_id_list = get_path(trace.idx2loop_id[current_parent_record_id], parent_nodes)
+
+        score_list  = [(loop_id,trace.hist[loop_id2idx[loop_id]][0].result.loc["ensemble"].iloc[0].round(3)) for loop_id in loop_id_list if trace.hist[loop_id2idx[loop_id]][1].decision == True]
+        if score_list:
+            bigger_is_better = get_metric_direction(competition)
+            if bigger_is_better:
+                return max(score_list),len(loop_id_list)
+            else:
+                return min(score_list),len(loop_id_list)
+        else:
+            return -1,len(loop_id_list)
 
     def hypothesis_select_with_llm(
             self, scenario_desc: str, exp_feedback_list_desc: str,extra_exp_feedback_list_desc: str, exp_feedback_scores: list, sota_exp_desc: str, hypothesis_candidates: dict, trace: DSTrace
@@ -1002,10 +1042,16 @@ class DSProposalV2ExpGen(ExpGen):
             current_sota_score = trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0].round(3)
         else:
             current_sota_score = -1
+
         competition = trace.scen.competition
+        if len(trace.hist) > 0:
+            current_sota_score_in_current_trace,path_length = self.get_current_exp_score_list(trace,competition)
+        else:
+            current_sota_score_in_current_trace = -1
+            path_length = 0
 
         if extra_exp_feedback_list_desc and len(trace.hist) > 0 and exp_feedback_scores:
-            extra_exp_feedback_list_desc = self.prob_dis(current_sota_score, exp_feedback_scores, hypothesis_candidates,extra_exp_feedback_list_desc, competition)
+            extra_exp_feedback_list_desc = self.prob_dis(current_sota_score_in_current_trace, exp_feedback_scores, hypothesis_candidates,extra_exp_feedback_list_desc, competition,path_length)
             extra_exp_feedback_list_str = "\n".join(f"{i+1}. {hypothesis} (score: {score.item():.3f})" 
                                         for i, (hypothesis, score) in enumerate(extra_exp_feedback_list_desc))
         else:
@@ -1022,7 +1068,8 @@ class DSProposalV2ExpGen(ExpGen):
             extra_exp_feedback_list_desc =extra_exp_feedback_list_str,
             hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(),
             sota_flag =sota_flag,
-            current_sota_score = current_sota_score
+            current_sota_score = current_sota_score,
+            current_sota_score_in_current_trace = current_sota_score_in_current_trace
         )
 
         user_prompt = T(".prompts_v2:hypothesis_select.user").r(
