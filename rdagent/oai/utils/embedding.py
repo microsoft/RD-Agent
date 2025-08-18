@@ -74,7 +74,7 @@ def trim_text_for_embedding(text: str, model: str, max_tokens: Optional[int] = N
         Truncated text
     """
     if not text:
-        return text
+        return ""
 
     # Get model's maximum token limit
     if max_tokens is None:
@@ -100,6 +100,8 @@ def trim_text_for_embedding(text: str, model: str, max_tokens: Optional[int] = N
         enc_ids = encode(model=model, text=text)
         enc_ids_trunc = enc_ids[:safe_max_tokens]
         text_trunc = decode(model=model, tokens=enc_ids_trunc)
+        # Ensure we return a string type (mypy type safety)
+        text_trunc = str(text_trunc) if text_trunc is not None else ""
 
         final_tokens = token_counter(model=model, text=text_trunc)
         logger.warning(f"Truncation completed: {current_tokens} -> {final_tokens} tokens")
