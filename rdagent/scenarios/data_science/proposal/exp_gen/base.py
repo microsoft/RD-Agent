@@ -82,6 +82,9 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         self.uncommitted_experiments[loop_id] = exp
 
     def deregister_uncommitted_exp(self, loop_id: int):
+        # THIS COMMIT should be dropped in the future.
+        if not hasattr(self, "uncommitted_experiments"):
+            self.uncommitted_experiments = {}
         if loop_id in self.uncommitted_experiments:
             del self.uncommitted_experiments[loop_id]
 
