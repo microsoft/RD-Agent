@@ -973,7 +973,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         num_candidates = probs.size(-1)
         n_samples = min(2, num_candidates)
-        sampled_indices = torch.multinomial(probs, num_samples=n_samples).squeeze(1)
+        sampled_indices = torch.multinomial(probs, num_samples=n_samples, replacement=True)
         flat_indices = sampled_indices.flatten().unique().tolist()
         if bigger_is_better:
             best_idx = history_scores[0].argmax().item()
