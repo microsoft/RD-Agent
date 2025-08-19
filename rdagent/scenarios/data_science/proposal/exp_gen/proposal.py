@@ -914,6 +914,7 @@ class DSProposalV2ExpGen(ExpGen):
         hypotheses: list[DSHypothesis],
         pipeline: bool,
         failed_exp_feedback_list_desc: str,
+        extra_exp_feedback_list_desc: str | None = None,
         fb_to_sota_exp: ExperimentFeedback | None = None,
     ) -> DSExperiment:
         if pipeline:
@@ -934,6 +935,7 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             hypotheses=hypotheses,
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
+            extra_exp_feedback_list_desc=extra_exp_feedback_list_desc,
             eda_improvement=fb_to_sota_exp.eda_improvement if fb_to_sota_exp else None,
         )
 

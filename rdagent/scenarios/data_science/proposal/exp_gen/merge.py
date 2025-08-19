@@ -177,6 +177,7 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
             )
 
         trace_leaf_summaries = []
+        other_sota_exp_fbs = []
         for leaf_id, leaf in enumerate(leaves):
             if leaf == trace.current_selection[0]:
                 continue
@@ -189,7 +190,8 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
             )
             if not exp_fbs:
                 continue
-            
+
+            other_sota_exp_fbs.append(exp_fbs[-1])
             trace_leaf_summaries.append(
                 {
                     "leaf_id": leaf_id,
@@ -222,6 +224,11 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
 
         scenario_desc = trace.scen.get_scenario_all_desc(eda_output=eda_output)
+        extra_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=other_sota_exp_fbs,
+            type="success",
+            pipeline=pipeline,
+        )
 
         return self.task_gen(
             component_desc=component_desc,
@@ -231,6 +238,7 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
             hypotheses=[new_hypothesis],
             pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
             failed_exp_feedback_list_desc="",
+            extra_exp_feedback_list_desc=extra_exp_feedback_list_desc,
         )
 
 

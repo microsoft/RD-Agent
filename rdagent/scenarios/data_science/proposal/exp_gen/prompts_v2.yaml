@@ -547,8 +547,15 @@ task_gen:
     **Hypothesis:** {{ hypothesis.hypothesis }}
 
     {% endfor %}
+    {% if failed_exp_and_feedback_list_desc %}
     # Previous Failed Experiments & Feedback (e.g., experiments that did not pass evaluation, encountered bugs, or failed to surpass SOTA performance)
     {{ failed_exp_and_feedback_list_desc }}
+    {% endif %}
+
+    {% if extra_exp_feedback_list_desc is not None %}
+    # Best Experiments & Feedback from other participants
+    {{ extra_exp_feedback_list_desc }}
+    {% endif %}
   
     {% if eda_improvement is not none %}
     {{ eda_improvement }}
