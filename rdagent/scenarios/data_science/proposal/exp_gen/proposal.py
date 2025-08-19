@@ -983,7 +983,7 @@ class DSProposalV2ExpGen(ExpGen):
             best_entry = (history_list[best_idx], history_scores[0, best_idx])
         if len(flat_indices) > 2:
             flat_indices = flat_indices[:2]
-        sampled_history_list = [best_entry] +[(history_list[i], history_scores[0, i]) for i in flat_indices]
+        sampled_history_list = [best_entry] +[(history_list[i], history_scores[0, i]) for i in flat_indices if i!= best_idx]
         return sampled_history_list
     
     def get_path(self,node, parent_nodes):
@@ -1012,7 +1012,7 @@ class DSProposalV2ExpGen(ExpGen):
         
         loop_id_list = self.get_path(trace.idx2loop_id[current_parent_record_id], parent_nodes)
 
-        score_list  = [(loop_id,trace.hist[loop_id2idx[loop_id]][0].result.loc["ensemble"].iloc[0].round(3)) for loop_id in loop_id_list if trace.hist[loop_id2idx[loop_id]][1].decision == True]
+        score_list  = [trace.hist[loop_id2idx[loop_id]][0].result.loc["ensemble"].iloc[0].round(3) for loop_id in loop_id_list if trace.hist[loop_id2idx[loop_id]][1].decision == True]
         if score_list:
             bigger_is_better = get_metric_direction(competition)
             if bigger_is_better:
