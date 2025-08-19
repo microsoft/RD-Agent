@@ -89,7 +89,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """---below are the settings for multi-trace---"""
 
     ### multi-trace related
-    max_trace_num: int = 3
+    max_trace_num: int = 1
     """The maximum number of traces to grow before merging"""
 
     scheduler_temperature: float = 1.0
@@ -110,6 +110,16 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     ### multi-trace:inject optimals for multi-trace
     # inject diverse when start a new sub-trace
     enable_inject_diverse: bool = False
+
+    # inject diverse from other traces when start a new sub-trace
+    enable_cross_trace_diversity: bool = True
+    """Enable cross-trace diversity injection when starting a new sub-trace.
+    This is different from `enable_inject_diverse` which is for non-parallel cases."""
+
+    diversity_injection_strategy: str = (
+        "rdagent.scenarios.data_science.proposal.exp_gen.diversity_strategy.InjectUntilSOTAGainedStrategy"
+    )
+    """The strategy to use for injecting diversity context."""
 
     # enable different version of DSExpGen for multi-trace
     enable_multi_version_exp_gen: bool = False

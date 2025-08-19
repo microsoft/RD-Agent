@@ -114,10 +114,10 @@ def all_summarize_win():
     if not summary:
         return
 
-    valid_rate = float(base_df["Valid Improve"].mean())
-    test_rate = float(base_df["Test Improve"].mean())
-    submit_merge_rate = float(base_df["Submit Merge"].mean())
-    merge_sota_avg = float(base_df["Merge Sota"].mean())
+    valid_rate = float(base_df.get("Valid Improve", pd.Series()).mean())
+    test_rate = float(base_df.get("Test Improve", pd.Series()).mean())
+    submit_merge_rate = float(base_df.get("Submit Merge", pd.Series()).mean())
+    merge_sota_avg = float(base_df.get("Merge Sota", pd.Series()).mean())
     base_df = percent_df(base_df)
     base_df.insert(0, "Select", True)
     bt1, bt2 = st.columns(2)
