@@ -457,13 +457,13 @@ hypothesis_select:
 
           **High-priority suggestions based on competition type:**  
           - **CV competitions:** Consider using larger image sizes and the latest model architectures (e.g., Swin Transformer, Vision Transformer (ViT), EfficientNetV2).  
-          - **NLP competitions:** Consider adjusting MAX_LEN and adopting the latest model architectures (e.g., DeBERTa v3-large/base, RoBERTa).  
+          - **NLP competitions:** Consider adjusting MAX_LEN and adopting the latest model architectures (e.g., DeBERTa v3-large, RoBERTa).  
           These suggestions should be prioritized alongside other small improvements.
 
       3. **Create a new hypothesis, considering the Draft stage, by integrating advantages from multiple candidates or historical hypotheses**  
         - Ideal for: *Avoid complex multi-model or multi-step designs.*  
         - Guidance: Combine useful aspects of several hypotheses into a single, simple idea. Ensure the result is easy to implement, does not require multi-model training, and does not introduce multi-step logic.
-    {% elif use_ratio > 75 %}
+    {% elif use_ratio > 70 %}
 
 
     ### Stage = Ensemble
@@ -547,7 +547,7 @@ hypothesis_select:
         - Guidance: Make targeted changes that improve effectiveness or efficiency without turning it into multi-step solutions.
               Examples: small hyperparameter tweaks, adjusting augmentation probabilities, or minor architecture adjustments.
               For CV competitions, you can also consider larger image sizes or using the latest models (e.g., Swin Transformer, Vision Transformer (ViT), EfficientNetV2).
-              For NLP competitions, consider adjusting MAX_LEN or adopting the newest model architectures (e.g., DeBERTa v3-large/base, RoBERTa).
+              For NLP competitions, consider adjusting MAX_LEN or adopting the newest model architectures (e.g., DeBERTa v3-large, RoBERTa).
       3. **Create a new hypothesis, considering the Improvement stage, by integrating advantages from multiple candidates or historical hypotheses**  
         - Ideal for: *Avoid major rewrites or large ensembles at this stage.*  
         - Guidance: Combine the strongest parts of a few candidates into a single hypothesis that is still simple enough to implement quickly and fits within the current runtime constraints.

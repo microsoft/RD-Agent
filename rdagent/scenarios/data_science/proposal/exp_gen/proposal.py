@@ -973,7 +973,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         num_candidates = probs.size(-1)
         n_samples = min(2, num_candidates)
-        sampled_indices = torch.multinomial(probs, num_samples=n_samples, replacement=True)
+        sampled_indices = torch.multinomial(probs, num_samples=n_samples).squeeze(1)
         flat_indices = sampled_indices.flatten().unique().tolist()
         if bigger_is_better:
             best_idx = history_scores[0].argmax().item()
@@ -1044,7 +1044,7 @@ class DSProposalV2ExpGen(ExpGen):
             current_sota_score = -1
 
         competition = trace.scen.competition
-        if len(trace.hist) > 0:
+        if sota_flag:
             current_sota_score_in_current_trace,path_length = self.get_current_exp_score_list(trace,competition)
         else:
             current_sota_score_in_current_trace = -1
