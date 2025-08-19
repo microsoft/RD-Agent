@@ -552,7 +552,7 @@ task_gen:
     {{ failed_exp_and_feedback_list_desc }}
     {% endif %}
 
-    {% if extra_exp_feedback_list_desc is not None %}
+    {% if extra_exp_feedback_list_desc is not none %}
     # Best Experiments & Feedback from other participants
     {{ extra_exp_feedback_list_desc }}
     {% endif %}
