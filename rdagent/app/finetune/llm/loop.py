@@ -10,7 +10,7 @@ from pathlib import Path
 
 import fire
 
-from rdagent.app.finetune.llm.conf import FT_RD_SETTING, update_settings
+from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.finetune.loop import LLMFinetuneRDLoop
 from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
@@ -52,8 +52,12 @@ def main(
     # Ensure dataset and model assets exist
     ensure_ft_assets_exist(model, dataset, ft_root)
 
-    # Update settings with provided dataset and model
-    update_settings(dataset, model)
+    # Update FT setting instance with provided dataset and model
+    FT_RD_SETTING.dataset = dataset
+    FT_RD_SETTING.base_model_name = model
+    # If FT_FILE_PATH is configured, directly mount from its dataset directory
+    if FT_RD_SETTING.file_path:
+        FT_RD_SETTING.local_data_path = os.path.join(FT_RD_SETTING.file_path, "dataset")
 
     # Create and run LLM fine-tuning loop
     logger.info(f"Starting LLM fine-tuning: {model} on {dataset}")
