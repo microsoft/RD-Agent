@@ -31,6 +31,7 @@ def main(
         Model name for fine-tuning (e.g., 'Qwen/Qwen2.5-1.5B-Instruct')
 
     Example:
+    .. code-block:: bash
         dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh --model Qwen/Qwen2.5-1.5B-Instruct
     """
     if not dataset:

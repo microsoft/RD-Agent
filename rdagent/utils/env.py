@@ -289,25 +289,17 @@ class Env(Generic[ASpecificEnvConf]):
                 "the last command in the pipeline.",
             )
 
-        # FIXME: the input path and cache path is hard coded here.
-        # We don't want to change the content in input and cache path.
-        # Otherwise, it may produce large amount of warnings.
+        # Exclude configured directories from chmod operation to prevent modifying
+        # read-only or specially configured directories that may produce warnings.
         def _get_chmod_cmd(workspace_path: str) -> str:
-            def _get_path_stem(path: str) -> str | None:
-                # If the input path is relative, keep only the first component
-                p = Path(path)
-                if not p.is_absolute() and p.parts:
-                    return p.parts[0]
-                return None
+            find_cmd = f"find {workspace_path} -mindepth 1 -maxdepth 1"
 
-            chmod_cmd = f"chmod -R 777 $(find {workspace_path} -mindepth 1 -maxdepth 1"
-            for name in [
-                _get_path_stem(T("scenarios.data_science.share:scen.cache_path").r()),
-                _get_path_stem(T("scenarios.data_science.share:scen.input_path").r()),
-                "data",  # Skip data directory (contains read-only raw data)
-            ]:
-                chmod_cmd += f" ! -name {name}"
-            chmod_cmd += ") 2>/dev/null || true"  # Suppress errors and continue
+            # Use configurable exclude paths from DockerConf
+            for name in self.conf.exclude_chmod_paths:
+                if name:  # Skip empty names
+                    find_cmd += f" ! -name {name}"
+
+            chmod_cmd = f"{find_cmd} -exec chmod -R 777 {{}} +"
             return chmod_cmd
 
         if self.conf.running_timeout_period is None:
@@ -647,6 +639,11 @@ class DockerConf(EnvConf):
     {<host_path>: {"bind": <container_path>, "mode": <mode, ro/rw/default is extra_volume_mode>}}
     """
     extra_volume_mode: str = "ro"  # by default. only the mount_path should be writable, others are changed to read-only
+
+    exclude_chmod_paths: list[str] = []
+    """List of directory names to exclude from chmod -R 777 operation.
+    This prevents modifying permissions of read-only or specially configured directories."""
+
     # Sometime, we need maintain some extra data for the workspace.
     # And the extra data may be shared and the downloading can be time consuming.
     # So we just want to download it once.
@@ -749,6 +746,9 @@ class DSDockerConf(DockerConf):
     mount_path: str = "/kaggle/workspace"
     default_entry: str = "python main.py"
 
+    # Exclude data science specific directories from chmod
+    exclude_chmod_paths: list[str] = ["workspace_input", "workspace_cache"]
+
     running_timeout_period: int | None = 600
     mem_limit: str | None = (
         "48g"  # Add memory limit attribute # new-york-city-taxi-fare-prediction may need more memory
@@ -784,6 +784,9 @@ class LLMDockerConf(DockerConf):
     image: str = "local_llm_finetune:latest"
     mount_path: str = "/workspace/llm_finetune/"
     default_entry: str = "llamafactory-cli version"  # Default command to verify installation
+
+    # Exclude data directory which is mounted as read-only
+    exclude_chmod_paths: list[str] = ["data"]
 
     running_timeout_period: int | None = 36000  # 10 hours for training
     mem_limit: str | None = "48g"  # Large memory for LLM training
