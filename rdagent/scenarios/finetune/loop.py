@@ -1,9 +1,8 @@
 """
 LLM Fine-tuning Loop Implementation
 
-Simplified LLM fine-tuning loop with two main steps:
-1. Data format conversion
-2. Model fine-tuning
+Optimized LLM fine-tuning loop that preprocesses data during initialization
+and focuses on model fine-tuning in the main loop.
 """
 
 from pathlib import Path
@@ -11,6 +10,9 @@ from pathlib import Path
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+from rdagent.scenarios.finetune.data_process.data_format_converter import (
+    DataFormatConverter,
+)
 from rdagent.scenarios.finetune.tasks import create_llm_finetune_tasks
 
 # Import LLM-specific components
@@ -20,7 +22,7 @@ from rdagent.utils.agent.tpl import T
 
 
 class LLMFinetuneRDLoop:
-    """LLM fine-tuning loop with two steps: data format conversion -> fine-tuning"""
+    """LLM fine-tuning loop with data preprocessing during initialization"""
 
     def __init__(self, dataset: str, model: str, ft_rd_setting):
         self.dataset = dataset
@@ -83,44 +85,37 @@ class LLMFinetuneRDLoop:
         logger.info(f"Initialized LLM finetune loop for {model} on {dataset}")
         logger.info(f"Shared workspace: {self.shared_workspace_dir}")
 
-    def run(self):
-        """Run LLM fine-tuning pipeline"""
-        logger.info("Starting LLM fine-tuning pipeline...")
+        # Preprocess data during initialization
+        self._preprocess_data()
 
-        # Step 1: Data format conversion
-        logger.info("Step 1: Converting dataset format...")
-        data_exp = self._create_data_format_experiment()
-        data_exp = self.coder.develop(data_exp)
-        self._execute_experiment(data_exp, "Data Format Conversion")
+    def _preprocess_data(self):
+        """Preprocess and convert dataset format during initialization"""
+        logger.info("Preprocessing dataset format...")
 
-        # Step 2: Model fine-tuning
-        logger.info("Step 2: Fine-tuning model...")
-        finetune_exp = self._create_finetuning_experiment()
-        finetune_exp = self.coder.develop(finetune_exp)
-        self._execute_experiment(finetune_exp, "Model Fine-tuning")
-
-        logger.info("LLM fine-tuning pipeline completed!")
-
-    def _create_data_format_experiment(self) -> DSExperiment:
-        """Create data format conversion experiment"""
-
-        # Get runtime environment information
-        runtime_info = get_runtime_environment_by_env(self.env)
-
-        # Get dataset samples (simplified implementation)
-        data_samples = self._get_dataset_samples()
-
-        # Create data format conversion task
-        task = create_llm_finetune_tasks(self.dataset, self.model)[0]  # First task is data format conversion
-
-        # Set task description using template
-        task.description = T("scenarios.finetune.data_process.prompts:data_format_task_prompt").r(
-            dataset=self.dataset,
-            runtime_info=runtime_info,
-            data_samples=data_samples,
+        # Create data format converter
+        data_converter = DataFormatConverter(
+            dataset=self.dataset, model=self.model, ft_rd_setting=self.ft_rd_setting, scen=self.scen
         )
 
-        return DSExperiment(pending_tasks_list=[[task]])
+        # Convert dataset format
+        success = data_converter.convert_dataset(self.env, self.shared_workspace_dir)
+
+        if not success:
+            raise RuntimeError("Failed to preprocess dataset. Cannot proceed with fine-tuning.")
+
+        logger.info("Dataset preprocessing completed successfully")
+
+    def run(self):
+        """Run LLM fine-tuning"""
+        logger.info("Starting LLM fine-tuning...")
+
+        # Data has already been preprocessed in __init__
+        # Now focus on model fine-tuning
+        finetune_exp = self._create_finetuning_experiment()
+        finetune_exp = self.coder.develop(finetune_exp)
+        self._execute_experiment(finetune_exp)
+
+        logger.info("LLM fine-tuning completed!")
 
     def _create_finetuning_experiment(self) -> DSExperiment:
         """Create fine-tuning experiment"""
@@ -144,27 +139,26 @@ class LLMFinetuneRDLoop:
 
         return DSExperiment(pending_tasks_list=[[task]])
 
-    def _execute_experiment(self, exp: DSExperiment, step_name: str):
-        """Execute experiment"""
-        logger.info(f"Executing {step_name}...")
+    def _execute_experiment(self, exp: DSExperiment):
+        """Execute fine-tuning experiment"""
+        logger.info("Executing fine-tuning experiment...")
 
         if not exp.is_ready_to_run():
-            logger.error(f"{step_name} experiment is not ready to run")
+            logger.error("Fine-tuning experiment is not ready to run")
             return
 
-        # Final parameter validation for fine-tuning step
-        if "Fine-tuning" in step_name:
-            self._validate_generated_config(exp)
+        # Final parameter validation before execution
+        self._validate_generated_config(exp)
 
         # Execute experiment
         workspace = exp.experiment_workspace
         if workspace and hasattr(workspace, "run"):
             result = workspace.run(env=self.env, entry="python main.py")
-            logger.info(f"{step_name} execution result: {result.exit_code}")
+            logger.info(f"Fine-tuning execution result: {result.exit_code}")
             if result.stdout:
-                logger.info(f"{step_name} output:\n{result.stdout}")
+                logger.info(f"Fine-tuning output:\n{result.stdout}")
         else:
-            logger.warning(f"No executable workspace found for {step_name}")
+            logger.warning("No executable workspace found for fine-tuning")
 
     def _validate_generated_config(self, exp: DSExperiment):
         """Final validation of generated configuration before execution."""
@@ -191,20 +185,3 @@ class LLMFinetuneRDLoop:
 
         except Exception as e:
             logger.warning(f"Error during pre-execution validation: {e}")
-
-    def _get_dataset_samples(self) -> str:
-        """Get dataset samples (simplified implementation)"""
-        try:
-            # In Docker environment, dataset is mounted at /workspace/llm_finetune/data/raw
-            dataset_path = Path("/workspace/llm_finetune/data/raw") / self.dataset
-            if dataset_path.exists():
-                # Simple processing, return first few samples
-                return f"Dataset path: {dataset_path}\nPlease load and analyze the dataset from this path."
-            # Fallback to local path for non-Docker environments
-            local_dataset_path = Path(self.ft_rd_setting.local_data_path) / self.dataset
-            if local_dataset_path.exists():
-                return f"Dataset path: {local_dataset_path}\nPlease load and analyze the dataset from this path."
-            return f"Dataset {self.dataset} not found. Please ensure it's available at the expected path."
-        except Exception as e:
-            logger.warning(f"Could not load dataset samples: {e}")
-            return f"Dataset: {self.dataset}\nPlease download and analyze the dataset."
