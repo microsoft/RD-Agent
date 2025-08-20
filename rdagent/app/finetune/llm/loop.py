@@ -61,7 +61,7 @@ def main(
 
     # Create and run LLM fine-tuning loop
     logger.info(f"Starting LLM fine-tuning: {model} on {dataset}")
-    loop = LLMFinetuneRDLoop(dataset, model, FT_RD_SETTING)
+    loop = LLMFinetuneRDLoop(FT_RD_SETTING)
     loop.run()
     logger.info("LLM fine-tuning completed!")
 
