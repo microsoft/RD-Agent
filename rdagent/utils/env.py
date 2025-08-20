@@ -124,6 +124,7 @@ class EnvConf(ExtendedBaseSettings):
     enable_cache: bool = True
     retry_count: int = 5  # retry count for the docker run
     retry_wait_seconds: int = 10  # retry wait seconds for the docker run
+    exclude_chmod_paths: list[str] = []  # List of directory names to exclude from chmod operation
 
     model_config = SettingsConfigDict(
         # TODO: add prefix ....
