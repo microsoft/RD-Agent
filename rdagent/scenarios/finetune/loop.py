@@ -161,27 +161,64 @@ class LLMFinetuneRDLoop:
             logger.warning("No executable workspace found for fine-tuning")
 
     def _validate_generated_config(self, exp: DSExperiment):
-        """Final validation of generated configuration before execution."""
+        # TODO: move to coder evaluation
+        """Final validation of generated configuration using LLamaFactory official parameter validator."""
         try:
+            import re
+
+            import yaml
+
+            from rdagent.scenarios.finetune.train.utils import (
+                create_parameter_validator,
+            )
+
+            validator = create_parameter_validator()
             workspace = exp.experiment_workspace
+
             if workspace and hasattr(workspace, "file_dict"):
                 main_py = workspace.file_dict.get("main.py", "")
+                validation_warnings = []
 
-                # Quick check for known problematic parameters
-                problematic_params = [
-                    "merge_lora_after_train",
-                    "merge_lora",
-                    "auto_merge_lora",
+                # Extract and validate YAML configurations from the code
+                yaml_patterns = [
+                    r"yaml\.dump\s*\(\s*(\{[^}]+\})",  # yaml.dump({...})
+                    r"config\s*=\s*(\{[^}]+\})",  # config = {...}
+                    r"training_args\s*=\s*(\{[^}]+\})",  # training_args = {...}
                 ]
-                found_issues = [param for param in problematic_params if param in main_py]
 
-                if found_issues:
-                    logger.warning(f"Pre-execution check: Found potentially problematic parameters: {found_issues}")
-                    logger.warning(
-                        "These parameters may cause training to fail. Consider reviewing the generated configuration.",
-                    )
+                for pattern in yaml_patterns:
+                    matches = re.finditer(pattern, main_py, re.DOTALL)
+                    for match in matches:
+                        try:
+                            # Extract and safely evaluate configuration dictionary
+                            config_str = match.group(1)
+                            # Convert Python dict format to evaluable format
+                            config_str = re.sub(r"\s+", " ", config_str.strip())
+
+                            config_dict = eval(config_str)  # Safe since we control the pattern
+                            if isinstance(config_dict, dict):
+                                # Validate using official LLamaFactory validator
+                                original_param_count = len(config_dict)
+                                validated_config = validator.validate_config_dict(config_dict)
+                                validated_param_count = len(validated_config)
+
+                                if validated_param_count < original_param_count:
+                                    invalid_params = set(config_dict.keys()) - set(validated_config.keys())
+                                    warning_msg = f"Found {len(invalid_params)} invalid LLamaFactory parameters: {list(invalid_params)}"
+                                    validation_warnings.append(warning_msg)
+
+                        except Exception as e:
+                            logger.debug(f"Could not parse config pattern: {e}")
+                            continue
+
+                # Report validation results
+                if validation_warnings:
+                    logger.warning("Pre-execution validation completed with warnings:")
+                    for warning in validation_warnings:
+                        logger.warning(f"  - {warning}")
+                    logger.warning("Training may encounter issues with these parameters.")
                 else:
-                    logger.info("Pre-execution parameter validation: No obvious issues detected")
+                    logger.info("Pre-execution parameter validation: All parameters appear valid")
 
         except Exception as e:
             logger.warning(f"Error during pre-execution validation: {e}")
