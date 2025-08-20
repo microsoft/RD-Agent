@@ -2,7 +2,8 @@ from typing import Optional
 
 import typer
 
-from rdagent.app.finetune.llm.conf import FT_RD_SETTING, get_ft_env
+from rdagent.app.finetune.llm.conf import FT_RD_SETTING
+from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.utils.agent.tpl import T
 
 app = typer.Typer(help="Run LLM fine-tuning environment commands.")
