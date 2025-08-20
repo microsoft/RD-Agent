@@ -7,6 +7,10 @@ and focuses on model fine-tuning in the main loop.
 
 from pathlib import Path
 
+from rdagent.app.finetune.llm.conf import LLMFinetunePropSetting
+
+# Import base class and settings
+from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -21,16 +25,30 @@ from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by
 from rdagent.utils.agent.tpl import T
 
 
-class LLMFinetuneRDLoop:
+class LLMFinetuneRDLoop(RDLoop):
     """LLM fine-tuning loop with data preprocessing during initialization"""
 
-    def __init__(self, dataset: str, model: str, ft_rd_setting):
-        self.dataset = dataset
-        self.model = model
-        self.ft_rd_setting = ft_rd_setting
+    def __init__(self, PROP_SETTING: LLMFinetunePropSetting):
+        # TODO: Issues to resolve after inheriting from RDLoop base class:
+        # 1. Missing config fields: LLMFinetunePropSetting lacks the following required fields:
+        #    - hypothesis2experiment: Hypothesis to experiment converter
+        #    - coder: Code generator (currently exists but needs configuration)
+        #    - runner: Code runner
+        #    - summarizer: Result summarizer
+        # 2. Method conflicts: Current run() method conflicts with base class run() method, needs renaming
+        # 3. Workflow integration: Need to implement base class workflow steps (direct_exp_gen, coding, running, feedback)
+        # 4. Configuration completion: Add missing fields in LLMFinetunePropSetting to support base class initialization
+        #
+        # Currently commented out super().__init__(PROP_SETTING) to avoid errors caused by missing configuration
+        # super().__init__(PROP_SETTING)
+
+        # Extract dataset and model from PROP_SETTING
+        self.dataset = PROP_SETTING.dataset
+        self.model = PROP_SETTING.base_model_name
+        self.ft_rd_setting = PROP_SETTING
 
         # Create scenario
-        scen_class = import_class(ft_rd_setting.scen)
+        scen_class = import_class(PROP_SETTING.scen)
         self.scen = scen_class()
 
         # Create code generator
@@ -38,15 +56,15 @@ class LLMFinetuneRDLoop:
 
         # Create environment with volume mapping for data visibility
         data_volumes = {}
-        if ft_rd_setting.local_data_path:
+        if PROP_SETTING.local_data_path:
             # Input data should be read-only to protect original data
-            data_volumes[ft_rd_setting.local_data_path] = {
+            data_volumes[PROP_SETTING.local_data_path] = {
                 "bind": "/workspace/llm_finetune/data/raw",
                 "mode": "ro",
             }
 
         # Get finetune base directory from config
-        finetune_base_dir = Path(ft_rd_setting.file_path)
+        finetune_base_dir = Path(PROP_SETTING.file_path)
         finetune_base_dir.mkdir(parents=True, exist_ok=True)
 
         # Ensure output directory is visible outside container and writable
@@ -82,7 +100,7 @@ class LLMFinetuneRDLoop:
             enable_cache=False,
         )
 
-        logger.info(f"Initialized LLM finetune loop for {model} on {dataset}")
+        logger.info(f"Initialized LLM finetune loop for {self.model} on {self.dataset}")
         logger.info(f"Shared workspace: {self.shared_workspace_dir}")
 
         # Preprocess data during initialization
