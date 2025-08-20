@@ -50,20 +50,3 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
 
 # Global setting instance for LLM finetuning scenario
 FT_RD_SETTING = LLMFinetunePropSetting()
-
-
-def update_settings(
-    dataset: str,
-    model: str,
-):
-    """
-    Update the RD_AGENT_SETTINGS with the values from LLM_FINETUNE_SETTINGS.
-    """
-    RD_AGENT_SETTINGS.app_tpl = FT_RD_SETTING.app_tpl
-    # Note: extra_evaluator is now configured in FTCoderCoSTEERSettings class
-    # Update FT setting instance (use dataset instead of competition in LLM loop)
-    FT_RD_SETTING.dataset = dataset
-    FT_RD_SETTING.base_model_name = model
-    # If FT_FILE_PATH is configured, directly mount from its dataset directory
-    if FT_RD_SETTING.file_path:
-        FT_RD_SETTING.local_data_path = os.path.join(FT_RD_SETTING.file_path, "dataset")
