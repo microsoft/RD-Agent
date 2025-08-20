@@ -511,6 +511,9 @@ def running_win(data, base_exp, llm_data=None, sota_exp=None):
 
 
 def feedback_win(fb_data, llm_data=None):
+    if "no_tag" not in fb_data:
+        st.header("Feedback", divider="orange", anchor="feedback")
+        return
     fb = fb_data["no_tag"]
     st.header("Feedback" + ("✅" if bool(fb) else "❌"), divider="orange", anchor="feedback")
     if state.show_llm_log and llm_data is not None:
