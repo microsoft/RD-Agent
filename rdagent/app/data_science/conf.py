@@ -103,6 +103,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     sota_count_threshold: int = 1
     """The threshold for SOTA count"""
 
+    ensemble_with_merge: bool = False
+
+    ratio_merge_or_ensemble: int = 70 # 70% for merge/ensemble
+
     #### multi-trace: SOTA experiment selector
     sota_exp_selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.select.submit.GlobalSOTASelector"
     """The name of the SOTA experiment selector to use"""

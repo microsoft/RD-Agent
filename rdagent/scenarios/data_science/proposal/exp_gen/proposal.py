@@ -1025,6 +1025,9 @@ class DSProposalV2ExpGen(ExpGen):
     def hypothesis_select_with_llm(
             self, scenario_desc: str, exp_feedback_list_desc: str,extra_exp_feedback_list_desc: str, exp_feedback_scores: list, sota_exp_desc: str, hypothesis_candidates: dict, trace: DSTrace
         ):
+
+        merge_flag = DS_RD_SETTING.ensemble_with_merge
+        ratio_merge_or_ensemble = DS_RD_SETTING.ratio_merge_or_ensemble
         res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
 
         total_time = RD_Agent_TIMER_wrapper.timer.all_duration
@@ -1068,7 +1071,9 @@ class DSProposalV2ExpGen(ExpGen):
             extra_exp_feedback_list_desc =extra_exp_feedback_list_str,
             hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(),
             sota_flag =sota_flag,
+            merge_flag = merge_flag,
             current_sota_score = current_sota_score,
+            ratio_merge_or_ensemble = ratio_merge_or_ensemble,
             current_sota_score_in_current_trace = current_sota_score_in_current_trace
         )
 
@@ -1304,7 +1309,7 @@ class DSProposalV2ExpGen(ExpGen):
                 sota_exp_desc=sota_exp_desc,
                 competition_desc=self.scen.get_competition_full_desc(),
             )
-
+        
         begin_flag = len(trace.hist) == 0
         # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
         hypothesis_dict = self.hypothesis_gen(
