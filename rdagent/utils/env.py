@@ -748,6 +748,7 @@ class DSDockerConf(DockerConf):
     default_entry: str = "python main.py"
 
     # Exclude data science specific directories from chmod
+    # TODO: do not use hardcoded paths
     exclude_chmod_paths: list[str] = ["workspace_input", "workspace_cache"]
 
     running_timeout_period: int | None = 600
@@ -787,6 +788,7 @@ class LLMDockerConf(DockerConf):
     default_entry: str = "llamafactory-cli version"  # Default command to verify installation
 
     # Exclude data directory which is mounted as read-only
+    # TODO: do not use hardcoded paths
     exclude_chmod_paths: list[str] = ["data"]
 
     running_timeout_period: int | None = 36000  # 10 hours for training
