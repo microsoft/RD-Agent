@@ -2,9 +2,8 @@ import os
 
 from pydantic_settings import SettingsConfigDict
 
-from rdagent.app.data_science.conf import DataScienceBasePropSetting
 from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
-from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.conf import RD_AGENT_SETTINGS, ExtendedBaseSettings
 from rdagent.scenarios.finetune.utils import prev_model_dirname
 from rdagent.utils.env import (
     CondaConf,
@@ -15,7 +14,7 @@ from rdagent.utils.env import (
 )
 
 
-class LLMFinetunePropSetting(DataScienceBasePropSetting):
+class LLMFinetunePropSetting(ExtendedBaseSettings):
     """LLM Fine-tune dedicated property settings.
 
     - Adjust timeouts and template
@@ -24,29 +23,29 @@ class LLMFinetunePropSetting(DataScienceBasePropSetting):
 
     model_config = SettingsConfigDict(env_prefix="FT_", protected_namespaces=())
 
-    # Components
+    # Core Components
     scen: str = "rdagent.scenarios.finetune.scen.LLMFinetuneScen"
     hypothesis_gen: str = "rdagent.app.finetune.llm.proposal.FinetuneExpGen"
 
     # Timeouts (longer for LLM training)
     debug_timeout: int = 36000
+    debug_recommend_timeout: int = 36000
     full_timeout: int = 360000
+    full_recommend_timeout: int = 360000
 
     # Pipeline behavior
     coder_on_whole_pipeline: bool = True
     enable_model_dump: bool = True
-
-    # App template
-    # point finetune app template to scenarios/finetune
     app_tpl: str = "scenarios/finetune"
 
-    # FT root path support (for mounting dataset root)
-    # FT_FILE_PATH/dataset/<dataset>/, FT_FILE_PATH/model/<baseModel>/, FT_FILE_PATH/prev_model/<baseModel_dataset>/
-    file_path: str | None = None
+    # Data paths and processing
+    local_data_path: str = ""
+    file_path: str | None = None  # FT_FILE_PATH/dataset/<dataset>/, FT_FILE_PATH/model/<baseModel>/
+    show_nan_columns: bool = False
+    sample_data_by_LLM: bool = True
 
     # LLM-specific fields
     base_model_name: str | None = None
-    # Use dataset instead of competition for LLM fine-tuning
     dataset: str = ""
 
     @property
