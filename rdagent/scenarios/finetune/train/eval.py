@@ -1,13 +1,14 @@
 import re
 from typing import Optional
 
-from rdagent.app.finetune.llm.conf import FT_RD_SETTING, get_ft_env
+from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
 )
 from rdagent.components.coder.data_science.conf import get_clear_ws_cmd
 from rdagent.components.coder.data_science.utils import remove_eda_part
+from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.utils.agent.tpl import T
