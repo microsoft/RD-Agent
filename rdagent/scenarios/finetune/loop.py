@@ -71,8 +71,8 @@ class LLMFinetuneRDLoop:
             "mode": "rw",
         }
 
-        # Import get_ft_env here to avoid circular imports
-        from rdagent.app.finetune.llm.conf import get_ft_env
+        # Import get_ft_env from finetune coder configuration
+        from rdagent.components.coder.finetune.conf import get_ft_env
 
         self.env = get_ft_env(
             extra_volumes=data_volumes,
