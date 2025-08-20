@@ -548,7 +548,11 @@ class ExpGen3Hypothesis(DSProposalV2ExpGen):
                 return min(trace_scores, key=lambda item: item[1])[0]
         return next((i for i, leaf in enumerate(leaves) if leaf != trace.current_selection[0]))
 
-    def gen(self, trace: DSTrace) -> DSExperiment:
+    def gen(
+        self,
+        trace: DSTrace,
+        plan: DSExperimentPlan | None = None,
+    ) -> DSExperiment:
         # Ignore the selection argument and use all leaves instead.
         sota_exp_fb = trace.sota_experiment_fb(selection=trace.current_selection)
 
