@@ -511,6 +511,9 @@ def running_win(data, base_exp, llm_data=None, sota_exp=None):
 
 
 def feedback_win(fb_data, llm_data=None):
+    if "no_tag" not in fb_data:
+        st.header("Feedback", divider="orange", anchor="feedback")
+        return
     fb = fb_data["no_tag"]
     st.header("Feedback" + ("✅" if bool(fb) else "❌"), divider="orange", anchor="feedback")
     if state.show_llm_log and llm_data is not None:
@@ -868,7 +871,9 @@ def summarize_win():
                 else:
                     df.loc[loop, "e-loops(r)"] = max(i for i in loop_data["running"].keys() if isinstance(i, int)) + 1
             if "feedback" in loop_data:
-                fb_emoji_str = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
+                fb_emoji_str = (
+                    "✅" if "no_tag" in loop_data["feedback"] and bool(loop_data["feedback"]["no_tag"]) else "❌"
+                )
                 if sota_loop_id == loop:
                     fb_emoji_str += " (💖SOTA)"
                 df.loc[loop, "Feedback"] = fb_emoji_str

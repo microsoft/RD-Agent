@@ -85,6 +85,7 @@ class LLMSettings(ExtendedBaseSettings):
     embedding_azure_api_base: str = ""
     embedding_azure_api_version: str = ""
     embedding_max_str_num: int = 50
+    embedding_max_length: int = 8192
 
     # offline llama2 related config
     use_llama2: bool = False
