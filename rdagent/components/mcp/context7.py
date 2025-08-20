@@ -1,17 +1,18 @@
-"""Context7 MCP integration for documentation search.
+"""Context7 MCP integration with enhanced multi-round tool calling.
 
-This module provides a simplified interface for querying documentation
-using MCP (Model Context Protocol) tools.
+This module provides an improved interface for querying documentation
+using MCP (Model Context Protocol) tools with support for sequential tool calls.
 """
 
 import asyncio
+import json
 import time
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
-from llama_index.core.agent.workflow import ReActAgent
-from llama_index.core.workflow import Context
-from llama_index.llms.openai import OpenAI
-from llama_index.tools.mcp import aget_tools_from_mcp_url
+import nest_asyncio
+from mcp import ClientSession
+from mcp.client.streamable_http import streamablehttp_client
+from openai import AsyncOpenAI
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -22,6 +23,155 @@ from tenacity import (
 from rdagent.components.mcp.cache import get_mcp_cache
 from rdagent.components.mcp.util import get_context7_settings
 from rdagent.log import rdagent_logger as logger
+from rdagent.utils.agent.tpl import T
+
+# Apply nest_asyncio to allow nested event loops
+nest_asyncio.apply()
+
+
+class MCPOpenAIClient:
+    """Enhanced client for interacting with OpenAI models using MCP tools."""
+
+    def __init__(self, model: str = "gpt-4.1", server_url: str = "", api_key: str = "", api_base: str = ""):
+        """Initialize the OpenAI MCP client.
+
+        Args:
+            model: The OpenAI model to use
+            server_url: The URL of the MCP server
+        """
+        self.session: Optional[ClientSession] = None
+        self.model = model
+        self.server_url = server_url
+
+        self.openai_client = AsyncOpenAI(api_key=api_key, base_url=api_base)
+
+    async def get_mcp_tools(self) -> List[Dict[str, Any]]:
+        """Get available tools from the MCP server in OpenAI format.
+
+        Returns:
+            A list of tools in OpenAI format
+        """
+        if not self.session:
+            raise RuntimeError("Session not initialized. Call connect() first.")
+
+        tools_result = await self.session.list_tools()
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": tool.name,
+                    "description": tool.description,
+                    "parameters": tool.inputSchema,
+                },
+            }
+            for tool in tools_result.tools
+        ]
+
+    async def process_query(self, query: str, max_rounds: int = 5) -> str:
+        """Process a query using OpenAI and available MCP tools with multiple rounds.
+
+        Args:
+            query: The user query
+            max_rounds: Maximum number of tool calling rounds to prevent infinite loops
+
+        Returns:
+            The response from OpenAI
+        """
+        # Get available tools
+        tools = await self.get_mcp_tools()
+
+        # Initialize conversation
+        messages = [{"role": "user", "content": query}]
+
+        round_count = 0
+
+        while round_count < max_rounds:
+            round_count += 1
+            logger.info(f"Round {round_count}: Calling OpenAI...")
+
+            # Check if we need to force get-library-docs call
+            tool_choice = "auto"
+
+            # Let AI decide based on the prompt instructions
+            # The prompt now explicitly instructs AI to call get-library-docs for each resolve-library-id
+
+            # Call OpenAI API
+            response = await self.openai_client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                tools=tools,
+                tool_choice=tool_choice,
+            )
+
+            # Get assistant's response
+            assistant_message = response.choices[0].message
+            messages.append(assistant_message)
+
+            # Check if there are tool calls
+            if assistant_message.tool_calls:
+                logger.info(f"Processing {len(assistant_message.tool_calls)} tool call(s)...")
+
+                # Process each tool call
+                for i, tool_call in enumerate(assistant_message.tool_calls, 1):
+                    logger.info(f"Tool {i}: {tool_call.function.name}")
+
+                    try:
+                        # Execute tool call
+                        result = await self.session.call_tool(
+                            tool_call.function.name,
+                            arguments=json.loads(tool_call.function.arguments),
+                        )
+                        logger.info(f"Tool {i} executed successfully")
+
+                        # Check if the result contains error information
+                        result_text = result.content[0].text
+                        if "Failed to fetch documentation" in result_text or "Error code: 404" in result_text:
+                            logger.warning(f"Tool {i} returned 404 error - library documentation not found")
+                            # Add a helpful error message instead of the raw error
+                            error_msg = f"Documentation not found for this library. This library may not have detailed documentation available in the knowledge base, but you can still provide general guidance based on the library information from resolve-library-id."
+                            messages.append(
+                                {
+                                    "role": "tool",
+                                    "tool_call_id": tool_call.id,
+                                    "content": error_msg,
+                                }
+                            )
+                        else:
+                            # Add successful tool response to conversation
+                            messages.append(
+                                {
+                                    "role": "tool",
+                                    "tool_call_id": tool_call.id,
+                                    "content": result_text,
+                                }
+                            )
+                    except Exception as e:
+                        logger.error(f"Tool {i} failed: {str(e)}")
+                        # Add error response to conversation
+                        messages.append(
+                            {
+                                "role": "tool",
+                                "tool_call_id": tool_call.id,
+                                "content": f"Error executing tool: {str(e)}",
+                            }
+                        )
+
+                # Continue to next round to let AI decide if it needs more tools
+                logger.info(f"Round {round_count} completed, checking if more tools needed...")
+                continue
+            else:
+                # No tool calls, we have the final response
+                logger.info(f"Final response received in round {round_count}")
+                return assistant_message.content
+
+        # If we've reached max rounds, return the last response
+        logger.warning(f"Reached maximum rounds ({max_rounds}), returning last response")
+        return messages[-1].content if messages else "No response generated"
+
+    async def cleanup(self):
+        """Clean up resources."""
+        # Session cleanup is handled by the context manager
+        pass
 
 
 @retry(
@@ -37,23 +187,28 @@ from rdagent.log import rdagent_logger as logger
     ),
 )
 async def _query_context7_with_retry(
-    error_message: str, full_code: Optional[str] = None, verbose: bool = False
+    error_message: str, full_code: Optional[str] = None, max_rounds: int = 5, verbose: bool = False
 ) -> Optional[str]:
-    """Internal function with retry mechanism for Context7 queries.
+    """Internal function with retry mechanism for Context7 enhanced queries.
 
     Args:
         error_message: The error message or traceback to search for
         full_code: Complete code context for better understanding (optional)
-        verbose: Enable verbose logging for ReAct agent (default: False)
+        max_rounds: Maximum number of tool calling rounds
+        verbose: Enable verbose logging (default: False)
+
     Returns:
         Documentation search result as string, or None if failed
     """
     # Load configuration using pydantic settings
     settings = get_context7_settings()
-    # Initialize cache - enabled by default, permanent caching
-    cache = get_mcp_cache() if settings.cache_enabled else None
+    mcp_http_url = settings.mcp_url
+    model = settings.model
+    api_key = settings.api_key
+    api_base = settings.api_base
 
     # Check query cache first
+    cache = get_mcp_cache() if settings.cache_enabled else None
     if cache:
         cached_result = cache.get_query_result(error_message)
         if cached_result:
@@ -64,135 +219,122 @@ async def _query_context7_with_retry(
     # Record start time for execution timing
     start_time = time.time()
 
-    # Try to get tools from cache first
-    tools = cache.get_tools(settings.mcp_url) if cache else None
+    try:
+        # Connect to the server using Streamable HTTP
+        # Use a fixed URL for streamable HTTP connection
 
-    if tools is None:
-        # Cache miss or cache disabled, load tools from URL
-        tool_start_time = time.time()
-        tools = await aget_tools_from_mcp_url(settings.mcp_url)
-        tool_end_time = time.time()
-        logger.info(f"Context7 tool loading time: {tool_end_time - tool_start_time:.2f} seconds")
+        async with streamablehttp_client(mcp_http_url) as (
+            read_stream,
+            write_stream,
+            get_session_id,
+        ):
+            async with ClientSession(read_stream, write_stream) as session:
+                # Initialize the connection
+                await session.initialize()
 
-        # Cache the tools for future use
-        if cache:
-            cache.set_tools(settings.mcp_url, tools)
-    else:
-        logger.info("Using cached tools, loading time: 0.00 seconds")
+                # List available tools
+                if verbose:
+                    tools_result = await session.list_tools()
+                    logger.info("Available tools:")
+                    for tool in tools_result.tools:
+                        logger.info(f"  - {tool.name}: {tool.description}")
 
-    # Initialize LLM with OpenAI configuration
-    llm = OpenAI(model=settings.model, api_key=settings.api_key, api_base=settings.api_base)
+                # Create OpenAI client and process query
+                client = MCPOpenAIClient(model=model, server_url=mcp_http_url, api_key=api_key, api_base=api_base)
+                client.session = session  # Use the existing session
 
-    # Create ReAct agent with loaded tools
-    agent = ReActAgent(tools=tools, llm=llm, verbose=verbose)
-    ctx = Context(agent)
+                # Build context information using template
+                context_info = ""
+                if full_code:
+                    context_info = T(".prompts:code_context_template").r(full_code=full_code)
 
-    # Record time for agent execution
-    agent_start_time = time.time()
+                # ADD SPECIAL CASE FOR TIMM LIBRARY
+                timm_trigger = error_message.lower().count("timm") >= 3
+                timm_trigger_text = ""
+                if timm_trigger:
+                    timm_trigger_text = T(".prompts:timm_special_case").r()
 
-    # Construct query with error message and context7 instruction
-    # TODO: how to fix the agent to force the two tools to be used
-    # TODO: how to extend to more apis (currently only gpt models through llama_index)
+                # Construct enhanced query using template
+                enhanced_query = T(".prompts:context7_enhanced_query_template").r(
+                    error_message=error_message, context_info=context_info, timm_trigger_text=timm_trigger_text
+                )
 
-    # ADD SPECIAL CASE FOR TIMM LIBRARY
-    timm_trigger = error_message.lower().count("timm") >= 3
-    if timm_trigger:
-        timm_trigger_text = "6.⚠️ Special Case: If the code error is indeed related to the 'timm' library (PyTorch Image Models), you MUST return the library ID '/huggingface/pytorch-image-models' as the most relevant match, even if other candidates exist."
-    else:
-        timm_trigger_text = ""
-    # END OF SPECIAL CASE FOR TIMM LIBRARY
+                # Process the enhanced query with multi-round tool calling
+                response = await client.process_query(enhanced_query, max_rounds=max_rounds)
 
-    # Build context information
-    context_info = ""
-    if full_code:
-        context_info += f"\n\nCURRENT CODE CONTEXT:\n```python\n{full_code}\n```\n"
+                # Calculate and display total execution time
+                end_time = time.time()
+                total_time = end_time - start_time
+                logger.info(f"Context7 enhanced total execution time: {total_time:.2f} seconds")
+                logger.info(
+                    f"Context7 enhanced execution completed at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}"
+                )
 
-    query = f"""ERROR MESSAGE:
-{error_message}
-{context_info}
+                result = response
 
-IMPORTANT INSTRUCTIONS:
-1. ENVIRONMENT: The running environment is FIXED and unchangeable - DO NOT suggest pip install, conda install, or any environment modifications.
+                # Cache the query result
+                if cache:
+                    cache.set_query_result(error_message, result)
+                    cache.log_cache_stats()
 
-2. DOCUMENTATION SEARCH REQUIREMENTS: 
-   - Search for official API documentation related to the error
-   - Focus on parameter specifications, method signatures, and usage patterns
-   - Find compatible alternatives if the original API doesn't exist
-   - Consider the current code context and maintain consistency with existing architecture
-   - Provide API reference information, NOT complete code solutions
+                return result
 
-3. RESPONSE FORMAT:
-   - Start with a brief explanation of the root cause
-   - Provide relevant API documentation excerpts
-   - List available parameters and their descriptions
-   - Show method signatures and basic usage patterns
-   - If multiple API options exist, document all viable alternatives
-
-4. STRICT CONSTRAINTS:
-   - DO NOT provide complete working code replacements
-   - DO NOT suggest hardware configuration changes (CPU/GPU)
-   - DO NOT recommend architecture or framework changes
-   - DO NOT provide performance optimization suggestions
-   - ONLY provide API documentation and parameter information
-
-5. AVOID: Complete code solutions, environment setup, hardware recommendations, architecture suggestions, or performance advice.
-
-{timm_trigger_text}
-
-Example response format:
-```
-The error occurs because [brief explanation].
-
-API Documentation:
-- Method: library.function_name(param1, param2, ...)
-- Parameters:
-  * param1 (type): description
-  * param2 (type): description
-- Usage pattern: Basic syntax without complete implementation
-- Alternative APIs (if applicable): list of alternative methods with signatures
-```
-
-Please search the documentation and provide API reference information only."""
-
-    # Execute agent query
-    response = await agent.run(query, ctx=ctx)
-
-    agent_end_time = time.time()
-    logger.info(f"Context7 agent execution time: {agent_end_time - agent_start_time:.2f} seconds")
-
-    # Calculate and display total execution time
-    end_time = time.time()
-    total_time = end_time - start_time
-    logger.info(f"Context7 total execution time: {total_time:.2f} seconds")
-    logger.info(f"Context7 execution completed at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
-
-    result = str(response)
-
-    # Cache the query result
-    if cache:
-        cache.set_query_result(error_message, result)
-        cache.log_cache_stats()
-
-    return result
+    except Exception as e:
+        logger.error(f"Error in Context7 enhanced query: {str(e)}")
+        logger.error(f"Error type: {type(e).__name__}")
+        if hasattr(e, "__cause__") and e.__cause__:
+            logger.error(f"Caused by: {e.__cause__}")
+        raise
 
 
-async def query_context7(error_message: str, full_code: Optional[str] = None, verbose: bool = False) -> Optional[str]:
-    """Query context7 documentation for error resolution with retry mechanism.
+async def query_context7(
+    error_message: str, full_code: Optional[str] = None, max_rounds: int = 5, verbose: bool = False
+) -> Optional[str]:
+    """Query context7 documentation with enhanced multi-round tool calling and retry mechanism.
 
     Args:
         error_message: The error message or traceback to search for
         full_code: Complete code context for better understanding (optional)
-        verbose: Enable verbose logging for ReAct agent (default: False)
+        max_rounds: Maximum number of tool calling rounds (default: 5)
+        verbose: Enable verbose logging (default: False)
+
     Returns:
         Documentation search result as string, or None if failed
     """
     try:
-        return await _query_context7_with_retry(error_message, full_code, verbose)
+        return await _query_context7_with_retry(error_message, full_code, max_rounds, verbose)
     except (ConnectionError, TimeoutError, RuntimeError, OSError) as e:
         # These are retryable errors, but retries have failed
-        logger.error(f"Context7 query failed after retries due to {type(e).__name__}: {str(e)}")
+        logger.error(f"Context7 enhanced query failed after retries due to {type(e).__name__}: {str(e)}")
         return None
     except Exception as e:
         # Other non-retryable errors (e.g., configuration errors, authentication failures)
-        logger.error(f"Context7 query failed due to non-retryable error {type(e).__name__}: {str(e)}")
+        logger.error(f"Context7 enhanced query failed due to non-retryable error {type(e).__name__}: {str(e)}")
         return None
+
+
+# # Example usage function for testing
+# async def example_usage():
+#     """Example usage of the enhanced Context7 client."""
+#     error_message = "AttributeError: module 'lightgbm' has no attribute 'gpu_mode'"
+#     full_code = """
+# import lightgbm as lgb
+
+# # Trying to enable GPU mode
+# model = lgb.LGBMClassifier(device='gpu')
+# model.fit(X_train, y_train)
+# """
+#     logger.info(f"Querying error: {error_message}")
+
+#     result = await query_context7_new(error_message, full_code, max_rounds=10, verbose=False)
+
+#     if result:
+#         logger.info("Query successful!")
+#         logger.info(f"Result: {result}")
+#     else:
+#         logger.error("Query failed!")
+
+
+# if __name__ == "__main__":
+#     # For direct testing
+#     asyncio.run(example_usage())

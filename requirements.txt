@@ -69,5 +69,6 @@ azureml-mlflow
 types-pytz
 
 # mcp
-llama-index
-llama-index-tools-mcp
+mcp
+# llama-index
+# llama-index-tools-mcp
