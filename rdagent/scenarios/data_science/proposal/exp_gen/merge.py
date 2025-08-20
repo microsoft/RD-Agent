@@ -227,7 +227,7 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
         extra_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
             exp_and_feedback_list=other_sota_exp_fbs,
             type="success",
-            pipeline=pipeline,
+            pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
         )
 
         return self.task_gen(
