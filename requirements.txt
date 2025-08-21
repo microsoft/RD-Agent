@@ -70,5 +70,4 @@ types-pytz
 
 # mcp
 mcp
-# llama-index
-# llama-index-tools-mcp
+nest-asyncio

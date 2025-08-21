@@ -2,7 +2,7 @@
 
 import asyncio
 
-from context7 import query_context7
+from rdagent.components.mcp.context7 import query_context7
 
 
 async def main():

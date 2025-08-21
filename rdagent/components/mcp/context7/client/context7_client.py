@@ -21,7 +21,11 @@ from tenacity import (
 )
 
 from rdagent.components.mcp.cache import get_mcp_cache
-from rdagent.components.mcp.util import get_context7_settings
+from rdagent.components.mcp.conf import get_mcp_global_settings
+from rdagent.components.mcp.context7.conf import (
+    get_context7_settings,
+    is_context7_enabled,
+)
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.agent.tpl import T
 
@@ -38,6 +42,8 @@ class MCPOpenAIClient:
         Args:
             model: The OpenAI model to use
             server_url: The URL of the MCP server
+            api_key: OpenAI API key
+            api_base: OpenAI API base URL
         """
         self.session: Optional[ClientSession] = None
         self.model = model
@@ -207,8 +213,9 @@ async def _query_context7_with_retry(
     api_key = settings.api_key
     api_base = settings.api_base
 
-    # Check query cache first
-    cache = get_mcp_cache() if settings.cache_enabled else None
+    # Check cache setting
+    global_settings = get_mcp_global_settings()
+    cache = get_mcp_cache() if global_settings.cache_enabled else None
     if cache:
         cached_result = cache.get_query_result(error_message)
         if cached_result:
@@ -246,18 +253,20 @@ async def _query_context7_with_retry(
                 # Build context information using template
                 context_info = ""
                 if full_code:
-                    context_info = T(".prompts:code_context_template").r(full_code=full_code)
+                    context_info = T("rdagent.components.mcp.context7.prompts.templates:code_context_template").r(
+                        full_code=full_code
+                    )
 
                 # ADD SPECIAL CASE FOR TIMM LIBRARY
                 timm_trigger = error_message.lower().count("timm") >= 3
                 timm_trigger_text = ""
                 if timm_trigger:
-                    timm_trigger_text = T(".prompts:timm_special_case").r()
+                    timm_trigger_text = T("rdagent.components.mcp.context7.prompts.templates:timm_special_case").r()
 
                 # Construct enhanced query using template
-                enhanced_query = T(".prompts:context7_enhanced_query_template").r(
-                    error_message=error_message, context_info=context_info, timm_trigger_text=timm_trigger_text
-                )
+                enhanced_query = T(
+                    "rdagent.components.mcp.context7.prompts.templates:context7_enhanced_query_template"
+                ).r(error_message=error_message, context_info=context_info, timm_trigger_text=timm_trigger_text)
 
                 # Process the enhanced query with multi-round tool calling
                 response = await client.process_query(enhanced_query, max_rounds=max_rounds)
@@ -301,6 +310,11 @@ async def query_context7(
     Returns:
         Documentation search result as string, or None if failed
     """
+    # Check if Context7 is enabled and available
+
+    if not is_context7_enabled():
+        logger.warning("Context7 MCP is disabled. Check MCP global settings and Context7 configuration.")
+        return None
     try:
         return await _query_context7_with_retry(error_message, full_code, max_rounds, verbose)
     except (ConnectionError, TimeoutError, RuntimeError, OSError) as e:
@@ -311,30 +325,3 @@ async def query_context7(
         # Other non-retryable errors (e.g., configuration errors, authentication failures)
         logger.error(f"Context7 enhanced query failed due to non-retryable error {type(e).__name__}: {str(e)}")
         return None
-
-
-# # Example usage function for testing
-# async def example_usage():
-#     """Example usage of the enhanced Context7 client."""
-#     error_message = "AttributeError: module 'lightgbm' has no attribute 'gpu_mode'"
-#     full_code = """
-# import lightgbm as lgb
-
-# # Trying to enable GPU mode
-# model = lgb.LGBMClassifier(device='gpu')
-# model.fit(X_train, y_train)
-# """
-#     logger.info(f"Querying error: {error_message}")
-
-#     result = await query_context7_new(error_message, full_code, max_rounds=10, verbose=False)
-
-#     if result:
-#         logger.info("Query successful!")
-#         logger.info(f"Result: {result}")
-#     else:
-#         logger.error("Query failed!")
-
-
-# if __name__ == "__main__":
-#     # For direct testing
-#     asyncio.run(example_usage())
