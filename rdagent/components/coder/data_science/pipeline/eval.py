@@ -21,6 +21,7 @@ from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_
 from rdagent.components.coder.data_science.share.notebook import NotebookConverter
 from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.components.mcp import query_context7
+from rdagent.components.mcp.context7.conf import is_context7_enabled
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.test_eval import get_test_eval
@@ -270,8 +271,9 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         else:
             eda_output = implementation.file_dict.get("EDA.md", None)
 
-        # extract enable_context7 from setting
-        enable_context7 = DS_RD_SETTING.enable_context7
+        # extract enable_context7 from MCP configuration
+
+        enable_context7 = is_context7_enabled()
 
         queried_similar_successful_knowledge = (
             queried_knowledge.task_to_similar_task_successful_knowledge[target_task.get_task_information()]
