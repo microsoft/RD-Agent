@@ -64,8 +64,8 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         finetune_method = getattr(target_task, "finetune_method", "lora")
         dataset = getattr(target_task, "dataset", "default")
 
-        # Generate LlamaFactory config YAML
-        config_yaml = self._generate_llamafactory_config(
+        # Use LLM to generate LlamaFactory config YAML
+        config_yaml = self._generate_llamafactory_config_with_llm(
             base_model=base_model,
             finetune_method=finetune_method,
             dataset=dataset,
@@ -73,12 +73,98 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             task_info=task_info,
             similar_knowledge=similar_knowledge,
             failed_knowledge=failed_knowledge[0],
+            prev_feedback=prev_task_feedback,
         )
 
         # Validate the generated config using existing validator
         validated_config = self._validate_config(config_yaml)
 
         return {"config.yaml": validated_config}
+
+    def _generate_llamafactory_config_with_llm(
+        self,
+        base_model: str,
+        finetune_method: str,
+        dataset: str,
+        debug_mode: bool = True,
+        task_info: str = "",
+        similar_knowledge: list = None,
+        failed_knowledge: list = None,
+        prev_feedback=None,
+    ) -> str:
+        """Generate LlamaFactory configuration YAML using LLM"""
+
+        # Prepare knowledge context
+        similar_knowledge_str = ""
+        if similar_knowledge:
+            similar_knowledge_str = "\n".join(
+                [
+                    f"### Similar Implementation {i+1}:\n{knowledge.target_task.get_task_information()}\n```yaml\n{knowledge.implementation.file_dict.get('config.yaml', '')}\n```"
+                    for i, knowledge in enumerate(similar_knowledge)
+                ]
+            )
+
+        failed_knowledge_str = ""
+        if failed_knowledge:
+            failed_knowledge_str = "\n".join(
+                [
+                    f"### Failed Attempt {i+1}:\n```yaml\n{knowledge.implementation.file_dict.get('config.yaml', '')}\n```\n**Feedback:** {knowledge.feedback}"
+                    for i, knowledge in enumerate(failed_knowledge)
+                ]
+            )
+
+        # Generate prompts using templates
+        system_prompt = T("components.coder.finetune.prompts:finetune_coder.system").r(
+            task_desc=task_info,
+            similar_knowledge=similar_knowledge_str,
+            failed_knowledge=failed_knowledge_str,
+        )
+
+        user_prompt = T("components.coder.finetune.prompts:finetune_coder.user").r(
+            latest_code=(
+                prev_feedback.implementation.file_dict.get("config.yaml", "")
+                if prev_feedback and prev_feedback.implementation
+                else ""
+            ),
+            latest_feedback=str(prev_feedback) if prev_feedback else "",
+        )
+
+        # Call LLM to generate config
+        try:
+            from rdagent.oai.llm_utils import APIBackend
+
+            api = APIBackend()
+            response = api.build_messages_and_create_chat_completion(
+                user_prompt=user_prompt,
+                system_prompt=system_prompt,
+                json_mode=False,
+            )
+
+            # Extract YAML content from response
+            import re
+
+            yaml_pattern = r"```yaml\s*\n(.*?)\n```"
+            match = re.search(yaml_pattern, response, re.DOTALL)
+            if match:
+                return match.group(1).strip()
+
+            # Fallback: try to find any YAML-like content
+            yaml_pattern = r"^([a-zA-Z_][a-zA-Z0-9_]*\s*:.*?)(?=\n[a-zA-Z_][a-zA-Z0-9_]*\s*:|$)"
+            matches = re.findall(yaml_pattern, response, re.DOTALL | re.MULTILINE)
+            if matches:
+                return "\n".join(matches)
+
+            # If no YAML found, return fallback config
+            logger.warning("No YAML configuration found in LLM response, using fallback")
+            return self._generate_llamafactory_config(
+                base_model, finetune_method, dataset, debug_mode, task_info, similar_knowledge, failed_knowledge
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to generate config with LLM: {e}, using fallback")
+            return self._generate_llamafactory_config(
+                base_model, finetune_method, dataset, debug_mode, task_info, similar_knowledge, failed_knowledge
+            )
 
     def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
         """Assign generated code to the evolving experiment"""

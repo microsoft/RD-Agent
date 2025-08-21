@@ -1,77 +1,70 @@
-"""
-LLM Fine-tuning Loop Implementation
-
-Optimized LLM fine-tuning loop that preprocesses data during initialization
-and focuses on model fine-tuning in the main loop.
-"""
-
+import shutil
 from pathlib import Path
+from typing import Any
 
 from rdagent.app.finetune.llm.conf import LLMFinetunePropSetting
-
-# Import base class and settings
 from rdagent.components.workflow.rd_loop import RDLoop
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.finetune.data_process.data_format_converter import (
     DataFormatConverter,
 )
-from rdagent.scenarios.finetune.tasks import create_llm_finetune_tasks
-
-# Import LLM-specific components
-from rdagent.scenarios.finetune.train.coder import LLMPipelineCoSTEER
-from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
-from rdagent.utils.agent.tpl import T
 
 
 class LLMFinetuneRDLoop(RDLoop):
-    """LLM fine-tuning loop with data preprocessing during initialization"""
+    """LLM fine-tuning loop using standard RDLoop workflow"""
 
     def __init__(self, PROP_SETTING: LLMFinetunePropSetting):
-        # TODO: Issues to resolve after inheriting from RDLoop base class:
-        # 1. Missing config fields: LLMFinetunePropSetting lacks the following required fields:
-        #    - hypothesis2experiment: Hypothesis to experiment converter
-        #    - coder: Code generator (currently exists but needs configuration)
-        #    - runner: Code runner
-        #    - summarizer: Result summarizer
-        # 2. Method conflicts: Current run() method conflicts with base class run() method, needs renaming
-        # 3. Workflow integration: Need to implement base class workflow steps (direct_exp_gen, coding, running, feedback)
-        # 4. Configuration completion: Add missing fields in LLMFinetunePropSetting to support base class initialization
-        #
-        # Currently commented out super().__init__(PROP_SETTING) to avoid errors caused by missing configuration
-        super().__init__(PROP_SETTING)
+        # Initialize scenario first
+        scen = import_class(PROP_SETTING.scen)()
+        logger.log_object(scen, tag="scenario")
+        logger.log_object(PROP_SETTING.model_dump(), tag="RDLOOP_SETTINGS")
+        logger.log_object(RD_AGENT_SETTINGS.model_dump(), tag="RD_AGENT_SETTINGS")
 
-        # Extract dataset and model from PROP_SETTING
+        # Initialize RDLoop components
+        self.hypothesis_gen = import_class(PROP_SETTING.hypothesis_gen)(scen)
+        self.hypothesis2experiment = import_class(PROP_SETTING.hypothesis2experiment)()
+        self.coder = import_class(PROP_SETTING.coder)(scen)
+        self.runner = import_class(PROP_SETTING.runner)(scen)
+        self.summarizer = import_class(PROP_SETTING.summarizer)(scen)
+
+        # Initialize trace
+        from rdagent.core.proposal import Trace
+
+        self.trace = Trace(scen=scen)
+
+        # Store finetune settings
+        self.ft_rd_setting = PROP_SETTING
         self.dataset = PROP_SETTING.dataset
         self.model = PROP_SETTING.base_model_name
-        self.ft_rd_setting = PROP_SETTING
 
-        # Create scenario
-        scen_class = import_class(PROP_SETTING.scen)
-        self.scen = scen_class()
+        # Setup environment
+        self._setup_environment()
 
-        # Create code generator
-        self.coder = LLMPipelineCoSTEER(self.scen)
+        # Preprocess data during initialization
+        self._preprocess_data()
 
-        # Create environment with volume mapping for data visibility
+        # Initialize LoopBase (skip RDLoop.__init__ to avoid double initialization)
+        from rdagent.utils.workflow import LoopBase
+
+        LoopBase.__init__(self)
+
+    def _setup_environment(self):
+        """Setup Docker environment with proper volume mappings"""
         data_volumes = {}
-        if PROP_SETTING.local_data_path:
-            # Input data should be read-only to protect original data
-            data_volumes[PROP_SETTING.local_data_path] = {
+
+        if self.ft_rd_setting.local_data_path:
+            data_volumes[self.ft_rd_setting.local_data_path] = {
                 "bind": "/workspace/llm_finetune/data/raw",
                 "mode": "ro",
             }
 
-        # Get finetune base directory from config
-        finetune_base_dir = Path(PROP_SETTING.file_path)
+        # Setup workspace directories
+        finetune_base_dir = Path(self.ft_rd_setting.file_path)
         finetune_base_dir.mkdir(parents=True, exist_ok=True)
 
-        # Ensure output directory is visible outside container and writable
         output_dir = finetune_base_dir / "llm_finetune_output"
-        # Clean output directory for fresh start
-        import shutil
-
         if output_dir.exists():
             shutil.rmtree(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -80,9 +73,7 @@ class LLMFinetuneRDLoop(RDLoop):
             "mode": "rw",
         }
 
-        # Create shared workspace directory to persist data between steps
         self.shared_workspace_dir = finetune_base_dir / "llm_finetune_shared_workspace"
-        # Clean shared workspace for fresh start
         if self.shared_workspace_dir.exists():
             shutil.rmtree(self.shared_workspace_dir)
         self.shared_workspace_dir.mkdir(parents=True, exist_ok=True)
@@ -91,152 +82,72 @@ class LLMFinetuneRDLoop(RDLoop):
             "mode": "rw",
         }
 
-        # Import get_ft_env from finetune coder configuration
         from rdagent.components.coder.finetune.conf import get_ft_env
 
         self.env = get_ft_env(
             extra_volumes=data_volumes,
-            running_timeout_period=None,  # No time limit
+            running_timeout_period=None,
             enable_cache=False,
         )
 
-        logger.info(f"Initialized LLM finetune loop for {self.model} on {self.dataset}")
-        logger.info(f"Shared workspace: {self.shared_workspace_dir}")
-
-        # Preprocess data during initialization
-        self._preprocess_data()
-
     def _preprocess_data(self):
-        """Preprocess and convert dataset format during initialization"""
+        """Preprocess dataset format during initialization"""
         logger.info("Preprocessing dataset format...")
 
-        # Create data format converter
         data_converter = DataFormatConverter(
-            dataset=self.dataset, model=self.model, ft_rd_setting=self.ft_rd_setting, scen=self.scen
-        )
-
-        # Convert dataset format
-        success = data_converter.convert_dataset(self.env, self.shared_workspace_dir)
-
-        if not success:
-            raise RuntimeError("Failed to preprocess dataset. Cannot proceed with fine-tuning.")
-
-        logger.info("Dataset preprocessing completed successfully")
-
-    def run(self):
-        """Run LLM fine-tuning"""
-        logger.info("Starting LLM fine-tuning...")
-
-        # Data has already been preprocessed in __init__
-        # Now focus on model fine-tuning
-        finetune_exp = self._create_finetuning_experiment()
-        finetune_exp = self.coder.develop(finetune_exp)
-        self._execute_experiment(finetune_exp)
-
-        logger.info("LLM fine-tuning completed!")
-
-    def _create_finetuning_experiment(self) -> DSExperiment:
-        """Create fine-tuning experiment"""
-
-        # Get runtime environment information
-        runtime_info = get_runtime_environment_by_env(self.env)
-
-        # Get LLaMA-Factory usage guide
-        llamafactory_guide = T("scenarios.finetune.train.prompts:llamafactory_guide").r()
-
-        # Create fine-tuning task
-        task = create_llm_finetune_tasks(self.dataset, self.model)[1]  # Second task is fine-tuning
-
-        # Set task description using template
-        task.description = T("scenarios.finetune.train.prompts:finetuning_task_prompt").r(
-            model=self.model,
             dataset=self.dataset,
-            runtime_info=runtime_info,
-            llamafactory_guide=llamafactory_guide,
+            model=self.model,
+            ft_rd_setting=self.ft_rd_setting,
+            scen=import_class(self.ft_rd_setting.scen)(),
         )
 
-        return DSExperiment(pending_tasks_list=[[task]])
+        success = data_converter.convert_dataset(self.env, self.shared_workspace_dir)
+        if not success:
+            raise RuntimeError("Failed to preprocess dataset")
 
-    def _execute_experiment(self, exp: DSExperiment):
+        logger.info("Dataset preprocessing completed")
+
+    async def direct_exp_gen(self, prev_out: dict[str, Any]):
+        """Generate LLM fine-tuning experiment"""
+        if self.get_unfinished_loop_cnt(self.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
+            exp = self.hypothesis_gen.gen(self.trace)
+            logger.log_object(exp.sub_tasks, tag="experiment generation")
+            return exp
+
+        import asyncio
+
+        await asyncio.sleep(1)
+
+    def coding(self, prev_out: dict[str, Any]):
+        """Generate fine-tuning code"""
+        exp = prev_out["direct_exp_gen"]
+        exp = self.coder.develop(exp)
+        logger.log_object(exp.sub_workspace_list, tag="coder result")
+        return exp
+
+    def running(self, prev_out: dict[str, Any]):
         """Execute fine-tuning experiment"""
-        logger.info("Executing fine-tuning experiment...")
+        exp = prev_out["coding"]
+        exp = self.runner.develop(exp)
+        logger.log_object(exp, tag="runner result")
+        return exp
 
-        if not exp.is_ready_to_run():
-            logger.error("Fine-tuning experiment is not ready to run")
-            return
+    def feedback(self, prev_out: dict[str, Any]):
+        """Generate feedback from experiment results"""
+        e = prev_out.get(self.EXCEPTION_KEY, None)
+        if e is not None:
+            from rdagent.core.proposal import HypothesisFeedback
 
-        # Final parameter validation before execution
-        self._validate_generated_config(exp)
-
-        # Execute experiment
-        workspace = exp.experiment_workspace
-        if workspace and hasattr(workspace, "run"):
-            result = workspace.run(env=self.env, entry="python main.py")
-            logger.info(f"Fine-tuning execution result: {result.exit_code}")
-            if result.stdout:
-                logger.info(f"Fine-tuning output:\n{result.stdout}")
-        else:
-            logger.warning("No executable workspace found for fine-tuning")
-
-    def _validate_generated_config(self, exp: DSExperiment):
-        # TODO: move to coder evaluation
-        """Final validation of generated configuration using LLamaFactory official parameter validator."""
-        try:
-            import re
-
-            import yaml
-
-            from rdagent.scenarios.finetune.train.utils import (
-                create_parameter_validator,
+            feedback = HypothesisFeedback(
+                observations=str(e),
+                hypothesis_evaluation="",
+                new_hypothesis="",
+                reason="",
+                decision=False,
             )
-
-            validator = create_parameter_validator()
-            workspace = exp.experiment_workspace
-
-            if workspace and hasattr(workspace, "file_dict"):
-                main_py = workspace.file_dict.get("main.py", "")
-                validation_warnings = []
-
-                # Extract and validate YAML configurations from the code
-                yaml_patterns = [
-                    r"yaml\.dump\s*\(\s*(\{[^}]+\})",  # yaml.dump({...})
-                    r"config\s*=\s*(\{[^}]+\})",  # config = {...}
-                    r"training_args\s*=\s*(\{[^}]+\})",  # training_args = {...}
-                ]
-
-                for pattern in yaml_patterns:
-                    matches = re.finditer(pattern, main_py, re.DOTALL)
-                    for match in matches:
-                        try:
-                            # Extract and safely evaluate configuration dictionary
-                            config_str = match.group(1)
-                            # Convert Python dict format to evaluable format
-                            config_str = re.sub(r"\s+", " ", config_str.strip())
-
-                            config_dict = eval(config_str)  # Safe since we control the pattern
-                            if isinstance(config_dict, dict):
-                                # Validate using official LLamaFactory validator
-                                original_param_count = len(config_dict)
-                                validated_config = validator.validate_config_dict(config_dict)
-                                validated_param_count = len(validated_config)
-
-                                if validated_param_count < original_param_count:
-                                    invalid_params = set(config_dict.keys()) - set(validated_config.keys())
-                                    warning_msg = f"Found {len(invalid_params)} invalid LLamaFactory parameters: {list(invalid_params)}"
-                                    validation_warnings.append(warning_msg)
-
-                        except Exception as e:
-                            logger.debug(f"Could not parse config pattern: {e}")
-                            continue
-
-                # Report validation results
-                if validation_warnings:
-                    logger.warning("Pre-execution validation completed with warnings:")
-                    for warning in validation_warnings:
-                        logger.warning(f"  - {warning}")
-                    logger.warning("Training may encounter issues with these parameters.")
-                else:
-                    logger.info("Pre-execution parameter validation: All parameters appear valid")
-
-        except Exception as e:
-            logger.warning(f"Error during pre-execution validation: {e}")
+            logger.log_object(feedback, tag="feedback")
+            self.trace.hist.append((prev_out["direct_exp_gen"], feedback))
+        else:
+            feedback = self.summarizer.generate_feedback(prev_out["running"], self.trace)
+            logger.log_object(feedback, tag="feedback")
+            self.trace.hist.append((prev_out["running"], feedback))

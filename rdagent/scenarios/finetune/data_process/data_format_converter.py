@@ -97,22 +97,65 @@ class DataFormatConverter:
             return False
 
     def _get_dataset_samples(self) -> str:
-        """Get dataset samples for processing"""
+        """Get actual dataset samples for processing"""
+        import json
+
+        import pandas as pd
+
         try:
-            # In Docker environment, dataset is mounted at /workspace/llm_finetune/data/raw
+            # Try Docker environment path first
             dataset_path = Path("/workspace/llm_finetune/data/raw") / self.dataset
-            if dataset_path.exists():
-                return f"Dataset path: {dataset_path}\nPlease load and analyze the dataset from this path."
+            if not dataset_path.exists():
+                # Fallback to local path for non-Docker environments
+                dataset_path = Path(self.ft_rd_setting.local_data_path) / self.dataset
 
-            # Fallback to local path for non-Docker environments
-            local_dataset_path = Path(self.ft_rd_setting.local_data_path) / self.dataset
-            if local_dataset_path.exists():
-                return f"Dataset path: {local_dataset_path}\nPlease load and analyze the dataset from this path."
+            if not dataset_path.exists():
+                return f"Dataset {self.dataset} not found at expected paths."
 
-            return f"Dataset {self.dataset} not found. Please ensure it's available at the expected path."
+            # Find data files in the dataset directory
+            data_files = []
+            for ext in ["*.json", "*.jsonl", "*.csv", "*.parquet"]:
+                data_files.extend(list(dataset_path.glob(ext)))
+
+            if not data_files:
+                return f"No supported data files found in {dataset_path}. Supported formats: json, jsonl, csv, parquet"
+
+            # Load sample from the first data file
+            data_file = data_files[0]
+            sample_data = None
+
+            if data_file.suffix.lower() == ".json":
+                with open(data_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if isinstance(data, list) and len(data) > 0:
+                        sample_data = data[0]
+                    elif isinstance(data, dict):
+                        sample_data = data
+
+            elif data_file.suffix.lower() == ".jsonl":
+                with open(data_file, "r", encoding="utf-8") as f:
+                    first_line = f.readline().strip()
+                    if first_line:
+                        sample_data = json.loads(first_line)
+
+            elif data_file.suffix.lower() == ".csv":
+                df = pd.read_csv(data_file)
+                if len(df) > 0:
+                    sample_data = df.iloc[0].to_dict()
+
+            elif data_file.suffix.lower() == ".parquet":
+                df = pd.read_parquet(data_file)
+                if len(df) > 0:
+                    sample_data = df.iloc[0].to_dict()
+
+            if sample_data is not None:
+                return json.dumps(sample_data, ensure_ascii=False, indent=2)
+            else:
+                return f"Could not extract sample from {data_file.name}"
+
         except Exception as e:
             logger.warning(f"Could not load dataset samples: {e}")
-            return f"Dataset: {self.dataset}\nPlease download and analyze the dataset."
+            return f"Dataset: {self.dataset}\nError loading samples: {str(e)}"
 
     def _verify_converted_data(self, shared_workspace_dir: Path):
         """Verify that converted data exists in the shared workspace"""
