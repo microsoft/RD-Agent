@@ -10,7 +10,7 @@ from pathlib import Path
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.finetune.tasks import create_llm_finetune_tasks
-from rdagent.scenarios.finetune.train.coder import LLMPipelineCoSTEER
+from rdagent.scenarios.finetune.train.runner import LLMFinetuneRunner
 from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow.misc import wait_retry
@@ -24,7 +24,7 @@ class DataFormatConverter:
         self.model = model
         self.ft_rd_setting = ft_rd_setting
         self.scen = scen
-        self.coder = LLMPipelineCoSTEER(scen)
+        self.coder = LLMFinetuneRunner(scen)
 
     def convert_dataset(self, env, shared_workspace_dir: Path) -> bool:
         """
