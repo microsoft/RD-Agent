@@ -119,12 +119,15 @@ class DataScienceScen(Scenario):
         )
         self.metric_name = response_json_analysis.get("Metric Name", "custom_metric")
         self.metric_direction_guess = response_json_analysis.get("Metric Direction", True)
-        self.longer_time_limit_required = False if not DS_RD_SETTING.allow_longer_timeout else (
-            response_json_analysis.get(
-                "Longer time limit required", False
-            ) if DS_RD_SETTING.longer_timeout_by_llm else True
+        self.longer_time_limit_required = (
+            False
+            if not DS_RD_SETTING.allow_longer_timeout
+            else (
+                response_json_analysis.get("Longer time limit required", False)
+                if DS_RD_SETTING.longer_timeout_by_llm
+                else True
+            )
         )
-
 
         # True or False, whether the competition scenario requires a longer time limit to the code.
 
@@ -135,7 +138,8 @@ class DataScienceScen(Scenario):
                 DS_RD_SETTING.coder_longer_timeout_multiplier_upper,
                 self.timeout_increase_count * DS_RD_SETTING.timeout_increase_stage + 1,
             )
-            if self.longer_time_limit_required else DS_RD_SETTING.debug_timeout
+            if self.longer_time_limit_required
+            else DS_RD_SETTING.debug_timeout
         )
 
     def recommend_debug_timeout(self):
@@ -148,7 +152,8 @@ class DataScienceScen(Scenario):
                 DS_RD_SETTING.runner_longer_timeout_multiplier_upper,
                 self.timeout_increase_count * DS_RD_SETTING.timeout_increase_stage + 1,
             )
-            if self.longer_time_limit_required else DS_RD_SETTING.full_timeout
+            if self.longer_time_limit_required
+            else DS_RD_SETTING.full_timeout
         )
 
     def recommend_full_timeout(self):
