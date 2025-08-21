@@ -15,9 +15,32 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="FT_", protected_namespaces=())
 
-    # Core Components
+    # Main Components
     scen: str = "rdagent.scenarios.finetune.scen.LLMFinetuneScen"
-    hypothesis_gen: str = "rdagent.app.finetune.llm.proposal.FinetuneExpGen"
+    """Scenario class for LLM fine-tuning tasks."""
+
+    hypothesis_gen: str = "rdagent.scenarios.finetune.proposal.proposal.LLMFinetuneExpGen"
+    """Hypothesis generation class for LLM fine-tuning tasks."""
+
+    hypothesis2experiment: str = "rdagent.scenarios.finetune.proposal.proposal.LLMHypothesis2Experiment"
+    """Hypothesis to experiment converter.
+    Function: Convert abstract LLM fine-tuning hypotheses into concrete experiment configurations.
+    """
+
+    coder: str = "rdagent.scenarios.finetune.train.coder.LLMPipelineCoSTEER"
+    """Code generator.
+    Function: Generate LLM fine-tuning code based on experiment design.
+    """
+
+    runner: str = "rdagent.scenarios.finetune.train.runner.LLMFinetuneRunner"
+    """Code runner.
+    Function: Execute LLM fine-tuning code in a Docker environment.
+    """
+
+    summarizer: str = "rdagent.scenarios.finetune.dev.feedback.LLMExperiment2Feedback"
+    """Result summarizer - To be implemented.
+    Function: Analyze fine-tuning results and generate feedback, including performance metrics and error analysis.
+    """
 
     # Timeouts (longer for LLM training)
     debug_timeout: int = 36000
