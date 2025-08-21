@@ -96,4 +96,4 @@ You can try our demo by running the following command:
   
     .. code-block:: sh
 
-        rdagent general_model --report_file_path=<path_to_pdf_file>
+        rdagent general_model --report-file-path=<path_to_pdf_file>
