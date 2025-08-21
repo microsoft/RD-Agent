@@ -40,7 +40,7 @@ class LLMFinetuneRDLoop(RDLoop):
         # 4. Configuration completion: Add missing fields in LLMFinetunePropSetting to support base class initialization
         #
         # Currently commented out super().__init__(PROP_SETTING) to avoid errors caused by missing configuration
-        # super().__init__(PROP_SETTING)
+        super().__init__(PROP_SETTING)
 
         # Extract dataset and model from PROP_SETTING
         self.dataset = PROP_SETTING.dataset

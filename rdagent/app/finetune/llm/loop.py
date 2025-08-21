@@ -31,8 +31,12 @@ def main(
         Model name for fine-tuning (e.g., 'Qwen/Qwen2.5-1.5B-Instruct')
 
     Example:
+    set model manually:
     .. code-block:: bash
         dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh --model Qwen/Qwen2.5-1.5B-Instruct
+    TODO: set model automatically:
+    .. code-block:: bash
+        dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh
     """
     if not dataset:
         raise Exception("Please specify dataset name using --dataset")
@@ -44,7 +48,6 @@ def main(
     ft_root_str = os.environ.get("FT_FILE_PATH")
     if not ft_root_str:
         raise Exception("Please set FT_FILE_PATH environment variable")
-
     ft_root = Path(ft_root_str)
     if not ft_root.exists():
         raise Exception(f"FT_FILE_PATH does not exist: {ft_root}")
