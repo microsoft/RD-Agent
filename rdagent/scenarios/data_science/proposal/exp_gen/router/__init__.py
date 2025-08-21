@@ -14,7 +14,7 @@ from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.draft.draft import DSDraftV2ExpGen
-from rdagent.scenarios.data_science.proposal.exp_gen.merge import ExpGen2Hypothesis,ExpGen3Hypothesis
+from rdagent.scenarios.data_science.proposal.exp_gen.merge import ExpGen2Hypothesis,ExpGen3Hypothesis,ExpGen4Hypothesis,ExpGen5Hypothesis
 from rdagent.scenarios.data_science.proposal.exp_gen.planner import (
     DSExperimentPlan,
     ExperimentPlan,
@@ -48,9 +48,9 @@ class ParallelMultiTraceExpGen(ExpGen):
         self.draft_exp_gen = DSDraftV2ExpGen(self.scen)
 
         if DS_RD_SETTING.ensemble_with_merge:
-            self.merge_exp_gen = ExpGen3Hypothesis(self.scen)
+            self.merge_exp_gen = ExpGen4Hypothesis(self.scen) # change max selector + smooth
         else:
-            self.merge_exp_gen = ExpGen2Hypothesis(self.scen)
+            self.merge_exp_gen = ExpGen2Hypothesis(self.scen) # ExpGen5Hypothesis change max selector
 
         # self.trace_scheduler: TraceScheduler = RoundRobinScheduler(DS_RD_SETTING.max_trace_num)
         self.trace_scheduler: TraceScheduler = import_class(DS_RD_SETTING.trace_scheduler)(

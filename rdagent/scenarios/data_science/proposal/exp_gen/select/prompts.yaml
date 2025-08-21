@@ -52,7 +52,6 @@ auto_sota_selector:
 
       * While pretrained models are often better at generalization, they **can still overfit** if fine-tuned too aggressively or if the data used for fine-tuning is insufficient.
       * Pay close attention to regularization techniques (e.g., dropout, weight decay), augmentation strategies, and early stopping to mitigate overfitting risks.
-      * Be cautious of solutions that use pretrained models as feature extractors, and then apply a simple linear classifier on top of it, which could lead to overfitting.
 
     5. **Domain Adaptation**
 
