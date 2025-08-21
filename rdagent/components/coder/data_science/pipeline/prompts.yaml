@@ -234,7 +234,7 @@ pipeline_eval:
       - Warnings are acceptable if they do not interfere with successful code execution.
       - **Environment Constraint**: The coding environment is fixed and pre-configured. No package installation or modification is allowed. Code must use only existing pre-installed packages.
     - If the code execute successfully:
-      - Proceed to Step 2 and overlook the remaining steps in Step 1.
+      - Proceed to the next aspect and overlook the remaining steps in this aspect.
     - If the code does not execute successfully:
       - Set the "final_decision" to false.
       {% if enable_context7 %}
@@ -299,7 +299,7 @@ pipeline_eval:
     {% endif %}
 
     {% if queried_similar_successful_knowledge|length != 0 %}
-    ### Step 6: Similar Successful Implementations to help Code Improvement
+    ### Similar Successful Implementations to help Code Improvement
     The user has done several similar tasks and get some successful implementations. These code might not be implemented to the same task, but they are similar to your task and they might work well on your dataset.
     Please refer to these successful implementation and provide your suggestions in your response on how to correct your current code based on these successful implementations.
     ## Successful Implementations for Similar Tasks
