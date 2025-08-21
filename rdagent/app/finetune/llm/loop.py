@@ -1,12 +1,13 @@
 """
 LLM Fine-tuning Entry Point
 
-Simple entry point for LLM fine-tuning, similar to data science loop structure.
-Delegates business logic to scenarios.finetune module.
+Standard RDLoop entry point for LLM fine-tuning, consistent with data science implementation.
 """
 
+import asyncio
 import os
 from pathlib import Path
+from typing import Optional
 
 import fire
 
@@ -19,6 +20,9 @@ from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
 def main(
     model: str | None = None,
     dataset: str | None = None,
+    step_n: Optional[int] = None,
+    loop_n: Optional[int] = None,
+    timeout: Optional[str] = None,
 ):
     """
     LLM fine-tuning entry point
@@ -29,14 +33,17 @@ def main(
         Dataset name for fine-tuning (e.g., 'shibing624/alpaca-zh')
     model : str
         Model name for fine-tuning (e.g., 'Qwen/Qwen2.5-1.5B-Instruct')
+    step_n : int, optional
+        Number of steps to run; if None, runs indefinitely until completion or error
+    loop_n : int, optional
+        Number of loops to run; if None, runs indefinitely until completion or error
+    timeout : str, optional
+        Maximum duration for the entire process
 
     Example:
-    set model manually:
     .. code-block:: bash
         dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh --model Qwen/Qwen2.5-1.5B-Instruct
-    TODO: set model automatically:
-    .. code-block:: bash
-        dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh
+        dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh --model Qwen/Qwen2.5-1.5B-Instruct --step_n 1
     """
     if not dataset:
         raise Exception("Please specify dataset name using --dataset")
@@ -58,14 +65,13 @@ def main(
     # Update FT setting instance with provided dataset and model
     FT_RD_SETTING.dataset = dataset
     FT_RD_SETTING.base_model_name = model
-    # If FT_FILE_PATH is configured, directly mount from its dataset directory
     if FT_RD_SETTING.file_path:
         FT_RD_SETTING.local_data_path = os.path.join(FT_RD_SETTING.file_path, "dataset")
 
-    # Create and run LLM fine-tuning loop
+    # Create and run LLM fine-tuning loop using standard RDLoop async workflow
     logger.info(f"Starting LLM fine-tuning: {model} on {dataset}")
     loop = LLMFinetuneRDLoop(FT_RD_SETTING)
-    loop.run()
+    asyncio.run(loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout))
     logger.info("LLM fine-tuning completed!")
 
 
