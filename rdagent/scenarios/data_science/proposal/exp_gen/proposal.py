@@ -1043,7 +1043,7 @@ class DSProposalV2ExpGen(ExpGen):
         #sota_flag = (hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None)
         bvs = BestValidSelector()
         sota_exp = bvs.get_sota_exp_to_submit(trace)
-        sota_flag = (sota_exp is not None and sota_exp.result)
+        sota_flag = (sota_exp is not None and sota_exp.result is not None)
         if sota_flag:
             current_sota_score = sota_exp.result.loc["ensemble"].iloc[0].round(3) #trace.sota_exp_to_submit
         else:
