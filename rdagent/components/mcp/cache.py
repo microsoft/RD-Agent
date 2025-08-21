@@ -1,164 +1,227 @@
-"""MCP cache management module.
+"""MCP cache implementation based on SQliteLazyCache inheritance.
 
-Provides general caching functionality for MCP tools and query result caching.
-Reuses RD-Agent's existing SQLite cache system with permanent caching strategy.
+This module provides an MCP cache by extending the existing SQliteLazyCache
+with MCP-specific functionality while maintaining consistency with the base system.
 """
 
 import hashlib
 from typing import Any, Dict, Optional
 
+from rdagent.components.mcp.conf import get_mcp_global_settings
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.backend.base import SQliteLazyCache
-from rdagent.oai.llm_conf import LLM_SETTINGS
 
 
-class MCPCache:
-    """MCP cache manager based on existing SQLite cache system.
+class MCPCache(SQliteLazyCache):
+    """MCP cache extending SQliteLazyCache with MCP-specific features.
 
-    Uses permanent caching strategy, consistent with LITELLM.
+    This class inherits all functionality from SQliteLazyCache and adds:
+    - MCP-specific key formatting with namespace
+    - Query result caching with statistics
+    - Tool caching support (disabled for now due to serialization complexity)
+    - Improved logging and monitoring
     """
 
-    def __init__(self):
-        """Initialize cache manager.
+    def __init__(self, namespace: str = "mcp"):
+        """Initialize MCP cache.
 
-        Uses permanent caching without expiration time.
+        Args:
+            namespace: Cache namespace to avoid key conflicts (default: "mcp")
         """
-        self._cache = SQliteLazyCache(cache_location=LLM_SETTINGS.prompt_cache_path)
-        self._stats = {"tools_hits": 0, "tools_misses": 0, "query_hits": 0, "query_misses": 0}
+        # Use MCP-specific cache file
+        mcp_settings = get_mcp_global_settings()
+        super().__init__(cache_location=mcp_settings.cache_path)
+        self.namespace = namespace
+        self._stats = {"query_hits": 0, "query_misses": 0, "tools_hits": 0, "tools_misses": 0}
 
-    def _get_cached_result(self, cache_key: str) -> Optional[str]:
-        """Get result from SQLite cache."""
-        return self._cache.chat_get(cache_key)
+    def _make_namespaced_key(self, key: str) -> str:
+        """Create namespaced cache key.
 
-    def _set_cached_result(self, cache_key: str, result: str):
-        """Set SQLite cache result."""
-        self._cache.chat_set(cache_key, result)
+        Args:
+            key: Original cache key
 
-    def get_tools(self, mcp_url: str) -> Optional[Any]:
-        """Get cached tools.
+        Returns:
+            Namespaced cache key with prefix
+        """
+        return f"{self.namespace}:{key}"
+
+    def _make_query_key(self, error_message: str) -> str:
+        """Create standardized query cache key.
+
+        Args:
+            error_message: Error message to cache
+
+        Returns:
+            Standardized cache key for query results
+        """
+        hash_digest = hashlib.md5(error_message.encode("utf-8")).hexdigest()
+        return self._make_namespaced_key(f"query:{hash_digest}")
+
+    def _make_tools_key(self, mcp_url: str) -> str:
+        """Create standardized tools cache key.
 
         Args:
             mcp_url: MCP service URL
 
         Returns:
-            Cached tools list, returns None if cache miss
+            Standardized cache key for tools
         """
-        # Tool object serialization is complex, temporarily not implementing tool caching
-        self._stats["tools_misses"] += 1
-        logger.info(f"Tools cache miss for URL: {mcp_url} (tools caching disabled)")
-        return None
-
-    def set_tools(self, mcp_url: str, tools: Any):
-        """Set tools cache.
-
-        Args:
-            mcp_url: MCP service URL
-            tools: Tools list to cache (currently unused)
-        """
-        # Temporarily not caching tool objects as they contain complex objects that are difficult to serialize
-        logger.info(f"Tools caching skipped for URL: {mcp_url} (complex objects)")
+        url_hash = hashlib.md5(mcp_url.encode("utf-8")).hexdigest()
+        return self._make_namespaced_key(f"tools:{url_hash}")
 
     def get_query_result(self, error_message: str) -> Optional[str]:
-        """Get cached query result.
+        """Get cached query result with statistics tracking.
 
         Args:
-            error_message: Error message
+            error_message: Error message to look up
 
         Returns:
-            Cached query result, returns None if cache miss
+            Cached query result or None if not found
         """
-        cache_key = f"mcp_query:{hashlib.md5(error_message.encode('utf-8')).hexdigest()}"
-        cached_result = self._get_cached_result(cache_key)
+        cache_key = self._make_query_key(error_message)
+        result = self.chat_get(cache_key)
 
-        if cached_result:
+        if result:
             self._stats["query_hits"] += 1
-            logger.info(f"Query cache hit for key: {cache_key[-8:]}...")
-            return cached_result
+            logger.info(f"MCP query cache hit for key: {cache_key[-8:]}...")
+            return result
 
         self._stats["query_misses"] += 1
-        logger.info(f"Query cache miss for key: {cache_key[-8:]}...")
+        logger.info(f"MCP query cache miss for key: {cache_key[-8:]}...")
         return None
 
-    def set_query_result(self, error_message: str, result: str):
-        """Set query result cache.
+    def set_query_result(self, error_message: str, result: str) -> None:
+        """Cache query result with standardized key.
 
         Args:
-            error_message: Error message
-            result: Query result
+            error_message: Error message (used for key generation)
+            result: Query result to cache
         """
-        cache_key = f"mcp_query:{hashlib.md5(error_message.encode('utf-8')).hexdigest()}"
-        self._set_cached_result(cache_key, result)
-        logger.info(f"Query result cached for key: {cache_key[-8:]}...")
+        cache_key = self._make_query_key(error_message)
+        self.chat_set(cache_key, result)
+        logger.info(f"MCP query result cached for key: {cache_key[-8:]}...")
 
-    def clear_cache(self):
-        """Clear all MCP cache."""
-        cleared_count = 0
-
-        # Clear all cache keys with mcp_ prefix
-        # Note: This requires traversing the entire database, performance may be poor
-        logger.warning("Clearing all MCP cache entries...")
-
-        # Due to SQLite interface limitations, we cannot directly traverse keys, so provide hints
-        logger.info(
-            "To completely clear MCP cache, please delete the SQLite cache file or use clear_mcp_cache_by_pattern()"
-        )
-
-        return cleared_count
-
-    def clear_query_cache(self, error_message: str = None):
-        """Clear query cache.
+    def get_tools(self, mcp_url: str) -> Optional[Any]:
+        """Get cached tools (currently disabled due to serialization complexity).
 
         Args:
-            error_message: If specified, only clear cache for specific error message; otherwise clear all query cache
+            mcp_url: MCP service URL
+
+        Returns:
+            None (tools caching is disabled)
+        """
+        # Tools caching is disabled due to complex object serialization issues
+        self._stats["tools_misses"] += 1
+        logger.info(f"MCP tools cache miss for URL: {mcp_url} (tools caching disabled)")
+        return None
+
+    def set_tools(self, mcp_url: str, tools: Any) -> None:
+        """Set tools cache (currently disabled).
+
+        Args:
+            mcp_url: MCP service URL
+            tools: Tools object to cache (currently unused)
+        """
+        # Tools caching is disabled due to complex object serialization issues
+        logger.info(f"MCP tools caching skipped for URL: {mcp_url} (complex objects)")
+
+    def clear_query_cache(self, error_message: Optional[str] = None) -> bool:
+        """Clear query cache entries.
+
+        Args:
+            error_message: If specified, clear only this specific query.
+                          If None, provides instructions for clearing all.
+
+        Returns:
+            True if operation completed successfully
         """
         if error_message:
-            # Clear cache for specific query
-            cache_key = f"mcp_query:{hashlib.md5(error_message.encode('utf-8')).hexdigest()}"
-            # SQLite has no direct delete method, we set to None to "delete"
-            self._set_cached_result(cache_key, "")  # Set to empty string to indicate deletion
-            logger.info(f"Cleared cache for specific query: {cache_key[-8:]}...")
+            cache_key = self._make_query_key(error_message)
+            # Use empty string to indicate deletion (SQLite limitation workaround)
+            self.chat_set(cache_key, "")
+            logger.info(f"Cleared MCP cache for specific query: {cache_key[-8:]}...")
+            return True
         else:
-            logger.info("To clear all query cache, please use clear_all_mcp_cache() or delete the cache file")
+            logger.info("To clear all MCP query cache, use clear_namespace() method or delete the cache file")
+            return False
 
-    def get_cache_info(self):
-        """Get cache information."""
-        stats = self.get_cache_stats()
-        cache_file = getattr(self._cache, "cache_location", "unknown")
+    def clear_namespace(self) -> int:
+        """Clear all cache entries for this namespace.
 
-        info = {"cache_file": cache_file, "stats": stats, "cache_type": "SQLite (shared with LITELLM)"}
+        Note: Due to SQLite interface limitations, this is not efficiently implemented.
+        Consider using clear_cache_by_file() for complete cache clearing.
 
-        logger.info(f"Cache info: {info}")
-        return info
+        Returns:
+            Number of entries cleared (currently always 0 due to implementation limits)
+        """
+        logger.warning(f"Clearing all MCP cache entries for namespace: {self.namespace}")
+        logger.info("Due to SQLite interface limitations, use clear_cache_by_file() " "for complete cache clearing")
+        return 0
 
     def get_cache_stats(self) -> Dict[str, Any]:
-        """Get cache statistics."""
+        """Get comprehensive cache statistics.
+
+        Returns:
+            Dictionary containing cache statistics and hit rates
+        """
         total_tools = self._stats["tools_hits"] + self._stats["tools_misses"]
         total_queries = self._stats["query_hits"] + self._stats["query_misses"]
 
         return {
+            "namespace": self.namespace,
+            "cache_file": self.cache_location,
             "tools_cache": {
                 "hits": self._stats["tools_hits"],
                 "misses": self._stats["tools_misses"],
+                "total": total_tools,
                 "hit_rate": self._stats["tools_hits"] / max(total_tools, 1),
-                "size": "N/A (SQLite)",
+                "status": "disabled (complex serialization)",
             },
             "query_cache": {
                 "hits": self._stats["query_hits"],
                 "misses": self._stats["query_misses"],
+                "total": total_queries,
                 "hit_rate": self._stats["query_hits"] / max(total_queries, 1),
-                "size": "N/A (SQLite)",
+                "status": "active",
             },
         }
 
-    def log_cache_stats(self):
-        """Log cache statistics to log."""
+    def log_cache_stats(self) -> None:
+        """Log current cache statistics."""
         stats = self.get_cache_stats()
         logger.info(
-            f"Cache stats - Tools: {stats['tools_cache']['hits']}/{stats['tools_cache']['hits'] + stats['tools_cache']['misses']} hits "
+            f"MCP Cache [{self.namespace}] - "
+            f"Tools: {stats['tools_cache']['hits']}/{stats['tools_cache']['total']} hits "
             f"({stats['tools_cache']['hit_rate']:.2%}), "
-            f"Queries: {stats['query_cache']['hits']}/{stats['query_cache']['hits'] + stats['query_cache']['misses']} hits "
+            f"Queries: {stats['query_cache']['hits']}/{stats['query_cache']['total']} hits "
             f"({stats['query_cache']['hit_rate']:.2%})"
         )
+
+    def get_cache_info(self) -> Dict[str, Any]:
+        """Get comprehensive cache information including file details.
+
+        Returns:
+            Dictionary with cache statistics and file information
+        """
+        import os
+
+        stats = self.get_cache_stats()
+
+        # Add file information
+        if os.path.exists(self.cache_location):
+            file_stat = os.stat(self.cache_location)
+            stats["file_info"] = {
+                "exists": True,
+                "size_mb": round(file_stat.st_size / (1024 * 1024), 2),
+                "modified_time": file_stat.st_mtime,
+            }
+        else:
+            stats["file_info"] = {"exists": False, "size_mb": 0, "modified_time": None}
+
+        stats["cache_type"] = "SQLite (MCP dedicated)"
+
+        logger.info(f"MCP Cache info: {stats}")
+        return stats
 
 
 # Global cache instance
@@ -169,7 +232,7 @@ def get_mcp_cache() -> MCPCache:
     """Get global MCP cache instance.
 
     Returns:
-        MCP cache instance (permanent cache)
+        MCP cache instance with inheritance-based design
     """
     global _global_cache
     if _global_cache is None:
@@ -177,20 +240,24 @@ def get_mcp_cache() -> MCPCache:
     return _global_cache
 
 
-def clear_mcp_cache_by_file():
-    """Clear all cache by deleting SQLite cache file.
+def clear_mcp_cache_by_file() -> bool:
+    """Clear all MCP cache by deleting SQLite cache file.
 
-    Note: This will clear all cache, including LITELLM cache!
+    This only affects MCP cache, not LiteLLM cache.
+
+    Returns:
+        True if successful, False otherwise
     """
     import os
 
-    from rdagent.oai.llm_conf import LLM_SETTINGS
+    # Use the same path as configured in MCP settings
+    mcp_settings = get_mcp_global_settings()
+    cache_file = mcp_settings.cache_path
 
-    cache_file = LLM_SETTINGS.prompt_cache_path
     if os.path.exists(cache_file):
         try:
             os.remove(cache_file)
-            logger.info(f"Successfully deleted cache file: {cache_file}")
+            logger.info(f"Successfully deleted MCP cache file: {cache_file}")
 
             # Reset global cache instance
             global _global_cache
@@ -198,28 +265,17 @@ def clear_mcp_cache_by_file():
 
             return True
         except Exception as e:
-            logger.error(f"Failed to delete cache file {cache_file}: {e}")
+            logger.error(f"Failed to delete MCP cache file {cache_file}: {e}")
             return False
     else:
-        logger.info(f"Cache file does not exist: {cache_file}")
+        logger.info(f"MCP cache file does not exist: {cache_file}")
         return True
 
 
-def get_cache_file_info():
-    """Get cache file information."""
-    import os
+def get_cache_file_info() -> Dict[str, Any]:
+    """Get cache file information.
 
-    from rdagent.oai.llm_conf import LLM_SETTINGS
-
-    cache_file = LLM_SETTINGS.prompt_cache_path
-
-    if os.path.exists(cache_file):
-        stat = os.stat(cache_file)
-        size_mb = stat.st_size / (1024 * 1024)
-
-        info = {"file_path": cache_file, "exists": True, "size_mb": round(size_mb, 2), "modified_time": stat.st_mtime}
-    else:
-        info = {"file_path": cache_file, "exists": False, "size_mb": 0, "modified_time": None}
-
-    logger.info(f"Cache file info: {info}")
-    return info
+    Returns:
+        Dictionary with file existence, size, and modification details
+    """
+    return get_mcp_cache().get_cache_info()["file_info"]

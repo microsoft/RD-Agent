@@ -3,6 +3,8 @@
 This module provides global configuration for the entire MCP system.
 """
 
+from pathlib import Path
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -20,6 +22,9 @@ class MCPGlobalSettings(BaseSettings):
 
     # Global cache control
     cache_enabled: bool = Field(default=False, description="Enable/disable MCP caching system-wide")
+
+    # MCP cache file path
+    cache_path: str = str(Path.cwd() / "mcp_cache.db")
 
     model_config = SettingsConfigDict(
         env_prefix="MCP_",

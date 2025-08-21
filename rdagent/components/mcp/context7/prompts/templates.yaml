@@ -16,7 +16,7 @@ context7_enhanced_query_template: |-
      - Provide API reference information, NOT complete code solutions
 
   3. TOOL USAGE REQUIREMENTS:
-     - ⚠️ CRITICAL: For EVERY call to 'resolve-library-id', you MUST follow it with a corresponding call to 'get-library-docs'
+     - ⚠️ CRITICAL: For EVERY call to 'resolve-library-id', you MUST follow it with A CORRESPONDING call to 'get-library-docs'
      - If you call 'resolve-library-id' N times, you MUST call 'get-library-docs' N times (one for each library you found)
      - Complete the full workflow: resolve → get-docs → analyze → respond
      - Do NOT provide final answers without first getting detailed documentation via 'get-library-docs'
