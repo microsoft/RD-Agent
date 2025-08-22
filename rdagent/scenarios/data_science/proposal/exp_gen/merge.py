@@ -716,7 +716,7 @@ class ExpGen4Hypothesis(DSProposalV2ExpGen):
         return next((i for i, leaf in enumerate(leaves) if leaf != trace.current_selection[0]))
     
     def hypothesis_smooth_with_llm(
-        self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str, hypothesis_candidates: dict
+        self, exp_feedback_list_desc: str, sota_exp_desc: str, hypothesis_candidates: dict
     ):
 
         res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
@@ -738,7 +738,6 @@ class ExpGen4Hypothesis(DSProposalV2ExpGen):
             ),
         )
         user_prompt = T(".merge:hypothesis_gen_smooth.user").r(
-            scenario_desc=scenario_desc,
             exp_and_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
         )
@@ -830,7 +829,6 @@ class ExpGen4Hypothesis(DSProposalV2ExpGen):
         #     selected_idx=0,
         # )
         response_dict = self.hypothesis_smooth_with_llm(
-            scenario_desc=scenario_desc,
             exp_feedback_list_desc=exp_to_merge_fb_desc,
             sota_exp_desc=sota_exp_desc,
             hypothesis_candidates=hypothesis_dict,
