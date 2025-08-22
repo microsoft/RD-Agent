@@ -91,19 +91,18 @@ class LLMFinetuneRunnerEvolvingStrategy(MultiProcessEvolvingStrategy):
             self.KEY_CHANGE_SUMMARY: "Modified configuration for full dataset training: removed sample limit, adjusted epochs",
         }
 
-    def assign_code_list_to_evo(self, code_list: list[dict], evo: EvolvingItem) -> None:
+    def assign_code_list_to_evo(self, code_list: list[dict], evo: EvolvingItem) -> EvolvingItem:
         """Assign the modified config to the evolving item."""
-        if not code_list:
-            return
-
-        # For runner, we only have one task and one code modification
-        code_dict = code_list[0] if code_list else {}
-
-        # Update the workspace with new config
-        if evo.workspace and code_dict:
-            for filename, content in code_dict.items():
-                if filename != self.KEY_CHANGE_SUMMARY:
-                    evo.workspace.file_dict[filename] = content
+        for index in range(len(evo.sub_tasks)):
+            if code_list[index] is None:
+                continue
+            if evo.sub_workspace_list[index] is None:
+                evo.sub_workspace_list[index] = evo.experiment_workspace
+            if code_list[index]:
+                # Filter out the change summary before injecting files
+                files_to_inject = {k: v for k, v in code_list[index].items() if k != self.KEY_CHANGE_SUMMARY}
+                evo.sub_workspace_list[index].inject_files(**files_to_inject)
+        return evo
 
 
 class LLMFinetuneRunner(CoSTEER):
