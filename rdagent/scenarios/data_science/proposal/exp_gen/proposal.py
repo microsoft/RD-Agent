@@ -1,12 +1,12 @@
 import json
+import math
 from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
-from pydantic import BaseModel, Field
 import torch
-from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
+from pydantic import BaseModel, Field
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
@@ -31,12 +31,17 @@ from rdagent.scenarios.data_science.proposal.exp_gen.planner import (
     DSExperimentPlan,
     RD_Agent_TIMER_wrapper,
 )
-from rdagent.scenarios.data_science.proposal.exp_gen.utils import get_packages
+from rdagent.scenarios.data_science.proposal.exp_gen.select.submit import (
+    BestValidSelector,
+)
+from rdagent.scenarios.data_science.proposal.exp_gen.utils import (
+    get_available_packages_prompt,
+    get_packages,
+)
+from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
-import math
-from rdagent.scenarios.data_science.proposal.exp_gen.select.submit import BestValidSelector
 
 _COMPONENT_META: Dict[str, Dict[str, Any]] = {
     "DataLoadSpec": {
@@ -94,6 +99,7 @@ def get_component(name: str) -> Dict[str, Any]:
 class ScenarioChallengeCategory(str, Enum):
     DATASET_DRIVEN = "dataset-driven"
     DOMAIN_INFORMED = "domain-informed"
+
 
 class HypothesisComponent(str, Enum):
     DataLoadSpec = "DataLoadSpec"
@@ -159,6 +165,7 @@ class HypothesisList(BaseModel):
     hypotheses: List[HypothesisDetail] = Field(
         description="A non-empty list of hypotheses proposed for the next iteration, each corresponding to one challenge. The list length should match the number of challenges."
     )
+
 
 class ScenarioChallengeDetail(BaseModel):
     reasoning: str = Field(
@@ -552,12 +559,15 @@ class DSProposalV2ExpGen(ExpGen):
         scenario_desc: str,
         sota_exp_desc: str,
         exp_gen_plan: Dict,
+        sibling_exp: List[DSExperiment] | None = None,
     ) -> Dict:
+        sibling_hypotheses = [exp.hypothesis for exp in sibling_exp] if sibling_exp else None
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_output_format=(
                 T(".prompts_v2:output_format.problem").r() if not self.supports_response_schema else None
             ),
             plan=exp_gen_plan,
+            sibling_hypotheses=sibling_hypotheses,
         )
         user_prompt = T(".prompts_v2:scenario_problem.user").r(
             scenario_desc=scenario_desc,
@@ -580,13 +590,20 @@ class DSProposalV2ExpGen(ExpGen):
         return problems
 
     def identify_feedback_problem(
-        self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str, inject_diverse: bool = False
+        self,
+        scenario_desc: str,
+        exp_feedback_list_desc: str,
+        sota_exp_desc: str,
+        inject_diverse: bool = False,
+        sibling_exp: List[DSExperiment] | None = None,
     ) -> Dict:
+        sibling_hypotheses = [exp.hypothesis for exp in sibling_exp] if sibling_exp else None
         sys_prompt = T(".prompts_v2:feedback_problem.system").r(
             problem_output_format=(
                 T(".prompts_v2:output_format.problem").r() if not self.supports_response_schema else None
             ),
             inject_diverse=inject_diverse,
+            sibling_hypotheses=sibling_hypotheses,
         )
         user_prompt = T(".prompts_v2:feedback_problem.user").r(
             scenario_desc=scenario_desc,
@@ -617,6 +634,7 @@ class DSProposalV2ExpGen(ExpGen):
         exp_feedback_list_desc,
         inject_diverse,
         exp_gen_plan,
+        sibling_exp: List[DSExperiment] | None = None,
     ) -> Dict:
         sota_exp_num = sum(1 for _, fb in current_sub_trace if fb.decision)
         failed_exp_num = len(current_sub_trace) - sota_exp_num
@@ -629,6 +647,7 @@ class DSProposalV2ExpGen(ExpGen):
                 scenario_desc=scenario_desc,
                 sota_exp_desc=sota_exp_desc,
                 exp_gen_plan=exp_gen_plan,
+                sibling_exp=sibling_exp,
             )
             for problem_name in scen_problems:
                 scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
@@ -659,15 +678,27 @@ class DSProposalV2ExpGen(ExpGen):
         begin_flag: bool,
         inject_diverse: bool = False,
         exp_gen_plan: Optional[Dict] = None,
+        packages_prompt: str = "",
+        sibling_exp: List[DSExperiment] | None = None,
     ) -> Dict:
         problem_formatted_str = ""
         for i, (problem_name, problem_dict) in enumerate(problems.items()):
             problem_formatted_str += f"## {i+1}. {problem_name}\n"
-            problem_formatted_str += f"{problem_dict['problem']}\n"
+            problem_formatted_str += f"Statement: {problem_dict['problem']}\n"
+            problem_formatted_str += f"Reason: {problem_dict['reason']}\n"
             if "idea" in problem_dict:
                 idea_formatted_str = DSIdea(problem_dict["idea"]).to_formatted_str()
                 problem_formatted_str += f"Sampled Idea by user: \n{idea_formatted_str}\n"
             problem_formatted_str += "\n\n"
+        sibling_hypotheses = [exp.hypothesis for exp in sibling_exp] if sibling_exp else None
+
+        # add available packages prompt
+        if packages_prompt:
+            problem_formatted_str += f"\n{packages_prompt}\n"
+
+        # add available packages prompt
+        if packages_prompt:
+            problem_formatted_str += f"\n{packages_prompt}\n"
 
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             hypothesis_output_format=(
@@ -679,7 +710,8 @@ class DSProposalV2ExpGen(ExpGen):
             enable_idea_pool=enable_idea_pool,
             inject_diverse=inject_diverse,
             plan=exp_gen_plan,
-            begin_flag = begin_flag
+            generate_unique_hypothesis=DS_RD_SETTING.enable_generate_unique_hypothesis and begin_flag,
+            sibling_hypotheses=sibling_hypotheses,
         )
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
             scenario_desc=scenario_desc,
@@ -803,11 +835,15 @@ class DSProposalV2ExpGen(ExpGen):
         scenario_desc: str,
         sota_exp_desc: str,
         exp_feedback_list_desc: str,
+        packages_prompt: str = "",
+        sibling_exp: List[DSExperiment] | None = None,
     ) -> Dict:
         """
         Generate improved hypotheses based on critique feedback for each original hypothesis.
         Returns a dict with the same keys as hypothesis_dict, containing improved versions.
         """
+        sibling_hypotheses = [exp.hypothesis for exp in sibling_exp] if sibling_exp else None
+
         hypothesis_critique_pairs = ""
         for i, problem_name in enumerate(hypothesis_dict.keys()):
             hypothesis_data = hypothesis_dict[problem_name]
@@ -834,6 +870,7 @@ class DSProposalV2ExpGen(ExpGen):
                 enable_scale_check=DS_RD_SETTING.enable_scale_check
             ),
             enable_scale_check=DS_RD_SETTING.enable_scale_check,
+            sibling_hypotheses=sibling_hypotheses,
         )
         user_prompt = T(".prompts_v2:hypothesis_rewrite.user").r(
             scenario_desc=scenario_desc,
@@ -841,6 +878,7 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             hypothesis_critique_pairs=hypothesis_critique_pairs,
             time_status=time_status,
+            packages_prompt=packages_prompt,
         )
 
         response = APIBackend().build_messages_and_create_chat_completion(
@@ -946,24 +984,33 @@ class DSProposalV2ExpGen(ExpGen):
         B_norms = torch.norm(B, dim=1, keepdim=True).T
         return dot_products / (A_norms * B_norms)
 
-
-    def prob_dis(self, current_sota_score_in_current_trace , history_scores, hypothesis_candidates, hypothesis_history, competition,path_length):
+    def prob_dis(
+        self,
+        current_sota_score_in_current_trace,
+        history_scores,
+        hypothesis_candidates,
+        hypothesis_history,
+        competition,
+        path_length,
+    ):
         target_texts = [v["hypothesis"] for v in hypothesis_candidates.values()]
         target_embs = torch.tensor(APIBackend().create_embedding(target_texts), dtype=torch.float32)
 
-        #history_list = [line.split(". ", 1)[1] for line in hypothesis_history.split("\n") if ". " in line]
-        history_list = [line.strip() for line in hypothesis_history.split("\n") if line.strip().startswith("Hypothesis:")]
-        
+        # history_list = [line.split(". ", 1)[1] for line in hypothesis_history.split("\n") if ". " in line]
+        history_list = [
+            line.strip() for line in hypothesis_history.split("\n") if line.strip().startswith("Hypothesis:")
+        ]
+
         if not history_list:
             return []
         history_embs = torch.tensor(APIBackend().create_embedding(history_list), dtype=torch.float32)
         sim_matrix = self.cosine_similarity_matrix_torch(target_embs, history_embs)
-        candidate_scores = [current_sota_score_in_current_trace for i in range(len(target_texts) )]
+        candidate_scores = [current_sota_score_in_current_trace for i in range(len(target_texts))]
         candidate_scores = torch.tensor(candidate_scores, dtype=torch.float32).unsqueeze(1)
         history_scores = torch.tensor(history_scores, dtype=torch.float32).unsqueeze(0)
         bigger_is_better = get_metric_direction(competition)
         if bigger_is_better:
-            score_diff_matrix = history_scores - candidate_scores 
+            score_diff_matrix = history_scores - candidate_scores
         else:
             score_diff_matrix = candidate_scores - history_scores
         alpha, beta = 1.0, 1.0
@@ -985,48 +1032,60 @@ class DSProposalV2ExpGen(ExpGen):
             best_entry = (history_list[best_idx], history_scores[0, best_idx])
         if len(flat_indices) > 2:
             flat_indices = flat_indices[:2]
-        sampled_history_list = [best_entry] +[(history_list[i], history_scores[0, i]) for i in flat_indices if i!= best_idx]
+        sampled_history_list = [best_entry] + [
+            (history_list[i], history_scores[0, i]) for i in flat_indices if i != best_idx
+        ]
         return sampled_history_list
-    
-    def get_path(self,node, parent_nodes):
-        path = [node]   
+
+    def get_path(self, node, parent_nodes):
+        path = [node]
         parent = parent_nodes.get(node)
         if parent is not None:
-            path.extend(self.get_path(parent, parent_nodes)) 
+            path.extend(self.get_path(parent, parent_nodes))
         return path
 
-    def get_current_exp_score_list(self,trace,competition):
+    def get_current_exp_score_list(self, trace, competition):
         parent_nodes = {}
         for node in range(len(trace.hist)):
             parents = trace.get_parents(node)
             parent_nodes[node] = parents[-2] if len(parents) > 1 else None
         if hasattr(trace, "idx2loop_id"):
             parent_nodes = {
-                trace.idx2loop_id[n]: trace.idx2loop_id[r] if r is not None else r
-                for n, r in parent_nodes.items()
+                trace.idx2loop_id[n]: trace.idx2loop_id[r] if r is not None else r for n, r in parent_nodes.items()
             }
         if trace.current_selection:
-            current_parent_record_id  = trace.current_selection[0] # record id 
+            current_parent_record_id = trace.current_selection[0]  # record id
         else:
-            return -1,0
-        #current_parent_loop_id = trace.idx2loop_id[current_parent_record_id]# loop id 
+            return -1, 0
+        # current_parent_loop_id = trace.idx2loop_id[current_parent_record_id]# loop id
         loop_id2idx = {v: k for k, v in trace.idx2loop_id.items()}
-        
+
         loop_id_list = self.get_path(trace.idx2loop_id[current_parent_record_id], parent_nodes)
 
-        score_list  = [trace.hist[loop_id2idx[loop_id]][0].result.loc["ensemble"].iloc[0].round(3) for loop_id in loop_id_list if trace.hist[loop_id2idx[loop_id]][1].decision == True]
+        score_list = [
+            trace.hist[loop_id2idx[loop_id]][0].result.loc["ensemble"].iloc[0].round(3)
+            for loop_id in loop_id_list
+            if trace.hist[loop_id2idx[loop_id]][1].decision == True
+        ]
         if score_list:
             bigger_is_better = get_metric_direction(competition)
             if bigger_is_better:
-                return max(score_list),len(loop_id_list)
+                return max(score_list), len(loop_id_list)
             else:
-                return min(score_list),len(loop_id_list)
+                return min(score_list), len(loop_id_list)
         else:
-            return -1,len(loop_id_list)
+            return -1, len(loop_id_list)
 
     def hypothesis_select_with_llm(
-            self, scenario_desc: str, exp_feedback_list_desc: str,extra_exp_feedback_list_desc: str, exp_feedback_scores: list, sota_exp_desc: str, hypothesis_candidates: dict, trace: DSTrace
-        ):
+        self,
+        scenario_desc: str,
+        exp_feedback_list_desc: str,
+        extra_exp_feedback_list_desc: str,
+        exp_feedback_scores: list,
+        sota_exp_desc: str,
+        hypothesis_candidates: dict,
+        trace: DSTrace,
+    ):
         res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
         ratio_merge_or_ensemble = DS_RD_SETTING.ratio_merge_or_ensemble
 
@@ -1036,13 +1095,16 @@ class DSProposalV2ExpGen(ExpGen):
         use_ratio = round(use_ratio, 2)
 
         full_time = self.scen.real_full_timeout() / 3600
-        time_list_success = [-3600] + [tr[0].running_info.running_time for tr in trace.retrieve_search_list(search_type="ancestors") if getattr(tr[1], "decision", False)
-            ]        
+        time_list_success = [-3600] + [
+            tr[0].running_info.running_time
+            for tr in trace.retrieve_search_list(search_type="ancestors")
+            if getattr(tr[1], "decision", False)
+        ]
         time_max = max(time_list_success) / 3600
-        #sota_flag = (hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None)
+        # sota_flag = (hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None)
         bvs = BestValidSelector()
         sota_exp = bvs.get_sota_exp_to_submit(trace)
-        sota_flag = sota_exp is not None 
+        sota_flag = sota_exp is not None
 
         if sota_flag:
             current_sota_score = sota_exp.result.loc["ensemble"].iloc[0].round(3)
@@ -1051,32 +1113,41 @@ class DSProposalV2ExpGen(ExpGen):
 
         competition = trace.scen.competition
         if sota_flag:
-            current_sota_score_in_current_trace,path_length = self.get_current_exp_score_list(trace,competition)
+            current_sota_score_in_current_trace, path_length = self.get_current_exp_score_list(trace, competition)
         else:
             current_sota_score_in_current_trace = -1
             path_length = 0
 
         if extra_exp_feedback_list_desc and len(trace.hist) > 0 and exp_feedback_scores:
-            extra_exp_feedback_list_desc = self.prob_dis(current_sota_score_in_current_trace, exp_feedback_scores, hypothesis_candidates,extra_exp_feedback_list_desc, competition,path_length)
-            extra_exp_feedback_list_str = "\n".join(f"{i+1}. {hypothesis} (score: {score.item():.3f})" 
-                                        for i, (hypothesis, score) in enumerate(extra_exp_feedback_list_desc))
+            extra_exp_feedback_list_desc = self.prob_dis(
+                current_sota_score_in_current_trace,
+                exp_feedback_scores,
+                hypothesis_candidates,
+                extra_exp_feedback_list_desc,
+                competition,
+                path_length,
+            )
+            extra_exp_feedback_list_str = "\n".join(
+                f"{i+1}. {hypothesis} (score: {score.item():.3f})"
+                for i, (hypothesis, score) in enumerate(extra_exp_feedback_list_desc)
+            )
         else:
             extra_exp_feedback_list_str = None
         hypothesis_candidates = str(json.dumps(hypothesis_candidates, indent=2))
 
         sys_prompt = T(".prompts_v2:hypothesis_select.system").r(
             hypothesis_candidates=hypothesis_candidates,
-            res_time=round(res_time.total_seconds()/3600, 2),
+            res_time=round(res_time.total_seconds() / 3600, 2),
             full_time=full_time,
             use_ratio=use_ratio,
-            time_max = round(time_max, 2),
-            merge_hours = DS_RD_SETTING.merge_hours,
-            extra_exp_feedback_list_desc =extra_exp_feedback_list_str,
+            time_max=round(time_max, 2),
+            merge_hours=DS_RD_SETTING.merge_hours,
+            extra_exp_feedback_list_desc=extra_exp_feedback_list_str,
             hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(),
-            sota_flag =sota_flag,
-            current_sota_score = current_sota_score,
-            ratio_merge_or_ensemble = ratio_merge_or_ensemble,
-            current_sota_score_in_current_trace = current_sota_score_in_current_trace
+            sota_flag=sota_flag,
+            current_sota_score=current_sota_score,
+            ratio_merge_or_ensemble=ratio_merge_or_ensemble,
+            current_sota_score_in_current_trace=current_sota_score_in_current_trace,
         )
 
         user_prompt = T(".prompts_v2:hypothesis_select.user").r(
@@ -1096,7 +1167,6 @@ class DSProposalV2ExpGen(ExpGen):
 
         response_dict = json.loads(response)
         return response_dict
-
 
     def hypothesis_rank(
         self, hypothesis_dict: dict, problem_dict: dict, selected_idx: Optional[int] = None
@@ -1134,6 +1204,7 @@ class DSProposalV2ExpGen(ExpGen):
         pipeline: bool,
         failed_exp_feedback_list_desc: str,
         fb_to_sota_exp: ExperimentFeedback | None = None,
+        sibling_exp: List[DSExperiment] | None = None,
     ) -> DSExperiment:
         if pipeline:
             component_info = get_component("Pipeline")
@@ -1141,11 +1212,14 @@ class DSProposalV2ExpGen(ExpGen):
             component_info = get_component(hypotheses[0].component)
         data_folder_info = self.scen.processed_data_folder_description
         workflow_check = not pipeline and hypotheses[0].component != "Workflow"
+
+        sibling_tasks = [exp.pending_tasks_list[0][0].description for exp in sibling_exp] if sibling_exp else []
         sys_prompt = T(".prompts_v2:task_gen.system").r(
             task_output_format=component_info["task_output_format"] if not self.supports_response_schema else None,
             component_desc=component_desc,
             workflow_check=workflow_check,
             metric_name=self.scen.metric_name,
+            sibling_tasks=sibling_tasks,
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,
@@ -1276,8 +1350,16 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         if len(trace.hist) > 0:
-            extra_exp_feedback_list = [tr[0].hypothesis for tr in trace.experiment_and_feedback_list_after_init(return_type="all",search_type="all") if getattr(tr[1], "decision", False)]
-            exp_feedback_scores = [tr[0].result.loc["ensemble"].iloc[0].round(3) for tr in trace.experiment_and_feedback_list_after_init(return_type="all",search_type="all") if getattr(tr[1], "decision", False)]
+            extra_exp_feedback_list = [
+                tr[0].hypothesis
+                for tr in trace.experiment_and_feedback_list_after_init(return_type="all", search_type="all")
+                if getattr(tr[1], "decision", False)
+            ]
+            exp_feedback_scores = [
+                tr[0].result.loc["ensemble"].iloc[0].round(3)
+                for tr in trace.experiment_and_feedback_list_after_init(return_type="all", search_type="all")
+                if getattr(tr[1], "decision", False)
+            ]
         else:
             extra_exp_feedback_list = None
             exp_feedback_scores = None
@@ -1292,6 +1374,11 @@ class DSProposalV2ExpGen(ExpGen):
         else:
             inject_diverse = False
 
+        # add available packages prompt
+        packages_prompt = get_available_packages_prompt()
+
+        sibling_exp = trace.get_sibling_exps() if trace.should_inject_diversity() else None
+
         # Step 1: Identify problems
         all_problems = self.identify_problem(
             current_sub_trace=trace.get_parent_exps(),
@@ -1300,6 +1387,7 @@ class DSProposalV2ExpGen(ExpGen):
             exp_feedback_list_desc=exp_feedback_list_desc,
             inject_diverse=inject_diverse,
             exp_gen_plan=plan.get("exp_gen") if plan else None,
+            sibling_exp=sibling_exp,
         )
 
         # Step 1.5: Sample ideas from idea pool
@@ -1312,7 +1400,9 @@ class DSProposalV2ExpGen(ExpGen):
                 competition_desc=self.scen.get_competition_full_desc(),
             )
 
-        begin_flag = len(trace.hist) == 0
+        # sub-trace begin flag
+        begin_flag = not trace.current_selection
+
         # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
         hypothesis_dict = self.hypothesis_gen(
             component_desc=component_desc,
@@ -1324,7 +1414,9 @@ class DSProposalV2ExpGen(ExpGen):
             enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
             inject_diverse=inject_diverse,
             exp_gen_plan=plan.get("exp_gen") if plan else None,
-            begin_flag = begin_flag
+            begin_flag=begin_flag,
+            packages_prompt=packages_prompt,
+            sibling_exp=sibling_exp,
         )
         if not pipeline:
             sota_exp_model_file_count = len(
@@ -1368,6 +1460,8 @@ class DSProposalV2ExpGen(ExpGen):
                     scenario_desc=scenario_desc,
                     sota_exp_desc=sota_exp_desc,
                     exp_feedback_list_desc=exp_feedback_list_desc,
+                    packages_prompt=packages_prompt,
+                    sibling_exp=sibling_exp,
                 )
                 logger.info(f"Successfully completed hypothesis critique and rewrite process")
             except Exception as e:
@@ -1378,44 +1472,45 @@ class DSProposalV2ExpGen(ExpGen):
             logger.info(f"Hypothesis critique and rewrite disabled - using original {len(hypothesis_dict)} hypotheses")
             improved_hypotheses_dict = hypothesis_dict.copy()  # Use original hypotheses directly
 
-
         pickled_problem_name, new_hypothesis = self.hypothesis_rank(
-                hypothesis_dict=hypothesis_dict,
-                problem_dict=all_problems,
-            )
+            hypothesis_dict=hypothesis_dict,
+            problem_dict=all_problems,
+        )
 
         # Step 3: Select the best hypothesis
         if DS_RD_SETTING.llm_select_hypothesis:
             # Use LLM to select the best hypothesis
             if extra_exp_feedback_list is not None:
-                extra_exp_feedback_list_desc = "\n".join(f"{i+1}. {hypothesis}" for i, hypothesis in enumerate(extra_exp_feedback_list))
+                extra_exp_feedback_list_desc = "\n".join(
+                    f"{i+1}. {hypothesis}" for i, hypothesis in enumerate(extra_exp_feedback_list)
+                )
 
             else:
                 extra_exp_feedback_list_desc = None
 
             response_dict = self.hypothesis_select_with_llm(
-            scenario_desc=scenario_desc,
-            exp_feedback_list_desc=exp_feedback_list_desc,
-            extra_exp_feedback_list_desc = extra_exp_feedback_list_desc,
-            exp_feedback_scores = exp_feedback_scores,
-            sota_exp_desc=sota_exp_desc,
-            hypothesis_candidates=hypothesis_dict,
-            trace = trace
-        )
+                scenario_desc=scenario_desc,
+                exp_feedback_list_desc=exp_feedback_list_desc,
+                extra_exp_feedback_list_desc=extra_exp_feedback_list_desc,
+                exp_feedback_scores=exp_feedback_scores,
+                sota_exp_desc=sota_exp_desc,
+                hypothesis_candidates=hypothesis_dict,
+                trace=trace,
+            )
             component_map = {
-            "Model": HypothesisComponent.Model,
-            "Ensemble": HypothesisComponent.Ensemble,
-            "Workflow": HypothesisComponent.Workflow,
-            "FeatureEng": HypothesisComponent.FeatureEng,
-            "DataLoadSpec": HypothesisComponent.DataLoadSpec,
-        }
+                "Model": HypothesisComponent.Model,
+                "Ensemble": HypothesisComponent.Ensemble,
+                "Workflow": HypothesisComponent.Workflow,
+                "FeatureEng": HypothesisComponent.FeatureEng,
+                "DataLoadSpec": HypothesisComponent.DataLoadSpec,
+            }
             comp_str = response_dict.get("component")
             hypo_str = response_dict.get("hypothesis")
 
             if comp_str in component_map and hypo_str is not None:
                 new_hypothesis = DSHypothesis(component=component_map[comp_str], hypothesis=hypo_str)
             pickled_problem_name = None
-        
+
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
@@ -1426,11 +1521,10 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
             hypotheses=(
-                [new_hypothesis]
-                if len(trace.hist) > 0
-                    else self.get_all_hypotheses(all_problems, hypothesis_dict)
+                [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(all_problems, hypothesis_dict)
             ),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
             fb_to_sota_exp=fb_to_sota_exp,
+            sibling_exp=sibling_exp,
         )

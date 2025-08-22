@@ -16,6 +16,17 @@ scenario_problem:
     {% else %}- **Scenario-First Focus**: Since SOTA implementation is available, the **primary identified challenge** should be foundational. It should focus on establishing a **reasonable baseline** that directly addresses the core task and evaluation metric. Avoid overly complex initial challenges.
     {% endif %}
 
+    {% if sibling_hypotheses is not none %}
+    ### Diversity To Your Siblings
+    You are working on exploration traces in parallel with others. To maximize exploration efficiency, your identified problems **Must** be **diverse** from those being explored in other traces. 
+    Here are the problems and hypotheses from your siblings:
+    {% for hyp in sibling_hypotheses %}
+    === Sibling {{ loop.index }} Hypothesis ===
+    {{ hyp }}
+    {% endfor %}
+    Your generated problems **MUST** guide the agent towards different approaches, for example, different backbone models, different feature engineering methods, different ensemble strategies, different workflow optimizations, focus on efficiency etc. Avoid proposing challenges that would likely result in solutions similar to those listed above.
+    {% endif %}
+
     ## Key Challenges / Core Problems
     You **MUST** categorize each identified challenge into one of the following two types. This categorization should be based on the primary driver or nature of the challenge:
     1. **Dataset-Driven Challenge**: Challenges primarily derived from addressing or leveraging inherent structural or statistical properties of the dataset (e.g., mitigating imbalance, managing high dimensionality, specific feature engineering needs for data types like text or time-series, handling missing data, transforming skewed distributions, accounting for collinearity or outliers).
@@ -90,6 +101,17 @@ feedback_problem:
     3. Clearly state the learning or articulate the challenge.
     4. Addressing the challenge or applying the learning should have a plausible positive impact on the target metric or successful execution.
     5. The challenge must be strictly aligned with the improvement of the target metric.
+    
+    {% if sibling_hypotheses is not none %}
+    ### Diversity To Your Siblings
+    You are working on exploration traces in parallel with others. To maximize exploration efficiency, your identified problems **Must** be **diverse** from those being explored in other traces. 
+    Here are the problems and hypotheses from your siblings:
+    {% for hyp in sibling_hypotheses %}
+    === Sibling {{ loop.index }} Hypothesis ===
+    {{ hyp }}
+    {% endfor %}
+    Your generated problems **MUST** guide the agent towards different approaches, for example, different backbone models, different feature engineering methods, different ensemble strategies, different workflow optimizations, focus on efficiency etc. Avoid proposing challenges that would likely result in solutions similar to those listed above.
+    {% endif %}
     
     {% if problem_output_format is not none %}
     ### Output Format
@@ -195,7 +217,7 @@ hypothesis_gen:
 
     3. Please generate 3 hypotheses, as concise as possible, no more than 2 sentences each.
 
-    {%if begin_flag %}
+    {%if generate_unique_hypothesis %}
     We are now at the beginning stage. Please generate hypotheses that are as unique as possible.
     Each hypothesis should handle a different component. For example, you can generate four distinct hypotheses for: 
       - DataLoadSpec
@@ -209,6 +231,17 @@ hypothesis_gen:
     - For **DataLoadSpec**:  
       - Especially in Computer Vision(CV) competitions where datasets are often very large, carefully analyze the dataset size. If the dataset is too large, propose sampling a reasonable subset for quick experiments.  
       - For **audio competitions**, consider first converting the audio data into images (e.g., spectrograms) and then applying CV-based methods for modeling.
+    {% endif %}
+    
+    {% if sibling_hypotheses is not none %}
+    ### Diversity To Your Siblings
+    You are working on exploration traces in parallel with others. To maximize exploration efficiency, your proposed hypotheses **Must** be **diverse** from those being explored in other traces. 
+    Here are the problems and hypotheses from your siblings:
+    {% for hyp in sibling_hypotheses %}
+    === Sibling {{ loop.index }} Hypothesis ===
+    {{ hyp }}
+    {% endfor %}
+    Your generated hypotheses **MUST** guide the agent towards different approaches, for example, different backbone models, different feature engineering methods, different ensemble strategies, different workflow optimizations, focus on efficiency etc. Avoid proposing hypotheses that are similar to those listed above.
     {% endif %}
 
     {% if inject_diverse %}
@@ -268,6 +301,7 @@ hypothesis_critique:
     - **Metric Impact**: Will this meaningfully improve the competition's evaluation metric?
     - **Historical Context**: Has similar approaches been tried? Key learnings from past attempts?
     - **Innovation vs History Balance**: Distinguish between implementation failures (worth retrying with improvements) vs fundamental approach failures (multiple attempts failed due to core unsuitability - should avoid)
+    - **Tool Selection Appropriateness**: Are the suggested tools/packages well-suited for the problem? Consider both modern capabilities and traditional reliability
     
     ### 3. Improvement Direction
     - **Clarity Issues**: If vague, identify specific methods or strategies that address the core problem
@@ -286,11 +320,13 @@ hypothesis_critique:
     **Good Critiques:**
     - "The hypothesis lacks specificity about which ensemble method to use. Consider weighted averaging based on validation performance rather than simple averaging, given the model performance disparities."
     - "This hypothesis proposes LSTM for tabular data. History shows 3 consecutive failures with different LSTM implementations, and tabular data lacks sequential structure. Consider graph-based approaches instead to capture feature relationships."
+    - "The hypothesis jumps to LightGBM without establishing a baseline. Consider starting with XGBoost to ensure a working solution, then explore LightGBM for potential improvements if the baseline performs adequately."
     
     **Poor Critiques:**
     - "Set max_depth=10, learning_rate=0.05, and use 500 trees." (too specific)
     - "This might not work." (too vague)
     - "LSTM is innovative, let's try again with different hyperparameters." (ignores fundamental mismatch)
+    - "Use the latest deep learning model because it's new." (ignores problem-solution fit)
     
     {% if critique_output_format is not none %}
     ## Output Format
@@ -338,6 +374,12 @@ hypothesis_rewrite:
     {% endif %}
     
     ## Guidelines for Writing Rewritten Hypotheses
+
+    ### Available Tools Consideration
+    - When rewriting, consider if the hypothesis leverages appropriate tools from the available packages
+    - Balance innovation with practical tool selection - prefer modern packages when they offer clear advantages
+    - Ensure tool choices align with the problem requirements and constraints
+    - Be pragmatic: use whatever works best for the task - whether it's a cutting-edge transformer or traditional logistic regression
     
     1. **Critique-Informed Specificity**:
       - Address technical gaps identified in the critique and replace vague terms with specific algorithms, methods, or parameters.
@@ -373,6 +415,16 @@ hypothesis_rewrite:
       - Apply critique insights to enhance sound innovative ideas while avoiding repeated fundamental failures identified in the analysis.
       - **Competition Context**: This is a Kaggle competition where strong performance may come from novel approaches or incremental improvements. Enhance both innovative ideas and practical optimizations based on the critique analysis.
     
+    {% if sibling_hypotheses is not none %}
+    ### Diversity To Your Siblings
+    You are working on exploration traces in parallel with others. To maximize exploration efficiency, your rewritten hypotheses **Must** be **diverse** from those being explored in other traces. 
+    Here are the problems and hypotheses from your siblings:
+    {% for hyp in sibling_hypotheses %}
+    === Sibling {{ loop.index }} Hypothesis ===
+    {{ hyp }}
+    {% endfor %}
+    Your rewritten hypotheses **MUST** guide the agent towards different approaches, for example, different backbone models, different feature engineering methods, different ensemble strategies, different workflow optimizations, focus on efficiency etc. Avoid proposing hypotheses that are similar to those listed above.
+    {% endif %}
     
     {% if rewrite_output_format is not none %}
     ## Output Format
@@ -391,6 +443,15 @@ hypothesis_rewrite:
 
     # Original Hypotheses and Their Critiques
     {{ hypothesis_critique_pairs }}
+
+    {% if time_status is not none %}
+    # Time Status
+    {{ time_status }}
+    {% endif %}
+
+    {% if packages_prompt is not none %}
+    {{ packages_prompt }}
+    {% endif %}
 
 hypothesis_select:
   system: |-
@@ -561,7 +622,7 @@ hypothesis_select:
     {% endif %}
     
 
-  user: |- 
+  user: |-
     # Scenario Description
     {{ scenario_desc }}
 
@@ -583,6 +644,17 @@ task_gen:
     4. **Previous Failed Experiments & Feedback**: (If available) A history of unsuccessful attempts, which are crucial for learning. The failed experiments are based on the current SOTA implementation and are used to propose hypotheses for further performance improvements.
 
     Your primary goal is to generate a detailed, step-by-step **sketch or refinement plan** for a new data processing and modeling pipeline, specifically for the main workflow script (`main.py`), that effectively implements the `Proposed Hypothesis`. This sketch will guide a developer to write the code correctly.
+
+    {% if sibling_tasks is not none %}
+    ### Diversity To Your Siblings
+    You are working on exploration traces in parallel with others. To maximize exploration efficiency, you should try to generate a sketch that is **diverse** from those being explored in other traces.
+    Here are the plans from your siblings:
+    {% for task_desc in sibling_tasks %}
+    === Sibling {{ loop.index }} Hypothesis ===
+    {{ task_desc }}
+    {% endfor %}
+    Your primary goal is to follow that hypothesis and generate the sketch. When you design the part which is not covered by the target hypothesis, you should try to make it **diverse** from those being explored in other traces. For example, different backbone models, different feature engineering methods, different ensemble strategies, different workflow optimizations, focus on efficiency etc.
+    {% endif %}
 
     # BACKGROUND CONTEXT: Pipeline Implementation Standards & Constraints
 
@@ -620,11 +692,7 @@ task_gen:
       - Ensure validation metrics and processes are consistent across all parts of the pipeline. Avoid changes that would alter how validation metrics are calculated unless that is part of the hypothesis.
     8. **Submission File (`submission.csv`)**: Generate `submission.csv` in the **exact format** required (column names, order, data types), as detailed in the '====== Submission Format ======' section of the Competition Scenario Description (DO NOT read the sample_submission.csv file directly in the code). This is a critical step.
     9. **Preferred Packages Notes**:
-      - You can choose the most proper packages for the task to best achieve the hypothesis.
-      - When facing a choice between two packages which both can achieve the same goal, you should choose the one which is more commonly used and less likely to cause bugs in coding. Especially those you are not familiar with.
-      - For GBDT models, prefer XGBoost or RandomForest over LightGBM unless the SOTA or hypothesis dictates otherwise. Prefer not using GPU for GBDT models unless the SOTA or hypothesis dictates otherwise.
-      - For neural networks, prefer PyTorch or PyTorch based library (over TensorFlow) unless the SOTA or hypothesis dictates otherwise.
-      - For neural networks, prefer fine-tuning pre-trained models over training from scratch.
+      {% include "scenarios.data_science.share:guidelines.package_selection" %}
     10. File Handling & DataFrame Generation: Generate a pandas DataFrame with columns [“id”, “path”, “fold”].
       - id: a unique identifier for each sample.
       - path: the file path of the corresponding sample.
@@ -641,6 +709,7 @@ task_gen:
     12. Hypothesis Handling: At the initial stage, multiple hypotheses may be proposed simultaneously. If some hypotheses overlap, select the most promising one for implementation and ignore redundant overlapping hypotheses. Each implemented hypothesis should remain an independent task.
 
     Ensure reproducibility: the DataFrame must be generated exactly the same way every time the script runs, regardless of system or runtime conditions (e.g., by fixing the random seed).
+      
     ## Package Declaration
     At the end of your design, **you MUST** provide a key `packages` in the final JSON output.  
     It should be an **array of PyPI package names** (strings) that you expect to `import` in the forthcoming implementation.  

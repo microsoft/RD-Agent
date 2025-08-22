@@ -482,7 +482,7 @@ def running_win(data, base_exp, llm_data=None, sota_exp=None):
         {k: v for k, v in data.items() if isinstance(k, int)},
         key="running",
         llm_data=llm_data if llm_data else None,
-        base_workspace=base_exp.experiment_workspace,
+        base_workspace=base_exp.experiment_workspace if base_exp else None,
     )
     if state.show_llm_log and llm_data is not None:
         llm_log_win(common_llm_data)
@@ -511,6 +511,9 @@ def running_win(data, base_exp, llm_data=None, sota_exp=None):
 
 
 def feedback_win(fb_data, llm_data=None):
+    if "no_tag" not in fb_data:
+        st.header("Feedback", divider="orange", anchor="feedback")
+        return
     fb = fb_data["no_tag"]
     st.header("Feedback" + ("✅" if bool(fb) else "❌"), divider="orange", anchor="feedback")
     if state.show_llm_log and llm_data is not None:
@@ -565,7 +568,7 @@ def main_win(loop_id, llm_data=None):
 
         running_win(
             loop_data["running"],
-            base_exp=loop_data["coding"]["no_tag"],
+            base_exp=loop_data["coding"].get("no_tag", None),
             llm_data=llm_data["running"] if llm_data else None,
             sota_exp=sota_exp,
         )
@@ -627,7 +630,7 @@ def get_timeout_stats(llm_data: dict):
         for fn, loop_fn_d in loop_d.items():
             for k, v in loop_fn_d.items():
                 for d in v:
-                    if "debug_tpl" in d["tag"] and "eval.user" in d["obj"]["uri"]:
+                    if "debug_tpl" in d["tag"] and "eval.user" in d["obj"]["uri"] and "stdout" in d["obj"]["context"]:
                         stdout = d["obj"]["context"]["stdout"]
                         if "The running time exceeds" in stdout:  # Timeout case
                             timeout_stat[fn]["timeout"] += 1
@@ -697,9 +700,9 @@ def summarize_win():
             for loop_id in state.llm_data.keys():
                 if "direct_exp_gen" not in state.llm_data[loop_id]:
                     continue
-                if "scenarios.data_science.proposal.exp_gen.merge:trace" in [
-                    i["obj"]["uri"] for i in state.llm_data[loop_id]["direct_exp_gen"]["no_tag"] if "uri" in i["obj"]
-                ]:
+                if "scenarios.data_science.proposal.exp_gen.merge" in "".join(
+                    [i["obj"]["uri"] for i in state.llm_data[loop_id]["direct_exp_gen"]["no_tag"] if "uri" in i["obj"]]
+                ):
                     merge_loops.append(loop_id)
             st.pyplot(trace_figure(final_trace, merge_loops))
 
@@ -868,7 +871,9 @@ def summarize_win():
                 else:
                     df.loc[loop, "e-loops(r)"] = max(i for i in loop_data["running"].keys() if isinstance(i, int)) + 1
             if "feedback" in loop_data:
-                fb_emoji_str = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
+                fb_emoji_str = (
+                    "✅" if "no_tag" in loop_data["feedback"] and bool(loop_data["feedback"]["no_tag"]) else "❌"
+                )
                 if sota_loop_id == loop:
                     fb_emoji_str += " (💖SOTA)"
                 df.loc[loop, "Feedback"] = fb_emoji_str

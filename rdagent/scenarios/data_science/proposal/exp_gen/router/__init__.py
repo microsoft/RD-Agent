@@ -130,6 +130,9 @@ class ParallelMultiTraceExpGen(ExpGen):
                 )
                 exp.set_local_selection(local_selection)
                 exp.plan = ds_plan
+
+                # Register the newly created experiment before returning
+                trace.register_uncommitted_exp(exp, loop.loop_idx)
                 return exp
 
             await asyncio.sleep(1)
