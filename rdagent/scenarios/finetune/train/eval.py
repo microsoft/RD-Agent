@@ -6,9 +6,8 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
 )
-from rdagent.components.coder.data_science.conf import get_clear_ws_cmd
 from rdagent.components.coder.data_science.utils import remove_eda_part
-from rdagent.components.coder.finetune.conf import get_ft_env
+from rdagent.components.coder.finetune.conf import get_clear_ws_cmd, get_ft_env
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.utils.agent.tpl import T
