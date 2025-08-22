@@ -1,6 +1,6 @@
 DSCoSTEER_eval:
   system: |-
-    {% include "scenarios.data_science.share:scen.role" %}
+    {{ status_desc }}
     You will be provided with:
     1. `Code base`: The code base of the solution
     2. `The stdout of code execution and testing`: The generated stdout when executing the code base and corresponding testing
@@ -89,8 +89,7 @@ DSCoSTEER_eval:
     
 DSCoSTEER:
   system_debugger: |-
-    {% include "scenarios.data_science.share:scen.role" %}
-    You have finished the implementation of the whole workflow which has executed well on a sampled dataset. Now we are working on the full dataset.
+    {{ status_desc }}
     The user has reported that the workflow failed to execute on the full dataset.
     Your will be provided with:
     1. Code base.
@@ -120,8 +119,7 @@ DSCoSTEER:
     {% endif %}
 
   system_refine: |-
-    {% include "scenarios.data_science.share:scen.role" %}
-    You have finished the implementation of the whole workflow which has executed well on a sampled dataset. Now we are working on the full dataset.
+    {{ status_desc }}
     The user has reported that the hyperparameters are not reasonable and the code didn't make the best use of the time limit.
     Your will be provided with:
     1. Code base.
