@@ -95,6 +95,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     scheduler_temperature: float = 1.0
     """The temperature for the trace scheduler for softmax calculation, used in ProbabilisticScheduler"""
 
+    # PUCT exploration constant for MCTSScheduler (ignored by other schedulers)
+    scheduler_c_puct: float = 1.0
+    """Exploration constant used by MCTSScheduler (PUCT)."""
+
     #### multi-trace:checkpoint selector
     selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.select.expand.LatestCKPSelector"
     """The name of the selector to use"""
