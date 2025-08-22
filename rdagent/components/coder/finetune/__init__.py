@@ -125,16 +125,89 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
                 ]
             )
 
+        # Query LLaMA Factory parameters for the specific method
+        from rdagent.scenarios.finetune.train.llama_params_query import (
+            LLaMAFactoryParamsQuery,
+        )
+
+        params_query = LLaMAFactoryParamsQuery()
+        method_params_desc = params_query.format_params_for_prompt(finetune_method)
+
         # Generate prompts using templates
         system_prompt = T("components.coder.finetune.prompts:finetune_coder.system").r(
             task_desc=task_info,
-            similar_knowledge=similar_knowledge_str,
-            failed_knowledge=failed_knowledge_str,
+            finetune_method=finetune_method,
+            similar_knowledge=similar_knowledge if similar_knowledge else [],
+            failed_knowledge=failed_knowledge if failed_knowledge else [],
+            method_params=method_params_desc,
         )
 
+        # Get Docker workspace information (try actual structure first, fallback to expected)
+        shared_workspace_dir = None
+
+        # Try to get shared workspace directory from various sources
+        try:
+            # First try: check if available from FT_RD_SETTING or environment
+            from pathlib import Path
+
+            from rdagent.app.finetune.llm.conf import FT_RD_SETTING
+
+            # Construct expected shared workspace path based on configuration
+            if hasattr(FT_RD_SETTING, "local_data_path") and FT_RD_SETTING.local_data_path:
+                # Look for shared workspace in the same parent directory as local_data_path
+                data_parent = Path(FT_RD_SETTING.local_data_path).parent
+                potential_shared = data_parent / "llm_finetune_shared_workspace"
+                if potential_shared.exists():
+                    shared_workspace_dir = potential_shared
+                    logger.info(f"Found shared workspace directory: {shared_workspace_dir}")
+        except Exception as e:
+            logger.debug(f"Could not auto-detect shared workspace directory: {e}")
+
+        # Generate Docker environment info
+        try:
+            from rdagent.scenarios.finetune.train.docker_workspace_query import (
+                get_workspace_info_for_prompt,
+            )
+
+            docker_env_info = get_workspace_info_for_prompt(shared_workspace_dir, dataset)
+            logger.info(f"Using actual workspace query with shared_dir: {shared_workspace_dir}")
+        except Exception as e:
+            logger.warning(f"Could not get actual workspace structure: {e}, using fallback")
+            from rdagent.scenarios.finetune.train.docker_env_query import (
+                get_docker_env_info_for_prompt,
+            )
+
+            docker_env_info = get_docker_env_info_for_prompt(dataset)
+
+        # Get critical rules
+        try:
+            from rdagent.scenarios.finetune.train.docker_workspace_query import (
+                DockerWorkspaceQuery,
+            )
+
+            query = DockerWorkspaceQuery(shared_workspace_dir)
+            paths = query.get_docker_paths_mapping()
+            critical_rules = [
+                'dataset: MUST be "processed_dataset" (string, not dictionary)',
+                f'dataset_dir: MUST be "{paths["docker_data"]}"',
+                f'output_dir: MUST be "{paths["docker_output"]}"',
+                "model_name_or_path: Use HuggingFace model identifier",
+                "All file paths must use Docker container paths, NOT local filesystem paths",
+            ]
+        except Exception:
+            from rdagent.scenarios.finetune.train.docker_env_query import (
+                get_critical_docker_rules,
+            )
+
+            critical_rules = get_critical_docker_rules()
+
         user_prompt = T("components.coder.finetune.prompts:finetune_coder.user").r(
+            docker_env_info=docker_env_info,
+            critical_rules=critical_rules,
             latest_code=(workspace.file_dict.get("config.yaml", "") if workspace and prev_feedback else ""),
             latest_feedback=str(prev_feedback) if prev_feedback else "",
+            finetune_method=finetune_method,
+            base_model=base_model,
         )
 
         # Call LLM to generate config
@@ -224,10 +297,9 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         """Generate LlamaFactory configuration YAML"""
 
         # Base configuration
-        # Ensure dataset is not empty or None
-        if not dataset or dataset == "default":
-            # Use a working dataset as fallback
-            dataset = "alpaca_zh"
+        # Always use processed_dataset for LLM finetune scenario
+        # This aligns with the preprocessed data from data processing step
+        dataset = "processed_dataset"
 
         config = {
             "model_name_or_path": base_model,
@@ -235,12 +307,13 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             "do_train": True,
             "finetuning_type": finetune_method,
             "dataset": dataset,
+            "dataset_dir": "/workspace/llm_finetune/data",  # Directory containing dataset_info.json
             "template": "qwen",
             "cutoff_len": 2048,
             "max_samples": 100 if debug_mode else None,  # Debug mode uses only 100 samples
             "overwrite_cache": True,
             "preprocessing_num_workers": 16,
-            "output_dir": "./saves",
+            "output_dir": "/workspace/llm_finetune/output",
             "logging_steps": 10,
             "save_steps": 500,
             "plot_loss": True,
