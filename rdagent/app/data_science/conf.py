@@ -165,7 +165,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
 DS_RD_SETTING = DataScienceBasePropSetting()
 
-# TODO: enable_cross_trace_diversity 和 llm_select_hypothesis  不同时为true
+# enable_cross_trace_diversity 和 llm_select_hypothesis should not be true at the same time
 assert not (
     DS_RD_SETTING.enable_cross_trace_diversity and DS_RD_SETTING.llm_select_hypothesis
 ), "enable_cross_trace_diversity and llm_select_hypothesis cannot be true at the same time"
