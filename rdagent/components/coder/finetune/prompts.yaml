@@ -41,13 +41,15 @@ finetune_coder:
     3. Use debug mode (max_samples: 100) for initial testing
     4. Ensure all parameters are valid for LlamaFactory
     5. Include proper comments explaining key settings
+    6. **IMPORTANT**: Configuration must be ready-to-use without requiring user modifications. Use actual dataset names and proper model identifiers.
 
-    ## Key LlamaFactory Parameters
+    ## Key LlamaFactory Parameters (all required for valid configuration)
     - model_name_or_path: Base model identifier
     - stage: Training stage (usually "sft" for supervised fine-tuning)
+    - do_train: Must be true to enable training
     - finetuning_type: Method type ("lora", "qlora", "full", etc.)
-    - dataset: Dataset identifier
-    - template: Chat template (e.g., "qwen", "llama3")
+    - dataset: Dataset identifier (use actual dataset name, ready-to-use)
+    - template: Chat template (e.g., "qwen", "llama3")  
     - max_samples: Limit samples for debugging (100 for coding stage)
     - cutoff_len: Maximum sequence length
     - output_dir: Output directory for checkpoints

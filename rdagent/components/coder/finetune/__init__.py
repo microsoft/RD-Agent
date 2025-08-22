@@ -38,6 +38,14 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
     """LLM Fine-tuning specific evolving strategy"""
 
+    def __init__(self, scen: Scenario, settings, *args, **kwargs):
+        super().__init__(scen, settings)
+
+        # Initialize LlamaFactory parameter validator
+        from rdagent.scenarios.finetune.train.utils import create_parameter_validator
+
+        self.parameter_validator = create_parameter_validator()
+
     def implement_one_task(
         self,
         target_task: Task,
@@ -76,6 +84,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             similar_knowledge=similar_knowledge,
             failed_knowledge=failed_knowledge[0],
             prev_feedback=prev_task_feedback,
+            workspace=workspace,
         )
 
         # Validate the generated config using existing validator
@@ -93,6 +102,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         similar_knowledge: list = None,
         failed_knowledge: list = None,
         prev_feedback=None,
+        workspace=None,
     ) -> str:
         """Generate LlamaFactory configuration YAML using LLM"""
 
@@ -123,11 +133,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         user_prompt = T("components.coder.finetune.prompts:finetune_coder.user").r(
-            latest_code=(
-                prev_feedback.implementation.file_dict.get("config.yaml", "")
-                if prev_feedback and prev_feedback.implementation
-                else ""
-            ),
+            latest_code=(workspace.file_dict.get("config.yaml", "") if workspace and prev_feedback else ""),
             latest_feedback=str(prev_feedback) if prev_feedback else "",
         )
 
@@ -145,16 +151,43 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             # Extract YAML content from response
             import re
 
-            yaml_pattern = r"```yaml\s*\n(.*?)\n```"
-            match = re.search(yaml_pattern, response, re.DOTALL)
-            if match:
-                return match.group(1).strip()
+            # Try multiple YAML extraction patterns
+            yaml_patterns = [
+                r"```yaml\s*\n(.*?)\n```",  # Standard markdown yaml block
+                r"```\s*\n(.*?)\n```",  # Generic code block
+                r"yaml\s*:\s*\n(.*?)(?=\n\S|\Z)",  # yaml: prefix
+            ]
+
+            extracted_yaml = None
+            for pattern in yaml_patterns:
+                match = re.search(pattern, response, re.DOTALL | re.IGNORECASE)
+                if match:
+                    extracted_yaml = match.group(1).strip()
+                    logger.info(f"Extracted YAML using pattern: {pattern}")
+                    break
+
+            if extracted_yaml:
+                # Validate extracted YAML
+                try:
+                    import yaml
+
+                    yaml.safe_load(extracted_yaml)
+                    return extracted_yaml
+                except yaml.YAMLError as e:
+                    logger.warning(f"Extracted YAML is invalid: {e}, trying fallback")
 
             # Fallback: try to find any YAML-like content
             yaml_pattern = r"^([a-zA-Z_][a-zA-Z0-9_]*\s*:.*?)(?=\n[a-zA-Z_][a-zA-Z0-9_]*\s*:|$)"
             matches = re.findall(yaml_pattern, response, re.DOTALL | re.MULTILINE)
             if matches:
-                return "\n".join(matches)
+                fallback_yaml = "\n".join(matches)
+                try:
+                    import yaml
+
+                    yaml.safe_load(fallback_yaml)
+                    return fallback_yaml
+                except yaml.YAMLError:
+                    logger.warning("Fallback YAML extraction also failed")
 
             # If no YAML found, return fallback config
             logger.warning("No YAML configuration found in LLM response, using fallback")
@@ -191,6 +224,11 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         """Generate LlamaFactory configuration YAML"""
 
         # Base configuration
+        # Ensure dataset is not empty or None
+        if not dataset or dataset == "default":
+            # Use a working dataset as fallback
+            dataset = "alpaca_zh"
+
         config = {
             "model_name_or_path": base_model,
             "stage": "sft",
@@ -281,6 +319,3 @@ class LLMFinetuneCoSTEER(DSCoSTEER):
             max_loop=FT_RD_SETTING.coder_max_loop if hasattr(FT_RD_SETTING, "coder_max_loop") else 5,
             **kwargs,
         )
-
-        # Initialize LlamaFactory parameter validator
-        self.parameter_validator = create_parameter_validator()
