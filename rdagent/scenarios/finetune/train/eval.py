@@ -27,17 +27,29 @@ class LLMFinetuneEvaluator(CoSTEEREvaluator):
     ) -> CoSTEERSingleFeedback:
         """Evaluate LLM fine-tuning implementation using dedicated LLM environment."""
 
-        # Use LLM-specific environment instead of DS environment
+        # Use LLM-specific environment with appropriate timeout for training
+        # For runner, use full timeout instead of debug timeout
+        timeout_period = getattr(self.scen, "real_full_timeout", lambda: 3600)()
         env = get_ft_env(
             extra_volumes={FT_RD_SETTING.local_data_path: "/workspace/llm_finetune/data"},
-            running_timeout_period=self.scen.real_debug_timeout(),
+            running_timeout_period=timeout_period,
         )
 
         # Clean workspace before execution
         stdout = implementation.execute(env=env, entry=get_clear_ws_cmd())
 
-        # Execute the fine-tuning code with coverage
-        result = implementation.run(env=env, entry="python -m coverage run main.py")
+        # Execute LlamaFactory training instead of Python script
+        # Check if config.yaml exists in the workspace
+        if "config.yaml" not in implementation.file_dict:
+            return CoSTEERSingleFeedback(
+                execution="No config.yaml found in workspace for LlamaFactory training",
+                return_checking="Config file missing",
+                code="No valid configuration file",
+                final_decision=False,
+            )
+
+        # Execute LlamaFactory training
+        result = implementation.run(env=env, entry="llamafactory-cli train config.yaml")
         stdout = result.stdout
         execute_ret_code = result.exit_code
         implementation.running_info.running_time = result.running_time

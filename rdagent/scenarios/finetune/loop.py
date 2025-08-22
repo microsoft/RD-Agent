@@ -121,6 +121,13 @@ class LLMFinetuneRDLoop(RDLoop):
     def coding(self, prev_out: dict[str, Any]):
         """Generate fine-tuning code"""
         exp = prev_out["direct_exp_gen"]
+
+        # Convert pending_tasks_list to sub_tasks like in data_science loop
+        if hasattr(exp, "pending_tasks_list") and exp.pending_tasks_list:
+            for tasks in exp.pending_tasks_list:
+                exp.sub_tasks = tasks
+                break  # For finetune, we typically have only one task group
+
         exp = self.coder.develop(exp)
         logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp

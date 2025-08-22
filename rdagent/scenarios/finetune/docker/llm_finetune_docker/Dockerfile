@@ -25,4 +25,4 @@ WORKDIR /workspace/llm_finetune
 RUN mkdir -p /workspace/llm_finetune/data /workspace/llm_finetune/output
 
 # Install additional tools for data processing
-RUN pip install datasets pandas numpy huggingface-hub
+RUN pip install datasets pandas numpy huggingface-hub pyyaml
