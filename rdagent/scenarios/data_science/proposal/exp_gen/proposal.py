@@ -36,6 +36,8 @@ from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
 import math
+from rdagent.scenarios.data_science.proposal.exp_gen.select.submit import BestValidSelector
+
 _COMPONENT_META: Dict[str, Dict[str, Any]] = {
     "DataLoadSpec": {
         "target_name": "Data loader and specification generation",
@@ -1026,6 +1028,7 @@ class DSProposalV2ExpGen(ExpGen):
             self, scenario_desc: str, exp_feedback_list_desc: str,extra_exp_feedback_list_desc: str, exp_feedback_scores: list, sota_exp_desc: str, hypothesis_candidates: dict, trace: DSTrace
         ):
         res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
+        ratio_merge_or_ensemble = DS_RD_SETTING.ratio_merge_or_ensemble
 
         total_time = RD_Agent_TIMER_wrapper.timer.all_duration
         use_time = round(total_time.total_seconds(), 2) - round(res_time.total_seconds(), 2)
@@ -1036,10 +1039,13 @@ class DSProposalV2ExpGen(ExpGen):
         time_list_success = [-3600] + [tr[0].running_info.running_time for tr in trace.retrieve_search_list(search_type="ancestors") if getattr(tr[1], "decision", False)
             ]        
         time_max = max(time_list_success) / 3600
-        sota_flag = (hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None)
+        #sota_flag = (hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None)
+        bvs = BestValidSelector()
+        sota_exp = bvs.get_sota_exp_to_submit(trace)
+        sota_flag = sota_exp is not None 
 
         if sota_flag:
-            current_sota_score = trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0].round(3)
+            current_sota_score = sota_exp.result.loc["ensemble"].iloc[0].round(3)
         else:
             current_sota_score = -1
 
@@ -1069,6 +1075,7 @@ class DSProposalV2ExpGen(ExpGen):
             hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(),
             sota_flag =sota_flag,
             current_sota_score = current_sota_score,
+            ratio_merge_or_ensemble = ratio_merge_or_ensemble,
             current_sota_score_in_current_trace = current_sota_score_in_current_trace
         )
 

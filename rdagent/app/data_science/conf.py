@@ -41,7 +41,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """The recommend time limit for running on full data"""
     full_timeout: int = 3600
     """The timeout limit for running on full data"""
-
+    ratio_merge_or_ensemble: int = 70
+    """The ratio of merge or ensemble to be considered as a valid solution"""
     ### specific feature
 
     ### notebook integration
