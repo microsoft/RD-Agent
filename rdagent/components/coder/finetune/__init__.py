@@ -26,6 +26,7 @@ from rdagent.components.coder.finetune.eval import LLMFinetuneEvaluator
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.finetune.train.utils import create_parameter_validator
 from rdagent.utils.agent.ret import PythonAgentOut
@@ -65,11 +66,12 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         dataset = getattr(target_task, "dataset", "default")
 
         # Use LLM to generate LlamaFactory config YAML
+        # For coding stage, use debug mode with limited samples
         config_yaml = self._generate_llamafactory_config_with_llm(
             base_model=base_model,
             finetune_method=finetune_method,
             dataset=dataset,
-            debug_mode=True,  # Use debug mode for coding stage (100 samples)
+            debug_mode=True,  # Use debug mode for coding stage (limited samples for quick validation)
             task_info=task_info,
             similar_knowledge=similar_knowledge,
             failed_knowledge=failed_knowledge[0],

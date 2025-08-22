@@ -27,7 +27,7 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     Function: Convert abstract LLM fine-tuning hypotheses into concrete experiment configurations.
     """
 
-    coder: str = "rdagent.scenarios.finetune.train.coder.LLMPipelineCoSTEER"
+    coder: str = "rdagent.components.coder.finetune.LLMFinetuneCoSTEER"
     """Code generator.
     Function: Generate LLM fine-tuning code based on experiment design.
     """

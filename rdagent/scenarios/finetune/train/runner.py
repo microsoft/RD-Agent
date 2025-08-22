@@ -11,10 +11,21 @@ import yaml
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.CoSTEER import CoSTEER
-from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiEvaluator
+from rdagent.components.coder.CoSTEER.evaluators import (
+    CoSTEERMultiEvaluator,
+    CoSTEERSingleFeedback,
+)
+from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
+from rdagent.components.coder.CoSTEER.evolving_strategy import (
+    EvolvingStrategy,
+    MultiProcessEvolvingStrategy,
+)
+from rdagent.components.coder.CoSTEER.knowledge_management import (
+    CoSTEERQueriedKnowledge,
+)
 from rdagent.components.coder.data_science.share.eval import ModelDumpEvaluator
 from rdagent.components.coder.finetune.conf import FTCoderCoSTEERSettings
-from rdagent.core.experiment import FBWorkspace
+from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.finetune.train.eval import LLMFinetuneEvaluator
@@ -25,6 +36,74 @@ class LLMFinetuneRunnerSettings(FTCoderCoSTEERSettings):
 
     class Config:
         env_prefix = "LLM_FT_Runner_"
+
+
+class LLMFinetuneRunnerEvolvingStrategy(MultiProcessEvolvingStrategy):
+    """Evolving strategy for LLM fine-tuning runner.
+
+    This strategy modifies the config to run on full dataset instead of debug mode.
+    """
+
+    def implement_one_task(
+        self,
+        target_task: Task,
+        queried_knowledge: CoSTEERQueriedKnowledge | None = None,
+        workspace: FBWorkspace | None = None,
+        prev_task_feedback: CoSTEERSingleFeedback | None = None,
+    ) -> dict[str, str]:
+        """Modify config for full dataset training."""
+
+        if not workspace or "config.yaml" not in workspace.file_dict:
+            logger.error("No config.yaml found in workspace")
+            return {}
+
+        # Load existing config from workspace
+        config_content = workspace.file_dict["config.yaml"]
+        try:
+            config_dict = yaml.safe_load(config_content)
+        except yaml.YAMLError as e:
+            logger.error(f"Failed to parse config.yaml: {e}")
+            return {}
+
+        # Modify config for full dataset training
+        # Remove debug mode settings
+        if "max_samples" in config_dict:
+            del config_dict["max_samples"]
+
+        # Increase training epochs for full training
+        if "num_train_epochs" in config_dict:
+            config_dict["num_train_epochs"] = max(3, config_dict.get("num_train_epochs", 3))
+
+        # Adjust batch size for full training if needed
+        if "per_device_train_batch_size" in config_dict:
+            # Keep the same batch size or adjust based on GPU memory
+            pass
+
+        # Update output directory to indicate full training
+        if "output_dir" in config_dict:
+            config_dict["output_dir"] = config_dict["output_dir"].replace("debug", "full")
+
+        # Convert back to YAML
+        new_config_yaml = yaml.dump(config_dict, default_flow_style=False, sort_keys=False)
+
+        return {
+            "config.yaml": new_config_yaml,
+            self.KEY_CHANGE_SUMMARY: "Modified configuration for full dataset training: removed sample limit, adjusted epochs",
+        }
+
+    def assign_code_list_to_evo(self, code_list: list[dict], evo: EvolvingItem) -> None:
+        """Assign the modified config to the evolving item."""
+        if not code_list:
+            return
+
+        # For runner, we only have one task and one code modification
+        code_dict = code_list[0] if code_list else {}
+
+        # Update the workspace with new config
+        if evo.workspace and code_dict:
+            for filename, content in code_dict.items():
+                if filename != self.KEY_CHANGE_SUMMARY:
+                    evo.workspace.file_dict[filename] = content
 
 
 class LLMFinetuneRunner(CoSTEER):
@@ -46,12 +125,8 @@ class LLMFinetuneRunner(CoSTEER):
         eva = CoSTEERMultiEvaluator(single_evaluator=eval_l, scen=scen)
         settings = LLMFinetuneRunnerSettings()
 
-        # Use a simple evolving strategy that doesn't modify code
-        from rdagent.components.coder.CoSTEER.evolving_strategy import (
-            MultiProcessEvolvingStrategy,
-        )
-
-        es = MultiProcessEvolvingStrategy(scen=scen, settings=settings)
+        # Use runner-specific evolving strategy for full dataset training
+        es = LLMFinetuneRunnerEvolvingStrategy(scen=scen, settings=settings)
 
         # Initialize with LLM-specific configuration
         super().__init__(
@@ -66,44 +141,44 @@ class LLMFinetuneRunner(CoSTEER):
         )
 
     def develop(self, exp):
-        """Execute LLaMA-Factory fine-tuning using the generated configuration."""
-        logger.info("Starting LLM fine-tuning execution with LLaMA-Factory")
+        """Execute LLaMA-Factory fine-tuning on full dataset.
 
-        try:
-            # Get the workspace containing the config.yaml
-            workspace = exp.experiment_workspace
-            if not workspace or not hasattr(workspace, "file_dict"):
-                logger.error("No workspace or file_dict found in experiment")
-                return exp
+        This method runs the full training workflow:
+        1. Modify config for full dataset training
+        2. Execute training
+        3. Evaluate the trained model
+        """
+        logger.info("Starting full dataset LLM fine-tuning with LLaMA-Factory")
 
-            config_file = workspace.file_dict.get("config.yaml")
-            if not config_file:
-                logger.error("No config.yaml found in workspace")
-                return exp
+        # Run the standard CoSTEER develop process which will:
+        # 1. Use LLMFinetuneRunnerEvolvingStrategy to modify config for full training
+        # 2. Execute the training
+        # 3. Evaluate using LLMFinetuneEvaluator
+        exp = super().develop(exp)
 
-            # Validate YAML configuration
-            try:
-                config_dict = yaml.safe_load(config_file)
-                logger.info(f"Loaded LLaMA-Factory configuration: {config_dict.get('model_name_or_path', 'Unknown')}")
-            except yaml.YAMLError as e:
-                logger.error(f"Invalid YAML configuration: {e}")
-                return exp
+        # Additional post-training evaluation can be added here if needed
+        if hasattr(exp, "experiment_workspace") and exp.experiment_workspace:
+            self._evaluate_trained_model(exp.experiment_workspace)
 
-            # Execute LLaMA-Factory training
-            result = self._execute_llamafactory_training(workspace, config_dict)
+        return exp
 
-            if result:
-                logger.info("LLaMA-Factory training completed successfully")
-                # Store training results in experiment
-                exp.running_info.running_time = getattr(workspace, "running_info", {}).get("running_time", 0)
-            else:
-                logger.error("LLaMA-Factory training failed")
+    def _evaluate_trained_model(self, workspace: FBWorkspace):
+        """Evaluate the trained model performance.
 
-            return exp
+        TODO: Implement specific evaluation metrics for AIME2024/AIME2025 when available.
+        Currently uses basic evaluation from LLMFinetuneEvaluator.
+        """
+        logger.info("Evaluating trained model performance...")
 
-        except Exception as e:
-            logger.error(f"Error during LLM fine-tuning execution: {e}")
-            return exp
+        # Check for model output files
+        model_files = list(workspace.workspace_path.glob("output/adapter_model.bin"))
+        if model_files:
+            logger.info(f"Found trained model files: {[f.name for f in model_files]}")
+
+            # TODO: Add specific evaluation logic here
+            # For now, the evaluation is handled by LLMFinetuneEvaluator in the CoSTEER framework
+        else:
+            logger.warning("No trained model files found for evaluation")
 
     def _execute_llamafactory_training(self, workspace: FBWorkspace, config_dict: dict) -> bool:
         """Execute LLaMA-Factory training using the configuration."""
