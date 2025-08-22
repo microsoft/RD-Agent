@@ -304,6 +304,7 @@ class LoopBase:
                 await self._run_step(li)
             self.queue.put_nowait(li)  # the loop `li` has been kicked off, waiting for workers to pick it up
             self.loop_idx += 1
+            await asyncio.sleep(0)
 
     async def execute_loop(self) -> None:
         while True:

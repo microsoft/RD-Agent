@@ -180,8 +180,11 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
             c3 = True
 
         # 4. The current time spent on global is less than the time limit ratio for whole timeout.
-        res_ratio = res_time / timer.all_duration
-        c4 = res_ratio <= DS_RD_SETTING.res_time_ratio_limit_to_enable_hyperparameter_tuning
+        if timer.all_duration is not None and res_time is not None:
+            res_ratio = res_time / timer.all_duration
+            c4 = res_ratio <= DS_RD_SETTING.res_time_ratio_limit_to_enable_hyperparameter_tuning
+        else:
+            c4 = True
 
         # Only enable hyperparameter tuning check if all conditions are met
         enable_hyperparameter_tuning_check = c1 and c2 and c3 and c4
