@@ -6,86 +6,54 @@ This module is specifically for format conversion, not general data processing.
 """
 
 from pathlib import Path
+from typing import Optional
 
+from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.finetune.tasks import create_llm_finetune_tasks
-from rdagent.scenarios.finetune.train.runner import LLMFinetuneRunner
-from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
-from rdagent.utils.agent.tpl import T
-from rdagent.utils.workflow.misc import wait_retry
 
 
 class DataFormatConverter:
-    """Converts datasets to LLaMA-Factory compatible formats"""
+    """Converts datasets to LLaMA-Factory compatible formats using CoSTEER architecture"""
 
     def __init__(self, dataset: str, model: str, ft_rd_setting, scen):
         self.dataset = dataset
         self.model = model
         self.ft_rd_setting = ft_rd_setting
         self.scen = scen
-        self.coder = LLMFinetuneRunner(scen)
+
+        from rdagent.components.coder.finetune.data_format import DataFormatCoSTEER
+
+        self.coder = DataFormatCoSTEER(scen)
 
     def convert_dataset(self, env, shared_workspace_dir: Path) -> bool:
-        """
-        Convert dataset to LLaMA-Factory compatible format.
-
-        Args:
-            env: The execution environment
-            shared_workspace_dir: Directory to store converted data
-
-        Returns:
-            bool: True if conversion succeeded, False otherwise
-        """
+        """Convert dataset to LLaMA-Factory compatible format using CoSTEER"""
         logger.info(f"Converting dataset format for {self.dataset}...")
 
-        # Create data format conversion experiment
-        conversion_exp = self._create_conversion_experiment(env)
+        from rdagent.components.coder.finetune.data_format import DataFormatTask
+        from rdagent.core.experiment import Experiment
 
-        # Develop the experiment code
-        conversion_exp = self.coder.develop(conversion_exp)
+        # Create task and experiment
+        task = DataFormatTask(name=f"DataFormat_{self.dataset}", dataset=self.dataset)
+        exp = Experiment([task])
 
-        # Execute the format conversion
-        success = self._execute_conversion(conversion_exp, env)
+        # Develop using CoSTEER
+        exp = self.coder.develop(exp)
 
-        if success:
-            logger.info("Data format conversion completed successfully")
-            # Verify output files exist
-            self._verify_converted_data(shared_workspace_dir)
-        else:
-            logger.error("Data format conversion failed")
+        # Execute the best implementation
+        if exp.sub_workspace_list:
+            workspace = exp.sub_workspace_list[0]
+            success = self._execute_conversion(workspace, env)
 
-        return success
+            if success:
+                logger.info("Data format conversion completed successfully")
+                self._verify_converted_data(shared_workspace_dir)
+            return success
 
-    def _create_conversion_experiment(self, env) -> DSExperiment:
-        """Create data format conversion experiment"""
+        return False
 
-        # Get runtime environment information
-        runtime_info = get_runtime_environment_by_env(env)
+    def _execute_conversion(self, workspace: FBWorkspace, env) -> bool:
+        """Execute data format conversion code"""
 
-        # Get dataset samples
-        data_samples = self._get_dataset_samples()
-
-        # Create data format conversion task
-        task = create_llm_finetune_tasks(self.dataset, self.model)[0]  # First task is data format conversion
-
-        # Set task description using template
-        task.description = T("scenarios.finetune.data_process.prompts:data_format_task_prompt").r(
-            dataset=self.dataset,
-            runtime_info=runtime_info,
-            data_samples=data_samples,
-        )
-
-        return DSExperiment(pending_tasks_list=[[task]])
-
-    def _execute_conversion(self, exp: DSExperiment, env) -> bool:
-        """Execute data format conversion experiment"""
-
-        if not exp.is_ready_to_run():
-            logger.error("Data format conversion experiment is not ready to run")
-            return False
-
-        workspace = exp.experiment_workspace
         if workspace and hasattr(workspace, "run"):
             result = workspace.run(env=env, entry="python main.py")
             logger.info(f"Data conversion execution result: {result.exit_code}")
@@ -93,11 +61,11 @@ class DataFormatConverter:
                 logger.info(f"Data conversion output:\n{result.stdout}")
             return result.exit_code == 0
         else:
-            logger.warning("No executable workspace found for data conversion")
+            logger.error("No executable workspace found for data conversion")
             return False
 
-    def _get_dataset_samples(self) -> str:
-        """Get actual dataset samples for processing"""
+    def get_dataset_samples(self) -> str:
+        """Get dataset samples for processing"""
         import json
 
         import pandas as pd
