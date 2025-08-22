@@ -31,10 +31,10 @@ class LLMFinetuneTask(CoSTEERTask):
         """Get detailed task information for prompt generation"""
         mode = "Debug (100 samples)" if self.debug_mode else "Full training"
         info = f"""Task: {self.name}
-Base Model: {self.base_model}
-Fine-tuning Method: {self.finetune_method}
-Dataset: {self.dataset}
-Mode: {mode}
-Description: {self.description}
-"""
+                Base Model: {self.base_model}
+                Fine-tuning Method: {self.finetune_method}
+                Dataset: {self.dataset}
+                Mode: {mode}
+                Description: {self.description}
+                """
         return info.strip()

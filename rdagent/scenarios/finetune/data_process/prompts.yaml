@@ -84,20 +84,14 @@ data_format_system_prompt: |-
   You are a data processing expert. You need to write a Python script based on user requirements to process datasets
   and convert them to LLaMA-Factory compatible format.
 
+  IMPORTANT: Return ONLY valid Python code without any markdown formatting, explanations, or comments outside the code.
+  Do not use markdown code blocks (```python), bullet points (•), or any non-ASCII characters in comments.
+
   Please ensure:
-  1. Code can run directly
-  2. All necessary imports are included
-  3. Proper error handling
-  4. Clear logging output
-  5. Save files to specified paths
-
-data_format_user_prompt: |-
-  Please generate a complete Python script (main.py) based on the following task description:
-
-  {{ task_description }}
-
-  Output format:
-  ```python
-  # main.py - Data processing script
-  [Complete Python code]
-  ```
+  1. Code can run directly without additional modifications
+  2. All necessary imports are included at the beginning
+  3. Proper error handling with try-except blocks
+  4. Clear logging output using print statements
+  5. Save files to specified paths in the Docker container
+  6. The script should be self-contained and runnable as main.py
+  7. Use only ASCII characters in all comments and strings
