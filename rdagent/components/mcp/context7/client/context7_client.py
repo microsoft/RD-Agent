@@ -7,9 +7,9 @@ using MCP (Model Context Protocol) tools with support for sequential tool calls.
 import asyncio
 import json
 import time
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
-import nest_asyncio
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 from openai import AsyncOpenAI
@@ -20,6 +20,19 @@ from tenacity import (
     wait_exponential,
 )
 
+
+def _is_documentation_not_found(result_text: str) -> bool:
+    """Check if result indicates documentation not found."""
+    error_indicators = ["Failed to fetch documentation", "Error code: 404", "Documentation not found", "404 Not Found"]
+    return any(indicator in result_text for indicator in error_indicators)
+
+
+def _is_connection_error(result_text: str) -> bool:
+    """Check if result indicates connection issues."""
+    connection_indicators = ["Connection failed", "Timeout", "Network error", "Service unavailable"]
+    return any(indicator in result_text for indicator in connection_indicators)
+
+
 from rdagent.components.mcp.cache import get_mcp_cache
 from rdagent.components.mcp.conf import get_mcp_global_settings
 from rdagent.components.mcp.context7.conf import (
@@ -29,14 +42,13 @@ from rdagent.components.mcp.context7.conf import (
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.agent.tpl import T
 
-# Apply nest_asyncio to allow nested event loops
-nest_asyncio.apply()
-
 
 class MCPOpenAIClient:
     """Enhanced client for interacting with OpenAI models using MCP tools."""
 
-    def __init__(self, model: str = "gpt-4.1", server_url: str = "", api_key: str = "", api_base: str = ""):
+    def __init__(
+        self, model: str = "gpt-4.1", server_url: str = "", api_key: str = "", api_base: str = "", verbose: bool = False
+    ):
         """Initialize the OpenAI MCP client.
 
         Args:
@@ -44,10 +56,12 @@ class MCPOpenAIClient:
             server_url: The URL of the MCP server
             api_key: OpenAI API key
             api_base: OpenAI API base URL
+            verbose: Enable verbose logging for detailed debugging
         """
         self.session: Optional[ClientSession] = None
         self.model = model
         self.server_url = server_url
+        self.verbose = verbose
 
         self.openai_client = AsyncOpenAI(api_key=api_key, base_url=api_base)
 
@@ -83,96 +97,93 @@ class MCPOpenAIClient:
         Returns:
             The response from OpenAI
         """
-        # Get available tools
-        tools = await self.get_mcp_tools()
 
+        # Get available MCP tools
+        tools = await self.get_mcp_tools()
         # Initialize conversation
         messages = [{"role": "user", "content": query}]
 
-        round_count = 0
+        for round_count in range(1, max_rounds + 1):
+            if self.verbose:
+                logger.info(f"Round {round_count}: Calling OpenAI...")
 
-        while round_count < max_rounds:
-            round_count += 1
-            logger.info(f"Round {round_count}: Calling OpenAI...")
-
-            # Check if we need to force get-library-docs call
-            tool_choice = "auto"
-
-            # Let AI decide based on the prompt instructions
-            # The prompt now explicitly instructs AI to call get-library-docs for each resolve-library-id
-
-            # Call OpenAI API
-            response = await self.openai_client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                tools=tools,
-                tool_choice=tool_choice,
-            )
-
-            # Get assistant's response
+            response = await self._call_openai_api(messages, tools)
             assistant_message = response.choices[0].message
             messages.append(assistant_message)
 
-            # Check if there are tool calls
-            if assistant_message.tool_calls:
-                logger.info(f"Processing {len(assistant_message.tool_calls)} tool call(s)...")
-
-                # Process each tool call
-                for i, tool_call in enumerate(assistant_message.tool_calls, 1):
-                    logger.info(f"Tool {i}: {tool_call.function.name}")
-
-                    try:
-                        # Execute tool call
-                        result = await self.session.call_tool(
-                            tool_call.function.name,
-                            arguments=json.loads(tool_call.function.arguments),
-                        )
-                        logger.info(f"Tool {i} executed successfully")
-
-                        # Check if the result contains error information
-                        result_text = result.content[0].text
-                        if "Failed to fetch documentation" in result_text or "Error code: 404" in result_text:
-                            logger.warning(f"Tool {i} returned 404 error - library documentation not found")
-                            # Add a helpful error message instead of the raw error
-                            error_msg = f"Documentation not found for this library. This library may not have detailed documentation available in the knowledge base, but you can still provide general guidance based on the library information from resolve-library-id."
-                            messages.append(
-                                {
-                                    "role": "tool",
-                                    "tool_call_id": tool_call.id,
-                                    "content": error_msg,
-                                }
-                            )
-                        else:
-                            # Add successful tool response to conversation
-                            messages.append(
-                                {
-                                    "role": "tool",
-                                    "tool_call_id": tool_call.id,
-                                    "content": result_text,
-                                }
-                            )
-                    except Exception as e:
-                        logger.error(f"Tool {i} failed: {str(e)}")
-                        # Add error response to conversation
-                        messages.append(
-                            {
-                                "role": "tool",
-                                "tool_call_id": tool_call.id,
-                                "content": f"Error executing tool: {str(e)}",
-                            }
-                        )
-
-                # Continue to next round to let AI decide if it needs more tools
-                logger.info(f"Round {round_count} completed, checking if more tools needed...")
-                continue
-            else:
-                # No tool calls, we have the final response
+            if not assistant_message.tool_calls:
                 logger.info(f"Final response received in round {round_count}")
                 return assistant_message.content
 
-        # If we've reached max rounds, return the last response
+            await self._process_tool_calls(assistant_message.tool_calls, messages)
+            if self.verbose:
+                logger.info(f"Round {round_count} completed, checking if more tools needed...")
+
         logger.warning(f"Reached maximum rounds ({max_rounds}), returning last response")
         return messages[-1].content if messages else "No response generated"
+
+    async def _call_openai_api(self, messages: List[Dict], tools: List[Dict[str, Any]]):
+        """Call OpenAI API with current messages and available tools."""
+        return await self.openai_client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            tools=tools,
+            tool_choice="auto",
+        )
+
+    async def _process_tool_calls(self, tool_calls, messages: List[Dict]) -> None:
+        """Process all tool calls and add results to messages."""
+        tool_names = [tool_call.function.name for tool_call in tool_calls]
+        if self.verbose:
+            logger.info(f"Executing {len(tool_calls)} tool(s): {', '.join(tool_names)}")
+
+        for i, tool_call in enumerate(tool_calls, 1):
+            if self.verbose:
+                logger.info(f"Tool {i}: {tool_call.function.name}")
+            result_message = await self._execute_single_tool(tool_call, i)
+            messages.append(result_message)
+
+    async def _execute_single_tool(self, tool_call, tool_index: int) -> Dict[str, str]:
+        """Execute a single tool call and return the result message."""
+        try:
+            result = await self.session.call_tool(
+                tool_call.function.name,
+                arguments=json.loads(tool_call.function.arguments),
+            )
+            if self.verbose:
+                logger.info(f"Tool {tool_index} executed successfully")
+
+            result_text = result.content[0].text
+            content = self._handle_tool_result(result_text, tool_index)
+
+            return {
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": content,
+            }
+        except Exception as e:
+            logger.error(f"Tool {tool_index} failed: {str(e)}")
+            return {
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": f"Error executing tool: {str(e)}",
+            }
+
+    def _handle_tool_result(self, result_text: str, tool_index: int) -> str:
+        """Handle tool result with simple error detection."""
+        if _is_documentation_not_found(result_text):
+            logger.warning(f"Documentation not found for requested library")
+            return (
+                "Documentation not found for this library. This library may not have detailed "
+                "documentation available in the knowledge base, but you can still provide general "
+                "guidance based on the library information from resolve-library-id."
+            )
+
+        if _is_connection_error(result_text):
+            logger.warning(f"Connection error while fetching documentation")
+            return "Connection error occurred while fetching documentation. Please try again later."
+
+        return result_text
 
     async def cleanup(self):
         """Clean up resources."""
@@ -247,7 +258,9 @@ async def _query_context7_with_retry(
                         logger.info(f"  - {tool.name}: {tool.description}")
 
                 # Create OpenAI client and process query
-                client = MCPOpenAIClient(model=model, server_url=mcp_http_url, api_key=api_key, api_base=api_base)
+                client = MCPOpenAIClient(
+                    model=model, server_url=mcp_http_url, api_key=api_key, api_base=api_base, verbose=verbose
+                )
                 client.session = session  # Use the existing session
 
                 # Build context information using template
@@ -274,10 +287,21 @@ async def _query_context7_with_retry(
                 # Calculate and display total execution time
                 end_time = time.time()
                 total_time = end_time - start_time
-                logger.info(f"Context7 enhanced total execution time: {total_time:.2f} seconds")
-                logger.info(
-                    f"Context7 enhanced execution completed at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}"
-                )
+
+                # Log the final result
+                logger.info(f"Context7 query completed successfully in {total_time:.2f}s")
+
+                # Log result based on verbosity and length
+                if verbose:
+                    # In verbose mode, show full result
+                    logger.info(f"Context7 result: {response}")
+                else:
+                    # In normal mode, show preview if result is long
+                    if len(response) > 300:
+                        result_preview = response[:300] + "..."
+                        logger.info(f"Context7 result preview: {result_preview}")
+                    else:
+                        logger.info(f"Context7 result: {response}")
 
                 result = response
 

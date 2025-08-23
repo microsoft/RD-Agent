@@ -271,9 +271,8 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         else:
             eda_output = implementation.file_dict.get("EDA.md", None)
 
-        # extract enable_context7 from MCP configuration
-
-        enable_context7 = is_context7_enabled()
+        # extract enable_context7 from data science configuration
+        enable_context7 = DS_RD_SETTING.enable_mcp_documentation_search and is_context7_enabled()
 
         queried_similar_successful_knowledge = (
             queried_knowledge.task_to_similar_task_successful_knowledge[target_task.get_task_information()]

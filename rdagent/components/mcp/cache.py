@@ -11,6 +11,14 @@ from rdagent.components.mcp.conf import get_mcp_global_settings
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.backend.base import SQliteLazyCache
 
+__all__ = [
+    "MCPCache",
+    "get_mcp_cache",
+    "reset_mcp_cache",
+    "clear_mcp_cache_by_file",
+    "get_cache_file_info",
+]
+
 
 class MCPCache(SQliteLazyCache):
     """MCP cache extending SQliteLazyCache with MCP-specific features.
@@ -238,6 +246,17 @@ def get_mcp_cache() -> MCPCache:
     if _global_cache is None:
         _global_cache = MCPCache()
     return _global_cache
+
+
+def reset_mcp_cache() -> None:
+    """Reset global MCP cache instance without deleting cache file.
+
+    This is primarily for testing purposes to avoid state pollution
+    between test cases. The cache file remains intact.
+    """
+    global _global_cache
+    _global_cache = None
+    logger.info("MCP cache instance reset (file preserved)")
 
 
 def clear_mcp_cache_by_file() -> bool:

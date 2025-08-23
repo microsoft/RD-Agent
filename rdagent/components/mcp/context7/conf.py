@@ -30,7 +30,7 @@ class Context7Settings(BaseSettings):
     api_base: Optional[str] = Field(default=None, description="OpenAI API base URL")
 
     model_config = SettingsConfigDict(
-        env_prefix="CONTEXT7_",
+        env_prefix="MCP_CONTEXT7_",
         extra="ignore",
     )
 

@@ -83,17 +83,21 @@ MCP_CACHE_ENABLED=True
 ### Context7 Specific Settings
 
 ```bash
+
+# Enable MCP in coder (kaggle scenario)
+DS_ENABLE_MCP_DOCUMENTATION_SEARCH=True
+
 # Enable Context7 integration
-CONTEXT7_ENABLED=true
+MCP_CONTEXT7_ENABLED=true
 
 # Set your MCP server URL (for HTTP transport) 
 # should be the same as the port you use to run the server
-CONTEXT7_MCP_URL="http://localhost:8123/mcp"
+MCP_CONTEXT7_MCP_URL="http://localhost:8123/mcp"
 
 # Configure LLM settings
-CONTEXT7_MODEL="gpt-4-turbo"
-CONTEXT7_API_KEY="your-openai-api-key"
-CONTEXT7_API_BASE="https://api.openai.com/v1"  
+MCP_CONTEXT7_MODEL="gpt-4-turbo"
+MCP_CONTEXT7_API_KEY="your-openai-api-key"
+MCP_CONTEXT7_API_BASE="https://api.openai.com/v1"  
 ```
 
 ### Complete Setup Example
@@ -104,13 +108,16 @@ cd context7
 nohup bun run dist/index.js --transport http --port 8123 
 
 # Configure RD-Agent environment in .env
+DS_ENABLE_MCP_DOCUMENTATION_SEARCH=True
+
 MCP_ENABLED=true
 MCP_CACHE_ENABLED=true
-CONTEXT7_ENABLED=true
-CONTEXT7_MCP_URL="http://localhost:8123/mcp"
-CONTEXT7_MODEL="gpt-4-turbo" 
-CONTEXT7_API_KEY="your-openai-api-key"
-CONTEXT7_API_BASE="https://api.openai.com/v1"  
+
+MCP_CONTEXT7_ENABLED=true
+MCP_CONTEXT7_MCP_URL="http://localhost:8123/mcp"
+MCP_CONTEXT7_MODEL="gpt-4-turbo" 
+MCP_CONTEXT7_API_KEY="your-openai-api-key"
+MCP_CONTEXT7_API_BASE="https://api.openai.com/v1"  
 ```
 
 ## 🧪 Testing the Integration

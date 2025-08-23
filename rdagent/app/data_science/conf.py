@@ -151,9 +151,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
     enable_scale_check: bool = False
 
-    # MCP configuration is now managed in rdagent.components.mcp
-    # Use CONTEXT7_ENABLED environment variable to control Context7
-    """enable the use of context7 as mcp to search for relevant documents of current implementation errors"""
+    #### MCP documentation search integration
+    enable_mcp_documentation_search: bool = True
+    """Enable MCP documentation search for error resolution. Requires MCP_ENABLED=true and MCP_CONTEXT7_ENABLED=true in environment."""
 
     #### enable runner code change summary
     runner_enable_code_change_summary: bool = True
