@@ -77,14 +77,19 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
         gt_implementation: FBWorkspace,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
-    ) -> DSRunnerFeedback:
+    ) -> DSCoSTEEREvalFeedback:
+        if "Ensemble" in target_task.name:
+            running_timeout_period = DS_RD_SETTING.ensemble_timeout
+        else:
+            running_timeout_period = self.scen.real_full_timeout()
+
         env = get_ds_env(
             extra_volumes={
                 f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": T(
                     "scenarios.data_science.share:scen.input_path"
                 ).r()
             },
-            running_timeout_period=self.scen.real_full_timeout(),
+            running_timeout_period=running_timeout_period,
         )
 
         stdout = implementation.execute(

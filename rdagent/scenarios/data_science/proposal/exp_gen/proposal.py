@@ -15,6 +15,7 @@ from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.backend.base import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.feedback import ExperimentFeedback
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -248,6 +249,13 @@ class HypothesisDetail(BaseModel):
     )
     component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
     evaluation: HypothesisEvaluation = Field(description="Evaluate the quality of the hypothesis.")
+
+
+class HypothesisSimple(BaseModel):
+    hypothesis: str = Field(
+        description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
+    )
+    component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
 
 
 class HypothesisList(BaseModel):
@@ -628,8 +636,6 @@ class DSProposalV2ExpGen(ExpGen):
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             hypothesis_output_format=(
                 T(".prompts_v2:output_format.hypothesis").r(pipeline=pipeline, enable_idea_pool=enable_idea_pool)
-                if not self.supports_response_schema
-                else None
             ),
             pipeline=pipeline,
             enable_idea_pool=enable_idea_pool,
@@ -647,30 +653,10 @@ class DSProposalV2ExpGen(ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=HypothesisList if self.supports_response_schema else {"type": "json_object"},
-            json_target_type=(
-                Dict[str, Dict[str, str | Dict[str, str | int]]] if not self.supports_response_schema else None
-            ),
+            response_format={"type": "json_object"},
+            json_target_type=Dict[str, Dict[str, str | Dict[str, str | int]]],
         )
-        if self.supports_response_schema:
-            hypotheses = HypothesisList(**json.loads(response))
-            resp_dict = {
-                h.caption: {
-                    "reason": h.challenge,
-                    "component": h.component.value,
-                    "hypothesis": h.hypothesis,
-                    "evaluation": {
-                        "alignment_score": h.evaluation.alignment.score,
-                        "impact_score": h.evaluation.impact.score,
-                        "novelty_score": h.evaluation.novelty.score,
-                        "feasibility_score": h.evaluation.feasibility.score,
-                        "risk_reward_balance_score": h.evaluation.risk_reward_balance.score,
-                    },
-                }
-                for h in hypotheses.hypotheses
-            }
-        else:
-            resp_dict = json.loads(response)
+        resp_dict = json.loads(response)
         logger.info(f"Generated hypotheses:\n" + json.dumps(resp_dict, indent=2))
 
         # make sure the problem name is aligned
@@ -927,6 +913,52 @@ class DSProposalV2ExpGen(ExpGen):
             problem_label=problem_dict.get("label", "FEEDBACK_PROBLEM"),
             appendix=hypothesis_dict[max_score_problem_name].get("appendix", None),
         )
+
+    def hypothesis_select_with_llm(
+        self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str, hypothesis_candidates: dict
+    ):
+
+        # time_use_current = 0
+        # for exp, feedback in trace.hist:
+        #     if exp.running_info.running_time is not None:
+        #         time_use_current += exp.running_info.running_time
+        # res_time = 12*3600 - time_use_current
+        res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
+        total_time = RD_Agent_TIMER_wrapper.timer.all_duration
+        use_time = round(total_time.total_seconds(), 2) - round(res_time.total_seconds(), 2)
+        use_ratio = 100 * use_time / round(total_time.total_seconds(), 2)
+        use_ratio = round(use_ratio, 2)
+
+        ensemble_timeout = DS_RD_SETTING.ensemble_timeout
+        hypothesis_candidates = str(json.dumps(hypothesis_candidates, indent=2))
+
+        sys_prompt = T(".prompts_v2:hypothesis_select.system").r(
+            hypothesis_candidates=hypothesis_candidates,
+            res_time=round(res_time.total_seconds(), 2),
+            ensemble_timeout=ensemble_timeout,
+            use_ratio=use_ratio,
+            hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(
+                hypothesis_candidates=hypothesis_candidates
+            ),
+        )
+
+        user_prompt = T(".prompts_v2:hypothesis_select.user").r(
+            scenario_desc=scenario_desc,
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format=HypothesisSimple if self.supports_response_schema else {"type": "json_object"},
+            json_target_type=(
+                Dict[str, Dict[str, str | Dict[str, str | int]]] if not self.supports_response_schema else None
+            ),
+        )
+
+        response_dict = json.loads(response)
+        return response_dict
 
     def task_gen(
         self,
@@ -1189,10 +1221,32 @@ class DSProposalV2ExpGen(ExpGen):
             improved_hypotheses_dict = hypothesis_dict.copy()  # Use original hypotheses directly
 
         # Step 3: Select the best hypothesis
-        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
-            hypothesis_dict=improved_hypotheses_dict,
-            problem_dict=all_problems,
+        # pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+        #     hypothesis_dict=hypothesis_dict,
+        #     problem_dict=  all_problems,
+        # )
+
+        response_dict = self.hypothesis_select_with_llm(
+            scenario_desc=scenario_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+            hypothesis_candidates=hypothesis_dict,
         )
+        component_map = {
+            "Model": HypothesisComponent.Model,
+            "Ensemble": HypothesisComponent.Ensemble,
+            "Workflow": HypothesisComponent.Workflow,
+            "FeatureEng": HypothesisComponent.FeatureEng,
+            "DataLoadSpec": HypothesisComponent.DataLoadSpec,
+        }
+
+        comp_str = response_dict.get("component")
+        hypo_str = response_dict.get("hypothesis")
+
+        if comp_str in component_map and hypo_str is not None:
+            new_hypothesis = DSHypothesis(component=component_map[comp_str], hypothesis=hypo_str)
+
+        pickled_problem_name = None
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)

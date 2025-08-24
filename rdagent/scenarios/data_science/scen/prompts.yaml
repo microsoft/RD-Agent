@@ -36,7 +36,11 @@ scenario_description: |-
   ====== Time Limit On Full Code Execution ======
   Your full code's execution is limited to **{{ time_limit }}**. After this time limit, your code will be terminated and all time and resources are wasted. Always make sure your code will not run longer than this time limit.
   During this time limit, you have all the resources available to you. Please fully leverage all the computational resources(CPUs and GPUs) to achieve the best performance like choose a powerful model, use a large batch size, enable data sampler with big parallel.
-  {% endif %}{% if debug_time_limit is not none%}
+  {% endif %}
+  {% if ensemble_limit is not none %}
+  If your code involves ensemble training, note that the total time allowed for ensemble runs is {{ ensemble_limit }} seconds. Make sure to plan your ensemble strategy wisely within this limit.
+  {% endif %}
+  {% if debug_time_limit is not none%}
   ====== Time Limit On Debug Mode Code Execution ======
   Your are also required to include a debug mode in your code, the debug code's execution is limited to **{{ debug_time_limit }}**. You should make sure 10 percent of the data training one epoch can be finished within this time limit. If not, your should propose a new debug strategy in your task.
   {% endif %}{% if recommend_time_limit is not none %}
