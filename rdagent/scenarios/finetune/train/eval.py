@@ -10,6 +10,7 @@ from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.components.coder.finetune.conf import get_clear_ws_cmd, get_ft_env
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
+from rdagent.scenarios.finetune.scen.utils import get_unified_mount_volumes
 from rdagent.utils.agent.tpl import T
 
 
@@ -29,8 +30,11 @@ class LLMFinetuneEvaluator(CoSTEEREvaluator):
         # Use LLM-specific environment with appropriate timeout for training
         # For runner, use full timeout instead of debug timeout
         timeout_period = getattr(self.scen, "real_full_timeout", lambda: 3600)()
+        # Use unified mount volume configuration
+        extra_volumes = get_unified_mount_volumes()
+
         env = get_ft_env(
-            extra_volumes={FT_RD_SETTING.local_data_path: "/workspace/llm_finetune/data"},
+            extra_volumes=extra_volumes,
             running_timeout_period=timeout_period,
         )
 
@@ -131,9 +135,12 @@ class LLMPipelineEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
+        # Use unified mount volume configuration
+        extra_volumes = get_unified_mount_volumes()
+
         # Use LLM-specific environment
         env = get_ft_env(
-            extra_volumes={FT_RD_SETTING.local_data_path: "/workspace/llm_finetune/data"},
+            extra_volumes=extra_volumes,
             running_timeout_period=self.scen.real_debug_timeout(),
         )
 

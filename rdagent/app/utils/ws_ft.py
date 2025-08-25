@@ -4,6 +4,7 @@ import typer
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.finetune.conf import get_ft_env
+from rdagent.scenarios.finetune.scen.utils import get_unified_mount_volumes
 from rdagent.utils.agent.tpl import T
 
 app = typer.Typer(help="Run LLM fine-tuning environment commands.")
@@ -36,20 +37,8 @@ def run(
         cmd: The shell command or script entry point to execute inside
              the environment.
     """
-    # Build data and model paths based on FT_RD_SETTING configuration
-    if FT_RD_SETTING.file_path:
-        dataset_path = f"{FT_RD_SETTING.file_path}/dataset/{dataset}"
-        model_path = f"{FT_RD_SETTING.file_path}/model/{model}"
-        extra_volumes = {
-            dataset_path: "/workspace/llm_finetune/data",
-            model_path: "/workspace/llm_finetune/model",
-        }
-    else:
-        # Fallback to current directory structure
-        extra_volumes = {
-            f"./dataset/{dataset}": "/workspace/llm_finetune/data",
-            f"./model/{model}": "/workspace/llm_finetune/model",
-        }
+    # Use unified mount volume configuration
+    extra_volumes = get_unified_mount_volumes()
 
     # Don't set time limitation and always disable cache
     env = get_ft_env(

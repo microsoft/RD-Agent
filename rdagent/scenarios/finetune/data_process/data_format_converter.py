@@ -71,8 +71,8 @@ class DataFormatConverter:
         import pandas as pd
 
         try:
-            # Try Docker environment path first
-            dataset_path = Path("/workspace/llm_finetune/data/raw") / self.dataset
+            # Use simplified Docker path structure
+            dataset_path = Path("/workspace/dataset") / self.dataset
             if not dataset_path.exists():
                 # Fallback to local path for non-Docker environments
                 dataset_path = Path(self.ft_rd_setting.local_data_path) / self.dataset

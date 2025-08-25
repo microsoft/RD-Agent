@@ -10,6 +10,7 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.finetune.data_process.data_format_converter import (
     DataFormatConverter,
 )
+from rdagent.scenarios.finetune.scen.utils import get_unified_mount_volumes
 
 
 class LLMFinetuneRDLoop(RDLoop):
@@ -52,11 +53,13 @@ class LLMFinetuneRDLoop(RDLoop):
 
     def _setup_environment(self):
         """Setup Docker environment with proper volume mappings"""
+        # Use unified mount volume configuration and convert to Docker volume format
         data_volumes = {}
+        unified_volumes = get_unified_mount_volumes()
 
-        if self.ft_rd_setting.local_data_path:
-            data_volumes[self.ft_rd_setting.local_data_path] = {
-                "bind": "/workspace/llm_finetune/data/raw",
+        for local_path, docker_path in unified_volumes.items():
+            data_volumes[local_path] = {
+                "bind": docker_path,
                 "mode": "ro",
             }
 
@@ -69,7 +72,7 @@ class LLMFinetuneRDLoop(RDLoop):
             shutil.rmtree(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         data_volumes[str(output_dir)] = {
-            "bind": "/workspace/llm_finetune/output",
+            "bind": "/workspace/output",
             "mode": "rw",
         }
 
@@ -78,7 +81,7 @@ class LLMFinetuneRDLoop(RDLoop):
             shutil.rmtree(self.shared_workspace_dir)
         self.shared_workspace_dir.mkdir(parents=True, exist_ok=True)
         data_volumes[str(self.shared_workspace_dir)] = {
-            "bind": "/workspace/llm_finetune/shared",
+            "bind": "/workspace/shared",
             "mode": "rw",
         }
 
