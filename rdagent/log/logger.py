@@ -20,7 +20,7 @@ from rdagent.core.utils import SingletonBaseClass, import_class
 
 from .base import Storage
 from .storage import FileStorage
-from .utils import LogColors, get_caller_info
+from .utils import get_caller_info
 
 
 class RDAgentLog(SingletonBaseClass):
@@ -127,15 +127,10 @@ class RDAgentLog(SingletonBaseClass):
             logger.add(sys.stderr)
 
     def info(self, msg: str, *, tag: str = "", raw: bool = False) -> None:
-        # Use default color for info messages
         self._log("info", msg, tag=tag, raw=raw)
 
     def warning(self, msg: str, *, tag: str = "", raw: bool = False) -> None:
-        # Add yellow color for warning messages
-        colored_msg = f"{LogColors.YELLOW}{msg}{LogColors.END}"
-        self._log("warning", colored_msg, tag=tag, raw=True)
+        self._log("warning", msg, tag=tag, raw=raw)
 
     def error(self, msg: str, *, tag: str = "", raw: bool = False) -> None:
-        # Add red color for error messages
-        colored_msg = f"{LogColors.RED}{msg}{LogColors.END}"
-        self._log("error", colored_msg, tag=tag, raw=True)
+        self._log("error", msg, tag=tag, raw=raw)
