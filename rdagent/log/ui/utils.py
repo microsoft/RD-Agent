@@ -22,6 +22,9 @@ from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.utils import extract_json, extract_loopid_func_name
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+from rdagent.scenarios.data_science.proposal.exp_gen.select.submit import (
+    BestValidSelector,
+)
 from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 
 LITE = [
@@ -158,13 +161,13 @@ def map_stat(sota_mle_score: dict | None) -> str:
     return sota_exp_stat
 
 
-def _get_sota_exp_stat_hash_func(log_path: Path, to_submit: bool = True) -> str:
-    return _log_path_hash_func(log_path) + str(to_submit)
+def _get_sota_exp_stat_hash_func(log_path: Path, selector: Literal["auto", "best_valid"] = "auto") -> str:
+    return _log_path_hash_func(log_path) + selector
 
 
 @cache_with_pickle(_get_sota_exp_stat_hash_func, force=True)
 def get_sota_exp_stat(
-    log_path: Path, to_submit: bool = True
+    log_path: Path, selector: Literal["auto", "best_valid"] = "auto"
 ) -> tuple[DSExperiment | None, int | None, dict | None, str | None]:
     """
     Get the SOTA experiment and its statistics from the log path.
@@ -173,8 +176,8 @@ def get_sota_exp_stat(
     ----------
     log_path : Path
         Path to the experiment log directory.
-    to_submit : bool, default True
-        If True, returns sota_exp_to_submit; if False, returns common SOTA experiment.
+    selector : Literal["auto", "best_valid"], default "auto"
+        If "auto", returns sota_exp_to_submit; if "best_valid", returns sota selected by best valid score.
 
     Returns
     -------
@@ -192,19 +195,19 @@ def get_sota_exp_stat(
     log_storage = FileStorage(log_path)
 
     # get sota exp
-    sota_exp_list = [
-        i.content for i in log_storage.iter_msg(tag=("sota_exp_to_submit" if to_submit else "SOTA experiment"))
-    ]
-    if len(sota_exp_list) == 0:
-        # if no sota exp found, try to find the last trace
+    sota_exp = None
+    if selector == "auto":
+        sota_exp_list = [i.content for i in log_storage.iter_msg(tag="sota_exp_to_submit")]
+        sota_exp = sota_exp_list[-1] if sota_exp_list else None
+    elif selector == "best_valid":
         trace_list = [i.content for i in log_storage.iter_msg(tag="trace")]
-        final_trace = trace_list[-1] if trace_list else None
-        if final_trace is not None:
-            sota_exp = final_trace.sota_exp_to_submit if to_submit else final_trace.sota_experiment(search_type="all")
-        else:
-            sota_exp = None
-    else:
-        sota_exp = sota_exp_list[-1]
+        if trace_list:
+            final_trace = trace_list[-1]
+            final_trace.scen.metric_direction = get_metric_direction(
+                final_trace.scen.competition
+            )  # FIXME: remove this later.
+            bvs = BestValidSelector()
+            sota_exp = bvs.get_sota_exp_to_submit(final_trace)
 
     if sota_exp is None:
         return None, None, None, None
@@ -240,7 +243,7 @@ def _get_score_stat_hash_func(log_path: Path, sota_loop_id: int) -> str:
 
 
 @cache_with_pickle(_get_score_stat_hash_func, force=True)
-def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, bool]:
+def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, float | None, bool, float | None]:
     """
     Get the scores before and after merge period.
 
@@ -268,14 +271,10 @@ def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, boo
     test_before_merge = []
     valid_after_merge = []
     test_after_merge = []
-    all_report = []
     submit_is_merge = False
-    best_is_merge = False
     is_lower_better = False
     valid_improve = False
     test_improve = False
-    best_score = None
-    best_stat = None
     total_merge_loops = 0
     log_storage = FileStorage(log_path)
     all_trace = list(log_storage.iter_msg(tag="trace"))
@@ -312,20 +311,15 @@ def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, boo
 
         is_lower_better = mle_score.get("is_lower_better", False)
         valid_score = pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
-        all_report.append((valid_score, mle_score))
 
         if is_merge:
             valid_after_merge.append(valid_score)
-            test_after_merge.append(mle_score["score"])
+            if mle_score["score"] is not None:
+                test_after_merge.append(mle_score["score"])
         else:
             valid_before_merge.append(valid_score)
-            test_before_merge.append(mle_score["score"])
-
-    if all_report:
-        all_report.sort(key=lambda x: x[0])
-        best_score_dict = all_report[0][1] if is_lower_better else all_report[-1][1]
-        best_stat = map_stat(best_score_dict)
-        best_score = best_score_dict["score"]
+            if mle_score["score"] is not None:
+                test_before_merge.append(mle_score["score"])
 
     if is_lower_better:
         if valid_after_merge:
@@ -339,7 +333,7 @@ def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, boo
             test_improve = not test_before_merge or max(test_after_merge) > max(test_before_merge)
 
     merge_sota_rate = 0 if not total_merge_loops else len(test_after_merge) / total_merge_loops
-    return best_score, best_stat, valid_improve, test_improve, submit_is_merge, merge_sota_rate
+    return valid_improve, test_improve, submit_is_merge, merge_sota_rate
 
 
 @cache_with_pickle(_log_path_hash_func, force=True)
@@ -473,16 +467,18 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
 
             # overwrite sota_exp_stat in summary.pkl because it may not be correct in multi-trace
             sota_exp_submit, v["sota_loop_id_new"], sota_submit_report, v["sota_exp_stat_new"] = get_sota_exp_stat(
-                Path(lf) / k, to_submit=True
+                Path(lf) / k, selector="auto"
+            )
+            sota_exp_bv, v["sota_loop_id"], sota_bv_report, v["sota_exp_stat"] = get_sota_exp_stat(
+                Path(lf) / k, selector="best_valid"
             )
             (
-                v["sota_exp_score"],
-                v["sota_exp_stat"],
                 v["valid_improve"],
                 v["test_improve"],
                 v["submit_is_merge"],
                 v["merge_sota_rate"],
             ) = get_score_stat(Path(lf) / k, v["sota_loop_id_new"])
+
             if sota_exp_submit is not None:
                 try:
                     sota_submit_result = sota_exp_submit.result
@@ -491,6 +487,7 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
                 v["sota_exp_score_valid_new"] = (
                     sota_submit_result.loc["ensemble"].iloc[0] if sota_submit_result is not None else None
                 )
+            v["sota_exp_score"] = sota_bv_report["score"] if sota_bv_report else None
             v["sota_exp_score_new"] = sota_submit_report["score"] if sota_submit_report else None
             # change experiment name
             if "amlt" in lf:
