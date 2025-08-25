@@ -10,6 +10,16 @@ data_format_task_prompt: |-
   {{ runtime_info }}
   ```
 
+  ## Dataset File Structure
+  Below shows the dataset directory structure:
+  ```
+  {{ file_tree }}
+  ```
+
+  **Important Paths:**
+  - Dataset location: `/data/dataset/{{ dataset }}/` (Docker mounted path)
+  - Output location: `/workspace/data/` (Docker working directory)
+
   ## Dataset Samples
   Here are the first few samples from the dataset:
   ```json

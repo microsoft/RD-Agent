@@ -133,25 +133,11 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         params_query = LLaMAFactoryParamsQuery()
         method_params_desc = params_query.format_params_for_prompt(finetune_method)
 
-        # Get dataset folder description using unified approach
-        dataset_folder_description = ""
-        try:
-            # Get actual dataset structure description
-            from rdagent.scenarios.finetune.scen.utils import build_folder_description
+        # Get Docker environment info with file trees
+        docker_env_info = self._get_docker_environment_info(dataset)
 
-            dataset_folder_description = build_folder_description(dataset)
-        except Exception as e:
-            logger.warning(f"Could not get dataset folder description: {e}")
-            dataset_folder_description = f"Dataset: {dataset} (structure analysis unavailable)"
-
-        # Get Docker environment info from scenario
-        docker_env_info = self._get_docker_environment_info()
-
-        # Define critical configuration rules
+        # Critical rules are now embedded in the Docker environment context in prompts.yaml
         critical_rules = [
-            'dataset: MUST be "processed_dataset" (string, not dictionary)',
-            'dataset_dir: MUST be "/workspace/data"',
-            'output_dir: MUST be "/workspace/output"',
             "model_name_or_path: Use HuggingFace model identifier",
             "All file paths must use Docker container paths, NOT local filesystem paths",
         ]
@@ -163,7 +149,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             similar_knowledge=similar_knowledge if similar_knowledge else [],
             failed_knowledge=failed_knowledge if failed_knowledge else [],
             method_params=method_params_desc,
-            dataset_folder_description=dataset_folder_description,
             docker_env_info=docker_env_info,
         )
 
@@ -227,17 +212,13 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
                 except yaml.YAMLError:
                     logger.warning("Fallback YAML extraction also failed")
 
-            # If no YAML found, return fallback config
-            logger.warning("No YAML configuration found in LLM response, using fallback")
-            return self._generate_llamafactory_config(
-                base_model, finetune_method, dataset, debug_mode, task_info, similar_knowledge, failed_knowledge
-            )
+            # If no YAML found, raise error
+            logger.error("No YAML configuration found in LLM response")
+            raise RuntimeError("Failed to extract valid YAML from LLM response")
 
         except Exception as e:
-            logger.error(f"Failed to generate config with LLM: {e}, using fallback")
-            return self._generate_llamafactory_config(
-                base_model, finetune_method, dataset, debug_mode, task_info, similar_knowledge, failed_knowledge
-            )
+            logger.error(f"Failed to generate config with LLM: {e}")
+            raise RuntimeError(f"LLM config generation failed: {e}")
 
     def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
         """Assign generated code to the evolving experiment"""
@@ -249,98 +230,57 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             evo.sub_workspace_list[index].inject_files(**code_list[index])
         return evo
 
-    def _get_docker_environment_info(self) -> str:
-        """Generate Docker environment information for LlamaFactory configuration"""
-        return """## Docker Container Environment
-**Container Image**: local_llm_finetune:latest
-**Mount Strategy**: Entire FT_FILE_PATH mounted as /workspace
+    def _get_container_mount_path(self) -> str:
+        """Get the container mount path dynamically from Docker configuration"""
+        from rdagent.utils.env import LLMDockerConf
 
-**Critical Docker Paths for LlamaFactory**:
-- Dataset Directory: `/workspace/data` (contains dataset_info.json and processed data)
-- Raw Dataset: `/workspace/dataset/<dataset_name>/`
-- Processed Dataset: `/workspace/data/processed_dataset.json`
-- Dataset Configuration: `/workspace/data/dataset_info.json`
-- Output Directory: `/workspace/output`
-- Model Directory: `/workspace/model/<model_name>/`
+        docker_conf = LLMDockerConf()
+        return docker_conf.mount_path
 
-**Configuration Requirements**:
-- Use `dataset: "processed_dataset"` (string, not dictionary)
-- Use `dataset_dir: "/workspace/data"` for LlamaFactory dataset configuration
-- Use `output_dir: "/workspace/output"` for training outputs"""
+    def _get_directory_tree(self, relative_path: str) -> str:
+        """Get directory tree for a specific path within FT_FILE_PATH"""
+        import os
+        from pathlib import Path
 
-    def _generate_llamafactory_config(
-        self,
-        base_model: str,
-        finetune_method: str,
-        dataset: str,
-        debug_mode: bool = True,
-        task_info: str = "",
-        similar_knowledge: list = None,
-        failed_knowledge: list = None,
-    ) -> str:
-        """Generate LlamaFactory configuration YAML"""
+        from rdagent.scenarios.data_science.scen.utils import FileTreeGenerator
 
-        # Base configuration
-        # Always use processed_dataset for LLM finetune scenario
-        # This aligns with the preprocessed data from data processing step
-        dataset = "processed_dataset"
+        try:
+            ft_file_path = os.environ.get("FT_FILE_PATH")
+            if not ft_file_path:
+                return "FT_FILE_PATH not set"
 
-        config = {
-            "model_name_or_path": base_model,
-            "stage": "sft",
-            "do_train": True,
-            "finetuning_type": finetune_method,
-            "dataset": dataset,
-            "dataset_dir": "/workspace/data",  # Directory containing dataset_info.json
-            "template": "qwen",
-            "cutoff_len": 2048,
-            "max_samples": 100 if debug_mode else None,  # Debug mode uses only 100 samples
-            "overwrite_cache": True,
-            "preprocessing_num_workers": 16,
-            "output_dir": "/workspace/output",
-            "logging_steps": 10,
-            "save_steps": 500,
-            "plot_loss": True,
-            "overwrite_output_dir": True,
-            "per_device_train_batch_size": 4,
-            "gradient_accumulation_steps": 4,
-            "learning_rate": 2e-4,
-            "num_train_epochs": 3.0,
-            "lr_scheduler_type": "cosine",
-            "warmup_ratio": 0.1,
-            "bf16": True,
-            "ddp_timeout": 180000000,
-            "val_size": 0.1,
-            "eval_strategy": "steps",
-            "eval_steps": 250,
-            "per_device_eval_batch_size": 1,
-            "seed": 42,
+            target_path = Path(ft_file_path) / relative_path
+            if not target_path.exists():
+                return f"{relative_path} not found"
+
+            return FileTreeGenerator(max_lines=30).generate_tree(target_path)
+        except Exception as e:
+            return f"Error: {str(e)}"
+
+    def _get_docker_environment_info(self, dataset: str) -> dict:
+        """Get Docker environment info with actual training container paths"""
+        from rdagent.scenarios.finetune.scen.utils import get_unified_mount_volumes
+
+        # Get actual mount configuration for training container
+        mount_volumes = get_unified_mount_volumes()
+
+        # Training containers mount FT_FILE_PATH to /data (not /workspace)
+        # /workspace is used for CoSTEER code execution only
+        training_mount_path = "/data/"
+        for local_path, docker_path in mount_volumes.items():
+            training_mount_path = docker_path + "/"
+            break
+
+        # Get file trees for actual training paths
+        data_tree = self._get_directory_tree("data")
+        dataset_tree = self._get_directory_tree(f"dataset/{dataset}")
+
+        return {
+            "training_mount_path": training_mount_path,  # /data/ for training containers
+            "data_tree": data_tree,
+            "dataset_tree": dataset_tree,
+            "dataset_name": dataset,
         }
-
-        # Add method-specific parameters
-        if finetune_method in ["lora", "qlora"]:
-            config.update(
-                {
-                    "lora_rank": 8,
-                    "lora_alpha": 32,
-                    "lora_dropout": 0.1,
-                    "lora_target": "all",
-                }
-            )
-
-        if finetune_method == "qlora":
-            config.update(
-                {
-                    "quantization_bit": 4,
-                    "double_quantization": True,
-                    "quantization_type": "nf4",
-                }
-            )
-
-        # Convert to YAML string
-        yaml_content = yaml.dump(config, default_flow_style=False, sort_keys=False)
-
-        return yaml_content
 
     def _validate_config(self, config_yaml: str) -> str:
         """Validate LlamaFactory configuration using existing validator"""
