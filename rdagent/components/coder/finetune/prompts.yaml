@@ -6,11 +6,21 @@ finetune_coder:
     ## Task Description
     {{ task_desc }}
 
-    ## Dataset Information
-    {{ dataset_folder_description }}
+    ## Available Data Files
+    **Processed Data** (`{{ docker_env_info.training_mount_path }}data/`):
+    ```
+    {{ docker_env_info.data_tree }}
+    ```
 
-    ## Docker Environment Context
-    {{ docker_env_info }}
+    **Original Dataset** (`{{ docker_env_info.training_mount_path }}dataset/{{ docker_env_info.dataset_name }}/`):
+    ```
+    {{ docker_env_info.dataset_tree }}
+    ```
+
+    **Required Configuration**:
+    - dataset: "processed_dataset"
+    - dataset_dir: "{{ docker_env_info.training_mount_path }}data"
+    - output_dir: "{{ docker_env_info.training_mount_path }}output"
 
     {% if similar_knowledge|length > 0 %}
     ## Successful Similar Implementations
@@ -105,3 +115,40 @@ finetune_eval:
     {{ stdout }}
 
     Based on the test output above, please provide your evaluation of the LlamaFactory configuration.
+
+# Data format retry prompt for evolving strategy
+data_format_retry: |-
+  The previous data format conversion attempt encountered issues. Please fix the code based on the feedback.
+
+  Dataset: {{ dataset }}
+
+  ## Dataset File Structure
+  Below shows the dataset directory structure:
+  ```
+  {{ file_tree }}
+  ```
+
+  **Important Paths:**
+  - Dataset location: `/data/dataset/{{ dataset }}/` (Docker mounted path)
+  - Output location: `/workspace/data/` (Docker working directory)
+
+  ## Dataset Samples
+  Here are the first few samples from the dataset:
+  ```json
+  {{ data_samples }}
+  ```
+
+  Previous Code:
+  ```python
+  {{ prev_code }}
+  ```
+
+  Feedback:
+  {{ feedback }}
+
+  Please generate an improved version of the code that addresses these issues.
+  Ensure the code:
+  1. Handles the specific errors mentioned in the feedback
+  2. Saves output files to the correct locations
+  3. Includes proper error handling
+  4. Outputs clear status messages

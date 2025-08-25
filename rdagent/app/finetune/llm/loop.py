@@ -65,6 +65,7 @@ def main(
     # Update FT setting instance with provided dataset and model
     FT_RD_SETTING.dataset = dataset
     FT_RD_SETTING.base_model_name = model
+    FT_RD_SETTING.file_path = str(ft_root)
     if FT_RD_SETTING.file_path:
         FT_RD_SETTING.local_data_path = os.path.join(FT_RD_SETTING.file_path, "dataset")
 
