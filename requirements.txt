@@ -67,3 +67,7 @@ genson
 mlflow
 azureml-mlflow
 types-pytz
+
+# mcp
+mcp
+nest-asyncio

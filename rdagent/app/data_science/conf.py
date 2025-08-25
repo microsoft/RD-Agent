@@ -147,9 +147,13 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     show_hard_limit: bool = True
 
     #### hypothesis critique and rewrite
-    enable_hypo_critique_rewrite: bool = True
+    enable_hypo_critique_rewrite: bool = False
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
     enable_scale_check: bool = False
+
+    #### MCP documentation search integration
+    enable_mcp_documentation_search: bool = True
+    """Enable MCP documentation search for error resolution. Requires MCP_ENABLED=true and MCP_CONTEXT7_ENABLED=true in environment."""
 
     #### enable runner code change summary
     runner_enable_code_change_summary: bool = True
