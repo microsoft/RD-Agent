@@ -20,6 +20,8 @@ Here is the list of available instruments:
   - The instruments you used
   - The points in time used to split the data
   - The final feature list use for training model.
+- When creating the submission files, make sure they have exactly three columns: date, symbol, and pred  
+- If you face resource limits, it is better to use fewer instruments but keep a longer time period, rather than just reducing the number of samples. A bad example is limiting the data to only 1 million samples, as this will usually keep only a short time range since the data is typically sorted by time.
 
 ### Tips for feature engineering
 - When building features, DO NOT introduce any future information. Data leakage will make the solution invalid and is not allowed. Following are some typical errors that leakeage future information:
