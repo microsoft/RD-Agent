@@ -136,7 +136,7 @@ class DataScienceScen(Scenario):
             DS_RD_SETTING.debug_timeout
             * min(
                 DS_RD_SETTING.coder_longer_timeout_multiplier_upper,
-                self.timeout_increase_count * DS_RD_SETTING.timeout_increase_stage + 1,
+                self.timeout_increase_count * DS_RD_SETTING.coder_timeout_increase_stage + 1,
             )
             if self.longer_time_limit_required
             else DS_RD_SETTING.debug_timeout
@@ -150,7 +150,7 @@ class DataScienceScen(Scenario):
             DS_RD_SETTING.full_timeout
             * min(
                 DS_RD_SETTING.runner_longer_timeout_multiplier_upper,
-                self.timeout_increase_count * DS_RD_SETTING.timeout_increase_stage // 2 + 1,
+                self.timeout_increase_count * DS_RD_SETTING.runner_timeout_increase_stage + 1,
             )
             if DS_RD_SETTING.allow_longer_timeout
             else DS_RD_SETTING.full_timeout
