@@ -163,43 +163,41 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         except Exception as e:
             logger.debug(f"Could not auto-detect shared workspace directory: {e}")
 
-        # Generate Docker environment info
-        try:
-            from rdagent.scenarios.finetune.train.docker_workspace_query import (
-                get_workspace_info_for_prompt,
-            )
+        # Generate simplified Docker environment info
+        docker_env_info = f"""## Docker Container Environment
+**Container Image**: local_llm_finetune:latest
+**Mount Path**: /workspace/
 
-            docker_env_info = get_workspace_info_for_prompt(shared_workspace_dir, dataset)
-            logger.info(f"Using actual workspace query with shared_dir: {shared_workspace_dir}")
-        except Exception as e:
-            logger.warning(f"Could not get actual workspace structure: {e}, using fallback")
-            from rdagent.scenarios.finetune.train.docker_env_query import (
-                get_docker_env_info_for_prompt,
-            )
+**Expected File Structure in Docker Container**:
+```
+/workspace/                              # Main working directory
+├── data/                                # Dataset configuration directory
+│   ├── dataset_info.json               # LlamaFactory dataset configuration
+│   └── processed_dataset.json          # Preprocessed training data
+├── dataset/{dataset}/                   # Raw dataset files
+├── shared/                              # Shared data processing outputs
+│   ├── dataset_info.json               # Dataset configuration (copy)
+│   └── processed_dataset.json          # Preprocessed data (copy)
+├── output/                              # Training output directory
+└── model/                               # Model files
+```
 
-            docker_env_info = get_docker_env_info_for_prompt(dataset)
+**Critical Docker Paths** (use these exact paths in your configuration):
+- Working Directory: `/workspace/`
+- Dataset Directory: `/workspace/data`
+- Raw Dataset: `/workspace/dataset/{dataset}`
+- Processed Dataset: `/workspace/data/processed_dataset.json`
+- Dataset Configuration: `/workspace/data/dataset_info.json`
+- Output Directory: `/workspace/output`"""
 
-        # Get critical rules
-        try:
-            from rdagent.scenarios.finetune.train.docker_workspace_query import (
-                DockerWorkspaceQuery,
-            )
-
-            query = DockerWorkspaceQuery(shared_workspace_dir)
-            paths = query.get_docker_paths_mapping()
-            critical_rules = [
-                'dataset: MUST be "processed_dataset" (string, not dictionary)',
-                f'dataset_dir: MUST be "{paths["docker_data"]}"',
-                f'output_dir: MUST be "{paths["docker_output"]}"',
-                "model_name_or_path: Use HuggingFace model identifier",
-                "All file paths must use Docker container paths, NOT local filesystem paths",
-            ]
-        except Exception:
-            from rdagent.scenarios.finetune.train.docker_env_query import (
-                get_critical_docker_rules,
-            )
-
-            critical_rules = get_critical_docker_rules()
+        # Define critical configuration rules
+        critical_rules = [
+            'dataset: MUST be "processed_dataset" (string, not dictionary)',
+            'dataset_dir: MUST be "/workspace/data"',
+            'output_dir: MUST be "/workspace/output"',
+            "model_name_or_path: Use HuggingFace model identifier",
+            "All file paths must use Docker container paths, NOT local filesystem paths",
+        ]
 
         user_prompt = T("components.coder.finetune.prompts:finetune_coder.user").r(
             docker_env_info=docker_env_info,
@@ -307,13 +305,13 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             "do_train": True,
             "finetuning_type": finetune_method,
             "dataset": dataset,
-            "dataset_dir": "/workspace/llm_finetune/data",  # Directory containing dataset_info.json
+            "dataset_dir": "/workspace/data",  # Directory containing dataset_info.json
             "template": "qwen",
             "cutoff_len": 2048,
             "max_samples": 100 if debug_mode else None,  # Debug mode uses only 100 samples
             "overwrite_cache": True,
             "preprocessing_num_workers": 16,
-            "output_dir": "/workspace/llm_finetune/output",
+            "output_dir": "/workspace/output",
             "logging_steps": 10,
             "save_steps": 500,
             "plot_loss": True,
