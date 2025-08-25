@@ -46,6 +46,7 @@ class DataFormatConverter:
 
             if success:
                 logger.info("Data format conversion completed successfully")
+                self._copy_converted_data(workspace, shared_workspace_dir)
                 self._verify_converted_data(shared_workspace_dir)
             return success
 
@@ -64,6 +65,23 @@ class DataFormatConverter:
             logger.error("No executable workspace found for data conversion")
             return False
 
+    def _copy_converted_data(self, workspace: "FBWorkspace", shared_workspace_dir: Path):
+        """Copy converted data files from workspace/data to shared directory"""
+        import shutil
+
+        expected_files = ["processed_dataset.json", "dataset_info.json"]
+
+        for file_name in expected_files:
+            # Look for files in workspace/data/ subdirectory
+            src_file = workspace.workspace_path / "data" / file_name
+            dst_file = shared_workspace_dir / file_name
+
+            if src_file.exists():
+                shutil.copy2(src_file, dst_file)
+                logger.info(f"Copied {file_name} to shared workspace")
+            else:
+                logger.warning(f"Expected file {file_name} not found in workspace/data/")
+
     def get_dataset_samples(self) -> str:
         """Get dataset samples for processing"""
         import json
@@ -71,11 +89,15 @@ class DataFormatConverter:
         import pandas as pd
 
         try:
-            # Use simplified Docker path structure
-            dataset_path = Path("/workspace/dataset") / self.dataset
+            import os
+
+            # Use Docker mounted data path structure
+            dataset_path = Path("/data/dataset") / self.dataset
             if not dataset_path.exists():
                 # Fallback to local path for non-Docker environments
-                dataset_path = Path(self.ft_rd_setting.local_data_path) / self.dataset
+                ft_file_path = os.environ.get("FT_FILE_PATH")
+                if ft_file_path:
+                    dataset_path = Path(ft_file_path) / "dataset" / self.dataset
 
             if not dataset_path.exists():
                 return f"Dataset {self.dataset} not found at expected paths."

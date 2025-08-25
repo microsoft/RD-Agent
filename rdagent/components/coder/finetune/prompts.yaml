@@ -6,6 +6,12 @@ finetune_coder:
     ## Task Description
     {{ task_desc }}
 
+    ## Dataset Information
+    {{ dataset_folder_description }}
+
+    ## Docker Environment Context
+    {{ docker_env_info }}
+
     {% if similar_knowledge|length > 0 %}
     ## Successful Similar Implementations
     {% for knowledge in similar_knowledge[:3] %}  {# Limit to 3 examples to keep prompt concise #}
@@ -29,6 +35,7 @@ finetune_coder:
     2. Use the specific fine-tuning method requested: {{ finetune_method }}
     3. Set max_samples: 100 for initial debugging
     4. Ensure all parameters are valid for LlamaFactory
+    5. Use the actual dataset structure information provided above to configure paths correctly
 
     {{ method_params }}
 
@@ -36,8 +43,6 @@ finetune_coder:
     Respond with valid YAML configuration only, no markdown formatting.
 
   user: |-
-    {{ docker_env_info }}
-
     ## Critical Configuration Rules
     {% for rule in critical_rules %}
     {{ loop.index }}. {{ rule }}

@@ -14,20 +14,20 @@ finetuning_task_prompt: |-
   {{ llamafactory_guide }}
 
   ## Available Resources
-  - Raw dataset: `/workspace/llm_finetune/data/raw/{{ dataset }}/` (mounted from host)
-  - Processed dataset: `/workspace/llm_finetune/shared/processed_dataset.json` (from data processing step)
-  - Dataset configuration: `/workspace/llm_finetune/shared/dataset_info.json` (from data processing step)  
+  - Raw dataset: `/data/dataset/{{ dataset }}/` (mounted from host)
+  - Processed dataset: `/workspace/data/processed_dataset.json` (from data processing step)
+  - Dataset configuration: `/workspace/data/dataset_info.json` (from data processing step)  
   - Base model: `{{ model }}`
-  - Output directory: `/workspace/llm_finetune/output/`
+  - Output directory: `/workspace/output/`
 
-  **IMPORTANT**: Copy dataset files to `/workspace/llm_finetune/data/` before training to ensure LLaMA Factory can find them.
+  **IMPORTANT**: Dataset files are already accessible at `/workspace/data/` for LLaMA Factory.
 
   ## Fine-tuning Configuration Suggestions
 
   ### Basic Parameters
   - model_name_or_path: {{ model }}
   - dataset: processed_dataset
-  - output_dir: /workspace/llm_finetune/output
+  - output_dir: /workspace/output
   - num_train_epochs: 3
   - learning_rate: 5e-5
   - per_device_train_batch_size: 2
@@ -56,7 +56,7 @@ finetuning_task_prompt: |-
   7. **Test Inference**: Simple test of the fine-tuned model
 
   ## Output Requirements
-  - Fine-tuned model saved in `/workspace/llm_finetune/output/`
+  - Fine-tuned model saved in `/workspace/output/`
   - Training logs and metrics output to console
   - Output model path and basic information after completion
 
@@ -148,12 +148,12 @@ llamafactory_guide: |-
 
   ### dataset
   dataset: processed_dataset
-  dataset_dir: /workspace/llm_finetune/data
+  dataset_dir: /workspace/data
   template: default
   cutoff_len: 2048
 
   ### output
-  output_dir: /workspace/llm_finetune/output
+  output_dir: /workspace/output
   logging_steps: 10
   save_steps: 500
   overwrite_output_dir: true

@@ -63,27 +63,21 @@ class LLMFinetuneRDLoop(RDLoop):
                 "mode": "ro",
             }
 
-        # Setup workspace directories
+        # Setup workspace directories (no separate mounting needed since entire FT_FILE_PATH is mounted)
         finetune_base_dir = Path(self.ft_rd_setting.file_path)
         finetune_base_dir.mkdir(parents=True, exist_ok=True)
 
-        output_dir = finetune_base_dir / "llm_finetune_output"
+        # Create output directory within FT_FILE_PATH (will be accessible at /workspace/output in container)
+        output_dir = finetune_base_dir / "output"
         if output_dir.exists():
             shutil.rmtree(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
-        data_volumes[str(output_dir)] = {
-            "bind": "/workspace/output",
-            "mode": "rw",
-        }
 
-        self.shared_workspace_dir = finetune_base_dir / "llm_finetune_shared_workspace"
+        # Create shared directory within FT_FILE_PATH for data processing output
+        self.shared_workspace_dir = finetune_base_dir / "data"
         if self.shared_workspace_dir.exists():
             shutil.rmtree(self.shared_workspace_dir)
         self.shared_workspace_dir.mkdir(parents=True, exist_ok=True)
-        data_volumes[str(self.shared_workspace_dir)] = {
-            "bind": "/workspace/shared",
-            "mode": "rw",
-        }
 
         from rdagent.components.coder.finetune.conf import get_ft_env
 
