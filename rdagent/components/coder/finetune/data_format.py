@@ -51,20 +51,22 @@ class DataFormatEvolvingStrategy(MultiProcessEvolvingStrategy):
     ) -> dict[str, str]:
         """Generate data format conversion code"""
 
-        # Get real dataset samples
-        data_samples = self._get_dataset_samples(target_task.dataset)
+        # Get file tree and real dataset samples
+        file_tree, data_samples = self._get_dataset_info(target_task.dataset)
 
         if prev_task_feedback is None:
             # First attempt
             user_prompt = T("scenarios.finetune.data_process.prompts:data_format_task_prompt").r(
                 dataset=target_task.dataset,
                 runtime_info="Docker environment with mounted data",
+                file_tree=file_tree,
                 data_samples=data_samples,
             )
         else:
             # Retry with feedback
-            user_prompt = T("components.coder.finetune.data_format_prompts:data_format_retry").r(
+            user_prompt = T("components.coder.finetune.prompts:data_format_retry").r(
                 dataset=target_task.dataset,
+                file_tree=file_tree,
                 data_samples=data_samples,
                 prev_code=workspace.all_codes if workspace else "",
                 feedback=prev_task_feedback,
@@ -87,108 +89,32 @@ class DataFormatEvolvingStrategy(MultiProcessEvolvingStrategy):
             logger.error(f"Failed to extract Python code: {e}")
             raise RuntimeError(f"Failed to generate valid Python code for data format conversion: {e}")
 
-    def _get_dataset_samples(self, dataset: str) -> str:
-        """Get comprehensive dataset information including file structure and samples."""
+    def _get_dataset_info(self, dataset: str) -> tuple[str, str]:
+        """Get file tree and real dataset samples separately using inherited data science functionality."""
         import os
 
-        from rdagent.scenarios.finetune.scen.utils import build_folder_description
+        from rdagent.scenarios.finetune.scen.utils import FinetuneDatasetDescriptor
 
         try:
             # Use FT_FILE_PATH structure: /path/to/finetune/dataset/<dataset>
             ft_file_path = os.environ.get("FT_FILE_PATH")
             if not ft_file_path:
-                return "FT_FILE_PATH environment variable not set"
+                return "FT_FILE_PATH environment variable not set", "No data samples available"
 
             dataset_path = Path(ft_file_path) / "dataset" / dataset
 
             if not dataset_path.exists():
-                return f"Dataset {dataset} not found at {dataset_path}"
+                error_msg = f"Dataset {dataset} not found at {dataset_path}"
+                return error_msg, error_msg
 
-            # Get detailed folder description using unified approach
-            folder_description = build_folder_description(dataset)
-
-            # Combine folder structure with sample data information
-            result_parts = [
-                f"## Dataset: {dataset}",
-                "",
-                "### File Structure and Content Analysis:",
-                folder_description,
-                "",
-                "### Additional Information:",
-                f"Dataset location: {dataset_path}",
-                f"This dataset structure analysis is provided to help understand the data format for LLaMA-Factory conversion.",
-            ]
-
-            return "\n".join(result_parts)
+            # Use the specialized descriptor to get separated info
+            descriptor = FinetuneDatasetDescriptor()
+            return descriptor.get_separated_info(dataset_path)
 
         except Exception as e:
-            logger.warning(f"Could not generate comprehensive dataset information: {e}")
-            # Fallback to simple sample extraction for backward compatibility
-            return self._get_simple_dataset_samples(dataset)
-
-    def _get_simple_dataset_samples(self, dataset: str) -> str:
-        """Fallback method to get simple dataset samples (original implementation)."""
-        import json
-        import os
-        from pathlib import Path
-
-        import pandas as pd
-
-        try:
-            # Use FT_FILE_PATH structure consistently
-            ft_file_path = os.environ.get("FT_FILE_PATH")
-            if not ft_file_path:
-                return "FT_FILE_PATH environment variable not set"
-
-            dataset_path = Path(ft_file_path) / "dataset" / dataset
-
-            if not dataset_path.exists():
-                return f"Dataset {dataset} not found at {dataset_path}."
-
-            # Find data files in the dataset directory
-            data_files = []
-            for ext in ["*.json", "*.jsonl", "*.csv", "*.parquet"]:
-                data_files.extend(list(dataset_path.glob(ext)))
-
-            if not data_files:
-                return f"No supported data files found in {dataset_path}. Supported formats: json, jsonl, csv, parquet"
-
-            # Load sample from the first data file
-            data_file = data_files[0]
-            sample_data = None
-
-            if data_file.suffix.lower() == ".json":
-                with open(data_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    if isinstance(data, list) and len(data) > 0:
-                        sample_data = data[0]
-                    elif isinstance(data, dict):
-                        sample_data = data
-
-            elif data_file.suffix.lower() == ".jsonl":
-                with open(data_file, "r", encoding="utf-8") as f:
-                    first_line = f.readline().strip()
-                    if first_line:
-                        sample_data = json.loads(first_line)
-
-            elif data_file.suffix.lower() == ".csv":
-                df = pd.read_csv(data_file)
-                if len(df) > 0:
-                    sample_data = df.iloc[0].to_dict()
-
-            elif data_file.suffix.lower() == ".parquet":
-                df = pd.read_parquet(data_file)
-                if len(df) > 0:
-                    sample_data = df.iloc[0].to_dict()
-
-            if sample_data is not None:
-                return json.dumps(sample_data, ensure_ascii=False, indent=2)
-            else:
-                return f"Could not extract sample from {data_file.name}"
-
-        except Exception as e:
-            logger.warning(f"Could not load dataset samples: {e}")
-            return f"Dataset: {dataset}\nError loading samples: {str(e)}"
+            logger.warning(f"Could not generate dataset information: {e}")
+            error_msg = f"Error: {str(e)}"
+            return error_msg, error_msg
 
     def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
         """Assign generated code to evolving item"""

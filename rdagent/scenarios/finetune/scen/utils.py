@@ -6,6 +6,10 @@ from typing import Any
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.data_science.scen.utils import (
+    DataFolderDescriptor,
+    FileTreeGenerator,
+)
 from rdagent.scenarios.finetune.utils import prev_model_dirname
 from rdagent.utils.agent.tpl import T
 
@@ -116,21 +120,13 @@ def extract_model_info(base_model_name: str = None) -> dict[str, Any]:
 
 
 def _extract_data_samples(file_path: Path, info: dict[str, Any]) -> None:
-    """Extract sample data from file for analysis."""
+    """Extract sample data from file for analysis using shared descriptor functionality."""
     try:
-        if file_path.suffix == ".json":
-            with open(file_path, encoding="utf-8") as f:
-                data = json.load(f)
-                if isinstance(data, list):
-                    info["samples"] = data[:2]  # First 2 samples
-        elif file_path.suffix == ".jsonl":
-            with open(file_path, encoding="utf-8") as f:
-                info["samples"] = [json.loads(line) for i, line in enumerate(f) if i < 2]
-        elif file_path.suffix == ".csv":
-            import pandas as pd
-
-            df = pd.read_csv(file_path, nrows=2)
-            info["samples"] = df.to_dict("records")
+        descriptor = FinetuneDatasetDescriptor()
+        samples_str = descriptor._extract_samples_for_prompt(file_path)
+        if samples_str:
+            # Parse the JSON string back to objects for info dict
+            info["samples"] = json.loads(samples_str)[:2]  # First 2 samples for consistency
     except Exception as e:
         logger.warning(f"Failed to extract samples from {file_path}: {e}")
 
@@ -200,3 +196,119 @@ def build_folder_description(dataset: str = None) -> str:
     except Exception as e:
         logger.warning(f"Failed to generate folder description: {e}")
         return f"Error generating folder description: {str(e)}"
+
+
+class FinetuneDatasetDescriptor(DataFolderDescriptor):
+    """Specialized dataset descriptor for finetune scenarios that provides separated file tree and data samples."""
+
+    def get_separated_info(self, dataset_path: Path) -> tuple[str, str]:
+        """Get file tree and data samples separately for finetune prompt generation.
+
+        Args:
+            dataset_path: Path to dataset directory
+
+        Returns:
+            tuple: (file_tree, data_samples)
+        """
+        try:
+            # Generate file tree
+            file_tree = self._get_file_tree(dataset_path)
+
+            # Get real data samples using inherited preview functions
+            data_samples = self._get_dataset_samples(dataset_path)
+
+            return file_tree, data_samples
+
+        except Exception as e:
+            logger.warning(f"Could not generate separated dataset info: {e}")
+            error_msg = f"Error: {str(e)}"
+            return error_msg, error_msg
+
+    def _get_file_tree(self, dataset_path: Path) -> str:
+        """Generate file tree for the dataset directory."""
+        try:
+            generator = FileTreeGenerator(max_lines=150)
+            return generator.generate_tree(dataset_path)
+
+        except Exception as e:
+            logger.warning(f"Could not generate file tree: {e}")
+            return f"Error generating file tree: {str(e)}"
+
+    def _get_dataset_samples(self, dataset_path: Path) -> str:
+        """Extract real data samples from dataset files using inherited preview functions."""
+        try:
+            # Find data files
+            data_files = []
+            for ext in ["*.json", "*.jsonl", "*.csv", "*.parquet"]:
+                data_files.extend(list(dataset_path.glob(ext)))
+
+            if not data_files:
+                return f"No supported data files found in {dataset_path}"
+
+            samples = []
+            # Process up to 3 files to get samples
+            for data_file in data_files[:3]:
+                try:
+                    # Use inherited preview functions but extract just the content
+                    file_samples = self._extract_samples_for_prompt(data_file)
+                    if file_samples:
+                        samples.append(f"{data_file.name}:\n{file_samples}")
+                except Exception as e:
+                    logger.warning(f"Could not extract samples from {data_file.name}: {e}")
+                    continue
+
+            if samples:
+                return "\n\n".join(samples)
+            else:
+                return "No data samples could be extracted"
+
+        except Exception as e:
+            logger.warning(f"Could not load dataset samples: {e}")
+            return f"Error loading samples: {str(e)}"
+
+    def _extract_samples_for_prompt(self, data_file: Path) -> str:
+        """Extract samples formatted for LLM prompts using inherited preview functions."""
+        import json
+
+        import pandas as pd
+
+        try:
+            if data_file.suffix.lower() == ".json":
+                with open(data_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if isinstance(data, list) and len(data) > 0:
+                        # Get first 3 samples
+                        samples = data[:3]
+                        return json.dumps(samples, ensure_ascii=False, indent=2)
+                    elif isinstance(data, dict):
+                        return json.dumps(data, ensure_ascii=False, indent=2)
+
+            elif data_file.suffix.lower() == ".jsonl":
+                samples = []
+                with open(data_file, "r", encoding="utf-8") as f:
+                    for i, line in enumerate(f):
+                        if i >= 3:  # Only get first 3 samples
+                            break
+                        line = line.strip()
+                        if line:
+                            samples.append(json.loads(line))
+                if samples:
+                    return json.dumps(samples, ensure_ascii=False, indent=2)
+
+            elif data_file.suffix.lower() == ".csv":
+                df = pd.read_csv(data_file)
+                if len(df) > 0:
+                    samples = df.head(3).to_dict("records")
+                    return json.dumps(samples, ensure_ascii=False, indent=2)
+
+            elif data_file.suffix.lower() == ".parquet":
+                df = pd.read_parquet(data_file)
+                if len(df) > 0:
+                    samples = df.head(3).to_dict("records")
+                    return json.dumps(samples, ensure_ascii=False, indent=2)
+
+            return ""
+
+        except Exception as e:
+            logger.warning(f"Error extracting samples from {data_file.name}: {e}")
+            return ""
