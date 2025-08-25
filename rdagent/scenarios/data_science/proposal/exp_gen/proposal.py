@@ -274,64 +274,6 @@ class TraceChallenges(BaseModel):
     )
 
 
-class HypothesisComponent(str, Enum):
-    DataLoadSpec = "DataLoadSpec"
-    FeatureEng = "FeatureEng"
-    Model = "Model"
-    Ensemble = "Ensemble"
-    Workflow = "Workflow"
-
-
-class HypothesisEvaluationReasoningScore(BaseModel):
-    reasoning: str = Field(
-        description="What is the quality of the hypothesis under this criteria? Answer in 1-2 sentence."
-    )
-    score: float = Field(description="The score of the hypothesis under this criteria between 1 and 10.")
-
-
-class HypothesisEvaluation(BaseModel):
-    alignment: HypothesisEvaluationReasoningScore = Field(
-        description="The alignment of the proposed hypothesis with the identified challenge."
-    )
-    impact: HypothesisEvaluationReasoningScore = Field(
-        description="The expected impact of the proposed hypothesis on the current SOTA implementation."
-    )
-    novelty: HypothesisEvaluationReasoningScore = Field(
-        description="The novelty of the proposed hypothesis compared to existing solutions."
-    )
-    feasibility: HypothesisEvaluationReasoningScore = Field(
-        description="The feasibility of implementing the proposed hypothesis in the current SOTA implementation."
-    )
-    risk_reward_balance: HypothesisEvaluationReasoningScore = Field(
-        description="The risk-reward balance of implementing the proposed hypothesis."
-    )
-
-
-class HypothesisDetail(BaseModel):
-    caption: str = Field(description="The caption of the challenge it is based on.")
-    challenge: str = Field(
-        description="Reaffirm the challenge within the current context (e.g., trace history, domain principles, or competition constraints). It should be no more than 2-3 sentences."
-    )
-    hypothesis: str = Field(
-        description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
-    )
-    metric_impact: str = Field(
-        description=(
-            "Brief explanation (max 2 sentences) of the expected impact of the hypothesis on the target metric."
-        )
-    )
-    component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
-    evaluation: HypothesisEvaluation = Field(description="Evaluate the quality of the hypothesis.")
-
-
-class HypothesisList(BaseModel):
-    deduplicated_challenges: List[str] = Field(
-        description="A list of deduplicated challenge captions. Each must retain its original wording. If multiple captions are semantically identical, keep the first one."
-    )
-    hypotheses: List[HypothesisDetail] = Field(
-        description="A non-empty list of hypotheses proposed for the next iteration, each corresponding to one challenge. The list length should match the number of challenges."
-    )
-
 
 class CodingSketch(BaseModel):
     current_state: str = Field(
