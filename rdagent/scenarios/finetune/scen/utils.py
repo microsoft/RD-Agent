@@ -13,34 +13,34 @@ from rdagent.utils.agent.tpl import T
 def get_unified_mount_volumes() -> dict:
     """Get unified mount volume configuration for LLM finetune environments.
 
-    This function provides a centralized way to configure volume mounting
-    for consistency across all LLM finetune components.
+    Mount FT_FILE_PATH to /data in Docker to avoid conflict with /workspace mount.
+    The /workspace is used for temporary code execution, while /data contains datasets.
 
     Returns:
         Dictionary of local_path -> docker_path mappings
     """
-    extra_volumes = {}
+    import os
 
-    if FT_RD_SETTING.file_path:
-        # Mount entire dataset and model directories
-        dataset_root = f"{FT_RD_SETTING.file_path}/dataset"
-        model_root = f"{FT_RD_SETTING.file_path}/model"
+    ft_file_path = os.environ.get("FT_FILE_PATH")
+    if ft_file_path and Path(ft_file_path).exists():
+        return {ft_file_path: "/data"}
 
-        if Path(dataset_root).exists():
-            extra_volumes[dataset_root] = "/workspace/dataset"
-        if Path(model_root).exists():
-            extra_volumes[model_root] = "/workspace/model"
-
-    # Fallback: use local_data_path if available
+    # Fallback: use local_data_path if FT_FILE_PATH not available
     if FT_RD_SETTING.local_data_path and Path(FT_RD_SETTING.local_data_path).exists():
-        extra_volumes[FT_RD_SETTING.local_data_path] = "/workspace/dataset"
+        return {FT_RD_SETTING.local_data_path: "/data"}
 
-    return extra_volumes
+    return {}
 
 
 def extract_dataset_info(competition: str) -> dict[str, Any]:
     """Extract dataset information from files and metadata."""
-    dataset_path = Path(FT_RD_SETTING.local_data_path) / competition
+    import os
+
+    ft_file_path = os.environ.get("FT_FILE_PATH")
+    if not ft_file_path:
+        return {"name": competition, "description": "FT_FILE_PATH not set", "samples": [], "files": []}
+
+    dataset_path = Path(ft_file_path) / "dataset" / competition
     info = {"name": competition, "description": "", "samples": [], "files": []}
 
     # Read description from README
@@ -136,11 +136,14 @@ def _extract_data_samples(file_path: Path, info: dict[str, Any]) -> None:
 
 
 def _find_model_path() -> Path | None:
-    """Find model directory in standard locations."""
-    if not FT_RD_SETTING.file_path or not FT_RD_SETTING.base_model_name:
+    """Find model directory in FT_FILE_PATH structure."""
+    import os
+
+    ft_file_path = os.environ.get("FT_FILE_PATH")
+    if not ft_file_path or not FT_RD_SETTING.base_model_name:
         return None
 
-    ft_root = Path(FT_RD_SETTING.file_path)
+    ft_root = Path(ft_file_path)
     candidates = [
         ft_root / "model" / FT_RD_SETTING.base_model_name,
         ft_root / "prev_model" / prev_model_dirname(FT_RD_SETTING.base_model_name, FT_RD_SETTING.dataset),
@@ -166,57 +169,34 @@ def build_finetune_description(dataset_info: dict[str, Any], model_info: dict[st
 
 
 def build_folder_description(dataset: str = None) -> str:
-    """Generate folder description by running describe_data_folder_v2 inside Docker environment."""
-    from rdagent.components.coder.finetune.conf import get_ft_env
+    """Generate folder description using describe_data_folder_v2, consistent with data science scenario."""
+    import os
 
-    # Use unified mount volume configuration
-    extra_volumes = get_unified_mount_volumes()
-
-    # Create temporary environment for folder description
-    env = get_ft_env(
-        extra_volumes=extra_volumes,
-        running_timeout_period=300,  # 5 minutes should be enough for folder description
-        enable_cache=False,
-    )
+    from rdagent.scenarios.data_science.scen.utils import describe_data_folder_v2
 
     try:
-        # Use simplified Docker path structure
-        docker_path = f"/workspace/dataset/{dataset}" if dataset else "/workspace/dataset"
+        # Use FT_FILE_PATH structure: /path/to/finetune/dataset/<dataset>
+        ft_file_path = os.environ.get("FT_FILE_PATH")
+        if not ft_file_path:
+            return "FT_FILE_PATH environment variable not set"
 
-        # Execute folder description generation inside Docker
-        cmd = (
-            f'python -c "'
-            f"from rdagent.scenarios.data_science.scen.utils import describe_data_folder_v2; "
-            f"print(describe_data_folder_v2("
-            f'\\"{docker_path}\\", '
-            f"show_nan_columns={FT_RD_SETTING.show_nan_columns}, "
-            f'max_length=20000))"'
-        )
+        ft_root = Path(ft_file_path)
+        if not ft_root.exists():
+            return f"FT_FILE_PATH does not exist: {ft_root}"
 
-        result = env.run(cmd)
-        if result.returncode == 0:
-            return result.stdout.strip()
+        if dataset:
+            # Describe specific dataset directory
+            dataset_path = ft_root / "dataset" / dataset
         else:
-            # Fallback: try to describe the root mounted directory
-            fallback_cmd = (
-                f'python -c "'
-                f"from rdagent.scenarios.data_science.scen.utils import describe_data_folder_v2; "
-                f"print(describe_data_folder_v2("
-                f'\\"/workspace/dataset\\", '
-                f"show_nan_columns={FT_RD_SETTING.show_nan_columns}, "
-                f'max_length=20000))"'
-            )
-            fallback_result = env.run(fallback_cmd)
-            if fallback_result.returncode == 0:
-                return fallback_result.stdout.strip()
-            else:
-                return f"Error generating folder description: {result.stderr}"
+            # Describe entire finetune directory structure
+            dataset_path = ft_root
+
+        if not dataset_path.exists():
+            return f"Dataset path {dataset_path} does not exist"
+
+        # Directly call describe_data_folder_v2, same as data science scenario
+        return describe_data_folder_v2(dataset_path, show_nan_columns=FT_RD_SETTING.show_nan_columns, max_length=20000)
 
     except Exception as e:
-        return f"Error running folder description in Docker: {str(e)}"
-    finally:
-        # Clean up environment
-        try:
-            env.close()
-        except:
-            pass
+        logger.warning(f"Failed to generate folder description: {e}")
+        return f"Error generating folder description: {str(e)}"

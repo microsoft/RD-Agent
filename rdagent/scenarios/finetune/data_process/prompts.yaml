@@ -43,22 +43,23 @@ data_format_task_prompt: |-
 
   ## Task Requirements
 
-  1. **Load Dataset**: Load dataset from `/workspace/dataset/{{ dataset }}/` (Docker mounted path)
+  1. **Load Dataset**: Load dataset from `/data/dataset/{{ dataset }}/` (Docker mounted path)
   2. **Analyze Original Data Format**: Identify the field structure of the dataset
   3. **Choose Appropriate Format**: Select Alpaca or ShareGPT format based on data characteristics
   4. **Data Conversion**: Write Python code for format conversion
-  5. **Save Data**: Save processed data as `/workspace/shared/processed_dataset.json`
+  5. **Save Data**: Save processed data as `/workspace/data/processed_dataset.json`
   6. **Create Configuration**: Create dataset_info.json configuration file in LLaMA Factory format
   7. **Data Statistics**: Output statistics before and after processing
 
   ## Important Notes
-  - **Always use Docker mounted paths**: `/workspace/dataset/{{ dataset }}/` for input data
+  - **Always use Docker mounted paths**: `/data/dataset/{{ dataset }}/` for input data
   - **Do not use local filesystem paths**: Avoid paths like `/home/` or absolute local paths
   - **Check mounted data availability**: Verify dataset files exist in mounted location first
+  - **Create output directory**: Ensure `/workspace/data/` directory exists before saving files
 
   ## Output Files
-  - `/workspace/shared/processed_dataset.json`: Processed training data
-  - `/workspace/shared/dataset_info.json`: Dataset configuration file in LLaMA Factory format
+  - `/workspace/data/processed_dataset.json`: Processed training data
+  - `/workspace/data/dataset_info.json`: Dataset configuration file in LLaMA Factory format
   - Output data processing statistics to console
 
   ## LLaMA Factory dataset_info.json Format
