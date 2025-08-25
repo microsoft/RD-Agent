@@ -7,6 +7,7 @@ from rdagent.scenarios.finetune.scen.utils import (
     build_folder_description,
     extract_dataset_info,
     extract_model_info,
+    get_unified_mount_volumes,
 )
 from rdagent.utils.agent.tpl import T
 
@@ -38,3 +39,7 @@ class LLMFinetuneScen(DataScienceScen):
 
     def recommend_full_timeout(self):
         return FT_RD_SETTING.full_recommend_timeout
+
+    def _get_data_folder_description(self) -> str:
+        """Generate folder description by running describe_data_folder_v2 inside Docker environment."""
+        return build_folder_description(self.dataset)

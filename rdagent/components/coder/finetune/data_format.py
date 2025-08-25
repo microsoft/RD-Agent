@@ -97,8 +97,8 @@ class DataFormatEvolvingStrategy(MultiProcessEvolvingStrategy):
         from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 
         try:
-            # Try Docker environment path first
-            dataset_path = Path("/workspace/llm_finetune/data/raw") / dataset
+            # Use simplified Docker path structure
+            dataset_path = Path("/workspace/dataset") / dataset
             if not dataset_path.exists():
                 # Fallback to local path for non-Docker environments
                 dataset_path = Path(FT_RD_SETTING.local_data_path) / dataset

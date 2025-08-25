@@ -10,6 +10,34 @@ from rdagent.scenarios.finetune.utils import prev_model_dirname
 from rdagent.utils.agent.tpl import T
 
 
+def get_unified_mount_volumes() -> dict:
+    """Get unified mount volume configuration for LLM finetune environments.
+
+    This function provides a centralized way to configure volume mounting
+    for consistency across all LLM finetune components.
+
+    Returns:
+        Dictionary of local_path -> docker_path mappings
+    """
+    extra_volumes = {}
+
+    if FT_RD_SETTING.file_path:
+        # Mount entire dataset and model directories
+        dataset_root = f"{FT_RD_SETTING.file_path}/dataset"
+        model_root = f"{FT_RD_SETTING.file_path}/model"
+
+        if Path(dataset_root).exists():
+            extra_volumes[dataset_root] = "/workspace/dataset"
+        if Path(model_root).exists():
+            extra_volumes[model_root] = "/workspace/model"
+
+    # Fallback: use local_data_path if available
+    if FT_RD_SETTING.local_data_path and Path(FT_RD_SETTING.local_data_path).exists():
+        extra_volumes[FT_RD_SETTING.local_data_path] = "/workspace/dataset"
+
+    return extra_volumes
+
+
 def extract_dataset_info(competition: str) -> dict[str, Any]:
     """Extract dataset information from files and metadata."""
     dataset_path = Path(FT_RD_SETTING.local_data_path) / competition
@@ -137,11 +165,58 @@ def build_finetune_description(dataset_info: dict[str, Any], model_info: dict[st
     )
 
 
-def build_folder_description(competition: str) -> str:
-    """Build concise folder structure description for fine-tuning using template."""
-    from rdagent.scenarios.data_science.scen.utils import describe_data_folder_v2
+def build_folder_description(dataset: str = None) -> str:
+    """Generate folder description by running describe_data_folder_v2 inside Docker environment."""
+    from rdagent.components.coder.finetune.conf import get_ft_env
 
-    dataset_path = Path(FT_RD_SETTING.local_data_path) / competition
-    basic_desc = describe_data_folder_v2(dataset_path, show_nan_columns=FT_RD_SETTING.show_nan_columns)
+    # Use unified mount volume configuration
+    extra_volumes = get_unified_mount_volumes()
 
-    return T(".prompts:data_folder_description").r(basic_description=basic_desc)
+    # Create temporary environment for folder description
+    env = get_ft_env(
+        extra_volumes=extra_volumes,
+        running_timeout_period=300,  # 5 minutes should be enough for folder description
+        enable_cache=False,
+    )
+
+    try:
+        # Use simplified Docker path structure
+        docker_path = f"/workspace/dataset/{dataset}" if dataset else "/workspace/dataset"
+
+        # Execute folder description generation inside Docker
+        cmd = (
+            f'python -c "'
+            f"from rdagent.scenarios.data_science.scen.utils import describe_data_folder_v2; "
+            f"print(describe_data_folder_v2("
+            f'\\"{docker_path}\\", '
+            f"show_nan_columns={FT_RD_SETTING.show_nan_columns}, "
+            f'max_length=20000))"'
+        )
+
+        result = env.run(cmd)
+        if result.returncode == 0:
+            return result.stdout.strip()
+        else:
+            # Fallback: try to describe the root mounted directory
+            fallback_cmd = (
+                f'python -c "'
+                f"from rdagent.scenarios.data_science.scen.utils import describe_data_folder_v2; "
+                f"print(describe_data_folder_v2("
+                f'\\"/workspace/dataset\\", '
+                f"show_nan_columns={FT_RD_SETTING.show_nan_columns}, "
+                f'max_length=20000))"'
+            )
+            fallback_result = env.run(fallback_cmd)
+            if fallback_result.returncode == 0:
+                return fallback_result.stdout.strip()
+            else:
+                return f"Error generating folder description: {result.stderr}"
+
+    except Exception as e:
+        return f"Error running folder description in Docker: {str(e)}"
+    finally:
+        # Clean up environment
+        try:
+            env.close()
+        except:
+            pass

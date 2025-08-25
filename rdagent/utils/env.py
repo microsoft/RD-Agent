@@ -784,12 +784,11 @@ class LLMDockerConf(DockerConf):
         Path(__file__).parent.parent / "scenarios" / "finetune" / "docker" / "llm_finetune_docker"
     )
     image: str = "local_llm_finetune:latest"
-    mount_path: str = "/workspace/llm_finetune/"
-    default_entry: str = "llamafactory-cli version"  # Default command to verify installation
+    mount_path: str = "/workspace/"
+    default_entry: str = "llamafactory-cli version"
 
     # Exclude data directory which is mounted as read-only
-    # TODO: do not use hardcoded paths
-    exclude_chmod_paths: list[str] = ["data"]
+    exclude_chmod_paths: list[str] = ["dataset", "model"]
 
     running_timeout_period: int | None = 36000  # 10 hours for training
     mem_limit: str | None = "48g"  # Large memory for LLM training
