@@ -1,0 +1,192 @@
+"""
+LLM Fine-tuning Base Classes
+
+Contains core hypothesis and task classes for LLM fine-tuning scenarios.
+"""
+
+from rdagent.core.experiment import Task
+from rdagent.core.proposal import ExpGen, Hypothesis, Hypothesis2Experiment, Trace
+from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+from rdagent.scenarios.finetune.scen.scenario import LLMFinetuneScen
+
+# Available fine-tuning methods
+AVAILABLE_FINETUNE_METHODS = [
+    "full_params",
+    "lora",
+    "qlora",
+    # TODO: Future methods can be added here:
+    # "adapter", "ptuning_v2", "dora", "lora+", "galore", "longlora", "pissa", "rslora", "neftune"
+]
+
+# Available base models (simplified for debugging)
+# TODO: Add more models here
+AVAILABLE_BASE_MODELS = [
+    "Qwen2.5-1.5B-Instruct",  # Only one model for debugging phase
+]
+
+
+class LLMHypothesis(Hypothesis):
+    """LLM fine-tuning hypothesis class - only specifies model and method"""
+
+    def __init__(
+        self,
+        base_model: str,
+        finetune_method: str,
+        hypothesis: str | None = None,
+        reason: str | None = None,
+        concise_reason: str | None = None,
+        concise_observation: str | None = None,
+        concise_justification: str | None = None,
+        concise_knowledge: str | None = None,
+    ) -> None:
+        super().__init__(
+            hypothesis, reason, concise_reason, concise_observation, concise_justification, concise_knowledge
+        )
+        self.base_model = base_model
+        self.finetune_method = finetune_method
+
+    def __str__(self) -> str:
+        if self.hypothesis is None:
+            return f"Fine-tune {self.base_model} model using {self.finetune_method} method"
+
+        lines = []
+        lines.append(f"Base Model: {self.base_model}")
+        lines.append(f"Fine-tuning Method: {self.finetune_method}")
+        lines.append(f"Hypothesis: {self.hypothesis}")
+        if self.reason is not None:
+            lines.append(f"Reason: {self.reason}")
+        return "\n".join(lines)
+
+
+class LLMFinetuneTask(Task):
+    """LLM fine-tuning task class"""
+
+    def __init__(
+        self,
+        base_model: str,
+        finetune_method: str,
+        dataset: str = "default",
+        name: str = "LLMFineTune",
+        description: str = "",
+        **kwargs,
+    ):
+        super().__init__(name=name, description=description, **kwargs)
+        self.base_model = base_model
+        self.finetune_method = finetune_method
+        self.dataset = dataset
+
+
+class LLMHypothesis2Experiment(Hypothesis2Experiment):
+    """Convert LLM fine-tuning hypothesis to experiment"""
+
+    def convert(self, hypothesis: LLMHypothesis, trace: Trace) -> DSExperiment:
+        """Convert hypothesis to executable experiment"""
+
+        logger.info(
+            f"Converting LLM hypothesis to experiment: {hypothesis.base_model} with {hypothesis.finetune_method}"
+        )
+
+        # Get dataset from settings
+        try:
+            from rdagent.app.finetune.llm.conf import FT_RD_SETTING
+
+            dataset = FT_RD_SETTING.dataset if hasattr(FT_RD_SETTING, "dataset") else "default"
+        except:
+            dataset = "default"
+
+        # Create fine-tuning task with only essential parameters
+        task = LLMFinetuneTask(
+            base_model=hypothesis.base_model,
+            finetune_method=hypothesis.finetune_method,
+            dataset=dataset,
+            name="LLMFineTune",
+            description=f"Fine-tune {hypothesis.base_model} using {hypothesis.finetune_method} method",
+        )
+
+        # Create experiment
+        experiment = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis)
+
+        return experiment
+
+
+class LLMFinetuneExpGen(ExpGen):
+    """LLM fine-tuning experiment generator"""
+
+    def __init__(self, scen: LLMFinetuneScen):
+        super().__init__(scen)
+
+    def gen(self, trace: Trace, plan=None) -> DSExperiment:
+        """Generate LLM fine-tuning experiment"""
+
+        # 1. Detect GPU capabilities and dataset information
+        device_info = self._get_device_info()
+        dataset_info = self._get_dataset_info()
+        logger.info(f"Device detected: {device_info}")
+        logger.info(f"Dataset: {dataset_info['name']}")
+
+        # 2. Select appropriate base model and fine-tuning method based on both device and dataset
+        base_model, finetune_method = self._select_model_and_method(device_info, dataset_info, trace)
+
+        # 3. Create simple hypothesis (no hyperparameters)
+        hypothesis = LLMHypothesis(
+            base_model=base_model,
+            finetune_method=finetune_method,
+            hypothesis=f"Fine-tune {base_model} using {finetune_method} method on {dataset_info['name']} dataset to improve capability",
+            reason=f"Selected based on device capability ({device_info.get('memory_gb', 'unknown')}GB GPU) and dataset characteristics",
+        )
+
+        # 4. Convert to experiment
+        converter = LLMHypothesis2Experiment()
+        experiment = converter.convert(hypothesis, trace)
+
+        return experiment
+
+    # TODO: handle multiple GPUs, if use llm, just use the get_gpu_info()
+    def _get_device_info(self) -> dict:
+        """Get device information using existing runtime info utility"""
+        try:
+            # Use existing GPU detection utility
+            import torch
+
+            if torch.cuda.is_available():
+                gpu_memory_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+                device_name = torch.cuda.get_device_name(0)
+                return {"memory_gb": int(gpu_memory_gb), "device_name": device_name, "cuda_available": True}
+            else:
+                return {"memory_gb": 0, "cuda_available": False}
+        except ImportError:
+            logger.warning("PyTorch not available, using default device configuration")
+            return {"memory_gb": 8, "cuda_available": False}
+
+    def _get_dataset_info(self) -> dict:
+        """Get dataset information using existing utility"""
+        try:
+            from rdagent.app.finetune.llm.conf import FT_RD_SETTING
+            from rdagent.scenarios.finetune.scen.utils import extract_dataset_info
+
+            dataset_name = FT_RD_SETTING.dataset if hasattr(FT_RD_SETTING, "dataset") else "default"
+            return extract_dataset_info(dataset_name)
+        except Exception as e:
+            logger.warning(f"Failed to get dataset info: {e}")
+            return {"name": "unknown", "description": "", "samples": [], "files": []}
+
+    # TODO: decide by llm or hard code logic?
+    # ATTENTION: This is a oversimplified version
+    def _select_model_and_method(self, device_info: dict, dataset_info: dict, trace: Trace) -> tuple[str, str]:
+        """Select base model and fine-tuning method based on device capability and dataset"""
+        memory_gb = device_info.get("memory_gb", 8)
+
+        # For debugging, only use the single available model
+        base_model = AVAILABLE_BASE_MODELS[0]
+
+        # Select fine-tuning method based on GPU memory
+        if memory_gb >= 12:
+            finetune_method = "lora"  # More stable for debugging
+        elif memory_gb >= 8:
+            finetune_method = "qlora"  # More memory efficient
+        else:
+            finetune_method = "qlora"  # Fallback to most memory efficient
+
+        logger.info(f"Selected {base_model} with {finetune_method} method for {memory_gb}GB GPU")
+        return base_model, finetune_method

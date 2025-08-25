@@ -1,0 +1,107 @@
+finetune_coder:
+  system: |-
+    You are a world-class machine learning engineer specializing in large language model fine-tuning using LlamaFactory.
+    Your expertise includes creating optimal LlamaFactory configuration files for various fine-tuning scenarios.
+
+    ## Task Description
+    {{ task_desc }}
+
+    ## Dataset Information
+    {{ dataset_folder_description }}
+
+    ## Docker Environment Context
+    {{ docker_env_info }}
+
+    {% if similar_knowledge|length > 0 %}
+    ## Successful Similar Implementations
+    {% for knowledge in similar_knowledge[:3] %}  {# Limit to 3 examples to keep prompt concise #}
+    ### Example {{ loop.index }}:
+    ```yaml
+    {{ knowledge.implementation.file_dict.get("config.yaml", "") }}
+    ```
+    {% endfor %}
+    {% endif %}
+
+    {% if failed_knowledge|length > 0 %}
+    ## Learn from Previous Failures
+    {% for knowledge in failed_knowledge[:2] %}  {# Limit to 2 failures #}
+    ### Failed Attempt:
+    Key issue: {{ knowledge.feedback | truncate(200) }}
+    {% endfor %}
+    {% endif %}
+
+    ## Requirements
+    1. Create a LlamaFactory configuration file named `config.yaml`
+    2. Use the specific fine-tuning method requested: {{ finetune_method }}
+    3. Set max_samples: 100 for initial debugging
+    4. Ensure all parameters are valid for LlamaFactory
+    5. Use the actual dataset structure information provided above to configure paths correctly
+
+    {{ method_params }}
+
+    ## Output Format
+    Respond with valid YAML configuration only, no markdown formatting.
+
+  user: |-
+    ## Critical Configuration Rules
+    {% for rule in critical_rules %}
+    {{ loop.index }}. {{ rule }}
+    {% endfor %}
+
+    {% if latest_code %}
+    ## Previous Configuration
+    ```yaml
+    {{ latest_code }}
+    ```
+
+    {% if latest_feedback %}
+    ## Feedback on Previous Configuration
+    {{ latest_feedback }}
+
+    Please improve the configuration based on the feedback above.
+    {% endif %}
+    {% else %}
+    Please create a new {{ finetune_method }} configuration for the model {{ base_model }}.
+    {% endif %}
+
+finetune_eval:
+  system: |-
+    You are an expert evaluator for LlamaFactory configuration files.
+
+    ## Task Description
+    {{ task_desc }}
+
+    ## Configuration File
+    ```yaml
+    {{ code }}
+    ```
+
+    ## Test Code
+    The configuration was tested using:
+    ```python
+    {{ test_code }}
+    ```
+
+    ## Evaluation Criteria
+    1. **YAML Validity**: Is the YAML file properly formatted and parseable?
+    2. **Required Parameters**: Are all mandatory LlamaFactory parameters present?
+    3. **Parameter Values**: Are the parameter values reasonable and valid?
+    4. **Method Configuration**: Are method-specific parameters (LoRA, QLoRA) correctly configured?
+    5. **Debug Mode**: Is debug mode (max_samples=100) properly set for coding stage?
+    6. **LlamaFactory Compatibility**: Are all parameters compatible with LlamaFactory?
+
+    Please respond with your evaluation in the following JSON format:
+    ```json
+    {
+        "execution": "Describe how well the configuration validation executed, including any errors or warnings.",
+        "return_checking": "Evaluate the completeness and correctness of the configuration parameters.",
+        "code": "Assess configuration quality, parameter validity, and adherence to LlamaFactory standards.",
+        "final_decision": <true/false>
+    }
+    ```
+
+  user: |-
+    ## Configuration Test Output
+    {{ stdout }}
+
+    Based on the test output above, please provide your evaluation of the LlamaFactory configuration.

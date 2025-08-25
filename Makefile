@@ -217,5 +217,20 @@ docs: changelog docs-gen docs-mypy docs-coverage
 
 
 ########################################################################################
+# LLaMA-Factory
+########################################################################################
+
+.PHONY: install-llama-factory
+install-llama-factory:
+	@echo "Installing LLaMA-Factory (editable) with extras [torch,metrics] and no build isolation"
+	@mkdir -p git_ignore_folder
+	@if [ ! -d "git_ignore_folder/LLaMA-Factory" ]; then \
+		echo "Cloning into git_ignore_folder/LLaMA-Factory"; \
+		git clone --depth 1 https://github.com/hiyouga/LLaMA-Factory.git git_ignore_folder/LLaMA-Factory; \
+	fi
+	@cd git_ignore_folder/LLaMA-Factory && PIP_NO_BUILD_ISOLATION=1 $(PIPRUN) pip install -e ".[torch,metrics]"
+
+
+########################################################################################
 # End
 ########################################################################################
