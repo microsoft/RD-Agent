@@ -518,7 +518,7 @@ hypothesis_select:
 
           **High-priority suggestions based on competition type:**  
           - **CV competitions:** Consider using larger image sizes and the latest model architectures (e.g., Swin Transformer, Vision Transformer (ViT), EfficientNetV2).  
-          - **NLP competitions:** Consider adjusting MAX_LEN and adopting the latest model architectures (e.g., DeBERTa v3-large, RoBERTa).  
+          - **NLP competitions:** Consider adjusting MAX_LEN and adopting modern foundation models (e.g., Qwen2.5, LLaMA 3.1/3.2, Gemma 2) for fine-tuning over older architectures. **For hardware-constrained environments, implement quantization techniques (8-bit or 4-bit quantization using bitsandbytes, GPTQ, or AWQ) to reduce memory footprint and enable larger model deployment on limited GPU resources.**  
           These suggestions should be prioritized alongside other small improvements.
 
       3. **Create a new hypothesis, considering the Draft stage, by integrating advantages from multiple candidates or historical hypotheses**  
@@ -608,7 +608,7 @@ hypothesis_select:
         - Guidance: Make targeted changes that improve effectiveness or efficiency without turning it into multi-step solutions.
               Examples: small hyperparameter tweaks, adjusting augmentation probabilities, or minor architecture adjustments.
               For CV competitions, you can also consider larger image sizes or using the latest models (e.g., Swin Transformer, Vision Transformer (ViT), EfficientNetV2).
-              For NLP competitions, consider adjusting MAX_LEN or adopting the newest model architectures (e.g., DeBERTa v3-large, RoBERTa).
+              For NLP competitions, consider adjusting MAX_LEN or adopting modern foundation models (e.g., Qwen2.5, LLaMA 3.1/3.2, Gemma 2) for fine-tuning. **When facing hardware constraints, apply quantization methods (8-bit/4-bit quantization with bitsandbytes, GPTQ, or AWQ) to enable deployment of larger models within memory limitations.**
       3. **Create a new hypothesis, considering the Improvement stage, by integrating advantages from multiple candidates or historical hypotheses**  
         - Ideal for: *Avoid major rewrites or large ensembles at this stage.*  
         - Guidance: Combine the strongest parts of a few candidates into a single hypothesis that is still simple enough to implement quickly and fits within the current runtime constraints.
