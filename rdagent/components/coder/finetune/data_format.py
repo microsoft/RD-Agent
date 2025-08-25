@@ -88,23 +88,62 @@ class DataFormatEvolvingStrategy(MultiProcessEvolvingStrategy):
             raise RuntimeError(f"Failed to generate valid Python code for data format conversion: {e}")
 
     def _get_dataset_samples(self, dataset: str) -> str:
-        """Get dataset samples for processing"""
+        """Get comprehensive dataset information including file structure and samples."""
+        import os
+
+        from rdagent.scenarios.finetune.scen.utils import build_folder_description
+
+        try:
+            # Use FT_FILE_PATH structure: /path/to/finetune/dataset/<dataset>
+            ft_file_path = os.environ.get("FT_FILE_PATH")
+            if not ft_file_path:
+                return "FT_FILE_PATH environment variable not set"
+
+            dataset_path = Path(ft_file_path) / "dataset" / dataset
+
+            if not dataset_path.exists():
+                return f"Dataset {dataset} not found at {dataset_path}"
+
+            # Get detailed folder description using unified approach
+            folder_description = build_folder_description(dataset)
+
+            # Combine folder structure with sample data information
+            result_parts = [
+                f"## Dataset: {dataset}",
+                "",
+                "### File Structure and Content Analysis:",
+                folder_description,
+                "",
+                "### Additional Information:",
+                f"Dataset location: {dataset_path}",
+                f"This dataset structure analysis is provided to help understand the data format for LLaMA-Factory conversion.",
+            ]
+
+            return "\n".join(result_parts)
+
+        except Exception as e:
+            logger.warning(f"Could not generate comprehensive dataset information: {e}")
+            # Fallback to simple sample extraction for backward compatibility
+            return self._get_simple_dataset_samples(dataset)
+
+    def _get_simple_dataset_samples(self, dataset: str) -> str:
+        """Fallback method to get simple dataset samples (original implementation)."""
         import json
+        import os
         from pathlib import Path
 
         import pandas as pd
 
-        from rdagent.app.finetune.llm.conf import FT_RD_SETTING
-
         try:
-            # Use simplified Docker path structure
-            dataset_path = Path("/workspace/dataset") / dataset
-            if not dataset_path.exists():
-                # Fallback to local path for non-Docker environments
-                dataset_path = Path(FT_RD_SETTING.local_data_path) / dataset
+            # Use FT_FILE_PATH structure consistently
+            ft_file_path = os.environ.get("FT_FILE_PATH")
+            if not ft_file_path:
+                return "FT_FILE_PATH environment variable not set"
+
+            dataset_path = Path(ft_file_path) / "dataset" / dataset
 
             if not dataset_path.exists():
-                return f"Dataset {dataset} not found at expected paths."
+                return f"Dataset {dataset} not found at {dataset_path}."
 
             # Find data files in the dataset directory
             data_files = []

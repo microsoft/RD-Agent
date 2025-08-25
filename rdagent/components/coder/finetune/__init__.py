@@ -133,62 +133,19 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         params_query = LLaMAFactoryParamsQuery()
         method_params_desc = params_query.format_params_for_prompt(finetune_method)
 
-        # Generate prompts using templates
-        system_prompt = T("components.coder.finetune.prompts:finetune_coder.system").r(
-            task_desc=task_info,
-            finetune_method=finetune_method,
-            similar_knowledge=similar_knowledge if similar_knowledge else [],
-            failed_knowledge=failed_knowledge if failed_knowledge else [],
-            method_params=method_params_desc,
-        )
-
-        # Get Docker workspace information (try actual structure first, fallback to expected)
-        shared_workspace_dir = None
-
-        # Try to get shared workspace directory from various sources
+        # Get dataset folder description using unified approach
+        dataset_folder_description = ""
         try:
-            # First try: check if available from FT_RD_SETTING or environment
-            from pathlib import Path
+            # Get actual dataset structure description
+            from rdagent.scenarios.finetune.scen.utils import build_folder_description
 
-            from rdagent.app.finetune.llm.conf import FT_RD_SETTING
-
-            # Construct expected shared workspace path based on configuration
-            if hasattr(FT_RD_SETTING, "local_data_path") and FT_RD_SETTING.local_data_path:
-                # Look for shared workspace in the same parent directory as local_data_path
-                data_parent = Path(FT_RD_SETTING.local_data_path).parent
-                potential_shared = data_parent / "llm_finetune_shared_workspace"
-                if potential_shared.exists():
-                    shared_workspace_dir = potential_shared
-                    logger.info(f"Found shared workspace directory: {shared_workspace_dir}")
+            dataset_folder_description = build_folder_description(dataset)
         except Exception as e:
-            logger.debug(f"Could not auto-detect shared workspace directory: {e}")
+            logger.warning(f"Could not get dataset folder description: {e}")
+            dataset_folder_description = f"Dataset: {dataset} (structure analysis unavailable)"
 
-        # Generate simplified Docker environment info
-        docker_env_info = f"""## Docker Container Environment
-**Container Image**: local_llm_finetune:latest
-**Mount Path**: /workspace/
-
-**Expected File Structure in Docker Container**:
-```
-/workspace/                              # Main working directory
-├── data/                                # Dataset configuration directory
-│   ├── dataset_info.json               # LlamaFactory dataset configuration
-│   └── processed_dataset.json          # Preprocessed training data
-├── dataset/{dataset}/                   # Raw dataset files
-├── shared/                              # Shared data processing outputs
-│   ├── dataset_info.json               # Dataset configuration (copy)
-│   └── processed_dataset.json          # Preprocessed data (copy)
-├── output/                              # Training output directory
-└── model/                               # Model files
-```
-
-**Critical Docker Paths** (use these exact paths in your configuration):
-- Working Directory: `/workspace/`
-- Dataset Directory: `/workspace/data`
-- Raw Dataset: `/workspace/dataset/{dataset}`
-- Processed Dataset: `/workspace/data/processed_dataset.json`
-- Dataset Configuration: `/workspace/data/dataset_info.json`
-- Output Directory: `/workspace/output`"""
+        # Get Docker environment info from scenario
+        docker_env_info = self._get_docker_environment_info()
 
         # Define critical configuration rules
         critical_rules = [
@@ -199,8 +156,18 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             "All file paths must use Docker container paths, NOT local filesystem paths",
         ]
 
-        user_prompt = T("components.coder.finetune.prompts:finetune_coder.user").r(
+        # Generate prompts using templates with all required parameters
+        system_prompt = T("components.coder.finetune.prompts:finetune_coder.system").r(
+            task_desc=task_info,
+            finetune_method=finetune_method,
+            similar_knowledge=similar_knowledge if similar_knowledge else [],
+            failed_knowledge=failed_knowledge if failed_knowledge else [],
+            method_params=method_params_desc,
+            dataset_folder_description=dataset_folder_description,
             docker_env_info=docker_env_info,
+        )
+
+        user_prompt = T("components.coder.finetune.prompts:finetune_coder.user").r(
             critical_rules=critical_rules,
             latest_code=(workspace.file_dict.get("config.yaml", "") if workspace and prev_feedback else ""),
             latest_feedback=str(prev_feedback) if prev_feedback else "",
@@ -281,6 +248,25 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
                 evo.sub_workspace_list[index] = evo.experiment_workspace
             evo.sub_workspace_list[index].inject_files(**code_list[index])
         return evo
+
+    def _get_docker_environment_info(self) -> str:
+        """Generate Docker environment information for LlamaFactory configuration"""
+        return """## Docker Container Environment
+**Container Image**: local_llm_finetune:latest
+**Mount Strategy**: Entire FT_FILE_PATH mounted as /workspace
+
+**Critical Docker Paths for LlamaFactory**:
+- Dataset Directory: `/workspace/data` (contains dataset_info.json and processed data)
+- Raw Dataset: `/workspace/dataset/<dataset_name>/`
+- Processed Dataset: `/workspace/data/processed_dataset.json`
+- Dataset Configuration: `/workspace/data/dataset_info.json`
+- Output Directory: `/workspace/output`
+- Model Directory: `/workspace/model/<model_name>/`
+
+**Configuration Requirements**:
+- Use `dataset: "processed_dataset"` (string, not dictionary)
+- Use `dataset_dir: "/workspace/data"` for LlamaFactory dataset configuration
+- Use `output_dir: "/workspace/output"` for training outputs"""
 
     def _generate_llamafactory_config(
         self,
