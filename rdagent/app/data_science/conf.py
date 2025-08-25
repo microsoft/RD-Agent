@@ -41,7 +41,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """The recommend time limit for running on full data"""
     full_timeout: int = 3600
     """The timeout limit for running on full data"""
-
+    ratio_merge_or_ensemble: int = 70
+    """The ratio of merge or ensemble to be considered as a valid solution"""
     ### specific feature
 
     ### notebook integration
@@ -140,19 +141,33 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     model_architecture_suggestion_time_percent: float = 0.75
     allow_longer_timeout: bool = False
-    longer_timeout_by_llm: bool = False
+    coder_enable_llm_decide_longer_timeout: bool = False
+    runner_enable_llm_decide_longer_timeout: bool = False
     coder_longer_timeout_multiplier_upper: int = 3
     runner_longer_timeout_multiplier_upper: int = 2
-    timeout_increase_stage: float = 0.3
+    coder_timeout_increase_stage: float = 0.3
+    runner_timeout_increase_stage: float = 0.15
     show_hard_limit: bool = True
 
     #### hypothesis critique and rewrite
-    enable_hypo_critique_rewrite: bool = True
+    enable_hypo_critique_rewrite: bool = False
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
     enable_scale_check: bool = False
 
+    #### hypothesis selection method
+    llm_select_hypothesis: bool = False
+    """Whether to use LLM to select hypothesis. If True, use LLM selection; if False, use the existing ranking method."""
     #### enable runner code change summary
     runner_enable_code_change_summary: bool = True
 
+    #### enable generate unique hypothesis
+    enable_generate_unique_hypothesis: bool = False
+    """Enable generate unique hypothesis. If True, generate unique hypothesis for each component. If False, generate unique hypothesis for each component."""
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()
+
+# enable_cross_trace_diversity 和 llm_select_hypothesis should not be true at the same time
+assert not (
+    DS_RD_SETTING.enable_cross_trace_diversity and DS_RD_SETTING.llm_select_hypothesis
+), "enable_cross_trace_diversity and llm_select_hypothesis cannot be true at the same time"
