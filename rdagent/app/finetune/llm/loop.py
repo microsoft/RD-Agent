@@ -17,6 +17,7 @@ from rdagent.scenarios.finetune.loop import LLMFinetuneRDLoop
 from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
 
 
+# TODO: if model is not provided, choose the base model automatically
 def main(
     model: str | None = None,
     dataset: str | None = None,
@@ -66,8 +67,6 @@ def main(
     FT_RD_SETTING.dataset = dataset
     FT_RD_SETTING.base_model_name = model
     FT_RD_SETTING.file_path = str(ft_root)
-    if FT_RD_SETTING.file_path:
-        FT_RD_SETTING.local_data_path = os.path.join(FT_RD_SETTING.file_path, "dataset")
 
     # Create and run LLM fine-tuning loop using standard RDLoop async workflow
     logger.info(f"Starting LLM fine-tuning: {model} on {dataset}")
