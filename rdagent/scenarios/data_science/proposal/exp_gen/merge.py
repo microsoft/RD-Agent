@@ -700,7 +700,8 @@ class ExpGen4Hypothesis(DSProposalV2ExpGen):
         leaves: list[int] = trace.get_leaves()
         bvs = BestValidSelector()
         sota_exp = bvs.get_sota_exp_to_submit(trace)
-        if sota_exp is not None:
+        sota_flag = (sota_exp is not None and sota_exp.result is not None)
+        if sota_flag:
             sota_submit_value =sota_exp.result.loc["ensemble"].iloc[0]
             trace_scores = []
             for i, leaf in enumerate(leaves):
@@ -904,7 +905,8 @@ class ExpGen5Hypothesis(DSProposalV2ExpGen):
         leaves: list[int] = trace.get_leaves()
         bvs = BestValidSelector()
         sota_exp = bvs.get_sota_exp_to_submit(trace)
-        if sota_exp is not None:
+        sota_flag = (sota_exp is not None and sota_exp.result is not None)
+        if sota_flag:
             sota_submit_value =sota_exp.result.loc["ensemble"].iloc[0]
             trace_scores = []
             for i, leaf in enumerate(leaves):
