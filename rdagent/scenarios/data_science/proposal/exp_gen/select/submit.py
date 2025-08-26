@@ -1,3 +1,4 @@
+from copy import deepcopy
 import json
 import pickle
 import re
@@ -207,15 +208,15 @@ class ValidationSelector(SOTAexpSelector):
     re-runs all candidates on this new data, and returns the best performer.
     """
 
-    def __init__(self, candidate_exps: List[DSExperiment]):
-        self.candidate_exps = candidate_exps
+    def __init__(self, candidate: List[Tuple[DSExperiment, str]]):
+        self.candidate = candidate
 
-    def get_sota_exp_to_submit(self, trace: Trace, **kwargs) -> Optional[List[DSExperiment]]:
+    def get_sota_exp_to_submit(self, direction_sign: int, **kwargs) -> Optional[List[DSExperiment]]:
         """
         Executes the validation workflow.
 
         Args:
-            trace (Trace): The experiment trace.
+            direction_sign: The direction sign of the validation workflow.
             **kwargs: Must include 'competition', 'mock_folder', 'sota_result'.
         """
         competition = kwargs.get("competition")
@@ -228,7 +229,7 @@ class ValidationSelector(SOTAexpSelector):
         # 2. Prepare validation environment (generate data.py and grade.py)
         try:
             grade_py_code = self._prepare_validation_scripts(
-                reference_exp=self.candidate_exps[0], competition=competition, mock_folder=mock_folder
+                reference_exp=self.candidate[0][0], competition=competition, mock_folder=mock_folder
             )
         except RuntimeError as e:
             logger.error(f"ValidationSelector: Failed to prepare validation environment. {e}")
@@ -236,7 +237,8 @@ class ValidationSelector(SOTAexpSelector):
 
         # 3. Run validation on all candidates in parallel
         validation_tasks = [
-            (process_experiment, (exp, competition, mock_folder, grade_py_code, trace)) for exp in self.candidate_exps
+            (process_experiment, (exp, competition, mock_folder, grade_py_code, loop_id))
+            for exp, loop_id in self.candidate
         ]
         results = multiprocessing_wrapper(validation_tasks, n=DEFAULT_NUM_WORKERS)
 
@@ -245,23 +247,20 @@ class ValidationSelector(SOTAexpSelector):
             return None
 
         # 4. Process results and select the best one
-        valid_results = [(loop_id, score) for loop_id, score in results if score is not None]
+        valid_results = [(exp, score) for exp, score in results if score is not None]
         if not valid_results:
             logger.warning("ValidationSelector: No candidates scored successfully during validation.")
             return None
 
-        direction_sign = 1 if trace.scen.metric_direction else -1
         valid_results.sort(key=lambda x: x[1] * direction_sign, reverse=True)
-
-        best_loop_id = valid_results[0][0]
+        best_exp, best_loop_id = [
+            (exp, loop_id)
+            for exp, loop_id in self.candidate
+            if exp.hypothesis.hypothesis == valid_results[0][0].hypothesis.hypothesis
+        ][0]
         logger.info(
             f"ValidationSelector: Best experiment from validation is loop_id={best_loop_id} with score={valid_results[0][1]}"
         )
-
-        # Find the original experiment object corresponding to the best loop_id
-        best_exp_idx = trace.loop_id2idx[best_loop_id]
-        best_exp = trace.idx2exp(best_exp_idx)
-
         return [best_exp]
 
     def _prepare_validation_scripts(self, reference_exp: DSExperiment, competition: str, mock_folder: str) -> str:
@@ -272,7 +271,7 @@ class ValidationSelector(SOTAexpSelector):
 
         data_py_path = Path(mock_folder) / "data.py"
         grade_py_path = Path(mock_folder) / "grade.py"
-        reference_code = reference_exp.experiment_workspace.get("main.py", "")
+        reference_code = reference_exp.experiment_workspace.file_dict.get("main.py", "")
 
         # --- Generate data.py if needed ---
         if not data_py_path.exists():
@@ -367,16 +366,15 @@ class ValidationSelector(SOTAexpSelector):
 
 
 def process_experiment(
-    exp: DSExperiment, competition: str, folder: str, grade_py_code: str, trace: Trace
-) -> Tuple[Optional[str], Optional[float]]:
+    exp: DSExperiment, competition: str, folder: str, grade_py_code: str, loop_id: str
+) -> Tuple[DSExperiment, Optional[float]]:
     """
     Worker function to process a single experiment in an isolated directory.
     This function is designed to be called by a multiprocessing pool.
     """
-    loop_id = trace.idx2loop_id.get(trace.exp2idx(exp))
     if not loop_id:
         logger.error("Could not find loop_id for a given experiment.")
-        return None, None
+        return exp, None
 
     input_folder = T("scenarios.data_science.share:scen.input_path").r()
     mock_folder = f"/tmp/mock/{competition}/{input_folder}"
@@ -407,26 +405,26 @@ def process_experiment(
 
     except Exception as e:
         logger.error(f"CRITICAL ERROR while processing experiment {competition}/{loop_id}: {e}")
-        return loop_id, None
+        return exp, None
 
     # Score parsing
     if not grade_stdout:
-        return loop_id, None
+        return exp, None
 
     try:
         # Priority 1: JSON parsing
-        return loop_id, float(json.loads(grade_stdout)["score"])
+        return exp, float(json.loads(grade_stdout)["score"])
     except (json.JSONDecodeError, KeyError, TypeError):
         try:
             # Priority 2: Python literal eval
-            return loop_id, float(eval(grade_stdout)["score"])
+            return exp, float(eval(grade_stdout)["score"])
         except Exception:
             try:
                 # Priority 3: Regex for the last number in the string
-                return loop_id, float(re.findall(r"[-+]?\d*\.\d+|\d+", grade_stdout)[-1])
+                return exp, float(re.findall(r"[-+]?\d*\.\d+|\d+", grade_stdout)[-1])
             except (IndexError, ValueError):
                 logger.warning(f"Failed to extract score for {loop_id} from grade_stdout: {grade_stdout}")
-                return loop_id, None
+                return exp, None
 
 
 def check_hit(selected_exps: List[DSExperiment], trace: Trace, sota_result: Dict[str, Any]) -> bool:
@@ -475,6 +473,7 @@ def evaluate_one_trace(selector_name: str, trace_pkl_path: Path, trace_folder: P
     # Example of scenario-specific adjustment
     if competition == "detecting-insults-in-social-commentary":
         trace.scen.metric_direction = 1
+    direction_sign = 1 if trace.scen.metric_direction else -1
 
     quick_selector = BestValidSelector(num_candidates=1, use_decision=True, each_trace=False)
     quick_selected_exps = quick_selector.get_sota_exp_to_submit(trace)
@@ -506,7 +505,9 @@ def evaluate_one_trace(selector_name: str, trace_pkl_path: Path, trace_folder: P
             logger.info("ValidationSelector: Base selector's candidates did not hit any SOTA. Skipping validation.")
             return competition, False
 
-        selector = ValidationSelector(candidate_exps=candidate_exps)
+        selector = ValidationSelector(
+            candidate=[(exp, trace.idx2loop_id.get(trace.exp2idx(exp))) for exp in candidate_exps]
+        )
     else:
         raise ValueError(f"Unknown selector name: {selector_name}")
 
@@ -516,7 +517,7 @@ def evaluate_one_trace(selector_name: str, trace_pkl_path: Path, trace_folder: P
     # For validation, we need to pass extra context
     mock_folder = f"/tmp/mock/{competition}"
     selected_sota_exps = selector.get_sota_exp_to_submit(
-        trace, competition=competition, mock_folder=mock_folder, sota_result=sota_result
+        direction_sign, competition=competition, mock_folder=mock_folder, sota_result=sota_result
     )
 
     hit = check_hit(selected_sota_exps, trace, sota_result)
@@ -524,7 +525,7 @@ def evaluate_one_trace(selector_name: str, trace_pkl_path: Path, trace_folder: P
     return competition, hit
 
 
-def select_on_existing_trace(selector_name: str, trace_root: str):
+def select_on_existing_trace(selector_name: str, trace_root: str, experiment: str | None = None):
     """
     Offline evaluation of a SOTA experiment selector on existing traces.
 
@@ -539,6 +540,8 @@ def select_on_existing_trace(selector_name: str, trace_root: str):
     tasks = []
     for trace_folder in trace_root_path.iterdir():
         if not trace_folder.is_dir():
+            continue
+        if experiment is not None and not experiment in str(trace_folder):
             continue
         for trace_pkl_path in trace_folder.glob("*.pkl"):
             tasks.append((evaluate_one_trace, (selector_name, trace_pkl_path, trace_folder)))
