@@ -51,6 +51,7 @@ class ParallelMultiTraceExpGen(ExpGen):
         self.trace_scheduler: TraceScheduler = import_class(DS_RD_SETTING.trace_scheduler)(
             DS_RD_SETTING.max_trace_num,
             DS_RD_SETTING.scheduler_temperature,
+            DS_RD_SETTING.scheduler_c_puct,
         )
         self.planner = import_class(DS_RD_SETTING.planner)(self.scen)
 
