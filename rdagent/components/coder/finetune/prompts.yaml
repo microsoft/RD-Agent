@@ -20,7 +20,7 @@ finetune_coder:
     **Required Configuration**:
     - dataset: "processed_dataset"
     - dataset_dir: "{{ docker_env_info.training_mount_path }}data"
-    - output_dir: "{{ docker_env_info.training_mount_path }}output"
+    - output_dir: "/workspace/output"
 
     {% if similar_knowledge|length > 0 %}
     ## Successful Similar Implementations

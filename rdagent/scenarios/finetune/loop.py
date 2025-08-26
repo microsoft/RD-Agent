@@ -54,6 +54,7 @@ class LLMFinetuneRDLoop(RDLoop):
         data_volumes = {}
 
         local_path = self.ft_rd_setting.file_path
+        # Mount data directory as read-only
         data_volumes[local_path] = {
             "bind": "/data",
             "mode": "ro",
@@ -62,7 +63,14 @@ class LLMFinetuneRDLoop(RDLoop):
         # Create base directories
         finetune_base_dir = Path(local_path)
         finetune_base_dir.mkdir(parents=True, exist_ok=True)
-        (finetune_base_dir / "output").mkdir(parents=True, exist_ok=True)
+        output_dir = finetune_base_dir / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Mount output directory as read-write for training results
+        data_volumes[str(output_dir)] = {
+            "bind": "/workspace/output",
+            "mode": "rw",
+        }
 
         from rdagent.components.coder.finetune.conf import get_ft_env
 
