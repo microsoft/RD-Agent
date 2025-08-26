@@ -228,7 +228,7 @@ class ValidationSelector(SOTAexpSelector):
         # 2. Prepare validation environment (generate data.py and grade.py)
         try:
             grade_py_code = self._prepare_validation_scripts(
-                reference_exp=candidate_exps[0], competition=competition, mock_folder=mock_folder
+                reference_exp=self.candidate_exps[0], competition=competition, mock_folder=mock_folder
             )
         except RuntimeError as e:
             logger.error(f"ValidationSelector: Failed to prepare validation environment. {e}")
@@ -236,7 +236,7 @@ class ValidationSelector(SOTAexpSelector):
 
         # 3. Run validation on all candidates in parallel
         validation_tasks = [
-            (process_experiment, (exp, competition, mock_folder, grade_py_code, trace)) for exp in candidate_exps
+            (process_experiment, (exp, competition, mock_folder, grade_py_code, trace)) for exp in self.candidate_exps
         ]
         results = multiprocessing_wrapper(validation_tasks, n=DEFAULT_NUM_WORKERS)
 
