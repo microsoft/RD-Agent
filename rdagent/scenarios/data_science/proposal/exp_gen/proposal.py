@@ -1114,7 +1114,8 @@ class DSProposalV2ExpGen(ExpGen):
                 competition,
                 path_length,
             )
-
+        else:
+            selected_extra_hypo_l = None
         hypothesis_candidates = str(json.dumps(hypothesis_candidates, indent=2))
 
         sys_prompt = T(".prompts_v2:hypothesis_select.system").r(
