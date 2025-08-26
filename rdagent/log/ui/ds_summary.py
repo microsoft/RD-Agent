@@ -24,29 +24,6 @@ from rdagent.log.ui.utils import (
 from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 
 
-def days_summarize_win():
-    lfs1 = [re.sub(r"log\.srv\d*", "log.srv", folder) for folder in state.log_folders]
-    lfs2 = [re.sub(r"log\.srv\d*", "log.srv2", folder) for folder in state.log_folders]
-    lfs3 = [re.sub(r"log\.srv\d*", "log.srv3", folder) for folder in state.log_folders]
-
-    _, df1 = get_summary_df(lfs1)
-    _, df2 = get_summary_df(lfs2)
-    _, df3 = get_summary_df(lfs3)
-
-    df = pd.concat([df1, df2, df3], axis=0)
-
-    def mean_func(x: pd.DataFrame):
-        numeric_cols = x.select_dtypes(include=["int", "float"]).mean()
-        string_cols = x.select_dtypes(include=["object"]).agg(lambda col: ", ".join(col.fillna("none").astype(str)))
-        return pd.concat([numeric_cols, string_cols], axis=0).reindex(x.columns).drop("Competition")
-
-    df = df.groupby("Competition").apply(mean_func)
-    if st.toggle("Show Percent", key="show_percent"):
-        st.dataframe(percent_df(df, show_origin=False))
-    else:
-        st.dataframe(df)
-
-
 def curves_win(summary: dict):
     # draw curves
     cbwin1, cbwin2 = st.columns(2)
@@ -110,9 +87,15 @@ def all_summarize_win():
             st.warning(
                 f"summary.pkl not found in **{lf}**\n\nRun:`dotenv run -- python rdagent/log/mle_summary.py grade_summary --log_folder={lf} --hours=<>`"
             )
-    summary, base_df = get_summary_df(selected_folders)
-    if not summary:
-        return
+    summary = {}
+    dfs = []
+    for lf in selected_folders:
+        s, df = get_summary_df(lf)
+        df.index = [f"{shorten_folder_name(lf)} - {idx}" for idx in df.index]
+
+        dfs.append(df)
+        summary.update({f"{shorten_folder_name(lf)} - {k}": v for k, v in s.items()})
+    base_df = pd.concat(dfs)
 
     valid_rate = float(base_df.get("Valid Improve", pd.Series()).mean())
     test_rate = float(base_df.get("Test Improve", pd.Series()).mean())
@@ -215,8 +198,5 @@ def all_summarize_win():
     curves_win(summary)
 
 
-# with st.container(border=True):
-#     if st.toggle("近3天平均", key="show_3days"):
-#         days_summarize_win()
 with st.container(border=True):
     all_summarize_win()

@@ -161,6 +161,21 @@ def map_stat(sota_mle_score: dict | None) -> str:
     return sota_exp_stat
 
 
+@cache_with_pickle(_log_path_hash_func, force=True)
+def get_best_report(log_path: Path) -> dict | None:
+    log_storage = FileStorage(log_path)
+    mle_reports = [extract_json(i.content) for i in log_storage.iter_msg(pattern="**/running/mle_score/*/*.pkl")]
+    mle_reports = [report for report in mle_reports if report is not None and not pd.isna(report["score"])]
+    if mle_reports:
+        lower_better = mle_reports[0]["is_lower_better"]
+        if lower_better:
+            mle_reports.sort(key=lambda report: report["score"])
+        else:
+            mle_reports.sort(key=lambda report: report["score"], reverse=True)
+        return mle_reports[0]
+    return None
+
+
 def _get_sota_exp_stat_hash_func(log_path: Path, selector: Literal["auto", "best_valid"] = "auto") -> str:
     return _log_path_hash_func(log_path) + selector
 
@@ -388,19 +403,17 @@ def load_times_info(log_path: Path) -> dict[int, dict[str, dict[Literal["start_t
     return times_info
 
 
-def _log_folders_summary_hash_func(log_folders: list[str], hours: int | None = None):
-    hash_str = ""
-    for lf in log_folders:
-        summary_p = Path(lf) / (f"summary.pkl" if hours is None else f"summary_{hours}h.pkl")
-        if summary_p.exists():
-            hash_str += str(summary_p) + str(summary_p.stat().st_mtime)
-        else:
-            hash_str += f"{summary_p} not exists"
+def _log_folders_summary_hash_func(log_folder: str | Path, hours: int | None = None):
+    summary_p = Path(log_folder) / (f"summary.pkl" if hours is None else f"summary_{hours}h.pkl")
+    if summary_p.exists():
+        hash_str = str(summary_p) + str(summary_p.stat().st_mtime)
+    else:
+        hash_str = f"{summary_p} not exists"
     return md5_hash(hash_str)
 
 
 @cache_with_pickle(_log_folders_summary_hash_func, force=True)
-def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[dict, pd.DataFrame]:
+def get_summary_df(log_folder: str | Path, hours: int | None = None) -> tuple[dict, pd.DataFrame]:
     """Process experiment logs and generate summary DataFrame.
 
     Several key metrics that need explanation:
@@ -420,82 +433,68 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
       and overfitting risk, totally decided by LLM
 
     """
-    summarys = {}
-    if hours is None:
-        sn = "summary.pkl"
+    log_folder = Path(log_folder)
+    sn = "summary.pkl" if hours is None else f"summary_{hours}h.pkl"
+    if (log_folder / sn).exists():
+        summary: dict = pd.read_pickle(log_folder / sn)
     else:
-        sn = f"summary_{hours}h.pkl"
-    for lf in log_folders:
-        if (Path(lf) / sn).exists():
-            summarys[lf] = pd.read_pickle(Path(lf) / sn)
-
-    if len(summarys) == 0:
         return {}, pd.DataFrame()
 
-    summary = {}
-    for lf, s in summarys.items():
-        for k, v in s.items():
-            stdout_p = Path(lf) / f"{k}.stdout"
-            if stdout_p.exists():
-                v["script_time"] = get_script_time(stdout_p)
-            else:
-                v["script_time"] = None
+    for k, v in summary.items():
+        stdout_p = log_folder / f"{k}.stdout"
+        if stdout_p.exists():
+            v["script_time"] = get_script_time(stdout_p)
+        else:
+            v["script_time"] = None
 
-            times_info = load_times_info(Path(lf) / k)
+        times_info = load_times_info(log_folder / k)
 
-            exp_gen_time = coding_time = running_time = timedelta()
-            start_times, end_times = [], []
+        exp_gen_time = coding_time = running_time = timedelta()
+        start_times, end_times = [], []
 
-            for loop_times in times_info.values():
-                for step_name, step_time in loop_times.items():
-                    duration = step_time["end_time"] - step_time["start_time"]
-                    start_times.append(step_time["start_time"])
-                    end_times.append(step_time["end_time"])
+        for loop_times in times_info.values():
+            for step_name, step_time in loop_times.items():
+                duration = step_time["end_time"] - step_time["start_time"]
+                start_times.append(step_time["start_time"])
+                end_times.append(step_time["end_time"])
 
-                    if step_name == "exp_gen":
-                        exp_gen_time += duration
-                    elif step_name == "coding":
-                        coding_time += duration
-                    elif step_name == "running":
-                        running_time += duration
+                if step_name == "exp_gen":
+                    exp_gen_time += duration
+                elif step_name == "coding":
+                    coding_time += duration
+                elif step_name == "running":
+                    running_time += duration
 
-            all_time = (max(end_times) - min(start_times)) if start_times else timedelta()
-            v["exec_time"] = str(all_time).split(".")[0]
-            v["exp_gen_time"] = str(exp_gen_time).split(".")[0]
-            v["coding_time"] = str(coding_time).split(".")[0]
-            v["running_time"] = str(running_time).split(".")[0]
+        all_time = (max(end_times) - min(start_times)) if start_times else timedelta()
+        v["exec_time"] = str(all_time).split(".")[0]
+        v["exp_gen_time"] = str(exp_gen_time).split(".")[0]
+        v["coding_time"] = str(coding_time).split(".")[0]
+        v["running_time"] = str(running_time).split(".")[0]
 
-            # overwrite sota_exp_stat in summary.pkl because it may not be correct in multi-trace
-            sota_exp_submit, v["sota_loop_id_new"], sota_submit_report, v["sota_exp_stat_new"] = get_sota_exp_stat(
-                Path(lf) / k, selector="auto"
+        # overwrite sota_exp_stat in summary.pkl because it may not be correct in multi-trace
+        sota_exp_submit, v["sota_loop_id_new"], sota_submit_report, v["sota_exp_stat_new"] = get_sota_exp_stat(
+            log_folder / k, selector="auto"
+        )
+        sota_exp_bv, v["sota_loop_id"], sota_bv_report, v["sota_exp_stat"] = get_sota_exp_stat(
+            log_folder / k, selector="best_valid"
+        )
+        (
+            v["valid_improve"],
+            v["test_improve"],
+            v["submit_is_merge"],
+            v["merge_sota_rate"],
+        ) = get_score_stat(log_folder / k, v["sota_loop_id_new"])
+
+        if sota_exp_submit is not None:
+            try:
+                sota_submit_result = sota_exp_submit.result
+            except AttributeError:  # Compatible with old versions
+                sota_submit_result = sota_exp_submit.__dict__["result"]
+            v["sota_exp_score_valid_new"] = (
+                sota_submit_result.loc["ensemble"].iloc[0] if sota_submit_result is not None else None
             )
-            sota_exp_bv, v["sota_loop_id"], sota_bv_report, v["sota_exp_stat"] = get_sota_exp_stat(
-                Path(lf) / k, selector="best_valid"
-            )
-            (
-                v["valid_improve"],
-                v["test_improve"],
-                v["submit_is_merge"],
-                v["merge_sota_rate"],
-            ) = get_score_stat(Path(lf) / k, v["sota_loop_id_new"])
-
-            if sota_exp_submit is not None:
-                try:
-                    sota_submit_result = sota_exp_submit.result
-                except AttributeError:  # Compatible with old versions
-                    sota_submit_result = sota_exp_submit.__dict__["result"]
-                v["sota_exp_score_valid_new"] = (
-                    sota_submit_result.loc["ensemble"].iloc[0] if sota_submit_result is not None else None
-                )
-            v["sota_exp_score"] = sota_bv_report["score"] if sota_bv_report else None
-            v["sota_exp_score_new"] = sota_submit_report["score"] if sota_submit_report else None
-            # change experiment name
-            if "amlt" in lf:
-                summary[f"{lf[lf.rfind('amlt')+5:].split('/')[0]} - {k}"] = v
-            elif "ep" in lf:
-                summary[f"{lf[lf.rfind('ep'):]} - {k}"] = v
-            else:
-                summary[f"{lf} - {k}"] = v
+        v["sota_exp_score"] = sota_bv_report["score"] if sota_bv_report else None
+        v["sota_exp_score_new"] = sota_submit_report["score"] if sota_submit_report else None
 
     summary = {k: v for k, v in summary.items() if "competition" in v}
     base_df = pd.DataFrame(
