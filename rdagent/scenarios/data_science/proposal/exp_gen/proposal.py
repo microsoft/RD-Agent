@@ -617,7 +617,7 @@ class DSProposalV2ExpGen(ExpGen):
         problems: dict,
         pipeline: bool,
         enable_idea_pool: bool,
-        begin_flag: bool,
+        is_new_tree: bool,
         inject_diverse: bool = False,
         exp_gen_plan: Optional[Dict] = None,
         packages_prompt: str = "",
@@ -652,7 +652,7 @@ class DSProposalV2ExpGen(ExpGen):
             enable_idea_pool=enable_idea_pool,
             inject_diverse=inject_diverse,
             plan=exp_gen_plan,
-            generate_unique_hypothesis=DS_RD_SETTING.enable_generate_unique_hypothesis and begin_flag,
+            generate_unique_hypothesis=DS_RD_SETTING.enable_generate_unique_hypothesis and is_new_tree,
             sibling_hypotheses=sibling_hypotheses,
         )
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
@@ -921,6 +921,7 @@ class DSProposalV2ExpGen(ExpGen):
         return index_to_pick_pool_list[reproducible_int]
 
     def cosine_similarity_matrix_torch(self, A, B):
+        # TODO: replace torch with numpy
         dot_products = torch.matmul(A, B.T)
         A_norms = torch.norm(A, dim=1, keepdim=True)
         B_norms = torch.norm(B, dim=1, keepdim=True).T
@@ -929,23 +930,22 @@ class DSProposalV2ExpGen(ExpGen):
     def prob_dis(
         self,
         current_sota_score_in_current_trace,
-        history_scores,
+        extra_hypo_l: list[tuple[DSHypothesis, float]],
         hypothesis_candidates,
-        hypothesis_history,
         competition,
         path_length,
     ):
+        history_hypo_str, history_scores = [], []
+        for hypo, score in extra_hypo_l:
+            history_hypo_str.append(hypo.hypothesis)
+            history_scores.append(score)
+
         target_texts = [v["hypothesis"] for v in hypothesis_candidates.values()]
         target_embs = torch.tensor(APIBackend().create_embedding(target_texts), dtype=torch.float32)
 
-        # history_list = [line.split(". ", 1)[1] for line in hypothesis_history.split("\n") if ". " in line]
-        history_list = [
-            line.strip() for line in hypothesis_history.split("\n") if line.strip().startswith("Hypothesis:")
-        ]
-
-        if not history_list:
+        if not history_hypo_str:
             return []
-        history_embs = torch.tensor(APIBackend().create_embedding(history_list), dtype=torch.float32)
+        history_embs = torch.tensor(APIBackend().create_embedding(history_hypo_str), dtype=torch.float32)
         sim_matrix = self.cosine_similarity_matrix_torch(target_embs, history_embs)
         candidate_scores = [current_sota_score_in_current_trace for i in range(len(target_texts))]
         candidate_scores = torch.tensor(candidate_scores, dtype=torch.float32).unsqueeze(1)
@@ -968,14 +968,14 @@ class DSProposalV2ExpGen(ExpGen):
         flat_indices = sampled_indices.flatten().unique().tolist()
         if bigger_is_better:
             best_idx = history_scores[0].argmax().item()
-            best_entry = (history_list[best_idx], history_scores[0, best_idx])
+            best_entry = (history_hypo_str[best_idx], history_scores[0, best_idx])
         else:
             best_idx = history_scores[0].argmin().item()
-            best_entry = (history_list[best_idx], history_scores[0, best_idx])
+            best_entry = (history_hypo_str[best_idx], history_scores[0, best_idx])
         if len(flat_indices) > 2:
             flat_indices = flat_indices[:2]
         sampled_history_list = [best_entry] + [
-            (history_list[i], history_scores[0, i]) for i in flat_indices if i != best_idx
+            (history_hypo_str[i], history_scores[0, i]) for i in flat_indices if i != best_idx
         ]
         return sampled_history_list
 
@@ -1018,12 +1018,39 @@ class DSProposalV2ExpGen(ExpGen):
         else:
             return -1, len(loop_id_list)
 
+
+    def _llm_select_extra_hypo(self, trace: DSTrace) -> list[tuple[DSHypothesis, float]]:
+        """
+        Retrieve a list of additional hypotheses along with their ensemble scores 
+        from the given experiment trace, intended for input into an LLM-based selection mechanism.
+
+        Parameters:
+            trace (DSTrace):
+
+        Returns:
+            list[tuple[DSHypothesis, float]]:
+                A list of tuples, where each tuple consists of:
+                    - DSHypothesis: The hypothesis object from a selected experiment.
+                      Example: DSHypothesis(description="Use XGBoost with tuned learning_rate").
+                    - float: The associated ensemble result score, rounded to 3 decimal places.
+                      Example: 0.845
+                Example:
+                    [
+                        (DSHypothesis(description="Try RandomForest with 200 estimators"), 0.812),
+                        (DSHypothesis(description="Use LightGBM with early stopping"), 0.834)
+                    ]
+        """
+        return [
+            (exp.hypothesis, exp.result.loc["ensemble"].iloc[0])
+            for exp, _ in
+            trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="all")
+        ]
+
+    @wait_retry(retry_n=5)
     def hypothesis_select_with_llm(
         self,
         scenario_desc: str,
         exp_feedback_list_desc: str,
-        extra_exp_feedback_list_desc: str,
-        exp_feedback_scores: list,
         sota_exp_desc: str,
         hypothesis_candidates: dict,
         trace: DSTrace,
@@ -1032,6 +1059,7 @@ class DSProposalV2ExpGen(ExpGen):
         ratio_merge_or_ensemble = DS_RD_SETTING.ratio_merge_or_ensemble
 
         total_time = RD_Agent_TIMER_wrapper.timer.all_duration
+        # FIXME: total_time could be None
         use_time = round(total_time.total_seconds(), 2) - round(res_time.total_seconds(), 2)
         use_ratio = 100 * use_time / round(total_time.total_seconds(), 2)
         use_ratio = round(use_ratio, 2)
@@ -1061,21 +1089,19 @@ class DSProposalV2ExpGen(ExpGen):
             current_sota_score_in_current_trace = -1
             path_length = 0
 
-        if extra_exp_feedback_list_desc and len(trace.hist) > 0 and exp_feedback_scores:
+        # extra_exp_feedback_list_desc: str,
+        # exp_feedback_scores: list,
+        extra_hypo_l = self._llm_select_extra_hypo(trace)
+        if len(extra_hypo_l) > 0
+            # TODO:
             extra_exp_feedback_list_desc = self.prob_dis(
                 current_sota_score_in_current_trace,
-                exp_feedback_scores,
+                extra_hypo_l,
                 hypothesis_candidates,
-                extra_exp_feedback_list_desc,
                 competition,
                 path_length,
             )
-            extra_exp_feedback_list_str = "\n".join(
-                f"{i+1}. {hypothesis} (score: {score.item():.3f})"
-                for i, (hypothesis, score) in enumerate(extra_exp_feedback_list_desc)
-            )
-        else:
-            extra_exp_feedback_list_str = None
+
         hypothesis_candidates = str(json.dumps(hypothesis_candidates, indent=2))
 
         sys_prompt = T(".prompts_v2:hypothesis_select.system").r(
@@ -1085,7 +1111,8 @@ class DSProposalV2ExpGen(ExpGen):
             use_ratio=use_ratio,
             time_max=round(time_max, 2),
             merge_hours=DS_RD_SETTING.merge_hours,
-            extra_exp_feedback_list_desc=extra_exp_feedback_list_str,
+            # extra_exp_feedback_list_desc=extra_exp_feedback_list_str,
+            extra_hypo_l=extra_hypo_l,
             hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(),
             sota_flag=sota_flag,
             current_sota_score=current_sota_score,
@@ -1109,6 +1136,8 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         response_dict = json.loads(response)
+        assert response_dict.get("component") in HypothesisComponent.__members__, f"Invalid component"
+        assert response_dict.get("hypothesis") is not None, f"Invalid hypothesis"
         return response_dict
 
     def hypothesis_rank(
@@ -1291,21 +1320,7 @@ class DSProposalV2ExpGen(ExpGen):
             type="failed",
             pipeline=pipeline,
         )
-
-        if len(trace.hist) > 0:
-            extra_exp_feedback_list = [
-                tr[0].hypothesis
-                for tr in trace.experiment_and_feedback_list_after_init(return_type="all", search_type="all")
-                if getattr(tr[1], "decision", False)
-            ]
-            exp_feedback_scores = [
-                tr[0].result.loc["ensemble"].iloc[0].round(3)
-                for tr in trace.experiment_and_feedback_list_after_init(return_type="all", search_type="all")
-                if getattr(tr[1], "decision", False)
-            ]
-        else:
-            extra_exp_feedback_list = None
-            exp_feedback_scores = None
+        #
         # NOTE: we currently don't support inject diverse problems for the parallel + multi-trace mode,
         if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
             if len(trace.current_selection) == 0:
@@ -1344,7 +1359,7 @@ class DSProposalV2ExpGen(ExpGen):
             )
 
         # sub-trace begin flag
-        begin_flag = not trace.current_selection
+        is_new_tree = trace.is_selection_new_tree()
 
         # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
         hypothesis_dict = self.hypothesis_gen(
@@ -1357,7 +1372,7 @@ class DSProposalV2ExpGen(ExpGen):
             enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
             inject_diverse=inject_diverse,
             exp_gen_plan=plan.get("exp_gen") if plan else None,
-            begin_flag=begin_flag,
+            is_new_tree=is_new_tree,
             packages_prompt=packages_prompt,
             sibling_exp=sibling_exp,
         )
@@ -1397,7 +1412,7 @@ class DSProposalV2ExpGen(ExpGen):
 
                 # Rewriter Stage - Generate improved hypotheses based on critiques
                 logger.info(f"Starting rewriter stage - generating improved hypotheses based on critique feedback")
-                improved_hypotheses_dict = self.hypothesis_rewrite(
+                hypothesis_dict = self.hypothesis_rewrite(
                     hypothesis_dict=hypothesis_dict,
                     critiques_dict=critiques_dict,
                     scenario_desc=scenario_desc,
@@ -1410,49 +1425,28 @@ class DSProposalV2ExpGen(ExpGen):
             except Exception as e:
                 logger.warning(f"Hypothesis critique and rewrite failed: {e}")
                 logger.info(f"Using original hypotheses as fallback instead of improved versions")
-                improved_hypotheses_dict = hypothesis_dict.copy()  # Use original hypotheses as fallback
         else:
             logger.info(f"Hypothesis critique and rewrite disabled - using original {len(hypothesis_dict)} hypotheses")
-            improved_hypotheses_dict = hypothesis_dict.copy()  # Use original hypotheses directly
 
-        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
-            hypothesis_dict=hypothesis_dict,
-            problem_dict=all_problems,
-        )
 
         # Step 3: Select the best hypothesis
         if DS_RD_SETTING.llm_select_hypothesis:
-            # Use LLM to select the best hypothesis
-            if extra_exp_feedback_list is not None:
-                extra_exp_feedback_list_desc = "\n".join(
-                    f"{i+1}. {hypothesis}" for i, hypothesis in enumerate(extra_exp_feedback_list)
-                )
-
-            else:
-                extra_exp_feedback_list_desc = None
-
             response_dict = self.hypothesis_select_with_llm(
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
-                extra_exp_feedback_list_desc=extra_exp_feedback_list_desc,
-                exp_feedback_scores=exp_feedback_scores,
+                # extra_exp_feedback_list_desc=extra_exp_feedback_list_desc,
+                # exp_feedback_scores=exp_feedback_scores,
                 sota_exp_desc=sota_exp_desc,
                 hypothesis_candidates=hypothesis_dict,
                 trace=trace,
             )
-            component_map = {
-                "Model": HypothesisComponent.Model,
-                "Ensemble": HypothesisComponent.Ensemble,
-                "Workflow": HypothesisComponent.Workflow,
-                "FeatureEng": HypothesisComponent.FeatureEng,
-                "DataLoadSpec": HypothesisComponent.DataLoadSpec,
-            }
-            comp_str = response_dict.get("component")
-            hypo_str = response_dict.get("hypothesis")
-
-            if comp_str in component_map and hypo_str is not None:
-                new_hypothesis = DSHypothesis(component=component_map[comp_str], hypothesis=hypo_str)
+            new_hypothesis = DSHypothesis(component=response_dict.get("component"), hypothesis=response_dict.get("hypothesis"))
             pickled_problem_name = None
+        else:
+            pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+                hypothesis_dict=hypothesis_dict,
+                problem_dict=all_problems,
+            )
 
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
