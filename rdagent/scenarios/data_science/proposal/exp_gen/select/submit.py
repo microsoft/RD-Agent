@@ -1,4 +1,3 @@
-from copy import deepcopy
 import json
 import pickle
 import re
