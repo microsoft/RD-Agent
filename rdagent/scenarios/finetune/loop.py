@@ -1,4 +1,3 @@
-import shutil
 from pathlib import Path
 from typing import Any
 
@@ -10,7 +9,6 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.finetune.data_process.data_format_converter import (
     DataFormatConverter,
 )
-from rdagent.scenarios.finetune.scen.utils import get_unified_mount_volumes
 
 
 class LLMFinetuneRDLoop(RDLoop):
@@ -53,31 +51,18 @@ class LLMFinetuneRDLoop(RDLoop):
 
     def _setup_environment(self):
         """Setup Docker environment with proper volume mappings"""
-        # Use unified mount volume configuration and convert to Docker volume format
         data_volumes = {}
-        unified_volumes = get_unified_mount_volumes()
 
-        for local_path, docker_path in unified_volumes.items():
-            data_volumes[local_path] = {
-                "bind": docker_path,
-                "mode": "ro",
-            }
+        local_path = self.ft_rd_setting.file_path
+        data_volumes[local_path] = {
+            "bind": "/data",
+            "mode": "ro",
+        }
 
-        # Setup workspace directories (no separate mounting needed since entire FT_FILE_PATH is mounted)
-        finetune_base_dir = Path(self.ft_rd_setting.file_path)
+        # Create base directories
+        finetune_base_dir = Path(local_path)
         finetune_base_dir.mkdir(parents=True, exist_ok=True)
-
-        # Create output directory within FT_FILE_PATH (will be accessible at /workspace/output in container)
-        output_dir = finetune_base_dir / "output"
-        if output_dir.exists():
-            shutil.rmtree(output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        # Create shared directory within FT_FILE_PATH for data processing output
-        self.shared_workspace_dir = finetune_base_dir / "data"
-        if self.shared_workspace_dir.exists():
-            shutil.rmtree(self.shared_workspace_dir)
-        self.shared_workspace_dir.mkdir(parents=True, exist_ok=True)
+        (finetune_base_dir / "output").mkdir(parents=True, exist_ok=True)
 
         from rdagent.components.coder.finetune.conf import get_ft_env
 
@@ -89,7 +74,19 @@ class LLMFinetuneRDLoop(RDLoop):
 
     def _preprocess_data(self):
         """Preprocess dataset format during initialization"""
+        # Use dataset-specific preprocessed data directory
+        finetune_base_dir = Path(self.ft_rd_setting.file_path)
+        preprocessed_dir = finetune_base_dir / "preprocessed_data" / self.dataset
+
+        # Check if preprocessed data already exists
+        expected_files = ["processed_dataset.json", "dataset_info.json"]
+        if all((preprocessed_dir / file_name).exists() for file_name in expected_files):
+            logger.info(f"Preprocessed data already exists at {preprocessed_dir}, skipping preprocessing")
+            return
+
         logger.info("Preprocessing dataset format...")
+        # Create preprocessed directory
+        preprocessed_dir.mkdir(parents=True, exist_ok=True)
 
         data_converter = DataFormatConverter(
             dataset=self.dataset,
@@ -98,7 +95,7 @@ class LLMFinetuneRDLoop(RDLoop):
             scen=import_class(self.ft_rd_setting.scen)(),
         )
 
-        success = data_converter.convert_dataset(self.env, self.shared_workspace_dir)
+        success = data_converter.convert_dataset(self.env, preprocessed_dir)
         if not success:
             raise RuntimeError("Failed to preprocess dataset")
 

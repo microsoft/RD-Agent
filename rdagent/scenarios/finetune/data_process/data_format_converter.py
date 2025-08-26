@@ -25,7 +25,7 @@ class DataFormatConverter:
 
         self.coder = DataFormatCoSTEER(scen)
 
-    def convert_dataset(self, env, shared_workspace_dir: Path) -> bool:
+    def convert_dataset(self, env, preprocessed_dir: Path) -> bool:
         """Convert dataset to LLaMA-Factory compatible format using CoSTEER"""
         logger.info(f"Converting dataset format for {self.dataset}...")
 
@@ -46,8 +46,8 @@ class DataFormatConverter:
 
             if success:
                 logger.info("Data format conversion completed successfully")
-                self._copy_converted_data(workspace, shared_workspace_dir)
-                self._verify_converted_data(shared_workspace_dir)
+                self._copy_converted_data(workspace, preprocessed_dir)
+                self._verify_converted_data(preprocessed_dir)
             return success
 
         return False
@@ -65,8 +65,8 @@ class DataFormatConverter:
             logger.error("No executable workspace found for data conversion")
             return False
 
-    def _copy_converted_data(self, workspace: "FBWorkspace", shared_workspace_dir: Path):
-        """Copy converted data files from workspace/data to shared directory"""
+    def _copy_converted_data(self, workspace: "FBWorkspace", preprocessed_dir: Path):
+        """Copy converted data files from workspace/data to preprocessed directory"""
         import shutil
 
         expected_files = ["processed_dataset.json", "dataset_info.json"]
@@ -74,30 +74,27 @@ class DataFormatConverter:
         for file_name in expected_files:
             # Look for files in workspace/data/ subdirectory
             src_file = workspace.workspace_path / "data" / file_name
-            dst_file = shared_workspace_dir / file_name
+            dst_file = preprocessed_dir / file_name
 
             if src_file.exists():
                 shutil.copy2(src_file, dst_file)
-                logger.info(f"Copied {file_name} to shared workspace")
+                logger.info(f"Copied {file_name} to preprocessed directory")
             else:
                 logger.warning(f"Expected file {file_name} not found in workspace/data/")
 
-    def _verify_converted_data(self, shared_workspace_dir: Path):
-        """Verify that converted data exists in the shared workspace"""
-        # Use the actual shared workspace directory (host path) instead of Docker container path
-        processed_data_path = shared_workspace_dir
-
+    def _verify_converted_data(self, preprocessed_dir: Path):
+        """Verify that converted data exists in the preprocessed directory"""
         # Check for expected output files from LLaMA-Factory format conversion
         expected_files = ["processed_dataset.json", "dataset_info.json"]
         missing_files = []
 
         for file_name in expected_files:
-            file_path = processed_data_path / file_name
+            file_path = preprocessed_dir / file_name
             if not file_path.exists():
                 missing_files.append(file_name)
 
         if missing_files:
-            logger.warning(f"Expected converted files not found: {missing_files} in {processed_data_path}")
+            logger.warning(f"Expected converted files not found: {missing_files} in {preprocessed_dir}")
             logger.warning("Please ensure the conversion script generates these files")
         else:
-            logger.info(f"All expected converted data files found in {processed_data_path}")
+            logger.info(f"All expected converted data files found in {preprocessed_dir}")
