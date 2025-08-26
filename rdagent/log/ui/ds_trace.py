@@ -946,6 +946,7 @@ def summarize_win():
         st.markdown("### Hypotheses Table")
         hypotheses_df = df.iloc[:, :8].copy()
         others_expanded = pd.json_normalize(hypotheses_df["Others"].fillna({}))
+        others_expanded.index = hypotheses_df.index
 
         hypotheses_df = hypotheses_df.drop("Others", axis=1)
         hypotheses_df = hypotheses_df.drop("Parent N", axis=1)
