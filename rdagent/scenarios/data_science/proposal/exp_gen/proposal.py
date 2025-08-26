@@ -3,9 +3,8 @@ import math
 from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
-
+import numpy as np
 import pandas as pd
-import torch
 from pydantic import BaseModel, Field
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -920,12 +919,27 @@ class DSProposalV2ExpGen(ExpGen):
         )
         return index_to_pick_pool_list[reproducible_int]
 
-    def cosine_similarity_matrix_torch(self, A, B):
-        # TODO: replace torch with numpy
-        dot_products = torch.matmul(A, B.T)
-        A_norms = torch.norm(A, dim=1, keepdim=True)
-        B_norms = torch.norm(B, dim=1, keepdim=True).T
+    def cosine_similarity_matrix_numpy(A, B):
+        dot_products = np.matmul(A, B.T)
+        A_norms = np.linalg.norm(A, axis=1, keepdims=True)
+        B_norms = np.linalg.norm(B, axis=1, keepdims=True).T
         return dot_products / (A_norms * B_norms)
+    
+    def gumbel_softmax_hard_sample(logits, tau=1.0, n_samples=1):
+
+        gumbel_noise = -np.log(-np.log(np.random.uniform(size=logits.shape) + 1e-20) + 1e-20)
+        y = (logits + gumbel_noise) / tau
+        # softmax
+        y_soft = np.exp(y - np.max(y, axis=1, keepdims=True))
+        y_soft = y_soft / np.sum(y_soft, axis=1, keepdims=True)
+
+        sampled_indices = []
+        for i in range(y_soft.shape[0]):
+            choices = np.arange(y_soft.shape[1])
+            idx = np.random.choice(choices, size=n_samples, replace=False, p=y_soft[i])
+            sampled_indices.append(idx)
+        sampled_indices = np.unique(np.concatenate(sampled_indices))
+        return sampled_indices.tolist()
 
     def prob_dis(
         self,
@@ -941,15 +955,14 @@ class DSProposalV2ExpGen(ExpGen):
             history_scores.append(score)
 
         target_texts = [v["hypothesis"] for v in hypothesis_candidates.values()]
-        target_embs = torch.tensor(APIBackend().create_embedding(target_texts), dtype=torch.float32)
+        target_embs = np.array(APIBackend().create_embedding(target_texts), dtype=np.float32)
 
         if not history_hypo_str:
             return []
-        history_embs = torch.tensor(APIBackend().create_embedding(history_hypo_str), dtype=torch.float32)
-        sim_matrix = self.cosine_similarity_matrix_torch(target_embs, history_embs)
-        candidate_scores = [current_sota_score_in_current_trace for i in range(len(target_texts))]
-        candidate_scores = torch.tensor(candidate_scores, dtype=torch.float32).unsqueeze(1)
-        history_scores = torch.tensor(history_scores, dtype=torch.float32).unsqueeze(0)
+        history_embs = np.array(APIBackend().create_embedding(history_hypo_str), dtype=np.float32)
+        sim_matrix = self.cosine_similarity_matrix_numpy(target_embs, history_embs)
+        candidate_scores = np.full((len(target_texts), 1), current_sota_score_in_current_trace, dtype=np.float32)
+        history_scores = np.array(history_scores, dtype=np.float32).reshape(1, -1)
         bigger_is_better = get_metric_direction(competition)
         if bigger_is_better:
             score_diff_matrix = history_scores - candidate_scores
@@ -959,13 +972,13 @@ class DSProposalV2ExpGen(ExpGen):
         if current_sota_score_in_current_trace == -1:
             alpha, beta = 1.0, 0
         gamma = math.log(2) / 30
-        logits = alpha * sim_matrix * math.exp(-gamma * path_length) + beta * torch.tanh(score_diff_matrix)
-        probs = torch.softmax(logits, dim=1)
-
-        num_candidates = probs.size(-1)
+        logits = alpha * sim_matrix * math.exp(-gamma * path_length) + beta * np.tanh(score_diff_matrix)
+        logits_max = np.max(logits, axis=1, keepdims=True)
+        exp_logits = np.exp(logits - logits_max)
+        probs = exp_logits / np.sum(exp_logits, axis=1, keepdims=True)
+        num_candidates = probs.shape[-1]
         n_samples = min(2, num_candidates)
-        sampled_indices = torch.multinomial(probs, num_samples=n_samples).squeeze(1)
-        flat_indices = sampled_indices.flatten().unique().tolist()
+        flat_indices  = self.gumbel_softmax_hard_sample(np.log(probs + 1e-20), tau=0.01, n_samples=n_samples)
         if bigger_is_better:
             best_idx = history_scores[0].argmax().item()
             best_entry = (history_hypo_str[best_idx], history_scores[0, best_idx])
@@ -1019,7 +1032,7 @@ class DSProposalV2ExpGen(ExpGen):
             return -1, len(loop_id_list)
 
 
-    def _llm_select_extra_hypo(self, trace: DSTrace) -> list[tuple[DSHypothesis, float]]:
+    def _llm_select_extra_hypo(self, trace: DSTrace) -> list[tuple[str, float]]:
         """
         Retrieve a list of additional hypotheses along with their ensemble scores 
         from the given experiment trace, intended for input into an LLM-based selection mechanism.
@@ -1028,16 +1041,16 @@ class DSProposalV2ExpGen(ExpGen):
             trace (DSTrace):
 
         Returns:
-            list[tuple[DSHypothesis, float]]:
+            list[tuple[str, float]]:
                 A list of tuples, where each tuple consists of:
-                    - DSHypothesis: The hypothesis object from a selected experiment.
-                      Example: DSHypothesis(description="Use XGBoost with tuned learning_rate").
+                    - str: The hypothesis description from a selected experiment.
+                      Example: "Use XGBoost with tuned learning_rate".
                     - float: The associated ensemble result score, rounded to 3 decimal places.
                       Example: 0.845
                 Example:
                     [
-                        (DSHypothesis(description="Try RandomForest with 200 estimators"), 0.812),
-                        (DSHypothesis(description="Use LightGBM with early stopping"), 0.834)
+                        ("Try RandomForest with 200 estimators", 0.812),
+                        ("Use LightGBM with early stopping", 0.834)
                     ]
         """
         return [
@@ -1092,9 +1105,9 @@ class DSProposalV2ExpGen(ExpGen):
         # extra_exp_feedback_list_desc: str,
         # exp_feedback_scores: list,
         extra_hypo_l = self._llm_select_extra_hypo(trace)
-        if len(extra_hypo_l) > 0
+        if len(extra_hypo_l) > 0:
             # TODO:
-            extra_exp_feedback_list_desc = self.prob_dis(
+            selected_extra_hypo_l = self.prob_dis(
                 current_sota_score_in_current_trace,
                 extra_hypo_l,
                 hypothesis_candidates,
@@ -1112,7 +1125,7 @@ class DSProposalV2ExpGen(ExpGen):
             time_max=round(time_max, 2),
             merge_hours=DS_RD_SETTING.merge_hours,
             # extra_exp_feedback_list_desc=extra_exp_feedback_list_str,
-            extra_hypo_l=extra_hypo_l,
+            selected_extra_hypo_l=selected_extra_hypo_l,
             hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(),
             sota_flag=sota_flag,
             current_sota_score=current_sota_score,

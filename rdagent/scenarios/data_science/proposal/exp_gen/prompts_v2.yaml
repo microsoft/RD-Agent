@@ -469,24 +469,24 @@ hypothesis_select:
     Current SOTA score in this experiment: {{ current_sota_score_in_current_trace }}
     {% endif %}
 
-    {% if extra_hypo_l and extra_hypo_l|length > 0 %}
+    {% if selected_extra_hypo_l and selected_extra_hypo_l|length > 0 %}
     The following are additional hypotheses that have been approved by other experiments. 
     If any of these hypotheses have a SOTA score significantly higher than the current SOTA score in this experiment, you may want to prioritize considering them:  
     Additional hypotheses (may include those corresponding to the SOTA score):
-    {% for i, item in enumerate(extra_hypo_l) %}
-    {{ i+1 }}. {{ item[0] }} (score: {{ "%.3f"|format(item[1]) }})
+    {% for i, item in enumerate(selected_extra_hypo_l) %}
+    {{ i+1 }}. {{ item[0] }} (item[1]: {{ "%.3f"|format(item[1]) }})
     {% endfor %}
     {% endif %}
     {% else %}
 
     {% if current_sota_score_in_current_trace == -1 %}
-    {% if extra_hypo_l and extra_hypo_l|length > 0 %}
+    {% if selected_extra_hypo_l and selected_extra_hypo_l|length > 0 %}
     The current SOTA score in this experiment is unavailable. Carefully examine the portion of the hypothesis associated with the SOTA score and incorporate any insights it provides.
     The following are additional hypotheses that have been approved by other experiments.  
     You can also serve as references and are part of the Hypothesis Source to help you quickly reach or surpass the SOTA score:  
     Additional hypotheses (may include those corresponding to the SOTA score):
-    {% for i, item in enumerate(extra_hypo_l) %}
-    {{ i+1 }}. {{ item[0] }} (score: {{ "%.3f"|format(item[1]) }})
+    {% for i, item in enumerate(selected_extra_hypo_l) %}
+    {{ i+1 }}. {{ item[0] }} (item[1]: {{ "%.3f"|format(item[1]) }})
     {% endfor %}
     {% endif %}
     {% endif %}
