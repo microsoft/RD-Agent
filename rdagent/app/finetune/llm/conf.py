@@ -54,7 +54,6 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     app_tpl: str = "scenarios/finetune"
 
     # Data paths and processing
-    local_data_path: str = ""
     file_path: str | None = None  # FT_FILE_PATH/dataset/<dataset>/, FT_FILE_PATH/model/<baseModel>/
     show_nan_columns: bool = False
     sample_data_by_LLM: bool = True

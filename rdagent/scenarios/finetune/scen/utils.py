@@ -29,10 +29,6 @@ def get_unified_mount_volumes() -> dict:
     if ft_file_path and Path(ft_file_path).exists():
         return {ft_file_path: "/data"}
 
-    # Fallback: use local_data_path if FT_FILE_PATH not available
-    if FT_RD_SETTING.local_data_path and Path(FT_RD_SETTING.local_data_path).exists():
-        return {FT_RD_SETTING.local_data_path: "/data"}
-
     return {}
 
 
