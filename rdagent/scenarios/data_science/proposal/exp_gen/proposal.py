@@ -964,9 +964,9 @@ class DSProposalV2ExpGen(ExpGen):
             return []
         history_embs = np.array(APIBackend().create_embedding(history_hypo_str), dtype=np.float32)
         # TODO: Here is an example to help understand the code:(Please check the correctness of the comment
-        # history_embs: numpy.ndarray of shape (N, D) where N is the number of historical hypotheses 
+        # history_embs: numpy.ndarray of shape (N, D) where N is the number of historical hypotheses
         # and D is the embedding dimension returned by APIBackend().create_embedding.
-        # It contains vector representations of each hypothesis string in history_hypo_str, 
+        # It contains vector representations of each hypothesis string in history_hypo_str,
         # used for computing similarity with target embeddings.
         # Example: if history_hypo_str = ["Try RandomForest with 200 estimators", "Use LightGBM with early stopping"]
         # and embedding dimension D=3, history_embs might be:
