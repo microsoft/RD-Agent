@@ -101,7 +101,7 @@ feedback_problem:
     3. Clearly state the learning or articulate the challenge.
     4. Addressing the challenge or applying the learning should have a plausible positive impact on the target metric or successful execution.
     5. The challenge must be strictly aligned with the improvement of the target metric.
-    
+
     {% if sibling_hypotheses is not none %}
     ### Diversity To Your Siblings
     You are working on exploration traces in parallel with others. To maximize exploration efficiency, your identified problems **Must** be **diverse** from those being explored in other traces. 
@@ -112,7 +112,7 @@ feedback_problem:
     {% endfor %}
     Your generated problems **MUST** guide the agent towards different approaches, for example, different backbone models, different feature engineering methods, different ensemble strategies, different workflow optimizations, focus on efficiency etc. Avoid proposing challenges that would likely result in solutions similar to those listed above.
     {% endif %}
-    
+
     {% if problem_output_format is not none %}
     ### Output Format
     {{ problem_output_format }}
@@ -192,7 +192,10 @@ hypothesis_gen:
     5. **Address the Overall Pipeline (for Pipeline-Focused Tasks)**:
       - The hypothesis should address improvements to the end-to-end pipeline.
       - It can propose coordinated changes across multiple parts of the SOTA implementation if these are necessary to achieve a significant pipeline-level improvement to address the Challenge. (Note: Even for pipeline-focused hypotheses, you will still select the single *most relevant* primary component tag during the evaluation task.)
-
+    6. **NLP Competition Priority (for NLP Tasks)**:
+      - For NLP competitions, prioritize modern pre-trained language models such as Qwen, LLaMA, Gemma, and similar architectures.
+      - Consider hardware constraints and specific problem requirements to determine the appropriate model size and capability.
+      - Choose suitable fine-tuning approaches based on the task complexity and available computational resources.
     # Task 2: Hypothesis Evaluation
     After proposing one hypothesis for each relevant Identified Challenge, evaluate each one.
 
@@ -214,7 +217,7 @@ hypothesis_gen:
       - **Feasibility (Score: 1-10):** How easily and practically can this hypothesis be implemented and *run to completion* within the existing SOTA codebase and operational constraints (e.g., allowed time for training/inference, available compute resources, overall complexity)? Higher scores for easier implementation and higher likelihood of successful execution.
       - **Risk-Reward Balance (Score: 1-10):** Considering the potential for significant improvement (reward) versus the probability of failure, negative side-effects, or excessive resource consumption (risk), how optimal is this balance? A high score indicates a favorable balance.
       - **Prioritization for Critical Challenges:** If a hypothesis directly and credibly addresses a **critical Challenge that caused prior experiment failures** (e.g., timeout, persistent data loading errors, incorrect submission format preventing any score), its **Expected Impact** and **Risk-Reward Balance** should generally be scored highly (e.g., 8-10), and **Feasibility** should also be high if the proposed solution is indeed simpler, more direct, or more efficient. This ensures such critical hypotheses are prioritized.
-
+      - **NLP Modern Model Priority:** For NLP competitions, hypotheses proposing modern pre-trained language models (Qwen, LLaMA, Gemma, etc.) should receive higher **Expected Impact** scores (typically 7-10) and favorable **Risk-Reward Balance** scores, given their proven effectiveness in contemporary NLP tasks.
     {% if sibling_hypotheses is not none %}
     ### Diversity To Your Siblings
     You are working on exploration traces in parallel with others. To maximize exploration efficiency, your proposed hypotheses **Must** be **diverse** from those being explored in other traces. 
@@ -245,12 +248,12 @@ hypothesis_gen:
     Some scenarios like computer vision tasks may not typically use ensemble strategies, so you can ignore this focus if it does not apply.
     If the problem contains a critical challenge, you should still propose a hypothesis that addresses the critical challenge.
     {% endif %}
-    
+
     {% if hypothesis_output_format is not none %}
     ## Final Output Format in JSON Schema:
     {{ hypothesis_output_format }}
     {% endif %}
-    
+
   user: |-
     # Scenario Description
     {{ scenario_desc }}
@@ -268,48 +271,48 @@ hypothesis_critique:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
     You are an expert critic evaluating machine learning hypotheses for Kaggle competition improvement.
-    
+
     For each hypothesis, provide a focused critique that identifies key issues and suggests improvements while preserving the experimental nature of hypotheses.
-    
+
     ## Three Core Evaluation Areas:
-    
+
     ### 1. Feasibility Assessment
     - **Technical Risk**: Major implementation challenges or resource constraints that could cause failure
     - **Integration Issues**: Conflicts with existing code or pipeline components
     - **Constraint Violations**: Whether this respects competition time/memory limits based on historical patterns
-    
+
     ### 2. Alignment Check  
     - **Problem-Solution Fit**: Does this actually address the root cause of the identified challenge?
     - **Metric Impact**: Will this meaningfully improve the competition's evaluation metric?
     - **Historical Context**: Has similar approaches been tried? Key learnings from past attempts?
     - **Innovation vs History Balance**: Distinguish between implementation failures (worth retrying with improvements) vs fundamental approach failures (multiple attempts failed due to core unsuitability - should avoid)
     - **Tool Selection Appropriateness**: Are the suggested tools/packages well-suited for the problem? Consider both modern capabilities and traditional reliability
-    
+
     ### 3. Improvement Direction
     - **Clarity Issues**: If vague, identify specific methods or strategies that address the core problem
     - **Alternative Strategies**: If implementation is problematic, identify concrete alternative approaches within the current framework such as switching from simple to weighted ensemble
     - **Risk Mitigation**: Recommend specific validation strategies or safeguards for high-risk aspects
     - **Competition Context**: This is a Kaggle competition where strong performance may come from novel approaches, but also from incremental improvements and careful optimization. Balance innovation with practical enhancements.
-    
+
     ## CRITICAL Guidance Rules
-    
+
     - Be specific about methods and strategies, but avoid over-specifying implementation parameters. Suggest clear approaches like "use weighted ensemble instead of simple averaging" rather than exact values like "set weights=[0.3, 0.7]". 
     - Focus on suggesting CLEAR METHODS and APPROACHES that lead to decisive hypotheses.
     - Avoid Overfitting to History: Learn from past failures but don't over-constrain innovation. Distinguish between implementation failures (worth retrying with improvements) and fundamental approach failures (should be avoided).
 
     ### Examples:
-    
+
     **Good Critiques:**
     - "The hypothesis lacks specificity about which ensemble method to use. Consider weighted averaging based on validation performance rather than simple averaging, given the model performance disparities."
     - "This hypothesis proposes LSTM for tabular data. History shows 3 consecutive failures with different LSTM implementations, and tabular data lacks sequential structure. Consider graph-based approaches instead to capture feature relationships."
     - "The hypothesis jumps to LightGBM without establishing a baseline. Consider starting with XGBoost to ensure a working solution, then explore LightGBM for potential improvements if the baseline performs adequately."
-    
+
     **Poor Critiques:**
     - "Set max_depth=10, learning_rate=0.05, and use 500 trees." (too specific)
     - "This might not work." (too vague)
     - "LSTM is innovative, let's try again with different hyperparameters." (ignores fundamental mismatch)
     - "Use the latest deep learning model because it's new." (ignores problem-solution fit)
-    
+
     {% if critique_output_format is not none %}
     ## Output Format
     {{ critique_output_format }}
@@ -332,10 +335,10 @@ hypothesis_rewrite:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
     You are an expert hypothesis rewriter specializing in iterative improvement of machine learning solutions for Kaggle competitions.
-    
+
     ## Task
     Transform each **original hypothesis and its critique** into a **single, specific, testable technical hypothesis** that can be implemented immediately.
-    
+
     ## Core Principles
     1. **Actionable Critique** – Apply insights from the critique, but the final text must stand alone with **no meta‑discussion** of the critique itself.
     2. **Standalone Justification** – Ground every technical decision in dataset characteristics, available compute budget, and competition constraints.
@@ -354,7 +357,7 @@ hypothesis_rewrite:
     In the beginning stage, you should instruct to build low scale solutions which avoid the upper methods. After sufficient exploration iterations to approach the end of the time limit, you can suggest to scale up the solution in your response.
     Scaling is no connection to the debugging process. It's related to the whole solution's complexity. Please include this in every hypothesis you rewrite.
     {% endif %}
-    
+
     ## Guidelines for Writing Rewritten Hypotheses
 
     ### Available Tools Consideration
@@ -362,41 +365,41 @@ hypothesis_rewrite:
     - Balance innovation with practical tool selection - prefer modern packages when they offer clear advantages
     - Ensure tool choices align with the problem requirements and constraints
     - Be pragmatic: use whatever works best for the task - whether it's a cutting-edge transformer or traditional logistic regression
-    
+
     1. **Critique-Informed Specificity**:
       - Address technical gaps identified in the critique and replace vague terms with specific algorithms, methods, or parameters.
       - Transform general suggestions from the critique into concrete, implementable actions.
       - If the critique highlighted feasibility issues, propose alternative approaches that maintain the hypothesis's core intent while being more practical.
       - The rewritten hypothesis must be more specific than the original, incorporating the critique's guidance without explicitly referencing it.
-    
+
     2. **Standalone Technical Justification**:
       - Ground every technical decision in observable dataset characteristics (e.g., data size, feature types, class distribution).
       - Reference competition constraints (time limits, evaluation metrics, submission format) to justify approach choices.
       - Ensure the hypothesis can be understood and implemented without needing to read the original hypothesis or critique.
       - Include rationale for why the specific method/algorithm chosen is suitable for the current scenario.
-    
+
     3. **Enhanced Actionability and Precision**:
       - Replace any remaining ambiguity with decisive technical choices (e.g., "ensemble method" → "weighted averaging based on validation performance").
       - Specify validation strategies that will confirm the hypothesis's effectiveness.
       - Define clear success criteria or expected outcomes that can be measured.
       - If the original hypothesis bundled multiple ideas, focus on the most impactful one identified through the critique.
-    
+
     4. **Risk Mitigation and Implementation Clarity**:
       - If the critique identified implementation risks, incorporate specific mitigation strategies into the rewritten hypothesis.
       - Address resource constraint concerns by proposing efficient alternatives or optimizations.
       - Ensure the hypothesis addresses root causes rather than symptoms, as guided by the critique analysis.
       - Make the hypothesis robust against common failure modes identified in the critique.
-    
+
     5. **Pipeline Integration and Component Focus**:
       - Clearly specify how the proposed changes integrate with existing SOTA components.
       - Maintain focus on the primary component while ensuring compatibility with the overall pipeline.
       - If the critique suggested coordination across multiple components, organize these as a unified technical approach rather than separate changes.
       - Ensure the rewritten hypothesis preserves successful aspects of the current SOTA while addressing identified weaknesses.
-    
+
     6. **Innovation and Historical Learning**:
       - Apply critique insights to enhance sound innovative ideas while avoiding repeated fundamental failures identified in the analysis.
       - **Competition Context**: This is a Kaggle competition where strong performance may come from novel approaches or incremental improvements. Enhance both innovative ideas and practical optimizations based on the critique analysis.
-    
+
     {% if sibling_hypotheses is not none %}
     ### Diversity To Your Siblings
     You are working on exploration traces in parallel with others. To maximize exploration efficiency, your rewritten hypotheses **Must** be **diverse** from those being explored in other traces. 
@@ -407,7 +410,7 @@ hypothesis_rewrite:
     {% endfor %}
     Your rewritten hypotheses **MUST** guide the agent towards different approaches, for example, different backbone models, different feature engineering methods, different ensemble strategies, different workflow optimizations, focus on efficiency etc. Avoid proposing hypotheses that are similar to those listed above.
     {% endif %}
-    
+
     {% if rewrite_output_format is not none %}
     ## Output Format
     {{ rewrite_output_format }}
@@ -434,7 +437,6 @@ hypothesis_rewrite:
     {% if packages_prompt is not none %}
     {{ packages_prompt }}
     {% endif %}
-
 
 task_gen:
   system: |-
@@ -497,7 +499,7 @@ task_gen:
     8. **Submission File (`submission.csv`)**: Generate `submission.csv` in the **exact format** required (column names, order, data types), as detailed in the '====== Submission Format ======' section of the Competition Scenario Description (DO NOT read the sample_submission.csv file directly in the code). This is a critical step.
     9. **Preferred Packages Notes**:
       {% include "scenarios.data_science.share:guidelines.package_selection" %}
-    
+
     ## Package Declaration
     At the end of your design, **you MUST** provide a key `packages` in the final JSON output.  
     It should be an **array of PyPI package names** (strings) that you expect to `import` in the forthcoming implementation.  
@@ -506,7 +508,7 @@ task_gen:
     # Guidelines for Sketching the `main.py` Workflow
 
     YOUR TASK IS TO create a conceptual sketch for drafting or updating the `main.py` workflow. This is a plan, not code.
-    
+
     ## CRITICAL OUTPUT FORMAT REQUIREMENTS
     Your sketch MUST explicitly specify the exact column structure for both output files:
     - **For `scores.csv`**: Clearly state the specific column names based on the competition metric: "{{ metric_name }}". (CASE-SENSITIVE)
@@ -551,7 +553,7 @@ task_gen:
     If you are confident in a specific value based on strong evidence, prior experiments, or clear rationale, specify the value clearly.
     {% include "scenarios.data_science.share:spec.hyperparameter" %}
 
-    
+
     {% if task_output_format is not none %}
 
     # Output Format
@@ -581,7 +583,7 @@ task_gen:
     }
     {% endif %}
     {% endif %}
-    
+
   user: |-
     # Competition Scenario Description
     {{ scenario_desc }}
@@ -603,7 +605,7 @@ task_gen:
     {% endfor %}
     # Previous Failed Experiments & Feedback (e.g., experiments that did not pass evaluation, encountered bugs, or failed to surpass SOTA performance)
     {{ failed_exp_and_feedback_list_desc }}
-  
+
     {% if eda_improvement is not none %}
     {{ eda_improvement }}
     {% endif %}
@@ -627,7 +629,7 @@ idea_sample:
   user: |-
     # Scenario Description
     {{ scenario_desc }}
-    
+
     # Previous Experiments and Feedbacks
     {{ exp_feedback_list_desc }}    
 
@@ -728,5 +730,3 @@ output_format:
         }
       }
     }
-
-
