@@ -225,7 +225,6 @@ class ValidationSelector(SOTAexpSelector):
         if not all([competition, sota_result]):
             raise ValueError("ValidationSelector requires 'competition', and 'sota_result' in kwargs.")
 
-        # 2. Prepare validation environment (generate data.py and grade.py)
         try:
             grade_py_code = self._prepare_validation_scripts(
                 reference_exp=self.candidate[0][0], competition=competition, mock_folder=mock_folder
@@ -234,7 +233,6 @@ class ValidationSelector(SOTAexpSelector):
             logger.error(f"ValidationSelector: Failed to prepare validation environment. {e}")
             return None
 
-        # 3. Run validation on all candidates in parallel
         validation_tasks = [
             (process_experiment, (exp, competition, mock_folder, grade_py_code, loop_id))
             for exp, loop_id in self.candidate
@@ -444,6 +442,13 @@ def check_hit(selected_exps: List[DSExperiment], trace: Trace, sota_result: Dict
     return False
 
 
+def try_get_loop_id(trace: Trace, exp: DSExperiment):
+    index = trace.exp2idx(exp)
+    if hasattr(trace, "idx2loop_id"):
+        return trace.idx2loop_id.get(index)
+    return index
+
+
 # ==============================================================================
 # ## Main Orchestration Logic
 # ==============================================================================
@@ -507,12 +512,12 @@ def evaluate_one_trace(selector_name: str, trace_pkl_path: Path, trace_folder: P
             return competition, False
 
         if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
-            logger.info(f"Source folder {DS_RD_SETTING.local_data_path}/{competition} does not exist. Skipping validation.")
+            logger.info(
+                f"Source folder {DS_RD_SETTING.local_data_path}/{competition} does not exist. Skipping validation."
+            )
             return competition, False
 
-        selector = ValidationSelector(
-            candidate=[(exp, trace.idx2loop_id.get(trace.exp2idx(exp))) for exp in candidate_exps]
-        )
+        selector = ValidationSelector(candidate=[(exp, try_get_loop_id(trace, exp)) for exp in candidate_exps])
         selected_sota_exps = selector.get_sota_exp_to_submit(
             direction_sign, competition=competition, sota_result=sota_result
         )
