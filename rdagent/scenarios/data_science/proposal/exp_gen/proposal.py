@@ -920,7 +920,7 @@ class DSProposalV2ExpGen(ExpGen):
         )
         return index_to_pick_pool_list[reproducible_int]
 
-    # BEGING: for support llm-based hypothesis selection  -----
+    # BEGIN: for support llm-based hypothesis selection  -----
     def _cosine_similarity_matrix_numpy(A, B):
         dot_products = np.matmul(A, B.T)
         A_norms = np.linalg.norm(A, axis=1, keepdims=True)
@@ -951,6 +951,7 @@ class DSProposalV2ExpGen(ExpGen):
         competition,
         path_length,
     ):
+        # TODO: typing
         history_hypo_str, history_scores = [], []
         for hypo, score in extra_hypo_l:
             history_hypo_str.append(hypo.hypothesis)
@@ -962,6 +963,15 @@ class DSProposalV2ExpGen(ExpGen):
         if not history_hypo_str:
             return []
         history_embs = np.array(APIBackend().create_embedding(history_hypo_str), dtype=np.float32)
+        # TODO: Here is an example to help understand the code:(Please check the correctness of the comment
+        # history_embs: numpy.ndarray of shape (N, D) where N is the number of historical hypotheses 
+        # and D is the embedding dimension returned by APIBackend().create_embedding.
+        # It contains vector representations of each hypothesis string in history_hypo_str, 
+        # used for computing similarity with target embeddings.
+        # Example: if history_hypo_str = ["Try RandomForest with 200 estimators", "Use LightGBM with early stopping"]
+        # and embedding dimension D=3, history_embs might be:
+        # array([[ 0.123, -0.456,  0.789],
+        #        [ 0.234,  0.567, -0.890]], dtype=float32)
         sim_matrix = self._cosine_similarity_matrix_numpy(target_embs, history_embs)
         candidate_scores = np.full((len(target_texts), 1), current_sota_score_in_current_trace, dtype=np.float32)
         history_scores = np.array(history_scores, dtype=np.float32).reshape(1, -1)
@@ -971,7 +981,7 @@ class DSProposalV2ExpGen(ExpGen):
         else:
             score_diff_matrix = candidate_scores - history_scores
         alpha, beta = 1.0, 1.0
-        if current_sota_score_in_current_trace == -1:
+        if current_sota_score_in_current_trace == -1:  # FIXME: less magic number;
             alpha, beta = 1.0, 0
         gamma = math.log(2) / 30
         logits = alpha * sim_matrix * math.exp(-gamma * path_length) + beta * np.tanh(score_diff_matrix)
@@ -995,6 +1005,7 @@ class DSProposalV2ExpGen(ExpGen):
         return sampled_history_list
 
     def _get_path(self, node, parent_nodes):
+        # FIXME: we should remove it in the future.
         path = [node]
         parent = parent_nodes.get(node)
         if parent is not None:
@@ -1006,6 +1017,7 @@ class DSProposalV2ExpGen(ExpGen):
         for node in range(len(trace.hist)):
             parents = trace.get_parents(node)
             parent_nodes[node] = parents[-2] if len(parents) > 1 else None
+        # FIXME: add the convert logic to method in trace
         if hasattr(trace, "idx2loop_id"):
             parent_nodes = {
                 trace.idx2loop_id[n]: trace.idx2loop_id[r] if r is not None else r for n, r in parent_nodes.items()
@@ -1078,6 +1090,7 @@ class DSProposalV2ExpGen(ExpGen):
         use_ratio = round(use_ratio, 2)
 
         full_time = self.scen.real_full_timeout() / 3600
+        # FIXME: less magic number
         time_list_success = [-3600] + [
             tr[0].running_info.running_time
             for tr in trace.retrieve_search_list(search_type="ancestors")
