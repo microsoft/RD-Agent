@@ -1,6 +1,7 @@
 import json
 import pickle
 import re
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -345,15 +346,31 @@ class ValidationSelector(SOTAexpSelector):
                 env = get_ds_env(extra_volumes={str(Path(mock_folder) / input_folder): input_folder})
 
             result = ws.run(env=env, entry=f"python {script_type}.py")
+            stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
 
             if result.exit_code == 0:
                 logger.info(f"Successfully generated and ran {script_type}.py.")
-                return generated_code
+                if script_type == "data":
+                    env = get_ds_env(
+                        extra_volumes={mock_folder: input_folder},
+                        running_timeout_period=DS_RD_SETTING.full_timeout,
+                    )
+                    result = ws.run(env=env, entry="python main.py")
+                    stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
+                    if result.exit_code == 0:
+                        # move submission.csv to mock_folder
+                        if Path(ws.workspace_path / "submission.csv").exists():
+                            shutil.copy(
+                                str(ws.workspace_path / "submission.csv"),
+                                str(Path(mock_folder) / "submission.csv"),
+                            )
+                        return generated_code
+                    else:
+                        err_msg = f"Error in main.py with generated data: {shrink_text(stdout, context_lines=20, line_len=500)}"
+            else:
+                err_msg = f"Error in {script_type}.py: {shrink_text(stdout, context_lines=20, line_len=500)}"
 
-            stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
-            err_msg = f"Error in {script_type}.py: {shrink_text(stdout, context_lines=20, line_len=500)}"
             logger.warning(f"Attempt to generate {script_type}.py failed. Retrying... Error: {err_msg}")
-
         raise RuntimeError(f"Failed to generate a working {script_type}.py after {MAX_API_RETRIES} attempts.")
 
 
@@ -374,7 +391,6 @@ def process_experiment(
         return exp, None
 
     input_folder = T("scenarios.data_science.share:scen.input_path").r()
-    mock_folder = f"/tmp/mock/{competition}/{input_folder}"
 
     try:
         ws = FBWorkspace()
@@ -382,7 +398,7 @@ def process_experiment(
 
         # Run main script
         env = get_ds_env(
-            extra_volumes={mock_folder: input_folder},
+            extra_volumes={f"/tmp/mock/{competition}/{input_folder}": input_folder},
             running_timeout_period=DS_RD_SETTING.full_timeout,
         )
         result = ws.run(env=env, entry="python main.py")
