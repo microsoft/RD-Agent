@@ -920,13 +920,14 @@ class DSProposalV2ExpGen(ExpGen):
         )
         return index_to_pick_pool_list[reproducible_int]
 
-    def cosine_similarity_matrix_numpy(A, B):
+    # BEGING: for support llm-based hypothesis selection  -----
+    def _cosine_similarity_matrix_numpy(A, B):
         dot_products = np.matmul(A, B.T)
         A_norms = np.linalg.norm(A, axis=1, keepdims=True)
         B_norms = np.linalg.norm(B, axis=1, keepdims=True).T
         return dot_products / (A_norms * B_norms)
     
-    def gumbel_softmax_hard_sample(logits, tau=1.0, n_samples=1):
+    def _gumbel_softmax_hard_sample(logits, tau=1.0, n_samples=1):
 
         gumbel_noise = -np.log(-np.log(np.random.uniform(size=logits.shape) + 1e-20) + 1e-20)
         y = (logits + gumbel_noise) / tau
@@ -942,7 +943,7 @@ class DSProposalV2ExpGen(ExpGen):
         sampled_indices = np.unique(np.concatenate(sampled_indices))
         return sampled_indices.tolist()
 
-    def prob_dis(
+    def _prob_dis(
         self,
         current_sota_score_in_current_trace,
         extra_hypo_l: list[tuple[DSHypothesis, float]],
@@ -961,7 +962,7 @@ class DSProposalV2ExpGen(ExpGen):
         if not history_hypo_str:
             return []
         history_embs = np.array(APIBackend().create_embedding(history_hypo_str), dtype=np.float32)
-        sim_matrix = self.cosine_similarity_matrix_numpy(target_embs, history_embs)
+        sim_matrix = self._cosine_similarity_matrix_numpy(target_embs, history_embs)
         candidate_scores = np.full((len(target_texts), 1), current_sota_score_in_current_trace, dtype=np.float32)
         history_scores = np.array(history_scores, dtype=np.float32).reshape(1, -1)
         bigger_is_better = get_metric_direction(competition)
@@ -979,7 +980,7 @@ class DSProposalV2ExpGen(ExpGen):
         probs = exp_logits / np.sum(exp_logits, axis=1, keepdims=True)
         num_candidates = probs.shape[-1]
         n_samples = min(2, num_candidates)
-        flat_indices  = self.gumbel_softmax_hard_sample(np.log(probs + 1e-20), tau=0.01, n_samples=n_samples)
+        flat_indices  = self._gumbel_softmax_hard_sample(np.log(probs + 1e-20), tau=0.01, n_samples=n_samples)
         if bigger_is_better:
             best_idx = history_scores[0].argmax().item()
             best_entry = (history_hypo_str[best_idx], history_scores[0, best_idx])
@@ -993,14 +994,14 @@ class DSProposalV2ExpGen(ExpGen):
         ]
         return sampled_history_list
 
-    def get_path(self, node, parent_nodes):
+    def _get_path(self, node, parent_nodes):
         path = [node]
         parent = parent_nodes.get(node)
         if parent is not None:
-            path.extend(self.get_path(parent, parent_nodes))
+            path.extend(self._get_path(parent, parent_nodes))
         return path
 
-    def get_current_exp_score_list(self, trace, competition):
+    def _get_current_exp_score_list(self, trace, competition):
         parent_nodes = {}
         for node in range(len(trace.hist)):
             parents = trace.get_parents(node)
@@ -1016,7 +1017,7 @@ class DSProposalV2ExpGen(ExpGen):
         # current_parent_loop_id = trace.idx2loop_id[current_parent_record_id]# loop id
         loop_id2idx = {v: k for k, v in trace.idx2loop_id.items()}
 
-        loop_id_list = self.get_path(trace.idx2loop_id[current_parent_record_id], parent_nodes)
+        loop_id_list = self._get_path(trace.idx2loop_id[current_parent_record_id], parent_nodes)
 
         score_list = [
             trace.hist[loop_id2idx[loop_id]][0].result.loc["ensemble"].iloc[0].round(3)
@@ -1098,7 +1099,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         competition = trace.scen.competition
         if sota_flag:
-            current_sota_score_in_current_trace, path_length = self.get_current_exp_score_list(trace, competition)
+            current_sota_score_in_current_trace, path_length = self._get_current_exp_score_list(trace, competition)
         else:
             current_sota_score_in_current_trace = -1
             path_length = 0
@@ -1108,7 +1109,7 @@ class DSProposalV2ExpGen(ExpGen):
         extra_hypo_l = self._llm_select_extra_hypo(trace)
         if len(extra_hypo_l) > 0:
             # TODO:
-            selected_extra_hypo_l = self.prob_dis(
+            selected_extra_hypo_l = self._prob_dis(
                 current_sota_score_in_current_trace,
                 extra_hypo_l,
                 hypothesis_candidates,
@@ -1154,6 +1155,8 @@ class DSProposalV2ExpGen(ExpGen):
         assert response_dict.get("component") in HypothesisComponent.__members__, f"Invalid component"
         assert response_dict.get("hypothesis") is not None, f"Invalid hypothesis"
         return response_dict
+
+    # END: for support llm-based hypothesis selection  -----
 
     def hypothesis_rank(
         self, hypothesis_dict: dict, problem_dict: dict, selected_idx: Optional[int] = None
