@@ -216,14 +216,14 @@ class ValidationSelector(SOTAexpSelector):
 
         Args:
             direction_sign: The direction sign of the validation workflow.
-            **kwargs: Must include 'competition', 'mock_folder', 'sota_result'.
+            **kwargs: Must include 'competition', 'sota_result'.
         """
         competition = kwargs.get("competition")
-        mock_folder = kwargs.get("mock_folder")
         sota_result = kwargs.get("sota_result")
+        mock_folder = f"/tmp/mock/{competition}"
 
-        if not all([competition, mock_folder, sota_result]):
-            raise ValueError("ValidationSelector requires 'competition', 'mock_folder', and 'sota_result' in kwargs.")
+        if not all([competition, sota_result]):
+            raise ValueError("ValidationSelector requires 'competition', and 'sota_result' in kwargs.")
 
         # 2. Prepare validation environment (generate data.py and grade.py)
         try:
@@ -449,7 +449,7 @@ def check_hit(selected_exps: List[DSExperiment], trace: Trace, sota_result: Dict
 # ==============================================================================
 
 
-def evaluate_one_trace(selector_name: str, trace_pkl_path: Path, trace_folder: Path) -> Tuple[str, bool]:
+def evaluate_one_trace(selector_name: str, trace_pkl_path: Path, trace_folder: Path, debug: bool) -> Tuple[str, bool]:
     """
     Loads a single trace, uses the specified selector to pick an experiment,
     and checks if the selection was a "hit" (a known SOTA solution).
@@ -474,11 +474,12 @@ def evaluate_one_trace(selector_name: str, trace_pkl_path: Path, trace_folder: P
         trace.scen.metric_direction = 1
     direction_sign = 1 if trace.scen.metric_direction else -1
 
-    quick_selector = BestValidSelector(num_candidates=1, use_decision=True, each_trace=False)
-    quick_selected_exps = quick_selector.get_sota_exp_to_submit(trace)
-    if check_hit(quick_selected_exps, trace, sota_result):
-        logger.info(f"Quick selector HIT for {competition}. Skipping further selection.")
-        return competition, True
+    if debug:
+        quick_selector = BestValidSelector(num_candidates=1, use_decision=True, each_trace=False)
+        quick_selected_exps = quick_selector.get_sota_exp_to_submit(trace)
+        if check_hit(quick_selected_exps, trace, sota_result):
+            logger.info(f"Quick selector HIT for {competition}. Skipping further selection.")
+            return competition, True
 
     logger.info(f"Quick selector missed for {competition}. Proceeding with main selector '{selector_name}'.")
 
@@ -491,7 +492,8 @@ def evaluate_one_trace(selector_name: str, trace_pkl_path: Path, trace_folder: P
     elif selector_name == "best_valid":
         # These params can be configured or passed via CLI
         selector = BestValidSelector(num_candidates=MAX_SOTA_CANDIDATES, use_decision=True, each_trace=True)
-    elif selector_name == "validation":
+
+    if selector_name == "validation":
         # The ValidationSelector is used to select the best re-test score.
         base_selector = BestValidSelector(num_candidates=MAX_SOTA_CANDIDATES, use_decision=True, each_trace=True)
         candidate_exps = base_selector.get_sota_exp_to_submit(trace)
@@ -500,31 +502,30 @@ def evaluate_one_trace(selector_name: str, trace_pkl_path: Path, trace_folder: P
             return competition, False
 
         logger.info(f"ValidationSelector: Received {len(candidate_exps)} candidates for validation.")
-        if not check_hit(candidate_exps, trace, sota_result):
+        if debug and not check_hit(candidate_exps, trace, sota_result):
             logger.info("ValidationSelector: Base selector's candidates did not hit any SOTA. Skipping validation.")
             return competition, False
 
         selector = ValidationSelector(
             candidate=[(exp, trace.idx2loop_id.get(trace.exp2idx(exp))) for exp in candidate_exps]
         )
+        selected_sota_exps = selector.get_sota_exp_to_submit(
+            direction_sign, competition=competition, sota_result=sota_result
+        )
     else:
-        raise ValueError(f"Unknown selector name: {selector_name}")
+        selected_sota_exps = selector.get_sota_exp_to_submit(trace)
 
     # --- Run Selection and Check for Hit ---
     logger.info(f"Running selector '{selector_name}' on trace for competition '{competition}'...")
 
     # For validation, we need to pass extra context
-    mock_folder = f"/tmp/mock/{competition}"
-    selected_sota_exps = selector.get_sota_exp_to_submit(
-        direction_sign, competition=competition, mock_folder=mock_folder, sota_result=sota_result
-    )
 
     hit = check_hit(selected_sota_exps, trace, sota_result)
     logger.info(f"Result for {competition}: {'HIT' if hit else 'MISS'}")
     return competition, hit
 
 
-def select_on_existing_trace(selector_name: str, trace_root: str, experiment: str | None = None):
+def select_on_existing_trace(selector_name: str, trace_root: str, experiment: str | None = None, debug: bool = False):
     """
     Offline evaluation of a SOTA experiment selector on existing traces.
 
@@ -543,7 +544,7 @@ def select_on_existing_trace(selector_name: str, trace_root: str, experiment: st
         if experiment is not None and not experiment in str(trace_folder):
             continue
         for trace_pkl_path in trace_folder.glob("*.pkl"):
-            tasks.append((evaluate_one_trace, (selector_name, trace_pkl_path, trace_folder)))
+            tasks.append((evaluate_one_trace, (selector_name, trace_pkl_path, trace_folder, debug)))
 
     if not tasks:
         logger.error(f"No .pkl trace files found in subdirectories of {trace_root}")
