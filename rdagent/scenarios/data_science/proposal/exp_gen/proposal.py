@@ -1,7 +1,10 @@
 import json
+import math
+from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
 import pandas as pd
 from pydantic import BaseModel, Field
 
@@ -15,6 +18,7 @@ from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.timer import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.feedback import ExperimentFeedback
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -27,10 +31,14 @@ from rdagent.scenarios.data_science.proposal.exp_gen.planner import (
     DSExperimentPlan,
     RD_Agent_TIMER_wrapper,
 )
+from rdagent.scenarios.data_science.proposal.exp_gen.select.submit import (
+    BestValidSelector,
+)
 from rdagent.scenarios.data_science.proposal.exp_gen.utils import (
     get_available_packages_prompt,
     get_packages,
 )
+from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
@@ -248,6 +256,13 @@ class HypothesisDetail(BaseModel):
     )
     component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
     evaluation: HypothesisEvaluation = Field(description="Evaluate the quality of the hypothesis.")
+
+
+class HypothesisSimple(BaseModel):
+    hypothesis: str = Field(
+        description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
+    )
+    component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
 
 
 class HypothesisList(BaseModel):
@@ -601,6 +616,7 @@ class DSProposalV2ExpGen(ExpGen):
         problems: dict,
         pipeline: bool,
         enable_idea_pool: bool,
+        is_new_tree: bool,
         inject_diverse: bool = False,
         exp_gen_plan: Optional[Dict] = None,
         packages_prompt: str = "",
@@ -635,6 +651,8 @@ class DSProposalV2ExpGen(ExpGen):
             enable_idea_pool=enable_idea_pool,
             inject_diverse=inject_diverse,
             plan=exp_gen_plan,
+            generate_unique_hypothesis=DS_RD_SETTING.enable_generate_unique_hypothesis and is_new_tree,
+            enable_simple_hypothesis=DS_RD_SETTING.enable_simple_hypothesis,
             sibling_hypotheses=sibling_hypotheses,
         )
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
@@ -902,6 +920,255 @@ class DSProposalV2ExpGen(ExpGen):
         )
         return index_to_pick_pool_list[reproducible_int]
 
+    # BEGIN: for support llm-based hypothesis selection  -----
+    def _cosine_similarity_matrix_numpy(A, B):
+        dot_products = np.matmul(A, B.T)
+        A_norms = np.linalg.norm(A, axis=1, keepdims=True)
+        B_norms = np.linalg.norm(B, axis=1, keepdims=True).T
+        return dot_products / (A_norms * B_norms)
+
+    def _gumbel_softmax_hard_sample(logits, tau=1.0, n_samples=1):
+
+        gumbel_noise = -np.log(-np.log(np.random.uniform(size=logits.shape) + 1e-20) + 1e-20)
+        y = (logits + gumbel_noise) / tau
+        # softmax
+        y_soft = np.exp(y - np.max(y, axis=1, keepdims=True))
+        y_soft = y_soft / np.sum(y_soft, axis=1, keepdims=True)
+
+        sampled_indices = []
+        for i in range(y_soft.shape[0]):
+            choices = np.arange(y_soft.shape[1])
+            idx = np.random.choice(choices, size=n_samples, replace=False, p=y_soft[i])
+            sampled_indices.append(idx)
+        sampled_indices = np.unique(np.concatenate(sampled_indices))
+        return sampled_indices.tolist()
+
+    def _prob_dis(
+        self,
+        current_sota_score_in_current_trace,
+        extra_hypo_l: list[tuple[DSHypothesis, float]],
+        hypothesis_candidates,
+        competition,
+        path_length,
+    ):
+        # TODO: typing
+        history_hypo_str, history_scores = [], []
+        for hypo, score in extra_hypo_l:
+            history_hypo_str.append(hypo.hypothesis)
+            history_scores.append(score)
+
+        target_texts = [v["hypothesis"] for v in hypothesis_candidates.values()]
+        target_embs = np.array(APIBackend().create_embedding(target_texts), dtype=np.float32)
+
+        if not history_hypo_str:
+            return []
+        history_embs = np.array(APIBackend().create_embedding(history_hypo_str), dtype=np.float32)
+        # TODO: Here is an example to help understand the code:(Please check the correctness of the comment
+        # history_embs: numpy.ndarray of shape (N, D) where N is the number of historical hypotheses
+        # and D is the embedding dimension returned by APIBackend().create_embedding.
+        # It contains vector representations of each hypothesis string in history_hypo_str,
+        # used for computing similarity with target embeddings.
+        # Example: if history_hypo_str = ["Try RandomForest with 200 estimators", "Use LightGBM with early stopping"]
+        # and embedding dimension D=3, history_embs might be:
+        # array([[ 0.123, -0.456,  0.789],
+        #        [ 0.234,  0.567, -0.890]], dtype=float32)
+        sim_matrix = self._cosine_similarity_matrix_numpy(target_embs, history_embs)
+        candidate_scores = np.full((len(target_texts), 1), current_sota_score_in_current_trace, dtype=np.float32)
+        history_scores = np.array(history_scores, dtype=np.float32).reshape(1, -1)
+        bigger_is_better = get_metric_direction(competition)
+        if bigger_is_better:
+            score_diff_matrix = history_scores - candidate_scores
+        else:
+            score_diff_matrix = candidate_scores - history_scores
+        alpha, beta = 1.0, 1.0
+        if current_sota_score_in_current_trace == -1:  # FIXME: less magic number;
+            alpha, beta = 1.0, 0
+        gamma = math.log(2) / 30
+        logits = alpha * sim_matrix * math.exp(-gamma * path_length) + beta * np.tanh(score_diff_matrix)
+        logits_max = np.max(logits, axis=1, keepdims=True)
+        exp_logits = np.exp(logits - logits_max)
+        probs = exp_logits / np.sum(exp_logits, axis=1, keepdims=True)
+        num_candidates = probs.shape[-1]
+        n_samples = min(2, num_candidates)
+        flat_indices = self._gumbel_softmax_hard_sample(np.log(probs + 1e-20), tau=0.01, n_samples=n_samples)
+        if bigger_is_better:
+            best_idx = history_scores[0].argmax().item()
+            best_entry = (history_hypo_str[best_idx], history_scores[0, best_idx])
+        else:
+            best_idx = history_scores[0].argmin().item()
+            best_entry = (history_hypo_str[best_idx], history_scores[0, best_idx])
+        if len(flat_indices) > 2:
+            flat_indices = flat_indices[:2]
+        sampled_history_list = [best_entry] + [
+            (history_hypo_str[i], history_scores[0, i]) for i in flat_indices if i != best_idx
+        ]
+        return sampled_history_list
+
+    def _get_path(self, node, parent_nodes):
+        # FIXME: we should remove it in the future.
+        path = [node]
+        parent = parent_nodes.get(node)
+        if parent is not None:
+            path.extend(self._get_path(parent, parent_nodes))
+        return path
+
+    def _get_current_exp_score_list(self, trace, competition):
+        parent_nodes = {}
+        for node in range(len(trace.hist)):
+            parents = trace.get_parents(node)
+            parent_nodes[node] = parents[-2] if len(parents) > 1 else None
+        # FIXME: add the convert logic to method in trace
+        if hasattr(trace, "idx2loop_id"):
+            parent_nodes = {
+                trace.idx2loop_id[n]: trace.idx2loop_id[r] if r is not None else r for n, r in parent_nodes.items()
+            }
+        if trace.current_selection:
+            current_parent_record_id = trace.current_selection[0]  # record id
+        else:
+            return -1, 0
+        # current_parent_loop_id = trace.idx2loop_id[current_parent_record_id]# loop id
+        loop_id2idx = {v: k for k, v in trace.idx2loop_id.items()}
+
+        loop_id_list = self._get_path(trace.idx2loop_id[current_parent_record_id], parent_nodes)
+
+        score_list = [
+            trace.hist[loop_id2idx[loop_id]][0].result.loc["ensemble"].iloc[0].round(3)
+            for loop_id in loop_id_list
+            if trace.hist[loop_id2idx[loop_id]][1].decision == True
+        ]
+        if score_list:
+            bigger_is_better = get_metric_direction(competition)
+            if bigger_is_better:
+                return max(score_list), len(loop_id_list)
+            else:
+                return min(score_list), len(loop_id_list)
+        else:
+            return -1, len(loop_id_list)
+
+    def _llm_select_extra_hypo(self, trace: DSTrace) -> list[tuple[str, float]]:
+        """
+        Retrieve a list of additional hypotheses along with their ensemble scores
+        from the given experiment trace, intended for input into an LLM-based selection mechanism.
+
+        Parameters:
+            trace (DSTrace):
+
+        Returns:
+            list[tuple[str, float]]:
+                A list of tuples, where each tuple consists of:
+                    - str: The hypothesis description from a selected experiment.
+                      Example: "Use XGBoost with tuned learning_rate".
+                    - float: The associated ensemble result score, rounded to 3 decimal places.
+                      Example: 0.845
+                Example:
+                    [
+                        ("Try RandomForest with 200 estimators", 0.812),
+                        ("Use LightGBM with early stopping", 0.834)
+                    ]
+        """
+        return [
+            (exp.hypothesis, exp.result.loc["ensemble"].iloc[0])
+            for exp, _ in trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="all")
+        ]
+
+    @wait_retry(retry_n=5)
+    def hypothesis_select_with_llm(
+        self,
+        scenario_desc: str,
+        exp_feedback_list_desc: str,
+        sota_exp_desc: str,
+        hypothesis_candidates: dict,
+        trace: DSTrace,
+    ):
+        res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
+        ratio_merge_or_ensemble = DS_RD_SETTING.ratio_merge_or_ensemble
+
+        total_time = RD_Agent_TIMER_wrapper.timer.all_duration
+        # FIXME: total_time could be None
+        use_time = round(total_time.total_seconds(), 2) - round(res_time.total_seconds(), 2)
+        use_ratio = 100 * use_time / round(total_time.total_seconds(), 2)
+        use_ratio = round(use_ratio, 2)
+
+        full_time = self.scen.real_full_timeout() / 3600
+        # FIXME: less magic number
+        time_list_success = [-3600] + [
+            tr[0].running_info.running_time
+            for tr in trace.retrieve_search_list(search_type="ancestors")
+            if getattr(tr[1], "decision", False)
+        ]
+        time_max = max(time_list_success) / 3600
+        # sota_flag = (hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None)----> V10 CODE VERSION
+        bvs = BestValidSelector()  # ----> V14 CODE VERSION
+        sota_exp = bvs.get_sota_exp_to_submit(trace)  # ----> V14 CODE VERSION
+        sota_flag = sota_exp is not None and sota_exp.result is not None  # ----> V14 CODE VERSION
+
+        if sota_flag:
+            current_sota_score = sota_exp.result.loc["ensemble"].iloc[0].round(3)  # ----> V14 CODE VERSION
+            # trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0].round(3) ----> V10 CODE VERSION
+        else:
+            current_sota_score = -1
+
+        competition = trace.scen.competition
+        if sota_flag:
+            current_sota_score_in_current_trace, path_length = self._get_current_exp_score_list(trace, competition)
+        else:
+            current_sota_score_in_current_trace = -1
+            path_length = 0
+
+        # extra_exp_feedback_list_desc: str,
+        # exp_feedback_scores: list,
+        extra_hypo_l = self._llm_select_extra_hypo(trace)
+        if len(extra_hypo_l) > 0:
+            # TODO:
+            selected_extra_hypo_l = self._prob_dis(
+                current_sota_score_in_current_trace,
+                extra_hypo_l,
+                hypothesis_candidates,
+                competition,
+                path_length,
+            )
+        else:
+            selected_extra_hypo_l = None
+        hypothesis_candidates = str(json.dumps(hypothesis_candidates, indent=2))
+
+        sys_prompt = T(".prompts_v2:hypothesis_select.system").r(
+            hypothesis_candidates=hypothesis_candidates,
+            res_time=round(res_time.total_seconds() / 3600, 2),
+            full_time=full_time,
+            use_ratio=use_ratio,
+            time_max=round(time_max, 2),
+            merge_hours=DS_RD_SETTING.merge_hours,
+            # extra_exp_feedback_list_desc=extra_exp_feedback_list_str,
+            selected_extra_hypo_l=selected_extra_hypo_l,
+            hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(),
+            sota_flag=sota_flag,
+            current_sota_score=current_sota_score,
+            ratio_merge_or_ensemble=ratio_merge_or_ensemble,
+            current_sota_score_in_current_trace=current_sota_score_in_current_trace,
+        )
+
+        user_prompt = T(".prompts_v2:hypothesis_select.user").r(
+            scenario_desc=scenario_desc,
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format=HypothesisSimple if self.supports_response_schema else {"type": "json_object"},
+            json_target_type=(
+                Dict[str, Dict[str, str | Dict[str, str | int]]] if not self.supports_response_schema else None
+            ),
+        )
+
+        response_dict = json.loads(response)
+        assert response_dict.get("component") in HypothesisComponent.__members__, f"Invalid component"
+        assert response_dict.get("hypothesis") is not None, f"Invalid hypothesis"
+        return response_dict
+
+    # END: for support llm-based hypothesis selection  -----
+
     def hypothesis_rank(
         self, hypothesis_dict: dict, problem_dict: dict, selected_idx: Optional[int] = None
     ) -> Tuple[str, DSHypothesis]:
@@ -954,6 +1221,7 @@ class DSProposalV2ExpGen(ExpGen):
             workflow_check=workflow_check,
             metric_name=self.scen.metric_name,
             sibling_tasks=sibling_tasks,
+            fix_seed_and_data_split=DS_RD_SETTING.fix_seed_and_data_split,
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,
@@ -1082,7 +1350,7 @@ class DSProposalV2ExpGen(ExpGen):
             type="failed",
             pipeline=pipeline,
         )
-
+        #
         # NOTE: we currently don't support inject diverse problems for the parallel + multi-trace mode,
         if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
             if len(trace.current_selection) == 0:
@@ -1120,6 +1388,9 @@ class DSProposalV2ExpGen(ExpGen):
                 competition_desc=self.scen.get_competition_full_desc(),
             )
 
+        # sub-trace begin flag
+        is_new_tree = trace.is_selection_new_tree()
+
         # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
         hypothesis_dict = self.hypothesis_gen(
             component_desc=component_desc,
@@ -1131,6 +1402,7 @@ class DSProposalV2ExpGen(ExpGen):
             enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
             inject_diverse=inject_diverse,
             exp_gen_plan=plan.get("exp_gen") if plan else None,
+            is_new_tree=is_new_tree,
             packages_prompt=packages_prompt,
             sibling_exp=sibling_exp,
         )
@@ -1151,7 +1423,7 @@ class DSProposalV2ExpGen(ExpGen):
                     hypothesis_dict.pop(name)
 
         # Step 2.1 & 2.2: Hypothesis Critique and Rewrite Stage (controlled by enable_hypo_critique_rewrite)
-        if DS_RD_SETTING.enable_hypo_critique_rewrite:
+        if DS_RD_SETTING.enable_hypo_critique_rewrite and len(trace.hist) > 0:
             logger.info(f"Hypothesis critique and rewrite enabled - processing {len(hypothesis_dict)} hypotheses")
 
             # Critic Stage - Evaluate and identify flaws in hypotheses
@@ -1170,7 +1442,7 @@ class DSProposalV2ExpGen(ExpGen):
 
                 # Rewriter Stage - Generate improved hypotheses based on critiques
                 logger.info(f"Starting rewriter stage - generating improved hypotheses based on critique feedback")
-                improved_hypotheses_dict = self.hypothesis_rewrite(
+                hypothesis_dict = self.hypothesis_rewrite(
                     hypothesis_dict=hypothesis_dict,
                     critiques_dict=critiques_dict,
                     scenario_desc=scenario_desc,
@@ -1183,16 +1455,30 @@ class DSProposalV2ExpGen(ExpGen):
             except Exception as e:
                 logger.warning(f"Hypothesis critique and rewrite failed: {e}")
                 logger.info(f"Using original hypotheses as fallback instead of improved versions")
-                improved_hypotheses_dict = hypothesis_dict.copy()  # Use original hypotheses as fallback
         else:
             logger.info(f"Hypothesis critique and rewrite disabled - using original {len(hypothesis_dict)} hypotheses")
-            improved_hypotheses_dict = hypothesis_dict.copy()  # Use original hypotheses directly
 
         # Step 3: Select the best hypothesis
-        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
-            hypothesis_dict=improved_hypotheses_dict,
-            problem_dict=all_problems,
-        )
+        if DS_RD_SETTING.llm_select_hypothesis:
+            response_dict = self.hypothesis_select_with_llm(
+                scenario_desc=scenario_desc,
+                exp_feedback_list_desc=exp_feedback_list_desc,
+                # extra_exp_feedback_list_desc=extra_exp_feedback_list_desc,
+                # exp_feedback_scores=exp_feedback_scores,
+                sota_exp_desc=sota_exp_desc,
+                hypothesis_candidates=hypothesis_dict,
+                trace=trace,
+            )
+            new_hypothesis = DSHypothesis(
+                component=response_dict.get("component"), hypothesis=response_dict.get("hypothesis")
+            )
+            pickled_problem_name = None
+        else:
+            pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+                hypothesis_dict=hypothesis_dict,
+                problem_dict=all_problems,
+            )
+
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
@@ -1203,9 +1489,7 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
             hypotheses=(
-                [new_hypothesis]
-                if len(trace.hist) > 0
-                else self.get_all_hypotheses(all_problems, improved_hypotheses_dict)
+                [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(all_problems, hypothesis_dict)
             ),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
