@@ -149,7 +149,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     llm_select_hypothesis: bool = True
     """Whether to use LLM to select hypothesis. If True, use LLM selection; if False, use the existing ranking method."""
     #### enable runner code change summary
-    runner_enable_code_change_summary: bool = True
+    runner_enable_code_change_summary: bool = False
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()
