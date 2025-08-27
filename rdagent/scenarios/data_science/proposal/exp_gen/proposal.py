@@ -652,6 +652,7 @@ class DSProposalV2ExpGen(ExpGen):
             inject_diverse=inject_diverse,
             plan=exp_gen_plan,
             generate_unique_hypothesis=DS_RD_SETTING.enable_generate_unique_hypothesis and is_new_tree,
+            enable_simple_hypothesis=DS_RD_SETTING.enable_simple_hypothesis,
             sibling_hypotheses=sibling_hypotheses,
         )
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
@@ -1206,6 +1207,7 @@ class DSProposalV2ExpGen(ExpGen):
             workflow_check=workflow_check,
             metric_name=self.scen.metric_name,
             sibling_tasks=sibling_tasks,
+            fix_seed_and_data_split = DS_RD_SETTING.fix_seed_and_data_split
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,

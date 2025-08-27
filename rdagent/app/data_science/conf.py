@@ -164,6 +164,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_generate_unique_hypothesis: bool = False
     """Enable generate unique hypothesis. If True, generate unique hypothesis for each component. If False, generate unique hypothesis for each component."""
 
+    fix_seed_and_data_split: bool = False
+
+    enable_simple_hypothesis: bool = False
+    """If true, generate simple hypothesis, no more than 2 sentences each."""
 
 DS_RD_SETTING = DataScienceBasePropSetting()
 
