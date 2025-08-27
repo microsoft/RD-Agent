@@ -208,34 +208,28 @@ class ValidationSelector(SOTAexpSelector):
     re-runs all candidates on this new data, and returns the best performer.
     """
 
-    def __init__(self, candidate: List[Tuple[DSExperiment, str]]):
+    def __init__(self, candidate: List[Tuple[DSExperiment, str]], direction_sign: int, competition: str):
         self.candidate = candidate
+        self.direction_sign = direction_sign
+        self.competition = competition
 
-    def get_sota_exp_to_submit(self, direction_sign: int, **kwargs) -> Optional[List[DSExperiment]]:
+    def get_sota_exp_to_submit(self, trace: Trace) -> Optional[List[DSExperiment]]:
         """
         Executes the validation workflow.
-
-        Args:
-            direction_sign: The direction sign of the validation workflow.
-            **kwargs: Must include 'competition', 'sota_result'.
         """
-        competition = kwargs.get("competition")
-        sota_result = kwargs.get("sota_result")
-        mock_folder = f"/tmp/mock/{competition}"
-
-        if not all([competition, sota_result]):
-            raise ValueError("ValidationSelector requires 'competition', and 'sota_result' in kwargs.")
+        mock_folder = f"/tmp/mock/{self.competition}"
 
         try:
             grade_py_code = self._prepare_validation_scripts(
-                reference_exp=self.candidate[0][0], competition=competition, mock_folder=mock_folder
+                reference_exp=self.candidate[0][0], competition=self.competition, mock_folder=mock_folder
             )
         except RuntimeError as e:
             logger.error(f"ValidationSelector: Failed to prepare validation environment. {e}")
+            shutil.rmtree(mock_folder, ignore_errors=True)
             return None
 
         validation_tasks = [
-            (process_experiment, (exp, competition, mock_folder, grade_py_code, loop_id))
+            (process_experiment, (exp, self.competition, mock_folder, grade_py_code, loop_id))
             for exp, loop_id in self.candidate
         ]
         results = multiprocessing_wrapper(validation_tasks, n=DEFAULT_NUM_WORKERS)
@@ -250,7 +244,7 @@ class ValidationSelector(SOTAexpSelector):
             logger.warning("ValidationSelector: No candidates scored successfully during validation.")
             return None
 
-        valid_results.sort(key=lambda x: x[1] * direction_sign, reverse=True)
+        valid_results.sort(key=lambda x: x[1] * self.direction_sign, reverse=True)
         best_exp, best_loop_id = [
             (exp, loop_id)
             for exp, loop_id in self.candidate
@@ -476,6 +470,8 @@ def evaluate_one_trace(selector_name: str, trace_pkl_path: Path, trace_folder: P
     and checks if the selection was a "hit" (a known SOTA solution).
     """
     competition = trace_pkl_path.stem.split(".")[0]
+    if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
+        return competition, False
 
     try:
         sota_loops_file = trace_folder / f"{trace_pkl_path.stem.split('_')[0]}_loops.json"
@@ -527,26 +523,19 @@ def evaluate_one_trace(selector_name: str, trace_pkl_path: Path, trace_folder: P
             logger.info("ValidationSelector: Base selector's candidates did not hit any SOTA. Skipping validation.")
             return competition, False
 
-        if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
-            logger.info(
-                f"Source folder {DS_RD_SETTING.local_data_path}/{competition} does not exist. Skipping validation."
-            )
-            return competition, False
-
-        selector = ValidationSelector(candidate=[(exp, try_get_loop_id(trace, exp)) for exp in candidate_exps])
-        selected_sota_exps = selector.get_sota_exp_to_submit(
-            direction_sign, competition=competition, sota_result=sota_result
+        selector = ValidationSelector(
+            candidate=[(exp, try_get_loop_id(trace, exp)) for exp in candidate_exps],
+            direction_sign=direction_sign,
+            competition=competition,
         )
-    else:
-        selected_sota_exps = selector.get_sota_exp_to_submit(trace)
+
+    selected_sota_exps = selector.get_sota_exp_to_submit(trace)
 
     # --- Run Selection and Check for Hit ---
     logger.info(f"Running selector '{selector_name}' on trace for competition '{competition}'...")
 
-    # For validation, we need to pass extra context
-
     hit = check_hit(selected_sota_exps, trace, sota_result)
-    logger.info(f"Result for {competition}: {'HIT' if hit else 'MISS'}")
+    logger.info(f"Result for {trace_pkl_path.parent.name} - {competition}: {'HIT' if hit else 'MISS'}")
     return competition, hit
 
 
