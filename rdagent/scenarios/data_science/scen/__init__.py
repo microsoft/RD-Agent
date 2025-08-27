@@ -125,13 +125,13 @@ class DataScienceScen(Scenario):
             if not DS_RD_SETTING.allow_longer_timeout
             else response_json_analysis.get("Longer time limit required", False)
         )
-        
+
         self.coder_longer_time_limit_required = (
             base_longer_timeout_needed
             if DS_RD_SETTING.coder_enable_llm_decide_longer_timeout
             else DS_RD_SETTING.allow_longer_timeout
         )
-        
+
         self.runner_longer_time_limit_required = (
             base_longer_timeout_needed
             if DS_RD_SETTING.runner_enable_llm_decide_longer_timeout

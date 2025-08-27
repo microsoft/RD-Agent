@@ -3,6 +3,7 @@ import math
 from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -98,7 +99,6 @@ def get_component(name: str) -> Dict[str, Any]:
 class ScenarioChallengeCategory(str, Enum):
     DATASET_DRIVEN = "dataset-driven"
     DOMAIN_INFORMED = "domain-informed"
-
 
 
 class ScenarioChallengeDetail(BaseModel):
@@ -926,7 +926,7 @@ class DSProposalV2ExpGen(ExpGen):
         A_norms = np.linalg.norm(A, axis=1, keepdims=True)
         B_norms = np.linalg.norm(B, axis=1, keepdims=True).T
         return dot_products / (A_norms * B_norms)
-    
+
     def _gumbel_softmax_hard_sample(logits, tau=1.0, n_samples=1):
 
         gumbel_noise = -np.log(-np.log(np.random.uniform(size=logits.shape) + 1e-20) + 1e-20)
@@ -980,7 +980,7 @@ class DSProposalV2ExpGen(ExpGen):
         probs = exp_logits / np.sum(exp_logits, axis=1, keepdims=True)
         num_candidates = probs.shape[-1]
         n_samples = min(2, num_candidates)
-        flat_indices  = self._gumbel_softmax_hard_sample(np.log(probs + 1e-20), tau=0.01, n_samples=n_samples)
+        flat_indices = self._gumbel_softmax_hard_sample(np.log(probs + 1e-20), tau=0.01, n_samples=n_samples)
         if bigger_is_better:
             best_idx = history_scores[0].argmax().item()
             best_entry = (history_hypo_str[best_idx], history_scores[0, best_idx])
@@ -1033,10 +1033,9 @@ class DSProposalV2ExpGen(ExpGen):
         else:
             return -1, len(loop_id_list)
 
-
     def _llm_select_extra_hypo(self, trace: DSTrace) -> list[tuple[str, float]]:
         """
-        Retrieve a list of additional hypotheses along with their ensemble scores 
+        Retrieve a list of additional hypotheses along with their ensemble scores
         from the given experiment trace, intended for input into an LLM-based selection mechanism.
 
         Parameters:
@@ -1057,8 +1056,7 @@ class DSProposalV2ExpGen(ExpGen):
         """
         return [
             (exp.hypothesis, exp.result.loc["ensemble"].iloc[0])
-            for exp, _ in
-            trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="all")
+            for exp, _ in trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="all")
         ]
 
     @wait_retry(retry_n=5)
@@ -1210,7 +1208,7 @@ class DSProposalV2ExpGen(ExpGen):
             workflow_check=workflow_check,
             metric_name=self.scen.metric_name,
             sibling_tasks=sibling_tasks,
-            fix_seed_and_data_split = DS_RD_SETTING.fix_seed_and_data_split
+            fix_seed_and_data_split=DS_RD_SETTING.fix_seed_and_data_split,
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,
@@ -1447,7 +1445,6 @@ class DSProposalV2ExpGen(ExpGen):
         else:
             logger.info(f"Hypothesis critique and rewrite disabled - using original {len(hypothesis_dict)} hypotheses")
 
-
         # Step 3: Select the best hypothesis
         if DS_RD_SETTING.llm_select_hypothesis:
             response_dict = self.hypothesis_select_with_llm(
@@ -1459,7 +1456,9 @@ class DSProposalV2ExpGen(ExpGen):
                 hypothesis_candidates=hypothesis_dict,
                 trace=trace,
             )
-            new_hypothesis = DSHypothesis(component=response_dict.get("component"), hypothesis=response_dict.get("hypothesis"))
+            new_hypothesis = DSHypothesis(
+                component=response_dict.get("component"), hypothesis=response_dict.get("hypothesis")
+            )
             pickled_problem_name = None
         else:
             pickled_problem_name, new_hypothesis = self.hypothesis_rank(

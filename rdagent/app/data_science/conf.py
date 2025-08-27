@@ -169,6 +169,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_simple_hypothesis: bool = False
     """If true, generate simple hypothesis, no more than 2 sentences each."""
 
+
 DS_RD_SETTING = DataScienceBasePropSetting()
 
 # enable_cross_trace_diversity 和 llm_select_hypothesis should not be true at the same time
