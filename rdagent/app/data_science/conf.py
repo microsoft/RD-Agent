@@ -41,8 +41,12 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """The recommend time limit for running on full data"""
     full_timeout: int = 3600
     """The timeout limit for running on full data"""
-    ratio_merge_or_ensemble: int = 70
-    """The ratio of merge or ensemble to be considered as a valid solution"""
+
+    #### model dump
+    enable_model_dump: bool = False
+    enable_doc_dev: bool = False
+    model_dump_check_level: Literal["medium", "high"] = "medium"
+
     ### specific feature
 
     ### notebook integration
@@ -63,11 +67,6 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     sample_data_by_LLM: bool = True
     use_raw_description: bool = False
     show_nan_columns: bool = False
-
-    #### model dump
-    enable_model_dump: bool = False
-    enable_doc_dev: bool = False
-    model_dump_check_level: Literal["medium", "high"] = "medium"
 
     ### knowledge base
     enable_knowledge_base: bool = False
@@ -149,25 +148,31 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     runner_timeout_increase_stage: float = 0.15
     show_hard_limit: bool = True
 
+    #### enable runner code change summary
+    runner_enable_code_change_summary: bool = True
+
+    ### Proposal workflow related
+
+    #### Hypothesis Generate related
+    enable_simple_hypothesis: bool = False
+    """If true, generate simple hypothesis, no more than 2 sentences each."""
+
+    enable_generate_unique_hypothesis: bool = False
+    """Enable generate unique hypothesis. If True, generate unique hypothesis for each component. If False, generate unique hypothesis for each component."""
+
     #### hypothesis critique and rewrite
     enable_hypo_critique_rewrite: bool = False
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
     enable_scale_check: bool = False
 
-    #### hypothesis selection method
+    ##### select related
+    ratio_merge_or_ensemble: int = 70
+    """The ratio of merge or ensemble to be considered as a valid solution"""
     llm_select_hypothesis: bool = False
     """Whether to use LLM to select hypothesis. If True, use LLM selection; if False, use the existing ranking method."""
-    #### enable runner code change summary
-    runner_enable_code_change_summary: bool = True
 
-    #### enable generate unique hypothesis
-    enable_generate_unique_hypothesis: bool = False
-    """Enable generate unique hypothesis. If True, generate unique hypothesis for each component. If False, generate unique hypothesis for each component."""
-
+    #### Task Generate related
     fix_seed_and_data_split: bool = False
-
-    enable_simple_hypothesis: bool = False
-    """If true, generate simple hypothesis, no more than 2 sentences each."""
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()
