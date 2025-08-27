@@ -506,6 +506,10 @@ def evaluate_one_trace(selector_name: str, trace_pkl_path: Path, trace_folder: P
             logger.info("ValidationSelector: Base selector's candidates did not hit any SOTA. Skipping validation.")
             return competition, False
 
+        if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
+            logger.info(f"Source folder {DS_RD_SETTING.local_data_path}/{competition} does not exist. Skipping validation.")
+            return competition, False
+
         selector = ValidationSelector(
             candidate=[(exp, trace.idx2loop_id.get(trace.exp2idx(exp))) for exp in candidate_exps]
         )
