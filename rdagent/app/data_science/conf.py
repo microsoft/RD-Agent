@@ -126,7 +126,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     exp_gen_version_list: str = "v3,v2"
 
     #### multi-trace: time for final multi-trace merge
-    merge_hours: int = 0
+    merge_hours: float = 0
     """The time for merge"""
 
     #### multi-trace: max SOTA-retrieved number, used in AutoSOTAexpSelector
