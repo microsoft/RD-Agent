@@ -20,8 +20,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
 from rdagent.components.coder.data_science.share.notebook import NotebookConverter
 from rdagent.components.coder.data_science.utils import remove_eda_part
-from rdagent.components.mcp import query_context7
-from rdagent.components.mcp.context7.conf import is_context7_enabled
+from rdagent.components.mcp import is_service_available, query_mcp
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.test_eval import get_test_eval
@@ -272,7 +271,8 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             eda_output = implementation.file_dict.get("EDA.md", None)
 
         # extract enable_context7 from data science configuration
-        enable_context7 = DS_RD_SETTING.enable_mcp_documentation_search and is_context7_enabled()
+        # Note: is_service_available is now async, but we'll handle this in the query section
+        enable_context7 = DS_RD_SETTING.enable_mcp_documentation_search
 
         queried_similar_successful_knowledge = (
             queried_knowledge.task_to_similar_task_successful_knowledge[target_task.get_task_information()]
@@ -314,7 +314,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                     asyncio.set_event_loop(new_loop)
                     try:
                         return new_loop.run_until_complete(
-                            query_context7(error_message=wfb.error_message, full_code=implementation.all_codes)
+                            query_mcp("context7", error_message=wfb.error_message, full_code=implementation.all_codes)
                         )
                     finally:
                         new_loop.close()

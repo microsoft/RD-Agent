@@ -1,0 +1,13 @@
+{
+  "mcpServices": {
+    "context7": {
+      "url": "http://localhost:8123/mcp",
+      "timeout": 30.0,
+      "handler": "Context7Handler",
+      "enabled": true,
+      "extra_config": {
+        "model": "gpt-4-turbo"
+      }
+    }
+  }
+}

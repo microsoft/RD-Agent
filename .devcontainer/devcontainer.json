@@ -12,7 +12,7 @@
   },
   "mounts": [
     "source=/home/shared/RD-Agent/kaggle,target=/tmp/kaggle,type=bind,consistency=cached,readonly"
-    ],
+  ],
   "extensions": [
     "ms-python.python",
     "ms-python.vscode-pylance",
