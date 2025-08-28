@@ -245,8 +245,8 @@ class LiteLLMAPIBackend(APIBackend):
         return openai_tools
 
     def call_with_tools(
-        self, messages: list[dict[str, Any]], tools: list[dict[str, Any]], **kwargs
-    ) -> tuple[str, str | None, list | None]:
+        self, messages: list[dict[str, Any]], tools: list[dict[str, Any]], **kwargs: Any
+    ) -> tuple[str, str | None, list[Any] | None]:
         """
         Call chat completion with tools support
 
@@ -272,16 +272,19 @@ class LiteLLMAPIBackend(APIBackend):
 
         # Model call with tools initiated
 
+        # Build parameters with potential overrides from kwargs
+        params = {
+            "model": kwargs.pop("model", LITELLM_SETTINGS.chat_model),
+            "messages": messages,
+            "stream": False,  # Tools don't work well with streaming
+            "temperature": kwargs.pop("temperature", LITELLM_SETTINGS.chat_temperature),
+            "max_tokens": kwargs.pop("max_tokens", LITELLM_SETTINGS.chat_max_tokens),
+            "max_retries": 0,
+            **kwargs,  # Include remaining kwargs
+        }
+
         # Use existing chat completion infrastructure
-        response = completion(
-            model=LITELLM_SETTINGS.chat_model,
-            messages=messages,
-            stream=False,  # Tools don't work well with streaming
-            temperature=LITELLM_SETTINGS.chat_temperature,
-            max_tokens=LITELLM_SETTINGS.chat_max_tokens,
-            max_retries=0,
-            **kwargs,
-        )
+        response = completion(**params)
 
         assistant_message = response.choices[0].message
         content = assistant_message.content or ""
@@ -310,9 +313,10 @@ class LiteLLMAPIBackend(APIBackend):
         initial_messages: list[dict[str, Any]],
         tools: list[dict[str, Any]],
         max_rounds: int = 5,
-        tool_executor=None,
+        tool_executor: Any = None,
         verbose: bool = False,
-        **kwargs,
+        model_config_override: dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> tuple[str, list[dict[str, Any]]]:
         """
         Perform multi-round tool calling conversation
@@ -323,6 +327,7 @@ class LiteLLMAPIBackend(APIBackend):
             max_rounds: Maximum number of rounds
             tool_executor: Function to execute tool calls
             verbose: Enable verbose logging
+            model_config_override: Override model configuration (model, api_base, api_key, etc.)
             **kwargs: Additional parameters for chat completion
 
         Returns:
@@ -336,15 +341,23 @@ class LiteLLMAPIBackend(APIBackend):
 
         messages = initial_messages.copy()
 
+        # Apply model configuration override if provided
+        if model_config_override:
+            for key, value in model_config_override.items():
+                if key == "api_base":
+                    kwargs["base_url"] = value
+                elif key in ["model", "api_key", "temperature", "max_tokens"]:
+                    kwargs[key] = value
+
         for round_count in range(1, max_rounds + 1):
             if verbose:
                 logger.info(f"🔄 Round {round_count}/{max_rounds}", tag="mcp_progress")
 
-            # Call with tools
+            # Call with tools (now with potential overrides applied)
             content, _, tool_calls = self.call_with_tools(messages, tools, **kwargs)
 
             # Add assistant response to conversation
-            assistant_message = {"role": "assistant", "content": content}
+            assistant_message: dict[str, Any] = {"role": "assistant", "content": content}
             if tool_calls:
                 assistant_message["tool_calls"] = [
                     {
@@ -365,7 +378,9 @@ class LiteLLMAPIBackend(APIBackend):
             # Execute tool calls if executor provided
             if tool_executor:
                 if verbose:
-                    logger.info(f"🔧 Executing {len(tool_calls)} tool(s)", tag="mcp_progress")
+                    tool_names = [tc.function.name for tc in tool_calls]
+                    tool_list = ", ".join(tool_names)
+                    logger.info(f"🔧 Executing {len(tool_calls)} tool(s): {tool_list}", tag="mcp_progress")
 
                 tool_results = await tool_executor(tool_calls)
                 messages.extend(tool_results)

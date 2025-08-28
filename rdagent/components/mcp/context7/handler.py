@@ -123,18 +123,11 @@ class Context7Handler(GeneralMCPHandler):
     # Result logging is now handled by GeneralMCPHandler
 
     def get_service_info(self) -> dict:
-        """Get Context7 service information."""
+        """Get Context7 service information - simplified."""
         info = super().get_service_info()
         info.update(
             {
                 "context7_url": self.mcp_url,
-                "backend_integration": "LiteLLM",
-                "context7_optimizations": [
-                    "Enhanced prompt templates",
-                    "Timm library special handling",
-                    "Intelligent error handling",
-                    "Documentation not found detection",
-                ],
             }
         )
         return info

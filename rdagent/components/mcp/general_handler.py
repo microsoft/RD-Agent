@@ -18,7 +18,7 @@ from rdagent.components.mcp.connector import (
 )
 from rdagent.components.mcp.handlers import BaseMCPHandler
 from rdagent.log import rdagent_logger as logger
-from rdagent.oai.backend.litellm import LiteLLMAPIBackend
+from rdagent.oai.backend.litellm import LITELLM_SETTINGS, LiteLLMAPIBackend
 
 
 class GeneralMCPHandler(BaseMCPHandler):
@@ -36,11 +36,55 @@ class GeneralMCPHandler(BaseMCPHandler):
         """Initialize handler with LiteLLM backend dependency."""
         super().__init__(service_name, **config)
 
-        # Use LiteLLM backend instead of direct OpenAI client
+        # Store extra config from mcp_config.json
+        self.extra_config = config.get("extra_config", {})
+
+        # Parse MCP-specific LLM settings
+        self.mcp_llm_settings = self._parse_mcp_llm_config()
+
+        # Use standard LiteLLM backend (no global overrides)
         self.backend = LiteLLMAPIBackend()
 
-        # Store original config for backwards compatibility
-        self.extra_config = config.get("extra_config", {})
+    def _parse_mcp_llm_config(self) -> dict:
+        """Parse MCP service-specific LLM configuration.
+
+        Priority (high to low):
+        1. mcp_config.json extra_config (highest priority)
+        2. LiteLLM environment variables (fallback)
+        3. LiteLLM default settings (lowest priority)
+
+        Returns:
+            Dict with service-specific LLM settings
+        """
+        mcp_settings = {}
+
+        if not self.extra_config:
+            return mcp_settings
+
+        # Parse model setting
+        if "model" in self.extra_config:
+            mcp_settings["model"] = self.extra_config["model"]
+
+        # Parse api_base setting
+        if "api_base" in self.extra_config:
+            mcp_settings["api_base"] = self.extra_config["api_base"]
+
+        # Parse api_key setting
+        if "api_key" in self.extra_config:
+            mcp_settings["api_key"] = self.extra_config["api_key"]
+
+        # Parse other LLM settings
+        for key in ["temperature", "max_tokens", "timeout"]:
+            if key in self.extra_config:
+                mcp_settings[key] = self.extra_config[key]
+
+        # Log MCP-specific settings
+        if mcp_settings:
+            # Mask sensitive information
+            logged_settings = {k: (v if k != "api_key" else "***") for k, v in mcp_settings.items()}
+            logger.info(f"🔧 MCP {self.service_name} LLM config: {logged_settings}", tag="mcp_config")
+
+        return mcp_settings
 
     # Abstract methods for subclasses to implement
 
@@ -139,7 +183,7 @@ class GeneralMCPHandler(BaseMCPHandler):
                 async def tool_executor(tool_calls):
                     return await self._execute_session_tools(session, tool_calls, verbose)
 
-                # Perform multi-round tool calling
+                # Perform multi-round tool calling using unified LiteLLM backend
                 initial_messages = [{"role": "user", "content": enhanced_query}]
                 final_response, conversation = await self.backend.multi_round_tool_calling(
                     initial_messages=initial_messages,
@@ -147,6 +191,7 @@ class GeneralMCPHandler(BaseMCPHandler):
                     max_rounds=max_rounds,
                     tool_executor=tool_executor,
                     verbose=verbose,
+                    model_config_override=self.mcp_llm_settings,  # Pass MCP-specific configuration
                 )
 
                 # Log timing and result
@@ -279,20 +324,12 @@ class GeneralMCPHandler(BaseMCPHandler):
         # Non-verbose mode: no result logging
 
     def get_service_info(self) -> Dict[str, Any]:
-        """Get service information including LiteLLM backend details."""
+        """Get service information - core details only."""
         info = super().get_service_info()
         info.update(
             {
                 "backend_type": "LiteLLM",
                 "supports_function_calling": self.backend.supports_function_calling(),
-                "backend_model": getattr(self.backend, "_get_model_name", lambda: "unknown")(),
-                "features": [
-                    "Multi-round tool calling",
-                    "Verbose logging",
-                    "Result caching",
-                    "Error handling",
-                    "LiteLLM integration",
-                ],
             }
         )
         return info
