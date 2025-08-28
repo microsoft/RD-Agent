@@ -101,8 +101,7 @@ class StreamableHTTPConnector:
             session = MCPSession(client_session, self.config)
             await session.initialize()
 
-            logger.info(f"Connected to MCP server at {self.config.url}")
-            logger.info(f"Available tools: {len(session.tools)}")
+            logger.info(f"🔗 Connected: {self.config.url} ({len(session.tools)} tools)", tag="mcp_connection")
 
             yield session
 

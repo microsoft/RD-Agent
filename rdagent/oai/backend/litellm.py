@@ -212,3 +212,171 @@ class LiteLLMAPIBackend(APIBackend):
             return max_tokens
         except Exception as e:
             return super().chat_token_limit
+
+    def supports_function_calling(self) -> bool:
+        """
+        Check if the backend supports function calling
+        """
+        return supports_function_calling(model=LITELLM_SETTINGS.chat_model)
+
+    def convert_mcp_tools_to_openai_format(self, mcp_tools: list) -> list[dict[str, Any]]:
+        """
+        Convert MCP tools to OpenAI function calling format
+
+        Args:
+            mcp_tools: List of MCP Tool objects
+
+        Returns:
+            List of tools in OpenAI format
+        """
+        openai_tools = []
+        for tool in mcp_tools:
+            openai_tool = {
+                "type": "function",
+                "function": {
+                    "name": tool.name,
+                    "description": tool.description,
+                    "parameters": tool.inputSchema,
+                },
+            }
+            openai_tools.append(openai_tool)
+
+        # Conversion completed silently
+        return openai_tools
+
+    def call_with_tools(
+        self, messages: list[dict[str, Any]], tools: list[dict[str, Any]], **kwargs
+    ) -> tuple[str, str | None, list | None]:
+        """
+        Call chat completion with tools support
+
+        Args:
+            messages: Conversation messages
+            tools: Tools in OpenAI format
+            **kwargs: Additional parameters
+
+        Returns:
+            Tuple of (content, finish_reason, tool_calls)
+        """
+        if not self.supports_function_calling():
+            logger.warning(
+                f"Model {LITELLM_SETTINGS.chat_model} does not support function calling", tag="litellm_tools"
+            )
+            # Fall back to regular chat completion
+            content, finish_reason = self._create_chat_completion_inner_function(messages, **kwargs)
+            return content, finish_reason, None
+
+        # Add tools to kwargs
+        kwargs["tools"] = tools
+        kwargs["tool_choice"] = "auto"
+
+        # Model call with tools initiated
+
+        # Use existing chat completion infrastructure
+        response = completion(
+            model=LITELLM_SETTINGS.chat_model,
+            messages=messages,
+            stream=False,  # Tools don't work well with streaming
+            temperature=LITELLM_SETTINGS.chat_temperature,
+            max_tokens=LITELLM_SETTINGS.chat_max_tokens,
+            max_retries=0,
+            **kwargs,
+        )
+
+        assistant_message = response.choices[0].message
+        content = assistant_message.content or ""
+        finish_reason = response.choices[0].finish_reason
+        tool_calls = getattr(assistant_message, "tool_calls", None)
+
+        # Log and calculate cost using existing infrastructure
+        global ACC_COST
+        try:
+            cost = completion_cost(model=LITELLM_SETTINGS.chat_model, messages=messages, completion=content)
+            ACC_COST += cost
+            logger.info(
+                f"Tool-enabled call - Current Cost: ${float(cost):.10f}; "
+                f"Accumulated Cost: ${float(ACC_COST):.10f}; {finish_reason=}",
+                tag="litellm_tools",
+            )
+        except Exception as e:
+            logger.warning(f"Cost calculation failed for tools call: {e}")
+
+        # Tool calls processed silently
+
+        return content, finish_reason, tool_calls
+
+    async def multi_round_tool_calling(
+        self,
+        initial_messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        max_rounds: int = 5,
+        tool_executor=None,
+        verbose: bool = False,
+        **kwargs,
+    ) -> tuple[str, list[dict[str, Any]]]:
+        """
+        Perform multi-round tool calling conversation
+
+        Args:
+            initial_messages: Initial conversation messages
+            tools: Available tools in OpenAI format
+            max_rounds: Maximum number of rounds
+            tool_executor: Function to execute tool calls
+            verbose: Enable verbose logging
+            **kwargs: Additional parameters for chat completion
+
+        Returns:
+            Tuple of (final_response, full_conversation)
+        """
+        if not self.supports_function_calling():
+            logger.warning("Multi-round tool calling not supported by this model", tag="litellm_tools")
+            # Fall back to single completion
+            content, _ = self._create_chat_completion_inner_function(initial_messages, **kwargs)
+            return content, initial_messages
+
+        messages = initial_messages.copy()
+
+        for round_count in range(1, max_rounds + 1):
+            if verbose:
+                logger.info(f"🔄 Round {round_count}/{max_rounds}", tag="mcp_progress")
+
+            # Call with tools
+            content, _, tool_calls = self.call_with_tools(messages, tools, **kwargs)
+
+            # Add assistant response to conversation
+            assistant_message = {"role": "assistant", "content": content}
+            if tool_calls:
+                assistant_message["tool_calls"] = [
+                    {
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                    }
+                    for tc in tool_calls
+                ]
+            messages.append(assistant_message)
+
+            # If no tool calls, we're done
+            if not tool_calls:
+                if verbose:
+                    logger.info(f"✅ Final response in round {round_count}", tag="mcp_progress")
+                return content, messages
+
+            # Execute tool calls if executor provided
+            if tool_executor:
+                if verbose:
+                    logger.info(f"🔧 Executing {len(tool_calls)} tool(s)", tag="mcp_progress")
+
+                tool_results = await tool_executor(tool_calls)
+                messages.extend(tool_results)
+            else:
+                # If no executor, add placeholder results
+                for tool_call in tool_calls:
+                    messages.append(
+                        {"role": "tool", "tool_call_id": tool_call.id, "content": "Tool execution not configured"}
+                    )
+
+            # Round completion logged at higher level
+
+        logger.warning(f"Reached maximum rounds ({max_rounds}), returning last response")
+        return messages[-1].get("content", "No response generated"), messages

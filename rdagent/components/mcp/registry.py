@@ -244,7 +244,7 @@ class MCPRegistry:
         # For now, try the first available service
         # TODO: Implement smarter service selection logic
         service_name = enabled_services[0]
-        logger.info(f"Auto-selecting service '{service_name}' for query")
+        logger.info(f"🔍 Auto-selecting MCP service: {service_name}", tag="mcp_query")
 
         return await self.query_service(service_name, query, **kwargs)
 

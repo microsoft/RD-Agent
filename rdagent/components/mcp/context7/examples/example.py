@@ -119,7 +119,7 @@ Use pd.concat() instead.
         if result:
             print("\n✅ Auto-selected service solution:")
             print("-" * 40)
-            print(result[:500] + "..." if len(result) > 500 else result)
+            print(result)
         else:
             print("❌ Automatic service selection failed to get information")
 
