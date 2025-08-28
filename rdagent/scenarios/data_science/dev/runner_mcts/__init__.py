@@ -51,7 +51,7 @@ class MCTSNode:
         self.children: list[MCTSNode] = []
         self.visit_count = 0
         self.value_sum = 0.0
-        self.untried_actions : list[dict] = []  # 待探索的候选修改
+        self.untried_actions : list[dict] = []  #
 
     @property
     def value(self):
@@ -61,11 +61,11 @@ class MCTSNode:
 
 class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
-    def __init__(self, scen, settings, max_iterations=2, exploration_c=1.4):
-        super().__init__(scen=scen, settings=settings)
+    def __init__(self, trace, settings, max_iterations=2, exploration_c=1.4):
+        super().__init__(scen=trace.scen, settings=settings)
         self.max_iterations = max_iterations
         self.exploration_c = exploration_c
-        self.root = MCTSNode(workspace=scen.workspace)
+        self.root = MCTSNode(workspace=trace.hist[-1][0].experiment_workspace)
         self.KEY_CHANGE_SUMMARY = "__change_summary__"
 
     @wait_retry(retry_n=5)       
@@ -75,7 +75,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         workspace: FBWorkspace,
         prev_task_feedback: CoSTEERSingleFeedback,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
-        num_candidates: int = 3,  # 生成候选数量
+        num_candidates: int = 2,  # 生成候选数量
     ) -> list[dict[str, str]]:
         """
         Generate multiple candidate modifications for a task using LLM.
@@ -167,7 +167,6 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 target_task, node.workspace, prev_task_feedback, queried_knowledge
             )
             node.untried_actions = modifications_list
-            # 初始化 children 列表
             if node.children is None:
                 node.children = []
 
@@ -221,6 +220,8 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             node = self.select(root)
             new_node = self.expand(node, target_task, prev_task_feedback, queried_knowledge)
             logger.info(f"Expanded node. Current root visit count: {root.visit_count}")
+            logger.info(f"node children: {node.children}")
+
             reward = self.simulate(new_node, target_task, prev_task_feedback, workspace, queried_knowledge)
             logger.info(f"Simulation reward: {reward}")
             self.backpropagate(new_node, reward)

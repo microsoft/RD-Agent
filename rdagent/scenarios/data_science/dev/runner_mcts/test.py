@@ -107,15 +107,8 @@ traces = []
 for msg in FileStorage(log_path).iter_msg(tag="trace"):
     loop_id, fn = extract_loopid_func_name(msg.tag)
     traces.append(msg.content)
-Tr = traces[-5]
+Tr = traces[4]
 
-
-
-class DummyScenario:
-    initial_workspace = DummyWorkspace()
-    metric_direction = True
-    gt_workspace = DummyWorkspace()
-    competition = "tabular-playground-series-dec-2021"
 
 
 
@@ -124,11 +117,11 @@ class DummySettings:
 
 class TestMCTSStrategy(unittest.TestCase):
     def test_mcts_flow(self):
-        scen =  Tr.scen#DummyScenario()
+        scen =  Tr
         settings = DummySettings()
-        strategy = DSRunnerMCTSMultiProcessEvolvingStrategy(scen, settings, max_iterations=1)
+        strategy = DSRunnerMCTSMultiProcessEvolvingStrategy(scen, settings, max_iterations=6)
         task = DummyTask()
-        workspace = DummyWorkspace()
+        workspace = Tr.hist[-1][0].experiment_workspace     #DummyWorkspace()
         feedback = DummyFeedback()
         queried_knowledge = DummyQueriedKnowledge()
         result = strategy.implement_one_task(

@@ -173,12 +173,20 @@ DSCoSTEER:
     {% endif %}
 
     ## Instructions for LLM
-    Your task is to propose **{{num_candidates}} different candidate code modifications** that follow the minimal changes principle
-    and aim to either fix the errors (if previous code failed) or refine hyperparameters (if previous code succeeded). 
-    Each candidate should be a complete, self-contained code modification set, ready to inject into the codebase.
+      1. Propose **{{num_candidates}} candidate code modifications** that follow the minimal changes principle.
+         Each candidate should be a complete, self-contained code modification ready to inject into the codebase.
 
-    You are allowed to adjust **multiple hyperparameters or code components at once**, as long as the changes are useful for improving
-    the workflow performance or correctness. Prioritize meaningful modifications over minimal ones if multiple changes are beneficial.
+      2. You may adjust multiple hyperparameters or code components at once,
+         as long as the changes improve performance or correctness.
+         Prioritize meaningful modifications over minimal ones if multiple changes are beneficial.
+
+      3. **STRICT REQUIREMENT:** The generated `main.py` must be **fully complete and executable**.
+         It must be identical to the Current Code Base in all parts **except** the places where parameters or hyperparameters are modified.
+         Do not include placeholders like `... (unchanged lines)` or any partial code snippets.
+         All code, comments, formatting, and structure outside the modified parameters must remain unchanged.
+
+      4. **OUTPUT REQUIREMENT:** Respond with a JSON **list of objects**, each object representing one candidate modification.
+         Each object should be a dictionary with filenames as keys and the corresponding **complete `main.py` content** as values, along with a short change summary.
 
     ## Output Format
     Please respond with a JSON **list of objects**, each object representing one candidate modification.
