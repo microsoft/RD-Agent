@@ -124,6 +124,7 @@ class EnvConf(ExtendedBaseSettings):
     enable_cache: bool = True
     retry_count: int = 5  # retry count for the docker run
     retry_wait_seconds: int = 10  # retry wait seconds for the docker run
+    exclude_chmod_paths: list[str] = []  # List of directory names to exclude from chmod operation
 
     model_config = SettingsConfigDict(
         # TODO: add prefix ....
@@ -165,7 +166,10 @@ class Env(Generic[ASpecificEnvConf]):
         with zipfile.ZipFile(zip_file_path, "w") as z:
             for root, _, files in os.walk(folder_path):
                 for file in files:
-                    z.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), folder_path))
+                    z.write(
+                        os.path.join(root, file),
+                        os.path.relpath(os.path.join(root, file), folder_path),
+                    )
 
     def unzip_a_file_into_a_folder(self, zip_file_path: str, folder_path: str) -> None:
         """
@@ -186,7 +190,11 @@ class Env(Generic[ASpecificEnvConf]):
         """
 
     def check_output(
-        self, entry: str | None = None, local_path: str = ".", env: dict | None = None, **kwargs: dict
+        self,
+        entry: str | None = None,
+        local_path: str = ".",
+        env: dict | None = None,
+        **kwargs: dict,
     ) -> str:
         """
         Run the folder under the environment.
@@ -282,23 +290,16 @@ class Env(Generic[ASpecificEnvConf]):
                 "the last command in the pipeline.",
             )
 
-        # FIXME: the input path and cache path is hard coded here.
-        # We don't want to change the content in input and cache path.
-        # Otherwise, it may produce large amount of warnings.
+        # Exclude configured directories from chmod operation to prevent modifying
+        # read-only or specially configured directories that may produce warnings.
         def _get_chmod_cmd(workspace_path: str) -> str:
-            def _get_path_stem(path: str) -> str | None:
-                # If the input path is relative, keep only the first component
-                p = Path(path)
-                if not p.is_absolute() and p.parts:
-                    return p.parts[0]
-                return None
-
             find_cmd = f"find {workspace_path} -mindepth 1 -maxdepth 1"
-            for name in [
-                _get_path_stem(T("scenarios.data_science.share:scen.cache_path").r()),
-                _get_path_stem(T("scenarios.data_science.share:scen.input_path").r()),
-            ]:
-                find_cmd += f" ! -name {name}"
+
+            # Use configurable exclude paths from DockerConf
+            for name in self.conf.exclude_chmod_paths:
+                if name:  # Skip empty names
+                    find_cmd += f" ! -name {name}"
+
             chmod_cmd = f"{find_cmd} -exec chmod -R 777 {{}} +"
             return chmod_cmd
 
@@ -512,7 +513,12 @@ class LocalEnv(Env[ASpecificLocalConf]):
             # Setup environment
             if env is None:
                 env = {}
-            path = [*self.conf.bin_path.split(":"), "/bin/", "/usr/bin/", *env.get("PATH", "").split(":")]
+            path = [
+                *self.conf.bin_path.split(":"),
+                "/bin/",
+                "/usr/bin/",
+                *env.get("PATH", "").split(":"),
+            ]
             env["PATH"] = ":".join(path)
 
             if entry is None:
@@ -634,6 +640,11 @@ class DockerConf(EnvConf):
     {<host_path>: {"bind": <container_path>, "mode": <mode, ro/rw/default is extra_volume_mode>}}
     """
     extra_volume_mode: str = "ro"  # by default. only the mount_path should be writable, others are changed to read-only
+
+    exclude_chmod_paths: list[str] = []
+    """List of directory names to exclude from chmod -R 777 operation.
+    This prevents modifying permissions of read-only or specially configured directories."""
+
     # Sometime, we need maintain some extra data for the workspace.
     # And the extra data may be shared and the downloading can be time consuming.
     # So we just want to download it once.
@@ -697,7 +708,10 @@ class QlibDockerConf(DockerConf):
     mount_path: str = "/workspace/qlib_workspace/"
     default_entry: str = "qrun conf.yaml"
     extra_volumes: dict = {
-        str(Path("~/.qlib/").expanduser().resolve().absolute()): {"bind": "/root/.qlib/", "mode": "rw"}
+        str(Path("~/.qlib/").expanduser().resolve().absolute()): {
+            "bind": "/root/.qlib/",
+            "mode": "rw",
+        }
     }
     shm_size: str | None = "16g"
     enable_gpu: bool = True
@@ -733,6 +747,10 @@ class DSDockerConf(DockerConf):
     mount_path: str = "/kaggle/workspace"
     default_entry: str = "python main.py"
 
+    # Exclude data science specific directories from chmod
+    # TODO: do not use hardcoded paths
+    exclude_chmod_paths: list[str] = ["workspace_input", "workspace_cache"]
+
     running_timeout_period: int | None = 600
     mem_limit: str | None = (
         "48g"  # Add memory limit attribute # new-york-city-taxi-fare-prediction may need more memory
@@ -758,6 +776,27 @@ class MLEBDockerConf(DockerConf):
     enable_cache: bool = False
 
 
+class LLMDockerConf(DockerConf):
+    model_config = SettingsConfigDict(env_prefix="LLM_DOCKER_")
+
+    build_from_dockerfile: bool = True
+    dockerfile_folder_path: Path = (
+        Path(__file__).parent.parent / "scenarios" / "finetune" / "docker" / "llm_finetune_docker"
+    )
+    image: str = "local_llm_finetune:latest"
+    mount_path: str = "/workspace/"
+    default_entry: str = "llamafactory-cli version"
+
+    # Exclude data directory which is mounted as read-only
+    exclude_chmod_paths: list[str] = ["dataset", "model"]
+
+    running_timeout_period: int | None = 36000  # 10 hours for training
+    mem_limit: str | None = "48g"  # Large memory for LLM training
+    shm_size: str | None = "16g"  # Shared memory for multi-GPU training
+    enable_gpu: bool = True  # Enable GPU for LLM training
+    enable_cache: bool = False  # Disable cache to avoid conflicts during training
+
+
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
 class DockerEnv(Env[DockerConf]):
     # TODO: Save the output into a specific file
@@ -774,7 +813,9 @@ class DockerEnv(Env[DockerConf]):
         ):
             logger.info(f"Building the image from dockerfile: {self.conf.dockerfile_folder_path}")
             resp_stream = client.api.build(
-                path=str(self.conf.dockerfile_folder_path), tag=self.conf.image, network_mode=self.conf.network
+                path=str(self.conf.dockerfile_folder_path),
+                tag=self.conf.image,
+                network_mode=self.conf.network,
             )
             if isinstance(resp_stream, str):
                 logger.info(resp_stream)
@@ -786,7 +827,10 @@ class DockerEnv(Env[DockerConf]):
                         if line.strip():
                             status_dict = json.loads(line)
                             if "error" in status_dict:
-                                p.update(task, description=f"[red]error: {status_dict['error']}")
+                                p.update(
+                                    task,
+                                    description=f"[red]error: {status_dict['error']}",
+                                )
                                 raise docker.errors.BuildError(status_dict["error"], "")
                             if "stream" in status_dict:
                                 p.update(task, description=status_dict["stream"])
@@ -803,7 +847,11 @@ class DockerEnv(Env[DockerConf]):
                 status_task = sp.add_task("[bright_magenta]layer status", progress="")
                 for line in image_pull:
                     if "error" in line:
-                        sp.update(status_task, description=f"[red]error", progress=line["error"])
+                        sp.update(
+                            status_task,
+                            description=f"[red]error",
+                            progress=line["error"],
+                        )
                         raise docker.errors.APIError(line["error"])
 
                     layer_id = line["id"]
@@ -819,7 +867,10 @@ class DockerEnv(Env[DockerConf]):
                     if status == "Pull complete" or status == "Already exists":
                         completed_layers += 1
 
-                    sp.update(main_task, progress=f"[green]{completed_layers}[white]/{len(layer_set)} layers completed")
+                    sp.update(
+                        main_task,
+                        progress=f"[green]{completed_layers}[white]/{len(layer_set)} layers completed",
+                    )
                     sp.update(
                         status_task,
                         description=f"[bright_magenta]layer {layer_id} [yellow]{status}",
@@ -886,7 +937,10 @@ class DockerEnv(Env[DockerConf]):
                 volumes[lp] = rp if isinstance(rp, dict) else {"bind": rp, "mode": self.conf.extra_volume_mode}
             cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
-            volumes[cache_path] = {"bind": T("scenarios.data_science.share:scen.cache_path").r(), "mode": "rw"}
+            volumes[cache_path] = {
+                "bind": T("scenarios.data_science.share:scen.cache_path").r(),
+                "mode": "rw",
+            }
         for lp, rp in running_extra_volume.items():
             volumes[lp] = rp if isinstance(rp, dict) else {"bind": rp, "mode": self.conf.extra_volume_mode}
 

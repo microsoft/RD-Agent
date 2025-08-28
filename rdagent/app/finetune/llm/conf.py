@@ -2,42 +2,73 @@ import os
 
 from pydantic_settings import SettingsConfigDict
 
-from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.conf import RD_AGENT_SETTINGS, ExtendedBaseSettings
+from rdagent.scenarios.finetune.utils import prev_model_dirname
 
 
-class LLMFinetuneScen(ExtendedBaseSettings):
+class LLMFinetunePropSetting(ExtendedBaseSettings):
+    """LLM Fine-tune dedicated property settings.
+
+    - Adjust timeouts and template
+    - Use FT_ env prefix for overrides
+    """
+
     model_config = SettingsConfigDict(env_prefix="FT_", protected_namespaces=())
-    scen: str = "rdagent.app.finetune.llm.scen.LLMFinetuneScen"
-    """
-    Scenario class for data science tasks.
-    - For Kaggle competitions, use: "rdagent.scenarios.data_science.scen.KaggleScen"
-    - For custom data science scenarios, use: "rdagent.scenarios.data_science.scen.DataScienceScen"
-    - For LLM finetune scenarios, use: "rdagent.app.finetune.llm.scen.LLMFinetuneScen"
-    - For Data science finetune scenarios, use: "rdagent.app.finetune.data_science.scen.DSFinetuneScen"
+
+    # Main Components
+    scen: str = "rdagent.scenarios.finetune.scen.LLMFinetuneScen"
+    """Scenario class for LLM fine-tuning tasks."""
+
+    hypothesis_gen: str = "rdagent.scenarios.finetune.proposal.proposal.LLMFinetuneExpGen"
+    """Hypothesis generation class for LLM fine-tuning tasks."""
+
+    hypothesis2experiment: str = "rdagent.scenarios.finetune.proposal.proposal.LLMHypothesis2Experiment"
+    """Hypothesis to experiment converter.
+    Function: Convert abstract LLM fine-tuning hypotheses into concrete experiment configurations.
     """
 
-    hypothesis_gen: str = "rdagent.app.finetune.llm.proposal.FinetuneExpGen"
-    """Hypothesis generation class"""
+    coder: str = "rdagent.components.coder.finetune.LLMFinetuneCoSTEER"
+    """Code generator.
+    Function: Generate LLM fine-tuning code based on experiment design.
+    """
 
+    runner: str = "rdagent.scenarios.finetune.train.runner.LLMFinetuneRunner"
+    """Code runner.
+    Function: Execute LLM fine-tuning code in a Docker environment.
+    """
+
+    summarizer: str = "rdagent.scenarios.finetune.dev.feedback.LLMExperiment2Feedback"
+    """Result summarizer - To be implemented.
+    Function: Analyze fine-tuning results and generate feedback, including performance metrics and error analysis.
+    """
+
+    # Timeouts (longer for LLM training)
     debug_timeout: int = 36000
-    """The timeout limit for running on debugging data"""
+    debug_recommend_timeout: int = 36000
     full_timeout: int = 360000
-    """The timeout limit for running on full data"""
+    full_recommend_timeout: int = 360000
 
+    # Pipeline behavior
     coder_on_whole_pipeline: bool = True
     enable_model_dump: bool = True
-    app_tpl: str = "app/finetune/llm/tpl"
+    app_tpl: str = "scenarios/finetune"
+
+    # Data paths and processing
+    file_path: str | None = None  # FT_FILE_PATH/dataset/<dataset>/, FT_FILE_PATH/model/<baseModel>/
+    show_nan_columns: bool = False
+    sample_data_by_LLM: bool = True
+
+    # LLM-specific fields
+    base_model_name: str | None = None
+    dataset: str = ""
+
+    @property
+    def task(self) -> str:
+        """Generate task name using prev_model_dirname function."""
+        if self.base_model_name and self.dataset:
+            return prev_model_dirname(self.base_model_name, self.dataset)
+        return ""
 
 
-def update_settings(competition: str):
-    """
-    Update the RD_AGENT_SETTINGS with the values from LLM_FINETUNE_SETTINGS.
-    """
-    LLM_FINETUNE_SETTINGS = LLMFinetuneScen()
-    RD_AGENT_SETTINGS.app_tpl = LLM_FINETUNE_SETTINGS.app_tpl
-    os.environ["DS_CODER_COSTEER_EXTRA_EVALUATOR"] = '["rdagent.app.finetune.share.eval.PrevModelLoadEvaluator"]'
-    for field_name, new_value in LLM_FINETUNE_SETTINGS.model_dump().items():
-        if hasattr(DS_RD_SETTING, field_name):
-            setattr(DS_RD_SETTING, field_name, new_value)
-    DS_RD_SETTING.competition = competition
+# Global setting instance for LLM finetuning scenario
+FT_RD_SETTING = LLMFinetunePropSetting()

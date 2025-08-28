@@ -1,39 +1,78 @@
+"""
+LLM Fine-tuning Entry Point
+
+Standard RDLoop entry point for LLM fine-tuning, consistent with data science implementation.
+"""
+
 import asyncio
+import os
 from pathlib import Path
+from typing import Optional
 
 import fire
 
-from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.app.finetune.llm.conf import update_settings
-from rdagent.core.utils import import_class
+from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.data_science.loop import DataScienceRDLoop
+from rdagent.scenarios.finetune.loop import LLMFinetuneRDLoop
+from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
 
 
+# TODO: if model is not provided, choose the base model automatically
 def main(
     model: str | None = None,
     dataset: str | None = None,
+    step_n: Optional[int] = None,
+    loop_n: Optional[int] = None,
+    timeout: Optional[str] = None,
 ):
     """
+    LLM fine-tuning entry point
+
     Parameters
     ----------
-    dataset :
-        Dateset name, used for finetune.
+    dataset : str
+        Dataset name for fine-tuning (e.g., 'shibing624/alpaca-zh')
+    model : str
+        Model name for fine-tuning (e.g., 'Qwen/Qwen2.5-1.5B-Instruct')
+    step_n : int, optional
+        Number of steps to run; if None, runs indefinitely until completion or error
+    loop_n : int, optional
+        Number of loops to run; if None, runs indefinitely until completion or error
+    timeout : str, optional
+        Maximum duration for the entire process
 
-    Auto R&D Evolving loop for models finetune.
-    You can continue running a session by using the command:
+    Example:
     .. code-block:: bash
-        dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh
+        dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh --model Qwen/Qwen2.5-1.5B-Instruct
+        dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh --model Qwen/Qwen2.5-1.5B-Instruct --step_n 1
     """
     if not dataset:
-        raise Exception("Please specify dataset name.")
+        raise Exception("Please specify dataset name using --dataset")
 
-    model_folder = Path(DS_RD_SETTING.local_data_path) / dataset / "prev_model"
-    if not model_folder.exists():
-        raise Exception(f"Please put the model path to {model_folder}.")
-    update_settings(dataset)
-    rd_loop: DataScienceRDLoop = DataScienceRDLoop(DS_RD_SETTING)
-    asyncio.run(rd_loop.run())
+    if not model:
+        raise Exception("Please specify model name using --model")
+
+    # Validate FT_FILE_PATH environment variable
+    ft_root_str = os.environ.get("FT_FILE_PATH")
+    if not ft_root_str:
+        raise Exception("Please set FT_FILE_PATH environment variable")
+    ft_root = Path(ft_root_str)
+    if not ft_root.exists():
+        raise Exception(f"FT_FILE_PATH does not exist: {ft_root}")
+
+    # Ensure dataset and model assets exist
+    ensure_ft_assets_exist(model, dataset, ft_root)
+
+    # Update FT setting instance with provided dataset and model
+    FT_RD_SETTING.dataset = dataset
+    FT_RD_SETTING.base_model_name = model
+    FT_RD_SETTING.file_path = str(ft_root)
+
+    # Create and run LLM fine-tuning loop using standard RDLoop async workflow
+    logger.info(f"Starting LLM fine-tuning: {model} on {dataset}")
+    loop = LLMFinetuneRDLoop(FT_RD_SETTING)
+    asyncio.run(loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout))
+    logger.info("LLM fine-tuning completed!")
 
 
 if __name__ == "__main__":
