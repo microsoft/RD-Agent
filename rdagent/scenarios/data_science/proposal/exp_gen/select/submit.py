@@ -346,7 +346,7 @@ class ValidationSelector(SOTAexpSelector):
                 logger.info(f"Successfully generated and ran {script_type}.py.")
                 if script_type == "data":
                     env = get_ds_env(
-                        extra_volumes={mock_folder: input_folder},
+                        extra_volumes={str(Path(mock_folder) / input_folder): input_folder},
                         running_timeout_period=DS_RD_SETTING.full_timeout,
                     )
                     result = ws.run(env=env, entry="python main.py")
