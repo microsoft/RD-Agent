@@ -224,15 +224,20 @@ class ValidationSelector(SOTAexpSelector):
         mock_folder = f"/tmp/mock/{self.competition}"
 
         try:
-            grade_py_code = self._prepare_validation_scripts(
+            data_py_code, grade_py_code = self._prepare_validation_scripts(
                 reference_exp=self.candidate[0][0], competition=self.competition, mock_folder=mock_folder
             )
         except RuntimeError as e:
             logger.error(f"ValidationSelector: Failed to prepare validation environment. {e}")
-            # shutil.rmtree(mock_folder, ignore_errors=True)
+            shutil.rmtree(mock_folder, ignore_errors=True)
             return None
 
         if grade_py_code and self.only_sample:
+            print("======== data.py ========")
+            print(data_py_code)
+            print("======== grade.py ========")
+            print(grade_py_code)
+            print("======== code end ========")
             return None
 
         validation_tasks = [
@@ -262,7 +267,9 @@ class ValidationSelector(SOTAexpSelector):
         )
         return [best_exp]
 
-    def _prepare_validation_scripts(self, reference_exp: DSExperiment, competition: str, mock_folder: str) -> str:
+    def _prepare_validation_scripts(
+        self, reference_exp: DSExperiment, competition: str, mock_folder: str
+    ) -> Tuple[str, str]:
         """Generates and verifies data.py and grade.py using an LLM."""
         input_folder = T("scenarios.data_science.share:scen.input_path").r()
         mock_input_path = Path(mock_folder) / input_folder
@@ -305,7 +312,7 @@ class ValidationSelector(SOTAexpSelector):
             )
             grade_py_path.write_text(grade_py_code)
 
-        return grade_py_path.read_text()
+        return data_py_code, grade_py_path.read_text()
 
     def _generate_and_run_script(
         self,
