@@ -1132,7 +1132,7 @@ with st.sidebar:
 
             state.times = load_times_info(state.log_folder / state.log_path)
             state.data, state.llm_data, state.token_costs = load_data(state.log_folder / state.log_path)
-            state.sota_info = get_sota_exp_stat(Path(state.log_folder) / state.log_path, to_submit=True)
+            state.sota_info = get_sota_exp_stat(Path(state.log_folder) / state.log_path, selector="auto")
             st.rerun()
     st.toggle("**Show LLM Log**", key="show_llm_log")
     st.toggle("*Show stdout*", key="show_stdout")
