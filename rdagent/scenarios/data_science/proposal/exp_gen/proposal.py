@@ -1140,7 +1140,11 @@ class DSProposalV2ExpGen(ExpGen):
             merge_hours=DS_RD_SETTING.merge_hours,
             # extra_exp_feedback_list_desc=extra_exp_feedback_list_str,
             selected_extra_hypo_l=selected_extra_hypo_l,
-            hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(),
+            hypothesis_output_format=(
+                T(".prompts_v2:output_format.hypothesis_select_format").r()
+                if not self.supports_response_schema
+                else None
+            ),
             sota_flag=sota_flag,
             current_sota_score=current_sota_score,
             ratio_merge_or_ensemble=ratio_merge_or_ensemble,
@@ -1157,9 +1161,7 @@ class DSProposalV2ExpGen(ExpGen):
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
             response_format=HypothesisSimple if self.supports_response_schema else {"type": "json_object"},
-            json_target_type=(
-                Dict[str, Dict[str, str | Dict[str, str | int]]] if not self.supports_response_schema else None
-            ),
+            json_target_type=(Dict[str, str] if not self.supports_response_schema else None),
         )
 
         response_dict = json.loads(response)
