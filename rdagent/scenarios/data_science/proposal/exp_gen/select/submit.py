@@ -2,6 +2,7 @@ import json
 import pickle
 import re
 import shutil
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -208,10 +209,13 @@ class ValidationSelector(SOTAexpSelector):
     re-runs all candidates on this new data, and returns the best performer.
     """
 
-    def __init__(self, candidate: List[Tuple[DSExperiment, str]], direction_sign: int, competition: str):
+    def __init__(
+        self, candidate: List[Tuple[DSExperiment, str]], direction_sign: int, competition: str, only_sample: bool
+    ):
         self.candidate = candidate
         self.direction_sign = direction_sign
         self.competition = competition
+        self.only_sample = only_sample
 
     def get_sota_exp_to_submit(self, trace: Trace) -> Optional[List[DSExperiment]]:
         """
@@ -225,7 +229,10 @@ class ValidationSelector(SOTAexpSelector):
             )
         except RuntimeError as e:
             logger.error(f"ValidationSelector: Failed to prepare validation environment. {e}")
-            shutil.rmtree(mock_folder, ignore_errors=True)
+            # shutil.rmtree(mock_folder, ignore_errors=True)
+            return None
+
+        if grade_py_code and self.only_sample:
             return None
 
         validation_tasks = [
@@ -263,10 +270,11 @@ class ValidationSelector(SOTAexpSelector):
 
         data_py_path = Path(mock_folder) / "data.py"
         grade_py_path = Path(mock_folder) / "grade.py"
+        label_path = Path(mock_folder) / "workspace_input/label.csv"
         reference_code = reference_exp.experiment_workspace.file_dict.get("main.py", "")
 
         # --- Generate data.py if needed ---
-        if not data_py_path.exists():
+        if not data_py_path.exists() or not label_path.exists():
             logger.info(f"Generating synthetic data script: {data_py_path}")
             data_py_code = self._generate_and_run_script(
                 script_type="data",
@@ -337,9 +345,13 @@ class ValidationSelector(SOTAexpSelector):
                     running_timeout_period=DS_RD_SETTING.full_timeout,
                 )
             else:  # For grade.py, we only need the generated data
+                shutil.copy(
+                    str(Path(mock_folder) / "submission.csv"),
+                    str(ws.workspace_path / "submission.csv"),
+                )
                 env = get_ds_env(extra_volumes={str(Path(mock_folder) / input_folder): input_folder})
 
-            result = ws.run(env=env, entry=f"python {script_type}.py")
+            result = ws.run(env=env, entry=f"python {script_type}.py # {time.time()}")  # Do not cache the result
             stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
 
             if result.exit_code == 0:
@@ -358,9 +370,17 @@ class ValidationSelector(SOTAexpSelector):
                                 str(ws.workspace_path / "submission.csv"),
                                 str(Path(mock_folder) / "submission.csv"),
                             )
-                        return generated_code
+                            return generated_code
+                        else:
+                            err_msg = "No submission.csv found in workspace after running main.py with generated data."
                     else:
                         err_msg = f"Error in main.py with generated data: {shrink_text(stdout, context_lines=20, line_len=500)}"
+                else:
+                    score = _parsing_score(stdout)
+                    if score is not None:
+                        return generated_code
+                    else:
+                        err_msg = f"No score found in stdout: {stdout}."
             else:
                 err_msg = f"Error in {script_type}.py: {shrink_text(stdout, context_lines=20, line_len=500)}"
 
@@ -415,23 +435,28 @@ def process_experiment(
         return exp, None
 
     # Score parsing
-    if not grade_stdout:
-        return exp, None
+    return exp, _parsing_score(grade_stdout)
 
+
+def _parsing_score(grade_stdout: str) -> Optional[float]:
+    if not grade_stdout:
+        return None
     try:
         # Priority 1: JSON parsing
-        return exp, float(json.loads(grade_stdout)["score"])
-    except (json.JSONDecodeError, KeyError, TypeError):
-        try:
-            # Priority 2: Python literal eval
-            return exp, float(eval(grade_stdout)["score"])
-        except Exception:
-            try:
-                # Priority 3: Regex for the last number in the string
-                return exp, float(re.findall(r"[-+]?\d*\.\d+|\d+", grade_stdout)[-1])
-            except (IndexError, ValueError):
-                logger.warning(f"Failed to extract score for {loop_id} from grade_stdout: {grade_stdout}")
-                return exp, None
+        return float(json.loads(grade_stdout)["score"])
+    except:
+        pass
+    try:
+        # Priority 2: Python literal eval
+        return float(eval(grade_stdout)["score"])
+    except:
+        pass
+    try:
+        # Priority 3: Regex for the last number in the string
+        return float(re.findall(r"[-+]?\d*\.\d+|\d+", grade_stdout)[-1])
+    except:
+        pass
+    return None
 
 
 def check_hit(selected_exps: List[DSExperiment], trace: Trace, sota_result: Dict[str, Any]) -> bool:
@@ -464,7 +489,9 @@ def try_get_loop_id(trace: Trace, exp: DSExperiment):
 # ==============================================================================
 
 
-def evaluate_one_trace(selector_name: str, trace_pkl_path: Path, trace_folder: Path, debug: bool) -> Tuple[str, bool]:
+def evaluate_one_trace(
+    selector_name: str, trace_pkl_path: Path, trace_folder: Path, debug: bool, only_sample: bool
+) -> Tuple[str, bool]:
     """
     Loads a single trace, uses the specified selector to pick an experiment,
     and checks if the selection was a "hit" (a known SOTA solution).
@@ -527,6 +554,7 @@ def evaluate_one_trace(selector_name: str, trace_pkl_path: Path, trace_folder: P
             candidate=[(exp, try_get_loop_id(trace, exp)) for exp in candidate_exps],
             direction_sign=direction_sign,
             competition=competition,
+            only_sample=only_sample,
         )
 
     selected_sota_exps = selector.get_sota_exp_to_submit(trace)
@@ -539,7 +567,9 @@ def evaluate_one_trace(selector_name: str, trace_pkl_path: Path, trace_folder: P
     return competition, hit
 
 
-def select_on_existing_trace(selector_name: str, trace_root: str, experiment: str | None = None, debug: bool = False):
+def select_on_existing_trace(
+    selector_name: str, trace_root: str, experiment: str | None = None, debug: bool = False, only_sample: bool = False
+):
     """
     Offline evaluation of a SOTA experiment selector on existing traces.
 
@@ -558,7 +588,7 @@ def select_on_existing_trace(selector_name: str, trace_root: str, experiment: st
         if experiment is not None and not experiment in str(trace_folder):
             continue
         for trace_pkl_path in trace_folder.glob("*.pkl"):
-            tasks.append((evaluate_one_trace, (selector_name, trace_pkl_path, trace_folder, debug)))
+            tasks.append((evaluate_one_trace, (selector_name, trace_pkl_path, trace_folder, debug, only_sample)))
 
     if not tasks:
         logger.error(f"No .pkl trace files found in subdirectories of {trace_root}")
