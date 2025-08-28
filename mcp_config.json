@@ -6,7 +6,7 @@
       "handler": "Context7Handler",
       "enabled": true,
       "extra_config": {
-        "model": "gpt-4o",
+        "model": "gpt-4.1",
         "max_retries": 2,
         "retry_delay": 5.0,
         "request_timeout": 30.0
