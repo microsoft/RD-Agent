@@ -125,7 +125,7 @@ class CoSTEER(Developer[Experiment]):
             logger.log_object(evo_exp.sub_workspace_list, tag="evolving code")
             for sw in evo_exp.sub_workspace_list:
                 logger.info(f"evolving workspace: {sw}")
-            if max_seconds is not None and (datetime.now() - start_datetime).seconds > max_seconds:
+            if max_seconds is not None and (datetime.now() - start_datetime).total_seconds() > max_seconds:
                 logger.info(f"Reached max time limit {max_seconds} seconds, stop evolving")
                 reached_max_seconds = True
                 break
