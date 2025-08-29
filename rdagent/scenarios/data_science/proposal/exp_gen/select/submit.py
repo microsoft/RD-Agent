@@ -210,12 +210,18 @@ class ValidationSelector(SOTAexpSelector):
     """
 
     def __init__(
-        self, candidate: List[Tuple[DSExperiment, str]], direction_sign: int, competition: str, only_sample: bool
+        self,
+        candidate: List[Tuple[DSExperiment, str]],
+        direction_sign: int,
+        competition: str,
+        only_sample: bool,
+        sample_code_path: str,
     ):
         self.candidate = candidate
         self.direction_sign = direction_sign
         self.competition = competition
         self.only_sample = only_sample
+        self.sample_code_path = sample_code_path
 
     def get_sota_exp_to_submit(self, trace: Trace) -> Optional[List[DSExperiment]]:
         """
@@ -277,6 +283,25 @@ class ValidationSelector(SOTAexpSelector):
 
         data_py_path = Path(mock_folder) / "data.py"
         grade_py_path = Path(mock_folder) / "grade.py"
+        if Path(self.sample_code_path / competition / "data.py").exists():
+            shutil.copy(self.sample_code_path / competition / "data.py", data_py_path)
+            shutil.copy(self.sample_code_path / competition / "grade.py", grade_py_path)
+            data_py_code = data_py_path.read_text()
+            ws = FBWorkspace()
+            ws.inject_code_from_file_dict(reference_exp.experiment_workspace)
+            ws.inject_files(**{f"data.py": data_py_code})
+            env = get_ds_env(
+                extra_volumes={
+                    str(Path(mock_folder) / input_folder): input_folder,
+                    f"{DS_RD_SETTING.local_data_path}/{competition}": "./source",
+                },
+                running_timeout_period=DS_RD_SETTING.full_timeout,
+            )
+            result = ws.run(env=env, entry=f"python data.py # {time.time()}")  # Do not cache the result
+            if result.exit_code == 0:
+                logger.info(f"Successfully ran data.py.")
+                return data_py_code, grade_py_path.read_text()
+
         label_path = Path(mock_folder) / "workspace_input/label.csv"
         reference_code = reference_exp.experiment_workspace.file_dict.get("main.py", "")
 
@@ -368,7 +393,7 @@ class ValidationSelector(SOTAexpSelector):
                         extra_volumes={str(Path(mock_folder) / input_folder): input_folder},
                         running_timeout_period=DS_RD_SETTING.full_timeout,
                     )
-                    result = ws.run(env=env, entry="python main.py")
+                    result = ws.run(env=env, entry=f"python main.py # {time.time()}")
                     stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
                     if result.exit_code == 0:
                         # move submission.csv to mock_folder
@@ -497,7 +522,7 @@ def try_get_loop_id(trace: Trace, exp: DSExperiment):
 
 
 def evaluate_one_trace(
-    selector_name: str, trace_pkl_path: Path, trace_folder: Path, debug: bool, only_sample: bool
+    selector_name: str, trace_pkl_path: Path, trace_folder: Path, debug: bool, only_sample: bool, sample_code_path: str
 ) -> Tuple[str, bool]:
     """
     Loads a single trace, uses the specified selector to pick an experiment,
@@ -516,7 +541,7 @@ def evaluate_one_trace(
         return competition, False
 
     if not sota_result.get("medal_loops"):
-        logger.info(f"No SOTA loops defined for {competition}, skipping.")
+        logger.info(f"No Medal loops defined for {competition}, skipping.")
         return competition, False
 
     trace = pickle.load(trace_pkl_path.open("rb"))
@@ -524,15 +549,6 @@ def evaluate_one_trace(
     if competition == "detecting-insults-in-social-commentary":
         trace.scen.metric_direction = 1
     direction_sign = 1 if trace.scen.metric_direction else -1
-
-    if debug:
-        quick_selector = BestValidSelector(num_candidates=1, use_decision=True, each_trace=False)
-        quick_selected_exps = quick_selector.get_sota_exp_to_submit(trace)
-        if check_hit(quick_selected_exps, trace, sota_result):
-            logger.info(f"Quick selector HIT for {competition}. Skipping further selection.")
-            return competition, True
-
-    logger.info(f"Quick selector missed for {competition}. Proceeding with main selector '{selector_name}'.")
 
     # --- Selector Instantiation ---
     # The core logic is now encapsulated in these selectors.
@@ -542,10 +558,18 @@ def evaluate_one_trace(
         selector = AutoSOTAexpSelector()
     elif selector_name == "best_valid":
         # These params can be configured or passed via CLI
-        selector = BestValidSelector(num_candidates=MAX_SOTA_CANDIDATES, use_decision=True, each_trace=True)
+        selector = BestValidSelector(num_candidates=1, use_decision=True, each_trace=False)
 
     if selector_name == "validation":
         # The ValidationSelector is used to select the best re-test score.
+        if debug:
+            quick_selector = BestValidSelector(num_candidates=1, use_decision=True, each_trace=False)
+            quick_selected_exps = quick_selector.get_sota_exp_to_submit(trace)
+            quick_hit = check_hit(quick_selected_exps, trace, sota_result)
+            logger.info(
+                f"BestvalidSelector for {trace_pkl_path.parent.name} - {competition}: {'HIT' if quick_hit else 'MISS'}"
+            )
+
         base_selector = BestValidSelector(num_candidates=MAX_SOTA_CANDIDATES, use_decision=True, each_trace=True)
         candidate_exps = base_selector.get_sota_exp_to_submit(trace)
         if not candidate_exps:
@@ -553,7 +577,8 @@ def evaluate_one_trace(
             return competition, False
 
         logger.info(f"ValidationSelector: Received {len(candidate_exps)} candidates for validation.")
-        if debug and not check_hit(candidate_exps, trace, sota_result):
+        pool_hit = check_hit(candidate_exps, trace, sota_result)
+        if debug and not pool_hit:
             logger.info("ValidationSelector: Base selector's candidates did not hit any SOTA. Skipping validation.")
             return competition, False
 
@@ -562,6 +587,7 @@ def evaluate_one_trace(
             direction_sign=direction_sign,
             competition=competition,
             only_sample=only_sample,
+            sample_code_path=sample_code_path,
         )
 
     selected_sota_exps = selector.get_sota_exp_to_submit(trace)
@@ -575,7 +601,12 @@ def evaluate_one_trace(
 
 
 def select_on_existing_trace(
-    selector_name: str, trace_root: str, experiment: str | None = None, debug: bool = False, only_sample: bool = False
+    selector_name: str,
+    trace_root: str,
+    experiment: str | None = None,
+    debug: bool = False,
+    only_sample: bool = False,
+    sample_code_path: str | None = None,
 ):
     """
     Offline evaluation of a SOTA experiment selector on existing traces.
@@ -595,7 +626,12 @@ def select_on_existing_trace(
         if experiment is not None and not experiment in str(trace_folder):
             continue
         for trace_pkl_path in trace_folder.glob("*.pkl"):
-            tasks.append((evaluate_one_trace, (selector_name, trace_pkl_path, trace_folder, debug, only_sample)))
+            tasks.append(
+                (
+                    evaluate_one_trace,
+                    (selector_name, trace_pkl_path, trace_folder, debug, only_sample, sample_code_path),
+                )
+            )
 
     if not tasks:
         logger.error(f"No .pkl trace files found in subdirectories of {trace_root}")
