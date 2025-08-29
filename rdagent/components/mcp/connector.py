@@ -17,7 +17,6 @@ from mcp.shared._httpx_utils import create_mcp_http_client
 from mcp.types import Tool
 from pydantic import BaseModel, Field
 from tenacity import (
-    before_sleep_log,
     retry,
     retry_if_exception_type,
     stop_after_attempt,
@@ -31,7 +30,7 @@ class StreamableHTTPConfig(BaseModel):
     """Configuration for streamable HTTP MCP connection."""
 
     url: str = Field(..., description="MCP service URL")
-    timeout: float = Field(default=3.0, description="Connection timeout in seconds")
+    timeout: float = Field(default=120.0, description="Connection timeout in seconds")
     sse_read_timeout: float = Field(default=300.0, description="SSE read timeout in seconds")
     terminate_on_close: bool = Field(default=True, description="Terminate session on close")
     headers: Optional[Dict[str, Any]] = Field(default=None, description="HTTP headers")
@@ -80,14 +79,16 @@ class StreamableHTTPConnector:
         self._connection_context = None
 
     @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=2, min=5, max=60),
-        retry=retry_if_exception_type((ConnectionError, TimeoutError, RuntimeError, OSError, RateLimitError)),
-        before_sleep=before_sleep_log(logger, "WARNING", exc_info=True),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((ConnectionError, TimeoutError, OSError)),
+        before_sleep=lambda retry_state: logger.info(
+            f"Connection retry {retry_state.attempt_number}/3, waiting {retry_state.next_action.sleep}s"
+        ),
     )
     @asynccontextmanager
     async def connect(self):
-        """Connect to MCP server and yield session."""
+        """Connect to MCP server and yield session with automatic retry on connection errors."""
         session = None
         connection_context = None
 

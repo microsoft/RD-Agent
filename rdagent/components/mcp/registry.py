@@ -92,6 +92,7 @@ class MCPRegistry:
     def __init__(self, config: Optional[MCPRegistryConfig] = None):
         self.config = config or MCPRegistryConfig()
         self._handlers: Dict[str, Any] = {}
+        self._initialized: bool = False
 
     @classmethod
     def from_config_file(cls, config_path: Path) -> "MCPRegistry":
@@ -158,6 +159,13 @@ class MCPRegistry:
         except (ImportError, AttributeError) as e:
             raise ValueError(f"Failed to import handler '{handler_spec}': {e}") from e
 
+    async def ensure_initialized(self):
+        """Ensure all services are initialized (only executed once)."""
+        if not self._initialized:
+            await self.auto_register_all_services()
+            self._initialized = True
+            logger.info("MCP registry initialization complete")
+
     async def auto_register_all_services(self):
         """Auto-register all enabled services from configuration."""
         for name, config in self.config.mcp_services.items():
@@ -195,17 +203,13 @@ class MCPRegistry:
         # Create connector with retry mechanism
         connector_config = config.to_connector_config()
 
-        try:
-            # Create connector directly (retry mechanism is built into connect() method)
-            connector = StreamableHTTPConnector(connector_config)
+        # Create connector directly
+        connector = StreamableHTTPConnector(connector_config)
 
-            # Process query using handler
-            result = await handler.process_query(connector, query, **kwargs)
-            logger.info(f"Query processed successfully by service '{service_name}'")
-            return result
-        except Exception as e:
-            logger.error(f"Error querying service '{service_name}': {e}")
-            return None
+        # Process query using handler
+        result = await handler.process_query(connector, query, **kwargs)
+        logger.info(f"Query processed successfully by service '{service_name}'")
+        return result
 
     async def query_auto(self, query: str, **kwargs) -> Optional[str]:
         """Automatically select and query the best available service."""

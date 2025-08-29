@@ -316,6 +316,7 @@ class LiteLLMAPIBackend(APIBackend):
         tool_executor: Any = None,
         verbose: bool = False,
         model_config_override: dict[str, Any] | None = None,
+        round_callback: Any = None,
         **kwargs: Any,
     ) -> tuple[str, list[dict[str, Any]]]:
         """
@@ -328,6 +329,7 @@ class LiteLLMAPIBackend(APIBackend):
             tool_executor: Function to execute tool calls
             verbose: Enable verbose logging
             model_config_override: Override model configuration (model, api_base, api_key, etc.)
+            round_callback: Optional async callback(round_num, messages) called after each round
             **kwargs: Additional parameters for chat completion
 
         Returns:
@@ -373,6 +375,12 @@ class LiteLLMAPIBackend(APIBackend):
             if not tool_calls:
                 if verbose:
                     logger.info(f"✅ Final response in round {round_count}", tag="mcp_progress")
+                # Call round callback before returning
+                if round_callback:
+                    try:
+                        await round_callback(round_count, messages.copy())
+                    except Exception as e:
+                        logger.warning(f"Round callback error: {e}", tag="litellm_callback")
                 return content, messages
 
             # Execute tool calls if executor provided
@@ -390,6 +398,13 @@ class LiteLLMAPIBackend(APIBackend):
                     messages.append(
                         {"role": "tool", "tool_call_id": tool_call.id, "content": "Tool execution not configured"}
                     )
+
+            # Call round callback if provided
+            if round_callback:
+                try:
+                    await round_callback(round_count, messages.copy())
+                except Exception as e:
+                    logger.warning(f"Round callback error: {e}", tag="litellm_callback")
 
             # Round completion logged at higher level
 

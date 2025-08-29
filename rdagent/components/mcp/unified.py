@@ -29,11 +29,8 @@ def mcp_api_handler(func):
         try:
             registry = get_global_registry()
 
-            # Ensure services are registered if needed
-            enabled_services = registry.get_enabled_services()
-            unregistered = [name for name in enabled_services if not registry.has_handler(name)]
-            if unregistered:
-                await registry.auto_register_all_services()
+            # Ensure services are initialized (only once)
+            await registry.ensure_initialized()
 
             # Inject registry into kwargs for the function
             kwargs["_registry"] = registry
