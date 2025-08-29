@@ -200,6 +200,7 @@ def workspace_win(workspace, cmp_workspace=None, cmp_name="last code."):
         with st.popover(
             f"⏱️{time_str} 📂Files in :blue[{replace_ep_path(workspace.workspace_path)}]", use_container_width=True
         ):
+            st.write(replace_ep_path(workspace.workspace_path))
             code_tabs = st.tabs(show_files.keys())
             for ct, codename in zip(code_tabs, show_files.keys()):
                 with ct:
