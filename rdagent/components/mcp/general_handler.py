@@ -9,6 +9,8 @@ import time
 from abc import abstractmethod
 from typing import Any, Dict, List, Optional
 
+from litellm import RateLimitError
+
 from rdagent.components.mcp.cache import get_mcp_cache
 from rdagent.components.mcp.conf import get_mcp_global_settings
 from rdagent.components.mcp.connector import (
@@ -196,16 +198,29 @@ class GeneralMCPHandler(BaseMCPHandler):
 
                 # Log timing and result
                 self._log_timing("query processing", start_time)
-                self._log_result(final_response, verbose)
 
                 # Cache the result
                 self._cache_result(query, final_response)
 
                 return final_response
 
+        except RateLimitError as e:
+            logger.warning(f"Rate limit exceeded for {self.service_name}, will retry automatically", tag="general_mcp")
+            # Don't re-raise, let the retry mechanism in connector handle it
+            raise
+        except MCPConnectionError as e:
+            # Add context to connection errors
+            logger.error(f"MCP connection failed for {self.service_name}: {e}", tag="general_mcp")
+            raise
         except Exception as e:
-            logger.error(f"General MCP query processing failed: {e}", tag="general_mcp")
-            raise MCPConnectionError(f"Processing failed: {str(e)}") from e
+            logger.error(f"MCP query processing failed for {self.service_name}: {str(e)[:200]}", tag="general_mcp")
+            # Provide a clean error message to the application layer
+            if "timeout" in str(e).lower():
+                raise MCPConnectionError(f"Service timeout - please try again later") from e
+            elif "network" in str(e).lower() or "connection" in str(e).lower():
+                raise MCPConnectionError(f"Network connectivity issue - check your connection") from e
+            else:
+                raise MCPConnectionError(f"Service temporarily unavailable - please retry") from e
 
     async def _fallback_processing(self, connector: StreamableHTTPConnector, query: str, **kwargs) -> str:
         """Fallback processing when function calling is not supported."""
@@ -312,16 +327,6 @@ class GeneralMCPHandler(BaseMCPHandler):
         duration = time.time() - start_time
         if duration > 2.0:  # Only log slow operations
             logger.info(f"⏱️ {self.service_name} {operation} took {duration:.1f}s", tag="mcp_timing")
-
-    def _log_result(self, result: str, verbose: bool = False):
-        """Log result based on verbosity and length."""
-        if verbose:
-            if len(result) > 500:
-                result_preview = result[:500] + "..."
-                logger.info(f"✅ Result preview: {result_preview}", tag="mcp_result")
-            else:
-                logger.info(f"✅ Result: {result}", tag="mcp_result")
-        # Non-verbose mode: no result logging
 
     def get_service_info(self) -> Dict[str, Any]:
         """Get service information - core details only."""

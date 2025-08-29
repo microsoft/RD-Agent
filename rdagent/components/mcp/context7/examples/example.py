@@ -11,17 +11,20 @@ Key Features:
 """
 
 import asyncio
+import datetime
 
 from rdagent.components.mcp import (
     query_mcp,
     query_mcp_auto,
 )
+from rdagent.log import rdagent_logger as logger
 
 
 async def example_query_mcp():
     """Example 1: Using query_mcp() to solve programming errors with specific service"""
-    print("🔍 Example 1: query_mcp() - Direct Service Query")
-    print("=" * 50)
+
+    logger.info(f"🔍 Example 1: query_mcp() - Direct Service Query [{datetime.datetime.now()}]")
+    logger.info("=" * 50)
 
     # Simulate a LightGBM GPU error
     error_message = """### TRACEBACK: Traceback (most recent call last):
@@ -79,30 +82,30 @@ def lgb_optuna_objective(trial, X, y, num_class, debug=False):
     from rdagent.components.mcp import get_service_status
 
     status = get_service_status()
-    print(f"🔍 MCP Service Status: {status}")
+    logger.info(f"🔍 MCP Service Status: {status}")
 
     # Query documentation using specific MCP service
-    print("📋 Querying Context7 documentation service...")
+    logger.info("📋 Querying Context7 documentation service...")
     try:
         result = await query_mcp(
             service_name="context7", query=error_message, full_code=full_code, max_rounds=3, verbose=True
         )
 
         if result:
-            print("\n✅ Solution obtained:")
-            print("-" * 40)
-            print(result)
+            logger.info("\n✅ Solution obtained:")
+            logger.info("-" * 40)
+            logger.info(result)
         else:
-            print("❌ Failed to get relevant documentation information")
+            logger.error("❌ Failed to get relevant documentation information")
 
     except Exception as e:
-        print(f"❌ Query failed: {e}")
+        logger.error(f"❌ Query failed: {e}")
 
 
 async def example_query_mcp_auto():
     """Example 2: Using query_mcp_auto() for automatic service selection"""
-    print("\n🤖 Example 2: query_mcp_auto() - Automatic Service Selection")
-    print("=" * 50)
+    logger.info(f"\n🤖 Example 2: query_mcp_auto() - Automatic Service Selection [{datetime.datetime.now()}]")
+    logger.info("=" * 50)
 
     # Pandas error example
     pandas_error = """
@@ -111,27 +114,27 @@ The DataFrame.append method was removed in pandas 2.0.
 Use pd.concat() instead.
 """
 
-    print("📋 Querying with automatic service selection...")
+    logger.info("📋 Querying with automatic service selection...")
     try:
         # Let the system automatically choose the best MCP service
         result = await query_mcp_auto(query=pandas_error, verbose=True)
 
         if result:
-            print("\n✅ Auto-selected service solution:")
-            print("-" * 40)
-            print(result)
+            logger.info("\n✅ Auto-selected service solution:")
+            logger.info("-" * 40)
+            logger.info(result)
         else:
-            print("❌ Automatic service selection failed to get information")
+            logger.error("❌ Automatic service selection failed to get information")
 
     except Exception as e:
-        print(f"❌ Auto query failed: {e}")
+        logger.error(f"❌ Auto query failed: {e}")
 
 
 async def main():
     """Main function - demonstrates the complete MCP usage workflow"""
-    print("🚀 MCP Unified Interface Usage Example")
-    print("📁 Please ensure mcp_config.json is properly configured")
-    print("=" * 60)
+    logger.info("🚀 MCP Unified Interface Usage Example")
+    logger.info("📁 Please ensure mcp_config.json is properly configured")
+    logger.info("=" * 60)
 
     # Run two main examples
     await example_query_mcp()

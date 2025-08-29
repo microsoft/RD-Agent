@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 from rdagent.components.mcp.conf import is_mcp_enabled
-from rdagent.components.mcp.context7.handler import Context7Handler
 from rdagent.components.mcp.registry import (
     MCPRegistry,
     get_global_registry,
@@ -18,28 +17,40 @@ from rdagent.log import rdagent_logger as logger
 
 
 def _ensure_registry_initialized() -> MCPRegistry:
-    """Ensure the global registry is initialized with default configuration."""
+    """Ensure the global registry is initialized and handlers are registered."""
     registry = get_global_registry()
 
-    # Check if Context7 handler is already registered
-    if not registry.has_handler("context7"):
+    # Check if any services need registration
+    enabled_services = registry.get_enabled_services()
+    services_needing_registration = [name for name in enabled_services if not registry.has_handler(name)]
+
+    if not services_needing_registration:
+        return registry
+
+    # Synchronously register handlers for immediate availability
+    for service_name in services_needing_registration:
         try:
-            # Auto-register Context7 handler with config if available
-            service_config = registry.get_service_config("context7")
-            config_dict = {
-                "service_url": service_config.url if service_config else "http://localhost:8123/mcp",
-                "extra_config": service_config.extra_config if service_config else {},
-            }
-            context7_handler = Context7Handler("context7", **config_dict)
-            registry.register_handler("context7", context7_handler)
-            logger.info("Auto-registered Context7 handler with available config")
+            service_config = registry.get_service_config(service_name)
+            if not service_config:
+                continue
+
+            # Import handler class
+            handler_class = registry._import_handler_class(service_config.handler)
+
+            # Create handler instance
+            handler = handler_class(service_name, service_url=service_config.url, **service_config.extra_config)
+
+            # Register handler
+            registry.register_handler(service_name, handler)
+            logger.info(f"Sync-registered handler for service '{service_name}'")
+
         except Exception as e:
-            logger.warning(f"Failed to auto-register Context7 handler: {e}")
+            logger.warning(f"Failed to sync-register service '{service_name}': {e}")
 
     return registry
 
 
-def initialize_mcp_registry(config_path: Optional[Path] = None) -> MCPRegistry:
+async def initialize_mcp_registry(config_path: Optional[Path] = None) -> MCPRegistry:
     """Initialize MCP registry with configuration file.
 
     Args:
@@ -53,20 +64,12 @@ def initialize_mcp_registry(config_path: Optional[Path] = None) -> MCPRegistry:
 
     registry = MCPRegistry.from_config_file(config_path)
 
-    # Auto-register Context7 handler if enabled
-    if registry.has_service("context7"):
-        try:
-            # 获取Context7服务配置，包括extra_config
-            service_config = registry.get_service_config("context7")
-            config_dict = {
-                "service_url": service_config.url if service_config else "http://localhost:8123/mcp",
-                "extra_config": service_config.extra_config if service_config else {},
-            }
-            context7_handler = Context7Handler("context7", **config_dict)
-            registry.register_handler("context7", context7_handler)
-            logger.info("Registered Context7 handler with config from registry")
-        except Exception as e:
-            logger.error(f"Failed to register Context7 handler: {e}")
+    # Auto-register all enabled services from configuration
+    try:
+        await registry.auto_register_all_services()
+        logger.info("Auto-registered all enabled MCP services from configuration")
+    except Exception as e:
+        logger.error(f"Failed to auto-register MCP services: {e}")
 
     set_global_registry(registry)
     return registry
@@ -138,49 +141,7 @@ async def query_mcp_auto(query: str, **kwargs) -> Optional[str]:
         return None
 
 
-# 同步包装器函数（为兼容现有代码）
-def is_service_available_sync(service_name: str) -> bool:
-    """同步版本的服务可用性检查 - 为兼容现有代码"""
-    import asyncio
-
-    try:
-        # 检查是否有运行中的事件循环
-        asyncio.get_running_loop()
-        # 如果有，创建任务但不等待（返回保守结果）
-        return True  # 保守返回True，让实际查询时处理
-    except RuntimeError:
-        # 没有运行中的事件循环，可以安全使用 run
-        try:
-            return asyncio.run(is_service_available(service_name))
-        except Exception:
-            return False
-
-
-def list_available_mcp_services_sync() -> list:
-    """同步版本的服务列表 - 为兼容现有代码"""
-    import asyncio
-
-    try:
-        asyncio.get_running_loop()
-        return ["context7"]  # 返回默认服务列表
-    except RuntimeError:
-        try:
-            return asyncio.run(list_available_mcp_services())
-        except Exception:
-            return []
-
-
-# 辅助函数
-def get_mcp_service_info() -> dict:
-    """Get information about all registered MCP services."""
-    try:
-        registry = _ensure_registry_initialized()
-        return registry.get_service_info()
-    except Exception as e:
-        logger.error(f"Failed to get MCP service info: {e}")
-        return {}
-
-
+# Utility functions
 def list_available_mcp_services() -> list:
     """List all available MCP service names."""
     try:

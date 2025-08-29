@@ -4,16 +4,15 @@ This module provides configuration-driven service discovery and management
 for multiple MCP services. It supports dynamic registration and routing.
 """
 
-import asyncio
+import importlib
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Protocol, Union, runtime_checkable
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, ValidationError
 
 from rdagent.components.mcp.connector import (
     StreamableHTTPConfig,
-    StreamableHTTPConnector,
     create_mcp_session_with_retry,
 )
 from rdagent.log import rdagent_logger as logger
@@ -24,9 +23,13 @@ class MCPServiceConfig(BaseModel):
 
     name: str = Field(..., description="Service name")
     url: str = Field(..., description="Service URL")
-    timeout: float = Field(default=30.0, description="Connection timeout")
+    timeout: float = Field(default=120.0, description="Connection timeout")
     headers: Optional[Dict[str, Any]] = Field(default=None, description="HTTP headers")
-    handler: str = Field(..., description="Handler class name")
+    handler: str = Field(
+        ...,
+        description="Handler specification: either legacy class name (e.g., 'Context7Handler') "
+        "or full module path (e.g., 'module.path:ClassName')",
+    )
     enabled: bool = Field(default=True, description="Whether service is enabled")
 
     # Additional service-specific configuration
@@ -83,25 +86,12 @@ class MCPRegistryConfig(BaseModel):
             return cls()
 
 
-@runtime_checkable
-class MCPHandler(Protocol):
-    """Protocol for MCP service handlers."""
-
-    async def process_query(self, connector: StreamableHTTPConnector, query: str, **kwargs) -> str:
-        """Process a query using the given connector."""
-        ...
-
-    def get_service_info(self) -> Dict[str, Any]:
-        """Get information about this service."""
-        ...
-
-
 class MCPRegistry:
     """Registry for managing multiple MCP services."""
 
     def __init__(self, config: Optional[MCPRegistryConfig] = None):
         self.config = config or MCPRegistryConfig()
-        self._handlers: Dict[str, MCPHandler] = {}
+        self._handlers: Dict[str, Any] = {}
 
     @classmethod
     def from_config_file(cls, config_path: Path) -> "MCPRegistry":
@@ -109,7 +99,7 @@ class MCPRegistry:
         config = MCPRegistryConfig.from_file(config_path)
         return cls(config)
 
-    def register_handler(self, service_name: str, handler: MCPHandler):
+    def register_handler(self, service_name: str, handler: Any):
         """Register a handler for a service."""
         if service_name not in self.config.mcp_services:
             raise ValueError(f"Service '{service_name}' not configured")
@@ -134,73 +124,57 @@ class MCPRegistry:
         """Check if handler is registered for service."""
         return service_name in self._handlers
 
-    def _import_handler_class(self, handler_class_name: str):
-        """动态导入Handler类"""
-        if handler_class_name == "Context7Handler":
-            from rdagent.components.mcp.context7.handler import Context7Handler
+    def _import_handler_class(self, handler_spec: str):
+        """Dynamically import Handler class using full module path format only.
 
-            return Context7Handler
-        else:
-            # 未来可以支持更多Handler类型
-            # 可以通过完整模块路径动态导入: "module.path:ClassName"
-            raise ValueError(f"Unknown handler class: {handler_class_name}")
+        Args:
+            handler_spec: Handler specification in format 'module.path:ClassName'
+
+        Returns:
+            Handler class object
+
+        Raises:
+            ValueError: If unable to import the specified Handler class
+        """
+        # Check for full module path format
+        if ":" not in handler_spec:
+            raise ValueError(
+                f"Invalid handler specification: '{handler_spec}'. " "Must use format 'module.path:ClassName'."
+            )
+
+        try:
+            # Parse module path and class name
+            module_path, class_name = handler_spec.split(":", 1)
+
+            # Dynamically import module
+            module = importlib.import_module(module_path)
+
+            # Get Handler class
+            handler_class = getattr(module, class_name)
+
+            logger.info(f"Successfully imported handler: {handler_spec}")
+            return handler_class
+
+        except (ImportError, AttributeError) as e:
+            raise ValueError(f"Failed to import handler '{handler_spec}': {e}") from e
 
     async def auto_register_all_services(self):
-        """基于mcp_config.json自动注册所有启用的服务"""
+        """Auto-register all enabled services from configuration."""
         for name, config in self.config.mcp_services.items():
             if config.enabled and not self.has_handler(name):
                 try:
-                    # 动态导入Handler类
+                    # Dynamically import Handler class
                     handler_class = self._import_handler_class(config.handler)
 
-                    # 创建Handler实例，传入服务配置
+                    # Create Handler instance with service configuration
                     handler = handler_class(name, service_url=config.url, **config.extra_config)
 
-                    # 注册Handler
+                    # Register Handler
                     self._handlers[name] = handler
                     logger.info(f"Auto-registered handler for service '{name}' with class '{config.handler}'")
 
                 except Exception as e:
                     logger.error(f"Failed to auto-register service '{name}': {e}")
-
-    async def query_parallel(self, services: List[str], query: str, **kwargs) -> Dict[str, str]:
-        """并发查询多个服务，返回所有结果"""
-        if not services:
-            logger.warning("No services specified for parallel query")
-            return {}
-
-        # 过滤出有效的服务
-        valid_services = [service for service in services if self.has_service(service) and self.has_handler(service)]
-
-        if not valid_services:
-            logger.warning("No valid services available for parallel query")
-            return {}
-
-        logger.info(f"Starting parallel query for services: {valid_services}")
-
-        # 创建并发任务
-        tasks = []
-        for service in valid_services:
-            task = asyncio.create_task(self.query_service(service, query, **kwargs), name=f"query_{service}")
-            tasks.append(task)
-
-        # 等待所有任务完成
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        # 处理结果和异常
-        service_results = {}
-        for service, result in zip(valid_services, results):
-            if isinstance(result, Exception):
-                service_results[service] = f"Error: {str(result)}"
-                logger.error(f"Service '{service}' failed: {result}")
-            elif result is not None:
-                service_results[service] = result
-                logger.info(f"Service '{service}' completed successfully")
-            else:
-                service_results[service] = "No result returned"
-                logger.warning(f"Service '{service}' returned no result")
-
-        return service_results
 
     async def query_service(self, service_name: str, query: str, **kwargs) -> Optional[str]:
         """Query a specific service."""

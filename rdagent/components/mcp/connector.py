@@ -10,11 +10,13 @@ from contextlib import asynccontextmanager
 from datetime import timedelta
 from typing import Any, Dict, List, Optional
 
+from litellm import RateLimitError
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 from mcp.types import Tool
 from pydantic import BaseModel, Field
 from tenacity import (
+    before_sleep_log,
     retry,
     retry_if_exception_type,
     stop_after_attempt,
@@ -76,6 +78,12 @@ class StreamableHTTPConnector:
         self.config = config
         self._connection_context = None
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=2, min=5, max=60),
+        retry=retry_if_exception_type((ConnectionError, TimeoutError, RuntimeError, OSError, RateLimitError)),
+        before_sleep=before_sleep_log(logger, "WARNING", exc_info=True),
+    )
     @asynccontextmanager
     async def connect(self):
         """Connect to MCP server and yield session."""
@@ -153,7 +161,10 @@ class StreamableHTTPConnector:
         """Convert complex MCP connection errors to simple messages."""
         error_str = str(error).lower()
 
-        if "timeout" in error_str:
+        # Handle rate limit errors specifically
+        if isinstance(error, RateLimitError) or "ratelimiterror" in error_str or "rate limit" in error_str:
+            return f"Rate limit exceeded for {self.config.url}. Will retry with exponential backoff."
+        elif "timeout" in error_str:
             return f"Connection timeout after {self.config.timeout}s to {self.config.url}"
         elif "connection" in error_str or "network" in error_str:
             return f"Failed to connect to MCP server at {self.config.url}"
@@ -165,11 +176,12 @@ class StreamableHTTPConnector:
             return f"MCP connection failed for {self.config.url}: {str(error)[:100]}"
 
 
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=3, max=20),
-    retry=retry_if_exception_type((ConnectionError, TimeoutError, RuntimeError, OSError)),
-)
 async def create_mcp_session_with_retry(config: StreamableHTTPConfig) -> StreamableHTTPConnector:
-    """Create MCP session with retry mechanism."""
+    """Create MCP session with retry mechanism built into the connector.
+
+    Retry mechanism is now implemented in the connect() method with:
+    - 5 retry attempts
+    - Exponential backoff: 5s, 10s, 20s, 40s, 60s max
+    - Retries on: ConnectionError, TimeoutError, RuntimeError, OSError, RateLimitError
+    """
     return StreamableHTTPConnector(config)

@@ -25,7 +25,6 @@ from .registry import MCPRegistry, MCPRegistryConfig, MCPServiceConfig
 
 # Unified MCP interface
 from .unified import (
-    get_mcp_service_info,
     get_service_status,
     initialize_mcp_registry,
     is_service_available,
@@ -35,9 +34,6 @@ from .unified import (
     register_mcp_handler,
 )
 
-# Functions are now natively synchronous, no need for sync wrappers
-
-
 __all__ = [
     # Unified interface
     "query_mcp",
@@ -45,7 +41,6 @@ __all__ = [
     # Service management
     "initialize_mcp_registry",
     "register_mcp_handler",
-    "get_mcp_service_info",
     "list_available_mcp_services",
     "is_service_available",
     "get_service_status",
