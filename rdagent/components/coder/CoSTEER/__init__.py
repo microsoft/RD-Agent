@@ -110,6 +110,8 @@ class CoSTEER(Developer[Experiment]):
         fallback_evo_exp = None
         fallback_evo_fb = None
         reached_max_seconds = False
+
+        evo_fb = None
         for evo_exp in self.evolve_agent.multistep_evolve(evo_exp, self.evaluator):
             assert isinstance(evo_exp, Experiment)  # multiple inheritance
             evo_fb = self._get_last_fb()
@@ -139,7 +141,9 @@ class CoSTEER(Developer[Experiment]):
                 logger.info("Fallback to the fallback solution.")
                 evo_exp = fallback_evo_exp
                 evo_exp.recover_ws_ckp()
-            evo_exp = self._exp_postprocess_by_feedback(evo_exp, self._get_last_fb())
+                evo_fb = fallback_evo_fb
+            assert evo_fb is not None  # multistep_evolve should run at least once
+            evo_exp = self._exp_postprocess_by_feedback(evo_exp, evo_fb)
         except CoderError as e:
             e.caused_by_timeout = reached_max_seconds
             raise e
