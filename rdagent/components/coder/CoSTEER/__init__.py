@@ -77,7 +77,7 @@ class CoSTEER(Developer[Experiment]):
         assert isinstance(fb, CoSTEERMultiFeedback), "feedback must be of type CoSTEERMultiFeedback"
         return fb
 
-    def compare_and_pick_fb(self, base_fb: CoSTEERMultiFeedback | None, new_fb: CoSTEERMultiFeedback | None) -> bool:
+    def should_use_new_evo(self, base_fb: CoSTEERMultiFeedback | None, new_fb: CoSTEERMultiFeedback) -> bool:
         """
         Compare new feedback with the fallback feedback.
 
@@ -110,14 +110,16 @@ class CoSTEER(Developer[Experiment]):
         fallback_evo_exp = None
         fallback_evo_fb = None
         reached_max_seconds = False
+
+        evo_fb = None
         for evo_exp in self.evolve_agent.multistep_evolve(evo_exp, self.evaluator):
             assert isinstance(evo_exp, Experiment)  # multiple inheritance
             evo_fb = self._get_last_fb()
-            fallback_decision = self.compare_and_pick_fb(
+            update_fallback = self.should_use_new_evo(
                 base_fb=fallback_evo_fb,
                 new_fb=evo_fb,
             )
-            if fallback_decision:
+            if update_fallback:
                 fallback_evo_exp = deepcopy(evo_exp)
                 fallback_evo_fb = deepcopy(evo_fb)
                 fallback_evo_exp.create_ws_ckp()  # NOTE: creating checkpoints for saving files in the workspace to prevent inplace mutation.
@@ -139,7 +141,9 @@ class CoSTEER(Developer[Experiment]):
                 logger.info("Fallback to the fallback solution.")
                 evo_exp = fallback_evo_exp
                 evo_exp.recover_ws_ckp()
-            evo_exp = self._exp_postprocess_by_feedback(evo_exp, self._get_last_fb())
+                evo_fb = fallback_evo_fb
+            assert evo_fb is not None  # multistep_evolve should run at least once
+            evo_exp = self._exp_postprocess_by_feedback(evo_exp, evo_fb)
         except CoderError as e:
             e.caused_by_timeout = reached_max_seconds
             raise e
