@@ -242,6 +242,7 @@ class LoopBase:
                         logger.warning(f"Skip loop {li} due to {e}")
                         # Jump to the last step (assuming last step is for recording)
                         next_step_idx = len(self.steps) - 1
+                        self.loop_prev_out[li][name] = None
                         self.loop_prev_out[li][self.EXCEPTION_KEY] = e
                     elif isinstance(e, self.withdraw_loop_error):
                         logger.warning(f"Withdraw loop {li} due to {e}")
@@ -283,7 +284,10 @@ class LoopBase:
                         # Save snapshot after completing the step;
                         # 1) It has to be after the step_idx is updated, so loading the snapshot will be on the right step.
                         # 2) Only save it when the step forward, withdraw does not worth saving.
-                        self.dump(self.session_folder / f"{li}" / f"{si}_{name}")
+                        if name in self.loop_prev_out[li]:
+                            # 3) Only dump the step if (so we don't have to redo the step when we load the session again)
+                            # it has been executed successfully
+                            self.dump(self.session_folder / f"{li}" / f"{si}_{name}")
 
                         self._check_exit_conditions_on_step(loop_id=li, step_id=si)
                     else:
