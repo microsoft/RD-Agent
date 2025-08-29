@@ -646,11 +646,18 @@ def select_on_existing_trace(
                     logger.info(f"No Medal loops defined for {trace.scen.competition}, skipping.")
                     continue
 
-                experiment = trace_pkl_path.parent.name
                 tasks.append(
                     (
                         evaluate_one_trace,
-                        (selector_name, trace, debug, only_sample, sample_code_path, sota_result, experiment),
+                        (
+                            selector_name,
+                            trace,
+                            debug,
+                            only_sample,
+                            sample_code_path,
+                            sota_result,
+                            trace_pkl_path.parent.name,
+                        ),
                     )
                 )
         else:
