@@ -164,7 +164,10 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
 
         # Whether to enable hyperparameter tuning check
         # 1. This is the first loop of evaluation.
-        c1 = len(queried_knowledge.task_to_former_failed_traces[target_task.get_task_information()][0]) == 0
+        if DS_RD_SETTING.only_first_loop_enable_hyperparameter_tuning:
+            c1 = len(queried_knowledge.task_to_former_failed_traces[target_task.get_task_information()][0]) == 0
+        else:
+            c1 = True
 
         # 2. The current time spent on runner is less than the time limit ratio for runner timeout.
         time_spent_ratio = implementation.running_info.running_time / env.conf.running_timeout_period
