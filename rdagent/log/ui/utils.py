@@ -677,9 +677,6 @@ def percent_df(summary_df: pd.DataFrame, show_origin=True) -> pd.DataFrame:
     for k in new_df.index:
         loop_num = int(new_df.loc[k, "Total Loops"])
         if loop_num != 0:
-            new_df.loc[k, "Successful Final Decision"] = num2percent(
-                new_df.loc[k, "Successful Final Decision"], loop_num, show_origin
-            )
             if new_df.loc[k, "Made Submission"] != 0:
                 new_df.loc[k, "V/M"] = (
                     f"{round(new_df.loc[k, 'Valid Submission'] / new_df.loc[k, 'Made Submission'] * 100, 2)}%"
