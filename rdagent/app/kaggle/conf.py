@@ -76,10 +76,18 @@ class KaggleBasePropSetting(ExtendedBaseSettings):
     """Enable mini-case study for experiments"""
 
     time_ratio_limit_to_enable_hyperparameter_tuning: float = 1
-    """Runner time ratio limit to enable hyperparameter tuning, if not change, hyperparameter tuning is always enabled in the first evolution."""
+    """
+    Runner time ratio limit to enable hyperparameter tuning, if not change, hyperparameter tuning is always enabled in the first evolution.
+    """
 
     res_time_ratio_limit_to_enable_hyperparameter_tuning: float = 1
-    """Overall rest time ratio limit to enable hyperparameter tuning, if not change, hyperparameter tuning is always enabled in the first evolution."""
+    """
+    Overall rest time ratio limit to enable hyperparameter tuning, if not change, hyperparameter tuning is always enabled in the first evolution.
+    `1` indicate we enable hyperparameter tuning when we have 100% residual time. (so hyperparameter tuning is always enabled)
+    """
+
+    only_first_loop_enable_hyperparameter_tuning: bool = True
+    """Enable hyperparameter tuning feedback only in the first loop of evaluation."""
 
     only_enable_tuning_in_merge: bool = False
     """Enable hyperparameter tuning only in the merge stage"""
