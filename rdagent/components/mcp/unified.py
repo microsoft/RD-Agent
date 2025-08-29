@@ -4,6 +4,7 @@ This module provides the unified interface for querying MCP services with suppor
 for auto service selection and parallel querying.
 """
 
+from functools import wraps
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -16,38 +17,32 @@ from rdagent.components.mcp.registry import (
 from rdagent.log import rdagent_logger as logger
 
 
-def _ensure_registry_initialized() -> MCPRegistry:
-    """Ensure the global registry is initialized and handlers are registered."""
-    registry = get_global_registry()
+def mcp_api_handler(func):
+    """Decorator to handle common MCP API patterns: enabled check, registry init, error handling."""
 
-    # Check if any services need registration
-    enabled_services = registry.get_enabled_services()
-    services_needing_registration = [name for name in enabled_services if not registry.has_handler(name)]
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        if not is_mcp_enabled():
+            logger.warning("MCP system is globally disabled")
+            return None
 
-    if not services_needing_registration:
-        return registry
-
-    # Synchronously register handlers for immediate availability
-    for service_name in services_needing_registration:
         try:
-            service_config = registry.get_service_config(service_name)
-            if not service_config:
-                continue
+            registry = get_global_registry()
 
-            # Import handler class
-            handler_class = registry._import_handler_class(service_config.handler)
+            # Ensure services are registered if needed
+            enabled_services = registry.get_enabled_services()
+            unregistered = [name for name in enabled_services if not registry.has_handler(name)]
+            if unregistered:
+                await registry.auto_register_all_services()
 
-            # Create handler instance
-            handler = handler_class(service_name, service_url=service_config.url, **service_config.extra_config)
-
-            # Register handler
-            registry.register_handler(service_name, handler)
-            logger.info(f"Sync-registered handler for service '{service_name}'")
-
+            # Inject registry into kwargs for the function
+            kwargs["_registry"] = registry
+            return await func(*args, **kwargs)
         except Exception as e:
-            logger.warning(f"Failed to sync-register service '{service_name}': {e}")
+            logger.error(f"{func.__name__} failed: {e}")
+            return None
 
-    return registry
+    return wrapper
 
 
 async def initialize_mcp_registry(config_path: Optional[Path] = None) -> MCPRegistry:
@@ -86,7 +81,7 @@ def register_mcp_handler(service_name: str, handler) -> bool:
         True if registration successful, False otherwise
     """
     try:
-        registry = _ensure_registry_initialized()
+        registry = get_global_registry()
         registry.register_handler(service_name, handler)
         return True
     except Exception as e:
@@ -94,6 +89,7 @@ def register_mcp_handler(service_name: str, handler) -> bool:
         return False
 
 
+@mcp_api_handler
 async def query_mcp(service_name: str, query: str, **kwargs) -> Optional[str]:
     """Query a specific MCP service.
 
@@ -105,19 +101,11 @@ async def query_mcp(service_name: str, query: str, **kwargs) -> Optional[str]:
     Returns:
         Response from the MCP service, or None if failed
     """
-    if not is_mcp_enabled():
-        logger.warning("MCP system is globally disabled")
-        return None
-
-    try:
-        registry = _ensure_registry_initialized()
-        result = await registry.query_service(service_name, query, **kwargs)
-        return result
-    except Exception as e:
-        logger.error(f"MCP query failed for service '{service_name}': {e}")
-        return None
+    registry = kwargs.pop("_registry")  # Extract registry injected by decorator
+    return await registry.query_service(service_name, query, **kwargs)
 
 
+@mcp_api_handler
 async def query_mcp_auto(query: str, **kwargs) -> Optional[str]:
     """Automatically select and query the best available MCP service.
 
@@ -128,24 +116,15 @@ async def query_mcp_auto(query: str, **kwargs) -> Optional[str]:
     Returns:
         Response from the selected MCP service, or None if failed
     """
-    if not is_mcp_enabled():
-        logger.warning("MCP system is globally disabled")
-        return None
-
-    try:
-        registry = _ensure_registry_initialized()
-        result = await registry.query_auto(query, **kwargs)
-        return result
-    except Exception as e:
-        logger.error(f"Auto MCP query failed: {e}")
-        return None
+    registry = kwargs.pop("_registry")  # Extract registry injected by decorator
+    return await registry.query_auto(query, **kwargs)
 
 
 # Utility functions
 def list_available_mcp_services() -> list:
     """List all available MCP service names."""
     try:
-        registry = _ensure_registry_initialized()
+        registry = get_global_registry()
         return registry.get_enabled_services()
     except Exception as e:
         logger.error(f"Failed to list MCP services: {e}")
@@ -155,7 +134,7 @@ def list_available_mcp_services() -> list:
 def is_service_available(service_name: str) -> bool:
     """Check if a specific MCP service is available."""
     try:
-        registry = _ensure_registry_initialized()
+        registry = get_global_registry()
         return registry.has_service(service_name) and registry.has_handler(service_name)
     except Exception:
         return False

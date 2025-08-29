@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from rdagent.components.mcp.connector import (
     StreamableHTTPConfig,
-    create_mcp_session_with_retry,
+    StreamableHTTPConnector,
 )
 from rdagent.log import rdagent_logger as logger
 
@@ -196,8 +196,8 @@ class MCPRegistry:
         connector_config = config.to_connector_config()
 
         try:
-            # Use the retry mechanism for creating connector
-            connector = await create_mcp_session_with_retry(connector_config)
+            # Create connector directly (retry mechanism is built into connect() method)
+            connector = StreamableHTTPConnector(connector_config)
 
             # Process query using handler
             result = await handler.process_query(connector, query, **kwargs)

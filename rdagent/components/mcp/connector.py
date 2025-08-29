@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 from litellm import RateLimitError
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
+from mcp.shared._httpx_utils import create_mcp_http_client
 from mcp.types import Tool
 from pydantic import BaseModel, Field
 from tenacity import (
@@ -135,27 +136,14 @@ class StreamableHTTPConnector:
 
     def _create_connection_context(self):
         """Create streamable HTTP connection context."""
-        try:
-            # Try with newer MCP versions that support httpx_client_factory
-            from mcp.shared._httpx_utils import create_mcp_http_client
-
-            return streamablehttp_client(
-                url=self.config.url,
-                headers=self.config.headers,
-                timeout=timedelta(seconds=self.config.timeout),
-                sse_read_timeout=timedelta(seconds=self.config.sse_read_timeout),
-                terminate_on_close=self.config.terminate_on_close,
-                httpx_client_factory=create_mcp_http_client,
-            )
-        except (ImportError, TypeError):
-            # Fall back to basic call for older versions
-            return streamablehttp_client(
-                url=self.config.url,
-                headers=self.config.headers,
-                timeout=timedelta(seconds=self.config.timeout),
-                sse_read_timeout=timedelta(seconds=self.config.sse_read_timeout),
-                terminate_on_close=self.config.terminate_on_close,
-            )
+        return streamablehttp_client(
+            url=self.config.url,
+            headers=self.config.headers,
+            timeout=timedelta(seconds=self.config.timeout),
+            sse_read_timeout=timedelta(seconds=self.config.sse_read_timeout),
+            terminate_on_close=self.config.terminate_on_close,
+            httpx_client_factory=create_mcp_http_client,
+        )
 
     def _simplify_connection_error(self, error: Exception) -> str:
         """Convert complex MCP connection errors to simple messages."""
@@ -174,14 +162,3 @@ class StreamableHTTPConnector:
             return f"Authentication failed for {self.config.url}"
         else:
             return f"MCP connection failed for {self.config.url}: {str(error)[:100]}"
-
-
-async def create_mcp_session_with_retry(config: StreamableHTTPConfig) -> StreamableHTTPConnector:
-    """Create MCP session with retry mechanism built into the connector.
-
-    Retry mechanism is now implemented in the connect() method with:
-    - 5 retry attempts
-    - Exponential backoff: 5s, 10s, 20s, 40s, 60s max
-    - Retries on: ConnectionError, TimeoutError, RuntimeError, OSError, RateLimitError
-    """
-    return StreamableHTTPConnector(config)
