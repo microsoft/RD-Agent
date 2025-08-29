@@ -921,13 +921,13 @@ class DSProposalV2ExpGen(ExpGen):
         return index_to_pick_pool_list[reproducible_int]
 
     # BEGIN: for support llm-based hypothesis selection  -----
-    def _cosine_similarity_matrix_numpy(A, B):
+    def _cosine_similarity_matrix_numpy(self, A, B):
         dot_products = np.matmul(A, B.T)
         A_norms = np.linalg.norm(A, axis=1, keepdims=True)
         B_norms = np.linalg.norm(B, axis=1, keepdims=True).T
         return dot_products / (A_norms * B_norms)
 
-    def _gumbel_softmax_hard_sample(logits, tau=1.0, n_samples=1):
+    def _gumbel_softmax_hard_sample(self, logits, tau=1.0, n_samples=1):
 
         gumbel_noise = -np.log(-np.log(np.random.uniform(size=logits.shape) + 1e-20) + 1e-20)
         y = (logits + gumbel_noise) / tau
