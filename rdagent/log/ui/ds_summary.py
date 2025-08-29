@@ -199,4 +199,7 @@ def all_summarize_win():
 
 
 with st.container(border=True):
-    all_summarize_win()
+    try:
+        all_summarize_win()
+    except Exception as e:
+        st.error(f"Error occurred when show summary:\n{e}")
