@@ -171,7 +171,7 @@ class DSCoSTEERRunner(CoSTEER):
         """
         return int(self.scen.real_full_timeout() * self.settings.max_seconds_multiplier)
 
-    def use_new_evo(self, base_fb: CoSTEERMultiFeedback | None, new_fb: CoSTEERMultiFeedback) -> bool:
+    def should_use_new_evo(self, base_fb: CoSTEERMultiFeedback | None, new_fb: CoSTEERMultiFeedback) -> bool:
         if not new_fb.is_acceptable():
             return False
 
