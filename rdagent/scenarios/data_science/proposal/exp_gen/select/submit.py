@@ -634,18 +634,16 @@ def select_on_existing_trace(
                     continue
                 sota_result = {}
                 trace = pickle.load(trace_pkl_path.open("rb"))
-                competition = trace.scen.competition
-
                 try:
                     sota_loops_file = trace_folder / f"{trace_pkl_path.stem.split('_')[0]}_loops.json"
                     with open(sota_loops_file, "r") as f:
                         sota_result = json.load(f)
                 except FileNotFoundError:
-                    logger.warning(f"Could not find SOTA loops file for {competition}, skipping.")
+                    logger.warning(f"Could not find SOTA loops file for {trace.scen.competition}, skipping.")
                     continue
 
                 if not sota_result.get("medal_loops"):
-                    logger.info(f"No Medal loops defined for {competition}, skipping.")
+                    logger.info(f"No Medal loops defined for {trace.scen.competition}, skipping.")
                     continue
 
                 experiment = trace_pkl_path.parent.name
