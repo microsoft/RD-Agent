@@ -16,6 +16,7 @@ from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback, SOTAexpSelector, Trace
 from rdagent.core.utils import multiprocessing_wrapper
+from rdagent.log.storage import FileStorage
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.utils.agent.ret import PythonAgentOut
@@ -477,23 +478,24 @@ def process_experiment(
 
 
 def _parsing_score(grade_stdout: str) -> Optional[float]:
-    if not grade_stdout:
-        return None
-    try:
-        # Priority 1: JSON parsing
-        return float(json.loads(grade_stdout)["score"])
-    except:
-        pass
-    try:
-        # Priority 2: Python literal eval
-        return float(eval(grade_stdout)["score"])
-    except:
-        pass
-    try:
-        # Priority 3: Regex for the last number in the string
-        return float(re.findall(r"[-+]?\d*\.\d+|\d+", grade_stdout)[-1])
-    except:
-        pass
+    for line in grade_stdout.splitlines():
+        line = line.strip()
+        if "score" not in line:
+            continue
+        m = re.search(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", line)
+        if not m:
+            continue
+        json_str = m.group(0)
+        try:
+            # Priority 1: JSON parsing
+            return float(json.loads(json_str)["score"])
+        except:
+            pass
+        try:
+            # Priority 3: Regex for the last number in the string
+            return float(re.findall(r"[-+]?\d*\.\d+|\d+", json_str)[-1])
+        except:
+            pass
     return None
 
 
@@ -528,33 +530,24 @@ def try_get_loop_id(trace: Trace, exp: DSExperiment):
 
 
 def evaluate_one_trace(
-    selector_name: str, trace_pkl_path: Path, trace_folder: Path, debug: bool, only_sample: bool, sample_code_path: str
+    selector_name: str,
+    trace: Trace,
+    debug: bool,
+    only_sample: bool,
+    sample_code_path: str,
+    sota_result: dict[str, Any] = {},
+    experiment: str = "validation",
 ) -> Tuple[str, bool]:
     """
     Loads a single trace, uses the specified selector to pick an experiment,
     and checks if the selection was a "hit" (a known SOTA solution).
     """
-    competition = trace_pkl_path.stem.split(".")[0]
+    competition = trace.scen.competition
+    hit = False
     if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
         logger.warning(f"Competition {DS_RD_SETTING.local_data_path}/{competition} does not exist, skipping.")
         return competition, False
 
-    sota_result = {}
-    hit = False
-    if debug:
-        try:
-            sota_loops_file = trace_folder / f"{trace_pkl_path.stem.split('_')[0]}_loops.json"
-            with open(sota_loops_file, "r") as f:
-                sota_result = json.load(f)
-        except FileNotFoundError:
-            logger.warning(f"Could not find SOTA loops file for {competition}, skipping.")
-            return competition, False
-
-        if not sota_result.get("medal_loops"):
-            logger.info(f"No Medal loops defined for {competition}, skipping.")
-            return competition, False
-
-    trace = pickle.load(trace_pkl_path.open("rb"))
     # Example of scenario-specific adjustment
     if competition == "detecting-insults-in-social-commentary":
         trace.scen.metric_direction = 1
@@ -576,9 +569,7 @@ def evaluate_one_trace(
             quick_selector = BestValidSelector(num_candidates=1, use_decision=True, each_trace=False)
             quick_selected_exps = quick_selector.get_sota_exp_to_submit(trace)
             quick_hit = check_hit(quick_selected_exps, trace, sota_result)
-            logger.info(
-                f"BestvalidSelector for {trace_pkl_path.parent.name} - {competition}: {'HIT' if quick_hit else 'MISS'}"
-            )
+            logger.info(f"BestvalidSelector for {experiment} - {competition}: {'HIT' if quick_hit else 'MISS'}")
 
         base_selector = BestValidSelector(num_candidates=MAX_SOTA_CANDIDATES, use_decision=True, each_trace=True)
         candidate_exps = base_selector.get_sota_exp_to_submit(trace)
@@ -607,7 +598,7 @@ def evaluate_one_trace(
     logger.info(f"Running selector '{selector_name}' on trace for competition '{competition}'...")
     if debug:
         hit = check_hit(selected_sota_exps, trace, sota_result)
-        logger.info(f"Result for {trace_pkl_path.parent.name} - {competition}: {'HIT' if hit else 'MISS'}")
+        logger.info(f"Result for {experiment} - {competition}: {'HIT' if hit else 'MISS'}")
     return competition, hit
 
 
@@ -618,7 +609,7 @@ def select_on_existing_trace(
     competition: str | None = None,
     debug: bool = False,
     only_sample: bool = False,
-    sample_code_path: str | None = None,
+    sample_code_path: str = "",
 ):
     """
     Offline evaluation of a SOTA experiment selector on existing traces.
@@ -637,13 +628,41 @@ def select_on_existing_trace(
             continue
         if experiment is not None and not experiment in str(trace_folder):
             continue
-        for trace_pkl_path in trace_folder.glob("*.pkl"):
-            if competition is not None and not competition in str(trace_pkl_path):
-                continue
+        if debug:
+            for trace_pkl_path in trace_folder.glob("*.pkl"):
+                if competition is not None and not competition in str(trace_pkl_path):
+                    continue
+                sota_result = {}
+                trace = pickle.load(trace_pkl_path.open("rb"))
+                competition = trace.scen.competition
+
+                try:
+                    sota_loops_file = trace_folder / f"{trace_pkl_path.stem.split('_')[0]}_loops.json"
+                    with open(sota_loops_file, "r") as f:
+                        sota_result = json.load(f)
+                except FileNotFoundError:
+                    logger.warning(f"Could not find SOTA loops file for {competition}, skipping.")
+                    continue
+
+                if not sota_result.get("medal_loops"):
+                    logger.info(f"No Medal loops defined for {competition}, skipping.")
+                    continue
+
+                experiment = trace_pkl_path.parent.name
+                tasks.append(
+                    (
+                        evaluate_one_trace,
+                        (selector_name, trace, debug, only_sample, sample_code_path, sota_result, experiment),
+                    )
+                )
+        else:
+            log_path = next(d for d in Path("log").iterdir() if d.is_dir() and d.name != "pickle_cache")
+            log_storage = FileStorage(log_path)
+            trace = list(log_storage.iter_msg(tag="trace"))[-1].content
             tasks.append(
                 (
                     evaluate_one_trace,
-                    (selector_name, trace_pkl_path, trace_folder, debug, only_sample, sample_code_path),
+                    (selector_name, trace, debug, only_sample, sample_code_path),
                 )
             )
 
