@@ -28,6 +28,7 @@ MAX_API_RETRIES = 5
 DEFAULT_NUM_WORKERS = 5
 MAX_SOTA_CANDIDATES = 5
 
+logger.add("selector.log")
 # ==============================================================================
 # ## SOTA Selector Implementations
 # ==============================================================================
@@ -537,6 +538,7 @@ def evaluate_one_trace(
     """
     competition = trace_pkl_path.stem.split(".")[0]
     if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
+        logger.warning(f"Competition {DS_RD_SETTING.local_data_path}/{competition} does not exist, skipping.")
         return competition, False
 
     sota_result = {}
