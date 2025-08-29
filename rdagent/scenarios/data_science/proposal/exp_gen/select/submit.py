@@ -221,7 +221,7 @@ class ValidationSelector(SOTAexpSelector):
         self.direction_sign = direction_sign
         self.competition = competition
         self.only_sample = only_sample
-        self.sample_code_path = sample_code_path
+        self.sample_code_path = Path(sample_code_path)
 
     def get_sota_exp_to_submit(self, trace: Trace) -> Optional[List[DSExperiment]]:
         """
@@ -268,6 +268,11 @@ class ValidationSelector(SOTAexpSelector):
             for exp, loop_id in self.candidate
             if exp.hypothesis.hypothesis == valid_results[0][0].hypothesis.hypothesis
         ][0]
+
+        if len(valid_results) > 1 and valid_results[0][1] == valid_results[1][-1]:
+            logger.warning("ValidationSelector: The score is unable to compare.")
+            return None
+
         logger.info(
             f"ValidationSelector: Best experiment from validation is loop_id={best_loop_id} with score={valid_results[0][1]}"
         )
@@ -283,27 +288,28 @@ class ValidationSelector(SOTAexpSelector):
 
         data_py_path = Path(mock_folder) / "data.py"
         grade_py_path = Path(mock_folder) / "grade.py"
-        if Path(self.sample_code_path / competition / "data.py").exists():
+        label_path = Path(mock_folder) / "workspace_input/label.csv"
+        reference_code = reference_exp.experiment_workspace.file_dict.get("main.py", "")
+
+        if (self.sample_code_path / competition / "data.py").exists():
             shutil.copy(self.sample_code_path / competition / "data.py", data_py_path)
             shutil.copy(self.sample_code_path / competition / "grade.py", grade_py_path)
             data_py_code = data_py_path.read_text()
-            ws = FBWorkspace()
-            ws.inject_code_from_file_dict(reference_exp.experiment_workspace)
-            ws.inject_files(**{f"data.py": data_py_code})
-            env = get_ds_env(
-                extra_volumes={
-                    str(Path(mock_folder) / input_folder): input_folder,
-                    f"{DS_RD_SETTING.local_data_path}/{competition}": "./source",
-                },
-                running_timeout_period=DS_RD_SETTING.full_timeout,
-            )
-            result = ws.run(env=env, entry=f"python data.py # {time.time()}")  # Do not cache the result
-            if result.exit_code == 0:
-                logger.info(f"Successfully ran data.py.")
-                return data_py_code, grade_py_path.read_text()
-
-        label_path = Path(mock_folder) / "workspace_input/label.csv"
-        reference_code = reference_exp.experiment_workspace.file_dict.get("main.py", "")
+            if not label_path.exists():
+                ws = FBWorkspace()
+                ws.inject_code_from_file_dict(reference_exp.experiment_workspace)
+                ws.inject_files(**{f"data.py": data_py_code})
+                env = get_ds_env(
+                    extra_volumes={
+                        str(Path(mock_folder) / input_folder): input_folder,
+                        f"{DS_RD_SETTING.local_data_path}/{competition}": "./source",
+                    },
+                    running_timeout_period=DS_RD_SETTING.full_timeout,
+                )
+                result = ws.run(env=env, entry=f"python data.py # {time.time()}")  # Do not cache the result
+                if result.exit_code == 0:
+                    logger.info(f"Successfully ran data.py.")
+            return data_py_code, grade_py_path.read_text()
 
         # --- Generate data.py if needed ---
         if not data_py_path.exists() or not label_path.exists():
@@ -455,6 +461,7 @@ def process_experiment(
         grade_stdout = ""
         if execute_ret_code == 0:
             ws.inject_files(**{"grade.py": grade_py_code})
+            env.conf.running_timeout_period = DS_RD_SETTING.debug_timeout
             result = ws.run(env=env, entry="python grade.py")
             if result.exit_code == 0:
                 grade_stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
@@ -532,17 +539,20 @@ def evaluate_one_trace(
     if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
         return competition, False
 
-    try:
-        sota_loops_file = trace_folder / f"{trace_pkl_path.stem.split('_')[0]}_loops.json"
-        with open(sota_loops_file, "r") as f:
-            sota_result = json.load(f)
-    except FileNotFoundError:
-        logger.warning(f"Could not find SOTA loops file for {competition}, skipping.")
-        return competition, False
+    sota_result = {}
+    hit = False
+    if debug:
+        try:
+            sota_loops_file = trace_folder / f"{trace_pkl_path.stem.split('_')[0]}_loops.json"
+            with open(sota_loops_file, "r") as f:
+                sota_result = json.load(f)
+        except FileNotFoundError:
+            logger.warning(f"Could not find SOTA loops file for {competition}, skipping.")
+            return competition, False
 
-    if not sota_result.get("medal_loops"):
-        logger.info(f"No Medal loops defined for {competition}, skipping.")
-        return competition, False
+        if not sota_result.get("medal_loops"):
+            logger.info(f"No Medal loops defined for {competition}, skipping.")
+            return competition, False
 
     trace = pickle.load(trace_pkl_path.open("rb"))
     # Example of scenario-specific adjustment
@@ -577,10 +587,11 @@ def evaluate_one_trace(
             return competition, False
 
         logger.info(f"ValidationSelector: Received {len(candidate_exps)} candidates for validation.")
-        pool_hit = check_hit(candidate_exps, trace, sota_result)
-        if debug and not pool_hit:
-            logger.info("ValidationSelector: Base selector's candidates did not hit any SOTA. Skipping validation.")
-            return competition, False
+        if debug:
+            pool_hit = check_hit(candidate_exps, trace, sota_result)
+            if not pool_hit:
+                logger.info("ValidationSelector: Base selector's candidates did not hit any SOTA. Skipping validation.")
+                return competition, False
 
         selector = ValidationSelector(
             candidate=[(exp, try_get_loop_id(trace, exp)) for exp in candidate_exps],
@@ -594,9 +605,9 @@ def evaluate_one_trace(
 
     # --- Run Selection and Check for Hit ---
     logger.info(f"Running selector '{selector_name}' on trace for competition '{competition}'...")
-
-    hit = check_hit(selected_sota_exps, trace, sota_result)
-    logger.info(f"Result for {trace_pkl_path.parent.name} - {competition}: {'HIT' if hit else 'MISS'}")
+    if debug:
+        hit = check_hit(selected_sota_exps, trace, sota_result)
+        logger.info(f"Result for {trace_pkl_path.parent.name} - {competition}: {'HIT' if hit else 'MISS'}")
     return competition, hit
 
 
@@ -604,6 +615,7 @@ def select_on_existing_trace(
     selector_name: str,
     trace_root: str,
     experiment: str | None = None,
+    competition: str | None = None,
     debug: bool = False,
     only_sample: bool = False,
     sample_code_path: str | None = None,
@@ -626,6 +638,8 @@ def select_on_existing_trace(
         if experiment is not None and not experiment in str(trace_folder):
             continue
         for trace_pkl_path in trace_folder.glob("*.pkl"):
+            if competition is not None and not competition in str(trace_pkl_path):
+                continue
             tasks.append(
                 (
                     evaluate_one_trace,
