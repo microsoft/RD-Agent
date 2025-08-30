@@ -28,14 +28,12 @@ from .unified import (
     is_service_available,
     list_available_mcp_services,
     query_mcp,
-    query_mcp_auto,
     register_mcp_handler,
 )
 
 __all__ = [
     # Unified interface
     "query_mcp",
-    "query_mcp_auto",
     # Service management
     "initialize_mcp_registry",
     "register_mcp_handler",

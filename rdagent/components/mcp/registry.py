@@ -205,20 +205,69 @@ class MCPRegistry:
         logger.info(f"Query processed successfully by service '{service_name}'")
         return result
 
-    async def query_auto(self, query: str, **kwargs) -> Optional[str]:
-        """Automatically select and query the best available service."""
-        enabled_services = self.get_enabled_services()
+    async def query_auto(self, query: str, services: Optional[List[str]] = None, **kwargs) -> Optional[str]:
+        """Query multiple MCP services in parallel.
 
-        if not enabled_services:
-            logger.warning("No enabled MCP services available")
+        This method connects to multiple services simultaneously, allowing the LLM
+        to choose which tools to use from any service.
+
+        Args:
+            query: The query to process
+            services: Optional list of services to use. If None, uses all enabled services.
+            **kwargs: Additional parameters passed to the handler
+
+        Returns:
+            Response from the multi-service query, or None if failed
+        """
+        # Determine which services to use
+        if services:
+            target_services = services
+        else:
+            target_services = self.get_enabled_services()
+
+        if not target_services:
+            logger.warning("No services specified or available")
             return None
 
-        # For now, try the first available service
-        # TODO: Implement smarter service selection logic
-        service_name = enabled_services[0]
-        logger.info(f"🔍 Auto-selecting MCP service: {service_name}", tag="mcp_query")
+        # Prepare service configurations
+        service_configs = {}
 
-        return await self.query_service(service_name, query, **kwargs)
+        for service_name in target_services:
+            # Check if service is configured
+            if not self.has_service(service_name):
+                logger.warning(f"Service '{service_name}' not configured, skipping")
+                continue
+
+            # Check if handler is registered
+            if not self.has_handler(service_name):
+                logger.warning(f"Service '{service_name}' handler not registered, skipping")
+                continue
+
+            # Get service configuration and create connector
+            config = self.get_service_config(service_name)
+            connector = StreamableHTTPConnector(config.to_connector_config())
+            handler = self._handlers[service_name]
+
+            service_configs[service_name] = (connector, handler)
+
+        if not service_configs:
+            logger.error("No valid services available after checking")
+            return None
+
+        logger.info(f"🎯 Using {len(service_configs)} services: {list(service_configs.keys())}")
+
+        # Optimization: if only one service, use direct query
+        if len(service_configs) == 1:
+            service_name = list(service_configs.keys())[0]
+            logger.info(f"Single service mode, using direct query for '{service_name}'")
+            return await self.query_service(service_name, query, **kwargs)
+
+        # Multiple services: use multi-service processing
+        # Use the first handler's process_multi_services method
+        # (all handlers inherit from GeneralMCPHandler and have this method)
+        first_handler = list(service_configs.values())[0][1]
+
+        return await first_handler.process_multi_services(service_configs, query, **kwargs)
 
     def get_service_info(self) -> Dict[str, Dict[str, Any]]:
         """Get information about all registered services."""

@@ -6,10 +6,11 @@ LiteLLM backend for all LLM calls.
 """
 
 import asyncio
+import json
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from litellm import RateLimitError
 
@@ -113,6 +114,94 @@ class ConversationCheckpoint:
     def save_round(self, messages: List[Dict[str, Any]], tool_results: Optional[Dict[str, Any]] = None):
         """Legacy save method - redirects to save_incremental."""
         self.save_incremental(messages, tool_results)
+
+
+class MultiServiceContext:
+    """Context manager for multiple MCP service connections."""
+
+    def __init__(self):
+        self.contexts = []  # List of (service_name, context_manager)
+        self.sessions = {}  # {service_name: session}
+        self.tool_to_service = {}  # {tool_name: service_name}
+
+    async def add_service(self, service_name: str, connector: StreamableHTTPConnector) -> Optional[MCPSession]:
+        """Add a service connection to the context.
+
+        Args:
+            service_name: Name of the service
+            connector: Connector for the service
+
+        Returns:
+            MCPSession if successful, None otherwise
+        """
+        try:
+            # Connect to the service
+            ctx = connector.connect()
+            session = await ctx.__aenter__()
+
+            # Store the context and session
+            self.contexts.append((service_name, ctx))
+            self.sessions[service_name] = session
+
+            # Map tools to service
+            for tool in session.tools:
+                self.tool_to_service[tool.name] = service_name
+
+            logger.info(f"✅ Connected '{service_name}' with {len(session.tools)} tools", tag="multi_service")
+            return session
+
+        except Exception as e:
+            logger.warning(f"❌ Failed to connect service '{service_name}': {e}", tag="multi_service")
+            return None
+
+    async def cleanup(self):
+        """Clean up all service connections."""
+        for service_name, ctx in self.contexts:
+            try:
+                await ctx.__aexit__(None, None, None)
+                logger.debug(f"Closed connection to '{service_name}'", tag="multi_service")
+            except Exception as e:
+                logger.warning(f"Error closing '{service_name}': {e}", tag="multi_service")
+
+    def get_all_tools(self) -> List:
+        """Get all tools from all connected services."""
+        all_tools = []
+        for session in self.sessions.values():
+            all_tools.extend(session.tools)
+        return all_tools
+
+    async def execute_tool(self, tool_name: str, arguments: Dict[str, Any], verbose: bool = False) -> Any:
+        """Execute a tool by routing to the correct service.
+
+        Args:
+            tool_name: Name of the tool to execute
+            arguments: Arguments for the tool
+            verbose: Enable verbose logging
+
+        Returns:
+            Tool execution result
+        """
+        service_name = self.tool_to_service.get(tool_name)
+
+        if not service_name:
+            error_msg = f"Tool '{tool_name}' not found in any service"
+            logger.error(error_msg, tag="multi_service")
+            return {"error": error_msg}
+
+        session = self.sessions.get(service_name)
+        if not session:
+            error_msg = f"Session for service '{service_name}' not found"
+            logger.error(error_msg, tag="multi_service")
+            return {"error": error_msg}
+
+        if verbose:
+            logger.info(f"🔧 Routing tool '{tool_name}' to service '{service_name}'", tag="multi_service")
+
+        try:
+            return await session.call_tool(tool_name, arguments)
+        except Exception as e:
+            logger.error(f"Error executing tool '{tool_name}': {e}", tag="multi_service")
+            return {"error": str(e)}
 
 
 class GeneralMCPHandler(BaseMCPHandler):
@@ -495,6 +584,123 @@ class GeneralMCPHandler(BaseMCPHandler):
             verbose=verbose,
             **kwargs,
         )
+
+    async def process_multi_services(
+        self,
+        service_configs: Dict[str, Tuple[StreamableHTTPConnector, Any]],
+        query: str,
+        max_rounds: int = 5,
+        verbose: bool = False,
+        **kwargs,
+    ) -> Optional[str]:
+        """Process multiple MCP services in parallel.
+
+        This method connects to multiple services simultaneously, merges their tools,
+        and allows the LLM to choose which tools to use from any service.
+
+        Args:
+            service_configs: Dict mapping service names to (connector, handler) tuples
+            query: The query to process
+            max_rounds: Maximum number of tool calling rounds
+            verbose: Enable verbose logging
+            **kwargs: Additional parameters
+
+        Returns:
+            Final response string or None if failed
+        """
+        # Create multi-service context
+        multi_ctx = MultiServiceContext()
+
+        try:
+            # 1. Connect to all services in parallel
+            logger.info(f"🔌 Connecting to {len(service_configs)} services...", tag="multi_service")
+
+            connect_tasks = []
+            for service_name, (connector, _) in service_configs.items():
+                connect_tasks.append(multi_ctx.add_service(service_name, connector))
+
+            # Wait for all connections
+            await asyncio.gather(*connect_tasks)
+
+            # Check if we have any successful connections
+            if not multi_ctx.sessions:
+                logger.error("No services could be connected", tag="multi_service")
+                return None
+
+            # 2. Get all tools
+            all_tools = multi_ctx.get_all_tools()
+
+            if not all_tools:
+                logger.error("No tools available from any service", tag="multi_service")
+                return None
+
+            logger.info(
+                f"📊 Connected {len(multi_ctx.sessions)}/{len(service_configs)} services "
+                f"with {len(all_tools)} total tools",
+                tag="multi_service",
+            )
+
+            # Log tool distribution if verbose
+            if verbose:
+                for service_name, session in multi_ctx.sessions.items():
+                    tool_names = [t.name for t in session.tools]
+                    logger.info(f"  • {service_name}: {tool_names}", tag="multi_service")
+
+            # 3. Check cache (only for fresh queries)
+            cached_result = self._check_cache(query)
+            if cached_result:
+                logger.info("Returning cached result", tag="multi_service")
+                return cached_result
+
+            # 4. Preprocess query
+            enhanced_query = self.preprocess_query(query, verbose=verbose, **kwargs)
+
+            # 5. Convert tools to OpenAI format
+            openai_tools = self.backend.convert_mcp_tools_to_openai_format(all_tools)
+
+            # 6. Create tool executor that routes to correct service
+            async def tool_executor(tool_calls):
+                results = []
+                for call in tool_calls:
+                    tool_name = call["function"]["name"]
+
+                    # Parse arguments
+                    try:
+                        arguments = json.loads(call["function"]["arguments"])
+                    except json.JSONDecodeError:
+                        arguments = {}
+
+                    # Execute tool through multi-service context
+                    result = await multi_ctx.execute_tool(tool_name, arguments, verbose)
+                    results.append(result)
+
+                return results
+
+            # 7. Perform multi-round tool calling
+            start_time = time.time()
+
+            final_response, _ = await self.backend.multi_round_tool_calling(
+                initial_messages=[{"role": "user", "content": enhanced_query}],
+                tools=openai_tools,
+                max_rounds=max_rounds,
+                tool_executor=tool_executor,
+                verbose=verbose,
+                model_config_override=self.mcp_llm_settings,
+            )
+
+            # 8. Log timing and cache result
+            self._log_timing("multi-service query processing", start_time)
+            self._cache_result(query, final_response)
+
+            return final_response
+
+        except Exception as e:
+            logger.error(f"Multi-service query failed: {e}", tag="multi_service")
+            return None
+
+        finally:
+            # Always clean up connections
+            await multi_ctx.cleanup()
 
     async def _fallback_processing(self, connector: StreamableHTTPConnector, query: str, **kwargs) -> str:
         """Fallback processing when function calling is not supported."""

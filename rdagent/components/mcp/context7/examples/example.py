@@ -1,29 +1,29 @@
 """MCP Unified Interface Usage Example - Error Message and Code Debugging
 
-This example demonstrates how to use the unified MCP interface with two main functions:
-- query_mcp(): Direct service query with specified MCP service
-- query_mcp_auto(): Automatic service selection for optimal results
+This example demonstrates how to use the NEW unified MCP interface with PARALLEL service processing:
+- query_mcp(query): Auto mode - uses ALL available services in parallel
+- query_mcp(query, services="service_name"): Single service mode - direct query
+- query_mcp(query, services=["service1", "service2"]): Multi-service mode - parallel processing
 
 Key Features:
+- Multiple services' tools are available simultaneously to the LLM
+- LLM automatically chooses which service's tools to use
+- Automatic handling of unavailable services with warnings
 - Configuration-driven based on mcp_config.json
-- Support for error messages and full code context
-- Preserves all optimization mechanisms (prompt templates, caching, etc.)
 """
 
 import asyncio
 import datetime
 
-from rdagent.components.mcp import (
-    query_mcp,
-    query_mcp_auto,
-)
+from rdagent.components.mcp import query_mcp  # New unified interface
+from rdagent.components.mcp import get_service_status
 from rdagent.log import rdagent_logger as logger
 
 
-async def example_query_mcp():
-    """Example 1: Using query_mcp() to solve programming errors with specific service"""
+async def example_single_service():
+    """Example 1: Using query_mcp() with a specific service"""
 
-    logger.info(f"🔍 Example 1: query_mcp() - Direct Service Query [{datetime.datetime.now()}]")
+    logger.info(f"🔍 Example 1: Single Service Mode [{datetime.datetime.now()}]")
     logger.info("=" * 50)
 
     # Simulate a LightGBM GPU error
@@ -78,9 +78,7 @@ def lgb_optuna_objective(trial, X, y, num_class, debug=False):
     return gbm.best_score['valid_0']['multi_logloss']
 """
 
-    # Debug: Check service availability
-    from rdagent.components.mcp import get_service_status
-
+    # Check service availability
     status = get_service_status()
     logger.info(f"🔍 MCP Service Status: {status}")
 
@@ -88,7 +86,11 @@ def lgb_optuna_objective(trial, X, y, num_class, debug=False):
     logger.info("📋 Querying Context7 documentation service...")
     try:
         result = await query_mcp(
-            service_name="context7", query=error_message, full_code=full_code, max_rounds=3, verbose=True
+            error_message,
+            services="context7",  # Specify a single service
+            full_code=full_code,
+            max_rounds=5,
+            verbose=True,
         )
 
         if result:
@@ -102,9 +104,9 @@ def lgb_optuna_objective(trial, X, y, num_class, debug=False):
         logger.error(f"❌ Query failed: {e}")
 
 
-async def example_query_mcp_auto():
-    """Example 2: Using query_mcp_auto() for automatic service selection"""
-    logger.info(f"\n🤖 Example 2: query_mcp_auto() - Automatic Service Selection [{datetime.datetime.now()}]")
+async def example_auto_mode():
+    """Example 2: Using query_mcp() in auto mode - ALL services in parallel"""
+    logger.info(f"\n🤖 Example 2: Auto Mode - All Services in Parallel [{datetime.datetime.now()}]")
     logger.info("=" * 50)
 
     # Pandas error example
@@ -114,10 +116,11 @@ The DataFrame.append method was removed in pandas 2.0.
 Use pd.concat() instead.
 """
 
-    logger.info("📋 Querying with automatic service selection...")
+    logger.info("📋 Querying with ALL available services in parallel...")
+    logger.info("🔧 LLM will see tools from all services and choose which to use")
     try:
-        # Let the system automatically choose the best MCP service
-        result = await query_mcp_auto(query=pandas_error, verbose=True)
+        # Auto mode: All available services' tools are provided to LLM simultaneously
+        result = await query_mcp(pandas_error, verbose=True)  # services=None means use all
 
         if result:
             logger.info("\n✅ Auto-selected service solution:")
@@ -130,15 +133,42 @@ Use pd.concat() instead.
         logger.error(f"❌ Auto query failed: {e}")
 
 
+async def example_multi_service():
+    """Example 3: Using query_mcp() with multiple services in PARALLEL"""
+    logger.info(f"\n🎯 Example 3: Multi-Service Mode - Parallel Processing [{datetime.datetime.now()}]")
+    logger.info("=" * 50)
+
+    test_query = "How to implement async/await in Python?"
+
+    logger.info("📋 Querying with multiple specified services in PARALLEL...")
+    logger.info("🔧 Tools from all specified services will be available to LLM simultaneously")
+    try:
+        # Multi-service mode: specified services run in parallel, not sequentially
+        result = await query_mcp(
+            test_query, services=["context7", "fake_service"], verbose=True  # Both services' tools available at once
+        )
+
+        if result:
+            logger.info("\n✅ Multi-service query succeeded:")
+            logger.info("-" * 40)
+            logger.info(result)
+        else:
+            logger.error("❌ All specified services failed")
+
+    except Exception as e:
+        logger.error(f"❌ Multi-service query failed: {e}")
+
+
 async def main():
     """Main function - demonstrates the complete MCP usage workflow"""
-    logger.info("🚀 MCP Unified Interface Usage Example")
+    logger.info("🚀 MCP NEW Unified Interface Usage Examples")
     logger.info("📁 Please ensure mcp_config.json is properly configured")
     logger.info("=" * 60)
 
-    # Run two main examples
-    await example_query_mcp()
-    await example_query_mcp_auto()
+    # Run three examples showing different usage modes
+    await example_single_service()
+    await example_auto_mode()
+    await example_multi_service()
 
 
 if __name__ == "__main__":

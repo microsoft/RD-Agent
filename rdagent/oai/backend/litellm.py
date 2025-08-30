@@ -258,17 +258,20 @@ class LiteLLMAPIBackend(APIBackend):
         Returns:
             Tuple of (content, finish_reason, tool_calls)
         """
-        if not self.supports_function_calling():
-            logger.warning(
-                f"Model {LITELLM_SETTINGS.chat_model} does not support function calling", tag="litellm_tools"
-            )
-            # Fall back to regular chat completion
-            content, finish_reason = self._create_chat_completion_inner_function(messages, **kwargs)
-            return content, finish_reason, None
+        # Check if we actually need function calling
+        if tools:
+            # Tools provided, check if model supports function calling
+            if not self.supports_function_calling():
+                logger.warning(
+                    f"Model {LITELLM_SETTINGS.chat_model} does not support function calling", tag="litellm_tools"
+                )
+                # Fall back to regular chat completion
+                content, finish_reason = self._create_chat_completion_inner_function(messages, **kwargs)
+                return content, finish_reason, None
 
-        # Add tools to kwargs
-        kwargs["tools"] = tools
-        kwargs["tool_choice"] = "auto"
+            # Model supports function calling and tools are provided
+            kwargs["tools"] = tools
+            kwargs["tool_choice"] = "auto"
 
         # Model call with tools initiated
 
@@ -351,12 +354,15 @@ class LiteLLMAPIBackend(APIBackend):
                 elif key in ["model", "api_key", "temperature", "max_tokens"]:
                     kwargs[key] = value
 
+        last_finish_reason = None
+
         for round_count in range(1, max_rounds + 1):
             if verbose:
                 logger.info(f"🔄 Round {round_count}/{max_rounds}", tag="mcp_progress")
 
             # Call with tools (now with potential overrides applied)
-            content, _, tool_calls = self.call_with_tools(messages, tools, **kwargs)
+            content, finish_reason, tool_calls = self.call_with_tools(messages, tools, **kwargs)
+            last_finish_reason = finish_reason  # Track finish_reason
 
             # Add assistant response to conversation
             assistant_message: dict[str, Any] = {"role": "assistant", "content": content}
@@ -408,5 +414,31 @@ class LiteLLMAPIBackend(APIBackend):
 
             # Round completion logged at higher level
 
-        logger.warning(f"Reached maximum rounds ({max_rounds}), returning last response")
-        return messages[-1].get("content", "No response generated"), messages
+        # Reached max rounds - check if we need a final answer
+        if last_finish_reason == "tool_calls":
+            logger.warning(
+                f"Reached max rounds with tool_calls, making final call without tools for answer", tag="mcp_progress"
+            )
+
+            # Add a system message to prompt for final answer
+            messages.append(
+                {
+                    "role": "system",
+                    "content": "Based on all the tool results above, please provide a comprehensive final answer to the user's original question.",
+                }
+            )
+
+            # Make final call without tools to get text answer
+            # Use call_with_tools with empty tools list to force text response
+            content, finish_reason, _ = self.call_with_tools(
+                messages, tools=[], **kwargs  # Empty tools list forces pure text response
+            )
+            final_content = content
+
+            messages.append({"role": "assistant", "content": final_content})
+
+            return final_content, messages
+        else:
+            # finish_reason was 'stop' or other, return last response
+            logger.info(f"Reached max rounds with finish_reason='{last_finish_reason}'", tag="mcp_progress")
+            return messages[-1].get("content", "No response generated"), messages

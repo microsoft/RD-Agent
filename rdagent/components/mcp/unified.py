@@ -81,34 +81,45 @@ def register_mcp_handler(service_name: str, handler) -> bool:
 
 
 @mcp_api_handler
-async def query_mcp(service_name: str, query: str, **kwargs) -> Optional[str]:
-    """Query a specific MCP service.
+async def query_mcp(query: str, services: Optional[Union[str, List[str]]] = None, **kwargs) -> Optional[str]:
+    """Unified MCP query interface supporting flexible service selection.
 
-    Args:
-        service_name: Name of the MCP service to query
-        query: The query/error message to process
-        **kwargs: Additional parameters passed to the handler
-
-    Returns:
-        Response from the MCP service, or None if failed
-    """
-    registry = kwargs.pop("_registry")  # Extract registry injected by decorator
-    return await registry.query_service(service_name, query, **kwargs)
-
-
-@mcp_api_handler
-async def query_mcp_auto(query: str, **kwargs) -> Optional[str]:
-    """Automatically select and query the best available MCP service.
+    This function provides three usage modes:
+    1. Auto mode (default): Uses all available services in parallel
+    2. Single service mode: Query a specific service directly
+    3. Multi-service mode: Use specified services in parallel
 
     Args:
         query: The query/error message to process
+        services: Optional service specification:
+            - None: Use all available services (auto mode)
+            - str: Use a specific service
+            - List[str]: Use specified services in parallel
         **kwargs: Additional parameters passed to the handler
 
     Returns:
-        Response from the selected MCP service, or None if failed
+        Response from the MCP service(s), or None if failed
+
+    Examples:
+        # Auto mode - uses all available services
+        await query_mcp("error message")
+
+        # Single service mode
+        await query_mcp("error message", services="context7")
+
+        # Multi-service mode - uses specified services in parallel
+        await query_mcp("error message", services=["context7", "simple_code_search"])
     """
     registry = kwargs.pop("_registry")  # Extract registry injected by decorator
-    return await registry.query_auto(query, **kwargs)
+
+    # Handle different service specifications
+    if isinstance(services, str):
+        # Single service mode: direct query
+        return await registry.query_service(services, query, **kwargs)
+    else:
+        # Multi-service mode (including None for auto mode)
+        # query_auto handles both None (all services) and list cases
+        return await registry.query_auto(query, services=services, **kwargs)
 
 
 # Utility functions
