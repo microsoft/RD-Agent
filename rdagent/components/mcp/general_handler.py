@@ -112,6 +112,7 @@ class ConversationCheckpoint:
         self.save_incremental(messages, tool_results)
 
 
+# TODO: to be tested for multi-service mode
 class MultiServiceContext:
     """Context manager for multiple MCP service connections."""
 
@@ -119,13 +120,17 @@ class MultiServiceContext:
         self.contexts = []  # List of (service_name, context_manager)
         self.sessions = {}  # {service_name: session}
         self.tool_to_service = {}  # {tool_name: service_name}
+        self.handlers = {}  # {service_name: handler} - for applying service-specific logic
 
-    async def add_service(self, service_name: str, connector: StreamableHTTPConnector) -> Optional[MCPSession]:
+    async def add_service(
+        self, service_name: str, connector: StreamableHTTPConnector, handler=None
+    ) -> Optional[MCPSession]:
         """Add a service connection to the context.
 
         Args:
             service_name: Name of the service
             connector: Connector for the service
+            handler: Optional handler for service-specific logic (validation, processing, etc.)
 
         Returns:
             MCPSession if successful, None otherwise
@@ -138,6 +143,10 @@ class MultiServiceContext:
             # Store the context and session
             self.contexts.append((service_name, ctx))
             self.sessions[service_name] = session
+
+            # Store handler if provided
+            if handler:
+                self.handlers[service_name] = handler
 
             # Map tools to service
             for tool in session.tools:
@@ -166,38 +175,89 @@ class MultiServiceContext:
             all_tools.extend(session.tools)
         return all_tools
 
-    async def execute_tool(self, tool_name: str, arguments: Dict[str, Any], verbose: bool = False) -> Any:
-        """Execute a tool by routing to the correct service.
+    async def execute_tool(
+        self,
+        tool_name: str,
+        arguments: Dict[str, Any],
+        tool_call_id: str = None,
+        tool_index: int = 1,
+        verbose: bool = False,
+    ) -> Any:
+        """Execute a tool by routing to the correct service with handler-specific logic.
 
         Args:
             tool_name: Name of the tool to execute
             arguments: Arguments for the tool
+            tool_call_id: OpenAI tool call ID for matching responses
+            tool_index: Index of this tool in the current batch (1-based)
             verbose: Enable verbose logging
 
         Returns:
-            Tool execution result
+            Tool execution result with proper formatting
         """
         service_name = self.tool_to_service.get(tool_name)
 
         if not service_name:
             error_msg = f"Tool '{tool_name}' not found in any service"
             logger.error(error_msg, tag="multi_service")
-            return {"error": error_msg}
+            result = {"role": "tool", "content": error_msg}
+            if tool_call_id:
+                result["tool_call_id"] = tool_call_id
+            return result
 
         session = self.sessions.get(service_name)
         if not session:
             error_msg = f"Session for service '{service_name}' not found"
             logger.error(error_msg, tag="multi_service")
-            return {"error": error_msg}
+            result = {"role": "tool", "content": error_msg}
+            if tool_call_id:
+                result["tool_call_id"] = tool_call_id
+            return result
+
+        handler = self.handlers.get(service_name)
 
         if verbose:
             logger.info(f"🔧 Routing tool '{tool_name}' to service '{service_name}'", tag="multi_service")
 
         try:
-            return await session.call_tool(tool_name, arguments)
+            # Execute the tool
+            result = await session.call_tool(tool_name, arguments)
+            result_text = result.content[0].text if result.content else ""
+
+            # Apply handler-specific logic if available
+            if handler:
+                # 1. Check for rate limit
+                if hasattr(handler, "detect_rate_limit"):
+                    if handler.detect_rate_limit(result_text):
+                        logger.warning(f"🚫 Rate limit detected for tool '{tool_name}'", tag="mcp_rate_limit")
+                        # Raise RateLimitError to trigger longer wait time
+                        raise RateLimitError(f"Service rate limited: {result_text[:100]}")
+
+                # 2. Validate tool response
+                if hasattr(handler, "validate_tool_response"):
+                    handler.validate_tool_response(tool_name, result_text)
+
+                # 3. Process result with tool index
+                if hasattr(handler, "handle_tool_result"):
+                    result_text = handler.handle_tool_result(result_text, tool_name, tool_index)
+
+            # Return with tool_call_id for proper OpenAI matching
+            result = {"role": "tool", "content": result_text}
+            if tool_call_id:
+                result["tool_call_id"] = tool_call_id
+            return result
+
+        except (RateLimitError, MCPConnectionError):
+            # These exceptions must propagate to trigger retry mechanism
+            logger.warning(f"🔄 Tool '{tool_name}' error will trigger retry", tag="multi_service")
+            raise
         except Exception as e:
+            # Other exceptions are logged but don't trigger retry
             logger.error(f"Error executing tool '{tool_name}': {e}", tag="multi_service")
-            return {"error": str(e)}
+            result = {"role": "tool", "content": f"Error executing tool: {str(e)}"}
+            if tool_call_id:
+                result["tool_call_id"] = tool_call_id
+            return result
 
 
 class GeneralMCPHandler(BaseMCPHandler):
@@ -648,8 +708,9 @@ class GeneralMCPHandler(BaseMCPHandler):
             logger.info(f"🔌 Connecting to {len(service_configs)} services...", tag="multi_service")
 
             connect_tasks = []
-            for service_name, (connector, _) in service_configs.items():
-                connect_tasks.append(multi_ctx.add_service(service_name, connector))
+            for service_name, (connector, handler) in service_configs.items():
+                # Pass handler to add_service for applying service-specific logic
+                connect_tasks.append(multi_ctx.add_service(service_name, connector, handler))
 
             # Wait for all connections
             await asyncio.gather(*connect_tasks)
@@ -693,18 +754,35 @@ class GeneralMCPHandler(BaseMCPHandler):
             # 6. Create tool executor that routes to correct service
             async def tool_executor(tool_calls):
                 results = []
-                for call in tool_calls:
-                    tool_name = call["function"]["name"]
+                for i, tool_call in enumerate(tool_calls, 1):
+                    # Use object attributes, not dictionary keys
+                    tool_name = tool_call.function.name
 
                     # Parse arguments
                     try:
-                        arguments = json.loads(call["function"]["arguments"])
+                        arguments = json.loads(tool_call.function.arguments)
                     except json.JSONDecodeError:
                         arguments = {}
 
-                    # Execute tool through multi-service context
-                    result = await multi_ctx.execute_tool(tool_name, arguments, verbose)
-                    results.append(result)
+                    try:
+                        # Execute tool through multi-service context
+                        # Pass tool_call_id and tool_index for proper handling
+                        result = await multi_ctx.execute_tool(
+                            tool_name, arguments, tool_call_id=tool_call.id, tool_index=i, verbose=verbose
+                        )
+                        results.append(result)
+                    except (RateLimitError, MCPConnectionError):
+                        # Critical: propagate these exceptions to trigger retry mechanism
+                        logger.warning(
+                            f"⚠️ Tool '{tool_name}' triggered retry exception in multi-service mode", tag="multi_service"
+                        )
+                        raise
+                    except Exception as e:
+                        # Other exceptions: log but continue with other tools
+                        logger.error(f"Tool '{tool_name}' failed: {e}", tag="multi_service")
+                        results.append(
+                            {"role": "tool", "tool_call_id": tool_call.id, "content": f"Error executing tool: {str(e)}"}
+                        )
 
                 return results
 
@@ -775,7 +853,6 @@ class GeneralMCPHandler(BaseMCPHandler):
 
         for i, tool_call in enumerate(tool_calls, 1):
             try:
-                import json
 
                 # Execute tool call
                 result = await session.call_tool(

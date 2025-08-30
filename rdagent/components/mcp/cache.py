@@ -5,6 +5,7 @@ with MCP-specific functionality while maintaining consistency with the base syst
 """
 
 import hashlib
+import os
 from typing import Any, Dict, Optional
 
 from rdagent.components.mcp.conf import get_mcp_global_settings
@@ -211,7 +212,6 @@ class MCPCache(SQliteLazyCache):
         Returns:
             Dictionary with cache statistics and file information
         """
-        import os
 
         stats = self.get_cache_stats()
 
@@ -267,7 +267,6 @@ def clear_mcp_cache_by_file() -> bool:
     Returns:
         True if successful, False otherwise
     """
-    import os
 
     # Use the same path as configured in MCP settings
     mcp_settings = get_mcp_global_settings()
