@@ -15,10 +15,8 @@ Architecture:
 """
 
 from .connector import StreamableHTTPConfig, StreamableHTTPConnector
-
-# Context7 specific (preserved for compatibility)
 from .context7.handler import Context7Handler
-from .handlers import BaseMCPHandler
+from .general_handler import BaseMCPHandler
 
 # Core components (for advanced usage)
 from .registry import MCPRegistry, MCPRegistryConfig, MCPServiceConfig

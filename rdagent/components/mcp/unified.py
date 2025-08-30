@@ -1,9 +1,3 @@
-"""Unified MCP Query Interface
-
-This module provides the unified interface for querying MCP services with support
-for auto service selection and parallel querying.
-"""
-
 from functools import wraps
 from pathlib import Path
 from typing import Dict, List, Optional, Union

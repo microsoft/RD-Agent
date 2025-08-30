@@ -14,18 +14,6 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.utils.agent.tpl import T
 
 
-def _is_documentation_not_found(result_text: str) -> bool:
-    """Check if result indicates documentation not found."""
-    error_indicators = ["Failed to fetch documentation", "Error code: 404", "Documentation not found", "404 Not Found"]
-    return any(indicator in result_text for indicator in error_indicators)
-
-
-def _is_connection_error(result_text: str) -> bool:
-    """Check if result indicates connection issues."""
-    connection_indicators = ["Connection failed", "Timeout", "Network error", "Service unavailable"]
-    return any(indicator in result_text for indicator in connection_indicators)
-
-
 class Context7Handler(GeneralMCPHandler):
     """Context7 MCP service handler with all experimental optimizations.
 
@@ -64,7 +52,7 @@ class Context7Handler(GeneralMCPHandler):
         return self._build_enhanced_query(query, full_code)
 
     def handle_tool_result(self, result_text: str, tool_name: str, tool_index: int = 1) -> str:
-        """Handle tool result with Context7 specific error detection.
+        """Handle tool result with Context7 specific messaging.
 
         Args:
             result_text: Raw result from tool execution
@@ -74,8 +62,20 @@ class Context7Handler(GeneralMCPHandler):
         Returns:
             Processed result content
         """
-        # Tool result processing
-        return self._handle_context7_result(result_text, tool_index)
+        # First use parent's common error detection
+        parent_result = super().handle_tool_result(result_text, tool_name, tool_index)
+
+        # If parent detected an error, enhance with Context7-specific message
+        if parent_result != result_text:
+            # Parent detected and formatted an error
+            if "not found" in parent_result.lower():
+                return (
+                    "Documentation not found for this library. This library may not have detailed "
+                    "documentation available in the Context7 knowledge base, but you can still provide "
+                    "general guidance based on the library information from resolve-library-id."
+                )
+
+        return parent_result
 
     def _build_enhanced_query(self, error_message: str, full_code: Optional[str] = None) -> str:
         """Build enhanced query using experimental prompt templates."""
@@ -100,27 +100,7 @@ class Context7Handler(GeneralMCPHandler):
 
         return enhanced_query
 
-    # Multi-round calling is now handled by GeneralMCPHandler using LiteLLM backend
-
-    # Tool execution is now handled by GeneralMCPHandler - we provide result processing via handle_tool_result
-
-    def _handle_context7_result(self, result_text: str, tool_index: int) -> str:
-        """Handle tool result with Context7 specific error detection."""
-        if _is_documentation_not_found(result_text):
-            logger.warning(f"📄 Documentation not found", tag="context7")
-            return (
-                "Documentation not found for this library. This library may not have detailed "
-                "documentation available in the Context7 knowledge base, but you can still provide "
-                "general guidance based on the library information from resolve-library-id."
-            )
-
-        if _is_connection_error(result_text):
-            logger.warning(f"🔌 Connection error", tag="context7")
-            return "Connection error occurred while fetching documentation. Please try again later."
-
-        return result_text
-
-    # Result logging is now handled by GeneralMCPHandler
+    # All common functionality is now handled by GeneralMCPHandler
 
     def get_service_info(self) -> dict:
         """Get Context7 service information - simplified."""

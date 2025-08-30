@@ -1,13 +1,13 @@
-"""General MCP Handler Implementation
+"""MCP Handler Implementation
 
-This handler provides a unified interface for MCP services by using LiteLLM backend
-for all LLM calls instead of direct OpenAI client. It extracts common functionality
-from specific handlers like Context7Handler to reduce code duplication.
+This module contains both the abstract base class and the general implementation
+for MCP service handlers. It provides a unified interface for MCP services using
+LiteLLM backend for all LLM calls.
 """
 
 import asyncio
 import time
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -20,24 +20,57 @@ from rdagent.components.mcp.connector import (
     MCPSession,
     StreamableHTTPConnector,
 )
-from rdagent.components.mcp.handlers import BaseMCPHandler
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.backend.litellm import LITELLM_SETTINGS, LiteLLMAPIBackend
+
+
+class BaseMCPHandler(ABC):
+    """Abstract base class for MCP service handlers."""
+
+    def __init__(self, service_name: str, **config):
+        """Initialize handler with service name and configuration."""
+        self.service_name = service_name
+        self.config = config
+
+    @abstractmethod
+    async def process_query(self, connector: StreamableHTTPConnector, query: str, **kwargs) -> str:
+        """Process a query using the given connector.
+
+        This is the main entry point that each handler must implement.
+        It should handle the complete flow from query to response.
+
+        Args:
+            connector: The MCP connector to use
+            query: The user query to process
+            **kwargs: Additional parameters
+
+        Returns:
+            The response as a string
+        """
+        pass
+
+    def get_service_info(self) -> Dict[str, Any]:
+        """Get information about this service handler."""
+        return {
+            "service_name": self.service_name,
+            "handler_class": self.__class__.__name__,
+            "config_keys": list(self.config.keys()),
+        }
 
 
 @dataclass
 class ConversationCheckpoint:
     """Save multi-round conversation progress for resumption after errors."""
-    
+
     conversation: List[Dict[str, Any]] = field(default_factory=list)
     completed_rounds: int = 0
     last_tool_results: Optional[Dict[str, Any]] = None
     initial_query: Optional[str] = None
     _last_saved_length: int = 0  # Track last saved position
-    
+
     def save_round_complete(self, round_num: int, messages: List[Dict[str, Any]]):
         """Save complete conversation state after a round completes.
-        
+
         Args:
             round_num: The round number that just completed
             messages: Complete conversation history up to this point
@@ -46,37 +79,36 @@ class ConversationCheckpoint:
         self.conversation = messages.copy()
         self.completed_rounds = round_num
         self._last_saved_length = len(messages)
-        
+
         logger.info(
-            f"📝 Checkpoint saved: Round {round_num} complete, {len(messages)} messages total",
-            tag="mcp_checkpoint"
+            f"📝 Checkpoint saved: Round {round_num} complete, {len(messages)} messages total", tag="mcp_checkpoint"
         )
-    
+
     def save_incremental(self, messages: List[Dict[str, Any]], tool_results: Optional[Dict[str, Any]] = None):
         """Save incremental progress (legacy method for compatibility)."""
         # Only append new messages
-        new_messages = messages[self._last_saved_length:]
+        new_messages = messages[self._last_saved_length :]
         if new_messages:
             self.conversation.extend(new_messages)
             self._last_saved_length = len(self.conversation)
             self.completed_rounds += 1
-            
+
         if tool_results:
             self.last_tool_results = tool_results
-    
+
     def can_resume(self) -> bool:
         """Check if we can resume from a checkpoint."""
         return self.completed_rounds > 0 and len(self.conversation) > 0
-    
+
     def get_resume_messages(self) -> List[Dict[str, Any]]:
         """Get messages to resume conversation from checkpoint."""
         if self.can_resume():
             logger.info(
                 f"📂 Resuming from checkpoint: {self.completed_rounds} rounds, {len(self.conversation)} messages",
-                tag="mcp_checkpoint"
+                tag="mcp_checkpoint",
             )
         return self.conversation.copy()
-    
+
     # Legacy alias for backward compatibility
     def save_round(self, messages: List[Dict[str, Any]], tool_results: Optional[Dict[str, Any]] = None):
         """Legacy save method - redirects to save_incremental."""
@@ -148,12 +180,14 @@ class GeneralMCPHandler(BaseMCPHandler):
 
         return mcp_settings
 
-    # Abstract methods for subclasses to implement
+    # Methods that can be overridden by subclasses for customization
 
-    @abstractmethod
     def preprocess_query(self, query: str, **kwargs) -> str:
         """
         Preprocess the query before sending to LLM.
+
+        Default implementation returns query as-is.
+        Subclasses should override this for custom preprocessing.
 
         Args:
             query: Original query string
@@ -162,11 +196,12 @@ class GeneralMCPHandler(BaseMCPHandler):
         Returns:
             Enhanced/processed query string
         """
-        pass
+        # Default: no preprocessing
+        return query
 
     def handle_tool_result(self, result_text: str, tool_name: str, tool_index: int = 1) -> str:
         """
-        Process tool execution result.
+        Process tool execution result with common error detection.
 
         Args:
             result_text: Raw result from tool execution
@@ -176,9 +211,47 @@ class GeneralMCPHandler(BaseMCPHandler):
         Returns:
             Processed result content
         """
-        # Default implementation returns result as-is
-        # Subclasses can override for specific error handling
+        # Check for common errors and format them nicely
+        if self._is_common_error(result_text):
+            return self._format_error_message(result_text, tool_name)
+
+        # Default: return result as-is
         return result_text
+
+    def _is_common_error(self, text: str) -> bool:
+        """Check if response indicates a common error."""
+        # Common error patterns that apply to most services
+        error_patterns = [
+            "404",
+            "not found",
+            "error code",
+            "failed to fetch",
+            "connection failed",
+            "timeout",
+            "service unavailable",
+            "network error",
+            "permission denied",
+        ]
+
+        # Case-insensitive check
+        text_lower = text.lower()
+        return any(pattern in text_lower for pattern in error_patterns)
+
+    def _format_error_message(self, error_text: str, tool_name: str) -> str:
+        """Format error message for better user experience."""
+        error_lower = error_text.lower()
+
+        if "404" in error_lower or "not found" in error_lower:
+            return f"Resource not found. The {tool_name} service couldn't locate the requested information."
+        elif "connection" in error_lower or "network" in error_lower:
+            return f"Network connection issue. Please check your connection and try again."
+        elif "timeout" in error_lower:
+            return f"Request timed out. The service might be experiencing high load."
+        elif "permission" in error_lower:
+            return f"Permission denied. You may not have access to this resource."
+        else:
+            # For other errors, return a truncated version
+            return f"Service error: {error_text[:200]}..." if len(error_text) > 200 else f"Service error: {error_text}"
 
     def should_continue_rounds(self, round_count: int, last_response: str, max_rounds: int) -> bool:
         """
@@ -196,19 +269,19 @@ class GeneralMCPHandler(BaseMCPHandler):
         return round_count < max_rounds
 
     # Core implementation using LiteLLM backend
-    
+
     async def process_query_with_resume(
-        self, 
-        connector: StreamableHTTPConnector, 
-        query: str, 
+        self,
+        connector: StreamableHTTPConnector,
+        query: str,
         checkpoint: Optional[ConversationCheckpoint] = None,
         max_retries: int = 3,
-        max_rounds: int = 5, 
-        verbose: bool = False, 
-        **kwargs
+        max_rounds: int = 5,
+        verbose: bool = False,
+        **kwargs,
     ) -> str:
         """Process query with checkpoint-based resumption on errors.
-        
+
         Args:
             connector: MCP connector
             query: Query string
@@ -217,17 +290,17 @@ class GeneralMCPHandler(BaseMCPHandler):
             max_rounds: Maximum conversation rounds
             verbose: Enable verbose logging
             **kwargs: Additional arguments
-            
+
         Returns:
             Final response string
         """
         # Initialize checkpoint if not provided
         if checkpoint is None:
             checkpoint = ConversationCheckpoint(initial_query=query)
-        
+
         retry_count = 0
         last_error = None
-        
+
         while retry_count < max_retries:
             try:
                 # Execute the actual processing logic with checkpoint support
@@ -237,63 +310,63 @@ class GeneralMCPHandler(BaseMCPHandler):
                     checkpoint=checkpoint,
                     max_rounds=max_rounds - checkpoint.completed_rounds,  # Adjust remaining rounds
                     verbose=verbose,
-                    **kwargs
+                    **kwargs,
                 )
                 return result
-                
+
             except (RateLimitError, MCPConnectionError) as e:
                 last_error = e
                 retry_count += 1
-                
+
                 if isinstance(e, MCPConnectionError) and "connection" in str(e).lower():
                     # Connection errors are already retried at connector level, don't retry here
                     raise
-                
+
                 if retry_count < max_retries:
                     # Calculate wait time: 5s, 10s, 15s
                     wait_time = 5 * retry_count  # 5s, 10s, 15s
-                    
+
                     logger.warning(
                         f"Error after {checkpoint.completed_rounds} rounds: {str(e)[:100]}, "
                         f"waiting {wait_time}s before retry {retry_count}/{max_retries}",
-                        tag="mcp_retry"
+                        tag="mcp_retry",
                     )
-                    
+
                     # Wait before retry
                     await asyncio.sleep(wait_time)
-                    
+
                     # Continue with checkpoint - will resume from where it left off
                     if checkpoint.can_resume():
                         logger.info(
                             f"Resuming from checkpoint: {checkpoint.completed_rounds} rounds completed",
-                            tag="mcp_resume"
+                            tag="mcp_resume",
                         )
                 else:
                     # Max retries reached
                     logger.error(f"Max retries ({max_retries}) reached. Last error: {last_error}", tag="mcp_retry")
                     raise
-                    
+
             except Exception as e:
                 # Non-retryable error
                 logger.error(f"Non-retryable error: {e}", tag="mcp_error")
                 raise
-        
+
         # Should not reach here, but handle it
         if last_error:
             raise last_error
         raise RuntimeError("Unexpected error in retry loop")
 
     async def _process_query_internal(
-        self, 
-        connector: StreamableHTTPConnector, 
-        query: str, 
+        self,
+        connector: StreamableHTTPConnector,
+        query: str,
         checkpoint: ConversationCheckpoint,
-        max_rounds: int = 5, 
-        verbose: bool = False, 
-        **kwargs
+        max_rounds: int = 5,
+        verbose: bool = False,
+        **kwargs,
     ) -> str:
         """Internal query processing with checkpoint support.
-        
+
         Args:
             connector: MCP connector
             query: Query string
@@ -301,7 +374,7 @@ class GeneralMCPHandler(BaseMCPHandler):
             max_rounds: Maximum conversation rounds
             verbose: Enable verbose logging
             **kwargs: Additional arguments
-            
+
         Returns:
             Final response string
         """
@@ -398,7 +471,7 @@ class GeneralMCPHandler(BaseMCPHandler):
     ) -> str:
         """
         Process query with automatic checkpoint-based retry on errors.
-        
+
         This method automatically handles retries with checkpoint resumption,
         ensuring that successful rounds are not repeated during retries.
 
@@ -420,7 +493,7 @@ class GeneralMCPHandler(BaseMCPHandler):
             max_retries=3,
             max_rounds=max_rounds,
             verbose=verbose,
-            **kwargs
+            **kwargs,
         )
 
     async def _fallback_processing(self, connector: StreamableHTTPConnector, query: str, **kwargs) -> str:

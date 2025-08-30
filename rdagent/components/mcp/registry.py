@@ -1,9 +1,3 @@
-"""MCP Service Registry
-
-This module provides configuration-driven service discovery and management
-for multiple MCP services. It supports dynamic registration and routing.
-"""
-
 import importlib
 import json
 from pathlib import Path

@@ -2,12 +2,21 @@
   "mcpServices": {
     "context7": {
       "url": "http://localhost:8123/mcp",
-      "timeout": 60.0,
       "handler": "rdagent.components.mcp.context7.handler:Context7Handler",
       "enabled": true,
       "extra_config": {
-        "model": "gpt-4-turbo",
-        "api_base": "https://api.openai.com/v1",
+        "model": "gpt-4",
+        "api_key": "your-api-key-here",
+        "temperature": 0.7
+      }
+    },
+    "simple_code_search": {
+      "url": "http://localhost:9001/mcp",
+      "handler": "rdagent.components.mcp.general_handler:GeneralMCPHandler",
+      "enabled": true,
+      "extra_config": {
+        "model": "gpt-3.5-turbo",
+        "timeout": 60
       }
     }
   }
