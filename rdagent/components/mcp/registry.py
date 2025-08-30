@@ -119,11 +119,12 @@ class MCPRegistry:
         """Check if handler is registered for service."""
         return service_name in self._handlers
 
-    def _import_handler_class(self, handler_spec: str):
+    def _import_handler_class(self, handler_spec: str, verbose: bool = False):
         """Dynamically import Handler class using full module path format only.
 
         Args:
             handler_spec: Handler specification in format 'module.path:ClassName'
+            verbose: Whether to log import details
 
         Returns:
             Handler class object
@@ -147,33 +148,42 @@ class MCPRegistry:
             # Get Handler class
             handler_class = getattr(module, class_name)
 
-            logger.info(f"Successfully imported handler: {handler_spec}")
+            # Log import success only in verbose mode
+            if verbose:
+                logger.info(f"Successfully imported handler: {handler_spec}")
+
             return handler_class
 
         except (ImportError, AttributeError) as e:
             raise ValueError(f"Failed to import handler '{handler_spec}': {e}") from e
 
-    async def ensure_initialized(self):
+    async def ensure_initialized(self, verbose: bool = False):
         """Ensure all services are initialized (only executed once)."""
         if not self._initialized:
-            await self.auto_register_all_services()
+            await self.auto_register_all_services(verbose=verbose)
             self._initialized = True
-            logger.info("MCP registry initialization complete")
+            # Always show which services were actually registered (important system status)
+            registered_services = [name for name in self._handlers.keys()]
+            if registered_services:
+                logger.info(f"MCP registry initialized with services: {registered_services}")
+            else:
+                logger.info("MCP registry initialized (no services registered)")
 
-    async def auto_register_all_services(self):
+    async def auto_register_all_services(self, verbose: bool = False):
         """Auto-register all enabled services from configuration."""
         for name, config in self.config.mcp_services.items():
             if config.enabled and not self.has_handler(name):
                 try:
                     # Dynamically import Handler class
-                    handler_class = self._import_handler_class(config.handler)
+                    handler_class = self._import_handler_class(config.handler, verbose=verbose)
 
                     # Create Handler instance with service configuration
                     handler = handler_class(name, service_url=config.url, **config.extra_config)
 
                     # Register Handler
                     self._handlers[name] = handler
-                    logger.info(f"Auto-registered handler for service '{name}' with class '{config.handler}'")
+                    if verbose:
+                        logger.info(f"Auto-registered handler for service '{name}' with class '{config.handler}'")
 
                 except Exception as e:
                     logger.error(f"Failed to auto-register service '{name}': {e}")

@@ -70,4 +70,3 @@ types-pytz
 
 # mcp
 mcp
-nest-asyncio

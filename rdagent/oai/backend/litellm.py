@@ -294,21 +294,6 @@ class LiteLLMAPIBackend(APIBackend):
         finish_reason = response.choices[0].finish_reason
         tool_calls = getattr(assistant_message, "tool_calls", None)
 
-        # Log and calculate cost using existing infrastructure
-        global ACC_COST
-        try:
-            cost = completion_cost(model=LITELLM_SETTINGS.chat_model, messages=messages, completion=content)
-            ACC_COST += cost
-            logger.info(
-                f"Tool-enabled call - Current Cost: ${float(cost):.10f}; "
-                f"Accumulated Cost: ${float(ACC_COST):.10f}; {finish_reason=}",
-                tag="litellm_tools",
-            )
-        except Exception as e:
-            logger.warning(f"Cost calculation failed for tools call: {e}")
-
-        # Tool calls processed silently
-
         return content, finish_reason, tool_calls
 
     async def multi_round_tool_calling(
@@ -357,8 +342,7 @@ class LiteLLMAPIBackend(APIBackend):
         last_finish_reason = None
 
         for round_count in range(1, max_rounds + 1):
-            if verbose:
-                logger.info(f"🔄 Round {round_count}/{max_rounds}", tag="mcp_progress")
+            logger.info(f"🔄 Round {round_count}/{max_rounds}", tag="mcp_progress")
 
             # Call with tools (now with potential overrides applied)
             content, finish_reason, tool_calls = self.call_with_tools(messages, tools, **kwargs)
@@ -379,8 +363,7 @@ class LiteLLMAPIBackend(APIBackend):
 
             # If no tool calls, we're done
             if not tool_calls:
-                if verbose:
-                    logger.info(f"✅ Final response in round {round_count}", tag="mcp_progress")
+                logger.info(f"✅ Final response in round {round_count}", tag="mcp_progress")
                 # Call round callback before returning
                 if round_callback:
                     try:
@@ -391,10 +374,9 @@ class LiteLLMAPIBackend(APIBackend):
 
             # Execute tool calls if executor provided
             if tool_executor:
-                if verbose:
-                    tool_names = [tc.function.name for tc in tool_calls]
-                    tool_list = ", ".join(tool_names)
-                    logger.info(f"🔧 Executing {len(tool_calls)} tool(s): {tool_list}", tag="mcp_progress")
+                tool_names = [tc.function.name for tc in tool_calls]
+                tool_list = ", ".join(tool_names)
+                logger.info(f"🔧 Executing {len(tool_calls)} tool(s): {tool_list}", tag="mcp_progress")
 
                 tool_results = await tool_executor(tool_calls)
                 messages.extend(tool_results)

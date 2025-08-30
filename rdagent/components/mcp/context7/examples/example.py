@@ -78,10 +78,6 @@ def lgb_optuna_objective(trial, X, y, num_class, debug=False):
     return gbm.best_score['valid_0']['multi_logloss']
 """
 
-    # Check service availability
-    status = get_service_status()
-    logger.info(f"🔍 MCP Service Status: {status}")
-
     # Query documentation using specific MCP service
     logger.info("📋 Querying Context7 documentation service...")
     try:
@@ -161,7 +157,6 @@ async def example_multi_service():
 
 async def main():
     """Main function - demonstrates the complete MCP usage workflow"""
-    logger.info("🚀 MCP NEW Unified Interface Usage Examples")
     logger.info("📁 Please ensure mcp_config.json is properly configured")
     logger.info("=" * 60)
 

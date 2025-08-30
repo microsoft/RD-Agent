@@ -23,8 +23,11 @@ def mcp_api_handler(func):
         try:
             registry = get_global_registry()
 
+            # Extract verbose flag for initialization details
+            verbose = kwargs.get("verbose", False)
+
             # Ensure services are initialized (only once)
-            await registry.ensure_initialized()
+            await registry.ensure_initialized(verbose=verbose)
 
             # Inject registry into kwargs for the function
             kwargs["_registry"] = registry
@@ -53,7 +56,7 @@ async def initialize_mcp_registry(config_path: Optional[Path] = None) -> MCPRegi
     # Auto-register all enabled services from configuration
     try:
         await registry.auto_register_all_services()
-        logger.info("Auto-registered all enabled MCP services from configuration")
+        # Registry will log which services are registered
     except Exception as e:
         logger.error(f"Failed to auto-register MCP services: {e}")
 
@@ -111,6 +114,15 @@ async def query_mcp(query: str, services: Optional[Union[str, List[str]]] = None
         await query_mcp("error message", services=["context7", "simple_code_search"])
     """
     registry = kwargs.pop("_registry")  # Extract registry injected by decorator
+
+    # Check verbose flag and show service status for debugging
+    verbose = kwargs.get("verbose", False)
+    if verbose:
+        status = get_service_status()
+        if status["available_services"]:
+            logger.info(f"🔍 MCP services available: {status['available_services']}", tag="mcp_status")
+        else:
+            logger.warning("⚠️ No MCP services available for query", tag="mcp_status")
 
     # Handle different service specifications
     if isinstance(services, str):

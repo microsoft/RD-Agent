@@ -81,10 +81,6 @@ class ConversationCheckpoint:
         self.completed_rounds = round_num
         self._last_saved_length = len(messages)
 
-        logger.info(
-            f"📝 Checkpoint saved: Round {round_num} complete, {len(messages)} messages total", tag="mcp_checkpoint"
-        )
-
     def save_incremental(self, messages: List[Dict[str, Any]], tool_results: Optional[Dict[str, Any]] = None):
         """Save incremental progress (legacy method for compatibility)."""
         # Only append new messages
@@ -159,7 +155,7 @@ class MultiServiceContext:
         for service_name, ctx in self.contexts:
             try:
                 await ctx.__aexit__(None, None, None)
-                logger.debug(f"Closed connection to '{service_name}'", tag="multi_service")
+                logger.warning(f"Closed connection to '{service_name}'", tag="multi_service")
             except Exception as e:
                 logger.warning(f"Error closing '{service_name}': {e}", tag="multi_service")
 
@@ -214,6 +210,26 @@ class GeneralMCPHandler(BaseMCPHandler):
     - Integrates caching and error handling
     - Maintains compatibility with existing MCP interfaces
     """
+
+    # Error patterns and their messages as class constant
+    # Format: (patterns_list, message_template, priority)
+    # Lower priority number = higher precedence
+    ERROR_DEFINITIONS = [
+        (["404", "not found"], "Resource not found. The {tool} service couldn't locate the requested information.", 1),
+        (
+            ["rate limit", "rate limited", "too many requests"],
+            "Service temporarily rate limited. Please wait a moment before retrying.",
+            2,
+        ),
+        (["no content available", "no context data available"], "No documentation available for this query.", 3),
+        (["failed to search", "error searching"], "Search service temporarily unavailable. Please try again.", 4),
+        (["failed to fetch", "error fetching"], "Documentation fetch failed. Please try again.", 5),
+        (["connection", "network"], "Network connection issue. Please check your connection and try again.", 6),
+        (["timeout"], "Request timed out. The service might be experiencing high load.", 7),
+        (["permission"], "Permission denied. You may not have access to this resource.", 8),
+        # Generic error patterns (lower priority, no specific message)
+        (["error code", "service unavailable", "please try again"], None, 99),
+    ]
 
     def __init__(self, service_name: str, **config):
         """Initialize handler with LiteLLM backend dependency."""
@@ -309,38 +325,30 @@ class GeneralMCPHandler(BaseMCPHandler):
 
     def _is_common_error(self, text: str) -> bool:
         """Check if response indicates a common error."""
-        # Common error patterns that apply to most services
-        error_patterns = [
-            "404",
-            "not found",
-            "error code",
-            "failed to fetch",
-            "connection failed",
-            "timeout",
-            "service unavailable",
-            "network error",
-            "permission denied",
-        ]
-
-        # Case-insensitive check
         text_lower = text.lower()
-        return any(pattern in text_lower for pattern in error_patterns)
+
+        # Check against all error patterns in ERROR_DEFINITIONS
+        for patterns, _, _ in self.ERROR_DEFINITIONS:
+            if any(pattern in text_lower for pattern in patterns):
+                return True
+        return False
 
     def _format_error_message(self, error_text: str, tool_name: str) -> str:
         """Format error message for better user experience."""
         error_lower = error_text.lower()
 
-        if "404" in error_lower or "not found" in error_lower:
-            return f"Resource not found. The {tool_name} service couldn't locate the requested information."
-        elif "connection" in error_lower or "network" in error_lower:
-            return f"Network connection issue. Please check your connection and try again."
-        elif "timeout" in error_lower:
-            return f"Request timed out. The service might be experiencing high load."
-        elif "permission" in error_lower:
-            return f"Permission denied. You may not have access to this resource."
-        else:
-            # For other errors, return a truncated version
-            return f"Service error: {error_text[:200]}..." if len(error_text) > 200 else f"Service error: {error_text}"
+        # Sort by priority and find first matching pattern
+        for patterns, message_template, _ in sorted(self.ERROR_DEFINITIONS, key=lambda x: x[2]):
+            if any(pattern in error_lower for pattern in patterns):
+                if message_template:  # Use specific message if available
+                    return message_template.format(tool=tool_name)
+                break  # Fall through to generic error for None template
+
+        # Generic error message (truncated if too long)
+        max_length = 200
+        if len(error_text) > max_length:
+            return f"Service error: {error_text[:max_length]}..."
+        return f"Service error: {error_text}"
 
     def should_continue_rounds(self, round_count: int, last_response: str, max_rounds: int) -> bool:
         """
@@ -485,10 +493,9 @@ class GeneralMCPHandler(BaseMCPHandler):
 
         try:
             async with connector.connect() as session:
-                # Log available tools if verbose
-                if verbose:
-                    tools = session.tools
-                    logger.info(f"🔧 Available tools: {[tool.name for tool in tools]}", tag="mcp_session")
+                # Log available tools
+                tools = session.tools
+                logger.info(f"🔧 Available tools: {[tool.name for tool in tools]}", tag="mcp_session")
 
                 # Preprocess query using subclass implementation
                 enhanced_query = self.preprocess_query(query, verbose=verbose, **kwargs)
