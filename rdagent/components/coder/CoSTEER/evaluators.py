@@ -76,6 +76,27 @@ class CoSTEERSingleFeedback(Feedback):
                 raise ValueError(f"'{attr}' must be a string, not {type(data[attr])}")
         return data
 
+    @classmethod
+    def merge(cls, feedback_li: list["CoSTEERSingleFeedback"]) -> "CoSTEERSingleFeedback":
+        # NOTE:
+        # Here we don't know the detailed design of each feedback, we just know they are CoSTEERSingleFeedback
+        # So we merge them only based on CoSTEERSingleFeedback's attributes
+        # **So some information may be lost when we have different types of feedbacks**
+        # If you have more sophisticated sub class of CoSTEERSingleFeedback, you should override this method
+        # to avoid the loss of information.
+
+        fb = deepcopy(feedback_li[0])
+
+        # for all the evaluators, aggregate the final_decision from `task_id`
+        fb.final_decision = all(fb.final_decision for fb in feedback_li)
+        for attr in "execution", "return_checking", "code":
+            setattr(
+                fb,
+                attr,
+                "\n\n".join([getattr(_fb, attr) for _fb in feedback_li if getattr(_fb, attr) is not None]),
+            )
+        return fb
+
     def __str__(self) -> str:
         return f"""------------------Execution------------------
 {self.execution}
@@ -230,7 +251,18 @@ class CoSTEERMultiEvaluator(CoSTEEREvaluator):
         **kwargs,
     ) -> CoSTEERMultiFeedback:
         eval_l = self.single_evaluator if isinstance(self.single_evaluator, list) else [self.single_evaluator]
+
+        # 1) Evaluate each sub_task
         task_li_feedback_li = []
+        # task_li_feedback_li: List[List[CoSTEERSingleFeedback]]
+        # Example:
+        # If there are 2 evaluators and 3 sub_tasks in evo, and each evaluator's evaluate returns a list of 3 CoSTEERSingleFeedbacks,
+        # Then task_li_feedback_li will be:
+        # [
+        #   [feedback_1_1, feedback_1_2, feedback_1_3],  # results from the 1st evaluator for all sub_tasks
+        #   [feedback_2_1, feedback_2_2, feedback_2_3],  # results from the 2nd evaluator for all sub_tasks
+        # ]
+        # Where feedback_i_j is the feedback from the i-th evaluator for the j-th sub_task.
         for ev in eval_l:
             multi_implementation_feedback = multiprocessing_wrapper(
                 [
@@ -248,27 +280,22 @@ class CoSTEERMultiEvaluator(CoSTEEREvaluator):
                 n=RD_AGENT_SETTINGS.multi_proc_n,
             )
             task_li_feedback_li.append(multi_implementation_feedback)
-        # merge the feedbacks
-        merged_task_feedback = []
-        for task_id, fb in enumerate(task_li_feedback_li[0]):
-            fb = deepcopy(fb)  # deep copy to make it more robust
 
-            fb.final_decision = all(
-                task_li_feedback[task_id].final_decision for task_li_feedback in task_li_feedback_li
-            )
-            for attr in "execution", "return_checking", "code":
-                setattr(
-                    fb,
-                    attr,
-                    "\n\n".join(
-                        [
-                            getattr(task_li_feedback[task_id], attr)
-                            for task_li_feedback in task_li_feedback_li
-                            if getattr(task_li_feedback[task_id], attr) is not None
-                        ]
-                    ),
-                )
+        # 2) merge the feedbacks along the sub_tasks to aggregate the multiple evaluation feedbacks
+        merged_task_feedback = []
+        # task_li_feedback_li[0] is a list of feedbacks of different tasks for the 1st evaluator
+        for task_id, fb in enumerate(task_li_feedback_li[0]):
+            fb = fb.merge([fb_li[task_id] for fb_li in task_li_feedback_li])
             merged_task_feedback.append(fb)
+        # merged_task_feedback: List[CoSTEERSingleFeedback]
+        # Example:
+        # [
+        #   CoSTEERSingleFeedback(final_decision=True, execution="...", return_checking="...", code="..."),
+        #   CoSTEERSingleFeedback(final_decision=False, execution="...", return_checking="...", code="..."),
+        #   ...
+        # ]
+        # Each element corresponds to the merged feedback for one sub-task across all evaluators.
+        # merged_task_feedback[i] is the merged feedback for the i-th sub_task
 
         final_decision = [
             None if single_feedback is None else single_feedback.final_decision

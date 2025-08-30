@@ -212,3 +212,215 @@ class LiteLLMAPIBackend(APIBackend):
             return max_tokens
         except Exception as e:
             return super().chat_token_limit
+
+    def supports_function_calling(self) -> bool:
+        """
+        Check if the backend supports function calling
+        """
+        return supports_function_calling(model=LITELLM_SETTINGS.chat_model)
+
+    def convert_mcp_tools_to_openai_format(self, mcp_tools: list) -> list[dict[str, Any]]:
+        """
+        Convert MCP tools to OpenAI function calling format
+
+        Args:
+            mcp_tools: List of MCP Tool objects
+
+        Returns:
+            List of tools in OpenAI format
+        """
+        openai_tools = []
+        for tool in mcp_tools:
+            openai_tool = {
+                "type": "function",
+                "function": {
+                    "name": tool.name,
+                    "description": tool.description,
+                    "parameters": tool.inputSchema,
+                },
+            }
+            openai_tools.append(openai_tool)
+
+        # Conversion completed silently
+        return openai_tools
+
+    def call_with_tools(
+        self, messages: list[dict[str, Any]], tools: list[dict[str, Any]], **kwargs: Any
+    ) -> tuple[str, str | None, list[Any] | None]:
+        """
+        Call chat completion with tools support
+
+        Args:
+            messages: Conversation messages
+            tools: Tools in OpenAI format
+            **kwargs: Additional parameters
+
+        Returns:
+            Tuple of (content, finish_reason, tool_calls)
+        """
+        # Check if we actually need function calling
+        if tools:
+            # Tools provided, check if model supports function calling
+            if not self.supports_function_calling():
+                logger.warning(
+                    f"Model {LITELLM_SETTINGS.chat_model} does not support function calling", tag="litellm_tools"
+                )
+                # Fall back to regular chat completion
+                content, finish_reason = self._create_chat_completion_inner_function(messages, **kwargs)
+                return content, finish_reason, None
+
+            # Model supports function calling and tools are provided
+            kwargs["tools"] = tools
+            kwargs["tool_choice"] = "auto"
+
+        # Model call with tools initiated
+
+        # Build parameters with potential overrides from kwargs
+        params = {
+            "model": kwargs.pop("model", LITELLM_SETTINGS.chat_model),
+            "messages": messages,
+            "stream": False,  # Tools don't work well with streaming
+            "temperature": kwargs.pop("temperature", LITELLM_SETTINGS.chat_temperature),
+            "max_tokens": kwargs.pop("max_tokens", LITELLM_SETTINGS.chat_max_tokens),
+            "max_retries": 0,
+            **kwargs,  # Include remaining kwargs
+        }
+
+        # Use existing chat completion infrastructure
+        response = completion(**params)
+
+        assistant_message = response.choices[0].message
+        content = assistant_message.content or ""
+        finish_reason = response.choices[0].finish_reason
+        tool_calls = getattr(assistant_message, "tool_calls", None)
+
+        return content, finish_reason, tool_calls
+
+    async def multi_round_tool_calling(
+        self,
+        initial_messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        max_rounds: int = 5,
+        tool_executor: Any = None,
+        verbose: bool = False,
+        model_config_override: dict[str, Any] | None = None,
+        round_callback: Any = None,
+        **kwargs: Any,
+    ) -> tuple[str, list[dict[str, Any]]]:
+        """
+        Perform multi-round tool calling conversation
+
+        Args:
+            initial_messages: Initial conversation messages
+            tools: Available tools in OpenAI format
+            max_rounds: Maximum number of rounds
+            tool_executor: Function to execute tool calls
+            verbose: Enable verbose logging
+            model_config_override: Override model configuration (model, api_base, api_key, etc.)
+            round_callback: Optional async callback(round_num, messages) called after each round
+            **kwargs: Additional parameters for chat completion
+
+        Returns:
+            Tuple of (final_response, full_conversation)
+        """
+        if not self.supports_function_calling():
+            logger.warning("Multi-round tool calling not supported by this model", tag="litellm_tools")
+            # Fall back to single completion
+            content, _ = self._create_chat_completion_inner_function(initial_messages, **kwargs)
+            return content, initial_messages
+
+        messages = initial_messages.copy()
+
+        # Apply model configuration override if provided
+        if model_config_override:
+            for key, value in model_config_override.items():
+                if key == "api_base":
+                    kwargs["base_url"] = value
+                elif key in ["model", "api_key", "temperature", "max_tokens"]:
+                    kwargs[key] = value
+
+        last_finish_reason = None
+
+        for round_count in range(1, max_rounds + 1):
+            logger.info(f"🔄 Round {round_count}/{max_rounds}", tag="mcp_progress")
+
+            # Call with tools (now with potential overrides applied)
+            content, finish_reason, tool_calls = self.call_with_tools(messages, tools, **kwargs)
+            last_finish_reason = finish_reason  # Track finish_reason
+
+            # Add assistant response to conversation
+            assistant_message: dict[str, Any] = {"role": "assistant", "content": content}
+            if tool_calls:
+                assistant_message["tool_calls"] = [
+                    {
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                    }
+                    for tc in tool_calls
+                ]
+            messages.append(assistant_message)
+
+            # If no tool calls, we're done
+            if not tool_calls:
+                logger.info(f"✅ Final response in round {round_count}", tag="mcp_progress")
+                # Call round callback before returning
+                if round_callback:
+                    try:
+                        await round_callback(round_count, messages.copy())
+                    except Exception as e:
+                        logger.warning(f"Round callback error: {e}", tag="litellm_callback")
+                return content, messages
+
+            # Execute tool calls if executor provided
+            if tool_executor:
+                tool_names = [tc.function.name for tc in tool_calls]
+                tool_list = ", ".join(tool_names)
+                logger.info(f"🔧 Executing {len(tool_calls)} tool(s): {tool_list}", tag="mcp_progress")
+
+                tool_results = await tool_executor(tool_calls)
+                messages.extend(tool_results)
+            else:
+                # If no executor, add placeholder results
+                for tool_call in tool_calls:
+                    messages.append(
+                        {"role": "tool", "tool_call_id": tool_call.id, "content": "Tool execution not configured"}
+                    )
+
+            # Call round callback if provided
+            if round_callback:
+                try:
+                    await round_callback(round_count, messages.copy())
+                except Exception as e:
+                    logger.warning(f"Round callback error: {e}", tag="litellm_callback")
+
+            # Round completion logged at higher level
+
+        # Reached max rounds - check if we need a final answer
+        if last_finish_reason == "tool_calls":
+            logger.warning(
+                f"Reached max rounds with tool_calls, making final call without tools for answer", tag="mcp_progress"
+            )
+
+            # Add a system message to prompt for final answer
+            messages.append(
+                {
+                    "role": "system",
+                    "content": "Based on all the tool results above, please provide a comprehensive final answer to the user's original question.",
+                }
+            )
+
+            # Make final call without tools to get text answer
+            # Use call_with_tools with empty tools list to force text response
+            content, finish_reason, _ = self.call_with_tools(
+                messages, tools=[], **kwargs  # Empty tools list forces pure text response
+            )
+            final_content = content
+
+            messages.append({"role": "assistant", "content": final_content})
+
+            return final_content, messages
+        else:
+            # finish_reason was 'stop' or other, return last response
+            logger.info(f"Reached max rounds with finish_reason='{last_finish_reason}'", tag="mcp_progress")
+            return messages[-1].get("content", "No response generated"), messages
