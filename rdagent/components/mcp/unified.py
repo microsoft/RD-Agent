@@ -17,7 +17,7 @@ def mcp_api_handler(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
         if not is_mcp_enabled():
-            logger.warning("MCP system is globally disabled")
+            logger.error("MCP system is globally disabled")
             return None
 
         try:
@@ -122,7 +122,7 @@ async def query_mcp(query: str, services: Optional[Union[str, List[str]]] = None
         if status["available_services"]:
             logger.info(f"🔍 MCP services available: {status['available_services']}", tag="mcp_status")
         else:
-            logger.warning("⚠️ No MCP services available for query", tag="mcp_status")
+            logger.error("⚠️ No MCP services available for query", tag="mcp_status")
 
     # Handle different service specifications
     if isinstance(services, str):

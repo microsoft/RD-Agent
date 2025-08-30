@@ -147,7 +147,7 @@ class MultiServiceContext:
             return session
 
         except Exception as e:
-            logger.warning(f"❌ Failed to connect service '{service_name}': {e}", tag="multi_service")
+            logger.error(f"❌ Failed to connect service '{service_name}': {e}", tag="multi_service")
             return None
 
     async def cleanup(self):
@@ -157,7 +157,7 @@ class MultiServiceContext:
                 await ctx.__aexit__(None, None, None)
                 logger.warning(f"Closed connection to '{service_name}'", tag="multi_service")
             except Exception as e:
-                logger.warning(f"Error closing '{service_name}': {e}", tag="multi_service")
+                logger.error(f"Error closing '{service_name}': {e}", tag="multi_service")
 
     def get_all_tools(self) -> List:
         """Get all tools from all connected services."""
@@ -211,25 +211,9 @@ class GeneralMCPHandler(BaseMCPHandler):
     - Maintains compatibility with existing MCP interfaces
     """
 
-    # Error patterns and their messages as class constant
-    # Format: (patterns_list, message_template, priority)
-    # Lower priority number = higher precedence
-    ERROR_DEFINITIONS = [
-        (["404", "not found"], "Resource not found. The {tool} service couldn't locate the requested information.", 1),
-        (
-            ["rate limit", "rate limited", "too many requests"],
-            "Service temporarily rate limited. Please wait a moment before retrying.",
-            2,
-        ),
-        (["no content available", "no context data available"], "No documentation available for this query.", 3),
-        (["failed to search", "error searching"], "Search service temporarily unavailable. Please try again.", 4),
-        (["failed to fetch", "error fetching"], "Documentation fetch failed. Please try again.", 5),
-        (["connection", "network"], "Network connection issue. Please check your connection and try again.", 6),
-        (["timeout"], "Request timed out. The service might be experiencing high load.", 7),
-        (["permission"], "Permission denied. You may not have access to this resource.", 8),
-        # Generic error patterns (lower priority, no specific message)
-        (["error code", "service unavailable", "please try again"], None, 99),
-    ]
+    # Rate limit wait times (in seconds)
+    RATE_LIMIT_WAIT_TIMES = [60, 120, 300]  # 1min, 2min, 5min
+    NORMAL_RETRY_WAIT_TIMES = [5, 10, 15]  # 5s, 10s, 15s
 
     def __init__(self, service_name: str, **config):
         """Initialize handler with LiteLLM backend dependency."""
@@ -273,6 +257,8 @@ class GeneralMCPHandler(BaseMCPHandler):
             mcp_settings["api_key"] = self.extra_config["api_key"]
 
         # Parse other LLM settings
+        # Note: 'timeout' here only affects LLM API calls (e.g., OpenAI/GPT),
+        # NOT MCP tool connections or SSE reading
         for key in ["temperature", "max_tokens", "timeout"]:
             if key in self.extra_config:
                 mcp_settings[key] = self.extra_config[key]
@@ -306,7 +292,7 @@ class GeneralMCPHandler(BaseMCPHandler):
 
     def handle_tool_result(self, result_text: str, tool_name: str, tool_index: int = 1) -> str:
         """
-        Process tool execution result with common error detection.
+        Process tool execution result.
 
         Args:
             result_text: Raw result from tool execution
@@ -316,39 +302,9 @@ class GeneralMCPHandler(BaseMCPHandler):
         Returns:
             Processed result content
         """
-        # Check for common errors and format them nicely
-        if self._is_common_error(result_text):
-            return self._format_error_message(result_text, tool_name)
-
         # Default: return result as-is
+        # Subclasses can override for custom processing
         return result_text
-
-    def _is_common_error(self, text: str) -> bool:
-        """Check if response indicates a common error."""
-        text_lower = text.lower()
-
-        # Check against all error patterns in ERROR_DEFINITIONS
-        for patterns, _, _ in self.ERROR_DEFINITIONS:
-            if any(pattern in text_lower for pattern in patterns):
-                return True
-        return False
-
-    def _format_error_message(self, error_text: str, tool_name: str) -> str:
-        """Format error message for better user experience."""
-        error_lower = error_text.lower()
-
-        # Sort by priority and find first matching pattern
-        for patterns, message_template, _ in sorted(self.ERROR_DEFINITIONS, key=lambda x: x[2]):
-            if any(pattern in error_lower for pattern in patterns):
-                if message_template:  # Use specific message if available
-                    return message_template.format(tool=tool_name)
-                break  # Fall through to generic error for None template
-
-        # Generic error message (truncated if too long)
-        max_length = 200
-        if len(error_text) > max_length:
-            return f"Service error: {error_text[:max_length]}..."
-        return f"Service error: {error_text}"
 
     def should_continue_rounds(self, round_count: int, last_response: str, max_rounds: int) -> bool:
         """
@@ -364,6 +320,54 @@ class GeneralMCPHandler(BaseMCPHandler):
         """
         # Default implementation uses round limit only
         return round_count < max_rounds
+
+    def detect_rate_limit(self, response_text: str) -> bool:
+        """
+        Detect if response indicates rate limiting.
+
+        Subclasses can override to add service-specific detection patterns.
+
+        Args:
+            response_text: The response text to check
+
+        Returns:
+            True if rate limit detected, False otherwise
+        """
+        if not response_text:
+            return False
+
+        # Common rate limit patterns
+        patterns = [
+            "rate limit",
+            "too many requests",
+            "try again later",
+            "try again",
+            "429",
+            "exceeded the rate",
+            "rate-limited",
+            "rate limit exceeded",
+        ]
+
+        response_lower = response_text.lower()
+        return any(pattern in response_lower[:70] for pattern in patterns)
+
+    def validate_tool_response(self, tool_name: str, response_text: str) -> None:
+        """
+        Validate tool response - subclasses can override.
+
+        Default implementation does no validation.
+        Subclasses can override this method to implement custom validation logic.
+
+        Args:
+            tool_name: Name of the tool that was called
+            response_text: The response text from the tool
+
+        Raises:
+            MCPConnectionError: When validation fails, triggering checkpoint-based retry
+        """
+        # Default: no validation
+        # Subclasses override this to add validation logic
+        pass
 
     # Core implementation using LiteLLM backend
 
@@ -415,19 +419,37 @@ class GeneralMCPHandler(BaseMCPHandler):
                 last_error = e
                 retry_count += 1
 
+                # Skip retry for real connection errors
                 if isinstance(e, MCPConnectionError) and "connection" in str(e).lower():
                     # Connection errors are already retried at connector level, don't retry here
                     raise
 
-                if retry_count < max_retries:
-                    # Calculate wait time: 5s, 10s, 15s
-                    wait_time = 5 * retry_count  # 5s, 10s, 15s
+                if retry_count <= max_retries:
+                    # Determine wait time based on error type
+                    if isinstance(e, RateLimitError):
+                        # Rate limit: use longer wait times
+                        if retry_count <= len(self.RATE_LIMIT_WAIT_TIMES):
+                            wait_time = self.RATE_LIMIT_WAIT_TIMES[retry_count - 1]
+                        else:
+                            wait_time = self.RATE_LIMIT_WAIT_TIMES[-1]  # Use max wait time
 
-                    logger.warning(
-                        f"Error after {checkpoint.completed_rounds} rounds: {str(e)[:100]}, "
-                        f"waiting {wait_time}s before retry {retry_count}/{max_retries}",
-                        tag="mcp_retry",
-                    )
+                        logger.warning(
+                            f"⏳ Rate limited after {checkpoint.completed_rounds} rounds. "
+                            f"Waiting {wait_time}s before retry {retry_count}/{max_retries}",
+                            tag="mcp_rate_limit",
+                        )
+                    else:
+                        # Normal error: use shorter wait times
+                        if retry_count <= len(self.NORMAL_RETRY_WAIT_TIMES):
+                            wait_time = self.NORMAL_RETRY_WAIT_TIMES[retry_count - 1]
+                        else:
+                            wait_time = self.NORMAL_RETRY_WAIT_TIMES[-1]  # Use max wait time
+
+                        logger.warning(
+                            f"⚠️ Error after {checkpoint.completed_rounds} rounds: {str(e)[:100]}. "
+                            f"Waiting {wait_time}s before retry {retry_count}/{max_retries}",
+                            tag="mcp_retry",
+                        )
 
                     # Wait before retry
                     await asyncio.sleep(wait_time)
@@ -435,12 +457,15 @@ class GeneralMCPHandler(BaseMCPHandler):
                     # Continue with checkpoint - will resume from where it left off
                     if checkpoint.can_resume():
                         logger.info(
-                            f"Resuming from checkpoint: {checkpoint.completed_rounds} rounds completed",
+                            f"📂 Resuming from checkpoint: {checkpoint.completed_rounds} rounds completed",
                             tag="mcp_resume",
                         )
                 else:
                     # Max retries reached
-                    logger.error(f"Max retries ({max_retries}) reached. Last error: {last_error}", tag="mcp_retry")
+                    error_type = "Rate limit" if isinstance(e, RateLimitError) else "Error"
+                    logger.error(
+                        f"{error_type}: Max retries ({max_retries}) reached. Last error: {last_error}", tag="mcp_retry"
+                    )
                     raise
 
             except Exception as e:
@@ -477,7 +502,7 @@ class GeneralMCPHandler(BaseMCPHandler):
         """
         # Check if backend supports function calling
         if not self.backend.supports_function_calling():
-            logger.warning(
+            logger.error(
                 f"Model does not support function calling, falling back to basic processing", tag="general_mcp"
             )
             return await self._fallback_processing(connector, query, **kwargs)
@@ -546,7 +571,7 @@ class GeneralMCPHandler(BaseMCPHandler):
                 return final_response
 
         except RateLimitError as e:
-            logger.warning(f"Rate limit exceeded for {self.service_name}, will retry automatically", tag="general_mcp")
+            logger.error(f"Rate limit exceeded for {self.service_name}, will retry automatically", tag="general_mcp")
             raise
         except MCPConnectionError as e:
             # Add context to connection errors
@@ -760,7 +785,22 @@ class GeneralMCPHandler(BaseMCPHandler):
 
                 # Extract and process result
                 result_text = result.content[0].text if result.content else ""
+
+                # Check for rate limit BEFORE validation
+                if self.detect_rate_limit(result_text):
+                    logger.warning(f"🚫 Rate limit detected for tool '{tool_call.function.name}'", tag="mcp_rate_limit")
+                    # Raise RateLimitError to trigger longer wait time
+                    raise RateLimitError(f"Service rate limited: {result_text[:100]}")
+
+                # Validate tool response (subclasses can override)
+                self.validate_tool_response(tool_call.function.name, result_text)
+
                 processed_content = self.handle_tool_result(result_text, tool_call.function.name, i)
+
+                # Debug logging for tool responses in verbose mode
+                if verbose and result_text:
+                    preview = result_text[:150].replace("\n", " ")
+                    logger.info(f"🔍 Tool '{tool_call.function.name}' response preview: {preview}...", tag="mcp_debug")
 
                 results.append(
                     {
@@ -769,6 +809,21 @@ class GeneralMCPHandler(BaseMCPHandler):
                         "content": processed_content,
                     }
                 )
+
+            except RateLimitError:
+                # RateLimitError should be propagated to trigger longer retry wait
+                logger.warning(
+                    f"⏳ Tool {tool_call.function.name} rate limited, propagating for retry with longer wait",
+                    tag="mcp_rate_limit",
+                )
+                raise
+
+            except MCPConnectionError:
+                # MCPConnectionError should be propagated to trigger retry mechanism
+                logger.warning(
+                    f"🔄 Tool {tool_call.function.name} validation failed, propagating for retry", tag="mcp_retry"
+                )
+                raise
 
             except Exception as e:
                 logger.error(f"❌ Tool {tool_call.function.name} failed: {e}", tag="mcp_error")

@@ -82,7 +82,7 @@ class StreamableHTTPConnector:
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
         retry=retry_if_exception_type((ConnectionError, TimeoutError, OSError)),
-        before_sleep=lambda retry_state: logger.info(
+        before_sleep=lambda retry_state: logger.warning(
             f"Connection retry {retry_state.attempt_number}/3, waiting {retry_state.next_action.sleep}s"
         ),
     )
@@ -115,6 +115,10 @@ class StreamableHTTPConnector:
 
             yield session
 
+        except MCPConnectionError:
+            # MCPConnectionError should propagate as-is (could be validation error)
+            # Don't re-wrap to preserve original error message for retry logic
+            raise
         except Exception as e:
             # Convert complex exceptions to simpler ones
             error_msg = self._simplify_connection_error(e)

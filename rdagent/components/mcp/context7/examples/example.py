@@ -161,9 +161,9 @@ async def main():
     logger.info("=" * 60)
 
     # Run three examples showing different usage modes
-    await example_single_service()
-    await example_auto_mode()
-    await example_multi_service()
+    await example_single_service()  # single service mode
+    # await example_auto_mode() # auto mode - all services in parallel
+    # await example_multi_service() # multi service mode - similar to auto mode but with specified services
 
 
 if __name__ == "__main__":

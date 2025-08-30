@@ -207,6 +207,11 @@ class MCPRegistry:
         # Create connector with retry mechanism
         connector_config = config.to_connector_config()
 
+        # TODO: Make handler customization part of a formal plugin system
+        # Allow handler to customize connector configuration
+        if hasattr(handler, "customize_connector_config"):
+            connector_config = handler.customize_connector_config(connector_config)
+
         # Create connector directly
         connector = StreamableHTTPConnector(connector_config)
 
@@ -255,8 +260,15 @@ class MCPRegistry:
 
             # Get service configuration and create connector
             config = self.get_service_config(service_name)
-            connector = StreamableHTTPConnector(config.to_connector_config())
+            connector_config = config.to_connector_config()
             handler = self._handlers[service_name]
+
+            # TODO: Make handler customization part of a formal plugin system
+            # Allow handler to customize connector configuration
+            if hasattr(handler, "customize_connector_config"):
+                connector_config = handler.customize_connector_config(connector_config)
+
+            connector = StreamableHTTPConnector(connector_config)
 
             service_configs[service_name] = (connector, handler)
 

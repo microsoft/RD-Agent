@@ -4,6 +4,7 @@
       "url": "http://localhost:8123/mcp",
       "handler": "rdagent.components.mcp.context7.handler:Context7Handler",
       "enabled": true,
+      "timeout": 60,
       "extra_config": {
         "model": "gpt-4",
         "api_key": "your-api-key-here",
@@ -13,10 +14,10 @@
     "simple_code_search": {
       "url": "http://localhost:9001/mcp",
       "handler": "rdagent.components.mcp.general_handler:GeneralMCPHandler",
+      "timeout": 60
       "enabled": true,
       "extra_config": {
         "model": "gpt-3.5-turbo",
-        "timeout": 60
       }
     }
   }
