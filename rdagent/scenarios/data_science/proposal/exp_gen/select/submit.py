@@ -224,6 +224,7 @@ class ValidationSelector(SOTAexpSelector):
         self.competition = competition
         self.only_sample = only_sample
         self.sample_code_path = Path(sample_code_path)
+        self.hypothesis_dict = {exp.hypothesis.hypothesis: loop_id for exp, loop_id in self.candidate}
 
     def get_sota_exp_to_submit(self, trace: Trace) -> Optional[List[DSExperiment]]:
         """
@@ -259,18 +260,20 @@ class ValidationSelector(SOTAexpSelector):
             return None
 
         # 4. Process results and select the best one
-        valid_results = [(exp, score) for exp, score in results if score is not None]
+        valid_results = [
+            (exp, score, self.hypothesis_dict.get(exp.hypothesis.hypothesis))
+            for exp, score in results
+            if score is not None
+        ]
         if not valid_results:
             logger.warning("ValidationSelector: No candidates scored successfully during validation.")
             return None
 
         valid_results.sort(key=lambda x: x[1] * self.direction_sign, reverse=True)
-        best_exp, best_loop_id = [
-            (exp, loop_id)
-            for exp, loop_id in self.candidate
-            if exp.hypothesis.hypothesis == valid_results[0][0].hypothesis.hypothesis
-        ][0]
+        best_exp, best_loop_id = valid_results[0][0], valid_results[0][2]
 
+        for loop_id, score in [(i[2], i[1]) for i in valid_results]:
+            logger.info(f"ValidationSelector: Loop_id={loop_id} -> score={score}")
         logger.info(
             f"ValidationSelector: Best experiment from validation is loop_id={best_loop_id} with score={valid_results[0][1]}"
         )
