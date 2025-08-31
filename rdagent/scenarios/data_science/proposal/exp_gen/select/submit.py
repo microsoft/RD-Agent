@@ -445,7 +445,7 @@ def process_experiment(
     """
     if loop_id is None:
         logger.error("Could not find loop_id for a given experiment.")
-        return exp, None
+        loop_id = "unknown"
 
     input_folder = T("scenarios.data_science.share:scen.input_path").r()
 
@@ -527,7 +527,6 @@ def try_get_loop_id(trace: Trace, exp: DSExperiment):
     index = trace.exp2idx(exp)
     if hasattr(trace, "idx2loop_id"):
         return trace.idx2loop_id.get(index)
-    assert index, f"No loop_id found for experiment {index}."
     return index
 
 
@@ -668,7 +667,8 @@ def select_on_existing_trace(
                     )
                 )
     else:
-        log_path = next(d for d in Path("log").iterdir() if d.is_dir() and d.name != "pickle_cache")
+        log_path = next(d for d in Path("log").iterdir() if d.is_dir() and d.name != "pickle_cache" and not d.name.startswith("20"))
+        logger.info(f"Loading trace from {log_path}")
         log_storage = FileStorage(log_path)
         trace = list(log_storage.iter_msg(tag="trace"))[-1].content
         tasks.append(
