@@ -604,7 +604,7 @@ def evaluate_one_trace(
 
 def select_on_existing_trace(
     selector_name: str,
-    trace_root: str,
+    trace_root: str = "",
     experiment: str | None = None,
     competition: str | None = None,
     debug: bool = False,
@@ -623,12 +623,12 @@ def select_on_existing_trace(
 
     # Prepare list of tasks for multiprocessing
     tasks = []
-    for trace_folder in trace_root_path.iterdir():
-        if not trace_folder.is_dir():
-            continue
-        if experiment is not None and not experiment in str(trace_folder):
-            continue
-        if debug:
+    if debug:
+        for trace_folder in trace_root_path.iterdir():
+            if not trace_folder.is_dir():
+                continue
+            if experiment is not None and not experiment in str(trace_folder):
+                continue
             for trace_pkl_path in trace_folder.glob("*.pkl"):
                 if competition is not None and not competition in str(trace_pkl_path):
                     continue
@@ -660,16 +660,16 @@ def select_on_existing_trace(
                         ),
                     )
                 )
-        else:
-            log_path = next(d for d in Path("log").iterdir() if d.is_dir() and d.name != "pickle_cache")
-            log_storage = FileStorage(log_path)
-            trace = list(log_storage.iter_msg(tag="trace"))[-1].content
-            tasks.append(
-                (
-                    evaluate_one_trace,
-                    (selector_name, trace, debug, only_sample, sample_code_path),
-                )
+    else:
+        log_path = next(d for d in Path("log").iterdir() if d.is_dir() and d.name != "pickle_cache")
+        log_storage = FileStorage(log_path)
+        trace = list(log_storage.iter_msg(tag="trace"))[-1].content
+        tasks.append(
+            (
+                evaluate_one_trace,
+                (selector_name, trace, debug, only_sample, sample_code_path),
             )
+        )
 
     if not tasks:
         logger.error(f"No .pkl trace files found in subdirectories of {trace_root}")
