@@ -443,7 +443,7 @@ def process_experiment(
     Worker function to process a single experiment in an isolated directory.
     This function is designed to be called by a multiprocessing pool.
     """
-    if not loop_id:
+    if loop_id is None:
         logger.error("Could not find loop_id for a given experiment.")
         return exp, None
 
@@ -527,6 +527,7 @@ def try_get_loop_id(trace: Trace, exp: DSExperiment):
     index = trace.exp2idx(exp)
     if hasattr(trace, "idx2loop_id"):
         return trace.idx2loop_id.get(index)
+    assert index, f"No loop_id found for experiment {index}."
     return index
 
 
