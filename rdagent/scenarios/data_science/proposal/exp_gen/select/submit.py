@@ -293,6 +293,8 @@ class ValidationSelector(SOTAexpSelector):
         grade_py_path = Path(mock_folder) / "grade.py"
         label_path = Path(mock_folder) / "workspace_input/label.csv"
         reference_code = reference_exp.experiment_workspace.file_dict.get("main.py", "")
+        if not reference_code:
+            raise RuntimeError("ValidationSelector: No code found in the reference experiment.")
 
         if (self.sample_code_path / competition / "data.py").exists():
             shutil.copy(self.sample_code_path / competition / "data.py", data_py_path)
@@ -449,6 +451,7 @@ def process_experiment(
 
     try:
         ws = FBWorkspace()
+        logger.info(f"Experiment files: {exp.experiment_workspace.file_dict.keys()}")
         ws.inject_code_from_file_dict(exp.experiment_workspace)
 
         # Run main script
