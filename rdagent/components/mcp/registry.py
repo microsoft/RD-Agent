@@ -178,7 +178,7 @@ class MCPRegistry:
                     handler_class = self._import_handler_class(config.handler, verbose=verbose)
 
                     # Create Handler instance with service configuration
-                    handler = handler_class(name, service_url=config.url, **config.extra_config)
+                    handler = handler_class(name, service_url=config.url, extra_config=config.extra_config)
 
                     # Register Handler
                     self._handlers[name] = handler
