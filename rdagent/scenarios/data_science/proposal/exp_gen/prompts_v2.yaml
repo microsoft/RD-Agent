@@ -225,7 +225,7 @@ hypothesis_gen:
       - **Risk-Reward Balance (Score: 1-10):** Considering the potential for significant improvement (reward) versus the probability of failure, negative side-effects, or excessive resource consumption (risk), how optimal is this balance? A high score indicates a favorable balance.
       - **Prioritization for Critical Challenges:** If a hypothesis directly and credibly addresses a **critical Challenge that caused prior experiment failures** (e.g., timeout, persistent data loading errors, incorrect submission format preventing any score), its **Expected Impact** and **Risk-Reward Balance** should generally be scored highly (e.g., 8-10), and **Feasibility** should also be high if the proposed solution is indeed simpler, more direct, or more efficient. This ensures such critical hypotheses are prioritized.
       - **NLP Modern Model Priority:** For NLP competitions, hypotheses proposing modern pre-trained language models (Qwen, LLaMA, Gemma, etc.) should receive **Expected Impact** scores of 8-10 and favorable **Risk-Reward Balance** scores. Hypotheses using traditional models (BERT, DeBERTa, etc.) should receive **Expected Impact** scores below 5 due to their outdated nature.    {%if enable_simple_hypothesis%}
-    3. Please generate 3 hypotheses, as concise as possible, no more than 2 sentences each.
+    3. Please generate **Only One** hypothesis, as concise as possible.
     {% endif %}
     {%if generate_unique_hypothesis %}
     We are now at the beginning stage. Please generate hypotheses that are as unique as possible.
