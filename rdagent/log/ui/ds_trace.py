@@ -200,6 +200,7 @@ def workspace_win(workspace, cmp_workspace=None, cmp_name="last code."):
         with st.popover(
             f"⏱️{time_str} 📂Files in :blue[{replace_ep_path(workspace.workspace_path)}]", use_container_width=True
         ):
+            st.write(replace_ep_path(workspace.workspace_path))
             code_tabs = st.tabs(show_files.keys())
             for ct, codename in zip(code_tabs, show_files.keys()):
                 with ct:
@@ -1132,7 +1133,7 @@ with st.sidebar:
 
             state.times = load_times_info(state.log_folder / state.log_path)
             state.data, state.llm_data, state.token_costs = load_data(state.log_folder / state.log_path)
-            state.sota_info = get_sota_exp_stat(Path(state.log_folder) / state.log_path, to_submit=True)
+            state.sota_info = get_sota_exp_stat(Path(state.log_folder) / state.log_path, selector="auto")
             st.rerun()
     st.toggle("**Show LLM Log**", key="show_llm_log")
     st.toggle("*Show stdout*", key="show_stdout")

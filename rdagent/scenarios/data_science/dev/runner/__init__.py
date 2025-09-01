@@ -171,7 +171,10 @@ class DSCoSTEERRunner(CoSTEER):
         """
         return int(self.scen.real_full_timeout() * self.settings.max_seconds_multiplier)
 
-    def compare_and_pick_fb(self, base_fb: CoSTEERMultiFeedback | None, new_fb: CoSTEERMultiFeedback | None) -> bool:
+    def should_use_new_evo(self, base_fb: CoSTEERMultiFeedback | None, new_fb: CoSTEERMultiFeedback) -> bool:
+        if not new_fb.is_acceptable():
+            return False
+
         # In data science, we only have a single feedback.
         # Note: new_fb should always exists as indicated by _get_last_fb() function.
         if base_fb is None:

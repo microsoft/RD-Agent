@@ -4,7 +4,8 @@ filter_redundant_text:
     1. Training log messages should be evaluated based on their usefulness—logs that contain meaningful training metrics such as loss or accuracy reported at each epoch should be retained, while redundant messages, such as those repeatedly reporting NaN values or iteration numbers without valuable information, should be removed. 
     2. For warning messages, **only one occurrence of each unique message should be kept**, eliminating any duplicates.
     3. Additionally, any visual progress indicators, such as ASCII-based progress bars or dynamic percentage updates, should be removed. Once these patterns are identified, you should generate appropriate regex expressions to filter them out.
-    4. Lastly, indicate whether substitution is needed. If the input exceeds a token limit, the system will provide only a shortened portion of the text.
+    4. Don't remove useful information that is not duplicated.
+    5. Lastly, indicate whether substitution is needed in `needs_sub` field. If the input exceeds a token limit, the system will provide only a shortened portion of the text.
 
     Respond in the following JSON format and order:
     {

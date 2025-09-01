@@ -662,7 +662,10 @@ def percent_df(summary_df: pd.DataFrame, show_origin=True) -> pd.DataFrame:
         "Gold",
         "Any Medal",
     ]
-    new_df[columns_to_convert] = new_df[columns_to_convert].astype(object)
+
+    # Filter columns_to_convert to only include columns that exist in new_df
+    existing_columns = [col for col in columns_to_convert if col in new_df.columns]
+    new_df[existing_columns] = new_df[existing_columns].astype(object)
 
     def num2percent(num: int, total: int, show_origin=True) -> str:
         num = int(num)
@@ -674,22 +677,14 @@ def percent_df(summary_df: pd.DataFrame, show_origin=True) -> pd.DataFrame:
     for k in new_df.index:
         loop_num = int(new_df.loc[k, "Total Loops"])
         if loop_num != 0:
-            new_df.loc[k, "Successful Final Decision"] = num2percent(
-                new_df.loc[k, "Successful Final Decision"], loop_num, show_origin
-            )
             if new_df.loc[k, "Made Submission"] != 0:
                 new_df.loc[k, "V/M"] = (
                     f"{round(new_df.loc[k, 'Valid Submission'] / new_df.loc[k, 'Made Submission'] * 100, 2)}%"
                 )
             else:
                 new_df.loc[k, "V/M"] = "N/A"
-            new_df.loc[k, "Made Submission"] = num2percent(new_df.loc[k, "Made Submission"], loop_num, show_origin)
-            new_df.loc[k, "Valid Submission"] = num2percent(new_df.loc[k, "Valid Submission"], loop_num, show_origin)
-            new_df.loc[k, "Above Median"] = num2percent(new_df.loc[k, "Above Median"], loop_num, show_origin)
-            new_df.loc[k, "Bronze"] = num2percent(new_df.loc[k, "Bronze"], loop_num, show_origin)
-            new_df.loc[k, "Silver"] = num2percent(new_df.loc[k, "Silver"], loop_num, show_origin)
-            new_df.loc[k, "Gold"] = num2percent(new_df.loc[k, "Gold"], loop_num, show_origin)
-            new_df.loc[k, "Any Medal"] = num2percent(new_df.loc[k, "Any Medal"], loop_num, show_origin)
+            for col in existing_columns:
+                new_df.loc[k, col] = num2percent(new_df.loc[k, col], loop_num, show_origin)
 
     return new_df
 
