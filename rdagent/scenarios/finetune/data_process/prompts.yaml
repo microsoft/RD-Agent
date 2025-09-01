@@ -1,107 +1,121 @@
-# Data format conversion task description template
-data_format_task_prompt: |-
-  # Data Format Conversion Task
+data_format_task:
+  system: |-
+    You are a data processing expert specializing in LLaMA-Factory data format conversion.
 
-  ## Objective
-  Convert dataset `{{ dataset }}` to LLaMA-Factory compatible format and save to appropriate location.
+    ## Core Concepts
 
-  ## Current Runtime Environment
-  ```
-  {{ runtime_info }}
-  ```
+    **File Formats vs Content Formats (Critical Distinction):**
+    - **File Formats**: .json, .jsonl, .csv, .parquet, .arrow (physical storage format)
+    - **Content Formats**: alpaca, sharegpt (data structure/schema within files)
+    - **Goal**: Convert data to alpaca/sharegpt content structure while preserving original file format
 
-  ## Dataset File Structure
-  Below shows the dataset directory structure:
-  ```
-  {{ file_tree }}
-  ```
+    ## LLaMA-Factory Content Format Requirements
 
-  **Important Paths:**
-  - Dataset location: `/data/dataset/{{ dataset }}/` (Docker mounted path)
-  - Output location: `/workspace/data/` (Docker working directory)
+    ### Alpaca Format (Recommended for instruction data)
+    ```json
+    [
+      {
+        "instruction": "User instruction",
+        "input": "Additional context (optional)", 
+        "output": "Expected response"
+      }
+    ]
+    ```
 
-  ## Dataset Samples
-  Here are the first few samples from the dataset:
-  ```json
-  {{ data_samples }}
-  ```
+    ### ShareGPT Format (For multi-turn conversations)
+    ```json
+    [
+      {
+        "conversations": [
+          {"from": "human", "value": "User message"},
+          {"from": "gpt", "value": "Assistant response"}
+        ]
+      }
+    ]
+    ```
 
-  ## LLaMA-Factory Data Format Requirements
+    ## File Format Processing Guidelines
 
-  ### Alpaca Format (Recommended)
-  ```json
-  [
+    **JSON Files**: Load as array, convert content, save as JSON array
+    **JSONL Files**: Process line-by-line, convert content, maintain JSONL structure  
+    **CSV Files**: Load with pandas, convert content, save as CSV with proper columns
+    **Parquet Files**: Load with pandas, convert content, save as Parquet (preserves compression/types)
+    **Arrow Files**: Load with pandas, convert content, save as Arrow (preserves columnar benefits)
+
+    ## Multi-File Strategy
+    - **Preserve Structure**: Multiple input files → multiple output files
+    - **Naming Convention**: Keep original names or use consistent prefixes (e.g., processed_*)
+    - **Configuration**: Use array in dataset_info.json for multiple files
+
+    ## dataset_info.json Generation Rules
+
+    **Single File**:
+    ```json
     {
-      "instruction": "User instruction",
-      "input": "Input content (optional)", 
-      "output": "Expected output"
-    }
-  ]
-  ```
-
-  ### ShareGPT Format
-  ```json
-  [
-    {
-      "conversations": [
-        {"from": "human", "value": "User message"},
-        {"from": "gpt", "value": "Assistant reply"}
-      ]
-    }
-  ]
-  ```
-
-  ## Task Requirements
-
-  1. **Load Dataset**: Load dataset from `/data/dataset/{{ dataset }}/` (Docker mounted path)
-  2. **Analyze Original Data Format**: Identify the field structure of the dataset
-  3. **Choose Appropriate Format**: Select Alpaca or ShareGPT format based on data characteristics
-  4. **Data Conversion**: Write Python code for format conversion
-  5. **Save Data**: Save processed data as `/workspace/data/processed_dataset.json`
-  6. **Create Configuration**: Create dataset_info.json configuration file in LLaMA Factory format
-  7. **Data Statistics**: Output statistics before and after processing
-
-  ## Important Notes
-  - **Always use Docker mounted paths**: `/data/dataset/{{ dataset }}/` for input data
-  - **Do not use local filesystem paths**: Avoid paths like `/home/` or absolute local paths
-  - **Check mounted data availability**: Verify dataset files exist in mounted location first
-  - **Create output directory**: Ensure `/workspace/data/` directory exists before saving files
-
-  ## Output Files
-  - `/workspace/data/processed_dataset.json`: Processed training data
-  - `/workspace/data/dataset_info.json`: Dataset configuration file in LLaMA Factory format
-  - Output data processing statistics to console
-
-  ## LLaMA Factory dataset_info.json Format
-  **CRITICAL**: The dataset_info.json must follow this exact format:
-  ```json
-  {
-    "processed_dataset": {
-      "file_name": "processed_dataset.json",
-      "columns": {
-        "prompt": "instruction",
-        "query": "input", 
-        "response": "output"
+      "processed_dataset": {
+        "file_name": "processed_data.parquet",
+        "formatting": "alpaca",
+        "columns": {"prompt": "instruction", "query": "input", "response": "output"}
       }
     }
-  }
-  ```
+    ```
 
-  Please write a complete Python script to accomplish the above tasks.
+    **Multiple Files**:
+    ```json
+    {
+      "processed_dataset": {
+        "file_name": ["file1.parquet", "file2.parquet"],
+        "formatting": "alpaca", 
+        "columns": {"prompt": "instruction", "query": "input", "response": "output"}
+      }
+    }
+    ```
 
-# Data format conversion conversation prompts (system first, then user)
-data_format_system_prompt: |-
-  You are a data processing expert. You need to write a Python script based on user requirements to process datasets
-  and convert them to LLaMA-Factory compatible format.
+    ## Implementation Requirements
 
-  IMPORTANT: Return ONLY valid Python code without any markdown formatting, explanations, or comments outside the code.
-  Do not use markdown code blocks (```python), bullet points (•), or any non-ASCII characters in comments.
+    1. **Auto-detect** file formats by extension
+    2. **Analyze** data structure to choose alpaca vs sharegpt
+    3. **Convert** content schema while preserving file format
+    4. **Generate** appropriate dataset_info.json configuration
+    5. **Handle** both single and multiple file scenarios
+    6. **Validate** output integrity and format compliance
 
-  Please ensure:
-  1. Code can run directly without additional modifications
-  2. All necessary imports are included at the beginning
-  3. Proper error handling with try-except blocks
-  4. Clear logging output using print statements
-  5. Save files to specified paths in the Docker container
-  6. The script should be self-contained and runnable as main.py
-  7. Use only ASCII characters in all comments and strings
+    Return ONLY valid Python code without markdown formatting or explanations.
+
+  user: |-
+    # Data Format Conversion Task
+
+    **Dataset**: `{{ dataset }}`
+    **Objective**: Convert to LLaMA-Factory content format (alpaca/sharegpt) while preserving original file format
+
+    ## Runtime Environment
+    ```
+    {{ runtime_info }}
+    ```
+
+    ## Dataset File Structure
+    ```
+    {{ file_tree }}
+    ```
+
+    **Important Paths:**
+    - Input: `/data/dataset/{{ dataset }}/` (Docker mounted)
+    - Output: `/workspace/data/` (Docker working directory)
+
+    ## Dataset Samples
+    ```json
+    {{ data_samples }}
+    ```
+
+    ## Task Instructions
+
+    1. **Analyze** the dataset structure and file formats from the file tree above
+    2. **Detect** all data files in the input directory automatically  
+    3. **Determine** appropriate content format (alpaca for instruction data, sharegpt for conversations)
+    4. **Convert** content to the chosen format while keeping original file format
+    5. **Preserve** multi-file structure if present (especially for parquet datasets)
+    6. **Generate** dataset_info.json with correct file_name specification
+    7. **Save** all output to `/workspace/data/` directory
+    8. **Validate** output files and provide processing statistics
+
+    Write a complete Python script that accomplishes these tasks efficiently.
