@@ -4,6 +4,8 @@ LLM Fine-tuning Base Classes
 Contains core hypothesis and task classes for LLM fine-tuning scenarios.
 """
 
+import re
+
 from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.core.experiment import Task
 from rdagent.core.proposal import ExpGen, Hypothesis, Hypothesis2Experiment, Trace
@@ -158,15 +160,18 @@ class LLMFinetuneExpGen(ExpGen):
 
     # TODO: decide by llm or hard code logic?
     # ATTENTION: This is a oversimplified version
-    def _select_model_and_method(self, device_info: dict, dataset_info: dict, trace: Trace) -> tuple[str, str]:
+    def _select_model_and_method(self, device_info: str, dataset_info: dict, trace: Trace) -> tuple[str, str]:
         """Select base model and fine-tuning method based on device capability and dataset"""
-        memory_gb = device_info.get("memory_gb", 8)
+        memory_gb = re.search(r"Total GPU Memory:\s*([\d.]+)\s*GB", device_info)
+        memory_gb = float(memory_gb.group(1)) if memory_gb else None
 
         # For debugging, only use the single available model
         base_model = AVAILABLE_BASE_MODELS[0]
 
         # Select fine-tuning method based on GPU memory
-        if memory_gb >= 12:
+        if memory_gb is None:
+            finetune_method = "qlora"
+        elif memory_gb >= 12:
             finetune_method = "lora"  # More stable for debugging
         elif memory_gb >= 8:
             finetune_method = "qlora"  # More memory efficient
