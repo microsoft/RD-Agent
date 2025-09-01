@@ -2,6 +2,7 @@
 LLaMA Factory Parameter Query Module
 
 This module provides functionality to query LLaMA Factory parameters based on the fine-tuning method.
+TODO: fetch parameters from llama factory dynamically
 """
 
 import ast
@@ -18,7 +19,7 @@ class LLaMAFactoryParamsQuery:
     def __init__(self, llama_factory_path: Optional[Path] = None):
         """Initialize the parameter query with LLaMA Factory repository path."""
         if llama_factory_path is None:
-            llama_factory_path = Path("/home/v-qizhengli/workspace/RD-Agent/git_ignore_folder/LLaMA-Factory")
+            llama_factory_path = Path.cwd() / "git_ignore_folder" / "LLaMA-Factory"
         self.llama_factory_path = llama_factory_path
         self.params_path = llama_factory_path / "src" / "llamafactory" / "hparams"
 
