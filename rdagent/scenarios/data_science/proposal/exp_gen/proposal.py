@@ -34,14 +34,10 @@ from rdagent.scenarios.data_science.proposal.exp_gen.planner import (
 from rdagent.scenarios.data_science.proposal.exp_gen.select.submit import (
     BestValidSelector,
 )
-from rdagent.scenarios.data_science.proposal.exp_gen.select.submit import (
-    BestValidSelector,
-)
 from rdagent.scenarios.data_science.proposal.exp_gen.utils import (
     get_available_packages_prompt,
     get_packages,
 )
-from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
@@ -260,13 +256,6 @@ class HypothesisDetail(BaseModel):
     )
     component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
     evaluation: HypothesisEvaluation = Field(description="Evaluate the quality of the hypothesis.")
-
-
-class HypothesisSimple(BaseModel):
-    hypothesis: str = Field(
-        description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
-    )
-    component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
 
 
 class HypothesisSimple(BaseModel):
@@ -1078,7 +1067,7 @@ class DSProposalV2ExpGen(ExpGen):
                     ]
         """
         return [
-            (exp.hypothesis, exp.result.loc["ensemble"].iloc[0])
+            (exp.hypothesis, exp.result.loc["ensemble"].iloc[0].round(3))
             for exp, _ in trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="all")
         ]
 
@@ -1109,12 +1098,12 @@ class DSProposalV2ExpGen(ExpGen):
         ]
         time_max = max(time_list_success) / 3600
         # sota_flag = (hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None)----> V10 CODE VERSION
-        bvs = BestValidSelector()  # ----> V14 CODE VERSION
-        sota_exp = bvs.get_sota_exp_to_submit(trace)  # ----> V14 CODE VERSION
-        sota_flag = sota_exp is not None and sota_exp.result is not None  # ----> V14 CODE VERSION
+        bvs = BestValidSelector()  # ----> V15 CODE VERSION
+        sota_exp = bvs.get_sota_exp_to_submit(trace)  # ----> V15 CODE VERSION
+        sota_flag = sota_exp is not None and sota_exp.result is not None  # ----> V15 CODE VERSION
 
         if sota_flag:
-            current_sota_score = sota_exp.result.loc["ensemble"].iloc[0].round(3)  # ----> V14 CODE VERSION
+            current_sota_score = sota_exp.result.loc["ensemble"].iloc[0].round(3)  # ----> V15 CODE VERSION
             # trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0].round(3) ----> V10 CODE VERSION
         else:
             current_sota_score = -1
@@ -1234,7 +1223,6 @@ class DSProposalV2ExpGen(ExpGen):
             workflow_check=workflow_check,
             metric_name=self.scen.metric_name,
             sibling_tasks=sibling_tasks,
-            fix_seed_and_data_split=DS_RD_SETTING.fix_seed_and_data_split,
             fix_seed_and_data_split=DS_RD_SETTING.fix_seed_and_data_split,
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
@@ -1364,7 +1352,7 @@ class DSProposalV2ExpGen(ExpGen):
             type="failed",
             pipeline=pipeline,
         )
-        #        #
+        #
         # NOTE: we currently don't support inject diverse problems for the parallel + multi-trace mode,
         if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
             if len(trace.current_selection) == 0:
@@ -1405,9 +1393,6 @@ class DSProposalV2ExpGen(ExpGen):
         # sub-trace begin flag
         is_new_tree = trace.is_selection_new_tree()
 
-        # sub-trace begin flag
-        is_new_tree = trace.is_selection_new_tree()
-
         # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
         hypothesis_dict = self.hypothesis_gen(
             component_desc=component_desc,
@@ -1419,7 +1404,6 @@ class DSProposalV2ExpGen(ExpGen):
             enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
             inject_diverse=inject_diverse,
             exp_gen_plan=plan.get("exp_gen") if plan else None,
-            is_new_tree=is_new_tree,
             is_new_tree=is_new_tree,
             packages_prompt=packages_prompt,
             sibling_exp=sibling_exp,
@@ -1441,7 +1425,7 @@ class DSProposalV2ExpGen(ExpGen):
                     hypothesis_dict.pop(name)
 
         # Step 2.1 & 2.2: Hypothesis Critique and Rewrite Stage (controlled by enable_hypo_critique_rewrite)
-        if DS_RD_SETTING.enable_hypo_critique_rewrite and len(trace.hist) > 0 and len(trace.hist) > 0:
+        if DS_RD_SETTING.enable_hypo_critique_rewrite and len(trace.hist) > 0:
             logger.info(f"Hypothesis critique and rewrite enabled - processing {len(hypothesis_dict)} hypotheses")
 
             # Critic Stage - Evaluate and identify flaws in hypotheses
@@ -1460,7 +1444,6 @@ class DSProposalV2ExpGen(ExpGen):
 
                 # Rewriter Stage - Generate improved hypotheses based on critiques
                 logger.info(f"Starting rewriter stage - generating improved hypotheses based on critique feedback")
-                hypothesis_dict = self.hypothesis_rewrite(
                 hypothesis_dict = self.hypothesis_rewrite(
                     hypothesis_dict=hypothesis_dict,
                     critiques_dict=critiques_dict,
@@ -1498,26 +1481,6 @@ class DSProposalV2ExpGen(ExpGen):
                 problem_dict=all_problems,
             )
 
-        if DS_RD_SETTING.llm_select_hypothesis:
-            response_dict = self.hypothesis_select_with_llm(
-                scenario_desc=scenario_desc,
-                exp_feedback_list_desc=exp_feedback_list_desc,
-                # extra_exp_feedback_list_desc=extra_exp_feedback_list_desc,
-                # exp_feedback_scores=exp_feedback_scores,
-                sota_exp_desc=sota_exp_desc,
-                hypothesis_candidates=hypothesis_dict,
-                trace=trace,
-            )
-            new_hypothesis = DSHypothesis(
-                component=response_dict.get("component"), hypothesis=response_dict.get("hypothesis")
-            )
-            pickled_problem_name = None
-        else:
-            pickled_problem_name, new_hypothesis = self.hypothesis_rank(
-                hypothesis_dict=hypothesis_dict,
-                problem_dict=all_problems,
-            )
-
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
@@ -1528,7 +1491,6 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
             hypotheses=(
-                [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(all_problems, hypothesis_dict)
                 [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(all_problems, hypothesis_dict)
             ),
             pipeline=pipeline,
