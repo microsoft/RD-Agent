@@ -147,7 +147,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     show_hard_limit: bool = True
 
     #### hypothesis critique and rewrite
-    enable_hypo_critique_rewrite: bool = True
+    enable_hypo_critique_rewrite: bool = False
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
     enable_scale_check: bool = False
 

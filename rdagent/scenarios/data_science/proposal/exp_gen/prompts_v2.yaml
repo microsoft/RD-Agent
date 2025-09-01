@@ -193,12 +193,19 @@ hypothesis_gen:
       - The hypothesis should address improvements to the end-to-end pipeline.
       - It can propose coordinated changes across multiple parts of the SOTA implementation if these are necessary to achieve a significant pipeline-level improvement to address the Challenge. (Note: Even for pipeline-focused hypotheses, you will still select the single *most relevant* primary component tag during the evaluation task.)
     6. **NLP Competition Priority (for NLP Tasks)**:
-      - For NLP competitions, **MUST** use modern pre-trained language models such as Qwen, LLaMA, Gemma, and similar architectures. Traditional models like BERT, DeBERTa should be avoided.
+      - For NLP competitions, **MUST** use modern pre-trained language models such as Qwen, LLaMA, Gemma, or similar architectures.
       - Consider hardware constraints and specific problem requirements to determine the appropriate model size and capability.
       - Choose suitable fine-tuning approaches based on the task complexity and available computational resources.
+      - For each NLP task, generate **only one hypothesis**, which must include:
+        1. A modern LLM (e.g., 2B+ parameter Qwen or LLaMA model)
+        2. A specific fine-tuning method, such as:
+            - LoRA
+            - Full fine-tuning
+            - Parameter-efficient tuning
+            - Quantization-aware or quantization-friendly fine-tuning
+
     # Task 2: Hypothesis Evaluation
     After proposing one hypothesis for each relevant Identified Challenge, evaluate each one.
-
     ## 2.1. Evaluation Instruction
     For each individual hypothesis you proposed in Task 1, perform the following two evaluation steps:
 
