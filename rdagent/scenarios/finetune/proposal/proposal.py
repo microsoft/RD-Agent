@@ -4,11 +4,13 @@ LLM Fine-tuning Base Classes
 Contains core hypothesis and task classes for LLM fine-tuning scenarios.
 """
 
+from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.core.experiment import Task
 from rdagent.core.proposal import ExpGen, Hypothesis, Hypothesis2Experiment, Trace
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.finetune.scen.scenario import LLMFinetuneScen
+from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 
 # Available fine-tuning methods
 AVAILABLE_FINETUNE_METHODS = [
@@ -120,7 +122,7 @@ class LLMFinetuneExpGen(ExpGen):
         """Generate LLM fine-tuning experiment"""
 
         # 1. Detect GPU capabilities and dataset information
-        device_info = self._get_device_info()
+        device_info = get_runtime_environment_by_env(get_ft_env())
         dataset_info = self._get_dataset_info()
         logger.info(f"Device detected: {device_info}")
         logger.info(f"Dataset: {dataset_info['name']}")
@@ -141,23 +143,6 @@ class LLMFinetuneExpGen(ExpGen):
         experiment = converter.convert(hypothesis, trace)
 
         return experiment
-
-    # TODO: handle multiple GPUs, if use llm, just use the get_gpu_info()
-    def _get_device_info(self) -> dict:
-        """Get device information using existing runtime info utility"""
-        try:
-            # Use existing GPU detection utility
-            import torch
-
-            if torch.cuda.is_available():
-                gpu_memory_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
-                device_name = torch.cuda.get_device_name(0)
-                return {"memory_gb": int(gpu_memory_gb), "device_name": device_name, "cuda_available": True}
-            else:
-                return {"memory_gb": 0, "cuda_available": False}
-        except ImportError:
-            logger.warning("PyTorch not available, using default device configuration")
-            return {"memory_gb": 8, "cuda_available": False}
 
     def _get_dataset_info(self) -> dict:
         """Get dataset information using existing utility"""
