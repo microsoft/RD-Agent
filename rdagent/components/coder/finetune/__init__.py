@@ -69,7 +69,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         # Get task parameters from the task object
-        base_model = getattr(target_task, "base_model", "Qwen2.5-1.5B-Instruct")
+        base_model = getattr(target_task, "base_model", "Qwen/Qwen2.5-1.5B-Instruct")
         finetune_method = getattr(target_task, "finetune_method", "lora")
         dataset = getattr(target_task, "dataset", "default")
 
@@ -136,12 +136,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         # Get Docker environment info with file trees
         docker_env_info = self._get_docker_environment_info(dataset)
 
-        # Critical rules are now embedded in the Docker environment context in prompts.yaml
-        critical_rules = [
-            "model_name_or_path: Use HuggingFace model identifier",
-            "All file paths must use Docker container paths, NOT local filesystem paths",
-        ]
-
         # Generate prompts using templates with all required parameters
         system_prompt = T("components.coder.finetune.prompts:finetune_coder.system").r(
             task_desc=task_info,
@@ -149,15 +143,14 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             similar_knowledge=similar_knowledge if similar_knowledge else [],
             failed_knowledge=failed_knowledge if failed_knowledge else [],
             method_params=method_params_desc,
-            docker_env_info=docker_env_info,
         )
 
         user_prompt = T("components.coder.finetune.prompts:finetune_coder.user").r(
-            critical_rules=critical_rules,
             latest_code=(workspace.file_dict.get("config.yaml", "") if workspace and prev_feedback else ""),
             latest_feedback=str(prev_feedback) if prev_feedback else "",
             finetune_method=finetune_method,
             base_model=base_model,
+            docker_env_info=docker_env_info,
         )
 
         # Call LLM to generate config
