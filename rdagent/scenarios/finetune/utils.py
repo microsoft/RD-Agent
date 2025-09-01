@@ -14,29 +14,32 @@ def prev_model_dirname(model: str, dataset: str) -> str:
     return f"{safe_path_component(model)}_{safe_path_component(dataset)}"
 
 
-def ensure_ft_assets_exist(model: str | None, dataset: str, ft_root: Path) -> None:
+def ensure_ft_assets_exist(model: str | None, dataset: str) -> None:
     """Ensure dataset and model assets exist under FT_FILE_PATH structure.
 
-    - Dataset path: <ft_root>/dataset/<dataset>
-    - Model path:   <ft_root>/model/<model>
-    - Prev path:    <ft_root>/prev_model/<model>_<dataset>
+    - Dataset path: FT_RD_SETTING.file_path/dataset/<dataset>
+    - Model path:   FT_RD_SETTING.file_path/model/<model>
+    - Prev path:    FT_RD_SETTING.file_path/prev_model/<model>_<dataset>
     """
-    dataset_dir = ft_root / "dataset" / dataset
+    # Import here to avoid circular imports
+    from rdagent.app.finetune.llm.conf import FT_RD_SETTING
+
+    dataset_dir = FT_RD_SETTING.get_dataset_dir(dataset)
     if not dataset_dir.exists():
         try:
             logger.info(f"Downloading dataset '{dataset}' to {dataset_dir}")
-            download_dataset(dataset, out_dir_root=str(ft_root / "dataset"))
+            download_dataset(dataset, out_dir_root=str(FT_RD_SETTING.dataset_path))
         except Exception as e:
             raise Exception(f"Failed to download dataset '{dataset}' to {dataset_dir}: {e}") from e
 
     # Model may be optional for some flows, but for finetune we typically require one of prev_model or model
     if model is not None:
-        prev_dir = ft_root / "prev_model" / prev_model_dirname(model, dataset)
-        model_dir = ft_root / "model" / model
+        prev_dir = FT_RD_SETTING.get_prev_model_dir(model, dataset)
+        model_dir = FT_RD_SETTING.get_model_dir(model)
         if not prev_dir.exists() and not model_dir.exists():
             try:
                 logger.info(f"Downloading model '{model}' to {model_dir}")
-                download_model(model, out_dir_root=str(ft_root / "model"))
+                download_model(model, out_dir_root=str(FT_RD_SETTING.model_path))
             except Exception as e:
                 raise Exception(
                     f"Failed to download model '{model}' to {model_dir}: {e}. "

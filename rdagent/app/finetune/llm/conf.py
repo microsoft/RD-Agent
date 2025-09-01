@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from pydantic_settings import SettingsConfigDict
 
@@ -68,6 +69,43 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
         if self.base_model_name and self.dataset:
             return prev_model_dirname(self.base_model_name, self.dataset)
         return ""
+
+    # Path management methods - following data science scenario pattern
+    @property
+    def dataset_path(self) -> Path:
+        """Get dataset root directory path."""
+        return Path(self.file_path) / "dataset" if self.file_path else None
+
+    @property
+    def model_path(self) -> Path:
+        """Get model root directory path."""
+        return Path(self.file_path) / "model" if self.file_path else None
+
+    @property
+    def output_path(self) -> Path:
+        """Get output root directory path."""
+        return Path(self.file_path) / "output" if self.file_path else None
+
+    @property
+    def prev_model_path(self) -> Path:
+        """Get prev_model root directory path."""
+        return Path(self.file_path) / "prev_model" if self.file_path else None
+
+    def get_dataset_dir(self, dataset: str) -> Path:
+        """Get specific dataset directory path."""
+        return self.dataset_path / dataset
+
+    def get_model_dir(self, model: str) -> Path:
+        """Get specific model directory path."""
+        return self.model_path / model
+
+    def get_prev_model_dir(self, model: str, dataset: str) -> Path:
+        """Get specific prev_model directory path."""
+        return self.prev_model_path / prev_model_dirname(model, dataset)
+
+    def get_preprocessed_dir(self, dataset: str) -> Path:
+        """Get preprocessed data directory path."""
+        return Path(self.file_path) / "preprocessed_data" / dataset
 
 
 # Global setting instance for LLM finetuning scenario

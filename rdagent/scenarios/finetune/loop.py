@@ -53,17 +53,16 @@ class LLMFinetuneRDLoop(RDLoop):
         """Setup Docker environment with proper volume mappings"""
         data_volumes = {}
 
-        local_path = self.ft_rd_setting.file_path
         # Mount data directory as read-only
-        data_volumes[local_path] = {
+        data_volumes[str(self.ft_rd_setting.file_path)] = {
             "bind": "/data",
             "mode": "ro",
         }
 
         # Create base directories
-        finetune_base_dir = Path(local_path)
+        finetune_base_dir = Path(self.ft_rd_setting.file_path)
         finetune_base_dir.mkdir(parents=True, exist_ok=True)
-        output_dir = finetune_base_dir / "output"
+        output_dir = self.ft_rd_setting.output_path
         output_dir.mkdir(parents=True, exist_ok=True)
 
         # Mount output directory as read-write for training results
@@ -83,8 +82,7 @@ class LLMFinetuneRDLoop(RDLoop):
     def _preprocess_data(self):
         """Preprocess dataset format during initialization"""
         # Use dataset-specific preprocessed data directory
-        finetune_base_dir = Path(self.ft_rd_setting.file_path)
-        preprocessed_dir = finetune_base_dir / "preprocessed_data" / self.dataset
+        preprocessed_dir = self.ft_rd_setting.get_preprocessed_dir(self.dataset)
 
         # Check if preprocessed data already exists
         expected_files = ["processed_dataset.json", "dataset_info.json"]
