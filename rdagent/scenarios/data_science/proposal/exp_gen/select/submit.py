@@ -224,7 +224,8 @@ class ValidationSelector(SOTAexpSelector):
         self.competition = competition
         self.only_sample = only_sample
         self.sample_code_path = Path(sample_code_path)
-        self.hypothesis_dict = {exp.hypothesis.hypothesis: loop_id for exp, loop_id in self.candidate}
+        self.hypothesis_loop_id = {exp.hypothesis.hypothesis: loop_id for exp, loop_id in self.candidate}
+        self.hypothesis_exp = {exp.hypothesis.hypothesis: exp for exp, loop_id in self.candidate}
 
     def get_sota_exp_to_submit(self, trace: Trace) -> Optional[List[DSExperiment]]:
         """
@@ -261,7 +262,11 @@ class ValidationSelector(SOTAexpSelector):
 
         # 4. Process results and select the best one
         valid_results = [
-            (exp, score, self.hypothesis_dict.get(exp.hypothesis.hypothesis))
+            (
+                self.hypothesis_exp.get(exp.hypothesis.hypothesis),
+                score,
+                self.hypothesis_loop_id.get(exp.hypothesis.hypothesis),
+            )
             for exp, score in results
             if score is not None
         ]
@@ -667,7 +672,9 @@ def select_on_existing_trace(
                     )
                 )
     else:
-        log_path = next(d for d in Path("log").iterdir() if d.is_dir() and d.name != "pickle_cache" and not d.name.startswith("20"))
+        log_path = next(
+            d for d in Path("log").iterdir() if d.is_dir() and d.name != "pickle_cache" and not d.name.startswith("20")
+        )
         logger.info(f"Loading trace from {log_path}")
         log_storage = FileStorage(log_path)
         trace = list(log_storage.iter_msg(tag="trace"))[-1].content
