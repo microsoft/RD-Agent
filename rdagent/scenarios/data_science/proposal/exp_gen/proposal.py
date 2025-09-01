@@ -34,10 +34,14 @@ from rdagent.scenarios.data_science.proposal.exp_gen.planner import (
 from rdagent.scenarios.data_science.proposal.exp_gen.select.submit import (
     BestValidSelector,
 )
+from rdagent.scenarios.data_science.proposal.exp_gen.select.submit import (
+    BestValidSelector,
+)
 from rdagent.scenarios.data_science.proposal.exp_gen.utils import (
     get_available_packages_prompt,
     get_packages,
 )
+from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
@@ -256,6 +260,13 @@ class HypothesisDetail(BaseModel):
     )
     component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
     evaluation: HypothesisEvaluation = Field(description="Evaluate the quality of the hypothesis.")
+
+
+class HypothesisSimple(BaseModel):
+    hypothesis: str = Field(
+        description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
+    )
+    component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
 
 
 class HypothesisSimple(BaseModel):
@@ -921,13 +932,13 @@ class DSProposalV2ExpGen(ExpGen):
         return index_to_pick_pool_list[reproducible_int]
 
     # BEGIN: for support llm-based hypothesis selection  -----
-    def _cosine_similarity_matrix_numpy(A, B):
+    def _cosine_similarity_matrix_numpy(self, A, B):
         dot_products = np.matmul(A, B.T)
         A_norms = np.linalg.norm(A, axis=1, keepdims=True)
         B_norms = np.linalg.norm(B, axis=1, keepdims=True).T
         return dot_products / (A_norms * B_norms)
 
-    def _gumbel_softmax_hard_sample(logits, tau=1.0, n_samples=1):
+    def _gumbel_softmax_hard_sample(self, logits, tau=1.0, n_samples=1):
 
         gumbel_noise = -np.log(-np.log(np.random.uniform(size=logits.shape) + 1e-20) + 1e-20)
         y = (logits + gumbel_noise) / tau
@@ -1140,7 +1151,11 @@ class DSProposalV2ExpGen(ExpGen):
             merge_hours=DS_RD_SETTING.merge_hours,
             # extra_exp_feedback_list_desc=extra_exp_feedback_list_str,
             selected_extra_hypo_l=selected_extra_hypo_l,
-            hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_select_format").r(),
+            hypothesis_output_format=(
+                T(".prompts_v2:output_format.hypothesis_select_format").r()
+                if not self.supports_response_schema
+                else None
+            ),
             sota_flag=sota_flag,
             current_sota_score=current_sota_score,
             ratio_merge_or_ensemble=ratio_merge_or_ensemble,
@@ -1157,9 +1172,7 @@ class DSProposalV2ExpGen(ExpGen):
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
             response_format=HypothesisSimple if self.supports_response_schema else {"type": "json_object"},
-            json_target_type=(
-                Dict[str, Dict[str, str | Dict[str, str | int]]] if not self.supports_response_schema else None
-            ),
+            json_target_type=(Dict[str, str] if not self.supports_response_schema else None),
         )
 
         response_dict = json.loads(response)
@@ -1221,6 +1234,7 @@ class DSProposalV2ExpGen(ExpGen):
             workflow_check=workflow_check,
             metric_name=self.scen.metric_name,
             sibling_tasks=sibling_tasks,
+            fix_seed_and_data_split=DS_RD_SETTING.fix_seed_and_data_split,
             fix_seed_and_data_split=DS_RD_SETTING.fix_seed_and_data_split,
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
@@ -1350,7 +1364,7 @@ class DSProposalV2ExpGen(ExpGen):
             type="failed",
             pipeline=pipeline,
         )
-        #
+        #        #
         # NOTE: we currently don't support inject diverse problems for the parallel + multi-trace mode,
         if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
             if len(trace.current_selection) == 0:
@@ -1391,6 +1405,9 @@ class DSProposalV2ExpGen(ExpGen):
         # sub-trace begin flag
         is_new_tree = trace.is_selection_new_tree()
 
+        # sub-trace begin flag
+        is_new_tree = trace.is_selection_new_tree()
+
         # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
         hypothesis_dict = self.hypothesis_gen(
             component_desc=component_desc,
@@ -1402,6 +1419,7 @@ class DSProposalV2ExpGen(ExpGen):
             enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
             inject_diverse=inject_diverse,
             exp_gen_plan=plan.get("exp_gen") if plan else None,
+            is_new_tree=is_new_tree,
             is_new_tree=is_new_tree,
             packages_prompt=packages_prompt,
             sibling_exp=sibling_exp,
@@ -1423,7 +1441,7 @@ class DSProposalV2ExpGen(ExpGen):
                     hypothesis_dict.pop(name)
 
         # Step 2.1 & 2.2: Hypothesis Critique and Rewrite Stage (controlled by enable_hypo_critique_rewrite)
-        if DS_RD_SETTING.enable_hypo_critique_rewrite and len(trace.hist) > 0:
+        if DS_RD_SETTING.enable_hypo_critique_rewrite and len(trace.hist) > 0 and len(trace.hist) > 0:
             logger.info(f"Hypothesis critique and rewrite enabled - processing {len(hypothesis_dict)} hypotheses")
 
             # Critic Stage - Evaluate and identify flaws in hypotheses
@@ -1442,6 +1460,7 @@ class DSProposalV2ExpGen(ExpGen):
 
                 # Rewriter Stage - Generate improved hypotheses based on critiques
                 logger.info(f"Starting rewriter stage - generating improved hypotheses based on critique feedback")
+                hypothesis_dict = self.hypothesis_rewrite(
                 hypothesis_dict = self.hypothesis_rewrite(
                     hypothesis_dict=hypothesis_dict,
                     critiques_dict=critiques_dict,
@@ -1479,6 +1498,26 @@ class DSProposalV2ExpGen(ExpGen):
                 problem_dict=all_problems,
             )
 
+        if DS_RD_SETTING.llm_select_hypothesis:
+            response_dict = self.hypothesis_select_with_llm(
+                scenario_desc=scenario_desc,
+                exp_feedback_list_desc=exp_feedback_list_desc,
+                # extra_exp_feedback_list_desc=extra_exp_feedback_list_desc,
+                # exp_feedback_scores=exp_feedback_scores,
+                sota_exp_desc=sota_exp_desc,
+                hypothesis_candidates=hypothesis_dict,
+                trace=trace,
+            )
+            new_hypothesis = DSHypothesis(
+                component=response_dict.get("component"), hypothesis=response_dict.get("hypothesis")
+            )
+            pickled_problem_name = None
+        else:
+            pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+                hypothesis_dict=hypothesis_dict,
+                problem_dict=all_problems,
+            )
+
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
@@ -1489,6 +1528,7 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
             hypotheses=(
+                [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(all_problems, hypothesis_dict)
                 [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(all_problems, hypothesis_dict)
             ),
             pipeline=pipeline,
