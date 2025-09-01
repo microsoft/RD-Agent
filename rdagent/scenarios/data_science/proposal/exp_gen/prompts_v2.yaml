@@ -214,7 +214,25 @@ hypothesis_gen:
       - **Feasibility (Score: 1-10):** How easily and practically can this hypothesis be implemented and *run to completion* within the existing SOTA codebase and operational constraints (e.g., allowed time for training/inference, available compute resources, overall complexity)? Higher scores for easier implementation and higher likelihood of successful execution.
       - **Risk-Reward Balance (Score: 1-10):** Considering the potential for significant improvement (reward) versus the probability of failure, negative side-effects, or excessive resource consumption (risk), how optimal is this balance? A high score indicates a favorable balance.
       - **Prioritization for Critical Challenges:** If a hypothesis directly and credibly addresses a **critical Challenge that caused prior experiment failures** (e.g., timeout, persistent data loading errors, incorrect submission format preventing any score), its **Expected Impact** and **Risk-Reward Balance** should generally be scored highly (e.g., 8-10), and **Feasibility** should also be high if the proposed solution is indeed simpler, more direct, or more efficient. This ensures such critical hypotheses are prioritized.
-
+    {%if enable_simple_hypothesis%}
+    3. Please generate 3 hypotheses, as concise as possible, no more than 2 sentences each.
+    {% endif %}
+    {%if generate_unique_hypothesis %}
+    We are now at the beginning stage. Please generate hypotheses that are as unique as possible.
+    Each hypothesis should handle a different component. For example, you can generate four distinct hypotheses for: 
+      - DataLoadSpec
+      - FeatureEng
+      - Model
+      - Workflow
+    The goal is for these components together to form a complete code solution. Avoid generating complex ensemble methods (e.g., 5-fold CV or stacked models) at this stage.  
+    Special requirements for Hypotheses:  
+      - They must be extremely simple, trivial, and easy to implement — something that can be tested quickly with minimal code changes.  
+      - Avoid "trick-like" operations, such as freezing layers in the model.  
+    - For **DataLoadSpec**:  
+      - Especially in Computer Vision(CV) competitions where datasets are often very large, carefully analyze the dataset size. If the dataset is too large, propose sampling a reasonable subset for quick experiments.  
+      - For **audio competitions**, consider first converting the audio data into images (e.g., spectrograms) and then applying CV-based methods for modeling.
+    {% endif %}
+    
     {% if sibling_hypotheses is not none %}
     ### Diversity To Your Siblings
     You are working on exploration traces in parallel with others. To maximize exploration efficiency, your proposed hypotheses **Must** be **diverse** from those being explored in other traces. 
@@ -435,6 +453,188 @@ hypothesis_rewrite:
     {{ packages_prompt }}
     {% endif %}
 
+hypothesis_select:
+  system: |-
+    You are a Kaggle Grandmaster with deep expertise in model evaluation and decision making.  
+    Your task: Return the most appropriate hypothesis to improve the current solution in this experiment.
+    ## Hypothesis Source
+    hypothesis_candidates are the hypotheses proposed in the current experiment. Please give them priority:
+    {{hypothesis_candidates}}
+
+    {%if sota_flag %}
+    SOTA score: {{current_sota_score}}
+    {% if current_sota_score_in_current_trace == -1 %}
+    Current SOTA score in this experiment: None.
+    {% else %}
+    Current SOTA score in this experiment: {{ current_sota_score_in_current_trace }}
+    {% endif %}
+
+    {% if selected_extra_hypo_l and selected_extra_hypo_l|length > 0 %}
+    The following are additional hypotheses that have been approved by other experiments. 
+    If any of these hypotheses have a SOTA score significantly higher than the current SOTA score in this experiment, you may want to prioritize considering them:  
+    Additional hypotheses (may include those corresponding to the SOTA score):
+    {% for i, item in enumerate(selected_extra_hypo_l) %}
+    {{ i+1 }}. {{ item[0] }} (item[1]: {{ "%.3f"|format(item[1]) }})
+    {% endfor %}
+    {% endif %}
+    {% else %}
+
+    {% if current_sota_score_in_current_trace == -1 %}
+    {% if selected_extra_hypo_l and selected_extra_hypo_l|length > 0 %}
+    The current SOTA score in this experiment is unavailable. Carefully examine the portion of the hypothesis associated with the SOTA score and incorporate any insights it provides.
+    The following are additional hypotheses that have been approved by other experiments.  
+    You can also serve as references and are part of the Hypothesis Source to help you quickly reach or surpass the SOTA score:  
+    Additional hypotheses (may include those corresponding to the SOTA score):
+    {% for i, item in enumerate(selected_extra_hypo_l) %}
+    {{ i+1 }}. {{ item[0] }} (item[1]: {{ "%.3f"|format(item[1]) }})
+    {% endfor %}
+    {% endif %}
+    {% endif %}
+
+    {%endif %}
+
+
+    - The list `hypothesis_candidates` is for REFERENCE ONLY.
+    - You may:
+      1. Select one hypothesis directly from the candidates.
+      2. Modify an existing hypothesis from the candidates.
+      3. Create a new hypothesis, considering the current stage, by integrating advantages from multiple candidates or from historical hypotheses.
+
+    ## Hypothesis Generation Guidelines
+    ## Stage Constraints
+
+    {% if use_ratio < 10 %}
+    ### Stage = Draft
+    - This stage is focused on rapid, easy-to-implement hypotheses. Performance gains can be modest, but the code must be simple and safe to integrate.
+    - You may take one of three actions:
+
+      1. **Select one hypothesis directly from the candidates**  
+        - Ideal for: *Simple, quick-to-implement hypotheses — minimal code changes, modest gains acceptable.*  
+        - Guidance: Pick an existing hypothesis that addresses the current bottleneck or potential improvement without modification. This is the fastest way to produce working code.
+
+      2. **Modify an existing hypothesis from the candidates**  
+        - Ideal for: *Focus on small, targeted tweaks such as loss function, learning rate schedule, light data augmentation, or minor architecture adjustments.*  
+        - Guidance: Make small adjustments to an existing hypothesis to better fit the current code or dataset. Examples include:  
+          - Tuning hyperparameters (including learning rate, batch size, and number of epochs)  
+          - Adjusting the loss function  
+          - Applying lightweight augmentations  
+          - Minor architecture modifications  
+
+          **High-priority suggestions based on competition type:**  
+          - **CV competitions:** Consider using larger image sizes and the latest model architectures (e.g., Swin Transformer, Vision Transformer (ViT), EfficientNetV2).  
+          - **NLP competitions:** Consider adjusting MAX_LEN and adopting the latest model architectures (e.g., DeBERTa v3-large, RoBERTa).  
+          These suggestions should be prioritized alongside other small improvements.
+
+      3. **Create a new hypothesis, considering the Draft stage, by integrating advantages from multiple candidates or historical hypotheses**  
+        - Ideal for: *Avoid complex multi-model or multi-step designs.*  
+        - Guidance: Combine useful aspects of several hypotheses into a single, simple idea. Ensure the result is easy to implement, does not require multi-model training, and does not introduce multi-step logic.
+    {% elif use_ratio > ratio_merge_or_ensemble %}
+
+
+    ### Stage = Ensemble
+    - This stage focuses on maximizing overall performance by combining multiple models or hypotheses. The goal is to build a strong ensemble within the remaining time budget ({{ res_time }} hours, and the maximum allowed time is {{full_time}} hours.). In this case, any hypothesis being handled must correspond to an Ensemble component.
+    - **Priority:** When possible, prioritize integrating models in accordance with the **Ensemble Model Core Principle**.
+
+    {%if res_time > merge_hours %}
+    - **Time Limit Guidance**
+      {% if time_max < 0 %}
+      - Initial Case: runtime info unavailable, keep most hypotheses if component is Ensemble.
+      - Remove only those clearly excessive (e.g., > {{ full_time }} hours) or overly complex.
+      {% elif time_max >= full_time * 0.5 %}
+      - High Runtime Case: current max runtime ({{ time_max }} hours) leaves little room for extra runs.
+      - Avoid high-fold or heavy ensembles.
+      - Maximum recommended folds: {{ (full_time // time_max) | int }}
+      - Remove hypotheses clearly excessive (> {{ full_time }} hours)
+      {% else %}
+      - Low Runtime Case: current max runtime ({{ time_max }} hours) is far from the time limit.
+      - Prefer hypotheses with runtimes ≤ {{ full_time }} hours.
+      - Hypotheses slightly above {{ time_max }} hours can be retained only with strong justification.
+      {% endif %}
+    
+    ### Ensemble Model Core Principle in Low Runtime Case
+    Your goal is not just to tune individual models, but to build an **effective ensemble**. Make design decisions that lead to **strong overall ensemble performance**, not just strong base models.
+    Please note: you are operating under a time budget dedicated to ensemble training of {{res_time}} seconds, and the maximum allowed time is {{full_time}} seconds.
+  
+    Please take the remaining {{res_time}} seconds to carefully consider and design the most reasonable and optimal ensemble models based on your current progress.
+    Assume training a single model takes about 1 hour. For example, if you have roughly twice that time left, you can try training multiple models with different random seeds or data splits to reuse time effectively.
+    If you have more time, you might consider training a multi-fold ensemble. Use your judgment to decide how many folds or seeds fit within your remaining time budget.
+
+    ### 2. Training-Time Resource Allocation
+    - You may use **multiple folds** if justified, but you must **ensure the full pipeline completes within runtime limits**.
+    - Avoid reducing base model quality just to save time. For example:
+      - Freezing large parts of the model (e.g., embeddings)
+      - Using only embedding-level regression instead of full modeling
+      - Using extreme simplifications like LoRA or tiny backbones if they degrade performance
+
+    ### 3. Expectation on Ensemble Design
+    - Implement an ensemble strategy that **improves performance**.
+      This can be as simple as training the same model with different random seeds or data splits and averaging the outputs.
+      More advanced methods like stacking or blending are optional and can be used if beneficial.
+      Choose a practical and reliable ensemble approach within the available time and resources.
+    - Consider the resource budget as a whole: a strong ensemble depends on both good base models and effective combination.
+
+    ### 4. Final Reminder
+    You have full access to the training code, task definition, and previous results.
+    You should weigh trade-offs thoughtfully and pick a design that **maximizes ensemble performance without shortcuts** that hurt model quality or cause timeout.
+    - The current time budget is sufficient for thorough training and ensemble.
+    - If you believe the existing single-model code is already good, avoid large modifications.
+    - Avoid overly strict constraints; focus on **effectively using available time** to build a **robust ensemble**.
+
+    {% endif %}
+
+    According to the previous Time Limit Guidance. You may take one of three actions, considering the remaining time and runtime guidance:
+
+      1. **Select one hypothesis directly from the candidates**  
+        - Ideal for: *Use as a base member of the ensemble.*  
+        - Guidance: Pick candidates that complement other ensemble members or cover weaknesses in existing models, but ensure their runtime fits within the remaining budget.
+
+      2. **Modify an existing hypothesis from the candidates**  
+        - Ideal for: *Adapt candidates to better fit ensemble logic.*  
+        - Guidance: Adjust hyperparameters, loss weighting, or augmentations to improve diversity or complementarity, ensuring changes do not exceed available runtime.
+
+      3. **Create a new hypothesis, considering the Ensemble stage and runtime limits, by integrating advantages from multiple candidates or historical hypotheses**  
+        - Ideal for: *Combine complementary strengths to form a new ensemble member.*  
+        - Guidance: Merge the best parts of several hypotheses into one that is simple enough to implement but adds unique information to the ensemble. Consider strategies like weighted averaging, stacking, or OOF-based blending, making sure the total training time fits the remaining budget. You can also consider multi-fold training based on existing code, choosing the number of folds reasonably to fit within the remaining budget.
+
+    {% else %}
+
+    ### Stage = Improvement
+    - This stage focuses on achieving meaningful improvement without overcomplicating code. The goal is to pick or refine hypotheses that give the largest gain efficiently.
+
+    - You may take one of three actions:
+
+      1. **Select one hypothesis directly from the candidates**  
+        - Ideal for: *Pick the single most promising hypothesis from candidates.*  
+        - Guidance: Choose the hypothesis with the highest expected impact. Minimal modification is acceptable if it slightly improves fit to the current code or dataset.
+
+      2. **Modify an existing hypothesis from the candidates**  
+        - Ideal for: *Refine or simplify it for faster iteration while keeping meaningful potential gain.*  
+        - Guidance: Make targeted changes that improve effectiveness or efficiency without turning it into multi-step solutions.
+              Examples: small hyperparameter tweaks, adjusting augmentation probabilities, or minor architecture adjustments.
+              For CV competitions, you can also consider larger image sizes or using the latest models (e.g., Swin Transformer, Vision Transformer (ViT), EfficientNetV2).
+              For NLP competitions, consider adjusting MAX_LEN or adopting the newest model architectures (e.g., DeBERTa v3-large, RoBERTa).
+      3. **Create a new hypothesis, considering the Improvement stage, by integrating advantages from multiple candidates or historical hypotheses**  
+        - Ideal for: *Avoid major rewrites or large ensembles at this stage.*  
+        - Guidance: Combine the strongest parts of a few candidates into a single hypothesis that is still simple enough to implement quickly and fits within the current runtime constraints.
+
+    {% endif %}
+
+
+    {% if hypothesis_output_format is not none %}
+    ## Final Output Format in JSON Schema:
+    {{ hypothesis_output_format }}
+    {% endif %}
+    
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Previous Experiments and Feedbacks
+    {{ exp_and_feedback_list_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
 
 task_gen:
   system: |-
@@ -497,7 +697,24 @@ task_gen:
     8. **Submission File (`submission.csv`)**: Generate `submission.csv` in the **exact format** required (column names, order, data types), as detailed in the '====== Submission Format ======' section of the Competition Scenario Description (DO NOT read the sample_submission.csv file directly in the code). This is a critical step.
     9. **Preferred Packages Notes**:
       {% include "scenarios.data_science.share:guidelines.package_selection" %}
-    
+
+    {%if fix_seed_and_data_split %}
+    10. File Handling & DataFrame Generation: Generate a pandas DataFrame with columns [“id”, “path”, “fold”].
+      - id: a unique identifier for each sample.
+      - path: the file path of the corresponding sample.
+      - split: indicates the assignment of each sample for data splitting. Two modes are supported:
+        - K-Fold (optional): assign integers 0, 1, …, K-1 for each fold.
+        - Train/Test Split (optional): assign "train" or "test" for each sample according to the split ratio (e.g., 8:2).
+        - Ensure reproducibility: the DataFrame must be generated exactly the same way every time the script runs, e.g., by fixing the random seed 42.
+      Data Splitting: use this DataFrame to perform dataset splitting, selecting samples for training and testing based on the fold column.
+    11. Random Seed for Model Training:
+      - If training neural networks, ensure the initial weights and all random operations use a fixed seed of 42 (e.g., torch.manual_seed(42), numpy.random.seed(42), random.seed(42)).
+      - If training machine learning models such as LightGBM, XGBoost, or scikit-learn estimators, absolutely ensure the random seed is fixed (e.g., `random_state=42`) to guarantee reproducibility.
+      - This is mandatory: all aspects of the experiment must be fully reproducible and aligned, including dataset splits and random seeds;
+      - For multi-fold training, use out-of-fold (OOF) predictions as validation scores and save them as an oof file.
+    12. Hypothesis Handling: At the initial stage, multiple hypotheses may be proposed simultaneously. If some hypotheses overlap, select the most promising one for implementation and ignore redundant overlapping hypotheses. Each implemented hypothesis should remain an independent task.
+    Ensure reproducibility: the DataFrame must be generated exactly the same way every time the script runs, regardless of system or runtime conditions (e.g., by fixing the random seed).
+    {% endif %}
     ## Package Declaration
     At the end of your design, **you MUST** provide a key `packages` in the final JSON output.  
     It should be an **array of PyPI package names** (strings) that you expect to `import` in the forthcoming implementation.  
@@ -729,4 +946,10 @@ output_format:
       }
     }
 
+  hypothesis_select_format: |- 
+    You must return a dictionary in the following format for hypothesis
+    {
+      "hypothesis": "...",  
+      "component": "..."  // Must be one of: 'DataLoadSpec', 'FeatureEng', 'Model', 'Workflow', 'Ensemble'
+    }
 
