@@ -21,6 +21,7 @@ def get_gpu_info():
             print(f"Total GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
             print(f"Allocated Memory: {torch.cuda.memory_allocated(0) / 1024**3:.2f} GB")
             print(f"Cached Memory: {torch.cuda.memory_reserved(0) / 1024**3:.2f} GB")
+            print(f"GPU Count: {torch.cuda.device_count()}")
         else:
             print("\nNo CUDA GPU detected (PyTorch).")
 
