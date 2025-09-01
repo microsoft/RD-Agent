@@ -161,7 +161,6 @@ def map_stat(sota_mle_score: dict | None) -> str:
     return sota_exp_stat
 
 
-@cache_with_pickle(_log_path_hash_func, force=True)
 def get_best_report(log_path: Path) -> dict | None:
     log_storage = FileStorage(log_path)
     mle_reports = [extract_json(i.content) for i in log_storage.iter_msg(pattern="**/running/mle_score/*/*.pkl")]
@@ -176,11 +175,14 @@ def get_best_report(log_path: Path) -> dict | None:
     return None
 
 
+if UI_SETTING.enable_cache:
+    get_best_report = cache_with_pickle(_log_path_hash_func, force=True)(get_best_report)
+
+
 def _get_sota_exp_stat_hash_func(log_path: Path, selector: Literal["auto", "best_valid"] = "auto") -> str:
     return _log_path_hash_func(log_path) + selector
 
 
-@cache_with_pickle(_get_sota_exp_stat_hash_func, force=True)
 def get_sota_exp_stat(
     log_path: Path, selector: Literal["auto", "best_valid"] = "auto"
 ) -> tuple[DSExperiment | None, int | None, dict | None, str | None]:
@@ -253,11 +255,14 @@ def get_sota_exp_stat(
     return sota_exp, sota_loop_id, sota_mle_score, map_stat(sota_mle_score)
 
 
+if UI_SETTING.enable_cache:
+    get_sota_exp_stat = cache_with_pickle(_get_sota_exp_stat_hash_func, force=True)(get_sota_exp_stat)
+
+
 def _get_score_stat_hash_func(log_path: Path, sota_loop_id: int) -> str:
     return _log_path_hash_func(log_path) + str(sota_loop_id)
 
 
-@cache_with_pickle(_get_score_stat_hash_func, force=True)
 def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, float | None, bool, float | None]:
     """
     Get the scores before and after merge period.
@@ -351,7 +356,10 @@ def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, flo
     return valid_improve, test_improve, submit_is_merge, merge_sota_rate
 
 
-@cache_with_pickle(_log_path_hash_func, force=True)
+if UI_SETTING.enable_cache:
+    get_score_stat = cache_with_pickle(_get_score_stat_hash_func, force=True)(get_score_stat)
+
+
 def load_times_deprecated(log_path: Path):
     try:
         session_path = log_path / "__session__"
@@ -365,7 +373,10 @@ def load_times_deprecated(log_path: Path):
     return rd_times
 
 
-@cache_with_pickle(_log_path_hash_func, force=True)
+if UI_SETTING.enable_cache:
+    load_times_deprecated = cache_with_pickle(_log_path_hash_func, force=True)(load_times_deprecated)
+
+
 def load_times_info(log_path: Path) -> dict[int, dict[str, dict[Literal["start_time", "end_time"], datetime]]]:
     """
     Load timing information for each loop and step.
@@ -403,6 +414,10 @@ def load_times_info(log_path: Path) -> dict[int, dict[str, dict[Literal["start_t
     return times_info
 
 
+if UI_SETTING.enable_cache:
+    load_times_info = cache_with_pickle(_log_path_hash_func, force=True)(load_times_info)
+
+
 def _log_folders_summary_hash_func(log_folder: str | Path, hours: int | None = None):
     summary_p = Path(log_folder) / (f"summary.pkl" if hours is None else f"summary_{hours}h.pkl")
     if summary_p.exists():
@@ -412,7 +427,6 @@ def _log_folders_summary_hash_func(log_folder: str | Path, hours: int | None = N
     return md5_hash(hash_str)
 
 
-@cache_with_pickle(_log_folders_summary_hash_func, force=True)
 def get_summary_df(log_folder: str | Path, hours: int | None = None) -> tuple[dict, pd.DataFrame]:
     """Process experiment logs and generate summary DataFrame.
 
@@ -643,6 +657,10 @@ def get_summary_df(log_folder: str | Path, hours: int | None = None) -> tuple[di
         }
     )
     return summary, base_df
+
+
+if UI_SETTING.enable_cache:
+    get_summary_df = cache_with_pickle(_log_folders_summary_hash_func, force=True)(get_summary_df)
 
 
 def percent_df(summary_df: pd.DataFrame, show_origin=True) -> pd.DataFrame:
