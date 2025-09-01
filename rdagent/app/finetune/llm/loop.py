@@ -52,21 +52,19 @@ def main(
     if not model:
         raise Exception("Please specify model name using --model")
 
-    # Validate FT_FILE_PATH environment variable
-    ft_root_str = os.environ.get("FT_FILE_PATH")
-    if not ft_root_str:
+    # Validate FT_FILE_PATH environment variable (auto-filled by pydantic)
+    if not FT_RD_SETTING.file_path:
         raise Exception("Please set FT_FILE_PATH environment variable")
-    ft_root = Path(ft_root_str)
+    ft_root = Path(FT_RD_SETTING.file_path)
     if not ft_root.exists():
         raise Exception(f"FT_FILE_PATH does not exist: {ft_root}")
-
-    # Ensure dataset and model assets exist
-    ensure_ft_assets_exist(model, dataset, ft_root)
 
     # Update FT setting instance with provided dataset and model
     FT_RD_SETTING.dataset = dataset
     FT_RD_SETTING.base_model_name = model
-    FT_RD_SETTING.file_path = str(ft_root)
+
+    # Ensure dataset and model assets exist
+    ensure_ft_assets_exist(model, dataset)
 
     # Create and run LLM fine-tuning loop using standard RDLoop async workflow
     logger.info(f"Starting LLM fine-tuning: {model} on {dataset}")

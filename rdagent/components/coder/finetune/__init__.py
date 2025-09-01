@@ -245,11 +245,12 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         from rdagent.scenarios.data_science.scen.utils import FileTreeGenerator
 
         try:
-            ft_file_path = os.environ.get("FT_FILE_PATH")
-            if not ft_file_path:
+            from rdagent.app.finetune.llm.conf import FT_RD_SETTING
+
+            if not FT_RD_SETTING.file_path:
                 return "FT_FILE_PATH not set"
 
-            target_path = Path(ft_file_path) / relative_path
+            target_path = Path(FT_RD_SETTING.file_path) / relative_path
             if not target_path.exists():
                 return f"{relative_path} not found"
 

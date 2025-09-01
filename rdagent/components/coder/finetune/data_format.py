@@ -91,17 +91,17 @@ class DataFormatEvolvingStrategy(MultiProcessEvolvingStrategy):
 
     def _get_dataset_info(self, dataset: str) -> tuple[str, str]:
         """Get file tree and real dataset samples separately using inherited data science functionality."""
-        import os
 
         from rdagent.scenarios.finetune.scen.utils import FinetuneDatasetDescriptor
 
         try:
             # Use FT_FILE_PATH structure: /path/to/finetune/dataset/<dataset>
-            ft_file_path = os.environ.get("FT_FILE_PATH")
-            if not ft_file_path:
+            from rdagent.app.finetune.llm.conf import FT_RD_SETTING
+
+            if not FT_RD_SETTING.file_path:
                 return "FT_FILE_PATH environment variable not set", "No data samples available"
 
-            dataset_path = Path(ft_file_path) / "dataset" / dataset
+            dataset_path = FT_RD_SETTING.get_dataset_dir(dataset)
 
             if not dataset_path.exists():
                 error_msg = f"Dataset {dataset} not found at {dataset_path}"

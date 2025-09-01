@@ -3,18 +3,6 @@ from pathlib import Path
 from typing import Optional
 
 
-def _resolve_root_dir(preferred_root: Optional[str], fallback_env_keys: list[str]) -> Path:
-    if preferred_root:
-        return Path(preferred_root)
-    for key in fallback_env_keys:
-        val = os.environ.get(key)
-        if val:
-            return Path(val)
-    raise ValueError(
-        f"Root directory not specified. Please provide out_dir_root or set one of the environment variables: {', '.join(fallback_env_keys)}."
-    )
-
-
 def _ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -30,10 +18,16 @@ def download_dataset(
     Download Hugging Face dataset to a subdirectory under the specified root: <out_dir_root>/<repo_id>
     Returns the actual download directory path as a string.
     """
-    save_root = _resolve_root_dir(out_dir_root, ["FT_FILE_PATH", "DS_LOCAL_DATA_PATH"])
-    # When using FT_FILE_PATH, datasets are usually placed in the 'dataset' subdirectory
-    if os.environ.get("FT_FILE_PATH") and Path(os.environ["FT_FILE_PATH"]) == save_root:
-        save_root = save_root / "dataset"
+    if out_dir_root:
+        save_root = Path(out_dir_root)
+    else:
+        # Use FT_RD_SETTING for default root directory
+        from rdagent.app.finetune.llm.conf import FT_RD_SETTING
+
+        if not FT_RD_SETTING.file_path:
+            raise ValueError("No out_dir_root specified and FT_FILE_PATH not set")
+        save_root = FT_RD_SETTING.dataset_path
+
     save_path = save_root / repo_id
     _ensure_parent(save_path)
 
@@ -78,7 +72,16 @@ def download_model(
     Download Hugging Face model to a subdirectory under the specified root: <out_dir_root>/<repo_id>
     Returns the actual download directory path as a string.
     """
-    save_root = _resolve_root_dir(out_dir_root, ["FT_FILE_PATH", "HF_MODEL_PATH", "MODEL_DIR", "MODELS_DIR"])
+    if out_dir_root:
+        save_root = Path(out_dir_root)
+    else:
+        # Use FT_RD_SETTING for default root directory
+        from rdagent.app.finetune.llm.conf import FT_RD_SETTING
+
+        if not FT_RD_SETTING.file_path:
+            raise ValueError("No out_dir_root specified and FT_FILE_PATH not set")
+        save_root = FT_RD_SETTING.model_path
+
     save_path = save_root / repo_id
     _ensure_parent(save_path)
 
