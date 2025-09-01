@@ -23,24 +23,18 @@ def get_unified_mount_volumes() -> dict:
     Returns:
         Dictionary of local_path -> docker_path mappings
     """
-    import os
-
-    ft_file_path = os.environ.get("FT_FILE_PATH")
-    if ft_file_path and Path(ft_file_path).exists():
-        return {ft_file_path: "/data"}
+    if FT_RD_SETTING.file_path and Path(FT_RD_SETTING.file_path).exists():
+        return {FT_RD_SETTING.file_path: "/data"}
 
     return {}
 
 
 def extract_dataset_info(competition: str) -> dict[str, Any]:
     """Extract dataset information from files and metadata."""
-    import os
-
-    ft_file_path = os.environ.get("FT_FILE_PATH")
-    if not ft_file_path:
+    if not FT_RD_SETTING.file_path:
         return {"name": competition, "description": "FT_FILE_PATH not set", "samples": [], "files": []}
 
-    dataset_path = Path(ft_file_path) / "dataset" / competition
+    dataset_path = FT_RD_SETTING.get_dataset_dir(competition)
     info = {"name": competition, "description": "", "samples": [], "files": []}
 
     # Read description from README
@@ -129,16 +123,12 @@ def _extract_data_samples(file_path: Path, info: dict[str, Any]) -> None:
 
 def _find_model_path() -> Path | None:
     """Find model directory in FT_FILE_PATH structure."""
-    import os
-
-    ft_file_path = os.environ.get("FT_FILE_PATH")
-    if not ft_file_path or not FT_RD_SETTING.base_model_name:
+    if not FT_RD_SETTING.file_path or not FT_RD_SETTING.base_model_name:
         return None
 
-    ft_root = Path(ft_file_path)
     candidates = [
-        ft_root / "model" / FT_RD_SETTING.base_model_name,
-        ft_root / "prev_model" / prev_model_dirname(FT_RD_SETTING.base_model_name, FT_RD_SETTING.dataset),
+        FT_RD_SETTING.get_model_dir(FT_RD_SETTING.base_model_name),
+        FT_RD_SETTING.get_prev_model_dir(FT_RD_SETTING.base_model_name, FT_RD_SETTING.dataset),
     ]
 
     for path in candidates:
@@ -162,23 +152,20 @@ def build_finetune_description(dataset_info: dict[str, Any], model_info: dict[st
 
 def build_folder_description(dataset: str = None) -> str:
     """Generate folder description using describe_data_folder_v2, consistent with data science scenario."""
-    import os
-
     from rdagent.scenarios.data_science.scen.utils import describe_data_folder_v2
 
     try:
         # Use FT_FILE_PATH structure: /path/to/finetune/dataset/<dataset>
-        ft_file_path = os.environ.get("FT_FILE_PATH")
-        if not ft_file_path:
+        if not FT_RD_SETTING.file_path:
             return "FT_FILE_PATH environment variable not set"
 
-        ft_root = Path(ft_file_path)
+        ft_root = Path(FT_RD_SETTING.file_path)
         if not ft_root.exists():
             return f"FT_FILE_PATH does not exist: {ft_root}"
 
         if dataset:
             # Describe specific dataset directory
-            dataset_path = ft_root / "dataset" / dataset
+            dataset_path = FT_RD_SETTING.get_dataset_dir(dataset)
         else:
             # Describe entire finetune directory structure
             dataset_path = ft_root
