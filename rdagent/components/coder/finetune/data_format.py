@@ -56,7 +56,7 @@ class DataFormatEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         if prev_task_feedback is None:
             # First attempt
-            user_prompt = T("scenarios.finetune.data_process.prompts:data_format_task_prompt").r(
+            user_prompt = T("scenarios.finetune.data_process.prompts:data_format_task.user").r(
                 dataset=target_task.dataset,
                 runtime_info="Docker environment with mounted data",
                 file_tree=file_tree,
@@ -75,7 +75,7 @@ class DataFormatEvolvingStrategy(MultiProcessEvolvingStrategy):
         # Generate code using LLM
         api = APIBackend()
         raw_response = api.build_messages_and_create_chat_completion(
-            system_prompt=T("scenarios.finetune.data_process.prompts:data_format_system_prompt").r(),
+            system_prompt=T("scenarios.finetune.data_process.prompts:data_format_task.system").r(),
             user_prompt=user_prompt,
         )
 
