@@ -475,7 +475,7 @@ def coding_win(data, base_exp, llm_data: dict | None = None):
         workspace_win(data["no_tag"].experiment_workspace)
 
 
-def running_win(data, base_exp, llm_data=None, sota_exp=None):
+def running_win(data, base_exp, llm_data=None, last_sota_exp=None):
     st.header("Running", divider="blue", anchor="running")
     if llm_data is not None:
         common_llm_data = llm_data.pop("no_tag", [])
@@ -491,7 +491,7 @@ def running_win(data, base_exp, llm_data=None, sota_exp=None):
         st.subheader("Exp Workspace (running final)")
         workspace_win(
             data["no_tag"].experiment_workspace,
-            cmp_workspace=sota_exp.experiment_workspace if sota_exp else None,
+            cmp_workspace=last_sota_exp.experiment_workspace if last_sota_exp else None,
             cmp_name="last SOTA(to_submit)",
         )
         st.subheader("Result")
@@ -555,7 +555,7 @@ def main_win(loop_id, llm_data=None):
         )
     if "running" in loop_data:
         # get last SOTA_exp_to_submit
-        sota_exp = None
+        last_sota_exp = None
         if "record" in loop_data:
             current_trace = loop_data["record"]["trace"]
             current_selection = current_trace.get_current_selection()
@@ -565,13 +565,15 @@ def main_win(loop_id, llm_data=None):
                 if len(parent_idxs) >= 2 and hasattr(current_trace, "idx2loop_id"):
                     parent_idx = parent_idxs[-2]
                     parent_loop_id = current_trace.idx2loop_id[parent_idx]
-                    sota_exp = state.data[parent_loop_id]["record"].get("sota_exp_to_submit", None)
+                    if parent_loop_id in state.data:
+                        # in some cases, the state.data is synthesized, logs does not necessarily exist
+                        last_sota_exp = state.data[parent_loop_id]["record"].get("sota_exp_to_submit", None)
 
         running_win(
             loop_data["running"],
             base_exp=loop_data["coding"].get("no_tag", None),
             llm_data=llm_data["running"] if llm_data else None,
-            sota_exp=sota_exp,
+            last_sota_exp=last_sota_exp,
         )
     if "feedback" in loop_data:
         feedback_win(loop_data["feedback"], llm_data.get("feedback", None) if llm_data else None)
