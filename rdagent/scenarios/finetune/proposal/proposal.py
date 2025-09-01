@@ -22,7 +22,7 @@ AVAILABLE_FINETUNE_METHODS = [
 # Available base models (simplified for debugging)
 # TODO: Add more models here
 AVAILABLE_BASE_MODELS = [
-    "Qwen2.5-1.5B-Instruct",  # Only one model for debugging phase
+    "Qwen/Qwen2.5-1.5B-Instruct",  # Only one model for debugging phase
 ]
 
 

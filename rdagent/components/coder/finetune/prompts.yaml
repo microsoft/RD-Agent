@@ -6,22 +6,6 @@ finetune_coder:
     ## Task Description
     {{ task_desc }}
 
-    ## Available Data Files
-    **Processed Data** (`{{ docker_env_info.training_mount_path }}data/`):
-    ```
-    {{ docker_env_info.data_tree }}
-    ```
-
-    **Original Dataset** (`{{ docker_env_info.training_mount_path }}dataset/{{ docker_env_info.dataset_name }}/`):
-    ```
-    {{ docker_env_info.dataset_tree }}
-    ```
-
-    **Required Configuration**:
-    - dataset: "processed_dataset"
-    - dataset_dir: "{{ docker_env_info.training_mount_path }}data"
-    - output_dir: "/workspace/output"
-
     {% if similar_knowledge|length > 0 %}
     ## Successful Similar Implementations
     {% for knowledge in similar_knowledge[:3] %}  {# Limit to 3 examples to keep prompt concise #}
@@ -42,10 +26,9 @@ finetune_coder:
 
     ## Requirements
     1. Create a LlamaFactory configuration file named `config.yaml`
-    2. Use the specific fine-tuning method requested: {{ finetune_method }}
+    2. Use the specific fine-tuning method: {{ finetune_method }}
     3. Set max_samples: 100 for initial debugging
     4. Ensure all parameters are valid for LlamaFactory
-    5. Use the actual dataset structure information provided above to configure paths correctly
 
     {{ method_params }}
 
@@ -53,10 +36,21 @@ finetune_coder:
     Respond with valid YAML configuration only, no markdown formatting.
 
   user: |-
+    ## Dataset Configuration
+    **Processed Data**:
+    ```
+    {{ docker_env_info.data_tree }}
+    ```
+
+    ## Path Configuration
+    - dataset: "processed_dataset"
+    - dataset_dir: "{{ docker_env_info.training_mount_path }}data"
+    - output_dir: "/workspace/output"
+    - model_name_or_path: "{{ docker_env_info.training_mount_path }}model/{{ base_model }}"
+
     ## Critical Configuration Rules
-    {% for rule in critical_rules %}
-    {{ loop.index }}. {{ rule }}
-    {% endfor %}
+    - All file paths must use Docker container paths, NOT local filesystem paths
+    - model_name_or_path: use local model path instead of HuggingFace model identifier
 
     {% if latest_code %}
     ## Previous Configuration
