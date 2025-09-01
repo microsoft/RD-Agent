@@ -98,24 +98,32 @@ data_format_task:
     {{ file_tree }}
     ```
 
-    **Important Paths:**
-    - Input: `/data/dataset/{{ dataset }}/` (Docker mounted)
-    - Output: `/workspace/data/` (Docker working directory)
+    **Important Paths (Critical for File Access):**
+    - **Input Directory**: `/data/dataset/{{ dataset }}/` (Docker mounted, READ-ONLY)
+    - **Output Directory**: `/workspace/data/` (Docker working directory, WRITE-ONLY)
+
+    **Path Mapping Rules:**
+    - All input files must be accessed using the full input path: `/data/dataset/{{ dataset }}/`
+    - Sample file paths shown below are relative to the input directory
+    - Output files must be saved to: `/workspace/data/`
 
     ## Dataset Samples
     ```json
     {{ data_samples }}
     ```
 
+    **Note**: File paths in samples above are relative to the input directory `/data/dataset/{{ dataset }}/`
+
     ## Task Instructions
 
     1. **Analyze** the dataset structure and file formats from the file tree above
-    2. **Detect** all data files in the input directory automatically  
-    3. **Determine** appropriate content format (alpaca for instruction data, sharegpt for conversations)
-    4. **Convert** content to the chosen format while keeping original file format
-    5. **Preserve** multi-file structure if present (especially for parquet datasets)
-    6. **Generate** dataset_info.json with correct file_name specification
-    7. **Save** all output to `/workspace/data/` directory
-    8. **Validate** output files and provide processing statistics
+    2. **Detect** all data files in the input directory `/data/dataset/{{ dataset }}/` automatically  
+    3. **Read** input files using their full paths: `/data/dataset/{{ dataset }}/[relative_path]`
+    4. **Determine** appropriate content format (alpaca for instruction data, sharegpt for conversations)
+    5. **Convert** content to the chosen format while keeping original file format
+    6. **Preserve** multi-file structure if present (especially for parquet datasets)
+    7. **Generate** dataset_info.json with correct file_name specification
+    8. **Save** all output to `/workspace/data/` directory only
+    9. **Validate** output files and provide processing statistics
 
     Write a complete Python script that accomplishes these tasks efficiently.

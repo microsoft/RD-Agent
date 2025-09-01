@@ -29,6 +29,50 @@ def get_unified_mount_volumes() -> dict:
     return {}
 
 
+def _discover_data_files_recursive(dataset_path: Path, max_depth: int = 3) -> list[Path]:
+    """
+    Recursively discover data files in dataset directory.
+
+    Args:
+        dataset_path: Root path of the dataset
+        max_depth: Maximum depth to search (prevents infinite recursion)
+
+    Returns:
+        List of Path objects for discovered data files, prioritized by directory level
+    """
+    data_patterns = ["*.json", "*.jsonl", "*.csv", "*.txt", "*.parquet"]
+    found_files = []
+
+    def search_directory(path: Path, current_depth: int = 0):
+        if current_depth > max_depth:
+            return
+
+        # Search for data files in current directory
+        current_files = []
+        for pattern in data_patterns:
+            current_files.extend(path.glob(pattern))
+
+        # Add files from current directory (with priority info)
+        for file_path in current_files:
+            found_files.append((current_depth, file_path))
+
+        # Recursively search subdirectories
+        if current_depth < max_depth:
+            try:
+                for subdir in path.iterdir():
+                    if subdir.is_dir() and not subdir.name.startswith("."):
+                        search_directory(subdir, current_depth + 1)
+            except (PermissionError, OSError) as e:
+                logger.warning(f"Cannot access directory {path}: {e}")
+
+    search_directory(dataset_path)
+
+    # Sort by depth (prioritize files in root directory) and then by name
+    found_files.sort(key=lambda x: (x[0], x[1].name))
+
+    return [file_path for _, file_path in found_files]
+
+
 def extract_dataset_info(competition: str) -> dict[str, Any]:
     """Extract dataset information from files and metadata."""
     if not FT_RD_SETTING.file_path:
@@ -48,13 +92,23 @@ def extract_dataset_info(competition: str) -> dict[str, Any]:
             except Exception as e:
                 logger.warning(f"Failed to read {readme}: {e}")
 
-    # Discover data files
-    for pattern in ["*.json", "*.jsonl", "*.csv", "*.txt", "*.parquet"]:
-        info["files"].extend([f.name for f in dataset_path.glob(pattern)])
+    # Discover data files recursively
+    discovered_files = _discover_data_files_recursive(dataset_path)
+
+    # Store relative paths for cleaner display
+    info["files"] = []
+    for file_path in discovered_files:
+        try:
+            relative_path = file_path.relative_to(dataset_path)
+            info["files"].append(str(relative_path))
+        except ValueError:
+            # Fallback to absolute path if relative path calculation fails
+            info["files"].append(file_path.name)
 
     # Extract samples from first data file
-    if info["files"]:
-        _extract_data_samples(dataset_path / info["files"][0], info)
+    if discovered_files:
+        _extract_data_samples(discovered_files[0], info)
+        logger.info(f"Extracted samples from: {discovered_files[0].relative_to(dataset_path)}")
 
     return info
 
@@ -218,12 +272,10 @@ class FinetuneDatasetDescriptor(DataFolderDescriptor):
             return f"Error generating file tree: {str(e)}"
 
     def _get_dataset_samples(self, dataset_path: Path) -> str:
-        """Extract real data samples from dataset files using inherited preview functions."""
+        """Extract real data samples from dataset files using recursive search and inherited preview functions."""
         try:
-            # Find data files
-            data_files = []
-            for ext in ["*.json", "*.jsonl", "*.csv", "*.parquet"]:
-                data_files.extend(list(dataset_path.glob(ext)))
+            # Use the intelligent recursive file discovery function
+            data_files = _discover_data_files_recursive(dataset_path, max_depth=3)
 
             if not data_files:
                 return f"No supported data files found in {dataset_path}"
@@ -235,7 +287,14 @@ class FinetuneDatasetDescriptor(DataFolderDescriptor):
                     # Use inherited preview functions but extract just the content
                     file_samples = self._extract_samples_for_prompt(data_file)
                     if file_samples:
-                        samples.append(f"{data_file.name}:\n{file_samples}")
+                        # Show relative path with context about input directory
+                        try:
+                            relative_path = data_file.relative_to(dataset_path)
+                            file_label = f"Input file: {relative_path}"
+                        except ValueError:
+                            file_label = f"Input file: {data_file.name}"
+
+                        samples.append(f"{file_label}:\n{file_samples}")
                 except Exception as e:
                     logger.warning(f"Could not extract samples from {data_file.name}: {e}")
                     continue
