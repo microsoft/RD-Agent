@@ -13,7 +13,7 @@ class LLMFinetuneTask(CoSTEERTask):
     def __init__(
         self,
         name: str = "LLMFinetune",
-        base_model: str = "Qwen2.5-1.5B-Instruct",
+        base_model: str = "Qwen/Qwen2.5-1.5B-Instruct",
         finetune_method: str = "lora",
         dataset: str = "default",
         description: str = "",
