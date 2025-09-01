@@ -1,6 +1,8 @@
+import asyncio
+import concurrent.futures
 from functools import wraps
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from rdagent.components.mcp.conf import is_mcp_enabled
 from rdagent.components.mcp.registry import (
@@ -146,9 +148,21 @@ def list_available_mcp_services() -> list:
 
 
 def is_service_available(service_name: str) -> bool:
-    """Check if a specific MCP service is available."""
+    """Check if a specific MCP service is available.
+
+    Note: This is a synchronous function that checks current registry state.
+    Services are initialized asynchronously on first query_mcp call.
+    """
     try:
         registry = get_global_registry()
+
+        # Try to trigger initialization if not already done
+        # This is a best-effort attempt for synchronous context
+        if not registry._initialized and not registry._handlers:
+            # Service is configured but handler not yet registered
+            # Return True if service is enabled, as it will be initialized on first use
+            return registry.has_service(service_name)
+
         return registry.has_service(service_name) and registry.has_handler(service_name)
     except Exception:
         return False
@@ -171,3 +185,72 @@ def get_service_status() -> dict:
     except Exception as e:
         logger.error(f"Failed to get service status: {e}")
         return {"mcp_enabled": is_mcp_enabled(), "available_services": [], "service_details": {}}
+
+
+def execute_mcp_query_isolated(
+    query: str,
+    services: str | List[str],
+    timeout: float = 180,
+    verbose: bool = True,
+    **mcp_kwargs: Any,
+) -> Optional[str]:
+    """
+    Execute MCP query in an isolated event loop with proper cleanup.
+
+    This function runs MCP queries in a separate thread with a new event loop
+    to avoid conflicts with existing async contexts. It includes comprehensive
+    resource cleanup to prevent "Task was destroyed but it is pending" warnings.
+
+    Args:
+        query: The query content to send to MCP service
+        services: MCP service(s) to use (e.g., "context7", ["context7", "deepwiki"])
+        timeout: Total timeout in seconds for the operation (default: 180)
+        verbose: Enable verbose logging for debugging (default: True)
+        **mcp_kwargs: Additional keyword arguments to pass to query_mcp
+
+    Returns:
+        Optional[str]: Query result if successful, None otherwise
+
+    Raises:
+        concurrent.futures.TimeoutError: If the query exceeds the specified timeout
+        Exception: For other MCP-related errors
+    """
+
+    def run_mcp_sync() -> Optional[str]:
+        """Run MCP query in a new event loop to avoid conflicts"""
+        # Create new event loop to avoid conflicts with existing loop
+        new_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(new_loop)
+        try:
+            return new_loop.run_until_complete(
+                query_mcp(
+                    query,
+                    services=services,
+                    verbose=verbose,
+                    **mcp_kwargs,
+                )
+            )
+        finally:
+            # Graceful shutdown to avoid "Task was destroyed but it is pending" warnings
+            # 1. Cancel all pending tasks
+            pending = asyncio.all_tasks(new_loop)
+            for task in pending:
+                task.cancel()
+
+            # 2. Wait for cancellation to complete
+            if pending:
+                new_loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+
+            # 3. Shutdown async generators
+            new_loop.run_until_complete(new_loop.shutdown_asyncgens())
+
+            # 4. Give SSE streams time to clean up
+            new_loop.run_until_complete(asyncio.sleep(0.1))
+
+            # 5. Close the event loop
+            new_loop.close()
+
+    # Execute in thread pool to avoid event loop conflicts
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(run_mcp_sync)
+        return future.result(timeout=timeout)

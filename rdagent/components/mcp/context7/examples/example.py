@@ -16,7 +16,6 @@ import asyncio
 import datetime
 
 from rdagent.components.mcp import query_mcp  # New unified interface
-from rdagent.components.mcp import get_service_status
 from rdagent.log import rdagent_logger as logger
 
 

@@ -1,6 +1,5 @@
 # tess successfully running.
 # (GPT) if it aligns with the spec & rationality of the spec.
-import asyncio
 import concurrent.futures
 import re
 from dataclasses import dataclass
@@ -20,7 +19,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
 from rdagent.components.coder.data_science.share.notebook import NotebookConverter
 from rdagent.components.coder.data_science.utils import remove_eda_part
-from rdagent.components.mcp import is_service_available, query_mcp
+from rdagent.components.mcp import execute_mcp_query_isolated
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.test_eval import get_test_eval
@@ -270,9 +269,8 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         else:
             eda_output = implementation.file_dict.get("EDA.md", None)
 
-        # extract enable_context7 from data science configuration
-        # Note: is_service_available is now async, but we'll handle this in the query section
-        enable_context7 = DS_RD_SETTING.enable_mcp_documentation_search
+        # extract enable_mcp_documentation_search from data science configuration
+        enable_mcp_documentation_search = DS_RD_SETTING.enable_mcp_documentation_search
 
         queried_similar_successful_knowledge = (
             queried_knowledge.task_to_similar_task_successful_knowledge[target_task.get_task_information()]
@@ -283,7 +281,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         system_prompt = T(".prompts:pipeline_eval.system").r(
             is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             debug_mode=DS_RD_SETTING.sample_data_by_LLM,
-            enable_context7=enable_context7,
+            enable_mcp_documentation_search=enable_mcp_documentation_search,
             mle_check=DS_RD_SETTING.sample_data_by_LLM,
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
         )
@@ -304,33 +302,31 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             init_kwargs_update_func=PipelineSingleFeedback.val_and_update_init_dict,
         )
 
-        if enable_context7 and wfb.requires_documentation_search is True:
+        # judge whether we should perform documentation search
+        do_documentation_search = enable_mcp_documentation_search and wfb.requires_documentation_search
+
+        if do_documentation_search:
+            # Use the isolated MCP query execution to avoid event loop conflicts
             try:
-
-                def run_context7_sync():
-                    """Run Context7 query in a new event loop"""
-                    # Create new event loop to avoid conflicts with existing loop
-                    new_loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(new_loop)
-                    try:
-                        return new_loop.run_until_complete(
-                            query_mcp("context7", error_message=wfb.error_message, full_code=implementation.all_codes)
-                        )
-                    finally:
-                        new_loop.close()
-
-                # Execute in thread pool to avoid event loop conflicts
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                    future = executor.submit(run_context7_sync)
-                    context7_result = future.result(timeout=120)  # 120s timeout, sufficient time for retry mechanism
+                context7_result = execute_mcp_query_isolated(
+                    query=wfb.error_message,
+                    services="context7",
+                    timeout=180,
+                    verbose=False,
+                    full_code=implementation.all_codes,
+                )
 
                 if context7_result:
                     logger.info("Context7: Documentation search completed successfully")
                     wfb.error_message += f"\n\n### API Documentation Reference:\nThe following API documentation was retrieved based on the error. This provides factual information about API changes or parameter specifications only:\n\n{context7_result}"
                 else:
                     logger.warning("Context7: Documentation search failed or no results found")
+
+            except concurrent.futures.TimeoutError:
+                logger.error("Context7: Query timed out after 180 seconds")
             except Exception as e:
-                logger.error(f"Context7: Query failed - {str(e)}")
+                error_msg = str(e) if str(e) else type(e).__name__
+                logger.error(f"Context7: Query failed - {error_msg}")
 
         if score_ret_code != 0 and wfb.final_decision is True:
             wfb.final_decision = False

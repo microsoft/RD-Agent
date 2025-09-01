@@ -23,6 +23,7 @@ from .registry import MCPRegistry, MCPRegistryConfig, MCPServiceConfig
 
 # Unified MCP interface
 from .unified import (
+    execute_mcp_query_isolated,
     get_service_status,
     initialize_mcp_registry,
     is_service_available,
@@ -34,6 +35,7 @@ from .unified import (
 __all__ = [
     # Unified interface
     "query_mcp",
+    "execute_mcp_query_isolated",
     # Service management
     "initialize_mcp_registry",
     "register_mcp_handler",
