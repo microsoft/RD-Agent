@@ -17,6 +17,7 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback, SOTAexpSelector, Trace
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log.storage import FileStorage
+from rdagent.log.utils import extract_json
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.utils.agent.ret import PythonAgentOut
@@ -26,8 +27,8 @@ from rdagent.utils.workflow import wait_retry
 
 # --- Configuration Constants ---
 MAX_API_RETRIES = 5
-DEFAULT_NUM_WORKERS = 5
-MAX_SOTA_CANDIDATES = 5
+DEFAULT_NUM_WORKERS = 3
+MAX_SOTA_CANDIDATES = 6
 
 logger.add("selector.log")
 # ==============================================================================
@@ -548,6 +549,7 @@ def evaluate_one_trace(
     sample_code_path: str,
     sota_result: dict[str, Any] = {},
     experiment: str = "validation",
+    log_path: Path | None = None,
 ) -> Tuple[str, bool]:
     """
     Loads a single trace, uses the specified selector to pick an experiment,
@@ -555,9 +557,6 @@ def evaluate_one_trace(
     """
     competition = trace.scen.competition
     hit = False
-    if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
-        logger.warning(f"Competition {DS_RD_SETTING.local_data_path}/{competition} does not exist, skipping.")
-        return competition, False
 
     # Example of scenario-specific adjustment
     if competition == "detecting-insults-in-social-commentary":
@@ -572,9 +571,12 @@ def evaluate_one_trace(
         selector = AutoSOTAexpSelector()
     elif selector_name == "best_valid":
         # These params can be configured or passed via CLI
-        selector = BestValidSelector(num_candidates=1, use_decision=True, each_trace=False)
+        selector = BestValidSelector(num_candidates=MAX_SOTA_CANDIDATES, use_decision=True, each_trace=False)
 
     if selector_name == "validation":
+        if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
+            logger.warning(f"Competition {DS_RD_SETTING.local_data_path}/{competition} does not exist, skipping.")
+            return competition, False
         # The ValidationSelector is used to select the best re-test score.
         if debug:
             quick_selector = BestValidSelector(num_candidates=1, use_decision=True, each_trace=False)
@@ -610,6 +612,14 @@ def evaluate_one_trace(
     if debug:
         hit = check_hit(selected_sota_exps, trace, sota_result)
         logger.info(f"Result for {experiment} - {competition}: {'HIT' if hit else 'MISS'}")
+    elif selector_name == "validation" and selected_sota_exps:
+        loop_id = selector.hypothesis_loop_id.get(selected_sota_exps[0].hypothesis.hypothesis)
+        sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{loop_id}/running/mle_score/**/*.pkl")]
+        if len(sota_mle_score_paths) == 0:
+            continue
+        with sota_mle_score_paths[0].open("rb") as f:
+            sota_mle_score = extract_json(pickle.load(f))
+            hit = sota_mle_score.get("any_medal", False)
     return competition, hit
 
 
@@ -681,7 +691,7 @@ def select_on_existing_trace(
         tasks.append(
             (
                 evaluate_one_trace,
-                (selector_name, trace, debug, only_sample, sample_code_path),
+                (selector_name, trace, debug, only_sample, sample_code_path, log_path),
             )
         )
 
