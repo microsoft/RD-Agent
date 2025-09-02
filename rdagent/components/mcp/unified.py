@@ -2,7 +2,7 @@ import asyncio
 import concurrent.futures
 from functools import wraps
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List, Optional, Union
 
 from rdagent.components.mcp.conf import is_mcp_enabled
 from rdagent.components.mcp.registry import (
@@ -39,50 +39,6 @@ def mcp_api_handler(func):
             return None
 
     return wrapper
-
-
-async def initialize_mcp_registry(config_path: Optional[Path] = None) -> MCPRegistry:
-    """Initialize MCP registry with configuration file.
-
-    Args:
-        config_path: Path to MCP configuration file. If None, uses default path.
-
-    Returns:
-        Initialized MCP registry
-    """
-    if config_path is None:
-        config_path = Path.cwd() / "mcp_config.json"
-
-    registry = MCPRegistry.from_config_file(config_path)
-
-    # Auto-register all enabled services from configuration
-    try:
-        await registry.auto_register_all_services()
-        # Registry will log which services are registered
-    except Exception as e:
-        logger.error(f"Failed to auto-register MCP services: {e}")
-
-    set_global_registry(registry)
-    return registry
-
-
-def register_mcp_handler(service_name: str, handler) -> bool:
-    """Register a custom MCP handler.
-
-    Args:
-        service_name: Name of the MCP service
-        handler: Handler instance implementing MCPHandler protocol
-
-    Returns:
-        True if registration successful, False otherwise
-    """
-    try:
-        registry = get_global_registry()
-        registry.register_handler(service_name, handler)
-        return True
-    except Exception as e:
-        logger.error(f"Failed to register handler for '{service_name}': {e}")
-        return False
 
 
 @mcp_api_handler

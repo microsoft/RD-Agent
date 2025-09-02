@@ -4,8 +4,6 @@ This module provides a simplified MCP connector specifically for streamable_http
 It abstracts the connection management, session initialization, and tool calling logic.
 """
 
-import asyncio
-import time
 from contextlib import asynccontextmanager
 from datetime import timedelta
 from typing import Any, Dict, List, Optional
@@ -76,7 +74,6 @@ class StreamableHTTPConnector:
 
     def __init__(self, config: StreamableHTTPConfig):
         self.config = config
-        self._connection_context = None
 
     @retry(
         stop=stop_after_attempt(3),

@@ -38,7 +38,6 @@ class MCPRegistryConfig(BaseModel):
     """Configuration for the entire MCP registry."""
 
     mcp_services: Dict[str, MCPServiceConfig] = Field(default_factory=dict, description="Map of service name to config")
-    default_timeout: float = Field(default=120.0, description="Default timeout for services")
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "MCPRegistryConfig":

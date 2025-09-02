@@ -25,11 +25,9 @@ from .registry import MCPRegistry, MCPRegistryConfig, MCPServiceConfig
 from .unified import (
     execute_mcp_query_isolated,
     get_service_status,
-    initialize_mcp_registry,
     is_service_available,
     list_available_mcp_services,
     query_mcp,
-    register_mcp_handler,
 )
 
 __all__ = [
@@ -37,8 +35,6 @@ __all__ = [
     "query_mcp",
     "execute_mcp_query_isolated",
     # Service management
-    "initialize_mcp_registry",
-    "register_mcp_handler",
     "list_available_mcp_services",
     "is_service_available",
     "get_service_status",

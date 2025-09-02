@@ -22,7 +22,7 @@ from rdagent.components.mcp.connector import (
     StreamableHTTPConnector,
 )
 from rdagent.log import rdagent_logger as logger
-from rdagent.oai.backend.litellm import LITELLM_SETTINGS, LiteLLMAPIBackend
+from rdagent.oai.backend.litellm import LiteLLMAPIBackend
 
 
 class BaseMCPHandler(ABC):
@@ -65,8 +65,8 @@ class ConversationCheckpoint:
 
     conversation: List[Dict[str, Any]] = field(default_factory=list)
     completed_rounds: int = 0
-    last_tool_results: Optional[Dict[str, Any]] = None
     initial_query: Optional[str] = None
+    last_tool_results: Optional[Dict[str, Any]] = None
     _last_saved_length: int = 0  # Track last saved position
 
     def save_round_complete(self, round_num: int, messages: List[Dict[str, Any]]):
@@ -81,18 +81,6 @@ class ConversationCheckpoint:
         self.completed_rounds = round_num
         self._last_saved_length = len(messages)
 
-    def save_incremental(self, messages: List[Dict[str, Any]], tool_results: Optional[Dict[str, Any]] = None):
-        """Save incremental progress (legacy method for compatibility)."""
-        # Only append new messages
-        new_messages = messages[self._last_saved_length :]
-        if new_messages:
-            self.conversation.extend(new_messages)
-            self._last_saved_length = len(self.conversation)
-            self.completed_rounds += 1
-
-        if tool_results:
-            self.last_tool_results = tool_results
-
     def can_resume(self) -> bool:
         """Check if we can resume from a checkpoint."""
         return self.completed_rounds > 0 and len(self.conversation) > 0
@@ -105,11 +93,6 @@ class ConversationCheckpoint:
                 tag="mcp_checkpoint",
             )
         return self.conversation.copy()
-
-    # Legacy alias for backward compatibility
-    def save_round(self, messages: List[Dict[str, Any]], tool_results: Optional[Dict[str, Any]] = None):
-        """Legacy save method - redirects to save_incremental."""
-        self.save_incremental(messages, tool_results)
 
 
 # TODO: to be tested for multi-service mode
@@ -366,21 +349,6 @@ class GeneralMCPHandler(BaseMCPHandler):
         # Subclasses can override for custom processing
         return result_text
 
-    def should_continue_rounds(self, round_count: int, last_response: str, max_rounds: int) -> bool:
-        """
-        Determine whether to continue multi-round calling.
-
-        Args:
-            round_count: Current round number
-            last_response: Last response from LLM
-            max_rounds: Maximum allowed rounds
-
-        Returns:
-            True to continue, False to stop
-        """
-        # Default implementation uses round limit only
-        return round_count < max_rounds
-
     def detect_rate_limit(self, response_text: str) -> bool:
         """
         Detect if response indicates rate limiting.
@@ -562,9 +530,7 @@ class GeneralMCPHandler(BaseMCPHandler):
         """
         # Check if backend supports function calling
         if not self.backend.supports_function_calling():
-            logger.error(
-                f"Model does not support function calling, falling back to basic processing", tag="general_mcp"
-            )
+            logger.error("Model does not support function calling, falling back to basic processing", tag="general_mcp")
             return await self._fallback_processing(connector, query, **kwargs)
 
         # Check cache first (only on fresh start, not resume)
@@ -630,7 +596,7 @@ class GeneralMCPHandler(BaseMCPHandler):
 
                 return final_response
 
-        except RateLimitError as e:
+        except RateLimitError:
             logger.error(f"Rate limit exceeded for {self.service_name}, will retry automatically", tag="general_mcp")
             raise
         except MCPConnectionError as e:
@@ -641,11 +607,11 @@ class GeneralMCPHandler(BaseMCPHandler):
             logger.error(f"MCP query processing failed for {self.service_name}: {str(e)[:200]}", tag="general_mcp")
             # Provide a clean error message to the application layer
             if "timeout" in str(e).lower():
-                raise MCPConnectionError(f"Service timeout - please try again later") from e
+                raise MCPConnectionError("Service timeout - please try again later") from e
             elif "network" in str(e).lower() or "connection" in str(e).lower():
-                raise MCPConnectionError(f"Network connectivity issue - check your connection") from e
+                raise MCPConnectionError("Network connectivity issue - check your connection") from e
             else:
-                raise MCPConnectionError(f"Service temporarily unavailable - please retry") from e
+                raise MCPConnectionError("Service temporarily unavailable - please retry") from e
 
     async def process_query(
         self, connector: StreamableHTTPConnector, query: str, max_rounds: int = 5, verbose: bool = False, **kwargs
@@ -847,7 +813,6 @@ class GeneralMCPHandler(BaseMCPHandler):
             List of tool execution results
         """
         results = []
-        tool_names = [tool_call.function.name for tool_call in tool_calls]
 
         # Tool execution details reduced
 
