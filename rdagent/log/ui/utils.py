@@ -301,7 +301,7 @@ def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, flo
     if all_trace:
         final_trace = all_trace[-1].content
     else:
-        return None,None,None,None
+        return None, None, None, None
     for loop_index, (exp, fb) in enumerate(final_trace.hist):
         if hasattr(final_trace, "idx2loop_id"):
             loop_id = final_trace.idx2loop_id[loop_index]
