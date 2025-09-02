@@ -42,7 +42,7 @@ from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
-
+import torch
 _COMPONENT_META: Dict[str, Dict[str, Any]] = {
     "DataLoadSpec": {
         "target_name": "Data loader and specification generation",
@@ -942,7 +942,7 @@ class DSProposalV2ExpGen(ExpGen):
             sampled_indices.append(idx)
         sampled_indices = np.unique(np.concatenate(sampled_indices))
         return sampled_indices.tolist()
-
+    
     def _prob_dis(
         self,
         current_sota_score_in_current_trace,
@@ -1002,6 +1002,61 @@ class DSProposalV2ExpGen(ExpGen):
         sampled_history_list = [best_entry] + [
             (history_hypo_str[i], history_scores[0, i]) for i in flat_indices if i != best_idx
         ]
+        return sampled_history_list
+    
+    def _cosine_similarity_matrix_torch(self, A, B):
+        dot_products = torch.matmul(A, B.T)
+        A_norms = torch.norm(A, dim=1, keepdim=True)
+        B_norms = torch.norm(B, dim=1, keepdim=True).T
+        return dot_products / (A_norms * B_norms)
+    
+    def _prob_dis_torch(self,
+        current_sota_score_in_current_trace,
+        extra_hypo_l: list[tuple[DSHypothesis, float]],
+        hypothesis_candidates,
+        competition,
+        path_length):
+
+        history_hypo_str, history_scores = [], []
+        for hypo, score in extra_hypo_l:
+            history_hypo_str.append(hypo.hypothesis)
+            history_scores.append(score)
+
+        target_texts = [v["hypothesis"] for v in hypothesis_candidates.values()]
+        target_embs = torch.tensor(APIBackend().create_embedding(target_texts), dtype=torch.float32)
+
+        if not history_hypo_str:
+            return []
+        history_embs = torch.tensor(APIBackend().create_embedding(history_hypo_str), dtype=torch.float32)
+        sim_matrix = self._cosine_similarity_matrix_torch(target_embs, history_embs)
+        candidate_scores = [current_sota_score_in_current_trace for i in range(len(target_texts))]
+        candidate_scores = torch.tensor(candidate_scores, dtype=torch.float32).unsqueeze(1)
+        history_scores = torch.tensor(history_scores, dtype=torch.float32).unsqueeze(0)
+        bigger_is_better = get_metric_direction(competition)
+        if bigger_is_better:
+            score_diff_matrix = history_scores - candidate_scores 
+        else:
+            score_diff_matrix = candidate_scores - history_scores
+        alpha, beta = 1.0, 1.0
+        if current_sota_score_in_current_trace == -1:
+            alpha, beta = 1.0, 0
+        gamma = math.log(2) / 30
+        logits = alpha * sim_matrix * math.exp(-gamma * path_length) + beta * torch.tanh(score_diff_matrix)
+        probs = torch.softmax(logits, dim=1)
+
+        num_candidates = probs.size(-1)
+        n_samples = min(2, num_candidates)
+        sampled_indices = torch.multinomial(probs, num_samples=n_samples).squeeze(1)
+        flat_indices = sampled_indices.flatten().unique().tolist()
+        if bigger_is_better:
+            best_idx = history_scores[0].argmax().item()
+            best_entry = (history_hypo_str[best_idx], history_scores[0, best_idx])
+        else:
+            best_idx = history_scores[0].argmin().item()
+            best_entry = (history_hypo_str[best_idx], history_scores[0, best_idx])
+        if len(flat_indices) > 2:
+            flat_indices = flat_indices[:2]
+        sampled_history_list = [best_entry] + [(history_hypo_str[i], history_scores[0, i]) for i in flat_indices if i != best_idx]
         return sampled_history_list
 
     def _get_path(self, node, parent_nodes):
@@ -1097,14 +1152,14 @@ class DSProposalV2ExpGen(ExpGen):
             if getattr(tr[1], "decision", False)
         ]
         time_max = max(time_list_success) / 3600
-        # sota_flag = (hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None)----> V10 CODE VERSION
-        bvs = BestValidSelector()  # ----> V14 CODE VERSION
-        sota_exp = bvs.get_sota_exp_to_submit(trace)  # ----> V14 CODE VERSION
-        sota_flag = sota_exp is not None and sota_exp.result is not None  # ----> V14 CODE VERSION
+        sota_flag = (hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None)#----> V10 CODE VERSION
+        #bvs = BestValidSelector()  # ----> V14 CODE VERSION
+        #sota_exp = bvs.get_sota_exp_to_submit(trace)  # ----> V14 CODE VERSION
+        #sota_flag = sota_exp is not None and sota_exp.result is not None  # ----> V14 CODE VERSION
 
         if sota_flag:
-            current_sota_score = sota_exp.result.loc["ensemble"].iloc[0].round(3)  # ----> V14 CODE VERSION
-            # trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0].round(3) ----> V10 CODE VERSION
+            #current_sota_score = sota_exp.result.loc["ensemble"].iloc[0].round(3)  # ----> V14 CODE VERSION
+            current_sota_score =  trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0].round(3)# ----> V10 CODE VERSION
         else:
             current_sota_score = -1
 
@@ -1120,7 +1175,7 @@ class DSProposalV2ExpGen(ExpGen):
         extra_hypo_l = self._llm_select_extra_hypo(trace)
         if len(extra_hypo_l) > 0:
             # TODO:
-            selected_extra_hypo_l = self._prob_dis(
+            selected_extra_hypo_l = self._prob_dis_torch(
                 current_sota_score_in_current_trace,
                 extra_hypo_l,
                 hypothesis_candidates,

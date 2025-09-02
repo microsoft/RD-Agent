@@ -702,19 +702,10 @@ task_gen:
     10. File Handling & DataFrame Generation: Generate a pandas DataFrame with columns [“id”, “path”, “fold”].
       - id: a unique identifier for each sample.
       - path: the file path of the corresponding sample.
-      - split: indicates the assignment of each sample for data splitting. Two modes are supported:
-        - K-Fold (optional): assign integers 0, 1, …, K-1 for each fold.
-        - Train/Test Split (optional): assign "train" or "test" for each sample according to the split ratio (e.g., 8:2).
-        - Ensure reproducibility: the DataFrame must be generated exactly the same way every time the script runs, e.g., by fixing the random seed 42.
-      Data Splitting: use this DataFrame to perform dataset splitting, selecting samples for training and testing based on the fold column.
-    11. Random Seed for Model Training:
-      - If training neural networks, ensure the initial weights and all random operations use a fixed seed of 42 (e.g., torch.manual_seed(42), numpy.random.seed(42), random.seed(42)).
-      - If training machine learning models such as LightGBM, XGBoost, or scikit-learn estimators, absolutely ensure the random seed is fixed (e.g., `random_state=42`) to guarantee reproducibility.
-      - This is mandatory: all aspects of the experiment must be fully reproducible and aligned, including dataset splits and random seeds;
-      - For multi-fold training, use out-of-fold (OOF) predictions as validation scores and save them as an oof file.
-    12. Hypothesis Handling: At the initial stage, multiple hypotheses may be proposed simultaneously. If some hypotheses overlap, select the most promising one for implementation and ignore redundant overlapping hypotheses. Each implemented hypothesis should remain an independent task.
-    Ensure reproducibility: the DataFrame must be generated exactly the same way every time the script runs, regardless of system or runtime conditions (e.g., by fixing the random seed).
+      
+    11. Hypothesis Handling: At the initial stage, multiple hypotheses may be proposed simultaneously. If some hypotheses overlap, select the most promising one for implementation and ignore redundant overlapping hypotheses. Each implemented hypothesis should remain an independent task.
     {% endif %}
+
     ## Package Declaration
     At the end of your design, **you MUST** provide a key `packages` in the final JSON output.  
     It should be an **array of PyPI package names** (strings) that you expect to `import` in the forthcoming implementation.  
