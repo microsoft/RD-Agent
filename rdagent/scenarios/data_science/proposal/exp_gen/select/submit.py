@@ -283,8 +283,10 @@ class ValidationSelector(SOTAexpSelector):
         logger.info(
             f"ValidationSelector: Best experiment from validation is loop_id={best_loop_id} with score={valid_results[0][1]}"
         )
-        if len(valid_results) > 1 and valid_results[0][1] == valid_results[-1][1]:
-            logger.warning(f"ValidationSelector: The scores {[i[1] for i in valid_results]} is unable to compare.")
+        if len(valid_results) <= 1 or valid_results[0][1] == valid_results[-1][1]:
+            logger.warning(f"ValidationSelector: There aren't enough scores to compare, current: {len(valid_results)}.")
+            return None
+
         return [best_exp]
 
     def _prepare_validation_scripts(
