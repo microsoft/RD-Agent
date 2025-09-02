@@ -4,6 +4,7 @@ LLM Fine-tuning Base Classes
 Contains core hypothesis and task classes for LLM fine-tuning scenarios.
 """
 
+import json
 import re
 
 from rdagent.components.coder.finetune.conf import get_ft_env
@@ -133,11 +134,17 @@ class LLMFinetuneExpGen(ExpGen):
         base_model, finetune_method = self._select_model_and_method(device_info, dataset_info, trace)
 
         # 3. Create simple hypothesis (no hyperparameters)
+        device_info_dict = json.loads(device_info)
+        memory_gb = (
+            device_info_dict["gpu"]["total_gpu_memory_gb"]
+            if "gpu" in device_info_dict and "total_gpu_memory_gb" in device_info_dict["gpu"]
+            else None
+        )
         hypothesis = LLMHypothesis(
             base_model=base_model,
             finetune_method=finetune_method,
             hypothesis=f"Fine-tune {base_model} using {finetune_method} method on {dataset_info['name']} dataset to improve capability",
-            reason=f"Selected based on device capability ({device_info.get('memory_gb', 'unknown')}GB GPU) and dataset characteristics",
+            reason=f"Selected based on device capability ({memory_gb}GB GPU) and dataset characteristics",
         )
 
         # 4. Convert to experiment
@@ -162,8 +169,12 @@ class LLMFinetuneExpGen(ExpGen):
     # ATTENTION: This is a oversimplified version
     def _select_model_and_method(self, device_info: str, dataset_info: dict, trace: Trace) -> tuple[str, str]:
         """Select base model and fine-tuning method based on device capability and dataset"""
-        memory_gb = re.search(r"Total GPU Memory:\s*([\d.]+)\s*GB", device_info)
-        memory_gb = float(memory_gb.group(1)) if memory_gb else None
+        device_info_dict = json.loads(device_info)
+        memory_gb = (
+            device_info_dict["gpu"]["total_gpu_memory_gb"]
+            if "gpu" in device_info_dict and "total_gpu_memory_gb" in device_info_dict["gpu"]
+            else None
+        )
 
         # For debugging, only use the single available model
         base_model = AVAILABLE_BASE_MODELS[0]
