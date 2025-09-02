@@ -112,7 +112,18 @@ data_format_task:
     {{ data_samples }}
     ```
 
-    **Note**: File paths in samples above are relative to the input directory `/data/dataset/{{ dataset }}/`
+    **Note**: The data samples above include a file path list at the beginning showing all sampled file paths (relative to input directory `/data/dataset/{{ dataset }}/`), and each sample data is labeled with its source file path
+
+    ## Dataset Format Processing Strategy
+
+    **Core Principle**: Datasets typically use consistent file formats and data structures. Based on the sample data above, you should:
+
+    1. **Format Recognition**: Analyze the structural characteristics of sample data to determine the most suitable LLaMA-Factory format (alpaca for instruction data, sharegpt for multi-turn conversations)
+    2. **Batch Processing**: Apply the same format conversion to all files with the same extension as the sample files in the dataset
+    3. **Consistency Guarantee**: Ensure the entire dataset uses the same conversion rules and output format to maintain data consistency and compatibility
+    4. **Path Mapping**: Use full input paths `/data/dataset/{{ dataset }}/[relative_path]` during processing, output to `/workspace/data/`
+
+    **Important**: Analyze the structure and content of sample data to determine which format (alpaca or sharegpt) the entire dataset should be converted to, then apply the same conversion strategy to all files of the same type.
 
     ## Task Instructions
 
