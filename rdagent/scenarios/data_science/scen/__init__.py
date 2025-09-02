@@ -160,7 +160,7 @@ class DataScienceScen(Scenario):
         all_duration = RD_Agent_TIMER_wrapper.timer.all_duration
         remain_percent = remain_time / all_duration
 
-        if remain_percent < 100- DS_RD_SETTING.ratio_merge_or_ensemble:
+        if remain_percent*100 < 100- DS_RD_SETTING.ratio_merge_or_ensemble:
             return DS_RD_SETTING.full_timeout*DS_RD_SETTING.runner_longer_timeout_multiplier_upper
     
         return (
