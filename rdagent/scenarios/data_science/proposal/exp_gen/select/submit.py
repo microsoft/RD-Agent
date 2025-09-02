@@ -255,7 +255,7 @@ class ValidationSelector(SOTAexpSelector):
             (process_experiment, (exp, self.competition, mock_folder, grade_py_code, loop_id))
             for exp, loop_id in self.candidate
         ]
-        results = multiprocessing_wrapper(validation_tasks, n=DEFAULT_NUM_WORKERS)
+        results = multiprocessing_wrapper(validation_tasks, n=min(DEFAULT_NUM_WORKERS, len(self.candidate) // 2))
 
         if not results:
             logger.warning("ValidationSelector: Validation run produced no results.")
@@ -506,6 +506,11 @@ def _parsing_score(grade_stdout: str) -> Optional[float]:
         except:
             pass
         try:
+            # Priority 2: Eval dict
+            return float(eval(json_str)["score"])
+        except:
+            pass
+        try:
             # Priority 3: Regex for the last number in the string
             return float(re.findall(r"[-+]?\d*\.\d+|\d+", json_str)[-1])
         except:
@@ -642,6 +647,11 @@ def select_on_existing_trace(
     Args:
         selector_name (str): Name of the selector to use. Options: 'global', 'auto', 'best_valid', 'validation'.
         trace_root (str): Path to the root directory containing trace folders.
+        experiment (str | None): Name of the experiment to evaluate, e.g., "devoted-burro;massive-perch".
+        competition (str | None): Name of the competition to evaluate, e.g., "detecting-insults-in-social-commentary".
+        debug (bool): If True, debug mode.
+        only_sample (bool): If True, only generates the sample code.
+        sample_code_path (str): Path to the sample code.
     """
     result_dict = {}
     trace_root_path = Path(trace_root)
@@ -652,8 +662,9 @@ def select_on_existing_trace(
         for trace_folder in trace_root_path.iterdir():
             if not trace_folder.is_dir():
                 continue
-            if experiment is not None and not experiment in str(trace_folder):
-                continue
+            if experiment is not None:
+                if trace_folder.name not in experiment:
+                    continue
             for trace_pkl_path in trace_folder.glob("*.pkl"):
                 if competition is not None and not competition in str(trace_pkl_path):
                     continue
