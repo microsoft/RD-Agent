@@ -573,7 +573,7 @@ def evaluate_one_trace(
         selector = AutoSOTAexpSelector()
     elif selector_name == "best_valid":
         # These params can be configured or passed via CLI
-        selector = BestValidSelector(num_candidates=MAX_SOTA_CANDIDATES, use_decision=True, each_trace=False)
+        selector = BestValidSelector(num_candidates=1, use_decision=True, each_trace=False)
 
     if selector_name == "validation":
         if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
@@ -608,6 +608,8 @@ def evaluate_one_trace(
         )
 
     selected_sota_exps = selector.get_sota_exp_to_submit(trace)
+    if selector_name == "validation" and selected_sota_exps is None:
+        selected_sota_exps = quick_selected_exps
 
     # --- Run Selection and Check for Hit ---
     logger.info(f"Running selector '{selector_name}' on trace for competition '{competition}'...")
@@ -615,8 +617,6 @@ def evaluate_one_trace(
         hit = check_hit(selected_sota_exps, trace, sota_result)
         logger.info(f"Result for {experiment} - {competition}: {'HIT' if hit else 'MISS'}")
     elif selector_name == "validation":
-        if selected_sota_exps is None:
-            selected_sota_exps = quick_selected_exps
         loop_id = selector.hypothesis_loop_id.get(selected_sota_exps[0].hypothesis.hypothesis)
         logger.info(f"Selected loop for {experiment} - {competition}: {loop_id=}")
         sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{loop_id}/running/mle_score/**/*.pkl")]
