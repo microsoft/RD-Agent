@@ -578,9 +578,9 @@ def evaluate_one_trace(
             logger.warning(f"Competition {DS_RD_SETTING.local_data_path}/{competition} does not exist, skipping.")
             return competition, False
         # The ValidationSelector is used to select the best re-test score.
+        quick_selector = BestValidSelector(num_candidates=1, use_decision=True, each_trace=False)
+        quick_selected_exps = quick_selector.get_sota_exp_to_submit(trace)
         if debug:
-            quick_selector = BestValidSelector(num_candidates=1, use_decision=True, each_trace=False)
-            quick_selected_exps = quick_selector.get_sota_exp_to_submit(trace)
             quick_hit = check_hit(quick_selected_exps, trace, sota_result)
             logger.info(f"BestvalidSelector for {experiment} - {competition}: {'HIT' if quick_hit else 'MISS'}")
 
@@ -612,7 +612,9 @@ def evaluate_one_trace(
     if debug:
         hit = check_hit(selected_sota_exps, trace, sota_result)
         logger.info(f"Result for {experiment} - {competition}: {'HIT' if hit else 'MISS'}")
-    elif selector_name == "validation" and selected_sota_exps:
+    elif selector_name == "validation":
+        if selected_sota_exps is None:
+            selected_sota_exps = quick_selected_exps
         loop_id = selector.hypothesis_loop_id.get(selected_sota_exps[0].hypothesis.hypothesis)
         sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{loop_id}/running/mle_score/**/*.pkl")]
         if len(sota_mle_score_paths) == 0:
