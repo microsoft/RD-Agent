@@ -163,6 +163,17 @@ def extract_model_info(base_model_name: str = None) -> dict[str, Any]:
     return info
 
 
+def _truncate_long_values(obj, max_length: int = 200):
+    """Recursively truncate long string values in nested data structures."""
+    if isinstance(obj, dict):
+        return {k: _truncate_long_values(v, max_length) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_truncate_long_values(item, max_length) for item in obj]
+    elif isinstance(obj, str) and len(obj) > max_length:
+        return obj[:max_length] + "..."
+    return obj
+
+
 def _extract_data_samples(file_path: Path, info: dict[str, Any]) -> None:
     """Extract sample data from file for analysis using shared descriptor functionality."""
     try:
@@ -170,7 +181,8 @@ def _extract_data_samples(file_path: Path, info: dict[str, Any]) -> None:
         samples_str = descriptor._extract_samples_for_prompt(file_path)
         if samples_str:
             # Parse the JSON string back to objects for info dict
-            info["samples"] = json.loads(samples_str)[:2]  # First 2 samples for consistency
+            samples = json.loads(samples_str)[:2]  # First 2 samples for consistency
+            info["samples"] = _truncate_long_values(samples)  # Truncate long values for prompt
     except Exception as e:
         logger.warning(f"Failed to extract samples from {file_path}: {e}")
 
@@ -330,11 +342,12 @@ class FinetuneDatasetDescriptor(DataFolderDescriptor):
                 with open(data_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     if isinstance(data, list) and len(data) > 0:
-                        # Get first 3 samples
-                        samples = data[:3]
+                        # Get first 3 samples and truncate long values
+                        samples = _truncate_long_values(data[:3])
                         return json.dumps(samples, ensure_ascii=False, indent=2)
                     elif isinstance(data, dict):
-                        return json.dumps(data, ensure_ascii=False, indent=2)
+                        truncated_data = _truncate_long_values(data)
+                        return json.dumps(truncated_data, ensure_ascii=False, indent=2)
 
             elif data_file.suffix.lower() == ".jsonl":
                 samples = []
@@ -346,19 +359,22 @@ class FinetuneDatasetDescriptor(DataFolderDescriptor):
                         if line:
                             samples.append(json.loads(line))
                 if samples:
-                    return json.dumps(samples, ensure_ascii=False, indent=2)
+                    truncated_samples = _truncate_long_values(samples)
+                    return json.dumps(truncated_samples, ensure_ascii=False, indent=2)
 
             elif data_file.suffix.lower() == ".csv":
                 df = pd.read_csv(data_file)
                 if len(df) > 0:
                     samples = df.head(3).to_dict("records")
-                    return json.dumps(samples, ensure_ascii=False, indent=2)
+                    truncated_samples = _truncate_long_values(samples)
+                    return json.dumps(truncated_samples, ensure_ascii=False, indent=2)
 
             elif data_file.suffix.lower() == ".parquet":
                 df = pd.read_parquet(data_file)
                 if len(df) > 0:
                     samples = df.head(3).to_dict("records")
-                    return json.dumps(samples, ensure_ascii=False, indent=2)
+                    truncated_samples = _truncate_long_values(samples)
+                    return json.dumps(truncated_samples, ensure_ascii=False, indent=2)
 
             return ""
 
