@@ -159,7 +159,10 @@ class DataScienceScen(Scenario):
             DS_RD_SETTING.full_timeout
             * min(
                 DS_RD_SETTING.runner_longer_timeout_multiplier_upper,
-                self.timeout_increase_count * DS_RD_SETTING.runner_timeout_increase_stage + 1,
+                self.timeout_increase_count
+                * DS_RD_SETTING.runner_timeout_increase_stage
+                // DS_RD_SETTING.runner_patience
+                + 1,
             )
             if self.runner_longer_time_limit_required
             else DS_RD_SETTING.full_timeout
