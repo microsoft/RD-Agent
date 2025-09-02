@@ -616,12 +616,12 @@ def evaluate_one_trace(
         if selected_sota_exps is None:
             selected_sota_exps = quick_selected_exps
         loop_id = selector.hypothesis_loop_id.get(selected_sota_exps[0].hypothesis.hypothesis)
+        logger.info(f"Selected loop for {experiment} - {competition}: {loop_id=}")
         sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{loop_id}/running/mle_score/**/*.pkl")]
-        if len(sota_mle_score_paths) == 0:
-            continue
-        with sota_mle_score_paths[0].open("rb") as f:
-            sota_mle_score = extract_json(pickle.load(f))
-            hit = sota_mle_score.get("any_medal", False)
+        if len(sota_mle_score_paths):
+            with sota_mle_score_paths[0].open("rb") as f:
+                sota_mle_score = extract_json(pickle.load(f))
+                hit = sota_mle_score.get("any_medal", False)
     return competition, hit
 
 
@@ -693,7 +693,7 @@ def select_on_existing_trace(
         tasks.append(
             (
                 evaluate_one_trace,
-                (selector_name, trace, debug, only_sample, sample_code_path, log_path),
+                (selector_name, trace, debug, only_sample, sample_code_path, {}, "validation", log_path),
             )
         )
 
