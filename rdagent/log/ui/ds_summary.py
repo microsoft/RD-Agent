@@ -202,4 +202,7 @@ with st.container(border=True):
     try:
         all_summarize_win()
     except Exception as e:
+        import traceback
+
         st.error(f"Error occurred when show summary:\n{e}")
+        st.code(traceback.format_exc())

@@ -263,7 +263,7 @@ def _get_score_stat_hash_func(log_path: Path, sota_loop_id: int) -> str:
     return _log_path_hash_func(log_path) + str(sota_loop_id)
 
 
-def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, float | None, bool, float | None]:
+def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, float | None, bool | None, float | None]:
     """
     Get the scores before and after merge period.
 
@@ -298,8 +298,10 @@ def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, flo
     total_merge_loops = 0
     log_storage = FileStorage(log_path)
     all_trace = list(log_storage.iter_msg(tag="trace"))
-    final_trace = all_trace[-1].content
-
+    if all_trace:
+        final_trace = all_trace[-1].content
+    else:
+        return None, None, None, None
     for loop_index, (exp, fb) in enumerate(final_trace.hist):
         if hasattr(final_trace, "idx2loop_id"):
             loop_id = final_trace.idx2loop_id[loop_index]
