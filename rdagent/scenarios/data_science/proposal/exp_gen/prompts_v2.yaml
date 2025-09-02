@@ -463,7 +463,7 @@ hypothesis_select:
       3. **Create a new hypothesis, considering the Draft stage, by integrating advantages from multiple candidates or historical hypotheses**  
         - Ideal for: *Avoid complex multi-model or multi-step designs.*  
         - Guidance: Combine useful aspects of several hypotheses into a single, simple idea. Ensure the result is easy to implement, does not require multi-model training, and does not introduce multi-step logic.
-    {% elif use_ratio > 70 %}
+    {% elif use_ratio > 50 %}
 
 
     ### Stage = Ensemble
