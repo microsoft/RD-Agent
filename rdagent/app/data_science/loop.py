@@ -1,6 +1,6 @@
 import asyncio
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Coroutine
 
 import fire
 import typer
@@ -11,6 +11,58 @@ from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 
+
+async def run_and_auto_submit(loop_task: Coroutine, competition: str):
+    """Run the loop coroutine task, and submit the SOTA experiment file (.csv only now) to kaggle at the end."""
+    from datetime import datetime
+    from rdagent.log.conf import LOG_SETTINGS
+    from rdagent.log.ui.utils import get_sota_exp_stat
+    from rdagent.scenarios.kaggle.submission import submit_csv, get_rest_submit_num
+
+    # wait for the loop end
+    await loop_task
+
+    # check the trace_path
+    sota, sota_loop_id, _, _ = get_sota_exp_stat(log_path=Path(LOG_SETTINGS.trace_path))
+
+    logger.info(f"sota loop id: {sota_loop_id}")
+
+    if sota is None:
+        logger.warning(f"Cannot find sota experiment, skip submitting.")
+
+        return
+
+    if sota.experiment_workspace is None:
+        logger.warning(f"Fail to get sota experiment submission file, workspace is None.")
+
+        return
+
+    worspace = sota.experiment_workspace.workspace_path
+
+    submission_csv_path = worspace / "submission.csv"
+
+    if not submission_csv_path.exists():
+        logger.warning(f"Cannot find the file submit to submit: {submission_csv_path}")
+
+        return
+
+    logger.info(f"Current sota submission file: {submission_csv_path}")
+
+    # check if we have remaining submit number
+    remaining_submit_num = get_rest_submit_num(competition=competition)
+
+    if remaining_submit_num == 0:
+        logger.warning(
+            (
+                "Cannot submit now, as no remaining number today.\n"
+                "NOTE: also please confirm that you have joined the competition, or the remaining number is 0."
+            )
+        )
+
+        return
+
+    # do submit
+    submit_csv(competition=competition, submission_file=str(submission_csv_path), wait=True, msg=f"SOTA at {datetime.now()}")
 
 def main(
     path: Optional[str] = None,
@@ -73,7 +125,10 @@ def main(
     if exp_gen_cls is not None:
         kaggle_loop.exp_gen = import_class(exp_gen_cls)(kaggle_loop.exp_gen.scen)
 
-    asyncio.run(kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout))
+    if DS_RD_SETTING.auto_submit:
+        asyncio.run(run_and_auto_submit(kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout), competition))
+    else:
+        asyncio.run(kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout))
 
 
 if __name__ == "__main__":
