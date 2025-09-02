@@ -280,7 +280,10 @@ class FinetuneDatasetDescriptor(DataFolderDescriptor):
             if not data_files:
                 return f"No supported data files found in {dataset_path}"
 
+            # Collect file paths for summary
+            sample_file_paths = []
             samples = []
+
             # Process up to 3 files to get samples
             for data_file in data_files[:3]:
                 try:
@@ -291,8 +294,10 @@ class FinetuneDatasetDescriptor(DataFolderDescriptor):
                         try:
                             relative_path = data_file.relative_to(dataset_path)
                             file_label = f"Input file: {relative_path}"
+                            sample_file_paths.append(str(relative_path))
                         except ValueError:
                             file_label = f"Input file: {data_file.name}"
+                            sample_file_paths.append(data_file.name)
 
                         samples.append(f"{file_label}:\n{file_samples}")
                 except Exception as e:
@@ -300,7 +305,13 @@ class FinetuneDatasetDescriptor(DataFolderDescriptor):
                     continue
 
             if samples:
-                return "\n\n".join(samples)
+                # Add file paths summary at the beginning
+                paths_summary = (
+                    f"Sampled File Paths:\n"
+                    + "\n".join([f"- {path}" for path in sample_file_paths])
+                    + "\n\nSample Data Content:\n\n"
+                )
+                return paths_summary + "\n\n".join(samples)
             else:
                 return "No data samples could be extracted"
 
