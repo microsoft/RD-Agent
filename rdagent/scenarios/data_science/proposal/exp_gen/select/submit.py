@@ -325,7 +325,7 @@ class ValidationSelector(SOTAexpSelector):
                 ws.inject_files(**{f"data.py": data_py_code})
                 env = get_ds_env(
                     extra_volumes={
-                        str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"},
+                        str(Path(mock_folder) / input_folder): {"bind": Path(input_folder), "mode": "rw"},
                         f"{DS_RD_SETTING.local_data_path}/{competition}": "./source",
                     },
                     running_timeout_period=DS_RD_SETTING.full_timeout,
@@ -403,7 +403,7 @@ class ValidationSelector(SOTAexpSelector):
                 # For data.py, we need the original data to sample from
                 env = get_ds_env(
                     extra_volumes={
-                        str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"},
+                        str(Path(mock_folder) / input_folder): {"bind": Path(input_folder), "mode": "rw"},
                         f"{DS_RD_SETTING.local_data_path}/{competition}": "./source",
                     },
                     running_timeout_period=DS_RD_SETTING.full_timeout,
@@ -414,7 +414,7 @@ class ValidationSelector(SOTAexpSelector):
                     str(ws.workspace_path / "submission.csv"),
                 )
                 env = get_ds_env(
-                    extra_volumes={str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"}}
+                    extra_volumes={str(Path(mock_folder) / input_folder): {"bind": Path(input_folder), "mode": "rw"}}
                 )
 
             result = ws.run(
@@ -426,7 +426,9 @@ class ValidationSelector(SOTAexpSelector):
                 logger.info(f"Successfully generated and ran {script_type}.py.")
                 if script_type == "data":
                     env = get_ds_env(
-                        extra_volumes={str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"}},
+                        extra_volumes={
+                            str(Path(mock_folder) / input_folder): {"bind": Path(input_folder), "mode": "rw"}
+                        },
                         running_timeout_period=DS_RD_SETTING.full_timeout,
                     )
                     result = ws.run(env=env, entry=f"python main.py --cache-buster={time.time()}")
