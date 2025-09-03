@@ -255,7 +255,7 @@ class ValidationSelector(SOTAexpSelector):
             (process_experiment, (exp, self.competition, mock_folder, grade_py_code, loop_id))
             for exp, loop_id in self.candidate
         ]
-        results = multiprocessing_wrapper(validation_tasks, n=min(DEFAULT_NUM_WORKERS, len(self.candidate) // 2))
+        results = multiprocessing_wrapper(validation_tasks, n=min(DEFAULT_NUM_WORKERS, (len(self.candidate) + 1) // 2))
 
         if not results:
             logger.warning("ValidationSelector: Validation run produced no results.")
@@ -647,7 +647,7 @@ def select_on_existing_trace(
     Args:
         selector_name (str): Name of the selector to use. Options: 'global', 'auto', 'best_valid', 'validation'.
         trace_root (str): Path to the root directory containing trace folders.
-        experiment (str | None): Name of the experiment to evaluate, e.g., "devoted-burro;massive-perch".
+        experiment (str | None): Name of the experiment to evaluate, e.g., "devoted-burro+massive-perch".
         competition (str | None): Name of the competition to evaluate, e.g., "detecting-insults-in-social-commentary".
         debug (bool): If True, debug mode.
         only_sample (bool): If True, only generates the sample code.
