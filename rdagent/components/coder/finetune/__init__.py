@@ -225,9 +225,9 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
 
     def _get_container_mount_path(self) -> str:
         """Get the container mount path dynamically from Docker configuration"""
-        from rdagent.utils.env import LLMDockerConf
+        from rdagent.utils.env import FTDockerConf
 
-        docker_conf = LLMDockerConf()
+        docker_conf = FTDockerConf()
         return docker_conf.mount_path
 
     def _get_directory_tree(self, relative_path: str) -> str:

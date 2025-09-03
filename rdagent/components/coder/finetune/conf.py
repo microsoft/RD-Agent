@@ -5,7 +5,7 @@ from rdagent.utils.env import (
     CondaConf,
     DockerEnv,
     Env,
-    LLMDockerConf,
+    FTDockerConf,
     LocalEnv,
 )
 
@@ -52,7 +52,7 @@ def get_ft_env(
 
     # Use dedicated LLM docker and conda env
     if conf.env_type == "docker":
-        env = DockerEnv(conf=LLMDockerConf())
+        env = DockerEnv(conf=FTDockerConf())
     elif conf.env_type == "conda":
         # Use a dedicated llm conda env name
         # TODO: enable conda environment

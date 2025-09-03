@@ -785,7 +785,7 @@ class MLEBDockerConf(DockerConf):
     enable_cache: bool = False
 
 
-class LLMDockerConf(DockerConf):
+class FTDockerConf(DockerConf):
     model_config = SettingsConfigDict(env_prefix="LLM_DOCKER_")
 
     build_from_dockerfile: bool = True
