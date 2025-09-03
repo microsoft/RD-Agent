@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-import torch
 from pydantic import BaseModel, Field
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -1006,6 +1005,8 @@ class DSProposalV2ExpGen(ExpGen):
         return sampled_history_list
 
     def _cosine_similarity_matrix_torch(self, A, B):
+        import torch
+
         dot_products = torch.matmul(A, B.T)
         A_norms = torch.norm(A, dim=1, keepdim=True)
         B_norms = torch.norm(B, dim=1, keepdim=True).T
@@ -1019,6 +1020,7 @@ class DSProposalV2ExpGen(ExpGen):
         competition,
         path_length,
     ):
+        import torch
 
         history_hypo_str, history_scores = [], []
         for hypo, score in extra_hypo_l:

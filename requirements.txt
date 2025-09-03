@@ -67,3 +67,6 @@ genson
 mlflow
 azureml-mlflow
 types-pytz
+
+# additional packages for data science 
+torch
