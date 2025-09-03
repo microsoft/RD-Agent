@@ -8,6 +8,7 @@ easily integrated into RDLoop or used standalone.
 from pathlib import Path
 from typing import Any, Dict
 
+from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
@@ -18,7 +19,6 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
     MultiProcessEvolvingStrategy,
 )
 from rdagent.components.coder.CoSTEER.task import CoSTEERTask
-from rdagent.components.coder.data_science.share.ds_costeer import DSCoSTEER
 from rdagent.core.experiment import Task
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
@@ -189,7 +189,7 @@ class DataFormatEvaluator(CoSTEEREvaluator):
         )
 
 
-class DataFormatCoSTEER(DSCoSTEER):
+class DataFormatCoSTEER(CoSTEER):
     """CoSTEER implementation for data format conversion"""
 
     def __init__(self, scen: Scenario, *args, **kwargs):
@@ -202,6 +202,8 @@ class DataFormatCoSTEER(DSCoSTEER):
             eva=eva,
             es=es,
             scen=scen,
+            with_knowledge=False,
+            knowledge_self_gen=False,
             evolving_version=2,  # 使用版本2，与其他CoSTEER实现保持一致
             max_loop=3,
             **kwargs,

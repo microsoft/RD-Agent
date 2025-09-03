@@ -44,9 +44,9 @@ finetune_coder:
 
     ## Path Configuration
     - dataset: "processed_dataset"
-    - dataset_dir: "{{ docker_env_info.training_mount_path }}data"
+    - dataset_dir: "{{ docker_env_info.datasets_mount_path }}{{ docker_env_info.dataset_name }}"
     - output_dir: "/workspace/output"
-    - model_name_or_path: "{{ docker_env_info.training_mount_path }}model/{{ base_model }}"
+    - model_name_or_path: "{{ docker_env_info.models_mount_path }}{{ base_model }}"
 
     ## Critical Configuration Rules
     - All file paths must use Docker container paths, NOT local filesystem paths
