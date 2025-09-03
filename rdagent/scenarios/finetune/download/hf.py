@@ -26,7 +26,7 @@ def download_dataset(
 
         if not FT_RD_SETTING.file_path:
             raise ValueError("No out_dir_root specified and FT_FILE_PATH not set")
-        save_root = FT_RD_SETTING.dataset_path
+        save_root = Path(FT_RD_SETTING.file_path) / "dataset"
 
     save_path = save_root / repo_id
     _ensure_parent(save_path)
@@ -80,7 +80,7 @@ def download_model(
 
         if not FT_RD_SETTING.file_path:
             raise ValueError("No out_dir_root specified and FT_FILE_PATH not set")
-        save_root = FT_RD_SETTING.model_path
+        save_root = Path(FT_RD_SETTING.file_path) / "model"
 
     save_path = save_root / repo_id
     _ensure_parent(save_path)

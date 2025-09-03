@@ -59,7 +59,7 @@ def main(
     if not ft_root.exists():
         raise Exception(f"FT_FILE_PATH does not exist: {ft_root}")
 
-    # Ensure dataset and model assets exist
+    # Ensure dataset and model assets exist, if not, download them
     ensure_ft_assets_exist(model, dataset)
 
     # Update FT setting instance with provided dataset and model

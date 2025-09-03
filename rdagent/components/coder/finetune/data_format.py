@@ -101,7 +101,7 @@ class DataFormatEvolvingStrategy(MultiProcessEvolvingStrategy):
             if not FT_RD_SETTING.file_path:
                 return "FT_FILE_PATH environment variable not set", "No data samples available"
 
-            dataset_path = FT_RD_SETTING.get_dataset_dir(dataset)
+            dataset_path = Path(FT_RD_SETTING.file_path) / "dataset" / dataset
 
             if not dataset_path.exists():
                 error_msg = f"Dataset {dataset} not found at {dataset_path}"

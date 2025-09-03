@@ -55,6 +55,7 @@ def get_ft_env(
         env = DockerEnv(conf=LLMDockerConf())
     elif conf.env_type == "conda":
         # Use a dedicated llm conda env name
+        # TODO: enable conda environment
         env = LocalEnv(conf=CondaConf(conda_env_name="llm_finetune"))
     else:
         raise ValueError(f"Unknown env type: {conf.env_type}")
