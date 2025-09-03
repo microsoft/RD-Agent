@@ -59,12 +59,12 @@ def main(
     if not ft_root.exists():
         raise Exception(f"FT_FILE_PATH does not exist: {ft_root}")
 
-    # Update FT setting instance with provided dataset and model
-    FT_RD_SETTING.dataset = dataset
-    FT_RD_SETTING.base_model_name = model
-
     # Ensure dataset and model assets exist
     ensure_ft_assets_exist(model, dataset)
+
+    # Update FT setting instance with provided dataset and model
+    FT_RD_SETTING.dataset = dataset
+    FT_RD_SETTING.base_model = model
 
     # Create and run LLM fine-tuning loop using standard RDLoop async workflow
     logger.info(f"Starting LLM fine-tuning: {model} on {dataset}")

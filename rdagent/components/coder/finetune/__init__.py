@@ -258,19 +258,19 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         # Get actual mount configuration for training container
         mount_volumes = get_unified_mount_volumes()
 
-        # Training containers mount FT_FILE_PATH to /data (not /workspace)
+        # Training containers now mount models to /assets/models and datasets to /assets/datasets
         # /workspace is used for CoSTEER code execution only
-        training_mount_path = "/data/"
-        for local_path, docker_path in mount_volumes.items():
-            training_mount_path = docker_path + "/"
-            break
+        models_mount_path = "/assets/models/"
+        datasets_mount_path = "/assets/datasets/"
 
         # Get file trees for actual training paths
-        data_tree = self._get_directory_tree("data")
-        dataset_tree = self._get_directory_tree(f"dataset/{dataset}")
+        data_tree = self._get_directory_tree("assets")
+        dataset_tree = self._get_directory_tree(f"assets/datasets/{dataset}")
 
         return {
-            "training_mount_path": training_mount_path,  # /data/ for training containers
+            "models_mount_path": models_mount_path,  # /assets/models/ for model files
+            "datasets_mount_path": datasets_mount_path,  # /assets/datasets/ for dataset files
+            "training_mount_path": "/assets/",  # Legacy compatibility - base assets path
             "data_tree": data_tree,
             "dataset_tree": dataset_tree,
             "dataset_name": dataset,

@@ -34,14 +34,10 @@ def ensure_ft_assets_exist(model: str | None, dataset: str) -> None:
 
     # Model may be optional for some flows, but for finetune we typically require one of prev_model or model
     if model is not None:
-        prev_dir = FT_RD_SETTING.get_prev_model_dir(model, dataset)
         model_dir = FT_RD_SETTING.get_model_dir(model)
-        if not prev_dir.exists() and not model_dir.exists():
+        if not model_dir.exists():
             try:
                 logger.info(f"Downloading model '{model}' to {model_dir}")
                 download_model(model, out_dir_root=str(FT_RD_SETTING.model_path))
             except Exception as e:
-                raise Exception(
-                    f"Failed to download model '{model}' to {model_dir}: {e}. "
-                    f"At least one of prev_model or model is required.",
-                ) from e
+                raise Exception(f"Failed to download model '{model}' to {model_dir}: {e}. ") from e

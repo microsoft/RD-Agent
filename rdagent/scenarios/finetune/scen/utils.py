@@ -17,14 +17,15 @@ from rdagent.utils.agent.tpl import T
 def get_unified_mount_volumes() -> dict:
     """Get unified mount volume configuration for LLM finetune environments.
 
-    Mount FT_FILE_PATH to /data in Docker to avoid conflict with /workspace mount.
-    The /workspace is used for temporary code execution, while /data contains datasets.
+    Mount FT_FILE_PATH/models to /assets/models and FT_FILE_PATH/datasets to /assets/datasets.
+    The /workspace is used for temporary code execution, while /assets contains models and datasets.
 
     Returns:
         Dictionary of local_path -> docker_path mappings
     """
     if FT_RD_SETTING.file_path and Path(FT_RD_SETTING.file_path).exists():
-        return {FT_RD_SETTING.file_path: "/data"}
+        base_path = Path(FT_RD_SETTING.file_path)
+        return {str(base_path / "models"): "/assets/models", str(base_path / "datasets"): "/assets/datasets"}
 
     return {}
 
@@ -115,7 +116,7 @@ def extract_dataset_info(competition: str) -> dict[str, Any]:
 
 def extract_model_info(base_model_name: str = None) -> dict[str, Any]:
     """Extract model information from config and metadata."""
-    model_name = base_model_name or FT_RD_SETTING.base_model_name
+    model_name = base_model_name or FT_RD_SETTING.base_model
     info = {
         "name": model_name or "Unknown",
         "description": "",
@@ -189,12 +190,12 @@ def _extract_data_samples(file_path: Path, info: dict[str, Any]) -> None:
 
 def _find_model_path() -> Path | None:
     """Find model directory in FT_FILE_PATH structure."""
-    if not FT_RD_SETTING.file_path or not FT_RD_SETTING.base_model_name:
+    if not FT_RD_SETTING.file_path or not FT_RD_SETTING.base_model:
         return None
 
     candidates = [
-        FT_RD_SETTING.get_model_dir(FT_RD_SETTING.base_model_name),
-        FT_RD_SETTING.get_prev_model_dir(FT_RD_SETTING.base_model_name, FT_RD_SETTING.dataset),
+        FT_RD_SETTING.get_model_dir(FT_RD_SETTING.base_model),
+        FT_RD_SETTING.get_prev_model_dir(FT_RD_SETTING.base_model, FT_RD_SETTING.dataset),
     ]
 
     for path in candidates:
