@@ -7,7 +7,6 @@ from rdagent.scenarios.finetune.scen.utils import (
     build_folder_description,
     extract_dataset_info,
     extract_model_info,
-    get_unified_mount_volumes,
 )
 from rdagent.utils.agent.tpl import T
 

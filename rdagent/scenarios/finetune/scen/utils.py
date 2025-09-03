@@ -14,22 +14,6 @@ from rdagent.scenarios.finetune.utils import prev_model_dirname
 from rdagent.utils.agent.tpl import T
 
 
-def get_unified_mount_volumes() -> dict:
-    """Get unified mount volume configuration for LLM finetune environments.
-
-    Mount FT_FILE_PATH/models to /assets/models and FT_FILE_PATH/datasets to /assets/datasets.
-    The /workspace is used for temporary code execution, while /assets contains models and datasets.
-
-    Returns:
-        Dictionary of local_path -> docker_path mappings
-    """
-    if FT_RD_SETTING.file_path and Path(FT_RD_SETTING.file_path).exists():
-        base_path = Path(FT_RD_SETTING.file_path)
-        return {str(base_path / "models"): "/assets/models", str(base_path / "datasets"): "/assets/datasets"}
-
-    return {}
-
-
 def _discover_data_files_recursive(dataset_path: Path, max_depth: int = 3) -> list[Path]:
     """
     Recursively discover data files in dataset directory.
@@ -79,7 +63,7 @@ def extract_dataset_info(competition: str) -> dict[str, Any]:
     if not FT_RD_SETTING.file_path:
         return {"name": competition, "description": "FT_FILE_PATH not set", "samples": [], "files": []}
 
-    dataset_path = Path(FT_RD_SETTING.file_path) / "dataset" / competition
+    dataset_path = Path(FT_RD_SETTING.file_path) / "datasets" / competition
     info = {"name": competition, "description": "", "samples": [], "files": []}
 
     # Read description from README
@@ -194,7 +178,7 @@ def _find_model_path() -> Path | None:
         return None
 
     candidates = [
-        Path(FT_RD_SETTING.file_path) / "model" / FT_RD_SETTING.base_model,
+        Path(FT_RD_SETTING.file_path) / "models" / FT_RD_SETTING.base_model,
         Path(FT_RD_SETTING.file_path)
         / "prev_model"
         / prev_model_dirname(FT_RD_SETTING.base_model, FT_RD_SETTING.dataset),
@@ -224,7 +208,7 @@ def build_folder_description(dataset: str = None) -> str:
     from rdagent.scenarios.data_science.scen.utils import describe_data_folder_v2
 
     try:
-        # Use FT_FILE_PATH structure: /path/to/finetune/dataset/<dataset>
+        # Use FT_FILE_PATH structure: /path/to/finetune/datasets/<dataset>
         if not FT_RD_SETTING.file_path:
             return "FT_FILE_PATH environment variable not set"
 
@@ -234,7 +218,7 @@ def build_folder_description(dataset: str = None) -> str:
 
         if dataset:
             # Describe specific dataset directory
-            dataset_path = Path(FT_RD_SETTING.file_path) / "dataset" / dataset
+            dataset_path = Path(FT_RD_SETTING.file_path) / "datasets" / dataset
         else:
             # Describe entire finetune directory structure
             dataset_path = ft_root

@@ -4,7 +4,6 @@ import typer
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.finetune.conf import get_ft_env
-from rdagent.scenarios.finetune.scen.utils import get_unified_mount_volumes
 from rdagent.utils.agent.tpl import T
 
 app = typer.Typer(help="Run LLM fine-tuning environment commands.")
@@ -37,12 +36,8 @@ def run(
         cmd: The shell command or script entry point to execute inside
              the environment.
     """
-    # Use unified mount volume configuration
-    extra_volumes = get_unified_mount_volumes()
-
     # Don't set time limitation and always disable cache
     env = get_ft_env(
-        extra_volumes=extra_volumes,
         running_timeout_period=None,
         enable_cache=False,
     )

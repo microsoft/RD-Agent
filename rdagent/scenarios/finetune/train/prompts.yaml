@@ -14,7 +14,7 @@ finetuning_task_prompt: |-
   {{ llamafactory_guide }}
 
   ## Available Resources
-  - Raw dataset: `/data/dataset/{{ dataset }}/` (mounted from host)
+  - Raw dataset: `/assets/datasets/{{ dataset }}/` (mounted from host)
   - Processed dataset: `/workspace/data/processed_dataset.json` (from data processing step)
   - Dataset configuration: `/workspace/data/dataset_info.json` (from data processing step)  
   - Base model: `{{ model }}`
