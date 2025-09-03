@@ -79,7 +79,7 @@ def extract_dataset_info(competition: str) -> dict[str, Any]:
     if not FT_RD_SETTING.file_path:
         return {"name": competition, "description": "FT_FILE_PATH not set", "samples": [], "files": []}
 
-    dataset_path = FT_RD_SETTING.get_dataset_dir(competition)
+    dataset_path = Path(FT_RD_SETTING.file_path) / "dataset" / competition
     info = {"name": competition, "description": "", "samples": [], "files": []}
 
     # Read description from README
@@ -194,8 +194,10 @@ def _find_model_path() -> Path | None:
         return None
 
     candidates = [
-        FT_RD_SETTING.get_model_dir(FT_RD_SETTING.base_model),
-        FT_RD_SETTING.get_prev_model_dir(FT_RD_SETTING.base_model, FT_RD_SETTING.dataset),
+        Path(FT_RD_SETTING.file_path) / "model" / FT_RD_SETTING.base_model,
+        Path(FT_RD_SETTING.file_path)
+        / "prev_model"
+        / prev_model_dirname(FT_RD_SETTING.base_model, FT_RD_SETTING.dataset),
     ]
 
     for path in candidates:
@@ -232,7 +234,7 @@ def build_folder_description(dataset: str = None) -> str:
 
         if dataset:
             # Describe specific dataset directory
-            dataset_path = FT_RD_SETTING.get_dataset_dir(dataset)
+            dataset_path = Path(FT_RD_SETTING.file_path) / "dataset" / dataset
         else:
             # Describe entire finetune directory structure
             dataset_path = ft_root

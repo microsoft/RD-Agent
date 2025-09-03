@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any
 
 from rdagent.app.finetune.llm.conf import LLMFinetunePropSetting
+from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.proposal import Trace
@@ -61,23 +62,28 @@ class LLMFinetuneRDLoop(RDLoop):
         # Mount datasets directory as read-only
         datasets_path = Path(self.ft_rd_setting.file_path) / "datasets"
         data_volumes[str(datasets_path)] = {
-            "bind": "/assets/datasets",
+            "bind": "/assets/raw_datasets",
+            "mode": "ro",
+        }
+
+        # Mount preprocessed datasets directory as read-only
+        preprocessed_datasets_path = Path(self.ft_rd_setting.file_path) / "preprocessed_datasets"
+        data_volumes[str(preprocessed_datasets_path)] = {
+            "bind": "/assets/preprocessed_datasets",
             "mode": "ro",
         }
 
         # Create base directories
         finetune_base_dir = Path(self.ft_rd_setting.file_path)
         finetune_base_dir.mkdir(parents=True, exist_ok=True)
-        output_dir = self.ft_rd_setting.output_path
+        output_dir = Path(self.ft_rd_setting.file_path) / "output"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Mount output directory as read-write for training results
+        # Mount output directory as read-write for data-processing and training results
         data_volumes[str(output_dir)] = {
             "bind": "/workspace/output",
             "mode": "rw",
         }
-
-        from rdagent.components.coder.finetune.conf import get_ft_env
 
         self.env = get_ft_env(
             extra_volumes=data_volumes,
@@ -88,7 +94,7 @@ class LLMFinetuneRDLoop(RDLoop):
     def _preprocess_data(self):
         """Preprocess dataset format during initialization"""
         # Use dataset-specific preprocessed data directory
-        preprocessed_dir = self.ft_rd_setting.get_preprocessed_dir(self.dataset)
+        preprocessed_dir = Path(self.ft_rd_setting.file_path) / "preprocessed_data" / self.dataset
 
         # Check if preprocessed data already exists
         # TODO: add processed dataset(multiple formats: json, jsonl, csv, txt, parquet)
