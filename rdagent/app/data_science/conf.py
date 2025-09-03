@@ -145,7 +145,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     coder_longer_timeout_multiplier_upper: int = 3
     runner_longer_timeout_multiplier_upper: int = 2
     coder_timeout_increase_stage: float = 0.3
-    runner_timeout_increase_stage: float = 0.15
+    runner_timeout_increase_stage: float = 0.3
+    runner_timeout_increase_stage_patience: int = 2
+    """Number of failures tolerated before escalating to next timeout level (stage width). Every 'patience' failures, timeout increases by 'runner_timeout_increase_stage'"""
     show_hard_limit: bool = True
 
     #### enable runner code change summary
