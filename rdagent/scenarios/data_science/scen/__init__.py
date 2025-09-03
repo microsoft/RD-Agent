@@ -8,6 +8,7 @@ from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.timer import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.debug.data import create_debug_data
 from rdagent.scenarios.data_science.proposal.exp_gen.utils import (
@@ -24,7 +25,6 @@ from rdagent.scenarios.shared.get_runtime_info import (
     get_runtime_environment_by_env,
 )
 from rdagent.utils.agent.tpl import T
-from rdagent.log.timer import RD_Agent_TIMER_wrapper
 
 
 class DataScienceScen(Scenario):
@@ -160,9 +160,9 @@ class DataScienceScen(Scenario):
         all_duration = RD_Agent_TIMER_wrapper.timer.all_duration
         remain_percent = remain_time / all_duration
 
-        if remain_percent*100 < 100- DS_RD_SETTING.ratio_merge_or_ensemble:
-            return DS_RD_SETTING.full_timeout*DS_RD_SETTING.runner_longer_timeout_multiplier_upper
-    
+        if remain_percent * 100 < 100 - DS_RD_SETTING.ratio_merge_or_ensemble:
+            return DS_RD_SETTING.full_timeout * DS_RD_SETTING.runner_longer_timeout_multiplier_upper
+
         return (
             DS_RD_SETTING.full_timeout
             * min(

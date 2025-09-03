@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+import torch
 from pydantic import BaseModel, Field
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -42,7 +43,7 @@ from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
-import torch
+
 _COMPONENT_META: Dict[str, Dict[str, Any]] = {
     "DataLoadSpec": {
         "target_name": "Data loader and specification generation",
@@ -942,7 +943,7 @@ class DSProposalV2ExpGen(ExpGen):
             sampled_indices.append(idx)
         sampled_indices = np.unique(np.concatenate(sampled_indices))
         return sampled_indices.tolist()
-    
+
     def _prob_dis(
         self,
         current_sota_score_in_current_trace,
@@ -1003,19 +1004,21 @@ class DSProposalV2ExpGen(ExpGen):
             (history_hypo_str[i], history_scores[0, i]) for i in flat_indices if i != best_idx
         ]
         return sampled_history_list
-    
+
     def _cosine_similarity_matrix_torch(self, A, B):
         dot_products = torch.matmul(A, B.T)
         A_norms = torch.norm(A, dim=1, keepdim=True)
         B_norms = torch.norm(B, dim=1, keepdim=True).T
         return dot_products / (A_norms * B_norms)
-    
-    def _prob_dis_torch(self,
+
+    def _prob_dis_torch(
+        self,
         current_sota_score_in_current_trace,
         extra_hypo_l: list[tuple[DSHypothesis, float]],
         hypothesis_candidates,
         competition,
-        path_length):
+        path_length,
+    ):
 
         history_hypo_str, history_scores = [], []
         for hypo, score in extra_hypo_l:
@@ -1034,7 +1037,7 @@ class DSProposalV2ExpGen(ExpGen):
         history_scores = torch.tensor(history_scores, dtype=torch.float32).unsqueeze(0)
         bigger_is_better = get_metric_direction(competition)
         if bigger_is_better:
-            score_diff_matrix = history_scores - candidate_scores 
+            score_diff_matrix = history_scores - candidate_scores
         else:
             score_diff_matrix = candidate_scores - history_scores
         alpha, beta = 1.0, 1.0
@@ -1056,7 +1059,9 @@ class DSProposalV2ExpGen(ExpGen):
             best_entry = (history_hypo_str[best_idx], history_scores[0, best_idx])
         if len(flat_indices) > 2:
             flat_indices = flat_indices[:2]
-        sampled_history_list = [best_entry] + [(history_hypo_str[i], history_scores[0, i]) for i in flat_indices if i != best_idx]
+        sampled_history_list = [best_entry] + [
+            (history_hypo_str[i], history_scores[0, i]) for i in flat_indices if i != best_idx
+        ]
         return sampled_history_list
 
     def _get_path(self, node, parent_nodes):
@@ -1152,14 +1157,18 @@ class DSProposalV2ExpGen(ExpGen):
             if getattr(tr[1], "decision", False)
         ]
         time_max = max(time_list_success) / 3600
-        sota_flag = (hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None)#----> V10 CODE VERSION
-        #bvs = BestValidSelector()  # ----> V14 CODE VERSION
-        #sota_exp = bvs.get_sota_exp_to_submit(trace)  # ----> V14 CODE VERSION
-        #sota_flag = sota_exp is not None and sota_exp.result is not None  # ----> V14 CODE VERSION
+        sota_flag = (
+            hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None
+        )  # ----> V10 CODE VERSION
+        # bvs = BestValidSelector()  # ----> V14 CODE VERSION
+        # sota_exp = bvs.get_sota_exp_to_submit(trace)  # ----> V14 CODE VERSION
+        # sota_flag = sota_exp is not None and sota_exp.result is not None  # ----> V14 CODE VERSION
 
         if sota_flag:
-            #current_sota_score = sota_exp.result.loc["ensemble"].iloc[0].round(3)  # ----> V14 CODE VERSION
-            current_sota_score =  trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0].round(3)# ----> V10 CODE VERSION
+            # current_sota_score = sota_exp.result.loc["ensemble"].iloc[0].round(3)  # ----> V14 CODE VERSION
+            current_sota_score = (
+                trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0].round(3)
+            )  # ----> V10 CODE VERSION
         else:
             current_sota_score = -1
 
