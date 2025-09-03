@@ -60,14 +60,14 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     sample_data_by_LLM: bool = True
 
     # LLM-specific fields
-    base_model_name: str | None = None
+    base_model: str | None = None
     dataset: str = ""
 
     @property
     def task(self) -> str:
         """Generate task name using prev_model_dirname function."""
-        if self.base_model_name and self.dataset:
-            return prev_model_dirname(self.base_model_name, self.dataset)
+        if self.base_model and self.dataset:
+            return prev_model_dirname(self.base_model, self.dataset)
         return ""
 
     # Path management methods - following data science scenario pattern

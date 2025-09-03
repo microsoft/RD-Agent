@@ -22,7 +22,7 @@ class LLMFinetuneScen(DataScienceScen):
         from rdagent.scenarios.finetune.utils import prev_model_dirname
 
         self.dataset = FT_RD_SETTING.dataset
-        self.base_model = FT_RD_SETTING.base_model_name
+        self.base_model = FT_RD_SETTING.base_model
         self.task = prev_model_dirname(self.base_model, self.dataset)
 
         # timeout tracking

@@ -4,11 +4,13 @@ from typing import Any
 from rdagent.app.finetune.llm.conf import LLMFinetunePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.proposal import Trace
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.finetune.data_process.data_format_converter import (
     DataFormatConverter,
 )
+from rdagent.utils.workflow import LoopBase
 
 
 class LLMFinetuneRDLoop(RDLoop):
@@ -29,14 +31,12 @@ class LLMFinetuneRDLoop(RDLoop):
         self.summarizer = import_class(PROP_SETTING.summarizer)(scen)
 
         # Initialize trace
-        from rdagent.core.proposal import Trace
-
         self.trace = Trace(scen=scen)
 
         # Store finetune settings
         self.ft_rd_setting = PROP_SETTING
         self.dataset = PROP_SETTING.dataset
-        self.model = PROP_SETTING.base_model_name
+        self.model = PROP_SETTING.base_model
 
         # Setup environment
         self._setup_environment()
@@ -45,17 +45,23 @@ class LLMFinetuneRDLoop(RDLoop):
         self._preprocess_data()
 
         # Initialize LoopBase (skip RDLoop.__init__ to avoid double initialization)
-        from rdagent.utils.workflow import LoopBase
-
         LoopBase.__init__(self)
 
     def _setup_environment(self):
         """Setup Docker environment with proper volume mappings"""
         data_volumes = {}
 
-        # Mount data directory as read-only
-        data_volumes[str(self.ft_rd_setting.file_path)] = {
-            "bind": "/data",
+        # Mount models directory as read-only
+        models_path = Path(self.ft_rd_setting.file_path) / "models"
+        data_volumes[str(models_path)] = {
+            "bind": "/assets/models",
+            "mode": "ro",
+        }
+
+        # Mount datasets directory as read-only
+        datasets_path = Path(self.ft_rd_setting.file_path) / "datasets"
+        data_volumes[str(datasets_path)] = {
+            "bind": "/assets/datasets",
             "mode": "ro",
         }
 
@@ -85,7 +91,8 @@ class LLMFinetuneRDLoop(RDLoop):
         preprocessed_dir = self.ft_rd_setting.get_preprocessed_dir(self.dataset)
 
         # Check if preprocessed data already exists
-        expected_files = ["processed_dataset.json", "dataset_info.json"]
+        # TODO: add processed dataset(multiple formats: json, jsonl, csv, txt, parquet)
+        expected_files = ["dataset_info.json"]
         if all((preprocessed_dir / file_name).exists() for file_name in expected_files):
             logger.info(f"Preprocessed data already exists at {preprocessed_dir}, skipping preprocessing")
             return
