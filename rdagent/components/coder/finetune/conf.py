@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
@@ -29,6 +30,42 @@ class FTCoderCoSTEERSettings(CoSTEERSettings):
     """Extra evaluators (similar to DS implementation)"""
 
 
+def _get_standard_ft_volumes() -> dict:
+    """Get standard mount volume configuration for LLM finetune environments.
+
+    Creates standard directory mappings:
+    - models -> /assets/models (ro)
+    - datasets -> /assets/datasets (ro)
+    - preprocessed_datasets -> /assets/preprocessed_datasets (ro)
+    - output -> /workspace/output (rw, auto-created)
+
+    Returns:
+        Dictionary of local_path -> docker_mount_config mappings
+    """
+    # Import here to avoid circular imports
+    from rdagent.app.finetune.llm.conf import FT_RD_SETTING
+
+    base_path = Path(FT_RD_SETTING.file_path)
+    volumes = {}
+
+    # Read-only mounts for data and models
+    readonly_mounts = [
+        ("models", "/assets/models"),
+        ("datasets", "/assets/datasets"),
+        ("preprocessed_datasets", "/assets/preprocessed_datasets"),
+    ]
+
+    for local_dir, docker_path in readonly_mounts:
+        local_path = base_path / local_dir
+        volumes[str(local_path)] = {"bind": docker_path, "mode": "ro"}
+
+    # Read-write mount for output (always create)
+    output_path = base_path / "output"
+    volumes[str(output_path)] = {"bind": "/workspace/output", "mode": "rw"}
+
+    return volumes
+
+
 def get_ft_env(
     extra_volumes: dict = {},
     running_timeout_period: int | None = None,
@@ -36,10 +73,19 @@ def get_ft_env(
 ) -> Env:
     """LLM finetune dedicated environment construction function.
 
-    - Create Docker or Conda environment according to configuration
-    - Configure mount volumes (extra_volumes)
-    - Set running timeout/cache
-    - Call env.prepare() to make the environment ready
+    Automatically includes standard finetune volume mounts:
+    - models -> /assets/models (ro)
+    - datasets -> /assets/datasets (ro)
+    - preprocessed_datasets -> /assets/preprocessed_datasets (ro)
+    - output -> /workspace/output (rw, auto-created)
+
+    Args:
+        extra_volumes: Additional volume mounts beyond standard ones
+        running_timeout_period: Timeout period for environment operations
+        enable_cache: Whether to enable caching
+
+    Returns:
+        Configured environment ready for use
     """
     # Import here to avoid circular imports
     from rdagent.app.finetune.llm.conf import FT_RD_SETTING
@@ -60,7 +106,12 @@ def get_ft_env(
     else:
         raise ValueError(f"Unknown env type: {conf.env_type}")
 
-    env.conf.extra_volumes = extra_volumes.copy()
+    # Combine standard finetune volumes with extra volumes
+    standard_volumes = _get_standard_ft_volumes()
+    combined_volumes = standard_volumes.copy()
+    combined_volumes.update(extra_volumes)
+
+    env.conf.extra_volumes = combined_volumes
     env.conf.running_timeout_period = running_timeout_period
     if enable_cache is not None:
         env.conf.enable_cache = enable_cache
