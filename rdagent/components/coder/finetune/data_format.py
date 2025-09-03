@@ -8,6 +8,7 @@ easily integrated into RDLoop or used standalone.
 from pathlib import Path
 from typing import Any, Dict
 
+from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
 from rdagent.components.coder.CoSTEER.evaluators import (
@@ -23,6 +24,7 @@ from rdagent.core.experiment import Task
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.finetune.scen.utils import FinetuneDatasetDescriptor
 from rdagent.utils.agent.tpl import T
 
 
@@ -92,20 +94,11 @@ class DataFormatEvolvingStrategy(MultiProcessEvolvingStrategy):
     def _get_dataset_info(self, dataset: str) -> tuple[str, str]:
         """Get file tree and real dataset samples separately using inherited data science functionality."""
 
-        from rdagent.scenarios.finetune.scen.utils import FinetuneDatasetDescriptor
-
         try:
-            # Use FT_FILE_PATH structure: /path/to/finetune/dataset/<dataset>
-            from rdagent.app.finetune.llm.conf import FT_RD_SETTING
-
             if not FT_RD_SETTING.file_path:
                 return "FT_FILE_PATH environment variable not set", "No data samples available"
 
             dataset_path = Path(FT_RD_SETTING.file_path) / "dataset" / dataset
-
-            if not dataset_path.exists():
-                error_msg = f"Dataset {dataset} not found at {dataset_path}"
-                return error_msg, error_msg
 
             # Use the specialized descriptor to get separated info
             descriptor = FinetuneDatasetDescriptor()
