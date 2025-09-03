@@ -24,20 +24,20 @@ def ensure_ft_assets_exist(model: str | None, dataset: str) -> None:
     # Import here to avoid circular imports
     from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 
-    dataset_dir = FT_RD_SETTING.get_dataset_dir(dataset)
+    dataset_dir = Path(FT_RD_SETTING.file_path) / "dataset" / dataset
     if not dataset_dir.exists():
         try:
             logger.info(f"Downloading dataset '{dataset}' to {dataset_dir}")
-            download_dataset(dataset, out_dir_root=str(FT_RD_SETTING.dataset_path))
+            download_dataset(dataset, out_dir_root=str(Path(FT_RD_SETTING.file_path) / "dataset"))
         except Exception as e:
             raise Exception(f"Failed to download dataset '{dataset}' to {dataset_dir}: {e}") from e
 
     # Model may be optional for some flows, but for finetune we typically require one of prev_model or model
     if model is not None:
-        model_dir = FT_RD_SETTING.get_model_dir(model)
+        model_dir = Path(FT_RD_SETTING.file_path) / "model" / model
         if not model_dir.exists():
             try:
                 logger.info(f"Downloading model '{model}' to {model_dir}")
-                download_model(model, out_dir_root=str(FT_RD_SETTING.model_path))
+                download_model(model, out_dir_root=str(Path(FT_RD_SETTING.file_path) / "model"))
             except Exception as e:
                 raise Exception(f"Failed to download model '{model}' to {model_dir}: {e}. ") from e

@@ -6,12 +6,17 @@ Supports all LLaMA-Factory data formats with dynamic file discovery.
 """
 
 import json
+import shutil
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 import pandas as pd
 
-from rdagent.core.experiment import FBWorkspace
+from rdagent.components.coder.finetune.data_format import (
+    DataFormatCoSTEER,
+    DataFormatTask,
+)
+from rdagent.core.experiment import Experiment, FBWorkspace
 from rdagent.log import rdagent_logger as logger
 
 
@@ -27,17 +32,11 @@ class DataFormatConverter:
         self.model = model
         self.ft_rd_setting = ft_rd_setting
         self.scen = scen
-
-        from rdagent.components.coder.finetune.data_format import DataFormatCoSTEER
-
         self.coder = DataFormatCoSTEER(scen)
 
     def convert_dataset(self, env, preprocessed_dir: Path) -> bool:
         """Convert dataset to LLaMA-Factory compatible format using CoSTEER"""
         logger.info(f"Converting dataset format for {self.dataset}...")
-
-        from rdagent.components.coder.finetune.data_format import DataFormatTask
-        from rdagent.core.experiment import Experiment
 
         # Create task and experiment
         task = DataFormatTask(name=f"DataFormat_{self.dataset}", dataset=self.dataset)
@@ -91,7 +90,6 @@ class DataFormatConverter:
 
     def _copy_converted_data(self, workspace: FBWorkspace, preprocessed_dir: Path):
         """Copy all generated data files with dynamic discovery"""
-        import shutil
 
         workspace_data_dir = workspace.workspace_path / "data"
         data_files, config_files = self._discover_generated_files(workspace_data_dir)
