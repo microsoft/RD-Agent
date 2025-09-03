@@ -44,12 +44,11 @@ class GlobalSOTASelector(SOTAexpSelector):
     def __init__(self):
         logger.info("Using selector policy: GlobalSOTASelector")
 
-    def get_sota_exp_to_submit(self, trace: Trace, **kwargs) -> Optional[List[DSExperiment]]:
+    def get_sota_exp_to_submit(self, trace: Trace, **kwargs) -> DSExperiment | None:
         """
         Returns the single best experiment from all historical runs.
         """
-        sota_exp = trace.sota_experiment(search_type="all")
-        return [sota_exp] if sota_exp else None
+        return trace.sota_experiment(search_type="all")
 
 
 class AutoSOTAexpSelector(SOTAexpSelector):
@@ -62,11 +61,11 @@ class AutoSOTAexpSelector(SOTAexpSelector):
         logger.info("Using selector policy: AutoSOTAexpSelector")
 
     @wait_retry(retry_n=MAX_API_RETRIES)
-    def get_sota_exp_to_submit(self, trace: Trace, **kwargs) -> Optional[List[DSExperiment]]:
+    def get_sota_exp_to_submit(self, trace: Trace, **kwargs) -> DSExperiment | None:
         """
         Retrieves SOTA experiments, then uses an LLM to choose the most promising one.
         """
-        sota_exp_fb_list = self._collect_sota_candidates(trace)
+        sota_exp_fb_list = self.collect_sota_candidates(trace)
 
         if not sota_exp_fb_list:
             logger.info("AutoSOTASelector: No SOTA experiments found in trace.")
@@ -74,7 +73,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
 
         if len(sota_exp_fb_list) == 1:
             logger.info("AutoSOTASelector: Only one SOTA candidate found, selecting it.")
-            return [sota_exp_fb_list[0][0]]
+            return sota_exp_fb_list[0][0]
 
         logger.info(f"AutoSOTASelector: {len(sota_exp_fb_list)} SOTA candidates found. Querying LLM for selection.")
 
@@ -103,12 +102,12 @@ class AutoSOTAexpSelector(SOTAexpSelector):
         if selected_idx and isinstance(selected_idx, int) and 0 < selected_idx <= len(sota_exp_fb_list):
             sota_submit = sota_exp_fb_list[selected_idx - 1][0]
             logger.info(f"AutoSOTASelector: LLM selected experiment No. {selected_idx}.")
-            return [sota_submit]
+            return sota_submit[0]
 
         logger.warning("AutoSOTASelector: LLM selection was invalid. Falling back to the latest SOTA experiment.")
-        return [sota_exp_fb_list[-1][0]] if sota_exp_fb_list else None
+        return sota_exp_fb_list[-1][0] if sota_exp_fb_list else None
 
-    def _collect_sota_candidates(self, trace: Trace) -> list:
+    def collect_sota_candidates(self, trace: Trace) -> list:
         """Helper to gather SOTA experiments from trace leaves."""
         leaves = trace.get_leaves()
         if len(leaves) < 2:
@@ -160,7 +159,17 @@ class BestValidSelector(SOTAexpSelector):
         self.use_decision = use_decision
         self.each_trace = each_trace
 
-    def get_sota_exp_to_submit(self, trace: Trace, **kwargs) -> Optional[List[DSExperiment]]:
+    def get_sota_exp_to_submit(self, trace: Trace, **kwargs) -> DSExperiment | None:
+        """
+        Sorts all valid experiments by score and returns the top N.
+        """
+        top_experiments = self.collect_sota_candidates(trace)[0]
+        if top_experiments:
+            return top_experiments[0]
+        return None
+
+    def collect_sota_candidates(self, trace: Trace) -> list[DSExperiment] | None:
+        """Helper to gather SOTA experiments from trace leaves."""
         """
         Sorts all valid experiments by score and returns the top N.
         """
@@ -228,10 +237,12 @@ class ValidationSelector(SOTAexpSelector):
         self.hypothesis_loop_id = {exp.hypothesis.hypothesis: loop_id for exp, loop_id in self.candidate}
         self.hypothesis_exp = {exp.hypothesis.hypothesis: exp for exp, loop_id in self.candidate}
 
-    def get_sota_exp_to_submit(self, trace: Trace) -> Optional[List[DSExperiment]]:
+    def get_sota_exp_to_submit(self, trace: Trace) -> DSExperiment | None:
+        """Helper to gather SOTA experiments from trace leaves."""
         """
-        Executes the validation workflow.
+        Sorts all valid experiments by score and returns the top N.
         """
+
         mock_folder = f"/tmp/mock/{self.competition}"
 
         try:
@@ -287,7 +298,7 @@ class ValidationSelector(SOTAexpSelector):
             logger.warning(f"ValidationSelector: There aren't enough scores to compare, current: {len(valid_results)}.")
             return None
 
-        return [best_exp]
+        return best_exp
 
     def _prepare_validation_scripts(
         self, reference_exp: DSExperiment, competition: str, mock_folder: str
@@ -314,7 +325,7 @@ class ValidationSelector(SOTAexpSelector):
                 ws.inject_files(**{f"data.py": data_py_code})
                 env = get_ds_env(
                     extra_volumes={
-                        str(Path(mock_folder) / input_folder): input_folder,
+                        str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"},
                         f"{DS_RD_SETTING.local_data_path}/{competition}": "./source",
                     },
                     running_timeout_period=DS_RD_SETTING.full_timeout,
@@ -390,7 +401,7 @@ class ValidationSelector(SOTAexpSelector):
                 # For data.py, we need the original data to sample from
                 env = get_ds_env(
                     extra_volumes={
-                        str(Path(mock_folder) / input_folder): input_folder,
+                        str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"},
                         f"{DS_RD_SETTING.local_data_path}/{competition}": "./source",
                     },
                     running_timeout_period=DS_RD_SETTING.full_timeout,
@@ -400,7 +411,9 @@ class ValidationSelector(SOTAexpSelector):
                     str(Path(mock_folder) / "submission.csv"),
                     str(ws.workspace_path / "submission.csv"),
                 )
-                env = get_ds_env(extra_volumes={str(Path(mock_folder) / input_folder): input_folder})
+                env = get_ds_env(
+                    extra_volumes={str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"}}
+                )
 
             result = ws.run(env=env, entry=f"python {script_type}.py # {time.time()}")  # Do not cache the result
             stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
@@ -409,7 +422,7 @@ class ValidationSelector(SOTAexpSelector):
                 logger.info(f"Successfully generated and ran {script_type}.py.")
                 if script_type == "data":
                     env = get_ds_env(
-                        extra_volumes={str(Path(mock_folder) / input_folder): input_folder},
+                        extra_volumes={str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"}},
                         running_timeout_period=DS_RD_SETTING.full_timeout,
                     )
                     result = ws.run(env=env, entry=f"python main.py # {time.time()}")
@@ -518,21 +531,20 @@ def _parsing_score(grade_stdout: str) -> Optional[float]:
     return None
 
 
-def check_hit(selected_exps: List[DSExperiment], trace: Trace, sota_result: Dict[str, Any]) -> bool:
+def check_hit(selected_exp: DSExperiment, trace: Trace, sota_result: Dict[str, Any]) -> bool:
     """Checks if any of the selected experiments are considered medal-winning."""
-    if not selected_exps:
+    if not selected_exp:
         return False
 
-    selected_indices = trace.exp2idx(selected_exps)
-    for index in selected_indices:
-        # Check by loop_id if available
-        if hasattr(trace, "idx2loop_id"):
-            loop_id = trace.idx2loop_id.get(index)
-            if loop_id and loop_id in sota_result.get("medal_loops", []):
-                return True
-        # Fallback to checking by index
-        if index in sota_result.get("medal_loops_index", []):
+    index = trace.exp2idx(selected_exp)
+    # Check by loop_id if available
+    if hasattr(trace, "idx2loop_id"):
+        loop_id = trace.idx2loop_id.get(index)
+        if loop_id and loop_id in sota_result.get("medal_loops", []):
             return True
+    # Fallback to checking by index
+    if index in sota_result.get("medal_loops_index", []):
+        return True
     return False
 
 
@@ -592,14 +604,14 @@ def evaluate_one_trace(
             logger.info(f"BestvalidSelector for {experiment} - {competition}: {'HIT' if quick_hit else 'MISS'}")
 
         base_selector = BestValidSelector(num_candidates=MAX_SOTA_CANDIDATES, use_decision=True, each_trace=True)
-        candidate_exps = base_selector.get_sota_exp_to_submit(trace)
+        candidate_exps = base_selector.collect_sota_candidates(trace)
         if not candidate_exps:
             logger.info("ValidationSelector: Base selector returned no candidates.")
             return competition, False
 
         logger.info(f"ValidationSelector: Received {len(candidate_exps)} candidates for validation.")
         if debug:
-            pool_hit = check_hit(candidate_exps, trace, sota_result)
+            pool_hit = any(check_hit(candidate_exp, trace, sota_result) for candidate_exp in candidate_exps)
             if not pool_hit:
                 logger.info("ValidationSelector: Base selector's candidates did not hit any SOTA. Skipping validation.")
                 return competition, False

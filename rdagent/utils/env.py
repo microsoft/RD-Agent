@@ -883,11 +883,7 @@ class DockerEnv(Env[DockerConf]):
 
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
-                volumes[lp] = (
-                    rp
-                    if isinstance(rp, dict)
-                    else {"bind": rp, "mode": "rw" if "/tmp" in lp else self.conf.extra_volume_mode}
-                )
+                volumes[lp] = rp if isinstance(rp, dict) else {"bind": rp, "mode": self.conf.extra_volume_mode}
             cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
             volumes[cache_path] = {"bind": T("scenarios.data_science.share:scen.cache_path").r(), "mode": "rw"}
