@@ -1,4 +1,3 @@
-import importlib
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -10,6 +9,7 @@ from rdagent.components.mcp.connector import (
     StreamableHTTPConnector,
 )
 from rdagent.log import rdagent_logger as logger
+from rdagent.utils import get_module_by_module_path
 
 
 class MCPServiceConfig(BaseModel):
@@ -142,7 +142,7 @@ class MCPRegistry:
             module_path, class_name = handler_spec.split(":", 1)
 
             # Dynamically import module
-            module = importlib.import_module(module_path)
+            module = get_module_by_module_path(module_path)
 
             # Get Handler class
             handler_class = getattr(module, class_name)
@@ -153,7 +153,7 @@ class MCPRegistry:
 
             return handler_class
 
-        except (ImportError, AttributeError) as e:
+        except (ModuleNotFoundError, ImportError, AttributeError) as e:
             raise ValueError(f"Failed to import handler '{handler_spec}': {e}") from e
 
     async def ensure_initialized(self, verbose: bool = False):
