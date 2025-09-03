@@ -60,7 +60,6 @@ class DataFormatEvolvingStrategy(MultiProcessEvolvingStrategy):
             # First attempt
             user_prompt = T("scenarios.finetune.data_process.prompts:data_format_task.user").r(
                 dataset=target_task.dataset,
-                runtime_info="Docker environment with mounted data",
                 file_tree=file_tree,
                 data_samples=data_samples,
             )
@@ -98,7 +97,7 @@ class DataFormatEvolvingStrategy(MultiProcessEvolvingStrategy):
             if not FT_RD_SETTING.file_path:
                 return "FT_FILE_PATH environment variable not set", "No data samples available"
 
-            dataset_path = Path(FT_RD_SETTING.file_path) / "dataset" / dataset
+            dataset_path = Path(FT_RD_SETTING.file_path) / "datasets" / dataset
 
             # Use the specialized descriptor to get separated info
             descriptor = FinetuneDatasetDescriptor()

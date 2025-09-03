@@ -49,44 +49,8 @@ class LLMFinetuneRDLoop(RDLoop):
         LoopBase.__init__(self)
 
     def _setup_environment(self):
-        """Setup Docker environment with proper volume mappings"""
-        data_volumes = {}
-
-        # Mount models directory as read-only
-        models_path = Path(self.ft_rd_setting.file_path) / "models"
-        data_volumes[str(models_path)] = {
-            "bind": "/assets/models",
-            "mode": "ro",
-        }
-
-        # Mount datasets directory as read-only
-        datasets_path = Path(self.ft_rd_setting.file_path) / "datasets"
-        data_volumes[str(datasets_path)] = {
-            "bind": "/assets/raw_datasets",
-            "mode": "ro",
-        }
-
-        # Mount preprocessed datasets directory as read-only
-        preprocessed_datasets_path = Path(self.ft_rd_setting.file_path) / "preprocessed_datasets"
-        data_volumes[str(preprocessed_datasets_path)] = {
-            "bind": "/assets/preprocessed_datasets",
-            "mode": "ro",
-        }
-
-        # Create base directories
-        finetune_base_dir = Path(self.ft_rd_setting.file_path)
-        finetune_base_dir.mkdir(parents=True, exist_ok=True)
-        output_dir = Path(self.ft_rd_setting.file_path) / "output"
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        # Mount output directory as read-write for data-processing and training results
-        data_volumes[str(output_dir)] = {
-            "bind": "/workspace/output",
-            "mode": "rw",
-        }
-
+        """Setup Docker environment with standard finetune volume mappings"""
         self.env = get_ft_env(
-            extra_volumes=data_volumes,
             running_timeout_period=None,
             enable_cache=False,
         )

@@ -253,10 +253,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
 
     def _get_docker_environment_info(self, dataset: str) -> dict:
         """Get Docker environment info with actual training container paths"""
-        from rdagent.scenarios.finetune.scen.utils import get_unified_mount_volumes
-
-        # Get actual mount configuration for training container
-        mount_volumes = get_unified_mount_volumes()
 
         # Training containers now mount models to /assets/models and datasets to /assets/datasets
         # /workspace is used for CoSTEER code execution only

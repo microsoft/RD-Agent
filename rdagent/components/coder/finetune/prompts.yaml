@@ -123,7 +123,7 @@ data_format_retry: |-
   ```
 
   **Important Paths:**
-  - Dataset location: `/data/dataset/{{ dataset }}/` (Docker mounted path)
+  - Dataset location: `/assets/datasets/{{ dataset }}/` (Docker mounted path)
   - Output location: `/workspace/data/` (Docker working directory)
 
   ## Dataset Samples
