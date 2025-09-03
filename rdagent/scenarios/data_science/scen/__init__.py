@@ -163,13 +163,16 @@ class DataScienceScen(Scenario):
         if remain_percent * 100 < 100 - DS_RD_SETTING.ratio_merge_or_ensemble:
             return DS_RD_SETTING.full_timeout * DS_RD_SETTING.runner_longer_timeout_multiplier_upper
 
+        # Every 'patience' failures, move to next timeout level
+        # Each level adds 'runner_timeout_increase_stage' multiplier to timeout
+        # Capped by upper limit to prevent infinite growth
         return (
             DS_RD_SETTING.full_timeout
             * min(
                 DS_RD_SETTING.runner_longer_timeout_multiplier_upper,
                 self.timeout_increase_count
-                * DS_RD_SETTING.runner_timeout_increase_stage
                 // DS_RD_SETTING.runner_patience
+                * DS_RD_SETTING.runner_timeout_increase_stage
                 + 1,
             )
             if self.runner_longer_time_limit_required
