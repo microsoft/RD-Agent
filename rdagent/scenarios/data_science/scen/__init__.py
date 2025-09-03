@@ -171,7 +171,7 @@ class DataScienceScen(Scenario):
             * min(
                 DS_RD_SETTING.runner_longer_timeout_multiplier_upper,
                 self.timeout_increase_count
-                // DS_RD_SETTING.runner_patience
+                // DS_RD_SETTING.runner_timeout_increase_stage_patience
                 * DS_RD_SETTING.runner_timeout_increase_stage
                 + 1,
             )
