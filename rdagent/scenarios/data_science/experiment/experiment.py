@@ -1,5 +1,5 @@
 import re
-from typing import Literal
+from typing import Literal,Any
 
 import pandas as pd
 
@@ -22,6 +22,7 @@ class DSExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):
         self.format_check_result = None
         # this field is optional. It  is not none only when we have a format checker. Currently, only following cases are supported.
         # - mle-bench
+        self.MCTS_NODE_LIST: list[Any] = []  # To store the MCTS nodes for this experiment, should be generated inside MCTS runner
 
     def is_ready_to_run(self) -> bool:
         """

@@ -73,10 +73,6 @@ DSCoSTEER_eval:
     ## Stdout of code execution and testing
     {{ stdout }}
 
-    ## Execution time and timeout
-    The execution time for current code base: {{ time_spent }}.
-    The total timeout: {{ timeout }}.
-    The percent of timeout used: {{ percent_of_timeout_used }}.
     
     {% if queried_former_failed_knowledge|length != 0 %}
     # Evolving History
@@ -173,20 +169,31 @@ DSCoSTEER:
     {% endif %}
 
     ## Instructions for LLM
-      1. Propose **{{num_candidates}} candidate code modifications** that follow the minimal changes principle.
-         Each candidate should be a complete, self-contained code modification ready to inject into the codebase.
+    1. Propose **{{num_candidates}} candidate code modifications** that follow the minimal changes principle.
+      Each candidate should be a complete, self-contained code modification ready to inject into the codebase.
 
-      2. You may adjust multiple hyperparameters or code components at once,
-         as long as the changes improve performance or correctness.
-         Prioritize meaningful modifications over minimal ones if multiple changes are beneficial.
+    2. You may adjust multiple hyperparameters or code components at once,
+      as long as the changes improve performance or correctness.
+      Prioritize meaningful modifications over minimal ones if multiple changes are beneficial.
 
-      3. **STRICT REQUIREMENT:** The generated `main.py` must be **fully complete and executable**.
-         It must be identical to the Current Code Base in all parts **except** the places where parameters or hyperparameters are modified.
-         Do not include placeholders like `... (unchanged lines)` or any partial code snippets.
-         All code, comments, formatting, and structure outside the modified parameters must remain unchanged.
+    3. **STRICT REQUIREMENT:**  
+      - The generated `main.py` must be **100% complete and executable**.  
+      - It must be identical to the Current Code Base in all parts **except** the places where parameters or hyperparameters are modified.  
+      - **Do NOT use placeholders** such as `...`, `# unchanged`, `...(unchanged lines)`, or anything similar.  
+      - Every single line from the original `main.py` must be present in the output, whether modified or not.  
 
-      4. **OUTPUT REQUIREMENT:** Respond with a JSON **list of objects**, each object representing one candidate modification.
-         Each object should be a dictionary with filenames as keys and the corresponding **complete `main.py` content** as values, along with a short change summary.
+    4. **OUTPUT REQUIREMENT:**  
+      - Respond with a JSON **list of objects**, each object representing one candidate modification.  
+      - Each object must contain:
+        - `"main.py"`: the full modified content of `main.py` (no omissions).  
+        - `"__change_summary__"`: a short plain-text explanation of the changes.  
+      - The JSON must be valid and contain exactly **{{num_candidates}}** candidate modifications.  
+
+    5. **HARD CONSTRAINTS:**  
+      - Do not omit, summarize, or collapse any code.  
+      - Do not output anything outside the JSON list.  
+      - Ensure all code blocks are syntactically correct and runnable as-is.  
+
 
     ## Output Format
     Please respond with a JSON **list of objects**, each object representing one candidate modification.

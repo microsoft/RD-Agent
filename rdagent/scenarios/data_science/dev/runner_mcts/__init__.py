@@ -1,5 +1,4 @@
 import pandas as pd
-
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
@@ -11,7 +10,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
 from rdagent.components.coder.CoSTEER.evolvable_subjects import FBWorkspace
 from rdagent.components.coder.CoSTEER.evolving_strategy import (
     CoSTEERQueriedKnowledge,
-    MultiProcessEvolvingStrategy,
+    MultiProcessEvolvingStrategy
 )
 from rdagent.components.coder.CoSTEER.task import CoSTEERTask
 from rdagent.components.coder.data_science.share.eval import ModelDumpEvaluator
@@ -19,7 +18,7 @@ from rdagent.core.exception import RunnerError
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
-from rdagent.scenarios.data_science.dev.runner_mcts.eval import DSRunnerEvaluator
+from rdagent.scenarios.data_science.dev.runner_mcts.eval import DSRunnerMCTSEvaluator
 from rdagent.utils.agent.ret import PythonBatchEditOut, PythonBatchPatchOut
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
@@ -31,6 +30,10 @@ import itertools
 import torch
 import math
 import json
+from rdagent.core.utils import multiprocessing_wrapper
+from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
+from rdagent.core.evolving_framework import EvoStep
+
 class DSRunnerMCSTCoSTEERSettings(CoSTEERSettings):
     """Data Science CoSTEER settings"""
 
@@ -60,13 +63,55 @@ class MCTSNode:
 
 
 class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
-
     def __init__(self, trace, settings, max_iterations=2, exploration_c=1.4):
         super().__init__(scen=trace.scen, settings=settings)
         self.max_iterations = max_iterations
         self.exploration_c = exploration_c
         self.root = MCTSNode(workspace=trace.hist[-1][0].experiment_workspace)
         self.KEY_CHANGE_SUMMARY = "__change_summary__"
+
+    def evolve(
+        self,
+        *,
+        evo: EvolvingItem,
+        queried_knowledge: CoSTEERQueriedKnowledge | None = None,
+        evolving_trace: list[EvoStep] = [],
+        **kwargs,
+    ) -> EvolvingItem:
+        code_list = [None for _ in range(len(evo.sub_tasks))]
+
+        # 1.找出需要evolve的task
+        to_be_finished_task_index: list[int] = []
+        for index, target_task in enumerate(evo.sub_tasks):
+            target_task_desc = target_task.get_task_information()
+            if target_task_desc in queried_knowledge.success_task_to_knowledge_dict:
+                # NOTE: very weird logic:
+                # it depends on the knowledge to set the already finished task
+                code_list[index] = queried_knowledge.success_task_to_knowledge_dict[
+                    target_task_desc
+                ].implementation.file_dict
+            elif (
+                target_task_desc not in queried_knowledge.success_task_to_knowledge_dict
+                and target_task_desc not in queried_knowledge.failed_task_info_set
+            ):
+                to_be_finished_task_index.append(index)
+
+        last_feedback = None
+        if len(evolving_trace) > 0:
+            last_feedback = evolving_trace[-1].feedback
+            assert isinstance(last_feedback, CoSTEERMultiFeedback)
+
+        code_dict, mcts_node_list = self.implement_one_task(
+                evo.sub_tasks[to_be_finished_task_index[0]],
+                queried_knowledge,
+                evo.experiment_workspace,
+                None if last_feedback is None else last_feedback[to_be_finished_task_index[0]],
+            )
+        code_list[to_be_finished_task_index[0]] = code_dict
+        
+        evo = self.assign_code_list_to_evo(code_list, evo)
+        evo.mcts_node_list = mcts_node_list
+        return evo
 
     @wait_retry(retry_n=5)       
     def generate_modifications(
@@ -75,7 +120,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         workspace: FBWorkspace,
         prev_task_feedback: CoSTEERSingleFeedback,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
-        num_candidates: int = 2,  # 生成候选数量
+        num_candidates: int = 2,  
     ) -> list[dict[str, str]]:
         """
         Generate multiple candidate modifications for a task using LLM.
@@ -115,18 +160,15 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         code_raw = session.build_chat_completion(user_prompt=user_prompt)
 
-        # 尝试解析 JSON
         try:
             code_candidates = json.loads(code_raw)
         except Exception:
-            # 如果解析失败，尝试用单候选 fallback
             if self.settings.diff_mode:
                 single_candidate = PythonBatchPatchOut.extract_output(code_raw, prefix=workspace.workspace_path)
             else:
                 single_candidate = PythonBatchEditOut.extract_output(code_raw)
             code_candidates = [single_candidate]
 
-        # 过滤掉 workspace 中不存在的文件
         final_candidates = []
         for candidate in code_candidates:
             candidate_filtered = {k: v for k, v in candidate.items() if k in workspace.file_dict.keys()}
@@ -134,7 +176,6 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         logger.info(f"Generated {len(final_candidates)} candidate modifications.")
         return final_candidates
-
 
 
     def select(self, node: MCTSNode) -> MCTSNode:
@@ -164,7 +205,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         if node.visit_count == 0 and (not node.untried_actions):
             modifications_list = self.generate_modifications(
-                target_task, node.workspace, prev_task_feedback, queried_knowledge
+                target_task, node.workspace, prev_task_feedback, queried_knowledge, num_candidates=DS_RD_SETTING.mcts_hypothesis_sample_size
             )
             node.untried_actions = modifications_list
             if node.children is None:
@@ -174,7 +215,6 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             return None  
 
         action = node.untried_actions.pop()
-
         new_workspace = FBWorkspace(target_task=target_task)
         new_workspace.inject_files(**node.workspace.file_dict)
         new_workspace.inject_files(**action)
@@ -182,23 +222,65 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         node.children.append(child_node)
         return child_node
 
+    def expand_batch(self, node: MCTSNode, target_task, prev_task_feedback, queried_knowledge=None, batch_size=DS_RD_SETTING.mcts_hypothesis_sample_size)-> list[MCTSNode]:
+        if not node.untried_actions:
+            node.untried_actions = self.generate_modifications(
+                target_task, node.workspace, prev_task_feedback, queried_knowledge, num_candidates=DS_RD_SETTING.mcts_hypothesis_sample_size
+            )
+            if node.children is None:
+                node.children = []
 
+        new_nodes = []
+        for _ in range(min(batch_size, len(node.untried_actions))):
+            action = node.untried_actions.pop(0)
+            new_workspace = FBWorkspace(target_task=target_task)
+            new_workspace.inject_files(**node.workspace.file_dict)
+            new_workspace.inject_files(**action)
+            child_node = MCTSNode(workspace=new_workspace, parent=node)
+            node.children.append(child_node)
+            new_nodes.append(child_node)
+        return new_nodes
+    
     def simulate(self, node: MCTSNode, target_task, prev_task_feedback, gt_workspace, queried_knowledge):
-        evaluator = DSRunnerEvaluator(scen=self.scen)
+        evaluator = DSRunnerMCTSEvaluator(scen=self.scen)
         logger.info("Simulating node with workspace files")
         feedback = evaluator.evaluate(target_task, node.workspace, gt_workspace, queried_knowledge)
-        logger.info("Simulating node with workspace files")
-
         reward = feedback.score if feedback.score is not None else (-1 if not feedback.acceptable else 0)
         return reward
 
-    
+    def simulate_batch(self, nodes: list[MCTSNode], target_task, prev_task_feedback, gt_workspace, queried_knowledge, n_processes=8) -> list[float]:
+        """
+        Parallel simulation of multiple MCTS nodes using multiprocessing_wrapper.
+        Returns the reward list for each node.
+        """
+        evaluator = DSRunnerMCTSEvaluator(scen=self.scen)
+        func_calls = [
+            (evaluator.evaluate, (target_task, node.workspace, gt_workspace, queried_knowledge))
+            for node in nodes
+        ]
+        feedbacks = multiprocessing_wrapper(func_calls, n=n_processes)
+        rewards = [
+            fb.score if fb.score is not None else (-1 if not fb.acceptable else 0)
+            for fb in feedbacks
+        ]
+        return rewards
+
+    def backpropagate_batch(self, nodes: list[MCTSNode], rewards: list[float]):
+        """
+        Backpropagate a batch of rewards for a batch of nodes.
+        """
+        for node, reward in zip(nodes, rewards):
+            current = node
+            while current is not None:
+                current.visit_count += 1
+                current.value_sum += reward
+                current = current.parent
+
     def backpropagate(self, node: MCTSNode, reward: float):
         while node is not None:
             node.visit_count += 1
             node.value_sum += reward
             node = node.parent
-
 
     @wait_retry(retry_n=5)
     def implement_one_task(
@@ -212,24 +294,42 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         if prev_task_feedback is None:
             # if no prev_task_feedback, it is the first loop; we do not make any changes and goto evaluators directly.
             return {}
-
+        MCTS_NODE_LIST = []
         root = MCTSNode(workspace=workspace)
-        logger.info(f"Starting MCTS with max_iterations={self.max_iterations}")
-        for _ in range(self.max_iterations):
-            logger.info(f"Starting iteration {_+1}/{self.max_iterations}")
-            node = self.select(root)
-            new_node = self.expand(node, target_task, prev_task_feedback, queried_knowledge)
-            logger.info(f"Expanded node. Current root visit count: {root.visit_count}")
-            logger.info(f"node children: {node.children}")
+        MCTS_NODE_LIST.append(root)
+        if DS_RD_SETTING.multiprocessing_mcts_simulation is not True:
+            logger.info(f"Starting MCTS with max_iterations={self.max_iterations}")
+            for _ in range(self.max_iterations):
+                logger.info(f"Starting iteration {_+1}/{self.max_iterations}")
+                node = self.select(root)
+                new_node = self.expand(node, target_task, prev_task_feedback, queried_knowledge)
+                logger.info(f"Expanded node. Current root visit count: {root.visit_count}")
+                logger.info(f"node children: {node.children}")
+                reward = self.simulate(new_node, target_task, prev_task_feedback, workspace, queried_knowledge)
+                logger.info(f"Simulation reward: {reward}")
+                self.backpropagate(new_node, reward)
+                logger.info(f"Iteration completed. Current root visit count: {root.visit_count}")
+                MCTS_NODE_LIST.append(new_node)
+            best_child = max(root.children, key=lambda c: c.value)
 
-            reward = self.simulate(new_node, target_task, prev_task_feedback, workspace, queried_knowledge)
-            logger.info(f"Simulation reward: {reward}")
-            self.backpropagate(new_node, reward)
-            logger.info(f"Iteration completed. Current root visit count: {root.visit_count}")
+        else:
+            for _ in range(self.max_iterations):
+                logger.info(f"Starting Mutiprocessing iteration !")
+                logger.info(f"Starting MCTS with max_iterations={_}")
+                node = self.select(root)
+                logger.info(f"Selected node with visit count {node.visit_count} and value {node.value}")
+                new_nodes = self.expand_batch(node, target_task, prev_task_feedback, queried_knowledge, batch_size=DS_RD_SETTING.mcts_multiprocessing_batch_size)
+                rewards = self.simulate_batch(new_nodes, target_task, prev_task_feedback, workspace, queried_knowledge, n_processes=3)
+                self.backpropagate_batch(new_nodes, rewards)
+                MCTS_NODE_LIST.append(new_nodes)
+            best_child = max(root.children, key=lambda c: c.value)
 
-        best_child = max(root.children, key=lambda c: c.visit_count)
+        if best_child is None:
+            logger.warning("No child nodes expanded from root!")
+            best_child = root
         logger.info(f"Best child visit count: {best_child.visit_count}, value: {best_child.value}")
-        return best_child.workspace.file_dict
+
+        return MCTS_NODE_LIST, best_child.workspace.file_dict
 
 
 
@@ -254,7 +354,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
 
 
-class DSCoSTEERRunner(CoSTEER):
+class DSCoSTEERMCTSRunner(CoSTEER):
     def __init__(
         self,
         scen: Scenario,
@@ -262,7 +362,7 @@ class DSCoSTEERRunner(CoSTEER):
         **kwargs,
     ) -> None:
 
-        eval_l = [DSRunnerEvaluator(scen=scen)]
+        eval_l = [DSRunnerMCTSEvaluator(scen=scen)]
         if DS_RD_SETTING.enable_model_dump:
             eval_l.append(ModelDumpEvaluator(scen=scen, data_type="full"))
 
@@ -270,7 +370,7 @@ class DSCoSTEERRunner(CoSTEER):
             single_evaluator=eval_l, scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
         settings = DSRunnerMCSTCoSTEERSettings()
-        es = DSRunnerMCTSMultiProcessEvolvingStrategy(scen=scen, settings=settings, max_iterations=2, exploration_c=1.4)
+        es = DSRunnerMCTSMultiProcessEvolvingStrategy(scen=scen, settings=settings, max_iterations=DS_RD_SETTING.mcts_max_iterations, exploration_c=DS_RD_SETTING.mcts_exploration_constant)
 
         # In runner, we don't need very big loops, so we set max_loop to runner_max_loop
         super().__init__(
@@ -280,7 +380,7 @@ class DSCoSTEERRunner(CoSTEER):
             es=es,
             evolving_version=2,
             scen=scen,
-            max_loop=DS_RD_SETTING.runner_max_loop,
+            max_loop=DS_RD_SETTING.mcts_max_iterations,
             **kwargs,
         )
 

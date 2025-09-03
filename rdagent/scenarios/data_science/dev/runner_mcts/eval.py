@@ -68,7 +68,7 @@ class DSRunnerFeedback(CoSTEERSingleFeedback):
 DSCoSTEEREvalFeedback = DSRunnerFeedback  # FIXME: Alias for backward compatibility
 
 
-class DSRunnerEvaluator(CoSTEEREvaluator):
+class DSRunnerMCTSEvaluator(CoSTEEREvaluator):
 
     def evaluate(
         self,
@@ -162,27 +162,6 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
             submission_check_out, submission_ret_code = test_eval.valid(self.scen.competition, implementation)
             stdout += f"\n### Submission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
 
-        # Whether to enable hyperparameter tuning check
-        # 1. This is the first loop of evaluation.
-        c1 = len(queried_knowledge.task_to_former_failed_traces[target_task.get_task_information()][0]) == 0
-
-        # 2. The current time spent on runner is less than the time limit ratio for runner timeout.
-        time_spent_ratio = implementation.running_info.running_time / env.conf.running_timeout_period
-        c2 = time_spent_ratio < DS_RD_SETTING.time_ratio_limit_to_enable_hyperparameter_tuning
-
-        # 3. Only enable hyperparameter tuning during the merge stage if configured.
-        # TODO: it is not restricted in merge stage now for fast implementation.
-        timer = RD_Agent_TIMER_wrapper.timer
-        res_time = timer.remain_time()
-        if DS_RD_SETTING.only_enable_tuning_in_merge:
-            c3 = res_time <= timedelta(hours=DS_RD_SETTING.merge_hours)
-        else:
-            c3 = True
-
-        # 4. The current time spent on global is less than the time limit ratio for whole timeout.
-        res_ratio = res_time / timer.all_duration
-        c4 = res_ratio <= DS_RD_SETTING.res_time_ratio_limit_to_enable_hyperparameter_tuning
-
         # Only enable hyperparameter tuning check if all conditions are met
         enable_hyperparameter_tuning_check = True #c1 and c2 and c3 and c4
 
@@ -195,9 +174,6 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
             code=implementation.all_codes,
             change_summary=implementation.change_summary,
             stdout=shrink_text(stdout),
-            time_spent=f"{implementation.running_info.running_time:.2f} seconds",
-            timeout=f"{env.conf.running_timeout_period} seconds",
-            percent_of_timeout_used=f"{time_spent_ratio * 100:.2f}%",
             queried_former_failed_knowledge=queried_former_failed_knowledge,
         )
 

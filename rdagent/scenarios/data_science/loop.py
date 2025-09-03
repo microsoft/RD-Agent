@@ -29,6 +29,7 @@ from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
 from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
+from rdagent.scenarios.data_science.dev.runner_mcts import DSCoSTEERMCTSRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DataScienceScen
@@ -114,7 +115,11 @@ class DataScienceRDLoop(RDLoop):
 
         self.pipeline_coder = PipelineCoSTEER(scen)
 
-        self.runner = DSCoSTEERRunner(scen)
+        if DS_RD_SETTING.enable_runner_mcts:
+            self.runner = DSCoSTEERMCTSRunner(scen)
+        else:
+            self.runner = DSCoSTEERRunner(scen)
+
         if DS_RD_SETTING.enable_doc_dev:
             self.docdev = DocDev(scen)
 
