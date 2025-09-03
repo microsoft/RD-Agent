@@ -163,7 +163,7 @@ class BestValidSelector(SOTAexpSelector):
         """
         Sorts all valid experiments by score and returns the top N.
         """
-        top_experiments = self.collect_sota_candidates(trace)[0]
+        top_experiments = self.collect_sota_candidates(trace)
         if top_experiments:
             return top_experiments[0]
         return None
@@ -330,7 +330,9 @@ class ValidationSelector(SOTAexpSelector):
                     },
                     running_timeout_period=DS_RD_SETTING.full_timeout,
                 )
-                result = ws.run(env=env, entry=f"python data.py # {time.time()}")  # Do not cache the result
+                result = ws.run(
+                    env=env, entry=f"python data.py --cache-buster={time.time()}"
+                )  # Do not cache the result
                 if result.exit_code == 0:
                     logger.info(f"Successfully ran data.py.")
             return data_py_code, grade_py_path.read_text()
@@ -415,7 +417,9 @@ class ValidationSelector(SOTAexpSelector):
                     extra_volumes={str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"}}
                 )
 
-            result = ws.run(env=env, entry=f"python {script_type}.py # {time.time()}")  # Do not cache the result
+            result = ws.run(
+                env=env, entry=f"python {script_type}.py --cache-buster={time.time()}"
+            )  # Do not cache the result
             stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
 
             if result.exit_code == 0:
@@ -425,7 +429,7 @@ class ValidationSelector(SOTAexpSelector):
                         extra_volumes={str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"}},
                         running_timeout_period=DS_RD_SETTING.full_timeout,
                     )
-                    result = ws.run(env=env, entry=f"python main.py # {time.time()}")
+                    result = ws.run(env=env, entry=f"python main.py --cache-buster={time.time()}")
                     stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
                     if result.exit_code == 0:
                         # move submission.csv to mock_folder
