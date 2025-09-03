@@ -27,11 +27,8 @@ class DataFormatConverter:
     SUPPORTED_FORMATS = {".json", ".jsonl", ".csv", ".parquet", ".arrow"}
     CONFIG_FILE = "dataset_info.json"
 
-    def __init__(self, dataset: str, model: str, ft_rd_setting, scen):
+    def __init__(self, dataset: str, scen):
         self.dataset = dataset
-        self.model = model
-        self.ft_rd_setting = ft_rd_setting
-        self.scen = scen
         self.coder = DataFormatCoSTEER(scen)
 
     def convert_dataset(self, env, preprocessed_dir: Path) -> bool:

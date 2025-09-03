@@ -109,8 +109,6 @@ class LLMFinetuneRDLoop(RDLoop):
 
         data_converter = DataFormatConverter(
             dataset=self.dataset,
-            model=self.model,
-            ft_rd_setting=self.ft_rd_setting,
             scen=import_class(self.ft_rd_setting.scen)(),
         )
 

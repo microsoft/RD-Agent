@@ -19,10 +19,7 @@ WORKDIR /llamafactory
 RUN PIP_NO_BUILD_ISOLATION=1 pip install -e ".[torch,metrics]"
 
 # Set working directory for experiments
-WORKDIR /workspace/llm_finetune
-
-# Create necessary directories
-RUN mkdir -p /workspace/llm_finetune/data /workspace/llm_finetune/output
+WORKDIR /workspace
 
 # Install additional tools for data processing
 RUN pip install datasets pandas numpy huggingface-hub pyyaml

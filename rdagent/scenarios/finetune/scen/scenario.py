@@ -19,6 +19,7 @@ class LLMFinetuneScen(DataScienceScen):
         """Initialize LLM finetune scenario using configuration from FT_RD_SETTING."""
 
         # Basic attributes (align with downstream expectations)
+
         from rdagent.scenarios.finetune.utils import prev_model_dirname
 
         self.dataset = FT_RD_SETTING.dataset
