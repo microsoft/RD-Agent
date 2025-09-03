@@ -604,8 +604,6 @@ class CondaConf(LocalConf):
 
     @model_validator(mode="after")
     def change_bin_path(self, **data: Any) -> "CondaConf":
-        self.bin_path = "/Data/home/v-jianwan/miniconda3/envs/rdj/bin"
-        return self
         conda_path_result = subprocess.run(
             f"conda run -n {self.conda_env_name} --no-capture-output env | grep '^PATH='",
             capture_output=True,
