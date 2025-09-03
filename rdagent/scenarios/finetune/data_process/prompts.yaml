@@ -99,13 +99,13 @@ data_format_task:
     ```
 
     **Important Paths (Critical for File Access):**
-    - **Input Directory**: `/data/dataset/{{ dataset }}/` (Docker mounted, READ-ONLY)
-    - **Output Directory**: `/workspace/data/` (Docker working directory, WRITE-ONLY)
+    - **Input Directory**: `/assets/dataset/{{ dataset }}/` (Docker mounted, READ-ONLY)
+    - **Output Directory**: `/workspace/output/` (Docker working directory, WRITE-ONLY)
 
     **Path Mapping Rules:**
-    - All input files must be accessed using the full input path: `/data/dataset/{{ dataset }}/`
+    - All input files must be accessed using the full input path: `/assets/dataset/{{ dataset }}/`
     - Sample file paths shown below are relative to the input directory
-    - Output files must be saved to: `/workspace/data/`
+    - Output files must be saved to: `/workspace/output/`
 
     ## Dataset Samples
     ```json
