@@ -797,7 +797,7 @@ class FTDockerConf(DockerConf):
     default_entry: str = "llamafactory-cli version"
 
     # Exclude data directory which is mounted as read-only
-    exclude_chmod_paths: list[str] = ["dataset", "model"]
+    exclude_chmod_paths: list[str] = ["assets"]
 
     running_timeout_period: int | None = 36000  # 10 hours for training
     mem_limit: str | None = "48g"  # Large memory for LLM training
@@ -1034,4 +1034,11 @@ class MLEBDockerEnv(DockerEnv):
     """MLEBench Docker"""
 
     def __init__(self, conf: DockerConf = MLEBDockerConf()):
+        super().__init__(conf)
+
+
+class FTDockerEnv(DockerEnv):
+    """LLM Fine-tuning Docker Environment"""
+
+    def __init__(self, conf: DockerConf = FTDockerConf()):
         super().__init__(conf)
