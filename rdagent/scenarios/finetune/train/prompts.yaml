@@ -97,7 +97,7 @@ llamafactory_guide: |-
 
   ### Basic Command Format
   ```bash
-  llamafactory-cli train config.yaml
+  llamafactory-cli train train.yaml
   ```
 
   ### Main Parameter Descriptions
@@ -131,7 +131,7 @@ llamafactory_guide: |-
   - `lora_dropout`: LoRA dropout rate
   - `lora_target`: Target modules (e.g., q_proj,v_proj,o_proj,gate_proj,up_proj,down_proj)
 
-  #### Example Configuration File config.yaml
+  #### Example Configuration File train.yaml
   ```yaml
   ### model
   model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct

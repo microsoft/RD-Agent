@@ -80,7 +80,7 @@ class LLMFinetuneEvaluator(CoSTEEREvaluator):
         system_prompt = T(".prompts:finetune_eval.system").r(
             task_desc=task_info,
             test_code=test_code,
-            code=implementation.file_dict.get("config.yaml", "No config.yaml found"),
+            code=implementation.file_dict.get("train.yaml", "No train.yaml found"),
         )
 
         user_prompt = T(".prompts:finetune_eval.user").r(
@@ -118,24 +118,24 @@ import yaml
 from pathlib import Path
 
 def test_config_yaml():
-    """Test if the config.yaml is valid and contains required parameters"""
+    """Test if the train.yaml is valid and contains required parameters"""
     
     print("=== LlamaFactory Config Test ===")
     
     try:
         # Test file existence
-        config_path = Path("config.yaml")
+        config_path = Path("train.yaml")
         if not config_path.exists():
-            print("✗ config.yaml not found")
+            print("✗ train.yaml not found")
             return False
         
-        print("✓ config.yaml exists")
+        print("✓ train.yaml exists")
         
         # Test YAML parsing
         with open(config_path, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
         
-        print("✓ config.yaml is valid YAML")
+        print("✓ train.yaml is valid YAML")
         
         # Check required fields
         required_fields = [
@@ -199,7 +199,7 @@ def test_config_yaml():
         print(f"✗ YAML parsing error: {e}")
         return False
     except FileNotFoundError:
-        print("✗ config.yaml not found")
+        print("✗ train.yaml not found")
         return False
     except Exception as e:
         print(f"✗ Unexpected error during validation: {e}")
