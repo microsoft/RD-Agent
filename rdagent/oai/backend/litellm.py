@@ -1,4 +1,6 @@
 import copyreg
+import json
+import warnings
 from typing import Any, Literal, Optional, Type, Union, cast
 
 import numpy as np
@@ -18,6 +20,8 @@ from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.backend.base import APIBackend
 from rdagent.oai.llm_conf import LLMSettings
+
+warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
 
 
 # NOTE: Patching! Otherwise, the exception will call the constructor and with following error:
@@ -95,6 +99,18 @@ class LiteLLMAPIBackend(APIBackend):
         """
         Call the chat completion function
         """
+        # Extract tools parameter if present
+        tools = kwargs.get("tools", None)
+
+        # Check if model supports tools/function calling
+        if tools and not self.supports_function_calling():
+            logger.warning(
+                f"{LogColors.YELLOW}Model {LITELLM_SETTINGS.chat_model} does not support function calling, ignoring tools.{LogColors.END}",
+                tag="llm_messages",
+            )
+            # Remove tools from kwargs to avoid passing to completion
+            kwargs.pop("tools", None)
+            tools = None
 
         if response_format and not supports_response_schema(model=LITELLM_SETTINGS.chat_model):
             # Deepseek will enter this branch
@@ -107,8 +123,16 @@ class LiteLLMAPIBackend(APIBackend):
         if response_format:
             kwargs["response_format"] = response_format
 
+        # Add tool_choice if tools are present
+        if tools:
+            kwargs.setdefault("tool_choice", "auto")
+
         if LITELLM_SETTINGS.log_llm_chat_content:
-            logger.info(self._build_log_messages(messages), tag="llm_messages")
+            # For tool scenarios, only log a summary to avoid excessive output
+            if tools:
+                logger.info(f"Calling LLM with {len(messages)} messages, tools enabled", tag="llm_messages")
+            else:
+                logger.info(self._build_log_messages(messages), tag="llm_messages")
         # Call LiteLLM completion
         model = LITELLM_SETTINGS.chat_model
         temperature = LITELLM_SETTINGS.chat_temperature
@@ -129,19 +153,50 @@ class LiteLLMAPIBackend(APIBackend):
                         else:
                             reasoning_effort = None
                     break
-        response = completion(
-            model=model,
-            messages=messages,
-            stream=LITELLM_SETTINGS.chat_stream,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            reasoning_effort=reasoning_effort,
-            max_retries=0,
-            **kwargs,
-        )
-        logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {model}", tag="llm_messages")
+        # Smart parameter handling for tools scenario
+        if tools:
+            # Build base parameters dictionary
+            call_params = {
+                "model": model,
+                "messages": messages,
+                "stream": False,  # Disable streaming for tool calls
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "max_retries": 0,
+            }
 
-        if LITELLM_SETTINGS.chat_stream:
+            # Only add reasoning_effort if not None
+            if reasoning_effort is not None:
+                call_params["reasoning_effort"] = reasoning_effort
+
+            # kwargs parameters will override default parameters
+            # Using dictionary unpacking order: later overwrites earlier
+            call_params = {**call_params, **kwargs}
+
+            # Call completion with merged parameters
+            response = completion(**call_params)
+            actual_model = call_params.get("model", model)
+        else:
+            # Non-tools scenario - also need to handle kwargs overrides
+            # Check if model is overridden in kwargs
+            actual_model = kwargs.pop("model", model) if "model" in kwargs else model
+            actual_temperature = kwargs.pop("temperature", temperature) if "temperature" in kwargs else temperature
+            actual_max_tokens = kwargs.pop("max_tokens", max_tokens) if "max_tokens" in kwargs else max_tokens
+
+            response = completion(
+                model=actual_model,
+                messages=messages,
+                stream=LITELLM_SETTINGS.chat_stream,
+                temperature=actual_temperature,
+                max_tokens=actual_max_tokens,
+                reasoning_effort=reasoning_effort,
+                max_retries=0,
+                **kwargs,
+            )
+        logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {actual_model}", tag="llm_messages")
+
+        if LITELLM_SETTINGS.chat_stream and not tools:
+            # Streaming is disabled when tools are present
             if LITELLM_SETTINGS.log_llm_chat_content:
                 logger.info(f"{LogColors.BLUE}assistant:{LogColors.END}", tag="llm_messages")
             content = ""
@@ -159,17 +214,48 @@ class LiteLLMAPIBackend(APIBackend):
             if LITELLM_SETTINGS.log_llm_chat_content:
                 logger.info("\n", raw=True, tag="llm_messages")
         else:
-            content = str(response.choices[0].message.content)
+            # Non-streaming or tools are present
+            assistant_message = response.choices[0].message
+            content = assistant_message.content or ""
             finish_reason = response.choices[0].finish_reason
+
+            # Check for tool calls
+            tool_calls = getattr(assistant_message, "tool_calls", None)
+            if tool_calls:
+                # When there are tool calls, finish_reason should be "tool_calls"
+                # Store tool_calls in content as JSON for now (will be parsed by caller)
+
+                content = json.dumps(
+                    {
+                        "tool_calls": [
+                            {
+                                "id": tc.id,
+                                "type": "function",
+                                "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                            }
+                            for tc in tool_calls
+                        ]
+                    }
+                )
+                finish_reason = "tool_calls"
+
             finish_reason_str = (
                 f"({LogColors.RED}Finish reason: {finish_reason}{LogColors.END})"
                 if finish_reason and finish_reason != "stop"
                 else ""
             )
             if LITELLM_SETTINGS.log_llm_chat_content:
-                logger.info(
-                    f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}", tag="llm_messages"
-                )
+                if finish_reason == "tool_calls" and tool_calls:
+                    # Only log tool names, not full content
+                    tool_names = [tc.function.name for tc in tool_calls]
+                    logger.info(
+                        f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str} Tool calls: {tool_names}",
+                        tag="llm_messages",
+                    )
+                else:
+                    logger.info(
+                        f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}", tag="llm_messages"
+                    )
 
         global ACC_COST
         try:
@@ -244,7 +330,7 @@ class LiteLLMAPIBackend(APIBackend):
         # Conversion completed silently
         return openai_tools
 
-    def call_with_tools(
+    def _call_with_tools(
         self, messages: list[dict[str, Any]], tools: list[dict[str, Any]], **kwargs: Any
     ) -> tuple[str, str | None, list[Any] | None]:
         """
@@ -258,41 +344,35 @@ class LiteLLMAPIBackend(APIBackend):
         Returns:
             Tuple of (content, finish_reason, tool_calls)
         """
-        # Check if we actually need function calling
-        if tools:
-            # Tools provided, check if model supports function calling
-            if not self.supports_function_calling():
-                logger.warning(
-                    f"Model {LITELLM_SETTINGS.chat_model} does not support function calling", tag="litellm_tools"
-                )
-                # Fall back to regular chat completion
-                content, finish_reason = self._create_chat_completion_inner_function(messages, **kwargs)
-                return content, finish_reason, None
+        # Pass tools to inner function
+        kwargs["tools"] = tools
 
-            # Model supports function calling and tools are provided
-            kwargs["tools"] = tools
-            kwargs["tool_choice"] = "auto"
+        # Call the inner function which now handles tools
+        content, finish_reason = self._create_chat_completion_inner_function(messages, **kwargs)
 
-        # Model call with tools initiated
+        # Parse tool_calls from content if finish_reason is "tool_calls"
+        tool_calls = None
+        if finish_reason == "tool_calls":
+            try:
+                # Content contains JSON-encoded tool calls
+                tool_data = json.loads(content)
+                # Convert back to object format for compatibility
+                tool_calls = []
+                for tc in tool_data.get("tool_calls", []):
+                    # Create a simple object with the needed attributes
+                    class ToolCall:
+                        def __init__(self, id, function_name, function_arguments):
+                            self.id = id
+                            self.function = type(
+                                "obj", (object,), {"name": function_name, "arguments": function_arguments}
+                            )()
 
-        # Build parameters with potential overrides from kwargs
-        params = {
-            "model": kwargs.pop("model", LITELLM_SETTINGS.chat_model),
-            "messages": messages,
-            "stream": False,  # Tools don't work well with streaming
-            "temperature": kwargs.pop("temperature", LITELLM_SETTINGS.chat_temperature),
-            "max_tokens": kwargs.pop("max_tokens", LITELLM_SETTINGS.chat_max_tokens),
-            "max_retries": 0,
-            **kwargs,  # Include remaining kwargs
-        }
-
-        # Use existing chat completion infrastructure
-        response = completion(**params)
-
-        assistant_message = response.choices[0].message
-        content = assistant_message.content or ""
-        finish_reason = response.choices[0].finish_reason
-        tool_calls = getattr(assistant_message, "tool_calls", None)
+                    tool_calls.append(ToolCall(tc["id"], tc["function"]["name"], tc["function"]["arguments"]))
+                # Set content to empty string for tool calls
+                content = ""
+            except json.JSONDecodeError:
+                logger.warning("Failed to parse tool calls from response", tag="litellm_tools")
+                tool_calls = None
 
         return content, finish_reason, tool_calls
 
@@ -333,6 +413,7 @@ class LiteLLMAPIBackend(APIBackend):
 
         # Apply model configuration override if provided
         if model_config_override:
+            logger.info(f"🔍 LiteLLM received model_config_override: {model_config_override}", tag="litellm_debug")
             for key, value in model_config_override.items():
                 if key == "api_base":
                     kwargs["base_url"] = value
@@ -345,7 +426,7 @@ class LiteLLMAPIBackend(APIBackend):
             logger.info(f"🔄 Round {round_count}/{max_rounds}", tag="mcp_progress")
 
             # Call with tools (now with potential overrides applied)
-            content, finish_reason, tool_calls = self.call_with_tools(messages, tools, **kwargs)
+            content, finish_reason, tool_calls = self._call_with_tools(messages, tools, **kwargs)
             last_finish_reason = finish_reason  # Track finish_reason
 
             # Add assistant response to conversation
@@ -364,6 +445,9 @@ class LiteLLMAPIBackend(APIBackend):
             # If no tool calls, we're done
             if not tool_calls:
                 logger.info(f"✅ Final response in round {round_count}", tag="mcp_progress")
+                # Log the final answer if tools were used
+                if tools and LITELLM_SETTINGS.log_llm_chat_content:
+                    logger.info(f"{LogColors.BLUE}Final Answer:{LogColors.END}\n{content}", tag="llm_messages")
                 # Call round callback before returning
                 if round_callback:
                     try:
@@ -411,13 +495,20 @@ class LiteLLMAPIBackend(APIBackend):
             )
 
             # Make final call without tools to get text answer
-            # Use call_with_tools with empty tools list to force text response
-            content, finish_reason, _ = self.call_with_tools(
+            # Use _call_with_tools with empty tools list to force text response
+            content, finish_reason, _ = self._call_with_tools(
                 messages, tools=[], **kwargs  # Empty tools list forces pure text response
             )
             final_content = content
 
             messages.append({"role": "assistant", "content": final_content})
+
+            # Log the final answer after max rounds
+            if LITELLM_SETTINGS.log_llm_chat_content:
+                logger.info(
+                    f"{LogColors.BLUE}Final Answer (after max rounds):{LogColors.END}\n{final_content}",
+                    tag="llm_messages",
+                )
 
             return final_content, messages
         else:
