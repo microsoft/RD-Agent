@@ -82,11 +82,11 @@ constraints: deepclean
 
 # Check lint with black.
 black:
-	$(PIPRUN) python -m black --check --diff . --extend-exclude test/scripts --extend-exclude git_ignore_folder -l 120
+	$(PIPRUN) python -m black --check --diff . --extend-exclude "(test/scripts|test/notebook/testfiles|git_ignore_folder)" -l 120
 
 # Check lint with isort.
 isort:
-	$(PIPRUN) python -m isort --check . -s git_ignore_folder -s test/scripts
+	$(PIPRUN) python -m isort --check . -s git_ignore_folder -s test/scripts -s test/notebook/testfiles
 
 # Check lint with mypy.
 # First deal with the core folder, and then gradually increase the scope of detection,
@@ -119,11 +119,11 @@ pre-commit:
 
 # Auto lint with black.
 auto-black:
-	$(PIPRUN) python -m black . --extend-exclude test/scripts --extend-exclude git_ignore_folder --extend-exclude .venv -l 120
+	$(PIPRUN) python -m black . --extend-exclude "(test/scripts|test/notebook/testfiles|git_ignore_folder|.venv)" -l 120
 
 # Auto lint with isort.
 auto-isort:
-	$(PIPRUN) python -m isort . -s git_ignore_folder -s test/scripts -s .venv
+	$(PIPRUN) python -m isort . -s git_ignore_folder -s test/scripts -s test/notebook/testfiles -s .venv
 
 # Auto lint with toml-sort.
 auto-toml-sort:

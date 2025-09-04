@@ -30,7 +30,10 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
 from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.base import (
+    DataScienceScen,
+    DSTrace,
+)
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.utils.workflow.misc import wait_retry
@@ -39,17 +42,21 @@ from rdagent.utils.workflow.misc import wait_retry
 def clean_workspace(workspace_root: Path) -> None:
     """
     Clean the workspace folder and only keep the essential files to save more space.
+    workspace_root might contain a file in parallel with the folders, we should directly remove it.
 
     # remove all files and folders in the workspace except for .py, .md, and .csv files to avoid large workspace dump
     """
-    for file_and_folder in workspace_root.iterdir():
-        if file_and_folder.is_dir():
-            if file_and_folder.is_symlink():
+    if workspace_root.is_file():
+        workspace_root.unlink()
+    else:
+        for file_and_folder in workspace_root.iterdir():
+            if file_and_folder.is_dir():
+                if file_and_folder.is_symlink():
+                    file_and_folder.unlink()
+                else:
+                    shutil.rmtree(file_and_folder)
+            elif file_and_folder.is_file() and file_and_folder.suffix not in [".py", ".md", ".csv"]:
                 file_and_folder.unlink()
-            else:
-                shutil.rmtree(file_and_folder)
-        elif file_and_folder.is_file() and file_and_folder.suffix not in [".py", ".md", ".csv"]:
-            file_and_folder.unlink()
 
 
 @wait_retry()
@@ -215,6 +222,17 @@ class DataScienceRDLoop(RDLoop):
             self.trace.sync_dag_parent_and_hist((exp, prev_out["feedback"]), cur_loop_id)
         else:
             exp: DSExperiment = prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"]
+            # TODO: distinguish timeout error & other exception.
+            if (
+                isinstance(self.trace.scen, DataScienceScen)
+                and DS_RD_SETTING.allow_longer_timeout
+                and isinstance(e, CoderError)
+                and e.caused_by_timeout
+            ):
+                logger.info(
+                    f"Timeout error occurred: {e}. Increasing timeout for the current scenario from {self.trace.scen.timeout_increase_count} to {self.trace.scen.timeout_increase_count + 1}."
+                )
+                self.trace.scen.increase_timeout()
 
             # set the local selection to the trace as global selection, then set the DAG parent for the trace
             if exp.local_selection is not None:
@@ -259,7 +277,7 @@ class DataScienceRDLoop(RDLoop):
         logger.log_object(sota_exp_to_submit, tag="sota_exp_to_submit")
 
         logger.log_object(self.trace, tag="trace")
-        logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
+        logger.log_object(self.trace.sota_experiment(search_type="all"), tag="SOTA experiment")
 
         if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
             logger.log_object(self.trace.knowledge_base, tag="knowledge_base")
@@ -293,7 +311,7 @@ class DataScienceRDLoop(RDLoop):
 
             # only clean current workspace without affecting other loops.
             for k in "direct_exp_gen", "coding", "running":
-                if k in prev_out:
+                if k in prev_out and prev_out[k] is not None:
                     assert isinstance(prev_out[k], DSExperiment)
                     clean_workspace(prev_out[k].experiment_workspace.workspace_path)
 

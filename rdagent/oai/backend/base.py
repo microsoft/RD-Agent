@@ -22,6 +22,7 @@ from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.timer import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_conf import LLM_SETTINGS
+from rdagent.oai.utils.embedding import truncate_content_list
 from rdagent.utils import md5_hash
 
 try:
@@ -257,13 +258,17 @@ class ChatSession:
         messages = self.build_chat_completion_message(user_prompt)
 
         with logger.tag(f"session_{self.conversation_id}"):
+            start_time = datetime.now(pytz.timezone("Asia/Shanghai"))
             response: str = self.api_backend._try_create_chat_completion_or_embedding(  # noqa: SLF001
                 *args,
                 messages=messages,
                 chat_completion=True,
                 **kwargs,
             )
-            logger.log_object({"user": user_prompt, "resp": response}, tag="debug_llm")
+            end_time = datetime.now(pytz.timezone("Asia/Shanghai"))
+            logger.log_object(
+                {"user": user_prompt, "resp": response, "start": start_time, "end": end_time}, tag="debug_llm"
+            )
 
         messages.append(
             {
@@ -405,6 +410,7 @@ class APIBackend(ABC):
             shrink_multiple_break=shrink_multiple_break,
         )
 
+        start_time = datetime.now(pytz.timezone("Asia/Shanghai"))
         resp = self._try_create_chat_completion_or_embedding(  # type: ignore[misc]
             *args,
             messages=messages,
@@ -412,9 +418,13 @@ class APIBackend(ABC):
             chat_cache_prefix=chat_cache_prefix,
             **kwargs,
         )
+        end_time = datetime.now(pytz.timezone("Asia/Shanghai"))
         if isinstance(resp, list):
             raise ValueError("The response of _try_create_chat_completion_or_embedding should be a string.")
-        logger.log_object({"system": system_prompt, "user": user_prompt, "resp": resp}, tag="debug_llm")
+        logger.log_object(
+            {"system": system_prompt, "user": user_prompt, "resp": resp, "start": start_time, "end": end_time},
+            tag="debug_llm",
+        )
         return resp
 
     def create_embedding(self, input_content: str | list[str], *args, **kwargs) -> list[float] | list[list[float]]:  # type: ignore[no-untyped-def]
@@ -457,6 +467,7 @@ class APIBackend(ABC):
         max_retry = LLM_SETTINGS.max_retry if LLM_SETTINGS.max_retry is not None else max_retry
         timeout_count = 0
         violation_count = 0
+        embedding_truncated = False  # Track if we've already tried truncation
         for i in range(max_retry):
             API_start_time = datetime.now()
             try:
@@ -470,10 +481,28 @@ class APIBackend(ABC):
                     or "\\'messages\\' must contain the word \\'json\\' in some form" in e.message
                 ):
                     kwargs["add_json_in_prompt"] = True
-                elif hasattr(e, "message") and embedding and "maximum context length" in e.message:
-                    kwargs["input_content_list"] = [
-                        content[: len(content) // 2] for content in kwargs.get("input_content_list", [])
-                    ]
+
+                too_long_error_message = hasattr(e, "message") and (
+                    "maximum context length" in e.message or "input must have less than" in e.message
+                )
+
+                if embedding and too_long_error_message:
+                    if not embedding_truncated:
+                        # Handle embedding text too long error - truncate once and retry
+                        model_name = LLM_SETTINGS.embedding_model
+                        logger.warning(f"Embedding text too long for model {model_name}, truncating content")
+
+                        # Apply truncation to content list and continue to retry
+                        original_content_list = kwargs.get("input_content_list", [])
+                        kwargs["input_content_list"] = truncate_content_list(original_content_list, model_name)
+                        embedding_truncated = True  # Mark that we've tried truncation
+                        # Continue to next iteration to retry embedding with truncated content
+                    else:
+                        # Already tried truncation, raise error with guidance
+                        raise RuntimeError(
+                            f"Embedding failed even after truncation. "
+                            f"Please set LLM_SETTINGS.embedding_max_length to a smaller value."
+                        ) from e
                 else:
                     RD_Agent_TIMER_wrapper.api_fail_count += 1
                     RD_Agent_TIMER_wrapper.latest_api_fail_time = datetime.now(pytz.timezone("Asia/Shanghai"))
@@ -672,3 +701,7 @@ class APIBackend(ABC):
         Call the chat completion function
         """
         raise NotImplementedError("Subclasses must implement this method")
+
+    @property
+    def chat_token_limit(self) -> int:
+        return LLM_SETTINGS.chat_token_limit

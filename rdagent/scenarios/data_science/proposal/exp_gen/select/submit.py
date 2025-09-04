@@ -18,6 +18,7 @@ from rdagent.core.proposal import ExperimentFeedback, SOTAexpSelector, Trace
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log.storage import FileStorage
 from rdagent.log.utils import extract_json
+from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.utils.agent.ret import PythonAgentOut
@@ -79,14 +80,30 @@ class AutoSOTAexpSelector(SOTAexpSelector):
 
         # Build prompt for LLM
         sota_prompt_text = "Historical SOTA experiments:\n\n"
+        system_prompt = T(".prompts:auto_sota_selector.system").r(scenario=trace.scen.get_scenario_all_desc())
         for i, (exp, _) in enumerate(sota_exp_fb_list):
             if exp and exp.result is not None:
-                score = pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
+                current_final_score = pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
                 desc = T("scenarios.data_science.share:describe.exp").r(exp=exp)
-                sota_prompt_text += f"SOTA experiment No. {i+1}:\nDescription: {desc}\nFinal score: {score}\n\n"
+                new_experiment_content = f"""SOTA experiment No. {i+1}:
+                        Description: {desc}
+                        Final score: {current_final_score}\n\n"""
+
+                temp_user_prompt = T(".prompts:auto_sota_selector.user").r(
+                    historical_sota_exp_with_desc_and_scores=sota_prompt_text + new_experiment_content,
+                )
+
+                token_size = APIBackend().build_messages_and_calculate_token(
+                    user_prompt=temp_user_prompt,
+                    system_prompt=system_prompt,
+                )
+                if token_size >= LLM_SETTINGS.chat_token_limit:
+                    logger.warning(f"Token limit reached at experiment {i+1}. Stopping.")
+                    break
+
+                sota_prompt_text += new_experiment_content
 
         # Query LLM
-        system_prompt = T(".prompts:auto_sota_selector.system").r(scenario=trace.scen.get_scenario_all_desc())
         user_prompt = T(".prompts:auto_sota_selector.user").r(historical_sota_exp_with_desc_and_scores=sota_prompt_text)
 
         response = APIBackend().build_messages_and_create_chat_completion(

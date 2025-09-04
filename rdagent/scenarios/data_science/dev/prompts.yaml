@@ -31,32 +31,28 @@ exp_feedback:
       - If overfitting is detected, provide a detailed analysis explaining how and why it occurs, referencing scenario description, code implementation, and validation scores to support your findings.
     - If such discrepancies or risks are found:
       - Clearly document these issues in `Reasoning`, referencing both scenario description and code implementation—not just validation scores.
-      - Set `"Evaluation Aligned With Task": "no"` and `"Replace Best Result": "no"`.
-      - Begin your `reasoning` with `[Evaluation error]`, explicitly stating the evaluation alignment issues causing experiment failure.
-    - If evaluation alignment passes, set `"Evaluation Aligned With Task": "yes"`, and then proceed to Step 3.
+        - Severity-based handling:
+         - Severe risk — likely to invert or invalidate the performance trend between validation and test (e.g., strong overfitting, label leakage, test distribution shift):
+           - Set "Evaluation Aligned With Task": "no" and "Replace Best Result": "no".
+           - Begin your reasoning with [Evaluation error], explicitly stating the evaluation alignment issues causing experiment failure.
+         - Mild/moderate risk — may cause slightly optimistic or biased validation scores but is unlikely to change the relative performance trend (e.g., scaling or PCA fit on full training data that’s also applied consistently to test):
+          - Set "Evaluation Aligned With Task": "yes" but note the potential bias in Reasoning.
+           - Proceed to Step 3 for result comparison.
 
     Step 3: Analyze Experimental Results (if format and evaluation alignment correct)
     - Explicitly confirm or refute the hypothesis with precise data points or performance trends.
     - Directly compare the current `ensemble` validation score to the SOTA `ensemble` validation score. Do not focus on individual models unless anomalies are significant.
     - Based on the metric used in the competition, the comparison should fit into the following categories:
       - If the current `ensemble` validation score is obviously worse than the SOTA `ensemble` validation score, set `"Replace Best Result": "no"`.
-      - If the current `ensemble` validation score is obviously better than the SOTA `ensemble` validation score, proceed to Step 4.
-      - If the current `ensemble` validation score is similar to the SOTA `ensemble` validation score or both reach the ceiling performance, proceed to Step 5.
+      - If the current `ensemble` validation score is obviously better than the SOTA `ensemble` validation score, set `"Replace Best Result": "yes"`.
+      - If the current `ensemble` validation score is similar to the SOTA `ensemble` validation score or both reach the ceiling performance, proceed to Step 4.
     - Begin your `reasoning` with `[Experiment Analysis]`, clearly stating why the current experiment's result surpasses or falls short compared to the SOTA.
     - NOTES:
       - The experiments focus on the comparison of the final ensemble results (Don't reject the results because they are still not perfect)
       - If the `ensemble` score does not exceed the best individual mode or single fold, it is still acceptable unless the gap is significant.
     
-    Step 4: Identify validation score improvement source
-    - The user also provides you all the ensemble validation scores of the SOTA experiments you can get the improve pattern of the validation score numbers.
-    - Since the current validation score is obviously better than the SOTA `ensemble` validation score, you should analyze whether the current number based on all the history numbers following the patterns:
-      - If the sota validation score has been stabilized or joggling for several rounds, you should be very careful to accept the current score as a valid improvement because it is likely that this validation score improvement is the cause of over-fit. 
-        - If the code manipulate the validation dataset or modified the validation process. please set `"Replace Best Result": "no"` and explain in `"Reasoning"` starting with `[Validation Score Manipulation]`.
-        - If the improvement is based a big innovated code change, please proceed to Step 5 to check the code quality and give decision based on both the validation score and code quality.
-      - If no much sota validation score is provided, you should proceed to Step 5 to check the code quality and give decision based on both the validation score and code quality.
-
-    Step 5: Analyze Code To get Better validation results
-    - If the current `ensemble` validation score is similar to the SOTA `ensemble` validation score or suspicious validation improvement after several trials, give the decision based on the comparison between the current experiment and SOTA.
+    Step 4: Analyze Code With Similar validation Results
+    - If the current `ensemble` validation score is similar to the SOTA `ensemble` validation score, give the decision based on the comparison between the current experiment and SOTA.
     - The current code should replace the best result if the code is:
       - Less potential overfitting and no data leakage. The code should not modify the validation and test set distributions.
       - Using best practices and modeling techniques. The code should has a more reasonable and efficient choice of every component based on the scenario.
@@ -72,16 +68,26 @@ exp_feedback:
     - You should provide your feedback based on the current code and SOTA code. Especially focus on the feature engineering part.
     - For example, if the code truncate the line with N words, you can suggest to print the mean, median or quantile of the length of the line for better understanding of the data in the next rounds of experiments.
 
+    Step 6: Overall Acceptability Assessment
+
+    - Determine the overall acceptability of the experiment based on the comprehensive evaluation from previous steps:
+      - Set `"Acceptable": "yes"` ONLY if ALL of the following conditions are met:
+        * Step 1: Submission format is valid
+        * Step 2: Evaluation methodology is aligned with competition requirements  
+        * Step 4: Current code demonstrates clear improvements over SOTA (better practices, efficiency, or interpretability)
+      - Set `"Acceptable": "no"` if ANY of the above conditions fail
+    - This acceptability assessment serves as a final quality gate to ensure only truly valuable experiments are accepted
+
     Provide detailed and constructive feedback structured as follows without anything else:
     {
       "Submission Format Check": "yes or no",
       "First Valid Submission": "yes or no",
       "Code Change Summary": "Clearly summarize the changes made to the code (please cover the most important changes while being concise); during development, extra modifications may be made beyond the intent of the hypothesis, so these changes should also be included to provide complete information",
       "Observations": "Clearly summarize current and SOTA ensemble results with exact scores and notable patterns. Limit to no more than three concise, data-focused sentences. Your observation must be grounded by explicit evidence from scenario description or code implementation, not just validation scores.",
-      "Feedback for Hypothesis": Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences.",
+      "Feedback for Hypothesis": "Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences.",
       "Evaluation Aligned With Task": "yes or no",
       "Replace Best Result": "yes or no",
-      "Refine Decision": "yes or no",
+      "Acceptable": "yes or no",
       "Reasoning": "Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences.",
       "EDA Improvement": "improvement suggestion for EDA code, if needed, otherwise set to 'no'. If there is no EDA code, set to 'no'."
     }
@@ -215,7 +221,6 @@ exp_feedback_draft:
       "Feedback for Hypothesis": Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences.",
       "Evaluation Aligned With Task": "yes or no",
       "Replace Best Result": "yes or no",
-      "Refine Decision": "yes or no",
       "Reasoning": "Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences.",
       "EDA Improvement": "improvement suggestion for EDA code, if needed, otherwise set to 'no'. If there is no EDA code, set to 'no'."
     }

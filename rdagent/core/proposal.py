@@ -104,6 +104,7 @@ class HypothesisFeedback(ExperimentFeedback):
         code_change_summary: str | None = None,
         decision: bool,
         eda_improvement: str | None = None,
+        acceptable: bool | None = None,
     ) -> None:
         super().__init__(
             reason,
@@ -114,6 +115,7 @@ class HypothesisFeedback(ExperimentFeedback):
         self.observations = observations
         self.hypothesis_evaluation = hypothesis_evaluation
         self.new_hypothesis = new_hypothesis
+        self.acceptable = acceptable
 
     def __str__(self) -> str:
         return f"""{super().__str__()}

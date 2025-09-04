@@ -17,30 +17,29 @@ from rdagent.scenarios.data_science.test_eval import (
     NoTestEvalError,
     get_test_eval,
 )
-from rdagent.scenarios.kaggle.kaggle_crawler import score_rank
+
+# from rdagent.scenarios.kaggle.kaggle_crawler import score_rank
 from rdagent.utils.workflow import LoopBase
 
 
 def save_grade_info(log_trace_path: Path):
     test_eval = get_test_eval()
 
-    is_mle = isinstance(test_eval, MLETestEval)
     trace_storage = FileStorage(log_trace_path)
-    for msg in trace_storage.iter_msg():
-        if "competition" in msg.tag:
-            competition = msg.content
+    for msg in trace_storage.iter_msg(tag="competition"):
+        competition = msg.content
 
-        if "running" in msg.tag:
-            if isinstance(msg.content, DSExperiment):
-                # TODO:  mle_score.txt is not a general name now.
-                # Please use a more general name like test_score.txt
-                try:
-                    mle_score_str = test_eval.eval(competition, msg.content.experiment_workspace)
-                    trace_storage.log(
-                        mle_score_str, tag=f"{msg.tag}.mle_score.pid", save_type="pkl", timestamp=msg.timestamp
-                    )
-                except Exception as e:
-                    print(f"Error in {log_trace_path}: {e}", traceback.format_exc())
+    for msg in trace_storage.iter_msg(tag="running"):
+        if isinstance(msg.content, DSExperiment):
+            # TODO:  mle_score.txt is not a general name now.
+            # Please use a more general name like test_score.txt
+            try:
+                mle_score_str = test_eval.eval(competition, msg.content.experiment_workspace)
+                trace_storage.log(
+                    mle_score_str, tag=f"{msg.tag}.mle_score.pid", save_type="pkl", timestamp=msg.timestamp
+                )
+            except Exception as e:
+                print(f"Error in {log_trace_path}: {e}", traceback.format_exc())
 
 
 def save_all_grade_info(log_folder: str | Path) -> None:
@@ -148,10 +147,10 @@ def summarize_folder(log_folder: Path, hours: int | None = None) -> None:
                                 made_submission_num += 1
                             if grade_output["score"] is not None:
                                 test_scores[loop_id] = grade_output["score"]
-                                if is_mle:
-                                    _, test_ranks[loop_id] = score_rank(
-                                        stat[log_trace_path.name]["competition"], grade_output["score"]
-                                    )
+                                # if is_mle:
+                                #     _, test_ranks[loop_id] = score_rank(
+                                #         stat[log_trace_path.name]["competition"], grade_output["score"]
+                                #     )
                             if grade_output["valid_submission"]:
                                 valid_submission_num += 1
                             if grade_output["above_median"]:
@@ -184,10 +183,10 @@ def summarize_folder(log_folder: Path, hours: int | None = None) -> None:
                                 sota_exp_stat = "made_submission"
                             if grade_output["score"] is not None:
                                 sota_exp_score = grade_output["score"]
-                                if is_mle:
-                                    _, sota_exp_rank = score_rank(
-                                        stat[log_trace_path.name]["competition"], grade_output["score"]
-                                    )
+                                # if is_mle:
+                                #     _, sota_exp_rank = score_rank(
+                                #         stat[log_trace_path.name]["competition"], grade_output["score"]
+                                #     )
 
         stat[log_trace_path.name].update(
             {
@@ -200,12 +199,12 @@ def summarize_folder(log_folder: Path, hours: int | None = None) -> None:
                 "silver_num": silver_num,
                 "gold_num": gold_num,
                 "test_scores": test_scores,
-                "test_ranks": test_ranks,
+                # "test_ranks": test_ranks,
                 "valid_scores": valid_scores,
                 "success_loop_num": success_loop_num,
                 "sota_exp_stat": sota_exp_stat,
                 "sota_exp_score": sota_exp_score,
-                "sota_exp_rank": sota_exp_rank,
+                # "sota_exp_rank": sota_exp_rank,
                 "bronze_threshold": bronze_threshold,
                 "silver_threshold": silver_threshold,
                 "gold_threshold": gold_threshold,

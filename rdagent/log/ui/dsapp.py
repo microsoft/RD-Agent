@@ -9,7 +9,7 @@ from rdagent.log.ui.conf import UI_SETTING
 
 def convert_log_folder_str(lf: str) -> str:
     if "/" not in lf:
-        return f"/data/share_folder_local/amlt/{lf.strip()}/combined_logs"
+        return f"{UI_SETTING.amlt_path}/{lf.strip()}/combined_logs"
     return lf.strip()
 
 

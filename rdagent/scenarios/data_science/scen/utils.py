@@ -294,19 +294,46 @@ class FileTreeGenerator:
     Smart file tree generator with symlink handling and intelligent truncation.
     """
 
-    def __init__(self, max_lines: int = 200, priority_files: Set[str] = None, hide_base_name: bool = True):
+    def __init__(
+        self,
+        max_lines: int = 200,
+        priority_files: Set[str] = None,
+        hide_base_name: bool = True,
+        allowed_paths: Set[Path] | None = None,
+    ):
         """
         Initialize the file tree generator.
 
         Args:
             max_lines: Maximum output lines to prevent overly long output
             priority_files: File extensions to prioritize for display
+            hide_base_name: Hide the base name of the directory
+            allowed_paths: Set of allowed paths to include in the tree
+
         """
         self.max_lines = max_lines
         self.priority_files = priority_files or {".csv", ".json", ".parquet", ".md", ".txt"}
         self.lines = []
         self.line_count = 0
         self.hide_base_name = hide_base_name
+        self.allowed_paths = allowed_paths
+        self._lookup_set: Set[Path] | None = None
+
+    def _build_lookup_set(self):
+        """
+        Build the lookup set for allowed paths.
+        """
+        if self.allowed_paths is None:
+            self._lookup_set = None
+            return
+
+        self._lookup_set = set()
+        for path in self.allowed_paths:
+            self._lookup_set.add(path)
+            for parent in path.parents:
+                if str(parent) == ".":
+                    continue
+                self._lookup_set.add(parent)
 
     def generate_tree(self, path: Union[str, Path]) -> str:
         """
@@ -322,6 +349,7 @@ class FileTreeGenerator:
             FileTreeGenerationError: If tree generation fails
         """
         try:
+            self._build_lookup_set()
             path = Path(path)
             base_path = path.resolve()
             self.lines = []
@@ -403,6 +431,7 @@ class FileTreeGenerator:
             prefix: Prefix for tree formatting
             base_path: Base path for symlink detection
 
+
         Raises:
             DirectoryPermissionError: If directory access is denied
             FileTreeGenerationError: If processing fails
@@ -411,6 +440,11 @@ class FileTreeGenerator:
         try:
             # Get directory contents, filter out system files
             items = [p for p in path.iterdir() if not p.name.startswith(".") and p.name not in system_names]
+
+            # Filter by allowed paths if provided
+            if self._lookup_set is not None:
+                items = [p for p in items if p in self._lookup_set]
+
             dirs = sorted([p for p in items if p.is_dir()])
             files = sorted([p for p in items if p.is_file()])
 
@@ -566,19 +600,26 @@ class DataFolderDescriptor:
                     file_name = str(fn)
 
                 try:
-                    if fn.suffix == ".csv":
-                        out.append(preview_csv(fn, file_name, simple=simple, show_nan_columns=show_nan_columns))
-                    elif fn.suffix == ".json":
-                        out.append(preview_json(fn, file_name))
-                    elif fn.suffix == ".parquet":
-                        out.append(preview_parquet(fn, file_name, simple=simple, show_nan_columns=show_nan_columns))
-                    elif fn.suffix in plaintext_files:
-                        if get_file_len_size(fn)[0] < 30:
-                            with open(fn) as f:
-                                content = f.read()
-                                if fn.suffix in code_files:
-                                    content = f"```\n{content}\n```"
-                                out.append(f"-> {file_name} has content:\n\n{content}")
+                    if "prev_model" in file_name:
+                        # NOTE: for finetune model.
+                        if fn.suffix == ".py" and "test" not in file_name:
+                            out.append(f"### {file_name}:")
+                            out.append(fn.read_text(encoding="utf-8"))
+                    else:
+                        if fn.suffix == ".csv":
+                            out.append(preview_csv(fn, file_name, simple=simple, show_nan_columns=show_nan_columns))
+                        elif fn.suffix == ".json":
+                            out.append(preview_json(fn, file_name))
+                        elif fn.suffix == ".parquet":
+                            out.append(preview_parquet(fn, file_name, simple=simple, show_nan_columns=show_nan_columns))
+                        elif fn.suffix in plaintext_files:
+                            if get_file_len_size(fn)[0] < 30:
+                                with open(fn) as f:
+                                    content = f.read()
+                                    if fn.suffix in code_files:
+                                        content = f"```\n{content}\n```"
+                                    out.append(f"-> {file_name} has content:\n\n{content}")
+
                 except Exception as e:
                     out.append(f"-> {file_name}: Error reading file - {str(e)[:100]}")
 

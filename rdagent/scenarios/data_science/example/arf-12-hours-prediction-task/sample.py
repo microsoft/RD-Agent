@@ -66,7 +66,7 @@ def create_debug_data(
     min_frac: float = 0.02,
     min_num: int = 10,
 ):
-    dataset_root = Path(dataset_path) / "arf-12-hour-prediction-task"
+    dataset_root = Path(dataset_path) / "arf-12-hours-prediction-task"
     output_root = Path(output_path)
 
     for sub in ["train", "test"]:

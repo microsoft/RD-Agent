@@ -25,7 +25,6 @@ File structure
 from pathlib import Path
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
     CoSTEERSingleFeedback,
@@ -39,6 +38,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
 from rdagent.components.coder.data_science.pipeline.eval import PipelineCoSTEEREvaluator
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
+from rdagent.components.coder.data_science.share.ds_costeer import DSCoSTEER
 from rdagent.components.coder.data_science.share.eval import ModelDumpEvaluator
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
@@ -63,11 +63,6 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         data_folder_info = self.scen.processed_data_folder_description
         pipeline_task_info = target_task.get_task_information()
 
-        queried_similar_successful_knowledge = (
-            queried_knowledge.task_to_similar_task_successful_knowledge[pipeline_task_info]
-            if queried_knowledge is not None
-            else []
-        )
         queried_former_failed_knowledge = (
             queried_knowledge.task_to_former_failed_traces[pipeline_task_info] if queried_knowledge is not None else []
         )
@@ -82,13 +77,16 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         system_prompt = T(".prompts:pipeline_coder.system").r(
             task_desc=pipeline_task_info,
-            queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
             out_spec=PythonAgentOut.get_spec(),
             runtime_environment=self.scen.get_runtime_environment(),
             package_info=target_task.package_info,
             enable_model_dump=DS_RD_SETTING.enable_model_dump,
             enable_debug_mode=DS_RD_SETTING.sample_data_by_LLM,
+            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(
+                metric_name=self.scen.metric_name,
+                enable_notebook_conversion=DS_RD_SETTING.enable_notebook_conversion,
+            ),
         )
         user_prompt = T(".prompts:pipeline_coder.user").r(
             competition_info=competition_info,
@@ -132,7 +130,7 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         return evo
 
 
-class PipelineCoSTEER(CoSTEER):
+class PipelineCoSTEER(DSCoSTEER):
     def __init__(
         self,
         scen: Scenario,
@@ -143,6 +141,8 @@ class PipelineCoSTEER(CoSTEER):
         eval_l = [PipelineCoSTEEREvaluator(scen=scen)]
         if DS_RD_SETTING.enable_model_dump:
             eval_l.append(ModelDumpEvaluator(scen=scen, data_type="sample"))
+        for evaluator in settings.extra_evaluator:
+            eval_l.append(import_class(evaluator)(scen=scen))
 
         for extra_eval in DSCoderCoSTEERSettings().extra_eval:
             kls = import_class(extra_eval)

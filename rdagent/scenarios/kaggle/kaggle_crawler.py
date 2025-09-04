@@ -211,21 +211,24 @@ def leaderboard_scores(competition: str) -> list[float]:
 
     api = KaggleApi()
     api.authenticate()
-    ll = api.competition_leaderboard_view(competition)
-    return [float(x.score) for x in ll]
+
+    return [i.score for i in api.competition_leaderboard_view(competition)]
 
 
 def get_metric_direction(competition: str) -> bool:
     """
     Return **True** if the metric is *bigger is better*, **False** if *smaller is better*.
     """
+    if competition == "aerial-cactus-identification":
+        return True
+    if competition == "leaf-classification":
+        return False
     leaderboard = leaderboard_scores(competition)
-    if float(leaderboard[0]) == float(leaderboard[-1]):
-        # This happens when top scores are all the same, such as 0 or 1.
-        return float(leaderboard[0]) >= 0.5
+
     return float(leaderboard[0]) > float(leaderboard[-1])
 
 
+# FIXME: current score_rank is incorrect because kaggle api returns only the first page leaderboard
 def score_rank(competition: str, score: float) -> tuple[int, float]:
     """
     Return

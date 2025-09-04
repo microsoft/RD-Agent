@@ -293,13 +293,13 @@ class Env(Generic[ASpecificEnvConf]):
                     return p.parts[0]
                 return None
 
-            chmod_cmd = f"chmod -R 777 $(find {workspace_path} -mindepth 1 -maxdepth 1"
+            find_cmd = f"find {workspace_path} -mindepth 1 -maxdepth 1"
             for name in [
                 _get_path_stem(T("scenarios.data_science.share:scen.cache_path").r()),
                 _get_path_stem(T("scenarios.data_science.share:scen.input_path").r()),
             ]:
-                chmod_cmd += f" ! -name {name}"
-            chmod_cmd += ")"
+                find_cmd += f" ! -name {name}"
+            chmod_cmd = f"{find_cmd} -exec chmod -R 777 {{}} +"
             return chmod_cmd
 
         if self.conf.running_timeout_period is None:

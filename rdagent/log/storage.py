@@ -76,10 +76,15 @@ class FileStorage(Storage):
         r"(?P<caller>.+:.+:\d+) - "
     )
 
-    def iter_msg(self, tag: str | None = None) -> Generator[Message, None, None]:
+    def iter_msg(self, tag: str | None = None, pattern: str | None = None) -> Generator[Message, None, None]:
         msg_l = []
 
-        pkl_files = "**/*.pkl" if tag is None else f"**/{tag.replace('.','/')}/**/*.pkl"
+        if pattern:
+            pkl_files = pattern
+        elif tag:
+            pkl_files = f"**/{tag.replace('.','/')}/**/*.pkl"
+        else:
+            pkl_files = "**/*.pkl"
         for file in self.path.glob(pkl_files):
             if file.name == "debug_llm.pkl":
                 continue
@@ -102,7 +107,7 @@ class FileStorage(Storage):
     def truncate(self, time: datetime) -> None:
         for file in self.path.glob("**/*.pkl"):
             timestamp = datetime.strptime(file.stem, "%Y-%m-%d_%H-%M-%S-%f").replace(tzinfo=timezone.utc)
-            if timestamp > time:
+            if timestamp > time.replace(tzinfo=timezone.utc):
                 file.unlink()
 
         _remove_empty_dir(self.path)

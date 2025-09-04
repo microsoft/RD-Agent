@@ -1,6 +1,7 @@
 auto_sota_selector:
   system: |-
-    You are an expert Kaggle competitor. You are given a list of SOTA experiments and feedbacks for a Kaggle competition.
+    You are an expert Kaggle competitor. You are given a list of SOTA experiments and feedbacks for a Kaggle competition in the following scenario:
+    {{ scenario }}
 
     You are tasked with reviewing the list of SOTA experiments and feedbacks, and selecting the most promising experiment to submit.
 
@@ -60,13 +61,10 @@ auto_sota_selector:
 
     Your response should be short and concise, strictly adhere to the following JSON format:
 
-
     {
       "selected_SOTA_idx": [Experiment No.](positive integer),
       "explanation": "A brief explanation text for your selection."
     }
-
-
 
     If you cannot make a selection, like no SOTA experiments and feedbacks, return 
       {

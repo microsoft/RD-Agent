@@ -18,71 +18,54 @@ from rdagent.log.ui.utils import (
     curve_figure,
     get_statistics_df,
     get_summary_df,
+    lite_curve_figure,
     percent_df,
 )
 from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 
 
-def days_summarize_win():
-    lfs1 = [re.sub(r"log\.srv\d*", "log.srv", folder) for folder in state.log_folders]
-    lfs2 = [re.sub(r"log\.srv\d*", "log.srv2", folder) for folder in state.log_folders]
-    lfs3 = [re.sub(r"log\.srv\d*", "log.srv3", folder) for folder in state.log_folders]
-
-    _, df1 = get_summary_df(lfs1)
-    _, df2 = get_summary_df(lfs2)
-    _, df3 = get_summary_df(lfs3)
-
-    df = pd.concat([df1, df2, df3], axis=0)
-
-    def mean_func(x: pd.DataFrame):
-        numeric_cols = x.select_dtypes(include=["int", "float"]).mean()
-        string_cols = x.select_dtypes(include=["object"]).agg(lambda col: ", ".join(col.fillna("none").astype(str)))
-        return pd.concat([numeric_cols, string_cols], axis=0).reindex(x.columns).drop("Competition")
-
-    df = df.groupby("Competition").apply(mean_func)
-    if st.toggle("Show Percent", key="show_percent"):
-        st.dataframe(percent_df(df, show_origin=False))
-    else:
-        st.dataframe(df)
-
-
 def curves_win(summary: dict):
-    for k, v in summary.items():
-        with st.container(border=True):
-            st.markdown(f"**:blue[{k}] - :violet[{v['competition']}]**")
-            try:
-                tscores = {k: v for k, v in v["test_scores"].items()}
-                tscores = pd.Series(tscores)
-                vscores = {}
-                for k, vs in v["valid_scores"].items():
-                    if not vs.index.is_unique:
-                        st.warning(
-                            f"Loop {k}'s valid scores index are not unique, only the last one will be kept to show."
-                        )
-                        st.write(vs)
-                    vscores[k] = vs[~vs.index.duplicated(keep="last")].iloc[:, 0]
-                if len(vscores) > 0:
-                    metric_name = list(vscores.values())[0].name
-                else:
-                    metric_name = "None"
-                vscores = pd.DataFrame(vscores)
-                if "ensemble" in vscores.index:
-                    ensemble_row = vscores.loc[["ensemble"]]
-                    vscores = pd.concat([ensemble_row, vscores.drop("ensemble")])
-                vscores = vscores.T
-                vscores["test"] = tscores
-                vscores.index = [f"L{i}" for i in vscores.index]
-                vscores.columns.name = metric_name
+    # draw curves
+    cbwin1, cbwin2 = st.columns(2)
+    if cbwin1.toggle("Show Curves", key="show_curves"):
+        for k, v in summary.items():
+            with st.container(border=True):
+                st.markdown(f"**:blue[{k}] - :violet[{v['competition']}]**")
+                try:
+                    tscores = {k: v for k, v in v["test_scores"].items()}
+                    tscores = pd.Series(tscores)
+                    vscores = {}
+                    for k, vs in v["valid_scores"].items():
+                        if not vs.index.is_unique:
+                            st.warning(
+                                f"Loop {k}'s valid scores index are not unique, only the last one will be kept to show."
+                            )
+                            st.write(vs)
+                        vscores[k] = vs[~vs.index.duplicated(keep="last")].iloc[:, 0]
+                    if len(vscores) > 0:
+                        metric_name = list(vscores.values())[0].name
+                    else:
+                        metric_name = "None"
+                    vscores = pd.DataFrame(vscores)
+                    if "ensemble" in vscores.index:
+                        ensemble_row = vscores.loc[["ensemble"]]
+                        vscores = pd.concat([ensemble_row, vscores.drop("ensemble")])
+                    vscores = vscores.T
+                    vscores["test"] = tscores
+                    vscores.index = [f"L{i}" for i in vscores.index]
+                    vscores.columns.name = metric_name
 
-                st.plotly_chart(curve_figure(vscores))
-            except Exception as e:
-                import traceback
+                    st.plotly_chart(curve_figure(vscores))
+                except Exception as e:
+                    import traceback
 
-                st.markdown("- Error: " + str(e))
-                st.code(traceback.format_exc())
-                st.markdown("- Valid Scores: ")
-                # st.write({k: type(v) for k, v in v["valid_scores"].items()})
-                st.json(v["valid_scores"])
+                    st.markdown("- Error: " + str(e))
+                    st.code(traceback.format_exc())
+                    st.markdown("- Valid Scores: ")
+                    # st.write({k: type(v) for k, v in v["valid_scores"].items()})
+                    st.json(v["valid_scores"])
+    if cbwin2.toggle("Show Curves (Lite)", key="show_curves_lite"):
+        st.pyplot(lite_curve_figure(summary))
 
 
 def all_summarize_win():
@@ -104,10 +87,20 @@ def all_summarize_win():
             st.warning(
                 f"summary.pkl not found in **{lf}**\n\nRun:`dotenv run -- python rdagent/log/mle_summary.py grade_summary --log_folder={lf} --hours=<>`"
             )
-    summary, base_df = get_summary_df(selected_folders)
-    if not summary:
-        return
+    summary = {}
+    dfs = []
+    for lf in selected_folders:
+        s, df = get_summary_df(lf)
+        df.index = [f"{shorten_folder_name(lf)} - {idx}" for idx in df.index]
 
+        dfs.append(df)
+        summary.update({f"{shorten_folder_name(lf)} - {k}": v for k, v in s.items()})
+    base_df = pd.concat(dfs)
+
+    valid_rate = float(base_df.get("Valid Improve", pd.Series()).mean())
+    test_rate = float(base_df.get("Test Improve", pd.Series()).mean())
+    submit_merge_rate = float(base_df.get("Submit Merge", pd.Series()).mean())
+    merge_sota_avg = float(base_df.get("Merge Sota", pd.Series()).mean())
     base_df = percent_df(base_df)
     base_df.insert(0, "Select", True)
     bt1, bt2 = st.columns(2)
@@ -133,65 +126,22 @@ def all_summarize_win():
     if bt1.toggle("Select Best", key="select_best"):
 
         def apply_func(cdf: pd.DataFrame):
-            cp = cdf["Competition"].values[0]
+            cp = base_df.loc[cdf.index[0], "Competition"]
             md = get_metric_direction(cp)
-            # If SOTA Exp Score (valid) column is empty, return the first index
-            if cdf["SOTA Exp Score (valid)"].dropna().empty:
+            # If SOTA Exp Score (valid, to_submit) column is empty, return the first index
+            if cdf["SOTA Exp Score (valid, to_submit)"].dropna().empty:
                 return cdf.index[0]
             if md:
-                best_idx = cdf["SOTA Exp Score (valid)"].idxmax()
+                best_idx = cdf["SOTA Exp Score (valid, to_submit)"].idxmax()
             else:
-                best_idx = cdf["SOTA Exp Score (valid)"].idxmin()
+                best_idx = cdf["SOTA Exp Score (valid, to_submit)"].idxmin()
             return best_idx
 
-        best_idxs = base_df.groupby("Competition").apply(apply_func)
+        best_idxs = base_df.groupby("Competition").apply(apply_func, include_groups=False)
         base_df["Select"] = base_df.index.isin(best_idxs.values)
 
     base_df = st.data_editor(
-        base_df.style.apply(
-            lambda col: col.map(lambda val: "background-color: #F0F8FF"),
-            subset=[
-                "Baseline Score",
-                "Bronze Threshold",
-                "Silver Threshold",
-                "Gold Threshold",
-                "Medium Threshold",
-            ],
-            axis=0,
-        )
-        .apply(
-            lambda col: col.map(lambda val: "background-color: #FFFFE0"),
-            subset=[
-                "Ours - Base",
-                "Ours vs Base",
-                "Ours vs Bronze",
-                "Ours vs Silver",
-                "Ours vs Gold",
-            ],
-            axis=0,
-        )
-        .apply(
-            lambda col: col.map(lambda val: "background-color: #E6E6FA"),
-            subset=[
-                "Script Time",
-                "Exec Time",
-                "Exp Gen",
-                "Coding",
-                "Running",
-            ],
-            axis=0,
-        )
-        .apply(
-            lambda col: col.map(lambda val: "background-color: #F0FFF0"),
-            subset=[
-                "Best Result",
-                "SOTA Exp",
-                "SOTA Exp (_to_submit)",
-                "SOTA Exp Score",
-                "SOTA Exp Score (valid)",
-            ],
-            axis=0,
-        ),
+        base_df,
         column_config={
             "Select": st.column_config.CheckboxColumn("Select", help="Stat this trace.", disabled=False),
         },
@@ -208,37 +158,51 @@ def all_summarize_win():
         st.dataframe(stat_df.round(2))
         markdown_table = f"""
 | xxx | {stat_df.iloc[0,1]:.1f} | {stat_df.iloc[1,1]:.1f} | {stat_df.iloc[2,1]:.1f} | {stat_df.iloc[3,1]:.1f} | {stat_df.iloc[4,1]:.1f} | {stat_df.iloc[5,1]:.1f} | {stat_df.iloc[6,1]:.1f}   |
+| Valid Improve {valid_rate * 100:.2f}% | Test Improve {test_rate * 100:.2f}% | Submit Merge {submit_merge_rate * 100:.2f}% | Merge Sota {merge_sota_avg * 100:.2f}% |
 """
         st.text(markdown_table)
     with stat_win_right:
         Loop_counts = base_df["Total Loops"]
-        fig = px.histogram(Loop_counts, nbins=10, title="Total Loops Histogram (nbins=10)")
+
+        # Create histogram
+        fig = px.histogram(
+            Loop_counts, nbins=15, title="Distribution of Total Loops", color_discrete_sequence=["#3498db"]
+        )
+        fig.update_layout(title_font_size=16, title_font_color="#2c3e50")
+
+        # Calculate statistics
         mean_value = Loop_counts.mean()
         median_value = Loop_counts.median()
-        fig.add_vline(
-            x=mean_value,
-            line_color="orange",
-            annotation_text="Mean",
-            annotation_position="top right",
-            line_width=3,
+
+        # Add mean and median lines
+        fig.add_vline(x=mean_value, line_color="#e74c3c", line_width=3)
+        fig.add_vline(x=median_value, line_color="#f39c12", line_width=3)
+
+        fig.add_annotation(
+            x=0.02,
+            y=0.95,
+            xref="paper",
+            yref="paper",
+            text=f"<span style='color:#e74c3c; font-weight:bold'>Mean: {mean_value:.1f}</span><br><span style='color:#f39c12; font-weight:bold'>Median: {median_value:.1f}</span>",
+            showarrow=False,
+            bgcolor="rgba(255,255,255,0.9)",
+            bordercolor="rgba(128,128,128,0.5)",
+            borderwidth=1,
+            font=dict(size=12, color="#333333"),
         )
-        fig.add_vline(
-            x=median_value,
-            line_color="red",
-            annotation_text="Median",
-            annotation_position="top right",
-            line_width=3,
-        )
-        st.plotly_chart(fig)
+
+        st.plotly_chart(fig, use_container_width=True)
 
     # write curve
     st.subheader("Curves", divider="rainbow")
-    if st.toggle("Show Curves", key="show_curves"):
-        curves_win(summary)
+    curves_win(summary)
 
 
 with st.container(border=True):
-    if st.toggle("近3天平均", key="show_3days"):
-        days_summarize_win()
-with st.container(border=True):
-    all_summarize_win()
+    try:
+        all_summarize_win()
+    except Exception as e:
+        import traceback
+
+        st.error(f"Error occurred when show summary:\n{e}")
+        st.code(traceback.format_exc())
