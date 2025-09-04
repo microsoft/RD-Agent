@@ -50,7 +50,9 @@ dataset_info_generation:
 
     **Requirements**:
     - Outer key: "{{ dataset }}" (preserve "/" exactly)
-    - `file_name`: "{{ dataset }}/filename" for single files, "{{ dataset }}" for directories
+    - `file_name`: Relative path from datasets directory to data files
+      - Single file: "{{ dataset }}/path/to/file.json"
+      - Multiple files in directory: "{{ dataset }}/path/to/directory"
     - Choose "alpaca" or "sharegpt" based on data structure
     - Map column names from sample data to LLaMA-Factory format
 
