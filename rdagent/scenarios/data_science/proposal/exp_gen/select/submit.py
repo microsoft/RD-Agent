@@ -1,260 +1,763 @@
 import json
-from pathlib import Path
 import pickle
-import random
-from typing import Dict, Tuple
+import re
+import shutil
+import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 import fire
 import numpy as np
 import pandas as pd
+from loguru import logger
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.components.coder.data_science.conf import get_ds_env
+from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback, SOTAexpSelector, Trace
 from rdagent.core.utils import multiprocessing_wrapper
-from rdagent.log import rdagent_logger as logger
-from rdagent.oai.llm_utils import APIBackend, md5_hash
+from rdagent.log.storage import FileStorage
+from rdagent.log.utils import extract_json
+from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
+from rdagent.utils.agent.ret import PythonAgentOut
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.fmt import shrink_text
 from rdagent.utils.workflow import wait_retry
+
+# --- Configuration Constants ---
+MAX_API_RETRIES = 5
+DEFAULT_NUM_WORKERS = 3
+MAX_SOTA_CANDIDATES = 6
+
+logger.add("selector.log")
+# ==============================================================================
+# ## SOTA Selector Implementations
+# ==============================================================================
 
 
 class GlobalSOTASelector(SOTAexpSelector):
     """
-    return the latest SOTA experiment from the trace to submit
+    Selects the single best State-Of-The-Art (SOTA) experiment from the entire trace history.
     """
 
-    def __init__(
-        self,
-    ):
-        print(f"Using global SOTA policy by default")
+    def __init__(self):
+        logger.info("Using selector policy: GlobalSOTASelector")
 
-    def get_sota_exp_to_submit(self, trace: Trace) -> DSExperiment | None:
-
+    def get_sota_exp_to_submit(self, trace: Trace, **kwargs) -> DSExperiment | None:
+        """
+        Returns the single best experiment from all historical runs.
+        """
         return trace.sota_experiment(search_type="all")
 
 
 class AutoSOTAexpSelector(SOTAexpSelector):
     """
-    retrieve a list of SOTA experiments from the trace, then call the LLM to select the best one
+    Uses an LLM to select the best SOTA experiment from a list of candidates.
+    Candidates are retrieved from the leaves of the experiment trace tree.
+    """
+
+    def __init__(self):
+        logger.info("Using selector policy: AutoSOTAexpSelector")
+
+    @wait_retry(retry_n=MAX_API_RETRIES)
+    def get_sota_exp_to_submit(self, trace: Trace, **kwargs) -> DSExperiment | None:
+        """
+        Retrieves SOTA experiments, then uses an LLM to choose the most promising one.
+        """
+        sota_exp_fb_list = self.collect_sota_candidates(trace)
+
+        if not sota_exp_fb_list:
+            logger.info("AutoSOTASelector: No SOTA experiments found in trace.")
+            return None
+
+        if len(sota_exp_fb_list) == 1:
+            logger.info("AutoSOTASelector: Only one SOTA candidate found, selecting it.")
+            return sota_exp_fb_list[0][0]
+
+        logger.info(f"AutoSOTASelector: {len(sota_exp_fb_list)} SOTA candidates found. Querying LLM for selection.")
+
+        # Build prompt for LLM
+        sota_prompt_text = "Historical SOTA experiments:\n\n"
+        for i, (exp, _) in enumerate(sota_exp_fb_list):
+            if exp and exp.result is not None:
+                score = pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
+                desc = T("scenarios.data_science.share:describe.exp").r(exp=exp)
+                sota_prompt_text += f"SOTA experiment No. {i+1}:\nDescription: {desc}\nFinal score: {score}\n\n"
+
+        # Query LLM
+        system_prompt = T(".prompts:auto_sota_selector.system").r(scenario=trace.scen.get_scenario_all_desc())
+        user_prompt = T(".prompts:auto_sota_selector.user").r(historical_sota_exp_with_desc_and_scores=sota_prompt_text)
+
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=system_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, Any],
+        )
+        response_dict = json.loads(response)
+        selected_idx = response_dict.get("selected_SOTA_idx")
+
+        # Process LLM response
+        if selected_idx and isinstance(selected_idx, int) and 0 < selected_idx <= len(sota_exp_fb_list):
+            sota_submit = sota_exp_fb_list[selected_idx - 1][0]
+            logger.info(f"AutoSOTASelector: LLM selected experiment No. {selected_idx}.")
+            return sota_submit[0]
+
+        logger.warning("AutoSOTASelector: LLM selection was invalid. Falling back to the latest SOTA experiment.")
+        return sota_exp_fb_list[-1][0] if sota_exp_fb_list else None
+
+    def collect_sota_candidates(self, trace: Trace) -> list:
+        """Helper to gather SOTA experiments from trace leaves."""
+        leaves = trace.get_leaves()
+        if len(leaves) < 2:
+            return trace.experiment_and_feedback_list_after_init(
+                return_type="sota", search_type="all", max_retrieve_num=DS_RD_SETTING.max_sota_retrieved_num
+            )
+
+        logger.info(f"AutoSOTASelector: {len(leaves)} branches found, collecting SOTA from each.")
+        all_sota_candidates = []
+        num_per_trace = max(DS_RD_SETTING.max_sota_retrieved_num // len(leaves), 2)
+
+        for leaf in leaves:
+            sota_from_branch = trace.experiment_and_feedback_list_after_init(
+                return_type="sota", search_type="ancestors", selection=(leaf,), max_retrieve_num=num_per_trace
+            )
+            all_sota_candidates.extend(sota_from_branch)
+
+        # Remove duplicates and limit total number of candidates
+        unique_sota_list = list(set(all_sota_candidates))
+        if len(unique_sota_list) > DS_RD_SETTING.max_sota_retrieved_num:
+            # Sort by score to keep the best ones
+            is_higher_better = trace.scen.metric_direction
+            unique_sota_list.sort(
+                key=lambda exp_fb: pd.DataFrame(exp_fb[0].result).loc["ensemble"].iloc[0],
+                reverse=is_higher_better,
+            )
+            return unique_sota_list[: DS_RD_SETTING.max_sota_retrieved_num]
+
+        return unique_sota_list
+
+
+class BestValidSelector(SOTAexpSelector):
+    """
+    Selects the top N experiments based on their performance score.
+    Can operate across the entire trace or on a per-branch basis.
+    """
+
+    def __init__(self, num_candidates: int = 1, use_decision: bool = True, each_trace: bool = False):
+        """
+        Args:
+            num_candidates (int): The number of top experiments to return.
+            use_decision (bool): If True, filters out experiments marked with a negative decision.
+            each_trace (bool): If True, selects top candidates from each branch instead of globally.
+        """
+        logger.info(
+            f"Using selector policy: BestValidSelector (num_candidates={num_candidates}, each_trace={each_trace})"
+        )
+        self.num_candidates = num_candidates
+        self.use_decision = use_decision
+        self.each_trace = each_trace
+
+    def get_sota_exp_to_submit(self, trace: Trace, **kwargs) -> DSExperiment | None:
+        """
+        Sorts all valid experiments by score and returns the top N.
+        """
+        top_experiments = self.collect_sota_candidates(trace)
+        if top_experiments:
+            return top_experiments[0]
+        return None
+
+    def collect_sota_candidates(self, trace: Trace) -> list[DSExperiment] | None:
+        """Helper to gather SOTA experiments from trace leaves."""
+        """
+        Sorts all valid experiments by score and returns the top N.
+        """
+        direction_sign = 1 if trace.scen.metric_direction else -1
+
+        def get_sort_key(exp_fb: Tuple[DSExperiment, ExperimentFeedback]) -> Tuple[bool, float]:
+            exp, feedback = exp_fb
+            score = -np.inf
+            if exp.result is not None:
+                score = direction_sign * pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
+
+            # Sort key prioritizes decision (True > False), then score
+            return (feedback.decision, score) if self.use_decision else score
+
+        # Collect candidates
+        if self.each_trace:
+            candidate_list = []
+            leaves = trace.get_leaves()
+            num_per_leaf = max(self.num_candidates // len(leaves), 1)
+            for leaf in leaves:
+                branch_experiments = trace.experiment_and_feedback_list_after_init(
+                    return_type="all", search_type="ancestors", selection=(leaf,)
+                )
+                if branch_experiments:
+                    branch_experiments.sort(key=get_sort_key, reverse=True)
+                    candidate_list.extend(branch_experiments[:num_per_leaf])
+            # Remove duplicates
+            candidate_list = list(set(candidate_list))
+        else:
+            candidate_list = trace.experiment_and_feedback_list_after_init(return_type="all", search_type="all")
+
+        if not candidate_list:
+            logger.info("BestValidSelector: No experiments found in trace.")
+            return None
+
+        # Sort and select the top N
+        candidate_list.sort(key=get_sort_key, reverse=True)
+
+        top_experiments = [exp for exp, _ in candidate_list[: self.num_candidates]]
+        logger.info(f"BestValidSelector: Selected {len(top_experiments)} experiments.")
+        return top_experiments
+
+
+class ValidationSelector(SOTAexpSelector):
+    """
+    A meta-selector that re-validates candidates from a base selector.
+
+    It then generates a consistent validation dataset and grading script,
+    re-runs all candidates on this new data, and returns the best performer.
     """
 
     def __init__(
         self,
+        candidate: List[Tuple[DSExperiment, str]],
+        direction_sign: int,
+        competition: str,
+        only_sample: bool,
+        sample_code_path: str,
     ):
-        print(f"Using auto SOTA policy")
+        self.candidate = candidate
+        self.direction_sign = direction_sign
+        self.competition = competition
+        self.only_sample = only_sample
+        self.sample_code_path = Path(sample_code_path)
+        self.hypothesis_loop_id = {exp.hypothesis.hypothesis: loop_id for exp, loop_id in self.candidate}
+        self.hypothesis_exp = {exp.hypothesis.hypothesis: exp for exp, loop_id in self.candidate}
 
-    @wait_retry(retry_n=5)
     def get_sota_exp_to_submit(self, trace: Trace) -> DSExperiment | None:
-        # retrieve all SOTA experiments from the trace
+        """Helper to gather SOTA experiments from trace leaves."""
+        """
+        Sorts all valid experiments by score and returns the top N.
+        """
 
-        sota_exp_fb_list = trace.experiment_and_feedback_list_after_init(
-            return_type="sota", search_type="all", max_retrieve_num=DS_RD_SETTING.max_sota_retrieved_num
-        )
-        logger.info(f"Auto SOTA selector: Found {len(sota_exp_fb_list)} SOTA experiments")
-        if len(sota_exp_fb_list) == 0:
-            logger.info("Auto SOTA selector: No SOTA in trace yet")
+        mock_folder = f"/tmp/mock/{self.competition}"
+
+        try:
+            data_py_code, grade_py_code = self._prepare_validation_scripts(
+                reference_exp=self.candidate[0][0], competition=self.competition, mock_folder=mock_folder
+            )
+        except RuntimeError as e:
+            logger.error(f"ValidationSelector: Failed to prepare validation environment. {e}")
+            shutil.rmtree(mock_folder, ignore_errors=True)
             return None
 
-        elif len(sota_exp_fb_list) == 1:
-            sota_idx_in_trace = trace.hist.index(sota_exp_fb_list[0])
-            logger.info(
-                f"Auto SOTA selector: Only one SOTA in trace, using it, which is the No. {sota_idx_in_trace + 1} in the trace"
-            )
-            return sota_exp_fb_list[0][0]
-
-        else:
-            logger.info(
-                f"Auto SOTA selector: Multiple SOTA in trace, calling LLM to select the best one in {DS_RD_SETTING.max_sota_retrieved_num} SOTA experiments"
-            )
-
-            SOAT_exp_with_desc_and_scores = "Historical SOTA experiments:\n\n"
-
-            leaves: list[int] = trace.get_leaves()
-
-            if len(leaves) >= 2:
-
-                logger.info(
-                    f"Auto SOTA selector: {len(leaves)} traces found, collecting SOTA experiments from each trace"
-                )
-                # multiple trace case, collect the latest SOTA experiments from each trace
-                new_sota_exp_fb_list: list[tuple[DSExperiment, ExperimentFeedback]] = []
-                # calculate the number of SOTA experiments to retrieve from each trace, prevent it from becoming zero
-                max_sota_retrieved_num_per_trace = max(DS_RD_SETTING.max_sota_retrieved_num // len(leaves), 2)
-                # recall, due to the integer division, the final number of SOTA experiments to retrieve may be different
-                for leaf in leaves:
-                    sota_exp_fb_list_per_trace = trace.experiment_and_feedback_list_after_init(
-                        return_type="sota",
-                        search_type="ancestors",
-                        selection=(leaf,),
-                        max_retrieve_num=max_sota_retrieved_num_per_trace,
-                    )
-                    logger.info(
-                        f"Auto SOTA selector: Collected {len(sota_exp_fb_list_per_trace)} SOTA experiments from trace with leaf #. {leaf}"
-                    )
-
-                    new_sota_exp_fb_list.extend(sota_exp_fb_list_per_trace)
-
-                sota_exp_fb_list = list(set(new_sota_exp_fb_list))
-
-                if len(sota_exp_fb_list) == 0:
-                    logger.info("Auto SOTA selector: No SOTA in trace yet")
-                    return None
-
-                elif len(sota_exp_fb_list) == 1:
-                    logger.info("Auto SOTA selector: Only one SOTA in trace, using it")
-                    return sota_exp_fb_list[0][0]
-                else:
-                    logger.info(
-                        f"Auto SOTA selector: select {len(sota_exp_fb_list)} of {len(new_sota_exp_fb_list)} SOTA experiments found in all traces, calling LLM to select the best one"
-                    )
-                    if len(sota_exp_fb_list) > DS_RD_SETTING.max_sota_retrieved_num:
-                        sota_exp_fb_list = sorted(
-                            sota_exp_fb_list,
-                            key=lambda exp_fb: pd.DataFrame(exp_fb[0].result).loc["ensemble"].iloc[0],
-                            reverse=not trace.scen.metric_direction,
-                        )[-DS_RD_SETTING.max_sota_retrieved_num :]
-
-            for i, (exp, ef) in enumerate(sota_exp_fb_list):
-                if exp:
-                    current_final_score = pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
-                    desc = T("scenarios.data_science.share:describe.exp").r(
-                        exp=exp, heading="SOTA of previous exploration of the scenario"
-                    )
-                    SOAT_exp_with_desc_and_scores += f"""SOTA experiment No. {i+1}:
-                        Description: {desc}
-                        Final score: {current_final_score}\n\n"""
-
-            system_prompt = T(".prompts:auto_sota_selector.system").r(scenario=trace.scen.get_scenario_all_desc())
-
-            user_prompt = T(".prompts:auto_sota_selector.user").r(
-                historical_sota_exp_with_desc_and_scores=SOAT_exp_with_desc_and_scores,
-            )
-
-            response = APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
-                json_mode=True,
-                json_target_type=Dict[str, str | int],
-            )
-
-            response_dict = json.loads(response)
-
-            sota_submit_idx = response_dict.get("selected_SOTA_idx", None)
-
-            if sota_submit_idx and int(sota_submit_idx) - 1 < len(sota_exp_fb_list):
-                sota_submit = sota_exp_fb_list[int(sota_submit_idx) - 1]
-                sota_idx_in_trace = trace.hist.index(sota_submit)
-                logger.info(
-                    f"Auto SOTA selector: selected SOTA experiment No. {sota_submit_idx} to submit, which is the No. {sota_idx_in_trace + 1} in the trace"
-                )
-                return sota_submit[0]
-            else:
-                # no SOTA experiment to submit, using the latest SOTA experiment
-                if len(sota_exp_fb_list) > 0:
-                    logger.info("Auto SOTA selector: No SOTA experiment to submit, using the latest SOTA experiment")
-                    return sota_exp_fb_list[-1][0]
-                else:
-                    logger.info("Auto SOTA selector: No SOTA experiment in trace yet")
-                    return None
-
-
-class BestValidSelector(SOTAexpSelector):
-    def get_sota_exp_to_submit(self, trace: Trace) -> DSExperiment | None:
-        sota_exp_fb_list = trace.experiment_and_feedback_list_after_init(return_type="all", search_type="all")
-        direction_sign = 1 if trace.scen.metric_direction else -1
-
-        def get_sort_key(exp_fb: tuple[DSExperiment, ExperimentFeedback]) -> tuple[bool, float]:
-            score = -np.inf
-            result: pd.DataFrame | None = exp_fb[0].result
-            if result is not None:
-                score = result.loc["ensemble"].iloc[0]
-            return (exp_fb[1].decision, direction_sign * score)
-
-        if len(sota_exp_fb_list) == 0:
-            logger.info("Best Valid SOTA selector: No SOTA in trace yet")
+        if grade_py_code and self.only_sample:
+            print("======== data.py ========")
+            print(data_py_code)
+            print("======== grade.py ========")
+            print(grade_py_code)
+            print("======== code end ========")
             return None
-        else:
-            sota_exp_fb_list = sorted(sota_exp_fb_list, key=get_sort_key, reverse=True)
-            return sota_exp_fb_list[0][0]
 
+        validation_tasks = [
+            (process_experiment, (exp, self.competition, mock_folder, grade_py_code, loop_id))
+            for exp, loop_id in self.candidate
+        ]
+        results = multiprocessing_wrapper(validation_tasks, n=min(DEFAULT_NUM_WORKERS, (len(self.candidate) + 1) // 2))
 
-def select_one_trace(selector_name, trace_pkl_path, trace_folder):
-    sota_result = json.load(open(trace_folder / f"{trace_pkl_path.stem.split('_')[0]}_loops.json", "r"))
-    if not sota_result['medal_loops']:
+        if not results:
+            logger.warning("ValidationSelector: Validation run produced no results.")
+            return None
+
+        # 4. Process results and select the best one
+        valid_results = [
+            (
+                self.hypothesis_exp.get(exp.hypothesis.hypothesis),
+                score,
+                self.hypothesis_loop_id.get(exp.hypothesis.hypothesis),
+            )
+            for exp, score in results
+            if score is not None
+        ]
+        if not valid_results:
+            logger.warning("ValidationSelector: No candidates scored successfully during validation.")
+            return None
+
+        valid_results.sort(key=lambda x: x[1] * self.direction_sign, reverse=True)
+        best_exp, best_loop_id = valid_results[0][0], valid_results[0][2]
+
+        for loop_id, score in [(i[2], i[1]) for i in valid_results]:
+            logger.info(f"ValidationSelector: Loop_id={loop_id} -> score={score}")
         logger.info(
-            f"Selector {selector_name} found no SOTA loops in trace: {trace_pkl_path}, skipping..."
+            f"ValidationSelector: Best experiment from validation is loop_id={best_loop_id} with score={valid_results[0][1]}"
         )
+        if len(valid_results) <= 1 or valid_results[0][1] == valid_results[-1][1]:
+            logger.warning(f"ValidationSelector: There aren't enough scores to compare, current: {len(valid_results)}.")
+            return None
+
+        return best_exp
+
+    def _prepare_validation_scripts(
+        self, reference_exp: DSExperiment, competition: str, mock_folder: str
+    ) -> Tuple[str, str]:
+        """Generates and verifies data.py and grade.py using an LLM."""
+        input_folder = T("scenarios.data_science.share:scen.input_path").r()
+        mock_input_path = Path(mock_folder) / input_folder
+        mock_input_path.mkdir(parents=True, exist_ok=True)
+
+        data_py_path = Path(mock_folder) / "data.py"
+        grade_py_path = Path(mock_folder) / "grade.py"
+        label_path = Path(mock_folder) / "workspace_input/label.csv"
+        reference_code = reference_exp.experiment_workspace.file_dict.get("main.py", "")
+        if not reference_code:
+            raise RuntimeError("ValidationSelector: No code found in the reference experiment.")
+
+        if (self.sample_code_path / competition / "data.py").exists():
+            shutil.copy(self.sample_code_path / competition / "data.py", data_py_path)
+            shutil.copy(self.sample_code_path / competition / "grade.py", grade_py_path)
+            data_py_code = data_py_path.read_text()
+            if not label_path.exists():
+                ws = FBWorkspace()
+                ws.inject_code_from_file_dict(reference_exp.experiment_workspace)
+                ws.inject_files(**{f"data.py": data_py_code})
+                env = get_ds_env(
+                    extra_volumes={
+                        str(Path(mock_folder) / input_folder): {"bind": Path(input_folder), "mode": "rw"},
+                        f"{DS_RD_SETTING.local_data_path}/{competition}": "./source",
+                    },
+                    running_timeout_period=DS_RD_SETTING.full_timeout,
+                )
+                result = ws.run(
+                    env=env, entry=f"python data.py --cache-buster={time.time()}"
+                )  # Do not cache the result
+                if result.exit_code == 0:
+                    logger.info(f"Successfully ran data.py.")
+            return data_py_code, grade_py_path.read_text()
+
+        # --- Generate data.py if needed ---
+        if not data_py_path.exists() or not label_path.exists():
+            logger.info(f"Generating synthetic data script: {data_py_path}")
+            data_py_code = self._generate_and_run_script(
+                script_type="data",
+                prompt_template_key="sample_data",
+                reference_exp=reference_exp,
+                competition=competition,
+                mock_folder=mock_folder,
+                prompt_kwargs={"reference_code": reference_code, "input_folder": input_folder},
+            )
+            data_py_path.write_text(data_py_code)
+
+        data_py_code = data_py_path.read_text()
+
+        # --- Generate grade.py if needed ---
+        if not grade_py_path.exists():
+            logger.info(f"Generating grading script: {grade_py_path}")
+            grade_py_code = self._generate_and_run_script(
+                script_type="grade",
+                prompt_template_key="grade",
+                reference_exp=reference_exp,
+                competition=competition,
+                mock_folder=mock_folder,
+                prompt_kwargs={
+                    "reference_code": reference_code,
+                    "sample_code": data_py_code,
+                    "input_folder": input_folder,
+                },
+            )
+            grade_py_path.write_text(grade_py_code)
+
+        return data_py_code, grade_py_path.read_text()
+
+    def _generate_and_run_script(
+        self,
+        script_type: str,
+        prompt_template_key: str,
+        reference_exp: DSExperiment,
+        competition: str,
+        mock_folder: str,
+        prompt_kwargs: dict,
+    ) -> str:
+        """A helper to generate, run, and validate a script (data.py or grade.py)."""
+        system_prompt = T(".prompts:sample_data.system").r()  # Generic system prompt for both
+        input_folder = T("scenarios.data_science.share:scen.input_path").r()
+
+        err_msg = ""
+        for _ in range(MAX_API_RETRIES):
+            user_prompt = T(f".prompts:{prompt_template_key}.user").r(error=err_msg, **prompt_kwargs)
+
+            generated_code = PythonAgentOut.extract_output(
+                APIBackend().build_messages_and_create_chat_completion(
+                    user_prompt=user_prompt, system_prompt=system_prompt
+                )
+            )
+
+            # Create a temporary workspace to test the generated script
+            ws = FBWorkspace()
+            ws.inject_code_from_file_dict(reference_exp.experiment_workspace)
+            ws.inject_files(**{f"{script_type}.py": generated_code})
+
+            if script_type == "data":
+                # For data.py, we need the original data to sample from
+                env = get_ds_env(
+                    extra_volumes={
+                        str(Path(mock_folder) / input_folder): {"bind": Path(input_folder), "mode": "rw"},
+                        f"{DS_RD_SETTING.local_data_path}/{competition}": "./source",
+                    },
+                    running_timeout_period=DS_RD_SETTING.full_timeout,
+                )
+            else:  # For grade.py, we only need the generated data
+                shutil.copy(
+                    str(Path(mock_folder) / "submission.csv"),
+                    str(ws.workspace_path / "submission.csv"),
+                )
+                env = get_ds_env(
+                    extra_volumes={str(Path(mock_folder) / input_folder): {"bind": Path(input_folder), "mode": "rw"}}
+                )
+
+            result = ws.run(
+                env=env, entry=f"python {script_type}.py --cache-buster={time.time()}"
+            )  # Do not cache the result
+            stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
+
+            if result.exit_code == 0:
+                logger.info(f"Successfully generated and ran {script_type}.py.")
+                if script_type == "data":
+                    env = get_ds_env(
+                        extra_volumes={
+                            str(Path(mock_folder) / input_folder): {"bind": Path(input_folder), "mode": "rw"}
+                        },
+                        running_timeout_period=DS_RD_SETTING.full_timeout,
+                    )
+                    result = ws.run(env=env, entry=f"python main.py --cache-buster={time.time()}")
+                    stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
+                    if result.exit_code == 0:
+                        # move submission.csv to mock_folder
+                        if Path(ws.workspace_path / "submission.csv").exists():
+                            shutil.copy(
+                                str(ws.workspace_path / "submission.csv"),
+                                str(Path(mock_folder) / "submission.csv"),
+                            )
+                            return generated_code
+                        else:
+                            err_msg = "No submission.csv found in workspace after running main.py with generated data."
+                    else:
+                        err_msg = f"Error in main.py with generated data: {shrink_text(stdout, context_lines=20, line_len=500)}"
+                else:
+                    score = _parsing_score(stdout)
+                    if score is not None:
+                        return generated_code
+                    else:
+                        err_msg = f"No score found in stdout: {stdout}."
+            else:
+                err_msg = f"Error in {script_type}.py: {shrink_text(stdout, context_lines=20, line_len=500)}"
+
+            logger.warning(f"Attempt to generate {script_type}.py failed. Retrying... Error: {err_msg}")
+        raise RuntimeError(f"Failed to generate a working {script_type}.py after {MAX_API_RETRIES} attempts.")
+
+
+# ==============================================================================
+# ## Worker and Utility Functions
+# ==============================================================================
+
+
+def process_experiment(
+    exp: DSExperiment, competition: str, folder: str, grade_py_code: str, loop_id: str
+) -> Tuple[DSExperiment, Optional[float]]:
+    """
+    Worker function to process a single experiment in an isolated directory.
+    This function is designed to be called by a multiprocessing pool.
+    """
+    if loop_id is None:
+        logger.error("Could not find loop_id for a given experiment.")
+        loop_id = "unknown"
+
+    input_folder = T("scenarios.data_science.share:scen.input_path").r()
+
+    try:
+        ws = FBWorkspace()
+        logger.info(f"Experiment files: {exp.experiment_workspace.file_dict.keys()}")
+        ws.inject_code_from_file_dict(exp.experiment_workspace)
+
+        # Run main script
+        env = get_ds_env(
+            extra_volumes={f"/tmp/mock/{competition}/{input_folder}": input_folder},
+            running_timeout_period=DS_RD_SETTING.full_timeout,
+        )
+        result = ws.run(env=env, entry="python main.py")
+        execute_ret_code = result.exit_code
+        logger.info(f"Ran {competition}/{loop_id}/main.py; exit_code: {execute_ret_code}")
+
+        # Run grading script if main script succeeded
+        grade_stdout = ""
+        if execute_ret_code == 0:
+            ws.inject_files(**{"grade.py": grade_py_code})
+            env.conf.running_timeout_period = DS_RD_SETTING.debug_timeout
+            result = ws.run(env=env, entry="python grade.py")
+            if result.exit_code == 0:
+                grade_stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
+            logger.info(f"Ran grade.py for {competition}/{loop_id}; exit_code: {result.exit_code}")
+        else:
+            logger.warning(f"Skipping grading for {competition}/{loop_id} due to main.py execution failure.")
+
+    except Exception as e:
+        logger.error(f"CRITICAL ERROR while processing experiment {competition}/{loop_id}: {e}")
+        return exp, None
+
+    # Score parsing
+    return exp, _parsing_score(grade_stdout)
+
+
+def _parsing_score(grade_stdout: str) -> Optional[float]:
+    for line in grade_stdout.splitlines():
+        line = line.strip()
+        if "score" not in line:
+            continue
+        m = re.search(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", line)
+        if not m:
+            continue
+        json_str = m.group(0)
+        try:
+            # Priority 1: JSON parsing
+            return float(json.loads(json_str)["score"])
+        except:
+            pass
+        try:
+            # Priority 2: Eval dict
+            return float(eval(json_str)["score"])
+        except:
+            pass
+        try:
+            # Priority 3: Regex for the last number in the string
+            return float(re.findall(r"[-+]?\d*\.\d+|\d+", json_str)[-1])
+        except:
+            pass
+    return None
+
+
+def check_hit(selected_exp: DSExperiment, trace: Trace, sota_result: Dict[str, Any]) -> bool:
+    """Checks if any of the selected experiments are considered medal-winning."""
+    if not selected_exp:
         return False
 
+    index = trace.exp2idx(selected_exp)
+    # Check by loop_id if available
+    if hasattr(trace, "idx2loop_id"):
+        loop_id = trace.idx2loop_id.get(index)
+        if loop_id and loop_id in sota_result.get("medal_loops", []):
+            return True
+    # Fallback to checking by index
+    if index in sota_result.get("medal_loops_index", []):
+        return True
+    return False
+
+
+def try_get_loop_id(trace: Trace, exp: DSExperiment):
+    index = trace.exp2idx(exp)
+    if hasattr(trace, "idx2loop_id"):
+        return trace.idx2loop_id.get(index)
+    return index
+
+
+# ==============================================================================
+# ## Main Orchestration Logic
+# ==============================================================================
+
+
+def evaluate_one_trace(
+    selector_name: str,
+    trace: Trace,
+    debug: bool,
+    only_sample: bool,
+    sample_code_path: str,
+    sota_result: dict[str, Any] = {},
+    experiment: str = "validation",
+    log_path: Path | None = None,
+) -> Tuple[str, bool]:
+    """
+    Loads a single trace, uses the specified selector to pick an experiment,
+    and checks if the selection was a "hit" (a known SOTA solution).
+    """
+    competition = trace.scen.competition
+    hit = False
+
+    # Example of scenario-specific adjustment
+    if competition == "detecting-insults-in-social-commentary":
+        trace.scen.metric_direction = 1
+    direction_sign = 1 if trace.scen.metric_direction else -1
+
+    # --- Selector Instantiation ---
+    # The core logic is now encapsulated in these selectors.
     if selector_name == "global":
         selector = GlobalSOTASelector()
     elif selector_name == "auto":
         selector = AutoSOTAexpSelector()
     elif selector_name == "best_valid":
-        selector = BestValidSelector()
+        # These params can be configured or passed via CLI
+        selector = BestValidSelector(num_candidates=1, use_decision=True, each_trace=False)
 
-    trace = pickle.load(trace_pkl_path.open("rb"))
-    selected_sota_exp = selector.get_sota_exp_to_submit(trace)
+    if selector_name == "validation":
+        if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
+            logger.warning(f"Competition {DS_RD_SETTING.local_data_path}/{competition} does not exist, skipping.")
+            return competition, False
+        # The ValidationSelector is used to select the best re-test score.
+        quick_selector = BestValidSelector(num_candidates=1, use_decision=True, each_trace=False)
+        quick_selected_exps = quick_selector.get_sota_exp_to_submit(trace)
+        if debug:
+            quick_hit = check_hit(quick_selected_exps, trace, sota_result)
+            logger.info(f"BestvalidSelector for {experiment} - {competition}: {'HIT' if quick_hit else 'MISS'}")
 
-    selected_index = trace.exp2idx(selected_sota_exp)
-    if hasattr(trace, "idx2loop_id") and selected_index in trace.idx2loop_id:
-        selected_loop = trace.idx2loop_id[selected_index]
-        logger.info(
-            f"Selector {selector_name} selected SOTA experiment: { sota_result['medal_loops']}, loop in trace: {selected_loop}, trace: {trace_pkl_path}"
+        base_selector = BestValidSelector(num_candidates=MAX_SOTA_CANDIDATES, use_decision=True, each_trace=True)
+        candidate_exps = base_selector.collect_sota_candidates(trace)
+        if not candidate_exps:
+            logger.info("ValidationSelector: Base selector returned no candidates.")
+            return competition, False
+
+        logger.info(f"ValidationSelector: Received {len(candidate_exps)} candidates for validation.")
+        if debug:
+            pool_hit = any(check_hit(candidate_exp, trace, sota_result) for candidate_exp in candidate_exps)
+            if not pool_hit:
+                logger.info("ValidationSelector: Base selector's candidates did not hit any SOTA. Skipping validation.")
+                return competition, False
+
+        selector = ValidationSelector(
+            candidate=[(exp, try_get_loop_id(trace, exp)) for exp in candidate_exps],
+            direction_sign=direction_sign,
+            competition=competition,
+            only_sample=only_sample,
+            sample_code_path=sample_code_path,
         )
-        return selected_loop in sota_result["medal_loops"]
-    else:
-        logger.info(
-            f"Selector {selector_name} selected SOTA experiment: { sota_result['medal_loops_index']}, index in trace: {selected_index}, trace: {trace_pkl_path}"
-        )
-        return selected_index in sota_result["medal_loops_index"]
+
+    selected_sota_exps = selector.get_sota_exp_to_submit(trace)
+    if selector_name == "validation" and selected_sota_exps is None:
+        selected_sota_exps = quick_selected_exps
+
+    # --- Run Selection and Check for Hit ---
+    logger.info(f"Running selector '{selector_name}' on trace for competition '{competition}'...")
+    if debug:
+        hit = check_hit(selected_sota_exps, trace, sota_result)
+        logger.info(f"Result for {experiment} - {competition}: {'HIT' if hit else 'MISS'}")
+    elif selector_name == "validation":
+        loop_id = selector.hypothesis_loop_id.get(selected_sota_exps[0].hypothesis.hypothesis)
+        logger.info(f"Selected loop for {experiment} - {competition}: {loop_id=}")
+        sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{loop_id}/running/mle_score/**/*.pkl")]
+        if len(sota_mle_score_paths):
+            with sota_mle_score_paths[0].open("rb") as f:
+                sota_mle_score = extract_json(pickle.load(f))
+                hit = sota_mle_score.get("any_medal", False)
+    return competition, hit
 
 
-# TODO: more advanced sota exp selector (e.g. LLM-based, merge exp with multiple sub-trace)
 def select_on_existing_trace(
     selector_name: str,
-    trace_root,
+    trace_root: str = "",
+    experiment: str | None = None,
+    competition: str | None = None,
+    debug: bool = False,
+    only_sample: bool = False,
+    sample_code_path: str = "",
 ):
     """
-    Offline select SOTA experiment from existing trace.
-    :param selector_name: name of the selector to use
-    :param trace_folder: folder containing the trace
+    Offline evaluation of a SOTA experiment selector on existing traces.
+
+    Args:
+        selector_name (str): Name of the selector to use. Options: 'global', 'auto', 'best_valid', 'validation'.
+        trace_root (str): Path to the root directory containing trace folders.
+        experiment (str | None): Name of the experiment to evaluate, e.g., "devoted-burro+massive-perch".
+        competition (str | None): Name of the competition to evaluate, e.g., "detecting-insults-in-social-commentary".
+        debug (bool): If True, debug mode.
+        only_sample (bool): If True, only generates the sample code.
+        sample_code_path (str): Path to the sample code.
     """
     result_dict = {}
-    for trace_folder in Path(trace_root).iterdir():
-        if not trace_folder.is_dir():
-            continue
-        trace_folder = Path(trace_folder)
+    trace_root_path = Path(trace_root)
 
-        # hit_list = []
-        # for trace_pkl_path in trace_folder.glob("*.pkl"):
-        #     hit_list.append(select_one_trace(selector_name, trace_pkl_path, trace_folder))
+    # Prepare list of tasks for multiprocessing
+    tasks = []
+    if debug:
+        for trace_folder in trace_root_path.iterdir():
+            if not trace_folder.is_dir():
+                continue
+            if experiment is not None:
+                if trace_folder.name not in experiment:
+                    continue
+            for trace_pkl_path in trace_folder.glob("*.pkl"):
+                if competition is not None and not competition in str(trace_pkl_path):
+                    continue
+                sota_result = {}
+                trace = pickle.load(trace_pkl_path.open("rb"))
+                try:
+                    sota_loops_file = trace_folder / f"{trace_pkl_path.stem.split('_')[0]}_loops.json"
+                    with open(sota_loops_file, "r") as f:
+                        sota_result = json.load(f)
+                except FileNotFoundError:
+                    logger.warning(f"Could not find SOTA loops file for {trace.scen.competition}, skipping.")
+                    continue
 
-        hit_list = multiprocessing_wrapper(
-            [
-                (select_one_trace, (selector_name, trace_pkl_path, trace_folder))
-                for trace_pkl_path in trace_folder.glob("*.pkl")
-            ],
-            n=8,
+                if not sota_result.get("medal_loops"):
+                    logger.info(f"No Medal loops defined for {trace.scen.competition}, skipping.")
+                    continue
+
+                tasks.append(
+                    (
+                        evaluate_one_trace,
+                        (
+                            selector_name,
+                            trace,
+                            debug,
+                            only_sample,
+                            sample_code_path,
+                            sota_result,
+                            trace_pkl_path.parent.name,
+                        ),
+                    )
+                )
+    else:
+        log_path = next(
+            d for d in Path("log").iterdir() if d.is_dir() and d.name != "pickle_cache" and not d.name.startswith("20")
+        )
+        logger.info(f"Loading trace from {log_path}")
+        log_storage = FileStorage(log_path)
+        trace = list(log_storage.iter_msg(tag="trace"))[-1].content
+        tasks.append(
+            (
+                evaluate_one_trace,
+                (selector_name, trace, debug, only_sample, sample_code_path, {}, "validation", log_path),
+            )
         )
 
-        print(
-            f"Selector {selector_name} hit {sum(hit_list)} out of {len(hit_list)} traces, hit rate: {sum(hit_list) / len(hit_list) * 100:.2f}%"
-        )
-        result_dict[trace_folder.name] = {
-            "hit": sum(hit_list),
-            "total": len(hit_list),
-            "hit_rate": sum(hit_list) / len(hit_list) * 100,
-        }
-    all_hit = sum([result["hit"] for result in result_dict.values()])
-    all_total = sum([result["total"] for result in result_dict.values()])
-    result_dict["all"] = {
-        "hit": all_hit,
-        "total": all_total,
-        "hit_rate": all_hit / all_total * 100 if all_total > 0 else 0,
+    if not tasks:
+        logger.error(f"No .pkl trace files found in subdirectories of {trace_root}")
+        return
+
+    # Run evaluation in parallel
+    hit_list = multiprocessing_wrapper(tasks, n=1)  # n=1 for sequential debugging, increase for parallel runs
+
+    # Aggregate and report results
+    hit_count = sum(hit for _, hit in hit_list if hit is not None)
+    total_valid_traces = len(hit_list)
+
+    print("\n" + "=" * 50)
+    print(f"Evaluation Summary for Selector: '{selector_name}'")
+    print(f"Total Traces Processed: {total_valid_traces}")
+    print(f"Total Hits: {hit_count}")
+    if total_valid_traces > 0:
+        hit_rate = (hit_count / total_valid_traces) * 100
+        print(f"Hit Rate: {hit_rate:.2f}%")
+    print("=" * 50 + "\n")
+
+    result_dict["summary"] = {
+        "hit": hit_count,
+        "total": total_valid_traces,
+        "hit_rate": hit_rate if total_valid_traces > 0 else 0,
     }
-    json.dump(result_dict, open(f"result_{selector_name}.json", "w"), indent=4)
+    result_dict["details"] = [{comp: hit} for comp, hit in hit_list]
+
+    with open(f"result_{selector_name}.json", "w") as f:
+        json.dump(result_dict, f, indent=4)
+    logger.info(f"Results saved to result_{selector_name}.json")
 
 
 if __name__ == "__main__":
