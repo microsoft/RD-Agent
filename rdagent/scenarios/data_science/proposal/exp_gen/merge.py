@@ -18,6 +18,10 @@ from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
 
+from .proposal import (
+    HypothesisComponent,  # FIXME: for statistic of other branches after running, remove this later
+)
+
 
 class MergeExpGen(ExpGen):
     def gen(
