@@ -786,6 +786,28 @@ class DSProposalV2ExpGen(ExpGen):
 
 class DSProposalV3ExpGen(DSProposalV2ExpGen):
 
+    def to_json_serializable(self, obj):
+        if obj is None:
+            return None
+        elif isinstance(obj, (str, int, float, bool)):
+            return obj
+        elif isinstance(obj, list):
+            return [self.to_json_serializable(item) for item in obj]
+        elif isinstance(obj, tuple):
+            return [self.to_json_serializable(item) for item in obj]
+        elif isinstance(obj, dict):
+            return {key: self.to_json_serializable(value) for key, value in obj.items()}
+        elif isinstance(obj, pd.DataFrame):
+            return obj.to_dict('records')
+        elif isinstance(obj, pd.Series):
+            return obj.to_dict()
+        elif hasattr(obj, '__dict__'):
+            # Handle arbitrary Python objects with __dict__
+            return self.to_json_serializable(obj.__dict__)
+        else:
+            # Fallback: try to convert to string
+            return str(obj)
+
     def scenario_description(self, trace: DSTrace, sota_exp: Optional[DSExperiment] = None) -> dict:
         eda_output = sota_exp.experiment_workspace.file_dict.get("EDA.md", None) if sota_exp else None
         return {
@@ -807,7 +829,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             # Variables for shares/scenario_description.poml
             **(self.scenario_description(trace, sota_exp) if trace is not None else {}),
             # Variables for shares/sota_exp.poml
-            "exp": sota_exp,
+            "exp": self.to_json_serializable(sota_exp),
             # Output schema
             "output_schema": to_strict_json_schema(ScenarioChallenges),
         }
@@ -834,9 +856,9 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             # Variables for shares/scenario_description.poml
             **(self.scenario_description(trace, sota_exp) if trace is not None else {}),
             # Variables for shares/sota_exp.poml
-            "exp": sota_exp,
+            "exp": self.to_json_serializable(sota_exp),
             # Variables for shares/feedback_list.poml
-            "exp_and_feedback_list": exp_and_feedback_list,
+            "exp_and_feedback_list": self.to_json_serializable(exp_and_feedback_list),
             # Output schema
             "output_schema": to_strict_json_schema(TraceChallenges),
         }
@@ -1042,7 +1064,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
 
         # Step 1: Identify problems
         all_problems = {}
-        if len(trace.hist) >= 3:
+        if len(trace.hist) >= 1:
             fb_problems = self.identify_feedback_problem(
                 trace=trace,
                 sota_exp=sota_exp,

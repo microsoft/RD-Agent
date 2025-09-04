@@ -30,7 +30,7 @@
       <p>
         This metric is considered better when it is <b><span if="metric_direction">larger</span><span if="!metric_direction">smaller</span></b>.
       </p>
-      <div if="evaluation !== null">
+      <div if="evaluation">
         <p>Additional Evaluation Details:</p>
         <p>{{ evaluation }}</p>
       </div>

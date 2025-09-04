@@ -6,18 +6,18 @@
         <code>{{ exp.experiment_workspace.all_codes }}</code>
       </cp>
       
-      <cp caption="Hypothesis for the experiment" if="exp.hypothesis !== null">
+      <cp caption="Hypothesis for the experiment" if="exp.hypothesis">
         <p>The experiment is designed based on hypothesis: {{ exp.hypothesis }}</p>
       </cp>
       
       <cp caption="Results">
-        <div if="exp.result === null">
+        <div if="!exp.result">
           <p>There are no according evaluation results</p>
         </div>
-        <div if="exp.result !== null">
+        <div if="exp.result">
           <p>Evaluated results on validation are:</p>
           <code whiteSpace="pre">{{ exp.result }}</code>
-          <div if="exp.format_check_result !== null">
+          <div if="exp.format_check_result">
             <p>Submission format check result is:</p>
             <code whiteSpace="pre">{{ exp.format_check_result }}</code>
           </div>

@@ -12,13 +12,13 @@
   <p>Your task is to analyze all this provided historical information and extract <b>Key Learnings and Unresolved Challenges</b> from the experiment history. These should guide concrete improvements in subsequent iterations.</p>
 
   <cp caption="Key Learnings and Unresolved Challenges" level="2">
-    <cp caption="Definition" level="3">
+    <cp caption="Definition">
       <p>
         Key Learnings and Unresolved Challenges are specific, fine-grained technical or methodological observations, persistent issues, or patterns identified within previous experiments or the current SOTA implementation.
         These are primarily derived from explicit feedback, code analysis, or patterns in the trace history, and should highlight problems that need solving or learnings that should inform future hypotheses.
       </p>
     </cp>
-    <cp caption="Guidelines for Identification" level="3">
+    <cp caption="Guidelines for Identification">
       <p>Here are guidelines to help you identify these Learnings and Challenges:</p>
       <list listStyle="decimal">
         <item>
@@ -86,7 +86,7 @@
         </item>
       </list>
     </cp>
-    <cp caption="Specification for each Learning/Challenge" level="3">
+    <cp caption="Specification for each Learning/Challenge">
       <list listStyle="decimal">
         <item>
           <cp className="inline" caption="Specific, Actionable, and Evidence-based">
@@ -119,15 +119,17 @@
 
   <human-msg>
     <cp caption="Scenario Description">
-      <include src="prompts_v3_scenario_description.poml" />
+      <include src="../../poml_share/scenario_description.poml" />
     </cp>
     <cp caption="Previous Experiments and Feedbacks">
-      <include src="prompts_v3_exp_feedback_list.poml" />
+      <include src="../../poml_share/exp_feedback_list.poml" />
     </cp>
     <cp caption="Current SOTA Implementation">
-      <include src="prompts_v3_sota_exp.poml" />
+      <include src="../../poml_share/sota_exp.poml" />
     </cp>
   </human-msg>
+
+  <output-schema>{{ output_schema }}</output-schema>
 
   <stylesheet>
   {
