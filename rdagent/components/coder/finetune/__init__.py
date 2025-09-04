@@ -90,7 +90,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         # Validate the generated config using existing validator
         validated_config = self._validate_config(config_yaml)
 
-        return {"config.yaml": validated_config}
+        return {"train.yaml": validated_config}
 
     def _generate_llamafactory_config_with_llm(
         self,
@@ -111,7 +111,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         if similar_knowledge:
             similar_knowledge_str = "\n".join(
                 [
-                    f"### Similar Implementation {i+1}:\n{knowledge.target_task.get_task_information()}\n```yaml\n{knowledge.implementation.file_dict.get('config.yaml', '')}\n```"
+                    f"### Similar Implementation {i+1}:\n{knowledge.target_task.get_task_information()}\n```yaml\n{knowledge.implementation.file_dict.get('train.yaml', '')}\n```"
                     for i, knowledge in enumerate(similar_knowledge)
                 ]
             )
@@ -120,7 +120,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         if failed_knowledge:
             failed_knowledge_str = "\n".join(
                 [
-                    f"### Failed Attempt {i+1}:\n```yaml\n{knowledge.implementation.file_dict.get('config.yaml', '')}\n```\n**Feedback:** {knowledge.feedback}"
+                    f"### Failed Attempt {i+1}:\n```yaml\n{knowledge.implementation.file_dict.get('train.yaml', '')}\n```\n**Feedback:** {knowledge.feedback}"
                     for i, knowledge in enumerate(failed_knowledge)
                 ]
             )
@@ -133,8 +133,9 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         params_query = LLaMAFactoryParamsQuery()
         method_params_desc = params_query.format_params_for_prompt(finetune_method)
 
-        # Get Docker environment info with file trees
-        docker_env_info = self._get_docker_environment_info(dataset)
+        # Use fixed Docker paths for simplicity
+        models_path = "/assets/models/"
+        datasets_path = "/assets/datasets/"
 
         # Generate prompts using templates with all required parameters
         system_prompt = T("components.coder.finetune.prompts:finetune_coder.system").r(
@@ -146,11 +147,13 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         user_prompt = T("components.coder.finetune.prompts:finetune_coder.user").r(
-            latest_code=(workspace.file_dict.get("config.yaml", "") if workspace and prev_feedback else ""),
+            latest_code=(workspace.file_dict.get("train.yaml", "") if workspace and prev_feedback else ""),
             latest_feedback=str(prev_feedback) if prev_feedback else "",
             finetune_method=finetune_method,
             base_model=base_model,
-            docker_env_info=docker_env_info,
+            dataset_name=dataset,
+            models_path=models_path,
+            datasets_path=datasets_path,
         )
 
         # Call LLM to generate config
@@ -222,55 +225,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
                 evo.sub_workspace_list[index] = evo.experiment_workspace
             evo.sub_workspace_list[index].inject_files(**code_list[index])
         return evo
-
-    def _get_container_mount_path(self) -> str:
-        """Get the container mount path dynamically from Docker configuration"""
-        from rdagent.utils.env import FTDockerConf
-
-        docker_conf = FTDockerConf()
-        return docker_conf.mount_path
-
-    def _get_directory_tree(self, relative_path: str) -> str:
-        """Get directory tree for a specific path within FT_FILE_PATH"""
-        import os
-        from pathlib import Path
-
-        from rdagent.scenarios.data_science.scen.utils import FileTreeGenerator
-
-        try:
-            from rdagent.app.finetune.llm.conf import FT_RD_SETTING
-
-            if not FT_RD_SETTING.file_path:
-                return "FT_FILE_PATH not set"
-
-            target_path = Path(FT_RD_SETTING.file_path) / relative_path
-            if not target_path.exists():
-                return f"{relative_path} not found"
-
-            return FileTreeGenerator(max_lines=30).generate_tree(target_path)
-        except Exception as e:
-            return f"Error: {str(e)}"
-
-    def _get_docker_environment_info(self, dataset: str) -> dict:
-        """Get Docker environment info with actual training container paths"""
-
-        # Training containers now mount models to /assets/models and datasets to /assets/datasets
-        # /workspace is used for CoSTEER code execution only
-        models_mount_path = "/assets/models/"
-        datasets_mount_path = "/assets/datasets/"
-
-        # Get file trees for actual training paths
-        data_tree = self._get_directory_tree("assets")
-        dataset_tree = self._get_directory_tree(f"assets/datasets/{dataset}")
-
-        return {
-            "models_mount_path": models_mount_path,  # /assets/models/ for model files
-            "datasets_mount_path": datasets_mount_path,  # /assets/datasets/ for dataset files
-            "training_mount_path": "/assets/",  # Legacy compatibility - base assets path
-            "data_tree": data_tree,
-            "dataset_tree": dataset_tree,
-            "dataset_name": dataset,
-        }
 
     def _validate_config(self, config_yaml: str) -> str:
         """Validate LlamaFactory configuration using existing validator"""

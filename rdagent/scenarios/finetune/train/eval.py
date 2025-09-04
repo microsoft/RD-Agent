@@ -38,17 +38,17 @@ class LLMFinetuneEvaluator(CoSTEEREvaluator):
         stdout = implementation.execute(env=env, entry=get_clear_ws_cmd())
 
         # Execute LlamaFactory training instead of Python script
-        # Check if config.yaml exists in the workspace
-        if "config.yaml" not in implementation.file_dict:
+        # Check if train.yaml exists in the workspace
+        if "train.yaml" not in implementation.file_dict:
             return CoSTEERSingleFeedback(
-                execution="No config.yaml found in workspace for LlamaFactory training",
+                execution="No train.yaml found in workspace for LlamaFactory training",
                 return_checking="Config file missing",
                 code="No valid configuration file",
                 final_decision=False,
             )
 
         # Execute LlamaFactory training
-        result = implementation.run(env=env, entry="llamafactory-cli train config.yaml")
+        result = implementation.run(env=env, entry="llamafactory-cli train train.yaml")
         stdout = result.stdout
         execute_ret_code = result.exit_code
         implementation.running_info.running_time = result.running_time

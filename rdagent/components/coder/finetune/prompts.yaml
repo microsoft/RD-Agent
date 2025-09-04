@@ -11,7 +11,7 @@ finetune_coder:
     {% for knowledge in similar_knowledge[:3] %}  {# Limit to 3 examples to keep prompt concise #}
     ### Example {{ loop.index }}:
     ```yaml
-    {{ knowledge.implementation.file_dict.get("config.yaml", "") }}
+    {{ knowledge.implementation.file_dict.get("train.yaml", "") }}
     ```
     {% endfor %}
     {% endif %}
@@ -25,7 +25,7 @@ finetune_coder:
     {% endif %}
 
     ## Requirements
-    1. Create a LlamaFactory configuration file named `config.yaml`
+    1. Create a LlamaFactory configuration file named `train.yaml`
     2. Use the specific fine-tuning method: {{ finetune_method }}
     3. Set max_samples: 100 for initial debugging
     4. Ensure all parameters are valid for LlamaFactory
@@ -36,17 +36,11 @@ finetune_coder:
     Respond with valid YAML configuration only, no markdown formatting.
 
   user: |-
-    ## Dataset Configuration
-    **Processed Data**:
-    ```
-    {{ docker_env_info.data_tree }}
-    ```
-
     ## Path Configuration
     - dataset: "processed_dataset"
-    - dataset_dir: "{{ docker_env_info.datasets_mount_path }}{{ docker_env_info.dataset_name }}"
+    - dataset_dir: "{{ datasets_path }}{{ dataset_name }}"
     - output_dir: "/workspace/output"
-    - model_name_or_path: "{{ docker_env_info.models_mount_path }}{{ base_model }}"
+    - model_name_or_path: "{{ models_path }}{{ base_model }}"
 
     ## Critical Configuration Rules
     - All file paths must use Docker container paths, NOT local filesystem paths
