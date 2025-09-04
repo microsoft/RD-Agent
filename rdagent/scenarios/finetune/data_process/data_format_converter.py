@@ -67,52 +67,43 @@ class DataFormatConverter:
             logger.error("No executable workspace found for data conversion")
             return False
 
-    def _discover_generated_files(self, workspace_data_dir: Path) -> Tuple[List[Path], List[Path]]:
-        """Discover all generated files and categorize them"""
-        if not workspace_data_dir.exists():
-            return [], []
+    def _copy_converted_data(self, workspace: FBWorkspace, preprocessed_datasets: Path):
+        """Copy the entire output directory to preprocessed_datasets"""
 
-        all_files = list(workspace_data_dir.iterdir())
-        data_files = []
-        config_files = []
+        workspace_output_dir = workspace.workspace_path / "output"
 
-        for file_path in all_files:
-            if file_path.is_file():
-                if file_path.name == self.CONFIG_FILE:
-                    config_files.append(file_path)
-                elif file_path.suffix.lower() in self.SUPPORTED_FORMATS:
-                    data_files.append(file_path)
+        # Check if output directory exists
+        if not workspace_output_dir.exists():
+            logger.warning(f"Output directory not found: {workspace_output_dir}")
+            return
 
-        return data_files, config_files
+        # Ensure preprocessed_datasets directory exists
+        preprocessed_datasets.mkdir(parents=True, exist_ok=True)
 
-    def _copy_converted_data(self, workspace: FBWorkspace, preprocessed_dir: Path):
-        """Copy all generated data files with dynamic discovery"""
+        logger.info(f"Source directory: {workspace_output_dir}")
+        logger.info(f"Target directory: {preprocessed_datasets}")
 
-        workspace_data_dir = workspace.workspace_path / "data"
-        data_files, config_files = self._discover_generated_files(workspace_data_dir)
+        try:
+            # Check if output directory has files
+            output_items = list(workspace_output_dir.iterdir())
+            logger.info(f"Found {len(output_items)} items in output directory: {[item.name for item in output_items]}")
 
-        # Ensure preprocessed directory exists
-        preprocessed_dir.mkdir(parents=True, exist_ok=True)
+            # Simple: copy everything from output to preprocessed_datasets
+            for item in output_items:
+                dst = preprocessed_datasets / item.name
+                if item.is_file():
+                    shutil.copy2(item, dst)
+                    logger.info(f"Copied file: {item.name}")
+                elif item.is_dir():
+                    if dst.exists():
+                        shutil.rmtree(dst)
+                    shutil.copytree(item, dst)
+                    logger.info(f"Copied directory: {item.name}")
 
-        # Copy all data files
-        copied_files = []
-        for src_file in data_files:
-            dst_file = preprocessed_dir / src_file.name
-            shutil.copy2(src_file, dst_file)
-            copied_files.append(src_file.name)
-            logger.info(f"Copied data file: {src_file.name}")
+            logger.info(f"Successfully copied output directory to {preprocessed_datasets}")
 
-        # Copy configuration files
-        for src_file in config_files:
-            dst_file = preprocessed_dir / src_file.name
-            shutil.copy2(src_file, dst_file)
-            copied_files.append(src_file.name)
-            logger.info(f"Copied config file: {src_file.name}")
-
-        if not copied_files:
-            logger.warning("No supported data files found in workspace/data/")
-        else:
-            logger.info(f"Successfully copied {len(copied_files)} files: {copied_files}")
+        except Exception as e:
+            logger.error(f"Failed to copy output directory: {e}")
 
     def _validate_data_file(self, file_path: Path) -> bool:
         """Validate a single data file based on its format"""
@@ -175,14 +166,14 @@ class DataFormatConverter:
             logger.warning(f"Failed to validate config file {file_path.name}: {e}")
             return False
 
-    def _verify_converted_data(self, preprocessed_dir: Path):
+    def _verify_converted_data(self, preprocessed_datasets: Path):
         """Verify all converted data with format-specific validation"""
-        if not preprocessed_dir.exists():
-            logger.error(f"Preprocessed directory does not exist: {preprocessed_dir}")
+        if not preprocessed_datasets.exists():
+            logger.error(f"Preprocessed directory does not exist: {preprocessed_datasets}")
             return
 
         # Discover files in preprocessed directory
-        all_files = list(preprocessed_dir.iterdir())
+        all_files = list(preprocessed_datasets.iterdir())
         data_files = [f for f in all_files if f.is_file() and f.suffix.lower() in self.SUPPORTED_FORMATS]
         config_files = [f for f in all_files if f.is_file() and f.name == self.CONFIG_FILE]
 
@@ -206,7 +197,7 @@ class DataFormatConverter:
 
         # Summary
         if not data_files:
-            logger.error("No data files found in preprocessed directory")
+            logger.error(f"No data files found in preprocessed directory: {preprocessed_datasets}")
         elif not valid_data_files:
             logger.error("No valid data files found")
         elif not config_files:
