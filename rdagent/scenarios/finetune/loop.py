@@ -58,7 +58,7 @@ class LLMFinetuneRDLoop(RDLoop):
     def _preprocess_data(self):
         """Preprocess dataset format during initialization"""
         # Use dataset-specific preprocessed data directory
-        preprocessed_dir = Path(self.ft_rd_setting.file_path) / "preprocessed_data" / self.dataset
+        preprocessed_dir = Path(self.ft_rd_setting.file_path) / "preprocessed_datasets" / self.dataset
 
         # Check if preprocessed data already exists
         # TODO: add processed dataset(multiple formats: json, jsonl, csv, txt, parquet)

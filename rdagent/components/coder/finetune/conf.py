@@ -4,9 +4,8 @@ from typing import Literal
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
 from rdagent.utils.env import (
     CondaConf,
-    DockerEnv,
     Env,
-    FTDockerConf,
+    FTDockerEnv,
     LocalEnv,
 )
 
@@ -37,7 +36,6 @@ def _get_standard_ft_volumes() -> dict:
     - models -> /assets/models (ro)
     - datasets -> /assets/datasets (ro)
     - preprocessed_datasets -> /assets/preprocessed_datasets (ro)
-    - output -> /workspace/output (rw, auto-created)
 
     Returns:
         Dictionary of local_path -> docker_mount_config mappings
@@ -58,10 +56,6 @@ def _get_standard_ft_volumes() -> dict:
     for local_dir, docker_path in readonly_mounts:
         local_path = base_path / local_dir
         volumes[str(local_path)] = {"bind": docker_path, "mode": "ro"}
-
-    # Read-write mount for output (always create)
-    output_path = base_path / "output"
-    volumes[str(output_path)] = {"bind": "/workspace/output", "mode": "rw"}
 
     return volumes
 
@@ -98,7 +92,7 @@ def get_ft_env(
 
     # Use dedicated LLM docker and conda env
     if conf.env_type == "docker":
-        env = DockerEnv(conf=FTDockerConf())
+        env = FTDockerEnv()
     elif conf.env_type == "conda":
         # Use a dedicated llm conda env name
         # TODO: enable conda environment
