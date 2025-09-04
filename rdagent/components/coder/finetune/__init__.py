@@ -135,7 +135,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # Use fixed Docker paths for simplicity
         models_path = "/assets/models/"
-        datasets_path = "/assets/datasets/"
+        preprocessed_datasets_path = "/assets/preprocessed_datasets/"
 
         # Generate prompts using templates with all required parameters
         system_prompt = T("components.coder.finetune.prompts:finetune_coder.system").r(
@@ -153,7 +153,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             base_model=base_model,
             dataset_name=dataset,
             models_path=models_path,
-            datasets_path=datasets_path,
+            datasets_path=preprocessed_datasets_path,
         )
 
         # Call LLM to generate config
