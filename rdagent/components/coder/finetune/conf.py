@@ -35,7 +35,6 @@ def _get_standard_ft_volumes() -> dict:
     Creates standard directory mappings:
     - models -> /assets/models (ro)
     - datasets -> /assets/datasets (ro)
-    - preprocessed_datasets -> /assets/preprocessed_datasets (ro)
 
     Returns:
         Dictionary of local_path -> docker_mount_config mappings
@@ -50,7 +49,6 @@ def _get_standard_ft_volumes() -> dict:
     readonly_mounts = [
         ("models", "/assets/models"),
         ("datasets", "/assets/datasets"),
-        ("preprocessed_datasets", "/assets/preprocessed_datasets"),
     ]
 
     for local_dir, docker_path in readonly_mounts:
@@ -70,7 +68,6 @@ def get_ft_env(
     Automatically includes standard finetune volume mounts:
     - models -> /assets/models (ro)
     - datasets -> /assets/datasets (ro)
-    - preprocessed_datasets -> /assets/preprocessed_datasets (ro)
     - output -> /workspace/output (rw, auto-created)
 
     Args:
