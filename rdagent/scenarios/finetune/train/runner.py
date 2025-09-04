@@ -53,16 +53,16 @@ class LLMFinetuneRunnerEvolvingStrategy(MultiProcessEvolvingStrategy):
     ) -> dict[str, str]:
         """Modify config for full dataset training."""
 
-        if not workspace or "config.yaml" not in workspace.file_dict:
-            logger.error("No config.yaml found in workspace")
+        if not workspace or "train.yaml" not in workspace.file_dict:
+            logger.error("No train.yaml found in workspace")
             return {}
 
         # Load existing config from workspace
-        config_content = workspace.file_dict["config.yaml"]
+        config_content = workspace.file_dict["train.yaml"]
         try:
             config_dict = yaml.safe_load(config_content)
         except yaml.YAMLError as e:
-            logger.error(f"Failed to parse config.yaml: {e}")
+            logger.error(f"Failed to parse train.yaml: {e}")
             return {}
 
         # Modify config for full dataset training
@@ -87,7 +87,7 @@ class LLMFinetuneRunnerEvolvingStrategy(MultiProcessEvolvingStrategy):
         new_config_yaml = yaml.dump(config_dict, default_flow_style=False, sort_keys=False)
 
         return {
-            "config.yaml": new_config_yaml,
+            "train.yaml": new_config_yaml,
             self.KEY_CHANGE_SUMMARY: "Modified configuration for full dataset training: removed sample limit, adjusted epochs",
         }
 
@@ -182,8 +182,8 @@ class LLMFinetuneRunner(CoSTEER):
     def _execute_llamafactory_training(self, workspace: FBWorkspace, config_dict: dict) -> bool:
         """Execute LLaMA-Factory training using the configuration."""
         try:
-            # Save config.yaml to workspace
-            config_path = workspace.workspace_path / "config.yaml"
+            # Save train.yaml to workspace
+            config_path = workspace.workspace_path / "train.yaml"
             with open(config_path, "w") as f:
                 yaml.dump(config_dict, f, default_flow_style=False)
 

@@ -110,7 +110,7 @@ class LLMExperiment2Feedback(Experiment2Feedback):
         workspace = exp.experiment_workspace
 
         # Check for key files
-        key_files = ["main.py", "config.yaml", "train.py", "eval.py"]
+        key_files = ["main.py", "train.yaml", "train.py", "eval.py"]
         found_files = []
         missing_files = []
 
@@ -134,9 +134,9 @@ class LLMExperiment2Feedback(Experiment2Feedback):
             if "eval" in main_py.lower():
                 analysis.append("✓ Contains evaluation logic")
 
-        # Check for config.yaml content
-        if "config.yaml" in workspace.file_dict:
-            config_content = workspace.file_dict["config.yaml"]
+        # Check for train.yaml content
+        if "train.yaml" in workspace.file_dict:
+            config_content = workspace.file_dict["train.yaml"]
             if len(config_content) > 50:
                 analysis.append("✓ Config file appears comprehensive")
             else:
