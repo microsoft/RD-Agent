@@ -36,13 +36,15 @@ finetune_coder:
 
   user: |-
     ## Path Configuration
-    - dataset: "processed_dataset"
-    - dataset_dir: "{{ datasets_path }}{{ dataset_name }}"
+    - dataset: "{{ dataset_name }}"
+    - dataset_dir: "{{ datasets_path }}"
     - output_dir: "/workspace/output"
     - model_name_or_path: "{{ models_path }}{{ base_model }}"
 
     ## Critical Configuration Rules
+    - dataset: use dataset name from dataset_info.json (not "processed_dataset")
     - model_name_or_path: use local model path instead of HuggingFace model identifier
+    - dataset_info.json path: "{{ datasets_path }}dataset_info.json" contains dataset configurations
 
     {% if latest_code %}
     ## Previous Configuration

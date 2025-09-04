@@ -15,18 +15,18 @@ finetuning_task_prompt: |-
 
   ## Available Resources
   - Raw dataset: `/assets/datasets/{{ dataset }}/` (mounted from host)
-  - Processed dataset: `/workspace/data/processed_dataset.json` (from data processing step)
-  - Dataset configuration: `/workspace/data/dataset_info.json` (from data processing step)  
+  - Dataset configuration: `/assets/datasets/dataset_info.json` (contains dataset definitions)
   - Base model: `{{ model }}`
   - Output directory: `/workspace/output/`
 
-  **IMPORTANT**: Dataset files are already accessible at `/workspace/data/` for LLaMA Factory.
+  **IMPORTANT**: Use dataset name from dataset_info.json for LLaMA Factory configuration.
 
   ## Fine-tuning Configuration Suggestions
 
   ### Basic Parameters
   - model_name_or_path: {{ model }}
-  - dataset: processed_dataset
+  - dataset: {{ dataset }}
+  - dataset_dir: /assets/datasets
   - output_dir: /workspace/output
   - num_train_epochs: 3
   - learning_rate: 5e-5
@@ -147,8 +147,8 @@ llamafactory_guide: |-
   lora_target: all
 
   ### dataset
-  dataset: processed_dataset
-  dataset_dir: /workspace/data
+  dataset: {{ dataset }}
+  dataset_dir: /assets/datasets
   template: default
   cutoff_len: 2048
 
