@@ -1,0 +1,21 @@
+<poml>
+  <cp caption="Previous Experiments and Feedbacks">
+    <p if="exp_and_feedback_list.length === 0">
+      <p>No previous <span if="type === 'success'">SOTA</span><span if="type === 'failure'">failed</span> experiments available.</p>
+    </p>
+    <cp if="exp_and_feedback_list.length > 0" for="exp_and_feedback in exp_and_feedback_list" caption="Experiment Index: {{ loop.index + 1 }}">
+      <p><b>Target Problem:</b> {{ exp_and_feedback[0].hypothesis.problem_desc }}</p>
+      <p if="!pipeline"><b>Chosen Component:</b> {{ exp_and_feedback[0].hypothesis.component }}</p>
+      <p><b>Proposed Hypothesis:</b> {{ exp_and_feedback[0].hypothesis.hypothesis }}</p>
+      <p><b>Surpass Previous SOTA:</b> {{ exp_and_feedback[1].decision }}</p>
+      <div if="exp_and_feedback[0].result === null">
+        <p><b>Experiment Score:</b> Running buggy</p>
+        <p><b>Experiment Error:</b> {{ exp_and_feedback[1].reason }}</p>
+      </div>
+      <div if="exp_and_feedback[0].result !== null">
+        <p><b>Experiment Score:</b> {{ exp_and_feedback[0].result["ensemble"][0] }}</p>
+        <p><b>Experiment Feedback:</b> {{ exp_and_feedback[1].reason }}</p>
+      </div>
+    </cp>
+  </cp>
+</poml>

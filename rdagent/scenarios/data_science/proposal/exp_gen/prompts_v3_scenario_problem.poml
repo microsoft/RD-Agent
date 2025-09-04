@@ -38,12 +38,14 @@
 
   <human-msg>
     <cp caption="Scenario Description">
-      <text whiteSpace="trim">{{ scenario_desc }}</text>
+      <include src="prompts_v3_scenario_description.poml" />
     </cp>
     <cp caption="Current SOTA Implementation">
-      <text whiteSpace="pre">{{ sota_exp_desc }}</text>
+      <include src="prompts_v3_sota_exp.poml" />
     </cp>
   </human-msg>
+
+  <output-schema>{{ output_schema }}</output-schema>
 
   <stylesheet>
   {

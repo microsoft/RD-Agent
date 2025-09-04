@@ -1,0 +1,30 @@
+<poml>
+  <cp caption="Best solution of previous exploration of the scenario">
+    <div if="exp">
+      <cp caption="Code">
+        <p>Here is the complete code of the solution.</p>
+        <code>{{ exp.experiment_workspace.all_codes }}</code>
+      </cp>
+      
+      <cp caption="Hypothesis for the experiment" if="exp.hypothesis !== null">
+        <p>The experiment is designed based on hypothesis: {{ exp.hypothesis }}</p>
+      </cp>
+      
+      <cp caption="Results">
+        <div if="exp.result === null">
+          <p>There are no according evaluation results</p>
+        </div>
+        <div if="exp.result !== null">
+          <p>Evaluated results on validation are:</p>
+          <code whiteSpace="pre">{{ exp.result }}</code>
+          <div if="exp.format_check_result !== null">
+            <p>Submission format check result is:</p>
+            <code whiteSpace="pre">{{ exp.format_check_result }}</code>
+          </div>
+        </div>
+      </cp>
+    </div>
+    
+    <p if="!exp">No previous complete experiment available.</p>
+  </cp>
+</poml>

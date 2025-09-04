@@ -1,0 +1,44 @@
+<poml>
+  <cp caption="Scenario Description">
+    <cp caption="Background">
+      <p if="use_raw_description">{{ raw_description }}</p>
+      <p if="!use_raw_description">{{ background }}</p>
+    </cp>
+    
+    <cp caption="Data Overview (EDA)" if="!(use_raw_description || eda_output === null)">
+      <p>{{ eda_output }}</p>
+    </cp>
+    
+    <cp caption="Submission Format" if="!use_raw_description">
+      <p>Please ensure your submission adheres to the following specifications:</p>
+      <p>{{ submission_specifications }}</p>
+    </cp>
+    
+    <cp caption="Important Guidelines" if="!use_raw_description">
+      <p>Before submitting your results, please note the following:</p>
+      <list>
+        <item>We have numerous tests in place to check your code.</item>
+        <item>Ensure your submission is genuine.</item>
+        <item>Do not manipulate data or return values solely to pass preliminary tests, as this will not lead to successful final evaluation.</item>
+      </list>
+    </cp>
+    
+    <cp caption="Evaluation">
+      <p if="!(use_raw_description || !metric_name)">
+        The primary evaluation metric for this task is: <b>{{ metric_name }}</b>.
+      </p>
+      <p>
+        This metric is considered better when it is <b><span if="metric_direction">larger</span><span if="!metric_direction">smaller</span></b>.
+      </p>
+      <div if="evaluation !== null">
+        <p>Additional Evaluation Details:</p>
+        <p>{{ evaluation }}</p>
+      </div>
+    </cp>
+    
+    <cp caption="Time Limit" if="time_limit">
+      <p>Your code's execution is limited to <b>{{ time_limit }}</b>.</p>
+      <p>Please optimize your model and parameters to ensure your code runs within this specified time constraint.</p>
+    </cp>
+  </cp>
+</poml>

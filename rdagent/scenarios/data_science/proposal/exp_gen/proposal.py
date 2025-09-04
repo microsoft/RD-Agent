@@ -2,10 +2,11 @@ import json
 import pprint
 from enum import Enum
 from pathlib import Path
-from typing import List, Dict, Tuple
+from typing import List, Dict, Optional, Tuple
 
 import pandas as pd
 import poml
+from poml.integration.pydantic import to_strict_json_schema
 from pydantic import BaseModel, Field
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -15,7 +16,7 @@ from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
-from rdagent.core.proposal import ExpGen
+from rdagent.core.proposal import ExpGen, ExperimentFeedback
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -784,18 +785,39 @@ class DSProposalV2ExpGen(ExpGen):
 
 
 class DSProposalV3ExpGen(DSProposalV2ExpGen):
-    def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
-        poml.set_trace(tempdir="log/prompts")
+
+    def scenario_description(self, trace: DSTrace, sota_exp: Optional[DSExperiment] = None) -> dict:
+        eda_output = sota_exp.experiment_workspace.file_dict.get("EDA.md", None) if sota_exp else None
+        return {
+            "background": trace.scen.background,
+            "submission_specifications": trace.scen.submission_specifications,
+            "evaluation": trace.scen.metric_description,
+            "metric_name": trace.scen.metric_name,
+            "metric_direction": trace.scen.metric_direction,
+            "raw_description": trace.scen.raw_description,
+            "use_raw_description": DS_RD_SETTING.use_raw_description,
+            "time_limit": f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
+            "eda_output": eda_output,
+        }
+
+    def identify_scenario_problem(self, trace: DSTrace = None, sota_exp: DSExperiment = None) -> Dict:
         prompt_path = Path(__file__).parent / "prompts_v3_scenario_problem.poml"
-        prompt = poml.poml(prompt_path, context={
-            "scenario_desc": scenario_desc,
-            "sota_exp_desc": sota_exp_desc,
-        })
+        
+        context = {
+            # Variables for shares/scenario_description.poml
+            **(self.scenario_description(trace, sota_exp) if trace is not None else {}),
+            # Variables for shares/sota_exp.poml
+            "exp": sota_exp,
+            # Output schema
+            "output_schema": to_strict_json_schema(ScenarioChallenges),
+        }
+        print(context)
+        prompt = poml.poml(prompt_path, context=context, format="openai_chat")
         print(prompt)
         response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=prompt[1]['content'],
-            system_prompt=prompt[0]['content'],
-            response_format=ScenarioChallenges
+            user_prompt=prompt['messages'][1]['content'],
+            system_prompt=prompt['messages'][0]['content'],
+            response_format=prompt['response_format'],
             # json_mode=True,
             # json_target_type=Dict[str, Dict[str, str]],
         )
@@ -805,17 +827,26 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         logger.info(f"Identified scenario problems:\n" + json.dumps(problems))
         return problems
 
-    def identify_feedback_problem(self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str) -> Dict:
-        sys_prompt = T(".prompts_v3:feedback_problem.system").r()
-        user_prompt = T(".prompts_v3:feedback_problem.user").r(
-            scenario_desc=scenario_desc,
-            exp_and_feedback_list_desc=exp_feedback_list_desc,
-            sota_exp_desc=sota_exp_desc,
-        )
+    def identify_feedback_problem(self, trace: DSTrace = None, sota_exp: DSExperiment = None, exp_and_feedback_list: list[tuple[DSExperiment, ExperimentFeedback]] = None) -> Dict:
+        prompt_path = Path(__file__).parent / "prompts_v3_feedback_problem.poml"
+        
+        context = {
+            # Variables for shares/scenario_description.poml
+            **(self.scenario_description(trace, sota_exp) if trace is not None else {}),
+            # Variables for shares/sota_exp.poml
+            "exp": sota_exp,
+            # Variables for shares/feedback_list.poml
+            "exp_and_feedback_list": exp_and_feedback_list,
+            # Output schema
+            "output_schema": to_strict_json_schema(TraceChallenges),
+        }
+        print(context)
+        prompt = poml.poml(prompt_path, context=context, format="openai_chat")
+        print(prompt)
         response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt,
-            system_prompt=sys_prompt,
-            response_format=TraceChallenges
+            user_prompt=prompt['messages'][1]['content'],
+            system_prompt=prompt['messages'][0]['content'],
+            response_format=prompt['response_format'],
             # json_mode=True,
             # json_target_type=Dict[str, Dict[str, str]],
         )
@@ -976,6 +1007,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         return result
 
     def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
+        poml.set_trace(trace_dir="log/prompts")
         if pipeline:
             component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
         else:
@@ -1012,9 +1044,9 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         all_problems = {}
         if len(trace.hist) >= 3:
             fb_problems = self.identify_feedback_problem(
-                scenario_desc=scenario_desc,
-                exp_feedback_list_desc=exp_feedback_list_desc,
-                sota_exp_desc=sota_exp_desc,
+                trace=trace,
+                sota_exp=sota_exp,
+                exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
             )
             for problem_name in fb_problems:
                 fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
@@ -1022,8 +1054,8 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
 
         if len(trace.hist) < 9:
             scen_problems = self.identify_scenario_problem(
-                scenario_desc=scenario_desc,
-                sota_exp_desc=sota_exp_desc,
+                trace=trace,
+                sota_exp=sota_exp,
             )
             for problem_name in scen_problems:
                 scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"

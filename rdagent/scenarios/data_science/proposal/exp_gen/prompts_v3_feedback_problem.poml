@@ -119,13 +119,13 @@
 
   <human-msg>
     <cp caption="Scenario Description">
-    {{ scenario_desc }}
+      <include src="prompts_v3_scenario_description.poml" />
     </cp>
     <cp caption="Previous Experiments and Feedbacks">
-    {{ exp_and_feedback_list_desc }}
+      <include src="prompts_v3_exp_feedback_list.poml" />
     </cp>
     <cp caption="Current SOTA Implementation">
-    {{ sota_exp_desc }}
+      <include src="prompts_v3_sota_exp.poml" />
     </cp>
   </human-msg>
 
