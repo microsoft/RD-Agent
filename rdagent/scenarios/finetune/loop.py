@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import Any
 
@@ -8,9 +9,7 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.proposal import Trace
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.finetune.data_process.data_format_converter import (
-    DataFormatConverter,
-)
+from rdagent.scenarios.finetune.scen.utils import generate_dataset_info_config
 from rdagent.utils.workflow import LoopBase
 
 
@@ -42,8 +41,8 @@ class LLMFinetuneRDLoop(RDLoop):
         # Setup environment
         self._setup_environment()
 
-        # Preprocess data during initialization
-        self._preprocess_data()
+        # Generate dataset info during initialization
+        self.get_dataset_info()
 
         # Initialize LoopBase (skip RDLoop.__init__ to avoid double initialization)
         LoopBase.__init__(self)
@@ -55,32 +54,40 @@ class LLMFinetuneRDLoop(RDLoop):
             enable_cache=False,
         )
 
-    def _preprocess_data(self):
-        """Preprocess dataset format during initialization"""
-        # Use dataset-specific preprocessed data directory
-        preprocessed_dir = Path(self.ft_rd_setting.file_path) / "preprocessed_datasets" / self.dataset
+    def get_dataset_info(self):
+        """Generate dataset_info.json configuration for LLaMA-Factory compatibility"""
+        # Path to the main dataset_info.json file
+        datasets_dir = Path(self.ft_rd_setting.file_path) / "datasets"
+        dataset_info_path = datasets_dir / "dataset_info.json"
 
-        # Check if preprocessed data already exists
-        # TODO: add processed dataset(multiple formats: json, jsonl, csv, txt, parquet)
-        expected_files = ["dataset_info.json"]
-        if all((preprocessed_dir / file_name).exists() for file_name in expected_files):
-            logger.info(f"Preprocessed data already exists at {preprocessed_dir}, skipping preprocessing")
+        # Check if dataset configuration already exists
+        existing_config = {}
+        if dataset_info_path.exists():
+            try:
+                with open(dataset_info_path, "r", encoding="utf-8") as f:
+                    existing_config = json.load(f)
+            except Exception as e:
+                logger.warning(f"Failed to load existing dataset_info.json: {e}")
+                existing_config = {}
+
+        if self.dataset in existing_config:
+            logger.info(f"Dataset '{self.dataset}' already configured in dataset_info.json, skipping")
             return
 
-        logger.info("Preprocessing dataset format...")
-        # Create preprocessed directory
-        preprocessed_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Generating dataset_info.json configuration for dataset '{self.dataset}'...")
 
-        data_converter = DataFormatConverter(
-            dataset=self.dataset,
-            scen=import_class(self.ft_rd_setting.scen)(),
-        )
+        # Generate configuration using utility function
+        generated_config = generate_dataset_info_config(self.dataset, self.ft_rd_setting.file_path)
 
-        success = data_converter.convert_dataset(self.env, preprocessed_dir)
-        if not success:
-            raise RuntimeError("Failed to preprocess dataset")
+        # Update the dataset_info.json file
+        existing_config[self.dataset] = generated_config
 
-        logger.info("Dataset preprocessing completed")
+        try:
+            with open(dataset_info_path, "w", encoding="utf-8") as f:
+                json.dump(existing_config, f, indent=2, ensure_ascii=False)
+            logger.info(f"Successfully updated dataset_info.json with configuration for '{self.dataset}'")
+        except Exception as e:
+            raise RuntimeError(f"Failed to write dataset_info.json: {e}")
 
     async def direct_exp_gen(self, prev_out: dict[str, Any]):
         """Generate LLM fine-tuning experiment"""
