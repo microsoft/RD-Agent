@@ -156,16 +156,13 @@ class DataScienceScen(Scenario):
         return DS_RD_SETTING.debug_recommend_timeout
 
     def real_full_timeout(self):
-        remain_time = RD_Agent_TIMER_wrapper.timer.remain_time()
-        all_duration = RD_Agent_TIMER_wrapper.timer.all_duration
-        remain_percent = remain_time / all_duration
+        if DS_RD_SETTING.ensemble_time_upper_bound:
+            remain_time = RD_Agent_TIMER_wrapper.timer.remain_time()
+            all_duration = RD_Agent_TIMER_wrapper.timer.all_duration
+            remain_percent = remain_time / all_duration
+            if remain_percent * 100 < 100 - DS_RD_SETTING.ratio_merge_or_ensemble:
+                return DS_RD_SETTING.full_timeout * DS_RD_SETTING.runner_longer_timeout_multiplier_upper
 
-        if remain_percent * 100 < 100 - DS_RD_SETTING.ratio_merge_or_ensemble:
-            return DS_RD_SETTING.full_timeout * DS_RD_SETTING.runner_longer_timeout_multiplier_upper
-
-        # Every 'patience' failures, move to next timeout level
-        # Each level adds 'runner_timeout_increase_stage' multiplier to timeout
-        # Capped by upper limit to prevent infinite growth
         return (
             DS_RD_SETTING.full_timeout
             * min(
