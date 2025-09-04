@@ -33,13 +33,11 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 class DSRunnerFeedback(CoSTEERSingleFeedback):
     """
     Feedback for Data Science CoSTEER evaluation.
-    This feedback is used to evaluate the code and execution of the Data Science CoSTEER task.
+    Evaluates the code, execution, and model performance.
     """
-
+    code: bool | None = None
     acceptable: bool | None = None
-    hyperparameter_tuning_decision: bool | None = None
-    hyperparameter_tuning_suggestion: str | None = None
-    score: str | None = None
+    score: float | None = None  # 改为 float 更方便 reward 计算
 
     def is_acceptable(self) -> bool:
         if self.acceptable is not None:
@@ -49,19 +47,16 @@ class DSRunnerFeedback(CoSTEERSingleFeedback):
     def __str__(self) -> str:
         parts = [
             "### Execution",
-            str(self.execution),
+            str(self.execution) if self.execution is not None else "No execution output",
             "### Return Check",
-            self.return_checking if self.return_checking is not None else "No return checking",
-            "### Code",
-            str(self.code),
+            str(self.return_checking) if self.return_checking is not None else "No return checking",
+            "### Code accept",
+            str(self.code) if self.code is not None else "Unknown",
             "### Validation Score",
-            f"{self.score}" if self.score else "Not available",
+            f"{self.score}" if self.score is not None else "Not available",
             "### Final Decision",
-            f"This implementation is {'PASSED' if self.acceptable else 'FAILED'}.",
+            f"This implementation is {'PASSED' if self.acceptable else 'FAILED'}."
         ]
-        if self.hyperparameter_tuning_decision:
-            parts.append("### Hyperparameter Tuning Suggestion")
-            parts.append(str(self.hyperparameter_tuning_suggestion))
         return "\n".join(parts)
 
 
@@ -162,13 +157,10 @@ class DSRunnerMCTSEvaluator(CoSTEEREvaluator):
             submission_check_out, submission_ret_code = test_eval.valid(self.scen.competition, implementation)
             stdout += f"\n### Submission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
 
-        # Only enable hyperparameter tuning check if all conditions are met
-        enable_hyperparameter_tuning_check = True #c1 and c2 and c3 and c4
 
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=implementation.file_dict.get("EDA.md", None)),
             task_desc=target_task.get_task_information(),
-            enable_hyperparameter_tuning_check=enable_hyperparameter_tuning_check,
         )
         user_prompt = T(".prompts:DSCoSTEER_eval.user").r(
             code=implementation.all_codes,
@@ -188,10 +180,7 @@ class DSRunnerMCTSEvaluator(CoSTEEREvaluator):
         except:
             logger.error("Failed to get the score from scores.csv.")
             feedback.score = None
-        feedback.final_decision = feedback.acceptable and (
-            not feedback.hyperparameter_tuning_decision
-        )  # If hyperparameter_tuning_decision is None, it's considered as False, so the final_decision dependents on the acceptable
-
+        feedback.final_decision = feedback.acceptable
 
         if score_ret_code != 0:
             feedback.acceptable = feedback.final_decision = False

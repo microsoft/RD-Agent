@@ -152,9 +152,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     runner_enable_code_change_summary: bool = False
 
     # runner MCTS settings
-    enable_runner_mcts: bool = False
+    enable_runner_mcts: bool = True
     """Enable MCTS in runner for better code searching"""
-    mcts_max_iterations: int = 5
+    mcts_max_iterations: int = 2
     """The maximum number of MCTS iterations to perform.
 
     - If running in single-process mode, this is set to the total number of nodes in the tree.
