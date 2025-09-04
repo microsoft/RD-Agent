@@ -3,7 +3,6 @@ finetune_coder:
     You are a world-class machine learning engineer specializing in large language model fine-tuning using LlamaFactory.
     Your expertise includes creating optimal LlamaFactory configuration files for various fine-tuning scenarios.
 
-    ## Task Description
     {{ task_desc }}
 
     {% if similar_knowledge|length > 0 %}
@@ -43,7 +42,6 @@ finetune_coder:
     - model_name_or_path: "{{ models_path }}{{ base_model }}"
 
     ## Critical Configuration Rules
-    - All file paths must use Docker container paths, NOT local filesystem paths
     - model_name_or_path: use local model path instead of HuggingFace model identifier
 
     {% if latest_code %}
@@ -66,7 +64,6 @@ finetune_eval:
   system: |-
     You are an expert evaluator for LlamaFactory configuration files.
 
-    ## Task Description
     {{ task_desc }}
 
     ## Configuration File
