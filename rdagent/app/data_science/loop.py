@@ -12,10 +12,8 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 
 
-async def run_and_auto_submit(loop_task: Coroutine, competition: str, ensure_remaining_num: bool=True):
-    """Run the loop coroutine task, and submit the SOTA experiment file (.csv only now) to kaggle at the end.
-    Disable ensure_remaining_num if you are trying to submit to a completed competition.
-    """
+async def run_and_auto_submit(loop_task: Coroutine, competition: str):
+    """Run the loop coroutine task, and submit the SOTA experiment file (.csv only now) to kaggle at the end."""
     from datetime import datetime
     from rdagent.log.conf import LOG_SETTINGS
     from rdagent.log.ui.utils import get_sota_exp_stat
@@ -50,22 +48,16 @@ async def run_and_auto_submit(loop_task: Coroutine, competition: str, ensure_rem
 
     logger.info(f"Current sota submission file: {submission_csv_path}")
 
-    # check if we have remaining submit number
-    if ensure_remaining_num:
-        remaining_submit_num = get_rest_submit_num(competition=competition)
-
-        if remaining_submit_num == 0:
-            logger.warning(
-                (
-                    "Cannot submit now, as no remaining number today.\n"
-                    "NOTE: also please confirm that you have joined the competition, and the competition was not completed."
-                )
-            )
-
-            return
-
     # do submit
-    submit_csv(competition=competition, submission_file=str(submission_csv_path), wait=True, msg=f"SOTA at {datetime.now()}")
+    submit_csv(
+        competition=competition, submission_file=str(submission_csv_path), wait=True, msg=f"SOTA at {datetime.now()}"
+    )
+
+    # show remaining submit number
+    remaining_submit_num = get_rest_submit_num(competition=competition)
+
+    logger.info(f"Remaining submit number: {remaining_submit_num}")
+
 
 def main(
     path: Optional[str] = None,
@@ -129,7 +121,9 @@ def main(
         kaggle_loop.exp_gen = import_class(exp_gen_cls)(kaggle_loop.exp_gen.scen)
 
     if DS_RD_SETTING.auto_submit:
-        asyncio.run(run_and_auto_submit(kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout), competition))
+        asyncio.run(
+            run_and_auto_submit(kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout), competition)
+        )
     else:
         asyncio.run(kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout))
 

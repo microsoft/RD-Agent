@@ -11,6 +11,64 @@ from kagglesdk.competitions.types.competition_api_service import (
 from rdagent.log import rdagent_logger as logger
 
 
+def get_completed_submissions(api: KaggleApi, competition: str) -> List[ApiSubmission]:
+    # kaggle use utc time to count
+    now = datetime.now(timezone.utc)
+    today = now.date()
+
+    # only completed submission will consume today's limitation
+    completed_submissions: List[ApiSubmission] = []
+
+    try:
+        submissions_resp = api.competition_submissions(
+            competition=competition,
+            # the api use date to sort the result by default, so latest submission is in last page
+            page_token=-1,
+        )
+
+        if submissions_resp is not None:
+            completed_submissions = [
+                submission
+                for submission in submissions_resp
+                if submission is not None
+                and submission.date.date() == today
+                and submission.status == SubmissionStatus.COMPLETE
+            ]
+    except requests.exceptions.HTTPError as e:
+        # 403 if we have not joined the competition
+        if e.response.status_code == 403:
+            logger.error(f"You have not joined the competition '{competition}'.")
+        elif e.response.status_code == 400:
+            # if a competition has no any submission, this call will cause 400.
+            # we consider it is a correct state, means 0 completed submissions
+            logger.info("no submission now.")
+    except Exception as e:
+        logger.error(f"Fail to get submissions with error: {e}")
+
+    return completed_submissions
+
+
+def get_competition_detail(api: KaggleApi, competition: str, max_pages: int = 1) -> Optional[ApiCompetition]:
+    # kaggle sdk do not have function to get detail for specified competition, here we use the list function
+    # list function only return in-progress competitions,
+    # and we will use search parameter to filter competition name,
+    # and default page_size is 20, so using 1 page is enough by default
+    for page in range(1, max_pages + 1):
+        try:
+            search_result = api.competitions_list(search=competition, page=page)
+
+            if search_result is not None:
+                for comp in search_result:
+                    if comp is not None and comp.ref.rsplit("/", 1)[-1] == competition:
+                        return comp
+        except Exception as e:
+            logger.error(f"Fail to get competition list, with exception: {e}")
+
+            break
+
+    return None
+
+
 def get_rest_submit_num(competition: str) -> int:
     """Get the remaining submit number.
 
@@ -20,68 +78,9 @@ def get_rest_submit_num(competition: str) -> int:
 
     api.authenticate()
 
-    # kaggle use utc time to count
-    now = datetime.now(timezone.utc)
-    today = now.date()
+    completed_submissions = get_completed_submissions(api, competition)
 
-    try:
-        submissions_resp = api.competition_submissions(
-            competition=competition,
-            # the api use date to sort the result by default, so latest submission is in last page
-            page_token=-1,
-        )
-    except Exception as e:
-        # 403 if we have not joined the competition
-        if type(e) == requests.exceptions.HTTPError and e.response.status_code == 403:
-            logger.error(f"You have not joined the competition '{competition}'.")
-        else:
-            logger.error(f"Fail to get submissions with error: {e}")
-
-        return 0
-
-    if submissions_resp is None:
-        logger.error(f"Fail to get submissions, response is None.")
-        return 0
-
-    # only completed submission will consume today's limitation
-    completed_submissions: List[ApiSubmission] = []
-    # we will give a warning, if there is any pendding submissions, as we do not if it should be counted
-    pendding_submissions: List[ApiSubmission] = []
-
-    for submission in submissions_resp:
-        if submission is None or submission.date.date() != today:
-            continue
-
-        if submission.status == SubmissionStatus.COMPLETE:
-            completed_submissions.append(submission)
-        elif submission.status == SubmissionStatus.PENDING:
-            pendding_submissions.append(submission)
-
-    # TODO: may be it is better to treat pendding competitions as completed?
-    if len(pendding_submissions) > 0:
-        logger.warning(
-            f"Completition has {len(pendding_submissions)} pendding submission now, the remaining submit number may be not correct."
-        )
-
-    # search competition by name
-    def _get_competition(max_pages: int = 1) -> Optional[ApiCompetition]:
-        # list function only return in-progress competitions,
-        # and we will use search parameter to filter competition name,
-        # and default page_size is 20, so using 1 page is enough by default
-        for page in range(1, max_pages + 1):
-            try:
-                search_result = api.competitions_list(search=competition, page=page)
-            except Exception as e:
-                logger.error(f"Fail to get competition list, with exception: {e}")
-
-                return None
-
-            if search_result is not None:
-                for comp in search_result:
-                    if comp is not None and comp.ref.rsplit("/", 1)[-1] == competition:
-                        return comp
-
-    competition_detail = _get_competition()
+    competition_detail = get_competition_detail(api, competition)
 
     if competition_detail is None:
         logger.error(f"Fail to get the competition, make sure it is in progress now.")
@@ -112,11 +111,12 @@ def submit_csv(
 
     # if upload failed, will return a string message, or it will raise exception if there is http response code >= 400
     if type(resp) == str:
+        logger.error(f"Fail to get submissions with error: {resp}")
         return False
 
     is_success = False
 
-    # the submission request is done without error
+    # the submission request is done without error, here we keep check the latest submission state, until it is completed or timeout
     if wait:
         start = datetime.now()
         while (datetime.now() - start).seconds <= timeout:
@@ -150,16 +150,3 @@ def submit_csv(
             break
 
     return is_success
-
-
-if __name__ == "__main__":
-    csv_path = "data/playground-series-s5e9/sample_submission.csv"
-    competition_name = "playground-series-s5e9"
-
-    # submit and wait for compelete
-    submit_csv(competition_name, csv_path, wait=True)
-
-    # check the remaining submit number for today
-    remaining_submit_num = get_rest_submit_num(competition_name)
-
-    print(f"Remaining submit number: {remaining_submit_num}")
