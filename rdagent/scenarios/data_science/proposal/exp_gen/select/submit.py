@@ -111,21 +111,28 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                             reverse=not trace.scen.metric_direction,
                         )[-DS_RD_SETTING.max_sota_retrieved_num :]
 
+            system_prompt = T(".prompts:auto_sota_selector.system").r(scenario=trace.scen.get_scenario_all_desc())
             for i, (exp, ef) in enumerate(sota_exp_fb_list):
                 if exp:
                     current_final_score = pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
                     desc = T("scenarios.data_science.share:describe.exp").r(
                         exp=exp, heading="SOTA of previous exploration of the scenario"
                     )
+                    user_prompt = T(".prompts:auto_sota_selector.user").r(
+                        historical_sota_exp_with_desc_and_scores=SOAT_exp_with_desc_and_scores
+                        + f"""SOTA experiment No. {i+1}:
+                        Description: {desc}
+                        Final score: {current_final_score}\n\n""",
+                    )
+                    token_size = APIBackend().build_messages_and_calculate_token(
+                        user_prompt=user_prompt,
+                        system_prompt=system_prompt,
+                    )
+                    if token_size >= LLM_SETTINGS.chat_token_limit:
+                        break
                     SOAT_exp_with_desc_and_scores += f"""SOTA experiment No. {i+1}:
                         Description: {desc}
                         Final score: {current_final_score}\n\n"""
-
-            system_prompt = T(".prompts:auto_sota_selector.system").r(scenario=trace.scen.get_scenario_all_desc())
-
-            user_prompt = T(".prompts:auto_sota_selector.user").r(
-                historical_sota_exp_with_desc_and_scores=SOAT_exp_with_desc_and_scores,
-            )
 
             response = APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=user_prompt,
