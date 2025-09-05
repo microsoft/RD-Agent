@@ -14,7 +14,7 @@ from rdagent.components.coder.finetune.exp import TrainingTask
 from rdagent.core.experiment import Task
 from rdagent.core.proposal import ExpGen, Hypothesis, Hypothesis2Experiment, Trace
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+from rdagent.scenarios.finetune.experiment.experiment import FTExperiment
 from rdagent.scenarios.finetune.scen.scenario import LLMFinetuneScen
 from rdagent.scenarios.finetune.scen.utils import extract_dataset_info
 from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
@@ -81,7 +81,7 @@ class LLMHypothesis(Hypothesis):
 class LLMHypothesis2Experiment(Hypothesis2Experiment):
     """Convert LLM fine-tuning hypothesis to experiment"""
 
-    def convert(self, hypothesis: LLMHypothesis, trace: Trace) -> DSExperiment:
+    def convert(self, hypothesis: LLMHypothesis, trace: Trace) -> FTExperiment:
         """Convert hypothesis to executable experiment"""
 
         logger.info(
@@ -100,7 +100,7 @@ class LLMHypothesis2Experiment(Hypothesis2Experiment):
         )
 
         # Create experiment
-        experiment = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis)
+        experiment = FTExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis)
 
         return experiment
 
@@ -111,7 +111,7 @@ class LLMFinetuneExpGen(ExpGen):
     def __init__(self, scen: LLMFinetuneScen):
         super().__init__(scen)
 
-    def gen(self, trace: Trace, plan=None) -> DSExperiment:
+    def gen(self, trace: Trace, plan=None) -> FTExperiment:
         """Generate LLM fine-tuning experiment"""
 
         # 1. Detect GPU capabilities and dataset information
