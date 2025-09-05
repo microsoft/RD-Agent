@@ -1,3 +1,4 @@
+import asyncio
 import json
 from pathlib import Path
 from typing import Any
@@ -6,7 +7,7 @@ from rdagent.app.finetune.llm.conf import LLMFinetunePropSetting
 from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.proposal import Trace
+from rdagent.core.proposal import HypothesisFeedback, Trace
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.finetune.scen.utils import generate_dataset_info_config
@@ -96,8 +97,6 @@ class LLMFinetuneRDLoop(RDLoop):
             logger.log_object(exp.sub_tasks, tag="experiment generation")
             return exp
 
-        import asyncio
-
         await asyncio.sleep(1)
 
     def coding(self, prev_out: dict[str, Any]):
@@ -125,8 +124,6 @@ class LLMFinetuneRDLoop(RDLoop):
         """Generate feedback from experiment results"""
         e = prev_out.get(self.EXCEPTION_KEY, None)
         if e is not None:
-            from rdagent.core.proposal import HypothesisFeedback
-
             feedback = HypothesisFeedback(
                 observations=str(e),
                 hypothesis_evaluation="",

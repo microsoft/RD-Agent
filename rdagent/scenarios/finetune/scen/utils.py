@@ -4,13 +4,16 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
+
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.scen.utils import (
     DataFolderDescriptor,
     FileTreeGenerator,
+    describe_data_folder_v2,
 )
-from rdagent.scenarios.finetune.utils import prev_model_dirname
 from rdagent.utils.agent.tpl import T
 
 
@@ -177,16 +180,9 @@ def _find_model_path() -> Path | None:
     if not FT_RD_SETTING.file_path or not FT_RD_SETTING.base_model:
         return None
 
-    candidates = [
-        Path(FT_RD_SETTING.file_path) / "models" / FT_RD_SETTING.base_model,
-        Path(FT_RD_SETTING.file_path)
-        / "prev_model"
-        / prev_model_dirname(FT_RD_SETTING.base_model, FT_RD_SETTING.dataset),
-    ]
-
-    for path in candidates:
-        if path.exists():
-            return path
+    model_path = Path(FT_RD_SETTING.file_path) / "models" / FT_RD_SETTING.base_model
+    if model_path.exists():
+        return model_path
     return None
 
 
@@ -205,8 +201,6 @@ def build_finetune_description(dataset_info: dict[str, Any], model_info: dict[st
 
 def build_folder_description(dataset: str = None) -> str:
     """Generate folder description using describe_data_folder_v2, consistent with data science scenario."""
-    from rdagent.scenarios.data_science.scen.utils import describe_data_folder_v2
-
     try:
         # Use FT_FILE_PATH structure: /path/to/finetune/datasets/<dataset>
         if not FT_RD_SETTING.file_path:
@@ -320,10 +314,6 @@ class FinetuneDatasetDescriptor(DataFolderDescriptor):
 
     def _extract_samples_for_prompt(self, data_file: Path) -> str:
         """Extract samples formatted for LLM prompts using inherited preview functions."""
-        import json
-
-        import pandas as pd
-
         try:
             if data_file.suffix.lower() == ".json":
                 with open(data_file, "r", encoding="utf-8") as f:
@@ -383,8 +373,6 @@ def generate_dataset_info_config(dataset: str, ft_file_path: str) -> dict:
     Raises:
         RuntimeError: If configuration generation or validation fails
     """
-    from rdagent.oai.llm_utils import APIBackend
-
     dataset_path = Path(ft_file_path) / "datasets" / dataset
 
     # Use existing descriptor to get dataset information

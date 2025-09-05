@@ -5,6 +5,7 @@ This module provides fine-tuning specific components for the CoSTEER framework,
 including evaluators and evolving strategies.
 """
 
+import re
 from pathlib import Path
 
 import yaml
@@ -28,6 +29,7 @@ from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.finetune.train.llama_params_query import LLaMAFactoryParamsQuery
 from rdagent.scenarios.finetune.train.utils import create_parameter_validator
 from rdagent.utils.agent.ret import PythonAgentOut
 from rdagent.utils.agent.tpl import T
@@ -42,8 +44,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         super().__init__(scen, settings)
 
         # Initialize LlamaFactory parameter validator
-        from rdagent.scenarios.finetune.train.utils import create_parameter_validator
-
         self.parameter_validator = create_parameter_validator()
 
     def implement_one_task(
@@ -126,10 +126,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             )
 
         # Query LLaMA Factory parameters for the specific method
-        from rdagent.scenarios.finetune.train.llama_params_query import (
-            LLaMAFactoryParamsQuery,
-        )
-
         params_query = LLaMAFactoryParamsQuery()
         method_params_desc = params_query.format_params_for_prompt(finetune_method)
 
@@ -158,8 +154,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # Call LLM to generate config
         try:
-            from rdagent.oai.llm_utils import APIBackend
-
             api = APIBackend()
             response = api.build_messages_and_create_chat_completion(
                 user_prompt=user_prompt,
@@ -168,8 +162,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             )
 
             # Extract YAML content from response
-            import re
-
             # Try multiple YAML extraction patterns
             yaml_patterns = [
                 r"```yaml\s*\n(.*?)\n```",  # Standard markdown yaml block
@@ -188,8 +180,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             if extracted_yaml:
                 # Validate extracted YAML
                 try:
-                    import yaml
-
                     yaml.safe_load(extracted_yaml)
                     return extracted_yaml
                 except yaml.YAMLError as e:
@@ -201,8 +191,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             if matches:
                 fallback_yaml = "\n".join(matches)
                 try:
-                    import yaml
-
                     yaml.safe_load(fallback_yaml)
                     return fallback_yaml
                 except yaml.YAMLError:

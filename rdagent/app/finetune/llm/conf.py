@@ -4,7 +4,6 @@ from pathlib import Path
 from pydantic_settings import SettingsConfigDict
 
 from rdagent.core.conf import RD_AGENT_SETTINGS, ExtendedBaseSettings
-from rdagent.scenarios.finetune.utils import prev_model_dirname
 
 
 class LLMFinetunePropSetting(ExtendedBaseSettings):
@@ -65,9 +64,9 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
 
     @property
     def task(self) -> str:
-        """Generate task name using prev_model_dirname function."""
+        """Generate task name from base model and dataset."""
         if self.base_model and self.dataset:
-            return prev_model_dirname(self.base_model, self.dataset)
+            return f"{self.base_model}_{self.dataset}".replace("/", "_").replace("\\", "_")
         return ""
 
 
