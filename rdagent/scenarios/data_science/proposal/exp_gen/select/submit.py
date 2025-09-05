@@ -28,7 +28,7 @@ from rdagent.utils.workflow import wait_retry
 
 # --- Configuration Constants ---
 MAX_API_RETRIES = 5
-DEFAULT_NUM_WORKERS = 3
+DEFAULT_NUM_WORKERS = 2
 MAX_SOTA_CANDIDATES = 6
 
 logger.add("selector.log")
@@ -293,25 +293,26 @@ class ValidationSelector(SOTAexpSelector):
         valid_results = [
             (
                 self.hypothesis_exp.get(exp.hypothesis.hypothesis),
-                score,
                 self.hypothesis_loop_id.get(exp.hypothesis.hypothesis),
+                valid_score,
+                test_score,
             )
-            for exp, score in results
-            if score is not None
+            for exp, valid_score, test_score in results
+            if test_score is not None
         ]
         if not valid_results:
             logger.warning("ValidationSelector: No candidates scored successfully during validation.")
             return None
 
-        valid_results.sort(key=lambda x: x[1] * self.direction_sign, reverse=True)
+        valid_results.sort(key=lambda x: (x[2] + x[3]) * self.direction_sign, reverse=True)
         best_exp, best_loop_id = valid_results[0][0], valid_results[0][2]
 
-        for loop_id, score in [(i[2], i[1]) for i in valid_results]:
-            logger.info(f"ValidationSelector: Loop_id={loop_id} -> score={score}")
+        for loop_id, valid_score, test_score in [(i[1], i[2], i[3]) for i in valid_results]:
+            logger.info(f"ValidationSelector: Loop_id={loop_id} ->valid score={valid_score}, test score={test_score}")
         logger.info(
-            f"ValidationSelector: Best experiment from validation is loop_id={best_loop_id} with score={valid_results[0][1]}"
+            f"ValidationSelector: Best experiment from validation is loop_id={best_loop_id} with valid score={valid_results[0][2]}, test score={valid_results[0][3]}"
         )
-        if len(valid_results) <= 1 or valid_results[0][1] == valid_results[-1][1]:
+        if len(valid_results) <= 1 or valid_results[0][3] == valid_results[-1][3]:
             logger.warning(f"ValidationSelector: There aren't enough scores to compare, current: {len(valid_results)}.")
             return None
 
@@ -482,7 +483,7 @@ class ValidationSelector(SOTAexpSelector):
 
 def process_experiment(
     exp: DSExperiment, competition: str, folder: str, grade_py_code: str, loop_id: str
-) -> Tuple[DSExperiment, Optional[float]]:
+) -> Tuple[DSExperiment, Optional[float], Optional[float]]:
     """
     Worker function to process a single experiment in an isolated directory.
     This function is designed to be called by a multiprocessing pool.
@@ -492,6 +493,7 @@ def process_experiment(
         loop_id = "unknown"
 
     input_folder = T("scenarios.data_science.share:scen.input_path").r()
+    valid_score = None
 
     try:
         ws = FBWorkspace()
@@ -510,6 +512,12 @@ def process_experiment(
         # Run grading script if main script succeeded
         grade_stdout = ""
         if execute_ret_code == 0:
+            score_fp = ws.workspace_path / "scores.csv"
+            if score_fp.exists():
+                try:
+                    valid_score = pd.read_csv(score_fp, index_col=0).loc["ensemble"].iloc[0]
+                except Exception as e:
+                    logger.error(f"Error parsing valid score from {score_fp}: {e}")
             ws.inject_files(**{"grade.py": grade_py_code})
             env.conf.running_timeout_period = DS_RD_SETTING.debug_timeout
             result = ws.run(env=env, entry="python grade.py")
@@ -521,10 +529,10 @@ def process_experiment(
 
     except Exception as e:
         logger.error(f"CRITICAL ERROR while processing experiment {competition}/{loop_id}: {e}")
-        return exp, None
+        return exp, None, None
 
     # Score parsing
-    return exp, _parsing_score(grade_stdout)
+    return exp, valid_score, _parsing_score(grade_stdout)
 
 
 def _parsing_score(grade_stdout: str) -> Optional[float]:
