@@ -4,9 +4,11 @@ This module provides a simplified MCP connector specifically for streamable_http
 It abstracts the connection management, session initialization, and tool calling logic.
 """
 
+import asyncio
 from contextlib import asynccontextmanager
 from datetime import timedelta
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 from litellm import RateLimitError
 from mcp import ClientSession
@@ -88,13 +90,30 @@ class StreamableHTTPConnector:
         """Connect to MCP server and yield session with automatic retry on connection errors."""
         session = None
         connection_context = None
+        connection_entered = False
+        session_entered = False
 
         try:
             # Create connection context
             connection_context = self._create_connection_context()
 
             # Establish connection
-            streams = await connection_context.__aenter__()
+            try:
+                streams = await connection_context.__aenter__()
+                connection_entered = True
+            except asyncio.CancelledError:
+                # Task was cancelled, re-raise immediately
+                raise
+            except Exception as e:
+                # Connection failed at network level
+                # Don't try to clean up - let it be garbage collected
+                # Trying to clean up causes anyio cross-task errors
+                connection_context = None  # Release reference
+
+                error_msg = self._simplify_connection_error(e)
+                logger.error(f"MCP connection failed: {error_msg}")
+                raise MCPConnectionError(error_msg) from e
+
             read_stream, write_stream = streams[:2]  # Handle extra returns safely
 
             # Create and initialize session
@@ -105,8 +124,19 @@ class StreamableHTTPConnector:
             )
 
             await client_session.__aenter__()
+            session_entered = True
             session = MCPSession(client_session, self.config)
-            await session.initialize()
+
+            try:
+                await session.initialize()
+            except asyncio.CancelledError:
+                # Re-raise cancellation without wrapping
+                raise
+            except Exception as e:
+                # Initialize failed - provide clear error
+                error_msg = self._simplify_connection_error(e)
+                logger.error(f"MCP session initialization failed: {error_msg}")
+                raise MCPConnectionError(error_msg) from e
 
             logger.info(f"🔗 Connected: {self.config.url} ({len(session.tools)} tools)", tag="mcp_connection")
 
@@ -116,25 +146,32 @@ class StreamableHTTPConnector:
             # MCPConnectionError should propagate as-is (could be validation error)
             # Don't re-wrap to preserve original error message for retry logic
             raise
+        except asyncio.CancelledError:
+            # Task was cancelled, don't wrap in MCPConnectionError
+            logger.warning(f"Connection to {self.config.url} was cancelled", tag="mcp_connection")
+            raise
         except Exception as e:
-            # Convert complex exceptions to simpler ones
+            # Unexpected error - convert to MCPConnectionError
             error_msg = self._simplify_connection_error(e)
-            logger.error(f"MCP connection failed: {error_msg}")
+            logger.error(f"Unexpected MCP error: {error_msg}")
             raise MCPConnectionError(error_msg) from e
 
         finally:
-            # Cleanup resources
-            try:
-                if session and session.session:
+            # Cleanup resources - only clean up what was successfully entered
+            if session_entered and session and session.session:
+                try:
                     await session.session.__aexit__(None, None, None)
-            except Exception:
-                pass
+                except Exception:
+                    # Silently ignore cleanup errors
+                    pass
 
-            try:
-                if connection_context:
+            # Only call __aexit__ if we successfully entered the context
+            if connection_entered and connection_context:
+                try:
                     await connection_context.__aexit__(None, None, None)
-            except Exception:
-                pass
+                except Exception:
+                    # Silently ignore cleanup errors
+                    pass
 
     def _create_connection_context(self):
         """Create streamable HTTP connection context."""
@@ -151,16 +188,28 @@ class StreamableHTTPConnector:
         """Convert complex MCP connection errors to simple messages."""
         error_str = str(error).lower()
 
+        # Extract URL components for clearer messages
+        parsed = urlparse(self.config.url)
+        host_port = f"{parsed.hostname}:{parsed.port}" if parsed.port else parsed.hostname
+
         # Handle rate limit errors specifically
         if isinstance(error, RateLimitError) or "ratelimiterror" in error_str or "rate limit" in error_str:
             return f"Rate limit exceeded for {self.config.url}. Will retry with exponential backoff."
+        elif "all connection attempts failed" in error_str or "connection refused" in error_str:
+            return f"Cannot connect to {host_port} - service is not running or port is incorrect"
         elif "timeout" in error_str:
-            return f"Connection timeout after {self.config.timeout}s to {self.config.url}"
+            return f"Connection timeout after {self.config.timeout}s to {host_port}"
         elif "connection" in error_str or "network" in error_str:
-            return f"Failed to connect to MCP server at {self.config.url}"
+            return f"Network error connecting to {host_port}"
         elif "404" in error_str:
             return f"MCP endpoint not found at {self.config.url}"
         elif "403" in error_str or "401" in error_str:
             return f"Authentication failed for {self.config.url}"
+        elif "cancelled" in error_str:
+            return f"Connection attempt was cancelled"
         else:
-            return f"MCP connection failed for {self.config.url}: {str(error)[:100]}"
+            # For other errors, try to extract the most relevant part
+            error_msg = str(error)
+            if len(error_msg) > 100:
+                error_msg = error_msg[:100] + "..."
+            return f"MCP error for {host_port}: {error_msg}"

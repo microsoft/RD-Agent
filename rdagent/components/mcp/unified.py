@@ -4,7 +4,10 @@ from functools import wraps
 from pathlib import Path
 from typing import Any, List, Optional, Union
 
+from litellm import RateLimitError
+
 from rdagent.components.mcp.conf import is_mcp_enabled
+from rdagent.components.mcp.connector import MCPConnectionError
 from rdagent.components.mcp.registry import (
     MCPRegistry,
     get_global_registry,
@@ -34,8 +37,12 @@ def mcp_api_handler(func):
             # Inject registry into kwargs for the function
             kwargs["_registry"] = registry
             return await func(*args, **kwargs)
+        except (RateLimitError, MCPConnectionError) as e:
+            # Let these exceptions propagate for proper handling
+            logger.warning(f"{func.__name__} encountered retryable error: {e}")
+            raise
         except Exception as e:
-            logger.error(f"{func.__name__} failed: {e}")
+            logger.error(f"{func.__name__} failed with unexpected error: {e}")
             return None
 
     return wrapper
@@ -82,14 +89,8 @@ async def query_mcp(query: str, services: Optional[Union[str, List[str]]] = None
         else:
             logger.error("⚠️ No MCP services available for query", tag="mcp_status")
 
-    # Handle different service specifications
-    if isinstance(services, str):
-        # Single service mode: direct query
-        return await registry.query_service(services, query, **kwargs)
-    else:
-        # Multi-service mode (including None for auto mode)
-        # query_auto handles both None (all services) and list cases
-        return await registry.query_auto(query, services=services, **kwargs)
+    # Use unified query method for all cases
+    return await registry.query(query, services=services, **kwargs)
 
 
 # Utility functions
@@ -169,7 +170,9 @@ def execute_mcp_query_isolated(
 
     Raises:
         concurrent.futures.TimeoutError: If the query exceeds the specified timeout
-        Exception: For other MCP-related errors
+        RateLimitError: If rate limited by the service (can be retried)
+        MCPConnectionError: If connection/network issues occur (can be retried)
+        Exception: For other unexpected MCP-related errors
     """
 
     def run_mcp_sync() -> Optional[str]:

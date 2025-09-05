@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field, ValidationError
 
@@ -187,108 +187,80 @@ class MCPRegistry:
                 except Exception as e:
                     logger.error(f"Failed to auto-register service '{name}': {e}")
 
-    async def query_service(self, service_name: str, query: str, **kwargs) -> Optional[str]:
-        """Query a specific service."""
-        # Check if service exists and is enabled
-        if not self.has_service(service_name):
-            logger.warning(f"Service '{service_name}' not available")
-            return None
+    async def query(self, query: str, services: Optional[Union[str, List[str]]] = None, **kwargs) -> Optional[str]:
+        """
+        Unified query method for any number of services.
 
-        # Check if handler is registered
-        if not self.has_handler(service_name):
-            logger.warning(f"No handler registered for service '{service_name}'")
-            return None
-
-        # Get service configuration and handler
-        config = self.get_service_config(service_name)
-        handler = self._handlers[service_name]
-
-        # Create connector with retry mechanism
-        connector_config = config.to_connector_config()
-
-        # TODO: Make handler customization part of a formal plugin system
-        # Allow handler to customize connector configuration
-        if hasattr(handler, "customize_connector_config"):
-            connector_config = handler.customize_connector_config(connector_config)
-
-        # Create connector directly
-        connector = StreamableHTTPConnector(connector_config)
-
-        # Process query using handler
-        result = await handler.process_query(connector, query, **kwargs)
-        logger.info(f"Query processed successfully by service '{service_name}'")
-        return result
-
-    async def query_auto(self, query: str, services: Optional[List[str]] = None, **kwargs) -> Optional[str]:
-        """Query multiple MCP services in parallel.
-
-        This method connects to multiple services simultaneously, allowing the LLM
-        to choose which tools to use from any service.
+        This method treats single-service as a special case of multi-service,
+        eliminating code duplication between query_service and query_auto.
 
         Args:
             query: The query to process
-            services: Optional list of services to use. If None, uses all enabled services.
+            services: Optional service specification:
+                - None: Use all enabled services
+                - str: Use a specific service
+                - List[str]: Use specified services
             **kwargs: Additional parameters passed to the handler
 
         Returns:
-            Response from the multi-service query, or None if failed
+            Response from the service(s), or None if failed
         """
-        # Determine which services to use
-        if services:
-            target_services = services
-        else:
+        # Normalize services to a list
+        if services is None:
             target_services = self.get_enabled_services()
+        elif isinstance(services, str):
+            target_services = [services]
+        else:
+            target_services = services
 
         if not target_services:
             logger.warning("No services specified or available")
             return None
 
-        # Prepare service configurations
-        service_configs = {}
+        # Prepare connectors for all target services
+        connectors = {}
+        handler = None
 
         for service_name in target_services:
-            # Check if service is configured
+            # Check if service is configured and enabled
             if not self.has_service(service_name):
-                logger.warning(f"Service '{service_name}' not configured, skipping")
+                logger.warning(f"Service '{service_name}' not available, skipping")
                 continue
 
             # Check if handler is registered
             if not self.has_handler(service_name):
-                logger.warning(f"Service '{service_name}' handler not registered, skipping")
+                logger.warning(f"No handler registered for service '{service_name}', skipping")
                 continue
 
-            # Get service configuration and create connector
+            # Get service configuration
             config = self.get_service_config(service_name)
             connector_config = config.to_connector_config()
-            handler = self._handlers[service_name]
 
-            # TODO: Make handler customization part of a formal plugin system
+            # Get handler (use any handler, they all have the same unified processing)
+            if handler is None:
+                handler = self._handlers[service_name]
+
             # Allow handler to customize connector configuration
             if hasattr(handler, "customize_connector_config"):
                 connector_config = handler.customize_connector_config(connector_config)
 
+            # Create connector
             connector = StreamableHTTPConnector(connector_config)
+            connectors[service_name] = connector
 
-            service_configs[service_name] = (connector, handler)
-
-        if not service_configs:
+        if not connectors:
             logger.error("No valid services available after checking")
             return None
 
-        logger.info(f"🎯 Using {len(service_configs)} services: {list(service_configs.keys())}")
+        if not handler:
+            logger.error("No handler available")
+            return None
 
-        # Optimization: if only one service, use direct query
-        if len(service_configs) == 1:
-            service_name = list(service_configs.keys())[0]
-            logger.info(f"Single service mode, using direct query for '{service_name}'")
-            return await self.query_service(service_name, query, **kwargs)
+        logger.info(f"🎯 Using {len(connectors)} service(s): {list(connectors.keys())}")
 
-        # Multiple services: use multi-service processing
-        # Use the first handler's process_multi_services method
-        # (all handlers inherit from GeneralMCPHandler and have this method)
-        first_handler = list(service_configs.values())[0][1]
-
-        return await first_handler.process_multi_services(service_configs, query, **kwargs)
+        # Use the unified process_query method with dict of connectors
+        # Let exceptions propagate for better error handling
+        return await handler.process_query(connectors, query, **kwargs)
 
     def get_service_info(self) -> Dict[str, Dict[str, Any]]:
         """Get information about all registered services."""

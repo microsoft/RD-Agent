@@ -253,9 +253,15 @@ class LiteLLMAPIBackend(APIBackend):
                         tag="llm_messages",
                     )
                 else:
-                    logger.info(
-                        f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}", tag="llm_messages"
-                    )
+                    # Check if we're in a multi-round tool context
+                    # If tools are provided but no tool_calls, we might log this later in multi_round_tool_calling
+                    # So skip logging here if we detect this is part of a tool-enabled conversation
+                    is_multi_round_context = tools is not None and len(messages) > 1
+                    if not is_multi_round_context:
+                        logger.info(
+                            f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}",
+                            tag="llm_messages",
+                        )
 
         global ACC_COST
         try:
@@ -361,7 +367,7 @@ class LiteLLMAPIBackend(APIBackend):
                 for tc in tool_data.get("tool_calls", []):
                     # Create a simple object with the needed attributes
                     class ToolCall:
-                        def __init__(self, id, function_name, function_arguments):
+                        def __init__(self, id: str, function_name: str, function_arguments: str) -> None:
                             self.id = id
                             self.function = type(
                                 "obj", (object,), {"name": function_name, "arguments": function_arguments}
@@ -372,7 +378,7 @@ class LiteLLMAPIBackend(APIBackend):
                 content = ""
             except json.JSONDecodeError:
                 logger.warning("Failed to parse tool calls from response", tag="litellm_tools")
-                tool_calls = None
+                tool_calls = []  # Keep as empty list instead of None
 
         return content, finish_reason, tool_calls
 
@@ -445,9 +451,13 @@ class LiteLLMAPIBackend(APIBackend):
             # If no tool calls, we're done
             if not tool_calls:
                 logger.info(f"✅ Final response in round {round_count}", tag="mcp_progress")
-                # Log the final answer if tools were used
+                # Log the final answer in these cases:
+                # 1. Multi-round conversation (round > 1) - already had tool calls in previous rounds
+                # 2. Single round with tools provided but no tool calls made
+                # This ensures we always log the final content once when tools are involved
                 if tools and LITELLM_SETTINGS.log_llm_chat_content:
                     logger.info(f"{LogColors.BLUE}Final Answer:{LogColors.END}\n{content}", tag="llm_messages")
+
                 # Call round callback before returning
                 if round_callback:
                     try:

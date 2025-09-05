@@ -9,7 +9,6 @@ import asyncio
 import json
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 from litellm import RateLimitError
@@ -59,51 +58,19 @@ class BaseMCPHandler(ABC):
         }
 
 
-@dataclass
-class ConversationCheckpoint:
-    """Save multi-round conversation progress for resumption after errors."""
-
-    conversation: List[Dict[str, Any]] = field(default_factory=list)
-    completed_rounds: int = 0
-    initial_query: Optional[str] = None
-    last_tool_results: Optional[Dict[str, Any]] = None
-    _last_saved_length: int = 0  # Track last saved position
-
-    def save_round_complete(self, round_num: int, messages: List[Dict[str, Any]]):
-        """Save complete conversation state after a round completes.
-
-        Args:
-            round_num: The round number that just completed
-            messages: Complete conversation history up to this point
-        """
-        # Replace entire conversation with current state
-        self.conversation = messages.copy()
-        self.completed_rounds = round_num
-        self._last_saved_length = len(messages)
-
-    def can_resume(self) -> bool:
-        """Check if we can resume from a checkpoint."""
-        return self.completed_rounds > 0 and len(self.conversation) > 0
-
-    def get_resume_messages(self) -> List[Dict[str, Any]]:
-        """Get messages to resume conversation from checkpoint."""
-        if self.can_resume():
-            logger.info(
-                f"📂 Resuming from checkpoint: {self.completed_rounds} rounds, {len(self.conversation)} messages",
-                tag="mcp_checkpoint",
-            )
-        return self.conversation.copy()
-
-
-# TODO: to be tested for multi-service mode
 class MultiServiceContext:
-    """Context manager for multiple MCP service connections."""
+    """Async context manager for multiple MCP service connections.
+
+    This class properly manages the lifecycle of multiple MCP service connections
+    using Python's async context manager protocol.
+    """
 
     def __init__(self):
         self.contexts = []  # List of (service_name, context_manager)
         self.sessions = {}  # {service_name: session}
         self.tool_to_service = {}  # {tool_name: service_name}
         self.handlers = {}  # {service_name: handler} - for applying service-specific logic
+        self._cleaned_up = False  # Track cleanup state
 
     async def add_service(
         self, service_name: str, connector: StreamableHTTPConnector, handler=None
@@ -118,6 +85,7 @@ class MultiServiceContext:
         Returns:
             MCPSession if successful, None otherwise
         """
+        ctx = None
         try:
             # Connect to the service
             ctx = connector.connect()
@@ -139,17 +107,50 @@ class MultiServiceContext:
             return session
 
         except Exception as e:
-            logger.error(f"❌ Failed to connect service '{service_name}': {e}", tag="multi_service")
+            # Ensure we clean up the context if it was entered
+            if ctx is not None:
+                try:
+                    await ctx.__aexit__(None, None, None)
+                except Exception as cleanup_error:
+                    logger.warning(f"Error during cleanup of '{service_name}': {cleanup_error}", tag="multi_service")
+
+            # Log the connection failure with a user-friendly message
+            error_msg = str(e)
+            if "connection" in error_msg.lower() or "refused" in error_msg.lower():
+                logger.error(
+                    f"❌ Cannot connect to '{service_name}' - service may not be running or port is incorrect",
+                    tag="multi_service",
+                )
+            else:
+                logger.error(f"❌ Failed to connect service '{service_name}': {error_msg}", tag="multi_service")
             return None
 
     async def cleanup(self):
         """Clean up all service connections."""
+        if self._cleaned_up:
+            return  # Already cleaned up
+
         for service_name, ctx in self.contexts:
             try:
                 await ctx.__aexit__(None, None, None)
                 logger.warning(f"Closed connection to '{service_name}'", tag="multi_service")
             except Exception as e:
                 logger.error(f"Error closing '{service_name}': {e}", tag="multi_service")
+
+        self._cleaned_up = True
+        self.contexts.clear()
+        self.sessions.clear()
+        self.tool_to_service.clear()
+        self.handlers.clear()
+
+    async def __aenter__(self):
+        """Enter the async context manager."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Exit the async context manager and ensure cleanup."""
+        await self.cleanup()
+        return False  # Don't suppress exceptions
 
     def get_all_tools(self) -> List:
         """Get all tools from all connected services."""
@@ -399,128 +400,23 @@ class GeneralMCPHandler(BaseMCPHandler):
 
     # Core implementation using LiteLLM backend
 
-    async def process_query_with_resume(
+    async def _process_query_unified(
         self,
-        connector: StreamableHTTPConnector,
+        connectors: Dict[str, StreamableHTTPConnector],
         query: str,
-        checkpoint: Optional[ConversationCheckpoint] = None,
-        max_retries: int = 3,
         max_rounds: int = 5,
         verbose: bool = False,
         **kwargs,
     ) -> str:
-        """Process query with checkpoint-based resumption on errors.
-
-        Args:
-            connector: MCP connector
-            query: Query string
-            checkpoint: Optional checkpoint to resume from
-            max_retries: Maximum retry attempts with checkpoint
-            max_rounds: Maximum conversation rounds
-            verbose: Enable verbose logging
-            **kwargs: Additional arguments
-
-        Returns:
-            Final response string
         """
-        # Initialize checkpoint if not provided
-        if checkpoint is None:
-            checkpoint = ConversationCheckpoint(initial_query=query)
+        Unified internal query processing for any number of services.
 
-        retry_count = 0
-        last_error = None
-
-        while retry_count < max_retries:
-            try:
-                # Execute the actual processing logic with checkpoint support
-                result = await self._process_query_internal(
-                    connector=connector,
-                    query=query if not checkpoint.can_resume() else checkpoint.initial_query,
-                    checkpoint=checkpoint,
-                    max_rounds=max_rounds - checkpoint.completed_rounds,  # Adjust remaining rounds
-                    verbose=verbose,
-                    **kwargs,
-                )
-                return result
-
-            except (RateLimitError, MCPConnectionError) as e:
-                last_error = e
-                retry_count += 1
-
-                # Skip retry for real connection errors
-                if isinstance(e, MCPConnectionError) and "connection" in str(e).lower():
-                    # Connection errors are already retried at connector level, don't retry here
-                    raise
-
-                if retry_count <= max_retries:
-                    # Determine wait time based on error type
-                    if isinstance(e, RateLimitError):
-                        # Rate limit: use longer wait times
-                        if retry_count <= len(self.RATE_LIMIT_WAIT_TIMES):
-                            wait_time = self.RATE_LIMIT_WAIT_TIMES[retry_count - 1]
-                        else:
-                            wait_time = self.RATE_LIMIT_WAIT_TIMES[-1]  # Use max wait time
-
-                        logger.warning(
-                            f"⏳ Rate limited after {checkpoint.completed_rounds} rounds. "
-                            f"Waiting {wait_time}s before retry {retry_count}/{max_retries}",
-                            tag="mcp_rate_limit",
-                        )
-                    else:
-                        # Normal error: use shorter wait times
-                        if retry_count <= len(self.NORMAL_RETRY_WAIT_TIMES):
-                            wait_time = self.NORMAL_RETRY_WAIT_TIMES[retry_count - 1]
-                        else:
-                            wait_time = self.NORMAL_RETRY_WAIT_TIMES[-1]  # Use max wait time
-
-                        logger.warning(
-                            f"⚠️ Error after {checkpoint.completed_rounds} rounds: {str(e)[:100]}. "
-                            f"Waiting {wait_time}s before retry {retry_count}/{max_retries}",
-                            tag="mcp_retry",
-                        )
-
-                    # Wait before retry
-                    await asyncio.sleep(wait_time)
-
-                    # Continue with checkpoint - will resume from where it left off
-                    if checkpoint.can_resume():
-                        logger.info(
-                            f"📂 Resuming from checkpoint: {checkpoint.completed_rounds} rounds completed",
-                            tag="mcp_resume",
-                        )
-                else:
-                    # Max retries reached
-                    error_type = "Rate limit" if isinstance(e, RateLimitError) else "Error"
-                    logger.error(
-                        f"{error_type}: Max retries ({max_retries}) reached. Last error: {last_error}", tag="mcp_retry"
-                    )
-                    raise
-
-            except Exception as e:
-                # Non-retryable error
-                logger.error(f"Non-retryable error: {e}", tag="mcp_error")
-                raise
-
-        # Should not reach here, but handle it
-        if last_error:
-            raise last_error
-        raise RuntimeError("Unexpected error in retry loop")
-
-    async def _process_query_internal(
-        self,
-        connector: StreamableHTTPConnector,
-        query: str,
-        checkpoint: ConversationCheckpoint,
-        max_rounds: int = 5,
-        verbose: bool = False,
-        **kwargs,
-    ) -> str:
-        """Internal query processing with checkpoint support.
+        This method treats single-service as N=1 of multi-service,
+        eliminating code duplication.
 
         Args:
-            connector: MCP connector
+            connectors: Dict mapping service names to connectors
             query: Query string
-            checkpoint: Checkpoint for saving progress
             max_rounds: Maximum conversation rounds
             verbose: Enable verbose logging
             **kwargs: Additional arguments
@@ -530,100 +426,150 @@ class GeneralMCPHandler(BaseMCPHandler):
         """
         # Check if backend supports function calling
         if not self.backend.supports_function_calling():
-            logger.error("Model does not support function calling, falling back to basic processing", tag="general_mcp")
-            return await self._fallback_processing(connector, query, **kwargs)
+            logger.error("Model does not support function calling", tag="mcp")
+            # For fallback, use first connector
+            first_connector = list(connectors.values())[0] if connectors else None
+            if first_connector:
+                return await self._fallback_processing(first_connector, query, **kwargs)
+            return "No connectors available"
 
-        # Check cache first (only on fresh start, not resume)
-        if not checkpoint.can_resume():
-            cached_result = self._check_cache(query)
-            if cached_result:
-                logger.info("Returning cached result", tag="general_mcp")
-                return cached_result
+        # Check cache first
+        cached_result = self._check_cache(query)
+        if cached_result:
+            logger.info("Returning cached result", tag="mcp")
+            return cached_result
 
         start_time = time.time()
 
-        try:
-            async with connector.connect() as session:
-                # Log available tools
-                tools = session.tools
-                logger.info(f"🔧 Available tools: {[tool.name for tool in tools]}", tag="mcp_session")
+        # Use MultiServiceContext to manage all connections (works for 1 or N services)
+        async with MultiServiceContext() as multi_ctx:
+            try:
+                # Connect to all services
+                num_services = len(connectors)
+                logger.info(f"🔌 Connecting to {num_services} service(s)...", tag="mcp")
 
-                # Preprocess query using subclass implementation
+                connect_tasks = []
+                for service_name, connector in connectors.items():
+                    connect_tasks.append(multi_ctx.add_service(service_name, connector, self))
+
+                # Use return_exceptions=True to prevent cascade cancellation
+                results = await asyncio.gather(*connect_tasks, return_exceptions=True)
+
+                # Count successful connections
+                successful_connections = 0
+                failed_services = []
+                for service_name, result in zip(connectors.keys(), results):
+                    if isinstance(result, Exception):
+                        failed_services.append(service_name)
+                        logger.warning(f"Service '{service_name}' connection failed: {result}", tag="mcp")
+                    elif result is not None:
+                        successful_connections += 1
+
+                if not multi_ctx.sessions:
+                    # All connections failed - provide helpful error message
+                    if failed_services:
+                        service_list = ", ".join(failed_services)
+                        logger.error(
+                            f"Could not connect to any MCP services. Failed services: {service_list}", tag="mcp"
+                        )
+                        return (
+                            f"Failed to connect to MCP services ({service_list}). Please check if services are running."
+                        )
+                    else:
+                        logger.error("No services could be connected", tag="mcp")
+                        return "Failed to connect to services"
+
+                # Get all tools from all sessions
+                all_tools = multi_ctx.get_all_tools()
+
+                if not all_tools:
+                    logger.error("No tools available from services", tag="mcp")
+                    return "No tools available"
+
+                logger.info(
+                    f"📊 Connected {len(multi_ctx.sessions)}/{num_services} service(s) "
+                    f"with {len(all_tools)} total tools",
+                    tag="mcp",
+                )
+
+                # Preprocess query
                 enhanced_query = self.preprocess_query(query, verbose=verbose, **kwargs)
 
-                # Convert MCP tools to OpenAI format
-                openai_tools = self.backend.convert_mcp_tools_to_openai_format(session.tools)
+                # Convert tools to OpenAI format
+                openai_tools = self.backend.convert_mcp_tools_to_openai_format(all_tools)
 
-                # Create tool executor for this session
+                # Create unified tool executor
                 async def tool_executor(tool_calls):
-                    results = await self._execute_session_tools(session, tool_calls, verbose)
-                    # Save tool results to checkpoint
-                    checkpoint.last_tool_results = {"tool_calls": tool_calls, "results": results}
+                    """Execute tools, routing to correct service automatically"""
+                    results = []
+
+                    for i, tool_call in enumerate(tool_calls, 1):
+                        tool_name = tool_call.function.name
+
+                        try:
+                            arguments = json.loads(tool_call.function.arguments)
+                        except json.JSONDecodeError:
+                            arguments = {}
+
+                        try:
+                            # MultiServiceContext handles routing to correct service
+                            result = await multi_ctx.execute_tool(
+                                tool_name, arguments, tool_call_id=tool_call.id, tool_index=i, verbose=verbose
+                            )
+                            results.append(result)
+                        except (RateLimitError, MCPConnectionError):
+                            # Propagate for retry
+                            logger.warning(f"Tool '{tool_name}' triggered retry", tag="mcp")
+                            raise
+                        except Exception as e:
+                            logger.error(f"Tool '{tool_name}' failed: {e}", tag="mcp")
+                            results.append(
+                                {"role": "tool", "tool_call_id": tool_call.id, "content": f"Error: {str(e)}"}
+                            )
+
                     return results
 
-                # Create round callback to save checkpoint after each round
-                async def round_callback(round_num: int, messages: List[Dict[str, Any]]):
-                    """Save checkpoint after each round completes."""
-                    checkpoint.save_round_complete(round_num, messages)
-
-                # Prepare initial messages
-                if checkpoint.can_resume():
-                    # Resume from checkpoint
-                    initial_messages = checkpoint.get_resume_messages()
-                    logger.info(f"Resuming with {len(initial_messages)} messages from checkpoint", tag="mcp_resume")
-                else:
-                    # Fresh start
-                    initial_messages = [{"role": "user", "content": enhanced_query}]
-
-                # Perform multi-round tool calling using unified LiteLLM backend
-                final_response, conversation = await self.backend.multi_round_tool_calling(
-                    initial_messages=initial_messages,
+                # Perform multi-round tool calling
+                final_response, _ = await self.backend.multi_round_tool_calling(
+                    initial_messages=[{"role": "user", "content": enhanced_query}],
                     tools=openai_tools,
                     max_rounds=max_rounds,
                     tool_executor=tool_executor,
                     verbose=verbose,
-                    model_config_override=self.mcp_llm_settings,  # Pass MCP-specific configuration
-                    round_callback=round_callback,  # Save progress after each round
+                    model_config_override=self.mcp_llm_settings,
                 )
 
-                # No need to save here - already saved via round_callback
-
-                # Log timing and result
+                # Log timing and cache result
                 self._log_timing("query processing", start_time)
-
-                # Cache the result (only cache final successful results)
                 self._cache_result(query, final_response)
 
                 return final_response
 
-        except RateLimitError:
-            logger.error(f"Rate limit exceeded for {self.service_name}, will retry automatically", tag="general_mcp")
-            raise
-        except MCPConnectionError as e:
-            # Add context to connection errors
-            logger.error(f"MCP connection failed for {self.service_name}: {e}", tag="general_mcp")
-            raise
-        except Exception as e:
-            logger.error(f"MCP query processing failed for {self.service_name}: {str(e)[:200]}", tag="general_mcp")
-            # Provide a clean error message to the application layer
-            if "timeout" in str(e).lower():
-                raise MCPConnectionError("Service timeout - please try again later") from e
-            elif "network" in str(e).lower() or "connection" in str(e).lower():
-                raise MCPConnectionError("Network connectivity issue - check your connection") from e
-            else:
-                raise MCPConnectionError("Service temporarily unavailable - please retry") from e
+            except Exception as e:
+                logger.error(f"Query processing failed: {str(e)[:200]}", tag="mcp")
+                if "timeout" in str(e).lower():
+                    raise MCPConnectionError("Service timeout - please try again later") from e
+                elif "network" in str(e).lower() or "connection" in str(e).lower():
+                    raise MCPConnectionError("Network connectivity issue - check your connection") from e
+                else:
+                    raise MCPConnectionError("Service temporarily unavailable - please retry") from e
 
     async def process_query(
-        self, connector: StreamableHTTPConnector, query: str, max_rounds: int = 5, verbose: bool = False, **kwargs
+        self,
+        connectors: Dict[str, StreamableHTTPConnector],
+        query: str,
+        max_rounds: int = 5,
+        verbose: bool = False,
+        **kwargs,
     ) -> str:
         """
-        Process query with automatic checkpoint-based retry on errors.
+        Unified query processing for single or multiple services.
 
-        This method automatically handles retries with checkpoint resumption,
-        ensuring that successful rounds are not repeated during retries.
+        This method handles both single-service and multi-service scenarios uniformly,
+        treating single-service as a special case of multi-service where N=1.
 
         Args:
-            connector: StreamableHTTP connector
+            connectors: Dict of service_name -> connector (can have 1 or N entries)
             query: The query to process
             max_rounds: Maximum number of tool calling rounds
             verbose: Enable verbose logging
@@ -632,151 +578,32 @@ class GeneralMCPHandler(BaseMCPHandler):
         Returns:
             Final response string
         """
-        # Directly use checkpoint-based processing as the default
-        return await self.process_query_with_resume(
-            connector=connector,
-            query=query,
-            checkpoint=None,  # Will be created internally
-            max_retries=3,
-            max_rounds=max_rounds,
-            verbose=verbose,
-            **kwargs,
-        )
+        max_retries = 3
 
-    async def process_multi_services(
-        self,
-        service_configs: Dict[str, Tuple[StreamableHTTPConnector, Any]],
-        query: str,
-        max_rounds: int = 5,
-        verbose: bool = False,
-        **kwargs,
-    ) -> Optional[str]:
-        """Process multiple MCP services in parallel.
+        for attempt in range(max_retries):
+            try:
+                return await self._process_query_unified(
+                    connectors=connectors,
+                    query=query,
+                    max_rounds=max_rounds,
+                    verbose=verbose,
+                    **kwargs,
+                )
+            except (RateLimitError, MCPConnectionError) as e:
+                if attempt == max_retries - 1:
+                    # Last attempt, re-raise the exception
+                    raise
 
-        This method connects to multiple services simultaneously, merges their tools,
-        and allows the LLM to choose which tools to use from any service.
+                # Calculate exponential backoff wait time
+                wait_time = 2**attempt * 5  # 5s, 10s, 20s
 
-        Args:
-            service_configs: Dict mapping service names to (connector, handler) tuples
-            query: The query to process
-            max_rounds: Maximum number of tool calling rounds
-            verbose: Enable verbose logging
-            **kwargs: Additional parameters
+                logger.warning(
+                    f"⏳ Query failed (attempt {attempt + 1}/{max_retries}): {str(e)[:100]}. "
+                    f"Waiting {wait_time}s before retry",
+                    tag="mcp_retry",
+                )
 
-        Returns:
-            Final response string or None if failed
-        """
-        # Create multi-service context
-        multi_ctx = MultiServiceContext()
-
-        try:
-            # 1. Connect to all services in parallel
-            logger.info(f"🔌 Connecting to {len(service_configs)} services...", tag="multi_service")
-
-            connect_tasks = []
-            for service_name, (connector, handler) in service_configs.items():
-                # Pass handler to add_service for applying service-specific logic
-                connect_tasks.append(multi_ctx.add_service(service_name, connector, handler))
-
-            # Wait for all connections
-            await asyncio.gather(*connect_tasks)
-
-            # Check if we have any successful connections
-            if not multi_ctx.sessions:
-                logger.error("No services could be connected", tag="multi_service")
-                return None
-
-            # 2. Get all tools
-            all_tools = multi_ctx.get_all_tools()
-
-            if not all_tools:
-                logger.error("No tools available from any service", tag="multi_service")
-                return None
-
-            logger.info(
-                f"📊 Connected {len(multi_ctx.sessions)}/{len(service_configs)} services "
-                f"with {len(all_tools)} total tools",
-                tag="multi_service",
-            )
-
-            # Log tool distribution if verbose
-            if verbose:
-                for service_name, session in multi_ctx.sessions.items():
-                    tool_names = [t.name for t in session.tools]
-                    logger.info(f"  • {service_name}: {tool_names}", tag="multi_service")
-
-            # 3. Check cache (only for fresh queries)
-            cached_result = self._check_cache(query)
-            if cached_result:
-                logger.info("Returning cached result", tag="multi_service")
-                return cached_result
-
-            # 4. Preprocess query
-            enhanced_query = self.preprocess_query(query, verbose=verbose, **kwargs)
-
-            # 5. Convert tools to OpenAI format
-            openai_tools = self.backend.convert_mcp_tools_to_openai_format(all_tools)
-
-            # 6. Create tool executor that routes to correct service
-            async def tool_executor(tool_calls):
-                results = []
-                for i, tool_call in enumerate(tool_calls, 1):
-                    # Use object attributes, not dictionary keys
-                    tool_name = tool_call.function.name
-
-                    # Parse arguments
-                    try:
-                        arguments = json.loads(tool_call.function.arguments)
-                    except json.JSONDecodeError:
-                        arguments = {}
-
-                    try:
-                        # Execute tool through multi-service context
-                        # Pass tool_call_id and tool_index for proper handling
-                        result = await multi_ctx.execute_tool(
-                            tool_name, arguments, tool_call_id=tool_call.id, tool_index=i, verbose=verbose
-                        )
-                        results.append(result)
-                    except (RateLimitError, MCPConnectionError):
-                        # Critical: propagate these exceptions to trigger retry mechanism
-                        logger.warning(
-                            f"⚠️ Tool '{tool_name}' triggered retry exception in multi-service mode", tag="multi_service"
-                        )
-                        raise
-                    except Exception as e:
-                        # Other exceptions: log but continue with other tools
-                        logger.error(f"Tool '{tool_name}' failed: {e}", tag="multi_service")
-                        results.append(
-                            {"role": "tool", "tool_call_id": tool_call.id, "content": f"Error executing tool: {str(e)}"}
-                        )
-
-                return results
-
-            # 7. Perform multi-round tool calling
-            start_time = time.time()
-
-            final_response, _ = await self.backend.multi_round_tool_calling(
-                initial_messages=[{"role": "user", "content": enhanced_query}],
-                tools=openai_tools,
-                max_rounds=max_rounds,
-                tool_executor=tool_executor,
-                verbose=verbose,
-                model_config_override=self.mcp_llm_settings,
-            )
-
-            # 8. Log timing and cache result
-            self._log_timing("multi-service query processing", start_time)
-            self._cache_result(query, final_response)
-
-            return final_response
-
-        except Exception as e:
-            logger.error(f"Multi-service query failed: {e}", tag="multi_service")
-            return None
-
-        finally:
-            # Always clean up connections
-            await multi_ctx.cleanup()
+                await asyncio.sleep(wait_time)
 
     async def _fallback_processing(self, connector: StreamableHTTPConnector, query: str, **kwargs) -> str:
         """Fallback processing when function calling is not supported."""
