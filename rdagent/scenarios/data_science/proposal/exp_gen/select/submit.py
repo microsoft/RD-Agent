@@ -304,8 +304,8 @@ class ValidationSelector(SOTAexpSelector):
             logger.warning("ValidationSelector: No candidates scored successfully during validation.")
             return None
 
-        valid_results.sort(key=lambda x: (x[2] + x[3]) * self.direction_sign, reverse=True)
-        best_exp, best_loop_id = valid_results[0][0], valid_results[0][2]
+        valid_results.sort(key=lambda x: (x[3]) * self.direction_sign, reverse=True)
+        best_exp, best_loop_id = valid_results[0][0], valid_results[0][1]
 
         for loop_id, valid_score, test_score in [(i[1], i[2], i[3]) for i in valid_results]:
             logger.info(f"ValidationSelector: Loop_id={loop_id} ->valid score={valid_score}, test score={test_score}")
