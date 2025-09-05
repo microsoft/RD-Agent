@@ -66,8 +66,8 @@ class LLMHypothesis(Hypothesis):
         return "\n".join(lines)
 
 
-class LLMFinetuneTask(Task):
-    """LLM fine-tuning task class"""
+class LLMFinetuneHypothesisTask(Task):
+    """LLM fine-tuning hypothesis task class"""
 
     def __init__(
         self,
@@ -101,7 +101,7 @@ class LLMHypothesis2Experiment(Hypothesis2Experiment):
             dataset = "default"
 
         # Create fine-tuning task with only essential parameters
-        task = LLMFinetuneTask(
+        task = LLMFinetuneHypothesisTask(
             base_model=hypothesis.base_model,
             finetune_method=hypothesis.finetune_method,
             dataset=dataset,
