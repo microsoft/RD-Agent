@@ -11,6 +11,7 @@ from pathlib import Path
 import yaml
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
+from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
     CoSTEERSingleFeedback,
@@ -21,7 +22,6 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
-from rdagent.components.coder.data_science.share.ds_costeer import DSCoSTEER
 from rdagent.components.coder.finetune.conf import FTCoderCoSTEERSettings
 from rdagent.components.coder.finetune.eval import LLMFinetuneEvaluator
 from rdagent.components.coder.finetune.exp import TrainingTask
@@ -69,9 +69,9 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         # Get task parameters from the task object
-        base_model = getattr(target_task, "base_model", "Qwen/Qwen2.5-1.5B-Instruct")
-        finetune_method = getattr(target_task, "finetune_method", "lora")
-        dataset = getattr(target_task, "dataset", "default")
+        base_model = getattr(target_task, "base_model")
+        finetune_method = getattr(target_task, "finetune_method")
+        dataset = getattr(target_task, "dataset")
 
         # Use LLM to generate LlamaFactory config YAML
         # For coding stage, use debug mode with limited samples
@@ -237,7 +237,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             return config_yaml
 
 
-class LLMFinetuneCoSTEER(DSCoSTEER):
+class LLMFinetuneCoSTEER(CoSTEER):
     """LLM Fine-tuning CoSTEER implementation"""
 
     def __init__(

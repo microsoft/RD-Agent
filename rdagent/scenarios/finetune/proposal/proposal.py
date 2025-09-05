@@ -88,11 +88,7 @@ class LLMHypothesis2Experiment(Hypothesis2Experiment):
             f"Converting LLM hypothesis to experiment: {hypothesis.base_model} with {hypothesis.finetune_method}"
         )
 
-        # Get dataset from settings
-        try:
-            dataset = FT_RD_SETTING.dataset if hasattr(FT_RD_SETTING, "dataset") else "default"
-        except:
-            dataset = "default"
+        dataset = FT_RD_SETTING.dataset
 
         # Create fine-tuning task with only essential parameters
         task = TrainingTask(
@@ -120,7 +116,7 @@ class LLMFinetuneExpGen(ExpGen):
 
         # 1. Detect GPU capabilities and dataset information
         device_info = get_runtime_environment_by_env(get_ft_env())
-        dataset_info = self._get_dataset_info()
+        dataset_info = extract_dataset_info(FT_RD_SETTING.dataset)
         logger.info(f"Device detected: {device_info}")
         logger.info(f"Dataset: {dataset_info['name']}")
 
@@ -147,15 +143,6 @@ class LLMFinetuneExpGen(ExpGen):
         experiment = converter.convert(hypothesis, trace)
 
         return experiment
-
-    def _get_dataset_info(self) -> dict:
-        """Get dataset information using existing utility"""
-        try:
-            dataset_name = FT_RD_SETTING.dataset if hasattr(FT_RD_SETTING, "dataset") else "default"
-            return extract_dataset_info(dataset_name)
-        except Exception as e:
-            logger.warning(f"Failed to get dataset info: {e}")
-            return {"name": "unknown", "description": "", "samples": [], "files": []}
 
     # TODO: decide by llm or hard code logic?
     # ATTENTION: This is a oversimplified version
