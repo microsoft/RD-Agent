@@ -26,7 +26,7 @@ class FTCoderCoSTEERSettings(CoSTEERSettings):
     """LLM-specific evaluators for prev model loading check"""
 
     extra_eval: list[str] = []
-    """Extra evaluators (similar to DS implementation)"""
+    """Extra evaluators"""
 
 
 def _get_standard_ft_volumes() -> dict:

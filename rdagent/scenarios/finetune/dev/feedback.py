@@ -17,7 +17,7 @@ from rdagent.core.proposal import (
 from rdagent.core.scenario import Scenario
 from rdagent.log.utils import dict_get_with_warning
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+from rdagent.scenarios.finetune.experiment.experiment import FTExperiment
 from rdagent.scenarios.finetune.proposal.proposal import LLMHypothesis
 from rdagent.scenarios.finetune.train.eval import LLMFinetuneEvaluator
 from rdagent.utils import convert2bool
@@ -32,7 +32,7 @@ class LLMExperiment2Feedback(Experiment2Feedback):
         self.version = version
         self.evaluator = LLMFinetuneEvaluator(scen)
 
-    def generate_feedback(self, exp: DSExperiment, trace=None) -> ExperimentFeedback:
+    def generate_feedback(self, exp: FTExperiment, trace=None) -> ExperimentFeedback:
         """Generate comprehensive feedback for LLM fine-tuning experiment"""
 
         # Get experiment hypothesis
@@ -101,7 +101,7 @@ class LLMExperiment2Feedback(Experiment2Feedback):
                 decision=execution_analysis.get("success", False),
             )
 
-    def _analyze_workspace(self, exp: DSExperiment) -> str:
+    def _analyze_workspace(self, exp: FTExperiment) -> str:
         """Analyze experiment workspace for files and structure"""
         if not exp.experiment_workspace:
             return "No workspace available for analysis."
@@ -144,7 +144,7 @@ class LLMExperiment2Feedback(Experiment2Feedback):
 
         return "\n".join(analysis)
 
-    def _analyze_execution_results(self, exp: DSExperiment) -> Dict:
+    def _analyze_execution_results(self, exp: FTExperiment) -> Dict:
         """Analyze execution results and running information"""
         analysis = {
             "success": False,

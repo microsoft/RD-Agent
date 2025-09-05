@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class LLaMAFactoryParamsQuery:
+    # TODO: fetch parameters from llama factory dynamically
     """Query LLaMA Factory parameters for different fine-tuning methods."""
 
     def __init__(self, llama_factory_path: Optional[Path] = None):
