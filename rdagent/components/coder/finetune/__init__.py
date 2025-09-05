@@ -25,13 +25,13 @@ from rdagent.components.coder.data_science.share.ds_costeer import DSCoSTEER
 from rdagent.components.coder.finetune.conf import FTCoderCoSTEERSettings
 from rdagent.components.coder.finetune.eval import LLMFinetuneEvaluator
 from rdagent.components.coder.finetune.exp import TrainingTask
+from rdagent.components.coder.finetune.unified_validator import create_unified_validator
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.finetune.train.llama_params_query import LLaMAFactoryParamsQuery
-from rdagent.scenarios.finetune.train.utils import create_parameter_validator
 from rdagent.utils.agent.ret import PythonAgentOut
 from rdagent.utils.agent.tpl import T
 
@@ -44,8 +44,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
     def __init__(self, scen: Scenario, settings, *args, **kwargs):
         super().__init__(scen, settings)
 
-        # Initialize LlamaFactory parameter validator
-        self.parameter_validator = create_parameter_validator()
+        self.config_validator = create_unified_validator()
 
     def implement_one_task(
         self,
@@ -118,13 +117,16 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             )
 
         failed_knowledge_str = ""
-        if failed_knowledge:
-            failed_knowledge_str = "\n".join(
-                [
-                    f"### Failed Attempt {i+1}:\n```yaml\n{knowledge.implementation.file_dict.get('train.yaml', '')}\n```\n**Feedback:** {knowledge.feedback}"
-                    for i, knowledge in enumerate(failed_knowledge)
-                ]
-            )
+        if failed_knowledge and isinstance(failed_knowledge, (list, tuple)) and len(failed_knowledge) > 0:
+            # Handle both list of knowledge and tuple format (knowledge_list, None)
+            knowledge_list = failed_knowledge[0] if isinstance(failed_knowledge, tuple) else failed_knowledge
+            if knowledge_list:
+                failed_knowledge_str = "\n".join(
+                    [
+                        f"### Failed Attempt {i+1}:\n```yaml\n{knowledge.implementation.file_dict.get('train.yaml', '')}\n```\n**Feedback:** {knowledge.feedback}"
+                        for i, knowledge in enumerate(knowledge_list)
+                    ]
+                )
 
         # Query LLaMA Factory parameters for the specific method
         params_query = LLaMAFactoryParamsQuery()
@@ -139,7 +141,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             task_desc=task_info,
             finetune_method=finetune_method,
             similar_knowledge=similar_knowledge if similar_knowledge else [],
-            failed_knowledge=failed_knowledge if failed_knowledge else [],
+            failed_knowledge=failed_knowledge[0] if isinstance(failed_knowledge, tuple) and failed_knowledge[0] else [],
             method_params=method_params_desc,
         )
 
@@ -216,13 +218,22 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         return evo
 
     def _validate_config(self, config_yaml: str) -> str:
-        """Validate LlamaFactory configuration using existing validator"""
+        """Validate configuration using unified validator"""
         try:
-            return self.parameter_validator.validate_yaml_config(config_yaml)
-        except Exception as e:
-            from rdagent.log import rdagent_logger as logger
+            result = self.config_validator.validate_config_comprehensive(
+                config_yaml, enable_micro_batch_test=False  # Skip micro-batch test in coder stage for speed
+            )
 
-            logger.warning(f"Config validation failed: {e}, using original config")
+            report = self.config_validator.generate_validation_report(result)
+            logger.info(f"Config validation:\n{report}")
+
+            if not result.success:
+                logger.warning(f"Validation failed: {result.errors}")
+
+            return result.filtered_config  # Always return filtered config
+
+        except Exception as e:
+            logger.warning(f"Config validation exception: {e}")
             return config_yaml
 
 

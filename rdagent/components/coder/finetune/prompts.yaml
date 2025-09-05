@@ -68,31 +68,54 @@ finetune_eval:
 
     {{ task_desc }}
 
-    ## Configuration File
+    ## Configuration File (After Parameter Filtering)
     ```yaml
     {{ code }}
     ```
 
-    ## Test Code
-    The configuration was tested using:
-    ```python
-    {{ test_code }}
+    ## Validation Process
+    The configuration underwent a comprehensive three-tier validation:
+
+    **Tier 1: Parameter Filtering**
+    - Removes unsupported parameters using LlamaFactory dataclass definitions
+    - Ensures only valid parameters remain in the configuration
+
+    **Tier 2: Completeness Check**
+    - Validates presence of required fields: model_name_or_path, stage, do_train, finetuning_type, dataset
+    - Checks method-specific parameters (e.g., LoRA parameters for lora/qlora methods)
+    - Verifies YAML format and configuration structure
+
+    **Tier 3: Micro-batch Test (Optional)**
+    - Runs actual training with 10 samples, 1 epoch, 5 max steps
+    - Tests real compatibility with LlamaFactory runtime
+    - Validates data loading, model initialization, and training loop
+
+    ## Validation Report Format
+    The output follows this structure:
+    ```
+    === LLM Configuration Validation Report ===
+    Status: PASSED/FAILED (took X.XXs)
+    Missing fields: [list if any]
+    Warnings: [semicolon-separated warnings]
+    Errors: [semicolon-separated errors]
     ```
 
     ## Evaluation Criteria
-    1. **YAML Validity**: Is the YAML file properly formatted and parseable?
-    2. **Required Parameters**: Are all mandatory LlamaFactory parameters present?
-    3. **Parameter Values**: Are the parameter values reasonable and valid?
-    4. **Method Configuration**: Are method-specific parameters (LoRA, QLoRA) correctly configured?
-    5. **Debug Mode**: Is debug mode (max_samples=100) properly set for coding stage?
-    6. **LlamaFactory Compatibility**: Are all parameters compatible with LlamaFactory?
+    1. **Parameter Filtering**: Were invalid parameters successfully removed?
+    2. **Required Fields**: Are all mandatory parameters present after filtering?
+    3. **Configuration Quality**: Are parameter values reasonable and valid?
+    4. **Method Compatibility**: Are method-specific parameters correctly configured?
+    5. **Runtime Validation**: Did the micro-batch test execute successfully (if enabled)?
+    6. **Error Analysis**: Are any errors related to configuration issues vs. system issues?
+
+    **Important**: Distinguish between configuration errors (invalid YAML, missing fields) and system errors (environment issues, API problems). Only fail for actual configuration problems.
 
     Please respond with your evaluation in the following JSON format:
     ```json
     {
-        "execution": "Describe how well the configuration validation executed, including any errors or warnings.",
-        "return_checking": "Evaluate the completeness and correctness of the configuration parameters.",
-        "code": "Assess configuration quality, parameter validity, and adherence to LlamaFactory standards.",
+        "execution": "Analyze the validation process execution, including any tier-specific issues.",
+        "return_checking": "Evaluate parameter filtering results and completeness validation.",
+        "code": "Assess the filtered configuration quality and LlamaFactory compatibility.",
         "final_decision": <true/false>
     }
     ```
