@@ -1,4 +1,5 @@
 import os
+import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -32,8 +33,6 @@ def download_dataset(
     _ensure_parent(save_path)
 
     if force and save_path.exists():
-        import shutil
-
         shutil.rmtree(save_path)
 
     try:
@@ -86,8 +85,6 @@ def download_model(
     _ensure_parent(save_path)
 
     if force and save_path.exists():
-        import shutil
-
         shutil.rmtree(save_path)
 
     try:

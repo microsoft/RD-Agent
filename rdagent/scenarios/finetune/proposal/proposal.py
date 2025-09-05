@@ -7,12 +7,14 @@ Contains core hypothesis and task classes for LLM fine-tuning scenarios.
 import json
 import re
 
+from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.core.experiment import Task
 from rdagent.core.proposal import ExpGen, Hypothesis, Hypothesis2Experiment, Trace
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.finetune.scen.scenario import LLMFinetuneScen
+from rdagent.scenarios.finetune.scen.utils import extract_dataset_info
 from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 
 # Available fine-tuning methods
@@ -94,8 +96,6 @@ class LLMHypothesis2Experiment(Hypothesis2Experiment):
 
         # Get dataset from settings
         try:
-            from rdagent.app.finetune.llm.conf import FT_RD_SETTING
-
             dataset = FT_RD_SETTING.dataset if hasattr(FT_RD_SETTING, "dataset") else "default"
         except:
             dataset = "default"
@@ -156,9 +156,6 @@ class LLMFinetuneExpGen(ExpGen):
     def _get_dataset_info(self) -> dict:
         """Get dataset information using existing utility"""
         try:
-            from rdagent.app.finetune.llm.conf import FT_RD_SETTING
-            from rdagent.scenarios.finetune.scen.utils import extract_dataset_info
-
             dataset_name = FT_RD_SETTING.dataset if hasattr(FT_RD_SETTING, "dataset") else "default"
             return extract_dataset_info(dataset_name)
         except Exception as e:

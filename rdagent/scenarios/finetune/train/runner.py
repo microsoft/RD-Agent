@@ -5,6 +5,7 @@ This module provides a specialized runner for LLM fine-tuning that executes
 LLaMA-Factory configuration files instead of Python code.
 """
 
+import subprocess
 from pathlib import Path
 
 import yaml
@@ -198,8 +199,6 @@ class LLMFinetuneRunner(CoSTEER):
             ]
 
             # Execute training command
-            import subprocess
-
             logger.info(f"Executing LLaMA-Factory command: {' '.join(cmd)}")
 
             result = subprocess.run(

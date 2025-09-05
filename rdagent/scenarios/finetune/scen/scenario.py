@@ -19,11 +19,9 @@ class LLMFinetuneScen(DataScienceScen):
 
         # Basic attributes (align with downstream expectations)
 
-        from rdagent.scenarios.finetune.utils import prev_model_dirname
-
         self.dataset = FT_RD_SETTING.dataset
         self.base_model = FT_RD_SETTING.base_model
-        self.task = prev_model_dirname(self.base_model, self.dataset)
+        self.task = FT_RD_SETTING.task
 
         # timeout tracking
         self.timeout_increase_count = 0
