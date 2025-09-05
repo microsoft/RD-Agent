@@ -43,6 +43,7 @@ class LLMFinetuneRDLoop(RDLoop):
         self._setup_environment()
 
         # Generate dataset info during initialization
+        # TODO: should we move this to the download step?
         self.get_dataset_info()
 
         # Initialize LoopBase (skip RDLoop.__init__ to avoid double initialization)

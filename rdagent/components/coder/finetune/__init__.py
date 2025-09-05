@@ -24,6 +24,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 from rdagent.components.coder.data_science.share.ds_costeer import DSCoSTEER
 from rdagent.components.coder.finetune.conf import FTCoderCoSTEERSettings
 from rdagent.components.coder.finetune.eval import LLMFinetuneEvaluator
+from rdagent.components.coder.finetune.exp import TrainingTask
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
