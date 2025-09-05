@@ -119,7 +119,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
         if selected_idx and isinstance(selected_idx, int) and 0 < selected_idx <= len(sota_exp_fb_list):
             sota_submit = sota_exp_fb_list[selected_idx - 1][0]
             logger.info(f"AutoSOTASelector: LLM selected experiment No. {selected_idx}.")
-            return sota_submit[0]
+            return sota_submit
 
         logger.warning("AutoSOTASelector: LLM selection was invalid. Falling back to the latest SOTA experiment.")
         return sota_exp_fb_list[-1][0] if sota_exp_fb_list else None
