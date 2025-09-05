@@ -1,23 +1,23 @@
 """
 LLM Fine-tuning Experiment Components
 
-Defines tasks and experiments specific to LLM fine-tuning.
+Defines tasks for LLM fine-tuning following data science pattern.
 """
 
 from rdagent.components.coder.CoSTEER.task import CoSTEERTask
 
 
-class LLMFinetuneCoderTask(CoSTEERTask):
-    """Coder task class for LLM fine-tuning operations"""
+# Because we use isinstance to distinguish between different types of tasks, we need to use sub classes to represent different types of tasks
+class TrainingTask(CoSTEERTask):
+    """Training task class for LLM fine-tuning operations - follows data science pattern"""
 
     def __init__(
         self,
-        name: str = "LLMFinetune",
         base_model: str = "Qwen/Qwen2.5-1.5B-Instruct",
         finetune_method: str = "lora",
         dataset: str = "default",
+        name: str = "Training",
         description: str = "",
-        debug_mode: bool = True,  # coding stage uses debug mode, running stage uses full mode
         *args,
         **kwargs,
     ) -> None:
@@ -25,16 +25,13 @@ class LLMFinetuneCoderTask(CoSTEERTask):
         self.base_model = base_model
         self.finetune_method = finetune_method
         self.dataset = dataset
-        self.debug_mode = debug_mode
 
     def get_task_information(self) -> str:
-        """Get detailed task information for prompt generation"""
-        mode = "Debug (100 samples)" if self.debug_mode else "Full training"
-        info = f"""Task: {self.name}
-                Base Model: {self.base_model}
-                Fine-tuning Method: {self.finetune_method}
-                Dataset: {self.dataset}
-                Mode: {mode}
-                Description: {self.description}
-                """
-        return info.strip()
+        """Get task information for coder prompt generation"""
+        task_desc = f"""name: {self.name}
+description: {self.description}
+base_model: {self.base_model}
+finetune_method: {self.finetune_method}
+dataset: {self.dataset}
+"""
+        return task_desc

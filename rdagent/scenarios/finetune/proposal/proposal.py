@@ -6,9 +6,11 @@ Contains core hypothesis and task classes for LLM fine-tuning scenarios.
 
 import json
 import re
+from typing import Literal
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.finetune.conf import get_ft_env
+from rdagent.components.coder.finetune.exp import TrainingTask
 from rdagent.core.experiment import Task
 from rdagent.core.proposal import ExpGen, Hypothesis, Hypothesis2Experiment, Trace
 from rdagent.log import rdagent_logger as logger
@@ -32,12 +34,16 @@ AVAILABLE_BASE_MODELS = [
     "Qwen/Qwen2.5-1.5B-Instruct",  # Only one model for debugging phase
 ]
 
+# Component definition for LLM fine-tuning (following data science pattern)
+COMPONENT = Literal["Training"]
+
 
 class LLMHypothesis(Hypothesis):
-    """LLM fine-tuning hypothesis class - only specifies model and method"""
+    """LLM fine-tuning hypothesis class - follows data science pattern with component"""
 
     def __init__(
         self,
+        component: COMPONENT,
         base_model: str,
         finetune_method: str,
         hypothesis: str | None = None,
@@ -50,14 +56,16 @@ class LLMHypothesis(Hypothesis):
         super().__init__(
             hypothesis, reason, concise_reason, concise_observation, concise_justification, concise_knowledge
         )
+        self.component = component
         self.base_model = base_model
         self.finetune_method = finetune_method
 
     def __str__(self) -> str:
         if self.hypothesis is None:
-            return f"Fine-tune {self.base_model} model using {self.finetune_method} method"
+            return f"No hypothesis available. Trying to construct the first runnable {self.component} component."
 
         lines = []
+        lines.append(f"Component: {self.component}")
         lines.append(f"Base Model: {self.base_model}")
         lines.append(f"Fine-tuning Method: {self.finetune_method}")
         lines.append(f"Hypothesis: {self.hypothesis}")
@@ -66,22 +74,8 @@ class LLMHypothesis(Hypothesis):
         return "\n".join(lines)
 
 
-class LLMFinetuneHypothesisTask(Task):
-    """LLM fine-tuning hypothesis task class"""
-
-    def __init__(
-        self,
-        base_model: str,
-        finetune_method: str,
-        dataset: str = "default",
-        name: str = "LLMFineTune",
-        description: str = "",
-        **kwargs,
-    ):
-        super().__init__(name=name, description=description, **kwargs)
-        self.base_model = base_model
-        self.finetune_method = finetune_method
-        self.dataset = dataset
+# TrainingTask is now imported from components.coder.finetune.exp
+# This follows the data science pattern where proposal uses the same task classes as coder
 
 
 class LLMHypothesis2Experiment(Hypothesis2Experiment):
@@ -101,11 +95,11 @@ class LLMHypothesis2Experiment(Hypothesis2Experiment):
             dataset = "default"
 
         # Create fine-tuning task with only essential parameters
-        task = LLMFinetuneHypothesisTask(
+        task = TrainingTask(
             base_model=hypothesis.base_model,
             finetune_method=hypothesis.finetune_method,
             dataset=dataset,
-            name="LLMFineTune",
+            name="Training",
             description=f"Fine-tune {hypothesis.base_model} using {hypothesis.finetune_method} method",
         )
 
@@ -141,6 +135,7 @@ class LLMFinetuneExpGen(ExpGen):
             else None
         )
         hypothesis = LLMHypothesis(
+            component="Training",
             base_model=base_model,
             finetune_method=finetune_method,
             hypothesis=f"Fine-tune {base_model} using {finetune_method} method on {dataset_info['name']} dataset to improve capability",
