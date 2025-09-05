@@ -84,11 +84,19 @@ class UnifiedLLMConfigValidator:
                 return config_yaml
 
             supported_params = self._get_supported_parameters()
-            filtered_config = {k: v for k, v in config_dict.items() if k in supported_params}
 
-            removed_count = len(config_dict) - len(filtered_config)
+            # filter parameters
+            filtered_config = {}
+            removed_params = []
+            for k, v in config_dict.items():
+                if k in supported_params:
+                    filtered_config[k] = v
+                else:
+                    removed_params.append(k)
+
+            removed_count = len(removed_params)
             if removed_count > 0:
-                logger.info(f"Filtered out {removed_count} unsupported parameters")
+                logger.info(f"Filtered out {removed_count} unsupported parameters: {removed_params}")
 
             return yaml.dump(filtered_config, default_flow_style=False, sort_keys=False)
 
