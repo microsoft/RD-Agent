@@ -32,7 +32,7 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     Function: Generate LLM fine-tuning code based on experiment design.
     """
 
-    runner: str = "rdagent.scenarios.finetune.train.runner.LLMFinetuneRunner"
+    runner: str = "rdagent.scenarios.finetune.train.runner.LLMFinetuneRunner"  # TODO
     """Code runner.
     Function: Execute LLM fine-tuning code in a Docker environment.
     """

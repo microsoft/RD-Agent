@@ -13,9 +13,9 @@ class TrainingTask(CoSTEERTask):
 
     def __init__(
         self,
-        base_model: str = "Qwen/Qwen2.5-1.5B-Instruct",
-        finetune_method: str = "lora",
-        dataset: str = "default",
+        base_model: str,
+        finetune_method: str,
+        dataset: str,
         name: str = "Training",
         description: str = "",
         *args,
