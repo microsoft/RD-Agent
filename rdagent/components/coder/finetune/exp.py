@@ -7,8 +7,8 @@ Defines tasks and experiments specific to LLM fine-tuning.
 from rdagent.components.coder.CoSTEER.task import CoSTEERTask
 
 
-class LLMFinetuneTask(CoSTEERTask):
-    """Task class for LLM fine-tuning operations"""
+class LLMFinetuneCoderTask(CoSTEERTask):
+    """Coder task class for LLM fine-tuning operations"""
 
     def __init__(
         self,
