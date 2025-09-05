@@ -1,7 +1,6 @@
 import asyncio
 import concurrent.futures
 from functools import wraps
-from pathlib import Path
 from typing import Any, List, Optional, Union
 
 from litellm import RateLimitError
@@ -9,9 +8,7 @@ from litellm import RateLimitError
 from rdagent.components.mcp.conf import is_mcp_enabled
 from rdagent.components.mcp.connector import MCPConnectionError
 from rdagent.components.mcp.registry import (
-    MCPRegistry,
     get_global_registry,
-    set_global_registry,
 )
 from rdagent.log import rdagent_logger as logger
 
@@ -146,7 +143,7 @@ def get_service_status() -> dict:
 
 def execute_mcp_query_isolated(
     query: str,
-    services: str | List[str],
+    services: Optional[Union[str, List[str]]],
     timeout: float = 180,
     verbose: bool = True,
     **mcp_kwargs: Any,
@@ -160,7 +157,10 @@ def execute_mcp_query_isolated(
 
     Args:
         query: The query content to send to MCP service
-        services: MCP service(s) to use (e.g., "context7", ["context7", "deepwiki"])
+        services: MCP service(s) to use:
+            - None: Use all available services (auto mode)
+            - str: Use a specific service (e.g., "context7")
+            - List[str]: Use specified services (e.g., ["context7", "deepwiki"])
         timeout: Total timeout in seconds for the operation (default: 180)
         verbose: Enable verbose logging for debugging (default: True)
         **mcp_kwargs: Additional keyword arguments to pass to query_mcp
@@ -213,3 +213,57 @@ def execute_mcp_query_isolated(
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(run_mcp_sync)
         return future.result(timeout=timeout)
+
+
+def query_mcp_sync(
+    query: str, services: Optional[Union[str, List[str]]] = None, timeout: float = 180, **kwargs
+) -> Optional[str]:
+    """
+    Synchronous version of query_mcp - simple interface for non-async contexts.
+
+    This is a convenient wrapper around execute_mcp_query_isolated that provides
+    the same interface as the async query_mcp function but can be called from
+    synchronous code without awaiting.
+
+    Args:
+        query: The query to process
+        services: Optional service specification:
+            - None: Use all available services (auto mode)
+            - str: Use a specific service (e.g., "context7")
+            - List[str]: Use specified services in parallel
+        timeout: Total timeout in seconds (default: 180)
+        **kwargs: Additional parameters passed to query_mcp
+
+    Returns:
+        Response string or None if failed
+
+    Examples:
+        # Auto mode - uses all available services
+        result = query_mcp_sync("ImportError: No module named 'sklearn'")
+
+        # Single service mode
+        result = query_mcp_sync("error message", services="context7")
+
+        # Multi-service mode
+        result = query_mcp_sync("error message", services=["context7", "deepwiki"])
+
+        # With additional parameters
+        result = query_mcp_sync(
+            "error message",
+            services="context7",
+            timeout=60,
+            max_rounds=3,
+            verbose=True
+        )
+
+    Note:
+        This function is ideal for:
+        - Jupyter notebooks and interactive environments
+        - Simple scripts that don't use asyncio
+        - Legacy code that needs to integrate MCP functionality
+        - Testing and debugging scenarios
+    """
+    # Extract verbose from kwargs to avoid duplicate parameter error
+    verbose = kwargs.pop("verbose", False)
+
+    return execute_mcp_query_isolated(query=query, services=services, timeout=timeout, verbose=verbose, **kwargs)

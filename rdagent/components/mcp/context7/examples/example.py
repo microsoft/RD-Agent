@@ -15,7 +15,7 @@ Key Features:
 import asyncio
 import datetime
 
-from rdagent.components.mcp import query_mcp  # New unified interface
+from rdagent.components.mcp import query_mcp, query_mcp_sync  # New unified interface
 from rdagent.log import rdagent_logger as logger
 
 
@@ -154,17 +154,59 @@ async def example_multi_service():
         logger.error(f"❌ Multi-service query failed: {e}")
 
 
+def example_sync_api():
+    """Example 4: Using synchronous API for simple scripts and Jupyter notebooks"""
+    logger.info(f"\n🔄 Example 4: Synchronous API [{datetime.datetime.now()}]")
+    logger.info("=" * 50)
+    logger.info("💡 This example shows how to use MCP without async/await")
+
+    # Example 1: Simple import error
+    import_error = """ImportError: No module named 'sklearn'
+    
+Traceback (most recent call last):
+  File "main.py", line 5, in <module>
+    from sklearn.ensemble import RandomForestClassifier
+ImportError: No module named 'sklearn'"""
+
+    logger.info("📋 Example 4.1: Querying with Context7 service (synchronous)...")
+    logger.info("🔧 No await needed - can be used in any Python context!")
+
+    try:
+        # Synchronous call - no await needed!
+        result = query_mcp_sync(import_error, services="context7", timeout=60, verbose=True)
+
+        if result:
+            logger.info("✅ Synchronous query succeeded:")
+            logger.info("-" * 40)
+            logger.info(result[:200] + "..." if len(result) > 200 else result)
+        else:
+            logger.error("❌ Synchronous query failed")
+
+    except Exception as e:
+        logger.error(f"❌ Synchronous query error: {e}")
+
+
 async def main():
     """Main function - demonstrates the complete MCP usage workflow"""
     logger.info("📁 Please ensure mcp_config.json is properly configured")
     logger.info("=" * 60)
 
-    # Run three examples showing different usage modes
+    # Run async examples showing different usage modes
     await example_single_service()  # single service mode
     # await example_auto_mode() # auto mode - all services in parallel
     # await example_multi_service() # multi service mode - similar to auto mode but with specified services
 
 
 if __name__ == "__main__":
-    # Run the example
+    logger.info("🚀 Starting MCP Examples Demonstration")
+    logger.info("=" * 60)
+
+    # Run async examples
+    logger.info("🔀 Running ASYNC examples...")
     asyncio.run(main())
+
+    logger.info("\n" + "=" * 60)
+
+    # Run synchronous example - no asyncio.run() needed!
+    logger.info("🔄 Running SYNCHRONOUS example...")
+    example_sync_api()

@@ -28,11 +28,13 @@ from .unified import (
     is_service_available,
     list_available_mcp_services,
     query_mcp,
+    query_mcp_sync,
 )
 
 __all__ = [
     # Unified interface
     "query_mcp",
+    "query_mcp_sync",
     "execute_mcp_query_isolated",
     # Service management
     "list_available_mcp_services",
