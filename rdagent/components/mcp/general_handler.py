@@ -436,7 +436,7 @@ class GeneralMCPHandler(BaseMCPHandler):
         # Check cache first
         cached_result = self._check_cache(query)
         if cached_result:
-            logger.info("Returning cached result", tag="mcp")
+            logger.warning("Returning cached result", tag="mcp")
             return cached_result
 
         start_time = time.time()
@@ -624,87 +624,6 @@ class GeneralMCPHandler(BaseMCPHandler):
         except Exception as e:
             logger.error(f"Fallback processing failed: {e}", tag="general_mcp")
             return f"Error in fallback processing: {str(e)}"
-
-    async def _execute_session_tools(
-        self, session: MCPSession, tool_calls: List[Any], verbose: bool = False
-    ) -> List[Dict[str, str]]:
-        """
-        Execute tool calls within an MCP session.
-
-        Args:
-            session: Active MCP session
-            tool_calls: List of tool calls from LLM
-            verbose: Enable verbose logging
-
-        Returns:
-            List of tool execution results
-        """
-        results = []
-
-        # Tool execution details reduced
-
-        for i, tool_call in enumerate(tool_calls, 1):
-            try:
-
-                # Execute tool call
-                result = await session.call_tool(
-                    tool_call.function.name,
-                    arguments=json.loads(tool_call.function.arguments),
-                )
-
-                # Extract and process result
-                result_text = result.content[0].text if result.content else ""
-
-                # Check for rate limit BEFORE validation
-                if self.detect_rate_limit(result_text):
-                    logger.warning(f"🚫 Rate limit detected for tool '{tool_call.function.name}'", tag="mcp_rate_limit")
-                    # Raise RateLimitError to trigger longer wait time
-                    raise RateLimitError(f"Service rate limited: {result_text[:100]}")
-
-                # Validate tool response (subclasses can override)
-                self.validate_tool_response(tool_call.function.name, result_text)
-
-                processed_content = self.handle_tool_result(result_text, tool_call.function.name, i)
-
-                # Debug logging for tool responses in verbose mode
-                if verbose and result_text:
-                    preview = result_text[:150].replace("\n", " ")
-                    logger.info(f"🔍 Tool '{tool_call.function.name}' response preview: {preview}...", tag="mcp_debug")
-
-                results.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": processed_content,
-                    }
-                )
-
-            except RateLimitError:
-                # RateLimitError should be propagated to trigger longer retry wait
-                logger.warning(
-                    f"⏳ Tool {tool_call.function.name} rate limited, propagating for retry with longer wait",
-                    tag="mcp_rate_limit",
-                )
-                raise
-
-            except MCPConnectionError:
-                # MCPConnectionError should be propagated to trigger retry mechanism
-                logger.warning(
-                    f"🔄 Tool {tool_call.function.name} validation failed, propagating for retry", tag="mcp_retry"
-                )
-                raise
-
-            except Exception as e:
-                logger.error(f"❌ Tool {tool_call.function.name} failed: {e}", tag="mcp_error")
-                results.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": f"Error executing tool: {str(e)}",
-                    }
-                )
-
-        return results
 
     # Utility methods
 

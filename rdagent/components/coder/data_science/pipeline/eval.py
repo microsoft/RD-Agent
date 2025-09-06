@@ -19,7 +19,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
 from rdagent.components.coder.data_science.share.notebook import NotebookConverter
 from rdagent.components.coder.data_science.utils import remove_eda_part
-from rdagent.components.mcp import execute_mcp_query_isolated
+from rdagent.components.mcp import MCPAgent
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.test_eval import get_test_eval
@@ -306,21 +306,22 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         do_documentation_search = enable_mcp_documentation_search and wfb.requires_documentation_search
 
         if do_documentation_search:
-            # Use the isolated MCP query execution to avoid event loop conflicts
+            # Use MCPAgent for clean, user-friendly interface
             try:
-                context7_result = execute_mcp_query_isolated(
-                    query=wfb.error_message,
-                    services="context7",
-                    timeout=180,
-                    verbose=False,
-                    full_code=implementation.all_codes,
-                )
+                # Create agent targeting Context7 service - model config comes from mcp_config.json
+                doc_agent = MCPAgent(toolsets="context7")
 
-                if context7_result:
-                    logger.info("Context7: Documentation search completed successfully")
-                    wfb.error_message += f"\n\n### API Documentation Reference:\nThe following API documentation was retrieved based on the error. This provides factual information about API changes or parameter specifications only:\n\n{context7_result}"
+                # Synchronous query - perfect for evaluation context
+                if wfb.error_message:  # Type safety check
+                    context7_result = doc_agent.run_sync(query=wfb.error_message, timeout=180)
+
+                    if context7_result:
+                        logger.info("Context7: Documentation search completed successfully")
+                        wfb.error_message += f"\n\n### API Documentation Reference:\nThe following API documentation was retrieved based on the error. This provides factual information about API changes or parameter specifications only:\n\n{context7_result}"
+                    else:
+                        logger.warning("Context7: Documentation search failed or no results found")
                 else:
-                    logger.warning("Context7: Documentation search failed or no results found")
+                    logger.warning("Context7: No error message to search for")
 
             except concurrent.futures.TimeoutError:
                 logger.error("Context7: Query timed out after 180 seconds")

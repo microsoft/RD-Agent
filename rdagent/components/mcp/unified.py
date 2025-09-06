@@ -1,20 +1,24 @@
+"""MCP Unified Interface - Clean and Simple
+
+This module provides a single, clean interface for executing MCP queries.
+All legacy interfaces have been removed in favor of the new MCPAgent and mcp_execute APIs.
+"""
+
 import asyncio
 import concurrent.futures
 from functools import wraps
-from typing import Any, List, Optional, Union
+from typing import List, Optional, Union
 
 from litellm import RateLimitError
 
 from rdagent.components.mcp.conf import is_mcp_enabled
 from rdagent.components.mcp.connector import MCPConnectionError
-from rdagent.components.mcp.registry import (
-    get_global_registry,
-)
+from rdagent.components.mcp.registry import get_global_registry
 from rdagent.log import rdagent_logger as logger
 
 
-def mcp_api_handler(func):
-    """Decorator to handle common MCP API patterns: enabled check, registry init, error handling."""
+def _mcp_enabled_check(func):
+    """Decorator to ensure MCP is enabled before executing."""
 
     @wraps(func)
     async def wrapper(*args, **kwargs):
@@ -24,42 +28,34 @@ def mcp_api_handler(func):
 
         try:
             registry = get_global_registry()
-
-            # Extract verbose flag for initialization details
-            verbose = kwargs.get("verbose", False)
-
-            # Ensure services are initialized (only once)
-            await registry.ensure_initialized(verbose=verbose)
-
-            # Inject registry into kwargs for the function
-            kwargs["_registry"] = registry
-            return await func(*args, **kwargs)
+            await registry.ensure_initialized(verbose=kwargs.get("verbose", False))
+            return await func(registry, *args, **kwargs)
         except (RateLimitError, MCPConnectionError) as e:
-            # Let these exceptions propagate for proper handling
-            logger.warning(f"{func.__name__} encountered retryable error: {e}")
+            logger.warning(f"MCP query encountered retryable error: {e}")
             raise
         except Exception as e:
-            logger.error(f"{func.__name__} failed with unexpected error: {e}")
+            logger.error(f"MCP query failed with unexpected error: {e}")
             return None
 
     return wrapper
 
 
-@mcp_api_handler
-async def query_mcp(query: str, services: Optional[Union[str, List[str]]] = None, **kwargs) -> Optional[str]:
-    """Unified MCP query interface supporting flexible service selection.
+@_mcp_enabled_check
+async def mcp_execute(
+    registry, query: str, services: Optional[Union[str, List[str]]] = None, **kwargs
+) -> Optional[str]:
+    """
+    Execute MCP query with specified services.
 
-    This function provides three usage modes:
-    1. Auto mode (default): Uses all available services in parallel
-    2. Single service mode: Query a specific service directly
-    3. Multi-service mode: Use specified services in parallel
+    This is the core execution function that replaces all legacy interfaces.
+    It provides a clean, unified way to execute queries against MCP services.
 
     Args:
         query: The query/error message to process
         services: Optional service specification:
             - None: Use all available services (auto mode)
             - str: Use a specific service
-            - List[str]: Use specified services in parallel
+            - List[str]: Use specified services
         **kwargs: Additional parameters passed to the handler
 
     Returns:
@@ -67,203 +63,63 @@ async def query_mcp(query: str, services: Optional[Union[str, List[str]]] = None
 
     Examples:
         # Auto mode - uses all available services
-        await query_mcp("error message")
+        result = await mcp_execute("ImportError: No module named 'sklearn'")
 
         # Single service mode
-        await query_mcp("error message", services="context7")
+        result = await mcp_execute("error message", services="context7")
 
-        # Multi-service mode - uses specified services in parallel
-        await query_mcp("error message", services=["context7", "simple_code_search"])
+        # Multi-service mode
+        result = await mcp_execute("error message", services=["context7", "deepwiki"])
     """
-    registry = kwargs.pop("_registry")  # Extract registry injected by decorator
-
-    # Check verbose flag and show service status for debugging
-    verbose = kwargs.get("verbose", False)
-    if verbose:
-        status = get_service_status()
-        if status["available_services"]:
-            logger.info(f"🔍 MCP services available: {status['available_services']}", tag="mcp_status")
-        else:
-            logger.error("⚠️ No MCP services available for query", tag="mcp_status")
-
-    # Use unified query method for all cases
     return await registry.query(query, services=services, **kwargs)
 
 
-# Utility functions
-def list_available_mcp_services() -> list:
-    """List all available MCP service names."""
-    try:
-        registry = get_global_registry()
-        return registry.get_enabled_services()
-    except Exception as e:
-        logger.error(f"Failed to list MCP services: {e}")
-        return []
-
-
-def is_service_available(service_name: str) -> bool:
-    """Check if a specific MCP service is available.
-
-    Note: This is a synchronous function that checks current registry state.
-    Services are initialized asynchronously on first query_mcp call.
-    """
-    try:
-        registry = get_global_registry()
-
-        # Try to trigger initialization if not already done
-        # This is a best-effort attempt for synchronous context
-        if not registry._initialized and not registry._handlers:
-            # Service is configured but handler not yet registered
-            # Return True if service is enabled, as it will be initialized on first use
-            return registry.has_service(service_name)
-
-        return registry.has_service(service_name) and registry.has_handler(service_name)
-    except Exception:
-        return False
-
-
-def get_service_status() -> dict:
-    """Get status of all MCP services."""
-    try:
-        available_services = list_available_mcp_services()
-        status = {"mcp_enabled": is_mcp_enabled(), "available_services": available_services, "service_details": {}}
-
-        # Check each service status
-        for service_name in available_services:
-            status["service_details"][service_name] = {
-                "available": is_service_available(service_name),
-                "enabled": True,  # If it's in available_services, it's enabled
-            }
-
-        return status
-    except Exception as e:
-        logger.error(f"Failed to get service status: {e}")
-        return {"mcp_enabled": is_mcp_enabled(), "available_services": [], "service_details": {}}
-
-
-def execute_mcp_query_isolated(
-    query: str,
-    services: Optional[Union[str, List[str]]],
-    timeout: float = 180,
-    verbose: bool = True,
-    **mcp_kwargs: Any,
+def mcp_execute_sync(
+    query: str, services: Optional[Union[str, List[str]]] = None, timeout: float = 180, **kwargs
 ) -> Optional[str]:
     """
-    Execute MCP query in an isolated event loop with proper cleanup.
+    Synchronous version of mcp_execute for non-async contexts.
 
-    This function runs MCP queries in a separate thread with a new event loop
-    to avoid conflicts with existing async contexts. It includes comprehensive
-    resource cleanup to prevent "Task was destroyed but it is pending" warnings.
+    This function runs MCP queries in a separate thread with proper cleanup
+    to avoid event loop conflicts. It replaces execute_mcp_query_isolated.
 
     Args:
         query: The query content to send to MCP service
-        services: MCP service(s) to use:
-            - None: Use all available services (auto mode)
-            - str: Use a specific service (e.g., "context7")
-            - List[str]: Use specified services (e.g., ["context7", "deepwiki"])
-        timeout: Total timeout in seconds for the operation (default: 180)
-        verbose: Enable verbose logging for debugging (default: True)
-        **mcp_kwargs: Additional keyword arguments to pass to query_mcp
+        services: MCP service(s) to use (None for all)
+        timeout: Total timeout in seconds (default: 180)
+        **kwargs: Additional keyword arguments to pass to mcp_execute
 
     Returns:
-        Optional[str]: Query result if successful, None otherwise
+        Query result if successful, None otherwise
 
-    Raises:
-        concurrent.futures.TimeoutError: If the query exceeds the specified timeout
-        RateLimitError: If rate limited by the service (can be retried)
-        MCPConnectionError: If connection/network issues occur (can be retried)
-        Exception: For other unexpected MCP-related errors
+    Examples:
+        # Auto mode
+        result = mcp_execute_sync("ImportError: No module named 'sklearn'")
+
+        # Specific service
+        result = mcp_execute_sync("error message", services="context7")
     """
 
-    def run_mcp_sync() -> Optional[str]:
-        """Run MCP query in a new event loop to avoid conflicts"""
-        # Create new event loop to avoid conflicts with existing loop
+    def run_mcp_in_new_loop() -> Optional[str]:
+        """Run MCP query in a new event loop to avoid conflicts."""
         new_loop = asyncio.new_event_loop()
         asyncio.set_event_loop(new_loop)
         try:
-            return new_loop.run_until_complete(
-                query_mcp(
-                    query,
-                    services=services,
-                    verbose=verbose,
-                    **mcp_kwargs,
-                )
-            )
+            return new_loop.run_until_complete(mcp_execute(query, services=services, **kwargs))
         finally:
-            # Graceful shutdown to avoid "Task was destroyed but it is pending" warnings
-            # 1. Cancel all pending tasks
+            # Graceful shutdown to avoid warnings
             pending = asyncio.all_tasks(new_loop)
             for task in pending:
                 task.cancel()
 
-            # 2. Wait for cancellation to complete
             if pending:
                 new_loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
 
-            # 3. Shutdown async generators
             new_loop.run_until_complete(new_loop.shutdown_asyncgens())
-
-            # 4. Give SSE streams time to clean up
             new_loop.run_until_complete(asyncio.sleep(0.1))
-
-            # 5. Close the event loop
             new_loop.close()
 
     # Execute in thread pool to avoid event loop conflicts
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(run_mcp_sync)
+        future = executor.submit(run_mcp_in_new_loop)
         return future.result(timeout=timeout)
-
-
-def query_mcp_sync(
-    query: str, services: Optional[Union[str, List[str]]] = None, timeout: float = 180, **kwargs
-) -> Optional[str]:
-    """
-    Synchronous version of query_mcp - simple interface for non-async contexts.
-
-    This is a convenient wrapper around execute_mcp_query_isolated that provides
-    the same interface as the async query_mcp function but can be called from
-    synchronous code without awaiting.
-
-    Args:
-        query: The query to process
-        services: Optional service specification:
-            - None: Use all available services (auto mode)
-            - str: Use a specific service (e.g., "context7")
-            - List[str]: Use specified services in parallel
-        timeout: Total timeout in seconds (default: 180)
-        **kwargs: Additional parameters passed to query_mcp
-
-    Returns:
-        Response string or None if failed
-
-    Examples:
-        # Auto mode - uses all available services
-        result = query_mcp_sync("ImportError: No module named 'sklearn'")
-
-        # Single service mode
-        result = query_mcp_sync("error message", services="context7")
-
-        # Multi-service mode
-        result = query_mcp_sync("error message", services=["context7", "deepwiki"])
-
-        # With additional parameters
-        result = query_mcp_sync(
-            "error message",
-            services="context7",
-            timeout=60,
-            max_rounds=3,
-            verbose=True
-        )
-
-    Note:
-        This function is ideal for:
-        - Jupyter notebooks and interactive environments
-        - Simple scripts that don't use asyncio
-        - Legacy code that needs to integrate MCP functionality
-        - Testing and debugging scenarios
-    """
-    # Extract verbose from kwargs to avoid duplicate parameter error
-    verbose = kwargs.pop("verbose", False)
-
-    return execute_mcp_query_isolated(query=query, services=services, timeout=timeout, verbose=verbose, **kwargs)

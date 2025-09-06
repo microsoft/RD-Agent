@@ -93,14 +93,6 @@ class MCPRegistry:
         config = MCPRegistryConfig.from_file(config_path)
         return cls(config)
 
-    def register_handler(self, service_name: str, handler: Any):
-        """Register a handler for a service."""
-        if service_name not in self.config.mcp_services:
-            raise ValueError(f"Service '{service_name}' not configured")
-
-        self._handlers[service_name] = handler
-        logger.info(f"Registered handler for service '{service_name}'")
-
     def get_service_config(self, service_name: str) -> Optional[MCPServiceConfig]:
         """Get configuration for a service."""
         return self.config.mcp_services.get(service_name)
@@ -301,9 +293,3 @@ def get_global_registry() -> MCPRegistry:
         _global_registry = MCPRegistry.from_config_file(config_path)
 
     return _global_registry
-
-
-def set_global_registry(registry: MCPRegistry):
-    """Set the global MCP registry."""
-    global _global_registry
-    _global_registry = registry

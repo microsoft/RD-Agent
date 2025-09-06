@@ -1,51 +1,46 @@
-"""MCP (Model Context Protocol) integration for RD-Agent.
+"""MCP (Model Context Protocol) integration for RD-Agent - Clean and Simple
 
-This module provides a unified interface for various MCP implementations with
-support for multiple MCP services through a configuration-driven registry system.
+This module provides a unified, clean interface for MCP services with
+no legacy compatibility. All dead code has been removed.
 
-Currently supports:
-- Context7: Documentation search and error resolution with optimized prompts
-- Extensible architecture for adding new MCP services
+New unified interface:
+- MCPAgent: Agent-style interface for easy use
+- mcp_execute: Core execution function for business code
+- MCPServerStreamableHTTP: Service configuration wrapper
 
 Architecture:
 - StreamableHTTP connector for MCP communication
 - Registry-based service management with JSON configuration
 - Handler-based processing with service-specific optimizations
-- Backward compatibility with existing APIs
+- No backward compatibility - clean slate design
 """
 
+# Main user interfaces
+from .agent import MCPAgent, MCPServerStreamableHTTP, create_agent
+
+# Core components (for advanced usage only)
 from .connector import StreamableHTTPConfig, StreamableHTTPConnector
 from .context7.handler import Context7Handler
 from .general_handler import BaseMCPHandler
-
-# Core components (for advanced usage)
 from .registry import MCPRegistry, MCPRegistryConfig, MCPServiceConfig
 
-# Unified MCP interface
-from .unified import (
-    execute_mcp_query_isolated,
-    get_service_status,
-    is_service_available,
-    list_available_mcp_services,
-    query_mcp,
-    query_mcp_sync,
-)
+# Core execution function for business code
+from .unified import mcp_execute, mcp_execute_sync
 
 __all__ = [
-    # Unified interface
-    "query_mcp",
-    "query_mcp_sync",
-    "execute_mcp_query_isolated",
-    # Service management
-    "list_available_mcp_services",
-    "is_service_available",
-    "get_service_status",
-    # Core components
-    "MCPRegistry",
-    "MCPRegistryConfig",
-    "MCPServiceConfig",
+    # Main user interfaces (recommended)
+    "MCPAgent",
+    "MCPServerStreamableHTTP",
+    "create_agent",
+    # Core execution functions
+    "mcp_execute",
+    "mcp_execute_sync",
+    # Advanced components (for internal use)
     "StreamableHTTPConnector",
     "StreamableHTTPConfig",
     "BaseMCPHandler",
     "Context7Handler",
+    "MCPRegistry",
+    "MCPRegistryConfig",
+    "MCPServiceConfig",
 ]
