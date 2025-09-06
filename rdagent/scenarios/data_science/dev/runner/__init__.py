@@ -161,7 +161,7 @@ class DSCoSTEERRunner(CoSTEER):
             es=es,
             evolving_version=2,
             scen=scen,
-            max_loop=DS_RD_SETTING.runner_max_loop,
+            max_loop=1,
             **kwargs,
         )
 

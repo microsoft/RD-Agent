@@ -36,6 +36,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.base import DataScienceScen
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.utils.workflow.misc import wait_retry
+from rdagent.log.timer import RD_Agent_TIMER_wrapper
 
 
 def clean_workspace(workspace_root: Path) -> None:
@@ -112,13 +113,8 @@ class DataScienceRDLoop(RDLoop):
         self.model_coder = ModelCoSTEER(scen)
         self.ensemble_coder = EnsembleCoSTEER(scen)
         self.workflow_coder = WorkflowCoSTEER(scen)
-
-        self.pipeline_coder = PipelineCoSTEER(scen)
-
-        if DS_RD_SETTING.enable_runner_mcts:
-            self.runner = DSCoSTEERMCTSRunner(scen)
-        else:
-            self.runner = DSCoSTEERRunner(scen)
+        self.runner = DSCoSTEERRunner(scen)
+        self.runner_mcts = DSCoSTEERMCTSRunner(scen)
 
         if DS_RD_SETTING.enable_doc_dev:
             self.docdev = DocDev(scen)
@@ -174,8 +170,15 @@ class DataScienceRDLoop(RDLoop):
 
     def running(self, prev_out: dict[str, Any]):
         exp: DSExperiment = prev_out["coding"]
+        runner = self.runner
+        total_time = RD_Agent_TIMER_wrapper.timer.all_duration
+        res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
+        use_time = round(total_time.total_seconds(), 2) - round(res_time.total_seconds(), 2)
+        use_ratio = 100 * use_time / round(total_time.total_seconds(), 2)
+        if DS_RD_SETTING.enable_runner_mcts and use_ratio > DS_RD_SETTING.switch_mcts_ratio:
+            runner = self.runner_mcts
         if exp.is_ready_to_run():
-            new_exp = self.runner.develop(exp)
+            new_exp = runner.develop(exp)
             logger.log_object(new_exp)
             exp = new_exp
         if DS_RD_SETTING.enable_doc_dev:

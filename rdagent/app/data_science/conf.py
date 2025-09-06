@@ -151,6 +151,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     #### enable runner code change summary
     runner_enable_code_change_summary: bool = False
 
+
+    switch_mcts_ratio = 50
+
     # runner MCTS settings
     enable_runner_mcts: bool = True
     """Enable MCTS in runner for better code searching"""
@@ -169,7 +172,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     runner_max_loop: int = mcts_max_iterations*mcts_hypothesis_sample_size +1
     """The maximum number of MCTS iterations to perform."""
-    
+
     multiprocessing_mcts_simulation: bool = True
     """Enable multiprocessing for MCTS simulations."""
     mcts_multiprocessing_batch_size: int  = 2
