@@ -35,7 +35,7 @@ class DSRunnerFeedback(CoSTEERSingleFeedback):
     Feedback for Data Science CoSTEER evaluation.
     Evaluates the code, execution, and model performance.
     """
-    code: bool | None = None
+    code_accept: bool | None = None
     acceptable: bool | None = None
     score: float | None = None  # 改为 float 更方便 reward 计算
 
@@ -50,8 +50,8 @@ class DSRunnerFeedback(CoSTEERSingleFeedback):
             str(self.execution) if self.execution is not None else "No execution output",
             "### Return Check",
             str(self.return_checking) if self.return_checking is not None else "No return checking",
-            "### Code accept",
-            str(self.code) if self.code is not None else "Unknown",
+            "### Code",
+            str(self.code),
             "### Validation Score",
             f"{self.score}" if self.score is not None else "Not available",
             "### Final Decision",

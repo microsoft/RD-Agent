@@ -101,16 +101,15 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             last_feedback = evolving_trace[-1].feedback
             assert isinstance(last_feedback, CoSTEERMultiFeedback)
 
-        code_dict, mcts_node_list = self.implement_one_task(
+        mcts_node_list,code_dict  = self.implement_one_task(
                 evo.sub_tasks[to_be_finished_task_index[0]],
                 queried_knowledge,
                 evo.experiment_workspace,
-                None if last_feedback is None else last_feedback[to_be_finished_task_index[0]],
             )
         code_list[to_be_finished_task_index[0]] = code_dict
         
         evo = self.assign_code_list_to_evo(code_list, evo)
-        evo.mcts_node_list = mcts_node_list
+        evo.MCTS_NODE_LIST = mcts_node_list
         return evo
 
     @wait_retry(retry_n=5)       
@@ -168,13 +167,16 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
     def reward_function(self,fb:DSRunnerFeedback) ->float:
         score = getattr(fb, "score", 0.0)
-        code_score = 1.0 if getattr(fb, "code", False) else 0
+        code_score = 1.0 if getattr(fb, "code_accept", False) else 0
         acceptable_score = 1.0 if getattr(fb, "acceptable", False) else 0
         bigger_is_better = get_metric_direction(self.scen.competition)
-        normalized_score = 1 / (1 + math.exp(- score)) # sigmoid smooth
-        if not bigger_is_better:
-            normalized_score = 1.0 - normalized_score
-        reward  = normalized_score#code_score + acceptable_score + normalized_score
+        if score:
+            normalized_score = 1 / (1 + math.exp(- score)) # sigmoid smooth
+            if not bigger_is_better:
+                normalized_score = 1.0 - normalized_score
+            reward  = normalized_score#code_score + acceptable_score + normalized_score
+        else:
+            reward = -1
         return reward
     
 
@@ -265,7 +267,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         # ]
         rewards = [self.reward_function(fb) for fb in feedbacks]
         for node,fb in zip(nodes,feedbacks):
-            node.score = feedbacks.score
+            node.score = fb.score
         return rewards
 
     def backpropagate_batch(self, nodes: list[MCTSNode], rewards: list[float]):
@@ -298,7 +300,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         logger.info("Starting root node !")
         evaluator = DSRunnerMCTSEvaluator(scen=self.scen)
         feedback_root = evaluator.evaluate(target_task, root.workspace, workspace, queried_knowledge)
-        root.score = feedback_root.socre
+        root.score = feedback_root.score
         MCTS_NODE_LIST.append(root)
         bigger_is_better = get_metric_direction(self.scen.competition)
 
@@ -324,12 +326,11 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                     node = self.select(root)
                     logger.info(f"Selected node with visit count {node.visit_count} and value {node.value}")
                     new_nodes = self.expand_batch(node, target_task, queried_knowledge, batch_size=DS_RD_SETTING.mcts_multiprocessing_batch_size)
-                    rewards = self.simulate_batch(new_nodes, target_task, workspace, queried_knowledge, n_processes=3)
+                    rewards = self.simulate_batch(new_nodes, target_task, workspace, queried_knowledge, n_processes=DS_RD_SETTING.mcts_n_processes)
                     self.backpropagate_batch(new_nodes, rewards)
                     MCTS_NODE_LIST.append(new_nodes)
                 best_child = max(root.children, key=lambda c: c.value)
-            
-            #  MCTS pruning: check if root is better than best child
+
             if (feedback_root.score > best_child.score) and bigger_is_better:
                 MCTS_NODE_LIST = [root]
                 return MCTS_NODE_LIST,root.workspace.file_dict
@@ -392,7 +393,7 @@ class DSCoSTEERMCTSRunner(CoSTEER):
             es=es,
             evolving_version=2,
             scen=scen,
-            max_loop=DS_RD_SETTING.mcts_max_iterations,
+            max_loop=DS_RD_SETTING.runner_max_loop,
             **kwargs,
         )
 

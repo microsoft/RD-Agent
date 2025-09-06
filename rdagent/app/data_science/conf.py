@@ -160,15 +160,16 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     - If running in single-process mode, this is set to the total number of nodes in the tree.
     - If running in multi-process mode, this is set to the maximum depth of the tree.
     """
-    runner_max_loop: int = mcts_max_iterations
-    """The maximum number of MCTS iterations to perform."""
+
     mcts_exploration_constant: float = 1.4
     """The exploration constant (C) used in the UCT formula."""
 
     mcts_hypothesis_sample_size: int = 2
     """The number of hypotheses to sample during MCTS."""
 
-
+    runner_max_loop: int = mcts_max_iterations*mcts_hypothesis_sample_size +1
+    """The maximum number of MCTS iterations to perform."""
+    
     multiprocessing_mcts_simulation: bool = True
     """Enable multiprocessing for MCTS simulations."""
     mcts_multiprocessing_batch_size: int  = 2
