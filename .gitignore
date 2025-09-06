@@ -119,6 +119,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+mcp_config.json
 
 # Spyder project settings
 .spyderproject
