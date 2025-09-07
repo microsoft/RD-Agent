@@ -245,12 +245,14 @@ class ValidationSelector(SOTAexpSelector):
         competition: str,
         only_sample: bool,
         sample_code_path: str,
+        sample_rate: float = 0.8,
     ):
         self.candidate = candidate
         self.direction_sign = direction_sign
         self.competition = competition
         self.only_sample = only_sample
         self.sample_code_path = Path(sample_code_path)
+        self.sample_rate = sample_rate
         self.hypothesis_loop_id = {exp.hypothesis.hypothesis: loop_id for exp, loop_id in self.candidate}
         self.hypothesis_exp = {exp.hypothesis.hypothesis: exp for exp, loop_id in self.candidate}
 
@@ -269,14 +271,6 @@ class ValidationSelector(SOTAexpSelector):
         except RuntimeError as e:
             logger.error(f"ValidationSelector: Failed to prepare validation environment. {e}")
             shutil.rmtree(mock_folder, ignore_errors=True)
-            return None
-
-        if grade_py_code and self.only_sample:
-            print("======== data.py ========")
-            print(data_py_code)
-            print("======== grade.py ========")
-            print(grade_py_code)
-            print("======== code end ========")
             return None
 
         validation_tasks = [
@@ -318,6 +312,14 @@ class ValidationSelector(SOTAexpSelector):
 
         return best_exp
 
+    def print_code(data_py_code: str, grade_py_code: str):
+        logger.info("Successfully ran data.py.")
+        print("======== data.py ========")
+        print(data_py_code)
+        print("======== grade.py ========")
+        print(grade_py_code)
+        print("======== code end ========")
+
     def _prepare_validation_scripts(
         self, reference_exp: DSExperiment, competition: str, mock_folder: str
     ) -> Tuple[str, str]:
@@ -337,13 +339,16 @@ class ValidationSelector(SOTAexpSelector):
             shutil.copy(self.sample_code_path / competition / "data.py", data_py_path)
             shutil.copy(self.sample_code_path / competition / "grade.py", grade_py_path)
             data_py_code = data_py_path.read_text()
+            grade_py_code = grade_py_path.read_text()
             if not label_path.exists():
                 ws = FBWorkspace()
+                if self.sample_rate != 0.8:
+                    data_py_code.replace("0.8", str(sample_rate)).replace("0.2", str(round(1 - sample_rate, 2)))
                 ws.inject_code_from_file_dict(reference_exp.experiment_workspace)
                 ws.inject_files(**{f"data.py": data_py_code})
                 env = get_ds_env(
                     extra_volumes={
-                        str(Path(mock_folder) / input_folder): {"bind": Path(input_folder), "mode": "rw"},
+                        str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"},
                         f"{DS_RD_SETTING.local_data_path}/{competition}": "./source",
                     },
                     running_timeout_period=DS_RD_SETTING.full_timeout,
@@ -352,8 +357,8 @@ class ValidationSelector(SOTAexpSelector):
                     env=env, entry=f"python data.py --cache-buster={time.time()}"
                 )  # Do not cache the result
                 if result.exit_code == 0:
-                    logger.info(f"Successfully ran data.py.")
-            return data_py_code, grade_py_path.read_text()
+                    print_code(data_py_code, grade_py_code)
+            return data_py_code, grade_py_code
 
         # --- Generate data.py if needed ---
         if not data_py_path.exists() or not label_path.exists():
@@ -386,7 +391,7 @@ class ValidationSelector(SOTAexpSelector):
                 },
             )
             grade_py_path.write_text(grade_py_code)
-
+            print_code(data_py_code, grade_py_code)
         return data_py_code, grade_py_path.read_text()
 
     def _generate_and_run_script(
@@ -421,7 +426,7 @@ class ValidationSelector(SOTAexpSelector):
                 # For data.py, we need the original data to sample from
                 env = get_ds_env(
                     extra_volumes={
-                        str(Path(mock_folder) / input_folder): {"bind": Path(input_folder), "mode": "rw"},
+                        str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"},
                         f"{DS_RD_SETTING.local_data_path}/{competition}": "./source",
                     },
                     running_timeout_period=DS_RD_SETTING.full_timeout,
@@ -432,7 +437,7 @@ class ValidationSelector(SOTAexpSelector):
                     str(ws.workspace_path / "submission.csv"),
                 )
                 env = get_ds_env(
-                    extra_volumes={str(Path(mock_folder) / input_folder): {"bind": Path(input_folder), "mode": "rw"}}
+                    extra_volumes={str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"}}
                 )
 
             result = ws.run(
@@ -444,9 +449,7 @@ class ValidationSelector(SOTAexpSelector):
                 logger.info(f"Successfully generated and ran {script_type}.py.")
                 if script_type == "data":
                     env = get_ds_env(
-                        extra_volumes={
-                            str(Path(mock_folder) / input_folder): {"bind": Path(input_folder), "mode": "rw"}
-                        },
+                        extra_volumes={str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"}},
                         running_timeout_period=DS_RD_SETTING.full_timeout,
                     )
                     result = ws.run(env=env, entry=f"python main.py --cache-buster={time.time()}")
@@ -600,6 +603,7 @@ def evaluate_one_trace(
     sota_result: dict[str, Any] = {},
     experiment: str = "validation",
     log_path: Path | None = None,
+    sample_rate: float = 0.8,
 ) -> Tuple[str, bool]:
     """
     Loads a single trace, uses the specified selector to pick an experiment,
@@ -653,6 +657,7 @@ def evaluate_one_trace(
             competition=competition,
             only_sample=only_sample,
             sample_code_path=sample_code_path,
+            sample_rate=sample_rate,
         )
 
     selected_sota_exps = selector.get_sota_exp_to_submit(trace)
@@ -665,7 +670,7 @@ def evaluate_one_trace(
         hit = check_hit(selected_sota_exps, trace, sota_result)
         logger.info(f"Result for {experiment} - {competition}: {'HIT' if hit else 'MISS'}")
     elif selector_name == "validation":
-        loop_id = selector.hypothesis_loop_id.get(selected_sota_exps[0].hypothesis.hypothesis)
+        loop_id = selector.hypothesis_loop_id.get(selected_sota_exps.hypothesis.hypothesis)
         logger.info(f"Selected loop for {experiment} - {competition}: {loop_id=}")
         sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{loop_id}/running/mle_score/**/*.pkl")]
         if len(sota_mle_score_paths):
@@ -683,6 +688,7 @@ def select_on_existing_trace(
     debug: bool = False,
     only_sample: bool = False,
     sample_code_path: str = "",
+    sample_rate: float = 0.8,
 ):
     """
     Offline evaluation of a SOTA experiment selector on existing traces.
@@ -736,6 +742,8 @@ def select_on_existing_trace(
                             sample_code_path,
                             sota_result,
                             trace_pkl_path.parent.name,
+                            None,
+                            sample_rate,
                         ),
                     )
                 )
@@ -749,7 +757,7 @@ def select_on_existing_trace(
         tasks.append(
             (
                 evaluate_one_trace,
-                (selector_name, trace, debug, only_sample, sample_code_path, {}, "validation", log_path),
+                (selector_name, trace, debug, only_sample, sample_code_path, {}, "validation", log_path, sample_rate),
             )
         )
 
