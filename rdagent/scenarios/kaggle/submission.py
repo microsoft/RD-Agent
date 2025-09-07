@@ -145,7 +145,7 @@ def submit_csv(
                 logger.error(f"The submission validation failed, with message: {submission.error_description}")
                 is_success = False
             else:
-                logger.info(f"Current submission state [@{submission.date}] is: {submission.status}")
+                logger.info(f"Current submission state [@{submission.date}] is: {submission.status}, public score: {submission.public_score}")
 
             break
 
