@@ -21,13 +21,19 @@ class MCPServiceConfig(BaseModel):
     headers: Optional[Dict[str, Any]] = Field(default=None, description="HTTP headers")
     handler: str = Field(
         ...,
-        description="Handler specification: either legacy class name (e.g., 'Context7Handler') "
-        "or full module path (e.g., 'module.path:ClassName')",
+        description="MCP protocol handler class that processes service communication. "
+        "Format: 'module.path:ClassName' (e.g., 'rdagent.components.mcp.context7.handler:Context7Handler'). "
+        "Each handler implements service-specific logic for MCP protocol interaction.",
     )
     enabled: bool = Field(default=True, description="Whether service is enabled")
 
-    # Additional service-specific configuration
-    extra_config: Dict[str, Any] = Field(default_factory=dict, description="Extra configuration")
+    # Service-recommended LLM configuration (can be overridden at Agent or runtime level)
+    extra_config: Dict[str, Any] = Field(
+        default_factory=dict, 
+        description="Service-recommended LLM configuration (e.g., model, temperature). "
+        "These are suggestions based on service capabilities, not requirements. "
+        "Can be overridden by Agent initialization or runtime parameters."
+    )
 
     def to_connector_config(self) -> StreamableHTTPConfig:
         """Convert to StreamableHTTPConfig."""
@@ -110,12 +116,11 @@ class MCPRegistry:
         """Check if handler is registered for service."""
         return service_name in self._handlers
 
-    def _import_handler_class(self, handler_spec: str, verbose: bool = False):
+    def _import_handler_class(self, handler_spec: str):
         """Dynamically import Handler class using full module path format only.
 
         Args:
             handler_spec: Handler specification in format 'module.path:ClassName'
-            verbose: Whether to log import details
 
         Returns:
             Handler class object
@@ -139,19 +144,18 @@ class MCPRegistry:
             # Get Handler class
             handler_class = getattr(module, class_name)
 
-            # Log import success only in verbose mode
-            if verbose:
-                logger.info(f"Successfully imported handler: {handler_spec}")
+            # Log import success
+            logger.info(f"Successfully imported handler: {handler_spec}")
 
             return handler_class
 
         except (ModuleNotFoundError, ImportError, AttributeError) as e:
             raise ValueError(f"Failed to import handler '{handler_spec}': {e}") from e
 
-    async def ensure_initialized(self, verbose: bool = False):
+    async def ensure_initialized(self):
         """Ensure all services are initialized (only executed once)."""
         if not self._initialized:
-            await self.auto_register_all_services(verbose=verbose)
+            await self.auto_register_all_services()
             self._initialized = True
             # Always show which services were actually registered (important system status)
             registered_services = [name for name in self._handlers.keys()]
@@ -160,21 +164,20 @@ class MCPRegistry:
             else:
                 logger.info("MCP registry initialized (no services registered)")
 
-    async def auto_register_all_services(self, verbose: bool = False):
+    async def auto_register_all_services(self):
         """Auto-register all enabled services from configuration."""
         for name, config in self.config.mcp_services.items():
             if config.enabled and not self.has_handler(name):
                 try:
                     # Dynamically import Handler class
-                    handler_class = self._import_handler_class(config.handler, verbose=verbose)
+                    handler_class = self._import_handler_class(config.handler)
 
                     # Create Handler instance with service configuration
                     handler = handler_class(name, service_url=config.url, extra_config=config.extra_config)
 
                     # Register Handler
                     self._handlers[name] = handler
-                    if verbose:
-                        logger.info(f"Auto-registered handler for service '{name}' with class '{config.handler}'")
+                    logger.info(f"Auto-registered handler for service '{name}' with class '{config.handler}'")
 
                 except Exception as e:
                     logger.error(f"Failed to auto-register service '{name}': {e}")
@@ -248,6 +251,7 @@ class MCPRegistry:
             logger.error("No handler available")
             return None
 
+        # Log service usage
         logger.info(f"🎯 Using {len(connectors)} service(s): {list(connectors.keys())}")
 
         # Use the unified process_query method with dict of connectors

@@ -28,7 +28,7 @@ def _mcp_enabled_check(func):
 
         try:
             registry = get_global_registry()
-            await registry.ensure_initialized(verbose=kwargs.get("verbose", False))
+            await registry.ensure_initialized()
             return await func(registry, *args, **kwargs)
         except (RateLimitError, MCPConnectionError) as e:
             logger.warning(f"MCP query encountered retryable error: {e}")

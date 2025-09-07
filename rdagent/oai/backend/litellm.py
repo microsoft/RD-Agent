@@ -388,7 +388,6 @@ class LiteLLMAPIBackend(APIBackend):
         tools: list[dict[str, Any]],
         max_rounds: int = 5,
         tool_executor: Any = None,
-        verbose: bool = False,
         model_config_override: dict[str, Any] | None = None,
         round_callback: Any = None,
         **kwargs: Any,
@@ -401,7 +400,6 @@ class LiteLLMAPIBackend(APIBackend):
             tools: Available tools in OpenAI format
             max_rounds: Maximum number of rounds
             tool_executor: Function to execute tool calls
-            verbose: Enable verbose logging
             model_config_override: Override model configuration (model, api_base, api_key, etc.)
             round_callback: Optional async callback(round_num, messages) called after each round
             **kwargs: Additional parameters for chat completion
@@ -419,7 +417,7 @@ class LiteLLMAPIBackend(APIBackend):
 
         # Apply model configuration override if provided
         if model_config_override:
-            logger.info(f"🔍 LiteLLM received model_config_override: {model_config_override}", tag="litellm_debug")
+            logger.info(f"🔍 LiteLLM received model_config_override.", tag="litellm_debug")
             for key, value in model_config_override.items():
                 if key == "api_base":
                     kwargs["base_url"] = value

@@ -14,7 +14,7 @@
     "simple_code_search": {
       "url": "http://localhost:9001/mcp",
       "handler": "rdagent.components.mcp.general_handler:GeneralMCPHandler",
-      "timeout": 60
+      "timeout": 60,
       "enabled": true,
       "extra_config": {
         "model": "gpt-3.5-turbo",

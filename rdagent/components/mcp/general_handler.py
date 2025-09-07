@@ -165,7 +165,6 @@ class MultiServiceContext:
         arguments: Dict[str, Any],
         tool_call_id: str = None,
         tool_index: int = 1,
-        verbose: bool = False,
     ) -> Any:
         """Execute a tool by routing to the correct service with handler-specific logic.
 
@@ -174,7 +173,6 @@ class MultiServiceContext:
             arguments: Arguments for the tool
             tool_call_id: OpenAI tool call ID for matching responses
             tool_index: Index of this tool in the current batch (1-based)
-            verbose: Enable verbose logging
 
         Returns:
             Tool execution result with proper formatting
@@ -200,8 +198,7 @@ class MultiServiceContext:
 
         handler = self.handlers.get(service_name)
 
-        if verbose:
-            logger.info(f"🔧 Routing tool '{tool_name}' to service '{service_name}'", tag="multi_service")
+        logger.info(f"🔧 Routing tool '{tool_name}' to service '{service_name}'", tag="multi_service")
 
         try:
             # Execute the tool
@@ -249,7 +246,7 @@ class GeneralMCPHandler(BaseMCPHandler):
 
     This handler provides common functionality for all MCP services:
     - Uses LiteLLM backend for unified model calling and configuration
-    - Supports multi-round tool calling with verbose logging
+    - Supports multi-round tool calling with detailed logging
     - Provides customizable hooks for service-specific logic
     - Integrates caching and error handling
     - Maintains compatibility with existing MCP interfaces
@@ -326,7 +323,7 @@ class GeneralMCPHandler(BaseMCPHandler):
 
         Args:
             query: Original query string
-            **kwargs: Additional context (e.g., full_code, verbose)
+            **kwargs: Additional context (e.g., full_code)
 
         Returns:
             Enhanced/processed query string
@@ -405,7 +402,6 @@ class GeneralMCPHandler(BaseMCPHandler):
         connectors: Dict[str, StreamableHTTPConnector],
         query: str,
         max_rounds: int = 5,
-        verbose: bool = False,
         **kwargs,
     ) -> str:
         """
@@ -418,7 +414,6 @@ class GeneralMCPHandler(BaseMCPHandler):
             connectors: Dict mapping service names to connectors
             query: Query string
             max_rounds: Maximum conversation rounds
-            verbose: Enable verbose logging
             **kwargs: Additional arguments
 
         Returns:
@@ -493,7 +488,7 @@ class GeneralMCPHandler(BaseMCPHandler):
                 )
 
                 # Preprocess query
-                enhanced_query = self.preprocess_query(query, verbose=verbose, **kwargs)
+                enhanced_query = self.preprocess_query(query, **kwargs)
 
                 # Convert tools to OpenAI format
                 openai_tools = self.backend.convert_mcp_tools_to_openai_format(all_tools)
@@ -514,7 +509,7 @@ class GeneralMCPHandler(BaseMCPHandler):
                         try:
                             # MultiServiceContext handles routing to correct service
                             result = await multi_ctx.execute_tool(
-                                tool_name, arguments, tool_call_id=tool_call.id, tool_index=i, verbose=verbose
+                                tool_name, arguments, tool_call_id=tool_call.id, tool_index=i
                             )
                             results.append(result)
                         except (RateLimitError, MCPConnectionError):
@@ -535,7 +530,6 @@ class GeneralMCPHandler(BaseMCPHandler):
                     tools=openai_tools,
                     max_rounds=max_rounds,
                     tool_executor=tool_executor,
-                    verbose=verbose,
                     model_config_override=self.mcp_llm_settings,
                 )
 
@@ -559,7 +553,6 @@ class GeneralMCPHandler(BaseMCPHandler):
         connectors: Dict[str, StreamableHTTPConnector],
         query: str,
         max_rounds: int = 5,
-        verbose: bool = False,
         **kwargs,
     ) -> str:
         """
@@ -572,7 +565,6 @@ class GeneralMCPHandler(BaseMCPHandler):
             connectors: Dict of service_name -> connector (can have 1 or N entries)
             query: The query to process
             max_rounds: Maximum number of tool calling rounds
-            verbose: Enable verbose logging
             **kwargs: Additional parameters passed to preprocess_query
 
         Returns:
@@ -586,7 +578,6 @@ class GeneralMCPHandler(BaseMCPHandler):
                     connectors=connectors,
                     query=query,
                     max_rounds=max_rounds,
-                    verbose=verbose,
                     **kwargs,
                 )
             except (RateLimitError, MCPConnectionError) as e:

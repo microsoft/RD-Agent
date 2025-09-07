@@ -67,7 +67,7 @@ class Context7Handler(GeneralMCPHandler):
 
         Args:
             query: Original query string
-            **kwargs: Additional context including full_code, verbose
+            **kwargs: Additional context including full_code
 
         Returns:
             Enhanced query with Context7 optimizations
