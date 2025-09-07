@@ -343,7 +343,9 @@ class ValidationSelector(SOTAexpSelector):
             if not label_path.exists():
                 ws = FBWorkspace()
                 if self.sample_rate != 0.8:
-                    data_py_code.replace("0.8", str(sample_rate)).replace("0.2", str(round(1 - sample_rate, 2)))
+                    data_py_code.replace("0.8", str(self.sample_rate)).replace(
+                        "0.2", str(round(1 - self.sample_rate, 2))
+                    )
                 ws.inject_code_from_file_dict(reference_exp.experiment_workspace)
                 ws.inject_files(**{f"data.py": data_py_code})
                 env = get_ds_env(
