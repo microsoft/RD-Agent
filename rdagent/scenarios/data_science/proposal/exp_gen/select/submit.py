@@ -1,4 +1,5 @@
 import json
+import os
 import pickle
 import re
 import shutil
@@ -27,9 +28,9 @@ from rdagent.utils.fmt import shrink_text
 from rdagent.utils.workflow import wait_retry
 
 # --- Configuration Constants ---
-MAX_API_RETRIES = 5
-DEFAULT_NUM_WORKERS = 2
-MAX_SOTA_CANDIDATES = 6
+MAX_API_RETRIES = int(os.getenv("MAX_API_RETRIES", 5))
+DEFAULT_NUM_WORKERS = int(os.getenv("DEFAULT_NUM_WORKERS", 2))
+MAX_SOTA_CANDIDATES = int(os.getenv("MAX_SOTA_CANDIDATES", 6))
 
 logger.add("selector.log")
 # ==============================================================================
@@ -312,7 +313,7 @@ class ValidationSelector(SOTAexpSelector):
 
         return best_exp
 
-    def print_code(data_py_code: str, grade_py_code: str):
+    def print_code(self, data_py_code: str, grade_py_code: str):
         logger.info("Successfully ran data.py.")
         print("======== data.py ========")
         print(data_py_code)
@@ -359,7 +360,7 @@ class ValidationSelector(SOTAexpSelector):
                     env=env, entry=f"python data.py --cache-buster={time.time()}"
                 )  # Do not cache the result
                 if result.exit_code == 0:
-                    print_code(data_py_code, grade_py_code)
+                    self.print_code(data_py_code, grade_py_code)
             return data_py_code, grade_py_code
 
         # --- Generate data.py if needed ---
@@ -393,7 +394,7 @@ class ValidationSelector(SOTAexpSelector):
                 },
             )
             grade_py_path.write_text(grade_py_code)
-            print_code(data_py_code, grade_py_code)
+            self.print_code(data_py_code, grade_py_code)
         return data_py_code, grade_py_path.read_text()
 
     def _generate_and_run_script(
