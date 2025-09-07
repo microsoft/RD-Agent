@@ -152,7 +152,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     runner_enable_code_change_summary: bool = False
 
     # runner MCTS settings
-    switch_mcts_ratio : int = 50
+    switch_mcts_ratio : int = 35
 
 
     enable_runner_mcts: bool = True
