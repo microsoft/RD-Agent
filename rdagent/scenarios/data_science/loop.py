@@ -113,6 +113,8 @@ class DataScienceRDLoop(RDLoop):
         self.model_coder = ModelCoSTEER(scen)
         self.ensemble_coder = EnsembleCoSTEER(scen)
         self.workflow_coder = WorkflowCoSTEER(scen)
+        self.pipeline_coder = PipelineCoSTEER(scen)
+
         self.runner = DSCoSTEERRunner(scen)
         self.runner_mcts = DSCoSTEERMCTSRunner(scen)
 

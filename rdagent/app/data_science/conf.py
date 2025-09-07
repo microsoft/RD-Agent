@@ -151,10 +151,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     #### enable runner code change summary
     runner_enable_code_change_summary: bool = False
 
-
+    # runner MCTS settings
     switch_mcts_ratio : int = 50
 
-    # runner MCTS settings
+
     enable_runner_mcts: bool = True
     """Enable MCTS in runner for better code searching"""
     mcts_max_iterations: int = 2
