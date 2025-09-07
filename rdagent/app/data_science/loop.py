@@ -13,7 +13,7 @@ from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 
 
 async def run_and_auto_submit(loop_task: Coroutine, competition: str):
-    """Run the loop coroutine task, and submit the SOTA experiment file (.csv only now) to kaggle at the end."""
+    """Run the loop coroutine task, and submit the SOTA experiment submission file (.csv only now) to kaggle at the end."""
     from datetime import datetime
     from rdagent.log.conf import LOG_SETTINGS
     from rdagent.log.ui.utils import get_sota_exp_stat
