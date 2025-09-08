@@ -56,7 +56,7 @@ class MCPServerStreamableHTTP:
             raise ValueError("Either 'url' or 'name' must be provided")
 
         self.url = url
-        self.name = name or self._generate_name_from_url(url)
+        self.name = name or self._generate_name_from_url(url) if url else name
         self.handler = handler or "rdagent.components.mcp.general_handler:GeneralMCPHandler"
         self.extra_config = extra_config
         self.enabled = extra_config.pop("enabled", True)
@@ -65,7 +65,7 @@ class MCPServerStreamableHTTP:
         # Store as MCPServiceConfig for consistency
         self.config = MCPServiceConfig(
             name=self.name,
-            url=self.url,
+            url=self.url or "",
             handler=self.handler,
             enabled=self.enabled,
             timeout=self.timeout,
@@ -127,6 +127,8 @@ class MCPServerStreamableHTTP:
     def __repr__(self) -> str:
         model = self.extra_config.get("model", "default")
         return f"MCPServerStreamableHTTP(name='{self.name}', url='{self.url}', model='{model}')"
+
+
 
 
 class MCPAgent:
@@ -207,12 +209,14 @@ class MCPAgent:
         """Register a dynamic service with the global registry."""
         self._services.append(service)
         self._service_names = self._service_names or []
-        self._service_names.append(service.name)
+        if service.name:
+            self._service_names.append(service.name)
 
-        # Register with global registry for this session
-        registry = get_global_registry()
-        registry.config.mcp_services[service.name] = service.to_service_config()
-        logger.info(f"Registered dynamic service: {service.name}", tag="mcp_agent")
+            # Register with global registry for this session
+            registry = get_global_registry()
+            registry.config.mcp_services[service.name] = service.to_service_config()
+            logger.info(f"Registered dynamic service: {service.name}", tag="mcp_agent")
+
 
     async def run(self, query: str, **kwargs) -> Optional[str]:
         """
@@ -294,3 +298,5 @@ def create_agent(toolsets: Optional[Union[List[str], str]] = None, **kwargs) -> 
         result = agent.run_sync("What is 2+2?")
     """
     return MCPAgent(toolsets=toolsets, **kwargs)
+
+

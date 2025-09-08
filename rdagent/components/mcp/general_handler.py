@@ -9,7 +9,8 @@ import asyncio
 import json
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from contextlib import AsyncExitStack
+from typing import Any, Dict, List, Optional
 
 from litellm import RateLimitError
 
@@ -58,187 +59,6 @@ class BaseMCPHandler(ABC):
         }
 
 
-class MultiServiceContext:
-    """Async context manager for multiple MCP service connections.
-
-    This class properly manages the lifecycle of multiple MCP service connections
-    using Python's async context manager protocol.
-    """
-
-    def __init__(self):
-        self.contexts = []  # List of (service_name, context_manager)
-        self.sessions = {}  # {service_name: session}
-        self.tool_to_service = {}  # {tool_name: service_name}
-        self.handlers = {}  # {service_name: handler} - for applying service-specific logic
-        self._cleaned_up = False  # Track cleanup state
-
-    async def add_service(
-        self, service_name: str, connector: StreamableHTTPConnector, handler=None
-    ) -> Optional[MCPSession]:
-        """Add a service connection to the context.
-
-        Args:
-            service_name: Name of the service
-            connector: Connector for the service
-            handler: Optional handler for service-specific logic (validation, processing, etc.)
-
-        Returns:
-            MCPSession if successful, None otherwise
-        """
-        ctx = None
-        try:
-            # Connect to the service
-            ctx = connector.connect()
-            session = await ctx.__aenter__()
-
-            # Store the context and session
-            self.contexts.append((service_name, ctx))
-            self.sessions[service_name] = session
-
-            # Store handler if provided
-            if handler:
-                self.handlers[service_name] = handler
-
-            # Map tools to service
-            for tool in session.tools:
-                self.tool_to_service[tool.name] = service_name
-
-            logger.info(f"✅ Connected '{service_name}' with {len(session.tools)} tools", tag="multi_service")
-            return session
-
-        except Exception as e:
-            # Ensure we clean up the context if it was entered
-            if ctx is not None:
-                try:
-                    await ctx.__aexit__(None, None, None)
-                except Exception as cleanup_error:
-                    logger.warning(f"Error during cleanup of '{service_name}': {cleanup_error}", tag="multi_service")
-
-            # Log the connection failure with a user-friendly message
-            error_msg = str(e)
-            if "connection" in error_msg.lower() or "refused" in error_msg.lower():
-                logger.error(
-                    f"❌ Cannot connect to '{service_name}' - service may not be running or port is incorrect",
-                    tag="multi_service",
-                )
-            else:
-                logger.error(f"❌ Failed to connect service '{service_name}': {error_msg}", tag="multi_service")
-            return None
-
-    async def cleanup(self):
-        """Clean up all service connections."""
-        if self._cleaned_up:
-            return  # Already cleaned up
-
-        for service_name, ctx in self.contexts:
-            try:
-                await ctx.__aexit__(None, None, None)
-                logger.warning(f"Closed connection to '{service_name}'", tag="multi_service")
-            except Exception as e:
-                logger.error(f"Error closing '{service_name}': {e}", tag="multi_service")
-
-        self._cleaned_up = True
-        self.contexts.clear()
-        self.sessions.clear()
-        self.tool_to_service.clear()
-        self.handlers.clear()
-
-    async def __aenter__(self):
-        """Enter the async context manager."""
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Exit the async context manager and ensure cleanup."""
-        await self.cleanup()
-        return False  # Don't suppress exceptions
-
-    def get_all_tools(self) -> List:
-        """Get all tools from all connected services."""
-        all_tools = []
-        for session in self.sessions.values():
-            all_tools.extend(session.tools)
-        return all_tools
-
-    async def execute_tool(
-        self,
-        tool_name: str,
-        arguments: Dict[str, Any],
-        tool_call_id: str = None,
-        tool_index: int = 1,
-    ) -> Any:
-        """Execute a tool by routing to the correct service with handler-specific logic.
-
-        Args:
-            tool_name: Name of the tool to execute
-            arguments: Arguments for the tool
-            tool_call_id: OpenAI tool call ID for matching responses
-            tool_index: Index of this tool in the current batch (1-based)
-
-        Returns:
-            Tool execution result with proper formatting
-        """
-        service_name = self.tool_to_service.get(tool_name)
-
-        if not service_name:
-            error_msg = f"Tool '{tool_name}' not found in any service"
-            logger.error(error_msg, tag="multi_service")
-            result = {"role": "tool", "content": error_msg}
-            if tool_call_id:
-                result["tool_call_id"] = tool_call_id
-            return result
-
-        session = self.sessions.get(service_name)
-        if not session:
-            error_msg = f"Session for service '{service_name}' not found"
-            logger.error(error_msg, tag="multi_service")
-            result = {"role": "tool", "content": error_msg}
-            if tool_call_id:
-                result["tool_call_id"] = tool_call_id
-            return result
-
-        handler = self.handlers.get(service_name)
-
-        logger.info(f"🔧 Routing tool '{tool_name}' to service '{service_name}'", tag="multi_service")
-
-        try:
-            # Execute the tool
-            result = await session.call_tool(tool_name, arguments)
-            result_text = result.content[0].text if result.content else ""
-
-            # Apply handler-specific logic if available
-            if handler:
-                # 1. Check for rate limit
-                if hasattr(handler, "detect_rate_limit"):
-                    if handler.detect_rate_limit(result_text):
-                        logger.warning(f"🚫 Rate limit detected for tool '{tool_name}'", tag="mcp_rate_limit")
-                        # Raise RateLimitError to trigger longer wait time
-                        raise RateLimitError(f"Service rate limited: {result_text[:100]}")
-
-                # 2. Validate tool response
-                if hasattr(handler, "validate_tool_response"):
-                    handler.validate_tool_response(tool_name, result_text)
-
-                # 3. Process result with tool index
-                if hasattr(handler, "handle_tool_result"):
-                    result_text = handler.handle_tool_result(result_text, tool_name, tool_index)
-
-            # Return with tool_call_id for proper OpenAI matching
-            result = {"role": "tool", "content": result_text}
-            if tool_call_id:
-                result["tool_call_id"] = tool_call_id
-            return result
-
-        except (RateLimitError, MCPConnectionError):
-            # These exceptions must propagate to trigger retry mechanism
-            logger.warning(f"🔄 Tool '{tool_name}' error will trigger retry", tag="multi_service")
-            raise
-        except Exception as e:
-            # Other exceptions are logged but don't trigger retry
-            logger.error(f"Error executing tool '{tool_name}': {e}", tag="multi_service")
-            result = {"role": "tool", "content": f"Error executing tool: {str(e)}"}
-            if tool_call_id:
-                result["tool_call_id"] = tool_call_id
-            return result
 
 
 class GeneralMCPHandler(BaseMCPHandler):
@@ -422,11 +242,7 @@ class GeneralMCPHandler(BaseMCPHandler):
         # Check if backend supports function calling
         if not self.backend.supports_function_calling():
             logger.error("Model does not support function calling", tag="mcp")
-            # For fallback, use first connector
-            first_connector = list(connectors.values())[0] if connectors else None
-            if first_connector:
-                return await self._fallback_processing(first_connector, query, **kwargs)
-            return "No connectors available"
+            return "Model does not support function calling"
 
         # Check cache first
         cached_result = self._check_cache(query)
@@ -436,54 +252,70 @@ class GeneralMCPHandler(BaseMCPHandler):
 
         start_time = time.time()
 
-        # Use MultiServiceContext to manage all connections (works for 1 or N services)
-        async with MultiServiceContext() as multi_ctx:
+        # Use AsyncExitStack to manage all connections
+        async with AsyncExitStack() as stack:
             try:
                 # Connect to all services
                 num_services = len(connectors)
                 logger.info(f"🔌 Connecting to {num_services} service(s)...", tag="mcp")
 
-                connect_tasks = []
-                for service_name, connector in connectors.items():
-                    connect_tasks.append(multi_ctx.add_service(service_name, connector, self))
-
-                # Use return_exceptions=True to prevent cascade cancellation
-                results = await asyncio.gather(*connect_tasks, return_exceptions=True)
-
-                # Count successful connections
-                successful_connections = 0
+                sessions = {}  # {service_name: session}
+                tool_to_service = {}  # {tool_name: service_name}
                 failed_services = []
-                for service_name, result in zip(connectors.keys(), results):
-                    if isinstance(result, Exception):
-                        failed_services.append(service_name)
-                        logger.warning(f"Service '{service_name}' connection failed: {result}", tag="mcp")
-                    elif result is not None:
-                        successful_connections += 1
 
-                if not multi_ctx.sessions:
-                    # All connections failed - provide helpful error message
+                # Define async function to connect a single service
+                async def connect_service(service_name: str, connector):
+                    """Connect to a single service and return result."""
+                    try:
+                        session = await stack.enter_async_context(connector.connect())
+                        return service_name, session, None
+                    except Exception as e:
+                        return service_name, None, e
+
+                # Create connection tasks for all services
+                connection_tasks = [
+                    connect_service(service_name, connector)
+                    for service_name, connector in connectors.items()
+                ]
+
+                # Connect to all services concurrently
+                connection_results = await asyncio.gather(*connection_tasks)
+
+                # Process connection results
+                for service_name, session, error in connection_results:
+                    if session is not None:
+                        sessions[service_name] = session
+                        
+                        # Map tools to service
+                        for tool in session.tools:
+                            tool_to_service[tool.name] = service_name
+                        
+                        logger.info(f"✅ Connected '{service_name}' with {len(session.tools)} tools", tag="mcp")
+                    else:
+                        failed_services.append(service_name)
+                        logger.warning(f"Service '{service_name}' connection failed: {error}", tag="mcp")
+
+                if not sessions:
+                    # All connections failed
                     if failed_services:
                         service_list = ", ".join(failed_services)
-                        logger.error(
-                            f"Could not connect to any MCP services. Failed services: {service_list}", tag="mcp"
-                        )
-                        return (
-                            f"Failed to connect to MCP services ({service_list}). Please check if services are running."
-                        )
+                        logger.error(f"Could not connect to any MCP services. Failed: {service_list}", tag="mcp")
+                        return f"Failed to connect to MCP services ({service_list}). Please check if services are running."
                     else:
                         logger.error("No services could be connected", tag="mcp")
                         return "Failed to connect to services"
 
                 # Get all tools from all sessions
-                all_tools = multi_ctx.get_all_tools()
+                all_tools = []
+                for session in sessions.values():
+                    all_tools.extend(session.tools)
 
                 if not all_tools:
                     logger.error("No tools available from services", tag="mcp")
                     return "No tools available"
 
                 logger.info(
-                    f"📊 Connected {len(multi_ctx.sessions)}/{num_services} service(s) "
-                    f"with {len(all_tools)} total tools",
+                    f"📊 Connected {len(sessions)}/{num_services} service(s) with {len(all_tools)} total tools",
                     tag="mcp",
                 )
 
@@ -493,13 +325,37 @@ class GeneralMCPHandler(BaseMCPHandler):
                 # Convert tools to OpenAI format
                 openai_tools = self.backend.convert_mcp_tools_to_openai_format(all_tools)
 
-                # Create unified tool executor
+                # Create tool executor
                 async def tool_executor(tool_calls):
-                    """Execute tools, routing to correct service automatically"""
+                    """Execute tools, routing to correct service"""
                     results = []
 
                     for i, tool_call in enumerate(tool_calls, 1):
                         tool_name = tool_call.function.name
+                        service_name = tool_to_service.get(tool_name)
+
+                        if not service_name:
+                            error_msg = f"Tool '{tool_name}' not found in any service"
+                            logger.error(error_msg, tag="mcp")
+                            results.append({
+                                "role": "tool",
+                                "tool_call_id": tool_call.id,
+                                "content": error_msg
+                            })
+                            continue
+
+                        session = sessions.get(service_name)
+                        if not session:
+                            error_msg = f"Session for service '{service_name}' not found"
+                            logger.error(error_msg, tag="mcp")
+                            results.append({
+                                "role": "tool",
+                                "tool_call_id": tool_call.id,
+                                "content": error_msg
+                            })
+                            continue
+
+                        logger.info(f"🔧 Routing tool '{tool_name}' to service '{service_name}'", tag="mcp")
 
                         try:
                             arguments = json.loads(tool_call.function.arguments)
@@ -507,20 +363,38 @@ class GeneralMCPHandler(BaseMCPHandler):
                             arguments = {}
 
                         try:
-                            # MultiServiceContext handles routing to correct service
-                            result = await multi_ctx.execute_tool(
-                                tool_name, arguments, tool_call_id=tool_call.id, tool_index=i
-                            )
-                            results.append(result)
+                            # Execute the tool
+                            result = await session.call_tool(tool_name, arguments)
+                            result_text = result.content[0].text if result.content else ""
+
+                            # Apply handler-specific logic
+                            # 1. Check for rate limit
+                            if self.detect_rate_limit(result_text):
+                                logger.warning(f"🚫 Rate limit detected for tool '{tool_name}'", tag="mcp_rate_limit")
+                                raise RateLimitError(f"Service rate limited: {result_text[:100]}")
+
+                            # 2. Validate tool response
+                            self.validate_tool_response(tool_name, result_text)
+
+                            # 3. Process result
+                            result_text = self.handle_tool_result(result_text, tool_name, i)
+
+                            results.append({
+                                "role": "tool",
+                                "tool_call_id": tool_call.id,
+                                "content": result_text
+                            })
                         except (RateLimitError, MCPConnectionError):
                             # Propagate for retry
                             logger.warning(f"Tool '{tool_name}' triggered retry", tag="mcp")
                             raise
                         except Exception as e:
                             logger.error(f"Tool '{tool_name}' failed: {e}", tag="mcp")
-                            results.append(
-                                {"role": "tool", "tool_call_id": tool_call.id, "content": f"Error: {str(e)}"}
-                            )
+                            results.append({
+                                "role": "tool",
+                                "tool_call_id": tool_call.id,
+                                "content": f"Error: {str(e)}"
+                            })
 
                     return results
 
@@ -596,25 +470,6 @@ class GeneralMCPHandler(BaseMCPHandler):
 
                 await asyncio.sleep(wait_time)
 
-    async def _fallback_processing(self, connector: StreamableHTTPConnector, query: str, **kwargs) -> str:
-        """Fallback processing when function calling is not supported."""
-        try:
-            async with connector.connect() as session:
-                if not session.tools:
-                    return "No tools available from MCP service"
-
-                # Use first available tool as fallback
-                first_tool = session.tools[0]
-                result = await session.call_tool(first_tool.name, {"query": query})
-
-                if result.content and len(result.content) > 0:
-                    return self.handle_tool_result(result.content[0].text, first_tool.name)
-                else:
-                    return "No content returned from tool"
-
-        except Exception as e:
-            logger.error(f"Fallback processing failed: {e}", tag="general_mcp")
-            return f"Error in fallback processing: {str(e)}"
 
     # Utility methods
 
@@ -626,10 +481,7 @@ class GeneralMCPHandler(BaseMCPHandler):
 
         cache = get_mcp_cache()
         if cache:
-            result = cache.get_query_result(query)
-            if result:
-                cache.log_cache_stats()
-            return result
+            return cache.get_query_result(query)
         return None
 
     def _cache_result(self, query: str, result: str):
@@ -641,7 +493,6 @@ class GeneralMCPHandler(BaseMCPHandler):
         cache = get_mcp_cache()
         if cache:
             cache.set_query_result(query, result)
-            cache.log_cache_stats()
 
     def _log_timing(self, operation: str, start_time: float):
         """Log operation timing."""

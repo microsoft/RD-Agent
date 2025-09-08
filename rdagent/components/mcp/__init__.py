@@ -6,7 +6,6 @@ no legacy compatibility. All dead code has been removed.
 New unified interface:
 - MCPAgent: Agent-style interface for easy use
 - mcp_execute: Core execution function for business code
-- MCPServerStreamableHTTP: Service configuration wrapper
 
 Architecture:
 - StreamableHTTP connector for MCP communication
@@ -18,17 +17,18 @@ Architecture:
 # Main user interfaces
 from .agent import MCPAgent, MCPServerStreamableHTTP, create_agent
 
+# Core execution functions
+from .unified import mcp_execute, mcp_execute_sync
+
 # Core components (for advanced usage only)
 from .connector import StreamableHTTPConfig, StreamableHTTPConnector
 from .context7.handler import Context7Handler
 from .general_handler import BaseMCPHandler
 from .registry import MCPRegistry, MCPRegistryConfig, MCPServiceConfig
 
-# Core execution function for business code
-from .unified import mcp_execute, mcp_execute_sync
 
 __all__ = [
-    # Main user interfaces (recommended)
+    # Main user interfaces
     "MCPAgent",
     "MCPServerStreamableHTTP",
     "create_agent",

@@ -129,16 +129,6 @@ class MCPCache:
             logger.warning(f"Failed to get cache info: {e}")
             return {"enabled": True, "error": str(e)}
 
-    def log_cache_stats(self):
-        """
-        Log cache statistics (stub method for compatibility).
-
-        This method is called by general_handler.py but the actual
-        statistics tracking was removed during simplification.
-        Keeping this as a no-op to maintain interface compatibility.
-        """
-        # No-op: Statistics tracking removed in simplified version
-        pass
 
 
 # Global cache instance

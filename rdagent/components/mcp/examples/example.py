@@ -6,7 +6,7 @@ Just the essentials, no complexity.
 
 import asyncio
 
-from rdagent.components.mcp import MCPAgent
+from rdagent.components.mcp import MCPAgent, create_agent
 from rdagent.log import rdagent_logger as logger
 
 
@@ -79,25 +79,6 @@ def auto_mode_example():
         logger.error(f"⚠️ Query failed: {e}")
 
 
-async def main():
-    """Run all examples"""
-    logger.info("🎯 MCP Quick Examples")
-    logger.info("=" * 50)
-    logger.info("Make sure your mcp_config.json is configured!")
-    logger.info("=" * 50)
-
-    # Sync examples
-    simple_sync_example()
-    # multiple_services_example()
-    # auto_mode_example()
-
-    # Async example
-    # await simple_async_example()
-
-    logger.info("\n" + "=" * 50)
-    logger.info("✅ All examples completed!")
-
-
 async def simple_async_example():
     """Async version for async environments"""
     logger.info("\n🚀 4.Simple Async Example")
@@ -106,7 +87,7 @@ async def simple_async_example():
     # Create agent targeting Context7
     agent = MCPAgent(toolsets="context7")
 
-    # Query about pandas error
+    # Query about error
     query = "requests timeout error"
     logger.info(f"Query: {query}")
 
@@ -120,6 +101,51 @@ async def simple_async_example():
             logger.info("❌ No solution found")
     except Exception as e:
         logger.error(f"⚠️ Query failed: {e}")
+
+
+def create_agent_example():
+    """Using the create_agent convenience function"""
+    logger.info("\n⚡ 5.create_agent Convenience Function")
+    logger.info("-" * 30)
+
+    query = "python dict comprehension syntax"
+    logger.info(f"Query: {query}")
+
+    try:
+        # One-liner: create agent and run query immediately
+        result = create_agent(['context7']).run_sync(query, timeout=90)
+        if result:
+            logger.info("✅ Quick solution:")
+            logger.info(result[:200] + "..." if len(result) > 200 else result)
+        else:
+            logger.info("❌ No solution found")
+    except Exception as e:
+        logger.error(f"⚠️ Query failed: {e}")
+        logger.error("💡 Try: create_agent() for auto mode or check service config")
+
+
+
+
+
+
+async def main():
+    """Run all examples"""
+    logger.info("🎯 MCP Quick Examples")
+    logger.info("=" * 50)
+    logger.info("Make sure your mcp_config.json is configured!")
+    logger.info("=" * 50)
+
+    # Sync examples
+    simple_sync_example()
+    multiple_services_example()
+    auto_mode_example()
+
+    # Async example
+    await simple_async_example()
+
+    # Convenience function example
+    create_agent_example()
+
 
 
 if __name__ == "__main__":
