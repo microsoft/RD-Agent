@@ -963,6 +963,7 @@ class DSProposalV2ExpGen(ExpGen):
             alpha, beta = 1.0, 0
         gamma = math.log(2) / 30
         logits = alpha * sim_matrix * math.exp(-gamma * path_length) + beta * torch.tanh(score_diff_matrix)
+        logits = torch.clamp(logits, min=-2, max=2)
         probs = torch.softmax(logits, dim=1)
 
         num_candidates = probs.size(-1)
