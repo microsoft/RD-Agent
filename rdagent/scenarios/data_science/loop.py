@@ -177,7 +177,8 @@ class DataScienceRDLoop(RDLoop):
         res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
         use_time = round(total_time.total_seconds(), 2) - round(res_time.total_seconds(), 2)
         use_ratio = 100 * use_time / round(total_time.total_seconds(), 2)
-        if DS_RD_SETTING.enable_runner_mcts and use_ratio > DS_RD_SETTING.switch_mcts_ratio:
+        
+        if DS_RD_SETTING.enable_runner_mcts and use_ratio > DS_RD_SETTING.switch_mcts_ratio and use_ratio < DS_RD_SETTING.ratio_merge_or_ensemble:
             runner = self.runner_mcts
         if exp.is_ready_to_run():
             new_exp = runner.develop(exp)

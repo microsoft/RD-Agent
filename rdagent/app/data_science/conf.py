@@ -106,7 +106,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     ensemble_with_merge: bool = False
 
-    ratio_merge_or_ensemble: int = 70 # 70% for merge/ensemble
+    ratio_merge_or_ensemble: int = 99 # 70% for merge/ensemble
 
     #### multi-trace: SOTA experiment selector
     sota_exp_selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.select.submit.GlobalSOTASelector"
@@ -152,7 +152,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     runner_enable_code_change_summary: bool = False
 
     # runner MCTS settings
-    switch_mcts_ratio : int = 35
+    switch_mcts_ratio : int = 50
 
 
     enable_runner_mcts: bool = True
