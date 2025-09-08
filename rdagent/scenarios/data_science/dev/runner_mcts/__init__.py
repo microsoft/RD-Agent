@@ -413,7 +413,7 @@ class DSCoSTEERMCTSRunner(CoSTEER):
         """
         The coder uses the scenario's real debug timeout as the maximum seconds for development.
         """
-        return int(self.scen.real_full_timeout() * self.settings.max_seconds_multiplier)
+        return 4*3600#int(self.scen.real_full_timeout() * self.settings.max_seconds_multiplier)
 
     def compare_and_pick_fb(self, base_fb: CoSTEERMultiFeedback | None, new_fb: CoSTEERMultiFeedback | None) -> bool:
         # In data science, we only have a single feedback.
