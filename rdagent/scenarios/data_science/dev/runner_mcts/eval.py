@@ -71,6 +71,7 @@ class DSRunnerMCTSEvaluator(CoSTEEREvaluator):
         implementation: FBWorkspace,
         gt_implementation: FBWorkspace,
         queried_knowledge: QueriedKnowledge = None,
+        time_max: int = 3600,
         **kwargs,
     ) -> DSRunnerFeedback:
         env = get_ds_env(
@@ -79,7 +80,7 @@ class DSRunnerMCTSEvaluator(CoSTEEREvaluator):
                     "scenarios.data_science.share:scen.input_path"
                 ).r()
             },
-            running_timeout_period=self.scen.real_full_timeout(),
+            running_timeout_period=time_max,
         )
 
         stdout = implementation.execute(

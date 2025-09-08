@@ -255,9 +255,10 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         Parallel simulation of multiple MCTS nodes using multiprocessing_wrapper.
         Returns the reward list for each node.
         """
+        time_max = 3600
         evaluator = DSRunnerMCTSEvaluator(scen=self.scen)
         func_calls = [
-            (evaluator.evaluate, (target_task, node.workspace, gt_workspace, queried_knowledge))
+            (evaluator.evaluate, (target_task, node.workspace, gt_workspace, queried_knowledge,time_max))
             for node in nodes
         ]
 
@@ -413,7 +414,8 @@ class DSCoSTEERMCTSRunner(CoSTEER):
         """
         The coder uses the scenario's real debug timeout as the maximum seconds for development.
         """
-        return 4*3600#int(self.scen.real_full_timeout() * self.settings.max_seconds_multiplier)
+        #return 3600
+        return int(self.scen.real_full_timeout() * self.settings.max_seconds_multiplier)
 
     def compare_and_pick_fb(self, base_fb: CoSTEERMultiFeedback | None, new_fb: CoSTEERMultiFeedback | None) -> bool:
         # In data science, we only have a single feedback.
