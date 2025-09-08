@@ -56,7 +56,7 @@ class MCTSNode:
         self.visit_count = 0
         self.value_sum = 0.0
         self.untried_actions : list[dict] = []  #
-        self.socre = 0 
+        self.socre = 0
     @property
     def value(self):
         return self.value_sum / self.visit_count if self.visit_count > 0 else 0
@@ -135,6 +135,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         system_prompt = T(".prompts:DSCoSTEER.system_refine").r(
                 out_spec=PythonBatchEditOut.get_spec(with_del=False),
                 diff_mode=self.settings.diff_mode,
+                num_candidates = num_candidates
             )
 
         session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
@@ -302,9 +303,12 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         feedback_root = evaluator.evaluate(target_task, root.workspace, workspace, queried_knowledge)
         root.score = feedback_root.score
         MCTS_NODE_LIST.append(root)
+        
+        root_is_none = feedback_root.score is None
+    
         bigger_is_better = get_metric_direction(self.scen.competition)
 
-        if DS_RD_SETTING.runner_max_loop>1 and DS_RD_SETTING.enable_runner_mcts:
+        if DS_RD_SETTING.runner_max_loop>1 and DS_RD_SETTING.enable_runner_mcts and not root_is_none:
             if DS_RD_SETTING.multiprocessing_mcts_simulation is not True:
                 logger.info(f"Starting MCTS with max_iterations={self.max_iterations}")
                 for _ in range(self.max_iterations):
@@ -318,7 +322,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                     self.backpropagate(new_node, reward)
                     logger.info(f"Iteration completed. Current root visit count: {root.visit_count}")
                     MCTS_NODE_LIST.append(new_node)
-                best_child = max(root.children, key=lambda c: c.value)
+                #best_child = max(root.children, key=lambda c: c.value)
             else:
                 for _ in range(self.max_iterations):
                     logger.info(f"Starting Mutiprocessing iteration !")
@@ -329,14 +333,22 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                     rewards = self.simulate_batch(new_nodes, target_task, workspace, queried_knowledge, n_processes=DS_RD_SETTING.mcts_n_processes)
                     self.backpropagate_batch(new_nodes, rewards)
                     MCTS_NODE_LIST.append(new_nodes)
-                best_child = max(root.children, key=lambda c: c.value)
+                #best_child = max(root.children, key=lambda c: c.value)
+            all_nodes = []
+            for item in MCTS_NODE_LIST:
+                if isinstance(item, list):
+                    all_nodes.extend(item) 
+                else:
+                    all_nodes.append(item)   
+            best_child = max(all_nodes, key=lambda c: c.value if c.value is not None else float('-inf'))
 
-            if (feedback_root.score > best_child.score) and bigger_is_better:
-                MCTS_NODE_LIST = [root]
-                return MCTS_NODE_LIST,root.workspace.file_dict
-            if (feedback_root.score < best_child.score) and not bigger_is_better:
-                MCTS_NODE_LIST = [root]
-                return MCTS_NODE_LIST, root.workspace.file_dict
+            if feedback_root.score is not None and best_child.score is not None:
+                if (feedback_root.score > best_child.score) and bigger_is_better:
+                    MCTS_NODE_LIST = [root]
+                    return MCTS_NODE_LIST,root.workspace.file_dict
+                if (feedback_root.score < best_child.score) and not bigger_is_better:
+                    MCTS_NODE_LIST = [root]
+                    return MCTS_NODE_LIST, root.workspace.file_dict
             
             if best_child is None:
                 logger.warning("No child nodes expanded from root!")
