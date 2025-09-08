@@ -2,7 +2,7 @@
   "mcpServices": {
     "context7": {
       "url": "http://localhost:8123/mcp",
-      "handler": "rdagent.components.mcp.context7.handler:Context7Handler",
+      "handler": "rdagent.components.mcp.context7.client:Context7Client",
       "enabled": true,
       "timeout": 60,
       "extra_config": {
@@ -13,11 +13,11 @@
     },
     "simple_code_search": {
       "url": "http://localhost:9001/mcp",
-      "handler": "rdagent.components.mcp.general_handler:GeneralMCPHandler",
+      "handler": "rdagent.components.mcp.client:MCPClient",
       "timeout": 60,
       "enabled": true,
       "extra_config": {
-        "model": "gpt-3.5-turbo",
+        "model": "gpt-3.5-turbo"
       }
     }
   }

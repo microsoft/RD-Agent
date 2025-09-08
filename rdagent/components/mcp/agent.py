@@ -16,8 +16,12 @@ Example:
 from typing import List, Optional, Union
 from urllib.parse import urlparse
 
-from rdagent.components.mcp.registry import MCPServiceConfig, get_global_registry
-from rdagent.components.mcp.unified import mcp_execute, mcp_execute_sync
+from rdagent.components.mcp.registry import (
+    MCPServiceConfig,
+    get_global_registry,
+    mcp_execute,
+    mcp_execute_sync,
+)
 from rdagent.log import rdagent_logger as logger
 
 
@@ -57,7 +61,7 @@ class MCPServerStreamableHTTP:
 
         self.url = url
         self.name = name or self._generate_name_from_url(url) if url else name
-        self.handler = handler or "rdagent.components.mcp.general_handler:GeneralMCPHandler"
+        self.handler = handler or "rdagent.components.mcp.client:MCPClient"
         self.extra_config = extra_config
         self.enabled = extra_config.pop("enabled", True)
         self.timeout = extra_config.pop("timeout", 120.0)

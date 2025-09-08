@@ -1,10 +1,16 @@
+import asyncio
+import concurrent.futures
 import json
+from functools import wraps
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+from litellm import RateLimitError
 from pydantic import BaseModel, Field, ValidationError
 
+from rdagent.components.mcp.conf import is_mcp_enabled
 from rdagent.components.mcp.connector import (
+    MCPConnectionError,
     StreamableHTTPConfig,
     StreamableHTTPConnector,
 )
@@ -19,11 +25,11 @@ class MCPServiceConfig(BaseModel):
     url: str = Field(..., description="Service URL")
     timeout: float = Field(default=120.0, description="Connection timeout")
     headers: Optional[Dict[str, Any]] = Field(default=None, description="HTTP headers")
-    handler: str = Field(
-        ...,
+    handler: Optional[str] = Field(
+        default=None,
         description="MCP protocol handler class that processes service communication. "
         "Format: 'module.path:ClassName' (e.g., 'rdagent.components.mcp.context7.handler:Context7Handler'). "
-        "Each handler implements service-specific logic for MCP protocol interaction.",
+        "If not specified, auto-discovery will attempt to find a handler based on service name.",
     )
     enabled: bool = Field(default=True, description="Whether service is enabled")
 
@@ -57,9 +63,7 @@ class MCPRegistryConfig(BaseModel):
             if isinstance(config, dict):
                 # Add name to config if not present
                 config["name"] = name
-                # Add default handler if not specified
-                if "handler" not in config:
-                    config["handler"] = f"{name.title()}Handler"
+                # Don't set a default handler - let auto-discovery handle it
                 services[name] = MCPServiceConfig(**config)
             else:
                 logger.warning(f"Invalid configuration for service '{name}': {config}")
@@ -169,25 +173,67 @@ class MCPRegistry:
         for name, config in self.config.mcp_services.items():
             if config.enabled and not self.has_handler(name):
                 try:
+                    # Determine handler spec (explicit or auto-discovered)
+                    handler_spec = self._resolve_handler_spec(name, config)
+
                     # Dynamically import Handler class
-                    handler_class = self._import_handler_class(config.handler)
+                    handler_class = self._import_handler_class(handler_spec)
 
                     # Create Handler instance with service configuration
                     handler = handler_class(name, service_url=config.url, extra_config=config.extra_config)
 
                     # Register Handler
                     self._handlers[name] = handler
-                    logger.info(f"Auto-registered handler for service '{name}' with class '{config.handler}'")
+                    logger.info(f"Auto-registered handler for service '{name}' with class '{handler_spec}'")
 
                 except Exception as e:
                     logger.error(f"Failed to auto-register service '{name}': {e}")
 
+    def _resolve_handler_spec(self, service_name: str, config: MCPServiceConfig) -> str:
+        """Resolve handler specification for a service.
+
+        Args:
+            service_name: Name of the service
+            config: Service configuration
+
+        Returns:
+            Full handler specification in format 'module.path:ClassName'
+        """
+        # If handler is explicitly specified, use it
+        if config.handler:
+            return config.handler
+
+        # Try to auto-discover client based on service name
+        # Convention: ServiceNameClient in service_name.client module
+
+        # 1. Try service-specific client (e.g., context7 -> Context7Client)
+        client_class_name = f"{service_name.title().replace('_', '')}Client"
+
+        # Common client locations to check
+        handler_specs = [
+            f"rdagent.components.mcp.{service_name}.client:{client_class_name}",
+            f"rdagent.components.mcp.{service_name}.handler:{client_class_name}",  # Legacy support
+            f"rdagent.components.mcp.handlers.{service_name}:{client_class_name}",
+            f"rdagent.components.mcp.client:MCPClient",  # Default fallback
+        ]
+
+        for spec in handler_specs:
+            try:
+                module_path, class_name = spec.split(":", 1)
+                module = get_module_by_module_path(module_path)
+                if hasattr(module, class_name):
+                    logger.info(f"Auto-discovered handler for '{service_name}': {spec}")
+                    return spec
+            except (ImportError, ModuleNotFoundError, AttributeError):
+                continue
+
+        # If no specific handler found, use default MCPClient
+        logger.info(f"No specific handler found for '{service_name}', using default MCPClient")
+        return "rdagent.components.mcp.client:MCPClient"
+
     async def query(self, query: str, services: Optional[Union[str, List[str]]] = None, **kwargs) -> Optional[str]:
         """
-        Unified query method for any number of services.
-
-        This method treats single-service as a special case of multi-service,
-        eliminating code duplication between query_service and query_auto.
+        Execute query using specified MCP services.
 
         Args:
             query: The query to process
@@ -212,50 +258,46 @@ class MCPRegistry:
             logger.warning("No services specified or available")
             return None
 
-        # Prepare connectors for all target services
+        # Build connectors for all target services
         connectors = {}
-        handler = None
-
         for service_name in target_services:
-            # Check if service is configured and enabled
             if not self.has_service(service_name):
-                logger.warning(f"Service '{service_name}' not available, skipping")
+                logger.warning(f"Service '{service_name}' not configured, skipping")
                 continue
 
-            # Check if handler is registered
             if not self.has_handler(service_name):
-                logger.warning(f"No handler registered for service '{service_name}', skipping")
+                logger.warning(f"No handler for service '{service_name}', skipping")
                 continue
 
-            # Get service configuration
             config = self.get_service_config(service_name)
             connector_config = config.to_connector_config()
 
-            # Get handler (use any handler, they all have the same unified processing)
-            if handler is None:
-                handler = self._handlers[service_name]
-
-            # Allow handler to customize connector configuration
+            # Allow handler to customize connector
+            handler = self._handlers[service_name]
             if hasattr(handler, "customize_connector_config"):
                 connector_config = handler.customize_connector_config(connector_config)
 
-            # Create connector
             connector = StreamableHTTPConnector(connector_config)
             connectors[service_name] = connector
 
         if not connectors:
-            logger.error("No valid services available after checking")
+            logger.error("No valid services available")
             return None
 
-        if not handler:
-            logger.error("No handler available")
-            return None
+        # Log which services are being used
+        service_names = list(connectors.keys())
+        if len(service_names) == 1:
+            logger.info(f"🎯 Using service: {service_names[0]}")
+        else:
+            logger.info(f"🎯 Using {len(service_names)} services: {service_names}")
 
-        # Log service usage
-        logger.info(f"🎯 Using {len(connectors)} service(s): {list(connectors.keys())}")
+        # Use the first available handler to process the query
+        # This is a current limitation - ideally we'd have a coordinator
+        # that can intelligently route between multiple handlers
+        first_service = service_names[0]
+        handler = self._handlers[first_service]
 
-        # Use the unified process_query method with dict of connectors
-        # Let exceptions propagate for better error handling
+        # Pass all connectors to the handler
         return await handler.process_query(connectors, query, **kwargs)
 
     def get_service_info(self) -> Dict[str, Dict[str, Any]]:
@@ -297,3 +339,101 @@ def get_global_registry() -> MCPRegistry:
         _global_registry = MCPRegistry.from_config_file(config_path)
 
     return _global_registry
+
+
+# Public API functions (previously in unified.py)
+
+
+async def mcp_execute(query: str, services: Optional[Union[str, List[str]]] = None, **kwargs) -> Optional[str]:
+    """
+    Execute MCP query with specified services.
+
+    This is the core execution function that provides a clean, unified way
+    to execute queries against MCP services.
+
+    Args:
+        query: The query/error message to process
+        services: Optional service specification:
+            - None: Use all available services (auto mode)
+            - str: Use a specific service
+            - List[str]: Use specified services
+        **kwargs: Additional parameters passed to the handler
+
+    Returns:
+        Response from the MCP service(s), or None if failed
+
+    Examples:
+        # Auto mode - uses all available services
+        result = await mcp_execute("ImportError: No module named 'sklearn'")
+
+        # Single service mode
+        result = await mcp_execute("error message", services="context7")
+
+        # Multi-service mode
+        result = await mcp_execute("error message", services=["context7", "deepwiki"])
+    """
+    if not is_mcp_enabled():
+        logger.error("MCP system is globally disabled")
+        return None
+
+    try:
+        registry = get_global_registry()
+        await registry.ensure_initialized()
+        return await registry.query(query, services=services, **kwargs)
+    except (RateLimitError, MCPConnectionError) as e:
+        logger.warning(f"MCP query encountered retryable error: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"MCP query failed with unexpected error: {e}")
+        return None
+
+
+def mcp_execute_sync(
+    query: str, services: Optional[Union[str, List[str]]] = None, timeout: float = 180, **kwargs
+) -> Optional[str]:
+    """
+    Synchronous version of mcp_execute for non-async contexts.
+
+    This function runs MCP queries in a separate thread with proper cleanup
+    to avoid event loop conflicts.
+
+    Args:
+        query: The query content to send to MCP service
+        services: MCP service(s) to use (None for all)
+        timeout: Total timeout in seconds (default: 180)
+        **kwargs: Additional keyword arguments to pass to mcp_execute
+
+    Returns:
+        Query result if successful, None otherwise
+
+    Examples:
+        # Auto mode
+        result = mcp_execute_sync("ImportError: No module named 'sklearn'")
+
+        # Specific service
+        result = mcp_execute_sync("error message", services="context7")
+    """
+
+    def run_mcp_in_new_loop() -> Optional[str]:
+        """Run MCP query in a new event loop to avoid conflicts."""
+        new_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(new_loop)
+        try:
+            return new_loop.run_until_complete(mcp_execute(query, services=services, **kwargs))
+        finally:
+            # Graceful shutdown to avoid warnings
+            pending = asyncio.all_tasks(new_loop)
+            for task in pending:
+                task.cancel()
+
+            if pending:
+                new_loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+
+            new_loop.run_until_complete(new_loop.shutdown_asyncgens())
+            new_loop.run_until_complete(asyncio.sleep(0.1))
+            new_loop.close()
+
+    # Execute in thread pool to avoid event loop conflicts
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(run_mcp_in_new_loop)
+        return future.result(timeout=timeout)

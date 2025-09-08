@@ -16,15 +16,20 @@ Architecture:
 
 # Main user interfaces
 from .agent import MCPAgent, MCPServerStreamableHTTP, create_agent
+from .client import BaseMCPClient, MCPClient
 
 # Core components (for advanced usage only)
 from .connector import StreamableHTTPConfig, StreamableHTTPConnector
-from .context7.handler import Context7Handler
-from .general_handler import BaseMCPHandler
-from .registry import MCPRegistry, MCPRegistryConfig, MCPServiceConfig
+from .context7.client import Context7Client
 
 # Core execution functions
-from .unified import mcp_execute, mcp_execute_sync
+from .registry import (
+    MCPRegistry,
+    MCPRegistryConfig,
+    MCPServiceConfig,
+    mcp_execute,
+    mcp_execute_sync,
+)
 
 __all__ = [
     # Main user interfaces
@@ -37,8 +42,9 @@ __all__ = [
     # Advanced components (for internal use)
     "StreamableHTTPConnector",
     "StreamableHTTPConfig",
-    "BaseMCPHandler",
-    "Context7Handler",
+    "BaseMCPClient",
+    "MCPClient",
+    "Context7Client",
     "MCPRegistry",
     "MCPRegistryConfig",
     "MCPServiceConfig",

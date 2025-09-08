@@ -1,28 +1,28 @@
-"""Context7 Handler Implementation
+"""Context7 Client Implementation
 
 This handler preserves all the experimental results and optimizations
 for Context7 service, including prompt templates, timm library special
 handling, caching mechanisms, and error handling logic.
 
-Now inherits from GeneralMCPHandler to use unified LiteLLM backend.
+Now inherits from MCPClient to use unified LiteLLM backend.
 """
 
 from typing import Optional
 
+from rdagent.components.mcp.client import MCPClient
 from rdagent.components.mcp.connector import MCPConnectionError, StreamableHTTPConfig
-from rdagent.components.mcp.general_handler import GeneralMCPHandler
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.agent.tpl import T
 
 
-class Context7Handler(GeneralMCPHandler):
-    """Context7 MCP service handler with all experimental optimizations.
+class Context7Client(MCPClient):
+    """Context7 MCP service client with experimental optimizations.
 
-    This handler preserves all the research results including:
+    This client extends MCPClient with Context7-specific features:
     - Enhanced prompt templates for better documentation search
     - Special handling for timm library (3+ mentions trigger)
     - Intelligent error handling for documentation not found cases
-    - All common functionality now handled by GeneralMCPHandler + LiteLLM
+    - Tool response validation for Context7's specific format
     """
 
     # Tool response validation rules for Context7
@@ -40,12 +40,12 @@ class Context7Handler(GeneralMCPHandler):
 
     # TODO: Consider making these configurable based on server response time patterns
     # Override parent class retry wait times to fit within Context7's 75-second session window
-    # These directly override GeneralMCPHandler's class attributes
+    # These directly override MCPClient's class attributes
     RATE_LIMIT_WAIT_TIMES = [15, 20, 25]  # Maximum total: 60 seconds
     NORMAL_RETRY_WAIT_TIMES = [5, 8, 10]  # For non-rate-limit errors
 
     def __init__(self, service_name: str = "context7", service_url: str = "http://localhost:8123/mcp", **config):
-        # Initialize with GeneralMCPHandler - uses LiteLLM backend
+        # Initialize with MCPClient - uses LiteLLM backend
         super().__init__(service_name, **config)
 
         # Store MCP service URL (from registry config)
@@ -53,14 +53,14 @@ class Context7Handler(GeneralMCPHandler):
 
         # Log that we're using LiteLLM backend
         logger.info(
-            f"Context7Handler initialized with session_timeout={self.SESSION_TIMEOUT}s, "
+            f"Context7Client initialized with session_timeout={self.SESSION_TIMEOUT}s, "
             f"rate_limit_waits={self.RATE_LIMIT_WAIT_TIMES}",
             tag="context7_config",
         )
 
     # Configuration is now handled by LiteLLM backend - no need for separate resolution
 
-    # process_query is now handled by GeneralMCPHandler - we implement the abstract methods
+    # process_query is now handled by MCPClient - we implement the abstract methods
 
     def preprocess_query(self, query: str, **kwargs) -> str:
         """Preprocess query with Context7 specific enhancements.
@@ -148,7 +148,7 @@ class Context7Handler(GeneralMCPHandler):
 
         return enhanced_query
 
-    # All common functionality is now handled by GeneralMCPHandler
+    # All common functionality is now handled by MCPClient
 
     def customize_connector_config(self, config: "StreamableHTTPConfig") -> "StreamableHTTPConfig":
         """Customize connector configuration for Context7's 75-second session limit.

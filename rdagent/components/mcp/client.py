@@ -1,8 +1,7 @@
-"""MCP Handler Implementation
+"""MCP Client Implementation
 
-This module contains both the abstract base class and the general implementation
-for MCP service handlers. It provides a unified interface for MCP services using
-LiteLLM backend for all LLM calls.
+This module provides the core MCP client that handles protocol communication,
+tool execution, and LLM interactions for MCP services.
 """
 
 import asyncio
@@ -25,8 +24,8 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.oai.backend.litellm import LiteLLMAPIBackend
 
 
-class BaseMCPHandler(ABC):
-    """Abstract base class for MCP service handlers."""
+class BaseMCPClient(ABC):
+    """Abstract base class for MCP clients."""
 
     def __init__(self, service_name: str, **config):
         """Initialize handler with service name and configuration."""
@@ -59,15 +58,15 @@ class BaseMCPHandler(ABC):
         }
 
 
-class GeneralMCPHandler(BaseMCPHandler):
-    """General MCP service handler using LiteLLM backend.
+class MCPClient(BaseMCPClient):
+    """MCP client implementation.
 
-    This handler provides common functionality for all MCP services:
-    - Uses LiteLLM backend for unified model calling and configuration
-    - Supports multi-round tool calling with detailed logging
-    - Provides customizable hooks for service-specific logic
-    - Integrates caching and error handling
-    - Maintains compatibility with existing MCP interfaces
+    This client provides complete MCP protocol support:
+    - Manages connections to MCP services
+    - Executes tools with multi-round calling
+    - Integrates with LLM for intelligent processing
+    - Handles caching, retries, and error recovery
+    - Supports customization through subclassing
     """
 
     # Rate limit wait times (in seconds)
