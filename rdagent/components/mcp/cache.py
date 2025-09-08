@@ -130,7 +130,6 @@ class MCPCache:
             return {"enabled": True, "error": str(e)}
 
 
-
 # Global cache instance
 _global_cache: Optional[MCPCache] = None
 

@@ -113,7 +113,7 @@ def create_agent_example():
 
     try:
         # One-liner: create agent and run query immediately
-        result = create_agent(['context7']).run_sync(query, timeout=90)
+        result = create_agent(["context7"]).run_sync(query, timeout=90)
         if result:
             logger.info("✅ Quick solution:")
             logger.info(result[:200] + "..." if len(result) > 200 else result)
@@ -122,10 +122,6 @@ def create_agent_example():
     except Exception as e:
         logger.error(f"⚠️ Query failed: {e}")
         logger.error("💡 Try: create_agent() for auto mode or check service config")
-
-
-
-
 
 
 async def main():
@@ -145,7 +141,6 @@ async def main():
 
     # Convenience function example
     create_agent_example()
-
 
 
 if __name__ == "__main__":

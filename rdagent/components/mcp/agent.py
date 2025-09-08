@@ -129,8 +129,6 @@ class MCPServerStreamableHTTP:
         return f"MCPServerStreamableHTTP(name='{self.name}', url='{self.url}', model='{model}')"
 
 
-
-
 class MCPAgent:
     """
     Agent-style interface for MCP services, inspired by pydantic_ai.
@@ -217,7 +215,6 @@ class MCPAgent:
             registry.config.mcp_services[service.name] = service.to_service_config()
             logger.info(f"Registered dynamic service: {service.name}", tag="mcp_agent")
 
-
     async def run(self, query: str, **kwargs) -> Optional[str]:
         """
         Execute an async query using the configured MCP services.
@@ -298,5 +295,3 @@ def create_agent(toolsets: Optional[Union[List[str], str]] = None, **kwargs) -> 
         result = agent.run_sync("What is 2+2?")
     """
     return MCPAgent(toolsets=toolsets, **kwargs)
-
-

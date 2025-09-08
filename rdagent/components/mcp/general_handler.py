@@ -59,8 +59,6 @@ class BaseMCPHandler(ABC):
         }
 
 
-
-
 class GeneralMCPHandler(BaseMCPHandler):
     """General MCP service handler using LiteLLM backend.
 
@@ -274,8 +272,7 @@ class GeneralMCPHandler(BaseMCPHandler):
 
                 # Create connection tasks for all services
                 connection_tasks = [
-                    connect_service(service_name, connector)
-                    for service_name, connector in connectors.items()
+                    connect_service(service_name, connector) for service_name, connector in connectors.items()
                 ]
 
                 # Connect to all services concurrently
@@ -285,11 +282,11 @@ class GeneralMCPHandler(BaseMCPHandler):
                 for service_name, session, error in connection_results:
                     if session is not None:
                         sessions[service_name] = session
-                        
+
                         # Map tools to service
                         for tool in session.tools:
                             tool_to_service[tool.name] = service_name
-                        
+
                         logger.info(f"✅ Connected '{service_name}' with {len(session.tools)} tools", tag="mcp")
                     else:
                         failed_services.append(service_name)
@@ -300,7 +297,9 @@ class GeneralMCPHandler(BaseMCPHandler):
                     if failed_services:
                         service_list = ", ".join(failed_services)
                         logger.error(f"Could not connect to any MCP services. Failed: {service_list}", tag="mcp")
-                        return f"Failed to connect to MCP services ({service_list}). Please check if services are running."
+                        return (
+                            f"Failed to connect to MCP services ({service_list}). Please check if services are running."
+                        )
                     else:
                         logger.error("No services could be connected", tag="mcp")
                         return "Failed to connect to services"
@@ -337,22 +336,14 @@ class GeneralMCPHandler(BaseMCPHandler):
                         if not service_name:
                             error_msg = f"Tool '{tool_name}' not found in any service"
                             logger.error(error_msg, tag="mcp")
-                            results.append({
-                                "role": "tool",
-                                "tool_call_id": tool_call.id,
-                                "content": error_msg
-                            })
+                            results.append({"role": "tool", "tool_call_id": tool_call.id, "content": error_msg})
                             continue
 
                         session = sessions.get(service_name)
                         if not session:
                             error_msg = f"Session for service '{service_name}' not found"
                             logger.error(error_msg, tag="mcp")
-                            results.append({
-                                "role": "tool",
-                                "tool_call_id": tool_call.id,
-                                "content": error_msg
-                            })
+                            results.append({"role": "tool", "tool_call_id": tool_call.id, "content": error_msg})
                             continue
 
                         logger.info(f"🔧 Routing tool '{tool_name}' to service '{service_name}'", tag="mcp")
@@ -379,22 +370,16 @@ class GeneralMCPHandler(BaseMCPHandler):
                             # 3. Process result
                             result_text = self.handle_tool_result(result_text, tool_name, i)
 
-                            results.append({
-                                "role": "tool",
-                                "tool_call_id": tool_call.id,
-                                "content": result_text
-                            })
+                            results.append({"role": "tool", "tool_call_id": tool_call.id, "content": result_text})
                         except (RateLimitError, MCPConnectionError):
                             # Propagate for retry
                             logger.warning(f"Tool '{tool_name}' triggered retry", tag="mcp")
                             raise
                         except Exception as e:
                             logger.error(f"Tool '{tool_name}' failed: {e}", tag="mcp")
-                            results.append({
-                                "role": "tool",
-                                "tool_call_id": tool_call.id,
-                                "content": f"Error: {str(e)}"
-                            })
+                            results.append(
+                                {"role": "tool", "tool_call_id": tool_call.id, "content": f"Error: {str(e)}"}
+                            )
 
                     return results
 
@@ -469,7 +454,6 @@ class GeneralMCPHandler(BaseMCPHandler):
                 )
 
                 await asyncio.sleep(wait_time)
-
 
     # Utility methods
 
