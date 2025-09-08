@@ -4,18 +4,19 @@ Unified LLM Fine-tuning Configuration Validator
 Integrates parameter filtering and completeness checking into a single validation interface.
 """
 
+import json
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, List, Optional, Set
 
 import yaml
-from llamafactory.hparams.data_args import DataArguments
-from llamafactory.hparams.finetuning_args import FinetuningArguments
-from llamafactory.hparams.model_args import ModelArguments
-from transformers import TrainingArguments
 
+from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
+
+DIRNAME = Path(__file__).absolute().resolve().parent
 
 
 @dataclass
@@ -105,22 +106,49 @@ class UnifiedLLMConfigValidator:
             return config_yaml
 
     def _get_supported_parameters(self) -> Set[str]:
-        """Get supported parameters from LlamaFactory dataclasses"""
+        """Get supported parameters from LlamaFactory in Docker environment"""
         if self._supported_params_cache is not None:
             return self._supported_params_cache
 
-        supported_params = set()
+        # Fallback parameter set
+        fallback_params = {
+            "model_name_or_path",
+            "stage",
+            "do_train",
+            "finetuning_type",
+            "dataset",
+            "lora_rank",
+            "lora_alpha",
+            "learning_rate",
+            "num_train_epochs",
+            "max_steps",
+            "output_dir",
+            "logging_steps",
+            "save_steps",
+            "warmup_steps",
+            "lr_scheduler_type",
+            "optim",
+            "max_grad_norm",
+            "save_strategy",
+        }
 
         try:
-            for arg_class in [DataArguments, ModelArguments, FinetuningArguments, TrainingArguments]:
-                if hasattr(arg_class, "__dataclass_fields__"):
-                    supported_params.update(arg_class.__dataclass_fields__.keys())
+            # Execute extraction script in Docker
+            workspace = FBWorkspace()
+            workspace.inject_files(**{"extract_params.py": (DIRNAME / "extract_params.txt").read_text()})
+            result = workspace.run(env=get_ft_env(running_timeout_period=30), entry="python extract_params.py")
 
-        except ImportError:
-            raise ImportError("LlamaFactory modules not found")
+            if result.exit_code == 0:
+                params = set(json.loads(result.stdout.strip()))
+                logger.info(f"Extracted {len(params)} parameters from Docker")
+                self._supported_params_cache = params
+                return params
 
-        self._supported_params_cache = supported_params
-        return supported_params
+        except Exception as e:
+            logger.warning(f"Docker extraction failed ({e}), using fallback")
+
+        self._supported_params_cache = fallback_params
+        return fallback_params
 
     def _validate_completeness(self, config_yaml: str) -> ValidationResult:
         """Validate configuration completeness and correctness"""
