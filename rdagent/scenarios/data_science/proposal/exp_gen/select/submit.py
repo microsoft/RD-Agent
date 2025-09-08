@@ -8,6 +8,7 @@ import pandas as pd
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.proposal import ExperimentFeedback, SOTAexpSelector, Trace
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
@@ -64,7 +65,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                 f"Auto SOTA selector: Multiple SOTA in trace, calling LLM to select the best one in {DS_RD_SETTING.max_sota_retrieved_num} SOTA experiments"
             )
 
-            SOAT_exp_with_desc_and_scores = "Historical SOTA experiments:\n\n"
+            SOTA_exp_with_desc_and_scores = "Historical SOTA experiments:\n\n"
 
             leaves: list[int] = trace.get_leaves()
 
@@ -111,20 +112,33 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                             reverse=not trace.scen.metric_direction,
                         )[-DS_RD_SETTING.max_sota_retrieved_num :]
 
+            system_prompt = T(".prompts:auto_sota_selector.system").r(scenario=trace.scen.get_scenario_all_desc())
             for i, (exp, ef) in enumerate(sota_exp_fb_list):
                 if exp:
                     current_final_score = pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
                     desc = T("scenarios.data_science.share:describe.exp").r(
                         exp=exp, heading="SOTA of previous exploration of the scenario"
                     )
-                    SOAT_exp_with_desc_and_scores += f"""SOTA experiment No. {i+1}:
+                    new_experiment_content = f"""SOTA experiment No. {i+1}:
                         Description: {desc}
                         Final score: {current_final_score}\n\n"""
 
-            system_prompt = T(".prompts:auto_sota_selector.system").r(scenario=trace.scen.get_scenario_all_desc())
+                    temp_user_prompt = T(".prompts:auto_sota_selector.user").r(
+                        historical_sota_exp_with_desc_and_scores=SOTA_exp_with_desc_and_scores + new_experiment_content,
+                    )
+
+                    token_size = APIBackend().build_messages_and_calculate_token(
+                        user_prompt=temp_user_prompt,
+                        system_prompt=system_prompt,
+                    )
+                    if token_size >= LLM_SETTINGS.chat_token_limit:
+                        logger.warning(f"Token limit reached at experiment {i+1}. Stopping.")
+                        break
+
+                    SOTA_exp_with_desc_and_scores += new_experiment_content
 
             user_prompt = T(".prompts:auto_sota_selector.user").r(
-                historical_sota_exp_with_desc_and_scores=SOAT_exp_with_desc_and_scores,
+                historical_sota_exp_with_desc_and_scores=SOTA_exp_with_desc_and_scores
             )
 
             response = APIBackend().build_messages_and_create_chat_completion(

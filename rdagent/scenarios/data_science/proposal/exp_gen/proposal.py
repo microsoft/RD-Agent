@@ -606,7 +606,7 @@ class DSProposalV2ExpGen(ExpGen):
                 all_problems[problem_name] = fb_problems[problem_name]
         return all_problems
 
-    @wait_retry(retry_n=5)
+    @wait_retry(retry_n=10)
     def hypothesis_gen(
         self,
         component_desc: str,
