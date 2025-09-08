@@ -29,10 +29,10 @@ class MCPServiceConfig(BaseModel):
 
     # Service-recommended LLM configuration (can be overridden at Agent or runtime level)
     extra_config: Dict[str, Any] = Field(
-        default_factory=dict, 
+        default_factory=dict,
         description="Service-recommended LLM configuration (e.g., model, temperature). "
         "These are suggestions based on service capabilities, not requirements. "
-        "Can be overridden by Agent initialization or runtime parameters."
+        "Can be overridden by Agent initialization or runtime parameters.",
     )
 
     def to_connector_config(self) -> StreamableHTTPConfig:
