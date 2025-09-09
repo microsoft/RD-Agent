@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Literal
 
+from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
 from rdagent.utils.env import (
     CondaConf,
@@ -39,9 +40,6 @@ def _get_standard_ft_volumes() -> dict:
     Returns:
         Dictionary of local_path -> docker_mount_config mappings
     """
-    # Import here to avoid circular imports
-    from rdagent.app.finetune.llm.conf import FT_RD_SETTING
-
     base_path = Path(FT_RD_SETTING.file_path)
     volumes = {}
 
@@ -70,6 +68,9 @@ def get_ft_env(
     - datasets -> /assets/datasets (ro)
     - output -> /workspace/output (rw, auto-created)
 
+    Note: .llama_factory_info is no longer automatically mounted.
+    Pass llama_factory_info volume via extra_volumes when needed.
+
     Args:
         extra_volumes: Additional volume mounts beyond standard ones
         running_timeout_period: Timeout period for environment operations
@@ -78,8 +79,6 @@ def get_ft_env(
     Returns:
         Configured environment ready for use
     """
-    # Import here to avoid circular imports
-    from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 
     conf = FTCoderCoSTEERSettings()
 
@@ -120,8 +119,6 @@ def get_clear_ws_cmd(stage: Literal["before_training", "before_inference"] = "be
     Returns:
         Command string to clean workspace files
     """
-    from rdagent.app.finetune.llm.conf import FT_RD_SETTING
-
     assert stage in ["before_training", "before_inference"], f"Unknown stage: {stage}"
 
     if FT_RD_SETTING.enable_model_dump and stage == "before_training":
