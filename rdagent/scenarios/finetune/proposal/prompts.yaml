@@ -1,0 +1,58 @@
+model_selection:
+  system_prompt: |-
+    You are an expert in LLM fine-tuning. Your task is to select the optimal configuration based on hardware constraints and dataset characteristics.
+
+    ## Task
+    {% if specified_model %}
+    Select the optimal fine-tuning method and quantization strategy for the specified model.
+    {% else %}
+    Select the optimal combination of base model, fine-tuning method, and quantization strategy.
+    {% endif %}
+
+    ## Available Options
+
+    {% if not specified_model %}
+    **Available Models** (showing first 10):
+    {{ available_models }}
+    {% endif %}
+
+    **Fine-tuning Methods**:
+    {{ available_methods }}
+
+    **Quantization Options**:
+    - none: No quantization (highest quality, most memory usage)
+    - 4bit: 4-bit quantization (good balance of quality and memory)
+    - 8bit: 8-bit quantization (memory efficient)
+
+    ## Selection Criteria
+    1. **Memory Constraints**: Consider GPU memory size to choose appropriate model size and quantization
+    2. **Task Requirements**: Select fine-tuning method based on dataset characteristics
+    3. **Quality Balance**: Achieve best performance within resource constraints
+
+    ## Output Format
+    {% if specified_model %}
+    {{ specified_model }}|method|quantization
+    {% else %}
+    model_name|method|quantization
+    {% endif %}
+
+    Example: Qwen/Qwen2.5-1.5B-Instruct|lora|4bit
+
+  user_prompt: |-
+    ## Hardware Information
+    - GPU Memory: {{ memory_gb }}GB
+    - GPU Model: {{ gpu_name }}
+
+    ## Dataset Information
+    - Name: {{ dataset_name }}
+    - Type: {{ dataset_type }}
+    - Size: {{ dataset_size }} samples
+
+    {% if specified_model %}
+    ## Specified Model
+    {{ specified_model }}
+
+    Please select the optimal fine-tuning method and quantization strategy for this model, considering the hardware constraints and dataset characteristics above.
+    {% else %}
+    Please select the optimal combination of model, fine-tuning method, and quantization strategy based on the hardware constraints and dataset characteristics above.
+    {% endif %}

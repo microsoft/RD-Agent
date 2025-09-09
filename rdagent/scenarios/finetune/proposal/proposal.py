@@ -13,6 +13,7 @@ from rdagent.scenarios.finetune.llama_factory_manager import LLaMAFactoryManager
 from rdagent.scenarios.finetune.scen.scenario import LLMFinetuneScen
 from rdagent.scenarios.finetune.scen.utils import extract_dataset_info
 from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
+from rdagent.utils.agent.tpl import T
 
 COMPONENT = Literal["Training"]
 
@@ -65,6 +66,11 @@ class LLMHypothesis2Experiment(Hypothesis2Experiment):
         """Convert hypothesis to executable experiment."""
         logger.info(f"Converting hypothesis: {hypothesis.base_model} with {hypothesis.finetune_method}")
 
+        # Ensure the selected model is downloaded if it wasn't specified initially
+        from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
+
+        ensure_ft_assets_exist(hypothesis.base_model, FT_RD_SETTING.dataset)
+
         # Combine method and quantization for task description
         method_desc = hypothesis.finetune_method
         if hypothesis.quantization != "none":
@@ -98,8 +104,18 @@ class LLMFinetuneExpGen(ExpGen):
         logger.info(f"Device: {memory_gb}GB GPU")
         logger.info(f"Dataset: {dataset_info['name']}")
 
-        # Use LLM to intelligently select model, method and quantization
-        base_model, finetune_method, quantization = self._llm_select_config(device_info, dataset_info, trace)
+        # Check if model is specified in settings
+        if FT_RD_SETTING.base_model:
+            # Use specified model, but still select method and quantization intelligently
+            logger.info(f"Using specified model: {FT_RD_SETTING.base_model}")
+            base_model = FT_RD_SETTING.base_model
+            _, finetune_method, quantization = self._llm_select_config(
+                device_info, dataset_info, trace, specified_model=base_model
+            )
+        else:
+            # Use LLM to intelligently select model, method and quantization
+            logger.info("Auto-selecting optimal model configuration...")
+            base_model, finetune_method, quantization = self._llm_select_config(device_info, dataset_info, trace)
 
         method_desc = finetune_method
         if quantization != "none":
@@ -116,8 +132,20 @@ class LLMFinetuneExpGen(ExpGen):
 
         return LLMHypothesis2Experiment().convert(hypothesis, trace)
 
-    def _llm_select_config(self, device_info: str, dataset_info: dict, trace: Trace) -> tuple[str, str, str]:
-        """Use LLM to intelligently select model, method and quantization."""
+    def _llm_select_config(
+        self, device_info: str, dataset_info: dict, trace: Trace, specified_model: str | None = None
+    ) -> tuple[str, str, str]:
+        """Use LLM to intelligently select model, method and quantization.
+
+        Args:
+            device_info: Hardware information
+            dataset_info: Dataset characteristics
+            trace: Experiment trace
+            specified_model: If provided, use this model and only select method/quantization
+
+        Returns:
+            Tuple of (model, method, quantization)
+        """
         available_models = self.llama_manager.models
         available_methods = self.llama_manager.methods
 
@@ -125,43 +153,35 @@ class LLMFinetuneExpGen(ExpGen):
         memory_gb = device_dict.get("gpu", {}).get("total_gpu_memory_gb")
         gpu_name = device_dict.get("gpu", {}).get("name", "Unknown")
 
-        # Prepare context for LLM
-        context = f"""Task: Select optimal configuration for LLM fine-tuning
+        # Prepare template context
+        template_context = {
+            "memory_gb": memory_gb,
+            "gpu_name": gpu_name,
+            "dataset_name": dataset_info["name"],
+            "dataset_type": dataset_info.get("type", "Unknown"),
+            "dataset_size": dataset_info.get("size", "Unknown"),
+            "available_methods": ", ".join(available_methods),
+            "specified_model": specified_model is not None,
+        }
 
-GPU Information:
-- Memory: {memory_gb}GB
-- Name: {gpu_name}
-
-Dataset Information:
-- Name: {dataset_info['name']}
-- Type: {dataset_info.get('type', 'Unknown')}
-- Size: {dataset_info.get('size', 'Unknown')} samples
-
-Available Models:
-{', '.join(available_models[:10])}  # Show first 10 models
-
-Available Fine-tuning Methods:
-{', '.join(available_methods)}
-
-Quantization Options:
-- none: No quantization (highest quality, most memory)
-- 4bit: 4-bit quantization (good balance)
-- 8bit: 8-bit quantization (memory efficient)
-
-Please select the optimal combination considering GPU memory constraints and task requirements.
-Format your response as: model_name|method|quantization
-
-Example: Qwen/Qwen2.5-1.5B-Instruct|lora|4bit"""
+        if not specified_model:
+            template_context["available_models"] = ", ".join(available_models[:10])  # Show first 10 models
+        else:
+            template_context["specified_model"] = specified_model
 
         try:
+            # Use template system for prompts
+            system_prompt = T(".prompts:model_selection.system_prompt").r(**template_context)
+            user_prompt = T(".prompts:model_selection.user_prompt").r(**template_context)
+
             # Call LLM for selection
             from rdagent.oai.llm_utils import APIBackend
 
             llm = APIBackend()
 
             response = llm.build_messages_and_create_chat_completion(
-                user_prompt=context,
-                system_prompt="You are an expert in LLM fine-tuning. Select the optimal configuration based on hardware constraints and dataset characteristics.",
+                user_prompt=user_prompt,
+                system_prompt=system_prompt,
             )
 
             # Parse LLM response
@@ -174,10 +194,18 @@ Example: Qwen/Qwen2.5-1.5B-Instruct|lora|4bit"""
                     selected_quantization = parts[2].strip()
 
                     # Validate selections
-                    if selected_model not in available_models:
-                        selected_model = available_models[0]
+                    if not specified_model and selected_model not in available_models:
+                        selected_model = available_models[0] if available_models else "Qwen/Qwen2.5-1.5B-Instruct"
+                    elif specified_model:
+                        selected_model = specified_model  # Use specified model regardless of LLM output
+
                     if selected_method not in available_methods:
-                        selected_method = "lora" if "lora" in available_methods else available_methods[0]
+                        selected_method = (
+                            "lora"
+                            if "lora" in available_methods
+                            else (available_methods[0] if available_methods else "lora")
+                        )
+
                     if selected_quantization not in ["none", "4bit", "8bit"]:
                         selected_quantization = "none"
 
@@ -187,8 +215,14 @@ Example: Qwen/Qwen2.5-1.5B-Instruct|lora|4bit"""
             logger.warning(f"LLM selection failed, using fallback: {e}")
 
         # Fallback selection logic
-        base_model = available_models[0] if available_models else "Qwen/Qwen2.5-1.5B-Instruct"
-        finetune_method = "lora" if "lora" in available_methods else available_methods[0]
+        if specified_model:
+            base_model = specified_model
+        else:
+            base_model = available_models[0] if available_models else "Qwen/Qwen2.5-1.5B-Instruct"
+
+        finetune_method = (
+            "lora" if "lora" in available_methods else (available_methods[0] if available_methods else "lora")
+        )
         quantization = "4bit" if memory_gb and memory_gb < 16 else "none"
 
         logger.info(f"Fallback selected: {base_model} + {finetune_method} + {quantization}")
