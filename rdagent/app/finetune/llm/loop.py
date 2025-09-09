@@ -17,7 +17,6 @@ from rdagent.scenarios.finetune.loop import LLMFinetuneRDLoop
 from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
 
 
-# TODO: if model is not provided, choose the base model automatically
 def main(
     model: str | None = None,
     dataset: str | None = None,
@@ -32,8 +31,10 @@ def main(
     ----------
     dataset : str
         Dataset name for fine-tuning (e.g., 'shibing624/alpaca-zh')
-    model : str
-        Model name for fine-tuning (e.g., 'Qwen/Qwen2.5-1.5B-Instruct')
+    model : str, optional
+        Model name for fine-tuning (e.g., 'Qwen/Qwen2.5-1.5B-Instruct').
+        If not provided, the system will automatically select an optimal model
+        during hypothesis generation based on hardware constraints and dataset characteristics.
     step_n : int, optional
         Number of steps to run; if None, runs indefinitely until completion or error
     loop_n : int, optional
@@ -41,16 +42,16 @@ def main(
     timeout : str, optional
         Maximum duration for the entire process
 
-    Example:
+    Examples:
     .. code-block:: bash
+        # With specified model
         dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh --model Qwen/Qwen2.5-1.5B-Instruct
-        dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh --model Qwen/Qwen2.5-1.5B-Instruct --step_n 1
+
+        # With automatic model selection
+        dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh
     """
     if not dataset:
         raise Exception("Please specify dataset name using --dataset")
-
-    if not model:
-        raise Exception("Please specify model name using --model")
 
     # Validate FT_FILE_PATH environment variable (auto-filled by pydantic)
     if not FT_RD_SETTING.file_path:
@@ -59,15 +60,18 @@ def main(
     if not ft_root.exists():
         raise Exception(f"FT_FILE_PATH does not exist: {ft_root}")
 
-    # Ensure dataset and model assets exist, if not, download them
+    # Ensure dataset assets exist, model will be handled later if not specified
     ensure_ft_assets_exist(model, dataset)
 
-    # Update FT setting instance with provided dataset and model
+    # Update FT setting instance with provided dataset and model (if specified)
     FT_RD_SETTING.dataset = dataset
-    FT_RD_SETTING.base_model = model
+    FT_RD_SETTING.base_model = model  # This can be None for auto-selection
 
     # Create and run LLM fine-tuning loop using standard RDLoop async workflow
-    logger.info(f"Starting LLM fine-tuning: {model} on {dataset}")
+    if model:
+        logger.info(f"Starting LLM fine-tuning: {model} on {dataset}")
+    else:
+        logger.info(f"Starting LLM fine-tuning with auto-selected model on {dataset}")
     loop = LLMFinetuneRDLoop(FT_RD_SETTING)
     asyncio.run(loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout))
     logger.info("LLM fine-tuning completed!")
