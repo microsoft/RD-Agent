@@ -11,9 +11,6 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.log.timer import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.debug.data import create_debug_data
-from rdagent.scenarios.data_science.proposal.exp_gen.utils import (
-    get_available_packages_prompt,
-)
 from rdagent.scenarios.data_science.scen.utils import describe_data_folder_v2
 from rdagent.scenarios.kaggle.kaggle_crawler import (
     crawl_descriptions,
@@ -244,7 +241,6 @@ class DataScienceScen(Scenario):
                 f"{self.recommend_debug_timeout() / 60 : .2f} minutes" if DS_RD_SETTING.sample_data_by_LLM else None
             ),
             runtime_environment=self.get_runtime_environment(),
-            available_packages_prompt=get_available_packages_prompt(),
         )
 
     def get_runtime_environment(self) -> str:
