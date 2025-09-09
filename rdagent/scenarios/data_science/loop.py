@@ -36,7 +36,9 @@ from rdagent.scenarios.data_science.proposal.exp_gen.base import (
 )
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
-from rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler import MCTSScheduler
+from rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler import (
+    MCTSScheduler,
+)
 from rdagent.utils.workflow.misc import wait_retry
 
 
