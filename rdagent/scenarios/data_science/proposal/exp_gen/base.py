@@ -227,7 +227,12 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
     ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
         """
         Retrieve a list of experiments and feedbacks based on the return_type.
+
+        return_type:
+            - "sota": experiments that have true decision feedback
         """
+        # TODO: SOTA is a ver confusing name
+
         search_list = self.retrieve_search_list(search_type, selection=selection)
         final_component = self.COMPLETE_ORDER[-1]
         has_final_component = True if DS_RD_SETTING.coder_on_whole_pipeline else False
@@ -235,7 +240,8 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         failed_exp_and_feedback_list_after_sota = []
         for exp, fb in search_list:
             if has_final_component:
-                if fb.decision:
+                # FIXME: fb should not be None, but there is a potential bug in the code.
+                if getattr(fb, "decision", False):
                     SOTA_exp_and_feedback_list.append((exp, fb))
                     failed_exp_and_feedback_list_after_sota = []
                 else:

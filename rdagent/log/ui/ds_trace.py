@@ -200,6 +200,7 @@ def workspace_win(workspace, cmp_workspace=None, cmp_name="last code."):
         with st.popover(
             f"⏱️{time_str} 📂Files in :blue[{replace_ep_path(workspace.workspace_path)}]", use_container_width=True
         ):
+            st.write(replace_ep_path(workspace.workspace_path))
             code_tabs = st.tabs(show_files.keys())
             for ct, codename in zip(code_tabs, show_files.keys()):
                 with ct:
@@ -474,7 +475,7 @@ def coding_win(data, base_exp, llm_data: dict | None = None):
         workspace_win(data["no_tag"].experiment_workspace)
 
 
-def running_win(data, base_exp, llm_data=None, sota_exp=None):
+def running_win(data, base_exp, llm_data=None, last_sota_exp=None):
     st.header("Running", divider="blue", anchor="running")
     if llm_data is not None:
         common_llm_data = llm_data.pop("no_tag", [])
@@ -490,7 +491,7 @@ def running_win(data, base_exp, llm_data=None, sota_exp=None):
         st.subheader("Exp Workspace (running final)")
         workspace_win(
             data["no_tag"].experiment_workspace,
-            cmp_workspace=sota_exp.experiment_workspace if sota_exp else None,
+            cmp_workspace=last_sota_exp.experiment_workspace if last_sota_exp else None,
             cmp_name="last SOTA(to_submit)",
         )
         st.subheader("Result")
@@ -554,7 +555,7 @@ def main_win(loop_id, llm_data=None):
         )
     if "running" in loop_data:
         # get last SOTA_exp_to_submit
-        sota_exp = None
+        last_sota_exp = None
         if "record" in loop_data:
             current_trace = loop_data["record"]["trace"]
             current_selection = current_trace.get_current_selection()
@@ -564,13 +565,15 @@ def main_win(loop_id, llm_data=None):
                 if len(parent_idxs) >= 2 and hasattr(current_trace, "idx2loop_id"):
                     parent_idx = parent_idxs[-2]
                     parent_loop_id = current_trace.idx2loop_id[parent_idx]
-                    sota_exp = state.data[parent_loop_id]["record"].get("sota_exp_to_submit", None)
+                    if parent_loop_id in state.data:
+                        # in some cases, the state.data is synthesized, logs does not necessarily exist
+                        last_sota_exp = state.data[parent_loop_id]["record"].get("sota_exp_to_submit", None)
 
         running_win(
             loop_data["running"],
             base_exp=loop_data["coding"].get("no_tag", None),
             llm_data=llm_data["running"] if llm_data else None,
-            sota_exp=sota_exp,
+            last_sota_exp=last_sota_exp,
         )
     if "feedback" in loop_data:
         feedback_win(loop_data["feedback"], llm_data.get("feedback", None) if llm_data else None)
@@ -946,6 +949,7 @@ def summarize_win():
         st.markdown("### Hypotheses Table")
         hypotheses_df = df.iloc[:, :8].copy()
         others_expanded = pd.json_normalize(hypotheses_df["Others"].fillna({}))
+        others_expanded.index = hypotheses_df.index
 
         hypotheses_df = hypotheses_df.drop("Others", axis=1)
         hypotheses_df = hypotheses_df.drop("Parent N", axis=1)
@@ -1131,7 +1135,7 @@ with st.sidebar:
 
             state.times = load_times_info(state.log_folder / state.log_path)
             state.data, state.llm_data, state.token_costs = load_data(state.log_folder / state.log_path)
-            state.sota_info = get_sota_exp_stat(Path(state.log_folder) / state.log_path, to_submit=True)
+            state.sota_info = get_sota_exp_stat(Path(state.log_folder) / state.log_path, selector="auto")
             st.rerun()
     st.toggle("**Show LLM Log**", key="show_llm_log")
     st.toggle("*Show stdout*", key="show_stdout")

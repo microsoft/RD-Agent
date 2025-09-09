@@ -61,7 +61,7 @@ if __name__ == "__main__":
     }
 
     # The output must be in json format. To configure the full output,
-    # you can run the command `rdagent grade_summary --log_folder` to summarize the scores at the end of the program.
+    # you can run the command `rdagent grade_summary --log-folder` to summarize the scores at the end of the program.
     # If you don't need it, you can just provide the `competition_id`` and `score``.
     print(
         json.dumps(

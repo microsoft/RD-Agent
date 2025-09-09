@@ -270,12 +270,12 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
 - Run the **Automated Quantitative Trading & Factors Extraction from Financial Reports**:  Run the [Qlib](http://github.com/microsoft/qlib) factor extraction and implementation application based on financial reports
   ```sh
   # 1. Generally, you can run this scenario using the following command:
-  rdagent fin_factor_report --report_folder=<Your financial reports folder path>
+  rdagent fin_factor_report --report-folder=<Your financial reports folder path>
 
   # 2. Specifically, you need to prepare some financial reports first. You can follow this concrete example:
   wget https://github.com/SunsetWolf/rdagent_resource/releases/download/reports/all_reports.zip
   unzip all_reports.zip -d git_ignore_folder/reports
-  rdagent fin_factor_report --report_folder=git_ignore_folder/reports
+  rdagent fin_factor_report --report-folder=git_ignore_folder/reports
   ```
 
 - Run the **Automated Model Research & Development Copilot**: model extraction and implementation application
@@ -340,7 +340,7 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
 - You can run the following command for our demo program to see the run logs.
 
   ```sh
-  rdagent ui --port 19899 --log_dir <your log folder like "log/"> --data_science <True or False>
+  rdagent ui --port 19899 --log-dir <your log folder like "log/"> --data_science <True or False>
   ```
 
 - About the `data_science` parameter: If you want to see the logs of the data science scenario, set the `data_science` parameter to `True`; otherwise set it to `False`.
