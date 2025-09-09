@@ -50,7 +50,7 @@ async def run_and_auto_submit(loop_task: Coroutine, competition: str):
 
     # do submit
     submit_csv(
-        competition=competition, submission_file=str(submission_csv_path), wait=True, msg=f"SOTA at {datetime.now()}"
+        competition=competition, submission_file=str(submission_csv_path), wait=True, msg=f"SOTA at {datetime.now()}, file: {submission_csv_path}"
     )
 
     # show remaining submit number
