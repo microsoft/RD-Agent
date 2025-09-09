@@ -145,16 +145,12 @@ class AutoSOTAexpSelector(SOTAexpSelector):
 
         # Remove duplicates and limit total number of candidates
         unique_sota_list = list(set(all_sota_candidates))
-        if len(unique_sota_list) > DS_RD_SETTING.max_sota_retrieved_num:
-            # Sort by score to keep the best ones
-            is_higher_better = trace.scen.metric_direction
-            unique_sota_list.sort(
-                key=lambda exp_fb: pd.DataFrame(exp_fb[0].result).loc["ensemble"].iloc[0],
-                reverse=is_higher_better,
-            )
-            return unique_sota_list[: DS_RD_SETTING.max_sota_retrieved_num]
-
-        return unique_sota_list
+        is_higher_better = trace.scen.metric_direction
+        unique_sota_list.sort(
+            key=lambda exp_fb: pd.DataFrame(exp_fb[0].result).loc["ensemble"].iloc[0],
+            reverse=is_higher_better,
+        )
+        return unique_sota_list[: DS_RD_SETTING.max_sota_retrieved_num]
 
 
 class BestValidSelector(SOTAexpSelector):
