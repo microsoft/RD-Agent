@@ -303,7 +303,9 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         begin_time = time.time()
         feedback_root = evaluator.evaluate(target_task, root.workspace, workspace, queried_knowledge,time_max= 3600,root= True)
         end_time = time.time()
-        elapsed_time = end_time - begin_time
+        elapsed_time1 = end_time - begin_time
+        logger.info(elapsed_time1)
+        elapsed_time = feedback_root.cost_time*1.5
         root.score = feedback_root.score
         MCTS_NODE_LIST.append(root)
         
@@ -327,6 +329,8 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             system_prompt=system_prompt,
             response_format= {"type": "json_object"},
         )
+        response = json.loads(response)  # 将字符串解析为 JSON 对象
+
         enter_mcts = response["enter_mcts"]
         estimated_time_sec = response["estimated_time_sec"]
         gpu_count = response["gpu_count"]
@@ -371,16 +375,19 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 if isinstance(item, list):
                     all_nodes.extend(item) 
                 else:
-                    all_nodes.append(item)   
-            best_child = max(all_nodes, key=lambda c: c.value if c.value is not None else float('-inf'))
+                    all_nodes.append(item)
+            if bigger_is_better:
+                best_child = max(all_nodes, key=lambda c: c.score if c.score is not None else float('-inf'))
+            else:
+                best_child = min(all_nodes, key=lambda c: c.score if c.score is not None else float('inf'))
 
-            if feedback_root.score is not None and best_child.score is not None:
-                if (feedback_root.score > best_child.score) and bigger_is_better:
-                    MCTS_NODE_LIST = [root]
-                    return MCTS_NODE_LIST,root.workspace.file_dict
-                if (feedback_root.score < best_child.score) and not bigger_is_better:
-                    MCTS_NODE_LIST = [root]
-                    return MCTS_NODE_LIST, root.workspace.file_dict
+            # if feedback_root.score is not None and best_child.score is not None:
+            #     if (feedback_root.score > best_child.score) and bigger_is_better:
+            #         MCTS_NODE_LIST = [root]
+            #         return MCTS_NODE_LIST,root.workspace.file_dict
+            #     if (feedback_root.score < best_child.score) and not bigger_is_better:
+            #         MCTS_NODE_LIST = [root]
+            #         return MCTS_NODE_LIST, root.workspace.file_dict
             
             if best_child is None:
                 logger.warning("No child nodes expanded from root!")

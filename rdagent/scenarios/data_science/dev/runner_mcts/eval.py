@@ -3,7 +3,7 @@ import re
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-
+import time
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -38,6 +38,7 @@ class DSRunnerFeedback(CoSTEERSingleFeedback):
     code_accept: bool | None = None
     acceptable: bool | None = None
     score: float | None = None  # 改为 float 更方便 reward 计算
+    cost_time: int | None=None
     stdout: str | None =None
     def is_acceptable(self) -> bool:
         if self.acceptable is not None:
@@ -97,7 +98,10 @@ class DSRunnerMCTSEvaluator(CoSTEEREvaluator):
         )[0]
 
         # execute workflow
+        begin_time = time.time()
         result = implementation.run(env=env, entry="python -m coverage run main.py")
+        end_time = time.time()
+        cost_time = end_time - begin_time
         stdout = result.stdout
         execute_ret_code = result.exit_code
         implementation.running_info.running_time = result.running_time
@@ -172,13 +176,14 @@ class DSRunnerMCTSEvaluator(CoSTEEREvaluator):
             stdout=shrink_text(stdout),
             queried_former_failed_knowledge=queried_former_failed_knowledge,
         )
-        feedback.stdout =shrink_text(stdout)
         feedback = build_cls_from_json_with_retry(
             DSRunnerFeedback,
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             # init_kwargs_update_func=DSRunnerFeedback.val_and_update_init_dict,
         )
+        feedback.stdout =shrink_text(stdout)
+        feedback.cost_time = cost_time
         try:
             feedback.score = score_df.loc["ensemble"].iloc[0] if score_ret_code == 0 else None
         except:
