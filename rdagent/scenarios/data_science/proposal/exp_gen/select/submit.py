@@ -448,7 +448,7 @@ class ValidationSelector(SOTAexpSelector):
             result = ws.run(
                 env=env, entry=f"python {script_type}.py --cache-buster={time.time()}"
             )  # Do not cache the result
-            stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
+            stdout = re.sub(r"^chmod:.*\n?", "", result.get_truncated_stdout(), flags=re.MULTILINE)
 
             if result.exit_code == 0:
                 logger.info(f"Successfully generated and ran {script_type}.py.")
@@ -458,7 +458,7 @@ class ValidationSelector(SOTAexpSelector):
                         running_timeout_period=DS_RD_SETTING.full_timeout,
                     )
                     result = ws.run(env=env, entry=f"python main.py --cache-buster={time.time()}")
-                    stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
+                    stdout = re.sub(r"^chmod:.*\n?", "", result.get_truncated_stdout(), flags=re.MULTILINE)
                     if result.exit_code == 0:
                         # move submission.csv to mock_folder
                         if Path(ws.workspace_path / "submission.csv").exists():
@@ -530,7 +530,7 @@ def process_experiment(
             env.conf.running_timeout_period = DS_RD_SETTING.debug_timeout
             result = ws.run(env=env, entry="python grade.py")
             if result.exit_code == 0:
-                grade_stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
+                grade_stdout = re.sub(r"^chmod:.*\n?", "", result.get_truncated_stdout(), flags=re.MULTILINE)
             logger.info(f"Ran grade.py for {competition}/{loop_id}; exit_code: {result.exit_code}")
         else:
             logger.warning(f"Skipping grading for {competition}/{loop_id} due to main.py execution failure.")
