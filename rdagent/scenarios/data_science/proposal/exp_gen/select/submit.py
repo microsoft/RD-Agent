@@ -197,7 +197,10 @@ class BestValidSelector(SOTAexpSelector):
             exp, feedback = exp_fb
             score = -np.inf
             if exp.result is not None:
-                score = direction_sign * pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
+                try:
+                    score = direction_sign * float(pd.DataFrame(exp.result).loc["ensemble"].iloc[0])
+                except:
+                    logger.warning(f"Failed to extract score from result {exp.result}")
 
             # Sort key prioritizes decision (True > False), then score
             return (feedback.decision, score) if self.use_decision else score
@@ -756,7 +759,12 @@ def select_on_existing_trace(
         )
         logger.info(f"Loading trace from {log_path}")
         log_storage = FileStorage(log_path)
-        trace = list(log_storage.iter_msg(tag="trace"))[-1].content
+        all_traces = list(log_storage.iter_msg(tag="trace"))
+        if not all_traces:
+            logger.error("No valid trace found in log directory.")
+            return
+
+        trace = all_traces[-1].content
         tasks.append(
             (
                 evaluate_one_trace,
