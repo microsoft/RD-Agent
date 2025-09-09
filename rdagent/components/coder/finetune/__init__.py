@@ -31,7 +31,7 @@ from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.finetune.train.llama_params_query import LLaMAFactoryParamsQuery
+from rdagent.scenarios.finetune.llama_factory_manager import LLaMAFactoryManager
 from rdagent.utils.agent.ret import PythonAgentOut
 from rdagent.utils.agent.tpl import T
 
@@ -129,8 +129,8 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
                 )
 
         # Query LLaMA Factory parameters for the specific method
-        params_query = LLaMAFactoryParamsQuery()
-        method_params_desc = params_query.format_params_for_prompt(finetune_method)
+        llama_manager = LLaMAFactoryManager()
+        method_params_desc = llama_manager.format_method_params(finetune_method)
 
         # Use fixed Docker paths for simplicity
         models_path = "/assets/models/"
