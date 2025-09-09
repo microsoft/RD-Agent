@@ -198,7 +198,10 @@ class BestValidSelector(SOTAexpSelector):
             score = -np.inf
             if exp.result is not None:
                 try:
-                    score = direction_sign * float(pd.DataFrame(exp.result).loc["ensemble"].iloc[0])
+                    score = pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
+                    if isinstance(score, str):
+                        score = float(score.strip("tensor()"))
+                    score = direction_sign * score
                 except:
                     logger.warning(f"Failed to extract score from result {exp.result}")
 
