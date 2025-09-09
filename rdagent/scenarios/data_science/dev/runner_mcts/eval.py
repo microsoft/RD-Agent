@@ -38,7 +38,7 @@ class DSRunnerFeedback(CoSTEERSingleFeedback):
     code_accept: bool | None = None
     acceptable: bool | None = None
     score: float | None = None  # 改为 float 更方便 reward 计算
-
+    stdout: str | None =None
     def is_acceptable(self) -> bool:
         if self.acceptable is not None:
             return self.acceptable
@@ -169,7 +169,7 @@ class DSRunnerMCTSEvaluator(CoSTEEREvaluator):
             stdout=shrink_text(stdout),
             queried_former_failed_knowledge=queried_former_failed_knowledge,
         )
-
+        feedback.stdout =shrink_text(stdout)
         feedback = build_cls_from_json_with_retry(
             DSRunnerFeedback,
             system_prompt=system_prompt,

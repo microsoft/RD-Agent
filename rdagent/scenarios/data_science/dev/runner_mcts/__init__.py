@@ -34,7 +34,7 @@ from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
 from rdagent.core.evolving_framework import EvoStep
 from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
-
+import time
 class DSRunnerMCSTCoSTEERSettings(CoSTEERSettings):
     """Data Science CoSTEER settings"""
 
@@ -250,15 +250,14 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         reward = feedback.score if feedback.score is not None else (-1 if not feedback.acceptable else 0)
         return reward
 
-    def simulate_batch(self, nodes: list[MCTSNode], target_task, gt_workspace, queried_knowledge, n_processes=8) -> list[float]:
+    def simulate_batch(self, nodes: list[MCTSNode], target_task, gt_workspace, queried_knowledge, n_processes, estimated_time_sec) -> list[float]:
         """
         Parallel simulation of multiple MCTS nodes using multiprocessing_wrapper.
         Returns the reward list for each node.
         """
-        time_max = 3600
         evaluator = DSRunnerMCTSEvaluator(scen=self.scen)
         func_calls = [
-            (evaluator.evaluate, (target_task, node.workspace, gt_workspace, queried_knowledge,time_max))
+            (evaluator.evaluate, (target_task, node.workspace, gt_workspace, queried_knowledge,estimated_time_sec))
             for node in nodes
         ]
 
@@ -301,17 +300,47 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         root = MCTSNode(workspace=workspace)
         logger.info("Starting root node !")
         evaluator = DSRunnerMCTSEvaluator(scen=self.scen)
+        begin_time = time.time()
         feedback_root = evaluator.evaluate(target_task, root.workspace, workspace, queried_knowledge)
+        end_time = time.time()
+        elapsed_time = end_time - begin_time
         root.score = feedback_root.score
         MCTS_NODE_LIST.append(root)
         
-        root_is_none = feedback_root.score is None
-    
+        root_is_none = (feedback_root.score is None) and (feedback_root.code_accept == False)
         bigger_is_better = get_metric_direction(self.scen.competition)
+        stdout = feedback_root.stdout
 
-        if DS_RD_SETTING.runner_max_loop>1 and DS_RD_SETTING.enable_runner_mcts and not root_is_none:
+        system_prompt = T(".prompts:DSCoSTEER_mcts.system").r(
+            scenario=self.scen.get_scenario_all_desc(eda_output=root.workspace.file_dict.get("EDA.md", None)),
+            task_desc=target_task.get_task_information(),
+        )
+        user_prompt = T(".prompts:DSCoSTEER_mcts.user").r(
+            code=root.workspace.all_codes,
+            stdout = stdout,
+            elapsed_time = elapsed_time,
+            bigger_is_better = bigger_is_better
+        )
+
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=system_prompt,
+            response_format= {"type": "json_object"},
+        )
+        enter_mcts = response["enter_mcts"]
+        estimated_time_sec = response["estimated_time_sec"]
+        gpu_count = response["gpu_count"]
+        recommended_search_depth = response["recommended_search_depth"]
+        #reasoning_text = response["reasoning"]["text"]
+        confidence = response["reasoning"]["confidence"]
+        
+        enter_condition = (DS_RD_SETTING.runner_max_loop>1 and DS_RD_SETTING.enable_runner_mcts and not root_is_none and enter_mcts and confidence> 70 )
+
+        if enter_condition:
             if DS_RD_SETTING.multiprocessing_mcts_simulation is not True:
                 logger.info(f"Starting MCTS with max_iterations={self.max_iterations}")
+                search_depth = min(recommended_search_depth,self.max_iterations)
+                count_processes = min(gpu_count,DS_RD_SETTING.mcts_n_processes)
                 for _ in range(self.max_iterations):
                     logger.info(f"Starting iteration {_+1}/{self.max_iterations}")
                     node = self.select(root)
@@ -325,13 +354,15 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                     MCTS_NODE_LIST.append(new_node)
                 #best_child = max(root.children, key=lambda c: c.value)
             else:
-                for _ in range(self.max_iterations):
+                search_depth = min(recommended_search_depth,self.max_iterations)
+                count_processes = min(gpu_count,DS_RD_SETTING.mcts_n_processes)
+                for _ in range(search_depth):
                     logger.info(f"Starting Mutiprocessing iteration !")
                     logger.info(f"Starting MCTS with max_iterations={_}")
                     node = self.select(root)
                     logger.info(f"Selected node with visit count {node.visit_count} and value {node.value}")
                     new_nodes = self.expand_batch(node, target_task, queried_knowledge, batch_size=DS_RD_SETTING.mcts_multiprocessing_batch_size)
-                    rewards = self.simulate_batch(new_nodes, target_task, workspace, queried_knowledge, n_processes=DS_RD_SETTING.mcts_n_processes)
+                    rewards = self.simulate_batch(new_nodes, target_task, workspace, queried_knowledge, n_processes=count_processes,estimated_time_sec=estimated_time_sec)
                     self.backpropagate_batch(new_nodes, rewards)
                     MCTS_NODE_LIST.append(new_nodes)
                 #best_child = max(root.children, key=lambda c: c.value)

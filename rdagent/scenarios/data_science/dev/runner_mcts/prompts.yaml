@@ -198,3 +198,81 @@ DSCoSTEER:
         ...
     ]
     Make sure the JSON is valid and contains exactly {{num_candidates}} candidate modifications.
+
+
+
+DSCoSTEER_mcts:
+  system: |-
+    You are a planning assistant that decides whether to perform Monte Carlo Tree Search (MCTS) 
+    given a root node. Evaluate time, memory, and task complexity to make resource-aware recommendations.
+    ## Scenario
+    The code is focusing on the following scenario:
+    {{ scenario }}
+
+    ## Target Task Description
+    The code is focusing on the following task
+    {{ task_desc }}
+
+
+  user: |-
+    You are a planning assistant analyzing whether to perform Monte Carlo Tree Search (MCTS) from the given root node. 
+    Evaluate the following inputs carefully:
+
+    Root Node Information:
+
+    - Existing Code: {{code}}
+    - Standard Output / Feedback: {{stdout}}
+    - Elapsed Time Already Used: {{elapsed_time}} seconds
+    - Evaluation Metric Direction: bigger_is_better = {{bigger_is_better}}
+      (True → higher score is better; False → lower score is better)
+
+    Instructions:
+    1. **Decision**: Determine whether it is worthwhile to enter MCTS search from this root node. Consider:
+      - Task complexity and branching factor.
+      - Current solution quality and completeness.
+      - Information already collected (stdout, EDA, etc.).
+      - Remaining time and memory constraints.
+
+    2. **Resource Estimation** (if entering MCTS):
+      - Estimate approximate time required for the search based on `elapsed_time` and task complexity.
+      - Estimate expected memory usage for the search.
+      - Recommend a reasonable number of MCTS iterations/simulations that balance solution quality and efficiency.
+
+    3. **Output Format** (strictly JSON, do not include extra text):
+      {
+        "enter_mcts": true/false,                   
+        // Whether to perform MCTS from the current root node.
+        // Decision should consider:
+        // - Task complexity and branching factor
+        // - Quality and completeness of existing code
+        // - Information already collected (stdout, EDA)
+        // - Metric direction (`bigger_is_better`)
+        // - Time and resource constraints
+
+        "estimated_time_sec": number,               
+        // Estimated additional time required to complete MCTS, in seconds.
+        // Should be calculated based on:
+        // - Elapsed time already used (`elapsed_time`)
+        // - Task complexity
+        // Note: Provide a numeric value, do not include units or strings.
+
+        "gpu_count": 1/2,                           
+        // Recommended number of GPUs to use for MCTS.
+        // 1 → Single GPU sufficient
+        // 2 → Two GPUs recommended for faster computation or large search space
+        // Decision should account for estimated memory load, parallelization benefits,
+        // and the actual GPU status reported under "=== GPU Info (via PyTorch) ===".
+
+        "recommended_search_depth": 1/2,            
+        // Recommended depth of MCTS search tree.
+        // - 1 → Shallow search, for low potential or already well-explored root
+        // - 2 → Deeper search, for promising or complex root nodes
+        // Consider root node potential, branching factor, and expected gain from deeper search.
+      "reasoning": {
+        "text": "Concise reasoning for your decision, highlighting: time (seconds), GPU allocation, task complexity, root node potential, metric direction (bigger_is_better), and trade-offs considered between search depth, time, and resources.",
+        "confidence": number  // Confidence score of this decision, from 0 to 100. Consider the root node's current score and the elapsed execution time. Better root node scores generally indicate a higher likelihood of successful outcomes. Confidence should reflect both the quality of the current solution and the resources available.
+      }
+      }
+
+    Provide concise, logical reasoning for your decision. Quantify time, memory, and search count whenever possible.
+    Ensure the JSON is fully parseable; do not include markdown or extra text outside the JSON.
