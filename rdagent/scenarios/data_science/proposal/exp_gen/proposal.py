@@ -606,7 +606,7 @@ class DSProposalV2ExpGen(ExpGen):
                 all_problems[problem_name] = fb_problems[problem_name]
         return all_problems
 
-    @wait_retry(retry_n=5)
+    @wait_retry(retry_n=10)
     def hypothesis_gen(
         self,
         component_desc: str,
@@ -963,6 +963,7 @@ class DSProposalV2ExpGen(ExpGen):
             alpha, beta = 1.0, 0
         gamma = math.log(2) / 30
         logits = alpha * sim_matrix * math.exp(-gamma * path_length) + beta * torch.tanh(score_diff_matrix)
+        logits = torch.clamp(logits, min=-2, max=2)
         probs = torch.softmax(logits, dim=1)
 
         num_candidates = probs.size(-1)

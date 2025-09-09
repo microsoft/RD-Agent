@@ -176,6 +176,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     #### Task Generate related
     fix_seed_and_data_split: bool = False
 
+    ensemble_time_upper_bound: bool = False
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()
 

@@ -539,12 +539,10 @@ hypothesis_select:
     - **Time Limit Guidance**
       {% if time_max < 0 %}
       - Initial Case: runtime info unavailable, keep most hypotheses if component is Ensemble.
-      - Remove only those clearly excessive (e.g., > {{ full_time }} hours) or overly complex.
       {% elif time_max >= full_time * 0.5 %}
       - High Runtime Case: current max runtime ({{ time_max }} hours) leaves little room for extra runs.
       - Avoid high-fold or heavy ensembles.
       - Maximum recommended folds: {{ (full_time // time_max) | int }}
-      - Remove hypotheses clearly excessive (> {{ full_time }} hours)
       {% else %}
       - Low Runtime Case: current max runtime ({{ time_max }} hours) is far from the time limit.
       - Prefer hypotheses with runtimes ≤ {{ full_time }} hours.
@@ -552,15 +550,20 @@ hypothesis_select:
       {% endif %}
     
     ### Ensemble Model Core Principle in Low Runtime Case
-    Your goal is not just to tune individual models, but to build an **effective ensemble**. Make design decisions that lead to **strong overall ensemble performance**, not just strong base models.
-    Please note: you are operating under a time budget dedicated to ensemble training of {{res_time}} seconds, and the maximum allowed time is {{full_time}} seconds.
-  
-    Please take the remaining {{res_time}} seconds to carefully consider and design the most reasonable and optimal ensemble models based on your current progress.
+    Your goal is not just to tune individual models, but to build an **effective ensemble**. Make design decisions that lead to **strong overall ensemble performance**, not just strong base models.  
+    These are examples:
+    
+    Example 1:
     Assume training a single model takes about 1 hour. For example, if you have roughly twice that time left, you can try training multiple models with different random seeds or data splits to reuse time effectively.
     If you have more time, you might consider training a multi-fold ensemble. Use your judgment to decide how many folds or seeds fit within your remaining time budget.
+    
+    Example 2:
+    Assume training a single fold of a model takes at most {{ time_max }} hours. Within your remaining time budget, prioritize training multiple folds of the same model rather than trying many different models.
+    For instance, if you have roughly 2 × {{ time_max }} hours left, you could train 2 folds of the same model with different data splits or random seeds.
+    If more time is available, you might consider increasing the number of folds further. Use your judgment to decide how many folds fit within the remaining time budget while respecting the time_max constraint for a single fold.
 
     ### 2. Training-Time Resource Allocation
-    - You may use **multiple folds** if justified, but you must **ensure the full pipeline completes within runtime limits**.
+    - You may use **multiple folds** if justified, but you must **ensure the full pipeline completes within remaining time budget**.
     - Avoid reducing base model quality just to save time. For example:
       - Freezing large parts of the model (e.g., embeddings)
       - Using only embedding-level regression instead of full modeling

@@ -130,6 +130,11 @@ def filter_redundant_text(stdout: str) -> str:
         [line for line in filtered_stdout_lines if lines_to_count[line] <= max(len(filtered_stdout_lines) // 10, 10)]
     )
 
+    def _shrink_stdout_once(stdout: str) -> str:
+        head = stdout[: int(APIBackend().chat_token_limit * 0.3)]
+        tail = stdout[-int(APIBackend().chat_token_limit * 0.3) :]
+        return head + tail
+
     # Iteratively ask the LLM for additional filtering patterns (up to 3 rounds)
     for _ in range(3):
         truncated_stdout = filtered_stdout
@@ -137,19 +142,23 @@ def filter_redundant_text(stdout: str) -> str:
 
         # Try to shrink the stdout so its token count is manageable
         for __ in range(10):
-            user_prompt = T(".prompts:filter_redundant_text.user").r(stdout=truncated_stdout)
-            stdout_token_size = APIBackend().build_messages_and_calculate_token(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
-            )
-            if stdout_token_size < APIBackend().chat_token_limit * 0.1:
-                return truncated_stdout
-            elif stdout_token_size > APIBackend().chat_token_limit * 0.6:
-                head = truncated_stdout[: int(APIBackend().chat_token_limit * 0.3)]
-                tail = truncated_stdout[-int(APIBackend().chat_token_limit * 0.3) :]
-                truncated_stdout = head + tail
-            else:
-                break
+            try:
+                user_prompt = T(".prompts:filter_redundant_text.user").r(stdout=truncated_stdout)
+                stdout_token_size = APIBackend().build_messages_and_calculate_token(
+                    user_prompt=user_prompt,
+                    system_prompt=system_prompt,
+                )
+                if stdout_token_size < APIBackend().chat_token_limit * 0.1:
+                    return truncated_stdout
+                elif stdout_token_size > APIBackend().chat_token_limit * 0.6:
+                    truncated_stdout = _shrink_stdout_once(truncated_stdout)
+                else:
+                    break
+            except ValueError as e:
+                # build_messages_and_calculate_token => tiktoken/core.py:self._core_bpe.encode
+                # will raise ValueError: Regex error while tokenizing: Error executing regex: Max stack size exceeded for backtracking
+                logger.warning(f"Shrink due to Error: {e}")
+                truncated_stdout = _shrink_stdout_once(truncated_stdout)
 
         try:
             response = json.loads(
