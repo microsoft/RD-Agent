@@ -17,6 +17,7 @@ from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.timer import RD_Agent_TIMER_wrapper
+from rdagent.scenarios.data_science.dev.runner import DSRunnerCoSTEERSettings
 from rdagent.scenarios.data_science.test_eval import (
     MLETestEval,
     NoTestEvalError,
@@ -108,7 +109,10 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
         if eda_output is None:
             eda_output = "No EDA output."
         implementation.inject_files(
-            **{"EDA.md": eda_output, "stdout.txt": result.stdout}
+            **{
+                "EDA.md": eda_output,
+                "stdout.txt": result.stdout if DSRunnerCoSTEERSettings().dump_stdout_type == "full" else stdout,
+            }
         )  # stdout.txt is used for debugging. not used in any other place.
         stdout = remove_eda_part(stdout)
         stdout += f"The code executed {'successfully' if execute_ret_code == 0 else 'failed'}. {'The EDA output is removed from the stdout. ' if eda_output else ''}"

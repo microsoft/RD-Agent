@@ -34,6 +34,7 @@ class DSRunnerCoSTEERSettings(CoSTEERSettings):
     max_seconds_multiplier: int = 1
     env_type: str = "docker"
     diff_mode: bool = False
+    dump_stdout_type: Literal["full", "truncated"] = "truncated"
     # TODO: extract a function for env and conf.
 
 
