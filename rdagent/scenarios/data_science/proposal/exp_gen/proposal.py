@@ -1076,18 +1076,18 @@ class DSProposalV2ExpGen(ExpGen):
             if getattr(tr[1], "decision", False)
         ]
         time_max = max(time_list_success) / 3600
-        sota_flag = (
-            hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None
-        )  # ----> V10 CODE VERSION
-        # bvs = BestValidSelector()  # ----> V14 CODE VERSION
-        # sota_exp = bvs.get_sota_exp_to_submit(trace)  # ----> V14 CODE VERSION
-        # sota_flag = sota_exp is not None and sota_exp.result is not None  # ----> V14 CODE VERSION
+        # sota_flag = (
+        #     hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None
+        # )  # ----> V10 CODE VERSION
+        bvs = BestValidSelector()  # ----> V14 CODE VERSION
+        sota_exp = bvs.get_sota_exp_to_submit(trace)  # ----> V14 CODE VERSION
+        sota_flag = sota_exp is not None and sota_exp.result is not None  # ----> V14 CODE VERSION
 
         if sota_flag:
-            # current_sota_score = sota_exp.result.loc["ensemble"].iloc[0].round(3)  # ----> V14 CODE VERSION
-            current_sota_score = (
-                trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0].round(3)
-            )  # ----> V10 CODE VERSION
+            current_sota_score = sota_exp.result.loc["ensemble"].iloc[0].round(3)  # ----> V14 CODE VERSION
+            # current_sota_score = (
+            #     trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0].round(3)
+            # )  # ----> V10 CODE VERSION
         else:
             current_sota_score = -1
 
