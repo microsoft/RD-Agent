@@ -43,8 +43,8 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils import filter_redundant_text
 from rdagent.utils.agent.tpl import T
-from rdagent.utils.workflow import wait_retry
 from rdagent.utils.fmt import shrink_text
+from rdagent.utils.workflow import wait_retry
 
 
 def cleanup_container(container: docker.models.containers.Container | None, context: str = "") -> None:  # type: ignore[no-any-unimported]
@@ -153,7 +153,6 @@ class EnvResult:
             context_lines=RD_AGENT_SETTINGS.stdout_context_len,
             line_len=RD_AGENT_SETTINGS.stdout_line_len,
         )
-
 
 
 class Env(Generic[ASpecificEnvConf]):

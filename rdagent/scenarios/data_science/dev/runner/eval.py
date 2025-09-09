@@ -107,7 +107,9 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
         eda_output = match.groups()[1] if match else None
         if eda_output is None:
             eda_output = "No EDA output."
-        implementation.inject_files(**{"EDA.md": eda_output, "stdout.txt": result.stdout})  # stdout.txt is used for debugging. not used in any other place.
+        implementation.inject_files(
+            **{"EDA.md": eda_output, "stdout.txt": result.stdout}
+        )  # stdout.txt is used for debugging. not used in any other place.
         stdout = remove_eda_part(stdout)
         stdout += f"The code executed {'successfully' if execute_ret_code == 0 else 'failed'}. {'The EDA output is removed from the stdout. ' if eda_output else ''}"
 
