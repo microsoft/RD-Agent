@@ -56,7 +56,7 @@ class MCTSNode:
         self.visit_count = 0
         self.value_sum = 0.0
         self.untried_actions : list[dict] = []  #
-        self.socre = 0
+        self.score = 0
     @property
     def value(self):
         return self.value_sum / self.visit_count if self.visit_count > 0 else 0
@@ -257,7 +257,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         """
         evaluator = DSRunnerMCTSEvaluator(scen=self.scen)
         func_calls = [
-            (evaluator.evaluate, (target_task, node.workspace, gt_workspace, queried_knowledge,estimated_time_sec))
+            (evaluator.evaluate, (target_task, node.workspace, gt_workspace, queried_knowledge,estimated_time_sec,False))
             for node in nodes
         ]
 
@@ -301,7 +301,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         logger.info("Starting root node !")
         evaluator = DSRunnerMCTSEvaluator(scen=self.scen)
         begin_time = time.time()
-        feedback_root = evaluator.evaluate(target_task, root.workspace, workspace, queried_knowledge)
+        feedback_root = evaluator.evaluate(target_task, root.workspace, workspace, queried_knowledge,time_max= 3600,root= True)
         end_time = time.time()
         elapsed_time = end_time - begin_time
         root.score = feedback_root.score

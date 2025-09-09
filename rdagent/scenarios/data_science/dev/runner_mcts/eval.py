@@ -72,8 +72,11 @@ class DSRunnerMCTSEvaluator(CoSTEEREvaluator):
         gt_implementation: FBWorkspace,
         queried_knowledge: QueriedKnowledge = None,
         time_max: int = 3600,
+        root : bool = True,
         **kwargs,
     ) -> DSRunnerFeedback:
+        if root == True:
+            time_max = self.scen.real_full_timeout()
         env = get_ds_env(
             extra_volumes={
                 f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": T(
