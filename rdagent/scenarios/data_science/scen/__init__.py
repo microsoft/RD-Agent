@@ -17,10 +17,7 @@ from rdagent.scenarios.kaggle.kaggle_crawler import (
     download_data,
     get_metric_direction,
 )
-from rdagent.scenarios.shared.get_runtime_info import (
-    check_runtime_environment,
-    get_runtime_environment_by_env,
-)
+from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 from rdagent.utils.agent.tpl import T
 
 
@@ -29,7 +26,6 @@ class DataScienceScen(Scenario):
 
     def __init__(self, competition: str) -> None:
 
-        check_runtime_environment(get_ds_env())
         # 1) prepare data
         if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
             logger.error(f"Please prepare data for competition {competition} first.")
