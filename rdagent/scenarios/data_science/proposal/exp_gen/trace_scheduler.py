@@ -295,6 +295,10 @@ class MCTSScheduler(ProbabilisticScheduler):
     """
     A simplified MCTS-based scheduler using a PUCT-like scoring rule.
 
+    Formula:
+    U(s, a) = Q(s, a) + c_puct * P(s, a) * sqrt(N(s)) / (1 + N(s, a))
+    where Q is the average reward, N is the visit count, P is the prior probability, c_puct is the given weight to balance exploration and exploitation.
+
     Design goals for the initial version:
     - Reuse ProbabilisticScheduler's potential calculation as prior P (via softmax).
     - Maintain visit/value statistics per leaf to compute Q and U.
@@ -393,3 +397,12 @@ class MCTSScheduler(ProbabilisticScheduler):
                 pass
         except Exception as e:
             logger.warning(f"MCTSScheduler.observe_feedback encountered error: {e!s}")
+
+    def reset(self) -> None:
+        """
+        Clear all maintained statistics. Should be called when the underlying trace is reset.
+        """
+        self.node_visit_count.clear()
+        self.node_value_sum.clear()
+        self.node_prior.clear()
+        self.global_visit_count = 0
