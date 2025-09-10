@@ -1,6 +1,7 @@
 import asyncio
 from pathlib import Path
 from typing import Optional, Coroutine
+from datetime import datetime
 
 import fire
 import typer
@@ -10,17 +11,12 @@ from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
+from rdagent.log.conf import LOG_SETTINGS
+from rdagent.log.ui.utils import get_sota_exp_stat
+from rdagent.scenarios.kaggle.submission import submit_csv, get_rest_submit_num
 
 
-async def run_and_auto_submit(loop_task: Coroutine, competition: str):
-    """Run the loop coroutine task, and submit the SOTA experiment submission file (.csv only now) to kaggle at the end."""
-    from datetime import datetime
-    from rdagent.log.conf import LOG_SETTINGS
-    from rdagent.log.ui.utils import get_sota_exp_stat
-    from rdagent.scenarios.kaggle.submission import submit_csv, get_rest_submit_num
-
-    # wait for the loop end
-    await loop_task
+def submit_from_workspace(competition: str):
 
     # check the trace_path
     sota, sota_loop_id, _, _ = get_sota_exp_stat(log_path=Path(LOG_SETTINGS.trace_path))
@@ -49,14 +45,32 @@ async def run_and_auto_submit(loop_task: Coroutine, competition: str):
     logger.info(f"Current sota submission file: {submission_csv_path}")
 
     # do submit
+    # NOTE: we can submit to a completed competition with this method
     submit_csv(
-        competition=competition, submission_file=str(submission_csv_path), wait=True, msg=f"SOTA at {datetime.now()}, file: {submission_csv_path}"
+        competition=competition,
+        submission_file=str(submission_csv_path),
+        wait=True,
+        msg=f"SOTA at {datetime.now()}, file: {submission_csv_path}",
     )
 
     # show remaining submit number
+    # NOTE: but we cannot get rest submition number if the competition completed, so the number will be 0
     remaining_submit_num = get_rest_submit_num(competition=competition)
 
     logger.info(f"Remaining submit number: {remaining_submit_num}")
+
+
+async def run_and_auto_submit(loop_task: Coroutine, competition: str):
+    """Run the loop coroutine task, and submit the SOTA experiment submission file (.csv only now) to kaggle at the end."""
+    try:
+        # wait for the loop end
+        await loop_task
+    except Exception as e:
+        submit_from_workspace(competition=competition)
+
+        raise e
+
+    submit_from_workspace(competition=competition)
 
 
 def main(
