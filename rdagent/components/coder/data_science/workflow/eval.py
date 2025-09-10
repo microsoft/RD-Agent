@@ -125,7 +125,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
         # stdout += "----Submission Check 1-----\n"
         submission_result = implementation.run(env=env, entry="python test/submission_format_test.py")
-        submission_check_out = submission_result.stdout
+        submission_check_out = submission_result.get_truncated_stdout()
         submission_ret_code = submission_result.exit_code
         stdout += "\n" + submission_check_out
 
