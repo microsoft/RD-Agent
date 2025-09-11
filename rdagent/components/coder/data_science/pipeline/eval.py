@@ -1,5 +1,6 @@
 # tess successfully running.
 # (GPT) if it aligns with the spec & rationality of the spec.
+from dataclasses import dataclass
 import json
 import re
 from pathlib import Path
@@ -36,7 +37,7 @@ class DSCoderFeedback(CoSTEERSingleFeedback):
     This feedback is used to evaluate the code and execution of the Data Science CoSTEER task.
     """
 
-    requires_documentation_search: bool | None = None
+    requires_documentation_search: bool = False
     error_message: str | None = None
 
     @staticmethod

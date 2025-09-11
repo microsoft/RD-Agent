@@ -48,7 +48,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     model_dump_check_level: Literal["medium", "high"] = "medium"
 
     #### MCP documentation search integration
-    enable_mcp_documentation_search: bool = True
+    enable_mcp_documentation_search: bool = False
     """Enable MCP documentation search for error resolution. Requires MCP_ENABLED=true and MCP_CONTEXT7_ENABLED=true in environment."""
 
     ### specific feature
