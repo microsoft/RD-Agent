@@ -37,4 +37,4 @@ def get_agent_model() -> OpenAIChatModel:
     prefix = PROVIDER_TO_ENV_MAP[custom_llm_provider]
     api_key = os.getenv(f"{prefix}_API_KEY", None)
     api_base = os.getenv(f"{prefix}_API_BASE", None)
-    return OpenAIChatModel(LLM_SETTINGS.chat_model, provider=LiteLLMProvider(api_base=api_key, api_key=api_base))
+    return OpenAIChatModel(LLM_SETTINGS.chat_model, provider=LiteLLMProvider(api_base=api_base, api_key=api_key))
