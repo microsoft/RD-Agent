@@ -315,12 +315,12 @@ pipeline_eval:
     {
         {% if enable_mcp_documentation_search %}
         "requires_documentation_search": <true/false>,
-        {% endif %}
-        "execution": "Describe whether the code executed successfully. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information. If errors occurred, analyze the root causes: (1) Are they fundamental algorithmic/approach issues, or (2) Implementation details that can be easily fixed, or (3) Environment/dependency problems?",
+        {% endif %}"execution": "Describe whether the code executed successfully. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information. If errors occurred, analyze the root causes: (1) Are they fundamental algorithmic/approach issues, or (2) Implementation details that can be easily fixed, or (3) Environment/dependency problems?",
         "return_checking": "Examine the generated files by cross-referencing the code logic and stdout output. Verify: (1) Format matches required submission format (index, column names, CSV content); (2) **File generation authenticity**: Is the file genuinely produced by successful model execution, or is it a result of exception handling/fallback mechanisms? Cite specific code sections and stdout evidence.",
         "code": "Begin explicitly with [Code analysis] or [Evaluation error]. Provide structured analysis: (1) **Technical Appropriateness**: Does the chosen approach (algorithms, data processing, validation strategy) match this problem's data characteristics and competition requirements? (2) **Effective Components**: What specific parts work well and why are they effective for this problem type? (3) **Issues & Improvements**: Identify concrete problems and suggest actionable improvement directions (without providing actual code). (4) **Code Quality**: Assess readability, structure, and adherence to specifications.",
+        {% if enable_mcp_documentation_search %}
         "error_message": "If the code execution has problems, extract the error information in the following format, otherwise set to empty string: ### TRACEBACK: <full relevant traceback extracted from execution output> ### SUPPLEMENTARY_INFO: <only if TRACEBACK is unclear - copy exact code fragments: import statements, variable=value assignments, function calls with parameters as they appear in code>",
-        "final_decision": <true/false>
+        {% endif %}"final_decision": <true/false>
     }
     ```
 
