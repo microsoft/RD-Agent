@@ -1,0 +1,24 @@
+{
+  "mcpServices": {
+    "context7": {
+      "url": "http://localhost:8123/mcp",
+      "handler": "rdagent.components.mcp.context7.client:Context7Client",
+      "enabled": true,
+      "timeout": 60,
+      "extra_config": {
+        "model": "gpt-4",
+        "api_key": "your-api-key-here",
+        "temperature": 0.7
+      }
+    },
+    "simple_code_search": {
+      "url": "http://localhost:9001/mcp",
+      "handler": "rdagent.components.mcp.client:MCPClient",
+      "timeout": 60,
+      "enabled": true,
+      "extra_config": {
+        "model": "gpt-3.5-turbo"
+      }
+    }
+  }
+}

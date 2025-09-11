@@ -167,6 +167,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
     enable_scale_check: bool = False
 
+    #### MCP documentation search integration
+    enable_mcp_documentation_search: bool = True
+    """Enable MCP documentation search for error resolution. Requires MCP_ENABLED=true and MCP_CONTEXT7_ENABLED=true in environment."""
+
     ##### select related
     ratio_merge_or_ensemble: int = 70
     """The ratio of merge or ensemble to be considered as a valid solution"""
@@ -181,7 +185,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
 DS_RD_SETTING = DataScienceBasePropSetting()
 
-# enable_cross_trace_diversity 和 llm_select_hypothesis should not be true at the same time
+# enable_cross_trace_diversity and llm_select_hypothesis should not be true at the same time
 assert not (
     DS_RD_SETTING.enable_cross_trace_diversity and DS_RD_SETTING.llm_select_hypothesis
 ), "enable_cross_trace_diversity and llm_select_hypothesis cannot be true at the same time"
