@@ -200,7 +200,7 @@ class FBWorkspace(Workspace):
             if workspace_data_file_path.exists():
                 workspace_data_file_path.unlink()
             if platform.system() in ("Linux", "Darwin"):
-                os.symlink(data_file_path, workspace_data_file_path)
+                workspace_data_file_path.symlink_to(data_file_path)
             if platform.system() == "Windows":
                 os.link(data_file_path, workspace_data_file_path)
 
@@ -336,7 +336,7 @@ class FBWorkspace(Workspace):
                 if mode == symlink_mode:  # Symlink
                     dest_path.parent.mkdir(parents=True, exist_ok=True)
                     link_target = zf.read(info).decode()
-                    os.symlink(link_target, dest_path)
+                    dest_path.symlink_to(link_target)
                 elif info.is_dir():
                     dest_path.mkdir(parents=True, exist_ok=True)
                 else:
