@@ -342,7 +342,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         #reasoning_text = response["reasoning"]["text"]
         confidence = response["reasoning"]["confidence"]
         
-        enter_condition = (DS_RD_SETTING.runner_max_loop>1 and DS_RD_SETTING.enable_runner_mcts and not root_is_none and confidence> 75 )
+        enter_condition = (DS_RD_SETTING.runner_max_loop>1 and DS_RD_SETTING.enable_runner_mcts and not root_is_none and confidence> 75 and enter_mcts)
 
         if enter_condition:
             if DS_RD_SETTING.multiprocessing_mcts_simulation is not True:

@@ -227,11 +227,11 @@ DSCoSTEER_mcts:
       (True → higher score is better; False → lower score is better)
 
     Instructions:
-    1. **Decision**: Determine whether it is worthwhile to enter MCTS search from this root node. Consider:
-      - Task complexity and branching factor.
-      - Current solution quality and completeness.
-      - Information already collected (stdout, EDA, etc.).
-      - Remaining time and memory constraints.
+    1. **Decision**: Determine whether it is worthwhile to enter MCTS search from this root node. 
+      Default to `enter_mcts = true` unless:
+      - Remaining time is extremely low (e.g., < 10 seconds).  
+      - Memory/GPU constraints make search infeasible.  
+      If uncertain, prefer `enter_mcts = true`.
 
     2. **Resource Estimation** (if entering MCTS):
       - Estimate approximate time required for the search based on `elapsed_time` and task complexity.
@@ -250,11 +250,10 @@ DSCoSTEER_mcts:
         // - Time and resource constraints
 
         "estimated_time_sec": number,               
-        // Estimated additional time required to complete MCTS, in seconds.
-        // Should be calculated based on:
-        // - Elapsed time already used (`elapsed_time`)
-        // - Task complexity
-        // Note: Provide a numeric value, do not include units or strings.
+        // Estimated time required to simulate a single node (one rollout), in seconds.
+        // This should be inferred from the elapsed time for the root node (`elapsed_time`),
+        // assuming similar computational cost per simulation.
+        // Provide only a numeric value (no units or strings).
 
         "gpu_count": 1/2,                           
         // Recommended number of GPUs to use for MCTS.
