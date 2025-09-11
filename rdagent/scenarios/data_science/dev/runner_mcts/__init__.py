@@ -57,6 +57,7 @@ class MCTSNode:
         self.value_sum = 0.0
         self.untried_actions : list[dict] = []  #
         self.score = 0
+        self.feedback: DSRunnerFeedback = None
     @property
     def value(self):
         return self.value_sum / self.visit_count if self.visit_count > 0 else 0
@@ -101,7 +102,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             last_feedback = evolving_trace[-1].feedback
             assert isinstance(last_feedback, CoSTEERMultiFeedback)
 
-        mcts_node_list,code_dict  = self.implement_one_task(
+        mcts_node_list,code_dict,feedback  = self.implement_one_task(
                 evo.sub_tasks[to_be_finished_task_index[0]],
                 queried_knowledge,
                 evo.experiment_workspace,
@@ -110,6 +111,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         
         evo = self.assign_code_list_to_evo(code_list, evo)
         evo.MCTS_NODE_LIST = mcts_node_list
+        evo.FEEDBACK = feedback
         return evo
 
     @wait_retry(retry_n=5)       
@@ -269,6 +271,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         rewards = [self.reward_function(fb) for fb in feedbacks]
         for node,fb in zip(nodes,feedbacks):
             node.score = fb.score
+            node.feedback = fb
         return rewards
 
     def backpropagate_batch(self, nodes: list[MCTSNode], rewards: list[float]):
@@ -302,6 +305,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         evaluator = DSRunnerMCTSEvaluator(scen=self.scen)
         begin_time = time.time()
         feedback_root = evaluator.evaluate(target_task, root.workspace, workspace, queried_knowledge,time_max= 3600,root= True)
+        root.feedback= feedback_root
         end_time = time.time()
         elapsed_time1 = end_time - begin_time
         logger.info(elapsed_time1)
@@ -338,7 +342,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         #reasoning_text = response["reasoning"]["text"]
         confidence = response["reasoning"]["confidence"]
         
-        enter_condition = (DS_RD_SETTING.runner_max_loop>1 and DS_RD_SETTING.enable_runner_mcts and not root_is_none and enter_mcts and confidence> 70 )
+        enter_condition = (DS_RD_SETTING.runner_max_loop>1 and DS_RD_SETTING.enable_runner_mcts and not root_is_none and confidence> 75 )
 
         if enter_condition:
             if DS_RD_SETTING.multiprocessing_mcts_simulation is not True:
@@ -393,9 +397,9 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 logger.warning("No child nodes expanded from root!")
                 best_child = root
             logger.info(f"Best child visit count: {best_child.visit_count}, value: {best_child.value}")
-            return MCTS_NODE_LIST, best_child.workspace.file_dict
+            return MCTS_NODE_LIST,best_child.workspace.file_dict,best_child.feedback
         else:
-            return  MCTS_NODE_LIST,root.workspace.file_dict
+            return  MCTS_NODE_LIST,root.workspace.file_dict,root.feedback
 
 
 

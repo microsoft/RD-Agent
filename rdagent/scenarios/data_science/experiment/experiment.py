@@ -23,7 +23,7 @@ class DSExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):
         # this field is optional. It  is not none only when we have a format checker. Currently, only following cases are supported.
         # - mle-bench
         self.MCTS_NODE_LIST: list[Any] = []  # To store the MCTS nodes for this experiment, should be generated inside MCTS runner
-
+        self.FEEDBACK = None  # To store the bset MCTS node feedback
     def is_ready_to_run(self) -> bool:
         """
         ready to run does not indicate the experiment is runnable
