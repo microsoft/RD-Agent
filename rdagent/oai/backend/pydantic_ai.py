@@ -1,11 +1,14 @@
 """
 Adapter tools for pydantic-ai
 """
+
 import os
-from rdagent.oai.llm_conf import LLM_SETTINGS
+
+from litellm.utils import get_llm_provider
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.litellm import LiteLLMProvider
-from litellm.utils import get_llm_provider
+
+from rdagent.oai.llm_conf import LLM_SETTINGS
 
 # NOTE:
 # LiteLLM's code is not well orgnized.
@@ -33,7 +36,9 @@ def get_agent_model() -> OpenAIChatModel:
     assert LLM_SETTINGS.backend.endswith("LiteLLMAPIBackend"), "Only LiteLLMAPIBackend is supported"
 
     _, custom_llm_provider, _, _ = get_llm_provider(LLM_SETTINGS.chat_model)
-    assert custom_llm_provider in PROVIDER_TO_ENV_MAP, f"Provider {custom_llm_provider} not supported. Please add it into `PROVIDER_TO_ENV_MAP`"
+    assert (
+        custom_llm_provider in PROVIDER_TO_ENV_MAP
+    ), f"Provider {custom_llm_provider} not supported. Please add it into `PROVIDER_TO_ENV_MAP`"
     prefix = PROVIDER_TO_ENV_MAP[custom_llm_provider]
     api_key = os.getenv(f"{prefix}_API_KEY", None)
     api_base = os.getenv(f"{prefix}_API_BASE", None)

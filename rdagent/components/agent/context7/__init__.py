@@ -1,9 +1,11 @@
 from typing import Optional
-from rdagent.components.agent.mcp.context7 import SETTINGS
-from rdagent.components.agent.base import PAIAgent
-from rdagent.utils.agent.tpl import T
+
 from pydantic_ai.mcp import MCPServerStreamableHTTP
+
+from rdagent.components.agent.base import PAIAgent
+from rdagent.components.agent.mcp.context7 import SETTINGS
 from rdagent.log import rdagent_logger as logger
+from rdagent.utils.agent.tpl import T
 
 
 class Agent(PAIAgent):
@@ -20,9 +22,7 @@ class Agent(PAIAgent):
         # Build context information using template
         context_info = ""
         if full_code:
-            context_info = T(".prompts:code_context_template").r(
-                full_code=full_code
-            )
+            context_info = T(".prompts:code_context_template").r(full_code=full_code)
 
         # Check for timm library special case (experimental optimization)
         timm_trigger = error_message.lower().count("timm") >= 3

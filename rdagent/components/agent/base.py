@@ -1,24 +1,25 @@
 from abc import abstractmethod
+
 from pydantic_ai import Agent
 from pydantic_ai.mcp import MCPServerStreamableHTTP
+
 from rdagent.oai.backend.pydantic_ai import get_agent_model
 
 
 class BaseAgent:
 
     @abstractmethod
-    def __init__(self, system_prompt: str, toolsets: list[str]):
-        ...
+    def __init__(self, system_prompt: str, toolsets: list[str]): ...
 
     @abstractmethod
-    def query(self, query: str) -> str:
-        ...
+    def query(self, query: str) -> str: ...
 
 
 class PAIAgent(BaseAgent):
     """
     Python-ai agent
     """
+
     agent: Agent
 
     def __init__(self, system_prompt: str, toolsets: list[str | MCPServerStreamableHTTP]):

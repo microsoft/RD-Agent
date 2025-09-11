@@ -1,6 +1,7 @@
 import unittest
-from rdagent.components.agent.mcp.context7 import SETTINGS
+
 from rdagent.components.agent.context7 import Agent
+from rdagent.components.agent.mcp.context7 import SETTINGS
 
 
 class TimeUtils(unittest.TestCase):

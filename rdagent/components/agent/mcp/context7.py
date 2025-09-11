@@ -10,6 +10,7 @@ You can follow the instructions to install it
     bun i && bun run build
     bun run dist/index.js --transport http --port 8123 # > bun.out 2>&1 &
 """
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,10 +20,10 @@ class Settings(BaseSettings):
     url: str = "http://localhost:8123/mcp"
     timeout: int = 20
 
-
     model_config = SettingsConfigDict(
         env_prefix="CONTEXT7_",
         # extra="allow", # Does it allow extrasettings
     )
+
 
 SETTINGS = Settings()

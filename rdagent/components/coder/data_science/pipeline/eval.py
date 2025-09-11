@@ -1,13 +1,14 @@
 # tess successfully running.
 # (GPT) if it aligns with the spec & rationality of the spec.
-from dataclasses import dataclass
 import json
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.components.agent.context7 import Agent as DocAgent
 from rdagent.components.coder.CoSTEER import CoSTEERMultiFeedback
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
@@ -23,11 +24,8 @@ from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.scenarios.data_science.test_eval import get_test_eval
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
-from rdagent.components.agent.context7 import Agent as DocAgent
 
 DIRNAME = Path(__file__).absolute().resolve().parent
-
-
 
 
 @dataclass
@@ -274,7 +272,6 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         # extract enable_mcp_documentation_search from data science configuration
         enable_mcp_documentation_search = DS_RD_SETTING.enable_mcp_documentation_search
 
-
         queried_similar_successful_knowledge = (
             queried_knowledge.task_to_similar_task_successful_knowledge[target_task.get_task_information()]
             if queried_knowledge is not None
@@ -305,7 +302,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             init_kwargs_update_func=PipelineSingleFeedback.val_and_update_init_dict,
         )
 
-                # judge whether we should perform documentation search
+        # judge whether we should perform documentation search
         do_documentation_search = enable_mcp_documentation_search and wfb.requires_documentation_search
 
         if do_documentation_search:
