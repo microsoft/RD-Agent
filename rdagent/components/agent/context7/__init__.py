@@ -51,5 +51,4 @@ class Agent(PAIAgent):
         str
         """
         query = self._build_enhanced_query(error_message=query)
-        result = self.agent.run_sync(query)
-        return result.output
+        return super().query(query)

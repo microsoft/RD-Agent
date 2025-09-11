@@ -1,3 +1,4 @@
+import nest_asyncio
 from abc import abstractmethod
 
 from pydantic_ai import Agent
@@ -37,5 +38,7 @@ class PAIAgent(BaseAgent):
         -------
         str
         """
+
+        nest_asyncio.apply()  # NOTE: very important. Because pydantic-ai uses asyncio!
         result = self.agent.run_sync(query)
         return result.output
