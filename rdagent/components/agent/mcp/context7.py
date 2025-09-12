@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     """Project specific settings."""
 
     url: str = "http://localhost:8123/mcp"
-    timeout: int = 20
+    timeout: int = 120
 
     model_config = SettingsConfigDict(
         env_prefix="CONTEXT7_",
