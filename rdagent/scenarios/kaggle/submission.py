@@ -3,11 +3,14 @@ import os
 import tempfile
 import time
 import fire
+import nbformat
+import requests
+
+from typing import Generator
+from contextlib import contextmanager
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-import nbformat
-import requests
 from kaggle.api.kaggle_api_extended import (
     ApiCreateCodeSubmissionResponse,
     ApiSaveKernelResponse,
@@ -24,17 +27,19 @@ from pydantic_settings import SettingsConfigDict
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.log import rdagent_logger as logger
 
+# error 403 means we have not join the competition when retrieving information, like submissions
 ERROR_CODE_NOT_JOIN_COMPETITION = 403
+# error code when we try to get submission when there is not any
 ERROR_CODE_NO_SUBMISSION = 400
 
 
 class KaggleSubmissionSetting(ExtendedBaseSettings):
     model_config = SettingsConfigDict(env_prefix="KG_SUBMIT_", protected_namespaces=())
 
-    # if force to submit code event it is not a code competition
+    # if force to submit code even it is not a code competition
     force_submit_code: bool = False
 
-    # submission file to submit
+    # submission file name to submit
     submission_file: str = "submission.csv"
 
     # if enable notebook gpu
@@ -50,7 +55,7 @@ class KaggleSubmissionSetting(ExtendedBaseSettings):
     is_private: bool = True
 
     # prefix of the notebook name
-    kernel_prefix: str = "rdsubmission"
+    kernel_prefix: str = "rd-submission"
 
     # timeout when tracking submission status
     status_timeout: int = 120
@@ -113,17 +118,15 @@ def get_competition_detail(api: KaggleApi, competition: str) -> ApiCompetition |
     # and default page_size is 20, so more time we can get the target competition at first page
     max_pages = 10
     try:
-        for page in range(1, max_pages + 1):
-            search_result = api.competitions_list(search=competition, page=page)
+        page = 1
+        while page <= max_pages and (search_result := api.competitions_list(search=competition, page=page)) is not None:
+            for comp in search_result:
+                if comp is not None and comp.ref.rsplit("/", 1)[-1] == competition:
+                    return comp
 
-            # too many request will be blocked, so we need to sleep for a while
+            page += 1
+
             time.sleep(1)
-
-            if search_result is not None:
-                for comp in search_result:
-                    if comp is not None and comp.ref.rsplit("/", 1)[-1] == competition:
-                        return comp
-
     except Exception as e:  # noqa: BLE001
         logger.error(f"Fail to get competition list, with exception: {e}")
 
@@ -168,26 +171,20 @@ def wait_for_submission_complete(api: KaggleApi, competition: str) -> None:
     # the submission request is done without error, here we keep check the latest submission state, until completed or timeout
     start = datetime.now()  # noqa: DTZ005
     while (datetime.now() - start).seconds <= timeout:  # noqa: DTZ005
-        submission_resp = api.competition_submissions(
-            # the api can sort the submissions by date (new -> old), so we use the first item at first page
-            competition=competition,
-            sort=SubmissionSortBy.SUBMISSION_SORT_BY_DATE,
-            page_token=0,
+        # the api can sort the submissions by date (new -> old), so we use the first item at first page
+        resp = api.competition_submissions(
+            competition=competition, sort=SubmissionSortBy.SUBMISSION_SORT_BY_DATE, page_token=0
         )
 
-        logger.info(f"Current submissions: {submission_resp}")
+        logger.info(f"Current submissions: {resp}")
 
-        if (
-            submission_resp is None
-            or submission_resp[0] is None
-            or submission_resp[0].status == SubmissionStatus.PENDING
-        ):
+        if resp is None or resp[0] is None or resp[0].status == SubmissionStatus.PENDING:
             # wait for 5 seconds to get latest result
             time.sleep(5)
 
             continue
 
-        submission = submission_resp[0]
+        submission = resp[0]
 
         if submission.status == SubmissionStatus.ERROR:
             logger.error(f"The submission validation failed, with message: {submission.error_description}")
@@ -212,37 +209,29 @@ def submit_local_file(api: KaggleApi, competition: str, file: str | Path, *, msg
     # submit first
     try:
         resp = api.competition_submit(file_name=str(file), message=msg, competition=competition)
+
+        # if upload failed, will return a string message, or it will raise exception if there is http response code >= 400
+        if type(resp) is str:
+            logger.error(f"Fail to get submissions with error: {resp}")
+        else:
+            wait_for_submission_complete(api=api, competition=competition)
     except Exception as e:  # noqa: BLE001
         if type(e) is requests.exceptions.HTTPError and e.response.status_code == ERROR_CODE_NOT_JOIN_COMPETITION:
             logger.error(f"You have not joined the competition '{competition}'.")
         else:
             logger.error(f"Fail to get submissions with error: {e}")
 
-        return
 
-    # if upload failed, will return a string message, or it will raise exception if there is http response code >= 400
-    if type(resp) is str:
-        logger.error(f"Fail to get submissions with error: {resp}")
-        return
-
-    wait_for_submission_complete(api=api, competition=competition)
-
-
-def submit_online_notebook(
-    api: KaggleApi,
-    competition: str,
-    kernel_id: str,
-    kernel_version: int,
-    *,
-    msg: str = "Message",
+def submit_kernel_by_version(
+    api: KaggleApi, competition: str, kernel_id: str, kernel_version: int, *, msg: str = "Message"
 ) -> None:
-    """Submit output of online kernel to competition.
+    """Submit output of online kernel to competition without downloading the outputs.
 
     Args:
         api (KaggleApi): kaggle api object
         competition (str): competition name to submit
         kernel_id (str): kernel id to submit
-        kernel_version (str): kernel version to submit
+        kernel_version (str): kernel version to submit, each time we call kaggle sdk to upload a notebook, it will return a new version
         msg (str): message of current submission
     """
     submission_file = KG_SUBMISSION_SETTING.submission_file
@@ -257,15 +246,13 @@ def submit_online_notebook(
         )
 
         logger.info(f"Submission response: {resp}")
+
+        wait_for_submission_complete(api=api, competition=competition)
     except Exception as e:  # noqa: BLE001
         if type(e) is requests.exceptions.HTTPError and e.response.status_code == ERROR_CODE_NOT_JOIN_COMPETITION:
             logger.error(f"You have not joined the competition '{competition}'.")
         else:
             logger.error(f"Fail to get submissions with error: {e}")
-
-        return
-
-    wait_for_submission_complete(api=api, competition=competition)
 
 
 def generate_kaggle_kernel_metadata(user: str, competition: str) -> dict:
@@ -293,7 +280,7 @@ def generate_kaggle_kernel_metadata(user: str, competition: str) -> dict:
         "dataset_sources": [],
         "competition_sources": [f"{competition}"],
         "kernel_sources": [],
-        "model_sources": [],
+        "model_sources": [],  # TODO: we can use this field if we want to upload our model
     }
 
 
@@ -336,7 +323,7 @@ def prepare_notebook(user: str, competition: str, workspace: Path, output_path: 
     Args:
         user (str): kaggle username used to construct the notebook url
         competition (str): which competition this notebook will reference to
-        workspace (Path): where to get content, and write to notebook
+        workspace (Path): where to get code content, and write to notebook
         output_path (Path): notebook output path
     """
     # NOTE: this function do not support competitions that contains more than one code files
@@ -395,8 +382,11 @@ def prepare_notebook(user: str, competition: str, workspace: Path, output_path: 
 
     notebook.cells.append(nbformat.v4.new_code_cell(main_code))
 
+    # an additional cell used to print traceback if there is any error
+    notebook.cells.append(nbformat.v4.new_code_cell("%tb"))
+
     # NOTE: in kaggle, the default workspace is /kaggle/working,
-    # so if our result files write into current folder, then we can use it to submit.
+    # so if our result files are writing into current folder, then we can use it to submit.
     # and we do not need to change the code
 
     nbformat.write(notebook, os.path.join(output_path, "submission.ipynb"))  # noqa: PTH118
@@ -444,8 +434,8 @@ def upload_notebook(api: KaggleApi, kernel_id: str, folder: Path) -> int | None:
 
                 return None
 
-            # sleep 15 seconds to avoid rate limit, as notebook will cost more time to complete
-            time.sleep(15)
+            # sleep more seconds to avoid rate limit, as notebook will cost more time to complete
+            time.sleep(30)
     except Exception as e:  # noqa: BLE001
         logger.error(f"Check notebook status failed: {e}")
 
@@ -469,13 +459,42 @@ def download_kernel_output(api: KaggleApi, kernel_id: str, output_folder: Path) 
     """
     try:
         api.kernels_output(kernel=kernel_id, path=output_folder, force=True)
-
     except Exception as e:  # noqa: BLE001
         logger.error(f"Download notebook output failed: {e}")
 
         return False
 
     return True
+
+
+@contextmanager
+def submit_notebook(api: KaggleApi, competition: str, workspace: Path) -> Generator[tuple[Path, str, int], None, None]:
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        kernel_path = Path(tmp_dir)
+
+        prepare_notebook(
+            user=api.config_values["username"],
+            competition=competition,
+            workspace=workspace,
+            output_path=kernel_path,
+        )
+
+        # read the metadata to get the kernel id
+        metadata_json_file = kernel_path / "kernel-metadata.json"
+
+        with metadata_json_file.open("rt", encoding="utf-8") as fp:
+            kernel_metadata = json.load(fp)
+
+        kernel_id = kernel_metadata["id"]
+
+        kernel_version = upload_notebook(api=api, kernel_id=kernel_id, folder=kernel_path)
+
+        if kernel_version is None:
+            logger.error("Upload notebook failed")
+
+            return
+
+        yield (kernel_path, kernel_id, kernel_version)
 
 
 def submit_notebook_output(
@@ -492,48 +511,20 @@ def submit_notebook_output(
         workspace (Path): workspace path contains code to run
         msg (str): message to submit
     """
-    # 1. prepare notebook
-    # 2. upload notebook
-    # 3. download output file
-    # 4. submit output file
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        kernel_path = Path(tmp_dir)
-
-        prepare_notebook(
-            user=api.config_values["username"],
-            competition=competition,
-            workspace=workspace,
-            output_path=kernel_path,
-        )
-
-        # read the metadata to get the kernel id
-        metadata_json_file = kernel_path / "kernel-metadata.json"
-
-        with metadata_json_file.open("rt", encoding="utf-8") as fp:
-            kernel_metadata = json.load(fp)
-
-        kernel_id = kernel_metadata["id"]
-
-        kernel_version = upload_notebook(api=api, kernel_id=kernel_id, folder=kernel_path)
-
-        if kernel_version is None:
-            logger.error("Upload notebook failed")
-
-            return
-
+    with submit_notebook(api=api, competition=competition, workspace=workspace) as (kernel_path, kernel_id, _):
         if download_kernel_output(api=api, kernel_id=kernel_id, output_folder=kernel_path):
             # check if the submission file exist
             submission_file_path = kernel_path / KG_SUBMISSION_SETTING.submission_file
 
             if not submission_file_path.exists():
-                logger.error(f"Submission file {KG_SUBMISSION_SETTING.submission_file} not found in kernel output")
+                logger.error(f"Submission file {submission_file_path} not found in kernel output")
 
                 return
 
             submit_local_file(api=api, competition=competition, file=str(submission_file_path), msg=msg)
 
 
-def submit_notebook(
+def submit_notebook_online(
     api: KaggleApi,
     competition: str,
     workspace: Path,
@@ -547,46 +538,13 @@ def submit_notebook(
         workspace (Path): workspace path contains code to run
         msg (str): message to submit
     """
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        kernel_path = Path(tmp_dir)
-
-        prepare_notebook(
-            user=api.config_values["username"],
-            competition=competition,
-            workspace=workspace,
-            output_path=kernel_path,
-        )
-
-        # read the metadata to get the kernel id
-        metadata_json_file = kernel_path / "kernel-metadata.json"
-
-        with metadata_json_file.open("rt", encoding="utf-8") as fp:
-            kernel_metadata = json.load(fp)
-
-        kernel_id = kernel_metadata["id"]
-
-        kernel_version = upload_notebook(api=api, kernel_id=kernel_id, folder=kernel_path)
-
-        if kernel_version is None:
-            logger.error("Upload notebook failed")
-
-            return
-
-        submit_online_notebook(
-            api=api,
-            competition=competition,
-            kernel_id=kernel_id,
-            kernel_version=kernel_version,
-            msg=msg,
+    with submit_notebook(api=api, competition=competition, workspace=workspace) as (_, kernel_id, kernel_version):
+        submit_kernel_by_version(
+            api=api, competition=competition, kernel_id=kernel_id, kernel_version=kernel_version, msg=msg
         )
 
 
-def submit_from_workspace(
-    competition: str,
-    workspace: Path,
-    *,
-    msg: str = "Message",
-) -> None:
+def submit_from_workspace(competition: str, workspace: Path, *, msg: str = "Message") -> None:
     """Submit the result of competition to kaggle from specified workspace.
 
     Args:
@@ -625,8 +583,9 @@ def submit_from_workspace(
         submit_notebook(api=api, competition=competition, workspace=workspace, msg=msg)
 
     # show remaining submit number
-    # NOTE: but we cannot get rest submition number if the competition completed, so the number will be 0
+    # NOTE: if the competition is finished, the number will be 0
     remaining_num = get_submission_remaining(api=api, competition=competition)
+
     logger.info(f"Remaining submit number: {remaining_num}")
 
 
