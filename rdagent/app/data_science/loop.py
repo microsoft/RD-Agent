@@ -1,35 +1,33 @@
 import asyncio
-from pathlib import Path
-from typing import Optional, Coroutine
+from collections.abc import Coroutine
 from datetime import datetime
+from pathlib import Path
+from typing import Annotated, Optional
 
 import fire
 import typer
-from typing_extensions import Annotated
-
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 from rdagent.log.conf import LOG_SETTINGS
 from rdagent.log.ui.utils import get_sota_exp_stat
-from rdagent.scenarios.kaggle.submission import submit_csv, get_rest_submit_num
+from rdagent.scenarios.data_science.loop import DataScienceRDLoop
+from rdagent.scenarios.kaggle.submission import submit_to_kaggle
 
 
-def submit_from_workspace(competition: str):
-
+def submit_from_workspace(competition: str) -> None:
     # check the trace_path
     sota, sota_loop_id, _, _ = get_sota_exp_stat(log_path=Path(LOG_SETTINGS.trace_path))
 
     logger.info(f"sota loop id: {sota_loop_id}")
 
     if sota is None:
-        logger.warning(f"Cannot find sota experiment, skip submitting.")
+        logger.warning("Cannot find sota experiment, skip submitting.")
 
         return
 
     if sota.experiment_workspace is None:
-        logger.warning(f"Fail to get sota experiment submission file, workspace is None.")
+        logger.warning("Fail to get sota experiment submission file, workspace is None.")
 
         return
 
@@ -45,30 +43,22 @@ def submit_from_workspace(competition: str):
     logger.info(f"Current sota submission file: {submission_csv_path}")
 
     # do submit
-    # NOTE: we can submit to a completed competition with this method
-    submit_csv(
+    submit_to_kaggle(
         competition=competition,
-        submission_file=str(submission_csv_path),
-        wait=True,
-        msg=f"SOTA at {datetime.now()}, file: {submission_csv_path}",
+        workspace=worspace,
+        msg=f"SOTA at {datetime.now()}, loop: {sota_loop_id}, file: {submission_csv_path}",  # noqa: DTZ005
     )
 
-    # show remaining submit number
-    # NOTE: but we cannot get rest submition number if the competition completed, so the number will be 0
-    remaining_submit_num = get_rest_submit_num(competition=competition)
 
-    logger.info(f"Remaining submit number: {remaining_submit_num}")
-
-
-async def run_and_auto_submit(loop_task: Coroutine, competition: str):
-    """Run the loop coroutine task, and submit the SOTA experiment submission file (.csv only now) to kaggle at the end."""
+async def run_and_auto_submit(loop_task: Coroutine, competition: str) -> None:
+    """Run the loop coroutine task, and submit the SOTA experiment submission file to kaggle at the end."""
     try:
         # wait for the loop end
         await loop_task
-    except Exception as e:
+    except Exception:
         submit_from_workspace(competition=competition)
 
-        raise e
+        raise
 
     submit_from_workspace(competition=competition)
 
@@ -135,9 +125,7 @@ def main(
         kaggle_loop.exp_gen = import_class(exp_gen_cls)(kaggle_loop.exp_gen.scen)
 
     if DS_RD_SETTING.auto_submit:
-        asyncio.run(
-            run_and_auto_submit(kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout), competition)
-        )
+        asyncio.run(run_and_auto_submit(kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout), competition))
     else:
         asyncio.run(kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout))
 
