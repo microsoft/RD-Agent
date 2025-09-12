@@ -1,7 +1,7 @@
 """
 The context7 is based on a modified version of the context7.
 
-You can follow the instructions to install it 
+You can follow the instructions to install it
 
     mkdir -p ~/tmp/
     cd ~/tmp/ && git clone https://github.com/Hoder-zyf/context7.git
