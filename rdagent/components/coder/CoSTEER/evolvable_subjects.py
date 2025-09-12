@@ -1,6 +1,7 @@
 from rdagent.core.evolving_framework import EvolvableSubjects
 from rdagent.core.experiment import Experiment, FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
+from typing import Literal,Any
 
 
 class EvolvingItem(Experiment, EvolvableSubjects):
@@ -23,6 +24,9 @@ class EvolvingItem(Experiment, EvolvableSubjects):
             )
         else:
             self.sub_gt_implementations = sub_gt_implementations
+
+        self.MCTS_NODE_LIST: list[Any] = []  # To store the MCTS nodes for this experiment, should be generated inside MCTS runner
+        self.FEEDBACK = None  # To store the bset MCTS node feedback
 
     @classmethod
     def from_experiment(cls, exp: Experiment) -> "EvolvingItem":
