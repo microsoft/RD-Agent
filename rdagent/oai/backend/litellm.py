@@ -7,7 +7,7 @@ from litellm import (
     completion,
     completion_cost,
     embedding,
-    get_max_tokens,
+    get_model_info,
     supports_function_calling,
     supports_response_schema,
     token_counter,
@@ -205,10 +205,19 @@ class LiteLLMAPIBackend(APIBackend):
 
     @property
     def chat_token_limit(self) -> int:
+        """Suggest an input token limit, ensuring enough space in the context window for the maximum output tokens."""
         try:
-            max_tokens = get_max_tokens(LITELLM_SETTINGS.chat_model)
-            if max_tokens is None:
+            model_info = get_model_info(LITELLM_SETTINGS.chat_model)
+            if model_info is None:
                 return super().chat_token_limit
-            return max_tokens
+
+            max_input = model_info.get("max_input_tokens")
+            max_output = model_info.get("max_output_tokens")
+
+            if max_input is None or max_output is None:
+                return super().chat_token_limit
+
+            max_input_tokens = max_input - max_output
+            return max_input_tokens
         except Exception as e:
             return super().chat_token_limit

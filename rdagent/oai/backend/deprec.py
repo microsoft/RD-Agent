@@ -153,7 +153,7 @@ class DeprecBackend(APIBackend):
             self.gcr_endpoint_do_sample = LLM_SETTINGS.gcr_endpoint_do_sample
             self.gcr_endpoint_max_token = LLM_SETTINGS.gcr_endpoint_max_token
             if not os.environ.get("PYTHONHTTPSVERIFY", "") and hasattr(ssl, "_create_unverified_context"):
-                ssl._create_default_https_context = ssl._create_unverified_context  # noqa: SLF001
+                ssl._create_default_https_context = ssl._create_unverified_context  # type: ignore[assignment]
             self.chat_model_map = LLM_SETTINGS.chat_model_map
             self.chat_model = LLM_SETTINGS.chat_model
             self.encoder = None
