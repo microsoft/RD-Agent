@@ -638,7 +638,7 @@ def evaluate_one_trace(
     if selector_name == "validation":
         if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
             logger.warning(f"Competition {DS_RD_SETTING.local_data_path}/{competition} does not exist, skipping.")
-            return competition, False
+            return competition, False, sota_exp_stat
         # The ValidationSelector is used to select the best re-test score.
         quick_selector = BestValidSelector(num_candidates=1, use_decision=True, each_trace=False)
         quick_selected_exps = quick_selector.get_sota_exp_to_submit(trace)
@@ -650,14 +650,14 @@ def evaluate_one_trace(
         candidate_exps = base_selector.collect_sota_candidates(trace)
         if not candidate_exps:
             logger.info("ValidationSelector: Base selector returned no candidates.")
-            return competition, False
+            return competition, False, sota_exp_stat
 
         logger.info(f"ValidationSelector: Received {len(candidate_exps)} candidates for validation.")
         if debug:
             pool_hit = any(check_hit(candidate_exp, trace, sota_result) for candidate_exp in candidate_exps)
             if not pool_hit:
                 logger.info("ValidationSelector: Base selector's candidates did not hit any SOTA. Skipping validation.")
-                return competition, False
+                return competition, False, sota_exp_stat
 
         selector = ValidationSelector(
             candidate=[(exp, try_get_loop_id(trace, exp)) for exp in candidate_exps],
