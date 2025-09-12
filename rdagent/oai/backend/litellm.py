@@ -205,6 +205,7 @@ class LiteLLMAPIBackend(APIBackend):
 
     @property
     def chat_token_limit(self) -> int:
+        """Suggest an input token limit, ensuring enough space in the context window for the maximum output tokens.  """
         try:
             model_info = get_model_info(LITELLM_SETTINGS.chat_model)
             max_input_tokens = model_info["max_input_tokens"] - model_info["max_output_tokens"]
