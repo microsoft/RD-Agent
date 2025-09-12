@@ -581,8 +581,11 @@ def check_hit(selected_exp: DSExperiment, trace: Trace, sota_result: Dict[str, A
     # Check by loop_id if available
     if hasattr(trace, "idx2loop_id"):
         loop_id = trace.idx2loop_id.get(index)
-        if loop_id and loop_id in sota_result.get("medal_loops", []):
-            return True
+        if loop_id:
+            if loop_id in sota_result.get("medal_loops", []):
+                return True
+            return False
+
     # Fallback to checking by index
     if index in sota_result.get("medal_loops_index", []):
         return True
