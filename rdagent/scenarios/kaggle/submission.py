@@ -19,10 +19,40 @@ from kagglesdk.competitions.types.competition_api_service import (
     ApiSubmission,
 )
 from kagglesdk.kernels.types.kernels_enums import KernelWorkerStatus
+from pydantic_settings import SettingsConfigDict
+from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.log import rdagent_logger as logger
 
 ERROR_CODE_NOT_JOIN_COMPETITION = 403
 ERROR_CODE_NO_SUBMISSION = 400
+
+
+class KaggleSubmissionSetting(ExtendedBaseSettings):
+    model_config = SettingsConfigDict(env_prefix="KG_SUBMIT_", protected_namespaces=())
+
+    # submission file to submit
+    submission_file: str = "submission.csv"
+
+    # if enable notebook gpu
+    enable_gpu: bool = False
+
+    # if enable notebook internet access
+    enable_internet: bool = False
+
+    # if enable notebook tpu
+    enable_tpu: bool = False
+
+    # if make kernel private
+    is_private: bool = True
+
+    # prefix of the notebook name
+    kernel_prefix: str = "rdsubmission"
+
+    # timeout when tracking submission status
+    status_timeout: int = 120
+
+
+KG_SUBMISSION_SETTING = KaggleSubmissionSetting()
 
 
 def get_completed_submissions(api: KaggleApi, competition: str, day: date) -> list[ApiSubmission]:
@@ -46,6 +76,9 @@ def get_completed_submissions(api: KaggleApi, competition: str, day: date) -> li
             submissions.extend(
                 [s for s in resp if s is not None and s.date.date() == day and s.status == SubmissionStatus.COMPLETE],
             )
+
+            # sleep for a while to avoid rate limit
+            time.sleep(1)
     except requests.exceptions.HTTPError as e:
         # 403 if we have not joined the competition
         if e.response.status_code == ERROR_CODE_NOT_JOIN_COMPETITION:
@@ -119,14 +152,15 @@ def get_submission_remaining(api: KaggleApi, competition: str) -> int:
     return competition_detail.max_daily_submissions - len(completed_submissions)
 
 
-def wait_for_submission_complete(api: KaggleApi, competition: str, timeout: int) -> None:
+def wait_for_submission_complete(api: KaggleApi, competition: str) -> None:
     """Wait for the latest submission complete (failed or completed).
 
     Args:
         api (KaggleApi): kaggle api object
         competition (str): competition name to wait for submission complete
-        timeout (int): timeout to wait for submission complete
     """
+    timeout = KG_SUBMISSION_SETTING.status_timeout
+
     # the submission request is done without error, here we keep check the latest submission state, until completed or timeout
     start = datetime.now()  # noqa: DTZ005
     while (datetime.now() - start).seconds <= timeout:  # noqa: DTZ005
@@ -157,20 +191,19 @@ def wait_for_submission_complete(api: KaggleApi, competition: str, timeout: int)
         break
 
 
-def submit_local_file(api: KaggleApi, competition: str, file: str, *, msg: str = "Message", timeout: int = 120) -> None:
+def submit_local_file(api: KaggleApi, competition: str, file: str | Path, *, msg: str = "Message") -> None:
     """Submit local file to competition.
 
     Args:
         api (KaggleApi): kaggle api object
-        competition (str): competition name to submit
+        competition (str | Path): competition name to submit
         file (str): local file path to submit
         msg (str): message of current submission
-        timeout (int): timeout to wait for submission result
     """
 
     # submit first
     try:
-        resp = api.competition_submit(file_name=file, message=msg, competition=competition)
+        resp = api.competition_submit(file_name=str(file), message=msg, competition=competition)
     except Exception as e:  # noqa: BLE001
         if type(e) is requests.exceptions.HTTPError and e.response.status_code == ERROR_CODE_NOT_JOIN_COMPETITION:
             logger.error(f"You have not joined the competition '{competition}'.")
@@ -184,7 +217,7 @@ def submit_local_file(api: KaggleApi, competition: str, file: str, *, msg: str =
         logger.error(f"Fail to get submissions with error: {resp}")
         return
 
-    wait_for_submission_complete(api=api, competition=competition, timeout=timeout)
+    wait_for_submission_complete(api=api, competition=competition)
 
 
 def submit_online_notebook(
@@ -193,9 +226,7 @@ def submit_online_notebook(
     kernel_id: str,
     kernel_version: int,
     *,
-    submission_file: str = "submission.csv",
     msg: str = "Message",
-    timeout: int = 120,
 ) -> None:
     """Submit output of online kernel to competition.
 
@@ -204,10 +235,10 @@ def submit_online_notebook(
         competition (str): competition name to submit
         kernel_id (str): kernel id to submit
         kernel_version (str): kernel version to submit
-        submission_file (str): submission file name to submit
         msg (str): message of current submission
-        timeout (int): timeout to wait for submission result
     """
+    submission_file = KG_SUBMISSION_SETTING.submission_file
+
     try:
         resp: ApiCreateCodeSubmissionResponse = api.competition_submit_code(
             competition=competition,
@@ -226,7 +257,7 @@ def submit_online_notebook(
 
         return
 
-    wait_for_submission_complete(api=api, competition=competition, timeout=timeout)
+    wait_for_submission_complete(api=api, competition=competition)
 
 
 def generate_kaggle_kernel_metadata(user: str, competition: str) -> dict:
@@ -239,18 +270,18 @@ def generate_kaggle_kernel_metadata(user: str, competition: str) -> dict:
     Returns:
         dict: kaggle kernel metadata
     """
-    # we disabled internet access by default, as some competition not allow it
-    # TODO: read settings from environment variable
+    kernel_name = f"{KG_SUBMISSION_SETTING.kernel_prefix}-{competition}"
+
     return {
-        "id": f"{user}/submission-{competition}",
-        "title": f"submission-{competition}",
-        "code_file": "submission.ipynb",
+        "id": f"{user}/{kernel_name}",
+        "title": kernel_name,
+        "code_file": "submission.ipynb",  # we hard coded the name, same with prepare_notebook function
         "language": "python",
         "kernel_type": "notebook",
-        "is_private": True,
-        "enable_gpu": False,
-        "enable_tpu": False,
-        "enable_internet": False,
+        "is_private": KG_SUBMISSION_SETTING.is_private,
+        "enable_gpu": KG_SUBMISSION_SETTING.enable_gpu,
+        "enable_tpu": KG_SUBMISSION_SETTING.enable_tpu,
+        "enable_internet": KG_SUBMISSION_SETTING.enable_internet,
         "dataset_sources": [],
         "competition_sources": [f"{competition}"],
         "kernel_sources": [],
@@ -303,6 +334,8 @@ def prepare_notebook(user: str, competition: str, workspace: Path, output_path: 
     # NOTE: this function do not support competitions that contains more than one code files
     # generate metadata
     metadata = generate_kaggle_kernel_metadata(user=user, competition=competition)
+
+    logger.info(f"Generated metadata: {metadata}")
 
     metadata_file = output_path / "kernel-metadata.json"
 
@@ -442,8 +475,6 @@ def submit_notebook_output(
     competition: str,
     workspace: Path,
     msg: str,
-    submission_file: str = "submission.csv",
-    timeout: int = 120,
 ) -> None:
     """Submit code from workspace, download the output and then submit the output to competition.
 
@@ -451,9 +482,7 @@ def submit_notebook_output(
         api (kaggle.api.KaggleApi): kaggle api object
         competition (str): competition name
         workspace (Path): workspace path contains code to run
-        submission_file (str): submission file name in output files
         msg (str): message to submit
-        timeout (int): timeout to wait for the submission to finish
     """
     # 1. prepare notebook
     # 2. upload notebook
@@ -486,14 +515,14 @@ def submit_notebook_output(
 
         if download_kernel_output(api=api, kernel_id=kernel_id, output_folder=kernel_path):
             # check if the submission file exist
-            submission_file_path = kernel_path / submission_file
+            submission_file_path = kernel_path / KG_SUBMISSION_SETTING.submission_file
 
             if not submission_file_path.exists():
-                logger.error(f"Submission file {submission_file} not found in kernel output")
+                logger.error(f"Submission file {KG_SUBMISSION_SETTING.submission_file} not found in kernel output")
 
                 return
 
-            submit_local_file(api=api, competition=competition, file=str(submission_file_path), msg=msg, timeout=timeout)
+            submit_local_file(api=api, competition=competition, file=str(submission_file_path), msg=msg)
 
 
 def submit_notebook(
@@ -501,8 +530,6 @@ def submit_notebook(
     competition: str,
     workspace: Path,
     msg: str,
-    submission_file: str = "submission.csv",
-    timeout: int = 120,
 ) -> None:
     """Submit the output of online notebook in kaggle to competition.
 
@@ -510,9 +537,7 @@ def submit_notebook(
         api (kaggle.api.KaggleApi): kaggle api object
         competition (str): competition name
         workspace (Path): workspace path contains code to run
-        submission_file (str): submission file name in output files
         msg (str): message to submit
-        timeout (int): timeout to wait for the submission to finish
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
         kernel_path = Path(tmp_dir)
@@ -545,8 +570,6 @@ def submit_notebook(
             kernel_id=kernel_id,
             kernel_version=kernel_version,
             msg=msg,
-            submission_file=submission_file,
-            timeout=timeout,
         )
 
 
@@ -555,18 +578,14 @@ def submit_to_kaggle(
     workspace: Path,
     *,
     msg: str = "Message",
-    timeout: int = 120,
     code_only: bool = False,
-    submission_file: str = "submission.csv",
 ) -> None:
     """Submit the result of competition to kaggle.
 
     Args:
         competition (str): the competition name
         code_only (bool, optional): if True, submit a notebook, and download the output, then submit for non-code competitions.
-        submission_file (str, optional): the submission file name. Defaults to "submission.csv".
     """
-    # TODO: read settings from environment variable, like timeout, code_only, and submission_file
     api = KaggleApi()
 
     api.authenticate()
@@ -578,33 +597,25 @@ def submit_to_kaggle(
 
         return
 
+    submission_file = KG_SUBMISSION_SETTING.submission_file
+
     # if the competition is not code competition, and not force to use notebook, then submit local file
     if not code_only and not competition_info.is_kernels_submissions_only:
         logger.info(f"Submitting {submission_file} to {competition}")
 
-        submit_local_file(api=api, competition=competition, file=submission_file, msg=msg, timeout=timeout)
-    elif not competition_info.is_kernels_submissions_only:
-        logger.info(f"Preparing notebook for {competition}")
+        file = workspace / submission_file
 
-        submit_notebook_output(
-            api=api,
-            competition=competition,
-            workspace=workspace,
-            submission_file=submission_file,
-            msg=msg,
-            timeout=timeout,
-        )
+        submit_local_file(api=api, competition=competition, file=file, msg=msg)
+    elif not competition_info.is_kernels_submissions_only:
+        logger.info(f"Submitting via notebook for {competition}")
+
+        submit_notebook_output(api=api, competition=competition, workspace=workspace, msg=msg)
 
         return
     else:
-        submit_notebook(
-            api=api,
-            competition=competition,
-            submission_file=submission_file,
-            workspace=workspace,
-            msg=msg,
-            timeout=timeout,
-        )
+        logger.info(f"Submitting notebook for {competition}")
+
+        submit_notebook(api=api, competition=competition, workspace=workspace, msg=msg)
 
     # show remaining submit number
     # NOTE: but we cannot get rest submition number if the competition completed, so the number will be 0
@@ -613,4 +624,5 @@ def submit_to_kaggle(
 
 
 if __name__ == "__main__":
+    # print(KG_SUBMISSION_SETTING)
     submit_to_kaggle(competition="store-sales-time-series-forecasting", workspace=Path(), msg="Submission test", code_only=True)
