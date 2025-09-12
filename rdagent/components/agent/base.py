@@ -18,7 +18,7 @@ class BaseAgent:
 
 class PAIAgent(BaseAgent):
     """
-    Python-ai agent
+    Pydantic-AI agent
     """
 
     agent: Agent
