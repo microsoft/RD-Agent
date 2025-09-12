@@ -207,7 +207,7 @@ class LiteLLMAPIBackend(APIBackend):
     def chat_token_limit(self) -> int:
         try:
             model_info = get_model_info(LITELLM_SETTINGS.chat_model)
-            max_input_tokens = model_info['max_input_tokens'] - model_info['max_output_tokens']
+            max_input_tokens = model_info["max_input_tokens"] - model_info["max_output_tokens"]
             if model_info is None:
                 return super().chat_token_limit
             return max_input_tokens
