@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import time
+import fire
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -29,6 +30,9 @@ ERROR_CODE_NO_SUBMISSION = 400
 
 class KaggleSubmissionSetting(ExtendedBaseSettings):
     model_config = SettingsConfigDict(env_prefix="KG_SUBMIT_", protected_namespaces=())
+
+    # if force to submit code event it is not a code competition
+    force_submit_code: bool = False
 
     # submission file to submit
     submission_file: str = "submission.csv"
@@ -173,7 +177,11 @@ def wait_for_submission_complete(api: KaggleApi, competition: str) -> None:
 
         logger.info(f"Current submissions: {submission_resp}")
 
-        if submission_resp is None or submission_resp[0] is None or submission_resp[0].status == SubmissionStatus.PENDING:
+        if (
+            submission_resp is None
+            or submission_resp[0] is None
+            or submission_resp[0].status == SubmissionStatus.PENDING
+        ):
             # wait for 5 seconds to get latest result
             time.sleep(5)
 
@@ -573,14 +581,13 @@ def submit_notebook(
         )
 
 
-def submit_to_kaggle(
+def submit_from_workspace(
     competition: str,
     workspace: Path,
     *,
     msg: str = "Message",
-    code_only: bool = False,
 ) -> None:
-    """Submit the result of competition to kaggle.
+    """Submit the result of competition to kaggle from specified workspace.
 
     Args:
         competition (str): the competition name
@@ -600,7 +607,7 @@ def submit_to_kaggle(
     submission_file = KG_SUBMISSION_SETTING.submission_file
 
     # if the competition is not code competition, and not force to use notebook, then submit local file
-    if not code_only and not competition_info.is_kernels_submissions_only:
+    if not KG_SUBMISSION_SETTING.force_submit_code and not competition_info.is_kernels_submissions_only:
         logger.info(f"Submitting {submission_file} to {competition}")
 
         file = workspace / submission_file
@@ -623,6 +630,42 @@ def submit_to_kaggle(
     logger.info(f"Remaining submit number: {remaining_num}")
 
 
+def submit_current_sota(competition: str) -> None:
+    """Submit the sota result of competition from current trace path.
+
+    Args:
+        competition (str): which competition to submit
+    """
+    # we have to import this function here to avoid circular import issue
+    from rdagent.log.ui.utils import get_sota_exp_stat
+    from rdagent.log.conf import LOG_SETTINGS
+
+    # check the trace_path
+    sota, sota_loop_id, _, _ = get_sota_exp_stat(log_path=Path(LOG_SETTINGS.trace_path))
+
+    logger.info(f"sota loop id: {sota_loop_id}")
+
+    if sota is None:
+        logger.warning("Cannot find sota experiment, skip submitting.")
+
+        return
+
+    if sota.experiment_workspace is None:
+        logger.warning("Fail to get sota output, workspace is None.")
+
+        return
+
+    worspace = sota.experiment_workspace.workspace_path
+
+    logger.info(f"Current sota workspace: {worspace}")
+
+    # do submit
+    submit_from_workspace(
+        competition=competition,
+        workspace=worspace,
+        msg=f"SOTA at {datetime.now()}, loop: {sota_loop_id}, file: {KG_SUBMISSION_SETTING.submission_file}",  # noqa: DTZ005
+    )
+
+
 if __name__ == "__main__":
-    # print(KG_SUBMISSION_SETTING)
-    submit_to_kaggle(competition="store-sales-time-series-forecasting", workspace=Path(), msg="Submission test", code_only=True)
+    fire.Fire({"sota": submit_current_sota, "workspace": submit_from_workspace})

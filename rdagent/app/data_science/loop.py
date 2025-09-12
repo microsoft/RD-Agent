@@ -1,6 +1,5 @@
 import asyncio
 from collections.abc import Coroutine
-from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Optional
 
@@ -9,58 +8,19 @@ import typer
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-from rdagent.log.conf import LOG_SETTINGS
-from rdagent.log.ui.utils import get_sota_exp_stat
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
-from rdagent.scenarios.kaggle.submission import submit_to_kaggle
 
 
-def submit_from_workspace(competition: str) -> None:
-    # check the trace_path
-    sota, sota_loop_id, _, _ = get_sota_exp_stat(log_path=Path(LOG_SETTINGS.trace_path))
-
-    logger.info(f"sota loop id: {sota_loop_id}")
-
-    if sota is None:
-        logger.warning("Cannot find sota experiment, skip submitting.")
-
-        return
-
-    if sota.experiment_workspace is None:
-        logger.warning("Fail to get sota experiment submission file, workspace is None.")
-
-        return
-
-    worspace = sota.experiment_workspace.workspace_path
-
-    submission_csv_path = worspace / "submission.csv"
-
-    if not submission_csv_path.exists():
-        logger.warning(f"Cannot find the file submit to submit: {submission_csv_path}")
-
-        return
-
-    logger.info(f"Current sota submission file: {submission_csv_path}")
-
-    # do submit
-    submit_to_kaggle(
-        competition=competition,
-        workspace=worspace,
-        msg=f"SOTA at {datetime.now()}, loop: {sota_loop_id}, file: {submission_csv_path}",  # noqa: DTZ005
-    )
-
-
-async def run_and_auto_submit(loop_task: Coroutine, competition: str) -> None:
+async def run_and_submit_sota(loop_task: Coroutine, competition: str) -> None:
     """Run the loop coroutine task, and submit the SOTA experiment submission file to kaggle at the end."""
+    from rdagent.scenarios.kaggle.submission import submit_current_sota
+
     try:
         # wait for the loop end
         await loop_task
-    except Exception:
-        submit_from_workspace(competition=competition)
-
-        raise
-
-    submit_from_workspace(competition=competition)
+    finally:
+        # we do not care about exception, just make sure we can submit
+        submit_current_sota(competition=competition)
 
 
 def main(
@@ -125,7 +85,9 @@ def main(
         kaggle_loop.exp_gen = import_class(exp_gen_cls)(kaggle_loop.exp_gen.scen)
 
     if DS_RD_SETTING.auto_submit:
-        asyncio.run(run_and_auto_submit(kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout), competition))
+        asyncio.run(
+            run_and_submit_sota(kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout), competition)
+        )
     else:
         asyncio.run(kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout))
 
