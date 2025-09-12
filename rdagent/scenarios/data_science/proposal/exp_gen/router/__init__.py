@@ -24,6 +24,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler import (
     RoundRobinScheduler,
     SOTABasedScheduler,
     TraceScheduler,
+    MCTSScheduler,
 )
 
 if TYPE_CHECKING:
@@ -51,7 +52,6 @@ class ParallelMultiTraceExpGen(ExpGen):
         self.trace_scheduler: TraceScheduler = import_class(DS_RD_SETTING.trace_scheduler)(
             DS_RD_SETTING.max_trace_num,
             DS_RD_SETTING.scheduler_temperature,
-            c_puct=DS_RD_SETTING.scheduler_c_puct,
         )
         self.planner = import_class(DS_RD_SETTING.planner)(self.scen)
 
@@ -79,6 +79,12 @@ class ParallelMultiTraceExpGen(ExpGen):
                 # set trace current selection
                 leaves: list[int] = trace.get_leaves()
                 if not timer.started or timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
+                    # Before making a new selection, let MCTS observe newly committed feedbacks
+                    if isinstance(self.trace_scheduler, MCTSScheduler):
+                        try:
+                            self.trace_scheduler.observe_commits(trace)
+                        except Exception as e:
+                            logger.warning(f"MCTSScheduler.observe_commits failed: {e!s}")
                     local_selection = await self.trace_scheduler.next(trace)
 
                     # set the local selection as the global current selection for the trace

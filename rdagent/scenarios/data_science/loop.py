@@ -36,6 +36,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.base import (
 )
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
+from rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler import MCTSScheduler
 from rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler import (
     MCTSScheduler,
 )
@@ -133,6 +134,14 @@ class DataScienceRDLoop(RDLoop):
 
         self.summarizer = import_class(PROP_SETTING.summarizer)(scen=scen, **PROP_SETTING.summarizer_init_kwargs)
 
+        # Register MCTS reset callback so trace.reset() can cascade to MCTS stats reset
+        scheduler = getattr(self.exp_gen, "trace_scheduler", None)
+        if isinstance(scheduler, MCTSScheduler):
+            try:
+                self.trace.register_on_reset(scheduler.reset)
+            except Exception:
+                pass
+
         super(RDLoop, self).__init__()
 
     async def direct_exp_gen(self, prev_out: dict[str, Any]):
@@ -223,14 +232,6 @@ class DataScienceRDLoop(RDLoop):
             if exp.local_selection is not None:
                 self.trace.set_current_selection(exp.local_selection)
             self.trace.sync_dag_parent_and_hist((exp, prev_out["feedback"]), cur_loop_id)
-            # Notify MCTS scheduler for value backpropagation
-            scheduler = getattr(self.exp_gen, "trace_scheduler", None)
-            if isinstance(scheduler, MCTSScheduler):
-                try:
-                    scheduler.observe_feedback(self.trace, len(self.trace.hist) - 1)
-                    logger.info("MCTSScheduler.observe_feedback succeeded")
-                except Exception as e:
-                    logger.warning(f"MCTSScheduler.observe_feedback failed: {e!s}")
         else:
             exp: DSExperiment = prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"]
             # TODO: distinguish timeout error & other exception.
@@ -256,14 +257,7 @@ class DataScienceRDLoop(RDLoop):
                 ),
                 cur_loop_id,
             )
-            # Notify MCTS scheduler for value backpropagation on exception feedback
-            scheduler = getattr(self.exp_gen, "trace_scheduler", None)
-            if isinstance(scheduler, MCTSScheduler):
-                try:
-                    scheduler.observe_feedback(self.trace, len(self.trace.hist) - 1)
-                    logger.info("MCTSScheduler.observe_feedback succeeded")
-                except Exception as e2:
-                    logger.warning(f"MCTSScheduler.observe_feedback failed: {e2!s}")
+            # Value backpropagation is handled in async_gen before next() via observe_commits
 
             if self.trace.sota_experiment() is None:
                 if DS_RD_SETTING.coder_on_whole_pipeline:
@@ -288,15 +282,8 @@ class DataScienceRDLoop(RDLoop):
                     else:  # otherwise restart it
                         logger.error("Consecutive errors reached the limit. Dumping trace.")
                         logger.log_object(self.trace, tag="trace before restart")
-                        # Reset MCTS scheduler statistics when resetting the trace
-                        scheduler = getattr(self.exp_gen, "trace_scheduler", None)
-                        if isinstance(scheduler, MCTSScheduler):
-                            try:
-                                scheduler.reset()
-                                logger.info("MCTSScheduler.reset succeeded")
-                            except Exception as e3:
-                                logger.warning(f"MCTSScheduler.reset failed: {e3!s}")
-                        self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
+                        # Reset the trace; MCTS stats will be cleared via registered callback
+                        self.trace.reset()
 
         # set the SOTA experiment to submit
         sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace)

@@ -161,6 +161,7 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
         # TODO: self.hist is 2-tuple now, remove hypothesis from it, change old code for this later.
         self.knowledge_base: ASpecificKB | None = knowledge_base
         self.current_selection: tuple[int, ...] = (-1,)
+        self._on_reset_callbacks: list[callable] = []
 
     def get_sota_hypothesis_and_experiment(self) -> tuple[Hypothesis | None, Experiment | None]:
         """Access the last experiment result, sub-task, and the corresponding hypothesis."""
@@ -202,6 +203,26 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
             return []
 
         return [self.hist[i] for i in self.get_parents(selection[0])]
+
+    # ---------------- Reset & Callbacks ---------------- #
+    def register_on_reset(self, fn) -> None:
+        if callable(fn):
+            self._on_reset_callbacks.append(fn)
+
+    def reset(self) -> None:
+        """
+        Reset the trace to initial state. Intended to be used when consecutive failures reach threshold.
+        """
+        self.hist = []
+        self.dag_parent = []
+        self.idx2loop_id = {}
+        self.current_selection = (-1,)
+        # Fire callbacks (e.g., MCTSScheduler.reset)
+        for fn in self._on_reset_callbacks:
+            try:
+                fn()
+            except Exception:
+                pass
 
     def exp2idx(self, exp: Experiment | list[Experiment]) -> int | list[int] | None:
         if isinstance(exp, list):

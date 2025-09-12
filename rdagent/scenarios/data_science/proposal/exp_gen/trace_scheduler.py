@@ -8,6 +8,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from rdagent.log import rdagent_logger as logger
+from rdagent.app.data_science.conf import DS_RD_SETTING
 
 if TYPE_CHECKING:
     from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace
@@ -306,15 +307,18 @@ class MCTSScheduler(ProbabilisticScheduler):
     - Keep NEW_ROOT policy and uncommitted status handling identical to base classes.
     """
 
-    def __init__(self, max_trace_num: int, temperature: float = 1.0, c_puct: float = 1.0, *args, **kwargs):
+    def __init__(self, max_trace_num: int, temperature: float = 1.0, *args, **kwargs):
         super().__init__(max_trace_num, temperature)
-        self.c_puct = c_puct
+        # Read c_puct from settings if available, otherwise fall back to default 1.0
+        self.c_puct = getattr(DS_RD_SETTING, "scheduler_c_puct", 1.0) or 1.0
         # Statistics keyed by leaf node index
         self.node_visit_count: dict[int, int] = {}
         self.node_value_sum: dict[int, float] = {}
         self.node_prior: dict[int, float] = {}
         # Global counter to stabilize U term
         self.global_visit_count: int = 0
+        # Last observed commit index for batch feedback observation
+        self.last_observed_commit_idx: int = 0
 
     def _get_q(self, node_id: int) -> float:
         visits = self.node_visit_count.get(node_id, 0)
@@ -406,3 +410,21 @@ class MCTSScheduler(ProbabilisticScheduler):
         self.node_value_sum.clear()
         self.node_prior.clear()
         self.global_visit_count = 0
+        self.last_observed_commit_idx = 0
+
+    def observe_commits(self, trace: DSTrace) -> None:
+        """
+        Batch observe all newly committed experiments since last observation.
+        Should be called before making a new selection to ensure statistics are up-to-date.
+        """
+        try:
+            start_idx = max(0, self.last_observed_commit_idx)
+            # Only observe fully committed items (both dag_parent and hist appended)
+            end_idx = min(len(trace.dag_parent), len(trace.hist))
+            if start_idx >= end_idx:
+                return
+            for idx in range(start_idx, end_idx):
+                self.observe_feedback(trace, idx)
+            self.last_observed_commit_idx = end_idx
+        except Exception as e:
+            logger.warning(f"MCTSScheduler.observe_commits encountered error: {e!s}")
