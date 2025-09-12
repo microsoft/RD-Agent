@@ -28,7 +28,7 @@ class Agent(PAIAgent):
         timm_trigger = error_message.lower().count("timm") >= 3
         timm_trigger_text = ""
         if timm_trigger:
-            timm_trigger_text = T("prompts:timm_special_case").r()
+            timm_trigger_text = T(".prompts:timm_special_case").r()
             logger.info("🎯 Timm special handling triggered", tag="context7")
 
         # Construct enhanced query using experimental template
