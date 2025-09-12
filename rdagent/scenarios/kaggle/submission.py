@@ -2,15 +2,14 @@ import json
 import os
 import tempfile
 import time
+from collections.abc import Generator
+from contextlib import contextmanager
+from datetime import datetime, timezone
+from pathlib import Path
+
 import fire
 import nbformat
 import requests
-
-from typing import Generator
-from contextlib import contextmanager
-from datetime import date, datetime, timezone
-from pathlib import Path
-
 from kaggle.api.kaggle_api_extended import (
     ApiCreateCodeSubmissionResponse,
     ApiSaveKernelResponse,
@@ -34,7 +33,7 @@ ERROR_CODE_NO_SUBMISSION = 400
 
 
 class KaggleSubmissionSetting(ExtendedBaseSettings):
-    model_config = SettingsConfigDict(env_prefix="KG_SUBMIT_", protected_namespaces=())
+    model_config = SettingsConfigDict(env_prefix="SUBMIT_", protected_namespaces=())
 
     # if force to submit code even it is not a code competition
     force_submit_code: bool = False
@@ -64,34 +63,40 @@ class KaggleSubmissionSetting(ExtendedBaseSettings):
 KG_SUBMISSION_SETTING = KaggleSubmissionSetting()
 
 
-def get_completed_submissions(api: KaggleApi, competition: str, day: date) -> list[ApiSubmission]:
-    """Get the completed submissions for specified day.
+def get_completed_submissions(api: KaggleApi, competition: str) -> list[ApiSubmission]:
+    """Get the completed submissions of today.
 
     Args:
         api (KaggleApi): kaggle api object
         competition (str): competition name to get submissions
-        day (date): date (utc) to get submissions
 
     Return:
-        list[ApiSubmission]: completed submissions of the day
+        list[ApiSubmission]: completed submissions of today
     """
     # only completed submission will consume today's limitation
     submissions: list[ApiSubmission] = []
 
-    try:
-        page = 0
-        while (resp := api.competition_submissions(competition=competition, page_token=page)) is not None:
-            page += 1
-            submissions.extend(
-                [s for s in resp if s is not None and s.date.date() == day and s.status == SubmissionStatus.COMPLETE],
-            )
+    today = datetime.now(timezone.utc).date()
 
-            # sleep for a while to avoid rate limit
-            time.sleep(1)
+    try:
+        submissions_resp = api.competition_submissions(
+            competition=competition,
+            # the api use date to sort the result by default, so latest submission is in last page
+            page_token=-1,
+        )
+
+        if submissions_resp is not None:
+            submissions = [
+                submission
+                for submission in submissions_resp
+                if submission is not None
+                and submission.date.date() == today
+                and submission.status == SubmissionStatus.COMPLETE
+            ]
     except requests.exceptions.HTTPError as e:
         # 403 if we have not joined the competition
         if e.response.status_code == ERROR_CODE_NOT_JOIN_COMPETITION:
-            logger.warning(f"You have not joined the competition '{competition}'.")
+            logger.error(f"You have not joined the competition '{competition}'.")
         elif e.response.status_code == ERROR_CODE_NO_SUBMISSION:
             # if a competition has no any submission, this call will cause 400.
             # we consider it is a correct state, means 0 completed submissions
@@ -147,7 +152,7 @@ def get_submission_remaining(api: KaggleApi, competition: str) -> int:
         int: submission remaining number
     """
     # kaggle use utc time to count
-    completed_submissions = get_completed_submissions(api, competition, datetime.now(timezone.utc).date())
+    completed_submissions = get_completed_submissions(api, competition)
 
     competition_detail = get_competition_detail(api, competition)
 
@@ -173,7 +178,9 @@ def wait_for_submission_complete(api: KaggleApi, competition: str) -> None:
     while (datetime.now() - start).seconds <= timeout:  # noqa: DTZ005
         # the api can sort the submissions by date (new -> old), so we use the first item at first page
         resp = api.competition_submissions(
-            competition=competition, sort=SubmissionSortBy.SUBMISSION_SORT_BY_DATE, page_token=0
+            competition=competition,
+            sort=SubmissionSortBy.SUBMISSION_SORT_BY_DATE,
+            page_token=0,
         )
 
         logger.info(f"Current submissions: {resp}")
@@ -223,7 +230,12 @@ def submit_local_file(api: KaggleApi, competition: str, file: str | Path, *, msg
 
 
 def submit_kernel_by_version(
-    api: KaggleApi, competition: str, kernel_id: str, kernel_version: int, *, msg: str = "Message"
+    api: KaggleApi,
+    competition: str,
+    kernel_id: str,
+    kernel_version: int,
+    *,
+    msg: str = "Message",
 ) -> None:
     """Submit output of online kernel to competition without downloading the outputs.
 
@@ -231,7 +243,8 @@ def submit_kernel_by_version(
         api (KaggleApi): kaggle api object
         competition (str): competition name to submit
         kernel_id (str): kernel id to submit
-        kernel_version (str): kernel version to submit, each time we call kaggle sdk to upload a notebook, it will return a new version
+        kernel_version (str): kernel version to submit,
+            each time we call kaggle sdk to upload a notebook, it will return a new version
         msg (str): message of current submission
     """
     submission_file = KG_SUBMISSION_SETTING.submission_file
@@ -540,11 +553,15 @@ def submit_notebook_online(
     """
     with submit_notebook(api=api, competition=competition, workspace=workspace) as (_, kernel_id, kernel_version):
         submit_kernel_by_version(
-            api=api, competition=competition, kernel_id=kernel_id, kernel_version=kernel_version, msg=msg
+            api=api,
+            competition=competition,
+            kernel_id=kernel_id,
+            kernel_version=kernel_version,
+            msg=msg,
         )
 
 
-def submit_from_workspace(competition: str, workspace: Path, *, msg: str = "Message") -> None:
+def submit_from_workspace(competition: str, workspace: Path | str, *, msg: str = "Message") -> None:
     """Submit the result of competition to kaggle from specified workspace.
 
     Args:
@@ -564,23 +581,26 @@ def submit_from_workspace(competition: str, workspace: Path, *, msg: str = "Mess
 
     submission_file = KG_SUBMISSION_SETTING.submission_file
 
+    if type(workspace) is str:
+        workspace = Path(workspace)
+
     # if the competition is not code competition, and not force to use notebook, then submit local file
     if not KG_SUBMISSION_SETTING.force_submit_code and not competition_info.is_kernels_submissions_only:
         logger.info(f"Submitting {submission_file} to {competition}")
 
-        file = workspace / submission_file
+        file = workspace / submission_file  # type: ignore
 
         submit_local_file(api=api, competition=competition, file=file, msg=msg)
     elif not competition_info.is_kernels_submissions_only:
         logger.info(f"Submitting via notebook for {competition}")
 
-        submit_notebook_output(api=api, competition=competition, workspace=workspace, msg=msg)
+        submit_notebook_output(api=api, competition=competition, workspace=workspace, msg=msg)  # type: ignore
 
         return
     else:
         logger.info(f"Submitting notebook for {competition}")
 
-        submit_notebook(api=api, competition=competition, workspace=workspace, msg=msg)
+        submit_notebook_online(api=api, competition=competition, workspace=workspace, msg=msg)  # type: ignore
 
     # show remaining submit number
     # NOTE: if the competition is finished, the number will be 0
@@ -596,8 +616,8 @@ def submit_current_sota(competition: str) -> None:
         competition (str): which competition to submit
     """
     # we have to import this function here to avoid circular import issue
-    from rdagent.log.ui.utils import get_sota_exp_stat
-    from rdagent.log.conf import LOG_SETTINGS
+    from rdagent.log.conf import LOG_SETTINGS  # noqa: PLC0415
+    from rdagent.log.ui.utils import get_sota_exp_stat  # noqa: PLC0415
 
     # check the trace_path
     sota, sota_loop_id, _, _ = get_sota_exp_stat(log_path=Path(LOG_SETTINGS.trace_path))
