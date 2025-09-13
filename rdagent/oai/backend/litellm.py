@@ -1,5 +1,5 @@
 import copyreg
-from typing import Any, Literal, Optional, Type, Union, cast
+from typing import Any, Literal, Optional, Type, TypedDict, Union, cast
 
 import numpy as np
 from litellm import (
@@ -85,6 +85,44 @@ class LiteLLMAPIBackend(APIBackend):
         response_list = [data["embedding"] for data in response.data]
         return response_list
 
+    class CompleteKwargs(TypedDict):
+        model: str
+        temperature: float
+        max_tokens: int | None
+        reasoning_effort: Literal["low", "medium", "high"] | None
+
+    def get_complete_kwargs(self) -> CompleteKwargs:
+        """
+        return several key settings for completion
+        getting these values from settings makes it easier to adapt to backend calls in agent systems.
+        """
+        # Call LiteLLM completion
+        model = LITELLM_SETTINGS.chat_model
+        temperature = LITELLM_SETTINGS.chat_temperature
+        max_tokens = LITELLM_SETTINGS.chat_max_tokens
+        reasoning_effort = LITELLM_SETTINGS.reasoning_effort
+
+        if LITELLM_SETTINGS.chat_model_map:
+            for t, mc in LITELLM_SETTINGS.chat_model_map.items():
+                if t in logger._tag:
+                    model = mc["model"]
+                    if "temperature" in mc:
+                        temperature = float(mc["temperature"])
+                    if "max_tokens" in mc:
+                        max_tokens = int(mc["max_tokens"])
+                    if "reasoning_effort" in mc:
+                        if mc["reasoning_effort"] in ["low", "medium", "high"]:
+                            reasoning_effort = cast(Literal["low", "medium", "high"], mc["reasoning_effort"])
+                        else:
+                            reasoning_effort = None
+                    break
+        return self.CompleteKwargs(
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            reasoning_effort=reasoning_effort,
+        )
+
     def _create_chat_completion_inner_function(  # type: ignore[no-untyped-def] # noqa: C901, PLR0912, PLR0915
         self,
         messages: list[dict[str, Any]],
@@ -109,34 +147,15 @@ class LiteLLMAPIBackend(APIBackend):
 
         if LITELLM_SETTINGS.log_llm_chat_content:
             logger.info(self._build_log_messages(messages), tag="llm_messages")
-        # Call LiteLLM completion
-        model = LITELLM_SETTINGS.chat_model
-        temperature = LITELLM_SETTINGS.chat_temperature
-        max_tokens = LITELLM_SETTINGS.chat_max_tokens
-        reasoning_effort = LITELLM_SETTINGS.reasoning_effort
 
-        if LITELLM_SETTINGS.chat_model_map:
-            for t, mc in LITELLM_SETTINGS.chat_model_map.items():
-                if t in logger._tag:
-                    model = mc["model"]
-                    if "temperature" in mc:
-                        temperature = float(mc["temperature"])
-                    if "max_tokens" in mc:
-                        max_tokens = int(mc["max_tokens"])
-                    if "reasoning_effort" in mc:
-                        if mc["reasoning_effort"] in ["low", "medium", "high"]:
-                            reasoning_effort = cast(Literal["low", "medium", "high"], mc["reasoning_effort"])
-                        else:
-                            reasoning_effort = None
-                    break
+        complete_kwargs = self.get_complete_kwargs()
+        model = complete_kwargs["model"]
+
         response = completion(
-            model=model,
             messages=messages,
             stream=LITELLM_SETTINGS.chat_stream,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            reasoning_effort=reasoning_effort,
             max_retries=0,
+            **complete_kwargs,
             **kwargs,
         )
         logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {model}", tag="llm_messages")
