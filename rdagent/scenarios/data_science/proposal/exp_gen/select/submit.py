@@ -729,7 +729,7 @@ def select_on_existing_trace(
         for trace_folder in trace_root_path.iterdir():
             if not trace_folder.is_dir():
                 continue
-            if experiment:
+            if isinstance(experiment, str) and experiment:
                 if trace_folder.name not in experiment:
                     continue
             for trace_pkl_path in trace_folder.glob("*.pkl"):
