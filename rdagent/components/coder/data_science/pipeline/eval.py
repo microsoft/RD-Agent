@@ -36,7 +36,7 @@ class DSCoderFeedback(CoSTEERSingleFeedback):
     This feedback is used to evaluate the code and execution of the Data Science CoSTEER task.
     """
 
-    requires_documentation_search: bool = False
+    requires_documentation_search: bool | None = None  # Keep None means the feature is disabled
     error_message: str | None = None
 
     @staticmethod
@@ -143,7 +143,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 return_checking="This task has failed too many times, skip implementation.",
                 code="This task has failed too many times, skip implementation.",
                 error_message="This task has failed too many times, skip implementation.",
-                requires_documentation_search=False,
+                requires_documentation_search=None,
                 final_decision=False,
             )
 
