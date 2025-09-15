@@ -3,7 +3,7 @@ LLaMA Factory manager for parameter extraction and caching.
 """
 
 import json
-import time
+import shutil
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -16,13 +16,32 @@ from rdagent.log import rdagent_logger as logger
 class LLaMAFactoryManager:
     """Manager for LLaMA Factory information extraction and caching."""
 
-    def __init__(self, cache_dir: Optional[Path] = None):
+    def __init__(self):
         """Initialize the manager instance."""
-        if cache_dir is None:
-            base_path = FT_RD_SETTING.file_path or str(Path.home() / ".rdagent")
-            cache_dir = Path(base_path) / ".llama_factory_info"
-        self.cache_dir = cache_dir
+        base_path = FT_RD_SETTING.file_path
+        self.cache_dir = Path(base_path) / ".llama_factory_info"
         self._info_cache: Optional[Dict] = None
+
+    def get_docker_commit_hash(self) -> Optional[str]:
+        """Get LLaMA Factory git commit hash from Docker environment."""
+        logger.info("Getting LLaMA Factory commit hash from Docker")
+
+        # Use independent script to get commit hash
+        workspace = FBWorkspace()
+        script_path = Path(__file__).parent / "docker_scripts" / "get_commit.py"
+        workspace.inject_files(**{"get_commit.py": script_path.read_text()})
+
+        # Run in Docker
+        result = workspace.run(
+            env=get_ft_env(running_timeout_period=30),
+            entry="python get_commit.py",
+        )
+
+        if result.exit_code != 0:
+            logger.warning(f"Failed to get commit hash: {result.stdout}")
+            return None
+
+        return result.stdout.strip()
 
     def extract_info_from_docker(self) -> Dict:
         """Extract LLaMA Factory information from Docker environment."""
@@ -30,16 +49,14 @@ class LLaMAFactoryManager:
 
         # Prepare extraction script
         workspace = FBWorkspace()
-        script_path = (
-            Path(__file__).parent.parent.parent
-            / "components"
-            / "coder"
-            / "finetune"
-            / "extract_llama_factory_simple.py"
-        )
+        script_path = Path(__file__).parent / "docker_scripts" / "extract_llama_factory.py"
         workspace.inject_files(**{"extract_script.py": script_path.read_text()})
 
         # Setup cache directory and Docker volumes
+        # Clear existing cache directory to ensure fresh extraction
+        if self.cache_dir.exists():
+            logger.info("Clearing existing LLaMA Factory cache directory")
+            shutil.rmtree(self.cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         volumes = {str(self.cache_dir): {"bind": "/workspace/.llama_factory_info", "mode": "rw"}}
 
@@ -101,18 +118,32 @@ class LLaMAFactoryManager:
 
         return data
 
-    def get_info(self, force_refresh: bool = False) -> Dict:
-        """Get complete LLaMA Factory information."""
-        if self._info_cache is None or force_refresh:
-            # Try loading from cache first
-            cached_data = self._load_categorized_structure()
-            if cached_data and cached_data.get("parameters"):
-                logger.info("Loaded LLaMA Factory info from cache")
-                self._info_cache = cached_data
-                return self._info_cache
+    def get_info(self) -> Dict:
+        """Get complete LLaMA Factory information.
 
-            # Extract fresh information if cache is empty
-            self._info_cache = self.extract_info_from_docker()
+        On first call, checks if Docker's LLaMA Factory commit matches cached version.
+        If different or no cache exists, extracts fresh information from Docker.
+        """
+        if self._info_cache is None:
+            # Get current Docker commit hash
+            docker_commit = self.get_docker_commit_hash()
+
+            # Try loading from cache
+            cached_data = self._load_categorized_structure()
+            cached_commit = cached_data.get("llama_factory_commit") if cached_data else None
+
+            # If commits match, use cached data; otherwise extract fresh info
+            if docker_commit and cached_commit and docker_commit == cached_commit:
+                logger.info(f"Loaded LLaMA Factory info from cache (commit: {docker_commit})")
+                self._info_cache = cached_data
+            else:
+                if docker_commit and cached_commit:
+                    logger.info(
+                        f"LLaMA Factory commit changed from {cached_commit} to {docker_commit}, extracting fresh info"
+                    )
+                else:
+                    logger.info("Cache invalid or missing, extracting fresh info")
+                self._info_cache = self.extract_info_from_docker()
 
         return self._info_cache
 
@@ -125,6 +156,17 @@ class LLaMAFactoryManager:
     def models(self) -> List[str]:
         """Available base models."""
         return list(self.get_info().get("supported_models", {}).keys())
+
+    @property
+    def hf_models(self) -> List[str]:
+        """Available HuggingFace models (values from supported_models dict)."""
+        supported_models = self.get_info().get("supported_models", {})
+        # Extract unique HF model names from the values
+        hf_model_set = set()
+        for hf_model in supported_models.values():
+            if isinstance(hf_model, str):
+                hf_model_set.add(hf_model)
+        return list(hf_model_set)
 
     @property
     def peft_methods(self) -> List[str]:
@@ -148,6 +190,21 @@ class LLaMAFactoryManager:
         if param_type:
             return params.get(param_type, {})
         return params
+
+    def get_metadata_info(self) -> Dict:
+        """Get metadata information including commit hash."""
+        info = self.get_info()
+
+        # Extract metadata with backward compatibility
+        metadata = {
+            "has_metadata": bool(info.get("llama_factory_commit")),
+            "commit_sha": info.get("llama_factory_commit", "unknown"),
+            "timestamp": info.get("timestamp"),
+            "version": info.get("version"),
+            "last_updated": info.get("last_updated"),
+        }
+
+        return metadata
 
     def format_method_params(self, method: str) -> str:
         """Format parameters for a specific method as a readable string."""
@@ -192,15 +249,11 @@ class LLaMAFactoryManager:
 _manager_instance: Optional[LLaMAFactoryManager] = None
 
 
-def get_llama_factory_manager(cache_dir: Optional[Path] = None) -> LLaMAFactoryManager:
+def get_llama_factory_manager() -> LLaMAFactoryManager:
     """Get the singleton LLaMAFactoryManager instance."""
     global _manager_instance
 
     if _manager_instance is None:
-        _manager_instance = LLaMAFactoryManager(cache_dir)
-    elif cache_dir is not None and _manager_instance.cache_dir != cache_dir:
-        logger.info(f"Updating cache directory from {_manager_instance.cache_dir} to {cache_dir}")
-        _manager_instance.cache_dir = cache_dir
-        _manager_instance._info_cache = None
+        _manager_instance = LLaMAFactoryManager()
 
     return _manager_instance

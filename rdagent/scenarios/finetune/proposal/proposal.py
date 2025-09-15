@@ -9,7 +9,9 @@ from rdagent.components.coder.finetune.exp import TrainingTask
 from rdagent.core.proposal import ExpGen, Hypothesis, Hypothesis2Experiment, Trace
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.finetune.experiment.experiment import FTExperiment
-from rdagent.scenarios.finetune.llama_factory_manager import get_llama_factory_manager
+from rdagent.scenarios.finetune.scen.llama_factory_manager import (
+    get_llama_factory_manager,
+)
 from rdagent.scenarios.finetune.scen.scenario import LLMFinetuneScen
 from rdagent.scenarios.finetune.scen.utils import extract_dataset_info
 from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env

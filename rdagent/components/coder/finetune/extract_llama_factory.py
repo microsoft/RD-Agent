@@ -4,13 +4,14 @@ Extracts and categorizes parameters for efficient use.
 """
 
 import json
+import subprocess
 import sys
 import time
 from dataclasses import fields
 from pathlib import Path
 
 # Add LLaMA Factory to path
-sys.path.insert(0, "/workspace/LLaMA-Factory/src")
+sys.path.insert(0, "/llamafactory/src")
 
 from llamafactory.extras.constants import METHODS, SUPPORTED_MODELS, TRAINING_STAGES
 
@@ -40,17 +41,31 @@ def extract_params(cls):
     return {field.name: extract_field_info(field) for field in fields(cls)}
 
 
+def get_git_commit_hash():
+    """Get the current git commit hash of LLaMA Factory."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd="/llamafactory", capture_output=True, text=True, check=True
+        )
+        return result.stdout.strip()
+    except Exception as e:
+        print(f"Failed to get git commit hash: {e}")
+        return None
+
+
 def save_categorized(data, base_dir):
     """Save data in categorized structure."""
     base_path = Path(base_dir)
 
     # Save metadata
-    (base_path / "metadata.json").write_text(
-        json.dumps(
-            {"timestamp": int(time.time()), "version": "2.0", "last_updated": time.strftime("%Y-%m-%d %H:%M:%S")},
-            indent=2,
-        )
-    )
+    commit_hash = get_git_commit_hash()
+    metadata = {
+        "timestamp": int(time.time()),
+        "version": "2.0",
+        "last_updated": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "llama_factory_commit": commit_hash,
+    }
+    (base_path / "metadata.json").write_text(json.dumps(metadata, indent=2))
 
     # Save constants
     constants_dir = base_path / "constants"
@@ -114,9 +129,19 @@ def save_categorized(data, base_dir):
     (stage_dir / "sft.json").write_text(json.dumps(sft_params, indent=2))
 
 
-if __name__ == "__main__":
-    base_dir = "/workspace/.llama_factory_info"
+def main():
+    # Allow specifying output directory from command line argument, default is /workspace/.llama_factory_info
+    base_dir = sys.argv[1] if len(sys.argv) > 1 else "/workspace/.llama_factory_info"
     Path(base_dir).mkdir(parents=True, exist_ok=True)
 
-    save_categorized({}, base_dir)
-    print("SUCCESS")
+    try:
+        save_categorized({}, base_dir)
+        print("SUCCESS")
+        return 0
+    except Exception as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
