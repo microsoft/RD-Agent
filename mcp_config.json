@@ -1,0 +1,9 @@
+{
+  "mcpServices": {
+    "context7": {
+      "url": "http://localhost:8123/mcp",
+      "enabled": true,
+      "timeout": 60
+    }
+  }
+}
