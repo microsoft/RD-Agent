@@ -741,7 +741,7 @@ def select_on_existing_trace(
                 tar_file = Path("/mnt/output") / job["results_dir"] / job["submit_args"]["env"]["RD_RES_NAME"]
                 extract_tar(tar_file)
                 debug = False
-                
+
     if debug:
         for trace_folder in trace_root_path.iterdir():
             if not trace_folder.is_dir():
@@ -833,6 +833,8 @@ def select_on_existing_trace(
     with open(f"result_{selector_name}.json", "w") as f:
         json.dump(result_dict, f, indent=4)
     logger.info(f"Results saved to result_{selector_name}.json")
+    if "yaml" in trace_root and Path("log/log").exists():
+        shutil.rmtree("log/log")
 
 
 if __name__ == "__main__":
