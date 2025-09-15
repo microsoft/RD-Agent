@@ -78,7 +78,7 @@ exp_feedback:
       - Set `"Acceptable": "no"` if ANY of the above conditions fail
     - This acceptability assessment serves as a final quality gate to ensure only truly valuable experiments are accepted
 
-    Provide detailed and constructive feedback structured as follows without anything else:
+    Provide detailed and constructive feedback structured as follows in JSON format without anything else:
     {
       "Submission Format Check": "yes or no",
       "First Valid Submission": "yes or no",
@@ -212,7 +212,7 @@ exp_feedback_draft:
     - You should provide your feedback based on the current code and SOTA code. Especially focus on the feature engineering part.
     - For example, if the code truncate the line with N words, you can suggest to print the mean, median or quantile of the length of the line for better understanding of the data in the next rounds of experiments.
 
-    Provide detailed and constructive feedback structured as follows without anything else:
+    Provide detailed and constructive feedback structured as follows in JSON format without anything else:
     {
       "Submission Format Check": "yes or no",
       "First Valid Submission": "yes or no",
