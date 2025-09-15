@@ -66,7 +66,7 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     def task(self) -> str:
         """Generate task name from base model and dataset."""
         if self.base_model and self.dataset:
-            return f"{self.base_model}_{self.dataset}".replace("/", "_").replace("\\", "_")
+            return f"{self.base_model}@{self.dataset}".replace("/", "_").replace("\\", "_")
         return ""
 
 
