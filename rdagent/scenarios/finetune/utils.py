@@ -5,23 +5,39 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.finetune.download import download_dataset, download_model
 
 
-def ensure_ft_assets_exist(model: str | None, dataset: str) -> None:
+def ensure_ft_assets_exist(
+    *, model: str | None = None, dataset: str | None = None, check_model: bool = False, check_dataset: bool = False
+) -> None:
     """Ensure dataset and model assets exist under FT_FILE_PATH structure.
 
-    - Dataset path: FT_RD_SETTING.file_path/datasets/<dataset>
-    - Model path:   FT_RD_SETTING.file_path/models/<model>
-    """
-    # Import here to avoid circular imports
-    dataset_dir = Path(FT_RD_SETTING.file_path) / "datasets" / dataset
-    if not dataset_dir.exists():
-        try:
-            logger.info(f"Downloading dataset '{dataset}' to {dataset_dir}")
-            download_dataset(dataset, out_dir_root=str(Path(FT_RD_SETTING.file_path) / "datasets"))
-        except Exception as e:
-            raise Exception(f"Failed to download dataset '{dataset}' to {dataset_dir}: {e}") from e
+    Args:
+        model: Model name to check/download. Required if check_model=True.
+        dataset: Dataset name to check/download. Required if check_dataset=True.
+        check_model: Whether to ensure model exists.
+        check_dataset: Whether to ensure dataset exists.
 
-    # Model may be optional for some flows, but for finetune we typically require a model
-    if model is not None:
+    Paths:
+        - Dataset path: FT_RD_SETTING.file_path/datasets/<dataset>
+        - Model path:   FT_RD_SETTING.file_path/models/<model>
+    """
+    # Ensure dataset exists if requested
+    if check_dataset:
+        if dataset is None:
+            raise ValueError("Dataset name is required when check_dataset=True")
+
+        dataset_dir = Path(FT_RD_SETTING.file_path) / "datasets" / dataset
+        if not dataset_dir.exists():
+            try:
+                logger.info(f"Downloading dataset '{dataset}' to {dataset_dir}")
+                download_dataset(dataset, out_dir_root=str(Path(FT_RD_SETTING.file_path) / "datasets"))
+            except Exception as e:
+                raise Exception(f"Failed to download dataset '{dataset}' to {dataset_dir}: {e}") from e
+
+    # Ensure model exists if requested
+    if check_model:
+        if model is None:
+            raise ValueError("Model name is required when check_model=True")
+
         model_dir = Path(FT_RD_SETTING.file_path) / "models" / model
         if not model_dir.exists():
             try:

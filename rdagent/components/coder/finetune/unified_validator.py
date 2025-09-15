@@ -42,8 +42,9 @@ class UnifiedLLMConfigValidator:
     REQUIRED_FIELDS = ["model_name_or_path", "stage", "do_train", "finetuning_type", "dataset"]
     LORA_FIELDS = ["lora_rank", "lora_alpha"]
 
-    def __init__(self):
+    def __init__(self, llama_factory_manager=None):
         self._supported_params_cache: Optional[Set[str]] = None
+        self.llama_factory_manager = llama_factory_manager
 
     def validate_config_comprehensive(
         self, config_yaml: str, enable_micro_batch_test: bool = False, workspace: Optional[FBWorkspace] = None, env=None
@@ -106,49 +107,32 @@ class UnifiedLLMConfigValidator:
             return config_yaml
 
     def _get_supported_parameters(self) -> Set[str]:
-        """Get supported parameters from LlamaFactory in Docker environment"""
+        """Get supported parameters from LlamaFactory Manager"""
         if self._supported_params_cache is not None:
             return self._supported_params_cache
 
-        # Fallback parameter set
-        fallback_params = {
-            "model_name_or_path",
-            "stage",
-            "do_train",
-            "finetuning_type",
-            "dataset",
-            "lora_rank",
-            "lora_alpha",
-            "learning_rate",
-            "num_train_epochs",
-            "max_steps",
-            "output_dir",
-            "logging_steps",
-            "save_steps",
-            "warmup_steps",
-            "lr_scheduler_type",
-            "optim",
-            "max_grad_norm",
-            "save_strategy",
-        }
+        if self.llama_factory_manager is None:
+            raise RuntimeError("LlamaFactory Manager not provided to validator")
 
         try:
-            # Execute extraction script in Docker
-            workspace = FBWorkspace()
-            workspace.inject_files(**{"extract_params.py": (DIRNAME / "extract_params.txt").read_text()})
-            result = workspace.run(env=get_ft_env(running_timeout_period=30), entry="python extract_params.py")
+            all_params = self.llama_factory_manager.get_parameters()
 
-            if result.exit_code == 0:
-                params = set(json.loads(result.stdout.strip()))
-                logger.info(f"Extracted {len(params)} parameters from Docker")
-                self._supported_params_cache = params
-                return params
+            # Extract all parameter names from all parameter types
+            supported_params = set()
+            for param_type, params_dict in all_params.items():
+                if isinstance(params_dict, dict):
+                    supported_params.update(params_dict.keys())
+
+            if not supported_params:
+                raise RuntimeError("No parameters found in LlamaFactory Manager")
+
+            logger.info(f"Loaded {len(supported_params)} parameters from LlamaFactory Manager")
+            self._supported_params_cache = supported_params
+            return supported_params
 
         except Exception as e:
-            logger.warning(f"Docker extraction failed ({e}), using fallback")
-
-        self._supported_params_cache = fallback_params
-        return fallback_params
+            logger.error(f"Failed to load parameters from LlamaFactory Manager: {e}")
+            raise RuntimeError(f"Unable to get supported parameters from LlamaFactory: {e}") from e
 
     def _validate_completeness(self, config_yaml: str) -> ValidationResult:
         """Validate configuration completeness and correctness"""
@@ -253,6 +237,13 @@ class UnifiedLLMConfigValidator:
         return report
 
 
-def create_unified_validator() -> UnifiedLLMConfigValidator:
-    """Create unified validator instance"""
-    return UnifiedLLMConfigValidator()
+def create_unified_validator(llama_factory_manager=None) -> UnifiedLLMConfigValidator:
+    """Create unified validator instance."""
+    if llama_factory_manager is None:
+        # Lazy import to avoid circular dependency
+        from rdagent.scenarios.finetune.llama_factory_manager import (
+            get_llama_factory_manager,
+        )
+
+        llama_factory_manager = get_llama_factory_manager()
+    return UnifiedLLMConfigValidator(llama_factory_manager)
