@@ -354,13 +354,6 @@ def prepare_notebook(user: str, competition: str, workspace: Path, output_path: 
     # create kaggle notebook from template without converting
     notebook: nbformat.NotebookNode = nbformat.reads(kaggle_notebook_template, as_version=nbformat.NO_CONVERT)
 
-    eda_file = workspace / "EDA.md"
-
-    # try to read and create a markdown cell for EDA.md
-    if eda_file.exists():
-        with eda_file.open("rt", encoding="utf-8") as fp:
-            notebook.cells.append(nbformat.v4.new_markdown_cell(fp.read()))
-
     # read the main.py
     main_file = workspace / "main.py"
 
