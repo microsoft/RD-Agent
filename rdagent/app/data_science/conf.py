@@ -47,6 +47,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_doc_dev: bool = False
     model_dump_check_level: Literal["medium", "high"] = "medium"
 
+    #### MCP documentation search integration
+    enable_mcp_documentation_search: bool = False
+    """Enable MCP documentation search for error resolution. Requires MCP_ENABLED=true and MCP_CONTEXT7_ENABLED=true in environment."""
+
     ### specific feature
 
     ### notebook integration
@@ -181,7 +185,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
 DS_RD_SETTING = DataScienceBasePropSetting()
 
-# enable_cross_trace_diversity 和 llm_select_hypothesis should not be true at the same time
+# enable_cross_trace_diversity and llm_select_hypothesis should not be true at the same time
 assert not (
     DS_RD_SETTING.enable_cross_trace_diversity and DS_RD_SETTING.llm_select_hypothesis
 ), "enable_cross_trace_diversity and llm_select_hypothesis cannot be true at the same time"

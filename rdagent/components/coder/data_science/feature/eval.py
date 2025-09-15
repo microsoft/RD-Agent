@@ -69,7 +69,7 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
             workflow_code=implementation.all_codes,
         )
         user_prompt = T(".prompts:feature_eval.user").r(
-            stdout=shrink_text(result.stdout),
+            stdout=result.get_truncated_stdout(),
             workflow_stdout=workflow_stdout,
         )
 

@@ -349,19 +349,17 @@ component_spec:
       - Present the required submission format explicitly and ensure the output adheres to it.
     
     10. Preferred Packages:
-      {% include "scenarios.data_science.share:guidelines.package_selection" %}
+      - You can choose the most proper packages to achieve the task.
+      - When facing a choice between two packages which both can achieve the same goal, you should choose the one which is more commonly used and less likely to cause bugs in coding. Especially those you are not familiar with.
+      - For GBDT models, prefer XGBoost or RandomForest over LightGBM unless the SOTA or hypothesis dictates otherwise.
+      - To use GPU in training, always implement a check to ensure that the GPU is available and use it if possible. Fallback to CPU if GPU is not available. Especially in GBDT models, you might get error when you call `fit` method without checking the GPU availability. Add a try except block to handle this case.
+      - For neural networks, prefer PyTorch or PyTorch based library (over TensorFlow) unless the SOTA or hypothesis dictates otherwise.
+      - For neural networks, prefer fine-tuning pre-trained models over training from scratch.
 
 guidelines:
   coding: |-
     You might receive exploratory data analysis (EDA) details about the source data. **Do not use this EDA information to create assertions, hard-coded values, or raise errors.** We might generate sample data for quick coding (so your code may run on sample data which is part of the full-size data), but remember that the EDA details are based on the full-size data.
-  package_selection: |-
-    - The `Available Packages` section in the Competition Scenario Description includes general and specific recommendations. Choose packages that best support the hypothesis and constraints; you may deviate with clear justification grounded in data, code reuse, and efficiency.
-    - Do not select packages solely because you are familiar with them.
-    - When facing a choice between two packages which both can achieve the same goal, you should choose the one which is more commonly used and less likely to cause bugs in coding.
-    - For GBDT, prefer CPU. Enable GPU for GBDT if profiling on this environment shows clear, reproducible speedups without stability regressions; document the versions and settings used.
-    - For deep learning frameworks, align with the current codebase and available pretrained assets. If unconstrained, prefer PyTorch or PyTorch‑based libraries given ecosystem and template support; prioritize consistency and reuse over brand preferences.
-    - For neural networks, favor fine-tuning well‑validated pretrained models over training from scratch when applicable to the task.
-    
+
 spec:
   hyperparameter: |-
     1. Hyperparameters Requiring Tuning (e.g., learning rate, weight decay, optimizer, etc.)

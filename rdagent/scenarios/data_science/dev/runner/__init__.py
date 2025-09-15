@@ -1,3 +1,5 @@
+from typing import Literal
+
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -19,7 +21,6 @@ from rdagent.core.exception import RunnerError
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
-from rdagent.scenarios.data_science.dev.runner.eval import DSRunnerEvaluator
 from rdagent.utils.agent.ret import PythonBatchEditOut, PythonBatchPatchOut
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
@@ -34,6 +35,7 @@ class DSRunnerCoSTEERSettings(CoSTEERSettings):
     max_seconds_multiplier: int = 1
     env_type: str = "docker"
     diff_mode: bool = False
+    dump_stdout_type: Literal["full", "truncated"] = "truncated"
     # TODO: extract a function for env and conf.
 
 
@@ -142,6 +144,10 @@ class DSCoSTEERRunner(CoSTEER):
         *args,
         **kwargs,
     ) -> None:
+
+        from rdagent.scenarios.data_science.dev.runner.eval import (
+            DSRunnerEvaluator,  # avoid circular import
+        )
 
         eval_l = [DSRunnerEvaluator(scen=scen)]
         if DS_RD_SETTING.enable_model_dump:

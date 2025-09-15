@@ -34,18 +34,16 @@ DSCoSTEER_eval:
     For example, if the code uses only a very small portion of the allowed time, and hyperparameters like `n_estimators` or `epochs` have low values, with early stopping not being triggered and possible signs of underfitting, you should suggest increasing these hyperparameters.
     You should also notice other resources utilization hyper-parameters.
     For example, if you are using a GPU with large memory, and the batch size is set very low, you should suggest increasing the batch size if it is not reasonable.
-    For example, prioritize adjustments to batch size and number of epochs. If further tuning is needed, consider parameters with significant impact on performance such as learning rate and the number of model folds. For CV competitions, also consider image size (imgsize), and for NLP competitions, consider maximum sequence length (maxlen), as these can have a substantial impact on results.
+
     ## Evaluation Guidelines
     1. The code execution time or resource utilization suggest that there is room for improvement in the hyperparameters.
     2. The code must apply early stopping strategy already (in order to prevent overfitting).
     3. Your suggestion should have a strong chance of improving the model's performance. Focus on the most obvious and impactful opportunities for quick improvement by leveraging more training time. Don't explore hyperparameters with low confidence.  If there are no obvious and impactful opportunities and the code runs well, please accept it.
     4. Only include the suggestions in your response without leak any time limit information because the user might over-fit the model to the time limit.
     5. Never make your judgment only based on the time spent, you should also consider the code and the stdout.
-
     If the code satisfy the requirements:
     - Set "hyperparameter_tuning_decision" to true.
-    - In "hyperparameter_tuning_suggestion", provide a clear, specific, and actionable suggestion. Begin with a concrete observation, then state a direct action to take. Do not use vague language, options, or uncertainty (avoid words like "A or B"). For example: "[Observation] Training stopped due to early stopping while the validation loss was still decreasing. This suggests the patience parameter may be too small. 
-      [Suggestion] Increase the early stopping patience to allow more training epochs before stopping, which can further improve model performance."
+    - In "hyperparameter_tuning_suggestion", provide a clear, specific, and actionable suggestion. Begin with a concrete observation, then state a direct action to take. Do not use vague language, options, or uncertainty (avoid words like "A or B"). For example: "[Observation] The maximum number of epochs was reached, but the validation loss is still decreasing and early stopping was not activated. Only small portion of the allowed time was used. [Suggestion] Increase epochs to 100 to avoid underfitting and further improve model performance."
     If the code does not satisfy the requirements:
     - Set "hyperparameter_tuning_decision" to false.
     - Set "hyperparameter_tuning_suggestion" to an empty string.

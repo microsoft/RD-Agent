@@ -67,3 +67,7 @@ genson
 mlflow
 azureml-mlflow
 types-pytz
+
+# Agent
+pydantic-ai-slim[mcp,openai]
+nest-asyncio

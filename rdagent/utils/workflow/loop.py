@@ -376,14 +376,14 @@ class LoopBase:
             except self.LoopResumeError as e:
                 logger.warning(f"Stop all the routines and resume loop: {e}")
                 self.loop_idx = 0
-                # cancel all previous tasks before resuming all loops.
-                for t in tasks:
-                    t.cancel()
             except self.LoopTerminationError as e:
                 logger.warning(f"Reach stop criterion and stop loop: {e}")
                 kill_subprocesses()  # NOTE: coroutine-based workflow can't automatically stop subprocesses.
                 break
             finally:
+                # cancel all previous tasks before resuming all loops or exit
+                for t in tasks:
+                    t.cancel()
                 self.close_pbar()
 
     def withdraw_loop(self, loop_idx: int) -> None:
@@ -526,6 +526,7 @@ def kill_subprocesses() -> None:
             child.terminate()
         except Exception as ex:
             print(f"Could not terminate subprocess {child.pid}: {ex}")
+    print("Finished terminating subprocesses. Then force killing still alive subprocesses.")
     _, alive = psutil.wait_procs(current_proc.children(recursive=True), timeout=3)
     for p in alive:
         try:
@@ -533,3 +534,4 @@ def kill_subprocesses() -> None:
             p.kill()
         except Exception as ex:
             print(f"Could not kill subprocess {p.pid}: {ex}")
+    print("Finished killing subprocesses.")

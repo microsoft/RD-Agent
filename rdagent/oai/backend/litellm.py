@@ -1,5 +1,5 @@
 import copyreg
-from typing import Any, Literal, Optional, Type, Union, cast
+from typing import Any, Literal, Optional, Type, TypedDict, Union, cast
 
 import numpy as np
 from litellm import (
@@ -7,7 +7,7 @@ from litellm import (
     completion,
     completion_cost,
     embedding,
-    get_max_tokens,
+    get_model_info,
     supports_function_calling,
     supports_response_schema,
     token_counter,
@@ -85,6 +85,44 @@ class LiteLLMAPIBackend(APIBackend):
         response_list = [data["embedding"] for data in response.data]
         return response_list
 
+    class CompleteKwargs(TypedDict):
+        model: str
+        temperature: float
+        max_tokens: int | None
+        reasoning_effort: Literal["low", "medium", "high"] | None
+
+    def get_complete_kwargs(self) -> CompleteKwargs:
+        """
+        return several key settings for completion
+        getting these values from settings makes it easier to adapt to backend calls in agent systems.
+        """
+        # Call LiteLLM completion
+        model = LITELLM_SETTINGS.chat_model
+        temperature = LITELLM_SETTINGS.chat_temperature
+        max_tokens = LITELLM_SETTINGS.chat_max_tokens
+        reasoning_effort = LITELLM_SETTINGS.reasoning_effort
+
+        if LITELLM_SETTINGS.chat_model_map:
+            for t, mc in LITELLM_SETTINGS.chat_model_map.items():
+                if t in logger._tag:
+                    model = mc["model"]
+                    if "temperature" in mc:
+                        temperature = float(mc["temperature"])
+                    if "max_tokens" in mc:
+                        max_tokens = int(mc["max_tokens"])
+                    if "reasoning_effort" in mc:
+                        if mc["reasoning_effort"] in ["low", "medium", "high"]:
+                            reasoning_effort = cast(Literal["low", "medium", "high"], mc["reasoning_effort"])
+                        else:
+                            reasoning_effort = None
+                    break
+        return self.CompleteKwargs(
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            reasoning_effort=reasoning_effort,
+        )
+
     def _create_chat_completion_inner_function(  # type: ignore[no-untyped-def] # noqa: C901, PLR0912, PLR0915
         self,
         messages: list[dict[str, Any]],
@@ -109,34 +147,15 @@ class LiteLLMAPIBackend(APIBackend):
 
         if LITELLM_SETTINGS.log_llm_chat_content:
             logger.info(self._build_log_messages(messages), tag="llm_messages")
-        # Call LiteLLM completion
-        model = LITELLM_SETTINGS.chat_model
-        temperature = LITELLM_SETTINGS.chat_temperature
-        max_tokens = LITELLM_SETTINGS.chat_max_tokens
-        reasoning_effort = LITELLM_SETTINGS.reasoning_effort
 
-        if LITELLM_SETTINGS.chat_model_map:
-            for t, mc in LITELLM_SETTINGS.chat_model_map.items():
-                if t in logger._tag:
-                    model = mc["model"]
-                    if "temperature" in mc:
-                        temperature = float(mc["temperature"])
-                    if "max_tokens" in mc:
-                        max_tokens = int(mc["max_tokens"])
-                    if "reasoning_effort" in mc:
-                        if mc["reasoning_effort"] in ["low", "medium", "high"]:
-                            reasoning_effort = cast(Literal["low", "medium", "high"], mc["reasoning_effort"])
-                        else:
-                            reasoning_effort = None
-                    break
+        complete_kwargs = self.get_complete_kwargs()
+        model = complete_kwargs["model"]
+
         response = completion(
-            model=model,
             messages=messages,
             stream=LITELLM_SETTINGS.chat_stream,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            reasoning_effort=reasoning_effort,
             max_retries=0,
+            **complete_kwargs,
             **kwargs,
         )
         logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {model}", tag="llm_messages")
@@ -205,10 +224,19 @@ class LiteLLMAPIBackend(APIBackend):
 
     @property
     def chat_token_limit(self) -> int:
+        """Suggest an input token limit, ensuring enough space in the context window for the maximum output tokens."""
         try:
-            max_tokens = get_max_tokens(LITELLM_SETTINGS.chat_model)
-            if max_tokens is None:
+            model_info = get_model_info(LITELLM_SETTINGS.chat_model)
+            if model_info is None:
                 return super().chat_token_limit
-            return max_tokens
+
+            max_input = model_info.get("max_input_tokens")
+            max_output = model_info.get("max_output_tokens")
+
+            if max_input is None or max_output is None:
+                return super().chat_token_limit
+
+            max_input_tokens = max_input - max_output
+            return max_input_tokens
         except Exception as e:
             return super().chat_token_limit
