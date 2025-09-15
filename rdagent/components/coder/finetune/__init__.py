@@ -44,7 +44,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         super().__init__(scen, settings)
 
         # Lazy import to avoid circular dependency
-        from rdagent.scenarios.finetune.llama_factory_manager import (
+        from rdagent.scenarios.finetune.scen.llama_factory_manager import (
             get_llama_factory_manager,
         )
 
