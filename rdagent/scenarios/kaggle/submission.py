@@ -175,6 +175,12 @@ def wait_for_submission_complete(api: KaggleApi, competition: str) -> None:
     # the submission request is done without error, here we keep check the latest submission state, until completed or timeout
     start = datetime.now()  # noqa: DTZ005
     while (datetime.now() - start).seconds <= timeout:  # noqa: DTZ005
+        # NOTE: we sleep first before check the latest submission state,
+        # as previous steps may just finish calling kaggle api, if we do not sleep here,
+        # kaggle will raise 400 - bad request error.
+        # wait for 5 seconds to get latest result
+        time.sleep(5)
+
         # the api can sort the submissions by date (new -> old), so we use the first item at first page
         resp = api.competition_submissions(
             competition=competition,
@@ -185,9 +191,6 @@ def wait_for_submission_complete(api: KaggleApi, competition: str) -> None:
         logger.info(f"Current submissions: {resp}")
 
         if resp is None or resp[0] is None or resp[0].status == SubmissionStatus.PENDING:
-            # wait for 5 seconds to get latest result
-            time.sleep(5)
-
             continue
 
         submission = resp[0]
@@ -223,7 +226,7 @@ def submit_local_file(api: KaggleApi, competition: str, file: str | Path, *, msg
         if type(e) is requests.exceptions.HTTPError and e.response.status_code == ERROR_CODE_NOT_JOIN_COMPETITION:
             logger.error(f"You have not joined the competition '{competition}'.")
         else:
-            logger.error(f"Fail to get submissions with error: {e}")
+            logger.error(f"Fail to submit with error: {e}")
 
 
 def submit_code(
@@ -536,7 +539,7 @@ def submit_notebook_output(api: KaggleApi, competition: str, workspace: Path, ms
 
                 return
 
-            submit_local_file(api=api, competition=competition, file=str(submission_file_path), msg=msg)
+            submit_local_file(api=api, competition=competition, file=submission_file_path, msg=msg)
 
 
 def submit_notebook_online(api: KaggleApi, competition: str, workspace: Path, msg: str) -> None:
