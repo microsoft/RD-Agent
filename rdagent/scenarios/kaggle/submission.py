@@ -7,7 +7,6 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
-import fire
 import nbformat
 import requests
 from kaggle.api.kaggle_api_extended import (
@@ -208,12 +207,10 @@ def submit_local_file(api: KaggleApi, competition: str, file: str | Path, *, msg
 
     Args:
         api (KaggleApi): kaggle api object
-        competition (str | Path): competition name to submit
+        competition (str): competition name to submit
         file (str): local file path to submit
         msg (str): message of current submission
     """
-
-    # submit first
     try:
         resp = api.competition_submit(file_name=str(file), message=msg, competition=competition)
 
@@ -229,7 +226,7 @@ def submit_local_file(api: KaggleApi, competition: str, file: str | Path, *, msg
             logger.error(f"Fail to get submissions with error: {e}")
 
 
-def submit_kernel_by_version(
+def submit_code(
     api: KaggleApi,
     competition: str,
     kernel_id: str,
@@ -237,7 +234,7 @@ def submit_kernel_by_version(
     *,
     msg: str = "Message",
 ) -> None:
-    """Submit output of online kernel to competition without downloading the outputs.
+    """Submit specified version of kernel to competition (without downloading the outputs).
 
     Args:
         api (KaggleApi): kaggle api object
@@ -268,7 +265,7 @@ def submit_kernel_by_version(
             logger.error(f"Fail to get submissions with error: {e}")
 
 
-def generate_kaggle_kernel_metadata(user: str, competition: str) -> dict:
+def generate_kernel_metadata(user: str, competition: str) -> dict:
     """Generate kaggle kernel metadata to upload notebook to kaggle.
 
     Args:
@@ -298,7 +295,8 @@ def generate_kaggle_kernel_metadata(user: str, competition: str) -> dict:
 
 
 # this is the minimal notebook template from kaggle notebook page,
-# with this template, we can create a notebook without kernel error when uploading
+# NOTE: sometimes using nbformat to generate notebook from scratch may cause kernel error,
+# while running in Kaggle. So we use this template from Kaggle notebook page, to avoid the error.
 kaggle_notebook_template = """
 {
     "metadata": {
@@ -331,17 +329,19 @@ kaggle_notebook_template = """
 def prepare_notebook(user: str, competition: str, workspace: Path, output_path: Path) -> None:
     """Prepare notebook from workspace for uploading to kaggle.
 
-    NOTE: kaggle need to prepare a folder with kernel-metadata.json and xxx.ipynb to call api to upload
+    NOTE: kaggle sdk need to prepare a folder with kernel-metadata.json and xxx.ipynb to upload
 
     Args:
         user (str): kaggle username used to construct the notebook url
         competition (str): which competition this notebook will reference to
-        workspace (Path): where to get code content, and write to notebook
+        workspace (Path): where is code from
         output_path (Path): notebook output path
     """
-    # NOTE: this function do not support competitions that contains more than one code files
+    # NOTE: this function only support adding main.py to notebook.
+    # TODO: support other project structure
+
     # generate metadata
-    metadata = generate_kaggle_kernel_metadata(user=user, competition=competition)
+    metadata = generate_kernel_metadata(user=user, competition=competition)
 
     logger.info(f"Generated metadata: {metadata}")
 
@@ -363,12 +363,11 @@ def prepare_notebook(user: str, competition: str, workspace: Path, output_path: 
     with main_file.open("rt", encoding="utf-8") as fp:
         main_code = fp.read()
 
-    # update the main code to make it possible to run in kaggle
-    # TODO: support other project structure
+    # patch the main code to make it possible to run in kaggle
     # 1. change the input dir to kaggle input
     main_code = main_code.replace("./workspace_input", f"/kaggle/input/{competition}")
 
-    # 2. patch the possible argparser code to support kaggle notebook starting parameter
+    # 2. update the possible argparser code to support kaggle notebook starting parameter
     # we cannot just use replace here, as we need insert correct indent
     for code_line in main_code.split("\n"):
         if code_line.strip() == "parser = argparse.ArgumentParser()":
@@ -409,7 +408,7 @@ def upload_notebook(api: KaggleApi, kernel_id: str, folder: Path) -> int | None:
     Return:
         int: the version number of uploaded kernel
     """
-    # try to push the kernel to kaggle
+    # try to push the notebook to kaggle
     try:
         upload_resp: ApiSaveKernelResponse = api.kernels_push(folder=folder)
 
@@ -423,7 +422,8 @@ def upload_notebook(api: KaggleApi, kernel_id: str, folder: Path) -> int | None:
 
         return None
 
-    # wait until the kernel running is done
+    # if upload success, the notebook will be running immediately.
+    # wait until running is done
     try:
         while (kernel_status_resp := api.kernels_status(kernel_id)) is not None:
             logger.info(f"Kernel status: {kernel_status_resp.status}")
@@ -452,8 +452,8 @@ def upload_notebook(api: KaggleApi, kernel_id: str, folder: Path) -> int | None:
     return upload_resp.version_number
 
 
-def download_kernel_output(api: KaggleApi, kernel_id: str, output_folder: Path) -> bool:
-    """Download output files of a kernel.
+def download_notebook_output(api: KaggleApi, kernel_id: str, output_folder: Path) -> bool:
+    """Download output files of a notebook.
 
     Args:
         api (kaggle.api.KaggleApi): kaggle api object
@@ -474,7 +474,21 @@ def download_kernel_output(api: KaggleApi, kernel_id: str, output_folder: Path) 
 
 
 @contextmanager
-def submit_notebook(api: KaggleApi, competition: str, workspace: Path) -> Generator[tuple[Path, str, int], None, None]:
+def create_kaggle_notebook(
+    api: KaggleApi,
+    competition: str,
+    workspace: Path,
+) -> Generator[tuple[Path, str, int], None, None]:
+    """Create a kaggle notebook from workspace, and run it.
+
+    Args:
+        api (kaggle.api.KaggleApi): kaggle api object
+        competition (str): competition name
+        workspace (Path): workspace path to get code
+
+    Return:
+        tuple[Path, str, int]: local foler of notebook, the kernel id, and the kernel version
+    """
     with tempfile.TemporaryDirectory() as tmp_dir:
         kernel_path = Path(tmp_dir)
 
@@ -503,12 +517,7 @@ def submit_notebook(api: KaggleApi, competition: str, workspace: Path) -> Genera
         yield (kernel_path, kernel_id, kernel_version)
 
 
-def submit_notebook_output(
-    api: KaggleApi,
-    competition: str,
-    workspace: Path,
-    msg: str,
-) -> None:
+def submit_notebook_output(api: KaggleApi, competition: str, workspace: Path, msg: str) -> None:
     """Submit code from workspace, download the output and then submit the output to competition.
 
     Args:
@@ -517,8 +526,8 @@ def submit_notebook_output(
         workspace (Path): workspace path contains code to run
         msg (str): message to submit
     """
-    with submit_notebook(api=api, competition=competition, workspace=workspace) as (kernel_path, kernel_id, _):
-        if download_kernel_output(api=api, kernel_id=kernel_id, output_folder=kernel_path):
+    with create_kaggle_notebook(api=api, competition=competition, workspace=workspace) as (kernel_path, kernel_id, _):
+        if download_notebook_output(api=api, kernel_id=kernel_id, output_folder=kernel_path):
             # check if the submission file exist
             submission_file_path = kernel_path / KG_SUBMISSION_SETTING.submission_file
 
@@ -530,13 +539,8 @@ def submit_notebook_output(
             submit_local_file(api=api, competition=competition, file=str(submission_file_path), msg=msg)
 
 
-def submit_notebook_online(
-    api: KaggleApi,
-    competition: str,
-    workspace: Path,
-    msg: str,
-) -> None:
-    """Submit the output of online notebook in kaggle to competition.
+def submit_notebook_online(api: KaggleApi, competition: str, workspace: Path, msg: str) -> None:
+    """Submit the output of notebook in kaggle to competition.
 
     Args:
         api (kaggle.api.KaggleApi): kaggle api object
@@ -544,14 +548,12 @@ def submit_notebook_online(
         workspace (Path): workspace path contains code to run
         msg (str): message to submit
     """
-    with submit_notebook(api=api, competition=competition, workspace=workspace) as (_, kernel_id, kernel_version):
-        submit_kernel_by_version(
-            api=api,
-            competition=competition,
-            kernel_id=kernel_id,
-            kernel_version=kernel_version,
-            msg=msg,
-        )
+    with create_kaggle_notebook(api=api, competition=competition, workspace=workspace) as (
+        _,
+        kernel_id,
+        kernel_version,
+    ):
+        submit_code(api=api, competition=competition, kernel_id=kernel_id, kernel_version=kernel_version, msg=msg)
 
 
 def submit_from_workspace(competition: str, workspace: Path | str, *, msg: str = "Message") -> None:
@@ -588,8 +590,6 @@ def submit_from_workspace(competition: str, workspace: Path | str, *, msg: str =
         logger.info(f"Submitting via notebook for {competition}")
 
         submit_notebook_output(api=api, competition=competition, workspace=workspace, msg=msg)  # type: ignore
-
-        return
     else:
         logger.info(f"Submitting notebook for {competition}")
 
@@ -640,4 +640,6 @@ def submit_current_sota(competition: str) -> None:
 
 
 if __name__ == "__main__":
+    import fire
+
     fire.Fire({"sota": submit_current_sota, "workspace": submit_from_workspace})
