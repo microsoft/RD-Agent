@@ -43,7 +43,13 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
     def __init__(self, scen: Scenario, settings, *args, **kwargs):
         super().__init__(scen, settings)
 
-        self.config_validator = create_unified_validator()
+        # Lazy import to avoid circular dependency
+        from rdagent.scenarios.finetune.llama_factory_manager import (
+            get_llama_factory_manager,
+        )
+
+        self.llama_factory_manager = get_llama_factory_manager()
+        self.config_validator = create_unified_validator(self.llama_factory_manager)
 
     def implement_one_task(
         self,
@@ -128,10 +134,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
                 )
 
         # Query LLaMA Factory parameters for the specific method
-        from rdagent.scenarios.finetune.llama_factory_manager import LLaMAFactoryManager
-
-        llama_manager = LLaMAFactoryManager()
-        method_params_desc = llama_manager.format_method_params(finetune_method)
+        method_params_desc = self.llama_factory_manager.format_method_params(finetune_method)
 
         # Use fixed Docker paths for simplicity
         models_path = "/assets/models/"

@@ -58,10 +58,10 @@ def main(
         raise Exception("Please set FT_FILE_PATH environment variable")
     ft_root = Path(FT_RD_SETTING.file_path)
     if not ft_root.exists():
-        raise Exception(f"FT_FILE_PATH does not exist: {ft_root}")
+        ft_root.mkdir(parents=True, exist_ok=True)
 
     # Ensure dataset assets exist, model will be handled later if not specified
-    ensure_ft_assets_exist(model, dataset)
+    ensure_ft_assets_exist(dataset=dataset, check_dataset=True)
 
     # Update FT setting instance with provided dataset and model (if specified)
     FT_RD_SETTING.dataset = dataset

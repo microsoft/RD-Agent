@@ -9,7 +9,7 @@ from rdagent.components.coder.finetune.exp import TrainingTask
 from rdagent.core.proposal import ExpGen, Hypothesis, Hypothesis2Experiment, Trace
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.finetune.experiment.experiment import FTExperiment
-from rdagent.scenarios.finetune.llama_factory_manager import LLaMAFactoryManager
+from rdagent.scenarios.finetune.llama_factory_manager import get_llama_factory_manager
 from rdagent.scenarios.finetune.scen.scenario import LLMFinetuneScen
 from rdagent.scenarios.finetune.scen.utils import extract_dataset_info
 from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
@@ -69,7 +69,7 @@ class LLMHypothesis2Experiment(Hypothesis2Experiment):
         # Ensure the selected model is downloaded if it wasn't specified initially
         from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
 
-        ensure_ft_assets_exist(hypothesis.base_model, FT_RD_SETTING.dataset)
+        ensure_ft_assets_exist(model=hypothesis.base_model, check_model=True)
 
         # Combine method and quantization for task description
         method_desc = hypothesis.finetune_method
@@ -92,7 +92,7 @@ class LLMFinetuneExpGen(ExpGen):
 
     def __init__(self, scen: LLMFinetuneScen):
         super().__init__(scen)
-        self.llama_manager = LLaMAFactoryManager()
+        self.llama_manager = get_llama_factory_manager()
 
     def gen(self, trace: Trace, plan=None) -> FTExperiment:
         """Generate LLM fine-tuning experiment using LLM-driven selection."""

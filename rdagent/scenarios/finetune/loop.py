@@ -10,7 +10,7 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.proposal import HypothesisFeedback, Trace
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.finetune.llama_factory_manager import LLaMAFactoryManager
+from rdagent.scenarios.finetune.llama_factory_manager import get_llama_factory_manager
 from rdagent.scenarios.finetune.scen.utils import generate_dataset_info_config
 from rdagent.utils.workflow import LoopBase
 
@@ -61,36 +61,33 @@ class LLMFinetuneRDLoop(RDLoop):
         )
 
     def _get_llama_factory_info(self):
-        """Setup LLaMA Factory information manager and extract information during initialization"""
-        logger.info("Initializing LLaMA Factory information manager...")
+        """Setup LLaMA Factory information manager and extract information during initialization."""
+        logger.info("Initializing LLaMA Factory information manager")
 
-        # Set cache directory to project root
-        cache_dir = Path(self.ft_rd_setting.file_path) / ".llama_factory_info"
-        self.llama_factory_manager = LLaMAFactoryManager(cache_dir)
+        self.llama_factory_manager = get_llama_factory_manager()
 
         try:
             # Extract fresh information during initialization
-            info = self.llama_factory_manager.get_info()
+            self.llama_factory_manager.get_info()
 
             # Verify if current model is supported
-            if self.model not in self.llama_factory_manager.models:
-                logger.warning(f"Model '{self.model}' is not in LLaMA Factory supported list")
-                logger.info(
-                    f"Supported models: {self.llama_factory_manager.models[:5]}... (total {len(self.llama_factory_manager.models)} models)"
-                )
+            hf_models = self.llama_factory_manager.hf_models
+            model_names = self.llama_factory_manager.models
 
-            # Record metadata information for debugging
-            metadata_info = self.llama_factory_manager.get_metadata_info()
-            if metadata_info.get("has_metadata"):
-                commit_sha = metadata_info.get("commit_sha", "unknown")
-                logger.info(f"Successfully extracted LLaMA Factory information (commit: {commit_sha})")
+            if self.model not in hf_models and self.model not in model_names:
+                raise ValueError(f"Model '{self.model}' is not in LLaMA Factory supported list.")
+
+            # Log metadata information for debugging
+            metadata = self.llama_factory_manager.get_metadata_info()
+            if metadata.get("has_metadata"):
+                commit = metadata.get("commit_sha", "unknown")
+                logger.info(f"Successfully initialized LLaMA Factory info (commit: {commit})")
             else:
-                logger.info("Successfully extracted LLaMA Factory information")
+                logger.info("Successfully initialized LLaMA Factory info")
 
         except Exception as e:
-            logger.error(f"LLaMA Factory information extraction failed: {e}")
-            logger.warning("Will continue execution, but may affect some functionalities")
-            # Do not throw exception, allow program to continue execution
+            logger.error(f"LLaMA Factory initialization failed: {e}")
+            logger.warning("Continuing execution, but some features may be affected")
 
     def get_dataset_info(self):
         """Generate dataset_info.json configuration for LLaMA-Factory compatibility"""
