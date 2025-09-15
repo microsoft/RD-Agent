@@ -1,9 +1,9 @@
+import json
 from pathlib import Path
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.scen import DataScienceScen
-from rdagent.scenarios.finetune.llama_factory_manager import get_llama_factory_manager
 from rdagent.scenarios.finetune.scen.utils import (
     build_finetune_description,
     build_folder_description,
@@ -13,6 +13,8 @@ from rdagent.scenarios.finetune.scen.utils import (
 )
 from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
 from rdagent.utils.agent.tpl import T
+
+from .llama_factory_manager import get_llama_factory_manager
 
 
 class LLMFinetuneScen(DataScienceScen):

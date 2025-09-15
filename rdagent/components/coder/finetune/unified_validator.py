@@ -241,7 +241,7 @@ def create_unified_validator(llama_factory_manager=None) -> UnifiedLLMConfigVali
     """Create unified validator instance."""
     if llama_factory_manager is None:
         # Lazy import to avoid circular dependency
-        from rdagent.scenarios.finetune.llama_factory_manager import (
+        from rdagent.scenarios.finetune.scen.llama_factory_manager import (
             get_llama_factory_manager,
         )
 
