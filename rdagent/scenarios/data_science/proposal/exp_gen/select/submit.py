@@ -3,6 +3,7 @@ import os
 import pickle
 import re
 import shutil
+import tarfile
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -10,6 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import fire
 import numpy as np
 import pandas as pd
+import yaml
 from loguru import logger
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -599,6 +601,11 @@ def try_get_loop_id(trace: Trace, exp: DSExperiment):
     return index
 
 
+def extract_tar(tar_path: str, to_dir: str = "log") -> str:
+    with tarfile.open(tar_path, mode="r:*") as tar:
+        tar.extractall(path=to_dir)
+
+
 # ==============================================================================
 # ## Main Orchestration Logic
 # ==============================================================================
@@ -725,6 +732,16 @@ def select_on_existing_trace(
 
     # Prepare list of tasks for multiprocessing
     tasks = []
+    if debug and experiment and "yaml" in trace_root:
+        job_info = yaml.safe_load(open(str(Path(trace_root) / f"{experiment}.yaml"), "r"))
+        if not competition:
+            competition = os.getenv("DS_COMPETITION")
+        for job in job_info:
+            if job["submit_args"]["env"]["DS_COMPETITION"] == competition:
+                tar_file = Path("/mnt/output") / job["results_dir"] / job["submit_args"]["env"]["RD_RES_NAME"]
+                extract_tar(tar_file)
+                debug = False
+                
     if debug:
         for trace_folder in trace_root_path.iterdir():
             if not trace_folder.is_dir():
