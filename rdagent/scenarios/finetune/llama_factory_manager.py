@@ -13,30 +13,14 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
 
 
-def get_llama_factory_manager(cache_dir: Optional[Path] = None) -> "LLaMAFactoryManager":
-    """Factory function to get LLaMAFactoryManager instance."""
-    if cache_dir is None:
-        cache_dir = Path(FT_RD_SETTING.file_path) / ".llama_factory_info"
-    return LLaMAFactoryManager(cache_dir)
-
-
 class LLaMAFactoryManager:
-    """Singleton manager for LLaMA Factory information extraction and caching."""
+    """Manager for LLaMA Factory information extraction and caching."""
 
-    _instance = None
-
-    def __new__(cls, cache_dir: Path):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._init(cache_dir)
-        elif cls._instance.cache_dir != cache_dir:
-            logger.info(f"Updating cache directory from {cls._instance.cache_dir} to {cache_dir}")
-            cls._instance.cache_dir = cache_dir
-            cls._instance._info_cache = None
-        return cls._instance
-
-    def _init(self, cache_dir: Path):
+    def __init__(self, cache_dir: Optional[Path] = None):
         """Initialize the manager instance."""
+        if cache_dir is None:
+            base_path = FT_RD_SETTING.file_path or str(Path.home() / ".rdagent")
+            cache_dir = Path(base_path) / ".llama_factory_info"
         self.cache_dir = cache_dir
         self._info_cache: Optional[Dict] = None
 
@@ -202,3 +186,21 @@ class LLaMAFactoryManager:
                             lines.append(f"- {param_name}: {param_info['help']}")
 
         return "\n".join(lines)
+
+
+# Module-level singleton instance
+_manager_instance: Optional[LLaMAFactoryManager] = None
+
+
+def get_llama_factory_manager(cache_dir: Optional[Path] = None) -> LLaMAFactoryManager:
+    """Get the singleton LLaMAFactoryManager instance."""
+    global _manager_instance
+
+    if _manager_instance is None:
+        _manager_instance = LLaMAFactoryManager(cache_dir)
+    elif cache_dir is not None and _manager_instance.cache_dir != cache_dir:
+        logger.info(f"Updating cache directory from {_manager_instance.cache_dir} to {cache_dir}")
+        _manager_instance.cache_dir = cache_dir
+        _manager_instance._info_cache = None
+
+    return _manager_instance
