@@ -42,6 +42,8 @@ scenario_problem:
     {% if problem_output_format is not none %}
     ### Output Format
     {{ problem_output_format }}
+    {% else %}
+    Please response in json format.
     {% endif %}
 
   user: |-
@@ -116,6 +118,8 @@ feedback_problem:
     {% if problem_output_format is not none %}
     ### Output Format
     {{ problem_output_format }}
+    {% else %}
+    Please response in json format.
     {% endif %}
 
   user: |-
@@ -267,6 +271,8 @@ hypothesis_gen:
     {% if hypothesis_output_format is not none %}
     ## Final Output Format in JSON Schema:
     {{ hypothesis_output_format }}
+    {% else %}
+    Please response in json format.
     {% endif %}
     
   user: |-
@@ -328,6 +334,8 @@ hypothesis_critique:
     {% if critique_output_format is not none %}
     ## Output Format
     {{ critique_output_format }}
+    {% else %}
+    Please response in json format.
     {% endif %}
 
   user: |-
@@ -420,6 +428,8 @@ hypothesis_rewrite:
     {% if rewrite_output_format is not none %}
     ## Output Format
     {{ rewrite_output_format }}
+    {% else %}
+    Please response in json format.
     {% endif %}
 
   user: |-
@@ -609,6 +619,8 @@ hypothesis_select:
     {% if hypothesis_output_format is not none %}
     ## Final Output Format in JSON Schema:
     {{ hypothesis_output_format }}
+    {% else %}
+    Please response in json format.
     {% endif %}
     
 
@@ -777,6 +789,8 @@ task_gen:
       "workflow_update": "A string which is a precise and comprehensive description of the Workflow Update, or 'No update needed' if no changes are required."
     }
     {% endif %}
+    {% else %}
+    Please response in json format.
     {% endif %}
     
   user: |-
