@@ -163,12 +163,15 @@ def get_submission_remaining(api: KaggleApi, competition: str) -> int:
     return competition_detail.max_daily_submissions - len(completed_submissions)
 
 
-def wait_for_submission_complete(api: KaggleApi, competition: str) -> None:
+def wait_for_submission_complete(api: KaggleApi, competition: str) -> None | tuple[str, str]:
     """Wait for the latest submission complete (failed or completed).
 
     Args:
         api (KaggleApi): kaggle api object
         competition (str): competition name to wait for submission complete
+
+    Return:
+        tuple[str, str]: public score, private score
     """
     timeout = KG_SUBMISSION_SETTING.status_timeout
 
@@ -202,10 +205,16 @@ def wait_for_submission_complete(api: KaggleApi, competition: str) -> None:
                 f"Current submission state [@{submission.date}] is: {submission.status}, public score: {submission.public_score}",
             )
 
+            return submission.public_score, submission.private_score
+
         break
 
+    return None
 
-def submit_local_file(api: KaggleApi, competition: str, file: str | Path, *, msg: str = "Message") -> None:
+
+def submit_local_file(
+    api: KaggleApi, competition: str, file: str | Path, *, msg: str = "Message"
+) -> None | tuple[str, str]:
     """Submit local file to competition.
 
     Args:
@@ -221,12 +230,14 @@ def submit_local_file(api: KaggleApi, competition: str, file: str | Path, *, msg
         if type(resp) is str:
             logger.error(f"Fail to get submissions with error: {resp}")
         else:
-            wait_for_submission_complete(api=api, competition=competition)
+            return wait_for_submission_complete(api=api, competition=competition)
     except Exception as e:  # noqa: BLE001
         if type(e) is requests.exceptions.HTTPError and e.response.status_code == ERROR_CODE_NOT_JOIN_COMPETITION:
             logger.error(f"You have not joined the competition '{competition}'.")
         else:
             logger.error(f"Fail to submit with error: {e}")
+
+    return None
 
 
 def submit_code(
@@ -236,7 +247,7 @@ def submit_code(
     kernel_version: int,
     *,
     msg: str = "Message",
-) -> None:
+) -> None | tuple[str, str]:
     """Submit specified version of kernel to competition (without downloading the outputs).
 
     Args:
@@ -260,12 +271,14 @@ def submit_code(
 
         logger.info(f"Submission response: {resp}")
 
-        wait_for_submission_complete(api=api, competition=competition)
+        return wait_for_submission_complete(api=api, competition=competition)
     except Exception as e:  # noqa: BLE001
         if type(e) is requests.exceptions.HTTPError and e.response.status_code == ERROR_CODE_NOT_JOIN_COMPETITION:
             logger.error(f"You have not joined the competition '{competition}'.")
         else:
             logger.error(f"Fail to get submissions with error: {e}")
+
+    return None
 
 
 def generate_kernel_metadata(user: str, competition: str) -> dict:
@@ -520,7 +533,7 @@ def create_kaggle_notebook(
         yield (kernel_path, kernel_id, kernel_version)
 
 
-def submit_notebook_output(api: KaggleApi, competition: str, workspace: Path, msg: str) -> None:
+def submit_notebook_output(api: KaggleApi, competition: str, workspace: Path, msg: str) -> None | tuple[str, str]:
     """Submit code from workspace, download the output and then submit the output to competition.
 
     Args:
@@ -536,13 +549,13 @@ def submit_notebook_output(api: KaggleApi, competition: str, workspace: Path, ms
 
             if not submission_file_path.exists():
                 logger.error(f"Submission file {submission_file_path} not found in kernel output")
+            else:
+                return submit_local_file(api=api, competition=competition, file=submission_file_path, msg=msg)
 
-                return
-
-            submit_local_file(api=api, competition=competition, file=submission_file_path, msg=msg)
+    return None
 
 
-def submit_notebook_online(api: KaggleApi, competition: str, workspace: Path, msg: str) -> None:
+def submit_notebook_online(api: KaggleApi, competition: str, workspace: Path, msg: str) -> None | tuple[str, str]:
     """Submit the output of notebook in kaggle to competition.
 
     Args:
@@ -556,10 +569,16 @@ def submit_notebook_online(api: KaggleApi, competition: str, workspace: Path, ms
         kernel_id,
         kernel_version,
     ):
-        submit_code(api=api, competition=competition, kernel_id=kernel_id, kernel_version=kernel_version, msg=msg)
+        return submit_code(
+            api=api,
+            competition=competition,
+            kernel_id=kernel_id,
+            kernel_version=kernel_version,
+            msg=msg,
+        )
 
 
-def submit_from_workspace(competition: str, workspace: Path | str, *, msg: str = "Message") -> None:
+def submit_from_workspace(competition: str, workspace: Path | str, *, msg: str = "Message") -> None | tuple[str, str]:
     """Submit the result of competition to kaggle from specified workspace.
 
     Args:
@@ -575,12 +594,14 @@ def submit_from_workspace(competition: str, workspace: Path | str, *, msg: str =
     if competition_info is None:
         logger.warning(f"Cannot find competition: {competition}")
 
-        return
+        return None
 
     submission_file = KG_SUBMISSION_SETTING.submission_file
 
     if type(workspace) is str:
         workspace = Path(workspace)
+
+    result: None | tuple[str, str] = None
 
     # if the competition is not code competition, and not force to use notebook, then submit local file
     if not KG_SUBMISSION_SETTING.force_submit_code and not competition_info.is_kernels_submissions_only:
@@ -588,15 +609,15 @@ def submit_from_workspace(competition: str, workspace: Path | str, *, msg: str =
 
         file = workspace / submission_file  # type: ignore
 
-        submit_local_file(api=api, competition=competition, file=file, msg=msg)
+        result = submit_local_file(api=api, competition=competition, file=file, msg=msg)
     elif not competition_info.is_kernels_submissions_only:
         logger.info(f"Submitting via notebook for {competition}")
 
-        submit_notebook_output(api=api, competition=competition, workspace=workspace, msg=msg)  # type: ignore
+        result = submit_notebook_output(api=api, competition=competition, workspace=workspace, msg=msg)  # type: ignore
     else:
         logger.info(f"Submitting notebook for {competition}")
 
-        submit_notebook_online(api=api, competition=competition, workspace=workspace, msg=msg)  # type: ignore
+        result = submit_notebook_online(api=api, competition=competition, workspace=workspace, msg=msg)  # type: ignore
 
     # show remaining submit number
     # NOTE: if the competition is finished, the number will be 0
@@ -604,8 +625,10 @@ def submit_from_workspace(competition: str, workspace: Path | str, *, msg: str =
 
     logger.info(f"Remaining submit number: {remaining_num}")
 
+    return result
 
-def submit_current_sota(competition: str) -> None:
+
+def submit_current_sota(competition: str) -> None | tuple[str, str]:
     """Submit the sota result of competition from current trace path.
 
     Args:
@@ -623,19 +646,19 @@ def submit_current_sota(competition: str) -> None:
     if sota is None:
         logger.warning("Cannot find sota experiment, skip submitting.")
 
-        return
+        return None
 
     if sota.experiment_workspace is None:
         logger.warning("Fail to get sota output, workspace is None.")
 
-        return
+        return None
 
     worspace = sota.experiment_workspace.workspace_path
 
     logger.info(f"Current sota workspace: {worspace}")
 
     # do submit
-    submit_from_workspace(
+    return submit_from_workspace(
         competition=competition,
         workspace=worspace,
         msg=f"SOTA at {datetime.now()}, loop: {sota_loop_id}, file: {KG_SUBMISSION_SETTING.submission_file}",  # noqa: DTZ005
