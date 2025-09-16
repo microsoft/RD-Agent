@@ -207,38 +207,28 @@ def unzip_data(unzip_file_path: str, unzip_target_path: str) -> None:
 
 @cache_with_pickle(hash_func=lambda x: x, force=True)
 def leaderboard_scores(competition: str) -> list[float]:
-    import pandas as pd
     from kaggle.api.kaggle_api_extended import KaggleApi
-
-    from rdagent.core.conf import RD_AGENT_SETTINGS
 
     api = KaggleApi()
     api.authenticate()
 
-    # download leaderboard zip file by api
-    lb_path = Path(f"{RD_AGENT_SETTINGS.pickle_cache_folder_path_str}/leaderboards/{competition}")
-    api.competition_leaderboard_download(competition, path=lb_path)
-
-    # unzip the leaderboard zip file
-    unzip_data(f"{lb_path}/{competition}.zip", lb_path)
-    csv_path = list(lb_path.glob("*.csv"))[0]
-
-    # read the csv file and return the scores
-    df = pd.read_csv(csv_path)
-    return df["Score"].tolist()
+    return [i.score for i in api.competition_leaderboard_view(competition)]
 
 
 def get_metric_direction(competition: str) -> bool:
     """
     Return **True** if the metric is *bigger is better*, **False** if *smaller is better*.
     """
+    if competition == "aerial-cactus-identification":
+        return True
+    if competition == "leaf-classification":
+        return False
     leaderboard = leaderboard_scores(competition)
-    if float(leaderboard[0]) == float(leaderboard[-1]):
-        # This happens when top scores are all the same, such as 0 or 1.
-        return float(leaderboard[0]) >= 0.5
+
     return float(leaderboard[0]) > float(leaderboard[-1])
 
 
+# FIXME: current score_rank is incorrect because kaggle api returns only the first page leaderboard
 def score_rank(competition: str, score: float) -> tuple[int, float]:
     """
     Return

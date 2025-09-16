@@ -17,12 +17,10 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
-from rdagent.utils import filter_redundant_text
 
 if TYPE_CHECKING:
     from rdagent.utils.env import EnvResult
 
-from rdagent.utils.fmt import shrink_text
 
 if typing.TYPE_CHECKING:
     from rdagent.core.proposal import Hypothesis
@@ -202,7 +200,7 @@ class FBWorkspace(Workspace):
             if workspace_data_file_path.exists():
                 workspace_data_file_path.unlink()
             if platform.system() in ("Linux", "Darwin"):
-                os.symlink(data_file_path, workspace_data_file_path)
+                workspace_data_file_path.symlink_to(data_file_path)
             if platform.system() == "Windows":
                 os.link(data_file_path, workspace_data_file_path)
 
@@ -280,7 +278,7 @@ class FBWorkspace(Workspace):
         Before each execution, make sure to prepare and inject code.
         """
         result = self.run(env, entry)
-        return result.stdout
+        return result.get_truncated_stdout()  # NOTE: truncating just for aligning with the old code.
 
     def run(self, env: Env, entry: str) -> EnvResult:
         """
@@ -290,14 +288,7 @@ class FBWorkspace(Workspace):
         """
         self.prepare()
         self.inject_files(**self.file_dict)
-        result = env.run(entry, str(self.workspace_path), env={"PYTHONPATH": "./"})
-        # result is EnvResult
-        result.stdout = shrink_text(
-            filter_redundant_text(result.stdout),
-            context_lines=RD_AGENT_SETTINGS.stdout_context_len,
-            line_len=RD_AGENT_SETTINGS.stdout_line_len,
-        )
-        return result
+        return env.run(entry, str(self.workspace_path), env={"PYTHONPATH": "./"})
 
     def create_ws_ckp(self) -> None:
         """
@@ -345,7 +336,7 @@ class FBWorkspace(Workspace):
                 if mode == symlink_mode:  # Symlink
                     dest_path.parent.mkdir(parents=True, exist_ok=True)
                     link_target = zf.read(info).decode()
-                    os.symlink(link_target, dest_path)
+                    dest_path.symlink_to(link_target)
                 elif info.is_dir():
                     dest_path.mkdir(parents=True, exist_ok=True)
                 else:

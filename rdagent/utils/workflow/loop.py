@@ -221,6 +221,7 @@ class LoopBase:
                 # NOTE: each step are aware are of current loop index
                 # It is very important to set it before calling the step function!
                 self.loop_prev_out[li][self.LOOP_IDX_KEY] = li
+
                 try:
                     # Call function with current loop's output, await if coroutine or use ProcessPoolExecutor for sync if required
                     if force_subproc:
@@ -236,14 +237,12 @@ class LoopBase:
                             result = func(self.loop_prev_out[li])
                     # Store result in the nested dictionary
                     self.loop_prev_out[li][name] = result
-
-                    # Save snapshot after completing the step
-                    self.dump(self.session_folder / f"{li}" / f"{si}_{name}")
                 except Exception as e:
                     if isinstance(e, self.skip_loop_error):
                         logger.warning(f"Skip loop {li} due to {e}")
                         # Jump to the last step (assuming last step is for recording)
                         next_step_idx = len(self.steps) - 1
+                        self.loop_prev_out[li][name] = None
                         self.loop_prev_out[li][self.EXCEPTION_KEY] = e
                     elif isinstance(e, self.withdraw_loop_error):
                         logger.warning(f"Withdraw loop {li} due to {e}")
@@ -256,6 +255,8 @@ class LoopBase:
                     else:
                         raise  # re-raise unhandled exceptions
                 finally:
+                    # No matter the execution succeed or not, we have to finish the following steps
+
                     # Record the trace
                     end = datetime.now(timezone.utc)
                     self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
@@ -279,6 +280,15 @@ class LoopBase:
                             step_index=next_step,
                             step_name=self.steps[next_step],
                         )
+
+                        # Save snapshot after completing the step;
+                        # 1) It has to be after the step_idx is updated, so loading the snapshot will be on the right step.
+                        # 2) Only save it when the step forward, withdraw does not worth saving.
+                        if name in self.loop_prev_out[li]:
+                            # 3) Only dump the step if (so we don't have to redo the step when we load the session again)
+                            # it has been executed successfully
+                            self.dump(self.session_folder / f"{li}" / f"{si}_{name}")
+
                         self._check_exit_conditions_on_step(loop_id=li, step_id=si)
                     else:
                         logger.warning(f"Step forward {si} of loop {li} is skipped.")
@@ -366,14 +376,14 @@ class LoopBase:
             except self.LoopResumeError as e:
                 logger.warning(f"Stop all the routines and resume loop: {e}")
                 self.loop_idx = 0
-                # cancel all previous tasks before resuming all loops.
-                for t in tasks:
-                    t.cancel()
             except self.LoopTerminationError as e:
                 logger.warning(f"Reach stop criterion and stop loop: {e}")
                 kill_subprocesses()  # NOTE: coroutine-based workflow can't automatically stop subprocesses.
                 break
             finally:
+                # cancel all previous tasks before resuming all loops or exit
+                for t in tasks:
+                    t.cancel()
                 self.close_pbar()
 
     def withdraw_loop(self, loop_idx: int) -> None:
@@ -516,6 +526,7 @@ def kill_subprocesses() -> None:
             child.terminate()
         except Exception as ex:
             print(f"Could not terminate subprocess {child.pid}: {ex}")
+    print("Finished terminating subprocesses. Then force killing still alive subprocesses.")
     _, alive = psutil.wait_procs(current_proc.children(recursive=True), timeout=3)
     for p in alive:
         try:
@@ -523,3 +534,4 @@ def kill_subprocesses() -> None:
             p.kill()
         except Exception as ex:
             print(f"Could not kill subprocess {p.pid}: {ex}")
+    print("Finished killing subprocesses.")

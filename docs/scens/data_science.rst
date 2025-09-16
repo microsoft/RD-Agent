@@ -265,7 +265,7 @@ By leveraging the **Data Science** Agent, researchers and developers can acceler
 
       .. code-block:: sh
 
-          rdagent ui --port <custom port> --log_dir <your log folder like "log/"> --data_science True
+          rdagent ui --port <custom port> --log-dir <your log folder like "log/"> --data_science True
 
     - Then you can input the log path and visualize the R&D process.
 
@@ -513,7 +513,7 @@ By utilizing the **Kaggle Agent**, data scientists can craft innovative solution
 
       .. code-block:: sh
 
-          rdagent ui --port <custom port> --log_dir <your log folder like "log/"> --data_science True
+          rdagent ui --port <custom port> --log-dir <your log folder like "log/"> --data_science True
 
     - Then you can input the log path and visualize the R&D process.
 
@@ -529,6 +529,6 @@ By utilizing the **Kaggle Agent**, data scientists can craft innovative solution
 
     .. code-block:: sh
 
-      rdagent grade_summary --log_folder=<url_to_log>
+      rdagent grade_summary --log-folder=<url_to_log>
 
     Here, <url_to_log> refers to the parent directory of the log folder generated during the run.

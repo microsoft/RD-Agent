@@ -125,7 +125,7 @@ You can try our demo by running the following command:
 
     .. code-block:: sh
 
-        rdagent fin_factor_report --report_folder=git_ignore_folder/reports
+        rdagent fin_factor_report --report-folder=git_ignore_folder/reports
 
   - Alternatively, you can store the paths of the reports in `report_result_json_file_path`. The format should be:
 

@@ -30,10 +30,8 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
 from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.proposal.exp_gen.base import (
-    DataScienceScen,
-    DSTrace,
-)
+from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.base import DataScienceScen
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.utils.workflow.misc import wait_retry
@@ -311,7 +309,7 @@ class DataScienceRDLoop(RDLoop):
 
             # only clean current workspace without affecting other loops.
             for k in "direct_exp_gen", "coding", "running":
-                if k in prev_out:
+                if k in prev_out and prev_out[k] is not None:
                     assert isinstance(prev_out[k], DSExperiment)
                     clean_workspace(prev_out[k].experiment_workspace.workspace_path)
 
