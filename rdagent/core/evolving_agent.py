@@ -94,13 +94,13 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
                 # 4. Evaluation
                 if self.with_feedback:
                     if DS_RD_SETTING.enable_runner_mcts:
-                        if isinstance(eva, CoSTEERMultiEvaluator):
+                        if "Runner" in str(self.evolving_strategy.__class__):
                             es.feedback = (
-                            eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge)
+                            eva if isinstance(eva, Feedback) else evo.FEEDBACK
                         )
                         else:
                             es.feedback = (
-                            eva if isinstance(eva, Feedback) else evo.FEEDBACK
+                            eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge)
                         )
                         logger.log_object(es.feedback, tag="evolving feedback")
                     else:
