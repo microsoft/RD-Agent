@@ -206,14 +206,25 @@ class BestValidSelector(SOTAexpSelector):
             # Sort key prioritizes decision (True > False), then score
             return (feedback.decision, score) if self.use_decision else score
 
+        def get_sort_key_without_decision(exp_fb: Tuple[DSExperiment, ExperimentFeedback]) -> Tuple[bool, float]:
+            exp, feedback = exp_fb
+            score = -np.inf
+            if exp.result is not None:
+                try:
+                    score = pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
+                    if isinstance(score, str):
+                        score = float(score.strip("tensor()"))
+                    score = direction_sign * score
+                except:
+                    logger.warning(f"Failed to extract score from result {exp.result}")
+
+            return score
+
         # Collect candidates
         if self.each_trace:
             # Add best experiment without decision
-            old_flag = self.use_decision
-            self.use_decision = False
             hist = trace.hist.copy()
-            hist.sort(key=get_sort_key, reverse=True)
-            self.use_decision = old_flag
+            hist.sort(key=get_sort_key_without_decision, reverse=True)
             candidate_list = [hist[0]]
 
             root_to_experiments = {}
@@ -242,7 +253,7 @@ class BestValidSelector(SOTAexpSelector):
             return None
 
         # Sort and select the top N
-        candidate_list.sort(key=get_sort_key, reverse=True)
+        candidate_list.sort(key=get_sort_key_without_decision, reverse=True)
 
         top_experiments = [exp for exp, _ in candidate_list[: self.num_candidates]]
         logger.info(f"BestValidSelector: Selected {len(top_experiments)} experiments.")
