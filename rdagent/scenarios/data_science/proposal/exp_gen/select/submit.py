@@ -688,11 +688,22 @@ def evaluate_one_trace(
             return competition, False, sota_exp_stat
 
         logger.info(f"ValidationSelector: Received {len(candidate_exps)} candidates for validation.")
+        pool_hit = False
         if debug:
             pool_hit = any(check_hit(candidate_exp, trace, sota_result) for candidate_exp in candidate_exps)
-            if not pool_hit:
-                logger.info("ValidationSelector: Base selector's candidates did not hit any SOTA. Skipping validation.")
-                return competition, False, sota_exp_stat
+        else:
+            for exp in candidate_exps:
+                loop_id = try_get_loop_id(trace, exp)
+                sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{loop_id}/running/mle_score/**/*.pkl")]
+                if len(sota_mle_score_paths):
+                    with sota_mle_score_paths[0].open("rb") as f:
+                        sota_mle_score = extract_json(pickle.load(f))
+                        if sota_mle_score.get("any_medal", False):
+                            pool_hit = True
+                            break
+        if not pool_hit:
+            logger.info("ValidationSelector: Selector's candidates did not hit any medal. Skipping validation.")
+            return competition, False, sota_exp_stat
 
         selector = ValidationSelector(
             candidate=[(exp, try_get_loop_id(trace, exp)) for exp in candidate_exps],
