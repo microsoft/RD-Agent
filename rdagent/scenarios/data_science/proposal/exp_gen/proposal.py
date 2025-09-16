@@ -574,6 +574,34 @@ class DSProposalV2ExpGen(ExpGen):
         exp_gen_plan,
         sibling_exp: List[DSExperiment] | None = None,
     ) -> Dict:
+        # Unified mode: always aggregate both scenario and feedback problems, without loop-based gating
+        if DS_RD_SETTING.enable_unified_problem_identification:
+            self.scen_prob_multiplier = 1  # neutral weight for downstream selection
+            all_problems: Dict[str, Dict] = {}
+
+            scen_problems = self.identify_scenario_problem(
+                scenario_desc=scenario_desc,
+                sota_exp_desc=sota_exp_desc,
+                exp_gen_plan=exp_gen_plan,
+                sibling_exp=sibling_exp,
+            )
+            for problem_name in scen_problems:
+                scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
+                all_problems[problem_name] = scen_problems[problem_name]
+
+            fb_problems = self.identify_feedback_problem(
+                scenario_desc=scenario_desc,
+                exp_feedback_list_desc=exp_feedback_list_desc,
+                sota_exp_desc=sota_exp_desc,
+                inject_diverse=inject_diverse,
+            )
+            for problem_name in fb_problems:
+                fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
+                all_problems[problem_name] = fb_problems[problem_name]
+
+            return all_problems
+
+        # Default mode: original dynamic gating based on loop-derived weights
         sota_exp_num = sum(1 for _, fb in current_sub_trace if fb.decision)
         failed_exp_num = len(current_sub_trace) - sota_exp_num
         weighted_exp_num = (sota_exp_num * 3 + failed_exp_num * 2) // 2
@@ -891,12 +919,19 @@ class DSProposalV2ExpGen(ExpGen):
         for j, problem_name in enumerate(scores_sorted.index):
             if hypothesis_dict[problem_name].get("inspired", False):
                 index_to_pick_pool_list.extend([j] * 2)
-            if problem_dict[problem_name]["label"] == "SCENARIO_PROBLEM":
-                index_to_pick_pool_list.extend([j] * self.scen_prob_multiplier)
-            elif problem_dict[problem_name]["label"] == "FEEDBACK_PROBLEM":
-                index_to_pick_pool_list.extend([j] * (3 - self.scen_prob_multiplier))
-            else:
+
+            label = problem_dict.get(problem_name, {}).get("label")
+
+            # In unified mode, keep scenario and feedback weights equal to avoid bias
+            if DS_RD_SETTING.enable_unified_problem_identification:
                 index_to_pick_pool_list.extend([j] * 1)
+            else:
+                if label == "SCENARIO_PROBLEM":
+                    index_to_pick_pool_list.extend([j] * self.scen_prob_multiplier)
+                elif label == "FEEDBACK_PROBLEM":
+                    index_to_pick_pool_list.extend([j] * (3 - self.scen_prob_multiplier))
+                else:
+                    index_to_pick_pool_list.extend([j] * 1)
         logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
 
         # Create a random but reproducible integer

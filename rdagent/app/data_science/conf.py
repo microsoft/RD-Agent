@@ -167,6 +167,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
     enable_scale_check: bool = False
 
+    # Unified problem identification: combine scenario and feedback problems without loop-based gating
+    enable_unified_problem_identification: bool = False
+    """Use unified scenario+feedback problem identification (ignores loop-based gating)."""
+
     ##### select related
     ratio_merge_or_ensemble: int = 70
     """The ratio of merge or ensemble to be considered as a valid solution"""
