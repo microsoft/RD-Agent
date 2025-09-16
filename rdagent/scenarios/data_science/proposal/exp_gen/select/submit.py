@@ -208,16 +208,30 @@ class BestValidSelector(SOTAexpSelector):
 
         # Collect candidates
         if self.each_trace:
-            candidate_list = []
-            leaves = trace.get_leaves()
-            num_per_leaf = max(self.num_candidates // len(leaves), 1)
-            for leaf in leaves:
-                branch_experiments = trace.experiment_and_feedback_list_after_init(
-                    return_type="all", search_type="ancestors", selection=(leaf,)
-                )
-                if branch_experiments:
-                    branch_experiments.sort(key=get_sort_key, reverse=True)
-                    candidate_list.extend(branch_experiments[:num_per_leaf])
+            # Add best experiment without decision
+            old_flag = self.use_decision
+            self.use_decision = False
+            hist = trace.hist.copy()
+            hist.sort(key=get_sort_key, reverse=True)
+            self.use_decision = old_flag
+            candidate_list = [hist[0]]
+
+            root_to_experiments = {}
+            for node in range(len(trace.hist)):
+                parents = trace.get_parents(node)
+                if parents:
+                    root = parents[0]
+                    if root not in root_to_experiments:
+                        root_to_experiments[root] = []
+                    root_to_experiments[root].append(trace.hist[node])
+
+            # Select top-k from each branch
+            num_per_leaf = max(self.num_candidates // len(root_to_experiments), 2)
+            for root, exps in root_to_experiments.items():
+                if not exps:
+                    continue
+                exps.sort(key=get_sort_key, reverse=True)
+                candidate_list.extend(exps[:num_per_leaf])
             # Remove duplicates
             candidate_list = list(set(candidate_list))
         else:
