@@ -110,8 +110,8 @@ def update_sessions():
     for session_file in log_folder.glob("*.pkl"):
         try:
             session_data = pickle.load(open(session_file, "rb"))
-            # if session_data["expired_datetime"] > datetime.now():
-            state.sessions[session_file.stem] = session_data
+            if session_data["expired_datetime"] > datetime.now():
+                state.sessions[session_file.stem] = session_data
         except Exception as e:
             continue
     render_main_content()
