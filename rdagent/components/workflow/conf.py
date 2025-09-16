@@ -11,6 +11,7 @@ class BasePropSetting(ExtendedBaseSettings):
     knowledge_base: str = ""
     knowledge_base_path: str = ""
     hypothesis_gen: str = ""
+    interactor: str = ""
     hypothesis2experiment: str = ""
     coder: str = ""
     runner: str = ""

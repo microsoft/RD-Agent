@@ -9,7 +9,7 @@ COMPONENT = Literal["DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow
 
 
 class DSExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):
-    def __init__(self, pending_tasks_list: list, *args, **kwargs) -> None:
+    def __init__(self, pending_tasks_list: list, hypothesis_candidates: list | None = None, *args, **kwargs) -> None:
         super().__init__(sub_tasks=[], *args, **kwargs)
         # Status
         # - Initial: blank;

@@ -1172,6 +1172,7 @@ class DSProposalV2ExpGen(ExpGen):
         sota_exp_desc: str,
         sota_exp: DSExperiment,
         hypotheses: list[DSHypothesis],
+        hypotheses_candidates: list[DSHypothesis],
         pipeline: bool,
         failed_exp_feedback_list_desc: str,
         fb_to_sota_exp: ExperimentFeedback | None = None,
@@ -1242,7 +1243,9 @@ class DSProposalV2ExpGen(ExpGen):
             # Persist for later stages
             task.package_info = get_packages(pkgs)
 
-        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypotheses[0])
+        exp = DSExperiment(
+            pending_tasks_list=[[task]], hypothesis=hypotheses[0], hypothesis_candidates=hypotheses_candidates
+        )
         if sota_exp is not None:
             exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
 
@@ -1456,6 +1459,7 @@ class DSProposalV2ExpGen(ExpGen):
             hypotheses=(
                 [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(all_problems, hypothesis_dict)
             ),
+            hypotheses_candidates=self.get_all_hypotheses(all_problems, hypothesis_dict),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
             fb_to_sota_exp=fb_to_sota_exp,
