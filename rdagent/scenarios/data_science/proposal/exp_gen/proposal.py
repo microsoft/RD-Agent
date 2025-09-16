@@ -1457,7 +1457,9 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
             hypotheses=(
-                [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(all_problems, hypothesis_dict)
+                [new_hypothesis]
+                if not trace.is_selection_new_tree()
+                else self.get_all_hypotheses(all_problems, hypothesis_dict)
             ),
             hypotheses_candidates=self.get_all_hypotheses(all_problems, hypothesis_dict),
             pipeline=pipeline,

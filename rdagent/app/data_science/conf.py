@@ -21,7 +21,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     planner: str = "rdagent.scenarios.data_science.proposal.exp_gen.planner.DSExpPlannerHandCraft"
     hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.router.ParallelMultiTraceExpGen"
-    interactor: str = "rdagent.scenarios.data_science.interactor.FBDSInteractor"
+    interactor: str = "rdagent.components.interactor.SkipInteractor"
     trace_scheduler: str = "rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler.RoundRobinScheduler"
     """Hypothesis generation class"""
 
