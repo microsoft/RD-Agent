@@ -768,6 +768,7 @@ class DSProposalV2ExpGen(ExpGen):
         sota_exp_desc: str,
         exp_feedback_list_desc: str,
         sibling_exp: List[DSExperiment] | None = None,
+        former_user_instructions: UserInstructions | None = None,
     ) -> Dict:
         """
         Generate improved hypotheses based on critique feedback for each original hypothesis.
@@ -802,6 +803,7 @@ class DSProposalV2ExpGen(ExpGen):
             ),
             enable_scale_check=DS_RD_SETTING.enable_scale_check,
             sibling_hypotheses=sibling_hypotheses,
+            former_user_instructions_str=str(former_user_instructions) if former_user_instructions else None,
         )
         user_prompt = T(".prompts_v2:hypothesis_rewrite.user").r(
             scenario_desc=scenario_desc,
@@ -1433,6 +1435,7 @@ class DSProposalV2ExpGen(ExpGen):
                     sota_exp_desc=sota_exp_desc,
                     exp_feedback_list_desc=exp_feedback_list_desc,
                     sibling_exp=sibling_exp,
+                    former_user_instructions=former_user_instructions,
                 )
                 logger.info(f"Successfully completed hypothesis critique and rewrite process")
             except Exception as e:

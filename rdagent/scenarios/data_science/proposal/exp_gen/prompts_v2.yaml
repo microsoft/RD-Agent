@@ -422,7 +422,13 @@ hypothesis_rewrite:
     {% endfor %}
     Your rewritten hypotheses **MUST** guide the agent towards different approaches, for example, different backbone models, different feature engineering methods, different ensemble strategies, different workflow optimizations, focus on efficiency etc. Avoid proposing hypotheses that are similar to those listed above.
     {% endif %}
-    
+
+    {% if former_user_instructions_str is not none %}
+    # Mandatory Consideration of Past User Instructions
+    The user has provided specific instructions in previous experiments. These instructions may contain critical insights or constraints that must be considered when rewriting your hypotheses. Carefully review the following past user instructions and ensure that your rewritten hypotheses align with these directives:
+    {{ former_user_instructions_str }}
+    {% endif %}
+
     {% if rewrite_output_format is not none %}
     ## Output Format
     {{ rewrite_output_format }}
