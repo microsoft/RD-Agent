@@ -184,6 +184,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     fake_gpu: bool = False
 
+    enable_sample: bool = True
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()
 
