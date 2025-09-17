@@ -50,7 +50,11 @@ class AbsTask(ABC):
 
 class Task(AbsTask):
     def __init__(
-        self, name: str, version: int = 1, description: str = "", user_instructions: list[str] | None = None
+        self,
+        name: str,
+        version: int = 1,
+        description: str = "",
+        user_instructions: list[str] | None = None,
     ) -> None:
         super().__init__(name, version)
         self.description = description
@@ -434,12 +438,9 @@ class Experiment(
         self.user_instructions = instructions
         for ws in self.sub_workspace_list:
             if ws is not None:
-                ws.target_task.user_instructions = instructions
+                ws.target_task.user_instructions = instructions  # type: ignore[union-attr]
         for task in self.sub_tasks:
             task.user_instructions = instructions
-        for task_list in self.pending_tasks_list:
-            for task in task_list:
-                task.user_instructions = instructions
         if self.experiment_workspace is not None and self.experiment_workspace.target_task is not None:
             self.experiment_workspace.target_task.user_instructions = instructions
 

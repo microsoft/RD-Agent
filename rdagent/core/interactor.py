@@ -24,4 +24,3 @@ class Interactor(ABC, Generic[ASpecificExp]):
         - Collect input to guide the next steps in the experiment.
         - Rewrite the experiment based on feedback.
         """
-        pass

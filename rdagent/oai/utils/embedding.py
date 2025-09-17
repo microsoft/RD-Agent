@@ -106,7 +106,7 @@ def trim_text_for_embedding(text: str, model: str, max_tokens: Optional[int] = N
         final_tokens = token_counter(model=model, text=text_trunc)
         logger.warning(f"Truncation completed: {current_tokens} -> {final_tokens} tokens")
 
-        return text_trunc
+        return text_trunc  # type: ignore[no-any-return]
     except Exception as e:
         raise RuntimeError(
             f"Failed to truncate text for embedding model {model}. "
