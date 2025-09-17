@@ -142,6 +142,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_draft_before_first_sota: bool = False
     enable_planner: bool = False
 
+    #### enable draft code replacement for first loop
+    enable_draft_code_replacement: bool = False
+    draft_code_path: str = ""
+
     model_architecture_suggestion_time_percent: float = 0.75
     allow_longer_timeout: bool = False
     coder_enable_llm_decide_longer_timeout: bool = False
