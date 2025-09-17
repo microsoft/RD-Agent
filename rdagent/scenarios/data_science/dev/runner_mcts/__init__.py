@@ -35,6 +35,8 @@ from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
 from rdagent.core.evolving_framework import EvoStep
 from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 import time
+from copy import deepcopy
+
 class DSRunnerMCSTCoSTEERSettings(CoSTEERSettings):
     """Data Science CoSTEER settings"""
 
@@ -111,7 +113,28 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         
         evo = self.assign_code_list_to_evo(code_list, evo)
         evo.MCTS_NODE_LIST = mcts_node_list
-        evo.FEEDBACK = feedback
+        task_li_feedback_li = [feedback]
+        merged_task_feedback = []
+        for task_id, fb in enumerate(task_li_feedback_li):
+            fb = deepcopy(fb)  # deep copy to make it more robust
+            fb.final_decision = all(
+                task_li_feedback.final_decision for task_li_feedback in task_li_feedback_li
+            )
+            for attr in "execution", "return_checking", "code":
+                setattr(
+                    fb,
+                    attr,
+                    "\n\n".join(
+                        [
+                            getattr(task_li_feedback, attr)
+                            for task_li_feedback in task_li_feedback_li
+                            if getattr(task_li_feedback, attr) is not None
+                        ]
+                    ),
+                )
+            merged_task_feedback.append(fb)
+
+        evo.FEEDBACK=CoSTEERMultiFeedback(merged_task_feedback)
         return evo
 
     @wait_retry(retry_n=5)       
