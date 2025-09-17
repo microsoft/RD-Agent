@@ -15,6 +15,7 @@ from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
+from rdagent.core.experiment import UserInstructions
 from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
@@ -617,7 +618,7 @@ class DSProposalV2ExpGen(ExpGen):
         inject_diverse: bool = False,
         exp_gen_plan: Optional[Dict] = None,
         sibling_exp: List[DSExperiment] | None = None,
-        former_user_instructions_str: Optional[str] = None,
+        former_user_instructions: UserInstructions | None = None,
     ) -> Dict:
         problem_formatted_str = ""
         for i, (problem_name, problem_dict) in enumerate(problems.items()):
@@ -642,7 +643,7 @@ class DSProposalV2ExpGen(ExpGen):
             generate_unique_hypothesis=DS_RD_SETTING.enable_generate_unique_hypothesis and is_new_tree,
             enable_simple_hypothesis=DS_RD_SETTING.enable_simple_hypothesis,
             sibling_hypotheses=sibling_hypotheses,
-            former_user_instructions_str=former_user_instructions_str,
+            former_user_instructions_str=str(former_user_instructions) if former_user_instructions else None,
         )
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
             scenario_desc=scenario_desc,
@@ -1179,8 +1180,7 @@ class DSProposalV2ExpGen(ExpGen):
         failed_exp_feedback_list_desc: str,
         fb_to_sota_exp: ExperimentFeedback | None = None,
         sibling_exp: List[DSExperiment] | None = None,
-        former_user_instructions: Optional[list[str]] = None,
-        former_user_instructions_str: Optional[str] = None,
+        former_user_instructions: UserInstructions = None,
     ) -> DSExperiment:
         if pipeline:
             component_info = get_component("Pipeline")
@@ -1197,7 +1197,7 @@ class DSProposalV2ExpGen(ExpGen):
             metric_name=self.scen.metric_name,
             sibling_tasks=sibling_tasks,
             fix_seed_and_data_split=DS_RD_SETTING.fix_seed_and_data_split,
-            former_user_instructions_str=former_user_instructions_str,
+            former_user_instructions_str=str(former_user_instructions) if former_user_instructions else None,
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,
@@ -1335,10 +1335,8 @@ class DSProposalV2ExpGen(ExpGen):
         )
         if len(failed_exp_feedback_list) == 0:
             former_user_instructions = None
-            former_user_instructions_str = None
         else:
             former_user_instructions = failed_exp_feedback_list[-1][0].user_instructions
-            former_user_instructions_str = failed_exp_feedback_list[-1][0].user_instructions_str
 
         # NOTE: we currently don't support inject diverse problems for the parallel + multi-trace mode,
         if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
@@ -1390,7 +1388,7 @@ class DSProposalV2ExpGen(ExpGen):
             exp_gen_plan=plan.get("exp_gen") if plan else None,
             is_new_tree=is_new_tree,
             sibling_exp=sibling_exp,
-            former_user_instructions_str=former_user_instructions_str,
+            former_user_instructions=former_user_instructions,
         )
         if not pipeline:
             sota_exp_model_file_count = len(
@@ -1484,5 +1482,4 @@ class DSProposalV2ExpGen(ExpGen):
             fb_to_sota_exp=fb_to_sota_exp,
             sibling_exp=sibling_exp,
             former_user_instructions=former_user_instructions,
-            former_user_instructions_str=former_user_instructions_str,
         )
