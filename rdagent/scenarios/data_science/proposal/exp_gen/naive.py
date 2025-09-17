@@ -39,11 +39,27 @@ class NaiveExpGen(ExpGen):
             exp_and_feedback_list_desc=exp_and_feedback_list_desc,
         )
 
+        def _update_init_kwargs(init_kwargs: dict):
+            # Ensure required fields for PipelineTask
+            # name defaults to "Pipeline" if missing
+            init_kwargs.setdefault("name", "Pipeline")
+            # description is required for Task base class
+            init_kwargs.setdefault("description", "")
+            # Map optional packages list to package_info string
+            packages = init_kwargs.pop("packages", None)
+            if packages is not None:
+                if isinstance(packages, list):
+                    init_kwargs["package_info"] = ", ".join(str(p) for p in packages)
+                else:
+                    init_kwargs["package_info"] = str(packages)
+            return init_kwargs
+
         task = build_cls_from_json_with_retry(
             cls=PipelineTask,
             system_prompt=sys_prompt,
             user_prompt=user_prompt,
             retry_n=5,
+            init_kwargs_update_func=_update_init_kwargs,
         )
 
         exp = DSExperiment(
