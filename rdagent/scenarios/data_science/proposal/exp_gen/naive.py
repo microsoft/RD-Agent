@@ -2,6 +2,7 @@
 The most naive way to design experiments
 """
 
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.core.proposal import ExpGen
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -23,9 +24,11 @@ class NaiveExpGen(ExpGen):
             exp=sota_exp, heading="Best of previous exploration of the scenario"
         )
 
+        pipeline = DS_RD_SETTING.coder_on_whole_pipeline
         exp_and_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
             exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
             type="all",
+            pipeline=pipeline,
         )
 
         sys_prompt = T(".naive:naive_gen.system").r()
