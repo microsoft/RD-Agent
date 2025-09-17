@@ -49,12 +49,20 @@ class AbsTask(ABC):
 
 
 class Task(AbsTask):
-    def __init__(self, name: str, version: int = 1, description: str = "") -> None:
+    def __init__(
+        self, name: str, version: int = 1, description: str = "", user_instructions: list[str] | None = None
+    ) -> None:
         super().__init__(name, version)
         self.description = description
+        self.user_instructions = user_instructions
 
     def get_task_information(self) -> str:
-        return f"Task Name: {self.name}\nDescription: {self.description}"
+        user_instructions_str = (
+            ("\nUser Instructions (Top priority!):\n" + "\n".join(f"- {ui}" for ui in self.user_instructions))
+            if self.user_instructions
+            else ""
+        )
+        return f"Task Name: {self.name}\nDescription: {self.description}{user_instructions_str}"
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.name}>"
@@ -410,6 +418,30 @@ class Experiment(
         self.plan: ExperimentPlan | None = (
             None  # To store the planning information for this experiment, should be generated inside exp_gen.gen
         )
+        self.user_instructions: list[str] | None = None  # To store the user instructions for this experiment
+
+    @property
+    def user_instructions_str(self) -> str | None:
+        return (
+            ("\nUser Instructions (Top priority!):\n" + "\n".join(f"- {ui}" for ui in self.user_instructions))
+            if self.user_instructions
+            else None
+        )
+
+    def set_user_instructions(self, instructions: list[str] | None) -> None:
+        if instructions is None:
+            return
+        self.user_instructions = instructions
+        for ws in self.sub_workspace_list:
+            if ws is not None:
+                ws.target_task.user_instructions = instructions
+        for task in self.sub_tasks:
+            task.user_instructions = instructions
+        for task_list in self.pending_tasks_list:
+            for task in task_list:
+                task.user_instructions = instructions
+        if self.experiment_workspace is not None and self.experiment_workspace.target_task is not None:
+            self.experiment_workspace.target_task.user_instructions = instructions
 
     @property
     def result(self) -> object:

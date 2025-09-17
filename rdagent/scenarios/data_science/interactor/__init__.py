@@ -91,6 +91,7 @@ class FBDSInteractor(DSInteractor):
             "target_hypothesis_index": target_hypothesis_index,
             "task": task,
             "expired_datetime": datetime.now() + timedelta(seconds=DS_RD_SETTING.user_interaction_wait_seconds),
+            "former_user_instructions": exp.user_instructions,
         }
         session_id = uuid.uuid4().hex
         DS_RD_SETTING.user_interaction_mid_folder.mkdir(parents=True, exist_ok=True)
@@ -112,8 +113,8 @@ class FBDSInteractor(DSInteractor):
             if user_feedback["action"] == "confirm":
                 return exp
             elif user_feedback["action"] == "rewrite":
-                exp.target_hypothesis.hypothesis = user_feedback["target_hypothesis"]
+                exp.hypothesis.hypothesis = user_feedback["target_hypothesis"]
                 exp.pending_tasks_list[0][0].description = user_feedback["task_description"]
-                exp.experiment_workspace.inject_files(main_py=user_feedback["current_code"])
+                exp.set_user_instructions(user_feedback["user_instruction"])
                 Path(DS_RD_SETTING.user_interaction_mid_folder / f"{session_id}_RET.json").unlink(missing_ok=True)
                 return exp

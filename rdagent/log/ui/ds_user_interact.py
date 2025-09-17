@@ -17,12 +17,15 @@ if "sessions" not in state:
 if "selected_session_name" not in state:
     state.selected_session_name = None
 
+
 def render_main_content():
     """渲染主要内容区域"""
     if state.selected_session_name is not None and state.selected_session_name in state.sessions:
         selected_session_data = state.sessions[state.selected_session_name]
         if selected_session_data is not None:
-            st.title(f"Session: {state.selected_session_name[:4]} with competition {selected_session_data['competition']}")
+            st.title(
+                f"Session: {state.selected_session_name[:4]} with competition {selected_session_data['competition']}"
+            )
             st.title("Contextual Information:")
             st.subheader("Competition scenario:", divider=True)
             scenario = st.code(selected_session_data["scenario_description"], language="yaml")
@@ -62,30 +65,46 @@ def render_main_content():
                     value=(original_task_desc := selected_session_data["task"].description),
                     height="content",
                 )
-                user_instruction = st.text_area(
-                    "Additional instructions for the agent: (Highest priority)", value="", height="content"
-                )
+                original_user_instruction = selected_session_data.get("user_instruction")
+                user_instruction_list = []
+                if selected_session_data.get("former_user_instructions") is not None:
+                    st.caption(
+                        "Former user instructions, you can modify or delete the content to remove certain instruction."
+                    )
+                    for user_instruction in selected_session_data.get("former_user_instructions"):
+                        user_instruction_list.append(
+                            st.text_area("Former user instruction", value=user_instruction, height="content")
+                        )
+                user_instruction_list.append(st.text_area("Add new user instruction", value="", height="content"))
                 submit = st.form_submit_button("Submit")
 
                 if submit:
+                    user_instruction_str_list = [ui for ui in user_instruction_list if ui.strip() != ""]
+                    user_instruction_str_list = (
+                        None if len(user_instruction_str_list) == 0 else user_instruction_str_list
+                    )
                     action = (
                         "confirm"
                         if target_hypothesis == original_hypothesis
                         and target_task == original_task_desc
-                        and user_instruction == ""
+                        and user_instruction_str_list == original_user_instruction
                         else "rewrite"
                     )
                     submit_dict = {
                         "target_hypothesis": target_hypothesis,
                         "task_description": target_task,
-                        "user_instruction": user_instruction,
+                        "user_instruction": user_instruction_str_list,
                         "action": action,
                     }
                     json.dump(
                         submit_dict,
-                        open(DS_RD_SETTING.user_interaction_mid_folder / f"{state.selected_session_name}_RET.json", "w"),
+                        open(
+                            DS_RD_SETTING.user_interaction_mid_folder / f"{state.selected_session_name}_RET.json", "w"
+                        ),
                     )
-                    Path(DS_RD_SETTING.user_interaction_mid_folder / f"{state.selected_session_name}.pkl").unlink(missing_ok=True)
+                    Path(DS_RD_SETTING.user_interaction_mid_folder / f"{state.selected_session_name}.pkl").unlink(
+                        missing_ok=True
+                    )
                     st.success("Your feedback has been submitted. Thank you!")
                     time.sleep(5)
                     state.selected_session_name = None
@@ -102,6 +121,7 @@ def render_main_content():
     else:
         st.warning("Please select a session from the sidebar.")
 
+
 # 每秒更新一次sessions
 @st.fragment(run_every=1)
 def update_sessions():
@@ -112,9 +132,14 @@ def update_sessions():
             session_data = pickle.load(open(session_file, "rb"))
             if session_data["expired_datetime"] > datetime.now():
                 state.sessions[session_file.stem] = session_data
+            else:
+                session_file.unlink(missing_ok=True)
+                ret_file = log_folder / f"{session_file.stem}_RET.json"
+                ret_file.unlink(missing_ok=True)
         except Exception as e:
             continue
     render_main_content()
+
 
 @st.fragment(run_every=1)
 def render_sidebar():

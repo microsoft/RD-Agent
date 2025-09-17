@@ -169,7 +169,8 @@ pipeline_coder:
     8. **Try-except blocks are ONLY allowed when reading files. If no files are successfully read, it indicates incorrect file paths or reading methods, not a try-except issue. Try-except is PROHIBITED elsewhere in the code. Assert statements are PROHIBITED throughout the entire code.**
     9. ATTENTION: ALWAYS use the best saved model (not necessarily final epoch) for predictions. **NEVER create dummy/placeholder submissions (e.g., all 1s, random values)**. If training fails, report failure honestly rather than generating fake submission files.
     10. You should ALWAYS generate the complete code rather than partial code.
-    11. Strictly follow all specifications and general guidelines described above.
+    11. If the task contains any user instructions, you must strictly follow them. User instructions have the highest priority and should be followed even if they conflict with other specifications or guidelines.
+    12. Strictly follow all specifications and general guidelines described above.
 
     ### Output Format
     {% if out_spec %}
