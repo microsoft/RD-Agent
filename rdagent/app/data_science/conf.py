@@ -182,6 +182,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     ensemble_time_upper_bound: bool = False
 
+    fake_gpu: bool = False
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()
 

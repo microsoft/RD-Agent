@@ -2,7 +2,7 @@ import platform
 import subprocess
 import sys
 from importlib.metadata import distributions
-
+from rdagent.app.data_science.conf import DS_RD_SETTING
 
 def print_runtime_info():
     print("=== Python Runtime Info ===")
@@ -15,12 +15,18 @@ def get_gpu_info():
         import torch
 
         if torch.cuda.is_available():
-            print("\n=== GPU Info (via PyTorch) ===")
-            print(f"CUDA Version: {torch.version.cuda}")
-            print(f"GPU Device: {torch.cuda.get_device_name(0)}")
-            print(f"Total GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
-            print(f"Allocated Memory: {torch.cuda.memory_allocated(0) / 1024**3:.2f} GB")
-            print(f"Cached Memory: {torch.cuda.memory_reserved(0) / 1024**3:.2f} GB")
+            if DS_RD_SETTING.fake_gpu:
+                print("\n=== GPU Info (via PyTorch) ===")
+                print(f"CUDA Version: {torch.version.cuda}")
+                print(f"GPU Device: Tesla V100-SXM3-32GB")
+                print(f"Total GPU Memory: 31.73 GB")
+            else:
+                print("\n=== GPU Info (via PyTorch) ===")
+                print(f"CUDA Version: {torch.version.cuda}")
+                print(f"GPU Device: {torch.cuda.get_device_name(0)}")
+                print(f"Total GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+                print(f"Allocated Memory: {torch.cuda.memory_allocated(0) / 1024**3:.2f} GB")
+                print(f"Cached Memory: {torch.cuda.memory_reserved(0) / 1024**3:.2f} GB")
         else:
             print("\nNo CUDA GPU detected (PyTorch).")
 
