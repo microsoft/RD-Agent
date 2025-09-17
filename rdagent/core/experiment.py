@@ -425,7 +425,7 @@ class Experiment(
         self.plan: ExperimentPlan | None = (
             None  # To store the planning information for this experiment, should be generated inside exp_gen.gen
         )
-        self.user_instructions: UserInstructions = None  # To store the user instructions for this experiment
+        self.user_instructions: UserInstructions | None = None  # To store the user instructions for this experiment
 
     def set_user_instructions(self, user_instructions: UserInstructions | None) -> None:
         if user_instructions is None:
