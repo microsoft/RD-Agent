@@ -77,25 +77,31 @@ def render_main_content():
                         )
                 user_instruction_list.append(st.text_area("Add new user instruction", value="", height="content"))
                 submit = st.form_submit_button("Submit")
+                approve = st.form_submit_button("Approve without changes")
 
-                if submit:
-                    user_instruction_str_list = [ui for ui in user_instruction_list if ui.strip() != ""]
-                    user_instruction_str_list = (
-                        None if len(user_instruction_str_list) == 0 else user_instruction_str_list
-                    )
-                    action = (
-                        "confirm"
-                        if target_hypothesis == original_hypothesis
-                        and target_task == original_task_desc
-                        and user_instruction_str_list == original_user_instruction
-                        else "rewrite"
-                    )
-                    submit_dict = {
-                        "target_hypothesis": target_hypothesis,
-                        "task_description": target_task,
-                        "user_instruction": user_instruction_str_list,
-                        "action": action,
-                    }
+                if submit or approve:
+                    if approve:
+                        submit_dict = {
+                            "action": "confirm",
+                        }
+                    else:
+                        user_instruction_str_list = [ui for ui in user_instruction_list if ui.strip() != ""]
+                        user_instruction_str_list = (
+                            None if len(user_instruction_str_list) == 0 else user_instruction_str_list
+                        )
+                        action = (
+                            "confirm"
+                            if target_hypothesis == original_hypothesis
+                            and target_task == original_task_desc
+                            and user_instruction_str_list == original_user_instruction
+                            else "rewrite"
+                        )
+                        submit_dict = {
+                            "target_hypothesis": target_hypothesis,
+                            "task_description": target_task,
+                            "user_instruction": user_instruction_str_list,
+                            "action": action,
+                        }
                     json.dump(
                         submit_dict,
                         open(
