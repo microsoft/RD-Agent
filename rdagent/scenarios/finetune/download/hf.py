@@ -5,7 +5,7 @@ from typing import Optional
 
 
 def _ensure_parent(path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(path.parent, mode=0o777, exist_ok=True)
 
 
 def download_dataset(
