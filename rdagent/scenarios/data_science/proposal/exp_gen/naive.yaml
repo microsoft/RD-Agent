@@ -20,7 +20,7 @@ naive_gen:
 
     ## CRITICAL OUTPUT FORMAT REQUIREMENTS
     Your sketch MUST explicitly specify the exact column structure for both output files:
-    - **For `scores.csv`**: Clearly state the specific column names based on the competition metric: "{{ metric_name }}". (CASE-SENSITIVE)
+    - **For `scores.csv`**: Clearly state the specific column names based on the competition metric.(CASE-SENSITIVE)
     - **For `submission.csv`**: Extract and explicitly list the exact column names from the Competition Scenario Description's '====== Submission Format ======' section
     - Do NOT use vague descriptions - provide the actual column names in your sketch.
 
