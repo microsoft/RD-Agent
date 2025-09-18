@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
@@ -63,7 +64,7 @@ class LLMFinetuneScen(DataScienceScen):
 
         ft_root = Path(FT_RD_SETTING.file_path)
         if not ft_root.exists():
-            ft_root.mkdir(parents=True, exist_ok=True)
+            os.makedirs(ft_root, mode=0o777, exist_ok=True)
             logger.info(f"FT_FILE_PATH not exists, created FT_FILE_PATH directory: {ft_root}")
 
         # Ensure dataset assets exist
@@ -78,13 +79,6 @@ class LLMFinetuneScen(DataScienceScen):
 
         self.llama_factory_manager = get_llama_factory_manager()
         self.llama_factory_manager.get_info()
-
-        # Verify model support if model is specified
-        if self.base_model:
-            hf_models = self.llama_factory_manager.hf_models
-            model_names = self.llama_factory_manager.models
-            if self.base_model not in hf_models and self.base_model not in model_names:
-                raise ValueError(f"Model '{self.base_model}' is not in LLaMA Factory supported list.")
 
         metadata = self.llama_factory_manager.get_metadata_info()
         commit = metadata.get("commit_sha", "unknown") if metadata.get("has_metadata") else "unknown"
@@ -116,6 +110,8 @@ class LLMFinetuneScen(DataScienceScen):
         existing_config[self.dataset] = generated_config
 
         try:
+            os.makedirs(datasets_dir, mode=0o777, exist_ok=True)
+
             with open(dataset_info_path, "w", encoding="utf-8") as f:
                 json.dump(existing_config, f, indent=2, ensure_ascii=False)
             logger.info(f"Successfully updated dataset_info.json with configuration for '{self.dataset}'")
