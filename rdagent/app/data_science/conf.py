@@ -177,6 +177,15 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     llm_select_hypothesis: bool = False
     """Whether to use LLM to select hypothesis. If True, use LLM selection; if False, use the existing ranking method."""
 
+    # Time-based fallback switch: after a given number of hours, force rank selection
+    # and disable simple hypothesis regardless of previous settings.
+    enable_time_based_fallback: bool = False
+    """If True, after fallback_after_hours, force rank selection and disable simple hypothesis."""
+    fallback_after_hours: float = 12.0
+    """Hours after which the time-based fallback behavior is activated."""
+    fallback_full_recommend_timeout: int = 7200
+    """New recommend timeout (seconds) applied after fallback trigger."""
+
     #### Task Generate related
     fix_seed_and_data_split: bool = False
 

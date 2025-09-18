@@ -1369,6 +1369,33 @@ class DSProposalV2ExpGen(ExpGen):
 
         sibling_exp = trace.get_sibling_exps() if trace.should_inject_diversity() else None
 
+        # Time-based fallback: after a configured number of hours, force rank selection
+        # and disable simple hypothesis regardless of previous settings.
+        fallback_triggered = False
+        if DS_RD_SETTING.enable_time_based_fallback and RD_Agent_TIMER_wrapper.timer.started:
+            try:
+                total_time = RD_Agent_TIMER_wrapper.timer.all_duration
+                res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
+                if total_time is not None and res_time is not None:
+                    elapsed_hours = (
+                        total_time.total_seconds() - res_time.total_seconds()
+                    ) / 3600
+                    if elapsed_hours >= DS_RD_SETTING.fallback_after_hours:
+                        fallback_triggered = True
+                        if DS_RD_SETTING.enable_simple_hypothesis:
+                            logger.info(
+                                "Time-based fallback active: disabling simple hypothesis and using rank selection"
+                            )
+                            # Persistently turn off simple hypothesis once fallback is active
+                            DS_RD_SETTING.enable_simple_hypothesis = False
+                            # Also force ranking by disabling LLM selection
+                            DS_RD_SETTING.llm_select_hypothesis = False
+                            # Switch full recommend timeout to fallback value
+                            DS_RD_SETTING.full_recommend_timeout = DS_RD_SETTING.fallback_full_recommend_timeout
+            except Exception as _:
+                # Be conservative if timer info is incomplete
+                fallback_triggered = False
+
         # Step 1: Identify problems
         all_problems = self.identify_problem(
             current_sub_trace=trace.get_parent_exps(),
@@ -1459,7 +1486,7 @@ class DSProposalV2ExpGen(ExpGen):
             logger.info(f"Hypothesis critique and rewrite disabled - using original {len(hypothesis_dict)} hypotheses")
 
         # Step 3: Select the best hypothesis
-        if DS_RD_SETTING.llm_select_hypothesis:
+        if DS_RD_SETTING.llm_select_hypothesis and not fallback_triggered:
             response_dict = self.hypothesis_select_with_llm(
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,

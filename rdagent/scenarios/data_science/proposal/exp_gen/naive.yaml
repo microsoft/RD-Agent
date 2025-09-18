@@ -24,38 +24,19 @@ naive_gen:
     - **For `submission.csv`**: Extract and explicitly list the exact column names from the Competition Scenario Description's '====== Submission Format ======' section
     - Do NOT use vague descriptions - provide the actual column names in your sketch.
 
-    1. **No Code**: The sketch **MUST NOT** contain any programming code, specific library calls, or pseudo-code. Describe steps conceptually (e.g., "Load training data from {% include "scenarios.data_science.share:scen.input_path" %}/train.csv"). List specific algorithm names where appropriate (e.g., "Apply XGBoost classifier," "Use Isotonic Regression for calibration").
-    2. **Structure and Conciseness**:
-      - If SOTA exists, understand its structure first.
-      - If no SOTA, outline a clear, logical sequence of steps for the new `main.py`.
-    3. **Leverage SOTA or Design a New One**:
-      - **If a `Current SOTA Implementation` is provided**: Your sketch must primarily detail the **minimal and targeted changes, additions, or replacements** needed to integrate the `Proposed Hypothesis` into that SOTA. Focus only on what needs to change.
-      - **If NO `Current SOTA Implementation` is provided (Initial Version)**: This is critical. Your sketch **MUST** describe a **COMPLETE, END-TO-END, REASONABLE baseline pipeline**.
-        - It must cover: Data loading (from specified paths), essential preprocessing (as per hypothesis or minimal viable), a basic model implementation (as per hypothesis), a simple validation strategy (e.g., a single train-validation split or fewer folds if CV is too complex initially), generation of `scores.csv`, and `submission.csv` in the correct format.
-        - The overriding goal for this initial sketch is **RUNNABILITY and CORRECTNESS of the pipeline structure**. Prioritize getting a valid submission out, even with a very basic model. Avoid any complexity not absolutely mandated by the core hypothesis or competition basics.
-    4. **Learn from Past Failures**:
-      - If `Previous Failed Experiments & Feedback` are provided, analyze them meticulously. Design the sketch to explicitly avoid repeating similar mistakes, especially if failures relate to the current hypothesis, data handling, submission format, or resource usage (timeouts).
-      - If a hypothesis aims to fix a past failure, the sketch should detail precisely how the fix is implemented.
-    5. **Specificity and Clarity**:
-      - Be unambiguous. Instead of "select model," if the hypothesis implies "Train an EfficientNet-B0 model," state that.
-      - The sketch must be definitive. No open-ended options or phrases like "for example," or "e.g.," within a step's action.
-    6. **Resource Constraints & Efficiency**:
-      - Always design the workflow to execute within the competition `Time Limit`.
-      - If `Previous Failed Experiments` explicitly state time/memory constraint issues, your sketch **MUST** make efficiency the **TOP PRIORITY**. Clearly state `[EFFICIENCY AS TOP PRIORITY]` at the beginning of your sketch.
-      - The sketch must then detail *specific measures* to achieve this.
-      - Even if the `Proposed Hypothesis` is not about efficiency, if past experiments failed due to timeouts or the dataset/model is complex, the sketch **must still incorporate measures to improve overall pipeline efficiency**. This might involve simplifying aspects unrelated to the core hypothesis to ensure the hypothesis can be tested within limits.
-      - The goal is a workflow that successfully implements and validates the `Proposed Hypothesis` effectively, balancing performance with strict resource constraints. An experiment that times out provides no information.
-      - If you plan to prioritize efficiency, you can modify the parts which is not related to the hypothesis. Which means your task should still able to validate the hypothesis.
-      - Add [EFFICIENCY AS PRIORITY] tag in the task description to indicate that the task takes efficiency as a priority.
-      - Although the task should prioritize efficiency, it should not be the only focus. The task should also be aligned with the proposed hypothesis and the current SOTA implementation.
-    7. **Reminders of Common Mistakes (Especially for New `main.py`)**: At the end of your sketch, include a "Key Reminders for Developer" section. Add the following reminders if appropriate.
+    1. **Reminders of Common Mistakes (Especially for New `main.py`)**: At the end of your sketch, include a "Key Reminders for Developer" section. Add the following reminders if appropriate.
       - Ensure all input files are loaded from their exact paths under `{% include "scenarios.data_science.share:scen.input_path" %}` (e.g., `{% include "scenarios.data_science.share:scen.input_path" %}<competition_name>/train.csv`)."
       - Verify `submission.csv` strictly adheres to format: columns, correct data types, and no extra index.
       - "Implement correct label mapping for classification tasks (e.g., 0-indexed, contiguous integers for loss functions like PyTorch's CrossEntropyLoss) to prevent runtime errors."
       - Handle file I/O robustly, especially for zipped data or large files, to prevent `FileNotFoundError` or `BadZipFile` issues.
       - Confirm no `tqdm` or other progress bars are in the final script.
       - Double-check that validation scores are saved correctly to `scores.csv` with specified 'Model' and metric columns, even for a single model run (include 'ensemble' row).
-    8. **EDA improvement**: The user might provide you some EDA improvement suggestions based on the previous EDA output. If so, you should also include the EDA improvement in your sketch.
+    2. **Metric Calculation and Storage (`scores.csv`)**:
+      - Calculate the official competition metric on a proper validation set. Save results to `scores.csv`.
+      - The sketch must ensure this step is included. A successful run should always produce scores.
+      - `scores.csv` must have an index with model names and the literal string "ensemble" (lowercase). **Columns should be a single column with exact metric name: "{{ metric_name }}".** (CASE-SENSITIVE)
+      - When only one model is used, its score should be present, and an "ensemble" score (which would be the same as the single model's score in this case) must also be recorded.
+      - Ensure validation metrics and processes are consistent across all parts of the pipeline. Avoid changes that would alter how validation metrics are calculated unless that is part of the hypothesis
 
     ## Final Output Format in JSON Schema:
     {% include "scenarios.data_science.proposal.exp_gen.prompts:output_format.pipeline" %}
