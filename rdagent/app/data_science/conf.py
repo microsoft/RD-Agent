@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 
 from pydantic_settings import SettingsConfigDict
@@ -20,6 +21,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     planner: str = "rdagent.scenarios.data_science.proposal.exp_gen.planner.DSExpPlannerHandCraft"
     hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.router.ParallelMultiTraceExpGen"
+    interactor: str = "rdagent.components.interactor.SkipInteractor"
     trace_scheduler: str = "rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler.RoundRobinScheduler"
     """Hypothesis generation class"""
 
@@ -181,6 +183,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     fix_seed_and_data_split: bool = False
 
     ensemble_time_upper_bound: bool = False
+
+    user_interaction_wait_seconds: int = 6000  # seconds to wait for user interaction
+    user_interaction_mid_folder: Path = Path.cwd() / "git_ignore_folder" / "RD-Agent_user_interaction"
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()

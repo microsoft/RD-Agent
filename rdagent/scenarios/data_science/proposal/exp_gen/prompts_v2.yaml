@@ -196,6 +196,12 @@ hypothesis_gen:
     5. **Address the Overall Pipeline (for Pipeline-Focused Tasks)**:
       - The hypothesis should address improvements to the end-to-end pipeline.
       - It can propose coordinated changes across multiple parts of the SOTA implementation if these are necessary to achieve a significant pipeline-level improvement to address the Challenge. (Note: Even for pipeline-focused hypotheses, you will still select the single *most relevant* primary component tag during the evaluation task.)
+    
+    {% if former_user_instructions_str is not none %}
+    ## 1.3. Mandatory Consideration of Past User Instructions
+    The user has provided specific instructions in previous experiments. These instructions may contain critical insights or constraints that must be considered when formulating your hypotheses. Carefully review the following past user instructions and ensure that your proposed hypotheses align with these directives:
+    {{ former_user_instructions_str }}
+    {% endif %}
 
     # Task 2: Hypothesis Evaluation
     After proposing one hypothesis for each relevant Identified Challenge, evaluate each one.
@@ -424,7 +430,13 @@ hypothesis_rewrite:
     {% endfor %}
     Your rewritten hypotheses **MUST** guide the agent towards different approaches, for example, different backbone models, different feature engineering methods, different ensemble strategies, different workflow optimizations, focus on efficiency etc. Avoid proposing hypotheses that are similar to those listed above.
     {% endif %}
-    
+
+    {% if former_user_instructions_str is not none %}
+    # Mandatory Consideration of Past User Instructions
+    The user has provided specific instructions in previous experiments. These instructions may contain critical insights or constraints that must be considered when rewriting your hypotheses. Carefully review the following past user instructions and ensure that your rewritten hypotheses align with these directives:
+    {{ former_user_instructions_str }}
+    {% endif %}
+
     {% if rewrite_output_format is not none %}
     ## Output Format
     {{ rewrite_output_format }}
@@ -760,7 +772,13 @@ task_gen:
     If you are confident in a specific value based on strong evidence, prior experiments, or clear rationale, specify the value clearly.
     {% include "scenarios.data_science.share:spec.hyperparameter" %}
 
-    
+    {% if former_user_instructions_str is not none %}
+    # Mandatory Consideration of Past User Instructions
+    The user has provided specific instructions in previous experiments. These instructions may contain critical insights or constraints that must be considered in your sketch.
+    Carefully review and integrate these instructions into your design to ensure alignment with user expectations and requirements.
+    {{ former_user_instructions_str }}
+    {% endif %}
+
     {% if task_output_format is not none %}
 
     # Output Format

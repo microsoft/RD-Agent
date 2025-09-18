@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, List, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
@@ -48,13 +48,28 @@ class AbsTask(ABC):
         """
 
 
+class UserInstructions(List[str]):
+    def __str__(self) -> str:
+        if self:
+            return ("\nUser Instructions (Top priority!):\n" + "\n".join(f"- {ui}" for ui in self)) if self else ""
+        else:
+            return ""
+
+
 class Task(AbsTask):
-    def __init__(self, name: str, version: int = 1, description: str = "") -> None:
+    def __init__(
+        self,
+        name: str,
+        version: int = 1,
+        description: str = "",
+        user_instructions: UserInstructions | None = None,
+    ) -> None:
         super().__init__(name, version)
         self.description = description
+        self.user_instructions = user_instructions
 
     def get_task_information(self) -> str:
-        return f"Task Name: {self.name}\nDescription: {self.description}"
+        return f"Task Name: {self.name}\nDescription: {self.description}{str(self.user_instructions)}"
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.name}>"
@@ -410,6 +425,21 @@ class Experiment(
         self.plan: ExperimentPlan | None = (
             None  # To store the planning information for this experiment, should be generated inside exp_gen.gen
         )
+        self.user_instructions: UserInstructions | None = None  # To store the user instructions for this experiment
+
+    def set_user_instructions(self, user_instructions: UserInstructions | None) -> None:
+        if user_instructions is None:
+            return
+        if not isinstance(user_instructions, UserInstructions) and isinstance(user_instructions, list):
+            user_instructions = UserInstructions(user_instructions)
+        self.user_instructions = user_instructions
+        for ws in self.sub_workspace_list:
+            if ws is not None:
+                ws.target_task.user_instructions = user_instructions  # type: ignore[union-attr]
+        for task in self.sub_tasks:
+            task.user_instructions = user_instructions
+        if self.experiment_workspace is not None and self.experiment_workspace.target_task is not None:
+            self.experiment_workspace.target_task.user_instructions = user_instructions
 
     @property
     def result(self) -> object:
