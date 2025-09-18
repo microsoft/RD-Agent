@@ -359,12 +359,13 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         response = json.loads(response)  # 将字符串解析为 JSON 对象
 
         enter_mcts = response["enter_mcts"]
-        estimated_time_sec = response["estimated_time_sec"]
+        #estimated_time_sec = response["estimated_time_sec"]
         gpu_count = response["gpu_count"]
         recommended_search_depth = response["recommended_search_depth"]
         #reasoning_text = response["reasoning"]["text"]
         confidence = response["reasoning"]["confidence"]
         
+        estimated_time_sec = elapsed_time*5
         enter_condition = (DS_RD_SETTING.runner_max_loop>1 and DS_RD_SETTING.enable_runner_mcts and not root_is_none and confidence> 75 and enter_mcts)
 
         if enter_condition:

@@ -114,16 +114,17 @@ DSCoSTEER:
 
     2. **Adjust hyperparameters according to the following priority**:
       - **First priority:** `batch size` and `epoch` and `CV folds`(control training stability and convergence).
-        - If these have already been modified significantly, you may consider the next priority levels.
+        - Before adjusting, check `__change_summary__` of the evolving history. If these parameters have already been explored or significantly modified, you may skip or only lightly adjust them, and move to the next priority.
       - **Second priority:** `max length`, `image size`, and advanced model architectures (control input information and model capacity).
         - NLP examples: DeBERTa v3 Large, RoBERTa Large, T5, GPT-3 / GPT-2 fine-tuned
         - CV examples: Swin Transformer, ViT Large / Huge, EfficientNetV2
       - **Third priority:** Learning rate scheduler (`lr scheduler`) and other fine-tuning parameters (regularization, dropout, label smoothing, weight decay, etc.).
 
     3. **Guiding principle:** 
-      - Adjust hyperparameters progressively according to the priority list.
-      - Take into account which hyperparameters have already been modified in the current code.
+      - Adjust hyperparameters progressively according to the above priority list.
+      - Pay attention to which parameters have already been modified or explored in the current code — in such cases, consider moving on to higher-priority hyperparameters instead of repeating.
       - Ensure the best use of computational resources and the time limit.
+      - Encourage creativity: you may also adjust parameters you believe are most useful or impactful, even if they are outside the strict priority order
 
     ## Instructions
     1. Minimal changes principle: only modify necessary hyperparameters.
@@ -181,6 +182,7 @@ DSCoSTEER:
         - `"main.py"`: the full modified content of `main.py` (no omissions).  
         - `"__change_summary__"`: a short plain-text explanation of the changes.  
       - The JSON must be valid and contain exactly **{{num_candidates}}** candidate modifications.  
+      - Additionally, append the `__change_summary__` string to the **end of the code file (`main.py`) as a commented block**.  
 
     5. **HARD CONSTRAINTS:**  
       - Do not omit, summarize, or collapse any code.  
