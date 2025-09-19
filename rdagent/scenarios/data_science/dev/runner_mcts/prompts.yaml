@@ -106,6 +106,7 @@ DSCoSTEER:
     Your task:
       - Refine the code base and adjust hyperparameters based on feedback. Propose **{{num_candidates}} candidate code modifications**.
       - Keep the overall workflow logic unchanged.
+      - Please make sure to reference the **standard output** when refining.
 
     Instructions:
     1. **Fix the cross-validation strategy first**:
@@ -113,12 +114,17 @@ DSCoSTEER:
       - This ensures reliable performance comparisons across different hyperparameter settings.
 
     2. **Adjust hyperparameters according to the following priority**:
-      - **First priority:** `batch size` and `epoch` and `CV folds`(control training stability and convergence).
-        - Before adjusting, check `__change_summary__` of the evolving history. If these parameters have already been explored or significantly modified, you may skip or only lightly adjust them, and move to the next priority.
-      - **Second priority:** `max length`, `image size`, and advanced model architectures (control input information and model capacity).
-        - NLP examples: DeBERTa v3 Large, RoBERTa Large, T5, GPT-3 / GPT-2 fine-tuned
-        - CV examples: Swin Transformer, ViT Large / Huge, EfficientNetV2
-      - **Third priority:** Learning rate scheduler (`lr scheduler`) and other fine-tuning parameters (regularization, dropout, label smoothing, weight decay, etc.).
+      - **First priority:** Advanced model architectures and input information (determine capacity and upper bound).
+        - Examples (NLP): DeBERTa v3 Large, RoBERTa Large, T5, GPT-2 / GPT-3 fine-tuned
+        - Examples (CV): Swin Transformer, ViT Large / Huge, EfficientNetV2
+        - Also consider `max length` and `image size` when scaling models to fully leverage input data.
+      
+      - **Second priority:** Training stability parameters (`batch size`, `epoch`, `CV folds`).
+        - Before adjusting, check `__change_summary__` and **standard output** of the evolving history. 
+        - If these parameters have already been explored or significantly modified, you may skip or only lightly adjust them.
+      
+      - **Third priority:** Optimization refinements (`lr scheduler`, regularization, dropout, label smoothing, weight decay, etc.).
+        - These fine-tuning techniques further improve convergence and generalization.
 
     3. **Guiding principle:** 
       - Adjust hyperparameters progressively according to the above priority list.
@@ -151,6 +157,8 @@ DSCoSTEER:
     # Current Code Change Summary
     {{ change_summary }}{% endif %}
 
+    # Standard Output:
+     {{stdout}}
 
     {% if queried_former_failed_knowledge|length != 0 %}
     # Evolving History

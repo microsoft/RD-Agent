@@ -141,7 +141,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     def generate_modifications(
         self,
         target_task: CoSTEERTask,
-        workspace: FBWorkspace,
+        node: MCTSNode,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
         num_candidates: int = 2,  
     ) -> list[dict[str, str]]:
@@ -166,10 +166,11 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
 
         user_prompt = T(".prompts:DSCoSTEER.user").r(
-            code=workspace.all_codes,
-            change_summary=workspace.change_summary,
+            code=node.workspace.all_codes,
+            change_summary=node.workspace.change_summary,
             queried_former_failed_knowledge=queried_former_failed_knowledge,
             num_candidates=num_candidates,
+            stdout = node.feedback.stdout
         )
 
         code_raw = session.build_chat_completion(user_prompt=user_prompt)
@@ -178,14 +179,14 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             code_candidates = json.loads(code_raw)
         except Exception:
             if self.settings.diff_mode:
-                single_candidate = PythonBatchPatchOut.extract_output(code_raw, prefix=workspace.workspace_path)
+                single_candidate = PythonBatchPatchOut.extract_output(code_raw, prefix=node.workspace.workspace_path)
             else:
                 single_candidate = PythonBatchEditOut.extract_output(code_raw)
             code_candidates = [single_candidate]
 
         final_candidates = []
         for candidate in code_candidates:
-            candidate_filtered = {k: v for k, v in candidate.items() if k in workspace.file_dict.keys()}
+            candidate_filtered = {k: v for k, v in candidate.items() if k in node.workspace.file_dict.keys()}
             final_candidates.append(candidate_filtered)
 
         logger.info(f"Generated {len(final_candidates)} candidate modifications.")
@@ -232,7 +233,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         if node.visit_count == 0 and (not node.untried_actions):
             modifications_list = self.generate_modifications(
-                target_task, node.workspace, queried_knowledge, num_candidates=DS_RD_SETTING.mcts_hypothesis_sample_size
+                target_task, node, queried_knowledge, num_candidates=DS_RD_SETTING.mcts_hypothesis_sample_size
             )
             node.untried_actions = modifications_list
             if node.children is None:
