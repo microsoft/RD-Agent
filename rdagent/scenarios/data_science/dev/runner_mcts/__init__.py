@@ -36,6 +36,7 @@ from rdagent.core.evolving_framework import EvoStep
 from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 import time
 from copy import deepcopy
+from rdagent.log.timer import RD_Agent_TIMER_wrapper
 
 class DSRunnerMCSTCoSTEERSettings(CoSTEERSettings):
     """Data Science CoSTEER settings"""
@@ -369,7 +370,14 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         estimated_time_sec = elapsed_time*5
         enter_condition = (DS_RD_SETTING.runner_max_loop>1 and DS_RD_SETTING.enable_runner_mcts and not root_is_none and confidence> 75 and enter_mcts)
 
-        if enter_condition:
+        total_time = RD_Agent_TIMER_wrapper.timer.all_duration
+        res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
+        use_time = round(total_time.total_seconds(), 2) - round(res_time.total_seconds(), 2)
+        use_ratio = 100 * use_time / round(total_time.total_seconds(), 2)
+        
+        time_condition = (DS_RD_SETTING.enable_runner_mcts and use_ratio > DS_RD_SETTING.switch_mcts_ratio and use_ratio < DS_RD_SETTING.ratio_merge_or_ensemble)
+
+        if enter_condition and time_condition:
             if DS_RD_SETTING.multiprocessing_mcts_simulation is not True:
                 logger.info(f"Starting MCTS with max_iterations={self.max_iterations}")
                 search_depth = min(recommended_search_depth,self.max_iterations)
