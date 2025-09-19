@@ -31,7 +31,7 @@
 # 📰 News
 | 🗞️ News        | 📝 Description                 |
 | --            | ------      |
-| NeurIPS 2025 Acceptance | We are thrilled to announce that our paper [R&D-Agent-Quant](#https://arxiv.org/abs/2505.15155) has been accepted to NeurIPS 2025 | 
+| NeurIPS 2025 Acceptance | We are thrilled to announce that our paper [R&D-Agent-Quant](https://arxiv.org/abs/2505.15155) has been accepted to NeurIPS 2025 | 
 | [Technical Report Release](#overall-technical-report) | Overall framework description and results on MLE-bench | 
 | [R&D-Agent-Quant Release](#deep-application-in-diverse-scenarios) | Apply R&D-Agent to quant trading | 
 | MLE-Bench Results Released | R&D-Agent currently leads as the [top-performing machine learning engineering agent](#-the-best-machine-learning-engineering-agent) on MLE-bench |
