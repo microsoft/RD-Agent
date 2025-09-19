@@ -340,7 +340,7 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
 - You can run the following command for our demo program to see the run logs.
 
   ```sh
-  rdagent ui --port 19899 --log-dir <your log folder like "log/"> --data_science <True or False>
+  rdagent ui --port 19899 --log-dir <your log folder like "log/"> --data-science
   ```
 
 - About the `data_science` parameter: If you want to see the logs of the data science scenario, set the `data_science` parameter to `True`; otherwise set it to `False`.
