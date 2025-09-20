@@ -254,7 +254,7 @@ class DSRunnerMCTSMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     def expand_batch(self, node: MCTSNode, target_task, queried_knowledge=None, batch_size=DS_RD_SETTING.mcts_hypothesis_sample_size)-> list[MCTSNode]:
         if not node.untried_actions:
             node.untried_actions = self.generate_modifications(
-                target_task, node.workspace, queried_knowledge, num_candidates=DS_RD_SETTING.mcts_hypothesis_sample_size
+                target_task, node, queried_knowledge, num_candidates=DS_RD_SETTING.mcts_hypothesis_sample_size
             )
             if node.children is None:
                 node.children = []
