@@ -15,6 +15,7 @@ from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
+from rdagent.core.experiment import UserInstructions
 from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
@@ -34,10 +35,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.planner import (
 from rdagent.scenarios.data_science.proposal.exp_gen.select.submit import (
     BestValidSelector,
 )
-from rdagent.scenarios.data_science.proposal.exp_gen.utils import (
-    get_available_packages_prompt,
-    get_packages,
-)
+from rdagent.scenarios.data_science.proposal.exp_gen.utils import get_packages
 from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
@@ -619,27 +617,18 @@ class DSProposalV2ExpGen(ExpGen):
         is_new_tree: bool,
         inject_diverse: bool = False,
         exp_gen_plan: Optional[Dict] = None,
-        packages_prompt: str = "",
         sibling_exp: List[DSExperiment] | None = None,
+        former_user_instructions: UserInstructions | None = None,
     ) -> Dict:
         problem_formatted_str = ""
         for i, (problem_name, problem_dict) in enumerate(problems.items()):
             problem_formatted_str += f"## {i+1}. {problem_name}\n"
-            problem_formatted_str += f"Statement: {problem_dict['problem']}\n"
-            problem_formatted_str += f"Reason: {problem_dict['reason']}\n"
+            problem_formatted_str += f"{problem_dict['problem']}\n"
             if "idea" in problem_dict:
                 idea_formatted_str = DSIdea(problem_dict["idea"]).to_formatted_str()
                 problem_formatted_str += f"Sampled Idea by user: \n{idea_formatted_str}\n"
             problem_formatted_str += "\n\n"
         sibling_hypotheses = [exp.hypothesis for exp in sibling_exp] if sibling_exp else None
-
-        # add available packages prompt
-        if packages_prompt:
-            problem_formatted_str += f"\n{packages_prompt}\n"
-
-        # add available packages prompt
-        if packages_prompt:
-            problem_formatted_str += f"\n{packages_prompt}\n"
 
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             hypothesis_output_format=(
@@ -654,6 +643,7 @@ class DSProposalV2ExpGen(ExpGen):
             generate_unique_hypothesis=DS_RD_SETTING.enable_generate_unique_hypothesis and is_new_tree,
             enable_simple_hypothesis=DS_RD_SETTING.enable_simple_hypothesis,
             sibling_hypotheses=sibling_hypotheses,
+            former_user_instructions_str=str(former_user_instructions) if former_user_instructions else None,
         )
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
             scenario_desc=scenario_desc,
@@ -777,8 +767,8 @@ class DSProposalV2ExpGen(ExpGen):
         scenario_desc: str,
         sota_exp_desc: str,
         exp_feedback_list_desc: str,
-        packages_prompt: str = "",
         sibling_exp: List[DSExperiment] | None = None,
+        former_user_instructions: UserInstructions | None = None,
     ) -> Dict:
         """
         Generate improved hypotheses based on critique feedback for each original hypothesis.
@@ -813,6 +803,7 @@ class DSProposalV2ExpGen(ExpGen):
             ),
             enable_scale_check=DS_RD_SETTING.enable_scale_check,
             sibling_hypotheses=sibling_hypotheses,
+            former_user_instructions_str=str(former_user_instructions) if former_user_instructions else None,
         )
         user_prompt = T(".prompts_v2:hypothesis_rewrite.user").r(
             scenario_desc=scenario_desc,
@@ -820,7 +811,6 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             hypothesis_critique_pairs=hypothesis_critique_pairs,
             time_status=time_status,
-            packages_prompt=packages_prompt,
         )
 
         response = APIBackend().build_messages_and_create_chat_completion(
@@ -1187,10 +1177,12 @@ class DSProposalV2ExpGen(ExpGen):
         sota_exp_desc: str,
         sota_exp: DSExperiment,
         hypotheses: list[DSHypothesis],
+        hypotheses_candidates: list[DSHypothesis],
         pipeline: bool,
         failed_exp_feedback_list_desc: str,
         fb_to_sota_exp: ExperimentFeedback | None = None,
         sibling_exp: List[DSExperiment] | None = None,
+        former_user_instructions: UserInstructions = None,
     ) -> DSExperiment:
         if pipeline:
             component_info = get_component("Pipeline")
@@ -1207,6 +1199,7 @@ class DSProposalV2ExpGen(ExpGen):
             metric_name=self.scen.metric_name,
             sibling_tasks=sibling_tasks,
             fix_seed_and_data_split=DS_RD_SETTING.fix_seed_and_data_split,
+            former_user_instructions_str=str(former_user_instructions) if former_user_instructions else None,
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,
@@ -1257,7 +1250,9 @@ class DSProposalV2ExpGen(ExpGen):
             # Persist for later stages
             task.package_info = get_packages(pkgs)
 
-        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypotheses[0])
+        exp = DSExperiment(
+            pending_tasks_list=[[task]], hypothesis=hypotheses[0], hypothesis_candidates=hypotheses_candidates
+        )
         if sota_exp is not None:
             exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
 
@@ -1268,6 +1263,10 @@ class DSProposalV2ExpGen(ExpGen):
                 description=task_dict.get("workflow_update", "No update needed"),
             )
             exp.pending_tasks_list.append([workflow_task])
+
+        # 4) set user instructions
+        if former_user_instructions is not None:
+            exp.set_user_instructions(former_user_instructions)
         return exp
 
     def get_all_hypotheses(self, problem_dict: dict, hypothesis_dict: dict) -> list[DSHypothesis]:
@@ -1330,12 +1329,17 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         # all failed exp and feedbacks
+        failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")
         failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
+            exp_and_feedback_list=failed_exp_feedback_list,
             type="failed",
             pipeline=pipeline,
         )
-        #
+        if len(failed_exp_feedback_list) == 0:
+            former_user_instructions = None
+        else:
+            former_user_instructions = failed_exp_feedback_list[-1][0].user_instructions
+
         # NOTE: we currently don't support inject diverse problems for the parallel + multi-trace mode,
         if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
             if len(trace.current_selection) == 0:
@@ -1346,9 +1350,6 @@ class DSProposalV2ExpGen(ExpGen):
                 inject_diverse = False
         else:
             inject_diverse = False
-
-        # add available packages prompt
-        packages_prompt = get_available_packages_prompt()
 
         sibling_exp = trace.get_sibling_exps() if trace.should_inject_diversity() else None
 
@@ -1388,8 +1389,8 @@ class DSProposalV2ExpGen(ExpGen):
             inject_diverse=inject_diverse,
             exp_gen_plan=plan.get("exp_gen") if plan else None,
             is_new_tree=is_new_tree,
-            packages_prompt=packages_prompt,
             sibling_exp=sibling_exp,
+            former_user_instructions=former_user_instructions,
         )
         if not pipeline:
             sota_exp_model_file_count = len(
@@ -1433,8 +1434,8 @@ class DSProposalV2ExpGen(ExpGen):
                     scenario_desc=scenario_desc,
                     sota_exp_desc=sota_exp_desc,
                     exp_feedback_list_desc=exp_feedback_list_desc,
-                    packages_prompt=packages_prompt,
                     sibling_exp=sibling_exp,
+                    former_user_instructions=former_user_instructions,
                 )
                 logger.info(f"Successfully completed hypothesis critique and rewrite process")
             except Exception as e:
@@ -1474,10 +1475,14 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
             hypotheses=(
-                [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(all_problems, hypothesis_dict)
+                [new_hypothesis]
+                if not trace.is_selection_new_tree()
+                else self.get_all_hypotheses(all_problems, hypothesis_dict)
             ),
+            hypotheses_candidates=self.get_all_hypotheses(all_problems, hypothesis_dict),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
             fb_to_sota_exp=fb_to_sota_exp,
             sibling_exp=sibling_exp,
+            former_user_instructions=former_user_instructions,
         )

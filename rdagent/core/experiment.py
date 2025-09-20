@@ -13,16 +13,14 @@ from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, List, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
-from rdagent.utils import filter_redundant_text
 
 if TYPE_CHECKING:
     from rdagent.utils.env import EnvResult
 
-from rdagent.utils.fmt import shrink_text
 
 if typing.TYPE_CHECKING:
     from rdagent.core.proposal import Hypothesis
@@ -50,13 +48,28 @@ class AbsTask(ABC):
         """
 
 
+class UserInstructions(List[str]):
+    def __str__(self) -> str:
+        if self:
+            return ("\nUser Instructions (Top priority!):\n" + "\n".join(f"- {ui}" for ui in self)) if self else ""
+        else:
+            return ""
+
+
 class Task(AbsTask):
-    def __init__(self, name: str, version: int = 1, description: str = "") -> None:
+    def __init__(
+        self,
+        name: str,
+        version: int = 1,
+        description: str = "",
+        user_instructions: UserInstructions | None = None,
+    ) -> None:
         super().__init__(name, version)
         self.description = description
+        self.user_instructions = user_instructions
 
     def get_task_information(self) -> str:
-        return f"Task Name: {self.name}\nDescription: {self.description}"
+        return f"Task Name: {self.name}\nDescription: {self.description}{str(self.user_instructions)}"
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.name}>"
@@ -202,7 +215,7 @@ class FBWorkspace(Workspace):
             if workspace_data_file_path.exists():
                 workspace_data_file_path.unlink()
             if platform.system() in ("Linux", "Darwin"):
-                os.symlink(data_file_path, workspace_data_file_path)
+                workspace_data_file_path.symlink_to(data_file_path)
             if platform.system() == "Windows":
                 os.link(data_file_path, workspace_data_file_path)
 
@@ -280,7 +293,7 @@ class FBWorkspace(Workspace):
         Before each execution, make sure to prepare and inject code.
         """
         result = self.run(env, entry)
-        return result.stdout
+        return result.get_truncated_stdout()  # NOTE: truncating just for aligning with the old code.
 
     def run(self, env: Env, entry: str) -> EnvResult:
         """
@@ -290,14 +303,7 @@ class FBWorkspace(Workspace):
         """
         self.prepare()
         self.inject_files(**self.file_dict)
-        result = env.run(entry, str(self.workspace_path), env={"PYTHONPATH": "./"})
-        # result is EnvResult
-        result.stdout = shrink_text(
-            filter_redundant_text(result.stdout),
-            context_lines=RD_AGENT_SETTINGS.stdout_context_len,
-            line_len=RD_AGENT_SETTINGS.stdout_line_len,
-        )
-        return result
+        return env.run(entry, str(self.workspace_path), env={"PYTHONPATH": "./"})
 
     def create_ws_ckp(self) -> None:
         """
@@ -345,7 +351,7 @@ class FBWorkspace(Workspace):
                 if mode == symlink_mode:  # Symlink
                     dest_path.parent.mkdir(parents=True, exist_ok=True)
                     link_target = zf.read(info).decode()
-                    os.symlink(link_target, dest_path)
+                    dest_path.symlink_to(link_target)
                 elif info.is_dir():
                     dest_path.mkdir(parents=True, exist_ok=True)
                 else:
@@ -419,6 +425,21 @@ class Experiment(
         self.plan: ExperimentPlan | None = (
             None  # To store the planning information for this experiment, should be generated inside exp_gen.gen
         )
+        self.user_instructions: UserInstructions | None = None  # To store the user instructions for this experiment
+
+    def set_user_instructions(self, user_instructions: UserInstructions | None) -> None:
+        if user_instructions is None:
+            return
+        if not isinstance(user_instructions, UserInstructions) and isinstance(user_instructions, list):
+            user_instructions = UserInstructions(user_instructions)
+        self.user_instructions = user_instructions
+        for ws in self.sub_workspace_list:
+            if ws is not None:
+                ws.target_task.user_instructions = user_instructions  # type: ignore[union-attr]
+        for task in self.sub_tasks:
+            task.user_instructions = user_instructions
+        if self.experiment_workspace is not None and self.experiment_workspace.target_task is not None:
+            self.experiment_workspace.target_task.user_instructions = user_instructions
 
     @property
     def result(self) -> object:

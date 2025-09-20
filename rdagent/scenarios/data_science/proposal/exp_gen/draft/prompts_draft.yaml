@@ -228,6 +228,8 @@ task_gen:
       "task_design": ---The dict corresponding to task output format---,
       {% if workflow_check %}"workflow_update": ---A string corresponding to workflow description--- {% endif %}
     }
+    {% else %}
+    Please response in json format.
     {% endif %}
     
   user: |-
