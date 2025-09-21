@@ -83,6 +83,10 @@ class BaseScheduler(TraceScheduler):
         """Selects the parent nodes for the new experiment, or None if no selection can be made."""
         raise NotImplementedError
 
+    def reset(self) -> None:
+        self.uncommited_rec_status = defaultdict(int)
+        self.rec_commit_idx = 0
+
 
 class RoundRobinScheduler(BaseScheduler):
     """
@@ -412,6 +416,7 @@ class MCTSScheduler(ProbabilisticScheduler):
         """
         Clear all maintained statistics. Should be called when the underlying trace is reset.
         """
+        super().reset()
         self.node_visit_count.clear()
         self.node_value_sum.clear()
         self.node_prior.clear()
