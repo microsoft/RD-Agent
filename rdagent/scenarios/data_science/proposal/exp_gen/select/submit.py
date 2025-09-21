@@ -669,8 +669,7 @@ def evaluate_one_trace(
     elif selector_name == "best_valid":
         # These params can be configured or passed via CLI
         selector = BestValidSelector(num_candidates=1, use_decision=True, each_trace=False)
-
-    if selector_name == "validation":
+    elif selector_name == "validation":
         if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
             logger.warning(f"Competition {DS_RD_SETTING.local_data_path}/{competition} does not exist, skipping.")
             return competition, False, sota_exp_stat
@@ -687,7 +686,7 @@ def evaluate_one_trace(
             logger.info("ValidationSelector: Base selector returned no candidates.")
             return competition, False, sota_exp_stat
 
-        logger.info(f"ValidationSelector: Received {len(candidate_exps)} candidates for validation.")
+        logger.info(f"ValidationSelector: Received {len(candidate_exps)} / {len(trace.hist)} candidates for validation: {[try_get_loop_id(trace, exp) for exp in candidate_exps]}")
         pool_hit = False
         if debug:
             pool_hit = any(check_hit(candidate_exp, trace, sota_result) for candidate_exp in candidate_exps)
@@ -713,6 +712,41 @@ def evaluate_one_trace(
             sample_code_path=sample_code_path,
             sample_rate=sample_rate,
         )
+    elif selector_name == "all":
+        if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
+            logger.warning(f"Competition {DS_RD_SETTING.local_data_path}/{competition} does not exist, skipping.")
+            return competition, False, sota_exp_stat
+        quick_selector = BestValidSelector(num_candidates=1, use_decision=True, each_trace=False)
+        quick_selected_exps = quick_selector.get_sota_exp_to_submit(trace)
+        base_selector = BestValidSelector(num_candidates=999, use_decision=False, each_trace=False)
+        candidate_exps = base_selector.collect_sota_candidates(trace)
+        if not candidate_exps:
+            logger.info("ValidationSelector: Base selector returned no candidates.")
+            return competition, False, sota_exp_stat
+
+        logger.info(f"ValidationSelector: Received {len(candidate_exps)} / {len(trace.hist)} candidates for validation: {[try_get_loop_id(trace, exp) for exp in candidate_exps]}")
+        pool_hit = False
+        for exp in candidate_exps:
+            loop_id = try_get_loop_id(trace, exp)
+            sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{loop_id}/running/mle_score/**/*.pkl")]
+            if len(sota_mle_score_paths):
+                with sota_mle_score_paths[0].open("rb") as f:
+                    sota_mle_score = extract_json(pickle.load(f))
+                    if sota_mle_score.get("any_medal", False):
+                        pool_hit = True
+                        break
+        if not pool_hit:
+            logger.info("ValidationSelector: Selector's candidates did not hit any medal. Skipping validation.")
+            return competition, False, sota_exp_stat
+
+        selector = ValidationSelector(
+            candidate=[(exp, try_get_loop_id(trace, exp)) for exp in candidate_exps],
+            direction_sign=direction_sign,
+            competition=competition,
+            only_sample=only_sample,
+            sample_code_path=sample_code_path,
+            sample_rate=sample_rate,
+        )
 
     selected_sota_exps = selector.get_sota_exp_to_submit(trace)
     if selector_name == "validation" and selected_sota_exps is None:
@@ -723,7 +757,7 @@ def evaluate_one_trace(
     if debug:
         hit = check_hit(selected_sota_exps, trace, sota_result)
         logger.info(f"Result for {experiment} - {competition}: {'HIT' if hit else 'MISS'}")
-    elif selector_name == "validation":
+    elif selector_name in ["validation", "all"]:
         loop_id = selector.hypothesis_loop_id.get(selected_sota_exps.hypothesis.hypothesis)
         logger.info(f"Selected loop for {experiment} - {competition}: {loop_id=}")
         sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{loop_id}/running/mle_score/**/*.pkl")]
@@ -755,7 +789,7 @@ def select_on_existing_trace(
     Offline evaluation of a SOTA experiment selector on existing traces.
 
     Args:
-        selector_name (str): Name of the selector to use. Options: 'global', 'auto', 'best_valid', 'validation'.
+        selector_name (str): Name of the selector to use. Options: 'global', 'auto', 'best_valid', 'validation', 'all'.
         trace_root (str): Path to the root directory containing trace folders.
         experiment (str | None): Name of the experiment to evaluate, e.g., "devoted-burro+massive-perch".
         competition (str | None): Name of the competition to evaluate, e.g., "detecting-insults-in-social-commentary".
