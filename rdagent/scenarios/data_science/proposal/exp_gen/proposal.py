@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 from pydantic import BaseModel, Field
-
+from rdagent.components.agent.rag import Agent as RAGAgent
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
@@ -630,6 +630,7 @@ class DSProposalV2ExpGen(ExpGen):
             problem_formatted_str += "\n\n"
         sibling_hypotheses = [exp.hypothesis for exp in sibling_exp] if sibling_exp else None
 
+
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             hypothesis_output_format=(
                 T(".prompts_v2:output_format.hypothesis").r(pipeline=pipeline, enable_idea_pool=enable_idea_pool)
@@ -645,12 +646,18 @@ class DSProposalV2ExpGen(ExpGen):
             sibling_hypotheses=sibling_hypotheses,
             former_user_instructions_str=str(former_user_instructions) if former_user_instructions else None,
         )
+        
+        # knowledge retrieval
+        rag_agent = RAGAgent()
+        knowledge = rag_agent.query(problem_formatted_str)
+        
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
             scenario_desc=scenario_desc,
             exp_and_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
             problems=problem_formatted_str,
             enable_idea_pool=enable_idea_pool,
+            knowledge=knowledge,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,

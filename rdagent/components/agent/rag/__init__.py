@@ -10,7 +10,9 @@ class Agent(PAIAgent):
     A specific agent for RAG
     """
 
-    def __init__(self):
+    def __init__(self, system_prompt: str | None = None):
         toolsets = [MCPServerStreamableHTTP(SETTINGS.url, timeout=SETTINGS.timeout)]
-        super().__init__(system_prompt=T(".prompts:system_prompt").r(), toolsets=toolsets)
+        if system_prompt is None:
+            system_prompt = T(".prompts:system_prompt").r()
+        super().__init__(system_prompt=system_prompt, toolsets=toolsets)
 
