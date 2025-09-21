@@ -64,6 +64,9 @@ class ParallelMultiTraceExpGen(ExpGen):
             "ParallelMultiTraceExpGen is designed for async usage, please call async_gen instead."
         )
 
+    def reset(self) -> None:
+        self.trace_scheduler.reset()
+
     async def async_gen(self, trace: DSTrace, loop: LoopBase) -> DSExperiment:
         """
         Waits for a free execution slot, selects a parent trace using the

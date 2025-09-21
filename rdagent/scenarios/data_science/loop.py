@@ -134,14 +134,6 @@ class DataScienceRDLoop(RDLoop):
 
         self.summarizer = import_class(PROP_SETTING.summarizer)(scen=scen, **PROP_SETTING.summarizer_init_kwargs)
 
-        # Register MCTS reset callback so trace.reset() can cascade to MCTS stats reset
-        scheduler = getattr(self.exp_gen, "trace_scheduler", None)
-        if isinstance(scheduler, MCTSScheduler):
-            try:
-                self.trace.register_on_reset(scheduler.reset)
-            except Exception:
-                pass
-
         super(RDLoop, self).__init__()
 
     async def direct_exp_gen(self, prev_out: dict[str, Any]):
@@ -284,7 +276,7 @@ class DataScienceRDLoop(RDLoop):
                         logger.error("Consecutive errors reached the limit. Dumping trace.")
                         logger.log_object(self.trace, tag="trace before restart")
                         # Reset the trace; MCTS stats will be cleared via registered callback
-                        self.trace.reset()
+                        self.exp_gen.reset()
 
         # set the SOTA experiment to submit
         sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace)

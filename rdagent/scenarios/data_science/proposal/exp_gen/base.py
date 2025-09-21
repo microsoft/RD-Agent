@@ -63,14 +63,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
         self.uncommitted_experiments: dict[int, DSExperiment] = {}  # loop_id -> DSExperiment
 
-    def reset(self) -> None:
-        """
-        Reset the trace and clear DSTrace-specific states.
-        """
-        super().reset()
-        self.uncommitted_experiments = {}
-        self.sota_exp_to_submit = None
-
     def should_inject_diversity(self, current_selection: tuple[int, ...] | None = None) -> bool:
         """
         Check if diversity context should be injected based on the current selection.

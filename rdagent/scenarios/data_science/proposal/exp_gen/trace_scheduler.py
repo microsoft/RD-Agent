@@ -39,6 +39,12 @@ class TraceScheduler(ABC):
         """
         raise NotImplementedError
 
+    def reset(self) -> None:
+        """
+        Reset the scheduler to the initial state.
+        """
+        pass
+
 
 class BaseScheduler(TraceScheduler):
     def __init__(self):
