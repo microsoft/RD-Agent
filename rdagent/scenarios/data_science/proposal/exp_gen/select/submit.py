@@ -246,7 +246,10 @@ class BestValidSelector(SOTAexpSelector):
             # Remove duplicates
             candidate_list = list(set(candidate_list))
         else:
-            candidate_list = trace.experiment_and_feedback_list_after_init(return_type="all", search_type="all")
+            if self.num_candidates > 100:  # retrieve all
+                candidate_list = trace.retrieve_search_list(search_type="all", selection=None)
+            else:
+                candidate_list = trace.experiment_and_feedback_list_after_init(return_type="all", search_type="all")
 
         if not candidate_list:
             logger.info("BestValidSelector: No experiments found in trace.")
@@ -686,7 +689,9 @@ def evaluate_one_trace(
             logger.info("ValidationSelector: Base selector returned no candidates.")
             return competition, False, sota_exp_stat
 
-        logger.info(f"ValidationSelector: Received {len(candidate_exps)} / {len(trace.hist)} candidates for validation: {[try_get_loop_id(trace, exp) for exp in candidate_exps]}")
+        logger.info(
+            f"ValidationSelector: Received {len(candidate_exps)} / {len(trace.hist)} candidates for validation: {[try_get_loop_id(trace, exp) for exp in candidate_exps]}"
+        )
         pool_hit = False
         if debug:
             pool_hit = any(check_hit(candidate_exp, trace, sota_result) for candidate_exp in candidate_exps)
@@ -724,7 +729,9 @@ def evaluate_one_trace(
             logger.info("ValidationSelector: Base selector returned no candidates.")
             return competition, False, sota_exp_stat
 
-        logger.info(f"ValidationSelector: Received {len(candidate_exps)} / {len(trace.hist)} candidates for validation: {[try_get_loop_id(trace, exp) for exp in candidate_exps]}")
+        logger.info(
+            f"ValidationSelector: Received {len(candidate_exps)} / {len(trace.hist)} candidates for validation: {[try_get_loop_id(trace, exp) for exp in candidate_exps]}"
+        )
         pool_hit = False
         for exp in candidate_exps:
             loop_id = try_get_loop_id(trace, exp)
