@@ -7,8 +7,8 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import TYPE_CHECKING
 
-from rdagent.log import rdagent_logger as logger
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.log import rdagent_logger as logger
 
 if TYPE_CHECKING:
     from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace

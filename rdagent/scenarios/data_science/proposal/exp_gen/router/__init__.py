@@ -21,10 +21,10 @@ from rdagent.scenarios.data_science.proposal.exp_gen.planner import (
 )
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler import (
+    MCTSScheduler,
     RoundRobinScheduler,
     SOTABasedScheduler,
     TraceScheduler,
-    MCTSScheduler,
 )
 
 if TYPE_CHECKING:
