@@ -275,6 +275,7 @@ class DataScienceRDLoop(RDLoop):
                     else:  # otherwise restart it
                         logger.error("Consecutive errors reached the limit. Dumping trace.")
                         logger.log_object(self.trace, tag="trace before restart")
+                        self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
                         # Reset the trace; MCTS stats will be cleared via registered callback
                         self.exp_gen.reset()
 

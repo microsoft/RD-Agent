@@ -161,7 +161,6 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
         # TODO: self.hist is 2-tuple now, remove hypothesis from it, change old code for this later.
         self.knowledge_base: ASpecificKB | None = knowledge_base
         self.current_selection: tuple[int, ...] = (-1,)
-        self._on_reset_callbacks: list[callable] = []
 
     def get_sota_hypothesis_and_experiment(self) -> tuple[Hypothesis | None, Experiment | None]:
         """Access the last experiment result, sub-task, and the corresponding hypothesis."""
