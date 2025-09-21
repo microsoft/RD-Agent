@@ -1,0 +1,59 @@
+# Context7 MCP Enhanced Query Prompts
+
+system_prompt: |-
+  You are a helpful assistant.
+  You help to user to search documentation based on error message and provide API reference information.
+
+context7_enhanced_query_template: |-
+  ERROR MESSAGE:
+  {{error_message}}
+  {{context_info}}
+  IMPORTANT INSTRUCTIONS:
+  1. ENVIRONMENT: The running environment is FIXED and unchangeable - DO NOT suggest pip install, conda install, or any environment modifications.
+  2. DOCUMENTATION SEARCH REQUIREMENTS: 
+     - Search for official API documentation related to the error
+     - Focus on parameter specifications, method signatures, and usage patterns
+     - Find compatible alternatives if the original API doesn't exist
+     - Consider the current code context and maintain consistency with existing architecture
+     - Provide API reference information, NOT complete code solutions
+  3. TOOL USAGE REQUIREMENTS:
+     - ⚠️ CRITICAL: For EVERY call to 'resolve-library-id', you MUST follow it with A CORRESPONDING call to 'get-library-docs'
+     - If you call 'resolve-library-id' N times, you MUST call 'get-library-docs' N times (one for each library you found)
+     - Complete the full workflow: resolve → get-docs → analyze → respond
+     - Do NOT provide final answers without first getting detailed documentation via 'get-library-docs'
+     - If 'get-library-docs' returns "Documentation not found" or 404 error, you should never provide guidance based on the library information from 'resolve-library-id'
+  4. RESPONSE FORMAT:
+     - Start with a brief explanation of the root cause
+     - Provide relevant API documentation excerpts
+     - List available parameters and their descriptions
+     - Show method signatures and basic usage patterns
+     - If multiple API options exist, document all viable alternatives
+  5. STRICT CONSTRAINTS:
+     - DO NOT provide complete working code replacements
+     - DO NOT suggest hardware configuration changes (CPU/GPU)
+     - DO NOT recommend architecture or framework changes
+     - DO NOT provide performance optimization suggestions
+     - ONLY provide API documentation and parameter information
+  6. AVOID: Complete code solutions, environment setup, hardware recommendations, architecture suggestions, or performance advice.
+  {{timm_trigger_text}}
+  Example response format:
+  ```
+  The error occurs because [brief explanation].
+  API Documentation:
+  - Method: library.function_name(param1, param2, ...)
+  - Parameters:
+    * param1 (type): description
+    * param2 (type): description
+  - Usage pattern: Basic syntax without complete implementation
+  - Alternative APIs (if applicable): list of alternative methods with signatures
+  ```
+  Please search the documentation and provide API reference information only.
+# Special case templates
+timm_special_case: |-
+  7.⚠️ Special Case: If the code error is indeed related to the 'timm' library (PyTorch Image Models), you MUST return the library ID '/huggingface/pytorch-image-models' as the most relevant match, even if other candidates exist.
+# Code context template
+code_context_template: |-
+  CURRENT CODE CONTEXT:
+  ```python
+  {{full_code}}
+  ```

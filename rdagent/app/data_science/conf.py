@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 
 from pydantic_settings import SettingsConfigDict
@@ -20,6 +21,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     planner: str = "rdagent.scenarios.data_science.proposal.exp_gen.planner.DSExpPlannerHandCraft"
     hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.router.ParallelMultiTraceExpGen"
+    interactor: str = "rdagent.components.interactor.SkipInteractor"
     trace_scheduler: str = "rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler.RoundRobinScheduler"
     """Hypothesis generation class"""
 
@@ -46,6 +48,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_model_dump: bool = False
     enable_doc_dev: bool = False
     model_dump_check_level: Literal["medium", "high"] = "medium"
+
+    #### MCP documentation search integration
+    enable_mcp_documentation_search: bool = False
+    """Enable MCP documentation search for error resolution. Requires MCP_ENABLED=true and MCP_CONTEXT7_ENABLED=true in environment."""
 
     ### specific feature
 
@@ -182,10 +188,13 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     ensemble_time_upper_bound: bool = False
 
+    user_interaction_wait_seconds: int = 6000  # seconds to wait for user interaction
+    user_interaction_mid_folder: Path = Path.cwd() / "git_ignore_folder" / "RD-Agent_user_interaction"
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()
 
-# enable_cross_trace_diversity 和 llm_select_hypothesis should not be true at the same time
+# enable_cross_trace_diversity and llm_select_hypothesis should not be true at the same time
 assert not (
     DS_RD_SETTING.enable_cross_trace_diversity and DS_RD_SETTING.llm_select_hypothesis
 ), "enable_cross_trace_diversity and llm_select_hypothesis cannot be true at the same time"

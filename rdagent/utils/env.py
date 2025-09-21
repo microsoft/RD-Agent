@@ -41,7 +41,9 @@ from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.experiment import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
+from rdagent.utils import filter_redundant_text
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.fmt import shrink_text
 from rdagent.utils.workflow import wait_retry
 
 
@@ -144,6 +146,13 @@ class EnvResult:
     stdout: str
     exit_code: int
     running_time: float
+
+    def get_truncated_stdout(self) -> str:
+        return shrink_text(
+            filter_redundant_text(self.stdout),
+            context_lines=RD_AGENT_SETTINGS.stdout_context_len,
+            line_len=RD_AGENT_SETTINGS.stdout_line_len,
+        )
 
 
 class Env(Generic[ASpecificEnvConf]):
