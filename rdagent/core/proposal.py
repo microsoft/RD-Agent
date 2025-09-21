@@ -327,10 +327,11 @@ class ExpGen(ABC):
 
     def reset(self) -> None:
         """
-        We reset the proposal to the initial state.
+        Reset the proposal to the initial state.
         Sometimes the main loop may want to reset the whole process to the initial state.
+        Default implementation does nothing; override in subclasses if needed.
         """
-        pass  # Do nothing by default.
+        return
 
 
 class HypothesisGen(ABC):
