@@ -256,9 +256,9 @@ class BestValidSelector(SOTAexpSelector):
             return None
 
         # Sort and select the top N
-        candidate_list.sort(key=get_sort_key_without_decision, reverse=True)
+        sorted_candidates = sorted(candidate_list, key=get_sort_key_without_decision, reverse=True)
 
-        top_experiments = [exp for exp, _ in candidate_list[: self.num_candidates]]
+        top_experiments = [exp for exp, _ in sorted_candidates[: self.num_candidates]]
         logger.info(f"BestValidSelector: Selected {len(top_experiments)} experiments.")
         return top_experiments
 
