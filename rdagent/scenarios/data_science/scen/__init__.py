@@ -8,11 +8,9 @@ from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.timer import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.debug.data import create_debug_data
-from rdagent.scenarios.data_science.proposal.exp_gen.utils import (
-    get_available_packages_prompt,
-)
 from rdagent.scenarios.data_science.scen.utils import describe_data_folder_v2
 from rdagent.scenarios.kaggle.kaggle_crawler import (
     crawl_descriptions,
@@ -119,18 +117,35 @@ class DataScienceScen(Scenario):
         )
         self.metric_name = response_json_analysis.get("Metric Name", "custom_metric")
         self.metric_direction_guess = response_json_analysis.get("Metric Direction", True)
-        self.longer_time_limit_required = response_json_analysis.get(
-            "Longer time limit required", False
-        )  # True or False, whether the competition scenario requires a longer time limit to the code.
+        # Determine if longer timeout is needed for coder and runner separately
+        base_longer_timeout_needed = (
+            False
+            if not DS_RD_SETTING.allow_longer_timeout
+            else response_json_analysis.get("Longer time limit required", False)
+        )
+
+        self.coder_longer_time_limit_required = (
+            base_longer_timeout_needed
+            if DS_RD_SETTING.coder_enable_llm_decide_longer_timeout
+            else DS_RD_SETTING.allow_longer_timeout
+        )
+
+        self.runner_longer_time_limit_required = (
+            base_longer_timeout_needed
+            if DS_RD_SETTING.runner_enable_llm_decide_longer_timeout
+            else DS_RD_SETTING.allow_longer_timeout
+        )
+
+        # True or False, whether the competition scenario requires a longer time limit to the code.
 
     def real_debug_timeout(self):
         return (
             DS_RD_SETTING.debug_timeout
             * min(
                 DS_RD_SETTING.coder_longer_timeout_multiplier_upper,
-                self.timeout_increase_count * DS_RD_SETTING.timeout_increase_stage + 1,
+                self.timeout_increase_count * DS_RD_SETTING.coder_timeout_increase_stage + 1,
             )
-            if self.longer_time_limit_required and DS_RD_SETTING.allow_longer_timeout
+            if self.coder_longer_time_limit_required
             else DS_RD_SETTING.debug_timeout
         )
 
@@ -138,13 +153,23 @@ class DataScienceScen(Scenario):
         return DS_RD_SETTING.debug_recommend_timeout
 
     def real_full_timeout(self):
+        if DS_RD_SETTING.ensemble_time_upper_bound:
+            remain_time = RD_Agent_TIMER_wrapper.timer.remain_time()
+            all_duration = RD_Agent_TIMER_wrapper.timer.all_duration
+            remain_percent = remain_time / all_duration
+            if remain_percent * 100 < 100 - DS_RD_SETTING.ratio_merge_or_ensemble:
+                return DS_RD_SETTING.full_timeout * DS_RD_SETTING.runner_longer_timeout_multiplier_upper
+
         return (
             DS_RD_SETTING.full_timeout
             * min(
                 DS_RD_SETTING.runner_longer_timeout_multiplier_upper,
-                self.timeout_increase_count * DS_RD_SETTING.timeout_increase_stage + 1,
+                self.timeout_increase_count
+                // DS_RD_SETTING.runner_timeout_increase_stage_patience
+                * DS_RD_SETTING.runner_timeout_increase_stage
+                + 1,
             )
-            if self.longer_time_limit_required and DS_RD_SETTING.allow_longer_timeout
+            if self.runner_longer_time_limit_required
             else DS_RD_SETTING.full_timeout
         )
 
@@ -216,7 +241,6 @@ class DataScienceScen(Scenario):
                 f"{self.recommend_debug_timeout() / 60 : .2f} minutes" if DS_RD_SETTING.sample_data_by_LLM else None
             ),
             runtime_environment=self.get_runtime_environment(),
-            available_packages_prompt=get_available_packages_prompt(),
         )
 
     def get_runtime_environment(self) -> str:

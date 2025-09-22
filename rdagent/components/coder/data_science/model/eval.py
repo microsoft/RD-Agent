@@ -71,7 +71,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             )  # only check the model changed this time
             implementation.inject_files(**{fname: test_code})
             result = implementation.run(env=env, entry=f"python {fname}")
-            stdout = result.stdout
+            stdout = result.get_truncated_stdout()
             ret_code = result.exit_code
 
             if stdout is None:
@@ -118,6 +118,6 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             user_prompt=user_prompt,
             init_kwargs_update_func=ModelSingleFeedback.val_and_update_init_dict,
         )
-        fb.final_decision = fb.final_decision and result.exit_code == 0
+        fb.final_decision = fb.final_decision and ret_code == 0
 
         return fb
