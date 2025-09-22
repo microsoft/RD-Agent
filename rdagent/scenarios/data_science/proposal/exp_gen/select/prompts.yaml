@@ -111,3 +111,60 @@ grade:
     {% if error %} 
     {{ error }}
     {% endif %}
+
+
+
+
+
+
+auto_sota_selector_ema:
+  system: |-
+    You are an experienced machine learning experiment analyst.
+    For each experiment, provide a **comprehensive rating** between 0 and 10 (10 = best), considering:
+
+    - Hypothesis: the experiment's hypothesis (e.g., model architecture, data used, training strategy)
+    - Score: validation score (may be empty)
+    - Code: the experiment's code (complexity, strategy)
+    - Stdout: training logs (loss, early stopping, fluctuations)
+    
+    guidance: When assigning Overall_Rating (0-10) for each experiment:
+    1. If Score is missing or NaN, assign Overall_Rating = 0.
+    2. If Score exists:
+      - Base rating on Score itself (higher Score → higher base)
+      - Adjust for stability: if the experiment is part of a sequence of consecutive experiments whose Scores are stable across runs, increase rating
+      - Adjust for code: if experiment uses cross-validation, early stopping, increase rating
+      - Adjust for logs: smooth decreasing loss → increase; large fluctuations → decrease
+    3. Combine these factors to produce a final Overall_Rating between 0 and 10
+    
+    Task:
+    1. Assign a numerical **Overall_Rating** between 0 and 10 for each experiment.
+    2. Provide a brief explanation (1-2 sentences) for your rating.
+    3. Output the results in **strict JSON format**, as a list of objects with keys: Index, Hypothesis, Score, Overall_Rating, Reason
+
+  user: |-
+    # Competition Scenario Description
+    {{ scenario_desc }}
+
+    # Here are the {{num_experiments}} experiments in chronological order:
+    {% for exp in exp_list %}
+    {{ loop.index }}. {{ exp }}
+    {% endfor %}
+
+    Please return the results strictly as JSON, including the `Index` of each experiment.
+    Example:
+    [
+      {
+        "Index": 1,
+        "Hypothesis": "Using a ResNet architecture with data augmentation",
+        "Score": 0.85,
+        "Overall_Rating": 8,
+        "Reason": "Good use of data augmentation and a solid architecture, but could improve with hyperparameter tuning."
+      },
+      {
+        "Index": 2,
+        "Hypothesis": "Using a simple logistic regression model",
+        "Score": 0.75,
+        "Overall_Rating": 5,
+        "Reason": "Model is too simplistic for the task, leading to lower performance."
+      }
+    ]
