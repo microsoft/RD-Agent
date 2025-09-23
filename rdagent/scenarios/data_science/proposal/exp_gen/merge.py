@@ -18,6 +18,10 @@ from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
 
+from .proposal import (
+    HypothesisComponent,  # FIXME: for statistic of other branches after running, remove this later
+)
+
 
 class MergeExpGen(ExpGen):
     def gen(
@@ -226,6 +230,7 @@ class ExpGen2Hypothesis(DSProposalV2ExpGen):
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp_fb[0] if sota_exp_fb else None,
             hypotheses=[new_hypothesis],
+            hypotheses_candidates=[new_hypothesis],
             pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
             failed_exp_feedback_list_desc="",
         )

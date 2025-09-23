@@ -52,7 +52,7 @@ describe: # some template to describe some object
     {% if exp_and_feedback[1].code_change_summary  %}Code Change Summary: {{ exp_and_feedback[1].code_change_summary }}{% endif %}
     **Surpass Previous SOTA**: {{ exp_and_feedback[1].decision }}    
     {% if exp_and_feedback[0].running_info.running_time is not none %}
-    Experiment Running Time: {{ exp_and_feedback[0].running_info.running_time }} seconds
+    Experiment Running Time: {{ (exp_and_feedback[0].running_info.running_time ) | round(1) }} seconds
     {% endif %}
     {% if exp_and_feedback[0].result is none %}
     Experiment Score: Running buggy
@@ -340,9 +340,8 @@ component_spec:
       - Calculate the metric (mentioned in the evaluation section of the competition information) for each model and ensemble strategy on valid, and save the results in `scores.csv`
       - The evaluation should be based on k-fold cross-validation but only if that's an appropriate evaluation for the task at hand. Store the mean validation score of k-fold cross-validation in `scores.csv` on each model. Refer to the hyperparameter specification for rules to set the CV folds.
       - Even if only one model is present, compute the ensemble score and store it under `"ensemble"`.
-      - The index of `scores.csv` should include the model name and the "ensemble" strategy. "ensemble" should be exactly in the index with all lower case letters. Ensemble is the result from several models. If only one model is present, the ensemble score should be the same as the model score.
-      - The column names in `scores.csv` should be ["{{ metric_name }}"] where metric_name is the name of the metric used for evaluation. Only one column is required.
-      - The column name should be exactly the same to "{{ metric_name }}" since user will use it to pick the result.
+      - The index of `scores.csv` should include the model name and the "ensemble" strategy. "ensemble" should be exactly in the index with all lower case letters (CASE-SENSITIVE). Ensemble is the result from several models. If only one model is present, the ensemble score should be the same as the model score.
+      - The column names in `scores.csv` should be ["{{ metric_name }}"] where metric_name is the name of the metric used for evaluation. Only one column is required. The column name should be exactly the same as "{{ metric_name }}" (CASE-SENSITIVE) since user will use it to pick the result.
       - Validation metrics should be aligned across all ideas and implementations. Avoid proposing ideas that might affect the validation metrics and modifying the related code.
 
     9. Submission File:
@@ -353,6 +352,7 @@ component_spec:
       - You can choose the most proper packages to achieve the task.
       - When facing a choice between two packages which both can achieve the same goal, you should choose the one which is more commonly used and less likely to cause bugs in coding. Especially those you are not familiar with.
       - For GBDT models, prefer XGBoost or RandomForest over LightGBM unless the SOTA or hypothesis dictates otherwise.
+      - To use GPU in training, always implement a check to ensure that the GPU is available and use it if possible. Fallback to CPU if GPU is not available. Especially in GBDT models, you might get error when you call `fit` method without checking the GPU availability. Add a try except block to handle this case.
       - For neural networks, prefer PyTorch or PyTorch based library (over TensorFlow) unless the SOTA or hypothesis dictates otherwise.
       - For neural networks, prefer fine-tuning pre-trained models over training from scratch.
 

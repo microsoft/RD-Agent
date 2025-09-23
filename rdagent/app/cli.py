@@ -61,6 +61,14 @@ def server_ui(port=19899):
     subprocess.run(["python", "rdagent/log/server/app.py", f"--port={port}"])
 
 
+def ds_user_interact(port=19900):
+    """
+    start web app to show the log traces in real time
+    """
+    commands = ["streamlit", "run", "rdagent/log/ui/ds_user_interact.py", f"--server.port={port}"]
+    subprocess.run(commands)
+
+
 app.command(name="fin_factor")(fin_factor)
 app.command(name="fin_model")(fin_model)
 app.command(name="fin_quant")(fin_quant)
@@ -72,6 +80,7 @@ app.command(name="ui")(ui)
 app.command(name="server_ui")(server_ui)
 app.command(name="health_check")(health_check)
 app.command(name="collect_info")(collect_info)
+app.command(name="ds_user_interact")(ds_user_interact)
 
 
 if __name__ == "__main__":

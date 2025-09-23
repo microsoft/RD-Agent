@@ -1,11 +1,13 @@
+from typing import Literal
+
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.components.coder import CoSTEER
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
+    CoSTEERMultiFeedback,
     CoSTEERSingleFeedback,
 )
 from rdagent.components.coder.CoSTEER.evolvable_subjects import FBWorkspace
@@ -19,7 +21,6 @@ from rdagent.core.exception import RunnerError
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
-from rdagent.scenarios.data_science.dev.runner.eval import DSRunnerEvaluator
 from rdagent.utils.agent.ret import PythonBatchEditOut, PythonBatchPatchOut
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.workflow import wait_retry
@@ -34,6 +35,7 @@ class DSRunnerCoSTEERSettings(CoSTEERSettings):
     max_seconds_multiplier: int = 1
     env_type: str = "docker"
     diff_mode: bool = False
+    dump_stdout_type: Literal["full", "truncated"] = "truncated"
     # TODO: extract a function for env and conf.
 
 
@@ -143,6 +145,10 @@ class DSCoSTEERRunner(CoSTEER):
         **kwargs,
     ) -> None:
 
+        from rdagent.scenarios.data_science.dev.runner.eval import (
+            DSRunnerEvaluator,  # avoid circular import
+        )
+
         eval_l = [DSRunnerEvaluator(scen=scen)]
         if DS_RD_SETTING.enable_model_dump:
             eval_l.append(ModelDumpEvaluator(scen=scen, data_type="full"))
@@ -170,6 +176,27 @@ class DSCoSTEERRunner(CoSTEER):
         The coder uses the scenario's real debug timeout as the maximum seconds for development.
         """
         return int(self.scen.real_full_timeout() * self.settings.max_seconds_multiplier)
+
+    def should_use_new_evo(self, base_fb: CoSTEERMultiFeedback | None, new_fb: CoSTEERMultiFeedback) -> bool:
+        if not new_fb.is_acceptable():
+            return False
+
+        # In data science, we only have a single feedback.
+        # Note: new_fb should always exists as indicated by _get_last_fb() function.
+        if base_fb is None:
+            return True
+
+        base_fb = base_fb[0]
+        new_fb = new_fb[0]
+
+        def compare_scores(s1, s2) -> bool:
+            if s2 is None:
+                return False
+            if s1 is None:
+                return True
+            return (s2 > s1) == self.scen.metric_direction
+
+        return compare_scores(base_fb.score, new_fb.score)
 
     def develop(self, exp):
         bak_sub_tasks = exp.pending_tasks_list

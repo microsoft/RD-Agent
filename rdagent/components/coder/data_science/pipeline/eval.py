@@ -9,6 +9,7 @@ from pathlib import Path
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.components.agent.context7 import Agent as DocAgent
 from rdagent.components.coder.CoSTEER import CoSTEERMultiFeedback
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
@@ -37,7 +38,7 @@ class DSCoderFeedback(CoSTEERSingleFeedback):
     This feedback is used to evaluate the code and execution of the Data Science CoSTEER task.
     """
 
-    requires_documentation_search: bool | None = None
+    requires_documentation_search: bool | None = None  # Keep None means the feature is disabled
     error_message: str | None = None
 
     @staticmethod
@@ -117,7 +118,7 @@ class DSCoderFeedback(CoSTEERSingleFeedback):
         return merged_fb
 
 
-PipelineSingleFeedback = DSCoderFeedback
+PipelineSingleFeedback = DSCoderFeedback  # Only for compatible
 PipelineMultiFeedback = CoSTEERMultiFeedback
 
 
@@ -144,7 +145,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 return_checking="This task has failed too many times, skip implementation.",
                 code="This task has failed too many times, skip implementation.",
                 error_message="This task has failed too many times, skip implementation.",
-                requires_documentation_search=False,
+                requires_documentation_search=None,
                 final_decision=False,
             )
 
@@ -164,6 +165,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             result = implementation.run(
                 env=env, entry=f"strace -e trace=file -f -o trace.log python -m coverage run main.py"
             )
+        result_stdout = result.get_truncated_stdout()
 
         nb_conversion_ret_code = 0
         nb_conversion_check_text = ""
@@ -178,7 +180,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 notebook_converter.convert(
                     task=target_task,
                     code=code,
-                    stdout=result.stdout,
+                    stdout=result_stdout,
                     outfile=implementation.workspace_path / "main.ipynb",
                     use_debug_flag=DS_RD_SETTING.sample_data_by_LLM,
                 )
@@ -197,16 +199,16 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                     stdout += f"Code opened the sample submission file '{sample_submission_file_name}' during execution.\n Reject the implementation!\n"
                     sample_submission_check = False
 
-        result.stdout = remove_eda_part(result.stdout)
+        result_stdout = remove_eda_part(result_stdout)
         if result.exit_code != 0:
-            stdout += f"Code failed to run. Please check the stdout:\n Following the stdout of the debug mode run:\n{result.stdout.strip()}\n"
+            stdout += f"Code failed to run. Please check the stdout:\n Following the stdout of the debug mode run:\n{result_stdout.strip()}\n"
         else:
-            stdout += f"Code ran successfully.\n Following the stdout of the debug mode run:\n{result.stdout.strip()}\n"
+            stdout += f"Code ran successfully.\n Following the stdout of the debug mode run:\n{result_stdout.strip()}\n"
         if DS_RD_SETTING.sample_data_by_LLM:
             debug_time, full_estimated_time = None, None
-            if match := re.search(r"debug_time:\s*(\d+(?:.\d+)?)", result.stdout, re.DOTALL):
+            if match := re.search(r"debug_time:\s*(\d+(?:.\d+)?)", result_stdout, re.DOTALL):
                 debug_time = float(match.group(1))
-            if match := re.search(r"estimated_time:\s*(\d+(?:.\d+)?)", result.stdout, re.DOTALL):
+            if match := re.search(r"estimated_time:\s*(\d+(?:.\d+)?)", result_stdout, re.DOTALL):
                 full_estimated_time = float(match.group(1))
             if debug_time is not None and full_estimated_time is not None:
                 stdout += f"Debug mode ran in {debug_time:.2f} seconds, estimated full run time is {full_estimated_time:.2f} seconds. The estimated time is {full_estimated_time / env.conf.running_timeout_period * 100:.2f}% the debug time."
@@ -234,8 +236,8 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 if score_ret_code != 0:
                     score_check_text += f"The dataframe in file 'scores.csv' is:\n{score_df}"
 
-                # Check metric name (columns)
-                if score_df.columns.tolist() != [self.scen.metric_name]:
+                # Check metric name (columns) - case insensitive
+                if [col.lower() for col in score_df.columns.tolist()] != [self.scen.metric_name.lower()]:
                     score_check_text += f"\n[Error] The scores dataframe does not contain the correct column names.\nCorrect columns is: ['{self.scen.metric_name}']\nBut got: {score_df.columns.tolist()}"
                     score_ret_code = 1
 
@@ -261,7 +263,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
             # stdout += "----Submission Check 1-----\n"
             submission_result = implementation.run(env=env, entry="python test/submission_format_test.py")
-            submission_check_out = submission_result.stdout
+            submission_check_out = submission_result.get_truncated_stdout()
             submission_ret_code = submission_result.exit_code
             stdout += "\n" + submission_check_out
 

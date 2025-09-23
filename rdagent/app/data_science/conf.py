@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 
 from pydantic_settings import SettingsConfigDict
@@ -20,6 +21,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     planner: str = "rdagent.scenarios.data_science.proposal.exp_gen.planner.DSExpPlannerHandCraft"
     hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.router.ParallelMultiTraceExpGen"
+    interactor: str = "rdagent.components.interactor.SkipInteractor"
+    trace_scheduler: str = "rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler.RoundRobinScheduler"
     """Hypothesis generation class"""
 
     summarizer: str = "rdagent.scenarios.data_science.dev.feedback.DSExperiment2Feedback"
@@ -40,6 +43,15 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """The recommend time limit for running on full data"""
     full_timeout: int = 3600
     """The timeout limit for running on full data"""
+
+    #### model dump
+    enable_model_dump: bool = False
+    enable_doc_dev: bool = False
+    model_dump_check_level: Literal["medium", "high"] = "medium"
+
+    #### MCP documentation search integration
+    enable_mcp_documentation_search: bool = False
+    """Enable MCP documentation search for error resolution. Requires MCP_ENABLED=true and MCP_CONTEXT7_ENABLED=true in environment."""
 
     ### specific feature
 
@@ -62,11 +74,6 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     use_raw_description: bool = False
     show_nan_columns: bool = False
 
-    #### model dump
-    enable_model_dump: bool = False
-    enable_doc_dev: bool = False
-    model_dump_check_level: Literal["medium", "high"] = "medium"
-
     ### knowledge base
     enable_knowledge_base: bool = False
     knowledge_base_version: str = "v1"
@@ -88,8 +95,11 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """---below are the settings for multi-trace---"""
 
     ### multi-trace related
-    max_trace_num: int = 3
+    max_trace_num: int = 1
     """The maximum number of traces to grow before merging"""
+
+    scheduler_temperature: float = 1.0
+    """The temperature for the trace scheduler for softmax calculation, used in ProbabilisticScheduler"""
 
     #### multi-trace:checkpoint selector
     selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.select.expand.LatestCKPSelector"
@@ -107,12 +117,22 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     # inject diverse when start a new sub-trace
     enable_inject_diverse: bool = False
 
+    # inject diverse from other traces when start a new sub-trace
+    enable_cross_trace_diversity: bool = True
+    """Enable cross-trace diversity injection when starting a new sub-trace.
+    This is different from `enable_inject_diverse` which is for non-parallel cases."""
+
+    diversity_injection_strategy: str = (
+        "rdagent.scenarios.data_science.proposal.exp_gen.diversity_strategy.InjectUntilSOTAGainedStrategy"
+    )
+    """The strategy to use for injecting diversity context."""
+
     # enable different version of DSExpGen for multi-trace
     enable_multi_version_exp_gen: bool = False
     exp_gen_version_list: str = "v3,v2"
 
     #### multi-trace: time for final multi-trace merge
-    merge_hours: int = 0
+    merge_hours: float = 0
     """The time for merge"""
 
     #### multi-trace: max SOTA-retrieved number, used in AutoSOTAexpSelector
@@ -126,9 +146,14 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     model_architecture_suggestion_time_percent: float = 0.75
     allow_longer_timeout: bool = False
+    coder_enable_llm_decide_longer_timeout: bool = False
+    runner_enable_llm_decide_longer_timeout: bool = False
     coder_longer_timeout_multiplier_upper: int = 3
     runner_longer_timeout_multiplier_upper: int = 2
-    timeout_increase_stage: float = 0.3
+    coder_timeout_increase_stage: float = 0.3
+    runner_timeout_increase_stage: float = 0.3
+    runner_timeout_increase_stage_patience: int = 2
+    """Number of failures tolerated before escalating to next timeout level (stage width). Every 'patience' failures, timeout increases by 'runner_timeout_increase_stage'"""
     show_hard_limit: bool = True
 
     #### hypothesis critique and rewrite
@@ -143,5 +168,38 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     #### enable runner code change summary
     runner_enable_code_change_summary: bool = True
 
+    ### Proposal workflow related
+
+    #### Hypothesis Generate related
+    enable_simple_hypothesis: bool = False
+    """If true, generate simple hypothesis, no more than 2 sentences each."""
+
+    enable_generate_unique_hypothesis: bool = False
+    """Enable generate unique hypothesis. If True, generate unique hypothesis for each component. If False, generate unique hypothesis for each component."""
+
+    #### hypothesis critique and rewrite
+    enable_hypo_critique_rewrite: bool = False
+    """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
+    enable_scale_check: bool = False
+
+    ##### select related
+    ratio_merge_or_ensemble: int = 70
+    """The ratio of merge or ensemble to be considered as a valid solution"""
+    llm_select_hypothesis: bool = False
+    """Whether to use LLM to select hypothesis. If True, use LLM selection; if False, use the existing ranking method."""
+
+    #### Task Generate related
+    fix_seed_and_data_split: bool = False
+
+    ensemble_time_upper_bound: bool = False
+
+    user_interaction_wait_seconds: int = 6000  # seconds to wait for user interaction
+    user_interaction_mid_folder: Path = Path.cwd() / "git_ignore_folder" / "RD-Agent_user_interaction"
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()
+
+# enable_cross_trace_diversity and llm_select_hypothesis should not be true at the same time
+assert not (
+    DS_RD_SETTING.enable_cross_trace_diversity and DS_RD_SETTING.llm_select_hypothesis
+), "enable_cross_trace_diversity and llm_select_hypothesis cannot be true at the same time"

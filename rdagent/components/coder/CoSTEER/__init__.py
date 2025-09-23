@@ -77,6 +77,17 @@ class CoSTEER(Developer[Experiment]):
         assert isinstance(fb, CoSTEERMultiFeedback), "feedback must be of type CoSTEERMultiFeedback"
         return fb
 
+    def should_use_new_evo(self, base_fb: CoSTEERMultiFeedback | None, new_fb: CoSTEERMultiFeedback) -> bool:
+        """
+        Compare new feedback with the fallback feedback.
+
+        Returns:
+            bool: True if the new feedback better and False if the new feedback is worse or invalid.
+        """
+        if new_fb is not None and new_fb.is_acceptable():
+            return True
+        return False
+
     def develop(self, exp: Experiment) -> Experiment:
 
         # init intermediate items
@@ -97,17 +108,26 @@ class CoSTEER(Developer[Experiment]):
         # Evolving the solution
         start_datetime = datetime.now()
         fallback_evo_exp = None
+        fallback_evo_fb = None
         reached_max_seconds = False
+
+        evo_fb = None
         for evo_exp in self.evolve_agent.multistep_evolve(evo_exp, self.evaluator):
             assert isinstance(evo_exp, Experiment)  # multiple inheritance
-            if self._get_last_fb().is_acceptable():
+            evo_fb = self._get_last_fb()
+            update_fallback = self.should_use_new_evo(
+                base_fb=fallback_evo_fb,
+                new_fb=evo_fb,
+            )
+            if update_fallback:
                 fallback_evo_exp = deepcopy(evo_exp)
+                fallback_evo_fb = deepcopy(evo_fb)
                 fallback_evo_exp.create_ws_ckp()  # NOTE: creating checkpoints for saving files in the workspace to prevent inplace mutation.
 
             logger.log_object(evo_exp.sub_workspace_list, tag="evolving code")
             for sw in evo_exp.sub_workspace_list:
                 logger.info(f"evolving workspace: {sw}")
-            if max_seconds is not None and (datetime.now() - start_datetime).seconds > max_seconds:
+            if max_seconds is not None and (datetime.now() - start_datetime).total_seconds() > max_seconds:
                 logger.info(f"Reached max time limit {max_seconds} seconds, stop evolving")
                 reached_max_seconds = True
                 break
@@ -115,17 +135,18 @@ class CoSTEER(Developer[Experiment]):
                 logger.info("Global timer is timeout, stop evolving")
                 break
 
-        # if the final feedback is not finished(therefore acceptable), we will use the fallback solution.
         try:
-            evo_exp = self._exp_postprocess_by_feedback(evo_exp, self._get_last_fb())
-        except CoderError as e:
+            # Fallback is required because we might not choose the last acceptable evo to submit.
             if fallback_evo_exp is not None:
                 logger.info("Fallback to the fallback solution.")
                 evo_exp = fallback_evo_exp
-                evo_exp.recover_ws_ckp()  # NOTE: recovering checkpoints for restoring files in the workspace to prevent inplace mutation.
-            else:
-                e.caused_by_timeout = reached_max_seconds
-                raise e
+                evo_exp.recover_ws_ckp()
+                evo_fb = fallback_evo_fb
+            assert evo_fb is not None  # multistep_evolve should run at least once
+            evo_exp = self._exp_postprocess_by_feedback(evo_exp, evo_fb)
+        except CoderError as e:
+            e.caused_by_timeout = reached_max_seconds
+            raise e
 
         exp.sub_workspace_list = evo_exp.sub_workspace_list
         exp.experiment_workspace = evo_exp.experiment_workspace

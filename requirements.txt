@@ -71,3 +71,6 @@ types-pytz
 # mcp
 llama-index
 llama-index-tools-mcp
+# Agent
+pydantic-ai-slim[mcp,openai]
+nest-asyncio

@@ -107,7 +107,7 @@ class FileStorage(Storage):
     def truncate(self, time: datetime) -> None:
         for file in self.path.glob("**/*.pkl"):
             timestamp = datetime.strptime(file.stem, "%Y-%m-%d_%H-%M-%S-%f").replace(tzinfo=timezone.utc)
-            if timestamp > time:
+            if timestamp > time.replace(tzinfo=timezone.utc):
                 file.unlink()
 
         _remove_empty_dir(self.path)

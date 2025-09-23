@@ -1,13 +1,15 @@
 import math
 import pickle
 import re
-from collections import deque
+from collections import defaultdict, deque
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Literal
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import pandas as pd
+import plotly.express as px
 import plotly.graph_objects as go
 import typer
 from matplotlib import pyplot as plt
@@ -17,9 +19,12 @@ from rdagent.core.proposal import Trace
 from rdagent.core.utils import cache_with_pickle
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
-from rdagent.log.utils import extract_json
+from rdagent.log.utils import extract_json, extract_loopid_func_name
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+from rdagent.scenarios.data_science.proposal.exp_gen.select.submit import (
+    BestValidSelector,
+)
 from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 
 LITE = [
@@ -138,13 +143,48 @@ def _log_path_hash_func(log_path: Path) -> str:
     return md5_hash(hash_str)
 
 
-def _get_sota_exp_stat_hash_func(log_path: Path, to_submit: bool = True) -> str:
-    return _log_path_hash_func(log_path) + str(to_submit)
+def map_stat(sota_mle_score: dict | None) -> str:
+    sota_exp_stat = None
+    if sota_mle_score:  # sota exp's grade output
+        if sota_mle_score["gold_medal"]:
+            sota_exp_stat = "gold"
+        elif sota_mle_score["silver_medal"]:
+            sota_exp_stat = "silver"
+        elif sota_mle_score["bronze_medal"]:
+            sota_exp_stat = "bronze"
+        elif sota_mle_score["above_median"]:
+            sota_exp_stat = "above_median"
+        elif sota_mle_score["valid_submission"]:
+            sota_exp_stat = "valid_submission"
+        elif sota_mle_score["submission_exists"]:
+            sota_exp_stat = "made_submission"
+    return sota_exp_stat
 
 
-@cache_with_pickle(_get_sota_exp_stat_hash_func, force=True)
+def get_best_report(log_path: Path) -> dict | None:
+    log_storage = FileStorage(log_path)
+    mle_reports = [extract_json(i.content) for i in log_storage.iter_msg(pattern="**/running/mle_score/*/*.pkl")]
+    mle_reports = [report for report in mle_reports if report is not None and not pd.isna(report["score"])]
+    if mle_reports:
+        lower_better = mle_reports[0]["is_lower_better"]
+        if lower_better:
+            mle_reports.sort(key=lambda report: report["score"])
+        else:
+            mle_reports.sort(key=lambda report: report["score"], reverse=True)
+        return mle_reports[0]
+    return None
+
+
+if UI_SETTING.enable_cache:
+    get_best_report = cache_with_pickle(_log_path_hash_func, force=True)(get_best_report)
+
+
+def _get_sota_exp_stat_hash_func(log_path: Path, selector: Literal["auto", "best_valid"] = "auto") -> str:
+    return _log_path_hash_func(log_path) + selector
+
+
 def get_sota_exp_stat(
-    log_path: Path, to_submit: bool = True
+    log_path: Path, selector: Literal["auto", "best_valid"] = "auto"
 ) -> tuple[DSExperiment | None, int | None, dict | None, str | None]:
     """
     Get the SOTA experiment and its statistics from the log path.
@@ -153,8 +193,8 @@ def get_sota_exp_stat(
     ----------
     log_path : Path
         Path to the experiment log directory.
-    to_submit : bool, default True
-        If True, returns sota_exp_to_submit; if False, returns common SOTA experiment.
+    selector : Literal["auto", "best_valid"], default "auto"
+        If "auto", returns sota_exp_to_submit; if "best_valid", returns sota selected by best valid score.
 
     Returns
     -------
@@ -172,19 +212,19 @@ def get_sota_exp_stat(
     log_storage = FileStorage(log_path)
 
     # get sota exp
-    sota_exp_list = [
-        i.content for i in log_storage.iter_msg(tag=("sota_exp_to_submit" if to_submit else "SOTA experiment"))
-    ]
-    if len(sota_exp_list) == 0:
-        # if no sota exp found, try to find the last trace
+    sota_exp = None
+    if selector == "auto":
+        sota_exp_list = [i.content for i in log_storage.iter_msg(tag="sota_exp_to_submit")]
+        sota_exp = sota_exp_list[-1] if sota_exp_list else None
+    elif selector == "best_valid":
         trace_list = [i.content for i in log_storage.iter_msg(tag="trace")]
-        final_trace = trace_list[-1] if trace_list else None
-        if final_trace is not None:
-            sota_exp = final_trace.sota_exp_to_submit if to_submit else final_trace.sota_experiment(search_type="all")
-        else:
-            sota_exp = None
-    else:
-        sota_exp = sota_exp_list[-1]
+        if trace_list:
+            final_trace = trace_list[-1]
+            final_trace.scen.metric_direction = get_metric_direction(
+                final_trace.scen.competition
+            )  # FIXME: remove this later.
+            bvs = BestValidSelector()
+            sota_exp = bvs.get_sota_exp_to_submit(final_trace)
 
     if sota_exp is None:
         return None, None, None, None
@@ -212,25 +252,117 @@ def get_sota_exp_stat(
         # sota exp is not tested yet
         return sota_exp, sota_loop_id, None, None
 
-    sota_exp_stat = None
-    if sota_mle_score:  # sota exp's grade output
-        if sota_mle_score["gold_medal"]:
-            sota_exp_stat = "gold"
-        elif sota_mle_score["silver_medal"]:
-            sota_exp_stat = "silver"
-        elif sota_mle_score["bronze_medal"]:
-            sota_exp_stat = "bronze"
-        elif sota_mle_score["above_median"]:
-            sota_exp_stat = "above_median"
-        elif sota_mle_score["valid_submission"]:
-            sota_exp_stat = "valid_submission"
-        elif sota_mle_score["submission_exists"]:
-            sota_exp_stat = "made_submission"
-    return sota_exp, sota_loop_id, sota_mle_score, sota_exp_stat
+    return sota_exp, sota_loop_id, sota_mle_score, map_stat(sota_mle_score)
 
 
-@cache_with_pickle(_log_path_hash_func, force=True)
-def load_times(log_path: Path):
+if UI_SETTING.enable_cache:
+    get_sota_exp_stat = cache_with_pickle(_get_sota_exp_stat_hash_func, force=True)(get_sota_exp_stat)
+
+
+def _get_score_stat_hash_func(log_path: Path, sota_loop_id: int) -> str:
+    return _log_path_hash_func(log_path) + str(sota_loop_id)
+
+
+def get_score_stat(log_path: Path, sota_loop_id: int) -> tuple[float | None, float | None, bool | None, float | None]:
+    """
+    Get the scores before and after merge period.
+
+    Parameters
+    ----------
+    log_path : Path
+        Path to the experiment log directory.
+    sota_loop_id : int
+        The loop ID of the SOTA experiment to check for merge status.
+
+    Returns
+    -------
+    tuple[float | None, float | None]
+        A tuple containing:
+        - valid_improve : bool
+            True if valid score is improved during merge period.
+        - test_improve : bool
+            True if test score is improved during merge period.
+        - submit_is_merge : bool
+            True if the sota loop is a merge loop.
+        - merge_sota_rate : float | None
+            The merge sota rate.
+    """
+    valid_before_merge = []
+    test_before_merge = []
+    valid_after_merge = []
+    test_after_merge = []
+    submit_is_merge = False
+    is_lower_better = False
+    valid_improve = False
+    test_improve = False
+    total_merge_loops = 0
+    log_storage = FileStorage(log_path)
+    all_trace = list(log_storage.iter_msg(tag="trace"))
+    if all_trace:
+        final_trace = all_trace[-1].content
+    else:
+        return None, None, None, None
+    for loop_index, (exp, fb) in enumerate(final_trace.hist):
+        if hasattr(final_trace, "idx2loop_id"):
+            loop_id = final_trace.idx2loop_id[loop_index]
+        else:
+            loop_id = int(re.search(r"\d+", all_trace[loop_index].tag).group())
+
+        is_merge = False
+        direct_exp_gen = log_storage.iter_msg(pattern=f"Loop_{loop_id}/direct_exp_gen/debug_tpl/*/*.pkl")
+        for tr in direct_exp_gen:
+            uri = tr.content.get("uri") if isinstance(tr.content, dict) else getattr(tr.content, "uri", None)
+            if isinstance(uri, str) and "scenarios.data_science.proposal.exp_gen.merge" in uri:
+                is_merge = True
+                total_merge_loops += 1
+                if sota_loop_id == loop_id:
+                    submit_is_merge = True
+                break
+        if not fb.decision:
+            continue
+
+        try:
+            mle_score = extract_json(
+                [i.content for i in log_storage.iter_msg(tag=f"Loop_{loop_id}.running.mle_score")][0]
+            )
+        except Exception:
+            continue
+
+        if not mle_score:
+            continue
+
+        is_lower_better = mle_score.get("is_lower_better", False)
+        valid_score = pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
+
+        if is_merge:
+            valid_after_merge.append(valid_score)
+            if mle_score["score"] is not None:
+                test_after_merge.append(mle_score["score"])
+        else:
+            valid_before_merge.append(valid_score)
+            if mle_score["score"] is not None:
+                test_before_merge.append(mle_score["score"])
+
+    if is_lower_better:
+        if valid_after_merge:
+            valid_improve = not valid_before_merge or min(valid_after_merge) < min(valid_before_merge)
+        if test_after_merge:
+            test_improve = not test_before_merge or min(test_after_merge) < min(test_before_merge)
+    else:
+        if valid_after_merge:
+            valid_improve = not valid_before_merge or max(valid_after_merge) > max(valid_before_merge)
+        if test_after_merge:
+            test_improve = not test_before_merge or max(test_after_merge) > max(test_before_merge)
+
+    merge_sota_rate = 0 if not total_merge_loops else len(test_after_merge) / total_merge_loops
+    return valid_improve, test_improve, submit_is_merge, merge_sota_rate
+
+
+if UI_SETTING.enable_cache:
+    get_score_stat = cache_with_pickle(_get_score_stat_hash_func, force=True)(get_score_stat)
+
+
+def load_times_deprecated(log_path: Path):
     try:
         session_path = log_path / "__session__"
         max_li = max(int(p.name) for p in session_path.iterdir() if p.is_dir() and p.name.isdigit())
@@ -243,19 +375,61 @@ def load_times(log_path: Path):
     return rd_times
 
 
-def _log_folders_summary_hash_func(log_folders: list[str], hours: int | None = None):
-    hash_str = ""
-    for lf in log_folders:
-        summary_p = Path(lf) / (f"summary.pkl" if hours is None else f"summary_{hours}h.pkl")
-        if summary_p.exists():
-            hash_str += str(summary_p) + str(summary_p.stat().st_mtime)
-        else:
-            hash_str += f"{summary_p} not exists"
+if UI_SETTING.enable_cache:
+    load_times_deprecated = cache_with_pickle(_log_path_hash_func, force=True)(load_times_deprecated)
+
+
+def load_times_info(log_path: Path) -> dict[int, dict[str, dict[Literal["start_time", "end_time"], datetime]]]:
+    """
+    Load timing information for each loop and step.
+
+    Returns
+    -------
+    dict[int, dict[str, dict[Literal["start_time", "end_time"], datetime]]]
+        Dictionary with loop IDs as keys, where each value contains step names
+        mapping to their start and end times.
+
+        Example:
+            {
+                1: {
+                    "exp_gen": {
+                        "start_time": datetime(2024, 1, 1, 10, 0, 0),
+                        "end_time": datetime(2024, 1, 1, 10, 15, 30)
+                    },
+                    "coding": {
+                        "start_time": datetime(2024, 1, 1, 10, 15, 30),
+                        "end_time": datetime(2024, 1, 1, 10, 45, 12)
+                    }
+                },
+            }
+    """
+    log_storage = FileStorage(log_path)
+    time_msgs = list(log_storage.iter_msg(tag="time_info"))
+    exp_gen_time_msgs = list(log_storage.iter_msg(tag="exp_gen_time_info"))
+    times_info = defaultdict(dict)
+    for msg in time_msgs:
+        li, fn = extract_loopid_func_name(msg.tag)
+        times_info[int(li)][fn] = msg.content
+    for msg in exp_gen_time_msgs:
+        li, fn = extract_loopid_func_name(msg.tag)
+        times_info[int(li)]["exp_gen"] = msg.content
+    return times_info
+
+
+if UI_SETTING.enable_cache:
+    load_times_info = cache_with_pickle(_log_path_hash_func, force=True)(load_times_info)
+
+
+def _log_folders_summary_hash_func(log_folder: str | Path, hours: int | None = None):
+    summary_p = Path(log_folder) / (f"summary.pkl" if hours is None else f"summary_{hours}h.pkl")
+    if summary_p.exists():
+        hash_str = str(summary_p) + str(summary_p.stat().st_mtime)
+    else:
+        hash_str = f"{summary_p} not exists"
     return md5_hash(hash_str)
 
 
-@cache_with_pickle(_log_folders_summary_hash_func, force=True)
-def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[dict, pd.DataFrame]:
+def get_summary_df(log_folder: str | Path, hours: int | None = None) -> tuple[dict, pd.DataFrame]:
     """Process experiment logs and generate summary DataFrame.
 
     Several key metrics that need explanation:
@@ -275,67 +449,68 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
       and overfitting risk, totally decided by LLM
 
     """
-    summarys = {}
-    if hours is None:
-        sn = "summary.pkl"
+    log_folder = Path(log_folder)
+    sn = "summary.pkl" if hours is None else f"summary_{hours}h.pkl"
+    if (log_folder / sn).exists():
+        summary: dict = pd.read_pickle(log_folder / sn)
     else:
-        sn = f"summary_{hours}h.pkl"
-    for lf in log_folders:
-        if (Path(lf) / sn).exists():
-            summarys[lf] = pd.read_pickle(Path(lf) / sn)
-
-    if len(summarys) == 0:
         return {}, pd.DataFrame()
 
-    summary = {}
-    for lf, s in summarys.items():
-        for k, v in s.items():
-            stdout_p = Path(lf) / f"{k}.stdout"
-            if stdout_p.exists():
-                v["script_time"] = get_script_time(stdout_p)
-            else:
-                v["script_time"] = None
+    for k, v in summary.items():
+        stdout_p = log_folder / f"{k}.stdout"
+        if stdout_p.exists():
+            v["script_time"] = get_script_time(stdout_p)
+        else:
+            v["script_time"] = None
 
-            exp_gen_time = timedelta()
-            coding_time = timedelta()
-            running_time = timedelta()
-            all_time = timedelta()
-            times_info = load_times(Path(lf) / k)
-            for time_info in times_info.values():
-                all_time += sum((ti.end - ti.start for ti in time_info), timedelta())
-                exp_gen_time += time_info[0].end - time_info[0].start
-                if len(time_info) > 1:
-                    coding_time += time_info[1].end - time_info[1].start
-                if len(time_info) > 2:
-                    running_time += time_info[2].end - time_info[2].start
-            v["exec_time"] = str(all_time).split(".")[0]
-            v["exp_gen_time"] = str(exp_gen_time).split(".")[0]
-            v["coding_time"] = str(coding_time).split(".")[0]
-            v["running_time"] = str(running_time).split(".")[0]
+        times_info = load_times_info(log_folder / k)
 
-            # overwrite sota_exp_stat in summary.pkl because it may not be correct in multi-trace
-            _, _, sota_report, v["sota_exp_stat"] = get_sota_exp_stat(Path(lf) / k, to_submit=False)
-            v["sota_exp_score"] = sota_report["score"] if sota_report else None
+        exp_gen_time = coding_time = running_time = timedelta()
+        start_times, end_times = [], []
 
-            sota_exp_submit, v["sota_loop_id_new"], sota_submit_report, v["sota_exp_stat_new"] = get_sota_exp_stat(
-                Path(lf) / k, to_submit=True
+        for loop_times in times_info.values():
+            for step_name, step_time in loop_times.items():
+                duration = step_time["end_time"] - step_time["start_time"]
+                start_times.append(step_time["start_time"])
+                end_times.append(step_time["end_time"])
+
+                if step_name == "exp_gen":
+                    exp_gen_time += duration
+                elif step_name == "coding":
+                    coding_time += duration
+                elif step_name == "running":
+                    running_time += duration
+
+        all_time = (max(end_times) - min(start_times)) if start_times else timedelta()
+        v["exec_time"] = str(all_time).split(".")[0]
+        v["exp_gen_time"] = str(exp_gen_time).split(".")[0]
+        v["coding_time"] = str(coding_time).split(".")[0]
+        v["running_time"] = str(running_time).split(".")[0]
+
+        # overwrite sota_exp_stat in summary.pkl because it may not be correct in multi-trace
+        sota_exp_submit, v["sota_loop_id_new"], sota_submit_report, v["sota_exp_stat_new"] = get_sota_exp_stat(
+            log_folder / k, selector="auto"
+        )
+        sota_exp_bv, v["sota_loop_id"], sota_bv_report, v["sota_exp_stat"] = get_sota_exp_stat(
+            log_folder / k, selector="best_valid"
+        )
+        (
+            v["valid_improve"],
+            v["test_improve"],
+            v["submit_is_merge"],
+            v["merge_sota_rate"],
+        ) = get_score_stat(log_folder / k, v["sota_loop_id_new"])
+
+        if sota_exp_submit is not None:
+            try:
+                sota_submit_result = sota_exp_submit.result
+            except AttributeError:  # Compatible with old versions
+                sota_submit_result = sota_exp_submit.__dict__["result"]
+            v["sota_exp_score_valid_new"] = (
+                sota_submit_result.loc["ensemble"].iloc[0] if sota_submit_result is not None else None
             )
-            if sota_exp_submit is not None:
-                try:
-                    sota_submit_result = sota_exp_submit.result
-                except AttributeError:  # Compatible with old versions
-                    sota_submit_result = sota_exp_submit.__dict__["result"]
-                v["sota_exp_score_valid_new"] = (
-                    sota_submit_result.loc["ensemble"].iloc[0] if sota_submit_result is not None else None
-                )
-            v["sota_exp_score_new"] = sota_submit_report["score"] if sota_submit_report else None
-            # change experiment name
-            if "amlt" in lf:
-                summary[f"{lf[lf.rfind('amlt')+5:].split('/')[0]} - {k}"] = v
-            elif "ep" in lf:
-                summary[f"{lf[lf.rfind('ep'):]} - {k}"] = v
-            else:
-                summary[f"{lf} - {k}"] = v
+        v["sota_exp_score"] = sota_bv_report["score"] if sota_bv_report else None
+        v["sota_exp_score_new"] = sota_submit_report["score"] if sota_submit_report else None
 
     summary = {k: v for k, v in summary.items() if "competition" in v}
     base_df = pd.DataFrame(
@@ -430,7 +605,10 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
 
             base_df.loc[k, "SOTA Exp"] = v.get("sota_exp_stat", None)
             base_df.loc[k, "SOTA Exp Score"] = v.get("sota_exp_score", None)
-
+            base_df.loc[k, "Valid Improve"] = v.get("valid_improve", None)
+            base_df.loc[k, "Test Improve"] = v.get("test_improve", None)
+            base_df.loc[k, "Submit Merge"] = v.get("submit_is_merge", None)
+            base_df.loc[k, "Merge Sota"] = v.get("merge_sota_rate", None)
             base_df.loc[k, "SOTA Exp (to_submit)"] = v["sota_exp_stat_new"]
             base_df.loc[k, "SOTA Exp Score (to_submit)"] = v.get("sota_exp_score_new", None)
             base_df.loc[k, "SOTA LID (to_submit)"] = v.get("sota_loop_id_new", None)
@@ -474,9 +652,17 @@ def get_summary_df(log_folders: list[str], hours: int | None = None) -> tuple[di
             "Silver Threshold": float,
             "Gold Threshold": float,
             "Medium Threshold": float,
+            "Valid Improve": bool,
+            "Test Improve": bool,
+            "Submit Merge": bool,
+            "Merge Sota": float,
         }
     )
     return summary, base_df
+
+
+if UI_SETTING.enable_cache:
+    get_summary_df = cache_with_pickle(_log_folders_summary_hash_func, force=True)(get_summary_df)
 
 
 def percent_df(summary_df: pd.DataFrame, show_origin=True) -> pd.DataFrame:
@@ -496,7 +682,10 @@ def percent_df(summary_df: pd.DataFrame, show_origin=True) -> pd.DataFrame:
         "Gold",
         "Any Medal",
     ]
-    new_df[columns_to_convert] = new_df[columns_to_convert].astype(object)
+
+    # Filter columns_to_convert to only include columns that exist in new_df
+    existing_columns = [col for col in columns_to_convert if col in new_df.columns]
+    new_df[existing_columns] = new_df[existing_columns].astype(object)
 
     def num2percent(num: int, total: int, show_origin=True) -> str:
         num = int(num)
@@ -508,22 +697,14 @@ def percent_df(summary_df: pd.DataFrame, show_origin=True) -> pd.DataFrame:
     for k in new_df.index:
         loop_num = int(new_df.loc[k, "Total Loops"])
         if loop_num != 0:
-            new_df.loc[k, "Successful Final Decision"] = num2percent(
-                new_df.loc[k, "Successful Final Decision"], loop_num, show_origin
-            )
             if new_df.loc[k, "Made Submission"] != 0:
                 new_df.loc[k, "V/M"] = (
                     f"{round(new_df.loc[k, 'Valid Submission'] / new_df.loc[k, 'Made Submission'] * 100, 2)}%"
                 )
             else:
                 new_df.loc[k, "V/M"] = "N/A"
-            new_df.loc[k, "Made Submission"] = num2percent(new_df.loc[k, "Made Submission"], loop_num, show_origin)
-            new_df.loc[k, "Valid Submission"] = num2percent(new_df.loc[k, "Valid Submission"], loop_num, show_origin)
-            new_df.loc[k, "Above Median"] = num2percent(new_df.loc[k, "Above Median"], loop_num, show_origin)
-            new_df.loc[k, "Bronze"] = num2percent(new_df.loc[k, "Bronze"], loop_num, show_origin)
-            new_df.loc[k, "Silver"] = num2percent(new_df.loc[k, "Silver"], loop_num, show_origin)
-            new_df.loc[k, "Gold"] = num2percent(new_df.loc[k, "Gold"], loop_num, show_origin)
-            new_df.loc[k, "Any Medal"] = num2percent(new_df.loc[k, "Any Medal"], loop_num, show_origin)
+            for col in existing_columns:
+                new_df.loc[k, col] = num2percent(new_df.loc[k, col], loop_num, show_origin)
 
     return new_df
 
@@ -788,6 +969,120 @@ def trace_figure(trace: Trace, merge_loops: list = []):
     fig, ax = plt.subplots(figsize=(8, 6))
     color_map = ["tomato" if node in [get_display_name(idx) for idx in merge_loops] else "skyblue" for node in G]
     nx.draw(G, pos, with_labels=True, arrows=True, node_color=color_map, node_size=100, font_size=5, ax=ax)
+    return fig
+
+
+def timeline_figure(times_dict: dict[int, dict[str, dict[Literal["start_time", "end_time"], datetime]]]) -> go.Figure:
+    # Prepare data for px.timeline
+    timeline_data = []
+    step_names = ["exp_gen", "coding", "running", "feedback", "record"]
+
+    # Beautiful color palette with gradients
+    colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA726", "#5A0069"]
+    color_map = {step: color for step, color in zip(step_names, colors)}
+
+    for loop_id, steps in times_dict.items():
+        for step_name, timing in steps.items():
+            if step_name in step_names:
+                duration = timing["end_time"] - timing["start_time"]
+                timeline_data.append(
+                    {
+                        "Start": timing["start_time"],
+                        "Finish": timing["end_time"],
+                        "Step": step_name,
+                        "Loop_ID": f"Loop {loop_id}",
+                        "Duration": str(duration).split(".")[0],  # Remove microseconds
+                    }
+                )
+
+    # Create DataFrame and sort by loop ID in descending order
+    df = pd.DataFrame(timeline_data)
+    df["loop_sort"] = df["Loop_ID"].str.extract("(\d+)").astype(int)
+    df = df.sort_values("loop_sort", ascending=False)
+
+    # Create timeline with enhanced styling
+    fig = px.timeline(
+        df,
+        x_start="Start",
+        x_end="Finish",
+        y="Loop_ID",
+        color="Step",
+        color_discrete_map=color_map,
+        title="🚀 Data Science Loop Timeline",
+        hover_data={"Duration": True, "Loop_ID": False, "Step": False},
+        hover_name="Step",
+    )
+
+    # Enhanced styling and layout
+    fig.update_traces(
+        marker=dict(line=dict(width=1, color="rgba(255,255,255,0.8)"), opacity=0.85),
+        width=0.9,  # Increased from 0.8 to make bars thicker and reduce spacing
+        hovertemplate="<b>%{hovertext}</b><br>"
+        + "Start: %{base}<br>"
+        + "End: %{x}<br>"
+        + "Duration: %{customdata[0]}<br>"
+        + "<extra></extra>",
+    )
+
+    # Beautiful layout with gradients and shadows
+    fig.update_layout(
+        title=dict(text="Data Science Loop Timeline", x=0.0, font=dict(size=24, color="#2C3E50", family="Arial Black")),
+        xaxis=dict(
+            title="⏰ Time",
+            showgrid=True,
+            gridwidth=1,
+            gridcolor="rgba(176, 196, 222, 0.4)",
+            zeroline=False,
+            tickfont=dict(size=12, color="#34495E"),
+            title_font=dict(size=14, color="#2C3E50", family="Arial"),
+        ),
+        yaxis=dict(
+            title="🔄 Loop ID",
+            showgrid=True,
+            gridwidth=1,
+            gridcolor="rgba(176, 196, 222, 0.4)",
+            zeroline=False,
+            tickfont=dict(size=12, color="#34495E"),
+            title_font=dict(size=14, color="#2C3E50", family="Arial"),
+        ),
+        plot_bgcolor="rgba(248, 249, 250, 0.8)",
+        paper_bgcolor="white",
+        height=max(200, len(times_dict) * 25),  # Reduced from 300 and 30 to 200 and 25
+        margin=dict(l=100, r=60, t=80, b=60),
+        legend=dict(
+            x=0.98,
+            y=0.98,
+            xanchor="right",
+            yanchor="top",
+            bgcolor="rgba(255,255,255,0.9)",
+            bordercolor="rgba(0,0,0,0.2)",
+            borderwidth=1,
+            title_font=dict(size=12, color="#2C3E50"),
+            font=dict(size=11, color="#34495E"),
+            traceorder="normal",
+        ),
+        font=dict(family="Arial, sans-serif"),
+        template="plotly_white",
+    )
+
+    # Reorder legend to match step_names order
+    fig.data = sorted(
+        fig.data, key=lambda trace: step_names.index(trace.name) if trace.name in step_names else len(step_names)
+    )
+
+    # Add subtle shadow effect
+    fig.add_shape(
+        type="rect",
+        xref="paper",
+        yref="paper",
+        x0=0,
+        y0=0,
+        x1=1,
+        y1=1,
+        line=dict(color="rgba(0,0,0,0.1)", width=2),
+        fillcolor="rgba(0,0,0,0.02)",
+    )
+
     return fig
 
 

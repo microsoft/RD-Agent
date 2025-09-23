@@ -105,6 +105,8 @@ class DataScienceRDLoop(RDLoop):
         self.sota_exp_selector = import_class(PROP_SETTING.sota_exp_selector_name)()
         self.exp_gen: ExpGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
 
+        self.interactor = import_class(PROP_SETTING.interactor)(scen)
+
         # coders
         self.data_loader_coder = DataLoaderCoSTEER(scen)
         self.feature_coder = FeatureCoSTEER(scen)
@@ -140,6 +142,7 @@ class DataScienceRDLoop(RDLoop):
         # in parallel + multi-trace mode, the above global "trace.current_selection" will not be used
         # instead, we will use the "local_selection" attached to each exp to in async_gen().
         exp = await self.exp_gen.async_gen(self.trace, self)
+        exp = self.interactor.interact(exp, self.trace)
 
         logger.log_object(exp)
         return exp
@@ -309,7 +312,7 @@ class DataScienceRDLoop(RDLoop):
 
             # only clean current workspace without affecting other loops.
             for k in "direct_exp_gen", "coding", "running":
-                if k in prev_out:
+                if k in prev_out and prev_out[k] is not None:
                     assert isinstance(prev_out[k], DSExperiment)
                     clean_workspace(prev_out[k].experiment_workspace.workspace_path)
 

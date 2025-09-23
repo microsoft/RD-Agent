@@ -41,7 +41,9 @@ from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.experiment import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
+from rdagent.utils import filter_redundant_text
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.fmt import shrink_text
 from rdagent.utils.workflow import wait_retry
 
 
@@ -144,6 +146,13 @@ class EnvResult:
     stdout: str
     exit_code: int
     running_time: float
+
+    def get_truncated_stdout(self) -> str:
+        return shrink_text(
+            filter_redundant_text(self.stdout),
+            context_lines=RD_AGENT_SETTINGS.stdout_context_len,
+            line_len=RD_AGENT_SETTINGS.stdout_line_len,
+        )
 
 
 class Env(Generic[ASpecificEnvConf]):
@@ -293,13 +302,13 @@ class Env(Generic[ASpecificEnvConf]):
                     return p.parts[0]
                 return None
 
-            chmod_cmd = f"chmod -R 777 $(find {workspace_path} -mindepth 1 -maxdepth 1"
+            find_cmd = f"find {workspace_path} -mindepth 1 -maxdepth 1"
             for name in [
                 _get_path_stem(T("scenarios.data_science.share:scen.cache_path").r()),
                 _get_path_stem(T("scenarios.data_science.share:scen.input_path").r()),
             ]:
-                chmod_cmd += f" ! -name {name}"
-            chmod_cmd += ")"
+                find_cmd += f" ! -name {name}"
+            chmod_cmd = f"{find_cmd} -exec chmod -R 777 {{}} +"
             return chmod_cmd
 
         if self.conf.running_timeout_period is None:
@@ -476,7 +485,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
         volumes = {}
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
-                volumes[lp] = rp
+                volumes[lp] = rp["bind"] if isinstance(rp, dict) else rp
             cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
             Path(cache_path).mkdir(parents=True, exist_ok=True)
             volumes[cache_path] = T("scenarios.data_science.share:scen.cache_path").r()

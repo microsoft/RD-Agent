@@ -22,6 +22,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.planner import (
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler import (
     RoundRobinScheduler,
+    SOTABasedScheduler,
     TraceScheduler,
 )
 
@@ -46,7 +47,11 @@ class ParallelMultiTraceExpGen(ExpGen):
         self.exp_gen = DataScienceRDLoop.default_exp_gen(self.scen)
         self.draft_exp_gen = DSDraftV2ExpGen(self.scen)
         self.merge_exp_gen = ExpGen2Hypothesis(self.scen)
-        self.trace_scheduler: TraceScheduler = RoundRobinScheduler(DS_RD_SETTING.max_trace_num)
+        # self.trace_scheduler: TraceScheduler = RoundRobinScheduler(DS_RD_SETTING.max_trace_num)
+        self.trace_scheduler: TraceScheduler = import_class(DS_RD_SETTING.trace_scheduler)(
+            DS_RD_SETTING.max_trace_num,
+            DS_RD_SETTING.scheduler_temperature,
+        )
         self.planner = import_class(DS_RD_SETTING.planner)(self.scen)
 
     def gen(
@@ -125,6 +130,9 @@ class ParallelMultiTraceExpGen(ExpGen):
                 )
                 exp.set_local_selection(local_selection)
                 exp.plan = ds_plan
+
+                # Register the newly created experiment before returning
+                trace.register_uncommitted_exp(exp, loop.loop_idx)
                 return exp
 
             await asyncio.sleep(1)
