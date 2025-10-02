@@ -120,7 +120,10 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
             else "No SOTA hypothesis and feedback available since previous experiments were not accepted."
         )
 
-        experiment_list: List[ModelExperiment] = [t[0] for t in trace.hist]
+        experiment_list: List[ModelExperiment] = [
+            t[0] for t in trace.hist
+            if isinstance(t[0], ModelExperiment)
+            ]
 
         model_list = []
         for experiment in experiment_list:
@@ -161,5 +164,8 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
                 )
             )
         exp = QlibModelExperiment(tasks, hypothesis=hypothesis)
-        exp.based_experiments = [t[0] for t in trace.hist if t[1]]
+        exp.based_experiments = [
+            t[0] for t in trace.hist 
+            if t[1] and isinstance(t[0], ModelExperiment)
+            ]
         return exp
