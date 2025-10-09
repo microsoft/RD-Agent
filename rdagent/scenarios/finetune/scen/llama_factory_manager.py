@@ -116,6 +116,19 @@ class LLaMAFactoryManager:
                     finetune_params.update(json.load(f))
             data["parameters"]["finetuning"] = finetune_params
 
+        # Load stage-specific parameters (stage, finetuning_type, etc.)
+        # These are critical required fields, so merge them into finetuning parameters
+        stage_dir = self.cache_dir / "stage_specific"
+        if stage_dir.exists():
+            stage_params = {}
+            for json_file in stage_dir.glob("*.json"):
+                with open(json_file, encoding="utf-8") as f:
+                    stage_params.update(json.load(f))
+            # Merge into finetuning parameters since they're related
+            if "finetuning" not in data["parameters"]:
+                data["parameters"]["finetuning"] = {}
+            data["parameters"]["finetuning"].update(stage_params)
+
         return data
 
     def get_info(self) -> Dict:
@@ -178,6 +191,36 @@ class LLaMAFactoryManager:
     def training_stages(self) -> Dict[str, str]:
         """Training stage mapping."""
         return self.get_info().get("training_stages", {})
+
+    @property
+    def templates(self) -> List[str]:
+        """Available chat templates."""
+        return self.get_info().get("templates", [])
+
+    def get_template_for_model(self, model_name: str) -> str:
+        """Get the appropriate template name for a given model.
+        
+        Args:
+            model_name: Model name (e.g., "Qwen/Qwen2.5-1.5B-Instruct")
+            
+        Returns:
+            Template name to use in configuration
+        """
+        model_lower = model_name.lower()
+        
+        # Qwen models (Qwen, Qwen2, Qwen2.5) all use "qwen" template
+        if "qwen" in model_lower:
+            return "qwen"
+        # Add more model-to-template mappings as needed
+        elif "llama" in model_lower:
+            return "llama3" if "llama-3" in model_lower or "llama3" in model_lower else "llama2"
+        elif "chatglm" in model_lower:
+            return "chatglm3" if "chatglm3" in model_lower else "chatglm2"
+        elif "baichuan" in model_lower:
+            return "baichuan2" if "baichuan2" in model_lower else "baichuan"
+        
+        # Default: use "default" template or return None to let LlamaFactory auto-detect
+        return "default"
 
     def is_peft_method(self, method: str) -> bool:
         """Check if the given method is a PEFT method."""
