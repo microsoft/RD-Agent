@@ -1,5 +1,5 @@
 """
-LLaMA Factory manager for parameter extraction and caching.
+Streamlined LLaMA Factory manager for parameter extraction.
 """
 
 import json
@@ -14,7 +14,7 @@ from rdagent.log import rdagent_logger as logger
 
 
 class LLaMAFactoryManager:
-    """Manager for LLaMA Factory information extraction and caching."""
+    """Manager for LLaMA Factory parameter extraction and caching."""
 
     def __init__(self):
         """Initialize the manager instance."""
@@ -22,30 +22,9 @@ class LLaMAFactoryManager:
         self.cache_dir = Path(base_path) / ".llama_factory_info"
         self._info_cache: Optional[Dict] = None
 
-    def get_docker_commit_hash(self) -> Optional[str]:
-        """Get LLaMA Factory git commit hash from Docker environment."""
-        logger.info("Getting LLaMA Factory commit hash from Docker")
-
-        # Use independent script to get commit hash
-        workspace = FBWorkspace()
-        script_path = Path(__file__).parent / "docker_scripts" / "get_commit.py"
-        workspace.inject_files(**{"get_commit.py": script_path.read_text()})
-
-        # Run in Docker
-        result = workspace.run(
-            env=get_ft_env(running_timeout_period=30),
-            entry="python get_commit.py",
-        )
-
-        if result.exit_code != 0:
-            logger.warning(f"Failed to get commit hash: {result.stdout}")
-            return None
-
-        return result.stdout.strip()
-
     def extract_info_from_docker(self) -> Dict:
         """Extract LLaMA Factory information from Docker environment."""
-        logger.info("Extracting LLaMA Factory information from Docker environment")
+        logger.info("Extracting LLaMA Factory parameters from Docker")
 
         # Prepare extraction script
         workspace = FBWorkspace()
@@ -53,9 +32,7 @@ class LLaMAFactoryManager:
         workspace.inject_files(**{"extract_script.py": script_path.read_text()})
 
         # Setup cache directory and Docker volumes
-        # Clear existing cache directory to ensure fresh extraction
         if self.cache_dir.exists():
-            logger.info("Clearing existing LLaMA Factory cache directory")
             shutil.rmtree(self.cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         volumes = {str(self.cache_dir): {"bind": "/workspace/.llama_factory_info", "mode": "rw"}}
@@ -67,97 +44,38 @@ class LLaMAFactoryManager:
         )
 
         if result.exit_code != 0:
-            raise RuntimeError(f"Information extraction failed: {result.stdout}")
+            raise RuntimeError(f"Parameter extraction failed: {result.stdout}")
 
         # Load the extracted data
-        self._info_cache = self._load_categorized_structure()
+        self._info_cache = self._load_extracted_data()
         if not self._info_cache:
-            raise RuntimeError("Failed to load LLaMA Factory information")
+            raise RuntimeError("Failed to load extracted LLaMA Factory information")
 
-        logger.info("Successfully extracted LLaMA Factory information")
+        logger.info("Successfully extracted LLaMA Factory parameters")
         return self._info_cache
 
-    def _load_categorized_structure(self) -> Dict:
-        """Load categorized information from structured files."""
+    def _load_extracted_data(self) -> Dict:
+        """Load extracted information from flat file structure."""
         data = {}
 
-        # Load metadata
-        metadata_file = self.cache_dir / "metadata.json"
-        if metadata_file.exists():
-            with open(metadata_file, encoding="utf-8") as f:
-                metadata = json.load(f)
-                data.update(metadata)
-
         # Load constants
-        constants_dir = self.cache_dir / "constants"
-        if constants_dir.exists():
-            for json_file in constants_dir.glob("*.json"):
-                key = json_file.stem
-                with open(json_file, encoding="utf-8") as f:
-                    data[key] = json.load(f)
+        constants_file = self.cache_dir / "constants.json"
+        if constants_file.exists():
+            with open(constants_file, encoding="utf-8") as f:
+                data.update(json.load(f))
 
         # Load parameters
-        data["parameters"] = {}
-
-        # Load common parameters
-        common_dir = self.cache_dir / "common"
-        if common_dir.exists():
-            for json_file in common_dir.glob("*.json"):
-                key = json_file.stem
-                with open(json_file, encoding="utf-8") as f:
-                    data["parameters"][key] = json.load(f)
-
-        # Merge method-specific parameters into finetuning
-        method_dir = self.cache_dir / "method_specific"
-        if method_dir.exists():
-            finetune_params = {}
-            for json_file in method_dir.glob("*.json"):
-                with open(json_file, encoding="utf-8") as f:
-                    finetune_params.update(json.load(f))
-            data["parameters"]["finetuning"] = finetune_params
-
-        # Load stage-specific parameters (stage, finetuning_type, etc.)
-        # These are critical required fields, so merge them into finetuning parameters
-        stage_dir = self.cache_dir / "stage_specific"
-        if stage_dir.exists():
-            stage_params = {}
-            for json_file in stage_dir.glob("*.json"):
-                with open(json_file, encoding="utf-8") as f:
-                    stage_params.update(json.load(f))
-            # Merge into finetuning parameters since they're related
-            if "finetuning" not in data["parameters"]:
-                data["parameters"]["finetuning"] = {}
-            data["parameters"]["finetuning"].update(stage_params)
+        parameters_file = self.cache_dir / "parameters.json"
+        if parameters_file.exists():
+            with open(parameters_file, encoding="utf-8") as f:
+                data["parameters"] = json.load(f)
 
         return data
 
     def get_info(self) -> Dict:
-        """Get complete LLaMA Factory information.
-
-        On first call, checks if Docker's LLaMA Factory commit matches cached version.
-        If different or no cache exists, extracts fresh information from Docker.
-        """
+        """Get complete LLaMA Factory information, extracting on first call."""
         if self._info_cache is None:
-            # Get current Docker commit hash
-            docker_commit = self.get_docker_commit_hash()
-
-            # Try loading from cache
-            cached_data = self._load_categorized_structure()
-            cached_commit = cached_data.get("llama_factory_commit") if cached_data else None
-
-            # If commits match, use cached data; otherwise extract fresh info
-            if docker_commit and cached_commit and docker_commit == cached_commit:
-                logger.info(f"Loaded LLaMA Factory info from cache (commit: {docker_commit})")
-                self._info_cache = cached_data
-            else:
-                if docker_commit and cached_commit:
-                    logger.info(
-                        f"LLaMA Factory commit changed from {cached_commit} to {docker_commit}, extracting fresh info"
-                    )
-                else:
-                    logger.info("Cache invalid or missing, extracting fresh info")
-                self._info_cache = self.extract_info_from_docker()
-
+            self._info_cache = self.extract_info_from_docker()
         return self._info_cache
 
     @property
@@ -172,9 +90,8 @@ class LLaMAFactoryManager:
 
     @property
     def hf_models(self) -> List[str]:
-        """Available HuggingFace models (values from supported_models dict)."""
+        """Available HuggingFace models."""
         supported_models = self.get_info().get("supported_models", {})
-        # Extract unique HF model names from the values
         hf_model_set = set()
         for hf_model in supported_models.values():
             if isinstance(hf_model, str):
@@ -183,9 +100,9 @@ class LLaMAFactoryManager:
 
     @property
     def peft_methods(self) -> List[str]:
-        """Available PEFT methods."""
-        # Return hardcoded PEFT methods since they are fixed
-        return ["lora"]
+        """Available PEFT methods, dynamically filtered from available methods."""
+        known_peft = {"lora", "qlora", "adalora"}
+        return [m for m in self.methods if m in known_peft]
 
     @property
     def training_stages(self) -> Dict[str, str]:
@@ -197,93 +114,52 @@ class LLaMAFactoryManager:
         """Available chat templates."""
         return self.get_info().get("templates", [])
 
-    def get_template_for_model(self, model_name: str) -> str:
-        """Get the appropriate template name for a given model.
+    def get_template_for_model(self, model_name: str) -> Optional[str]:
+        """Get template for model. Returns None to let LlamaFactory auto-detect.
         
         Args:
             model_name: Model name (e.g., "Qwen/Qwen2.5-1.5B-Instruct")
             
         Returns:
-            Template name to use in configuration
+            None - LlamaFactory will automatically detect the appropriate template
         """
-        model_lower = model_name.lower()
-        
-        # Qwen models (Qwen, Qwen2, Qwen2.5) all use "qwen" template
-        if "qwen" in model_lower:
-            return "qwen"
-        # Add more model-to-template mappings as needed
-        elif "llama" in model_lower:
-            return "llama3" if "llama-3" in model_lower or "llama3" in model_lower else "llama2"
-        elif "chatglm" in model_lower:
-            return "chatglm3" if "chatglm3" in model_lower else "chatglm2"
-        elif "baichuan" in model_lower:
-            return "baichuan2" if "baichuan2" in model_lower else "baichuan"
-        
-        # Default: use "default" template or return None to let LlamaFactory auto-detect
-        return "default"
+        return None
 
     def is_peft_method(self, method: str) -> bool:
         """Check if the given method is a PEFT method."""
         return method in self.peft_methods
 
-    def get_parameters(self, param_type: str = None) -> Dict:
+    def get_parameters(self, param_type: Optional[str] = None) -> Dict:
         """Get parameters by type or all parameters."""
         params = self.get_info().get("parameters", {})
-
         if param_type:
             return params.get(param_type, {})
         return params
 
-    def get_metadata_info(self) -> Dict:
-        """Get metadata information including commit hash."""
-        info = self.get_info()
-
-        # Extract metadata with backward compatibility
-        metadata = {
-            "has_metadata": bool(info.get("llama_factory_commit")),
-            "commit_sha": info.get("llama_factory_commit", "unknown"),
-            "timestamp": info.get("timestamp"),
-            "version": info.get("version"),
-            "last_updated": info.get("last_updated"),
-        }
-
-        return metadata
-
     def format_method_params(self, method: str) -> str:
         """Format parameters for a specific method as a readable string."""
         lines = [f"Parameters for {method} fine-tuning:"]
-
-        # Get all parameters
         all_params = self.get_parameters()
 
-        # Common parameters
-        for param_type in ["model", "data", "training"]:
-            if param_type in all_params:
-                lines.append(f"\n### {param_type.upper()} Parameters:")
-                type_params = all_params[param_type]
-                for param_name, param_info in type_params.items():
-                    if isinstance(param_info, dict) and "help" in param_info:
-                        lines.append(f"- {param_name}: {param_info['help']}")
-
-        # Method-specific parameters from finetuning
-        if "finetuning" in all_params:
-            finetune_params = all_params["finetuning"]
-
-            # Filter parameters based on method
-            if method == "lora":
-                relevant_params = [p for p in finetune_params.keys() if "lora" in p or "additional_target" in p]
-            elif method == "freeze":
-                relevant_params = [p for p in finetune_params.keys() if "freeze" in p]
-            else:
-                relevant_params = []
-
-            if relevant_params:
-                lines.append(f"\n### {method.upper()} Specific Parameters:")
-                for param_name in relevant_params:
-                    if param_name in finetune_params:
-                        param_info = finetune_params[param_name]
-                        if isinstance(param_info, dict) and "help" in param_info:
-                            lines.append(f"- {param_name}: {param_info['help']}")
+        # Format all parameter categories
+        for param_type in ["model", "data", "training", "finetuning"]:
+            if param_type not in all_params:
+                continue
+                
+            lines.append(f"\n### {param_type.upper()} Parameters:")
+            type_params = all_params[param_type]
+            
+            # Filter method-specific parameters for finetuning category
+            if param_type == "finetuning":
+                if method == "lora":
+                    type_params = {k: v for k, v in type_params.items() if "lora" in k.lower()}
+                elif method == "freeze":
+                    type_params = {k: v for k, v in type_params.items() if "freeze" in k.lower()}
+            
+            for param_name, param_info in type_params.items():
+                if isinstance(param_info, dict) and "help" in param_info:
+                    help_text = param_info["help"][:100]  # Truncate long help text
+                    lines.append(f"- {param_name}: {help_text}")
 
         return "\n".join(lines)
 

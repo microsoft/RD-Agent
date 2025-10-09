@@ -40,13 +40,12 @@ finetune_coder:
     - dataset_dir: "{{ datasets_path }}"
     - output_dir: "/workspace/output"
     - model_name_or_path: "{{ models_path }}{{ base_model }}"
-    - template: "{{ recommended_template }}" (recommended template for this model)
 
     ## Critical Configuration Rules
     - dataset: use dataset name from dataset_info.json (not "processed_dataset")
     - model_name_or_path: use local model path instead of HuggingFace model identifier
     - dataset_info.json path: "{{ datasets_path }}dataset_info.json" contains dataset configurations
-    - template: MUST use "{{ recommended_template }}" as specified above (this is the correct template for {{ base_model }})
+    - template: let LlamaFactory auto-detect (omit this field or set to appropriate value based on model)
 
     {% if latest_code %}
     ## Previous Configuration
@@ -69,7 +68,6 @@ finetune_coder:
     - do_train: true
     - model_name_or_path: {{ models_path }}{{ base_model }}
     - dataset: {{ dataset_name }}
-    - template: {{ recommended_template }}
     {% endif %}
 
 finetune_eval:
