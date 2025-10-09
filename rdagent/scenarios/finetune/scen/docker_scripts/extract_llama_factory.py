@@ -1,41 +1,58 @@
 """
-Simple and clean LLaMA Factory parameter extraction script.
-Extracts and categorizes parameters for efficient use.
+Streamlined LLaMA Factory parameter extraction script.
+Extracts all parameters directly from LLaMA Factory without hardcoded filtering.
+Always pulls the latest LLaMA Factory code before extraction.
 """
 
 import json
 import subprocess
 import sys
-import time
 from dataclasses import fields
 from pathlib import Path
+
+# Pull latest LLaMA Factory code
+try:
+    result = subprocess.run(
+        ["git", "pull", "--rebase"],
+        cwd="/llamafactory",
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    if result.returncode == 0:
+        print(f"Updated LLaMA Factory: {result.stdout.strip()}", file=sys.stderr)
+    else:
+        print(f"Warning: git pull failed: {result.stderr}", file=sys.stderr)
+except Exception as e:
+    print(f"Warning: Failed to update LLaMA Factory: {e}", file=sys.stderr)
 
 # Add LLaMA Factory to path
 sys.path.insert(0, "/llamafactory/src")
 
 from llamafactory.extras.constants import METHODS, SUPPORTED_MODELS, TRAINING_STAGES
-
-# Import template registry
 from llamafactory.data.template import TEMPLATES
-AVAILABLE_TEMPLATES = list(TEMPLATES.keys())
-
-# Import all necessary components
 from llamafactory.hparams.data_args import DataArguments
-from llamafactory.hparams.finetuning_args import (
-    FinetuningArguments,
-    FreezeArguments,
-    LoraArguments,
-)
+from llamafactory.hparams.finetuning_args import FinetuningArguments, FreezeArguments, LoraArguments
 from llamafactory.hparams.model_args import ModelArguments, QuantizationArguments
 from transformers import TrainingArguments
 
 
 def extract_field_info(field):
-    """Extract field information in a simple format."""
+    """Extract field information from a dataclass field."""
+    from dataclasses import MISSING
+    
+    # Handle default value - avoid MISSING type which is not JSON serializable
+    if hasattr(field, "default") and field.default is not MISSING:
+        default_value = field.default
+    elif hasattr(field, "default_factory") and field.default_factory is not MISSING:
+        default_value = "<factory>"
+    else:
+        default_value = None
+    
     return {
         "name": field.name,
         "type": str(field.type).replace("typing.", "").replace("<class '", "").replace("'>", ""),
-        "default": field.default if hasattr(field, "default") else None,
+        "default": default_value,
         "help": field.metadata.get("help", "") if field.metadata else "",
     }
 
@@ -45,102 +62,41 @@ def extract_params(cls):
     return {field.name: extract_field_info(field) for field in fields(cls)}
 
 
-def get_git_commit_hash():
-    """Get the current git commit hash of LLaMA Factory."""
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd="/llamafactory", capture_output=True, text=True, check=True
-        )
-        return result.stdout.strip()
-    except Exception as e:
-        print(f"Failed to get git commit hash: {e}")
-        return None
-
-
-def save_categorized(data, base_dir):
-    """Save data in categorized structure."""
+def save_parameters(base_dir):
+    """Extract and save all LLaMA Factory parameters in a flat structure."""
     base_path = Path(base_dir)
-
-    # Save metadata
-    commit_hash = get_git_commit_hash()
-    metadata = {
-        "timestamp": int(time.time()),
-        "version": "2.0",
-        "last_updated": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "llama_factory_commit": commit_hash,
-    }
-    (base_path / "metadata.json").write_text(json.dumps(metadata, indent=2))
+    base_path.mkdir(parents=True, exist_ok=True)
 
     # Save constants
-    constants_dir = base_path / "constants"
-    constants_dir.mkdir(exist_ok=True)
+    constants = {
+        "methods": list(METHODS),
+        "training_stages": dict(TRAINING_STAGES),
+        "supported_models": dict(SUPPORTED_MODELS) if SUPPORTED_MODELS else {},
+        "templates": list(TEMPLATES.keys()),
+    }
+    (base_path / "constants.json").write_text(json.dumps(constants, indent=2))
 
-    (constants_dir / "methods.json").write_text(json.dumps(list(METHODS), indent=2))
-    (constants_dir / "training_stages.json").write_text(json.dumps(dict(TRAINING_STAGES), indent=2))
-    (constants_dir / "supported_models.json").write_text(
-        json.dumps(dict(SUPPORTED_MODELS) if SUPPORTED_MODELS else {}, indent=2)
-    )
-    (constants_dir / "templates.json").write_text(json.dumps(AVAILABLE_TEMPLATES, indent=2))
-
-    # Save common parameters
-    common_dir = base_path / "common"
-    common_dir.mkdir(exist_ok=True)
-
-    (common_dir / "model.json").write_text(json.dumps(extract_params(ModelArguments), indent=2))
-    (common_dir / "data.json").write_text(json.dumps(extract_params(DataArguments), indent=2))
-
-    # Extract only essential training parameters
-    training_params = extract_params(TrainingArguments)
-    essential_keys = [
-        "output_dir",
-        "overwrite_output_dir",
-        "do_train",
-        "do_eval",
-        "per_device_train_batch_size",
-        "per_device_eval_batch_size",
-        "gradient_accumulation_steps",
-        "learning_rate",
-        "num_train_epochs",
-        "lr_scheduler_type",
-        "warmup_ratio",
-        "logging_steps",
-        "save_steps",
-        "save_total_limit",
-        "seed",
-        "bf16",
-        "fp16",
-        "report_to",
-        "resume_from_checkpoint",
-        "push_to_hub",
-    ]
-    filtered_training = {k: v for k, v in training_params.items() if k in essential_keys}
-    (common_dir / "training.json").write_text(json.dumps(filtered_training, indent=2))
-
-    # Save method-specific parameters
-    method_dir = base_path / "method_specific"
-    method_dir.mkdir(exist_ok=True)
-
-    (method_dir / "lora.json").write_text(json.dumps(extract_params(LoraArguments), indent=2))
-    (method_dir / "freeze.json").write_text(json.dumps(extract_params(FreezeArguments), indent=2))
-    (method_dir / "quantization.json").write_text(json.dumps(extract_params(QuantizationArguments), indent=2))
-
-    # Save SFT-specific parameters from FinetuningArguments
-    stage_dir = base_path / "stage_specific"
-    stage_dir.mkdir(exist_ok=True)
-
-    finetune_params = extract_params(FinetuningArguments)
-    sft_keys = ["stage", "finetuning_type", "pure_bf16", "compute_accuracy", "plot_loss"]
-    sft_params = {k: v for k, v in finetune_params.items() if k in sft_keys}
-    (stage_dir / "sft.json").write_text(json.dumps(sft_params, indent=2))
+    # Save parameters - extract ALL parameters without filtering
+    parameters = {
+        "model": extract_params(ModelArguments),
+        "data": extract_params(DataArguments),
+        "training": extract_params(TrainingArguments),
+        "finetuning": {
+            **extract_params(FinetuningArguments),
+            **extract_params(LoraArguments),
+            **extract_params(FreezeArguments),
+            **extract_params(QuantizationArguments),
+        },
+    }
+    (base_path / "parameters.json").write_text(json.dumps(parameters, indent=2))
 
 
 def main():
-    # Allow specifying output directory from command line argument, default is /workspace/.llama_factory_info
+    """Main entry point for parameter extraction."""
     base_dir = sys.argv[1] if len(sys.argv) > 1 else "/workspace/.llama_factory_info"
-    Path(base_dir).mkdir(parents=True, exist_ok=True)
-
+    
     try:
-        save_categorized({}, base_dir)
+        save_parameters(base_dir)
         print("SUCCESS")
         return 0
     except Exception as e:

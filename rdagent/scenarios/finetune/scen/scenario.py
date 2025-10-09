@@ -76,13 +76,15 @@ class LLMFinetuneScen(DataScienceScen):
 
     def _initialize_llama_factory(self):
         """Initialize LLaMA Factory information manager"""
-
         self.llama_factory_manager = get_llama_factory_manager()
-        self.llama_factory_manager.get_info()
-
-        metadata = self.llama_factory_manager.get_metadata_info()
-        commit = metadata.get("commit_sha", "unknown") if metadata.get("has_metadata") else "unknown"
-        logger.info(f"Successfully initialized LLaMA Factory info (commit: {commit})")
+        
+        # Extract LLaMA Factory information (pulls latest code automatically)
+        info = self.llama_factory_manager.get_info()
+        
+        # Log extracted information
+        methods_count = len(info.get("methods", []))
+        params_count = sum(len(p) if isinstance(p, dict) else 0 for p in info.get("parameters", {}).values())
+        logger.info(f"LLaMA Factory initialized: {methods_count} methods, {params_count} parameters")
 
     def _prepare_dataset_info(self):
         """Generate dataset_info.json configuration"""

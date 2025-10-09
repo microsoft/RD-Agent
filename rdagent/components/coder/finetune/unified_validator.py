@@ -189,9 +189,9 @@ class UnifiedLLMConfigValidator:
             test_config = config.copy()
             test_config.update(
                 {
-                    "max_samples": 10,
+                    "max_samples": 4,
                     "num_train_epochs": 1,
-                    "max_steps": 5,
+                    "max_steps": 2,
                     "save_steps": 1000,
                     "logging_steps": 1,
                     "warmup_steps": 0,

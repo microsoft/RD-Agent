@@ -934,6 +934,7 @@ class DockerEnv(Env[DockerConf]):
         env["PYTHONWARNINGS"] = "ignore"
         env["TF_CPP_MIN_LOG_LEVEL"] = "2"
         env["PYTHONUNBUFFERED"] = "1"
+        env["TOKENIZERS_PARALLELISM"] = "false"  # Avoid tokenizer fork warning in multi-process training
         client = docker.from_env()
 
         volumes = {}
