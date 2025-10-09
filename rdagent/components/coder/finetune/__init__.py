@@ -140,6 +140,9 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         models_path = "/assets/models/"
         datasets_path = "/assets/datasets/"
 
+        # Get recommended template for the model
+        recommended_template = self.llama_factory_manager.get_template_for_model(base_model)
+
         # Generate prompts using templates with all required parameters
         system_prompt = T("components.coder.finetune.prompts:finetune_coder.system").r(
             task_desc=task_info,
@@ -157,6 +160,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             dataset_name=dataset,
             models_path=models_path,
             datasets_path=datasets_path,
+            recommended_template=recommended_template,
         )
 
         # Call LLM to generate config

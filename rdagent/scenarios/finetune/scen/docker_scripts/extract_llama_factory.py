@@ -15,6 +15,10 @@ sys.path.insert(0, "/llamafactory/src")
 
 from llamafactory.extras.constants import METHODS, SUPPORTED_MODELS, TRAINING_STAGES
 
+# Import template registry
+from llamafactory.data.template import TEMPLATES
+AVAILABLE_TEMPLATES = list(TEMPLATES.keys())
+
 # Import all necessary components
 from llamafactory.hparams.data_args import DataArguments
 from llamafactory.hparams.finetuning_args import (
@@ -76,6 +80,7 @@ def save_categorized(data, base_dir):
     (constants_dir / "supported_models.json").write_text(
         json.dumps(dict(SUPPORTED_MODELS) if SUPPORTED_MODELS else {}, indent=2)
     )
+    (constants_dir / "templates.json").write_text(json.dumps(AVAILABLE_TEMPLATES, indent=2))
 
     # Save common parameters
     common_dir = base_path / "common"
