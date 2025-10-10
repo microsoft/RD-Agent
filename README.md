@@ -29,18 +29,18 @@
 
 
 # 📰 News
-| 🗞️ News                                                            | 📝 Description                                                                                                                                    |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| NeurIPS 2025 Acceptance                                           | We are thrilled to announce that our paper [R&D-Agent-Quant](https://arxiv.org/abs/2505.15155) has been accepted to NeurIPS 2025                 |
-| [Technical Report Release](#overall-technical-report)             | Overall framework description and results on MLE-bench                                                                                           |
-| [R&D-Agent-Quant Release](#deep-application-in-diverse-scenarios) | Apply R&D-Agent to quant trading                                                                                                                 |
-| MLE-Bench Results Released                                        | R&D-Agent currently leads as the [top-performing machine learning engineering agent](#-the-best-machine-learning-engineering-agent) on MLE-bench |
-| Support LiteLLM Backend                                           | We now fully support **[LiteLLM](https://github.com/BerriAI/litellm)** as our default backend for integration with multiple LLM providers.       |
-| General Data Science Agent                                        | [Data Science Agent](https://rdagent.readthedocs.io/en/latest/scens/data_science.html)                                                           |
-| Kaggle Scenario release                                           | We release **[Kaggle Agent](https://rdagent.readthedocs.io/en/latest/scens/data_science.html)**, try the new features!                           |
-| Official WeChat group release                                     | We created a WeChat group, welcome to join! (🗪[QR Code](https://github.com/microsoft/RD-Agent/issues/880))                                       |
-| Official Discord release                                          | We launch our first chatting channel in Discord (🗪[![Chat](https://img.shields.io/badge/chat-discord-blue)](https://discord.gg/ybQ97B6Jjy))      |
-| First release                                                     | **R&D-Agent** is released on GitHub                                                                                                              |
+| 🗞️ News        | 📝 Description                 |
+| --            | ------      |
+| NeurIPS 2025 Acceptance | We are thrilled to announce that our paper [R&D-Agent-Quant](https://arxiv.org/abs/2505.15155) has been accepted to NeurIPS 2025 | 
+| [Technical Report Release](#overall-technical-report) | Overall framework description and results on MLE-bench | 
+| [R&D-Agent-Quant Release](#deep-application-in-diverse-scenarios) | Apply R&D-Agent to quant trading | 
+| MLE-Bench Results Released | R&D-Agent currently leads as the [top-performing machine learning engineering agent](#-the-best-machine-learning-engineering-agent) on MLE-bench |
+| Support LiteLLM Backend | We now fully support **[LiteLLM](https://github.com/BerriAI/litellm)** as our default backend for integration with multiple LLM providers. |
+| General Data Science Agent | [Data Science Agent](https://rdagent.readthedocs.io/en/latest/scens/data_science.html) |
+| Kaggle Scenario release | We release **[Kaggle Agent](https://rdagent.readthedocs.io/en/latest/scens/data_science.html)**, try the new features!                  |
+| Official WeChat group release  | We created a WeChat group, welcome to join! (🗪[QR Code](https://github.com/microsoft/RD-Agent/issues/880)) |
+| Official Discord release  | We launch our first chatting channel in Discord (🗪[![Chat](https://img.shields.io/badge/chat-discord-blue)](https://discord.gg/ybQ97B6Jjy)) |
+| First release | **R&D-Agent** is released on GitHub |
 
 
 
@@ -50,11 +50,11 @@
 
 R&D-Agent currently leads as the top-performing machine learning engineering agent on MLE-bench:
 
-| Agent                      | Low == Lite (%) | Medium (%)  | High (%)     | All (%)     |
-| -------------------------- | --------------- | ----------- | ------------ | ----------- |
-| R&D-Agent o3(R)+GPT-4.1(D) | 51.52 ± 6.9     | 19.3 ± 5.5  | 26.67 ± 0    | 30.22 ± 1.5 |
-| R&D-Agent o1-preview       | 48.18 ± 2.49    | 8.95 ± 2.36 | 18.67 ± 2.98 | 22.4 ± 1.1  |
-| AIDE o1-preview            | 34.3 ± 2.4      | 8.8 ± 1.1   | 10.0 ± 1.9   | 16.9 ± 1.1  |
+| Agent | Low == Lite (%) | Medium (%) | High (%) | All (%) |
+|---------|--------|-----------|---------|----------|
+| R&D-Agent o3(R)+GPT-4.1(D) | 51.52 ± 6.9 | 19.3 ± 5.5 | 26.67 ± 0 | 30.22 ± 1.5 |
+| R&D-Agent o1-preview | 48.18 ± 2.49 | 8.95 ± 2.36 | 18.67 ± 2.98 | 22.4 ± 1.1 |
+| AIDE o1-preview | 34.3 ± 2.4 | 8.8 ± 1.1 | 10.0 ± 1.9 | 16.9 ± 1.1 |
 
 **Notes:**
 - **O3(R)+GPT-4.1(D)**: This version is designed to both reduce average time per loop and leverage a cost-effective combination of backend LLMs by seamlessly integrating Research Agent (o3) with Development Agent (GPT-4.1).
@@ -376,11 +376,11 @@ In the two key areas of data-driven scenarios, model implementation and data bui
 
 The supported scenarios are listed below:
 
-| Scenario/Target | Model Implementation                                                                                                                                                            | Data Building                                                                                                                                                                                                                                                                                                    |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **💹 Finance**   | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/model_loop)[▶️YouTube](https://www.youtube.com/watch?v=dm0dWL49Bc0&t=104s)                          | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/factor_loop) [▶️YouTube](https://www.youtube.com/watch?v=X4DK2QZKaKY&t=6s) <br/>   🦾 [Auto reports reading & implementation](https://rdagent.azurewebsites.net/report_factor)[▶️YouTube](https://www.youtube.com/watch?v=ECLTXVcSx-c) |
-| **🩺 Medical**   | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/dmm)[▶️YouTube](https://www.youtube.com/watch?v=VIaSTZuoZg4)                                        | -                                                                                                                                                                                                                                                                                                                |
-| **🏭 General**   | 🦾 [Auto paper reading & implementation](https://rdagent.azurewebsites.net/report_model)[▶️YouTube](https://www.youtube.com/watch?v=BiA2SfdKQ7o) <br/> 🤖 Auto Kaggle Model Tuning | 🤖Auto Kaggle feature Engineering                                                                                                                                                                                                                                                                                 |
+| Scenario/Target | Model Implementation                   | Data Building                                                                      |
+| --              | --                                     | --                                                                                 |
+| **💹 Finance**      | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/model_loop)[▶️YouTube](https://www.youtube.com/watch?v=dm0dWL49Bc0&t=104s) |  🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/factor_loop) [▶️YouTube](https://www.youtube.com/watch?v=X4DK2QZKaKY&t=6s) <br/>   🦾 [Auto reports reading & implementation](https://rdagent.azurewebsites.net/report_factor)[▶️YouTube](https://www.youtube.com/watch?v=ECLTXVcSx-c)  |
+| **🩺 Medical**      | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/dmm)[▶️YouTube](https://www.youtube.com/watch?v=VIaSTZuoZg4) | -                                                                                  |
+| **🏭 General**      | 🦾 [Auto paper reading & implementation](https://rdagent.azurewebsites.net/report_model)[▶️YouTube](https://www.youtube.com/watch?v=BiA2SfdKQ7o) <br/> 🤖 Auto Kaggle Model Tuning   | 🤖Auto Kaggle feature Engineering |
 
 - **[RoadMap](https://rdagent.readthedocs.io/en/latest/scens/data_science.html#roadmap)**: Currently, we are working hard to add new features to the Kaggle scenario.
 
@@ -400,11 +400,11 @@ Please refer to **[📖readthedocs_scen](https://rdagent.readthedocs.io/en/lates
 Automating the R&D process in data science is a highly valuable yet underexplored area in industry. We propose a framework to push the boundaries of this important research field.
 
 The research questions within this framework can be divided into three main categories:
-| Research Area                                                | Paper/Work List             |
-| ------------------------------------------------------------ | --------------------------- |
-| **Benchmark the R&D abilities**                              | [Benchmark](#benchmark)     |
-| **Idea proposal:** Explore new ideas or refine existing ones | [Research](#research)       |
-| **Ability to realize ideas:** Implement and execute ideas    | [Development](#development) |
+| Research Area | Paper/Work List |
+|--------------------|-----------------|
+| **Benchmark the R&D abilities** | [Benchmark](#benchmark) |
+| **Idea proposal:** Explore new ideas or refine existing ones | [Research](#research) |
+| **Ability to realize ideas:** Implement and execute ideas | [Development](#development) |
 
 We believe that the key to delivering high-quality solutions lies in the ability to evolve R&D capabilities. Agents should learn like human experts, continuously improving their R&D skills.
 
