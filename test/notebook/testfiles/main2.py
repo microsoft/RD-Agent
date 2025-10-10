@@ -1,24 +1,22 @@
-import os
-import time
 import argparse
+import os
 import random
-import numpy as np
-import pandas as pd
-from PIL import Image
+import time
 from glob import glob
 
+import albumentations as A
+import cv2
+import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
 import torchvision
-
-import albumentations as A
 from albumentations.pytorch import ToTensorV2
-import cv2
-
-from sklearn.model_selection import StratifiedShuffleSplit
+from PIL import Image
 from sklearn.metrics import log_loss
+from sklearn.model_selection import StratifiedShuffleSplit
+from torch.utils.data import DataLoader, Dataset
 
 # ========= Debug mode handling ==========
 parser = argparse.ArgumentParser()
@@ -233,7 +231,7 @@ def main():
     class EfficientNetB0_4ch(nn.Module):
         def __init__(self, pretrained=True):
             super().__init__()
-            from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
+            from torchvision.models import EfficientNet_B0_Weights, efficientnet_b0
             if pretrained:
                 wts = EfficientNet_B0_Weights.DEFAULT
                 net = efficientnet_b0(weights=wts)
