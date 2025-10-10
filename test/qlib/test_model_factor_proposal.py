@@ -20,9 +20,10 @@ def mixed_model_trace():
     factor_task.name = "factor_task_1"
     trace.hist = [
         (Mock(sub_tasks=[model_task], hypothesis=Mock(action="model")), Mock()),
-        (Mock(sub_tasks=[factor_task], hypothesis=Mock(action="factor")), Mock())
+        (Mock(sub_tasks=[factor_task], hypothesis=Mock(action="factor")), Mock()),
     ]
     return trace
+
 
 @pytest.fixture
 def mixed_factor_trace():
@@ -33,15 +34,18 @@ def mixed_factor_trace():
     model_task.name = "model_task_1"
     trace.hist = [
         (Mock(sub_tasks=[factor_task], hypothesis=Mock(action="factor")), Mock()),
-        (Mock(sub_tasks=[model_task], hypothesis=Mock(action="model")), Mock())
+        (Mock(sub_tasks=[model_task], hypothesis=Mock(action="model")), Mock()),
     ]
     return trace
+
 
 def test_model_proposal_import():
     assert QlibModelHypothesis2Experiment is not None
 
+
 def test_factor_proposal_import():
     assert QlibFactorHypothesis2Experiment is not None
+
 
 def test_model_filtering(mixed_model_trace):
     converter = QlibModelHypothesis2Experiment()
@@ -51,7 +55,7 @@ def test_model_filtering(mixed_model_trace):
         concise_reason="cr",
         concise_observation="co",
         concise_justification="cj",
-        concise_knowledge="ck"
+        concise_knowledge="ck",
     )
     with patch("rdagent.utils.agent.tpl.T.r", return_value="mocked"):
         context, ok = converter.prepare_context(hypothesis, mixed_model_trace)
@@ -61,6 +65,7 @@ def test_model_filtering(mixed_model_trace):
     names = [getattr(task, "name", "") for task in target_list]
     assert all("model" in name for name in names)
 
+
 def test_factor_filtering(mixed_factor_trace):
     converter = QlibFactorHypothesis2Experiment()
     hypothesis = Hypothesis(
@@ -69,7 +74,7 @@ def test_factor_filtering(mixed_factor_trace):
         concise_reason="cr",
         concise_observation="co",
         concise_justification="cj",
-        concise_knowledge="ck"
+        concise_knowledge="ck",
     )
     with patch("rdagent.utils.agent.tpl.T.r", return_value="mocked"):
         context, ok = converter.prepare_context(hypothesis, mixed_factor_trace)
@@ -78,6 +83,7 @@ def test_factor_filtering(mixed_factor_trace):
     assert ok is True
     factor_names = [getattr(task, "factor_name", "") for task in target_list]
     assert all("factor" in name for name in factor_names)
+
 
 @pytest.mark.parametrize(
     "converter_class, trace_fixture, expected_type",
@@ -95,7 +101,7 @@ def test_code_inspection(converter_class, trace_fixture, request, expected_type)
         concise_reason="cr",
         concise_observation="co",
         concise_justification="cj",
-        concise_knowledge="ck"
+        concise_knowledge="ck",
     )
     with patch("rdagent.utils.agent.tpl.T.r", return_value="mocked"):
         context, ok = converter.prepare_context(hypothesis, trace)

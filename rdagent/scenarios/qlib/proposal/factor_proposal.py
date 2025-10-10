@@ -82,10 +82,7 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             else:
                 hypothesis_and_feedback = "No previous hypothesis and feedback available."
 
-        experiment_list: List[FactorExperiment] = [
-            t[0] for t in trace.hist
-            if isinstance(t[0], FactorExperiment)
-            ]
+        experiment_list: List[FactorExperiment] = [t[0] for t in trace.hist if isinstance(t[0], FactorExperiment)]
 
         factor_list = []
         for experiment in experiment_list:
@@ -119,8 +116,8 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
 
         exp = QlibFactorExperiment(tasks, hypothesis=hypothesis)
         exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [
-            t[0] for t in trace.hist if t[1] and isinstance(t[0],FactorExperiment)
-    ]
+            t[0] for t in trace.hist if t[1] and isinstance(t[0], FactorExperiment)
+        ]
 
         unique_tasks = []
         for task in tasks:
