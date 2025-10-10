@@ -82,18 +82,12 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             else:
                 hypothesis_and_feedback = "No previous hypothesis and feedback available."
 
-        experiment_list: List[FactorExperiment] = [t[0] for t in trace.hist if isinstance(t[0], FactorExperiment)]
-
-        factor_list = []
-        for experiment in experiment_list:
-            factor_list.extend(experiment.sub_tasks)
-
         return {
             "target_hypothesis": str(hypothesis),
             "scenario": scenario,
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "experiment_output_format": experiment_output_format,
-            "target_list": factor_list,
+            "target_list": [],
             "RAG": None,
         }, True
 
