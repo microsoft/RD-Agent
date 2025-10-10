@@ -114,7 +114,7 @@ Additionally, you can take a closer look at the examples in our **[🖥️ Live 
 
 # ⚡ Quick start
 
-### RD-Agent currently only supports Linux and macOS.
+### RD-Agent currently only supports Linux.
 
 You can try above demos by running the following command:
 
@@ -146,11 +146,6 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   git clone https://github.com/microsoft/RD-Agent
   cd RD-Agent
   make dev
-  ```
-
-- For macOS, you need to use brew to install dependencies:
-  ```sh
-  brew install coreutils
   ```
 
 More details can be found in the [development setup](https://rdagent.readthedocs.io/en/latest/development.html).
@@ -345,7 +340,7 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
 - You can run the following command for our demo program to see the run logs.
 
   ```sh
-  rdagent ui --port 19899 --log-dir <your log folder like "log/"> --data-science
+  rdagent ui --port 19899 --log-dir <your log folder like "log/"> --data_science <True or False>
   ```
 
 - About the `data_science` parameter: If you want to see the logs of the data science scenario, set the `data_science` parameter to `True`; otherwise set it to `False`.
