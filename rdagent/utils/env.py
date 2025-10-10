@@ -11,12 +11,14 @@ import contextlib
 import json
 import os
 import pickle
+import sys
 import re
 import select
 import shutil
 import subprocess
 import time
 import uuid
+import warnings
 import zipfile
 from abc import abstractmethod
 from dataclasses import dataclass
@@ -116,6 +118,16 @@ def pull_image_with_progress(image: str) -> None:
 
     for pb in progress_bars.values():
         pb.close()
+
+
+def get_virtual_env_bin_path() -> str:
+    # NOTE: This method use 'VIRTUAL_ENV' environment variable to get the path of the virtual environment, so it may not work in some cases.
+    venv_root = os.environ.get("VIRTUAL_ENV", None)
+
+    if venv_root is not None:
+        return os.path.join(venv_root, "bin")
+
+    return ""
 
 
 class EnvConf(ExtendedBaseSettings):
@@ -314,7 +326,15 @@ class Env(Generic[ASpecificEnvConf]):
         if self.conf.running_timeout_period is None:
             timeout_cmd = entry
         else:
-            timeout_cmd = f"timeout --kill-after=10 {self.conf.running_timeout_period} {entry}"
+            timeout_cli = "timeout"  # default on linux
+
+            if sys.platform == "darwin":
+                # macOS uses gtimeout
+                timeout_cli = "gtimeout"
+
+                warnings.warn("On macOS, using 'brew install coreutils' to get 'gtimeout'.", stacklevel=1)
+
+            timeout_cmd = f"{timeout_cli} --kill-after=10 {self.conf.running_timeout_period} {entry}"
         entry_add_timeout = (
             f"/bin/sh -c '"  # start of the sh command
             + f"{timeout_cmd}; entry_exit_code=$?; "
@@ -521,7 +541,13 @@ class LocalEnv(Env[ASpecificLocalConf]):
             # Setup environment
             if env is None:
                 env = {}
-            path = [*self.conf.bin_path.split(":"), "/bin/", "/usr/bin/", *env.get("PATH", "").split(":")]
+            path = [
+                *self.conf.bin_path.split(":"),
+                "/bin/",
+                "/usr/bin/",
+                "/opt/homebrew/bin",
+                *env.get("PATH", "").split(":"),
+            ]
             env["PATH"] = ":".join(path)
 
             if entry is None:

@@ -4,6 +4,7 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
+import sys
 
 import pandas as pd
 
@@ -25,6 +26,7 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.test_eval import get_test_eval
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
+from rdagent.utils.env import LocalEnv
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -154,15 +156,21 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
         stdout = ""
         implementation.execute(env=env, entry=get_clear_ws_cmd())
+
+        entry = "strace -e trace=file -f -o trace.log python -m coverage run main.py"
+
+        if isinstance(env, LocalEnv) and sys.platform == "darwin":
+            # on macos, no strace tool, and dtruss need a root permission (also need disable SIP to get more info).
+            # though ktrace can get more info, but it's not very useful for this case
+            # so we use use python -v to get verbose info instead of strace
+            entry = "python -v -m coverage run main.py"
+
         if DS_RD_SETTING.sample_data_by_LLM:
             # Because coder runs on full data, we need to run debug mode in advance to save time
-            result = implementation.run(
-                env=env, entry=f"strace -e trace=file -f -o trace.log python -m coverage run main.py --debug"
-            )
-        else:
-            result = implementation.run(
-                env=env, entry=f"strace -e trace=file -f -o trace.log python -m coverage run main.py"
-            )
+            entry = f"{entry} --debug"
+
+        result = implementation.run(env=env, entry=entry)
+
         result_stdout = result.get_truncated_stdout()
 
         nb_conversion_ret_code = 0
