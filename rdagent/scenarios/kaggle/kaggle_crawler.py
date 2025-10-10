@@ -1,4 +1,5 @@
 # %%
+import os
 import bisect
 import json
 import shutil
@@ -24,13 +25,38 @@ from rdagent.scenarios.data_science.debug.data import create_debug_data
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import MLEBDockerEnv
 
+
+# %%
+def get_chromedriver_path() -> str:
+    default_chrome_path = "/usr/local/bin/chromedriver"
+
+    # find by default first
+    if os.path.exists(default_chrome_path):
+        return default_chrome_path
+
+    # find in current dir for executable
+    # for windows
+    if os.path.exists("chromedriver.exe"):
+        return "chromedriver.exe"
+
+    # for mac and linux
+    if os.path.exists("chromedriver"):
+        return "chromedriver"
+
+    # from environment variable
+    if (chrome_path := os.environ.get("RD_CHROMEDRIVER_PATH", None)) is not None:
+        return chrome_path
+
+    raise RuntimeError("Cannot find chromedriver")
+
+
 # %%
 options = webdriver.ChromeOptions()
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--headless")
 
-service = Service("/usr/local/bin/chromedriver")
+service = Service(get_chromedriver_path())
 
 
 def crawl_descriptions(
