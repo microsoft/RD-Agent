@@ -20,7 +20,8 @@ try:
         timeout=60,
     )
     if result.returncode == 0:
-        print(f"Updated LLaMA Factory: {result.stdout.strip()}", file=sys.stderr)
+        output = (result.stdout or result.stderr).strip()
+        print(f"Updated LLaMA Factory: {output}", file=sys.stderr)
     else:
         print(f"Warning: git pull failed: {result.stderr}", file=sys.stderr)
 except Exception as e:
