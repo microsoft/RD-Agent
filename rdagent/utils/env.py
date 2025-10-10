@@ -786,7 +786,7 @@ class MLEBDockerConf(DockerConf):
 
 
 class FTDockerConf(DockerConf):
-    model_config = SettingsConfigDict(env_prefix="LLM_DOCKER_")
+    model_config = SettingsConfigDict(env_prefix="FT_DOCKER_")
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = (
