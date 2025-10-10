@@ -148,7 +148,7 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
   make dev
   ```
 
-- For macOS, you need to use brew to install dependences:
+- For macOS, you need to use brew to install dependencies:
   ```sh
   brew install coreutils
   ```
