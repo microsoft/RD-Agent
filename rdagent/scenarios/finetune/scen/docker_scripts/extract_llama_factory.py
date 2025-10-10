@@ -10,6 +10,14 @@ import sys
 from dataclasses import fields
 from pathlib import Path
 
+from llamafactory.extras.constants import METHODS, SUPPORTED_MODELS, TRAINING_STAGES
+from llamafactory.data.template import TEMPLATES
+from llamafactory.hparams.data_args import DataArguments
+from llamafactory.hparams.finetuning_args import FinetuningArguments, FreezeArguments, LoraArguments
+from llamafactory.hparams.model_args import ModelArguments, QuantizationArguments
+from transformers import TrainingArguments
+
+
 # Pull latest LLaMA Factory code
 try:
     result = subprocess.run(
@@ -29,13 +37,6 @@ except Exception as e:
 
 # Add LLaMA Factory to path
 sys.path.insert(0, "/llamafactory/src")
-
-from llamafactory.extras.constants import METHODS, SUPPORTED_MODELS, TRAINING_STAGES
-from llamafactory.data.template import TEMPLATES
-from llamafactory.hparams.data_args import DataArguments
-from llamafactory.hparams.finetuning_args import FinetuningArguments, FreezeArguments, LoraArguments
-from llamafactory.hparams.model_args import ModelArguments, QuantizationArguments
-from transformers import TrainingArguments
 
 
 def extract_field_info(field):
