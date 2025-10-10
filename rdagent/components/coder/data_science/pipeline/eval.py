@@ -163,7 +163,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             # on macos, no strace tool, and dtruss need a root permission (also need disable SIP to get more info).
             # though ktrace can get more info, but it's not very useful for this case
             # so we use use python -v to get verbose info instead of strace
-            entry = "python -v -m coverage run main.py"
+            entry = "python -m coverage run main.py"
 
         if DS_RD_SETTING.sample_data_by_LLM:
             # Because coder runs on full data, we need to run debug mode in advance to save time
