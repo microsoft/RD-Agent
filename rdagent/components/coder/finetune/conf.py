@@ -74,7 +74,7 @@ def get_ft_env(
     Args:
         extra_volumes: Additional volume mounts beyond standard ones
         running_timeout_period: Timeout period for environment operations
-        enable_cache: Whether to enable caching
+        enable_cache: Whether to enable caching (None means use config value)
 
     Returns:
         Configured environment ready for use
@@ -85,6 +85,10 @@ def get_ft_env(
     # Use default timeout if not provided
     if running_timeout_period is None:
         running_timeout_period = FT_RD_SETTING.debug_timeout
+
+    # Use config value if enable_cache is not explicitly provided
+    if enable_cache is None:
+        enable_cache = FT_RD_SETTING.docker_enable_cache
 
     # Use dedicated LLM docker and conda env
     if conf.env_type == "docker":
@@ -103,8 +107,7 @@ def get_ft_env(
 
     env.conf.extra_volumes = combined_volumes
     env.conf.running_timeout_period = running_timeout_period
-    if enable_cache is not None:
-        env.conf.enable_cache = enable_cache
+    env.conf.enable_cache = enable_cache
     env.prepare()
     return env
 
