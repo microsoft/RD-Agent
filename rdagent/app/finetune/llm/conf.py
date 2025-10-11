@@ -65,6 +65,10 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     # LLaMA Factory
     update_llama_factory: bool = True
 
+    # Docker settings
+    docker_enable_cache: bool = False
+    """Enable Docker cache for training (set via FT_DOCKER_ENABLE_CACHE)"""
+
     @property
     def task(self) -> str:
         """Generate task name from base model and dataset."""

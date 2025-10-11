@@ -148,6 +148,7 @@ class LLMConfigValidator:
                     "warmup_steps": 0,
                     "output_dir": "/workspace/micro_test_output",
                     "overwrite_output_dir": True,
+                    "report_to": "none",  # Disable all reporting (tensorboard, wandb, etc.)
                 }
             )
 
