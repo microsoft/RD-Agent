@@ -16,7 +16,7 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     model_config = SettingsConfigDict(env_prefix="FT_", protected_namespaces=())
 
     # Main Components
-    scen: str = "rdagent.scenarios.finetune.scen.LLMFinetuneScen"
+    scen: str = "rdagent.scenarios.finetune.scen.scenario.LLMFinetuneScen"
     """Scenario class for LLM fine-tuning tasks."""
 
     hypothesis_gen: str = "rdagent.scenarios.finetune.proposal.proposal.LLMFinetuneExpGen"

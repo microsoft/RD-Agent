@@ -3,12 +3,13 @@ from typing import Literal
 
 import pandas as pd
 
-from rdagent.core.experiment import Experiment, FBWorkspace, Task
+from rdagent.core.experiment import Experiment, Task
+from rdagent.scenarios.finetune.experiment.workspace import FTWorkspace
 
 COMPONENT = Literal["Training"]
 
 
-class FTExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):
+class FTExperiment(Experiment[Task, FTWorkspace, FTWorkspace]):
     def __init__(self, pending_tasks_list: list, *args, **kwargs) -> None:
         super().__init__(sub_tasks=[], *args, **kwargs)
         # Status
@@ -16,7 +17,7 @@ class FTExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):
         # - Injecting from SOTA code;
         # - New version no matter successful or not
         # the initial workspace or the successful new version after coding
-        self.experiment_workspace = FBWorkspace()
+        self.experiment_workspace = FTWorkspace()
         self.pending_tasks_list = pending_tasks_list
 
         self.format_check_result = None

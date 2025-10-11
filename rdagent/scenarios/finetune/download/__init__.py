@@ -1,7 +1,3 @@
-from rdagent.scenarios.finetune.download.hf import download_dataset, download_model
-
-__all__ = ["download_model", "download_dataset"]
-
 """
 Hugging Face download utility module
 
