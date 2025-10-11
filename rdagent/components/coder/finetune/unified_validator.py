@@ -1,7 +1,9 @@
 """
-Unified LLM Fine-tuning Configuration Validator
+Simplified LLM Fine-tuning Configuration Validator
 
-Integrates parameter filtering and completeness checking into a single validation interface.
+Two-step validation:
+1. Parameter filtering - Remove unsupported parameters
+2. Micro-batch testing - Runtime validation with small dataset
 """
 
 import json
@@ -25,47 +27,34 @@ class ValidationResult:
 
     success: bool
     filtered_config: str
-    missing_fields: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    execution_output: str = ""  # stdout/stderr from micro-batch test
     errors: List[str] = field(default_factory=list)
     execution_time: float = 0.0
 
 
-class UnifiedLLMConfigValidator:
-    """Unified LLM configuration validator with three-tier validation:
+class LLMConfigValidator:
+    """LLM configuration validator with two-step validation:
 
     1. Parameter filtering - Remove unsupported parameters
-    2. Completeness check - Validate required fields and configuration
-    3. Optional micro-batch test - Runtime validation with small dataset
-    """
+    2. Micro-batch test - Runtime validation with small dataset
 
-    REQUIRED_FIELDS = ["model_name_or_path", "stage", "do_train", "finetuning_type", "dataset"]
-    LORA_FIELDS = ["lora_rank", "lora_alpha"]
+    The micro-batch test inherently validates completeness, so no separate completeness check is needed.
+    """
 
     def __init__(self, llama_factory_manager=None):
         self._supported_params_cache: Optional[Set[str]] = None
         self.llama_factory_manager = llama_factory_manager
 
-    def validate_config_comprehensive(
-        self, config_yaml: str, enable_micro_batch_test: bool = False, workspace: Optional[FBWorkspace] = None, env=None
-    ) -> ValidationResult:
-        """Comprehensive configuration validation with optional micro-batch testing"""
+    def validate_and_test(self, config_yaml: str, workspace: FBWorkspace, env) -> ValidationResult:
+        """Two-step validation: parameter filtering + micro-batch testing"""
         start_time = time.time()
 
         try:
-            # Tier 1: Parameter filtering
+            # Step 1: Parameter filtering
             filtered_config = self._filter_parameters(config_yaml)
 
-            # Tier 2: Completeness validation
-            result = self._validate_completeness(filtered_config)
-
-            # Tier 3: Optional micro-batch testing
-            if enable_micro_batch_test and workspace and env and result.success:
-                dynamic_result = self._run_micro_batch_test(filtered_config, workspace, env)
-                result.success = result.success and dynamic_result.success
-                result.warnings.extend(dynamic_result.warnings)
-                result.errors.extend(dynamic_result.errors)
-
+            # Step 2: Micro-batch testing (validates everything at runtime)
+            result = self._run_micro_batch_test(filtered_config, workspace, env)
             result.execution_time = time.time() - start_time
             return result
 
@@ -74,6 +63,7 @@ class UnifiedLLMConfigValidator:
             return ValidationResult(
                 success=False,
                 filtered_config=config_yaml,
+                execution_output=f"Validation exception: {str(e)}",
                 errors=[f"Validation exception: {str(e)}"],
                 execution_time=time.time() - start_time,
             )
@@ -134,46 +124,6 @@ class UnifiedLLMConfigValidator:
             logger.error(f"Failed to load parameters from LlamaFactory Manager: {e}")
             raise RuntimeError(f"Unable to get supported parameters from LlamaFactory: {e}") from e
 
-    def _validate_completeness(self, config_yaml: str) -> ValidationResult:
-        """Validate configuration completeness and correctness"""
-        result = ValidationResult(success=True, filtered_config=config_yaml)
-
-        try:
-            config = yaml.safe_load(config_yaml)
-            if not isinstance(config, dict):
-                result.success = False
-                result.errors.append("Configuration is not a valid dictionary")
-                return result
-
-            # Check required fields
-            missing_fields = [field for field in self.REQUIRED_FIELDS if field not in config]
-            if missing_fields:
-                result.success = False
-                result.missing_fields = missing_fields
-                result.errors.append(f"Missing required fields: {missing_fields}")
-
-            # Check LoRA-specific parameters
-            finetuning_type = config.get("finetuning_type", "")
-            if finetuning_type in ["lora", "qlora"]:
-                missing_lora = [f for f in self.LORA_FIELDS if f not in config]
-                if missing_lora:
-                    result.warnings.append(f"Missing LoRA fields for {finetuning_type}: {missing_lora}")
-
-            # Check debug mode
-            if config.get("max_samples") == 100:
-                result.warnings.append("Debug mode detected (max_samples=100)")
-
-            return result
-
-        except yaml.YAMLError as e:
-            result.success = False
-            result.errors.append(f"YAML parsing error: {e}")
-            return result
-        except Exception as e:
-            result.success = False
-            result.errors.append(f"Completeness validation error: {e}")
-            return result
-
     def _run_micro_batch_test(self, config_yaml: str, workspace: FBWorkspace, env) -> ValidationResult:
         """Run micro-batch training test for runtime validation"""
         result = ValidationResult(success=True, filtered_config=config_yaml)
@@ -183,6 +133,7 @@ class UnifiedLLMConfigValidator:
             config = yaml.safe_load(config_yaml)
             if not isinstance(config, dict):
                 result.success = False
+                result.execution_output = "Invalid YAML configuration"
                 result.errors.append("Invalid configuration for micro-batch test")
                 return result
 
@@ -204,12 +155,16 @@ class UnifiedLLMConfigValidator:
             workspace.inject_files(**{"test_train.yaml": yaml.dump(test_config, default_flow_style=False)})
             training_result = workspace.run(env=env, entry="timeout 300 llamafactory-cli train test_train.yaml")
 
+            # Store execution output (last 2000 chars to keep it manageable)
+            result.execution_output = training_result.stdout[-2000:] if training_result.stdout else ""
+
             # Check results
             progress_indicators = ["train_loss", "Training:", "Epoch", "loss:", "step"]
             has_progress = any(ind.lower() in training_result.stdout.lower() for ind in progress_indicators)
 
             if training_result.exit_code == 0 and has_progress:
                 logger.info("Micro-batch test passed")
+                result.success = True
             else:
                 result.success = False
                 result.errors.append(f"Micro-batch test failed (exit_code={training_result.exit_code})")
@@ -218,27 +173,28 @@ class UnifiedLLMConfigValidator:
 
         except Exception as e:
             result.success = False
+            result.execution_output = str(e)
             result.errors.append(f"Micro-batch test exception: {str(e)}")
             return result
 
     def generate_validation_report(self, result: ValidationResult) -> str:
-        """Generate validation report"""
+        """Generate simplified validation report"""
         status = "PASSED" if result.success else "FAILED"
         report = f"=== LLM Configuration Validation Report ===\n"
         report += f"Status: {status} (took {result.execution_time:.2f}s)\n"
 
-        if result.missing_fields:
-            report += f"Missing fields: {result.missing_fields}\n"
-        if result.warnings:
-            report += f"Warnings: {'; '.join(result.warnings)}\n"
         if result.errors:
             report += f"Errors: {'; '.join(result.errors)}\n"
+
+        if result.execution_output:
+            report += f"\n--- Micro-batch Test Output (last 2000 chars) ---\n"
+            report += result.execution_output
 
         return report
 
 
-def create_unified_validator(llama_factory_manager=None) -> UnifiedLLMConfigValidator:
-    """Create unified validator instance."""
+def create_unified_validator(llama_factory_manager=None) -> LLMConfigValidator:
+    """Create simplified validator instance."""
     if llama_factory_manager is None:
         # Lazy import to avoid circular dependency
         from rdagent.scenarios.finetune.scen.llama_factory_manager import (
@@ -246,4 +202,4 @@ def create_unified_validator(llama_factory_manager=None) -> UnifiedLLMConfigVali
         )
 
         llama_factory_manager = get_llama_factory_manager()
-    return UnifiedLLMConfigValidator(llama_factory_manager)
+    return LLMConfigValidator(llama_factory_manager)

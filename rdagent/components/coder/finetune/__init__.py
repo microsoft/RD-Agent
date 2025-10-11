@@ -25,7 +25,6 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 from rdagent.components.coder.finetune.conf import FTCoderCoSTEERSettings
 from rdagent.components.coder.finetune.eval import LLMFinetuneEvaluator
 from rdagent.components.coder.finetune.exp import TrainingTask
-from rdagent.components.coder.finetune.unified_validator import create_unified_validator
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
@@ -49,7 +48,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         self.llama_factory_manager = get_llama_factory_manager()
-        self.config_validator = create_unified_validator(self.llama_factory_manager)
 
     def implement_one_task(
         self,
@@ -92,10 +90,8 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             workspace=workspace,
         )
 
-        # Validate the generated config using existing validator
-        validated_config = self._validate_config(config_yaml)
-
-        return {"train.yaml": validated_config}
+        # Return generated config directly - validation happens in evaluator
+        return {"train.yaml": config_yaml}
 
     def _generate_llamafactory_config_with_llm(
         self,
@@ -169,43 +165,26 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             )
 
             # Extract YAML content from response
-            # Try multiple YAML extraction patterns
-            yaml_patterns = [
-                r"```yaml\s*\n(.*?)\n```",  # Standard markdown yaml block
-                r"```\s*\n(.*?)\n```",  # Generic code block
-                r"yaml\s*:\s*\n(.*?)(?=\n\S|\Z)",  # yaml: prefix
-            ]
-
-            extracted_yaml = None
-            for pattern in yaml_patterns:
-                match = re.search(pattern, response, re.DOTALL | re.IGNORECASE)
-                if match:
-                    extracted_yaml = match.group(1).strip()
-                    logger.info(f"Extracted YAML using pattern: {pattern}")
-                    break
-
-            if extracted_yaml:
-                # Validate extracted YAML
+            # Try markdown code block first (standard format from improved prompt)
+            match = re.search(r"```(?:yaml)?\s*\n(.*?)\n```", response, re.DOTALL | re.IGNORECASE)
+            if match:
+                extracted_yaml = match.group(1).strip()
                 try:
                     yaml.safe_load(extracted_yaml)
+                    logger.info("Extracted YAML from markdown code block")
                     return extracted_yaml
                 except yaml.YAMLError as e:
-                    logger.warning(f"Extracted YAML is invalid: {e}, trying fallback")
+                    logger.warning(f"Extracted YAML is invalid: {e}")
+                    raise RuntimeError(f"Invalid YAML in code block: {e}")
 
-            # Fallback: try to find any YAML-like content
-            yaml_pattern = r"^([a-zA-Z_][a-zA-Z0-9_]*\s*:.*?)(?=\n[a-zA-Z_][a-zA-Z0-9_]*\s*:|$)"
-            matches = re.findall(yaml_pattern, response, re.DOTALL | re.MULTILINE)
-            if matches:
-                fallback_yaml = "\n".join(matches)
-                try:
-                    yaml.safe_load(fallback_yaml)
-                    return fallback_yaml
-                except yaml.YAMLError:
-                    logger.warning("Fallback YAML extraction also failed")
-
-            # If no YAML found, raise error
-            logger.error("No YAML configuration found in LLM response")
-            raise RuntimeError("Failed to extract valid YAML from LLM response")
+            # Fallback: try to use entire response as YAML
+            try:
+                yaml.safe_load(response)
+                logger.info("Using entire response as YAML")
+                return response.strip()
+            except yaml.YAMLError as e:
+                logger.error(f"Failed to parse response as YAML: {e}")
+                raise RuntimeError(f"Failed to extract valid YAML from LLM response: {e}")
 
         except Exception as e:
             logger.error(f"Failed to generate config with LLM: {e}")
@@ -220,25 +199,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
                 evo.sub_workspace_list[index] = evo.experiment_workspace
             evo.sub_workspace_list[index].inject_files(**code_list[index])
         return evo
-
-    def _validate_config(self, config_yaml: str) -> str:
-        """Validate configuration using unified validator"""
-        try:
-            result = self.config_validator.validate_config_comprehensive(
-                config_yaml, enable_micro_batch_test=False  # Skip micro-batch test in coder stage for speed
-            )
-
-            report = self.config_validator.generate_validation_report(result)
-            logger.info(f"Config validation:\n{report}")
-
-            if not result.success:
-                logger.warning(f"Validation failed: {result.errors}")
-
-            return result.filtered_config  # Always return filtered config
-
-        except Exception as e:
-            logger.warning(f"Config validation exception: {e}")
-            return config_yaml
 
 
 class LLMFinetuneCoSTEER(CoSTEER):

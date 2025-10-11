@@ -1,8 +1,8 @@
 """
 LLM Fine-tuning Evaluation Components
 
-Provides unified evaluation functionality for LLM fine-tuning tasks
-with comprehensive configuration validation.
+Provides simplified evaluation: parameter filtering + micro-batch testing.
+No redundant LLM feedback generation - test results speak for themselves.
 """
 
 from pathlib import Path
@@ -16,14 +16,12 @@ from rdagent.components.coder.finetune.unified_validator import create_unified_v
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
-from rdagent.utils.agent.tpl import T
-from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
 class LLMFinetuneEvaluator(CoSTEEREvaluator):
-    """Evaluator for LLM fine-tuning implementations with unified validation"""
+    """Evaluator for LLM fine-tuning implementations with simplified validation"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -37,7 +35,7 @@ class LLMFinetuneEvaluator(CoSTEEREvaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> CoSTEERSingleFeedback:
-        """Evaluate LLM fine-tuning implementation"""
+        """Evaluate LLM fine-tuning implementation with two-step validation"""
 
         task_info = target_task.get_task_information()
 
@@ -66,40 +64,26 @@ class LLMFinetuneEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        # Run comprehensive validation with micro-batch test
-        validation_result = self.config_validator.validate_config_comprehensive(
-            config_yaml=config_yaml, enable_micro_batch_test=True, workspace=implementation, env=env
+        # Two-step validation: parameter filtering + micro-batch test
+        validation_result = self.config_validator.validate_and_test(
+            config_yaml=config_yaml, workspace=implementation, env=env
         )
 
         validation_report = self.config_validator.generate_validation_report(validation_result)
         logger.info(f"Validation report:\n{validation_report}")
 
-        # Update config if needed
-        if validation_result.success and validation_result.filtered_config != config_yaml:
+        # Update config with filtered version
+        if validation_result.filtered_config != config_yaml:
             implementation.inject_files(**{"train.yaml": validation_result.filtered_config})
 
-        # Generate LLM feedback
-        system_prompt = T(".prompts:coder_eval.system").r(
-            task_desc=task_info,
-            code=validation_result.filtered_config,
+        # Return feedback directly from test results - no LLM interpretation needed
+        return CoSTEERSingleFeedback(
+            execution=validation_result.execution_output[:1000] if validation_result.execution_output else "No output",
+            return_checking=f"Validation {'passed' if validation_result.success else 'failed'} in {validation_result.execution_time:.2f}s",
+            code=(
+                "; ".join(validation_result.errors)
+                if validation_result.errors
+                else "Configuration validated successfully"
+            ),
+            final_decision=validation_result.success,
         )
-
-        user_prompt = T(".prompts:coder_eval.user").r(stdout=validation_report)
-
-        try:
-            feedback = build_cls_from_json_with_retry(
-                CoSTEERSingleFeedback,
-                system_prompt=system_prompt,
-                user_prompt=user_prompt,
-                init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
-            )
-            feedback.final_decision = feedback.final_decision and validation_result.success
-            return feedback
-        except Exception as e:
-            logger.error(f"Evaluation feedback generation failed: {e}")
-            return CoSTEERSingleFeedback(
-                execution=f"Evaluation failed: {str(e)}",
-                return_checking="Could not evaluate due to evaluation failure.",
-                code="Could not evaluate code quality due to evaluation failure.",
-                final_decision=False,
-            )
