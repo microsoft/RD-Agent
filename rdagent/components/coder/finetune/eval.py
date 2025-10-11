@@ -79,12 +79,12 @@ class LLMFinetuneEvaluator(CoSTEEREvaluator):
             implementation.inject_files(**{"train.yaml": validation_result.filtered_config})
 
         # Generate LLM feedback
-        system_prompt = T(".prompts:finetune_eval.system").r(
+        system_prompt = T(".prompts:coder_eval.system").r(
             task_desc=task_info,
             code=validation_result.filtered_config,
         )
 
-        user_prompt = T(".prompts:finetune_eval.user").r(stdout=validation_report)
+        user_prompt = T(".prompts:coder_eval.user").r(stdout=validation_report)
 
         try:
             feedback = build_cls_from_json_with_retry(
