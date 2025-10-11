@@ -70,7 +70,7 @@ finetune_coder:
     - dataset: {{ dataset_name }}
     {% endif %}
 
-finetune_eval:
+coder_eval:
   system: |-
     You are an expert evaluator for LlamaFactory configuration files.
 
