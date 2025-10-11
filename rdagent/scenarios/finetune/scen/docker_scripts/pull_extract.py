@@ -10,13 +10,16 @@ import sys
 from dataclasses import fields
 from pathlib import Path
 
-from llamafactory.extras.constants import METHODS, SUPPORTED_MODELS, TRAINING_STAGES
 from llamafactory.data.template import TEMPLATES
+from llamafactory.extras.constants import METHODS, SUPPORTED_MODELS, TRAINING_STAGES
 from llamafactory.hparams.data_args import DataArguments
-from llamafactory.hparams.finetuning_args import FinetuningArguments, FreezeArguments, LoraArguments
+from llamafactory.hparams.finetuning_args import (
+    FinetuningArguments,
+    FreezeArguments,
+    LoraArguments,
+)
 from llamafactory.hparams.model_args import ModelArguments, QuantizationArguments
 from transformers import TrainingArguments
-
 
 # Pull latest LLaMA Factory code
 try:
@@ -42,7 +45,7 @@ sys.path.insert(0, "/llamafactory/src")
 def extract_field_info(field):
     """Extract field information from a dataclass field."""
     from dataclasses import MISSING
-    
+
     # Handle default value - avoid MISSING type which is not JSON serializable
     if hasattr(field, "default") and field.default is not MISSING:
         default_value = field.default
@@ -50,7 +53,7 @@ def extract_field_info(field):
         default_value = "<factory>"
     else:
         default_value = None
-    
+
     return {
         "name": field.name,
         "type": str(field.type).replace("typing.", "").replace("<class '", "").replace("'>", ""),
@@ -96,7 +99,7 @@ def save_parameters(base_dir):
 def main():
     """Main entry point for parameter extraction."""
     base_dir = sys.argv[1] if len(sys.argv) > 1 else "/workspace/.llama_factory_info"
-    
+
     try:
         save_parameters(base_dir)
         print("SUCCESS")

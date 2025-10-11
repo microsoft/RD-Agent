@@ -21,30 +21,34 @@ class LLaMAFactoryManager:
         base_path = FT_RD_SETTING.file_path
         self.cache_dir = Path(base_path) / ".llama_factory_info"
         self._info_cache: Optional[Dict] = None
+        self.update_llama_factory = FT_RD_SETTING.update_llama_factory
 
     def extract_info_from_docker(self) -> Dict:
         """Extract LLaMA Factory information from Docker environment."""
-        logger.info("Extracting LLaMA Factory parameters from Docker")
+        if self.update_llama_factory:
+            logger.info("Update & Extract LLaMA Factory parameters from Docker")
+            # Prepare extraction script
+            workspace = FBWorkspace()
+            script_path = Path(__file__).parent / "docker_scripts" / "pull_extract.py"
+            workspace.inject_files(**{"extract_script.py": script_path.read_text()})
 
-        # Prepare extraction script
-        workspace = FBWorkspace()
-        script_path = Path(__file__).parent / "docker_scripts" / "extract_llama_factory.py"
-        workspace.inject_files(**{"extract_script.py": script_path.read_text()})
+            # Setup cache directory and Docker volumes
+            if self.cache_dir.exists():
+                shutil.rmtree(self.cache_dir)
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            volumes = {str(self.cache_dir): {"bind": "/workspace/.llama_factory_info", "mode": "rw"}}
 
-        # Setup cache directory and Docker volumes
-        if self.cache_dir.exists():
-            shutil.rmtree(self.cache_dir)
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
-        volumes = {str(self.cache_dir): {"bind": "/workspace/.llama_factory_info", "mode": "rw"}}
+            # Run extraction
+            result = workspace.run(
+                env=get_ft_env(extra_volumes=volumes, running_timeout_period=120, enable_cache=False),
+                entry="python extract_script.py",
+            )
 
-        # Run extraction
-        result = workspace.run(
-            env=get_ft_env(extra_volumes=volumes, running_timeout_period=120),
-            entry="python extract_script.py",
-        )
+            if result.exit_code != 0:
+                raise RuntimeError(f"Parameter extraction failed: {result.stdout}")
 
-        if result.exit_code != 0:
-            raise RuntimeError(f"Parameter extraction failed: {result.stdout}")
+        else:
+            logger.info("Skip updating LLaMA Factory, using local cache")
 
         # Load the extracted data
         self._info_cache = self._load_extracted_data()
@@ -116,10 +120,10 @@ class LLaMAFactoryManager:
 
     def get_template_for_model(self, model_name: str) -> Optional[str]:
         """Get template for model. Returns None to let LlamaFactory auto-detect.
-        
+
         Args:
             model_name: Model name (e.g., "Qwen/Qwen2.5-1.5B-Instruct")
-            
+
         Returns:
             None - LlamaFactory will automatically detect the appropriate template
         """
@@ -145,17 +149,17 @@ class LLaMAFactoryManager:
         for param_type in ["model", "data", "training", "finetuning"]:
             if param_type not in all_params:
                 continue
-                
+
             lines.append(f"\n### {param_type.upper()} Parameters:")
             type_params = all_params[param_type]
-            
+
             # Filter method-specific parameters for finetuning category
             if param_type == "finetuning":
                 if method == "lora":
                     type_params = {k: v for k, v in type_params.items() if "lora" in k.lower()}
                 elif method == "freeze":
                     type_params = {k: v for k, v in type_params.items() if "freeze" in k.lower()}
-            
+
             for param_name, param_info in type_params.items():
                 if isinstance(param_info, dict) and "help" in param_info:
                     help_text = param_info["help"][:100]  # Truncate long help text
