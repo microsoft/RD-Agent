@@ -62,6 +62,9 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     base_model: str | None = None
     dataset: str = ""
 
+    # LLaMA Factory
+    update_llama_factory: bool = True
+
     @property
     def task(self) -> str:
         """Generate task name from base model and dataset."""

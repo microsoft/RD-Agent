@@ -77,10 +77,10 @@ class LLMFinetuneScen(DataScienceScen):
     def _initialize_llama_factory(self):
         """Initialize LLaMA Factory information manager"""
         self.llama_factory_manager = get_llama_factory_manager()
-        
+
         # Extract LLaMA Factory information (pulls latest code automatically)
         info = self.llama_factory_manager.get_info()
-        
+
         # Log extracted information
         methods_count = len(info.get("methods", []))
         params_count = sum(len(p) if isinstance(p, dict) else 0 for p in info.get("parameters", {}).values())
