@@ -221,6 +221,8 @@ class LLMFinetuneCoSTEER(CoSTEER):
             es=es,
             evolving_version=2,
             scen=scen,
+            with_knowledge=False,
+            knowledge_self_gen=False,
             max_loop=FT_RD_SETTING.coder_max_loop if hasattr(FT_RD_SETTING, "coder_max_loop") else 5,
             **kwargs,
         )

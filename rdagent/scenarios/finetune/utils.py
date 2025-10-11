@@ -2,7 +2,7 @@ from pathlib import Path
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.finetune.download import download_dataset, download_model
+from rdagent.scenarios.finetune.download.hf import download_dataset, download_model
 
 
 def ensure_ft_assets_exist(
