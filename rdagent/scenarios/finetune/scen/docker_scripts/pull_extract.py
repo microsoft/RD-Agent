@@ -102,7 +102,7 @@ def main():
 
     try:
         save_parameters(base_dir)
-        print("SUCCESS")
+        print("Successfully extracted LLaMA Factory parameters")
         return 0
     except Exception as e:
         print(f"ERROR: {e}", file=sys.stderr)

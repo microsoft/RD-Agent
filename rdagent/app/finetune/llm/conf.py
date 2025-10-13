@@ -22,7 +22,7 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     hypothesis_gen: str = "rdagent.scenarios.finetune.proposal.proposal.LLMFinetuneExpGen"
     """Hypothesis generation class for LLM fine-tuning tasks."""
 
-    hypothesis2experiment: str = "rdagent.scenarios.finetune.proposal.proposal.LLMHypothesis2Experiment"
+    hypothesis2experiment: str = "rdagent.scenarios.finetune.proposal.proposal.FTHypothesis2Experiment"
     """Hypothesis to experiment converter.
     Function: Convert abstract LLM fine-tuning hypotheses into concrete experiment configurations.
     """

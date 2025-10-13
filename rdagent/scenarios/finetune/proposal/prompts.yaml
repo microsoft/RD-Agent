@@ -41,7 +41,8 @@ model_selection:
   user_prompt: |-
     ## Hardware Information
     - GPU Memory: {{ memory_gb }}GB
-    - GPU Model: {{ gpu_name }}
+    - GPU Name: {{ gpu_name }}
+    - GPU Number: {{ gpu_count }}
 
     ## Dataset Information
     - Name: {{ dataset_name }}
