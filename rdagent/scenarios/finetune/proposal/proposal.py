@@ -162,8 +162,9 @@ class LLMFinetuneExpGen(ExpGen):
             "gpu_name": gpu_name,
             "gpu_count": gpu_count,
             "dataset_name": dataset_info["name"],
-            "dataset_type": dataset_info.get("type", "Unknown"),
-            "dataset_size": dataset_info.get("size", "Unknown"),
+            "first_sample": dataset_info["samples"][0],
+            "dataset_sample_count": dataset_info.get("sample_count", "Unknown"),
+            "dataset_total_size_mb": dataset_info.get("total_size_mb", "Unknown"),
             "available_methods": ", ".join(available_methods),
             "specified_model": specified_model is not None,
         }

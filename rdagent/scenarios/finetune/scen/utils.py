@@ -64,7 +64,14 @@ def _discover_data_files_recursive(dataset_path: Path, max_depth: int = 3) -> li
 def extract_dataset_info(competition: str) -> dict[str, Any]:
     """Extract dataset information from files and metadata."""
     if not FT_RD_SETTING.file_path:
-        return {"name": competition, "description": "FT_FILE_PATH not set", "samples": [], "files": []}
+        return {
+            "name": competition,
+            "description": "FT_FILE_PATH not set",
+            "samples": [],
+            "files": [],
+            "sample_count": 0,
+            "total_size_mb": 0,
+        }
 
     dataset_path = Path(FT_RD_SETTING.file_path) / "datasets" / competition
     info = {"name": competition, "description": "", "samples": [], "files": []}
@@ -97,6 +104,11 @@ def extract_dataset_info(competition: str) -> dict[str, Any]:
     if discovered_files:
         _extract_data_samples(discovered_files[0], info)
         logger.info(f"Extracted samples from: {discovered_files[0].relative_to(dataset_path)}")
+
+    # Get dataset statistics using FinetuneDatasetDescriptor
+    descriptor = FinetuneDatasetDescriptor()
+    stats = descriptor.get_dataset_stats(dataset_path)
+    info.update(stats)
 
     return info
 
@@ -230,6 +242,69 @@ def build_folder_description(dataset: str = None) -> str:
 
 class FinetuneDatasetDescriptor(DataFolderDescriptor):
     """Specialized dataset descriptor for finetune scenarios that provides separated file tree and data samples."""
+
+    def get_dataset_stats(self, dataset_path: Path) -> dict[str, Any]:
+        """Calculate dataset statistics: sample count and total file size.
+
+        Args:
+            dataset_path: Path to dataset directory
+
+        Returns:
+            dict with keys:
+                - sample_count: Total number of data samples across all files
+                - total_size_mb: Total size of data files in megabytes
+                - file_count: Number of data files found
+        """
+        try:
+            data_files = _discover_data_files_recursive(dataset_path, max_depth=3)
+
+            total_samples = 0
+            total_size_bytes = 0
+            file_count = len(data_files)
+
+            for data_file in data_files:
+                # Calculate file size
+                try:
+                    total_size_bytes += data_file.stat().st_size
+                except (OSError, FileNotFoundError):
+                    logger.warning(f"Cannot get size of {data_file}")
+
+                # Count samples based on file type
+                try:
+                    if data_file.suffix.lower() == ".json":
+                        with open(data_file, "r", encoding="utf-8") as f:
+                            data = json.load(f)
+                            if isinstance(data, list):
+                                total_samples += len(data)
+                            elif isinstance(data, dict):
+                                total_samples += 1  # Single object
+
+                    elif data_file.suffix.lower() == ".jsonl":
+                        with open(data_file, "r", encoding="utf-8") as f:
+                            total_samples += sum(1 for line in f if line.strip())
+
+                    elif data_file.suffix.lower() in [".csv", ".parquet"]:
+                        df = (
+                            pd.read_csv(data_file) if data_file.suffix.lower() == ".csv" else pd.read_parquet(data_file)
+                        )
+                        total_samples += len(df)
+
+                except Exception as e:
+                    logger.warning(f"Cannot count samples in {data_file.name}: {e}")
+
+            return {
+                "sample_count": total_samples,
+                "total_size_mb": round(total_size_bytes / (1024 * 1024), 2),
+                "file_count": file_count,
+            }
+
+        except Exception as e:
+            logger.warning(f"Failed to calculate dataset stats: {e}")
+            return {
+                "sample_count": 0,
+                "total_size_mb": 0,
+                "file_count": 0,
+            }
 
     def get_separated_info(self, dataset_path: Path) -> tuple[str, str]:
         """Get file tree and data samples separately for finetune prompt generation.

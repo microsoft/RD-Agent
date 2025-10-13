@@ -39,7 +39,7 @@ finetune_coder:
     ...
     ```
     
-    Do NOT add explanations before or after the YAML block.
+    Think step by step.
 
   user: |-
     ## Path Configuration

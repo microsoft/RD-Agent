@@ -46,8 +46,9 @@ model_selection:
 
     ## Dataset Information
     - Name: {{ dataset_name }}
-    - Type: {{ dataset_type }}
-    - Size: {{ dataset_size }} samples
+    - Sample: {{ first_sample }}
+    - Sample Count: {{ dataset_sample_count }} samples
+    - Total Size: {{ dataset_total_size_mb }} MB
 
     {% if specified_model %}
     ## Specified Model
