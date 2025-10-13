@@ -176,8 +176,8 @@ class LLMFinetuneExpGen(ExpGen):
 
         try:
             # Use template system for prompts
-            system_prompt = T(".prompts:model_selection.system_prompt").r(**template_context)
-            user_prompt = T(".prompts:model_selection.user_prompt").r(**template_context)
+            system_prompt = T(".prompts.hypothesis_gen.system_prompt").r(**template_context)
+            user_prompt = T(".prompts.hypothesis_gen.user_prompt").r(**template_context)
 
             # Call LLM for selection
             from rdagent.oai.llm_utils import APIBackend

@@ -1,4 +1,4 @@
-model_selection:
+hypothesis_gen:
   system_prompt: |-
     You are an expert in LLM fine-tuning. Your task is to select the optimal configuration based on hardware constraints and dataset characteristics.
 
