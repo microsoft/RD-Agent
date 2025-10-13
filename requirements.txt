@@ -71,3 +71,6 @@ types-pytz
 # Agent
 pydantic-ai-slim[mcp,openai]
 nest-asyncio
+
+torch
+torchvision

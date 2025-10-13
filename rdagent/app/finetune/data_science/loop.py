@@ -1,6 +1,5 @@
 import asyncio
 from pathlib import Path
-
 import fire
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -8,7 +7,27 @@ from rdagent.app.finetune.data_science.conf import update_settings
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
+from ...utils.gpu_utils import setup_gpu
 
+class EnhancedTrainingLoop:
+    def __init__(self):
+        self.device = setup_gpu()
+        
+    def train_time_series_model(self, model, data_loader, optimizer):
+        model = model.to(self.device)
+        
+        for batch in data_loader:
+            # Move data to GPU
+            inputs, targets = batch
+            inputs = inputs.to(self.device)
+            targets = targets.to(self.device)
+            
+            outputs = model(inputs)
+            loss = self.criterion(outputs, targets)
+            
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
 
 def main(
     model: str | None = None,

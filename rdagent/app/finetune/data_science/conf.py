@@ -1,5 +1,5 @@
 import os
-
+import torch
 from pydantic_settings import SettingsConfigDict
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -38,3 +38,52 @@ def update_settings(competition: str):
         if hasattr(DS_RD_SETTING, field_name):
             setattr(DS_RD_SETTING, field_name, new_value)
     DS_RD_SETTING.competition = competition
+
+def get_training_config():
+    return {
+        "device": "cuda" if torch.cuda.is_available() else "cpu",
+        "batch_size": 32 if torch.cuda.is_available() else 16,
+        "use_mixed_precision": True if torch.cuda.is_available() else False,
+        "num_workers": 4 if torch.cuda.is_available() else 2,
+        "pin_memory": True if torch.cuda.is_available() else False
+    }
+
+class GPUConfig:
+    @staticmethod
+    def setup_cuda_optimizations():
+        if torch.cuda.is_available():
+            torch.backends.cudnn.benchmark = True
+            torch.backends.cudnn.deterministic = False
+            
+    @staticmethod
+    def get_optimized_batch_size(base_batch_size=32):
+        if torch.cuda.is_available():
+            # Adjust based on available GPU memory
+            gpu_memory = torch.cuda.get_device_properties(0).total_memory
+            if gpu_memory > 8e9:  # 8GB
+                return base_batch_size * 4
+            elif gpu_memory > 4e9:  # 4GB
+                return base_batch_size * 2
+        return base_batch_size
+    
+def get_gpu_enhanced_config():
+    """Get configuration optimized for GPU if available"""
+    gpu_available = torch.cuda.is_available()
+    
+    return {
+        "training": {
+            "device": "cuda" if gpu_available else "cpu",
+            "use_amp": gpu_available,  
+            "gradient_accumulation_steps": 1,
+            "max_grad_norm": 1.0
+        },
+        "data": {
+            "num_workers": 4 if gpu_available else 2,
+            "pin_memory": gpu_available,
+            "prefetch_factor": 2 if gpu_available else 1
+        },
+        "model": {
+            "use_compile": gpu_available,  
+            "optimize_for_inference": gpu_available
+        }
+    }
