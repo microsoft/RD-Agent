@@ -87,7 +87,7 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
             hypothesis_and_feedback = "No previous hypothesis and feedback available since it's the first round."
         else:
             specific_trace = Trace(trace.scen)
-            for i in range(len(trace.hist) - 1, -1, -1):  # Reverse iteration
+            for i in range(len(trace.hist) - 1, -1, -1):
                 if not hasattr(trace.hist[i][0].hypothesis, "action") or trace.hist[i][0].hypothesis.action == "model":
                     if last_experiment is None:
                         last_experiment = trace.hist[i][0]
@@ -120,12 +120,6 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
             else "No SOTA hypothesis and feedback available since previous experiments were not accepted."
         )
 
-        experiment_list: List[ModelExperiment] = [t[0] for t in trace.hist]
-
-        model_list = []
-        for experiment in experiment_list:
-            model_list.extend(experiment.sub_tasks)
-
         return {
             "target_hypothesis": str(hypothesis),
             "scenario": scenario,
@@ -133,7 +127,7 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
             "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
             "SOTA_hypothesis_and_feedback": sota_hypothesis_and_feedback,
             "experiment_output_format": experiment_output_format,
-            "target_list": model_list,
+            "target_list": [],
             "RAG": "Note, the training data consists of less than 1 million samples for the training set and approximately 250,000 samples for the validation set. Please design the hyperparameters accordingly and control the model size. This has a significant impact on the training results. If you believe that the previous model itself is good but the training hyperparameters or model hyperparameters are not optimal, you can return the same model and adjust these parameters instead.",
         }, True
 
@@ -161,5 +155,5 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
                 )
             )
         exp = QlibModelExperiment(tasks, hypothesis=hypothesis)
-        exp.based_experiments = [t[0] for t in trace.hist if t[1]]
+        exp.based_experiments = [t[0] for t in trace.hist if t[1] and isinstance(t[0], ModelExperiment)]
         return exp

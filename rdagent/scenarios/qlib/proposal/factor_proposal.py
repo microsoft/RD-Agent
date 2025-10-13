@@ -64,13 +64,14 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             scenario = trace.scen.get_scenario_all_desc(action="factor")
         else:
             scenario = trace.scen.get_scenario_all_desc()
+
         experiment_output_format = T("scenarios.qlib.prompts:factor_experiment_output_format").r()
 
         if len(trace.hist) == 0:
             hypothesis_and_feedback = "No previous hypothesis and feedback available since it's the first round."
         else:
             specific_trace = Trace(trace.scen)
-            for i in range(len(trace.hist) - 1, -1, -1):  # Reverse iteration
+            for i in range(len(trace.hist) - 1, -1, -1):
                 if not hasattr(trace.hist[i][0].hypothesis, "action") or trace.hist[i][0].hypothesis.action == "factor":
                     specific_trace.hist.insert(0, trace.hist[i])
             if len(specific_trace.hist) > 0:
@@ -81,18 +82,12 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             else:
                 hypothesis_and_feedback = "No previous hypothesis and feedback available."
 
-        experiment_list: List[FactorExperiment] = [t[0] for t in trace.hist]
-
-        factor_list = []
-        for experiment in experiment_list:
-            factor_list.extend(experiment.sub_tasks)
-
         return {
             "target_hypothesis": str(hypothesis),
             "scenario": scenario,
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "experiment_output_format": experiment_output_format,
-            "target_list": factor_list,
+            "target_list": [],
             "RAG": None,
         }, True
 
@@ -114,10 +109,11 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             )
 
         exp = QlibFactorExperiment(tasks, hypothesis=hypothesis)
-        exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [t[0] for t in trace.hist if t[1]]
+        exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [
+            t[0] for t in trace.hist if t[1] and isinstance(t[0], FactorExperiment)
+        ]
 
         unique_tasks = []
-
         for task in tasks:
             duplicate = False
             for based_exp in exp.based_experiments:
