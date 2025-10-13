@@ -20,7 +20,7 @@ from rdagent.utils.agent.tpl import T
 COMPONENT = Literal["Training"]
 
 
-class LLMHypothesis(Hypothesis):
+class FTHypothesis(Hypothesis):
     """LLM fine-tuning hypothesis class."""
 
     def __init__(
@@ -61,10 +61,10 @@ class LLMHypothesis(Hypothesis):
         return "\n".join(lines)
 
 
-class LLMHypothesis2Experiment(Hypothesis2Experiment):
+class FTHypothesis2Experiment(Hypothesis2Experiment):
     """Convert LLM fine-tuning hypothesis to experiment."""
 
-    def convert(self, hypothesis: LLMHypothesis, trace: Trace) -> FTExperiment:
+    def convert(self, hypothesis: FTHypothesis, trace: Trace) -> FTExperiment:
         """Convert hypothesis to executable experiment."""
         logger.info(f"Converting hypothesis: {hypothesis.base_model} with {hypothesis.finetune_method}")
 
@@ -123,7 +123,7 @@ class LLMFinetuneExpGen(ExpGen):
         if quantization != "none":
             method_desc += f" with {quantization} quantization"
 
-        hypothesis = LLMHypothesis(
+        hypothesis = FTHypothesis(
             component="Training",
             base_model=base_model,
             finetune_method=finetune_method,
@@ -132,7 +132,7 @@ class LLMFinetuneExpGen(ExpGen):
             reason=f"LLM-selected configuration for {memory_gb}GB GPU and dataset characteristics",
         )
 
-        return LLMHypothesis2Experiment().convert(hypothesis, trace)
+        return FTHypothesis2Experiment().convert(hypothesis, trace)
 
     def _llm_select_config(
         self, device_info: str, dataset_info: dict, trace: Trace, specified_model: str | None = None
@@ -153,12 +153,14 @@ class LLMFinetuneExpGen(ExpGen):
 
         device_dict = json.loads(device_info)
         memory_gb = device_dict.get("gpu", {}).get("total_gpu_memory_gb")
-        gpu_name = device_dict.get("gpu", {}).get("name", "Unknown")
+        gpu_name = device_dict.get("gpu", {}).get("gpu_device", "Unknown")
+        gpu_count = device_dict.get("gpu", {}).get("gpu_count", "Unknown")
 
         # Prepare template context
         template_context = {
             "memory_gb": memory_gb,
             "gpu_name": gpu_name,
+            "gpu_count": gpu_count,
             "dataset_name": dataset_info["name"],
             "dataset_type": dataset_info.get("type", "Unknown"),
             "dataset_size": dataset_info.get("size", "Unknown"),

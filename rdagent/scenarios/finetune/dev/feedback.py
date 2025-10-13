@@ -18,7 +18,7 @@ from rdagent.core.scenario import Scenario
 from rdagent.log.utils import dict_get_with_warning
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.finetune.experiment.experiment import FTExperiment
-from rdagent.scenarios.finetune.proposal.proposal import LLMHypothesis
+from rdagent.scenarios.finetune.proposal.proposal import FTHypothesis
 from rdagent.scenarios.finetune.train.eval import LLMFinetuneEvaluator
 from rdagent.utils import convert2bool
 from rdagent.utils.agent.tpl import T
@@ -37,7 +37,7 @@ class LLMExperiment2Feedback(Experiment2Feedback):
 
         # Get experiment hypothesis
         hypothesis = exp.hypothesis
-        if not isinstance(hypothesis, LLMHypothesis):
+        if not isinstance(hypothesis, FTHypothesis):
             # Simple fallback feedback for non-LLM hypotheses
             return ExperimentFeedback(
                 reason="Non-LLM hypothesis detected. Basic feedback provided.",
