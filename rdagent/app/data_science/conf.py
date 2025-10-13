@@ -179,6 +179,20 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     ensemble_time_upper_bound: bool = False
 
 
+    ### Graph related
+    enable_node_restart : bool = True
+    """Enable node restart for failed nodes in the graph"""
+
+    enable_node_a_restart : bool = True
+
+    """Enable node A restart for failed nodes in the graph"""
+
+    enable_node_b_restart : bool = True
+    """Enable node B restart for failed nodes in the graph"""
+
+
+
+
 DS_RD_SETTING = DataScienceBasePropSetting()
 
 # enable_cross_trace_diversity 和 llm_select_hypothesis should not be true at the same time
