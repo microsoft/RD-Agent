@@ -137,7 +137,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         datasets_path = "/assets/datasets/"
 
         # Generate prompts using templates with all required parameters
-        # TODO: Is COT reasonable here?
+        # TODO: give exp_gen(natural language) here
         system_prompt = T("components.coder.finetune.prompts:finetune_coder.system").r(
             task_desc=task_info,
             finetune_method=finetune_method,
