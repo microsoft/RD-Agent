@@ -350,8 +350,13 @@ class MCTSScheduler(ProbabilisticScheduler):
             return trace.NEW_ROOT
 
         # Step 2: consider only available leaves (not being expanded)
-        leaves = trace.get_leaves()
-        available_leaves = [leaf for leaf in leaves if self.uncommited_rec_status[leaf] == 0]
+        # leaves = trace.get_leaves()
+        # available_leaves = [leaf for leaf in leaves if self.uncommited_rec_status[leaf] == 0]
+        # if not available_leaves:
+        #     return None
+
+        nodes =  list(set(range(len(trace.hist))))
+        available_leaves = [leaf for leaf in nodes if self.uncommited_rec_status[leaf] == 0]
         if not available_leaves:
             return None
 
@@ -377,12 +382,49 @@ class MCTSScheduler(ProbabilisticScheduler):
         if best_leaf is None:
             return None
 
-        # Step 5: optimistic visit update on selection; value update deferred to observe_feedback
+        # # Step 5: optimistic visit update on selection; value update deferred to observe_feedback
         self.node_visit_count[best_leaf] = self.node_visit_count.get(best_leaf, 0) + 1
         self.global_visit_count += 1
 
         return (best_leaf,)
 
+    # def observe_feedback(self, trace: DSTrace, new_idx: int, reward: float | None = None) -> None:
+    #     """
+    #     Update statistics after an experiment is committed to the trace.
+
+    #     Args:
+    #         trace: The DSTrace object.
+    #         new_idx: Index of the newly appended experiment in trace.hist.
+    #         reward: Optional explicit reward. If None, derive from feedback.decision (1.0/0.0).
+    #     """
+    #     try:
+    #         if reward is None:
+    #             if 0 <= new_idx < len(trace.hist):
+    #                 _, fb = trace.hist[new_idx]
+    #                 reward = 1.0 if getattr(fb, "decision", False) else 0.0
+    #             else:
+    #                 # Out-of-range safety
+    #                 reward = 0.0
+
+    #         # Attribute the reward to the immediate parent leaf that was expanded
+    #         parent_tuple = trace.dag_parent[new_idx] if 0 <= new_idx < len(trace.dag_parent) else ()
+    #         if parent_tuple and len(parent_tuple) > 0:
+    #             parent_leaf = parent_tuple[0]
+    #             self.node_value_sum[parent_leaf] = self.node_value_sum.get(parent_leaf, 0.0) + float(reward)
+    #         else:
+    #             # New root expansion: no parent leaf to credit; optional: keep a pseudo key
+    #             pass
+    #     except Exception as e:
+    #         logger.warning(f"MCTSScheduler.observe_feedback encountered error: {e!s}")
+
+    def _get_path(self, node, parent_nodes):
+        # FIXME: we should remove it in the future.
+        path = [node]
+        parent = parent_nodes.get(node)
+        if parent is not None:
+            path.extend(self._get_path(parent, parent_nodes))
+        return path
+    
     def observe_feedback(self, trace: DSTrace, new_idx: int, reward: float | None = None) -> None:
         """
         Update statistics after an experiment is committed to the trace.
@@ -392,25 +434,38 @@ class MCTSScheduler(ProbabilisticScheduler):
             new_idx: Index of the newly appended experiment in trace.hist.
             reward: Optional explicit reward. If None, derive from feedback.decision (1.0/0.0).
         """
-        try:
-            if reward is None:
-                if 0 <= new_idx < len(trace.hist):
-                    _, fb = trace.hist[new_idx]
-                    reward = 1.0 if getattr(fb, "decision", False) else 0.0
-                else:
-                    # Out-of-range safety
-                    reward = 0.0
-
-            # Attribute the reward to the immediate parent leaf that was expanded
-            parent_tuple = trace.dag_parent[new_idx] if 0 <= new_idx < len(trace.dag_parent) else ()
-            if parent_tuple and len(parent_tuple) > 0:
-                parent_leaf = parent_tuple[0]
-                self.node_value_sum[parent_leaf] = self.node_value_sum.get(parent_leaf, 0.0) + float(reward)
+        if reward is None:
+            if 0 <= new_idx < len(trace.hist):
+                 _, fb = trace.hist[new_idx]
+                 reward = 1.0 if getattr(fb, "decision", False) else 0.0
             else:
-                # New root expansion: no parent leaf to credit; optional: keep a pseudo key
-                pass
-        except Exception as e:
-            logger.warning(f"MCTSScheduler.observe_feedback encountered error: {e!s}")
+                    # Out-of-range safety
+                reward = 0.0
+        parent_nodes = {}
+        for node in range(len(trace.hist)):
+            parents = trace.get_parents(node)
+            parent_nodes[node] = parents[-2] if len(parents) > 1 else None
+        if hasattr(trace, "idx2loop_id"):
+            parent_nodes = {
+                trace.idx2loop_id[n]: trace.idx2loop_id[r] if r is not None else r for n, r in parent_nodes.items()
+            }
+
+        loop_id_list = self._get_path(trace.idx2loop_id[new_idx], parent_nodes)
+        loop_id2idx = {v: k for k, v in trace.idx2loop_id.items()}
+
+        for loop_id in loop_id_list:
+            self.node_value_sum[loop_id2idx[loop_id]] +=  float(reward)
+            self.node_visit_count[loop_id2idx[loop_id]] +=  1
+
+
+            # # Attribute the reward to the immediate parent leaf that was expanded
+            # parent_tuple = trace.dag_parent[new_idx] if 0 <= new_idx < len(trace.dag_parent) else ()
+            # if parent_tuple and len(parent_tuple) > 0:
+            #     parent_leaf = parent_tuple[0]
+            #     self.node_value_sum[parent_leaf] = self.node_value_sum.get(parent_leaf, 0.0) + float(reward)
+            # else:
+            #     # New root expansion: no parent leaf to credit; optional: keep a pseudo key
+            #     pass
 
     def reset(self) -> None:
         """
