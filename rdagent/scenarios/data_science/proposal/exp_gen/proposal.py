@@ -1449,7 +1449,8 @@ class DSProposalV2ExpGen(ExpGen):
         
         current_success_rate = next((rate for r, rate in successful_rates if r == current_parent_root), 0.0)
         if current_success_rate > 80 :
-            percentile=25, min_threshold=0.7
+            percentile=25
+            min_threshold=0.7
             all_scores = np.array([score for _, score in mean_scores])
             bigger_is_better = get_metric_direction(competition)
 
@@ -1571,7 +1572,7 @@ class DSProposalV2ExpGen(ExpGen):
             sibling_exp=sibling_exp,
         )
 
-
+        node_type = "none"
         if DS_RD_SETTING.enable_node_restart:
             node_type = self.identify_current_node_type(trace)
             if node_type == "restart":
@@ -1597,9 +1598,6 @@ class DSProposalV2ExpGen(ExpGen):
                         pop_names.append(problem_name)
                 for name in pop_names:
                     hypothesis_dict.pop(name)
-
-
-
 
 
 
@@ -1639,7 +1637,8 @@ class DSProposalV2ExpGen(ExpGen):
             logger.info(f"Hypothesis critique and rewrite disabled - using original {len(hypothesis_dict)} hypotheses")
 
         # Step 3: Select the best hypothesis
-        if DS_RD_SETTING.llm_select_hypothesis:
+
+        if DS_RD_SETTING.llm_select_hypothesis and node_type != "restart":
             response_dict = self.hypothesis_select_with_llm(
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
