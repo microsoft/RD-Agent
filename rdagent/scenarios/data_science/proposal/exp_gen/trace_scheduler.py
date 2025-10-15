@@ -383,7 +383,7 @@ class MCTSScheduler(ProbabilisticScheduler):
             return None
 
         # # Step 5: optimistic visit update on selection; value update deferred to observe_feedback
-        self.node_visit_count[best_leaf] = self.node_visit_count.get(best_leaf, 0) + 1
+        # self.node_visit_count[best_leaf] = self.node_visit_count.get(best_leaf, 0) + 1
         self.global_visit_count += 1
 
         return (best_leaf,)
