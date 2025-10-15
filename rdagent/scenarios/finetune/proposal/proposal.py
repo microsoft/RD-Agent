@@ -177,6 +177,7 @@ class LLMFinetuneExpGen(ExpGen):
         try:
             # Use template system for prompts
             # TODO: dicide more
+            # TODO: separate first loop and other loop(need to get previous feedback)
             system_prompt = T(".prompts.hypothesis_gen.system_prompt").r(**template_context)
             user_prompt = T(".prompts.hypothesis_gen.user_prompt").r(**template_context)
 

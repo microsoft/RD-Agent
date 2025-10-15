@@ -25,7 +25,7 @@ class LLaMAFactoryManager:
 
     def extract_info_from_docker(self) -> Dict:
         """Extract LLaMA Factory information from Docker environment."""
-        if self.update_llama_factory or not self.cache_dir.exists():
+        if self.update_llama_factory or not self.cache_dir.exists() or not any(self.cache_dir.iterdir()):
             logger.info("Update & Extract LLaMA Factory parameters from Docker")
             # Prepare extraction script
             workspace = FBWorkspace()

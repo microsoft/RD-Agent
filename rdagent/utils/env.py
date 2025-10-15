@@ -803,7 +803,7 @@ class FTDockerConf(DockerConf):
     mem_limit: str | None = "48g"  # Large memory for LLM training
     shm_size: str | None = "16g"  # Shared memory for multi-GPU training
     enable_gpu: bool = True  # Enable GPU for LLM training
-    enable_cache: bool = False  # Disable cache to avoid conflicts during training
+    enable_cache: bool = False  # Disable cache to avoid conflicts during training, True for debug
 
 
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
