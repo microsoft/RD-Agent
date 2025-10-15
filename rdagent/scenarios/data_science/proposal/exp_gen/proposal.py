@@ -1655,11 +1655,13 @@ class DSProposalV2ExpGen(ExpGen):
             )
             pickled_problem_name = None
         else:
+            all_problems = {}
             pickled_problem_name, new_hypothesis = self.hypothesis_rank(
                 hypothesis_dict=hypothesis_dict,
                 problem_dict=all_problems,
+                selected_idx=0,
             )
-
+            
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
