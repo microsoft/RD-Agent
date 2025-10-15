@@ -1574,7 +1574,9 @@ class DSProposalV2ExpGen(ExpGen):
 
         node_type = "none"
         if DS_RD_SETTING.enable_node_restart:
-            node_type = self.identify_current_node_type(trace)
+            if len(trace.current_selection) != 0:
+                node_type = self.identify_current_node_type(trace)
+
             if node_type == "restart":
                 hypothesis_dict = self.merge_node_gen(trace= trace,component_desc = component_desc,sota_exp_desc = sota_exp_desc,
                                                       enable_idea_pool =DS_RD_SETTING.enable_knowledge_base,pipeline =pipeline,exp_feedback_list_desc=exp_feedback_list_desc,
