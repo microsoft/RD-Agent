@@ -82,12 +82,6 @@ class ParallelMultiTraceExpGen(ExpGen):
                 # set trace current selection
                 leaves: list[int] = trace.get_leaves()
                 if not timer.started or timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
-                    # Before making a new selection, let MCTS observe newly committed feedbacks
-                    if isinstance(self.trace_scheduler, MCTSScheduler):
-                        try:
-                            self.trace_scheduler.observe_commits(trace)
-                        except Exception as e:
-                            logger.warning(f"MCTSScheduler.observe_commits failed: {e!s}")
                     local_selection = await self.trace_scheduler.next(trace)
 
                     # set the local selection as the global current selection for the trace

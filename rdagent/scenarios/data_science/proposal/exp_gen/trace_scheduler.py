@@ -56,7 +56,10 @@ class BaseScheduler(TraceScheduler):
         Atomically selects the next leaf node from the trace in order.
         """
         while True:
-            # step 0: Commit the pending selections
+            # step 1: Commit the pending selections
+            self.process_uncommitted_nodes(trace)
+
+            # step 2: update uncommited_rec_status & rec_commit_idx
             for i in range(self.rec_commit_idx, len(trace.dag_parent)):
                 parent_of_i = trace.dag_parent[i]
                 if parent_of_i == trace.NEW_ROOT:
@@ -77,6 +80,13 @@ class BaseScheduler(TraceScheduler):
                 return parents
 
             await asyncio.sleep(1)
+
+    def process_uncommitted_nodes(self, trace: DSTrace) -> None:
+        """
+        A slot for implementing custom logic to process uncommitted nodes.
+
+        `uncommited_rec_status` & `rec_commit_idx` will be updated automatically.
+        """
 
     @abstractmethod
     def select(self, trace: DSTrace) -> tuple[int, ...] | None:
@@ -416,19 +426,16 @@ class MCTSScheduler(ProbabilisticScheduler):
         self.global_visit_count = 0
         self.last_observed_commit_idx = 0
 
-    def observe_commits(self, trace: DSTrace) -> None:
+    def process_uncommitted_nodes(self, trace: DSTrace) -> None:
         """
         Batch observe all newly committed experiments since last observation.
         Should be called before making a new selection to ensure statistics are up-to-date.
         """
-        try:
-            start_idx = max(0, self.last_observed_commit_idx)
-            # Only observe fully committed items (both dag_parent and hist appended)
-            end_idx = min(len(trace.dag_parent), len(trace.hist))
-            if start_idx >= end_idx:
-                return
-            for idx in range(start_idx, end_idx):
-                self.observe_feedback(trace, idx)
-            self.last_observed_commit_idx = end_idx
-        except Exception as e:
-            logger.warning(f"MCTSScheduler.observe_commits encountered error: {e!s}")
+        start_idx = max(0, self.last_observed_commit_idx)
+        # Only observe fully committed items (both dag_parent and hist appended)
+        end_idx = min(len(trace.dag_parent), len(trace.hist))
+        if start_idx >= end_idx:
+            return
+        for idx in range(start_idx, end_idx):
+            self.observe_feedback(trace, idx)
+        self.last_observed_commit_idx = end_idx
