@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 
 if TYPE_CHECKING:
     from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace
@@ -362,7 +363,6 @@ class MCTSScheduler(ProbabilisticScheduler):
 
         # Step 2: consider only available leaves (not being expanded)
         available_leaves =  list(set(range(len(trace.hist))))
-        #available_leaves = [leaf for leaf in nodes if self.uncommited_rec_status[leaf] == 0]
         if not available_leaves:
             return None
 
@@ -389,7 +389,6 @@ class MCTSScheduler(ProbabilisticScheduler):
             return None
 
         # # Step 5: optimistic visit update on selection; value update deferred to observe_feedback
-        # self.node_visit_count[best_leaf] = self.node_visit_count.get(best_leaf, 0) + 1
         self.global_visit_count += 1
 
         return (best_leaf,)
@@ -405,8 +404,21 @@ class MCTSScheduler(ProbabilisticScheduler):
         """
         if reward is None:
             if 0 <= new_idx < len(trace.hist):
-                 _, fb = trace.hist[new_idx]
-                 reward = 1.0 if getattr(fb, "decision", False) else 0.0
+                 re, fb = trace.hist[new_idx]
+                 if DS_RD_SETTING.enable_score_reward:
+                    bigger_is_better = get_metric_direction(trace.scen.competition)
+                    if getattr(fb, "decision", False):
+                        if bigger_is_better:
+                            reward = math.tanh(re.result.loc["ensemble"].iloc[0].round(3))
+                        else:
+                            reward = - math.tanh(re.result.loc["ensemble"].iloc[0].round(3))
+                    else:
+                        if bigger_is_better:
+                            reward = -2
+                        else:
+                            reward = 2
+                 else:
+                    reward = 1.0 if getattr(fb, "decision", False) else 0.0
             else:
                     # Out-of-range safety
                 reward = 0.0

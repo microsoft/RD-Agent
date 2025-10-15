@@ -105,6 +105,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     scheduler_c_puct: float = 1.0
     """Exploration constant used by MCTSScheduler (PUCT)."""
 
+    enable_score_reward = False
+    
+
+
     #### multi-trace:checkpoint selector
     selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.select.expand.LatestCKPSelector"
     """The name of the selector to use"""
