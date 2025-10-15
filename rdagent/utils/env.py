@@ -373,7 +373,11 @@ class Env(Generic[ASpecificEnvConf]):
             json.dumps(
                 [
                     [str(path.relative_to(Path(local_path))), path.read_text()]
-                    for path in sorted(list(Path(local_path).rglob("*.py")) + list(Path(local_path).rglob("*.csv")))
+                    for path in sorted(
+                        list(Path(local_path).rglob("*.py"))
+                        + list(Path(local_path).rglob("*.csv"))
+                        + list(Path(local_path).rglob("*.yaml"))
+                    )
                 ]
             )
             + json.dumps({"entry": entry, "running_extra_volume": dict(running_extra_volume)})
