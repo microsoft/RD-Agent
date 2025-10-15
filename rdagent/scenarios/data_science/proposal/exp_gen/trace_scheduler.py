@@ -355,8 +355,8 @@ class MCTSScheduler(ProbabilisticScheduler):
         # if not available_leaves:
         #     return None
 
-        nodes =  list(set(range(len(trace.hist))))
-        available_leaves = [leaf for leaf in nodes if self.uncommited_rec_status[leaf] == 0]
+        available_leaves =  list(set(range(len(trace.hist))))
+        #available_leaves = [leaf for leaf in nodes if self.uncommited_rec_status[leaf] == 0]
         if not available_leaves:
             return None
 
