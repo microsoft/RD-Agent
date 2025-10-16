@@ -1,5 +1,7 @@
 """
 Settings for RAG agent.
+
+TODO: how run the RAG mcp server
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
