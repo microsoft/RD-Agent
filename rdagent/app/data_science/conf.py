@@ -105,8 +105,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     scheduler_c_puct: float = 1.0
     """Exploration constant used by MCTSScheduler (PUCT)."""
 
-    enable_score_reward = False
-    
+    enable_score_reward: bool = False
+    """Enable using score-based reward for trace selection in multi-trace scheduling."""
 
 
     #### multi-trace:checkpoint selector
