@@ -425,8 +425,9 @@ class MCTSScheduler(ProbabilisticScheduler):
 
         id_list  = trace.get_parents(new_idx)
         for id in id_list:
-            self.node_value_sum[id] +=  float(reward)
-            self.node_visit_count[id] +=  1
+            self.node_value_sum[id] = self.node_value_sum.get(id, 0.0) + float(reward)
+            self.node_visit_count[id] = self.node_visit_count.get(id, 0) + 1
+
 
     def reset(self) -> None:
         """
