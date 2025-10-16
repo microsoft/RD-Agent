@@ -648,9 +648,12 @@ class DSProposalV2ExpGen(ExpGen):
         )
         
         # knowledge retrieval
-        rag_agent = RAGAgent()
-        knowledge = rag_agent.query(problem_formatted_str)
-        
+        if DS_RD_SETTING.enable_research_rag:
+            rag_agent = RAGAgent()
+            knowledge = rag_agent.query(problem_formatted_str)
+        else:
+            knowledge = None
+
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
             scenario_desc=scenario_desc,
             exp_and_feedback_list_desc=exp_feedback_list_desc,
