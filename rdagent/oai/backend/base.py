@@ -597,9 +597,12 @@ class APIBackend(ABC):
         new_messages = deepcopy(messages)
         # Loop to get a full response
         try_n = 6
+        # Before retry loop, initialize the flag
+        json_added = False
         for _ in range(try_n):  # for some long code, 3 times may not enough for reasoning models
-            if response_format == {"type": "json_object"} and add_json_in_prompt:
+            if response_format == {"type": "json_object"} and add_json_in_prompt and not json_added:
                 self._add_json_in_prompt(new_messages)
+                json_added = True
             response, finish_reason = self._create_chat_completion_inner_function(
                 messages=new_messages,
                 response_format=response_format,

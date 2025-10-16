@@ -1,24 +1,21 @@
+import argparse
 import os
+import random
 import sys
 import time
-import random
+
+import albumentations as A
+import cv2
 import numpy as np
 import pandas as pd
-
+import timm
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
-
-import timm
-import albumentations as A
 from albumentations.pytorch import ToTensorV2
-
+from sklearn.metrics import confusion_matrix, roc_auc_score
 from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import roc_auc_score, confusion_matrix
-
-import cv2
-import argparse
+from torch.utils.data import DataLoader, Dataset
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', action='store_true', help='Run in debug mode')
