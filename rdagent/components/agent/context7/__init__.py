@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic_ai.mcp import MCPServerStreamableHTTP
 
 from rdagent.components.agent.base import PAIAgent
-from rdagent.components.agent.mcp.context7 import SETTINGS
+from rdagent.components.agent.context7.conf import SETTINGS
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.agent.tpl import T
 

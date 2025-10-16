@@ -294,6 +294,11 @@ hypothesis_gen:
     # Identified Challenges{% if enable_idea_pool %} with Sampled Ideas{% endif %}
     {{ problems }}
 
+    {% if knowledge %}
+    # Some reference knowledge from the community
+    {{ knowledge }}
+    {% endif %}
+
 hypothesis_critique:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
