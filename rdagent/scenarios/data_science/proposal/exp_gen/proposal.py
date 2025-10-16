@@ -7,8 +7,9 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 from pydantic import BaseModel, Field
-from rdagent.components.agent.rag import Agent as RAGAgent
+
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.components.agent.rag import Agent as RAGAgent
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
@@ -630,7 +631,6 @@ class DSProposalV2ExpGen(ExpGen):
             problem_formatted_str += "\n\n"
         sibling_hypotheses = [exp.hypothesis for exp in sibling_exp] if sibling_exp else None
 
-
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             hypothesis_output_format=(
                 T(".prompts_v2:output_format.hypothesis").r(pipeline=pipeline, enable_idea_pool=enable_idea_pool)
@@ -646,7 +646,7 @@ class DSProposalV2ExpGen(ExpGen):
             sibling_hypotheses=sibling_hypotheses,
             former_user_instructions_str=str(former_user_instructions) if former_user_instructions else None,
         )
-        
+
         # knowledge retrieval
         if DS_RD_SETTING.enable_research_rag:
             rag_agent = RAGAgent()

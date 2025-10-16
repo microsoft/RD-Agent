@@ -15,4 +15,3 @@ class Agent(PAIAgent):
         if system_prompt is None:
             system_prompt = T(".prompts:system_prompt").r()
         super().__init__(system_prompt=system_prompt, toolsets=toolsets)
-
