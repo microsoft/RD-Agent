@@ -1449,12 +1449,13 @@ class DSProposalV2ExpGen(ExpGen):
         
         current_success_rate = next((rate for r, rate in successful_rates if r == current_parent_root), 0.0)
         if current_success_rate > 80 :
-            percentile=25
+            #percentile=25
             min_threshold=0.7
             all_scores = np.array([score for _, score in mean_scores])
             bigger_is_better = get_metric_direction(competition)
 
             if bigger_is_better:
+                percentile = 75
                 dynamic_threshold = max(np.percentile(all_scores, percentile), min_threshold)
                 root_score = next((score for root, score in mean_scores if root == current_parent_root), None)
                 if root_score is None or root_score < dynamic_threshold:
@@ -1462,6 +1463,7 @@ class DSProposalV2ExpGen(ExpGen):
                 else:
                     return "explore"
             else:
+                percentile = 25
                 dynamic_threshold = min(np.percentile(all_scores, 100 - percentile), 1 - min_threshold)
                 root_score = next((score for root, score in mean_scores if root == current_parent_root), None)
                 if root_score is None or root_score > dynamic_threshold:
