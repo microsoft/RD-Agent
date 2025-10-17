@@ -7,7 +7,9 @@ from tqdm import tqdm
 from rdagent.components.knowledge_management.graph import (
     UndirectedNode,  # TODO: add appendix attribute to node
 )
-from rdagent.components.knowledge_management.graph import UndirectedGraph
+from rdagent.components.knowledge_management.graph import (
+    UndirectedGraph,
+)
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
