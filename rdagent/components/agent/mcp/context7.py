@@ -8,7 +8,7 @@ You can follow the instructions to install it
     cd ~/tmp/context7
     npm install -g bun
     bun i && bun run build
-    bun run dist/index.js --transport http --port 8123 # > bun.out 2>&1 &
+    bun run dist/index.js --transport http --port 8124 # > bun.out 2>&1 &
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -17,8 +17,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Project specific settings."""
 
-    url: str = "http://localhost:8123/mcp"
+    url: str = "http://localhost:8124/mcp"
     timeout: int = 120
+    enable_cache: bool = False
+    # set CONTEXT7_ENABLE_CACHE=true in .env to enable cache
 
     model_config = SettingsConfigDict(
         env_prefix="CONTEXT7_",
