@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Dict
 
@@ -19,6 +20,7 @@ from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 
+logger = logging.getLogger(__name__)
 
 class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     def __init__(self, *args, **kwargs) -> None:
@@ -98,7 +100,6 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
         queried_similar_successful_knowledge_to_render = queried_similar_successful_knowledge
         queried_similar_error_knowledge_to_render = queried_similar_error_knowledge
-        # 动态地防止prompt超长
         for _ in range(10):  # max attempt to reduce the length of user_prompt
             # 总结error（可选）
             if (
@@ -164,10 +165,29 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             return ""  # return empty code if failed to get code after 10 attempts
 
     def assign_code_list_to_evo(self, code_list, evo):
+        for index in range(len(code_list)):
+            item = code_list[index]
+            if isinstance(item, str):
+                continue  # Already a string, skip
+            elif isinstance(item, dict):
+                code_str = item.get("factor.py") or item.get("code") or item.get("output") or item.get("content", "")
+                if isinstance(code_str, str):
+                    code_list[index] = code_str.strip()
+                    logger.info(f"Extracted code from dict at index {index} using key: {list(item.keys())}")
+                else:
+                    code_list[index] = "" 
+                    logger.warning(f"No valid str code in dict at index {index}: {item}")
+            elif item is None:
+                continue  
+            else:
+                logger.error(f"Invalid type at index {index}: {type(item)}")
+                code_list[index] = ""  
+        
         for index in range(len(evo.sub_tasks)):
-            if code_list[index] is None:
-                continue
+            if code_list[index] is None or code_list[index] == "":
+                continue 
             if evo.sub_workspace_list[index] is None:
                 evo.sub_workspace_list[index] = FactorFBWorkspace(target_task=evo.sub_tasks[index])
             evo.sub_workspace_list[index].inject_files(**{"factor.py": code_list[index]})
-        return evo
+        
+        return evo  

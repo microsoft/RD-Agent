@@ -1,13 +1,14 @@
 from typing import Union
-
+from pydantic_settings import BaseSettings
+from pydantic import ConfigDict  
 from rdagent.core.conf import ExtendedBaseSettings
-
 
 class CoSTEERSettings(ExtendedBaseSettings):
     """CoSTEER settings, this setting is supposed not to be used directly!!!"""
 
-    class Config:
-        env_prefix = "CoSTEER_"
+    model_config = ConfigDict(
+           env_prefix="CoSTEER_"
+    )
 
     coder_use_cache: bool = False
     """Indicates whether to use cache for the coder"""
@@ -38,5 +39,5 @@ class CoSTEERSettings(ExtendedBaseSettings):
 
     max_seconds_multiplier: int = 10**6
 
-
 CoSTEER_SETTINGS = CoSTEERSettings()
+   

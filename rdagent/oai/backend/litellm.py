@@ -12,7 +12,8 @@ from litellm import (
     supports_response_schema,
     token_counter,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from pydantic_settings import BaseSettings
 
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
@@ -31,14 +32,12 @@ def _reduce_no_init(exc: Exception) -> tuple:
 copyreg.pickle(BadRequestError, _reduce_no_init)
 
 
-class LiteLLMSettings(LLMSettings):
-
-    class Config:
-        env_prefix = "LITELLM_"
-        """Use `LITELLM_` as prefix for environment variables"""
-
-    # Placeholder for LiteLLM specific settings, so far it's empty
-
+class LiteLLMSettings(LLMSettings, BaseSettings):
+    """LiteLLM settings configuration."""
+    model_config = ConfigDict(
+        env_prefix = "LITELLM_",
+        extra = "ignore",
+    )
 
 LITELLM_SETTINGS = LiteLLMSettings()
 ACC_COST = 0.0
