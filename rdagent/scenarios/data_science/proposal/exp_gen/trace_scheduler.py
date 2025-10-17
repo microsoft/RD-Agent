@@ -408,15 +408,9 @@ class MCTSScheduler(ProbabilisticScheduler):
                 if DS_RD_SETTING.enable_score_reward:
                     bigger_is_better = get_metric_direction(trace.scen.competition)
                     if getattr(fb, "decision", False):
-                        if bigger_is_better:
-                            reward = math.tanh(re.result.loc["ensemble"].iloc[0].round(3))
-                        else:
-                            reward = -math.tanh(re.result.loc["ensemble"].iloc[0].round(3))
+                        reward = math.tanh(re.result.loc["ensemble"].iloc[0].round(3)) * (1 if bigger_is_better else -1)
                     else:
-                        if bigger_is_better:
-                            reward = -2
-                        else:
-                            reward = 2
+                        reward = -1 if bigger_is_better else 1
                 else:
                     reward = 1.0 if getattr(fb, "decision", False) else 0.0
             else:
