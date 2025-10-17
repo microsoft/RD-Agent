@@ -1,8 +1,3 @@
-import os
-
-# must set the environment variable before importing prefect
-os.environ["PREFECT_API_URL"] = "http://127.0.0.1:4200/api"
-
 import time
 import unittest
 
@@ -17,11 +12,6 @@ class PydanticTest(unittest.TestCase):
     1. Agent wraps query() with @task(cache_policy=INPUTS) when enable_cache=True
     2. First call: executes and caches to Prefect server
     3. Second call with same input: instant cache hit
-
-    Setup:
-    - Start Prefect server: `prefect server start`
-    - Set PREFECT_API_URL=http://127.0.0.1:4200/api
-    - Set CONTEXT7_ENABLE_CACHE=true (default)
     """
 
     def test_context7_cache(self):

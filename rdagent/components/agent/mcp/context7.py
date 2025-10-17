@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     url: str = "http://localhost:8124/mcp"
     timeout: int = 120
     enable_cache: bool = False
+    # set CONTEXT7_ENABLE_CACHE=true in .env to enable cache
 
     model_config = SettingsConfigDict(
         env_prefix="CONTEXT7_",
