@@ -16,6 +16,7 @@ from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
+from rdagent.core.experiment import UserInstructions
 from rdagent.core.proposal import ExpGen
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
@@ -618,6 +619,7 @@ class DSProposalV2ExpGen(ExpGen):
         inject_diverse: bool = False,
         exp_gen_plan: Optional[Dict] = None,
         sibling_exp: List[DSExperiment] | None = None,
+        former_user_instructions: UserInstructions | None = None,
     ) -> Dict:
         problem_formatted_str = ""
         for i, (problem_name, problem_dict) in enumerate(problems.items()):
@@ -642,6 +644,7 @@ class DSProposalV2ExpGen(ExpGen):
             generate_unique_hypothesis=DS_RD_SETTING.enable_generate_unique_hypothesis and is_new_tree,
             enable_simple_hypothesis=DS_RD_SETTING.enable_simple_hypothesis,
             sibling_hypotheses=sibling_hypotheses,
+            former_user_instructions_str=str(former_user_instructions) if former_user_instructions else None,
         )
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
             scenario_desc=scenario_desc,
@@ -766,6 +769,7 @@ class DSProposalV2ExpGen(ExpGen):
         sota_exp_desc: str,
         exp_feedback_list_desc: str,
         sibling_exp: List[DSExperiment] | None = None,
+        former_user_instructions: UserInstructions | None = None,
     ) -> Dict:
         """
         Generate improved hypotheses based on critique feedback for each original hypothesis.
@@ -800,6 +804,7 @@ class DSProposalV2ExpGen(ExpGen):
             ),
             enable_scale_check=DS_RD_SETTING.enable_scale_check,
             sibling_hypotheses=sibling_hypotheses,
+            former_user_instructions_str=str(former_user_instructions) if former_user_instructions else None,
         )
         user_prompt = T(".prompts_v2:hypothesis_rewrite.user").r(
             scenario_desc=scenario_desc,
@@ -1173,10 +1178,12 @@ class DSProposalV2ExpGen(ExpGen):
         sota_exp_desc: str,
         sota_exp: DSExperiment,
         hypotheses: list[DSHypothesis],
+        hypotheses_candidates: list[DSHypothesis],
         pipeline: bool,
         failed_exp_feedback_list_desc: str,
         fb_to_sota_exp: ExperimentFeedback | None = None,
         sibling_exp: List[DSExperiment] | None = None,
+        former_user_instructions: UserInstructions = None,
     ) -> DSExperiment:
         if pipeline:
             component_info = get_component("Pipeline")
@@ -1193,6 +1200,7 @@ class DSProposalV2ExpGen(ExpGen):
             metric_name=self.scen.metric_name,
             sibling_tasks=sibling_tasks,
             fix_seed_and_data_split=DS_RD_SETTING.fix_seed_and_data_split,
+            former_user_instructions_str=str(former_user_instructions) if former_user_instructions else None,
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,
@@ -1266,6 +1274,10 @@ class DSProposalV2ExpGen(ExpGen):
                 description=task_dict.get("workflow_update", "No update needed"),
             )
             exp.pending_tasks_list.append([workflow_task])
+
+        # 4) set user instructions
+        if former_user_instructions is not None:
+            exp.set_user_instructions(former_user_instructions)
         return exp
 
     def get_all_hypotheses(self, problem_dict: dict, hypothesis_dict: dict) -> list[DSHypothesis]:
@@ -1328,12 +1340,17 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         # all failed exp and feedbacks
+        failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")
         failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
+            exp_and_feedback_list=failed_exp_feedback_list,
             type="failed",
             pipeline=pipeline,
         )
-        #
+        if len(failed_exp_feedback_list) == 0:
+            former_user_instructions = None
+        else:
+            former_user_instructions = failed_exp_feedback_list[-1][0].user_instructions
+
         # NOTE: we currently don't support inject diverse problems for the parallel + multi-trace mode,
         if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
             if len(trace.current_selection) == 0:
@@ -1384,6 +1401,7 @@ class DSProposalV2ExpGen(ExpGen):
             exp_gen_plan=plan.get("exp_gen") if plan else None,
             is_new_tree=is_new_tree,
             sibling_exp=sibling_exp,
+            former_user_instructions=former_user_instructions,
         )
         if not pipeline:
             sota_exp_model_file_count = len(
@@ -1428,6 +1446,7 @@ class DSProposalV2ExpGen(ExpGen):
                     sota_exp_desc=sota_exp_desc,
                     exp_feedback_list_desc=exp_feedback_list_desc,
                     sibling_exp=sibling_exp,
+                    former_user_instructions=former_user_instructions,
                 )
                 logger.info(f"Successfully completed hypothesis critique and rewrite process")
             except Exception as e:
@@ -1467,10 +1486,14 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
             hypotheses=(
-                [new_hypothesis] if len(trace.hist) > 0 else self.get_all_hypotheses(all_problems, hypothesis_dict)
+                [new_hypothesis]
+                if not trace.is_selection_new_tree()
+                else self.get_all_hypotheses(all_problems, hypothesis_dict)
             ),
+            hypotheses_candidates=self.get_all_hypotheses(all_problems, hypothesis_dict),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
             fb_to_sota_exp=fb_to_sota_exp,
             sibling_exp=sibling_exp,
+            former_user_instructions=former_user_instructions,
         )

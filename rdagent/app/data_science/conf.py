@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 
 from pydantic_settings import SettingsConfigDict
@@ -20,6 +21,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     planner: str = "rdagent.scenarios.data_science.proposal.exp_gen.planner.DSExpPlannerHandCraft"
     hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.router.ParallelMultiTraceExpGen"
+    interactor: str = "rdagent.components.interactor.SkipInteractor"
     trace_scheduler: str = "rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler.RoundRobinScheduler"
     """Hypothesis generation class"""
 
@@ -98,6 +100,13 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     scheduler_temperature: float = 1.0
     """The temperature for the trace scheduler for softmax calculation, used in ProbabilisticScheduler"""
+
+    # PUCT exploration constant for MCTSScheduler (ignored by other schedulers)
+    scheduler_c_puct: float = 1.0
+    """Exploration constant used by MCTSScheduler (PUCT)."""
+
+    enable_score_reward: bool = False
+    """Enable using score-based reward for trace selection in multi-trace scheduling."""
 
     #### multi-trace:checkpoint selector
     selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.select.expand.LatestCKPSelector"
@@ -185,6 +194,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     fix_seed_and_data_split: bool = False
 
     ensemble_time_upper_bound: bool = False
+
+    user_interaction_wait_seconds: int = 6000  # seconds to wait for user interaction
+    user_interaction_mid_folder: Path = Path.cwd() / "git_ignore_folder" / "RD-Agent_user_interaction"
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()
