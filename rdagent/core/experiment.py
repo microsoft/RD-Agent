@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generic, List, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
@@ -48,12 +48,11 @@ class AbsTask(ABC):
         """
 
 
-class UserInstructions(List[str]):
+class UserInstructions(list[str]):
     def __str__(self) -> str:
         if self:
             return ("\nUser Instructions (Top priority!):\n" + "\n".join(f"- {ui}" for ui in self)) if self else ""
-        else:
-            return ""
+        return ""
 
 
 class Task(AbsTask):
@@ -69,7 +68,7 @@ class Task(AbsTask):
         self.user_instructions = user_instructions
 
     def get_task_information(self) -> str:
-        return f"Task Name: {self.name}\nDescription: {self.description}{str(self.user_instructions)}"
+        return f"Task Name: {self.name}\nDescription: {self.description}{self.user_instructions!s}"
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.name}>"
