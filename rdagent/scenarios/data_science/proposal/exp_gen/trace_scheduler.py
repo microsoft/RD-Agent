@@ -393,7 +393,7 @@ class MCTSScheduler(ProbabilisticScheduler):
 
         return (best_leaf,)
 
-    def observe_feedback(self, trace: DSTrace, new_idx: int, reward: float | None = None) -> None:
+    def observe_feedback(self, trace: DSTrace, new_idx: int) -> None:
         """
         Update statistics after an experiment is committed to the trace.
 
@@ -402,21 +402,16 @@ class MCTSScheduler(ProbabilisticScheduler):
             new_idx: Index of the newly appended experiment in trace.hist.
             reward: Optional explicit reward. If None, derive from feedback.decision (1.0/0.0).
         """
-        if reward is None:
-            if 0 <= new_idx < len(trace.hist):
-                re, fb = trace.hist[new_idx]
-                if DS_RD_SETTING.enable_score_reward:
-                    bigger_is_better = get_metric_direction(trace.scen.competition)
-                    if getattr(fb, "decision", False):
-                        reward = math.tanh(re.result.loc["ensemble"].iloc[0].round(3)) * (1 if bigger_is_better else -1)
-                    else:
-                        reward = -1 if bigger_is_better else 1
-                else:
-                    reward = 1.0 if getattr(fb, "decision", False) else 0.0
-            else:
-                # Out-of-range safety
-                reward = 0.0
 
+        re, fb = trace.hist[new_idx]
+        if DS_RD_SETTING.enable_score_reward:
+            bigger_is_better = get_metric_direction(trace.scen.competition)
+            if getattr(fb, "decision", False):
+                reward = math.tanh(re.result.loc["ensemble"].iloc[0].round(3)) * (1 if bigger_is_better else -1)
+            else:
+                reward = -1 if bigger_is_better else 1
+        else:
+            reward = 1.0 if getattr(fb, "decision", False) else 0.0
         id_list = trace.get_parents(new_idx)
         for id in id_list:
             self.node_value_sum[id] = self.node_value_sum.get(id, 0.0) + float(reward)
