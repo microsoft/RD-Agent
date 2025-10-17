@@ -7,9 +7,11 @@ from rdagent.utils.env import (
     DockerEnv,
     DSDockerConf,
     Env,
+    LocalConf,
     LocalEnv,
     MLEBDockerConf,
     MLECondaConf,
+    get_virtual_env_bin_path,
 )
 
 
@@ -65,6 +67,9 @@ def get_ds_env(
                 CondaConf(conda_env_name=conf_type) if conf_type == "kaggle" else MLECondaConf(conda_env_name=conf_type)
             )
         )
+    elif conf.env_type == "local":
+        # add virtual env bin path in case we are using a virtual env
+        env = LocalEnv(conf=LocalConf(default_entry="python main.py", bin_path=get_virtual_env_bin_path()))
     else:
         raise ValueError(f"Unknown env type: {conf.env_type}")
     env.conf.extra_volumes = extra_volumes.copy()

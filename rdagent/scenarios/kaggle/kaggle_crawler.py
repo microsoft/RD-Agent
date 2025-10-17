@@ -1,6 +1,7 @@
 # %%
 import bisect
 import json
+import os
 import shutil
 import subprocess
 import tarfile
@@ -10,11 +11,6 @@ from itertools import chain
 from pathlib import Path
 
 import nbformat
-from rich import print
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.exception import KaggleError
 from rdagent.core.utils import cache_with_pickle
@@ -23,6 +19,35 @@ from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.debug.data import create_debug_data
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import MLEBDockerEnv
+from rich import print
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+
+
+# %%
+def get_chromedriver_path() -> str:
+    default_chrome_path = "/usr/local/bin/chromedriver"
+
+    # find by default first
+    if os.path.exists(default_chrome_path):
+        return default_chrome_path
+
+    # find in current dir for executable
+    # for windows
+    if os.path.exists("chromedriver.exe"):
+        return "chromedriver.exe"
+
+    # for mac and linux
+    if os.path.exists("chromedriver"):
+        return "chromedriver"
+
+    # from environment variable
+    if (chrome_path := os.environ.get("RD_CHROMEDRIVER_PATH", None)) is not None:
+        return chrome_path
+
+    raise RuntimeError("Cannot find chromedriver")
+
 
 # %%
 options = webdriver.ChromeOptions()
@@ -30,12 +55,10 @@ options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--headless")
 
-service = Service("/usr/local/bin/chromedriver")
+service = Service(get_chromedriver_path())
 
 
-def crawl_descriptions(
-    competition: str, local_data_path: str, wait: float = 3.0, force: bool = False
-) -> dict[str, str] | str:
+def crawl_descriptions(competition: str, local_data_path: str, wait: float = 3.0, force: bool = False) -> dict[str, str] | str:
     if (fp := Path(f"{local_data_path}/{competition}/description.md")).exists() and not force:
         logger.info(f"Found {competition}/description.md, loading from it.")
         return fp.read_text()
@@ -129,9 +152,7 @@ def download_data(competition: str, settings: ExtendedBaseSettings, enable_creat
 
             mleb_env = MLEBDockerEnv()
             mleb_env.prepare()
-            mleb_env.check_output(
-                f"cp -r ./zip_files/{competition}/prepared/public/* ./{competition}", local_path=local_path
-            )
+            mleb_env.check_output(f"cp -r ./zip_files/{competition}/prepared/public/* ./{competition}", local_path=local_path)
 
             for zip_path in competition_local_path.rglob("*.zip"):
                 with zipfile.ZipFile(zip_path, "r") as zip_ref:

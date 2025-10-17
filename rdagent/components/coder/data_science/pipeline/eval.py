@@ -2,11 +2,11 @@
 # (GPT) if it aligns with the spec & rationality of the spec.
 import json
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
-
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.agent.context7 import Agent as DocAgent
 from rdagent.components.coder.CoSTEER import CoSTEERMultiFeedback
@@ -25,6 +25,7 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.test_eval import get_test_eval
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
+from rdagent.utils.env import LocalEnv
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -72,12 +73,16 @@ class DSCoderFeedback(CoSTEERSingleFeedback):
         base_str = super().__str__()
 
         if self.requires_documentation_search is not None:
-            base_str += f"-------------------Documentation Search Required------------------\n{self.requires_documentation_search}\n"
+            base_str += (
+                f"-------------------Documentation Search Required------------------\n{self.requires_documentation_search}\n"
+            )
 
         if self.error_message is not None:
             # Check if error_message contains Context7 documentation results
             if "### API Documentation Reference:" in self.error_message:
-                base_str += f"-------------------Error Analysis & Documentation Search Results ------------------\n{self.error_message}\n"
+                base_str += (
+                    f"-------------------Error Analysis & Documentation Search Results ------------------\n{self.error_message}\n"
+                )
             else:
                 base_str += f"-------------------Error Message------------------\n{self.error_message}\n"
 
@@ -121,7 +126,6 @@ PipelineMultiFeedback = CoSTEERMultiFeedback
 
 
 class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
-
     def evaluate(
         self,
         target_task: Task,
@@ -130,12 +134,8 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         queried_knowledge: CoSTEERQueriedKnowledgeV2 = None,
         **kwargs,
     ) -> PipelineSingleFeedback:
-
         target_task_information = target_task.get_task_information()
-        if (
-            queried_knowledge is not None
-            and target_task_information in queried_knowledge.success_task_to_knowledge_dict
-        ):
+        if queried_knowledge is not None and target_task_information in queried_knowledge.success_task_to_knowledge_dict:
             return queried_knowledge.success_task_to_knowledge_dict[target_task_information].feedback
         elif queried_knowledge is not None and target_task_information in queried_knowledge.failed_task_info_set:
             return PipelineSingleFeedback(
@@ -154,15 +154,21 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
         stdout = ""
         implementation.execute(env=env, entry=get_clear_ws_cmd())
+
+        entry = "strace -e trace=file -f -o trace.log python -m coverage run main.py"
+
+        if isinstance(env, LocalEnv) and sys.platform == "darwin":
+            # on macos, no strace tool, and dtruss need a root permission (also need disable SIP to get more info).
+            # though ktrace can get more info, but it's not very useful for this case
+            # so we use use python -v to get verbose info instead of strace
+            entry = "python -m coverage run main.py"
+
         if DS_RD_SETTING.sample_data_by_LLM:
             # Because coder runs on full data, we need to run debug mode in advance to save time
-            result = implementation.run(
-                env=env, entry=f"strace -e trace=file -f -o trace.log python -m coverage run main.py --debug"
-            )
-        else:
-            result = implementation.run(
-                env=env, entry=f"strace -e trace=file -f -o trace.log python -m coverage run main.py"
-            )
+            entry = f"{entry} --debug"
+
+        result = implementation.run(env=env, entry=entry)
+
         result_stdout = result.get_truncated_stdout()
 
         nb_conversion_ret_code = 0
@@ -242,11 +248,15 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 # Check if scores contain NaN (values)
                 if score_df.isnull().values.any():
                     nan_locations = score_df[score_df.isnull().any(axis=1)]
-                    score_check_text += f"\n[Error] The scores dataframe contains NaN values at the following locations:\n{nan_locations}"
+                    score_check_text += (
+                        f"\n[Error] The scores dataframe contains NaN values at the following locations:\n{nan_locations}"
+                    )
                     score_ret_code = 1
 
             except Exception as e:
-                score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
+                score_check_text += (
+                    f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
+                )
                 score_ret_code = 1
 
         test_eval = get_test_eval()
@@ -339,9 +349,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             wfb.return_checking += "\nSubmission file check failed."
         if sample_submission_check is False and wfb.final_decision is True:
             wfb.final_decision = False
-            wfb.return_checking += (
-                "\nSample submission file check failed. Code should not open the sample submission file."
-            )
+            wfb.return_checking += "\nSample submission file check failed. Code should not open the sample submission file."
         if nb_conversion_ret_code != 0 and wfb.final_decision is True:
             wfb.final_decision = False
             wfb.return_checking += "\n" + nb_conversion_check_text

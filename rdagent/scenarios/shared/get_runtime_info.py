@@ -1,7 +1,9 @@
+import sys
+import warnings
 from pathlib import Path
 
 from rdagent.core.experiment import FBWorkspace
-from rdagent.utils.env import Env
+from rdagent.utils.env import Env, LocalEnv
 
 
 def get_runtime_environment_by_env(env: Env) -> str:
@@ -17,7 +19,11 @@ def check_runtime_environment(env: Env) -> str:
     # 1) Check if strace exists in env
     strace_check = implementation.execute(env=env, entry="which strace || echo MISSING").strip()
     if strace_check.endswith("MISSING"):
-        raise RuntimeError("`strace` not found in the target environment.")
+        if isinstance(env, LocalEnv) and sys.platform == "darwin":
+            # NOTE: since macos does not have strace, and dtruss need a root permission, we just ignore it
+            warnings.warn("`strace` not support macOS, the final result may be different.", stacklevel=1)
+        else:
+            raise RuntimeError("`strace` not found in the target environment.")
 
     # 2) Check if coverage module works in env
     coverage_check = implementation.execute(env=env, entry="python -m coverage --version || echo MISSING").strip()

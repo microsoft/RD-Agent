@@ -11,12 +11,13 @@ import contextlib
 import json
 import os
 import pickle
-import re
 import select
 import shutil
 import subprocess
+import sys
 import time
 import uuid
+import warnings
 import zipfile
 from abc import abstractmethod
 from dataclasses import dataclass
@@ -28,15 +29,8 @@ import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
 import docker.models.containers  # type: ignore[import-untyped]
 import docker.types  # type: ignore[import-untyped]
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 from pydantic_settings import SettingsConfigDict
-from rich import print
-from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich.rule import Rule
-from rich.table import Table
-from tqdm import tqdm
-
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.experiment import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
@@ -45,6 +39,12 @@ from rdagent.utils import filter_redundant_text
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.fmt import shrink_text
 from rdagent.utils.workflow import wait_retry
+from rich import print
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.rule import Rule
+from rich.table import Table
+from tqdm import tqdm
 
 
 def cleanup_container(container: docker.models.containers.Container | None, context: str = "") -> None:  # type: ignore[no-any-unimported]
@@ -116,6 +116,16 @@ def pull_image_with_progress(image: str) -> None:
 
     for pb in progress_bars.values():
         pb.close()
+
+
+def get_virtual_env_bin_path() -> str:
+    # NOTE: This method use 'VIRTUAL_ENV' environment variable to get the path of the virtual environment, so it may not work in some cases.
+    venv_root = os.environ.get("VIRTUAL_ENV", None)
+
+    if venv_root is not None:
+        return os.path.join(venv_root, "bin")
+
+    return ""
 
 
 class EnvConf(ExtendedBaseSettings):
@@ -314,7 +324,15 @@ class Env(Generic[ASpecificEnvConf]):
         if self.conf.running_timeout_period is None:
             timeout_cmd = entry
         else:
-            timeout_cmd = f"timeout --kill-after=10 {self.conf.running_timeout_period} {entry}"
+            timeout_cli = "timeout"  # default on linux
+
+            if sys.platform == "darwin":
+                # macOS uses gtimeout
+                timeout_cli = "gtimeout"
+
+                warnings.warn("On macOS, using 'brew install coreutils' to get 'gtimeout'.", stacklevel=1)
+
+            timeout_cmd = f"{timeout_cli} --kill-after=10 {self.conf.running_timeout_period} {entry}"
         entry_add_timeout = (
             f"/bin/sh -c '"  # start of the sh command
             + f"{timeout_cmd}; entry_exit_code=$?; "
@@ -521,7 +539,13 @@ class LocalEnv(Env[ASpecificLocalConf]):
             # Setup environment
             if env is None:
                 env = {}
-            path = [*self.conf.bin_path.split(":"), "/bin/", "/usr/bin/", *env.get("PATH", "").split(":")]
+            path = [
+                *self.conf.bin_path.split(":"),
+                "/bin/",
+                "/usr/bin/",
+                "/opt/homebrew/bin",
+                *env.get("PATH", "").split(":"),
+            ]
             env["PATH"] = ":".join(path)
 
             if entry is None:
