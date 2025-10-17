@@ -21,6 +21,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.planner import (
 )
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler import (
+    MCTSScheduler,
     RoundRobinScheduler,
     SOTABasedScheduler,
     TraceScheduler,
@@ -62,6 +63,9 @@ class ParallelMultiTraceExpGen(ExpGen):
         raise NotImplementedError(
             "ParallelMultiTraceExpGen is designed for async usage, please call async_gen instead."
         )
+
+    def reset(self) -> None:
+        self.trace_scheduler.reset()
 
     async def async_gen(self, trace: DSTrace, loop: LoopBase) -> DSExperiment:
         """

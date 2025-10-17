@@ -325,6 +325,14 @@ class ExpGen(ABC):
                 return self.gen(trace)
             await asyncio.sleep(1)
 
+    def reset(self) -> None:
+        """
+        Reset the proposal to the initial state.
+        Sometimes the main loop may want to reset the whole process to the initial state.
+        Default implementation does nothing; override in subclasses if needed.
+        """
+        return
+
 
 class HypothesisGen(ABC):
 
