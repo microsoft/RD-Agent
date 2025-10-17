@@ -149,6 +149,8 @@ class LiteLLMAPIBackend(APIBackend):
             logger.info(self._build_log_messages(messages), tag="llm_messages")
 
         complete_kwargs = self.get_complete_kwargs()
+        if kwargs.get("model"):
+            complete_kwargs["model"] = kwargs.get("model")
         model = complete_kwargs["model"]
 
         response = completion(

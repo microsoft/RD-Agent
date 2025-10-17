@@ -302,6 +302,19 @@ class CodingSketch(BaseModel):
     )
 
 
+class HypothesisReview(BaseModel):
+    acceptable: str = Field(description="yes or no")
+    reason: str = Field(
+        description="Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences."
+    )
+    observations: str = Field(
+        description="Clearly summarize current and SOTA ensemble results with exact scores and notable patterns. Limit to no more than three concise, data-focused sentences. Your observation must be grounded by explicit evidence from scenario description or code implementation, not just validation scores."
+    )
+    feedback: str = Field(
+        description="Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences."
+    )
+
+
 def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None | DSDraftExpGen:
     next_missing_component = trace.next_incomplete_component()
     if next_missing_component is not None:
@@ -1144,6 +1157,47 @@ class DSProposalV2ExpGen(ExpGen):
 
     # END: for support llm-based hypothesis selection  -----
 
+    @wait_retry(retry_n=5)
+    def hypothesis_review(
+        self,
+        hypothesis_candidates: dict,
+    ):
+        """
+        Selects the best hypothesis by scoring each candidate using a local model.
+
+        Args:
+            hypothesis_candidates: A dictionary where keys are hypothesis IDs and
+                                values are dicts containing 'hypothesis',
+                                'component', and 'code'.
+
+        Returns:
+            The dictionary of the selected hypothesis.
+        """
+        if not hypothesis_candidates:
+            raise ValueError("Hypothesis candidates cannot be empty.")
+
+        result_with_scores = ()
+        for i, (problem_name, data) in enumerate(hypothesis_candidates.items()):
+            component = data.get("component")
+            hypothesis = data.get("hypothesis")
+            if component is None or hypothesis is None:
+                continue
+            hypotheses_formatted = ""
+            problem_info = problems_dict.get(problem_name, {})
+            hypotheses_formatted += f"## Hypothesis {i+1}\n"
+            hypotheses_formatted += f"**Problem Name:** {problem_name}\n"
+            hypotheses_formatted += f"**Original Problem:** {problem_info.get('problem', 'N/A')}\n"
+            hypotheses_formatted += f"**Component:** {component}\n"
+            hypotheses_formatted += f"**Hypothesis:** {hypothesis}\n"
+            hypotheses_formatted += f"**Reason:** {data.get('reason', 'N/A')}\n\n"
+            response = APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=hypotheses_formatted,
+                system_prompt=T(".prompts_v2:hypotheses_decide.system").r(),
+                system_prompt_role="assistant",
+                model=DS_RD_SETTING.lite_model,
+            )
+            hypothesis_candidates[problem_name]["review"] = response
+
     def hypothesis_rank(
         self, hypothesis_dict: dict, problem_dict: dict, selected_idx: Optional[int] = None
     ) -> Tuple[str, DSHypothesis]:
@@ -1446,6 +1500,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         # Step 3: Select the best hypothesis
         if DS_RD_SETTING.llm_select_hypothesis:
+            self.hypothesis_review(hypothesis_dict)
             response_dict = self.hypothesis_select_with_llm(
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
