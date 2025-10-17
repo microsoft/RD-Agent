@@ -1183,7 +1183,7 @@ class DSProposalV2ExpGen(ExpGen):
             if component is None or hypothesis is None:
                 continue
             hypotheses_formatted = ""
-            problem_info = problems_dict.get(problem_name, {})
+            problem_info = hypothesis_candidates.get(problem_name, {})
             hypotheses_formatted += f"## Hypothesis {i+1}\n"
             hypotheses_formatted += f"**Problem Name:** {problem_name}\n"
             hypotheses_formatted += f"**Original Problem:** {problem_info.get('problem', 'N/A')}\n"
