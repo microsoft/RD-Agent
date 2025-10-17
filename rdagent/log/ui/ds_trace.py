@@ -14,6 +14,9 @@ from litellm import get_valid_models
 from streamlit import session_state as state
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
+
+# Import necessary classes for the response format
+from rdagent.components.coder.data_science.pipeline.eval import DSCoderFeedback
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.utils import (
@@ -32,8 +35,6 @@ from rdagent.log.utils import (
 )
 from rdagent.oai.backend.litellm import LITELLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
-
-# Import necessary classes for the response format
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import (
     CodingSketch,
     HypothesisList,
