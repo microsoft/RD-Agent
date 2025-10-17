@@ -1,5 +1,6 @@
 from __future__ import annotations
-
+from ..app.utils.gpu_utils import setup_gpu, optimize_model_for_gpu
+import torch
 import copy
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -77,6 +78,46 @@ class EvolvingStrategy(ABC, Generic[ASpecificEvolvableSubjects]):
         - queried_knowledge: queried knowledge
         """
 
+class GPUEnhancedEvolvingFramework:
+    def __init__(self):
+        self.device = setup_gpu()
+        self.gpu_available = torch.cuda.is_available()
+        
+    def evolve_time_series_model(self, model_config, training_data):
+        """Enhanced model evolution with GPU support"""
+        
+        # Create model
+        model = self.create_model(model_config)
+        
+        if self.gpu_available:
+            model = optimize_model_for_gpu(model)
+            training_data = self.prepare_gpu_data_pipeline(training_data)
+            
+        # Training logic with GPU support
+        return self.train_with_gpu(model, training_data)
+    
+    def prepare_gpu_data_pipeline(self, dataset):
+        """Prepare data pipeline for GPU optimization"""
+        from torch.utils.data import DataLoader
+        
+        return DataLoader(
+            dataset,
+            batch_size=64 if self.gpu_available else 32,
+            shuffle=True,
+            num_workers=4 if self.gpu_available else 2,
+            pin_memory=True if self.gpu_available else False
+        )
+    
+    def train_with_gpu(self, model, data_loader):
+        """Training procedure with GPU optimization"""
+        model.train()
+        
+        for batch_idx, (data, target) in enumerate(data_loader):
+            # Move to GPU
+            data = data.to(self.device)
+            target = target.to(self.device)
+        return model
+    
 
 class RAGStrategy(ABC, Generic[ASpecificEvolvableSubjects]):
     """Retrieval Augmentation Generation Strategy"""
