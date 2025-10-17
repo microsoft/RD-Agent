@@ -362,7 +362,7 @@ class MCTSScheduler(ProbabilisticScheduler):
             return trace.NEW_ROOT
 
         # Step 2: consider only available leaves (not being expanded)
-        available_leaves =  list(set(range(len(trace.hist))))
+        available_leaves = list(set(range(len(trace.hist))))
         if not available_leaves:
             return None
 
@@ -404,30 +404,29 @@ class MCTSScheduler(ProbabilisticScheduler):
         """
         if reward is None:
             if 0 <= new_idx < len(trace.hist):
-                 re, fb = trace.hist[new_idx]
-                 if DS_RD_SETTING.enable_score_reward:
+                re, fb = trace.hist[new_idx]
+                if DS_RD_SETTING.enable_score_reward:
                     bigger_is_better = get_metric_direction(trace.scen.competition)
                     if getattr(fb, "decision", False):
                         if bigger_is_better:
                             reward = math.tanh(re.result.loc["ensemble"].iloc[0].round(3))
                         else:
-                            reward = - math.tanh(re.result.loc["ensemble"].iloc[0].round(3))
+                            reward = -math.tanh(re.result.loc["ensemble"].iloc[0].round(3))
                     else:
                         if bigger_is_better:
                             reward = -2
                         else:
                             reward = 2
-                 else:
+                else:
                     reward = 1.0 if getattr(fb, "decision", False) else 0.0
             else:
-                    # Out-of-range safety
+                # Out-of-range safety
                 reward = 0.0
 
-        id_list  = trace.get_parents(new_idx)
+        id_list = trace.get_parents(new_idx)
         for id in id_list:
             self.node_value_sum[id] = self.node_value_sum.get(id, 0.0) + float(reward)
             self.node_visit_count[id] = self.node_visit_count.get(id, 0) + 1
-
 
     def reset(self) -> None:
         """

@@ -108,7 +108,6 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_score_reward: bool = False
     """Enable using score-based reward for trace selection in multi-trace scheduling."""
 
-
     #### multi-trace:checkpoint selector
     selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.select.expand.LatestCKPSelector"
     """The name of the selector to use"""
