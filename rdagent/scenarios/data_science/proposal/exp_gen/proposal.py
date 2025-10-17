@@ -1448,7 +1448,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         
         current_success_rate = next((rate for r, rate in successful_rates if r == current_parent_root), 0.0)
-        if current_success_rate > 80 :
+        if current_success_rate > 50 :
             #percentile=25
             min_threshold=0.7
             all_scores = np.array([score for _, score in mean_scores])

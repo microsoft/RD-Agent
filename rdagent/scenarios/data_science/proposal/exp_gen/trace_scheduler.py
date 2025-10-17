@@ -77,78 +77,38 @@ class BaseScheduler(TraceScheduler):
         raise NotImplementedError
 
 
-# class RoundRobinScheduler(BaseScheduler):
-#     """
-#     A concurrency-safe scheduling strategy that cycles through active traces
-#     in a round-robin fashion.
-
-#     NOTE: we don't need to use asyncio.Lock here as the kickoff_loop ensures the ExpGen is always sequential, instead of parallel.
-#     """
-
-#     def __init__(self, max_trace_num: int, *args, **kwargs):
-#         logger.info(f"RoundRobinScheduler: max_trace_num={max_trace_num}")
-#         self.max_trace_num = max_trace_num
-#         self._last_selected_leaf_id = -1
-#         super().__init__()
-
-#     def select(self, trace: DSTrace) -> tuple[int, ...] | None:
-#         """
-#         Atomically selects the next leaf node from the trace in order.
-#         If no suitable selection is found, return None.
-#         """
-#         # Policy: if we have fewer traces than our target, start a new one.
-#         if trace.sub_trace_count + self.uncommited_rec_status[trace.NEW_ROOT] < self.max_trace_num:
-#             return trace.NEW_ROOT
-
-#         # Step2: suggest a selection to a not expanding leave
-#         leaves = trace.get_leaves()
-#         for leaf in leaves:
-#             if self.uncommited_rec_status[leaf] == 0:
-#                 return (leaf,)
-
-#         return None
-
 class RoundRobinScheduler(BaseScheduler):
     """
-    A concurrency-safe round-robin scheduling strategy that cycles through
-    active trace leaves in order.
+    A concurrency-safe scheduling strategy that cycles through active traces
+    in a round-robin fashion.
 
-    NOTE: We don't use asyncio.Lock here because kickoff_loop ensures
-    sequential execution, not parallel.
+    NOTE: we don't need to use asyncio.Lock here as the kickoff_loop ensures the ExpGen is always sequential, instead of parallel.
     """
 
     def __init__(self, max_trace_num: int, *args, **kwargs):
         logger.info(f"RoundRobinScheduler: max_trace_num={max_trace_num}")
         self.max_trace_num = max_trace_num
-        self._last_selected_index = -1   # pointer to the last selected leaf index
+        self._last_selected_leaf_id = -1
         super().__init__()
 
     def select(self, trace: DSTrace) -> tuple[int, ...] | None:
         """
-        Selects the next leaf node in a round-robin manner.
-        If there are fewer active traces than the max_trace_num, start a new one.
+        Atomically selects the next leaf node from the trace in order.
+        If no suitable selection is found, return None.
         """
-        # Step 1: start a new trace if possible
+        # Policy: if we have fewer traces than our target, start a new one.
         if trace.sub_trace_count + self.uncommited_rec_status[trace.NEW_ROOT] < self.max_trace_num:
             return trace.NEW_ROOT
 
-        # Step 2: get all leaves
+        # Step2: suggest a selection to a not expanding leave
         leaves = trace.get_leaves()
-        n = len(leaves)
-        if n == 0:
-            return None
-
-        # Step 3: round-robin scan for an available leaf
-        start_idx = (self._last_selected_index + 1) % n
-        for i in range(n):
-            idx = (start_idx + i) % n
-            leaf = leaves[idx]
+        for leaf in leaves:
             if self.uncommited_rec_status[leaf] == 0:
-                self._last_selected_index = idx
                 return (leaf,)
 
-        # Step 4: if all leaves are busy
         return None
+
+
 
 # ======================================================================================
 # Probabilistic Scheduler and its potential functions
