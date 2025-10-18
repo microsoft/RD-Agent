@@ -150,8 +150,9 @@ class LiteLLMAPIBackend(APIBackend):
 
         complete_kwargs = self.get_complete_kwargs()
         if kwargs.get("model"):
-            complete_kwargs['model'] = kwargs.get("model")
-        model = complete_kwargs['model']
+            complete_kwargs['model'] = kwargs.pop("model")
+            complete_kwargs['reasoning_effort'] = None
+        model = complete_kwargs.get("model")
         print(F"complete_kwargs: {complete_kwargs}")
         print(F"kwargs: {kwargs}")
 
