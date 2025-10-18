@@ -635,17 +635,6 @@ hypothesis_select:
     Please response in json format.
     {% endif %}
 
-  hypotheses_decide:
-    system: |-
-      {% include "scenarios.data_science.share:scen.role" %}
-      Please estimate the expected feedback from the real experiment based on the input hypothesis, using the json format provided below:
-      {
-          "acceptable": "yes or no",
-          "reason": "Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences.",
-          "observations": "Clearly summarize current and SOTA ensemble results with exact scores and notable patterns. Limit to no more than three concise, data-focused sentences. Your observation must be grounded by explicit evidence from scenario description or code implementation, not just validation scores.",
-          "feedback": "Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences."
-      }
-
   user: |-
     # Scenario Description
     {{ scenario_desc }}
@@ -656,6 +645,16 @@ hypothesis_select:
     # Current SOTA Implementation
     {{ sota_exp_desc }}
 
+hypotheses_decide:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    Please estimate the expected feedback from the real experiment based on the input hypothesis, using the json format provided below:
+    {
+        "acceptable": "yes or no",
+        "reason": "Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences.",
+        "observations": "Clearly summarize current and SOTA ensemble results with exact scores and notable patterns. Limit to no more than three concise, data-focused sentences. Your observation must be grounded by explicit evidence from scenario description or code implementation, not just validation scores.",
+        "feedback": "Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences."
+    }
 
 task_gen:
   system: |-
