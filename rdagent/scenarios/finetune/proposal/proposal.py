@@ -174,63 +174,62 @@ class LLMFinetuneExpGen(ExpGen):
         else:
             template_context["specified_model"] = specified_model
 
-        try:
-            # Use template system for prompts
-            # TODO: dicide more
-            # TODO: separate first loop and other loop(need to get previous feedback)
-            system_prompt = T(".prompts:hypothesis_gen.system_prompt").r(**template_context)
-            user_prompt = T(".prompts:hypothesis_gen.user_prompt").r(**template_context)
+        # Use template system for prompts
+        # TODO: dicide more
+        # TODO: separate first loop and other loop(need to get previous feedback)
+        system_prompt = T(".prompts:hypothesis_gen.system_prompt").r(**template_context)
+        user_prompt = T(".prompts:hypothesis_gen.user_prompt").r(**template_context)
 
-            # Call LLM for selection
-            from rdagent.oai.llm_utils import APIBackend
+        # Call LLM for selection
+        from rdagent.oai.llm_utils import APIBackend
 
-            llm = APIBackend()
+        llm = APIBackend()
 
-            response = llm.build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
+        response = llm.build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=system_prompt,
+        )
+
+        # Parse LLM response
+        response_text = response.strip()
+        logger.info(f"LLM raw response: {response_text}")
+
+        if "|" not in response_text:
+            raise ValueError(
+                f"LLM response does not contain '|' separator. Expected format: 'model|method|quantization'. "
+                f"Got: {response_text}"
             )
 
-            # Parse LLM response
-            response_text = response.strip()
-            if "|" in response_text:
-                parts = response_text.split("|")
-                if len(parts) >= 3:
-                    selected_model = parts[0].strip()
-                    selected_method = parts[1].strip()
-                    selected_quantization = parts[2].strip()
+        parts = response_text.split("|")
+        if len(parts) < 3:
+            raise ValueError(
+                f"LLM response has {len(parts)} parts, expected at least 3. "
+                f"Expected format: 'model|method|quantization'. Got: {response_text}"
+            )
 
-                    # Validate selections
-                    if not specified_model and selected_model not in available_models:
-                        selected_model = available_models[0] if available_models else "Qwen/Qwen2.5-1.5B-Instruct"
-                    elif specified_model:
-                        selected_model = specified_model  # Use specified model regardless of LLM output
+        selected_model = parts[0].strip()
+        selected_method = parts[1].strip()
+        selected_quantization = parts[2].strip()
 
-                    if selected_method not in available_methods:
-                        selected_method = (
-                            "lora"
-                            if "lora" in available_methods
-                            else (available_methods[0] if available_methods else "lora")
-                        )
+        # Validate selections
+        if not specified_model and selected_model not in available_models:
+            raise ValueError(
+                f"LLM selected model '{selected_model}' is not in available models. "
+                f"Available: {available_models[:5]}..."
+            )
+        elif specified_model:
+            selected_model = specified_model  # Use specified model regardless of LLM output
 
-                    if selected_quantization not in ["none", "4bit", "8bit"]:
-                        selected_quantization = "none"
+        if selected_method not in available_methods:
+            raise ValueError(
+                f"LLM selected method '{selected_method}' is not in available methods. "
+                f"Available: {available_methods}"
+            )
 
-                    logger.info(f"LLM selected: {selected_model} + {selected_method} + {selected_quantization}")
-                    return selected_model, selected_method, selected_quantization
-        except Exception as e:
-            logger.warning(f"LLM selection failed, using fallback: {e}")
+        if selected_quantization not in ["none", "4bit", "8bit"]:
+            raise ValueError(
+                f"LLM selected quantization '{selected_quantization}' is not valid. " f"Valid options: none, 4bit, 8bit"
+            )
 
-        # Fallback selection logic
-        if specified_model:
-            base_model = specified_model
-        else:
-            base_model = available_models[0] if available_models else "Qwen/Qwen2.5-1.5B-Instruct"
-
-        finetune_method = (
-            "lora" if "lora" in available_methods else (available_methods[0] if available_methods else "lora")
-        )
-        quantization = "4bit" if memory_gb and memory_gb < 16 else "none"
-
-        logger.info(f"Fallback selected: {base_model} + {finetune_method} + {quantization}")
-        return base_model, finetune_method, quantization
+        logger.info(f"LLM selected: {selected_model} + {selected_method} + {selected_quantization}")
+        return selected_model, selected_method, selected_quantization
