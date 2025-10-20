@@ -30,13 +30,23 @@ hypothesis_gen:
     3. **Quality Balance**: Achieve best performance within resource constraints
 
     ## Output Format
+    Respond in JSON format:
     {% if specified_model %}
-    {{ specified_model }}|method|quantization
+    {
+      "model": "{{ specified_model }}",
+      "method": "fine-tuning method",
+      "quantization": "quantization type"
+    }
+    Note: The model is already specified as {{ specified_model }}, only select the optimal method and quantization.
     {% else %}
-    model_name|method|quantization
+    {
+      "model": "model_name",
+      "method": "fine-tuning method",
+      "quantization": "quantization type"
+    }
     {% endif %}
 
-    Example: Qwen/Qwen2.5-1.5B-Instruct|lora|4bit
+    Example: {"model": "Qwen/Qwen2.5-1.5B-Instruct", "method": "lora", "quantization": "4bit"}
 
   user_prompt: |-
     ## Hardware Information

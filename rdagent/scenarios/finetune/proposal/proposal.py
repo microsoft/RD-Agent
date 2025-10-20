@@ -171,6 +171,7 @@ class LLMFinetuneExpGen(ExpGen):
 
         if not specified_model:
             template_context["available_models"] = ", ".join(available_models[:10])  # Show first 10 models
+            # TODO: show all models, maybe filtered by model size and gpu memory size
         else:
             template_context["specified_model"] = specified_model
 
@@ -188,28 +189,17 @@ class LLMFinetuneExpGen(ExpGen):
         response = llm.build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=system_prompt,
+            json_mode=True,
+            json_target_type=dict[str, str],
         )
 
         # Parse LLM response
-        response_text = response.strip()
-        logger.info(f"LLM raw response: {response_text}")
+        logger.info(f"LLM raw response: {response}")
+        config = json.loads(response)
 
-        if "|" not in response_text:
-            raise ValueError(
-                f"LLM response does not contain '|' separator. Expected format: 'model|method|quantization'. "
-                f"Got: {response_text}"
-            )
-
-        parts = response_text.split("|")
-        if len(parts) < 3:
-            raise ValueError(
-                f"LLM response has {len(parts)} parts, expected at least 3. "
-                f"Expected format: 'model|method|quantization'. Got: {response_text}"
-            )
-
-        selected_model = parts[0].strip()
-        selected_method = parts[1].strip()
-        selected_quantization = parts[2].strip()
+        selected_model = config["model"]
+        selected_method = config["method"]
+        selected_quantization = config["quantization"]
 
         # Validate selections
         if not specified_model and selected_model not in available_models:
