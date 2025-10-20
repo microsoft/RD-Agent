@@ -14,6 +14,7 @@ from rich import print
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
 
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.exception import KaggleError
@@ -30,8 +31,6 @@ options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--headless")
 
-service = Service("/usr/local/bin/chromedriver")
-
 
 def crawl_descriptions(
     competition: str, local_data_path: str, wait: float = 3.0, force: bool = False
@@ -45,7 +44,8 @@ def crawl_descriptions(
         with fp.open("r") as f:
             return json.load(f)
 
-    driver = webdriver.Chrome(options=options, service=service)
+    # Use webdriver-manager to automatically download and manage ChromeDriver version
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     overview_url = f"https://www.kaggle.com/competitions/{competition}/overview"
     driver.get(overview_url)
     time.sleep(wait)
