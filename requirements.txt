@@ -74,3 +74,6 @@ types-pytz
 # Agent
 pydantic-ai-slim[mcp,openai,prefect]
 nest-asyncio
+
+# visualize SFT train
+tensorboard     # tensorboard --logdir git_ignore_folder/RD-Agent_workspace
