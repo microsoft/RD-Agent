@@ -107,11 +107,21 @@ class LLMConfigValidator:
         try:
             all_params = self.llama_factory_manager.get_parameters()
 
-            # Extract all parameter names from all parameter types
+            # Extract all parameter names from all parameter types (including nested structures)
             supported_params = set()
             for param_type, params_dict in all_params.items():
                 if isinstance(params_dict, dict):
-                    supported_params.update(params_dict.keys())
+                    # Recursively extract parameter names from nested dictionaries
+                    for key, value in params_dict.items():
+                        if isinstance(value, dict) and "name" in value:
+                            # This is a parameter definition with metadata
+                            supported_params.add(key)
+                        elif isinstance(value, dict):
+                            # This is a nested category (e.g., BaseModelArguments, LoraArguments)
+                            # Extract parameter names from the nested structure
+                            for nested_key, nested_value in value.items():
+                                if isinstance(nested_value, dict) and "name" in nested_value:
+                                    supported_params.add(nested_key)
 
             if not supported_params:
                 raise RuntimeError("No parameters found in LlamaFactory Manager")

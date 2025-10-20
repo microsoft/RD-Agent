@@ -21,5 +21,5 @@ RUN PIP_NO_BUILD_ISOLATION=1 pip install -e ".[torch,metrics]"
 # Set working directory for experiments
 WORKDIR /workspace
 
-# Install additional tools for data processing
-RUN pip install datasets pandas numpy huggingface-hub pyyaml
+# Install additional tools for data processing and logging
+RUN pip install datasets pandas numpy huggingface-hub pyyaml tensorboard tensorboardX
