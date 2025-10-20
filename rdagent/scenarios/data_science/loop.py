@@ -34,6 +34,9 @@ from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DataScienceScen
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
+from rdagent.scenarios.data_science.proposal.exp_gen.trace_scheduler import (
+    MCTSScheduler,
+)
 from rdagent.utils.workflow.misc import wait_retry
 
 
@@ -246,6 +249,7 @@ class DataScienceRDLoop(RDLoop):
                 ),
                 cur_loop_id,
             )
+            # Value backpropagation is handled in async_gen before next() via observe_commits
 
             if self.trace.sota_experiment() is None:
                 if DS_RD_SETTING.coder_on_whole_pipeline:
@@ -271,6 +275,8 @@ class DataScienceRDLoop(RDLoop):
                         logger.error("Consecutive errors reached the limit. Dumping trace.")
                         logger.log_object(self.trace, tag="trace before restart")
                         self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
+                        # Reset the trace; MCTS stats will be cleared via registered callback
+                        self.exp_gen.reset()
 
         # set the SOTA experiment to submit
         sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace)
