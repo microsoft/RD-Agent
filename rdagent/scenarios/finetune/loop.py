@@ -50,15 +50,3 @@ class LLMFinetuneRDLoop(RDLoop):
         exp = self.coder.develop(exp)
         logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
-
-    def running(self, prev_out: dict[str, Any]):
-        """Execute fine-tuning experiment"""
-        exp = prev_out["coding"]
-        exp = self.runner.develop(exp)
-        logger.log_object(exp, tag="runner result")
-        return exp
-
-    def feedback(self, prev_out: dict[str, Any]):
-        """Generate feedback from experiment results (inherits base behavior)"""
-        # Use base class implementation - it's already optimal
-        super().feedback(prev_out)
