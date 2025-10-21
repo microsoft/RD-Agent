@@ -1,4 +1,3 @@
-import re
 from typing import Optional
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
@@ -6,7 +5,6 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
 )
-from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.components.coder.finetune.conf import get_clear_ws_cmd, get_ft_env
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
@@ -53,23 +51,9 @@ class LLMFinetuneEvaluator(CoSTEEREvaluator):
         execute_ret_code = result.exit_code
         implementation.running_info.running_time = result.running_time
 
-        # Process EDA output if present (for backward compatibility)
-        match = re.search(
-            r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===",
-            stdout,
-            re.DOTALL,
-        )
-        eda_output = match.groups()[1] if match else None
-        if eda_output is None:
-            eda_output = "No EDA output."
-        implementation.inject_files(**{"EDA.md": eda_output})
-        stdout = remove_eda_part(stdout)
-
         # Add execution status
         success_msg = "successfully" if execute_ret_code == 0 else "failed"
         stdout += f"The fine-tuning code executed {success_msg}. "
-        if eda_output:
-            stdout += "The EDA output is removed from the stdout. "
 
         # Check for model output files (adapter weights, metrics, etc.)
         model_output_files = []

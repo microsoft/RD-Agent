@@ -159,6 +159,10 @@ class LLMConfigValidator:
                     "output_dir": "/workspace/micro_test_output",
                     "overwrite_output_dir": True,
                     "report_to": "none",  # Disable all reporting (tensorboard, wandb, etc.)
+                    "do_eval": False,  # Disable evaluation in micro-batch test (insufficient samples for val split)
+                    "eval_strategy": "no",  # Explicitly disable evaluation
+                    "load_best_model_at_end": False,  # Cannot load best model without evaluation
+                    "tokenized_path": "/workspace/micro_test_cache",  # Use writable workspace instead of read-only /assets
                 }
             )
 

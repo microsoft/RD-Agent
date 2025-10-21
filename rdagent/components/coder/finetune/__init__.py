@@ -77,12 +77,12 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         dataset = getattr(target_task, "dataset")
 
         # Use LLM to generate LlamaFactory config YAML
-        # For coding stage, use debug mode with limited samples
+        # Generate full training configuration - validator will test with micro-batch automatically
         config_yaml = self._generate_llamafactory_config_with_llm(
             base_model=base_model,
             finetune_method=finetune_method,
             dataset=dataset,
-            debug_mode=True,  # Use debug mode for coding stage (limited samples for quick validation)
+            debug_mode=False,  # Generate full training config (validator tests with micro-batch)
             task_info=task_info,
             similar_knowledge=similar_knowledge,
             failed_knowledge=failed_knowledge[0],
