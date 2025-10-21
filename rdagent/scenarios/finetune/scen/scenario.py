@@ -57,7 +57,7 @@ class LLMFinetuneScen(DataScienceScen):
         return FT_RD_SETTING.full_recommend_timeout
 
     def _validate_and_prepare_environment(self):
-        """Validate FT_FILE_PATH and ensure required assets exist"""
+        """Validate FT_FILE_PATH and ensure dataset exists"""
         # Validate FT_FILE_PATH environment variable
         if not FT_RD_SETTING.file_path:
             raise Exception("Please set FT_FILE_PATH environment variable")
@@ -69,10 +69,6 @@ class LLMFinetuneScen(DataScienceScen):
 
         # Ensure dataset assets exist
         ensure_ft_assets_exist(dataset=self.dataset, check_dataset=True)
-
-        # Ensure model assets exist if model is specified
-        if self.base_model:
-            ensure_ft_assets_exist(model=self.base_model, check_model=True)
 
     def _initialize_llama_factory(self):
         """Initialize LLaMA Factory information manager"""

@@ -68,7 +68,7 @@ class FTHypothesis2Experiment(Hypothesis2Experiment):
         """Convert hypothesis to executable experiment."""
         logger.info(f"Converting hypothesis: {hypothesis.base_model} with {hypothesis.finetune_method}")
 
-        # Ensure the selected model is downloaded if it wasn't specified initially
+        # Download model at the point of use (after LLM selection)
         from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
 
         ensure_ft_assets_exist(model=hypothesis.base_model, check_model=True)
