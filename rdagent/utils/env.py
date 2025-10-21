@@ -47,6 +47,30 @@ from rdagent.utils.fmt import shrink_text
 from rdagent.utils.workflow import wait_retry
 
 
+def extract_dir_name_from_path_config(path_str: str) -> str:
+    """
+    Extract the first directory component from a relative path string.
+
+    This is used to get the basename from path configurations like "./workspace_input/"
+    to use in chmod exclusion patterns.
+
+    Args:
+        path_str: A path string, typically from T() template configuration
+
+    Returns:
+        The first directory component, or empty string if not a relative path
+
+    Examples:
+        "./workspace_input/" -> "workspace_input"
+        "./assets/" -> "assets"
+        "/absolute/path" -> ""
+    """
+    p = Path(path_str)
+    if not p.is_absolute() and p.parts:
+        return p.parts[0]
+    return ""
+
+
 def cleanup_container(container: docker.models.containers.Container | None, context: str = "") -> None:  # type: ignore[no-any-unimported]
     """
     Shared helper function to clean up a Docker container.
@@ -658,6 +682,11 @@ class DockerConf(EnvConf):
     """List of directory names to exclude from chmod -R 777 operation.
     This prevents modifying permissions of read-only or specially configured directories."""
 
+    # Declarative configuration for auto-populating exclude_chmod_paths from share.yaml
+    # Subclasses can override these to specify which config keys to read
+    _scenario_name: str | None = None  # e.g., "data_science", "finetune"
+    _exclude_path_keys: list[str] = []  # e.g., ["input_path", "cache_path"]
+
     # Sometime, we need maintain some extra data for the workspace.
     # And the extra data may be shared and the downloading can be time consuming.
     # So we just want to download it once.
@@ -673,6 +702,27 @@ class DockerConf(EnvConf):
 
     retry_count: int = 5  # retry count for the docker run
     retry_wait_seconds: int = 10  # retry wait seconds for the docker run
+
+    @model_validator(mode="after")
+    def populate_exclude_chmod_paths(self) -> "DockerConf":
+        """
+        Automatically populate exclude_chmod_paths from share.yaml configuration.
+
+        This method reads path configurations from scenarios/<scenario_name>/share.yaml
+        based on _scenario_name and _exclude_path_keys class attributes.
+        """
+        if not self.exclude_chmod_paths and self._scenario_name and self._exclude_path_keys:
+            # Extract directory names from scenario configuration
+            self.exclude_chmod_paths = [
+                name
+                for key in self._exclude_path_keys
+                if (
+                    name := extract_dir_name_from_path_config(
+                        T(f"scenarios.{self._scenario_name}.share:scen.{key}").r()
+                    )
+                )
+            ]
+        return self
 
 
 class QlibCondaConf(CondaConf):
@@ -760,14 +810,14 @@ class DSDockerConf(DockerConf):
     mount_path: str = "/kaggle/workspace"
     default_entry: str = "python main.py"
 
-    # Exclude data science specific directories from chmod
-    # TODO: do not use hardcoded paths
-    exclude_chmod_paths: list[str] = ["workspace_input", "workspace_cache"]
-
     running_timeout_period: int | None = 600
     mem_limit: str | None = (
         "48g"  # Add memory limit attribute # new-york-city-taxi-fare-prediction may need more memory
     )
+
+    # Declarative configuration: automatically loads from scenarios/data_science/share.yaml
+    _scenario_name: str = "data_science"
+    _exclude_path_keys: list[str] = ["input_path", "cache_path"]
 
 
 class MLEBDockerConf(DockerConf):
@@ -800,14 +850,15 @@ class FTDockerConf(DockerConf):
     mount_path: str = "/workspace/"
     default_entry: str = "llamafactory-cli version"
 
-    # Exclude data directory which is mounted as read-only
-    exclude_chmod_paths: list[str] = ["assets"]
-
     running_timeout_period: int | None = 36000  # 10 hours for training
     mem_limit: str | None = "48g"  # Large memory for LLM training
     shm_size: str | None = "16g"  # Shared memory for multi-GPU training
     enable_gpu: bool = True  # Enable GPU for LLM training
     enable_cache: bool = False  # Disable cache to avoid conflicts during training, True for debug
+
+    # Declarative configuration: automatically loads from scenarios/finetune/share.yaml
+    _scenario_name: str = "finetune"
+    _exclude_path_keys: list[str] = ["assets_path"]
 
 
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
