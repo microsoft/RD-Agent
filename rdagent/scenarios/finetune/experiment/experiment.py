@@ -18,6 +18,20 @@ class FTExperiment(Experiment[Task, FTWorkspace, FTWorkspace]):
         # - New version no matter successful or not
         # the initial workspace or the successful new version after coding
         self.experiment_workspace = FTWorkspace()
+
+        # TODO: Multi-stage task support (currently single-stage only)
+        # Current: pending_tasks_list always contains exactly one task group [[TrainingTask]]
+        # Future possibilities:
+        #   - Data processing + Training: [[DataProcessTask], [TrainingTask]]
+        #   - SFT + RLHF pipeline: [[SupervisedFinetuneTask], [RLHFTask]]
+        #
+        # When adding multi-stage support:
+        #   1. Define stage dependencies in scenario or task classes
+        #   2. Update loop.py coding() to iterate over stages like DataScience does
+        #   3. Implement stage-specific coders if needed
+        #
+        # For now, this follows the same structure as DataScience for consistency,
+        # even though FT only executes single-stage tasks per loop iteration.
         self.pending_tasks_list = pending_tasks_list
 
         self.format_check_result = None

@@ -86,6 +86,11 @@ class FTHypothesis2Experiment(Hypothesis2Experiment):
             description=f"Fine-tune {hypothesis.base_model} using {method_desc}",
         )
 
+        # TODO: Single-stage task creation (future: multi-stage support)
+        # Currently: [[task]] - one stage with one task
+        # Future examples:
+        #   - [[data_task], [train_task]] for data processing + training
+        #   - [[sft_task], [rlhf_task]] for SFT + RLHF pipeline
         return FTExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis)
 
 

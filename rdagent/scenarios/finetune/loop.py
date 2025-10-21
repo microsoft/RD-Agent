@@ -30,9 +30,22 @@ class LLMFinetuneRDLoop(RDLoop):
         """Generate fine-tuning code"""
         exp = prev_out["direct_exp_gen"]
 
-        # Handle pending tasks like in data science loop
+        # TODO: Single-stage execution (future: multi-stage like DataScience)
+        # Currently, FT always has exactly one task stage per experiment.
+        # Unlike DataScience which iterates: Feature -> Model -> Ensemble,
+        # FT processes one TrainingTask per loop and relies on loop iterations for exploration.
+        #
+        # This pattern is kept for future multi-stage scenarios:
+        #   - Stage 1: Data augmentation/processing
+        #   - Stage 2: Supervised fine-tuning
+        #   - Stage 3: RLHF/reward modeling
+        #
+        # When implementing multi-stage:
+        #   - Add loop: for tasks in exp.pending_tasks_list:
+        #   - Add stage-specific coder selection based on task type
+        #   - Handle inter-stage data passing
         if hasattr(exp, "pending_tasks_list") and exp.pending_tasks_list:
-            exp.sub_tasks = exp.pending_tasks_list[0]  # For finetune, typically one task group
+            exp.sub_tasks = exp.pending_tasks_list[0]  # Always single stage for now
 
         exp = self.coder.develop(exp)
         logger.log_object(exp.sub_workspace_list, tag="coder result")
