@@ -22,12 +22,9 @@ class LLMFinetuneRDLoop(RDLoop):
 
     async def direct_exp_gen(self, prev_out: dict[str, Any]):
         """Generate LLM fine-tuning experiment"""
-        if self.get_unfinished_loop_cnt(self.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
-            exp = self.hypothesis_gen.gen(self.trace)
-            logger.log_object(exp.sub_tasks, tag="experiment generation")
-            return exp
-
-        await asyncio.sleep(1)
+        exp = await self.hypothesis_gen.async_gen(self.trace, self)
+        logger.log_object(exp.sub_tasks, tag="experiment generation")
+        return exp
 
     def coding(self, prev_out: dict[str, Any]):
         """Generate fine-tuning code"""
