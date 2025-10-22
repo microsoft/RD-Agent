@@ -82,7 +82,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             base_model=base_model,
             finetune_method=finetune_method,
             dataset=dataset,
-            debug_mode=False,  # Generate full training config (validator tests with micro-batch)
             task_info=task_info,
             similar_knowledge=similar_knowledge,
             failed_knowledge=failed_knowledge[0],
@@ -98,7 +97,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         base_model: str,
         finetune_method: str,
         dataset: str,
-        debug_mode: bool = True,
         task_info: str = "",
         similar_knowledge: list = None,
         failed_knowledge: list = None,
