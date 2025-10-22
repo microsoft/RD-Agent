@@ -48,11 +48,6 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         workspace: FBWorkspace | None = None,
         prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
-
-        if prev_task_feedback is None:
-            # if no prev_task_feedback, it is the first loop; we do not make any changes and goto evaluators directly.
-            return {}
-
         # Get evolving history
         task_info = target_task.get_task_information()
         queried_former_failed_knowledge = (
@@ -157,7 +152,7 @@ class DSCoSTEERRunner(CoSTEER):
             single_evaluator=eval_l, scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
         settings = DSRunnerCoSTEERSettings()
-        es = DSRunnerMultiProcessEvolvingStrategy(scen=scen, settings=settings)
+        es = DSRunnerMultiProcessEvolvingStrategy(scen=scen, settings=settings, improve_mode=True)
 
         # In runner, we don't need very big loops, so we set max_loop to runner_max_loop
         super().__init__(
