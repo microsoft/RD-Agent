@@ -1,0 +1,1 @@
+dotenv run -- python rdagent/app/data_science/loop.py --competition cafa-6-protein-function-prediction --timeout 12h
