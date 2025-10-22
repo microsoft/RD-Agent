@@ -45,7 +45,7 @@ class LLMExperiment2Feedback(Experiment2Feedback):
             )
 
         # Get task information
-        task = exp.pending_tasks_list[0][0] if exp.pending_tasks_list else None
+        task = exp.sub_tasks[0] if exp.sub_tasks else None
         task_desc = task.get_task_information() if task else "No task information available"
 
         # Analyze experiment workspace and results
@@ -169,7 +169,7 @@ class LLMExperiment2Feedback(Experiment2Feedback):
 
         # Use evaluator to get detailed execution feedback
         try:
-            task = exp.pending_tasks_list[0][0] if exp.pending_tasks_list else None
+            task = exp.sub_tasks[0] if exp.sub_tasks else None
             if task:
                 eval_feedback = self.evaluator.evaluate(
                     target_task=task,
