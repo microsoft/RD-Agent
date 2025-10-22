@@ -21,9 +21,10 @@ from rdagent.core.utils import multiprocessing_wrapper
 class MultiProcessEvolvingStrategy(EvolvingStrategy):
     KEY_CHANGE_SUMMARY = "__change_summary__"  # Optional key for the summary of the change of evolving subjects
 
-    def __init__(self, scen: Scenario, settings: CoSTEERSettings):
+    def __init__(self, scen: Scenario, settings: CoSTEERSettings, improve_mode: bool = False):
         super().__init__(scen)
         self.settings = settings
+        self.improve_mode = improve_mode  # improve mode means we only implement the task which has failed before. The main diff is the first loop will not implement all tasks.
 
     @abstractmethod
     def implement_one_task(
@@ -93,6 +94,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
             elif (
                 target_task_desc not in queried_knowledge.success_task_to_knowledge_dict
                 and target_task_desc not in queried_knowledge.failed_task_info_set
+                and not (self.improve_mode and last_feedback[index] is None)
             ):
                 to_be_finished_task_index.append(index)
 
