@@ -53,7 +53,7 @@ finetune_coder:
     - dataset: use dataset name from dataset_info.json (not "processed_dataset")
     - model_name_or_path: use local model path instead of HuggingFace model identifier
     - dataset_info.json path: "{{ datasets_path }}dataset_info.json" contains dataset configurations
-    - template: let LlamaFactory auto-detect (omit this field or set to appropriate value based on model)
+    - template: DO NOT include this field (LlamaFactory auto-detects from tokenizer). NEVER set to "auto" or "none" - these are invalid values.
     - tokenized_path: MUST set to "/workspace/tokenized_cache" (datasets directory is read-only mounted)
 
     {% if latest_code %}
