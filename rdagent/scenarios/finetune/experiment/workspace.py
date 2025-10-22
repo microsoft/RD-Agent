@@ -30,3 +30,4 @@ class FTWorkspace(FBWorkspace):
         # Configure checkpoint to only save configuration files
         # Training outputs are managed separately by save_final_model()
         RD_AGENT_SETTINGS.workspace_ckp_white_list_names = ["train.yaml"]
+        RD_AGENT_SETTINGS.workspace_ckp_size_limit = 100 * 1024
