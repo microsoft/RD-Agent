@@ -19,7 +19,9 @@ import time
 import uuid
 import zipfile
 from abc import abstractmethod
+from collections import deque
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Generator, Generic, Mapping, Optional, TypeVar, cast
@@ -32,9 +34,11 @@ from pydantic import BaseModel, model_validator
 from pydantic_settings import SettingsConfigDict
 from rich import print
 from rich.console import Console
+from rich.live import Live
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.rule import Rule
 from rich.table import Table
+from rich.text import Text
 from tqdm import tqdm
 
 from rdagent.core.conf import ExtendedBaseSettings
@@ -856,6 +860,10 @@ class FTDockerConf(DockerConf):
     enable_gpu: bool = True  # Enable GPU for LLM training
     enable_cache: bool = False  # Disable cache to avoid conflicts during training, True for debug
 
+    # Override log output control for FT training
+    save_logs_to_file: bool = True
+    terminal_tail_lines: int = 20
+
     # Declarative configuration: automatically loads from scenarios/finetune/share.yaml
     _scenario_name: str = "finetune"
     _exclude_path_keys: list[str] = ["assets_path"]
@@ -976,6 +984,130 @@ class DockerEnv(Env[DockerConf]):
 
         return _f()
 
+    def _generate_log_header(self, entry: str | None = None) -> str:
+        """
+        Generate a header for log files with execution info.
+
+        Args:
+            entry: Command entry that was executed
+
+        Returns:
+            Formatted header string
+        """
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        header = "=" * 80 + "\n"
+        header += f"Docker Execution Log\n"
+        header += f"Timestamp: {timestamp}\n"
+        header += f"Image: {self.conf.image}\n"
+        if entry:
+            header += f"Command: {entry}\n"
+        header += "=" * 80 + "\n\n"
+        return header
+
+    def _process_container_logs(self, logs, local_path: str = ".", entry: str | None = None) -> str:
+        """
+        Process Docker container logs with optional tail mode.
+
+        This method can be controlled via configuration:
+        - save_logs_to_file: Save full logs to timestamped files in logs/ subdirectory
+        - terminal_tail_lines: Show only last N lines in terminal (0 = show all)
+
+        Args:
+            logs: Docker container log stream
+            local_path: Path to workspace for saving log files
+            entry: Command entry that was executed (for logging header)
+
+        Returns:
+            Complete log output as string
+        """
+        log_output = ""
+
+        # Determine if we should use tail mode
+        use_tail_mode = self.conf.terminal_tail_lines > 0
+        save_to_file = self.conf.save_logs_to_file
+
+        # Set up log file with timestamp if needed
+        log_file_path = None
+        if save_to_file and local_path:
+            workspace = Path(local_path)
+
+            # Create logs subdirectory
+            logs_dir = workspace / "logs"
+            logs_dir.mkdir(parents=True, exist_ok=True)
+
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_file_path = logs_dir / f"docker_execution_{timestamp}.log"
+
+            # Write header with execution info
+            header = self._generate_log_header(entry)
+            with open(log_file_path, "w", encoding="utf-8") as f:
+                f.write(header)
+
+            # Also create/update a symlink to the latest log for convenience
+            latest_link = logs_dir / "docker_execution_latest.log"
+
+            print(f"[cyan]Full logs will be saved to: logs/{log_file_path.name}[/cyan]")
+
+        # Process logs with tail mode
+        if use_tail_mode:
+
+            log_buffer = deque(maxlen=self.conf.terminal_tail_lines)
+
+            def format_tail_display():
+                text = Text()
+                text.append(
+                    f"[Showing last {len(log_buffer)}/{self.conf.terminal_tail_lines} lines",
+                    style="dim",
+                )
+                if log_file_path:
+                    text.append(f" | Full log: {log_file_path.name}]\n", style="dim cyan")
+                else:
+                    text.append("]\n", style="dim")
+                text.append("-" * 80 + "\n", style="dim")
+                for line in log_buffer:
+                    text.append(line + "\n")
+                return text
+
+            with Live(format_tail_display(), refresh_per_second=2, console=Console()) as live:
+                for log in logs:
+                    decoded_log = log.strip().decode()
+                    log_output += decoded_log + "\n"
+                    log_buffer.append(decoded_log)
+
+                    if log_file_path:
+                        with open(log_file_path, "a", encoding="utf-8") as f:
+                            f.write(decoded_log + "\n")
+
+                    live.update(format_tail_display())
+        else:
+            # Default behavior: show all logs
+            for log in logs:
+                decoded_log = log.strip().decode()
+                Console().print(decoded_log, markup=False)
+                log_output += decoded_log + "\n"
+
+                if log_file_path:
+                    with open(log_file_path, "a", encoding="utf-8") as f:
+                        f.write(decoded_log + "\n")
+
+        # Show log file location and create latest symlink
+        if log_file_path and log_file_path.exists():
+            relative_path = log_file_path.relative_to(Path(local_path))
+            print(f"[green]Full execution log saved to: {relative_path}[/green]")
+
+            # Create or update symlink to latest log
+            latest_link = log_file_path.parent / "docker_execution_latest.log"
+            if latest_link.exists() or latest_link.is_symlink():
+                latest_link.unlink()
+            try:
+                latest_link.symlink_to(log_file_path.name)
+                print(f"[dim]Latest log symlink: logs/{latest_link.name} -> {log_file_path.name}[/dim]")
+            except Exception:
+                # Symlinks might not work on all systems (e.g., Windows without admin)
+                pass
+
+        return log_output
+
     def _run(
         self,
         entry: str | None = None,
@@ -1042,10 +1174,10 @@ class DockerEnv(Env[DockerConf]):
             table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
             table.add_row("Volumes", "\n".join(f"{k}:\n  {v}" for k, v in volumes.items()))
             print(table)
-            for log in logs:
-                decoded_log = log.strip().decode()
-                Console().print(decoded_log, markup=False)
-                log_output += decoded_log + "\n"
+
+            # Process logs (supports tail mode if configured)
+            log_output = self._process_container_logs(logs, local_path, entry=entry)
+
             exit_status = container.wait()["StatusCode"]
             print(Rule("[bold green]Docker Logs End[/bold green]", style="dark_orange"))
             return log_output, exit_status
@@ -1094,7 +1226,17 @@ class MLEBDockerEnv(DockerEnv):
 
 
 class FTDockerEnv(DockerEnv):
-    """LLM Fine-tuning Docker Environment"""
+    """
+    LLM Fine-tuning Docker Environment with improved log output control.
+
+    FTDockerConf enables:
+    - save_logs_to_file: True (saves full logs to workspace/docker_execution.log)
+    - terminal_tail_lines: 20 (only shows last 20 lines in terminal)
+
+    To customize, set environment variables:
+        export FT_DOCKER_terminal_tail_lines=50  # show last 50 lines
+        export FT_DOCKER_save_logs_to_file=false # disable log file
+    """
 
     def __init__(self, conf: DockerConf = FTDockerConf()):
         super().__init__(conf)
