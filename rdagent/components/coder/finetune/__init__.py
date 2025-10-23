@@ -23,7 +23,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
 from rdagent.components.coder.finetune.conf import FTCoderCoSTEERSettings
-from rdagent.components.coder.finetune.eval import LLMFinetuneEvaluator
+from rdagent.components.coder.finetune.eval import FTCoderEvaluator
 from rdagent.components.coder.finetune.exp import TrainingTask
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace, Task
@@ -210,7 +210,7 @@ class LLMFinetuneCoSTEER(CoSTEER):
         **kwargs,
     ) -> None:
         settings = FTCoderCoSTEERSettings()
-        eva = CoSTEERMultiEvaluator(LLMFinetuneEvaluator(scen=scen), scen=scen)
+        eva = CoSTEERMultiEvaluator(FTCoderEvaluator(scen=scen), scen=scen)
         es = LLMFinetuneEvolvingStrategy(scen=scen, settings=settings)
 
         super().__init__(

@@ -19,7 +19,7 @@ from rdagent.log.utils import dict_get_with_warning
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.finetune.experiment.experiment import FTExperiment
 from rdagent.scenarios.finetune.proposal.proposal import FTHypothesis
-from rdagent.scenarios.finetune.train.eval import LLMFinetuneEvaluator
+from rdagent.scenarios.finetune.train.eval import FTRunnerEvaluator
 from rdagent.utils import convert2bool
 from rdagent.utils.agent.tpl import T
 
@@ -30,7 +30,7 @@ class LLMExperiment2Feedback(Experiment2Feedback):
     def __init__(self, scen: Scenario, version: str = "exp_feedback") -> None:
         super().__init__(scen)
         self.version = version
-        self.evaluator = LLMFinetuneEvaluator(scen)
+        self.evaluator = FTRunnerEvaluator(scen)
 
     def generate_feedback(self, exp: FTExperiment, trace=None) -> ExperimentFeedback:
         """Generate comprehensive feedback for LLM fine-tuning experiment"""

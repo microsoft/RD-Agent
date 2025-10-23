@@ -23,7 +23,7 @@ from rdagent.components.coder.finetune.conf import FTCoderCoSTEERSettings
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.finetune.train.eval import LLMFinetuneEvaluator
+from rdagent.scenarios.finetune.train.eval import FTRunnerEvaluator
 
 
 class LLMFinetuneRunnerSettings(FTCoderCoSTEERSettings):
@@ -90,7 +90,7 @@ class LLMFinetuneRunner(CoSTEER):
         **kwargs,
     ) -> None:
         # Use LLM fine-tuning specific evaluator
-        eval_l = [LLMFinetuneEvaluator(scen=scen)]
+        eval_l = [FTRunnerEvaluator(scen=scen)]
 
         # Add model dump evaluator if enabled
         if FT_RD_SETTING.enable_model_dump:

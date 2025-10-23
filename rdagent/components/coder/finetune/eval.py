@@ -20,7 +20,7 @@ from rdagent.log import rdagent_logger as logger
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
-class LLMFinetuneEvaluator(CoSTEEREvaluator):
+class FTCoderEvaluator(CoSTEEREvaluator):
     """Evaluator for LLM fine-tuning implementations with simplified validation"""
 
     def __init__(self, *args, **kwargs):

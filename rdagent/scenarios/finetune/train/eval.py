@@ -11,7 +11,7 @@ from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.utils.agent.tpl import T
 
 
-class LLMFinetuneEvaluator(CoSTEEREvaluator):
+class FTRunnerEvaluator(CoSTEEREvaluator):
     """LLM Fine-tuning specific evaluator that uses LLM Docker environment."""
 
     def evaluate(
