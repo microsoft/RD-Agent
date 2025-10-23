@@ -96,16 +96,20 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
                 code_list[index] = queried_knowledge.success_task_to_knowledge_dict[
                     target_task_desc
                 ].implementation.file_dict
-            elif (
-                target_task_desc not in queried_knowledge.success_task_to_knowledge_dict
-                and target_task_desc not in queried_knowledge.failed_task_info_set
-                and not (
-                    self.improve_mode
-                    and isinstance(last_feedback, CoSTEERMultiFeedback)
-                    and last_feedback[index] is None
+            else:
+                # Schedule the task only if:
+                # - it is not marked failed
+                # - and (in improve mode) we actually have prior failure feedback to act on
+                skip_for_improve_mode = self.improve_mode and (
+                    last_feedback is None
+                    or (isinstance(last_feedback, CoSTEERMultiFeedback) and last_feedback[index] is None)
                 )
-            ):
-                to_be_finished_task_index.append(index)
+                if target_task_desc not in queried_knowledge.failed_task_info_set and not skip_for_improve_mode:
+                    to_be_finished_task_index.append(index)
+                if skip_for_improve_mode:
+                    code_list[index] = (
+                        {}
+                    )  # empty implementation for skipped task, but assign_code_list_to_evo will still assign it
 
         result = multiprocessing_wrapper(
             [
