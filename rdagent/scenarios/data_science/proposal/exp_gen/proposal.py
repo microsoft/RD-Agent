@@ -313,7 +313,6 @@ def draft_exp_in_decomposition(scen: Scenario, trace: DSTrace) -> None | DSDraft
     else:
         return None
 
-
 class DSProposalV1ExpGen(ExpGen):
     def gen(
         self,
@@ -1182,6 +1181,36 @@ You help users retrieve relevant knowledge from community discussions and public
             problem_label=problem_dict.get("label", "FEEDBACK_PROBLEM"),
             appendix=hypothesis_dict[max_score_problem_name].get("appendix", None),
         )
+    
+    def reward_model_select_hypothesis(self, hypothesis_dict: dict, problem_dict: dict) -> Tuple[str, DSHypothesis]:
+        """
+        Select hypothesis based on reward model scores.
+        """
+        from .reward_inference import RewardModelInference
+        from transformers import AutoTokenizer
+        import os
+        logdir = DS_RD_SETTING.reward_model_path
+        base_model = "gpt2"
+        adapter_path = os.path.join(logdir, "lora_adapter")
+        reward_head_path = os.path.join(logdir, "reward_head.pt")
+        calib_path = os.path.join(logdir, "calib.json")
+
+        tokenizer = AutoTokenizer.from_pretrained(base_model)
+        if not getattr(tokenizer, "pad_token", None):
+            tokenizer.pad_token = tokenizer.eos_token
+
+        model = RewardModelInference(
+            base_model_path=base_model,
+            adapter_path=adapter_path,
+            reward_head_path=reward_head_path,
+            calib_path=calib_path,
+        ).to("cuda")
+        texts = []
+        for name, data in hypothesis_dict.items():
+            texts.append(data.get("hypothesis", "Hypothesis not provided"))
+        rewards = model.compute_reward(texts, tokenizer)
+        max_idx = rewards.index(max(rewards))
+        return texts[max_idx]
 
     def task_gen(
         self,
@@ -1473,7 +1502,35 @@ You help users retrieve relevant knowledge from community discussions and public
             )
             pickled_problem_name = None
         else:
-            pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+            if DS_RD_SETTING.enable_reward_model_selection==True:
+                logger.info("Selecting hypothesis using reward model.")
+                selected_hypothesis_text = self.reward_model_select_hypothesis(
+                    hypothesis_dict=hypothesis_dict,
+                    problem_dict=all_problems,
+                )
+                # Find the problem name corresponding to the selected hypothesis text
+                pickled_problem_name = None
+                for problem_name, data in hypothesis_dict.items():
+                    if data.get("hypothesis", "") == selected_hypothesis_text:
+                        pickled_problem_name = problem_name
+                        break
+                if pickled_problem_name is None:
+                    raise ValueError("Selected hypothesis text does not match any known hypothesis.")
+                new_hypothesis = DSHypothesis(
+                    component=hypothesis_dict[pickled_problem_name].get("component", "Model"),
+                    hypothesis=hypothesis_dict[pickled_problem_name].get("hypothesis", "Hypothesis not provided"),
+                    reason=hypothesis_dict[pickled_problem_name].get("reason", "Reason not provided"),
+                    problem_name=pickled_problem_name,
+                    problem_desc=all_problems.get(pickled_problem_name, {}).get(
+                        "problem", "Problem description not provided"
+                    ),
+                    problem_label=all_problems.get(pickled_problem_name, {}).get(
+                        "label", "FEEDBACK_PROBLEM"
+                    ),
+                    appendix=hypothesis_dict[pickled_problem_name].get("appendix", None),
+                )
+            else:
+                pickled_problem_name, new_hypothesis = self.hypothesis_rank(
                 hypothesis_dict=hypothesis_dict,
                 problem_dict=all_problems,
             )

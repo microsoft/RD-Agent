@@ -197,6 +197,18 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     user_interaction_wait_seconds: int = 6000  # seconds to wait for user interaction
     user_interaction_mid_folder: Path = Path.cwd() / "git_ignore_folder" / "RD-Agent_user_interaction"
 
+    #### reward model related
+    enable_reward_model_selection: bool = True
+    """Enable reward model based hypothesis selection."""
+    
+    reward_model_path: str = "/data/userdata/v-lijingyuan/logs/rm_bt_s1024_gc/tb/version_0"
+
+    """The path to the reward model for hypothesis selection."""
+
+
+
+
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()
 
