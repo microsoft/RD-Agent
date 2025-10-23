@@ -26,14 +26,14 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.finetune.train.eval import FTRunnerEvaluator
 
 
-class LLMFinetuneRunnerSettings(FTCoderCoSTEERSettings):
+class FTRunnerSettings(FTCoderCoSTEERSettings):
     """LLM Fine-tuning specific runner settings."""
 
     class Config:
         env_prefix = "LLM_FT_Runner_"
 
 
-class LLMFinetuneRunnerEvolvingStrategy(MultiProcessEvolvingStrategy):
+class FTRunnerEvolvingStrategy(MultiProcessEvolvingStrategy):
     """Evolving strategy for LLM fine-tuning runner.
 
     Runner directly executes the yaml from coder without modification.
@@ -48,7 +48,7 @@ class LLMFinetuneRunnerEvolvingStrategy(MultiProcessEvolvingStrategy):
         prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
         """No modification needed - directly use coder's full training config."""
-
+        # TODO: detect error during training automatically, and fix it here
         if not workspace or "train.yaml" not in workspace.file_dict:
             logger.error("No train.yaml found in workspace")
             return {}
@@ -97,10 +97,10 @@ class LLMFinetuneRunner(CoSTEER):
             eval_l.append(ModelDumpEvaluator(scen=scen, data_type="full"))
 
         eva = CoSTEERMultiEvaluator(single_evaluator=eval_l, scen=scen)
-        settings = LLMFinetuneRunnerSettings()
+        settings = FTRunnerSettings()
 
         # Use runner-specific evolving strategy for full dataset training
-        es = LLMFinetuneRunnerEvolvingStrategy(scen=scen, settings=settings)
+        es = FTRunnerEvolvingStrategy(scen=scen, settings=settings, improve_mode=True)
 
         # Initialize with LLM-specific configuration
         super().__init__(
