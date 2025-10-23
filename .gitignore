@@ -183,3 +183,6 @@ static/
 .cursor/
 .claude/
 AGENTS.md
+CLAUDE.md
+
+test*.py
