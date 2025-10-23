@@ -81,6 +81,11 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
     ) -> EvolvingItem:
         code_list = [None for _ in range(len(evo.sub_tasks))]
 
+        last_feedback = None
+        if len(evolving_trace) > 0:
+            last_feedback = evolving_trace[-1].feedback
+            assert isinstance(last_feedback, CoSTEERMultiFeedback)
+
         # 1.找出需要evolve的task
         to_be_finished_task_index: list[int] = []
         for index, target_task in enumerate(evo.sub_tasks):
@@ -94,14 +99,13 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
             elif (
                 target_task_desc not in queried_knowledge.success_task_to_knowledge_dict
                 and target_task_desc not in queried_knowledge.failed_task_info_set
-                and not (self.improve_mode and last_feedback[index] is None)
+                and not (
+                    self.improve_mode
+                    and isinstance(last_feedback, CoSTEERMultiFeedback)
+                    and last_feedback[index] is None
+                )
             ):
                 to_be_finished_task_index.append(index)
-
-        last_feedback = None
-        if len(evolving_trace) > 0:
-            last_feedback = evolving_trace[-1].feedback
-            assert isinstance(last_feedback, CoSTEERMultiFeedback)
 
         result = multiprocessing_wrapper(
             [
