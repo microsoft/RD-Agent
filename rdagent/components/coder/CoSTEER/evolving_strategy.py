@@ -106,6 +106,10 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
                 )
                 if target_task_desc not in queried_knowledge.failed_task_info_set and not skip_for_improve_mode:
                     to_be_finished_task_index.append(index)
+                if skip_for_improve_mode:
+                    code_list[index] = (
+                        {}
+                    )  # empty implementation for skipped task, but assign_code_list_to_evo will still assign it
 
         result = multiprocessing_wrapper(
             [
