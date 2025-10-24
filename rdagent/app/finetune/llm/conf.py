@@ -37,7 +37,7 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     Function: Execute LLM fine-tuning code in a Docker environment.
     """
 
-    summarizer: str = "rdagent.scenarios.finetune.dev.feedback.LLMExperiment2Feedback"
+    summarizer: str = "rdagent.scenarios.finetune.dev.feedback.FTExperiment2Feedback"
     """Result summarizer - To be implemented.
     Function: Analyze fine-tuning results and generate feedback, including performance metrics and error analysis.
     """

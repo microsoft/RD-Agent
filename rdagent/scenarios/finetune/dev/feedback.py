@@ -24,7 +24,7 @@ from rdagent.utils import convert2bool
 from rdagent.utils.agent.tpl import T
 
 
-class LLMExperiment2Feedback(Experiment2Feedback):
+class FTExperiment2Feedback(Experiment2Feedback):
     """Generate feedback for LLM fine-tuning experiments"""
 
     def __init__(self, scen: Scenario, version: str = "exp_feedback") -> None:
@@ -33,7 +33,12 @@ class LLMExperiment2Feedback(Experiment2Feedback):
         self.evaluator = FTRunnerEvaluator(scen)
 
     def generate_feedback(self, exp: FTExperiment, trace=None) -> ExperimentFeedback:
-        """Generate comprehensive feedback for LLM fine-tuning experiment"""
+        """
+        Generate comprehensive feedback for LLM fine-tuning experiment.
+
+        Note: If this method is called, it means training has already succeeded
+        (runner.develop() returned without exception). We only evaluate the quality/effectiveness.
+        """
 
         # Get experiment hypothesis
         hypothesis = exp.hypothesis
@@ -102,49 +107,56 @@ class LLMExperiment2Feedback(Experiment2Feedback):
             )
 
     def _analyze_execution_results(self, exp: FTExperiment) -> Dict:
-        """Analyze execution results and running information"""
+        """
+        Extract execution information for LLM analysis.
+
+        Note: Training has already succeeded if we reach this point.
+        This method extracts execution details (time, logs, outputs) for quality assessment.
+        """
         analysis = {
-            "success": False,
+            "success": True,  # Training succeeded (runner returned without exception)
             "execution_time": 0,
             "error_analysis": "",
             "model_outputs": [],
         }
 
-        # Check if experiment is ready and has been executed
-        if not exp.is_ready_to_run():
-            analysis["error_analysis"] = "Experiment is not ready to run"
-            return analysis
-
         workspace = exp.experiment_workspace
         if not workspace:
             analysis["error_analysis"] = "No workspace available"
+            analysis["success"] = False
             return analysis
 
-        # Check execution results via running info
+        # Extract execution time
         if hasattr(workspace, "running_info") and workspace.running_info:
             analysis["execution_time"] = getattr(workspace.running_info, "running_time", 0)
 
-        # Use evaluator to get detailed execution feedback
+        # Get execution summary from runner's last evaluation
+        # This contains detailed log analysis (loss trend, errors, etc.)
         try:
             task = exp.sub_tasks[0] if exp.sub_tasks else None
             if task:
-                eval_feedback = self.evaluator.evaluate(
-                    target_task=task,
-                    implementation=workspace,
-                    gt_implementation=workspace,  # Use same workspace as GT for simplicity
-                )
+                # Note: evaluator.evaluate() will re-run training, which is expensive
+                # TODO: Store runner's evaluation result in exp to avoid re-execution
+                # For now, we extract info from workspace files instead
 
-                analysis["success"] = eval_feedback.final_decision
-                analysis["error_analysis"] = eval_feedback.execution
+                # Check for model output files
+                workspace_path = workspace.workspace_path
+                model_files = []
+                for pattern in ["*.safetensors", "*.bin", "adapter_*", "training_*.json"]:
+                    model_files.extend(workspace_path.glob(pattern))
 
-                # Extract model output information from return_checking
-                if hasattr(eval_feedback, "return_checking"):
-                    if "Found model output files" in eval_feedback.return_checking:
-                        analysis["model_outputs"] = ["Model files successfully generated"]
-                    elif "No model output files found" in eval_feedback.return_checking:
-                        analysis["model_outputs"] = []
+                if model_files:
+                    analysis["model_outputs"] = [f.name for f in model_files]
+                    analysis["error_analysis"] = (
+                        f"Training completed successfully. Generated {len(model_files)} output files."
+                    )
+                else:
+                    analysis["error_analysis"] = "Training completed but no model output files found."
 
         except Exception as e:
-            analysis["error_analysis"] = f"Evaluation failed: {str(e)}"
+            from rdagent.log import rdagent_logger as logger
+
+            logger.error(f"Failed to analyze execution results: {str(e)}")
+            analysis["error_analysis"] = f"Failed to extract execution details: {str(e)}"
 
         return analysis
