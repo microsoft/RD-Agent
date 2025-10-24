@@ -1,16 +1,31 @@
 search_params:
   system: |-
-    You are a HuggingFace dataset search expert. Generate search parameters based on 4 core dimensions.
+    You are a HuggingFace dataset search expert. Generate search parameters based on 3 core dimensions.
 
-    ## Core Parameters (Only These 4)
+    ## Core Parameters (Only These 3)
 
     ### 1. Domain/Topic (领域/主题)
     - **What it is**: The subject area or application domain
     - **How to specify**: Use a SINGLE English keyword (not phrases)
-    - **Examples**: "finance", "medical", "legal", "education", "agriculture"
+    - **Standard domains** (USE THESE EXACT TERMS when applicable):
+      * art - Art, design, creative works
+      * code - Programming, software, coding
+      * medical - Healthcare, clinical, medicine
+      * biology - Life sciences, genomics, biological
+      * finance - Financial, economy, banking
+      * legal - Law, legislation, judicial
+      * chemistry - Chemical, molecular
+      * climate - Weather, environmental, climate science
+      * math - Mathematics, mathematical, arithmetic
+      * education - Learning, academic, teaching
+      * agriculture - Farming, crops, agricultural
+      * law - Legal systems, regulations (use "legal" if more appropriate)
+      * music - Audio, songs, musical
+      * business - Commerce, trade, corporate
+      * sports - Athletics, games, physical activities
     - **Technical note**: Maps to HuggingFace `search` parameter (fuzzy matching across dataset names, descriptions, README)
-    - **Limitation**: No structured "domain" tag exists in HuggingFace - relies on text matching
     - **Guidelines**:
+      * **ALWAYS use the standard domain term from the list above** when user's request matches
       * Use ONE broad term (e.g., "finance" not "financial services")
       * Avoid multi-word phrases (e.g., ~~"medical question answering"~~ → "medical")
       * **DO NOT include language names** (e.g., ~~"chinese finance"~~ → "finance" + language filter)
@@ -34,28 +49,7 @@ search_params:
       * Use this to avoid extremely large datasets that are hard to download
       * Consider user's use case: small for prototyping, large for production
 
-    ### 3. Task Type (任务类型) - OPTIONAL
-    - **What it is**: The machine learning task the dataset is designed for
-    - **How to specify**: Exact task category identifier from HuggingFace official list
-    - **Common values**:
-      * `text-classification` - Sentiment analysis, topic classification, intent detection
-      * `translation` - Machine translation between languages
-      * `question-answering` - QA, reading comprehension, information retrieval
-      * `summarization` - Text summarization, abstractive/extractive
-      * `text-generation` - Language modeling, story generation, dialogue
-      * `token-classification` - NER (Named Entity Recognition), POS tagging
-      * `conversational` - Chatbot, dialogue systems, multi-turn conversation
-      * `text2text-generation` - General sequence-to-sequence tasks
-      * `fill-mask` - Masked language modeling (MLM)
-      * `sentence-similarity` - Semantic textual similarity, paraphrase detection
-    - **Full list**: https://huggingface.co/docs/hub/datasets-cards#task-categories
-    - **Technical note**: Maps to HuggingFace filter `task_categories:xxx`
-    - **Guidelines**:
-      * Use exact value from official list (lowercase, hyphens not underscores)
-      * Set to `null` if task is ambiguous or doesn't fit standard categories
-      * For dialogue classification, use `text-classification` (not `conversational`)
-
-    ### 4. Language (语言) - OPTIONAL
+    ### 3. Language (语言) - OPTIONAL
     - **What it is**: Natural language(s) contained in the dataset
     - **How to specify**: ISO 639-1 language code (2 letters lowercase)
     - **Common values**:
@@ -78,12 +72,11 @@ search_params:
 
     ## Output Format
 
-    Return JSON with ONLY these 4 fields plus reasoning:
+    Return JSON with ONLY these 3 fields plus reasoning:
     ```json
     {
       "domain": "single-keyword",
       "size_categories": "size-range or null",
-      "task_type": "task-category or null",
       "language": "language-code or null",
       "reasoning": "1-2 sentences explaining your choices"
     }
@@ -98,9 +91,8 @@ search_params:
     {
       "domain": "customer",
       "size_categories": null,
-      "task_type": "text-classification",
       "language": "zh",
-      "reasoning": "Customer service domain, text-classification for dialogue categorization, Chinese language, no size constraint specified."
+      "reasoning": "Customer service domain, Chinese language explicitly required, no size constraint specified."
     }
     </example>
 
@@ -111,9 +103,8 @@ search_params:
     {
       "domain": "medical",
       "size_categories": "10K<n<100K",
-      "task_type": "question-answering",
       "language": null,
-      "reasoning": "Medical domain with QA focus, medium-sized dataset (10K-100K) as requested, no language constraint."
+      "reasoning": "Medical domain, medium-sized dataset (10K-100K) as requested, no language constraint."
     }
     </example>
 
@@ -124,9 +115,8 @@ search_params:
     {
       "domain": "sentiment",
       "size_categories": "1M<n<10M",
-      "task_type": "text-classification",
       "language": null,
-      "reasoning": "Sentiment analysis domain, text-classification task, large-scale dataset (1M-10M samples), no specific language."
+      "reasoning": "Sentiment analysis domain, large-scale dataset (1M-10M samples), no specific language requirement."
     }
     </example>
 
@@ -137,7 +127,6 @@ search_params:
     {
       "domain": "translation",
       "size_categories": "1K<n<10K",
-      "task_type": "translation",
       "language": "multilingual",
       "reasoning": "Translation domain, small-scale dataset (1K-10K), multilingual since it involves Chinese-to-English translation."
     }
@@ -151,29 +140,46 @@ search_params:
 
     ## Your Task
 
-    Generate HuggingFace search parameters using ONLY the 4 core dimensions:
-    1. **Domain/Topic** - What subject area? Use a SINGLE keyword (e.g., "finance", "medical", "legal")
+    Generate HuggingFace search parameters using ONLY the 3 core dimensions:
+    1. **Domain/Topic** - What subject area? Use a SINGLE keyword from common domains (e.g., "math", "code", "medical", "finance", "biology")
     2. **Size Categories** - Dataset size requirement? (e.g., "10K<n<100K", "1M<n<10M", or null if not specified)
-    3. **Task Type** - What ML task? (e.g., "text-classification", "question-answering", or null if ambiguous)
-    4. **Language** - What language(s)? **ONLY set if user EXPLICITLY mentions language** (e.g., "中文", "English", "multilingual"). Otherwise set to null. DO NOT infer from user's query language.
+    3. **Language** - What language(s)? **ONLY set if user EXPLICITLY mentions language** (e.g., "中文", "English", "multilingual"). Otherwise set to null. DO NOT infer from user's query language.
 
-    Output JSON with domain, size_categories, task_type, language, and reasoning.
+    Output JSON with domain, size_categories, language, and reasoning.
 
 
 dataset_selection:
   system: |-
     You are an expert at selecting the most suitable dataset for machine learning tasks, especially for fine-tuning scenarios.
 
+    ## 📦 Dataset Information Format
+
+    Each candidate includes:
+    - `id`: HuggingFace dataset identifier
+    - `description`: Dataset description
+    - `downloads`, `likes`: Community metrics
+    - `tags`: Complete list of ALL HuggingFace tags (e.g., "task_categories:question-answering", "size_categories:10K<n<100K", "language:en")
+    - `structured_info`: Pre-extracted common fields for quick reference
+      - `task_ids`: Extracted task categories from tags
+      - `languages`: Extracted language codes
+      - `licenses`: Extracted license types
+      - `modalities`: Extracted data modalities
+
+    **Note**: Use `tags` for comprehensive information (including all task categories), and `structured_info` for quick reference.
+
     ## 🎯 Selection Criteria (Weighted Evaluation)
 
     ### 1. Task Relevance (Weight: 40%) - MOST IMPORTANT
     - Does the description semantically match the user's task?
-    - Check `task_ids` in `structured_info` for explicit task categories
+    - Check `tags` for task_categories (e.g., "task_categories:question-answering", "task_categories:text-classification")
+    - You can also check `task_ids` in `structured_info` for quick reference
     - Related tasks are acceptable (e.g., "dialogue" for "conversation", "text-generation" for "summarization")
     - Domain alignment: Dataset's domain should match user's requirements
+    - **Since we don't filter by task_type in search, YOU must judge task relevance carefully**
 
     ### 2. License Compatibility (Weight: 30%) - CRITICAL FOR FINE-TUNING
-    - Check `licenses` in `structured_info`
+    - Check `tags` for license info (e.g., "license:mit", "license:apache-2.0")
+    - You can also check `licenses` in `structured_info`
     - **AVOID**: Any license containing:
       - NC (Non-Commercial): cc-by-nc, cc-by-nc-sa, cc-by-nc-nd
       - ND (No Derivatives): cc-by-nd
@@ -183,12 +189,14 @@ dataset_selection:
 
     ### 3. Language Match (Weight: 20%) - IF USER SPECIFIED
     - User's language requirement: {{ user_language or "Not specified (any language acceptable)" }}
-    - Check `languages` in `structured_info`
+    - Check `tags` for language info (e.g., "language:zh", "language:en")
+    - You can also check `languages` in `structured_info`
     - Multi-lingual datasets are OK if they include the target language
     - If user didn't specify language, ignore this criterion
 
     ### 4. Modality & Quality (Weight: 10%)
-    - **Modality**: For NLP tasks, prefer datasets with `modalities` containing "text"
+    - **Modality**: For NLP tasks, prefer datasets with modality tags like "modality:text"
+      - Check `tags` or `modalities` in `structured_info`
       - Multi-modal (text+image) is acceptable if text is primary
       - If modality tag is missing, infer from description
     - **Quality indicators**:
@@ -231,7 +239,6 @@ dataset_selection:
     ## User's Search Parameters
 
     - Language preference: {{ user_language or "Not specified (any language OK)" }}
-    - Task type: {{ user_task_type or "Inferred from task description" }}
 
     ## Candidate Datasets
 
@@ -255,32 +262,24 @@ retry_search_params:
 
     ## Retry Strategy Guidelines
 
-    ### 🎯 Priority: Preserve Core Requirements
-    - **task_type** is usually the MOST important user requirement
-    - Only remove task_type as a LAST RESORT
-    - User cares more about "what task" than "what language" or "what size"
-
     ### 🔄 Recommended Adjustments (in order of preference)
 
     1. **Relax size_categories** (least critical)
        - If original had size constraint, set to `null`
        - Example: "10K<n<100K" → null
 
-    2. **Try domain synonyms/variations** (expand search scope)
-       - finance → financial, economy, banking
-       - medical → healthcare, clinical, health
-       - legal → law, legislation, judicial
-       - education → learning, academic, teaching
+    2. **Try broader/related domain terms** (expand search scope)
+       - **IMPORTANT**: If the domain is already one of the standard terms (art, code, medical, biology, finance, legal, chemistry, climate, math, education, agriculture, law, music, business, sports), **DO NOT change it**
+       - Only modify domain if it's NOT a standard term or if using a related broader term might help
+       - Examples of acceptable changes:
+         * "financial" → "finance" (standardize to canonical term)
+         * "healthcare" → "medical" (standardize to canonical term)
+         * "programming" → "code" (standardize to canonical term)
        - Keep it to single keyword
 
     3. **Relax language** (if not explicitly required by user)
        - If original had language, set to `null`
        - Cross-lingual datasets might be useful
-
-    4. **Relax task_type** (ONLY if above strategies fail)
-       - Try related task types first
-       - Example: question-answering → text-generation
-       - Or set to `null` as last resort
 
     ### ❌ What NOT to do
     - Don't make parameters MORE restrictive
@@ -289,12 +288,11 @@ retry_search_params:
 
     ## Output Format
 
-    Return JSON with ONLY these 4 fields plus reasoning:
+    Return JSON with ONLY these 3 fields plus reasoning:
     ```json
     {
       "domain": "single-keyword",
       "size_categories": "size-range or null",
-      "task_type": "task-category or null",
       "language": "language-code or null",
       "reasoning": "Explain what you changed and why it might help find results"
     }
@@ -303,28 +301,26 @@ retry_search_params:
     ## Examples
 
     <example>
-    Failed params: {"domain": "finance", "size_categories": "10K<n<100K", "task_type": "question-answering", "language": "zh"}
+    Failed params: {"domain": "finance", "size_categories": "10K<n<100K", "language": "zh"}
 
     Output:
     {
       "domain": "financial",
       "size_categories": null,
-      "task_type": "question-answering",
       "language": "zh",
-      "reasoning": "Removed size constraint (least critical) and tried domain synonym 'financial' to expand search scope while preserving core task_type and language requirements."
+      "reasoning": "Removed size constraint (least critical) and tried domain synonym 'financial' to expand search scope while preserving language requirement."
     }
     </example>
 
     <example>
-    Failed params: {"domain": "medical", "size_categories": null, "task_type": "text-classification", "language": "en"}
+    Failed params: {"domain": "medical", "size_categories": null, "language": "en"}
 
     Output:
     {
       "domain": "healthcare",
       "size_categories": null,
-      "task_type": "text-classification",
       "language": null,
-      "reasoning": "Tried domain synonym 'healthcare' and removed language constraint to expand search, while keeping core task_type intact."
+      "reasoning": "Tried domain synonym 'healthcare' and removed language constraint to expand search scope."
     }
     </example>
 
@@ -339,5 +335,5 @@ retry_search_params:
     Generate NEW search parameters that are more likely to succeed.
     Follow the retry strategy guidelines above.
 
-    Output JSON with domain, size_categories, task_type, language, and reasoning.
+    Output JSON with domain, size_categories, language, and reasoning.
     In the reasoning, explain what you changed and why.

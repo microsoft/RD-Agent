@@ -24,18 +24,16 @@ class HuggingFaceSearchAPI:
         self,
         domain: Optional[str] = None,
         size_categories: Optional[str] = None,
-        task_type: Optional[str] = None,
         language: Optional[str] = None,
         sort: str = "downloads",
         limit: int = 20,
     ) -> List[Dict[str, Any]]:
         """
-        Search HuggingFace datasets using 4 core dimensions.
+        Search HuggingFace datasets using 3 core dimensions.
 
         Args:
             domain: Domain/topic keyword for fuzzy text search (e.g., "finance", "medical")
             size_categories: Dataset size range (e.g., "10K<n<100K", "1M<n<10M", null for any)
-            task_type: Task category (e.g., "text-classification", "question-answering", null for any)
             language: Language code (e.g., "zh", "en", "multilingual", null for any)
             sort: Sort method ("downloads", "likes", "last_modified")
             limit: Maximum results
@@ -64,12 +62,10 @@ class HuggingFaceSearchAPI:
             if domain:
                 search_params["search"] = domain
 
-            # Size, Task Type, Language → filter list (precise tag matching)
+            # Size and Language → filter list (precise tag matching)
             filter_list = []
             if size_categories:
                 filter_list.append(f"size_categories:{size_categories}")
-            if task_type:
-                filter_list.append(f"task_categories:{task_type}")
             if language:
                 filter_list.append(f"language:{language}")
 
@@ -78,7 +74,7 @@ class HuggingFaceSearchAPI:
 
             logger.info(
                 f"Searching HuggingFace: domain='{domain}', "
-                f"size_categories={size_categories}, task_type={task_type}, language={language}"
+                f"size_categories={size_categories}, language={language}"
             )
 
             # Create fresh API instance for each search

@@ -18,10 +18,10 @@ class DatasetSearchAgent:
 
     Workflow:
     1. User provides task description
-    2. LLM generates search parameters (domain, license, task_type, language)
+    2. LLM generates search parameters (domain, size_categories, language)
     3. Search HuggingFace datasets via API with filter mechanism
     4. If no results, retry with progressively relaxed constraints
-    5. LLM selects best dataset from candidates
+    5. LLM selects best dataset from candidates (judges task relevance in this step)
     6. Download dataset to local directory
     """
 
@@ -47,7 +47,7 @@ class DatasetSearchAgent:
 
         Retry strategy:
         - Retry 1: LLM intelligently regenerates parameters
-        - Retry 2-4: Rule-based progressive relaxation (size → language → task)
+        - Retry 2-4: Rule-based progressive relaxation (size → language)
 
         Args:
             task_description: User's task requirement description
@@ -103,7 +103,6 @@ class DatasetSearchAgent:
             {
                 "domain": str,                    # Domain/topic keyword (single word)
                 "size_categories": str or None,   # Dataset size range
-                "task_type": str or None,         # Task category
                 "language": str or None,          # Language code
                 "reasoning": str                  # LLM's reasoning
             }
@@ -140,8 +139,7 @@ class DatasetSearchAgent:
             logger.warning("Using fallback search parameters")
             return {
                 "domain": task_description[:100],
-                "license": None,
-                "task_type": None,
+                "size_categories": None,
                 "language": None,
             }
 
@@ -150,7 +148,6 @@ class DatasetSearchAgent:
         task_description: str,
         candidates: List[Dict[str, Any]],
         user_language: Optional[str] = None,
-        user_task_type: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Use LLM to select the best dataset from candidates with 4-dimension evaluation.
@@ -159,7 +156,6 @@ class DatasetSearchAgent:
             task_description: User's task requirement
             candidates: List of candidate datasets
             user_language: User's language preference (from search params)
-            user_task_type: User's task type (from search params)
 
         Returns:
             {
@@ -177,7 +173,6 @@ class DatasetSearchAgent:
             task_description=task_description,
             candidates_json=self._format_candidates(candidates),
             user_language=user_language,
-            user_task_type=user_task_type,
         )
 
         try:
@@ -220,8 +215,7 @@ class DatasetSearchAgent:
         Use LLM to intelligently generate new search parameters after failure.
 
         This method is called on the FIRST retry attempt. The LLM is given
-        strategic guidance to preserve core requirements (especially task_type)
-        while relaxing less critical constraints.
+        strategic guidance to try domain synonyms and relax constraints.
 
         Args:
             task_description: Original user request
@@ -272,13 +266,11 @@ class DatasetSearchAgent:
         Rule-based parameter relaxation (used after LLM retry fails).
 
         This method is called on retry attempts AFTER the first LLM retry.
-        It progressively removes constraints in order of importance, preserving
-        core requirements (task_type) as long as possible.
+        It progressively removes constraints in order of importance.
 
         Strategy (in priority order):
         1. Remove size_categories filter (least critical - dataset size)
         2. Remove language filter (secondary - cross-lingual datasets may work)
-        3. Remove task_type filter (LAST RESORT - this is usually core requirement)
 
         Args:
             original_params: Original search parameters
@@ -303,13 +295,7 @@ class DatasetSearchAgent:
             relaxed["language"] = None
             return relaxed
 
-        # Step 3: Remove task_type filter (LAST RESORT - core requirement)
-        if relaxed.get("task_type"):
-            logger.warning("Rule-based retry: Removing task_type filter (LAST RESORT)")
-            relaxed["task_type"] = None
-            return relaxed
-
-        # Step 4: No more relaxation possible - all filters removed
+        # Step 3: No more relaxation possible - all filters removed
         logger.error("No further relaxation possible - all filters already removed")
         raise ValueError(
             f"Search failed after exhausting all retry strategies. "
@@ -364,22 +350,24 @@ class DatasetSearchAgent:
 
     def _format_candidates(self, candidates: List[Dict[str, Any]]) -> str:
         """
-        Format candidate datasets for LLM consumption with structured information extraction.
+        Format candidate datasets for LLM consumption with complete tags and structured info.
 
-        Extracts structured info from tags:
-        - task_ids: Task categories (e.g., question-answering, summarization)
-        - languages: Language tags (e.g., en, zh)
-        - licenses: License types (e.g., mit, apache-2.0)
-        - modalities: Data modalities (e.g., text, image)
+        Provides both raw tags and extracted structured information:
+        - tags: Complete list of all HuggingFace tags (including task_categories, size_categories, etc.)
+        - structured_info: Pre-extracted common fields for quick reference
+          - task_ids: Task categories (e.g., question-answering, summarization)
+          - languages: Language tags (e.g., en, zh)
+          - licenses: License types (e.g., mit, apache-2.0)
+          - modalities: Data modalities (e.g., text, image)
 
         Returns:
-            JSON string with candidate information including structured_info
+            JSON string with candidate information including both tags and structured_info
         """
         formatted = []
         for c in candidates:
             tags = c.get("tags", [])
 
-            # Extract structured information from tags
+            # Extract structured information from tags for quick reference
             task_ids = [t.split(":", 1)[1] for t in tags if t.startswith("task_categories:")]
             languages = [t.split(":", 1)[1] for t in tags if t.startswith("language:")]
             licenses = [t.split(":", 1)[1] for t in tags if t.startswith("license:")]
@@ -391,6 +379,7 @@ class DatasetSearchAgent:
                     "downloads": c.get("downloads", 0),
                     "likes": c.get("likes", 0),
                     "description": c.get("description", ""),
+                    "tags": tags,  # Complete raw tags for full context
                     "structured_info": {
                         "task_ids": task_ids,
                         "languages": languages,
@@ -412,7 +401,7 @@ class DatasetSearchAgent:
 
         Retry strategy:
         - Retry 1: LLM intelligently regenerates parameters
-        - Retry 2-4: Rule-based progressive relaxation (size → language → task)
+        - Retry 2-4: Rule-based progressive relaxation (size → language)
 
         Args:
             task_description: User's task requirement description
@@ -453,7 +442,6 @@ class DatasetSearchAgent:
             candidates = self.hf_api.search_datasets(
                 domain=search_params.get("domain"),
                 size_categories=search_params.get("size_categories"),
-                task_type=search_params.get("task_type"),
                 language=search_params.get("language"),
                 limit=max_candidates,
             )
@@ -493,7 +481,6 @@ class DatasetSearchAgent:
             task_description=task_description,
             candidates=candidates,
             user_language=search_params.get("language"),
-            user_task_type=search_params.get("task_type"),
         )
 
         # Log warnings if any
