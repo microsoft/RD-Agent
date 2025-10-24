@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.components.coder.CoSTEER import RD_Agent_TIMER_wrapper
 from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
@@ -66,6 +67,30 @@ class DataScienceScen(Scenario):
             self._get_direction()
         )  # True indicates higher is better, False indicates lower is better
         self.timeout_increase_count = 0
+        self.timer = RD_Agent_TIMER_wrapper.timer
+
+    def describe_current_status(self, stage: str, **kwargs):
+        """
+        Generates a description of the current scenario status including stage details and timing information.
+        Args:
+            stage (str): One of [Proposal, Coding, Running, Feedback]
+            **kwargs: Additional keyword arguments to be passed to the stage description
+        Example:
+            describe_current_status("Running", step="evaluator", max_loop=3, cur_loop=1)
+        """
+        # Overall status description
+        status_desc = T("scenarios.data_science.share:scen.status_desc").r(
+            stage=stage,
+            total_time=self.timer.all_duration,
+            remain_time=self.timer.remain_time(),
+        )
+
+        # Stage-specific description
+        try:
+            stage_desc = T(f"scenarios.data_science.share:scen.{stage.lower()}_desc").r(**kwargs)
+            return f"# Current Status Description\n{status_desc}\n## Current Stage Description\n{stage_desc}"
+        except Exception as e:
+            return f"# Current Status Description\n{status_desc}"
 
     def reanalyze_competition_description(self):
         self.raw_description = self._get_description()
