@@ -195,10 +195,12 @@ dataset_selection:
     - If user didn't specify language, ignore this criterion
 
     ### 4. Modality & Quality (Weight: 10%)
-    - **Modality**: For NLP tasks, prefer datasets with modality tags like "modality:text"
-      - Check `tags` or `modalities` in `structured_info`
-      - Multi-modal (text+image) is acceptable if text is primary
-      - If modality tag is missing, infer from description
+    - **Modality**: 
+      - **STRONGLY PREFER** datasets with ONLY "modality:text" (pure text datasets)
+      - Check `tags` for modality info (e.g., "modality:text")
+      - You can also check `modalities` in `structured_info`
+      - Multi-modal datasets (text+image, text+audio) should be **deprioritized**
+      - If modality tag is missing, infer from description (prefer text-only)
     - **Quality indicators**:
       - Downloads: Community trust and battle-tested reliability
       - Likes: User satisfaction and quality endorsement
