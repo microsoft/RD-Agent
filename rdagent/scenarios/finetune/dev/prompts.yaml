@@ -62,8 +62,8 @@ exp_feedback:
     ## Task Description
     {{ task_desc }}
 
-    ## Workspace Analysis
-    {{ workspace_analysis }}
+    ## Workspace Files
+    Available files: {{ workspace_files | join(", ") }}
 
     ## Execution Results
     {% if execution_analysis.success %}

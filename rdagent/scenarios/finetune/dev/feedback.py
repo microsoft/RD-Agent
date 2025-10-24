@@ -48,8 +48,8 @@ class LLMExperiment2Feedback(Experiment2Feedback):
         task = exp.sub_tasks[0] if exp.sub_tasks else None
         task_desc = task.get_task_information() if task else "No task information available"
 
-        # Analyze experiment workspace and results
-        workspace_analysis = self._analyze_workspace(exp)
+        # Get workspace files and execution results
+        workspace_files = list(exp.experiment_workspace.file_dict.keys()) if exp.experiment_workspace else []
         execution_analysis = self._analyze_execution_results(exp)
 
         # Generate LLM-based feedback using prompts.yaml templates
@@ -61,7 +61,7 @@ class LLMExperiment2Feedback(Experiment2Feedback):
         )
         user_prompt = T(f".prompts:{self.version}.user").r(
             hypothesis=hypothesis,
-            workspace_analysis=workspace_analysis,
+            workspace_files=workspace_files,
             execution_analysis=execution_analysis,
             base_model=hypothesis.base_model,
             finetune_method=hypothesis.finetune_method,
@@ -100,49 +100,6 @@ class LLMExperiment2Feedback(Experiment2Feedback):
                 reason=f"Failed to generate LLM feedback: {str(e)}. Using fallback evaluation.",
                 decision=execution_analysis.get("success", False),
             )
-
-    def _analyze_workspace(self, exp: FTExperiment) -> str:
-        """Analyze experiment workspace for files and structure"""
-        if not exp.experiment_workspace:
-            return "No workspace available for analysis."
-
-        analysis = []
-        workspace = exp.experiment_workspace
-
-        # Check for key files
-        key_files = ["main.py", "train.yaml", "train.py", "eval.py"]
-        found_files = []
-        missing_files = []
-
-        for file in key_files:
-            if file in workspace.file_dict:
-                found_files.append(file)
-            else:
-                missing_files.append(file)
-
-        analysis.append(f"Found files: {found_files}")
-        if missing_files:
-            analysis.append(f"Missing files: {missing_files}")
-
-        # Analyze main.py content if available
-        if "main.py" in workspace.file_dict:
-            main_py = workspace.file_dict["main.py"]
-            if "llamafactory" in main_py.lower():
-                analysis.append("✓ Uses LlamaFactory framework")
-            if "train" in main_py.lower():
-                analysis.append("✓ Contains training logic")
-            if "eval" in main_py.lower():
-                analysis.append("✓ Contains evaluation logic")
-
-        # Check for train.yaml content
-        if "train.yaml" in workspace.file_dict:
-            config_content = workspace.file_dict["train.yaml"]
-            if len(config_content) > 50:
-                analysis.append("✓ Config file appears comprehensive")
-            else:
-                analysis.append("⚠ Config file may be incomplete")
-
-        return "\n".join(analysis)
 
     def _analyze_execution_results(self, exp: FTExperiment) -> Dict:
         """Analyze execution results and running information"""

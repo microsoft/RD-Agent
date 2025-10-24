@@ -9,7 +9,12 @@ from filelock import FileLock
 from tqdm import tqdm
 
 from rdagent.core.evaluation import EvaluableObj, Evaluator, Feedback
-from rdagent.core.evolving_framework import EvolvableSubjects, EvolvingStrategy, EvoStep, RAGStrategy
+from rdagent.core.evolving_framework import (
+    EvolvableSubjects,
+    EvolvingStrategy,
+    EvoStep,
+    RAGStrategy,
+)
 from rdagent.log import rdagent_logger as logger
 
 ASpecificEvaluator = TypeVar("ASpecificEvaluator", bound=Evaluator)

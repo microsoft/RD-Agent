@@ -135,6 +135,7 @@ class CoSTEERQueriedKnowledgeV1(CoSTEERQueriedKnowledge):
 
 class CoSTEERRAGStrategyV1(CoSTEERRAGStrategy):
     """it is deprecated"""
+
     def __init__(self, settings: CoSTEERSettings, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.current_generated_trace_count = 0
