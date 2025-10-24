@@ -169,5 +169,16 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 continue
             if evo.sub_workspace_list[index] is None:
                 evo.sub_workspace_list[index] = FactorFBWorkspace(target_task=evo.sub_tasks[index])
-            evo.sub_workspace_list[index].inject_files(**{"factor.py": code_list[index]})
+            # code_list[index] should be either a string (for new implementations)
+            # or a dict (for existing implementations from knowledge base)
+            if isinstance(code_list[index], str):
+                # New implementation - code is a string
+                evo.sub_workspace_list[index].inject_files(**{"factor.py": code_list[index]})
+            elif isinstance(code_list[index], dict):
+                # Existing implementation - code_list[index] is already a file_dict
+                if "factor.py" not in code_list[index]:
+                    raise ValueError(f"Dictionary at code_list[{index}] must contain 'factor.py' key")
+                evo.sub_workspace_list[index].inject_files(**code_list[index])
+            else:
+                raise TypeError(f"Expected str or dict for code_list[{index}], got {type(code_list[index])}")
         return evo
