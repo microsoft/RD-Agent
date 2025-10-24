@@ -134,6 +134,7 @@ class CoSTEERQueriedKnowledgeV1(CoSTEERQueriedKnowledge):
 
 
 class CoSTEERRAGStrategyV1(CoSTEERRAGStrategy):
+    """it is deprecated"""
     def __init__(self, settings: CoSTEERSettings, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.current_generated_trace_count = 0
@@ -338,7 +339,7 @@ class CoSTEERRAGStrategyV2(CoSTEERRAGStrategy):
             self.current_generated_trace_count = len(evolving_trace)
             return None
 
-    def query(self, evo: EvolvableSubjects, evolving_trace: list[EvoStep]) -> CoSTEERQueriedKnowledge | None:
+    def query(self, evo: EvolvableSubjects, evolving_trace: list[EvoStep]) -> CoSTEERQueriedKnowledge:
         conf_knowledge_sampler = self.settings.v2_knowledge_sampler
         queried_knowledge_v2 = CoSTEERQueriedKnowledgeV2(
             success_task_to_knowledge_dict=self.knowledgebase.success_task_to_knowledge_dict,

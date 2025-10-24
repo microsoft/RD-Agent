@@ -79,6 +79,8 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         evolving_trace: list[EvoStep] = [],
         **kwargs,
     ) -> EvolvingItem:
+        if queried_knowledge is None:
+            raise ValueError("MultiProcessEvolvingStrategy requires queried_knowledge for efficient implementation. Please set with_knowledge=True in CoSTEER constructor.")
         code_list = [None for _ in range(len(evo.sub_tasks))]
 
         last_feedback = None
@@ -90,7 +92,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         to_be_finished_task_index: list[int] = []
         for index, target_task in enumerate(evo.sub_tasks):
             target_task_desc = target_task.get_task_information()
-            if queried_knowledge is not None and target_task_desc in queried_knowledge.success_task_to_knowledge_dict:
+            if target_task_desc in queried_knowledge.success_task_to_knowledge_dict:
                 # NOTE: very weird logic:
                 # it depends on the knowledge to set the already finished task
                 code_list[index] = queried_knowledge.success_task_to_knowledge_dict[

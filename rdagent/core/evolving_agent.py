@@ -9,7 +9,7 @@ from filelock import FileLock
 from tqdm import tqdm
 
 from rdagent.core.evaluation import EvaluableObj, Evaluator, Feedback
-from rdagent.core.evolving_framework import EvolvableSubjects, EvolvingStrategy, EvoStep
+from rdagent.core.evolving_framework import EvolvableSubjects, EvolvingStrategy, EvoStep, RAGStrategy
 from rdagent.log import rdagent_logger as logger
 
 ASpecificEvaluator = TypeVar("ASpecificEvaluator", bound=Evaluator)
@@ -50,7 +50,7 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
         self,
         max_loop: int,
         evolving_strategy: EvolvingStrategy,
-        rag: Any,
+        rag: RAGStrategy,
         *,
         with_knowledge: bool = False,
         with_feedback: bool = True,
@@ -58,6 +58,26 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
         enable_filelock: bool = False,
         filelock_path: str | None = None,
     ) -> None:
+        """
+        Initialize a Retrieval-Augmented Generation (RAG) based evolutionary agent.
+
+        Args:
+            max_loop (int): Maximum number of evolution loops to execute.
+            evolving_strategy (EvolvingStrategy): Strategy defining how the subjects evolve each step.
+            rag (RAGStrategy): Retrieval-Augmented Generation strategy instance used for knowledge querying and/or creation.
+            with_knowledge (bool, optional): If True, retrieves knowledge from RAG for each evolution step. Defaults to False.
+            with_feedback (bool, optional): If True, evaluates each evolved subject and logs feedback. Defaults to True.
+            knowledge_self_gen (bool, optional): If True, enable RAG to load, generate, dump new knowledge from evolving trace. Defaults to False.
+            enable_filelock (bool, optional): If True, enables file-based lock when accessing/modifying the RAG knowledge base. Defaults to False.
+            filelock_path (str | None, optional): Path to the lock file when enable_filelock is True. Defaults to None.
+
+        This class coordinates the multi-step evolution process with optional:
+            - Knowledge retrieval before evolving.
+            - Feedback collection after evolving.
+            - Self-generation and persisting of knowledge base updates.
+
+        Evolving trace is maintained across steps for adaptive strategies and knowledge generation.
+        """
         super().__init__(max_loop, evolving_strategy)
         self.rag = rag
         self.evolving_trace: list[EvoStep[ASpecificEvolvableSubjects]] = []

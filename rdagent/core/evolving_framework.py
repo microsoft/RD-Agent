@@ -98,7 +98,7 @@ class RAGStrategy(ABC, Generic[ASpecificEvolvableSubjects]):
         evo: ASpecificEvolvableSubjects,
         evolving_trace: list[EvoStep],
         **kwargs: Any,
-    ) -> QueriedKnowledge | None:
+    ) -> QueriedKnowledge:
         pass
 
     @abstractmethod
