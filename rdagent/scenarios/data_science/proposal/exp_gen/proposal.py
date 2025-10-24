@@ -2,6 +2,7 @@ import json
 import math
 from datetime import timedelta
 from enum import Enum
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -1263,10 +1264,20 @@ You help users retrieve relevant knowledge from community discussions and public
             # Persist for later stages
             task.package_info = get_packages(pkgs)
 
-        exp = DSExperiment(
-            pending_tasks_list=[[task]], hypothesis=hypotheses[0], hypothesis_candidates=hypotheses_candidates
-        )
-        if sota_exp is not None:
+        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypotheses[0])
+
+        # Draft code replacement for first loop
+        if (
+            DS_RD_SETTING.enable_draft_code_replacement and DS_RD_SETTING.draft_code_path and sota_exp is None
+        ):  # First loop (no SOTA experiment exists)
+
+            draft_path = Path(DS_RD_SETTING.draft_code_path)
+            if draft_path.exists():
+                logger.info(f"Loading draft code from: {draft_path}")
+                exp.experiment_workspace.inject_files(**{"main.py": draft_path.read_text()})
+            else:
+                logger.warning(f"Draft code file not found: {draft_path}")
+        elif sota_exp is not None:
             exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
 
         # 3) create the workflow update task
