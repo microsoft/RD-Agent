@@ -73,8 +73,7 @@ class HuggingFaceSearchAPI:
                 search_params["filter"] = filter_list
 
             logger.info(
-                f"Searching HuggingFace: domain='{domain}', "
-                f"size_categories={size_categories}, language={language}"
+                f"Searching HuggingFace: domain='{domain}', " f"size_categories={size_categories}, language={language}"
             )
 
             # Create fresh API instance for each search

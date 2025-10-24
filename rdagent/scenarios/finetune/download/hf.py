@@ -3,6 +3,10 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
+from huggingface_hub import snapshot_download
+
+from rdagent.app.finetune.llm.conf import FT_RD_SETTING
+
 
 def _ensure_parent(path: Path) -> None:
     os.makedirs(path.parent, mode=0o777, exist_ok=True)
@@ -23,8 +27,6 @@ def download_dataset(
         save_root = Path(out_dir_root)
     else:
         # Use FT_RD_SETTING for default root directory
-        from rdagent.app.finetune.llm.conf import FT_RD_SETTING
-
         if not FT_RD_SETTING.file_path:
             raise ValueError("No out_dir_root specified and FT_FILE_PATH not set")
         save_root = Path(FT_RD_SETTING.file_path) / "datasets"
@@ -34,13 +36,6 @@ def download_dataset(
 
     if force and save_path.exists():
         shutil.rmtree(save_path)
-
-    try:
-        from huggingface_hub import snapshot_download
-    except Exception as e:
-        raise ImportError(
-            "huggingface_hub is missing. Please install it first: pip install -U 'huggingface_hub[cli]'"
-        ) from e
 
     effective_token = (
         token
@@ -75,8 +70,6 @@ def download_model(
         save_root = Path(out_dir_root)
     else:
         # Use FT_RD_SETTING for default root directory
-        from rdagent.app.finetune.llm.conf import FT_RD_SETTING
-
         if not FT_RD_SETTING.file_path:
             raise ValueError("No out_dir_root specified and FT_FILE_PATH not set")
         save_root = Path(FT_RD_SETTING.file_path) / "model"
@@ -86,13 +79,6 @@ def download_model(
 
     if force and save_path.exists():
         shutil.rmtree(save_path)
-
-    try:
-        from huggingface_hub import snapshot_download
-    except Exception as e:
-        raise ImportError(
-            "huggingface_hub is missing. Please install it first: pip install -U 'huggingface_hub[cli]'"
-        ) from e
 
     effective_token = (
         token
