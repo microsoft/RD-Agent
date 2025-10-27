@@ -125,8 +125,6 @@ class LLMFinetuneRunner(CoSTEER):
         # 1. Execute training using coder's full training config (no modification)
         # 2. Validate execution using LLMFinetuneEvaluator
         exp = super().develop(exp)
-
-        logger.info("Training execution completed. Benchmark evaluation should be done separately.")
         return exp
 
     def get_develop_max_seconds(self) -> int | None:

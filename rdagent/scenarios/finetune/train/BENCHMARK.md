@@ -1,16 +1,25 @@
-# Benchmark Evaluation with OpenCompass
+# OpenCompass Benchmark Integration
+
+Automatic evaluation of fine-tuned LLMs using OpenCompass in Docker.
 
 ## Overview
 
-The FT scenario uses OpenCompass to evaluate fine-tuned models on standard benchmarks. Evaluation runs automatically after training as part of the runner pipeline.
+After training succeeds, the system automatically evaluates your model on standard benchmarks:
 
 ```
-Training (LlamaFactory) → Training Validation → Benchmark Evaluation → Feedback
+Training → Adapter Files → Benchmark Evaluation → Results & Feedback
 ```
+
+**Design Principles:**
+- ✅ **Fully Automated** - No manual intervention needed
+- ✅ **Docker Isolated** - Zero dependency conflicts with main environment
+- ✅ **Simple Configuration** - Just list dataset names
+- ✅ **Extensible** - Easy to add parameters in the future
+- ✅ **No Redundancy** - Environment variables only, no JSON config files
 
 ## Quick Start
 
-### 1. Build Docker Image
+### 1. Build OpenCompass Docker Image
 
 ```bash
 cd rdagent/scenarios/finetune/docker/opencompass
@@ -19,276 +28,305 @@ docker build -t rdagent-opencompass:latest .
 
 ### 2. Configure Datasets
 
+Edit `rdagent/app/finetune/llm/conf.py`:
+
 ```python
-# rdagent/app/finetune/llm/conf.py
-benchmark_datasets: list[str] = ["mmlu"]  # Default: MMLU only
+benchmark_datasets: list[str] = ["mmlu", "gsm8k"]  # Your chosen benchmarks
+benchmark_timeout: int = 3600  # Max execution time (seconds)
 ```
 
-### 3. Run
+### 3. Run Fine-tuning Loop
 
 ```bash
-python rdagent/app/finetune/llm/loop.py --dataset your_dataset --model your_model
+python -m rdagent.app.finetune.llm.loop
 ```
+
+Benchmarks run automatically after training succeeds.
 
 ## Architecture
 
 ### Files
 
-- `benchmark.py` - FTBenchmarkEvaluator implementation
-- `eval.py` - FTRunnerEvaluator (training validation)
-- `runner.py` - Orchestrates both evaluators
-- `../docker/opencompass/` - Docker image and entrypoint
+- `benchmark.py` - `FTBenchmarkEvaluator` implementation
+- `eval.py` - `FTRunnerEvaluator` (training validation)
+- `runner.py` - Orchestrates evaluators
+- `../docker/opencompass/Dockerfile` - Docker image definition
+- `../docker/opencompass/eval_entrypoint.py` - Entrypoint script inside Docker
 
-### Evaluation Pipeline
+### Evaluation Flow
 
-1. **Training Validation** (FTRunnerEvaluator)
-   - Check exit code
-   - Verify adapter files exist
-   - Fast (~10 seconds)
+```
+┌─────────────────────────────────────────────────────────────┐
+│  LLMFinetuneRunner (runner.py)                              │
+├─────────────────────────────────────────────────────────────┤
+│  1. FTRunnerEvaluator                                       │
+│     ├─ Check training exit code                             │
+│     ├─ Verify adapter files exist                           │
+│     └─ Return: Success/Failure (~10 sec)                    │
+│                                                              │
+│  2. FTBenchmarkEvaluator (only if step 1 succeeds)          │
+│     ├─ Validate adapter files (safetensors/bin + config)    │
+│     ├─ Generate model abbreviation (for result tracking)    │
+│     ├─ Launch OpenCompass Docker with env vars              │
+│     ├─ Parse results from CSV                               │
+│     └─ Return: Scores + Report (minutes to hours)           │
+└─────────────────────────────────────────────────────────────┘
+```
 
-2. **Benchmark Evaluation** (FTBenchmarkEvaluator)
-   - Only runs if training validation passes
-   - Runs OpenCompass in Docker
-   - Evaluates on configured benchmarks
-   - Returns scores
+### Configuration System
 
-## Configuration
+RDAgent passes configuration via **environment variables** (no JSON files):
+
+```python
+# benchmark.py → get_benchmark_env()
+env_vars = {
+    "BENCHMARK_DATASETS": "mmlu,gsm8k",           # Comma-separated list
+    "ADAPTER_PATH": "/workspace/output",          # Path to adapter files
+    "BASE_MODEL": "Qwen/Qwen2-1.5B-Instruct",     # HuggingFace model ID
+    "MODEL_ABBR": "qwen2-1.5b-ft-abc12345",       # Unique identifier
+    "MAX_OUT_LEN": "2048",                        # Max generation length
+    "BATCH_SIZE": "8",                            # Inference batch size
+    "NUM_GPUS": "1",                              # GPU allocation
+}
+```
+
+Inside Docker, `eval_entrypoint.py` reads these variables and generates a Python config file following OpenCompass's official format:
+
+```python
+# Auto-generated config (eval_entrypoint.py)
+from opencompass.models import HuggingFacewithChatTemplate
+
+models = [dict(
+    type=HuggingFacewithChatTemplate,
+    abbr='qwen2-1.5b-ft-abc12345',           # For result identification
+    path='Qwen/Qwen2-1.5B-Instruct',         # Base model
+    peft_path='/workspace/output',           # Adapter path
+    tokenizer_path='/workspace/output',      # Use adapter's tokenizer
+    max_out_len=2048,
+    batch_size=8,
+    run_cfg=dict(num_gpus=1),                # GPU config
+    model_kwargs=dict(
+        device_map='auto',
+        trust_remote_code=True,
+    ),
+    generation_kwargs=dict(do_sample=False), # Deterministic for benchmarks
+)]
+
+# Datasets (automatically imported from OpenCompass presets)
+from opencompass.configs.datasets.mmlu.mmlu_gen import mmlu_datasets
+from opencompass.configs.datasets.gsm8k.gsm8k_gen import gsm8k_datasets
+datasets = mmlu_datasets + gsm8k_datasets
+```
+
+## Supported Benchmarks
+
+OpenCompass provides 300+ datasets. Common ones included:
+
+### 📚 Knowledge & Reasoning
+- **mmlu** - Massive Multitask Language Understanding (57 subjects, multiple-choice)
+- **cmmlu** - Chinese MMLU
+- **bbh** - BIG-Bench Hard (challenging reasoning tasks)
+- **arc** - AI2 Reasoning Challenge
+- **hellaswag** - Commonsense reasoning
+
+### 🔢 Math & Code
+- **gsm8k** - Grade School Math (8K problems, generative)
+- **humaneval** - Code generation (Python functions)
+
+### 🌐 Dataset Management
+
+OpenCompass **automatically downloads** datasets on first run:
+- Downloads from HuggingFace Hub or ModelScope
+- Caches locally in `~/.cache/huggingface/datasets/`
+- Supports custom datasets via Python config
+
+**No manual dataset preparation needed!**
+
+## Configuration Options
 
 ```python
 # rdagent/app/finetune/llm/conf.py
 
-benchmark_datasets: list[str] = ["mmlu"]
-# Supported: mmlu, gsm8k, cmmlu, humaneval, bbh, hellaswag, arc, etc.
+class LLMFinetunePropSetting(ExtendedBaseSettings):
+    # Dataset selection
+    benchmark_datasets: list[str] = ["mmlu"]
+    """
+    Benchmark datasets to evaluate on.
+    Supported: mmlu, gsm8k, humaneval, bbh, hellaswag, cmmlu, arc, etc.
+    Empty list = skip benchmarking.
+    """
 
-benchmark_timeout: int = 3600
-# Timeout in seconds
+    # Timeout control
+    benchmark_timeout: int = 3600
+    """
+    Benchmark evaluation timeout in seconds.
+    MMLU ~30min, GSM8K ~15min, HumanEval ~10min (varies by model size and GPU).
+    """
 ```
 
-## Supported Datasets
+## OpenCompass Config Format
 
-OpenCompass supports 300+ datasets. Common ones:
+OpenCompass supports **three configuration methods**:
 
-### Knowledge & Reasoning
-- **mmlu** - Massive Multitask Language Understanding (57 subjects)
-- **cmmlu** - Chinese MMLU
-- **bbh** - BIG-Bench Hard
-- **arc** - AI2 Reasoning Challenge
-
-### Math
-- **gsm8k** - Grade School Math 8K
-- **math** - Mathematics dataset
-
-### Code
-- **humaneval** - Code generation
-- **mbpp** - Python programming
-
-### Chinese
-- **cmmlu** - Chinese knowledge
-- **ceval** - Chinese evaluation
-
-## OpenCompass Dataset Management
-
-### How Datasets are Stored
-
-OpenCompass uses a flexible data loading system:
-
-1. **HuggingFace/ModelScope** - Auto-download from remote
-2. **Local Cache** - `./data/` directory
-3. **Custom Path** - Via dataset config
-
+### 1. Python Config File (What we use)
 ```python
-# opencompass/utils/datasets_info.py
-DATASETS_MAPPING = {
-    "opencompass/mmlu": {
-        "hf_id": "opencompass/mmlu",      # HuggingFace
-        "ms_id": "opencompass/mmlu",      # ModelScope (China)
-        "local": "./data/mmlu/",          # Local fallback
-    },
-}
+from opencompass.models import HuggingFacewithChatTemplate
+
+models = [dict(
+    type=HuggingFacewithChatTemplate,
+    abbr='model-name',                    # Required: result identification
+    path='base/model',                    # Required: base model path
+    peft_path='/path/to/adapter',         # Required: adapter path
+    max_out_len=2048,                     # Required: max output length
+    batch_size=8,                         # Required: batch size
+    run_cfg=dict(num_gpus=1),             # Required: GPU allocation
+    tokenizer_path='/path/to/adapter',    # Recommended: custom tokenizer
+    model_kwargs=dict(...),               # Recommended: loading params
+    generation_kwargs=dict(...),          # Recommended: generation params
+)]
 ```
 
-### Dataset Types
-
-OpenCompass evaluates different question types:
-
-#### 1. Multiple Choice (选择题)
-**Examples**: MMLU, CMMLU, ARC
-
-**Process**:
-```
-Question + Options → Model → "Answer: A" → Extract "A" → Compare
+### 2. CLI Shortcut (Not used in RDAgent)
+```bash
+opencompass --models hf_qwen2_1_5b_instruct --datasets mmlu gsm8k
 ```
 
-**Components**:
-- `GenInferencer` - Generate text
-- `AccEvaluator` - Calculate accuracy
-- `first_option_postprocess` - Extract A/B/C/D
-
-#### 2. Math/Reasoning (数学推理)
-**Examples**: GSM8K, MATH
-
-**Process**:
-```
-Question → Model (CoT) → "Step 1... The answer is 42" → Extract 42 → Compare
-```
-
-**Components**:
-- `GenInferencer` - Generate reasoning
-- `MathEvaluator` - Extract and compare numbers
-- `gsm8k_postprocess` - Parse final answer
-
-#### 3. Code Generation (代码生成)
-**Examples**: HumanEval, MBPP
-
-**Process**:
-```
-Problem → Model → Code → Extract → Run Tests → Pass@k
-```
-
-**Components**:
-- `GenInferencer` - Generate code
-- `CodeEvaluator` - Execute tests in sandbox
-- `humaneval_postprocess` - Extract code blocks
-
-#### 4. Short Answer (简答题)
-**Examples**: NQ (Natural Questions)
-
-**Process**:
-```
-Question → Model → Answer Text → Fuzzy Match → Score
-```
-
-**Components**:
-- `GenInferencer` - Generate answer
-- `EMEvaluator` - Exact match or F1 score
-
-#### 5. LLM Judge (需要大模型评分)
-**Examples**: AlpacaEval, MT-Bench
-
-**Process**:
-```
-Question → Model A + Model B → GPT-4 Judge → Winner
-```
-
-**Components**:
-- `LMEvaluator` - Call judge model API
-- Pairwise comparison
-- **Note**: Expensive, slow, requires API key
-
-### How to Add New Datasets
-
-Edit `docker/opencompass/eval_entrypoint.py`:
-
+### 3. mmengine.Config Object (Not used in RDAgent)
 ```python
-dataset_map = {
-    "mmlu": "from opencompass.configs.datasets.mmlu.mmlu_gen import mmlu_datasets\ndatasets.extend(mmlu_datasets)",
-    "your_dataset": "from opencompass.configs.datasets.your_dataset.your_dataset_gen import your_dataset_datasets\ndatasets.extend(your_dataset_datasets)",
-}
+from mmengine.config import Config
+cfg = Config.fromfile('config.py')
 ```
 
-Then rebuild Docker image.
-
-## Results
-
-### Format
-
-Results are saved as CSV:
-
-```csv
-model,dataset,metric,score
-model-name,mmlu,accuracy,45.2
-model-name,gsm8k,accuracy,58.7
-```
-
-### Parsing
-
-The evaluator parses the latest summary file:
-
-```python
-workspace/benchmark_results/{timestamp}/summary/summary_{timestamp}.csv
-```
+**We use Method 1 (Python config)** because it's:
+- Most flexible for programmatic generation
+- Easiest to debug (readable Python code)
+- Official recommendation for complex setups
 
 ## Docker Implementation
 
-### Environment
+### Dockerfile
+Located at `rdagent/scenarios/finetune/docker/opencompass/Dockerfile`:
 
-Following FT scenario's pattern:
+```dockerfile
+FROM pytorch/pytorch:2.4.0-cuda12.4-cudnn9-runtime
 
-```python
-from rdagent.utils.env import FTDockerEnv, FTDockerConf
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl vim git build-essential git-lfs unzip \
+    && rm -rf /var/lib/apt/lists/*
 
-conf = FTDockerConf()
-conf.image = "rdagent-opencompass:latest"
-env = FTDockerEnv(conf=conf)
+# Install OpenCompass and dependencies
+RUN pip install opencompass peft transformers accelerate
 
-env.conf.env_vars = {
-    "BENCHMARK_DATASETS": ",".join(datasets),
-    "ADAPTER_PATH": str(adapter_path),
-    "BASE_MODEL": base_model,
-}
+WORKDIR /workspace
+COPY eval_entrypoint.py /app/eval_entrypoint.py
 ```
 
-### Execution
+### Entrypoint Script
+Located at `rdagent/scenarios/finetune/docker/opencompass/eval_entrypoint.py`:
 
+- Reads environment variables
+- Generates OpenCompass Python config
+- Invokes `opencompass.cli.main`
+- Handles errors with detailed logging
+
+## Skipping and Failure Conditions
+
+### When Benchmark is Skipped (not an error)
 ```python
-result = implementation.execute(
-    env=env,
-    entry="bash run_benchmark.sh",
-)
+benchmark_datasets = []  # Empty list → skip with final_decision=True
+```
+
+### When Benchmark Fails (error)
+- Training failed (FTRunnerEvaluator.final_decision=False)
+- Adapter files missing or corrupt
+- OpenCompass execution error (exit_code != 0)
+- Results parsing failure
+
+## Results
+
+### Location
+```
+workspace/benchmark_results/
+├── TIMESTAMP/
+│   ├── summary/
+│   │   └── summary_TIMESTAMP.csv  # Main results
+│   ├── predictions/  # Model outputs
+│   └── configs/      # Run configs
+```
+
+### Format
+CSV with columns: `dataset`, `score`, `metric`
+
+### Example Feedback
+```
+Execution: Benchmark completed: 2/2 datasets
+Return Checking:
+  Benchmark Results:
+    mmlu: 62.3
+    gsm8k: 45.7
+Code: Average Score: 54.0%
+Final Decision: True
 ```
 
 ## Troubleshooting
 
-### Docker Image Not Found
+### 1. Docker Image Not Found
 ```bash
+# Build the image
 cd rdagent/scenarios/finetune/docker/opencompass
 docker build -t rdagent-opencompass:latest .
 ```
 
-### Dataset Download Failed
-OpenCompass auto-downloads on first run. Requires internet access.
+### 2. Adapter Files Missing
+- Check training output: `workspace/output/`
+- Should contain: `adapter_model.safetensors` (or `.bin`) + `adapter_config.json`
+- If missing, training likely failed
 
-```bash
-# Use ModelScope mirror (China)
-export DATASET_SOURCE=ModelScope
+### 3. Timeout
+```python
+# Increase timeout in conf.py
+benchmark_timeout = 7200  # 2 hours
 ```
 
-### GPU Not Available
-OpenCompass can run on CPU but is slower. Docker requires nvidia-docker for GPU support.
+### 4. Unknown Dataset
+```
+Warning: Unknown dataset 'my_dataset', skipping
+Supported datasets: mmlu, gsm8k, humaneval, bbh, hellaswag, cmmlu, arc
+```
 
-### Timeout
-Increase timeout in config:
+Add to `eval_entrypoint.py`:
+```python
+dataset_map = {
+    "my_dataset": "from opencompass.configs.datasets.my_dataset import my_datasets\ndatasets.extend(my_datasets)",
+}
+```
+
+### 5. Out of Memory
+- Reduce `batch_size` in `get_benchmark_env()`
+- Use smaller model
+- Increase GPU memory
+
+## Future Extensions
+
+Easy to extend by modifying environment variables in `get_benchmark_env()`:
 
 ```python
-benchmark_timeout: int = 7200  # 2 hours
+# Add new parameters
+env.conf.env_vars = {
+    ...
+    "TEMPERATURE": "0.0",           # Generation temperature
+    "TOP_P": "1.0",                 # Nucleus sampling
+    "MAX_SEQ_LEN": "4096",          # Input sequence length
+    "USE_VLLM": "true",             # vLLM acceleration
+    "CUSTOM_PROMPT": "...",         # Custom prompt template
+}
 ```
 
-## Development Notes
-
-### Current Implementation Status
-
-✅ **Completed**:
-- Framework architecture
-- Docker setup (simplified, following FT pattern)
-- Configuration system
-- Result parsing
-
-⏳ **Minimal but Functional**:
-- Supports 5 common datasets (mmlu, gsm8k, cmmlu, humaneval, bbh)
-- Basic error handling
-- Simple result reporting
-
-### Design Principles
-
-1. **Follow FT Pattern** - Use `FTDockerEnv` like training does
-2. **Keep It Simple** - Minimal code, straightforward logic
-3. **Easy to Extend** - Add datasets by editing entrypoint mapping
+Then handle in `eval_entrypoint.py`.
 
 ## References
 
-- [OpenCompass GitHub](https://github.com/open-compass/opencompass)
-- [OpenCompass Docs](https://opencompass.readthedocs.io/)
-- [Dataset List](https://opencompass.readthedocs.io/en/latest/dataset_statistics.html)
-- [Training Docker](../docker/llm_finetune_docker/Dockerfile)
-- [Benchmark Docker](../docker/opencompass/Dockerfile)
-
+- OpenCompass: https://github.com/open-compass/opencompass
+- LlamaFactory: https://github.com/hiyouga/LLaMA-Factory
+- RDAgent FT Scenario: `rdagent/scenarios/finetune/`
