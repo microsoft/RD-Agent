@@ -9,6 +9,7 @@ from pathlib import Path
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.experiment import Task
 from rdagent.core.interactor import Interactor
+from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.utils.agent.tpl import T
@@ -79,6 +80,8 @@ class FBDSInteractor(DSInteractor):
         task: Task,
         exp: DSExperiment,
     ) -> DSExperiment:
+        if current_code == "":
+            return exp
         information_to_user = {
             "competition": DS_RD_SETTING.competition,
             "scenario_description": scenario_description,
@@ -96,6 +99,9 @@ class FBDSInteractor(DSInteractor):
         session_id = uuid.uuid4().hex
         DS_RD_SETTING.user_interaction_mid_folder.mkdir(parents=True, exist_ok=True)
         pickle.dump(information_to_user, open(DS_RD_SETTING.user_interaction_mid_folder / f"{session_id}.pkl", "wb"))
+        logger.info(
+            f"Has created session with id {session_id} for user interaction. Please use portal to provide feedback."
+        )
         while (
             Path(DS_RD_SETTING.user_interaction_mid_folder / f"{session_id}.pkl").exists()
             and pickle.load(open(DS_RD_SETTING.user_interaction_mid_folder / f"{session_id}.pkl", "rb"))[
