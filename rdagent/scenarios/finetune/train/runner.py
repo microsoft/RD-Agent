@@ -18,7 +18,6 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
-from rdagent.components.coder.data_science.share.eval import ModelDumpEvaluator
 from rdagent.components.coder.finetune.conf import FTCoderCoSTEERSettings
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
@@ -91,10 +90,6 @@ class LLMFinetuneRunner(CoSTEER):
     ) -> None:
         # Use LLM fine-tuning specific evaluator
         eval_l = [FTRunnerEvaluator(scen=scen)]
-
-        # Add model dump evaluator if enabled
-        if FT_RD_SETTING.enable_model_dump:
-            eval_l.append(ModelDumpEvaluator(scen=scen, data_type="full"))
 
         eva = CoSTEERMultiEvaluator(single_evaluator=eval_l, scen=scen)
         settings = FTRunnerSettings()

@@ -124,10 +124,10 @@ def get_clear_ws_cmd(stage: Literal["before_training", "before_inference"] = "be
     """
     assert stage in ["before_training", "before_inference"], f"Unknown stage: {stage}"
 
-    if FT_RD_SETTING.enable_model_dump and stage == "before_training":
-        # Clean output directory and all training artifacts before training
+    if stage == "before_training":
+        # Clean all training outputs before new training
         cmd = "rm -rf output/ checkpoint-* adapter_* *.safetensors *.bin training_*.json *_metrics.json train.yaml trace.log"
     else:
-        # Clean only essential files (keep models for inference)
+        # Clean only logs before inference (keep model outputs)
         cmd = "rm -f training_*.json *_metrics.json train.yaml trace.log"
     return cmd

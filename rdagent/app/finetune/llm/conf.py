@@ -50,7 +50,6 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
 
     # Pipeline behavior
     coder_on_whole_pipeline: bool = True
-    enable_model_dump: bool = True
     app_tpl: str = "scenarios/finetune"
 
     # Data paths and processing
