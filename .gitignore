@@ -186,3 +186,5 @@ AGENTS.md
 CLAUDE.md
 
 test*.py
+
+datasets/
