@@ -869,6 +869,28 @@ class FTDockerConf(DockerConf):
     _exclude_path_keys: list[str] = ["assets_path"]
 
 
+class BenchmarkDockerConf(DockerConf):
+    """Docker configuration for OpenCompass benchmark evaluation."""
+
+    model_config = SettingsConfigDict(env_prefix="BENCHMARK_DOCKER_")
+
+    build_from_dockerfile: bool = True
+    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "finetune" / "docker" / "opencompass"
+    image: str = "rdagent-opencompass:latest"
+    mount_path: str = "/workspace/"
+    default_entry: str = "python /app/eval_entrypoint.py"
+
+    running_timeout_period: int | None = 3600  # 1 hour default for benchmarks
+    mem_limit: str | None = "32g"  # Moderate memory for inference
+    shm_size: str | None = "8g"  # Shared memory for model loading
+    enable_gpu: bool = True  # Enable GPU for fast inference
+    enable_cache: bool = False  # Disable cache for reproducibility
+
+    # Benchmark-specific log settings
+    save_logs_to_file: bool = True
+    terminal_tail_lines: int = 50  # Show more lines for benchmark progress
+
+
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
 class DockerEnv(Env[DockerConf]):
     # TODO: Save the output into a specific file
@@ -1239,4 +1261,22 @@ class FTDockerEnv(DockerEnv):
     """
 
     def __init__(self, conf: DockerConf = FTDockerConf()):
+        super().__init__(conf)
+
+
+class BenchmarkDockerEnv(DockerEnv):
+    """
+    OpenCompass Benchmark Docker Environment.
+
+    Uses BenchmarkDockerConf for evaluation-specific settings:
+    - Moderate memory/GPU allocation for inference
+    - Longer terminal output (50 lines) to track benchmark progress
+    - Automatic Dockerfile building from scenarios/finetune/docker/opencompass
+
+    To customize, set environment variables:
+        export BENCHMARK_DOCKER_running_timeout_period=7200  # 2 hours
+        export BENCHMARK_DOCKER_terminal_tail_lines=100  # show last 100 lines
+    """
+
+    def __init__(self, conf: DockerConf = BenchmarkDockerConf()):
         super().__init__(conf)

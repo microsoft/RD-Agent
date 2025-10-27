@@ -22,9 +22,13 @@ def get_benchmark_env(
     adapter_path: str,
     base_model: str,
     model_abbr: str,
-):
+) -> tuple:
     """
-    Create OpenCompass benchmark environment (similar to get_ft_env).
+    Create OpenCompass benchmark environment with configuration.
+
+    This function creates a specialized Docker environment for running OpenCompass benchmarks,
+    separate from the training environment. The Dockerfile and eval_entrypoint.py are located
+    in rdagent/scenarios/finetune/docker/opencompass/.
 
     Args:
         datasets: List of benchmark datasets (e.g., ['mmlu', 'gsm8k'])
@@ -33,17 +37,23 @@ def get_benchmark_env(
         model_abbr: Model abbreviation for result identification
 
     Returns:
-        Configured Docker environment for OpenCompass
+        Tuple of (env, env_vars) where:
+        - env: BenchmarkDockerEnv configured for OpenCompass
+        - env_vars: dict of environment variables to pass to Docker
     """
-    from rdagent.utils.env import FTDockerConf, FTDockerEnv
+    from rdagent.utils.env import BenchmarkDockerConf, BenchmarkDockerEnv
 
-    conf = FTDockerConf()
-    conf.image = "rdagent-opencompass:latest"
-    env = FTDockerEnv(conf=conf)
+    # Create benchmark-specific Docker configuration
+    conf = BenchmarkDockerConf()
+    conf.running_timeout_period = FT_RD_SETTING.benchmark_timeout
 
-    # Pass all configurations via environment variables
-    # This is cleaner than JSON files and easier to debug
-    env.conf.env_vars = {
+    # Create and prepare the benchmark environment
+    env = BenchmarkDockerEnv(conf=conf)
+    env.prepare()
+
+    # Environment variables to pass to Docker container
+    # These will be read by eval_entrypoint.py inside the container
+    env_vars = {
         "BENCHMARK_DATASETS": ",".join(datasets),
         "ADAPTER_PATH": adapter_path,
         "BASE_MODEL": base_model,
@@ -52,11 +62,10 @@ def get_benchmark_env(
         "MAX_OUT_LEN": "2048",
         "BATCH_SIZE": "8",
         "NUM_GPUS": "1",
+        "PYTHONPATH": "./",  # Required for Python execution
     }
 
-    env.conf.running_timeout_period = FT_RD_SETTING.benchmark_timeout
-    env.prepare()
-    return env
+    return env, env_vars
 
 
 class FTBenchmarkEvaluator(CoSTEEREvaluator):
@@ -118,20 +127,28 @@ class FTBenchmarkEvaluator(CoSTEEREvaluator):
         logger.info(f"Starting benchmark evaluation on datasets: {self.datasets}")
         logger.info(f"Model: {model_abbr} (base: {self.scen.base_model})")
 
-        env = get_benchmark_env(
+        env, env_vars = get_benchmark_env(
             datasets=self.datasets,
             adapter_path=str(output_path),
             base_model=self.scen.base_model,
             model_abbr=model_abbr,
         )
 
+        # Prepare workspace and inject files
+        implementation.prepare()
+        implementation.inject_files(**implementation.file_dict)
+
         # Simple entrypoint script
         script_path = workspace_path / "run_benchmark.sh"
         script_path.write_text("#!/bin/bash\n" "cd /workspace\n" "python /app/eval_entrypoint.py\n")
 
-        result = implementation.execute(
-            env=env,
+        # Run Docker with environment variables
+        # Note: We call env.run() directly to pass custom environment variables
+        # FBWorkspace.execute() doesn't support custom env vars
+        result = env.run(
             entry=f"bash {script_path.name}",
+            local_path=str(workspace_path),
+            env=env_vars,
         )
 
         if result.exit_code != 0:
