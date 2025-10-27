@@ -52,6 +52,13 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     coder_on_whole_pipeline: bool = True
     app_tpl: str = "scenarios/finetune"
 
+    # Benchmark evaluation (always enabled as part of evaluation pipeline)
+    benchmark_datasets: list[str] = ["mmlu"]
+    """Benchmark datasets to evaluate on. Supported: mmlu, gsm8k, humaneval, bbh, hellaswag, cmmlu, arc, etc."""
+
+    benchmark_timeout: int = 3600
+    """Benchmark evaluation timeout in seconds"""
+
     # Data paths and processing
     file_path: str | None = None  # FT_FILE_PATH/datasets/<dataset>/, FT_FILE_PATH/models/<baseModel>/
     show_nan_columns: bool = False
