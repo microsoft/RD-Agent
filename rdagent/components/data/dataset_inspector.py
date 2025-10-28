@@ -8,6 +8,11 @@ from typing import Any, Dict, List, Optional
 from datasets import get_dataset_config_names, load_dataset
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.data_science.scen.utils import (
+    preview_csv,
+    preview_json,
+    preview_parquet,
+)
 from rdagent.utils.agent.tpl import T
 
 
@@ -294,11 +299,16 @@ class DatasetInspector:
 
         logger.info(f"Found {len(all_files)} files, total size: {total_size_bytes / (1024 * 1024):.2f}MB")
 
+        # Extract comprehensive file contents (markdown docs + data previews)
+        file_contents = self._extract_all_file_contents(dataset_path)
+        logger.info(f"Extracted file contents ({len(file_contents)} chars)")
+
         # Call LLM to analyze files
         sys_prompt = T(".prompts:analyze_files_for_sft.system").r()
         user_prompt = T(".prompts:analyze_files_for_sft.user").r(
             task_description=task_description,
             files_json=json.dumps(all_files, ensure_ascii=False, indent=2),
+            file_contents=file_contents,
         )
 
         try:
@@ -358,6 +368,187 @@ class DatasetInspector:
             # Fallback: simple rule-based filtering
             logger.warning("Using rule-based fallback for file filtering")
             return self._fallback_file_analysis(all_files, total_size_bytes)
+
+    def _extract_all_markdown_docs(self, dataset_path: Path) -> str:
+        """
+        Extract content from all markdown files in the dataset directory.
+
+        Args:
+            dataset_path: Path to dataset directory
+
+        Returns:
+            Formatted string containing all markdown file contents
+        """
+        markdown_contents = []
+
+        # Find all .md files recursively
+        for md_file in dataset_path.rglob("*.md"):
+            if md_file.is_file():
+                try:
+                    # Read the markdown content
+                    content = md_file.read_text(encoding="utf-8", errors="ignore")
+
+                    # Get relative path from dataset root
+                    rel_path = md_file.relative_to(dataset_path)
+
+                    # Limit content length to prevent prompt overflow (max 2000 chars per file)
+                    if len(content) > 2000:
+                        content = content[:2000] + "\n... (content truncated)"
+
+                    # Format as: ### filename.md\ncontent\n
+                    markdown_section = f"### {rel_path}\n\n{content}\n"
+                    markdown_contents.append(markdown_section)
+
+                except Exception as e:
+                    logger.warning(f"Failed to read markdown file {md_file}: {e}")
+
+        if not markdown_contents:
+            return "No markdown documents found"
+
+        # Combine all markdown contents
+        result = "## Markdown Documentation\n\n" + "\n".join(markdown_contents)
+
+        return result
+
+    def _extract_data_file_previews(self, dataset_path: Path) -> str:
+        """
+        Extract previews of data files to show actual content structure.
+
+        Args:
+            dataset_path: Path to dataset directory
+
+        Returns:
+            Formatted string containing data file previews
+        """
+        data_previews = []
+
+        # Define data file patterns and their preview methods
+        data_patterns = {
+            ".csv": self._preview_csv_file,
+            ".json": self._preview_json_file,
+            ".jsonl": self._preview_jsonl_file,
+            ".parquet": self._preview_parquet_file,
+            ".arrow": self._preview_arrow_file,
+            ".txt": self._preview_text_file,
+        }
+
+        # Find data files and generate previews
+        for file_path in dataset_path.rglob("*"):
+            if file_path.is_file():
+                file_ext = file_path.suffix.lower()
+                file_size_mb = file_path.stat().st_size / (1024 * 1024)
+
+                # Skip large files (>10MB) to avoid memory issues
+                if file_size_mb > 10:
+                    continue
+
+                if file_ext in data_patterns:
+                    try:
+                        rel_path = file_path.relative_to(dataset_path)
+                        preview_func = data_patterns[file_ext]
+                        # Pass relative path to preview function
+                        # Note: preview functions already include file name as header
+                        preview = preview_func(file_path, rel_path)
+
+                        # Add file size info to the header line
+                        # Replace the header line to include file size
+                        preview_lines = preview.split("\n")
+                        if preview_lines and preview_lines[0].startswith("###"):
+                            # Append file size to the header line
+                            preview_lines[0] = f"{preview_lines[0].rstrip(':')} ({file_size_mb:.2f}MB):"
+                            preview = "\n".join(preview_lines)
+
+                        data_previews.append(preview)
+
+                    except Exception as e:
+                        logger.warning(f"Failed to preview {file_path}: {e}")
+
+        if not data_previews:
+            return "No data file previews found"
+
+        # Join previews with double newline for separation between files
+        result = "## Data File Previews\n\n" + "\n\n".join(data_previews)
+
+        return result
+
+    def _preview_csv_file(self, file_path: Path, rel_path: Path) -> str:
+        """Preview CSV file content using pandas."""
+        try:
+            # Use the preview_csv function from utils
+            preview = preview_csv(file_path, str(rel_path), simple=True, show_nan_columns=False)
+            return preview
+        except Exception as e:
+            logger.warning(f"Failed to preview CSV {file_path}: {e}")
+            return f"CSV file (preview failed: {str(e)[:50]})"
+
+    def _preview_json_file(self, file_path: Path, rel_path: Path) -> str:
+        """Preview JSON file content using utils function."""
+        try:
+            # Use the preview_json function from utils
+            preview = preview_json(file_path, str(rel_path))
+            return preview
+        except Exception as e:
+            logger.warning(f"Failed to preview JSON {file_path}: {e}")
+            return f"JSON file (preview failed: {str(e)[:50]})"
+
+    def _preview_jsonl_file(self, file_path: Path, rel_path: Path) -> str:
+        """Preview JSONL file content."""
+        try:
+            # JSONL is handled by preview_json function
+            preview = preview_json(file_path, str(rel_path))
+            return preview
+        except Exception as e:
+            logger.warning(f"Failed to preview JSONL {file_path}: {e}")
+            return f"JSONL file (preview failed: {str(e)[:50]})"
+
+    def _preview_parquet_file(self, file_path: Path, rel_path: Path) -> str:
+        """Preview parquet file using pandas."""
+        try:
+            # Use the preview_parquet function from utils
+            preview = preview_parquet(file_path, str(rel_path), simple=True, show_nan_columns=False)
+            return preview
+        except Exception as e:
+            logger.warning(f"Failed to preview Parquet {file_path}: {e}")
+            return f"Parquet file (preview failed: {str(e)[:50]})"
+
+    def _preview_arrow_file(self, file_path: Path, rel_path: Path) -> str:
+        """Preview arrow file - just show file info since it's binary."""
+        try:
+            file_size_kb = file_path.stat().st_size / 1024
+            return f"Arrow file\nSize: {file_size_kb:.1f}KB\nFormat: Apache Arrow binary format"
+        except Exception:
+            return "Arrow file (cannot preview binary format)"
+
+    def _preview_text_file(self, file_path: Path, rel_path: Path) -> str:
+        """Preview text file content."""
+        try:
+            content = file_path.read_text(encoding="utf-8", errors="ignore")
+            # Show first 1000 chars
+            if len(content) > 1000:
+                preview = f"```\n{content[:1000]}...\n```"
+            else:
+                preview = f"```\n{content}\n```"
+            return preview + f"\nFormat: Plain text file, {len(content)} characters"
+        except Exception:
+            return "Cannot read text content"
+
+    def _extract_all_file_contents(self, dataset_path: Path) -> str:
+        """
+        Extract both markdown docs and data file previews.
+
+        Args:
+            dataset_path: Path to dataset directory
+
+        Returns:
+            Combined formatted string with all file contents
+        """
+        markdown_content = self._extract_all_markdown_docs(dataset_path)
+        data_previews = self._extract_data_file_previews(dataset_path)
+
+        # Combine both sections
+        combined_content = f"{markdown_content}\n\n{data_previews}"
+
+        return combined_content
 
     def _fallback_file_analysis(self, all_files: List[Dict], total_size_bytes: int) -> Dict[str, Any]:
         """

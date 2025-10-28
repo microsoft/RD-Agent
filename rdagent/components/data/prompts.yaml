@@ -406,6 +406,8 @@ analyze_files_for_sft:
     ## Files in Dataset
     {{ files_json }}
 
+    {{ file_contents }}
+
     ## Your Task
     Analyze each file and determine if it's useful for SFT text training.
     Return JSON with file_analysis for each file.
