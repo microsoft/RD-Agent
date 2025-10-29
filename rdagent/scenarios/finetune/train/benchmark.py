@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import torch
+
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
@@ -23,13 +25,10 @@ from rdagent.utils.env import BenchmarkDockerConf, BenchmarkDockerEnv
 def _get_gpu_count() -> int:
     """Get available GPU count, with fallback to 4."""
     try:
-        import torch
-
-        if torch.cuda.is_available():
-            return torch.cuda.device_count()
+        return torch.cuda.device_count()
     except Exception:
         pass
-    return 4  # Default fallback
+    return 1  # Default fallback
 
 
 def _get_valid_tensor_parallel_size(num_gpus: int) -> int:
