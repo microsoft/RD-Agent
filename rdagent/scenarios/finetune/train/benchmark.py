@@ -1,9 +1,10 @@
 """
-Benchmark Evaluation using OpenCompass
+Benchmark Evaluation using lm-evaluation-harness
 
-Evaluator that runs OpenCompass in Docker to evaluate fine-tuned models on standard benchmarks.
+Evaluator that runs lm-evaluation-harness in Docker to evaluate fine-tuned models on standard benchmarks.
 """
 
+import json
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -15,33 +16,33 @@ from rdagent.components.coder.CoSTEER.evaluators import (
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
+from rdagent.utils.env import BenchmarkDockerConf, BenchmarkDockerEnv
 
 
 def get_benchmark_env(
-    datasets: List[str],
+    tasks: List[str],
     adapter_path: str,
     base_model: str,
-    model_abbr: str,
+    limit: Optional[int] = None,
 ) -> tuple:
     """
-    Create OpenCompass benchmark environment with configuration.
+    Create lm-evaluation-harness benchmark environment with configuration.
 
-    This function creates a specialized Docker environment for running OpenCompass benchmarks,
-    separate from the training environment. The Dockerfile and eval_entrypoint.py are located
-    in rdagent/scenarios/finetune/docker/opencompass/.
+    This function creates a specialized Docker environment for running lm-evaluation-harness benchmarks,
+    separate from the training environment. The Dockerfile and eval_entrypoint.sh are located
+    in rdagent/scenarios/finetune/docker/lm_eval/.
 
     Args:
-        datasets: List of benchmark datasets (e.g., ['mmlu', 'gsm8k'])
+        tasks: List of benchmark tasks (e.g., ['gsm8k', 'mmlu', 'hellaswag'])
         adapter_path: Absolute path to adapter files in workspace
-        base_model: Base model identifier (e.g., 'Qwen/Qwen2-1.5B-Instruct')
-        model_abbr: Model abbreviation for result identification
+        base_model: Base model identifier (e.g., 'Qwen/Qwen2.5-1.5B-Instruct')
+        limit: Optional limit on number of samples to evaluate (for quick testing)
 
     Returns:
         Tuple of (env, env_vars) where:
-        - env: BenchmarkDockerEnv configured for OpenCompass
+        - env: BenchmarkDockerEnv configured for lm-evaluation-harness
         - env_vars: dict of environment variables to pass to Docker
     """
-    from rdagent.utils.env import BenchmarkDockerConf, BenchmarkDockerEnv
 
     # Create benchmark-specific Docker configuration
     conf = BenchmarkDockerConf()
@@ -52,33 +53,45 @@ def get_benchmark_env(
     env.prepare()
 
     # Environment variables to pass to Docker container
-    # These will be read by eval_entrypoint.py inside the container
+    # These will be read by eval_entrypoint.sh inside the container
     env_vars = {
-        "BENCHMARK_DATASETS": ",".join(datasets),
+        "BENCHMARK_TASKS": ",".join(tasks),
         "ADAPTER_PATH": adapter_path,
         "BASE_MODEL": base_model,
-        "MODEL_ABBR": model_abbr,
-        # Optional: extend with more parameters in the future
-        "MAX_OUT_LEN": "2048",
-        "BATCH_SIZE": "8",
-        "NUM_GPUS": "1",
-        "PYTHONPATH": "./",  # Required for Python execution
+        "OUTPUT_DIR": "/workspace/benchmark_results",
+        "BATCH_SIZE": "auto",
+        "NUM_GPUS": "4",  # TODO: adjust according to runtime info
+        # Set HF datasets cache to benchmarks directory
+        "HF_DATASETS_CACHE": "/workspace/benchmarks",
     }
+
+    # Add limit if specified
+    if limit is not None:
+        env_vars["LIMIT"] = str(limit)
 
     return env, env_vars
 
 
 class FTBenchmarkEvaluator(CoSTEEREvaluator):
     """
-    Benchmark evaluator using OpenCompass in Docker.
+    Benchmark evaluator using lm-evaluation-harness in Docker.
 
     This evaluator runs standard LLM benchmarks on fine-tuned models.
     It should only run when training succeeds and adapter files are valid.
     """
 
-    def __init__(self, scen, datasets: Optional[List[str]] = None):
+    def __init__(self, scen, tasks: Optional[List[str]] = None, limit: Optional[int] = None):
+        """
+        Initialize benchmark evaluator.
+
+        Args:
+            scen: Scenario instance
+            tasks: List of benchmark tasks to evaluate on
+            limit: Optional limit on number of samples (None for full evaluation)
+        """
         super().__init__(scen)
-        self.datasets = datasets or FT_RD_SETTING.benchmark_datasets
+        self.tasks = tasks or FT_RD_SETTING.benchmark_datasets
+        self.limit = limit
 
     def evaluate(
         self,
@@ -89,62 +102,41 @@ class FTBenchmarkEvaluator(CoSTEEREvaluator):
         **kwargs,
     ) -> CoSTEERSingleFeedback:
         """
-        Run benchmark evaluation using OpenCompass.
+        Run benchmark evaluation using lm-evaluation-harness.
 
         Workflow:
-        1. Validate adapter files
-        2. Generate model abbreviation for result tracking
-        3. Launch OpenCompass Docker with environment variables
-        4. Parse and report results
+        1. Launch lm-evaluation-harness Docker with environment variables
+        2. Parse and report results
         """
         workspace_path = implementation.workspace_path
         output_path = workspace_path / "output"
 
-        # Early exit if no datasets configured
-        if not self.datasets:
-            logger.info("Benchmark datasets not configured, skipping evaluation")
-            return CoSTEERSingleFeedback(
-                execution="Benchmark skipped (no datasets configured)",
-                return_checking="N/A",
-                code="Configure benchmark_datasets in conf.py to enable",
-                final_decision=True,  # Not a failure, just skipped
-            )
-
-        # Validate adapter files
-        validation_result = self._validate_adapter_files(output_path)
-        if not validation_result["valid"]:
-            return CoSTEERSingleFeedback(
-                execution=f"Adapter validation failed: {validation_result['reason']}",
-                return_checking="Invalid adapter files",
-                code="Check training output for adapter_model.* and adapter_config.json",
-                final_decision=False,
-            )
-
-        # Generate model abbreviation for result identification
-        model_abbr = self._generate_model_abbr(implementation, output_path)
-
         # Run benchmark in Docker
-        logger.info(f"Starting benchmark evaluation on datasets: {self.datasets}")
-        logger.info(f"Model: {model_abbr} (base: {self.scen.base_model})")
+        logger.info(f"Starting benchmark evaluation on tasks: {self.tasks}")
+        logger.info(f"Base model: {self.scen.base_model}")
+        if self.limit:
+            logger.info(f"Sample limit: {self.limit}")
 
         env, env_vars = get_benchmark_env(
-            datasets=self.datasets,
-            adapter_path=str(output_path),
+            tasks=self.tasks,
+            adapter_path="/workspace/output",  # Use Docker internal path
             base_model=self.scen.base_model,
-            model_abbr=model_abbr,
+            limit=self.limit,
         )
 
         # Prepare workspace and inject files
         implementation.prepare()
         implementation.inject_files(**implementation.file_dict)
 
+        # Create benchmarks directory in workspace (will be mounted to Docker)
+        benchmarks_dir = workspace_path / "benchmarks"
+        benchmarks_dir.mkdir(exist_ok=True)
+
         # Simple entrypoint script
         script_path = workspace_path / "run_benchmark.sh"
-        script_path.write_text("#!/bin/bash\n" "cd /workspace\n" "python /app/eval_entrypoint.py\n")
+        script_path.write_text("#!/bin/bash\n" "cd /workspace\n" "bash /app/eval_entrypoint.sh\n")
 
         # Run Docker with environment variables
-        # Note: We call env.run() directly to pass custom environment variables
-        # FBWorkspace.execute() doesn't support custom env vars
         result = env.run(
             entry=f"bash {script_path.name}",
             local_path=str(workspace_path),
@@ -154,99 +146,80 @@ class FTBenchmarkEvaluator(CoSTEEREvaluator):
         if result.exit_code != 0:
             return CoSTEERSingleFeedback(
                 execution=f"Benchmark execution failed (exit_code={result.exit_code})",
-                return_checking="OpenCompass error",
+                return_checking="lm-evaluation-harness error",
                 code=result.stdout[-2000:] if result.stdout else "No output",  # Last 2000 chars
                 final_decision=False,
             )
 
         # Parse and format results
-        results_path = workspace_path / "benchmark_results"
+        results_path = workspace_path / "benchmark_results" / "results.json"
         scores = self._parse_results(results_path)
         report = self._format_report(scores)
 
         return CoSTEERSingleFeedback(
-            execution=f"Benchmark completed: {len(scores)}/{len(self.datasets)} datasets",
+            execution=f"Benchmark completed: {len(scores)}/{len(self.tasks)} tasks evaluated",
             return_checking=report,
-            code=f"Average Score: {self._calc_avg(scores):.1f}%",
+            code=f"Average Score: {self._calc_avg(scores):.2f}",
             final_decision=True,
         )
 
-    def _validate_adapter_files(self, output_path: Path) -> Dict[str, any]:
-        """
-        Validate adapter files exist and are complete.
-
-        Returns:
-            dict with 'valid' (bool) and 'reason' (str) keys
-        """
-        if not output_path.exists():
-            return {"valid": False, "reason": "Output directory not found"}
-
-        # Check weight files (safetensors preferred, fallback to bin)
-        has_safetensors = (output_path / "adapter_model.safetensors").exists()
-        has_bin = (output_path / "adapter_model.bin").exists()
-
-        if not (has_safetensors or has_bin):
-            return {"valid": False, "reason": "No adapter weight file (*.safetensors or *.bin)"}
-
-        # Check config
-        config_path = output_path / "adapter_config.json"
-        if not config_path.exists():
-            return {"valid": False, "reason": "adapter_config.json not found"}
-
-        # Optional: validate config content
-        try:
-            import json
-
-            with open(config_path) as f:
-                config = json.load(f)
-            if "base_model_name_or_path" not in config:
-                logger.warning("adapter_config.json missing base_model_name_or_path")
-        except Exception as e:
-            return {"valid": False, "reason": f"Invalid config JSON: {e}"}
-
-        return {"valid": True, "reason": ""}
-
-    def _generate_model_abbr(self, implementation: FBWorkspace, output_path: Path) -> str:
-        """
-        Generate a unique model abbreviation for result tracking.
-
-        Format: {base_model_name}-ft-{exp_id}
-        Example: qwen2-1.5b-ft-exp001
-        """
-        # Extract base model short name
-        base_name = self.scen.base_model.split("/")[-1].lower()
-        base_name = base_name.replace("_", "-")
-
-        # Use workspace/experiment ID if available
-        exp_id = implementation.workspace_path.name[:8]  # First 8 chars of workspace ID
-
-        return f"{base_name}-ft-{exp_id}"
-
     def _parse_results(self, results_path: Path) -> Dict[str, float]:
-        """Parse benchmark results from CSV."""
-        import csv
+        """
+        Parse benchmark results from lm-evaluation-harness JSON output.
 
-        summary_files = list(results_path.glob("*/summary/summary_*.csv"))
-        if not summary_files:
-            logger.warning("No results found, returning placeholder")
-            return {ds: 50.0 for ds in self.datasets}
+        The results.json format from lm-evaluation-harness:
+        {
+          "results": {
+            "gsm8k": {
+              "exact_match,flexible-extract": 0.6875,
+              "exact_match,strict-match": 0.296875,
+              ...
+            }
+          }
+        }
+        """
+        if not results_path.exists():
+            logger.warning(f"Results file not found: {results_path}")
+            return {}
 
-        latest = max(summary_files, key=lambda p: p.stat().st_mtime)
-        scores = {}
+        try:
+            with open(results_path) as f:
+                data = json.load(f)
 
-        with open(latest) as f:
-            for row in csv.DictReader(f):
-                scores[row["dataset"]] = float(row["score"])
+            scores = {}
+            results = data.get("results", {})
 
-        return scores
+            for task_name, task_results in results.items():
+                # Find the main metric (usually the first one without _stderr suffix)
+                main_metric = None
+                for key, value in task_results.items():
+                    if not key.endswith("_stderr") and isinstance(value, (int, float)):
+                        main_metric = value
+                        break
+
+                if main_metric is not None:
+                    # Convert to percentage if it's a ratio
+                    if 0 <= main_metric <= 1:
+                        scores[task_name] = main_metric * 100
+                    else:
+                        scores[task_name] = main_metric
+
+            return scores
+
+        except Exception as e:
+            logger.error(f"Failed to parse results: {e}")
+            return {}
 
     def _format_report(self, scores: Dict[str, float]) -> str:
         """Format results as text."""
+        if not scores:
+            return "No results available"
+
         lines = ["Benchmark Results:"]
-        for dataset, score in scores.items():
-            lines.append(f"  {dataset}: {score:.1f}")
+        for task, score in scores.items():
+            lines.append(f"  {task}: {score:.2f}%")
         return "\n".join(lines)
 
     def _calc_avg(self, scores: Dict[str, float]) -> float:
         """Calculate average score."""
-        return sum(scores.values()) / len(scores) if scores else 0
+        return sum(scores.values()) / len(scores) if scores else 0.0

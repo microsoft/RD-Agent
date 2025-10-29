@@ -1,6 +1,7 @@
 import os
 import socket
 
+import docker
 import fire
 import litellm
 import typer
@@ -8,7 +9,6 @@ from litellm import completion, embedding
 from litellm.utils import ModelResponse
 from typing_extensions import Annotated
 
-import docker
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import cleanup_container
 

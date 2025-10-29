@@ -26,6 +26,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Generator, Generic, Mapping, Optional, TypeVar, cast
 
+import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
 import docker.models.containers  # type: ignore[import-untyped]
 import docker.types  # type: ignore[import-untyped]
@@ -40,7 +41,6 @@ from rich.table import Table
 from rich.text import Text
 from tqdm import tqdm
 
-import docker  # type: ignore[import-untyped]
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.experiment import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
@@ -870,15 +870,15 @@ class FTDockerConf(DockerConf):
 
 
 class BenchmarkDockerConf(DockerConf):
-    """Docker configuration for OpenCompass benchmark evaluation."""
+    """Docker configuration for lm-evaluation-harness benchmark evaluation."""
 
     model_config = SettingsConfigDict(env_prefix="BENCHMARK_DOCKER_")
 
     build_from_dockerfile: bool = True
-    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "finetune" / "docker" / "opencompass"
-    image: str = "rdagent-opencompass:latest"
+    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "finetune" / "docker" / "lm_eval"
+    image: str = "rdagent-lm-eval:latest"
     mount_path: str = "/workspace/"
-    default_entry: str = "python /app/eval_entrypoint.py"
+    default_entry: str = "bash /app/eval_entrypoint.sh"
 
     running_timeout_period: int | None = 3600  # 1 hour default for benchmarks
     mem_limit: str | None = "32g"  # Moderate memory for inference
@@ -1266,12 +1266,12 @@ class FTDockerEnv(DockerEnv):
 
 class BenchmarkDockerEnv(DockerEnv):
     """
-    OpenCompass Benchmark Docker Environment.
+    lm-evaluation-harness Benchmark Docker Environment.
 
     Uses BenchmarkDockerConf for evaluation-specific settings:
     - Moderate memory/GPU allocation for inference
     - Longer terminal output (50 lines) to track benchmark progress
-    - Automatic Dockerfile building from scenarios/finetune/docker/opencompass
+    - Automatic Dockerfile building from scenarios/finetune/docker/lm_eval
 
     To customize, set environment variables:
         export BENCHMARK_DOCKER_running_timeout_period=7200  # 2 hours

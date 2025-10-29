@@ -3,10 +3,10 @@ import platform
 import sys
 from pathlib import Path
 
+import docker
 import requests
 from setuptools_scm import get_version
 
-import docker
 from rdagent.log import rdagent_logger as logger
 
 
