@@ -48,6 +48,19 @@ def get_benchmark_env(
     conf = BenchmarkDockerConf()
     conf.running_timeout_period = FT_RD_SETTING.benchmark_timeout
 
+    # Setup global benchmark cache directory (shared across all workspaces)
+    if FT_RD_SETTING.file_path:
+        from pathlib import Path
+
+        benchmark_cache_dir = Path(FT_RD_SETTING.file_path) / "benchmarks"
+        benchmark_cache_dir.mkdir(parents=True, exist_ok=True)
+        conf.extra_volumes = {
+            str(benchmark_cache_dir.resolve()): {
+                "bind": "/benchmarks",
+                "mode": "rw",
+            }
+        }
+
     # Create and prepare the benchmark environment
     env = BenchmarkDockerEnv(conf=conf)
     env.prepare()
@@ -61,8 +74,8 @@ def get_benchmark_env(
         "OUTPUT_DIR": "/workspace/benchmark_results",
         "BATCH_SIZE": "auto",
         "NUM_GPUS": "4",  # TODO: adjust according to runtime info
-        # Set HF datasets cache to benchmarks directory
-        "HF_DATASETS_CACHE": "/workspace/benchmarks",
+        # Set HF datasets cache to global benchmarks directory (mounted via extra_volumes)
+        "HF_DATASETS_CACHE": "/benchmarks",
     }
 
     # Add limit if specified
@@ -127,10 +140,6 @@ class FTBenchmarkEvaluator(CoSTEEREvaluator):
         # Prepare workspace and inject files
         implementation.prepare()
         implementation.inject_files(**implementation.file_dict)
-
-        # Create benchmarks directory in workspace (will be mounted to Docker)
-        benchmarks_dir = workspace_path / "benchmarks"
-        benchmarks_dir.mkdir(exist_ok=True)
 
         # Simple entrypoint script
         script_path = workspace_path / "run_benchmark.sh"

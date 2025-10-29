@@ -26,6 +26,6 @@ WORKDIR /workspace
 COPY eval_entrypoint.sh /app/eval_entrypoint.sh
 RUN chmod +x /app/eval_entrypoint.sh
 
-# Set environment variable for HF datasets cache
-ENV HF_DATASETS_CACHE=/workspace/benchmarks
+# Set environment variable for HF datasets cache (mounted globally via extra_volumes)
+ENV HF_DATASETS_CACHE=/benchmarks
 
