@@ -19,6 +19,33 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import BenchmarkDockerConf, BenchmarkDockerEnv
 
 
+# TODO: Do we need share runtime info in Scenario class?
+def _get_gpu_count() -> int:
+    """Get available GPU count, with fallback to 4."""
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            return torch.cuda.device_count()
+    except Exception:
+        pass
+    return 4  # Default fallback
+
+
+def _get_valid_tensor_parallel_size(num_gpus: int) -> int:
+    """
+    Adjust tensor_parallel_size to be a power of 2 (required by vLLM v1).
+
+    Returns the largest power of 2 that is <= num_gpus.
+    """
+    if num_gpus <= 0:
+        return 1
+    power = 0
+    while (1 << (power + 1)) <= num_gpus:
+        power += 1
+    return 1 << power
+
+
 def get_benchmark_env(
     tasks: List[str],
     adapter_path: str,
@@ -65,6 +92,12 @@ def get_benchmark_env(
     env = BenchmarkDockerEnv(conf=conf)
     env.prepare()
 
+    # Auto-detect GPU count and adjust to valid tensor_parallel_size
+    num_gpus = _get_gpu_count()
+    valid_tp_size = _get_valid_tensor_parallel_size(num_gpus)
+    if valid_tp_size != num_gpus:
+        logger.info(f"Adjusted tensor_parallel_size from {num_gpus} to {valid_tp_size} (vLLM requires power of 2)")
+
     # Environment variables to pass to Docker container
     # These will be read by eval_entrypoint.sh inside the container
     env_vars = {
@@ -73,7 +106,7 @@ def get_benchmark_env(
         "BASE_MODEL": base_model,
         "OUTPUT_DIR": "/workspace/benchmark_results",
         "BATCH_SIZE": "auto",
-        "NUM_GPUS": "4",  # TODO: adjust according to runtime info
+        "NUM_GPUS": str(valid_tp_size),  # Use valid power of 2
         # Set HF datasets cache to global benchmarks directory (mounted via extra_volumes)
         "HF_DATASETS_CACHE": "/benchmarks",
     }
