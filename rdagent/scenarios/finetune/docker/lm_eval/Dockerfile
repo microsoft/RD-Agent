@@ -14,7 +14,7 @@ RUN pip install --upgrade pip setuptools wheel --no-cache-dir
 
 # Install lm-evaluation-harness with vLLM backend support
 # Using specific version for stability
-RUN pip install lm-eval[vllm]==0.4.9.1 --no-cache-dir
+RUN pip install lm-eval[vllm] --no-cache-dir
 
 # Install additional dependencies for LoRA evaluation
 RUN pip install peft transformers accelerate --no-cache-dir

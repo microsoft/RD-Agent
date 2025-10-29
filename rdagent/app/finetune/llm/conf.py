@@ -53,8 +53,8 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     app_tpl: str = "scenarios/finetune"
 
     # Benchmark evaluation (always enabled as part of evaluation pipeline)
-    benchmark_datasets: list[str] = ["mmlu"]
-    """Benchmark datasets to evaluate on. Supported: mmlu, gsm8k, humaneval, bbh, hellaswag, cmmlu, arc, etc."""
+    benchmark_datasets: list[str] = ["aime25"]
+    """Benchmark datasets to evaluate on. Supported: aime25, mmlu, gsm8k, humaneval, bbh, hellaswag, cmmlu, arc, etc."""
 
     benchmark_timeout: int = 3600
     """Benchmark evaluation timeout in seconds"""
