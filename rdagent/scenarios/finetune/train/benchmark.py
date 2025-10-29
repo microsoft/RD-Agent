@@ -177,6 +177,7 @@ class FTBenchmarkEvaluator(CoSTEEREvaluator):
         script_path = workspace_path / "run_benchmark.sh"
         script_path.write_text("#!/bin/bash\n" "cd /workspace\n" "bash /app/eval_entrypoint.sh\n")
 
+        # FIXME: When task max_len exceeds model max_len, the evaluation will fail.
         # Run Docker with environment variables
         result = env.run(
             entry=f"bash {script_path.name}",
