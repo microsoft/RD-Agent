@@ -53,11 +53,14 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     app_tpl: str = "scenarios/finetune"
 
     # Benchmark evaluation (always enabled as part of evaluation pipeline)
-    benchmark_datasets: list[str] = ["aime25"]
+    benchmark_datasets: list[str] = ["gsm8k"]
     """Benchmark datasets to evaluate on. Supported: aime25, mmlu, gsm8k, humaneval, bbh, hellaswag, cmmlu, arc, etc."""
 
     benchmark_timeout: int = 3600
     """Benchmark evaluation timeout in seconds"""
+
+    benchmark_limit: int | None = None
+    """Limit number of samples for benchmark evaluation (None for full evaluation). Use for quick testing and debugging."""
 
     # Data paths and processing
     file_path: str | None = None  # FT_FILE_PATH/datasets/<dataset>/, FT_FILE_PATH/models/<baseModel>/

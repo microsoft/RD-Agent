@@ -5,8 +5,9 @@ Evaluator that runs lm-evaluation-harness in Docker to evaluate fine-tuned model
 """
 
 import json
+import traceback
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import torch
 
@@ -194,7 +195,32 @@ class FTBenchmarkEvaluator(CoSTEEREvaluator):
             )
 
         # Parse and format results
-        results_path = workspace_path / "benchmark_results" / "results.json"
+        benchmark_dir = workspace_path / "benchmark_results"
+
+        if not benchmark_dir.exists():
+            raise FileNotFoundError(f"benchmark_results directory does not exist at: {benchmark_dir}")
+
+        # Find the most recent results file (handles both fixed and timestamped filenames)
+        all_files = list(benchmark_dir.iterdir())
+        logger.info(f"Files in benchmark_results directory: {[f.name for f in all_files]}")
+
+        results_files = [f for f in all_files if f.name.startswith("results") and f.suffix == ".json"]
+        if not results_files:
+            raise FileNotFoundError(f"No results files found in {benchmark_dir}")
+
+        # Use the most recent results file
+        results_path = max(results_files, key=lambda x: x.stat().st_mtime)
+        logger.info(f"Using most recent results file: {results_path.name}")
+
+        # Debug: Show file content preview
+        logger.info(f"results file found! Size: {results_path.stat().st_size} bytes")
+        try:
+            with open(results_path, "r") as f:
+                content = f.read()[:500]  # First 500 chars
+            logger.info(f"results file content preview: {content}")
+        except Exception as e:
+            logger.error(f"Failed to read results file: {e}")
+
         scores = self._parse_results(results_path)
         report = self._format_report(scores)
 
@@ -206,20 +232,7 @@ class FTBenchmarkEvaluator(CoSTEEREvaluator):
         )
 
     def _parse_results(self, results_path: Path) -> Dict[str, float]:
-        """
-        Parse benchmark results from lm-evaluation-harness JSON output.
-
-        The results.json format from lm-evaluation-harness:
-        {
-          "results": {
-            "gsm8k": {
-              "exact_match,flexible-extract": 0.6875,
-              "exact_match,strict-match": 0.296875,
-              ...
-            }
-          }
-        }
-        """
+        """Parse benchmark results from lm-evaluation-harness JSON output."""
         if not results_path.exists():
             logger.warning(f"Results file not found: {results_path}")
             return {}
@@ -232,19 +245,13 @@ class FTBenchmarkEvaluator(CoSTEEREvaluator):
             results = data.get("results", {})
 
             for task_name, task_results in results.items():
-                # Find the main metric (usually the first one without _stderr suffix)
-                main_metric = None
+                # Find the main metric (skip stderr entries)
                 for key, value in task_results.items():
                     if not key.endswith("_stderr") and isinstance(value, (int, float)):
-                        main_metric = value
+                        # Convert to percentage if it's a ratio
+                        scores[task_name] = (value * 100) if 0 <= value <= 1 else value
+                        logger.info(f"Final score for {task_name}: {scores[task_name]}")
                         break
-
-                if main_metric is not None:
-                    # Convert to percentage if it's a ratio
-                    if 0 <= main_metric <= 1:
-                        scores[task_name] = main_metric * 100
-                    else:
-                        scores[task_name] = main_metric
 
             return scores
 

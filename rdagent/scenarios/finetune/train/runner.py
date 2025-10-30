@@ -91,7 +91,7 @@ class LLMFinetuneRunner(CoSTEER):
     ) -> None:
         eval_l = [
             FTRunnerEvaluator(scen=scen),  # Training validation
-            FTBenchmarkEvaluator(scen=scen),  # Benchmark evaluation
+            FTBenchmarkEvaluator(scen=scen, limit=FT_RD_SETTING.benchmark_limit),  # Benchmark evaluation
         ]
 
         eva = CoSTEERMultiEvaluator(single_evaluator=eval_l, scen=scen)
