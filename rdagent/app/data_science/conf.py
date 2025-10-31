@@ -175,6 +175,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_generate_unique_hypothesis: bool = False
     """Enable generate unique hypothesis. If True, generate unique hypothesis for each component. If False, generate unique hypothesis for each component."""
 
+    enable_research_rag: bool = False
+    """Enable research RAG for hypothesis generation."""
+
     #### hypothesis critique and rewrite
     enable_hypo_critique_rewrite: bool = False
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
