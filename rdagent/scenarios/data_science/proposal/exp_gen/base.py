@@ -280,7 +280,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         if DS_RD_SETTING.coder_on_whole_pipeline or self.next_incomplete_component() is None:
             if DS_RD_SETTING.enable_mcts:
                 # in MCTS, we consider the last accepted experiment as SOTA
-                if len(search_list) >= 1:
+                if len(search_list) > 1:
                     exp, ef  = search_list[-2]
                     return exp, ef
                 else:
