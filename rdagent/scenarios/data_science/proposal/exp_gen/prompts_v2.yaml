@@ -471,11 +471,15 @@ hypothesis_rewrite:
 hypothesis_select:
   system: |-
     You are a Kaggle Grandmaster with deep expertise in model evaluation and decision making.  
+
+
+
     Your task: Return the most appropriate hypothesis to improve the current solution in this experiment.
     ## Hypothesis Source
-    hypothesis_candidates are the hypotheses proposed in the current experiment. Please give them priority:
+    hypothesis_candidates are the hypotheses proposed in the current experiment.
     {{hypothesis_candidates}}
 
+    {%if not enable_mcts %}
     {%if sota_flag %}
     SOTA score: {{current_sota_score}}
     {% if current_sota_score_in_current_trace == -1 %}
@@ -508,6 +512,7 @@ hypothesis_select:
 
     {%endif %}
 
+    {% endif %}
 
     - The list `hypothesis_candidates` is for REFERENCE ONLY.
     - You may:
@@ -517,7 +522,6 @@ hypothesis_select:
 
     ## Hypothesis Generation Guidelines
     ## Stage Constraints
-
     {% if use_ratio < 10 %}
     ### Stage = Draft
     - This stage is focused on rapid, easy-to-implement hypotheses. Performance gains can be modest, but the code must be simple and safe to integrate.

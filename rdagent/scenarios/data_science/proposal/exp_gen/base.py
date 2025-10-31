@@ -278,10 +278,18 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         search_list = self.retrieve_search_list(search_type, selection=selection)
 
         if DS_RD_SETTING.coder_on_whole_pipeline or self.next_incomplete_component() is None:
-            for exp, ef in search_list[::-1]:
-                # the sota exp should be accepted decision and all required components are completed.
-                if ef.decision:
+            if DS_RD_SETTING.enable_mcts:
+                # in MCTS, we consider the last accepted experiment as SOTA
+                if len(search_list) >= 1:
+                    exp, ef  = search_list[-2]
                     return exp, ef
+                else:
+                    return None
+            else:
+                for exp, ef in search_list[::-1]:
+                    # the sota exp should be accepted decision and all required components are completed.
+                    if ef.decision:
+                        return exp, ef
         return None
 
     def sota_experiment(

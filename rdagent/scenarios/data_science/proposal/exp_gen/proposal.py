@@ -1135,6 +1135,7 @@ You help users retrieve relevant knowledge from community discussions and public
             current_sota_score=current_sota_score,
             ratio_merge_or_ensemble=ratio_merge_or_ensemble,
             current_sota_score_in_current_trace=current_sota_score_in_current_trace,
+            enable_mcts=DS_RD_SETTING.enable_mcts
         )
 
         user_prompt = T(".prompts_v2:hypothesis_select.user").r(

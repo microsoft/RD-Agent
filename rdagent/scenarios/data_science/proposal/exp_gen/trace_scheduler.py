@@ -332,6 +332,7 @@ class MCTSScheduler(ProbabilisticScheduler):
         super().__init__(max_trace_num, temperature)
         # Read c_puct from settings if available, otherwise fall back to default 1.0
         self.c_puct = getattr(DS_RD_SETTING, "scheduler_c_puct", 1.0) or 1.0
+        self.c_uct = getattr(DS_RD_SETTING, "scheduler_c_uct", 1.0) or 1.0
         # Statistics keyed by leaf node index
         self.node_visit_count: dict[int, int] = {}
         self.node_value_sum: dict[int, float] = {}
@@ -349,11 +350,20 @@ class MCTSScheduler(ProbabilisticScheduler):
             return 0.0
         return value_sum / visits
 
-    def _get_u(self, node_id: int) -> float:
-        prior = self.node_prior.get(node_id, 0.0)
+    # def _get_u(self, node_id: int) -> float:
+    #     prior = self.node_prior.get(node_id, 0.0)
+    #     visits = self.node_visit_count.get(node_id, 0)
+    #     # Avoid div-by-zero; encourage exploration when visits are small
+    #     return self.c_puct * prior * math.sqrt(max(1, self.global_visit_count)) / (1 + visits)
+
+    def _get_u_uct(self, node_id: int, trace: DSTrace) -> float:
+        parents = trace.get_parents(node_id)
+        last_parent_id = parents[-2] if len(parents) > 1 else 0
+        parent_visits = self.node_visit_count.get(last_parent_id, 0)
         visits = self.node_visit_count.get(node_id, 0)
-        # Avoid div-by-zero; encourage exploration when visits are small
-        return self.c_puct * prior * math.sqrt(max(1, self.global_visit_count)) / (1 + visits)
+        N = max(1, parent_visits)
+        n = max(1, visits)
+        return self.c_uct * math.sqrt(math.log(N) / n)
 
     def select(self, trace: DSTrace) -> tuple[int, ...] | None:
         # Step 1: keep same policy to reach target number of parallel traces
@@ -374,12 +384,18 @@ class MCTSScheduler(ProbabilisticScheduler):
         for leaf, p in zip(available_leaves, priors):
             self.node_prior[leaf] = p
 
+
+
+        # parent_visits = sum(self.node_visit_count.get(leaf, 0) for leaf in available_leaves)
+        # parent_visits = max(parent_visits, 1)
+
         # Step 4: score each leaf using PUCT-like rule: Q + U
         best_leaf = None
         best_score = -float("inf")
         for leaf in available_leaves:
             q = self._get_q(leaf)
-            u = self._get_u(leaf)
+            #u = self._get_u(leaf)
+            u = self._get_u_uct(leaf,trace)
             score = q + u
             if score > best_score:
                 best_score = score
@@ -389,10 +405,13 @@ class MCTSScheduler(ProbabilisticScheduler):
             return None
 
         # # Step 5: optimistic visit update on selection; value update deferred to observe_feedback
-        self.global_visit_count += 1
+        #self.global_visit_count += 1
 
         return (best_leaf,)
-
+    
+    def sigmoid(self, x):
+        return 1 / (1 + math.exp(-x))
+    
     def observe_feedback(self, trace: DSTrace, new_idx: int) -> None:
         """
         Update statistics after an experiment is committed to the trace.
@@ -406,12 +425,17 @@ class MCTSScheduler(ProbabilisticScheduler):
         re, fb = trace.hist[new_idx]
         if DS_RD_SETTING.enable_score_reward:
             bigger_is_better = get_metric_direction(trace.scen.competition)
-            if getattr(fb, "decision", False):
-                reward = math.tanh(re.result.loc["ensemble"].iloc[0].round(3)) * (1 if bigger_is_better else -1)
+            if fb.result is not None:
+                if bigger_is_better:
+                    reward = self.sigmoid(re.result.loc["ensemble"].iloc[0].round(3))
+                else:
+                    reward = 1- self.sigmoid(re.result.loc["ensemble"].iloc[0].round(3))
             else:
-                reward = -1 if bigger_is_better else 1
+                reward = 0 if bigger_is_better else 1
         else:
             reward = 1.0 if getattr(fb, "decision", False) else 0.0
+
+
         id_list = trace.get_parents(new_idx)
         for id in id_list:
             self.node_value_sum[id] = self.node_value_sum.get(id, 0.0) + float(reward)
