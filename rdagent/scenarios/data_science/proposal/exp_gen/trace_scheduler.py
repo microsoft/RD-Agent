@@ -425,7 +425,7 @@ class MCTSScheduler(ProbabilisticScheduler):
         re, fb = trace.hist[new_idx]
         if DS_RD_SETTING.enable_score_reward:
             bigger_is_better = get_metric_direction(trace.scen.competition)
-            if fb.result is not None:
+            if re.result is not None:
                 if bigger_is_better:
                     reward = self.sigmoid(re.result.loc["ensemble"].iloc[0].round(3))
                 else:
