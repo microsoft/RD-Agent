@@ -384,11 +384,6 @@ class MCTSScheduler(ProbabilisticScheduler):
         for leaf, p in zip(available_leaves, priors):
             self.node_prior[leaf] = p
 
-
-
-        # parent_visits = sum(self.node_visit_count.get(leaf, 0) for leaf in available_leaves)
-        # parent_visits = max(parent_visits, 1)
-
         # Step 4: score each leaf using PUCT-like rule: Q + U
         best_leaf = None
         best_score = -float("inf")
@@ -411,7 +406,11 @@ class MCTSScheduler(ProbabilisticScheduler):
     
     def sigmoid(self, x):
         return 1 / (1 + math.exp(-x))
-    
+        
+    def scaled_tanh(self, x):
+        # tanh -> (-1,1), then scale to (0,1)
+        return (math.tanh(x) + 1.0) / 2.0
+
     def observe_feedback(self, trace: DSTrace, new_idx: int) -> None:
         """
         Update statistics after an experiment is committed to the trace.
@@ -427,9 +426,9 @@ class MCTSScheduler(ProbabilisticScheduler):
             bigger_is_better = get_metric_direction(trace.scen.competition)
             if re.result is not None:
                 if bigger_is_better:
-                    reward = self.sigmoid(re.result.loc["ensemble"].iloc[0].round(3))
+                    reward = self.scaled_tanh(re.result.loc["ensemble"].iloc[0])
                 else:
-                    reward = 1- self.sigmoid(re.result.loc["ensemble"].iloc[0].round(3))
+                    reward = 1- self.scaled_tanh(re.result.loc["ensemble"].iloc[0])
             else:
                 reward = 0 if bigger_is_better else 1
         else:
