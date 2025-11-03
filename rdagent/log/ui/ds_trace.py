@@ -72,6 +72,18 @@ def convert_defaultdict_to_dict(d):
 
 
 def load_data(log_path: Path):
+    """
+    Load and normalize logged data for the UI.
+
+    Meaning of "no_tag":
+    - We attempt to extract an evolution id (ei) from each message tag.
+    - If no ei can be extracted (i.e., the entry is not tied to a specific evolving step),
+      the item is stored under the "no_tag" key.
+    - Typical "no_tag" entries include:
+      * direct_exp_gen["no_tag"]: the base experiment/hypothesis for the loop
+      * coding["no_tag"] / running["no_tag"]: the final workspace/result for that stage
+      * llm_data[loop_id][function]["no_tag"]: common LLM logs without an ei
+    """
     data = defaultdict(lambda: defaultdict(dict))
     llm_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     token_costs = defaultdict(list)
@@ -576,6 +588,18 @@ def main_win(loop_id, llm_data=None):
             last_sota_exp=last_sota_exp,
         )
     if "feedback" in loop_data:
+        # Show final diff between the final workspace and the base workspace
+        base_workspace = loop_data["direct_exp_gen"]["no_tag"].experiment_workspace
+        final_workspace = None
+        if "running" in loop_data and "no_tag" in loop_data["running"]:
+            final_workspace = loop_data["running"]["no_tag"].experiment_workspace
+        elif "coding" in loop_data and "no_tag" in loop_data["coding"]:
+            final_workspace = loop_data["coding"]["no_tag"].experiment_workspace
+
+        if final_workspace is not None and base_workspace is not None:
+            st.subheader("Final Diff")
+            workspace_win(final_workspace, cmp_workspace=base_workspace, cmp_name="base workspace")
+
         feedback_win(loop_data["feedback"], llm_data.get("feedback", None) if llm_data else None)
     if "record" in loop_data and "SOTA experiment" in loop_data["record"]:
         st.header("Record", divider="violet", anchor="record")
