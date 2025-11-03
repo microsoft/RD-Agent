@@ -93,7 +93,7 @@ def load_data(log_path: Path):
             continue
         li, fn = extract_loopid_func_name(msg.tag)
         ei = extract_evoid(msg.tag)
-        if li:
+        if li is not None:
             li = int(li)
         if ei is not None:
             ei = int(ei)
@@ -784,7 +784,11 @@ def summarize_win():
                 for k, v in loop_data["direct_exp_gen"]["no_tag"].hypothesis.__dict__.items()
                 if k not in ["component", "hypothesis", "reason"] and v is not None
             }
-            df.loc[loop, "COST($)"] = sum(tc.content["cost"] for tc in state.token_costs[loop])
+            # In the test before 0.8.0 release, we found that when running `ui` of `data_science` (custom dataset),
+            # when `loop=0`, it doesn't exist in `state.token_costs.keys`, and we will get `KeyError` when running it,
+            # so we have fixed the problem with this dirty method for the time being.
+            if loop in state.token_costs:
+                df.loc[loop, "COST($)"] = sum(tc.content["cost"] for tc in state.token_costs[loop])
 
             # Time Stats
             exp_gen_time = timedelta()
