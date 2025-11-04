@@ -5,31 +5,27 @@ Evaluator that runs lm-evaluation-harness in Docker to evaluate fine-tuned model
 """
 
 import json
-import traceback
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-
-import torch
+from typing import Dict, List, Optional
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
 )
+from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 from rdagent.utils.env import BenchmarkDockerConf, BenchmarkDockerEnv
 
 
 # TODO: Do we need share runtime info in Scenario class?
 def _get_gpu_count() -> int:
     """Get available GPU count, with fallback to 4."""
-    try:
-        return torch.cuda.device_count()
-    except Exception:
-        pass
-    return 1  # Default fallback
+    device_info_json = json.loads(get_runtime_environment_by_env(get_ft_env()))
+    return len(device_info_json.get("gpus", []))
 
 
 def _get_valid_tensor_parallel_size(num_gpus: int) -> int:
