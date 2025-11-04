@@ -1,9 +1,6 @@
-import os
-from pathlib import Path
-
 from pydantic_settings import SettingsConfigDict
 
-from rdagent.core.conf import RD_AGENT_SETTINGS, ExtendedBaseSettings
+from rdagent.core.conf import ExtendedBaseSettings
 
 
 class LLMFinetunePropSetting(ExtendedBaseSettings):
@@ -53,11 +50,22 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     app_tpl: str = "scenarios/finetune"
 
     # Benchmark evaluation (always enabled as part of evaluation pipeline)
-    benchmark_datasets: list[str] = ["gsm8k"]
-    """Benchmark datasets to evaluate on. Supported: aime25, mmlu, gsm8k, humaneval, bbh, hellaswag, cmmlu, arc, etc."""
+    benchmark_datasets: list[str] = ["aime25"]
+    """Benchmark datasets to evaluate on. Supported: aime25, aime24, mmlu, gsm8k, math, etc.
+    Will be mapped to OpenCompass dataset names (e.g., aime25 -> aime2025_llmjudge_gen_5e9f4f)"""
 
     benchmark_timeout: int = 3600
     """Benchmark evaluation timeout in seconds"""
+
+    # Judge API configuration (for llmjudge benchmarks like AIME)
+    judge_model: str = "gpt-4"
+    """LLM judge model name for evaluation"""
+
+    judge_api_key: str | None = None
+    """API key for judge model (if None, will try to use from environment)"""
+
+    judge_api_base: str | None = None
+    """API base URL for judge model (if None, will use default)"""
 
     benchmark_limit: int | None = None
     """Limit number of samples for benchmark evaluation (None for full evaluation). Use for quick testing and debugging."""

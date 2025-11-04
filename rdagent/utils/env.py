@@ -870,15 +870,15 @@ class FTDockerConf(DockerConf):
 
 
 class BenchmarkDockerConf(DockerConf):
-    """Docker configuration for lm-evaluation-harness benchmark evaluation."""
+    """Docker configuration for OpenCompass benchmark evaluation."""
 
     model_config = SettingsConfigDict(env_prefix="BENCHMARK_DOCKER_")
 
     build_from_dockerfile: bool = True
-    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "finetune" / "docker" / "lm_eval"
-    image: str = "rdagent-lm-eval:latest"
+    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "finetune" / "docker" / "opencompass"
+    image: str = "rdagent-opencompass:latest"
     mount_path: str = "/workspace/"
-    default_entry: str = "bash /app/eval_entrypoint.sh"
+    default_entry: str = "bash /app/opencompass_eval_entrypoint.sh"
 
     running_timeout_period: int | None = 3600  # 1 hour default for benchmarks
     mem_limit: str | None = "32g"  # Moderate memory for inference
@@ -1266,12 +1266,12 @@ class FTDockerEnv(DockerEnv):
 
 class BenchmarkDockerEnv(DockerEnv):
     """
-    lm-evaluation-harness Benchmark Docker Environment.
+    OpenCompass Benchmark Docker Environment.
 
     Uses BenchmarkDockerConf for evaluation-specific settings:
     - Moderate memory/GPU allocation for inference
     - Longer terminal output (50 lines) to track benchmark progress
-    - Automatic Dockerfile building from scenarios/finetune/docker/lm_eval
+    - Automatic Dockerfile building from scenarios/finetune/docker/opencompass
 
     To customize, set environment variables:
         export BENCHMARK_DOCKER_running_timeout_period=7200  # 2 hours
