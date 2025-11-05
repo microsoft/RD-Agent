@@ -21,7 +21,8 @@ RUN pip install peft transformers accelerate --no-cache-dir
 # Set working directory
 WORKDIR /workspace
 
-# Copy entrypoint script
+# Copy evaluation scripts
+COPY benchmark_config.py /app/benchmark_config.py
 COPY opencompass_eval_entrypoint.sh /app/opencompass_eval_entrypoint.sh
 RUN chmod +x /app/opencompass_eval_entrypoint.sh
 
