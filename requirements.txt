@@ -40,6 +40,9 @@ python-dotenv
 # infrastructure related.
 docker
 
+# crawler related
+webdriver-manager
+
 # demo related
 streamlit>=1.47  # to support  input_c.text_area(..., height="content", ...)
 plotly
@@ -69,5 +72,7 @@ azureml-mlflow
 types-pytz
 
 # Agent
-pydantic-ai-slim[mcp,openai]
+pydantic-ai-slim[mcp,openai,prefect]
 nest-asyncio
+
+prefect

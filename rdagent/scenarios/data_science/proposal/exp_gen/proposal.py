@@ -9,6 +9,7 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.components.agent.rag import Agent as RAGAgent
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
@@ -645,12 +646,24 @@ class DSProposalV2ExpGen(ExpGen):
             sibling_hypotheses=sibling_hypotheses,
             former_user_instructions_str=str(former_user_instructions) if former_user_instructions else None,
         )
+
+        # knowledge retrieval
+        if DS_RD_SETTING.enable_research_rag:
+            rag_agent = RAGAgent(
+                system_prompt="""You are a helpful assistant.
+You help users retrieve relevant knowledge from community discussions and public code."""
+            )
+            knowledge = rag_agent.query(problem_formatted_str)
+        else:
+            knowledge = None
+
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
             scenario_desc=scenario_desc,
             exp_and_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
             problems=problem_formatted_str,
             enable_idea_pool=enable_idea_pool,
+            knowledge=knowledge,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,

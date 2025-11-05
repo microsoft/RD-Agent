@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic_ai.mcp import MCPServerStreamableHTTP
 
 from rdagent.components.agent.base import PAIAgent
-from rdagent.components.agent.mcp.context7 import SETTINGS
+from rdagent.components.agent.context7.conf import SETTINGS
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.agent.tpl import T
 
@@ -15,7 +15,12 @@ class Agent(PAIAgent):
 
     def __init__(self):
         toolsets = [MCPServerStreamableHTTP(SETTINGS.url, timeout=SETTINGS.timeout)]
-        super().__init__(system_prompt=T(".prompts:system_prompt").r(), toolsets=toolsets)
+
+        super().__init__(
+            system_prompt=T(".prompts:system_prompt").r(),
+            toolsets=toolsets,
+            enable_cache=SETTINGS.enable_cache,
+        )
 
     def _build_enhanced_query(self, error_message: str, full_code: Optional[str] = None) -> str:
         """Build enhanced query using experimental prompt templates."""
