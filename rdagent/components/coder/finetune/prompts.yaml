@@ -23,6 +23,12 @@ finetune_coder:
 
     {{ method_params }}
 
+    ## Configuration Principles
+    1. **ONLY include parameters you want to change from defaults**
+    2. If a parameter's default value matches your intention, OMIT it entirely
+    3. This prevents unnecessary dependencies and keeps configuration clean
+    4. Example: if `mixture_of_depths` defaults to `false` and you don't need it, DO NOT include it
+
     ## Output Format
     You MUST output the YAML configuration in a standard markdown code block:
     ```yaml
@@ -30,7 +36,7 @@ finetune_coder:
     stage: sft
     ...
     ```
-    
+
     Do NOT add explanations before or after the YAML block.
 
   user: |-

@@ -164,8 +164,23 @@ class LLaMAFactoryManager:
 
             for param_name, param_info in type_params.items():
                 if isinstance(param_info, dict) and "help" in param_info:
-                    help_text = param_info["help"][:100]  # Truncate long help text
-                    lines.append(f"- {param_name}: {help_text}")
+                    help_text = param_info["help"][:80]  # Truncate long help text
+                    type_text = param_info.get("type", "").replace("typing.", "")
+                    default_val = param_info.get("default")
+
+                    # Format: name (type, default=value): help
+                    param_line = f"- {param_name}"
+                    if type_text or default_val is not None:
+                        param_line += " ("
+                        if type_text:
+                            param_line += f"{type_text}"
+                        if default_val is not None:
+                            if type_text:
+                                param_line += ", "
+                            param_line += f"default={default_val}"
+                        param_line += ")"
+                    param_line += f": {help_text}"
+                    lines.append(param_line)
 
         return "\n".join(lines)
 

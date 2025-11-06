@@ -3,22 +3,23 @@ OpenCompass Benchmark Configuration
 Dynamic configuration for evaluating fine-tuned models with LoRA adapters.
 """
 
-from opencompass.models import HuggingFacewithChatTemplate
-from mmengine.config import read_base
 import os
 import sys
+
+from mmengine.config import read_base
+from opencompass.models import HuggingFacewithChatTemplate
 
 # ============================================================================
 # Configuration from Environment Variables
 # ============================================================================
 
-BASE_MODEL = os.environ.get('BASE_MODEL')
+BASE_MODEL = os.environ.get("BASE_MODEL")
 if not BASE_MODEL:
     raise ValueError("BASE_MODEL environment variable is required")
 
-ADAPTER_PATH = os.environ.get('ADAPTER_PATH', '/workspace/output')
-NUM_GPUS = int(os.environ.get('NUM_GPUS', '1'))
-LIMIT = os.environ.get('LIMIT', '')
+ADAPTER_PATH = os.environ.get("ADAPTER_PATH", "/workspace/output")
+NUM_GPUS = int(os.environ.get("NUM_GPUS", "1"))
+LIMIT = os.environ.get("LIMIT", "")
 
 # ============================================================================
 # Task/Dataset Mapping
@@ -27,13 +28,13 @@ LIMIT = os.environ.get('LIMIT', '')
 # Map task names to OpenCompass dataset config paths
 # Format: 'task_name': ('module.path', 'variable_name')
 TASK_DATASET_MAPPING = {
-    'aime25': ('aime2025.aime2025_llmjudge_gen_5e9f4f', 'aime2025_datasets'),
-    'aime2025': ('aime2025.aime2025_llmjudge_gen_5e9f4f', 'aime2025_datasets'),
-    'aime24': ('aime2024.aime2024_llmjudge_gen_5e9f4f', 'aime2024_datasets'),
-    'aime2024': ('aime2024.aime2024_llmjudge_gen_5e9f4f', 'aime2024_datasets'),
-    'gsm8k': ('gsm8k.gsm8k_gen_1d7fe4', 'gsm8k_datasets'),
-    'math': ('math.math_0shot_gen_393424', 'math_datasets'),
-    'mmlu': ('mmlu.mmlu_pro_0shot_cot_gen_08c1de', 'mmlu_datasets'),
+    "aime25": ("aime2025.aime2025_llmjudge_gen_5e9f4f", "aime2025_datasets"),
+    "aime2025": ("aime2025.aime2025_llmjudge_gen_5e9f4f", "aime2025_datasets"),
+    "aime24": ("aime2024.aime2024_llmjudge_gen_5e9f4f", "aime2024_datasets"),
+    "aime2024": ("aime2024.aime2024_llmjudge_gen_5e9f4f", "aime2024_datasets"),
+    "gsm8k": ("gsm8k.gsm8k_gen_1d7fe4", "gsm8k_datasets"),
+    "math": ("math.math_0shot_gen_393424", "math_datasets"),
+    "mmlu": ("mmlu.mmlu_pro_0shot_cot_gen_08c1de", "mmlu_datasets"),
 }
 
 # ============================================================================
@@ -43,7 +44,7 @@ TASK_DATASET_MAPPING = {
 models = [
     dict(
         type=HuggingFacewithChatTemplate,
-        abbr='finetuned_model',
+        abbr="finetuned_model",
         path=BASE_MODEL,
         peft_path=ADAPTER_PATH,  # Load LoRA adapter using PEFT
         tokenizer_path=BASE_MODEL,
@@ -65,8 +66,8 @@ models = [
 # ============================================================================
 
 datasets = []
-tasks_str = os.environ.get('BENCHMARK_TASKS', 'aime25')
-tasks = [t.strip() for t in tasks_str.split(',') if t.strip()]
+tasks_str = os.environ.get("BENCHMARK_TASKS", "aime25")
+tasks = [t.strip() for t in tasks_str.split(",") if t.strip()]
 
 print(f"Configuring datasets for tasks: {tasks}", file=sys.stderr)
 
@@ -108,6 +109,6 @@ if LIMIT and LIMIT.isdigit():
     print(f"\nApplying sample limit: {limit_value}", file=sys.stderr)
 
     for dataset in datasets:
-        if 'reader_cfg' not in dataset:
-            dataset['reader_cfg'] = {}
-        dataset['reader_cfg']['test_range'] = f'[:{limit_value}]'
+        if "reader_cfg" not in dataset:
+            dataset["reader_cfg"] = {}
+        dataset["reader_cfg"]["test_range"] = f"[:{limit_value}]"
