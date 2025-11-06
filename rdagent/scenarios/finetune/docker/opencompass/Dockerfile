@@ -22,9 +22,9 @@ RUN pip install peft transformers accelerate --no-cache-dir
 WORKDIR /workspace
 
 # Copy evaluation scripts
-COPY benchmark_config.py /app/benchmark_config.py
+COPY generate_benchmark_config.py /app/generate_benchmark_config.py
 COPY opencompass_eval_entrypoint.sh /app/opencompass_eval_entrypoint.sh
-RUN chmod +x /app/opencompass_eval_entrypoint.sh
+RUN chmod +x /app/opencompass_eval_entrypoint.sh /app/generate_benchmark_config.py
 
 # Set environment variables for cache directories
 ENV HF_DATASETS_CACHE=/benchmarks
