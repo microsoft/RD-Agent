@@ -14,9 +14,9 @@ from rdagent.scenarios.finetune.scen.llama_factory_manager import (
 )
 from rdagent.scenarios.finetune.scen.scenario import LLMFinetuneScen
 from rdagent.scenarios.finetune.scen.utils import extract_dataset_info
+from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
 from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 from rdagent.utils.agent.tpl import T
-from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
 
 COMPONENT = Literal["Training"]
 

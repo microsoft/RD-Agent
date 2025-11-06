@@ -10,6 +10,7 @@ import sys
 from dataclasses import fields
 from pathlib import Path
 
+import requests
 from llamafactory.data.template import TEMPLATES
 from llamafactory.extras.constants import METHODS, SUPPORTED_MODELS, TRAINING_STAGES
 from llamafactory.hparams.data_args import DataArguments
@@ -20,8 +21,6 @@ from llamafactory.hparams.finetuning_args import (
 )
 from llamafactory.hparams.model_args import ModelArguments, QuantizationArguments
 from transformers import TrainingArguments
-
-import requests
 
 
 def update_llama_factory():

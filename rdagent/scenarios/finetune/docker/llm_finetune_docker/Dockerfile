@@ -23,3 +23,8 @@ WORKDIR /workspace
 
 # Install additional tools for data processing and logging
 RUN pip install datasets pandas numpy huggingface-hub pyyaml tensorboard tensorboardX
+
+# Install optional dependencies for advanced fine-tuning features
+# - bitsandbytes: for quantization training (QLoRA, etc.)
+# - mixture-of-depth: for mixture-of-depths model architecture
+RUN pip install "bitsandbytes>=0.39.0" "mixture-of-depth>=1.1.6"

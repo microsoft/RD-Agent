@@ -46,8 +46,6 @@ hypothesis_gen:
     }
     {% endif %}
 
-    Example: {"model": "Qwen/Qwen2.5-1.5B-Instruct", "method": "lora", "quantization": "4bit"}
-
   user_prompt: |-
     ## Hardware Information
     - GPU Memory: {{ memory_gb }}GB
