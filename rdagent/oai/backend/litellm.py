@@ -158,7 +158,8 @@ class LiteLLMAPIBackend(APIBackend):
             **complete_kwargs,
             **kwargs,
         )
-        logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {model}", tag="llm_messages")
+        if LITELLM_SETTINGS.log_llm_chat_content:
+            logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {model}", tag="llm_messages")
 
         if LITELLM_SETTINGS.chat_stream:
             if LITELLM_SETTINGS.log_llm_chat_content:
@@ -198,9 +199,10 @@ class LiteLLMAPIBackend(APIBackend):
             cost = np.nan
         else:
             ACC_COST += cost
-            logger.info(
-                f"Current Cost: ${float(cost):.10f}; Accumulated Cost: ${float(ACC_COST):.10f}; {finish_reason=}",
-            )
+            if LITELLM_SETTINGS.log_llm_chat_content:
+                logger.info(
+                    f"Current Cost: ${float(cost):.10f}; Accumulated Cost: ${float(ACC_COST):.10f}; {finish_reason=}",
+                )
 
         prompt_tokens = token_counter(model=model, messages=messages)
         completion_tokens = token_counter(model=model, text=content)
