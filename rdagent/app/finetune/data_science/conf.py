@@ -13,7 +13,7 @@ class DSFinetuneScen(ExtendedBaseSettings):
     Scenario class for data science tasks.
     - For Kaggle competitions, use: "rdagent.scenarios.data_science.scen.KaggleScen"
     - For custom data science scenarios, use: "rdagent.scenarios.data_science.scen.DataScienceScen"
-    - For LLM finetune scenarios, use: "rdagent.scenarios.finetune.scen.LLMFinetuneScen"
+    - For LLM finetune scenarios, use: "rdagent.app.finetune.llm.scen.LLMFinetuneScen"
     - For Data science finetune scenarios, use: "rdagent.app.finetune.data_science.scen.DSFinetuneScen"
     """
 

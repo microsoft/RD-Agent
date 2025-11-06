@@ -12,6 +12,8 @@ from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
 
+UPDATE_LLAMA_FACTORY_SCRIPT_NAME = "update_llama_factory_extract_parameters.py"
+
 
 class LLaMAFactoryManager:
     """Manager for LLaMA Factory parameter extraction and caching."""
@@ -29,8 +31,8 @@ class LLaMAFactoryManager:
             logger.info("Update & Extract LLaMA Factory parameters from Docker")
             # Prepare extraction script
             workspace = FBWorkspace()
-            script_path = Path(__file__).parent / "docker_scripts" / "pull_extract.py"
-            workspace.inject_files(**{"extract_script.py": script_path.read_text()})
+            script_path = Path(__file__).parent / "docker_scripts" / UPDATE_LLAMA_FACTORY_SCRIPT_NAME
+            workspace.inject_files(**{UPDATE_LLAMA_FACTORY_SCRIPT_NAME: script_path.read_text()})
 
             # Setup cache directory and Docker volumes
             if self.cache_dir.exists():
@@ -41,7 +43,7 @@ class LLaMAFactoryManager:
             # Run extraction
             result = workspace.run(
                 env=get_ft_env(extra_volumes=volumes, running_timeout_period=120, enable_cache=False),
-                entry="python extract_script.py",
+                entry=f"python {UPDATE_LLAMA_FACTORY_SCRIPT_NAME}",
             )
 
             if result.exit_code != 0:

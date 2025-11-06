@@ -21,25 +21,32 @@ from llamafactory.hparams.finetuning_args import (
 from llamafactory.hparams.model_args import ModelArguments, QuantizationArguments
 from transformers import TrainingArguments
 
-# Pull latest LLaMA Factory code
-try:
-    result = subprocess.run(
-        ["git", "pull", "--rebase"],
-        cwd="/llamafactory",
-        capture_output=True,
-        text=True,
-        timeout=60,
-    )
-    if result.returncode == 0:
-        output = (result.stdout or result.stderr).strip()
-        print(f"Updated LLaMA Factory: {output}", file=sys.stderr)
-    else:
-        print(f"Warning: git pull failed: {result.stderr}", file=sys.stderr)
-except Exception as e:
-    print(f"Warning: Failed to update LLaMA Factory: {e}", file=sys.stderr)
+import requests
 
-# Add LLaMA Factory to path
-sys.path.insert(0, "/llamafactory/src")
+
+def update_llama_factory():
+    """Pull the latest LLaMA Factory code from GitHub."""
+    response = requests.get(f"https://api.github.com/repos/hiyouga/LLaMA-Factory/releases/latest", timeout=10)
+    latest_tag = response.json()["tag_name"]
+    # Fetch tags and checkout latest release, printing both stdout and stderr.
+    for cmd in (["git", "fetch", "--tags"], ["git", "checkout", latest_tag]):
+        print(f"Running: {' '.join(cmd)}", flush=True)
+        result = subprocess.run(
+            cmd,
+            cwd="/llamafactory",
+            text=True,
+            timeout=120,
+            capture_output=True,
+            check=False,
+        )
+        print(f"Exit code: {result.returncode}", flush=True)
+        print("STDOUT:", result.stdout.strip() or "<empty>", flush=True)
+        print("STDERR:", result.stderr.strip() or "<empty>", flush=True)
+        if result.returncode != 0:
+            print("Command failed, continuing.", flush=True)
+
+    # Add LLaMA Factory to path
+    sys.path.insert(0, "/llamafactory/src")
 
 
 def extract_field_info(field):
@@ -101,6 +108,7 @@ def main():
     base_dir = sys.argv[1] if len(sys.argv) > 1 else "/workspace/.llama_factory_info"
 
     try:
+        update_llama_factory()
         save_parameters(base_dir)
         print("Successfully extracted LLaMA Factory parameters")
         return 0

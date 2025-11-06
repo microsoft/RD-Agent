@@ -5,7 +5,7 @@ from typing import Literal
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.finetune.conf import get_ft_env
-from rdagent.components.coder.finetune.exp import TrainingTask
+from rdagent.components.coder.finetune.exp import LLMFTTask
 from rdagent.core.proposal import ExpGen, Hypothesis, Hypothesis2Experiment, Trace
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.finetune.experiment.experiment import FTExperiment
@@ -16,6 +16,7 @@ from rdagent.scenarios.finetune.scen.scenario import LLMFinetuneScen
 from rdagent.scenarios.finetune.scen.utils import extract_dataset_info
 from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 from rdagent.utils.agent.tpl import T
+from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
 
 COMPONENT = Literal["Training"]
 
@@ -68,9 +69,6 @@ class FTHypothesis2Experiment(Hypothesis2Experiment):
         """Convert hypothesis to executable experiment."""
         logger.info(f"Converting hypothesis: {hypothesis.base_model} with {hypothesis.finetune_method}")
 
-        # Download model at the point of use (after LLM selection)
-        from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
-
         ensure_ft_assets_exist(model=hypothesis.base_model, check_model=True)
 
         # Combine method and quantization for task description
@@ -78,7 +76,7 @@ class FTHypothesis2Experiment(Hypothesis2Experiment):
         if hypothesis.quantization != "none":
             method_desc += f" with {hypothesis.quantization} quantization"
 
-        task = TrainingTask(
+        task = LLMFTTask(
             base_model=hypothesis.base_model,
             finetune_method=hypothesis.finetune_method,
             dataset=FT_RD_SETTING.dataset,

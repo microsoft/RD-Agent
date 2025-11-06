@@ -47,14 +47,8 @@ class LLMFinetuneScen(DataScienceScen):
     def real_debug_timeout(self):
         return FT_RD_SETTING.debug_timeout
 
-    def recommend_debug_timeout(self):
-        return FT_RD_SETTING.debug_recommend_timeout
-
     def real_full_timeout(self):
         return FT_RD_SETTING.full_timeout
-
-    def recommend_full_timeout(self):
-        return FT_RD_SETTING.full_recommend_timeout
 
     def _validate_and_prepare_environment(self):
         """Validate FT_FILE_PATH and ensure dataset exists"""

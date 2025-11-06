@@ -5,11 +5,15 @@ from rdagent.app.finetune.llm.conf import LLMFinetunePropSetting
 from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.exception import CoderError
 from rdagent.log import rdagent_logger as logger
 
 
 class LLMFinetuneRDLoop(RDLoop):
     """LLM fine-tuning loop using standard RDLoop workflow"""
+
+    skip_loop_error = (CoderError,)
+    withdraw_loop_error = ()
 
     def __init__(self, PROP_SETTING: LLMFinetunePropSetting):
         # Store finetune-specific settings

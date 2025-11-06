@@ -41,9 +41,7 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
 
     # Timeouts (longer for LLM training)
     debug_timeout: int = 36000
-    debug_recommend_timeout: int = 36000
     full_timeout: int = 360000
-    full_recommend_timeout: int = 360000
 
     # Pipeline behavior
     coder_on_whole_pipeline: bool = True

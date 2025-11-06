@@ -24,7 +24,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 )
 from rdagent.components.coder.finetune.conf import FTCoderCoSTEERSettings
 from rdagent.components.coder.finetune.eval import FTCoderEvaluator
-from rdagent.components.coder.finetune.exp import TrainingTask
+from rdagent.components.coder.finetune.exp import LLMFTTask
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario

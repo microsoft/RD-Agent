@@ -8,7 +8,7 @@ from rdagent.components.coder.CoSTEER.task import CoSTEERTask
 
 
 # Because we use isinstance to distinguish between different types of tasks, we need to use sub classes to represent different types of tasks
-class TrainingTask(CoSTEERTask):
+class LLMFTTask(CoSTEERTask):
     """Training task class for LLM fine-tuning operations - follows data science pattern"""
 
     def __init__(
