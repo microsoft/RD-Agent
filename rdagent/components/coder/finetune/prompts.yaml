@@ -5,21 +5,13 @@ finetune_coder:
 
     {{ task_desc }}
 
-    {% if similar_knowledge|length > 0 %}
-    ## Successful Similar Implementations
-    {% for knowledge in similar_knowledge[:3] %}  {# Limit to 3 examples to keep prompt concise #}
-    ### Example {{ loop.index }}:
-    ```yaml
-    {{ knowledge.implementation.file_dict.get("train.yaml", "") }}
-    ```
-    {% endfor %}
-    {% endif %}
-
-    {% if failed_knowledge|length > 0 %}
-    ## Learn from Previous Failures
-    {% for knowledge in failed_knowledge[:2] %}  {# Limit to 2 failures #}
-    ### Failed Attempt:
-    Key issue: {{ knowledge.feedback | truncate(200) }}
+    {% if queried_former_failed_knowledge|length != 0 %}
+    ## Previous Failed Attempts
+    {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
+    =====Code:=====
+    {{ former_failed_knowledge.implementation.all_codes }}
+    =====Feedback:=====
+    {{ former_failed_knowledge.feedback }}
     {% endfor %}
     {% endif %}
 
@@ -62,7 +54,7 @@ finetune_coder:
     {{ latest_code }}
     ```
 
-    {% if latest_feedback %}
+    {% if latest_feedback is not none %}
     ## Feedback on Previous Configuration
     {{ latest_feedback }}
 

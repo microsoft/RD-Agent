@@ -1114,8 +1114,7 @@ class DockerEnv(Env[DockerConf]):
 
         # Show log file location and create latest symlink
         if log_file_path and log_file_path.exists():
-            relative_path = log_file_path.relative_to(Path(local_path))
-            print(f"[green]Full execution log saved to: {relative_path}[/green]")
+            print(f"[green]Full execution log saved to: {log_file_path.absolute()}[/green]")
 
             # Create or update symlink to latest log
             latest_link = log_file_path.parent / "docker_execution_latest.log"

@@ -34,6 +34,7 @@ from rdagent.utils.agent.ret import PythonAgentOut
 from rdagent.utils.agent.tpl import T
 
 DIRNAME = Path(__file__).absolute().resolve().parent
+FT_YAML_FILE_NAME = "train.yaml"
 
 
 class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
@@ -60,15 +61,17 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         task_info = target_task.get_task_information()
 
-        # Query relevant knowledge
-        similar_knowledge = (
-            queried_knowledge.task_to_similar_task_successful_knowledge.get(task_info, []) if queried_knowledge else []
+        queried_former_failed_knowledge = (
+            queried_knowledge.task_to_former_failed_traces[task_info] if queried_knowledge is not None else []
         )
-
-        failed_knowledge = (
-            queried_knowledge.task_to_former_failed_traces.get(task_info, ([], None))
-            if queried_knowledge
-            else ([], None)
+        queried_former_failed_knowledge = (
+            [
+                knowledge
+                for knowledge in queried_former_failed_knowledge[0]
+                if knowledge.implementation.file_dict.get(FT_YAML_FILE_NAME)
+                != workspace.file_dict.get(FT_YAML_FILE_NAME)
+            ],
+            queried_former_failed_knowledge[1],
         )
 
         # Get task parameters from the task object
@@ -83,14 +86,13 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             finetune_method=finetune_method,
             dataset=dataset,
             task_info=task_info,
-            similar_knowledge=similar_knowledge,
-            failed_knowledge=failed_knowledge[0],
+            queried_former_failed_knowledge=queried_former_failed_knowledge,
             prev_feedback=prev_task_feedback,
             workspace=workspace,
         )
 
         # Return generated config directly - validation happens in evaluator
-        return {"train.yaml": config_yaml}
+        return {FT_YAML_FILE_NAME: config_yaml}
 
     def _generate_llamafactory_config_with_llm(
         self,
@@ -98,34 +100,11 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         finetune_method: str,
         dataset: str,
         task_info: str = "",
-        similar_knowledge: list = None,
-        failed_knowledge: list = None,
+        queried_former_failed_knowledge: tuple = None,
         prev_feedback=None,
         workspace=None,
     ) -> str:
         """Generate LlamaFactory configuration YAML using LLM"""
-
-        # Prepare knowledge context
-        similar_knowledge_str = ""
-        if similar_knowledge:
-            similar_knowledge_str = "\n".join(
-                [
-                    f"### Similar Implementation {i+1}:\n{knowledge.target_task.get_task_information()}\n```yaml\n{knowledge.implementation.file_dict.get('train.yaml', '')}\n```"
-                    for i, knowledge in enumerate(similar_knowledge)
-                ]
-            )
-
-        failed_knowledge_str = ""
-        if failed_knowledge and isinstance(failed_knowledge, (list, tuple)) and len(failed_knowledge) > 0:
-            # Handle both list of knowledge and tuple format (knowledge_list, None)
-            knowledge_list = failed_knowledge[0] if isinstance(failed_knowledge, tuple) else failed_knowledge
-            if knowledge_list:
-                failed_knowledge_str = "\n".join(
-                    [
-                        f"### Failed Attempt {i+1}:\n```yaml\n{knowledge.implementation.file_dict.get('train.yaml', '')}\n```\n**Feedback:** {knowledge.feedback}"
-                        for i, knowledge in enumerate(knowledge_list)
-                    ]
-                )
 
         # Query LLaMA Factory parameters for the specific method
         method_params_desc = self.llama_factory_manager.format_method_params(finetune_method)
@@ -139,14 +118,13 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         system_prompt = T("components.coder.finetune.prompts:finetune_coder.system").r(
             task_desc=task_info,
             finetune_method=finetune_method,
-            similar_knowledge=similar_knowledge if similar_knowledge else [],
-            failed_knowledge=failed_knowledge[0] if isinstance(failed_knowledge, tuple) and failed_knowledge[0] else [],
+            queried_former_failed_knowledge=queried_former_failed_knowledge[0],
             method_params=method_params_desc,
         )
 
         user_prompt = T("components.coder.finetune.prompts:finetune_coder.user").r(
-            latest_code=(workspace.file_dict.get("train.yaml", "") if workspace and prev_feedback else ""),
-            latest_feedback=str(prev_feedback) if prev_feedback else "",
+            latest_code=workspace.file_dict.get(FT_YAML_FILE_NAME, ""),
+            latest_feedback=prev_feedback,
             finetune_method=finetune_method,
             base_model=base_model,
             dataset_name=dataset,
@@ -156,8 +134,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # Call LLM to generate config
         try:
-            api = APIBackend()
-            response = api.build_messages_and_create_chat_completion(
+            response = APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=user_prompt,
                 system_prompt=system_prompt,
                 json_mode=False,
@@ -220,7 +197,6 @@ class LLMFinetuneCoSTEER(CoSTEER):
             es=es,
             evolving_version=2,
             scen=scen,
-            knowledge_self_gen=False,
             max_loop=FT_RD_SETTING.coder_max_loop if hasattr(FT_RD_SETTING, "coder_max_loop") else 5,
             **kwargs,
         )
