@@ -23,7 +23,15 @@ from rdagent.utils.env import BenchmarkDockerConf, BenchmarkDockerEnv
 
 def _get_gpu_count() -> int:
     device_info_json = json.loads(get_runtime_environment_by_env(get_ft_env()))
-    return len(device_info_json.get("gpus", []))
+    gpu_info = device_info_json.get("gpu", {})
+
+    if "gpu_count" in gpu_info:
+        return gpu_info["gpu_count"]
+
+    if "gpus" in gpu_info:
+        return len(gpu_info["gpus"])
+
+    return 0
 
 
 def _get_valid_tensor_parallel_size(num_gpus: int) -> int:
@@ -69,6 +77,7 @@ def get_benchmark_env(
         "OC_JUDGE_MODEL": FT_RD_SETTING.judge_model,
         "OC_JUDGE_API_KEY": FT_RD_SETTING.judge_api_key or "",
         "OC_JUDGE_API_BASE": FT_RD_SETTING.judge_api_base or "",
+        "MKL_THREADING_LAYER": "GNU",
     }
 
     return env, env_vars

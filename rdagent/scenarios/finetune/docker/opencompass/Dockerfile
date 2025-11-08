@@ -18,6 +18,9 @@ RUN pip install opencompass vllm --no-cache-dir
 # Install additional dependencies for LoRA evaluation and model support
 RUN pip install peft transformers accelerate --no-cache-dir
 
+# Install math evaluation dependencies for AIME/MATH benchmarks
+RUN pip install math_verify latex2sympy2_extended --no-cache-dir
+
 # Set working directory
 WORKDIR /workspace
 

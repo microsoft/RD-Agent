@@ -56,7 +56,7 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     """Benchmark evaluation timeout in seconds"""
 
     # Judge API configuration (for llmjudge benchmarks like AIME)
-    judge_model: str = "gpt-4"
+    judge_model: str = "gpt-5"
     """LLM judge model name for evaluation"""
 
     judge_api_key: str | None = None
