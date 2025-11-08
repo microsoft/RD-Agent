@@ -10,8 +10,8 @@ Postscripts:
 
 import asyncio
 import concurrent.futures
-import os
 import copy
+import os
 import pickle
 from collections import defaultdict
 from dataclasses import dataclass
@@ -230,9 +230,9 @@ class LoopBase:
                         with concurrent.futures.ProcessPoolExecutor() as pool:
                             # Using deepcopy is to avoid triggering errors like "RuntimeError: dictionary changed size during iteration"
                             # GUESS: Some content in self.loop_prev_out[li] may be in the middle of being changed.
-                            result = await curr_loop.run_in_executor(pool,
-                                                                     copy.deepcopy(func),
-                                                                     copy.deepcopy(self.loop_prev_out[li]))
+                            result = await curr_loop.run_in_executor(
+                                pool, copy.deepcopy(func), copy.deepcopy(self.loop_prev_out[li])
+                            )
                     else:
                         # auto determine whether to run async or sync
                         if asyncio.iscoroutinefunction(func):
