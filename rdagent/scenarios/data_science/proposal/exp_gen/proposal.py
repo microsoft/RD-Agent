@@ -41,6 +41,7 @@ from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
+from collections import OrderedDict
 
 _COMPONENT_META: Dict[str, Dict[str, Any]] = {
     "DataLoadSpec": {
@@ -1298,6 +1299,206 @@ You help users retrieve relevant knowledge from community discussions and public
                 )
             )
         return result
+    
+    def _get_exp_index(self, trace: DSTrace) -> int:
+        leaves: list[int] = trace.get_leaves()
+        if trace.sota_exp_to_submit is not None:
+            sota_submit_value = trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0]
+            trace_scores = []
+            for i, leaf in enumerate(leaves):
+                if leaf == trace.current_selection[0]:
+                    continue
+                fb = trace.sota_experiment_fb(selection=(leaf,))
+                if fb is None:
+                    continue
+                final_score = fb[0].result.loc["ensemble"].iloc[0]
+                trace_scores.append((i, abs(final_score - sota_submit_value)))
+            if trace_scores:
+                return min(trace_scores, key=lambda item: item[1])[0]
+        return next((i for i, leaf in enumerate(leaves) if leaf != trace.current_selection[0]))
+
+    @wait_retry(retry_n=5)
+    def merge_node_gen(
+        self,
+        trace: DSTrace,
+        component_desc: str,
+        sota_exp_desc: str,
+        enable_idea_pool: bool,
+        pipeline: bool = True,
+        exp_feedback_list_desc: str = "",
+        scenario_desc: str = "",
+        problems: dict = {},
+    ) -> Dict:
+        
+        sota_exp_fb = trace.sota_experiment_fb(selection=trace.current_selection)
+        if sota_exp_fb:
+            sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
+                exp=sota_exp_fb[0],
+                heading="Best previous exploration of the scenario",
+            )
+            eda_output = sota_exp_fb[0].experiment_workspace.file_dict.get("EDA.md", None)
+        else:
+            sota_exp_desc = ""
+            eda_output = None
+
+        trace_fbs: list[tuple[DSExperiment, ExperimentFeedback]] = []
+        # find the best exp to merge
+        leaves: list[int] = trace.get_leaves()
+        max_sota_retrieved_num_per_trace = max(DS_RD_SETTING.max_sota_retrieved_num * 2 // len(leaves), 4)
+        for leaf in leaves:
+            if leaf == trace.current_selection[0]:
+                continue
+
+            trace_fbs.extend(
+                trace.experiment_and_feedback_list_after_init(
+                    return_type="sota",
+                    search_type="ancestors",
+                    selection=(leaf,),
+                    max_retrieve_num=max_sota_retrieved_num_per_trace,
+                )
+            )
+
+        success_fb_list = list(set(trace_fbs))
+        logger.info(
+            f"Merge Hypothesis: select {len(success_fb_list)} from {len(trace_fbs)} SOTA experiments found in {len(leaves)} traces"
+        )
+
+        if len(success_fb_list) > 0:
+            exp_to_merge_fb_desc = T("scenarios.data_science.proposal.exp_gen.merge:trace").r(
+                exp_and_feedback_list=success_fb_list,
+                type="success",
+                heading="Successful iterations:",
+                success_trial_desc="These trials are the steps or changes that led to the success of the solution to be merged",
+                pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
+            )
+        else:
+            exp_index = self._get_exp_index(trace)
+            exp_to_merge_fb = trace.sota_experiment_fb(selection=(exp_index,))
+            if exp_to_merge_fb is None:
+                exp_to_merge_fb = trace.hist[exp_index]
+
+            exp_to_merge_fb_desc = T("scenarios.data_science.share:describe.feedback").r(
+                exp_and_feedback=exp_to_merge_fb,
+                heading="The feedback for the solution to be merged",
+            )
+
+        component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
+
+        sys_prompt = T(".restart:hypothesis_gen.system").r(
+            component_desc=component_desc,
+            hypothesis_output_format=T(".prompts_v2:output_format.hypothesis").r(
+                pipeline=pipeline, enable_idea_pool=enable_idea_pool
+            ),
+            pipeline=pipeline,
+        )
+        user_prompt = T(".restart:hypothesis_gen.user").r(
+            exp_and_feedback_list_desc=exp_to_merge_fb_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, Dict[str, str | Dict[str, str | int]]],
+        )
+        resp_dict = json.loads(response)
+        return resp_dict
+    
+    
+    def _get_scores(self,trace,loop_id2idx, loop_id_list,root_id) -> list:
+        id_and_scores = []
+        for loop_id in loop_id_list:
+            if trace.hist[loop_id2idx[loop_id]][1].decision == True:
+                id_and_scores.append(
+                    (root_id,loop_id,trace.hist[loop_id2idx[loop_id]][0].result.loc["ensemble"].iloc[0].round(3))
+                )
+            else:
+                id_and_scores.append((root_id,loop_id,-1))
+        return id_and_scores
+
+
+    def identify_current_node_type(self, trace: DSTrace) -> str:
+
+        competition = trace.scen.competition
+
+        root_nodes = {}
+        parent_nodes = {}
+        for node in range(len(trace.hist)):
+            parents = trace.get_parents(node)
+            root_nodes[node] = parents[0]
+            parent_nodes[node] = parents[-2] if len(parents) > 1 else None
+        if hasattr(trace, "idx2loop_id"):
+            root_nodes = {trace.idx2loop_id[n]: trace.idx2loop_id[r] for n, r in root_nodes.items()}
+            parent_nodes = {
+                trace.idx2loop_id[n]: trace.idx2loop_id[r] if r is not None else r
+                for n, r in parent_nodes.items()
+            }
+
+
+        current_record_id = trace.current_selection[0]
+        current_loop_id = trace.idx2loop_id[current_record_id]
+
+    
+        loop_id_list = self._get_path(current_loop_id, parent_nodes)
+
+        loop_id2idx = {v: k for k, v in trace.idx2loop_id.items()}
+
+        unique_roots = list(OrderedDict.fromkeys(root_nodes.values()))
+
+        node_list_from_different_root = [
+            [node for node, r in root_nodes.items() if r == root]
+            for root in unique_roots
+        ]
+
+        score_list = [self._get_scores(trace,loop_id2idx ,l,root_id)
+                       for l,root_id in zip(node_list_from_different_root, unique_roots)]
+
+        all_nodes = [item for sublist in score_list for item in sublist]
+
+
+        current_parent_root = [
+            root_id
+            for l in score_list
+            for root_id, loop_id, score in l
+            if loop_id == current_loop_id
+        ]
+
+        mean_scores = []
+        successful_rates = []
+        for l in score_list:
+            valid_scores = [s for _, _, s in l if s != -1]
+            root = l[0][0]
+            mean_score = np.mean(valid_scores) if valid_scores else None
+            successful_rate = 100*len(valid_scores)/len(l) if l else 0.0
+            successful_rates.append((root, successful_rate))
+            mean_scores.append((root,mean_score))
+
+        
+        current_success_rate = next((rate for r, rate in successful_rates if r == current_parent_root), 0.0)
+        if current_success_rate > 50 :
+            #percentile=25
+            min_threshold=0.7
+            all_scores = np.array([score for _, score in mean_scores])
+            bigger_is_better = get_metric_direction(competition)
+
+            if bigger_is_better:
+                percentile = 75
+                dynamic_threshold = max(np.percentile(all_scores, percentile), min_threshold)
+                root_score = next((score for root, score in mean_scores if root == current_parent_root), None)
+                if root_score is None or root_score < dynamic_threshold:
+                    return "restart"
+                else:
+                    return "explore"
+            else:
+                percentile = 25
+                dynamic_threshold = min(np.percentile(all_scores, 100 - percentile), 1 - min_threshold)
+                root_score = next((score for root, score in mean_scores if root == current_parent_root), None)
+                if root_score is None or root_score > dynamic_threshold:
+                    return "restart"
+                else:
+                    return "explore"
+        else:
+            return "restart"
 
     def gen(
         self,
@@ -1405,6 +1606,20 @@ You help users retrieve relevant knowledge from community discussions and public
             sibling_exp=sibling_exp,
             former_user_instructions=former_user_instructions,
         )
+
+        node_type = "none"
+        if DS_RD_SETTING.enable_node_restart:
+            if len(trace.current_selection) != 0:
+                node_type = self.identify_current_node_type(trace)
+
+            if node_type == "restart":
+                hypothesis_dict = self.merge_node_gen(trace= trace,component_desc = component_desc,sota_exp_desc = sota_exp_desc,
+                                                      enable_idea_pool =DS_RD_SETTING.enable_knowledge_base,pipeline =pipeline,exp_feedback_list_desc=exp_feedback_list_desc,
+                                                      scenario_desc=scenario_desc,problems = all_problems )
+            else:
+                hypothesis_dict = hypothesis_dict
+
+
         if not pipeline:
             sota_exp_model_file_count = len(
                 [
@@ -1420,6 +1635,8 @@ You help users retrieve relevant knowledge from community discussions and public
                         pop_names.append(problem_name)
                 for name in pop_names:
                     hypothesis_dict.pop(name)
+
+
 
         # Step 2.1 & 2.2: Hypothesis Critique and Rewrite Stage (controlled by enable_hypo_critique_rewrite)
         if DS_RD_SETTING.enable_hypo_critique_rewrite and len(trace.hist) > 0:
@@ -1458,7 +1675,8 @@ You help users retrieve relevant knowledge from community discussions and public
             logger.info(f"Hypothesis critique and rewrite disabled - using original {len(hypothesis_dict)} hypotheses")
 
         # Step 3: Select the best hypothesis
-        if DS_RD_SETTING.llm_select_hypothesis:
+
+        if DS_RD_SETTING.llm_select_hypothesis and node_type != "restart":
             response_dict = self.hypothesis_select_with_llm(
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
@@ -1473,11 +1691,13 @@ You help users retrieve relevant knowledge from community discussions and public
             )
             pickled_problem_name = None
         else:
+            all_problems = {}
             pickled_problem_name, new_hypothesis = self.hypothesis_rank(
                 hypothesis_dict=hypothesis_dict,
                 problem_dict=all_problems,
+                selected_idx=0,
             )
-
+            
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
             trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
