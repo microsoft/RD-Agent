@@ -35,13 +35,13 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     ## Coding Related
     coding_fail_reanalyze_threshold: int = 3
 
-    debug_recommend_timeout: int = 600
+    debug_recommend_timeout: int = 600*3
     """The recommend time limit for running on debugging data"""
-    debug_timeout: int = 600
+    debug_timeout: int = 600*3
     """The timeout limit for running on debugging data"""
-    full_recommend_timeout: int = 3600
+    full_recommend_timeout: int = 3600*3
     """The recommend time limit for running on full data"""
-    full_timeout: int = 3600
+    full_timeout: int = 3600*3
     """The timeout limit for running on full data"""
 
     #### model dump
@@ -150,6 +150,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     #### enable draft before first sota experiment
     enable_draft_before_first_sota: bool = False
     enable_planner: bool = False
+
+    #### enable draft code replacement for first loop
+    enable_draft_code_replacement: bool = True
+    draft_code_path: str = "/data/userdata/v-lijingyuan/RD-Agent-draft-RAG/RD-Agent/draft/code_v1.py"
 
     model_architecture_suggestion_time_percent: float = 0.75
     allow_longer_timeout: bool = False
