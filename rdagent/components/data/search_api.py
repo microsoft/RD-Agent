@@ -2,7 +2,7 @@
 API wrappers for dataset search platforms.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from huggingface_hub import HfApi
 
@@ -19,17 +19,17 @@ class HuggingFaceSearchAPI:
         except ImportError as e:
             raise ImportError(
                 "huggingface_hub is required for dataset search. "
-                "Install it with: pip install -U 'huggingface_hub[cli]'"
+                "Install it with: pip install -U 'huggingface_hub[cli]'",
             ) from e
 
     def search_datasets(
         self,
-        domain: Optional[str] = None,
-        size_categories: Optional[str] = None,
-        language: Optional[str] = None,
+        domain: str | None = None,
+        size_categories: str | None = None,
+        language: str | None = None,
         sort: str = "downloads",
         limit: int = 20,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search HuggingFace datasets using 3 core dimensions.
 
@@ -52,7 +52,7 @@ class HuggingFaceSearchAPI:
 
         try:
             # Build parameters following HuggingFace official API
-            search_params: Dict[str, Any] = {
+            search_params: dict[str, Any] = {
                 "sort": sort,
                 "limit": limit,
                 "full": True,  # Fetch all dataset metadata
@@ -74,7 +74,7 @@ class HuggingFaceSearchAPI:
                 search_params["filter"] = filter_list
 
             logger.info(
-                f"Searching HuggingFace: domain='{domain}', " f"size_categories={size_categories}, language={language}"
+                f"Searching HuggingFace: domain='{domain}', size_categories={size_categories}, language={language}",
             )
 
             # Create fresh API instance for each search
@@ -92,7 +92,7 @@ class HuggingFaceSearchAPI:
                         "description": getattr(ds, "description", ""),  # Truncate for LLM input
                         "tags": getattr(ds, "tags", []),  # Limit tags count
                         "last_modified": getattr(ds, "lastModified", None),
-                    }
+                    },
                 )
                 # Break early if we have enough results
                 if len(results) >= limit:
@@ -108,7 +108,7 @@ class HuggingFaceSearchAPI:
             logger.error(traceback.format_exc())
             return []
 
-    def get_dataset_info(self, dataset_id: str) -> Optional[Dict[str, Any]]:
+    def get_dataset_info(self, dataset_id: str) -> dict[str, Any] | None:
         """
         Get detailed information about a specific dataset.
 

@@ -2,7 +2,7 @@
 
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from rdagent.log import rdagent_logger as logger
 
@@ -30,8 +30,8 @@ class DatasetManager:
         self,
         source_path: str,
         dataset_id: str,
-        file_analysis: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        file_analysis: dict[str, Any],
+    ) -> dict[str, Any]:
         """
         Selectively migrate dataset (only copy useful files).
 

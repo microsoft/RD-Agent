@@ -11,7 +11,7 @@ import hashlib
 import json
 import logging
 from concurrent.futures import as_completed
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from tqdm import tqdm
 
@@ -35,7 +35,7 @@ class DataCleaner:
         "save_frequency": 10,  # Save intermediate results every N batches (0 = disable)
     }
 
-    def __init__(self, llm_client=None, config: Dict[str, Any] = None):
+    def __init__(self, llm_client=None, config: dict[str, Any] = None):
         """Initialize data cleaner.
 
         Args:
@@ -47,12 +47,12 @@ class DataCleaner:
 
     def clean(
         self,
-        alpaca_samples: List[Dict[str, str]],
+        alpaca_samples: list[dict[str, str]],
         task_description: str = "",
         enable_quality_scoring: bool = False,
         max_workers: int = 20,
         save_callback: Any = None,
-    ) -> Tuple[List[Dict[str, str]], Dict[str, Any]]:
+    ) -> tuple[list[dict[str, str]], dict[str, Any]]:
         """Clean Alpaca-format samples.
 
         Args:
@@ -75,7 +75,7 @@ class DataCleaner:
         stats["dedup_removed"] = stats["original_samples"] - stats["after_dedup"]
         logger.info(
             f"After dedup: {stats['after_dedup']} samples "
-            f"(removed {stats['dedup_removed']}, {stats['dedup_removed']/stats['original_samples']*100:.1f}%)"
+            f"(removed {stats['dedup_removed']}, {stats['dedup_removed']/stats['original_samples']*100:.1f}%)",
         )
 
         # Step 2: Length filtering
@@ -84,7 +84,7 @@ class DataCleaner:
         stats["length_filter_removed"] = stats["after_dedup"] - stats["after_length_filter"]
         logger.info(
             f"After length filter: {stats['after_length_filter']} samples "
-            f"(removed {stats['length_filter_removed']}, {stats['length_filter_removed']/stats['after_dedup']*100:.1f}%)"
+            f"(removed {stats['length_filter_removed']}, {stats['length_filter_removed']/stats['after_dedup']*100:.1f}%)",
         )
 
         # Step 3: Quality scoring (optional, parallel)
@@ -95,7 +95,7 @@ class DataCleaner:
             logger.info(
                 f"After quality filter: {stats['after_quality_filter']} samples "
                 f"(removed {stats['quality_filter_removed']}, "
-                f"{stats['quality_filter_removed']/stats['after_length_filter']*100:.1f}%)"
+                f"{stats['quality_filter_removed']/stats['after_length_filter']*100:.1f}%)",
             )
         else:
             stats["after_quality_filter"] = stats["after_length_filter"]
@@ -107,12 +107,12 @@ class DataCleaner:
 
         logger.info(
             f"Cleaning complete: {stats['final_samples']}/{stats['original_samples']} samples retained "
-            f"({stats['retention_rate']*100:.1f}%)"
+            f"({stats['retention_rate']*100:.1f}%)",
         )
 
         return samples, stats
 
-    def _deduplicate(self, samples: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    def _deduplicate(self, samples: list[dict[str, str]]) -> list[dict[str, str]]:
         """Remove duplicate samples based on instruction+output hash.
 
         Args:
@@ -134,7 +134,7 @@ class DataCleaner:
 
         return unique_samples
 
-    def _compute_sample_hash(self, sample: Dict[str, str]) -> str:
+    def _compute_sample_hash(self, sample: dict[str, str]) -> str:
         """Compute hash of sample for deduplication.
 
         Args:
@@ -147,7 +147,7 @@ class DataCleaner:
         content = sample["instruction"] + sample["output"]
         return hashlib.md5(content.encode("utf-8")).hexdigest()
 
-    def _filter_by_length(self, samples: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    def _filter_by_length(self, samples: list[dict[str, str]]) -> list[dict[str, str]]:
         """Filter samples by length constraints.
 
         Args:
@@ -179,8 +179,12 @@ class DataCleaner:
         return filtered_samples
 
     def _filter_by_quality(
-        self, samples: List[Dict[str, str]], task_description: str, max_workers: int = 20, save_callback: Any = None
-    ) -> List[Dict[str, str]]:
+        self,
+        samples: list[dict[str, str]],
+        task_description: str,
+        max_workers: int = 20,
+        save_callback: Any = None,
+    ) -> list[dict[str, str]]:
         """Filter samples by LLM quality scoring (parallel execution).
 
         Uses sampling strategy to reduce cost:
@@ -240,13 +244,13 @@ class DataCleaner:
                         scores = future.result()
 
                         # Filter by threshold
-                        for sample, score_info in zip(batch, scores):
+                        for sample, score_info in zip(batch, scores, strict=False):
                             if score_info["score"] >= threshold:
                                 high_quality_samples.append(sample)
                             else:
                                 logger.debug(
                                     f"Filtered out sample (score={score_info['score']:.1f}): "
-                                    f"{sample['instruction'][:50]}..."
+                                    f"{sample['instruction'][:50]}...",
                                 )
 
                         # Save intermediate results if enabled
@@ -266,19 +270,23 @@ class DataCleaner:
         # Add samples that were not scored (sampling strategy)
         if samples_without_scoring:
             logger.info(
-                f"Adding {len(samples_without_scoring)} unscored samples " f"(sampled beyond max_samples_for_scoring)"
+                f"Adding {len(samples_without_scoring)} unscored samples (sampled beyond max_samples_for_scoring)",
             )
             high_quality_samples.extend(samples_without_scoring)
 
         return high_quality_samples
 
     def _score_batch_wrapper(
-        self, batch: List[Dict[str, str]], task_description: str, batch_idx: int, total_batches: int
-    ) -> List[Dict[str, Any]]:
+        self,
+        batch: list[dict[str, str]],
+        task_description: str,
+        batch_idx: int,
+        total_batches: int,
+    ) -> list[dict[str, Any]]:
         """Wrapper for batch scoring (used in parallel execution)"""
         return self._score_batch(batch, task_description)
 
-    def _score_batch(self, samples: List[Dict[str, str]], task_description: str) -> List[Dict[str, Any]]:
+    def _score_batch(self, samples: list[dict[str, str]], task_description: str) -> list[dict[str, Any]]:
         """Score a batch of samples using LLM.
 
         Args:
@@ -323,7 +331,7 @@ class DataCleaner:
         # Validate result
         if "samples" not in result or len(result["samples"]) != len(samples):
             raise ValueError(
-                f"Invalid LLM response: expected {len(samples)} scores, " f"got {len(result.get('samples', []))}"
+                f"Invalid LLM response: expected {len(samples)} scores, got {len(result.get('samples', []))}",
             )
 
         return result["samples"]

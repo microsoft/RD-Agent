@@ -9,7 +9,7 @@ Fully autonomous LLM-driven analysis with intelligent retry mechanism.
 
 import json
 import logging
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 
@@ -31,7 +31,7 @@ class SchemaAnalyzer:
         self.llm_client = llm_client
 
     @wait_retry(retry_n=3)
-    def analyze(self, sample_data: pd.DataFrame, task_description: str) -> Dict[str, Any]:
+    def analyze(self, sample_data: pd.DataFrame, task_description: str) -> dict[str, Any]:
         """Analyze dataset schema using LLM (fully autonomous).
 
         Args:
@@ -77,7 +77,7 @@ class SchemaAnalyzer:
         logger.info(f"Schema analysis successful: {result}")
         return result
 
-    def _validate_schema_result(self, result: Dict[str, Any], columns: list) -> None:
+    def _validate_schema_result(self, result: dict[str, Any], columns: list) -> None:
         """Validate LLM schema analysis result.
 
         Args:

@@ -3,7 +3,7 @@ Autonomous dataset search agent with LLM-powered search and selection.
 """
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from rdagent.components.data.search_api import HuggingFaceSearchAPI
 from rdagent.log import rdagent_logger as logger
@@ -25,7 +25,7 @@ class DatasetSearchAgent:
     6. Download dataset to local directory
     """
 
-    def __init__(self, api_backend: Optional[APIBackend] = None):
+    def __init__(self, api_backend: APIBackend | None = None):
         """
         Args:
             api_backend: LLM API backend. If None, will create default instance.
@@ -37,9 +37,9 @@ class DatasetSearchAgent:
         self,
         task_description: str,
         max_candidates: int = 20,
-        out_dir: Optional[str] = None,
+        out_dir: str | None = None,
         max_retries: int = 4,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         End-to-end workflow: search -> select -> download.
 
@@ -95,7 +95,7 @@ class DatasetSearchAgent:
             "search_params": result["search_params"],
         }
 
-    def _generate_search_params(self, task_description: str) -> Dict[str, Any]:
+    def _generate_search_params(self, task_description: str) -> dict[str, Any]:
         """
         Use LLM to generate search parameters from task description.
 
@@ -146,9 +146,9 @@ class DatasetSearchAgent:
     def _select_best_dataset(
         self,
         task_description: str,
-        candidates: List[Dict[str, Any]],
-        user_language: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        candidates: list[dict[str, Any]],
+        user_language: str | None = None,
+    ) -> dict[str, Any]:
         """
         Use LLM to select the best dataset from candidates with 4-dimension evaluation.
 
@@ -209,8 +209,8 @@ class DatasetSearchAgent:
     def _llm_retry_params(
         self,
         task_description: str,
-        failed_params: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        failed_params: dict[str, Any],
+    ) -> dict[str, Any]:
         """
         Use LLM to intelligently generate new search parameters after failure.
 
@@ -261,7 +261,7 @@ class DatasetSearchAgent:
             # Fallback: if LLM retry fails, use simple rule-based relaxation
             return self._relax_search_params(failed_params)
 
-    def _relax_search_params(self, original_params: Dict[str, Any]) -> Dict[str, Any]:
+    def _relax_search_params(self, original_params: dict[str, Any]) -> dict[str, Any]:
         """
         Rule-based parameter relaxation (used after LLM retry fails).
 
@@ -299,10 +299,10 @@ class DatasetSearchAgent:
         logger.error("No further relaxation possible - all filters already removed")
         raise ValueError(
             f"Search failed after exhausting all retry strategies. "
-            f"Last search params: domain='{relaxed.get('domain')}', all filters removed"
+            f"Last search params: domain='{relaxed.get('domain')}', all filters removed",
         )
 
-    def _apply_license_blacklist(self, candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _apply_license_blacklist(self, candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Filter out datasets with non-commercial or restrictive licenses.
 
@@ -348,7 +348,7 @@ class DatasetSearchAgent:
         logger.info(f"License filter: {len(candidates)} candidates → {len(filtered)} after blacklist")
         return filtered
 
-    def _format_candidates(self, candidates: List[Dict[str, Any]]) -> str:
+    def _format_candidates(self, candidates: list[dict[str, Any]]) -> str:
         """
         Format candidate datasets for LLM consumption with complete tags and structured info.
 
@@ -386,7 +386,7 @@ class DatasetSearchAgent:
                         "licenses": licenses,
                         "modalities": modalities,
                     },
-                }
+                },
             )
         return json.dumps(formatted, ensure_ascii=False, indent=2)
 
@@ -395,7 +395,7 @@ class DatasetSearchAgent:
         task_description: str,
         max_candidates: int = 20,
         max_retries: int = 4,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Search and select dataset without downloading.
 
@@ -435,7 +435,7 @@ class DatasetSearchAgent:
         while candidates is None or len(candidates) == 0:
             if retry_count > max_retries:
                 raise ValueError(
-                    f"Failed to find datasets after {max_retries} retries. " f"Last search params: {search_params}"
+                    f"Failed to find datasets after {max_retries} retries. Last search params: {search_params}",
                 )
 
             # Attempt search
@@ -449,7 +449,7 @@ class DatasetSearchAgent:
             if not candidates:
                 logger.warning(
                     f"No results found (attempt {retry_count + 1}/{max_retries + 1}). "
-                    "Retrying with adjusted parameters..."
+                    "Retrying with adjusted parameters...",
                 )
 
                 # === Key Logic: LLM retry on first failure, rule-based after ===
@@ -473,7 +473,7 @@ class DatasetSearchAgent:
         if not candidates:
             raise ValueError(
                 "All candidate datasets were filtered out due to restrictive licenses (NC/ND/GPL). "
-                "Try relaxing search parameters or manually selecting a dataset."
+                "Try relaxing search parameters or manually selecting a dataset.",
             )
 
         # Step 3: Select best dataset with 4-dimension evaluation

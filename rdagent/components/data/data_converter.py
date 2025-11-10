@@ -6,10 +6,9 @@ Converts datasets to Alpaca format for SFT/LoRA training.
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
-import pyarrow as pa
 import pyarrow.parquet as pq
 
 logger = logging.getLogger(__name__)
@@ -69,14 +68,13 @@ class DataConverter:
 
     def __init__(self):
         """Initialize data converter."""
-        pass
 
     def convert_to_alpaca(
         self,
         data: pd.DataFrame,
-        schema: Dict[str, Any],
+        schema: dict[str, Any],
         enable_metadata: bool = True,
-    ) -> List[Dict[str, str]]:
+    ) -> list[dict[str, str]]:
         """Convert dataset to Alpaca format.
 
         Args:
@@ -103,24 +101,23 @@ class DataConverter:
         logger.info(
             f"Converting {len(data)} samples to Alpaca format "
             f"(data_type={data_type}, instruction={instruction_col}, "
-            f"input={input_col}, output={output_col}, enable_metadata={enable_metadata})"
+            f"input={input_col}, output={output_col}, enable_metadata={enable_metadata})",
         )
 
         if data_type == "single_turn":
             return self._convert_single_turn(data, instruction_col, input_col, output_col, enable_metadata)
-        elif data_type == "multi_turn":
+        if data_type == "multi_turn":
             return self._convert_multi_turn(data, instruction_col, enable_metadata)
-        else:
-            raise ValueError(f"Unknown data_type: {data_type}")
+        raise ValueError(f"Unknown data_type: {data_type}")
 
     def _convert_single_turn(
         self,
         data: pd.DataFrame,
         instruction_col: str,
-        input_col: Optional[str],
+        input_col: str | None,
         output_col: str,
         enable_metadata: bool = True,
-    ) -> List[Dict[str, str]]:
+    ) -> list[dict[str, str]]:
         """Convert single-turn Q&A data to Alpaca format.
 
         Args:
@@ -156,7 +153,7 @@ class DataConverter:
                 if not instruction or not output:
                     logger.debug(
                         f"Skipping row {idx}: empty instruction or output "
-                        f"(instruction={bool(instruction)}, output={bool(output)})"
+                        f"(instruction={bool(instruction)}, output={bool(output)})",
                     )
                     continue
 
@@ -200,13 +197,12 @@ class DataConverter:
         # Convert to string
         if isinstance(value, str):
             return value.strip()
-        elif isinstance(value, (int, float)):
+        if isinstance(value, (int, float)):
             return str(value).strip()
-        elif isinstance(value, (list, dict)):
+        if isinstance(value, (list, dict)):
             # For complex types, convert to JSON string
             return json.dumps(value, ensure_ascii=False)
-        else:
-            return str(value).strip()
+        return str(value).strip()
 
     def _is_metadata_field(self, col_name: str) -> bool:
         """Check if a field should be included in metadata.
@@ -240,7 +236,7 @@ class DataConverter:
         row: pd.Series,
         core_cols: set,
         enable_metadata: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Extract metadata from row, excluding core columns.
 
         Metadata includes non-core fields that provide additional context
@@ -282,7 +278,7 @@ class DataConverter:
         data: pd.DataFrame,
         conversation_col: str,
         enable_metadata: bool = True,
-    ) -> List[Dict[str, str]]:
+    ) -> list[dict[str, str]]:
         """Convert multi-turn dialogue data to Alpaca format.
 
         Strategy: Preserve conversation history as input field.
@@ -322,7 +318,7 @@ class DataConverter:
                     assistant_msg = turn.get("assistant", "")
 
                     if not user_msg or not assistant_msg:
-                        logger.debug(f"Skipping turn {turn_idx} in row {idx}: " f"empty user or assistant message")
+                        logger.debug(f"Skipping turn {turn_idx} in row {idx}: empty user or assistant message")
                         continue
 
                     # Build input context from previous conversation
@@ -354,7 +350,7 @@ class DataConverter:
         logger.info(f"Converted {len(alpaca_samples)} turns from {len(data)} conversations")
         return alpaca_samples
 
-    def _parse_conversation(self, conversation: Any) -> List[Dict[str, str]]:
+    def _parse_conversation(self, conversation: Any) -> list[dict[str, str]]:
         """Parse conversation data into structured turns.
 
         Supports multiple formats:
@@ -435,7 +431,7 @@ class DataConverter:
 
         return turns
 
-    def _format_conversation_history(self, conversation_history: List[Dict[str, str]]) -> str:
+    def _format_conversation_history(self, conversation_history: list[dict[str, str]]) -> str:
         """Format conversation history as input context.
 
         Args:
@@ -451,7 +447,7 @@ class DataConverter:
 
         return "\n".join(lines)
 
-    def load_and_merge_files(self, dataset_path: str, useful_files: Optional[List[str]] = None) -> pd.DataFrame:
+    def load_and_merge_files(self, dataset_path: str, useful_files: list[str] | None = None) -> pd.DataFrame:
         """Load and merge all useful files in dataset directory.
 
         Args:
@@ -499,7 +495,7 @@ class DataConverter:
 
         return merged_df
 
-    def _find_data_files(self, dataset_path: Path) -> List[Path]:
+    def _find_data_files(self, dataset_path: Path) -> list[Path]:
         """Find all supported data files in directory.
 
         Args:
@@ -534,21 +530,20 @@ class DataConverter:
 
         if suffix == ".csv":
             return pd.read_csv(file_path)
-        elif suffix == ".json":
+        if suffix == ".json":
             return pd.read_json(file_path, lines=False)
-        elif suffix == ".jsonl":
+        if suffix == ".jsonl":
             return pd.read_json(file_path, lines=True)
-        elif suffix == ".parquet":
+        if suffix == ".parquet":
             return pd.read_parquet(file_path)
-        elif suffix == ".arrow":
+        if suffix == ".arrow":
             # Read arrow file using pyarrow
 
             table = pq.read_table(file_path)
             return table.to_pandas()
-        else:
-            raise ValueError(f"Unsupported file format: {suffix}")
+        raise ValueError(f"Unsupported file format: {suffix}")
 
-    def save_alpaca_json(self, alpaca_samples: List[Dict[str, str]], output_path: str) -> None:
+    def save_alpaca_json(self, alpaca_samples: list[dict[str, str]], output_path: str) -> None:
         """Save Alpaca-format samples to JSON file.
 
         Args:

@@ -12,18 +12,14 @@ to SFT (Supervised Fine-Tuning) format with features including:
 
 import argparse
 import concurrent.futures
-import hashlib
 import json
 import logging
 import sys
 import time
-from contextlib import contextmanager
-from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
 from pathlib import Path
 from threading import Lock
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -73,7 +69,7 @@ class SFTProcessingSettings(BaseModel):
     log_level: str = Field(default="INFO", description="Logging level")
 
     # Internal processing parameters (not exposed to users typically)
-    useful_files: Optional[List[str]] = Field(default=None, description="Specific files to process (optional)")
+    useful_files: list[str] | None = Field(default=None, description="Specific files to process (optional)")
 
     class Config:
         arbitrary_types_allowed = True
@@ -93,7 +89,7 @@ class CheckpointManager:
         self.completed_batches = self._load_checkpoint()
         self.lock = Lock()
 
-    def _load_checkpoint(self) -> List[int]:
+    def _load_checkpoint(self) -> list[int]:
         """Load checkpoint data from file"""
         if self.checkpoint_file.exists():
             try:
@@ -104,7 +100,7 @@ class CheckpointManager:
                 logging.warning(f"Failed to load checkpoint: {e}")
         return []
 
-    def get_completed_batches(self) -> List[int]:
+    def get_completed_batches(self) -> list[int]:
         """Get list of completed batch indices"""
         return self.completed_batches.copy()
 
@@ -122,10 +118,12 @@ class CheckpointManager:
             self.checkpoint_file.parent.mkdir(parents=True, exist_ok=True)
             with self.checkpoint_file.open("w", encoding="utf-8") as f:
                 json.dump(
-                    {"completed_batches": self.completed_batches, "timestamp": datetime.now().isoformat()}, f, indent=2
+                    {"completed_batches": self.completed_batches, "timestamp": datetime.now().isoformat()},
+                    f,
+                    indent=2,
                 )
         except Exception as e:
-            logging.error(f"Failed to save checkpoint: {e}")
+            logging.exception(f"Failed to save checkpoint: {e}")
 
     def clear(self) -> None:
         """Clear checkpoint file"""
@@ -143,7 +141,10 @@ class SFTProcessor:
     """Production-grade SFT dataset processor"""
 
     def __init__(
-        self, settings: Optional[SFTProcessingSettings] = None, llm_client: Optional[APIBackend] = None, **kwargs
+        self,
+        settings: SFTProcessingSettings | None = None,
+        llm_client: APIBackend | None = None,
+        **kwargs,
     ) -> None:
         """Initialize SFT processor.
 
@@ -191,7 +192,7 @@ class SFTProcessor:
             "end_time": None,
         }
 
-    def analyze_schema_with_fallback(self, sample_data: pd.DataFrame, task_description: str) -> Dict[str, Any]:
+    def analyze_schema_with_fallback(self, sample_data: pd.DataFrame, task_description: str) -> dict[str, Any]:
         """Fully autonomous schema analysis with automatic fallback.
 
         Returns schema dict with fields:
@@ -217,7 +218,7 @@ class SFTProcessor:
         schema["method"] = "fallback"
         return schema
 
-    def _intelligent_guess_schema(self, data: pd.DataFrame) -> Dict[str, Any]:
+    def _intelligent_guess_schema(self, data: pd.DataFrame) -> dict[str, Any]:
         """Intelligent heuristic-based schema guessing"""
         columns = list(data.columns)
 
@@ -292,7 +293,7 @@ class SFTProcessor:
             "reasoning": "Automatic fallback based on column name patterns",
         }
 
-    def process(self) -> Dict[str, Any]:
+    def process(self) -> dict[str, Any]:
         """Main processing entry point.
 
         Returns:
@@ -334,7 +335,7 @@ class SFTProcessor:
             }
 
         except Exception as e:
-            logging.error(f"Processing failed: {e}")
+            logging.exception(f"Processing failed: {e}")
             return {
                 "success": False,
                 "error": str(e),
@@ -353,26 +354,24 @@ class SFTProcessor:
             suffix = input_path.suffix.lower()
             if suffix == ".csv":
                 return pd.read_csv(input_path)
-            elif suffix == ".json":
+            if suffix == ".json":
                 return pd.read_json(input_path, lines=False)
-            elif suffix == ".jsonl":
+            if suffix == ".jsonl":
                 return pd.read_json(input_path, lines=True)
-            elif suffix == ".parquet":
+            if suffix == ".parquet":
                 return pd.read_parquet(input_path)
-            elif suffix in [".xlsx", ".xls"]:
+            if suffix in [".xlsx", ".xls"]:
                 return pd.read_excel(input_path)
-            else:
-                raise ValueError(f"Unsupported file format: {suffix}")
+            raise ValueError(f"Unsupported file format: {suffix}")
 
-        elif input_path.is_dir():
+        if input_path.is_dir():
             # Directory - use data_converter's load_and_merge_files
             logging.info(f"Loading directory: {input_path}")
             return self.data_converter.load_and_merge_files(str(input_path), self.settings.useful_files)
 
-        else:
-            raise ValueError(f"Input path does not exist: {input_path}")
+        raise ValueError(f"Input path does not exist: {input_path}")
 
-    def _process_with_checkpoint(self) -> Dict[str, Any]:
+    def _process_with_checkpoint(self) -> dict[str, Any]:
         """Process dataset with intelligent routing based on data quality"""
         # Step 1: Load data
         logging.info("Step 1: Loading data files...")
@@ -393,7 +392,7 @@ class SFTProcessor:
             f"instruction={schema.get('instruction_col')}, "
             f"output={schema.get('output_col')}, "
             f"quality_score={quality_score:.2f}, "
-            f"method={schema.get('method')}"
+            f"method={schema.get('method')}",
         )
 
         # Step 3: Intelligent routing based on quality
@@ -423,7 +422,7 @@ class SFTProcessor:
             "output_path": str(self.settings.output_file),
         }
 
-    def _analyze_with_quality_assessment(self, sample_data: pd.DataFrame, task_description: str) -> Dict[str, Any]:
+    def _analyze_with_quality_assessment(self, sample_data: pd.DataFrame, task_description: str) -> dict[str, Any]:
         """Analyze schema with quality assessment for intelligent routing"""
         # Temporarily suppress detailed LLM logs during schema analysis
         original_level = logging.getLogger().level
@@ -482,7 +481,7 @@ class SFTProcessor:
         schema["quality_score"] = quality_score
         return schema
 
-    def _should_use_light_path(self, schema: Dict[str, Any], quality_score: float) -> bool:
+    def _should_use_light_path(self, schema: dict[str, Any], quality_score: float) -> bool:
         """Determine if data quality is good enough for light path"""
         # Light path criteria:
         # - Quality score > 0.8 (mandatory threshold)
@@ -497,13 +496,15 @@ class SFTProcessor:
         # Only use light path if BOTH conditions are met
         return has_clear_columns and is_high_quality
 
-    def _process_light_path(self, data: pd.DataFrame, schema: Dict[str, Any]) -> Dict[str, Any]:
+    def _process_light_path(self, data: pd.DataFrame, schema: dict[str, Any]) -> dict[str, Any]:
         """Light path: Simple conversion + mandatory parallel quality scoring"""
         logging.info("Light path: Starting simple conversion...")
 
         # Step 1: Simple format conversion using data_converter
         alpaca_samples = self.data_converter.convert_to_alpaca(
-            data, schema, enable_metadata=self.settings.enable_metadata
+            data,
+            schema,
+            enable_metadata=self.settings.enable_metadata,
         )
         logging.info(f"Converted {len(alpaca_samples)} samples to Alpaca format")
 
@@ -513,7 +514,7 @@ class SFTProcessor:
             self.data_converter.save_alpaca_json(samples, str(self.settings.output_file))
 
         logging.info(
-            f"Light path: Data cleaning (dedup + length filter + quality scoring, {self.settings.max_workers} workers)..."
+            f"Light path: Data cleaning (dedup + length filter + quality scoring, {self.settings.max_workers} workers)...",
         )
         cleaned_samples, clean_stats = self.data_cleaner.clean(
             alpaca_samples,
@@ -523,7 +524,7 @@ class SFTProcessor:
             save_callback=save_intermediate,  # Enable incremental saving
         )
         logging.info(
-            f"Cleaning complete: {clean_stats['final_samples']} samples retained ({clean_stats['retention_rate']*100:.1f}%)"
+            f"Cleaning complete: {clean_stats['final_samples']} samples retained ({clean_stats['retention_rate']*100:.1f}%)",
         )
 
         # Step 5: Final save (ensure all samples are saved)
@@ -536,7 +537,7 @@ class SFTProcessor:
             "clean_stats": clean_stats,
         }
 
-    def _process_heavy_path(self, data: pd.DataFrame) -> Dict[str, Any]:
+    def _process_heavy_path(self, data: pd.DataFrame) -> dict[str, Any]:
         """Heavy path: Deduplication + Direct parallel LLM conversion
 
         Processing steps:
@@ -555,7 +556,7 @@ class SFTProcessor:
         deduped_count = len(data)
         removed_count = original_count - deduped_count
         logging.info(
-            f"Heavy path: After deduplication: {deduped_count} unique rows (removed {removed_count} duplicates)"
+            f"Heavy path: After deduplication: {deduped_count} unique rows (removed {removed_count} duplicates)",
         )
 
         # Split deduplicated data into batches
@@ -580,7 +581,7 @@ class SFTProcessor:
         output_path = Path(self.settings.output_file)
         if output_path.exists() and self.settings.resume_from_checkpoint:
             try:
-                with open(output_path, "r", encoding="utf-8") as f:
+                with open(output_path, encoding="utf-8") as f:
                     existing_samples = json.load(f)
                 all_samples = existing_samples
                 logging.info(f"Loaded {len(existing_samples)} existing samples from checkpoint")
@@ -601,7 +602,11 @@ class SFTProcessor:
             # Collect results as they complete (with progress bar)
             num_to_process = len(future_to_batch)
             with tqdm(
-                total=num_to_process, desc="🔧 Heavy path LLM conversion", unit="batch", ncols=100, colour="yellow"
+                total=num_to_process,
+                desc="🔧 Heavy path LLM conversion",
+                unit="batch",
+                ncols=100,
+                colour="yellow",
             ) as pbar:
                 for future in concurrent.futures.as_completed(future_to_batch):
                     batch_idx = future_to_batch[future]
@@ -623,7 +628,7 @@ class SFTProcessor:
                         pbar.update(1)
 
                     except Exception as e:
-                        logging.error(f"Failed to process batch {batch_idx}: {e}")
+                        logging.exception(f"Failed to process batch {batch_idx}: {e}")
                         failed_batches.append(batch_idx)
                         pbar.update(1)
 
@@ -631,14 +636,14 @@ class SFTProcessor:
         logging.info(
             f"Heavy path: Completed LLM conversion. "
             f"Success: {len(all_samples)} samples, "
-            f"Failed batches: {len(failed_batches)}"
+            f"Failed batches: {len(failed_batches)}",
         )
 
         logging.info(f"Heavy path: All batches saved incrementally to {self.settings.output_file}")
 
         return {"samples_count": len(all_samples), "failed_batches": failed_batches}
 
-    def _split_into_batches(self, data: pd.DataFrame, batch_size: int) -> List[pd.DataFrame]:
+    def _split_into_batches(self, data: pd.DataFrame, batch_size: int) -> list[pd.DataFrame]:
         """Split dataframe into smaller batches for parallel processing"""
         batches = []
         for i in range(0, len(data), batch_size):
@@ -647,8 +652,11 @@ class SFTProcessor:
         return batches
 
     def _convert_raw_batch_with_llm(
-        self, batch_data: pd.DataFrame, batch_idx: int, total_batches: int
-    ) -> List[Dict[str, str]]:
+        self,
+        batch_data: pd.DataFrame,
+        batch_idx: int,
+        total_batches: int,
+    ) -> list[dict[str, str]]:
         """Convert a batch of raw data to SFT format using LLM (no schema needed)"""
         try:
             # Convert batch data to list of dicts for prompt
@@ -673,7 +681,9 @@ class SFTProcessor:
             try:
                 # Call LLM (with retry from wait_retry decorator if needed)
                 response = self.llm_client.build_messages_and_create_chat_completion(
-                    system_prompt=system_prompt, user_prompt=user_prompt, json_mode=True
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    json_mode=True,
                 )
             finally:
                 # Restore original logging levels
@@ -703,13 +713,13 @@ class SFTProcessor:
             logging.info(
                 f"Batch {batch_idx+1}/{total_batches}: "
                 f"{len(batch_records)} records → {len(valid_samples)} samples "
-                f"(conversion rate: {conversion_rate:.1f}%)"
+                f"(conversion rate: {conversion_rate:.1f}%)",
             )
 
             return valid_samples
 
         except Exception as e:
-            logging.error(f"Error converting batch {batch_idx}: {e}")
+            logging.exception(f"Error converting batch {batch_idx}: {e}")
             raise
 
     def _setup_logging(self) -> None:

@@ -3,7 +3,7 @@
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
 
@@ -17,7 +17,7 @@ from rdagent.utils.agent.tpl import T
 class DatasetInspector:
     """Inspect dataset structure and perform rule-based quality checks."""
 
-    def __init__(self, api_backend: Optional[APIBackend] = None):
+    def __init__(self, api_backend: APIBackend | None = None):
         """
         Initialize inspector with optional LLM backend for file analysis.
 
@@ -26,7 +26,7 @@ class DatasetInspector:
         """
         self.api = api_backend or APIBackend()
 
-    def inspect(self, dataset_path: str, sample_size: int = 100) -> Dict[str, Any]:
+    def inspect(self, dataset_path: str, sample_size: int = 100) -> dict[str, Any]:
         """
         Inspect dataset structure and sample data.
 
@@ -45,7 +45,7 @@ class DatasetInspector:
                 "issues": List[str]
             }
         """
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "path": dataset_path,
             "loadable": False,
             "total_samples": 0,
@@ -116,7 +116,7 @@ class DatasetInspector:
                         dataset[split_name] = concatenate_datasets(split_datasets)
 
                     result["loadable"] = True
-                    logger.info(f"✅ Multi-config dataset merged successfully")
+                    logger.info("✅ Multi-config dataset merged successfully")
                     logger.info(f"   Total train samples: {total_samples} (from {len(available_configs)} configs)")
 
                     # Store config info for transparency
@@ -129,7 +129,7 @@ class DatasetInspector:
                     return result
             else:
                 # Some other error occurred
-                result["issues"].append(f"Failed to load dataset: {str(initial_error)}")
+                result["issues"].append(f"Failed to load dataset: {initial_error!s}")
                 logger.error(f"❌ Failed to load dataset: {initial_error}")
                 return result
 
@@ -152,12 +152,12 @@ class DatasetInspector:
             result["sample_data"] = [samples[i] for i in range(sample_size)]
 
             logger.info(
-                f"✅ Successfully loaded dataset: {result['total_samples']} samples, columns: {result['columns']}"
+                f"✅ Successfully loaded dataset: {result['total_samples']} samples, columns: {result['columns']}",
             )
 
         return result
 
-    def check_quality(self, inspect_result: Dict[str, Any]) -> Dict[str, Any]:
+    def check_quality(self, inspect_result: dict[str, Any]) -> dict[str, Any]:
         """
         Rule-based quality check without LLM calls.
 
@@ -243,7 +243,7 @@ class DatasetInspector:
         self,
         dataset_path: str,
         task_description: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Use LLM to analyze which files are useful for SFT training.
 
@@ -290,7 +290,7 @@ class DatasetInspector:
                         "name": str(rel_path),
                         "size_mb": round(file_size_bytes / (1024 * 1024), 2),
                         "extension": file_path.suffix,
-                    }
+                    },
                 )
 
         logger.info(f"Found {len(all_files)} files, total size: {total_size_bytes / (1024 * 1024):.2f}MB")
@@ -481,7 +481,7 @@ class DatasetInspector:
         """
         preview_lines = [
             f"### {rel_path}:",
-            f"#### 1.DataFrame preview:",
+            "#### 1.DataFrame preview:",
             f"It has {df.shape[0]} rows and {df.shape[1]} columns.",
             f"The columns are: {', '.join(df.columns)}",
             f"#### 2.DataFrame preview: (first {n_rows} rows, FULL content)",
@@ -591,7 +591,7 @@ class DatasetInspector:
 
         return combined_content
 
-    def _fallback_file_analysis(self, all_files: List[Dict], total_size_bytes: int) -> Dict[str, Any]:
+    def _fallback_file_analysis(self, all_files: list[dict], total_size_bytes: int) -> dict[str, Any]:
         """
         Fallback rule-based file filtering when LLM fails.
 

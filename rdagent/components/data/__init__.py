@@ -16,7 +16,7 @@ from rdagent.components.data.schema_analyzer import SchemaAnalyzer
 from rdagent.components.data.sft_processor import SFTProcessingSettings, SFTProcessor
 
 
-def convert_to_sft(input_path: str, output_file: str, task_description: str = "") -> Dict[str, Any]:
+def convert_to_sft(input_path: str, output_file: str, task_description: str = "") -> dict[str, Any]:
     """
     Fully autonomous SFT dataset converter with intelligent routing.
 
@@ -50,7 +50,9 @@ def convert_to_sft(input_path: str, output_file: str, task_description: str = ""
 
     # Create settings with defaults (fully autonomous)
     settings = SFTProcessingSettings(
-        input_path=Path(input_path), output_file=Path(output_file), task_description=task_description
+        input_path=Path(input_path),
+        output_file=Path(output_file),
+        task_description=task_description,
     )
 
     # Create processor with default LLM
@@ -64,13 +66,13 @@ def convert_to_sft(input_path: str, output_file: str, task_description: str = ""
 
 
 __all__ = [
-    "DatasetSearchAgent",
+    "DataCleaner",
+    "DataConverter",
     "DatasetInspector",
     "DatasetManager",
-    "SchemaAnalyzer",
-    "DataConverter",
-    "DataCleaner",
-    "SFTProcessor",
+    "DatasetSearchAgent",
     "SFTProcessingSettings",
+    "SFTProcessor",
+    "SchemaAnalyzer",
     "convert_to_sft",
 ]
