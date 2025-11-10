@@ -183,3 +183,11 @@ static/
 .cursor/
 .claude/
 AGENTS.md
+CLAUDE.md
+
+test*.py
+
+datasets/
+
+!test_pipeline.py
+!test_convert_pipeline.py
