@@ -4,6 +4,8 @@ API wrappers for dataset search platforms.
 
 from typing import Any, Dict, List, Optional
 
+from huggingface_hub import HfApi
+
 from rdagent.log import rdagent_logger as logger
 
 
@@ -47,7 +49,6 @@ class HuggingFaceSearchAPI:
             - tags: List of tags
             - last_modified: Last modified timestamp
         """
-        from huggingface_hub import HfApi
 
         try:
             # Build parameters following HuggingFace official API
@@ -117,7 +118,6 @@ class HuggingFaceSearchAPI:
         Returns:
             Dataset info dict or None if not found
         """
-        from huggingface_hub import HfApi
 
         try:
             api = HfApi()

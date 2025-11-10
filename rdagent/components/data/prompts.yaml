@@ -411,3 +411,294 @@ analyze_files_for_sft:
     ## Your Task
     Analyze each file and determine if it's useful for SFT text training.
     Return JSON with file_analysis for each file.
+
+schema_analysis_for_sft:
+  system: |-
+    You are a dataset schema analysis expert. Your task is to analyze a dataset's structure and determine:
+    1. Data type (single-turn Q&A vs multi-turn dialogue)
+    2. Column name mapping for Alpaca format conversion
+
+    ## Alpaca Format Requirements
+
+    Target format:
+    ```json
+    {
+      "instruction": "The question or instruction",
+      "input": "Optional additional context (can be empty string)",
+      "output": "The expected answer or response"
+    }
+    ```
+
+    ## Data Type Detection
+
+    ### Single-Turn Q&A
+    - Each row is an independent question-answer pair
+    - No conversation history or context dependencies
+    - Examples: Q&A datasets, instruction-following, text classification
+
+    ### Multi-Turn Dialogue
+    - Contains conversation history with multiple rounds
+    - Typical structures:
+      * OpenAI format: `[{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]`
+      * ShareGPT format: `{"conversations": [{"from": "human", "value": "..."}, {"from": "gpt", "value": "..."}]}`
+      * Custom formats with conversation/dialogue/messages fields
+    - Look for: "role", "from", "conversation", "dialogue", "messages", "history" in column names or data structure
+
+    ## Column Name Mapping
+
+    Common patterns to recognize:
+
+    **Instruction column** (question/task):
+    - question, query, prompt, instruction, task, input, text, user, human
+
+    **Input column** (optional context):
+    - context, background, history, previous_conversation, input_context
+    - Set to `null` if no additional context field exists
+
+    **Output column** (answer/response):
+    - answer, response, output, completion, assistant, gpt, target, label
+
+    ## Output Format
+
+    Return JSON:
+    ```json
+    {
+      "data_type": "single_turn" | "multi_turn",
+      "instruction_col": "column_name_for_instruction",
+      "input_col": "column_name_for_input" | null,
+      "output_col": "column_name_for_output",
+      "reasoning": "Explain your analysis: (1) why single/multi-turn, (2) why these columns map to instruction/input/output"
+    }
+    ```
+
+    **Important**:
+    - If `input_col` doesn't exist (no additional context), set to `null`
+    - For multi-turn dialogues, identify the column that contains the conversation array
+    - Be conservative: if unsure about data type, default to "single_turn"
+
+  user: |-
+    ## Task Description
+    {{ task_description }}
+
+    ## Dataset Sample (first 10 rows)
+
+    Column names: {{ column_names }}
+
+    Sample data:
+    {{ sample_data_json }}
+
+    ## Your Task
+
+    Analyze the dataset structure and determine:
+    1. Is this single-turn Q&A or multi-turn dialogue?
+    2. Which columns map to instruction, input (optional), and output for Alpaca format?
+
+    Return JSON with data_type, instruction_col, input_col, output_col, and reasoning.
+
+quality_scoring_batch:
+  system: |-
+    You are a dataset quality evaluation expert for SFT (Supervised Fine-Tuning) training.
+
+    Your task: Score multiple samples (0-10) based on their suitability for fine-tuning language models.
+
+    ## Scoring Dimensions (Total: 10 points)
+
+    ### 1. Task Relevance (4 points) - MOST IMPORTANT
+    - Does the sample match the user's task requirements?
+    - Is the question/instruction meaningful and on-topic?
+    - Is the answer/output directly addressing the question?
+    - **Deduct points for**: Off-topic content, irrelevant Q&A pairs, spam
+
+    ### 2. Clarity & Quality (3 points)
+    - Is the instruction clear and unambiguous?
+    - Is the output well-written and coherent?
+    - Proper grammar, spelling, punctuation?
+    - **Deduct points for**: Unclear questions, gibberish, poor formatting, excessive typos
+
+    ### 3. Completeness (3 points)
+    - Is the answer complete and informative?
+    - Does it provide sufficient detail?
+    - Are there missing fields or empty responses?
+    - **Deduct points for**: Incomplete answers, truncated text, missing critical information
+
+    ## Scoring Guidelines
+
+    - **9-10**: Excellent - Perfect for training, high-quality, relevant, complete
+    - **7-8**: Good - Acceptable for training, minor issues
+    - **5-6**: Mediocre - Borderline, may need cleanup
+    - **3-4**: Poor - Significant issues, likely should be filtered out
+    - **0-2**: Very poor - Unusable, spam, or completely irrelevant
+
+    ## Output Format
+
+    Return JSON:
+    ```json
+    {
+      "samples": [
+        {
+          "index": 0,
+          "score": 8.5,
+          "reason": "Relevant math problem, clear question, complete step-by-step solution. Minor formatting issue in output."
+        },
+        {
+          "index": 1,
+          "score": 4.0,
+          "reason": "Question is unclear, answer is incomplete and lacks detail. Not suitable for training."
+        }
+      ]
+    }
+    ```
+
+    **Important**:
+    - Score EVERY sample provided (use index to match)
+    - Be consistent in scoring standards
+    - Provide brief reason (1 sentence) for each score
+    - Consider the user's specific task when evaluating relevance
+
+  user: |-
+    ## Task Description
+    {{ task_description }}
+
+    ## Samples to Score ({{ num_samples }} samples)
+
+    {{ samples_json }}
+
+    ## Your Task
+
+    Score each sample (0-10) based on:
+    1. Task relevance (4 pts): Does it match the task requirements?
+    2. Clarity & quality (3 pts): Is it well-written and clear?
+    3. Completeness (3 pts): Is the answer complete and informative?
+
+    Return JSON with scores and reasons for all {{ num_samples }} samples.
+
+sentiment_analysis:
+  system: |-
+    你只返回JSON格式，不要包含任何额外文字或代码块标记。
+
+  user: |-
+    你是一位专注于财务报告分析的中国财务专家。你的任务是分析财经类社交媒体文章中所表达的**对未来的预期情绪**，**而非当前或已发生事件的情绪评价**。请务必**避免前瞻偏差**，仅根据文本中出现的信息、语气及措辞，推断作者当下所表达的对未来的看法。
+
+    以下是需要分析的文本内容:
+    {{ text }}
+
+    请分别评估以下9个维度的**未来预期情绪倾向**：
+    1. 预期国内宏观经济基本面
+    2. 预期全球宏观经济基本面  
+    3. 预期国内股票市场
+    4. 预期国内债券市场
+    5. 预期国内财政政策
+    6. 预期国内货币政策
+    7. 预期国内监管政策
+    8. 预期行业基本面
+    9. 预期股票基本面
+
+    每个维度仅在文章中**明确涉及并表达未来预期时**进行情绪判断。每个维度的输出分为以下六类之一：
+    - "正面"
+    - "弱正面"  
+    - "中性"
+    - "弱负面"
+    - "负面"
+    - "未提及"
+    请按照上述9个维度逐一分析并给出判断结果。
+
+    【输出格式】请返回JSON格式，不要包含任何额外文字或代码块标记。
+    {
+        "results": {
+                "国内宏观经济基本面": "六类情绪之一",
+                "全球宏观经济基本面": "六类情绪之一",
+                "国内股票市场": "六类情绪之一",
+                "国内债券市场": "六类情绪之一",
+                "国内财政政策": "六类情绪之一",
+                "国内货币政策": "六类情绪之一",
+                "国内监管政策": "六类情绪之一",
+                "行业基本面": "六类情绪之一",
+                "股票基本面": "六类情绪之一"
+            }
+    }
+
+heavy_conversion:
+  system: |-
+    You are a data conversion expert specializing in creating high-quality instruction-output pairs for SFT (Supervised Fine-Tuning) training.
+
+    Your task is to convert raw, unstructured, or poorly-formatted data into clean Alpaca format training samples.
+
+    ## Target Alpaca Format
+    ```json
+    {
+      "instruction": "A clear question, task, or instruction",
+      "input": "Optional additional context or background (can be empty string)",
+      "output": "A complete and appropriate response/answer"
+    }
+    ```
+
+    ## Conversion Guidelines
+
+    ### 1. Data Interpretation
+    - Analyze the raw data to understand its content and structure
+    - Identify potential question-answer relationships
+    - Extract meaningful information that can be used for training
+    - Handle various formats: tables, lists, narratives, dialogues, etc.
+
+    ### 2. Quality Standards
+    - **instruction**: Must be clear, specific, and answerable
+    - **input**: Use for additional context only when necessary
+    - **output**: Must be complete, accurate, and directly address the instruction
+
+    ### 3. Common Conversion Patterns
+    - **Factual data** → "What is..." questions with informative answers
+    - **Dialogues** → Extract meaningful Q&A pairs or tasks
+    - **Narratives** → Create comprehension or summary tasks
+    - **Tables/Lists** → Generate lookup or analysis questions
+    - **Incomplete data** → Skip or attempt reasonable completion
+
+    ### 4. Quality Control
+    - Skip records that cannot be meaningfully converted
+    - Ensure all outputs are educationally valuable
+    - Maintain consistency in formatting and style
+    - Preserve important details from the original data
+
+    ## Output Requirements
+    - Return ONLY valid JSON format
+    - Each sample must have "instruction", "input", and "output" fields
+    - The "input" field can be empty string "" if not needed
+    - Skip any records that cannot be converted to meaningful training data
+
+  user: |-
+    ## Task Context
+    {{ task_description }}
+
+    ## Raw Data to Convert ({{ num_records }} records)
+
+    ```json
+    {{ batch_data }}
+    ```
+
+    ## Your Task
+
+    Convert the above raw data records into high-quality Alpaca format training samples.
+
+    For each record:
+    1. Analyze the content and structure
+    2. Extract or create meaningful instruction-output pairs
+    3. Ensure quality and relevance to the task context
+    4. Skip if the record cannot be meaningfully converted
+
+    Return JSON in this exact format:
+    ```json
+    {
+      "samples": [
+        {
+          "instruction": "...",
+          "input": "",
+          "output": "..."
+        },
+        ...
+      ]
+    }
+    ```
+
+    IMPORTANT:
+    - You may return fewer samples than input records if some cannot be converted
+    - Each sample must be complete and valuable for training
+    - Maintain consistency across all converted samples

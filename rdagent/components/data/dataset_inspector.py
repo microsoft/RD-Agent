@@ -5,14 +5,12 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from datasets import get_dataset_config_names, load_dataset
+import pandas as pd
+
+from datasets import concatenate_datasets, get_dataset_config_names, load_dataset
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.data_science.scen.utils import (
-    preview_csv,
-    preview_json,
-    preview_parquet,
-)
+from rdagent.scenarios.data_science.scen.utils import preview_json
 from rdagent.utils.agent.tpl import T
 
 
@@ -91,8 +89,6 @@ class DatasetInspector:
                     logger.info(f"Loading and merging ALL {len(available_configs)} configurations...")
 
                     # Load ALL configurations and merge them
-                    from datasets import concatenate_datasets
-
                     all_splits = {}
                     total_samples = 0
 
@@ -471,45 +467,90 @@ class DatasetInspector:
 
         return result
 
+    def _format_full_dataframe_preview(self, df, rel_path: Path, n_rows: int = 3) -> str:
+        """
+        Format DataFrame preview showing first N rows with FULL content in Key-Value format.
+
+        Args:
+            df: DataFrame to preview
+            rel_path: Relative file path
+            n_rows: Number of rows to show (default 3)
+
+        Returns:
+            Formatted preview string with complete data in Key-Value format (LLM-friendly)
+        """
+        preview_lines = [
+            f"### {rel_path}:",
+            f"#### 1.DataFrame preview:",
+            f"It has {df.shape[0]} rows and {df.shape[1]} columns.",
+            f"The columns are: {', '.join(df.columns)}",
+            f"#### 2.DataFrame preview: (first {n_rows} rows, FULL content)",
+            "",
+        ]
+
+        # Format each row as Key-Value structure (LLM-friendly)
+        for idx in range(min(n_rows, len(df))):
+            row = df.iloc[idx]
+            preview_lines.append(f"Row {idx}:")
+            for col_name, value in row.items():
+                # Convert value to string, handle NaN/None
+                value_str = str(value) if value is not None else "None"
+                preview_lines.append(f"  - {col_name}: {value_str}")
+            preview_lines.append("")  # Blank line between rows
+
+        return "\n".join(preview_lines)
+
     def _preview_csv_file(self, file_path: Path, rel_path: Path) -> str:
-        """Preview CSV file content using pandas."""
+        """Preview CSV file content with full data (first 3 rows, no truncation)."""
+
         try:
-            # Use the preview_csv function from utils
-            preview = preview_csv(file_path, str(rel_path), simple=True, show_nan_columns=False)
-            return preview
+            df = pd.read_csv(file_path)
+            return self._format_full_dataframe_preview(df, rel_path, n_rows=3)
         except Exception as e:
             logger.warning(f"Failed to preview CSV {file_path}: {e}")
-            return f"CSV file (preview failed: {str(e)[:50]})"
+            return f"### {rel_path}:\nCSV file (preview failed: {str(e)[:50]})"
 
     def _preview_json_file(self, file_path: Path, rel_path: Path) -> str:
-        """Preview JSON file content using utils function."""
+        """Preview JSON file with full data (first 3 rows if tabular, no truncation)."""
+
         try:
-            # Use the preview_json function from utils
-            preview = preview_json(file_path, str(rel_path))
-            return preview
-        except Exception as e:
-            logger.warning(f"Failed to preview JSON {file_path}: {e}")
-            return f"JSON file (preview failed: {str(e)[:50]})"
+            # Try loading as DataFrame first (if JSON is tabular)
+            df = pd.read_json(file_path)
+            return self._format_full_dataframe_preview(df, rel_path, n_rows=3)
+        except Exception:
+            # Fallback: use original preview_json if not tabular
+            try:
+                preview = preview_json(file_path, str(rel_path))
+                return preview
+            except Exception as e:
+                logger.warning(f"Failed to preview JSON {file_path}: {e}")
+                return f"### {rel_path}:\nJSON file (preview failed: {str(e)[:50]})"
 
     def _preview_jsonl_file(self, file_path: Path, rel_path: Path) -> str:
-        """Preview JSONL file content."""
+        """Preview JSONL file with full data (first 3 rows if tabular, no truncation)."""
+
         try:
-            # JSONL is handled by preview_json function
-            preview = preview_json(file_path, str(rel_path))
-            return preview
-        except Exception as e:
-            logger.warning(f"Failed to preview JSONL {file_path}: {e}")
-            return f"JSONL file (preview failed: {str(e)[:50]})"
+            # JSONL can be loaded as DataFrame with lines=True
+            df = pd.read_json(file_path, lines=True)
+            return self._format_full_dataframe_preview(df, rel_path, n_rows=3)
+        except Exception:
+            # Fallback: use original preview_json if not tabular
+            try:
+                preview = preview_json(file_path, str(rel_path))
+                return preview
+            except Exception as e:
+                logger.warning(f"Failed to preview JSONL {file_path}: {e}")
+                return f"### {rel_path}:\nJSONL file (preview failed: {str(e)[:50]})"
 
     def _preview_parquet_file(self, file_path: Path, rel_path: Path) -> str:
-        """Preview parquet file using pandas."""
+        """Preview parquet file with full data (first 3 rows, no truncation)."""
+
         try:
-            # Use the preview_parquet function from utils
-            preview = preview_parquet(file_path, str(rel_path), simple=True, show_nan_columns=False)
-            return preview
+            df = pd.read_parquet(file_path)
+            return self._format_full_dataframe_preview(df, rel_path, n_rows=3)
         except Exception as e:
             logger.warning(f"Failed to preview Parquet {file_path}: {e}")
-            return f"Parquet file (preview failed: {str(e)[:50]})"
+            return f"### {rel_path}:\nParquet file (preview failed: {str(e)[:50]})"
 
     def _preview_arrow_file(self, file_path: Path, rel_path: Path) -> str:
         """Preview arrow file - just show file info since it's binary."""
