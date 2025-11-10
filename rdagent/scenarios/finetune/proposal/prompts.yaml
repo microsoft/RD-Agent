@@ -4,9 +4,9 @@ hypothesis_gen:
 
     ## Task
     {% if specified_model %}
-    Select the optimal fine-tuning method and quantization strategy for the specified model.
+    Design a comprehensive fine-tuning hypothesis for the specified model, including method selection, quantization strategy, and any important parameter adjustments you recommend.
     {% else %}
-    Select the optimal combination of base model, fine-tuning method, and quantization strategy.
+    Design a comprehensive fine-tuning hypothesis, including model selection, method selection, quantization strategy, and any important parameter adjustments you recommend.
     {% endif %}
 
     ## Available Options
@@ -19,32 +19,20 @@ hypothesis_gen:
     **Fine-tuning Methods**:
     {{ available_methods }}
 
-    **Quantization Options**:
-    - none: No quantization (highest quality, most memory usage)
-    - 4bit: 4-bit quantization (good balance of quality and memory)
-    - 8bit: 8-bit quantization (memory efficient)
+    **Shared Parameters** (apply to all methods):
+    {{ shared_params }}
 
-    ## Selection Criteria
-    1. **Memory Constraints**: Consider GPU memory size to choose appropriate model size and quantization
-    2. **Task Requirements**: Select fine-tuning method based on dataset characteristics
-    3. **Quality Balance**: Achieve best performance within resource constraints
+    **Method-Specific Parameters**:
+    {% for method, params_desc in methods_specific_params.items() %}
+    {{ params_desc }}
+    {% endfor %}
+
+    ## Guidelines
+    Consider hardware constraints, dataset characteristics, historical experiments (if any), and the available parameters above.
+    Focus on what matters most for this specific task. Propose parameter values that should differ from defaults when you have strong justification.
 
     ## Output Format
-    Respond in JSON format:
-    {% if specified_model %}
-    {
-      "model": "{{ specified_model }}",
-      "method": "fine-tuning method",
-      "quantization": "quantization type"
-    }
-    Note: The model is already specified as {{ specified_model }}, only select the optimal method and quantization.
-    {% else %}
-    {
-      "model": "model_name",
-      "method": "fine-tuning method",
-      "quantization": "quantization type"
-    }
-    {% endif %}
+    Provide your hypothesis in natural language. Be comprehensive and specific about your recommendations.
 
   user_prompt: |-
     ## Hardware Information
@@ -77,19 +65,12 @@ hypothesis_gen:
 
     {% endfor %}
 
-    **Task**: Based on the historical results above, select a NEW configuration that:
-    1. Avoids failed configurations and learns from their mistakes
-    2. Builds upon successful configurations to improve performance
-    3. Explores promising directions not yet tested
+    **Task**: Based on the historical results above, propose a NEW hypothesis that:
+    - Learns from failed attempts and avoids repeating mistakes
+    - Builds upon successful approaches while exploring improvements
+    - Tests promising directions not yet explored
     {% else %}
-    **Task**: This is the first experiment. Select the optimal configuration based on hardware and dataset characteristics.
+    **Task**: This is the first experiment. Propose an optimal hypothesis based on hardware and dataset characteristics.
     {% endif %}
 
-    {% if specified_model %}
-    ## Specified Model
-    {{ specified_model }}
-
-    Please select the optimal fine-tuning method and quantization strategy for this model.
-    {% else %}
-    Please select the optimal combination of model, fine-tuning method, and quantization strategy.
-    {% endif %}
+    Model: {{ specified_model }}

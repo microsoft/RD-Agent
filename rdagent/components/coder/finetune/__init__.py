@@ -76,15 +76,15 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # Get task parameters from the task object
         base_model = getattr(target_task, "base_model")
-        finetune_method = getattr(target_task, "finetune_method")
         dataset = getattr(target_task, "dataset")
+        hypothesis = getattr(target_task, "hypothesis")
 
         # Use LLM to generate LlamaFactory config YAML
-        # Generate full training configuration - validator will test with micro-batch automatically
+        # Coder will decide method based on hypothesis and available parameters
         config_yaml = self._generate_llamafactory_config_with_llm(
             base_model=base_model,
-            finetune_method=finetune_method,
             dataset=dataset,
+            hypothesis=hypothesis,
             task_info=task_info,
             queried_former_failed_knowledge=queried_former_failed_knowledge,
             prev_feedback=prev_task_feedback,
@@ -97,8 +97,8 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
     def _generate_llamafactory_config_with_llm(
         self,
         base_model: str,
-        finetune_method: str,
         dataset: str,
+        hypothesis: str,
         task_info: str = "",
         queried_former_failed_knowledge: tuple = None,
         prev_feedback=None,
@@ -106,26 +106,32 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
     ) -> str:
         """Generate LlamaFactory configuration YAML using LLM"""
 
-        # Query LLaMA Factory parameters for the specific method
-        method_params_desc = self.llama_factory_manager.format_method_params(finetune_method)
+        # Query LLaMA Factory parameters: shared params once + method-specific params
+        available_methods = self.llama_factory_manager.methods
+        shared_params = self.llama_factory_manager.format_shared_params()
+
+        # Format method-specific parameters only (no duplication of shared params)
+        methods_specific_params = {}
+        for method in available_methods:
+            methods_specific_params[method] = self.llama_factory_manager.format_method_specific_params(method)
 
         # Use fixed Docker paths for simplicity
         models_path = "/assets/models/"
         datasets_path = "/assets/datasets/"
 
         # Generate prompts using templates with all required parameters
-        # TODO: give exp_gen(natural language) here
         system_prompt = T("components.coder.finetune.prompts:finetune_coder.system").r(
             task_desc=task_info,
-            finetune_method=finetune_method,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
-            method_params=method_params_desc,
+            available_methods=", ".join(available_methods),
+            shared_params=shared_params,
+            methods_specific_params=methods_specific_params,
         )
 
         user_prompt = T("components.coder.finetune.prompts:finetune_coder.user").r(
+            hypothesis=hypothesis,
             latest_code=workspace.file_dict.get(FT_YAML_FILE_NAME, ""),
             latest_feedback=prev_feedback,
-            finetune_method=finetune_method,
             base_model=base_model,
             dataset_name=dataset,
             models_path=models_path,

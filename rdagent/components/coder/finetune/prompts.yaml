@@ -15,13 +15,23 @@ finetune_coder:
     {% endfor %}
     {% endif %}
 
+    ## Available Fine-tuning Methods
+    {{ available_methods }}
+
+    ## Shared Parameters
+    These parameters apply to all fine-tuning methods:
+    {{ shared_params }}
+
+    ## Method-Specific Parameters
+    {% for method, params_desc in methods_specific_params.items() %}
+    {{ params_desc }}
+    {% endfor %}
+
     ## Requirements
     1. Create a LlamaFactory configuration file named `train.yaml`
-    2. Use the specific fine-tuning method: {{ finetune_method }}
+    2. Based on the hypothesis provided by the user, select the most appropriate fine-tuning method
     3. Generate full training configuration (no sample limit)
     4. Ensure all parameters are valid for LlamaFactory
-
-    {{ method_params }}
 
     ## Configuration Principles
     1. **ONLY include parameters you want to change from defaults**
@@ -40,6 +50,9 @@ finetune_coder:
     Do NOT add explanations before or after the YAML block.
 
   user: |-
+    ## Hypothesis
+    {{ hypothesis }}
+
     ## Path Configuration
     - dataset: "{{ dataset_name }}"
     - dataset_dir: "{{ datasets_path }}"
@@ -65,14 +78,14 @@ finetune_coder:
     ## Feedback on Previous Configuration
     {{ latest_feedback }}
 
-    Please improve the configuration based on the feedback above.
+    Please improve the configuration based on the feedback above and the hypothesis.
     {% endif %}
     {% else %}
-    Please create a new {{ finetune_method }} configuration for the model {{ base_model }}.
-    
+    Please create a new configuration for the model {{ base_model }} based on the hypothesis above.
+
     **Remember to include ALL required fields:**
     - stage: sft
-    - finetuning_type: {{ finetune_method }}
+    - finetuning_type: [select appropriate method based on hypothesis]
     - do_train: true
     - model_name_or_path: {{ models_path }}{{ base_model }}
     - dataset: {{ dataset_name }}

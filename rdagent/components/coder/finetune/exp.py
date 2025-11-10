@@ -14,8 +14,8 @@ class LLMFTTask(CoSTEERTask):
     def __init__(
         self,
         base_model: str,
-        finetune_method: str,
         dataset: str,
+        hypothesis: str,
         name: str = "Training",
         description: str = "",
         *args,
@@ -23,15 +23,15 @@ class LLMFTTask(CoSTEERTask):
     ) -> None:
         super().__init__(name=name, description=description, *args, **kwargs)
         self.base_model = base_model
-        self.finetune_method = finetune_method
         self.dataset = dataset
+        self.hypothesis = hypothesis
 
     def get_task_information(self) -> str:
         """Get task information for coder prompt generation"""
         task_desc = f"""name: {self.name}
 description: {self.description}
 base_model: {self.base_model}
-finetune_method: {self.finetune_method}
 dataset: {self.dataset}
+hypothesis: {self.hypothesis}
 """
         return task_desc

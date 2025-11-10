@@ -28,8 +28,6 @@ class FTHypothesis(Hypothesis):
         self,
         component: COMPONENT,
         base_model: str,
-        finetune_method: str,
-        quantization: str = "none",
         hypothesis: str | None = None,
         reason: str | None = None,
         concise_reason: str | None = None,
@@ -42,8 +40,6 @@ class FTHypothesis(Hypothesis):
         )
         self.component = component
         self.base_model = base_model
-        self.finetune_method = finetune_method
-        self.quantization = quantization
 
     def __str__(self) -> str:
         if self.hypothesis is None:
@@ -52,11 +48,8 @@ class FTHypothesis(Hypothesis):
         lines = [
             f"Component: {self.component}",
             f"Base Model: {self.base_model}",
-            f"Fine-tuning Method: {self.finetune_method}",
+            f"Hypothesis: {self.hypothesis}",
         ]
-        if self.quantization != "none":
-            lines.append(f"Quantization: {self.quantization}")
-        lines.append(f"Hypothesis: {self.hypothesis}")
         if self.reason:
             lines.append(f"Reason: {self.reason}")
         return "\n".join(lines)
@@ -67,21 +60,16 @@ class FTHypothesis2Experiment(Hypothesis2Experiment):
 
     def convert(self, hypothesis: FTHypothesis, trace: Trace) -> FTExperiment:
         """Convert hypothesis to executable experiment."""
-        logger.info(f"Converting hypothesis: {hypothesis.base_model} with {hypothesis.finetune_method}")
+        logger.info(f"Converting hypothesis for model: {hypothesis.base_model}")
 
         ensure_ft_assets_exist(model=hypothesis.base_model, check_model=True)
 
-        # Combine method and quantization for task description
-        method_desc = hypothesis.finetune_method
-        if hypothesis.quantization != "none":
-            method_desc += f" with {hypothesis.quantization} quantization"
-
         task = LLMFTTask(
             base_model=hypothesis.base_model,
-            finetune_method=hypothesis.finetune_method,
             dataset=FT_RD_SETTING.dataset,
+            hypothesis=hypothesis.hypothesis,
             name="Training",
-            description=f"Fine-tune {hypothesis.base_model} using {method_desc}",
+            description=f"Fine-tune {hypothesis.base_model} based on hypothesis",
         )
 
         return FTExperiment(sub_tasks=[task], hypothesis=hypothesis)
@@ -104,30 +92,19 @@ class LLMFinetuneExpGen(ExpGen):
         logger.info(f"Device: {memory_gb}GB GPU")
         logger.info(f"Dataset: {dataset_info['name']}")
 
-        # Check if model is specified in settings
-        if FT_RD_SETTING.base_model:
-            # Use specified model, but still select method and quantization intelligently
-            logger.info(f"Using specified model: {FT_RD_SETTING.base_model}")
-            base_model = FT_RD_SETTING.base_model
-            _, finetune_method, quantization = self._llm_select_config(
-                device_info, dataset_info, trace, specified_model=base_model
-            )
-        else:
-            # Use LLM to intelligently select model, method and quantization
-            logger.info("Auto-selecting optimal model configuration...")
-            base_model, finetune_method, quantization = self._llm_select_config(device_info, dataset_info, trace)
+        # Generate hypothesis using LLM (model is always specified in current use case)
+        logger.info(f"Using specified model: {FT_RD_SETTING.base_model}")
+        base_model = FT_RD_SETTING.base_model
+        base_model, hypothesis_text = self._llm_select_config(
+            device_info, dataset_info, trace, specified_model=base_model
+        )
 
-        method_desc = finetune_method
-        if quantization != "none":
-            method_desc += f" with {quantization} quantization"
-
+        # Create hypothesis object with natural language description
         hypothesis = FTHypothesis(
             component="Training",
             base_model=base_model,
-            finetune_method=finetune_method,
-            quantization=quantization,
-            hypothesis=f"Fine-tune {base_model} using {method_desc} on {dataset_info['name']} dataset",
-            reason=f"LLM-selected configuration for {memory_gb}GB GPU and dataset characteristics",
+            hypothesis=hypothesis_text,
+            reason=f"LLM-generated hypothesis for {memory_gb}GB GPU and {dataset_info['name']} dataset",
         )
 
         return FTHypothesis2Experiment().convert(hypothesis, trace)
@@ -158,6 +135,12 @@ class LLMFinetuneExpGen(ExpGen):
         gpu_name = device_dict.get("gpu", {}).get("gpu_device", "Unknown")
         gpu_count = device_dict.get("gpu", {}).get("gpu_count", "Unknown")
 
+        # Generate parameter descriptions: shared params once + method-specific params
+        shared_params = self.llama_manager.format_shared_params()
+        methods_specific_params = {}
+        for method in available_methods:
+            methods_specific_params[method] = self.llama_manager.format_method_specific_params(method)
+
         # Prepare template context
         template_context = {
             "memory_gb": memory_gb,
@@ -168,6 +151,8 @@ class LLMFinetuneExpGen(ExpGen):
             "dataset_sample_count": dataset_info.get("sample_count", "Unknown"),
             "dataset_total_size_mb": dataset_info.get("total_size_mb", "Unknown"),
             "available_methods": ", ".join(available_methods),
+            "shared_params": shared_params,
+            "methods_specific_params": methods_specific_params,
             "specified_model": specified_model is not None,
             "trace": trace,  # Pass trace object directly
         }
@@ -181,45 +166,20 @@ class LLMFinetuneExpGen(ExpGen):
         system_prompt = T(".prompts:hypothesis_gen.system_prompt").r(**template_context)
         user_prompt = T(".prompts:hypothesis_gen.user_prompt").r(**template_context)
 
-        # Call LLM for selection
+        # Call LLM to generate natural language hypothesis
         from rdagent.oai.llm_utils import APIBackend
 
         llm = APIBackend()
 
-        response = llm.build_messages_and_create_chat_completion(
+        hypothesis_text = llm.build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=system_prompt,
-            json_mode=True,
-            json_target_type=dict[str, str],
+            json_mode=False,
         )
 
-        # Parse LLM response
-        logger.info(f"LLM raw response: {response}")
-        config = json.loads(response)
+        logger.info(f"LLM generated hypothesis:\n{hypothesis_text}")
 
-        selected_model = config["model"]
-        selected_method = config["method"]
-        selected_quantization = config["quantization"]
-
-        # Validate selections
-        if not specified_model and selected_model not in available_models:
-            raise ValueError(
-                f"LLM selected model '{selected_model}' is not in available models. "
-                f"Available: {available_models[:5]}..."
-            )
-        elif specified_model:
-            selected_model = specified_model  # Use specified model regardless of LLM output
-
-        if selected_method not in available_methods:
-            raise ValueError(
-                f"LLM selected method '{selected_method}' is not in available methods. "
-                f"Available: {available_methods}"
-            )
-
-        if selected_quantization not in ["none", "4bit", "8bit"]:
-            raise ValueError(
-                f"LLM selected quantization '{selected_quantization}' is not valid. " f"Valid options: none, 4bit, 8bit"
-            )
-
-        logger.info(f"LLM selected: {selected_model} + {selected_method} + {selected_quantization}")
-        return selected_model, selected_method, selected_quantization
+        # Return model and hypothesis text
+        # Method and quantization will be decided by Coder based on the hypothesis
+        selected_model = specified_model
+        return selected_model, hypothesis_text

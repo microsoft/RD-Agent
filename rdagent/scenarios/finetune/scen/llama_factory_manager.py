@@ -142,46 +142,71 @@ class LLaMAFactoryManager:
             return params.get(param_type, {})
         return params
 
-    def format_method_params(self, method: str) -> str:
-        """Format parameters for a specific method as a readable string."""
-        lines = [f"Parameters for {method} fine-tuning:"]
+    def _format_param_line(self, param_name: str, param_info: dict, truncate_help: bool = True) -> str:
+        """Format a single parameter line (extracted common logic)."""
+        help_text = param_info["help"][:80] if truncate_help else param_info["help"]
+        type_text = param_info.get("type", "").replace("typing.", "")
+        default_val = param_info.get("default")
+
+        param_line = f"- {param_name}"
+        if type_text or default_val is not None:
+            param_line += " ("
+            if type_text:
+                param_line += f"{type_text}"
+            if default_val is not None:
+                param_line += f", default={default_val}" if type_text else f"default={default_val}"
+            param_line += ")"
+        return param_line + f": {help_text}"
+
+    def _format_params_dict(self, params_dict: dict, truncate_help: bool = True) -> list[str]:
+        """Format a dictionary of parameters (extracted common logic)."""
+        return [
+            self._format_param_line(name, info, truncate_help)
+            for name, info in params_dict.items()
+            if isinstance(info, dict) and "help" in info
+        ]
+
+    def format_shared_params(self, truncate_help: bool = True) -> str:
+        """Format shared parameters (model, data, training) that apply to all methods."""
         all_params = self.get_parameters()
+        sections = []
 
-        # Format all parameter categories
-        for param_type in ["model", "data", "training", "finetuning"]:
-            if param_type not in all_params:
-                continue
+        for param_type in ["model", "data", "training"]:
+            if param_type in all_params:
+                sections.append(f"### {param_type.upper()} Parameters:")
+                sections.extend(self._format_params_dict(all_params[param_type], truncate_help))
+                sections.append("")  # Empty line
 
-            lines.append(f"\n### {param_type.upper()} Parameters:")
-            type_params = all_params[param_type]
+        return "\n".join(sections).rstrip()
 
-            # Filter method-specific parameters for finetuning category
-            if param_type == "finetuning":
-                if method == "lora":
-                    type_params = {k: v for k, v in type_params.items() if "lora" in k.lower()}
-                elif method == "freeze":
-                    type_params = {k: v for k, v in type_params.items() if "freeze" in k.lower()}
+    def format_method_specific_params(self, method: str, truncate_help: bool = True) -> str:
+        """Format only method-specific finetuning parameters."""
+        all_params = self.get_parameters()
+        if "finetuning" not in all_params:
+            return f"**{method}**: No specific parameters"
 
-            for param_name, param_info in type_params.items():
-                if isinstance(param_info, dict) and "help" in param_info:
-                    help_text = param_info["help"][:80]  # Truncate long help text
-                    type_text = param_info.get("type", "").replace("typing.", "")
-                    default_val = param_info.get("default")
+        type_params = all_params["finetuning"]
 
-                    # Format: name (type, default=value): help
-                    param_line = f"- {param_name}"
-                    if type_text or default_val is not None:
-                        param_line += " ("
-                        if type_text:
-                            param_line += f"{type_text}"
-                        if default_val is not None:
-                            if type_text:
-                                param_line += ", "
-                            param_line += f"default={default_val}"
-                        param_line += ")"
-                    param_line += f": {help_text}"
-                    lines.append(param_line)
+        # Filter by method
+        if method == "lora":
+            type_params = {k: v for k, v in type_params.items() if "lora" in k.lower()}
+        elif method == "freeze":
+            type_params = {k: v for k, v in type_params.items() if "freeze" in k.lower()}
+        elif method == "full":
+            # Full fine-tuning uses shared parameters only, no PEFT-specific params
+            return f"**{method}**: Uses shared parameters only (full-parameter training)"
+        else:
+            # For unknown methods, filter out known PEFT params to avoid noise
+            peft_keywords = ["lora", "freeze", "oft", "galore", "apollo", "badam"]
+            type_params = {
+                k: v for k, v in type_params.items() if not any(keyword in k.lower() for keyword in peft_keywords)
+            }
 
+        if not type_params:
+            return f"**{method}**: Uses shared parameters only"
+
+        lines = [f"**{method}**:"]
+        lines.extend(self._format_params_dict(type_params, truncate_help))
         return "\n".join(lines)
 
 
