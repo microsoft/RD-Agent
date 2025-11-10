@@ -58,11 +58,38 @@ hypothesis_gen:
     - Sample Count: {{ dataset_sample_count }} samples
     - Total Size: {{ dataset_total_size_mb }} MB
 
+    {% if trace.hist %}
+    ## Historical Experiments
+
+    {% for experiment, feedback in trace.hist[-5:] %}
+    ### Experiment {{ loop.index }}
+    {% if experiment.hypothesis %}
+    - Configuration: Model={{ experiment.hypothesis.base_model }}, Method={{ experiment.hypothesis.finetune_method }}, Quantization={{ experiment.hypothesis.quantization }}
+    - Hypothesis: {{ experiment.hypothesis.hypothesis }}
+    {% endif %}
+    - Result: {{ "✅ Successful" if feedback.decision else "❌ Failed" }}
+    {% if feedback.observations %}
+    - Observations: {{ feedback.observations[:300] }}
+    {% endif %}
+    {% if feedback.reason %}
+    - Reason: {{ feedback.reason[:200] }}
+    {% endif %}
+
+    {% endfor %}
+
+    **Task**: Based on the historical results above, select a NEW configuration that:
+    1. Avoids failed configurations and learns from their mistakes
+    2. Builds upon successful configurations to improve performance
+    3. Explores promising directions not yet tested
+    {% else %}
+    **Task**: This is the first experiment. Select the optimal configuration based on hardware and dataset characteristics.
+    {% endif %}
+
     {% if specified_model %}
     ## Specified Model
     {{ specified_model }}
 
-    Please select the optimal fine-tuning method and quantization strategy for this model, considering the hardware constraints and dataset characteristics above.
+    Please select the optimal fine-tuning method and quantization strategy for this model.
     {% else %}
-    Please select the optimal combination of model, fine-tuning method, and quantization strategy based on the hardware constraints and dataset characteristics above.
+    Please select the optimal combination of model, fine-tuning method, and quantization strategy.
     {% endif %}

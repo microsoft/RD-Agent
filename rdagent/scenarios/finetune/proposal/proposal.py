@@ -133,7 +133,11 @@ class LLMFinetuneExpGen(ExpGen):
         return FTHypothesis2Experiment().convert(hypothesis, trace)
 
     def _llm_select_config(
-        self, device_info: str, dataset_info: dict, trace: Trace, specified_model: str | None = None
+        self,
+        device_info: str,
+        dataset_info: dict,
+        trace: Trace,
+        specified_model: str | None = None,
     ) -> tuple[str, str, str]:
         """Use LLM to intelligently select model, method and quantization.
 
@@ -165,17 +169,15 @@ class LLMFinetuneExpGen(ExpGen):
             "dataset_total_size_mb": dataset_info.get("total_size_mb", "Unknown"),
             "available_methods": ", ".join(available_methods),
             "specified_model": specified_model is not None,
+            "trace": trace,  # Pass trace object directly
         }
 
         if not specified_model:
             template_context["available_models"] = ", ".join(available_models[:10])  # Show first 10 models
-            # TODO: show all models, maybe filtered by model size and gpu memory size
         else:
             template_context["specified_model"] = specified_model
 
         # Use template system for prompts
-        # TODO: dicide more
-        # TODO: separate first loop and other loop(need to get previous feedback)
         system_prompt = T(".prompts:hypothesis_gen.system_prompt").r(**template_context)
         user_prompt = T(".prompts:hypothesis_gen.user_prompt").r(**template_context)
 

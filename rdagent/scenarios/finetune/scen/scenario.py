@@ -113,3 +113,29 @@ class LLMFinetuneScen(DataScienceScen):
     def _get_data_folder_description(self) -> str:
         """Generate folder description by running describe_data_folder_v2 inside Docker environment"""
         return build_folder_description(self.dataset)
+
+    @property
+    def background(self) -> str:
+        """Generate background description for LLM fine-tuning scenario"""
+        dataset_info = extract_dataset_info(self.dataset)
+        model_info = extract_model_info(self.base_model)
+        return build_finetune_description(dataset_info=dataset_info, model_info=model_info)
+
+    @property
+    def metric_direction(self) -> bool:
+        """Metric direction for LLM fine-tuning (higher is better)"""
+        return True
+
+    def get_scenario_all_desc(self) -> str:
+        """Get complete scenario description for LLM fine-tuning"""
+        dataset_info = extract_dataset_info(self.dataset)
+        model_info = extract_model_info(self.base_model)
+
+        return T(".prompts:scenario_description").r(
+            background=self.background,
+            dataset_info=dataset_info,
+            model_info=model_info,
+            task=self.task,
+            debug_timeout=f"{self.real_debug_timeout() / 60:.2f} minutes",
+            full_timeout=f"{self.real_full_timeout() / 60 / 60:.2f} hours",
+        )

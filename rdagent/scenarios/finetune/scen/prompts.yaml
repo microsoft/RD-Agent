@@ -1,3 +1,46 @@
+task_description: |-
+  Fine-tune {{ model_name }} on {{ dataset_name }} dataset.
+
+  **Dataset Details:**
+  {{ dataset_description if dataset_description else "Dataset for fine-tuning the model." }}
+
+  {% if dataset_samples %}
+  **Sample Data:**
+  {% for sample in dataset_samples[:3] %}
+  - {{ sample }}
+  {% endfor %}
+  {% endif %}
+
+  **Model:** {{ model_name }}
+  {% if model_description %}
+  {{ model_description }}
+  {% endif %}
+
+scenario_description: |-
+  # LLM Fine-tuning Scenario
+
+  ## Background
+  {{ background }}
+
+  ## Dataset Information
+  - Name: {{ dataset_info.name }}
+  - Samples: {{ dataset_info.sample_count }} samples
+  - Size: {{ dataset_info.total_size_mb }} MB
+  - First Sample: {{ dataset_info.samples[0] if dataset_info.samples else "N/A" }}
+
+  ## Model Information
+  - Base Model: {{ model_info.name if model_info else "TBD" }}
+  {% if model_info and model_info.specs %}
+  - Model Specs: {{ model_info.specs }}
+  {% endif %}
+
+  ## Task
+  {{ task }}
+
+  ## Timeout Constraints
+  - Debug Timeout: {{ debug_timeout }}
+  - Full Training Timeout: {{ full_timeout }}
+
 dataset_info_generation:
   system: |-
     Generate a LLaMA-Factory dataset_info.json configuration entry.
