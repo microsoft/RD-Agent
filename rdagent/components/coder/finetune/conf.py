@@ -10,6 +10,9 @@ from rdagent.utils.env import (
     LocalEnv,
 )
 
+FT_YAML_FILE_NAME = "train.yaml"
+FT_DEBUG_YAML_FILE_NAME = "debug_train.yaml"
+
 
 class FTCoderCoSTEERSettings(CoSTEERSettings):
     """LLM Fine-tuning CoSTEER settings"""
@@ -126,8 +129,8 @@ def get_clear_ws_cmd(stage: Literal["before_training", "before_inference"] = "be
 
     if stage == "before_training":
         # Clean all training outputs before new training
-        cmd = "rm -rf output/ checkpoint-* adapter_* *.safetensors *.bin training_*.json *_metrics.json train.yaml trace.log"
+        cmd = f"rm -rf output/ checkpoint-* adapter_* *.safetensors *.bin training_*.json *_metrics.json {FT_YAML_FILE_NAME} trace.log"
     else:
         # Clean only logs before inference (keep model outputs)
-        cmd = "rm -f training_*.json *_metrics.json train.yaml trace.log"
+        cmd = f"rm -f training_*.json *_metrics.json {FT_YAML_FILE_NAME} trace.log"
     return cmd

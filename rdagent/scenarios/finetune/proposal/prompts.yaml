@@ -42,7 +42,6 @@ hypothesis_gen:
 
     ## Dataset Information
     - Name: {{ dataset_name }}
-    - Sample: {{ first_sample }}
     - Sample Count: {{ dataset_sample_count }} samples
     - Total Size: {{ dataset_total_size_mb }} MB
 

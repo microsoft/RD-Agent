@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
+from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.scenarios.finetune.scen.utils import (
@@ -13,6 +14,7 @@ from rdagent.scenarios.finetune.scen.utils import (
     generate_dataset_info_config,
 )
 from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
+from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 from rdagent.utils.agent.tpl import T
 
 from .llama_factory_manager import get_llama_factory_manager
@@ -26,9 +28,9 @@ class LLMFinetuneScen(DataScienceScen):
         logger.info("Initializing LLM Fine-tune scenario")
 
         # Basic attributes
+        self.user_target_scenario = FT_RD_SETTING.user_target_scenario
         self.dataset = FT_RD_SETTING.dataset
         self.base_model = FT_RD_SETTING.base_model
-        self.task = FT_RD_SETTING.task
 
         # Validate and prepare environment
         self._validate_and_prepare_environment()
@@ -42,7 +44,15 @@ class LLMFinetuneScen(DataScienceScen):
         # timeout tracking
         self.timeout_increase_count = 0
 
-        logger.info(f"LLM Fine-tune scenario initialized for dataset='{self.dataset}', model='{self.base_model}'")
+        self.device_info = get_runtime_environment_by_env(get_ft_env())
+        self.dataset_info = extract_dataset_info(FT_RD_SETTING.dataset)
+
+        self.device_dict = json.loads(self.device_info)
+        self.memory_gb = self.device_dict.get("gpu", {}).get("total_gpu_memory_gb")
+
+        # logger.info(f"Device: {self.memory_gb}GB GPU")
+        # logger.info(f"Dataset: {self.dataset_info['name']}")
+        # logger.info(f"LLM Fine-tune scenario initialized for dataset='{self.dataset}', model='{self.base_model}'")
 
     def real_debug_timeout(self):
         return FT_RD_SETTING.debug_timeout
@@ -52,10 +62,6 @@ class LLMFinetuneScen(DataScienceScen):
 
     def _validate_and_prepare_environment(self):
         """Validate FT_FILE_PATH and ensure dataset exists"""
-        # Validate FT_FILE_PATH environment variable
-        if not FT_RD_SETTING.file_path:
-            raise Exception("Please set FT_FILE_PATH environment variable")
-
         ft_root = Path(FT_RD_SETTING.file_path)
         if not ft_root.exists():
             os.makedirs(ft_root, mode=0o777, exist_ok=True)

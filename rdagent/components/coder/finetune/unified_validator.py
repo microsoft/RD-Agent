@@ -14,9 +14,13 @@ from typing import Dict, List, Optional, Set
 
 import yaml
 
-from rdagent.components.coder.finetune.conf import get_ft_env
+from rdagent.components.coder.finetune.conf import FT_DEBUG_YAML_FILE_NAME, get_ft_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
+
+from rdagent.scenarios.finetune.scen.llama_factory_manager import (
+    get_llama_factory_manager,
+)
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -167,11 +171,13 @@ class LLMConfigValidator:
             )
 
             # Run micro-batch training
-            workspace.inject_files(**{"test_train.yaml": yaml.dump(test_config, default_flow_style=False)})
-            training_result = workspace.run(env=env, entry="timeout 300 llamafactory-cli train test_train.yaml")
+            workspace.inject_files(**{FT_DEBUG_YAML_FILE_NAME: yaml.dump(test_config, default_flow_style=False)})
+            training_result = workspace.run(
+                env=env, entry=f"timeout 300 llamafactory-cli train {FT_DEBUG_YAML_FILE_NAME}"
+            )
 
-            # Store execution output (last 2000 chars to keep it manageable)
-            result.execution_output = training_result.stdout[-2000:] if training_result.stdout else ""
+            # Store all execution output
+            result.execution_output = training_result.stdout if training_result.stdout else ""
 
             # Check results
             progress_indicators = ["train_loss", "Training:", "Epoch", "loss:", "step"]
@@ -192,29 +198,9 @@ class LLMConfigValidator:
             result.errors.append(f"Micro-batch test exception: {str(e)}")
             return result
 
-    def generate_validation_report(self, result: ValidationResult) -> str:
-        """Generate simplified validation report"""
-        status = "PASSED" if result.success else "FAILED"
-        report = f"=== LLM Configuration Validation Report ===\n"
-        report += f"Status: {status} (took {result.execution_time:.2f}s)\n"
-
-        if result.errors:
-            report += f"Errors: {'; '.join(result.errors)}\n"
-
-        if result.execution_output:
-            report += f"\n--- Micro-batch Test Output (last 2000 chars) ---\n"
-            report += result.execution_output
-
-        return report
-
 
 def create_unified_validator(llama_factory_manager=None) -> LLMConfigValidator:
     """Create simplified validator instance."""
     if llama_factory_manager is None:
-        # Lazy import to avoid circular dependency
-        from rdagent.scenarios.finetune.scen.llama_factory_manager import (
-            get_llama_factory_manager,
-        )
-
         llama_factory_manager = get_llama_factory_manager()
     return LLMConfigValidator(llama_factory_manager)

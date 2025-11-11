@@ -15,8 +15,9 @@ from rdagent.scenarios.finetune.loop import LLMFinetuneRDLoop
 
 
 def main(
+    user_target_scenario: Optional[str] = None,
     dataset: Optional[str] = None,
-    model: Optional[str] = None,
+    base_model: Optional[str] = None,
     step_n: Optional[int] = None,
     loop_n: Optional[int] = None,
     timeout: Optional[str] = None,
@@ -28,7 +29,7 @@ def main(
     ----------
     dataset : str
         Dataset name for fine-tuning (e.g., 'shibing624/alpaca-zh')
-    model : str, optional
+    base_model : str, optional
         Model name for fine-tuning (e.g., 'Qwen/Qwen2.5-1.5B-Instruct').
         If not provided, auto-selects optimal model based on hardware and dataset.
     step_n : int, optional
@@ -43,17 +44,25 @@ def main(
         dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh --model Qwen/Qwen2.5-1.5B-Instruct
         dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh    # TODO: not enabled yet
     """
-    if not dataset:
-        logger.error("Please specify dataset name using --dataset")
-        return
+    if user_target_scenario:
+        FT_RD_SETTING.user_target_scenario = user_target_scenario
 
     # Update configuration with provided parameters
-    FT_RD_SETTING.dataset = dataset
-    if model:
-        FT_RD_SETTING.base_model = model
+    if dataset:
+        FT_RD_SETTING.dataset = dataset
+    if base_model:
+        FT_RD_SETTING.base_model = base_model
 
     # Create and run LLM fine-tuning loop
-    logger.info(f"Starting LLM fine-tuning on {dataset}" + (f" with {model}" if model else " (auto-select model)"))
+    data_set_target = FT_RD_SETTING.dataset if FT_RD_SETTING.dataset else "auto generated dataset"
+    model_target = FT_RD_SETTING.base_model if FT_RD_SETTING.base_model else "auto selected model"
+
+    # Temporary assertion until auto-selection is implemented
+    assert (
+        FT_RD_SETTING.base_model is not None
+    ), "Base model auto selection not yet supported, please specify via --base-model"
+
+    logger.info(f"Starting LLM fine-tuning on dataset='{data_set_target}' with model='{model_target}'")
     loop = LLMFinetuneRDLoop(FT_RD_SETTING)
     asyncio.run(loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout))
 

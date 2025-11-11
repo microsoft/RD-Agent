@@ -18,7 +18,7 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
-from rdagent.components.coder.finetune.conf import FTCoderCoSTEERSettings
+from rdagent.components.coder.finetune.conf import FT_YAML_FILE_NAME, FTCoderCoSTEERSettings
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
@@ -49,8 +49,8 @@ class FTRunnerEvolvingStrategy(MultiProcessEvolvingStrategy):
     ) -> dict[str, str]:
         """No modification needed - directly use coder's full training config."""
         # TODO: detect error during training automatically, and fix it here
-        if not workspace or "train.yaml" not in workspace.file_dict:
-            logger.error("No train.yaml found in workspace")
+        if not workspace or FT_YAML_FILE_NAME not in workspace.file_dict:
+            logger.error(f"No {FT_YAML_FILE_NAME} found in workspace")
             return {}
 
         # Coder already generated full training config, no modification needed

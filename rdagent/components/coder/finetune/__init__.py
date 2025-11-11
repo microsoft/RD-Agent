@@ -22,19 +22,15 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
-from rdagent.components.coder.finetune.conf import FTCoderCoSTEERSettings
+from rdagent.components.coder.finetune.conf import FT_YAML_FILE_NAME, FTCoderCoSTEERSettings
 from rdagent.components.coder.finetune.eval import FTCoderEvaluator
-from rdagent.components.coder.finetune.exp import LLMFTTask
-from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.utils.agent.ret import PythonAgentOut
 from rdagent.utils.agent.tpl import T
 
 DIRNAME = Path(__file__).absolute().resolve().parent
-FT_YAML_FILE_NAME = "train.yaml"
 
 
 class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):

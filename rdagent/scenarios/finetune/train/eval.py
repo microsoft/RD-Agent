@@ -4,7 +4,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
 )
-from rdagent.components.coder.finetune.conf import get_clear_ws_cmd, get_ft_env
+from rdagent.components.coder.finetune.conf import FT_YAML_FILE_NAME, get_clear_ws_cmd, get_ft_env
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 
@@ -30,17 +30,17 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         # Clean workspace before execution
         implementation.execute(env=env, entry=get_clear_ws_cmd())
 
-        # Check if train.yaml exists
-        if "train.yaml" not in implementation.file_dict:
+        # Check if FT_YAML_FILE_NAME exists
+        if FT_YAML_FILE_NAME not in implementation.file_dict:
             return CoSTEERSingleFeedback(
-                execution="No train.yaml found in workspace",
+                execution=f"No {FT_YAML_FILE_NAME} found in workspace",
                 return_checking="Config file missing",
                 code="No valid configuration file",
                 final_decision=False,
             )
 
         # Execute LlamaFactory training
-        result = implementation.run(env=env, entry="llamafactory-cli train train.yaml")
+        result = implementation.run(env=env, entry=f"llamafactory-cli train {FT_YAML_FILE_NAME}")
         implementation.running_info.running_time = result.running_time
 
         # Simple success check: exit code

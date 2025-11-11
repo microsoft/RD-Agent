@@ -1,3 +1,4 @@
+from pathlib import Path
 from pydantic_settings import SettingsConfigDict
 
 from rdagent.core.conf import ExtendedBaseSettings
@@ -69,13 +70,14 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     """Limit number of samples for benchmark evaluation (None for full evaluation). Use for quick testing and debugging."""
 
     # Data paths and processing
-    file_path: str | None = None  # FT_FILE_PATH/datasets/<dataset>/, FT_FILE_PATH/models/<baseModel>/
+    file_path: Path = Path.cwd() / "git_ignore_folder" / "finetune_files"
     show_nan_columns: bool = False
     sample_data_by_LLM: bool = True
 
     # LLM-specific fields
+    user_target_scenario: str | None = None
     base_model: str | None = None
-    dataset: str = ""
+    dataset: str | None = None
 
     # LLaMA Factory
     update_llama_factory: bool = True
@@ -83,13 +85,6 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     # Docker settings
     docker_enable_cache: bool = False
     """Enable Docker cache for training (set via FT_DOCKER_ENABLE_CACHE)"""
-
-    @property
-    def task(self) -> str:
-        """Generate task name from base model and dataset."""
-        if self.base_model and self.dataset:
-            return f"{self.base_model}@{self.dataset}".replace("/", "_").replace("\\", "_")
-        return ""
 
 
 # Global setting instance for LLM finetuning scenario

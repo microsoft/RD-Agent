@@ -10,6 +10,7 @@ Design Philosophy:
 - This separation keeps concerns clear and checkpoints lightweight
 """
 
+from rdagent.components.coder.finetune.conf import FT_YAML_FILE_NAME
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.experiment import FBWorkspace
 
@@ -29,5 +30,5 @@ class FTWorkspace(FBWorkspace):
 
         # Configure checkpoint to only save configuration files
         # Training outputs are managed separately by save_final_model()
-        RD_AGENT_SETTINGS.workspace_ckp_white_list_names = ["train.yaml"]
+        RD_AGENT_SETTINGS.workspace_ckp_white_list_names = [FT_YAML_FILE_NAME]
         RD_AGENT_SETTINGS.workspace_ckp_size_limit = 100 * 1024

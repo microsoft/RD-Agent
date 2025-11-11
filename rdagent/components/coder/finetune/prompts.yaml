@@ -92,39 +92,63 @@ finetune_coder:
     - tokenized_path: /workspace/tokenized_cache
     {% endif %}
 
-# Data format retry prompt for evolving strategy
-data_format_retry: |-
-  The previous data format conversion attempt encountered issues. Please fix the code based on the feedback.
+finetune_eval:
+  system: |-
+    You are a world-class machine learning engineer specializing in evaluating fine-tuning configurations for large language models using LlamaFactory.
+    Your expertise includes validating LlamaFactory configuration files to ensure they meet all necessary requirements for successful fine-tuning.
+    
+    You will be provided with:
+    1. A detailed scenario description which requires a fine-tuning LLM.
+    2. A yaml configuration file named `train.yaml` created for LlamaFactory fine-tuning.
+    3. The stdout and stderr logs from running LlamaFactory with the provided configuration.
+    4. The files generated during the execution.
+    5. Some other yaml configuration for similar tasks which might help you better provide feedback and possible corrections.
 
-  Dataset: {{ dataset }}
+    Your task is to:
+    1. check the stdout and stderr logs whether the execution was successful.
+    2. validate the provided `train.yaml` configuration file to ensure it adheres to the required standards for LlamaFactory fine-tuning using the specified method.
+    3. Provide clear and concise feedback on any issues found in the configuration file or execution logs.
+    4. Suggest specific corrections or improvements if any issues are identified.
+    
+    {% if queried_similar_successful_knowledge|length != 0 %}
+    ### Similar Successful Implementations to help training config Improvement
+    The user has done several similar tasks and get some successful implementations. These yaml configurations might not be implemented to the same task, but they are similar to your task and they might work well on your task.
+    Please refer to these successful implementation and provide your suggestions in your response on how to correct your current code based on these successful implementations.
+    ## Successful Implementations for Similar Tasks
+    ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Similar Task {{ loop.index }}:=====
+    {{ similar_successful_knowledge.target_task.get_task_information() }}
+    =====Yaml configurations:=====
+    {{ similar_successful_knowledge.implementation.all_codes }}
+    {% endfor %} 
+    {% endif %}
 
-  ## Dataset File Structure
-  Below shows the dataset directory structure:
-  ```
-  {{ file_tree }}
-  ```
+    ## Output Format
+    Please respond with your feedback in the following JSON format without anything else.
+    ```json
+    {
+        "execution": "Describe whether the yaml code executed successfully. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information. If errors occurred, analyze the root causes: (1) Are they fundamental algorithmic/approach issues, or (2) Implementation details that can be easily fixed, or (3) Environment/dependency problems?",
+        "return_checking": "Examine the generated files from the user input. Does the output contains a fine-tuned model or expected artifacts? If not, specify what is missing or incorrect.",
+        "code": "Provide structured analysis of the provided `train.yaml` configuration file: (1) **Technical Appropriateness**: Does the chosen approach (algorithms, data processing, validation strategy) match this problem's data characteristics and competition requirements? (2) **Effective Components**: What specific parts work well and why are they effective for this problem type? (3) **Issues & Improvements**: Identify concrete problems in the configuration and suggest actionable improvement directions (without providing actual code). (4) **Code Quality**: Assess readability, structure, and adherence to specifications.",
+        "final_decision": <true/false>, # Final decision on whether the configuration is acceptable for full data fine-tuning
+    }
+    ```
 
-  **Important Paths:**
-  - Dataset location: `/assets/datasets/{{ dataset }}/` (Docker mounted path)
-  - Output location: `/workspace/data/` (Docker working directory)
+  user: |-
+    # Scenario Information
+    {{ scenario }}
 
-  ## Dataset Samples
-  Here are the first few samples from the dataset:
-  ```json
-  {{ data_samples }}
-  ```
+    # Task Description
+    {{ task_desc }}
 
-  Previous Code:
-  ```python
-  {{ prev_code }}
-  ```
+    # Yaml Configuration File
+    ```yaml
+    {{ code_yaml }}
 
-  Feedback:
-  {{ feedback }}
+    ## Execution Output
+    ```
+    {{ stdout }}
+    ```
 
-  Please generate an improved version of the code that addresses these issues.
-  Ensure the code:
-  1. Handles the specific errors mentioned in the feedback
-  2. Saves output files to the correct locations
-  3. Includes proper error handling
-  4. Outputs clear status messages
+    ## Workspace Files
+    {{ workspace_files }}
+    

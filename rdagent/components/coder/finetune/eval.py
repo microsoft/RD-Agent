@@ -11,11 +11,12 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
 )
-from rdagent.components.coder.finetune.conf import get_ft_env
+from rdagent.components.coder.finetune.conf import FT_YAML_FILE_NAME, get_ft_env
 from rdagent.components.coder.finetune.unified_validator import create_unified_validator
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
-from rdagent.log import rdagent_logger as logger
+from rdagent.utils.agent.tpl import T
+from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -54,11 +55,10 @@ class FTCoderEvaluator(CoSTEEREvaluator):
         env = get_ft_env(
             running_timeout_period=self.scen.real_debug_timeout() if hasattr(self.scen, "real_debug_timeout") else 3600,
         )
-
-        config_yaml = implementation.file_dict.get("train.yaml", "")
+        config_yaml = implementation.file_dict.get(FT_YAML_FILE_NAME, "")
         if not config_yaml:
             return CoSTEERSingleFeedback(
-                execution="No train.yaml found",
+                execution=f"No {FT_YAML_FILE_NAME} found",
                 return_checking="Configuration file missing",
                 code="No valid configuration file",
                 final_decision=False,
@@ -69,21 +69,35 @@ class FTCoderEvaluator(CoSTEEREvaluator):
             config_yaml=config_yaml, workspace=implementation, env=env
         )
 
-        validation_report = self.config_validator.generate_validation_report(validation_result)
-        logger.info(f"Validation report:\n{validation_report}")
-
         # Update config with filtered version
         if validation_result.filtered_config != config_yaml:
-            implementation.inject_files(**{"train.yaml": validation_result.filtered_config})
+            implementation.inject_files(**{FT_YAML_FILE_NAME: validation_result.filtered_config})
 
-        # Return feedback directly from test results - no LLM interpretation needed
-        return CoSTEERSingleFeedback(
-            execution=validation_result.execution_output[:1000] if validation_result.execution_output else "No output",
-            return_checking=f"Validation {'passed' if validation_result.success else 'failed'} in {validation_result.execution_time:.2f}s",
-            code=(
-                "; ".join(validation_result.errors)
-                if validation_result.errors
-                else "Configuration validated successfully"
+        queried_similar_successful_knowledge = (
+            queried_knowledge.task_to_similar_task_successful_knowledge[target_task.get_task_information()]
+            if queried_knowledge is not None
+            else []
+        )
+
+        system_prompt = T(".prompts:finetune_eval.system").r(
+            queried_similar_successful_knowledge=queried_similar_successful_knowledge,
+        )
+        user_prompt = T(".prompts:finetune_eval.user").r(
+            scenario=self.scen.get_scenario_all_desc(),
+            task_desc=target_task.get_task_information(),
+            stdout=validation_result.execution_output or "No output",
+            code_yaml=implementation.file_dict[FT_YAML_FILE_NAME],
+            workspace_files="\n".join(
+                [
+                    f"- {file.name} ({file.stat().st_size} bytes)"
+                    for file in implementation.workspace_path.rglob("*")
+                    if file.is_file() and "checkpoint" not in file.absolute().as_posix()
+                ]
             ),
-            final_decision=validation_result.success,
+        )
+        return build_cls_from_json_with_retry(
+            CoSTEERSingleFeedback,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
         )
