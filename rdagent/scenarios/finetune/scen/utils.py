@@ -250,13 +250,13 @@ class FinetuneDatasetDescriptor:
     """Specialized dataset descriptor for finetune scenarios that provides separated file tree and data samples."""
 
     def describe_dataset_folder(self, dataset_path: Path) -> FinetuneDatasetDescription:
-        pass
+        return FinetuneDatasetDescription()
 
     def describe_file_json(self, data_file: Path) -> FinetuneFileDescription:
-        pass
+        return FinetuneFileDescription()
 
     def describe_file_jsonl(self, data_file: Path) -> FinetuneFileDescription:
-        pass
+        return FinetuneFileDescription()
 
     def describe_data_file(self, data_file: Path) -> FinetuneFileDescription:
         suffix = data_file.suffix.lower()
@@ -482,7 +482,7 @@ def generate_dataset_info_config(dataset: str, ft_file_path: str) -> dict:
     # TODO: select appropriate columns (Reasoning first?)
     # TODO: guide llm: how to select dir? (not enabled yet)
     user_prompt = T("scenarios.finetune.scen.prompts:dataset_info_generation.user").r(
-        dataset=dataset, file_tree=dataset_folder_desc["file_tree"], data_samples=dataset_folder_desc["data_samples"]
+        dataset=dataset, file_tree=dataset_folder_desc.get("file_tree"), data_samples=dataset_folder_desc.get("data_samples")
     )
 
     # Generate configuration using API
