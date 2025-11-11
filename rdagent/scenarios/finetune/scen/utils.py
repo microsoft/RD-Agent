@@ -461,93 +461,90 @@ class FinetuneDatasetDescriptor:
     #         return ""
 
 
-# def generate_dataset_info_config(dataset: str, ft_file_path: str) -> dict:
-#     """Generate dataset_info.json configuration entry using AI for LLaMA-Factory compatibility.
+def generate_dataset_info_config(dataset: str, ft_file_path: str) -> dict:
+    """Generate dataset_info.json configuration entry using AI for LLaMA-Factory compatibility.
 
-#     Args:
-#         dataset: Name of the dataset
-#         ft_file_path: Path to finetune directory structure
+    Args:
+        dataset: Name of the dataset
+        ft_file_path: Path to finetune directory structure
 
-#     Returns:
-#         dict: Configuration entry for dataset_info.json
+    Returns:
+        dict: Configuration entry for dataset_info.json
 
-#     Raises:
-#         RuntimeError: If configuration generation or validation fails
-#     """
-#     dataset_path = Path(ft_file_path) / "datasets" / dataset
+    Raises:
+        RuntimeError: If configuration generation or validation fails
+    """
+    # Use existing descriptor to get dataset information
+    dataset_folder_desc = FinetuneDatasetDescriptor().describe_dataset_folder(Path(ft_file_path) / "datasets" / dataset)
 
-#     # Use existing descriptor to get dataset information
-#     descriptor = FinetuneDatasetDescriptor()
-#     file_tree, data_samples = descriptor.get_separated_info(dataset_path)
+    # Create prompt using template
+    system_prompt = T("scenarios.finetune.scen.prompts:dataset_info_generation.system").r()
+    # TODO: select appropriate columns (Reasoning first?)
+    # TODO: guide llm: how to select dir? (not enabled yet)
+    user_prompt = T("scenarios.finetune.scen.prompts:dataset_info_generation.user").r(
+        dataset=dataset, file_tree=dataset_folder_desc["file_tree"], data_samples=dataset_folder_desc["data_samples"]
+    )
 
-#     # Create prompt using template
-#     system_prompt = T("scenarios.finetune.scen.prompts:dataset_info_generation.system").r()
-#     # TODO: select appropriate columns (Reasoning first?)
-#     # TODO: guide llm: how to select dir? (not enabled yet)
-#     user_prompt = T("scenarios.finetune.scen.prompts:dataset_info_generation.user").r(
-#         dataset=dataset, file_tree=file_tree, data_samples=data_samples
-#     )
+    # Generate configuration using API
+    api = APIBackend()
+    raw_response = api.build_messages_and_create_chat_completion(
+        system_prompt=system_prompt, user_prompt=user_prompt, json_mode=True
+    )
 
-#     # Generate configuration using API
-#     api = APIBackend()
-#     raw_response = api.build_messages_and_create_chat_completion(
-#         system_prompt=system_prompt, user_prompt=user_prompt, json_mode=True
-#     )
+    response_dict = json.loads(raw_response)
 
-#     response_dict = json.loads(raw_response)
+    # Extract and validate configuration
+    if dataset not in response_dict:
+        raise RuntimeError(f"Generated response missing key '{dataset}'")
 
-#     # Extract and validate configuration
-#     if dataset not in response_dict:
-#         raise RuntimeError(f"Generated response missing key '{dataset}'")
+    config = response_dict[dataset]
+    if not _validate_dataset_config(config):
+        raise RuntimeError(f"Invalid configuration for '{dataset}'")
 
-#     config = response_dict[dataset]
-#     if not _validate_dataset_config(config):
-#         raise RuntimeError(f"Invalid configuration for '{dataset}'")
-
-#     logger.info(f"Generated configuration for '{dataset}'")
-#     return config
+    logger.info(f"Generated configuration for '{dataset}'")
+    return config
 
 
-# def _validate_dataset_config(config: dict) -> bool:
-#     """Validate generated dataset configuration for LLaMA-Factory compliance.
+def _validate_dataset_config(config: dict) -> bool:
+    """Validate generated dataset configuration for LLaMA-Factory compliance.
 
-#     Args:
-#         config: Configuration dictionary to validate
+    Args:
+        config: Configuration dictionary to validate
 
-#     Returns:
-#         bool: True if valid, False otherwise
-#     """
-#     if not isinstance(config, dict):
-#         logger.error("Configuration must be a dictionary")
-#         return False
+    Returns:
+        bool: True if valid, False otherwise
+    """
+    if not isinstance(config, dict):
+        logger.error("Configuration must be a dictionary")
+        return False
 
-#     if "file_name" not in config:
-#         logger.error("Configuration must contain 'file_name' field")
-#         return False
+    if "file_name" not in config:
+        logger.error("Configuration must contain 'file_name' field")
+        return False
 
-#     file_name = config["file_name"]
-#     if not isinstance(file_name, (str, list)):
-#         logger.error("'file_name' must be a string or list of strings")
-#         return False
+    file_name = config["file_name"]
+    if not isinstance(file_name, (str, list)):
+        logger.error("'file_name' must be a string or list of strings")
+        return False
 
-#     # Validate file_name format
-#     if isinstance(file_name, list):
-#         for fn in file_name:
-#             if not isinstance(fn, str) or fn.startswith("/"):
-#                 logger.error("file_name entries must be relative paths (not absolute)")
-#                 return False
-#     elif isinstance(file_name, str) and file_name.startswith("/"):
-#         logger.error("file_name must be a relative path (not absolute)")
-#         return False
+    # Validate file_name format
+    if isinstance(file_name, list):
+        for fn in file_name:
+            if not isinstance(fn, str) or fn.startswith("/"):
+                logger.error("file_name entries must be relative paths (not absolute)")
+                return False
+    elif isinstance(file_name, str) and file_name.startswith("/"):
+        logger.error("file_name must be a relative path (not absolute)")
+        return False
 
-#     formatting = config.get("formatting", "alpaca")
-#     if formatting not in ["alpaca", "sharegpt"]:
-#         logger.error(f"Invalid formatting: {formatting}. Must be 'alpaca' or 'sharegpt'")
-#         return False
+    formatting = config.get("formatting", "alpaca")
+    if formatting not in ["alpaca", "sharegpt"]:
+        logger.error(f"Invalid formatting: {formatting}. Must be 'alpaca' or 'sharegpt'")
+        return False
 
-#     if "columns" in config and not isinstance(config["columns"], dict):
-#         logger.error("'columns' field must be a dictionary")
-#         return False
+    if "columns" in config and not isinstance(config["columns"], dict):
+        logger.error("'columns' field must be a dictionary")
+        return False
 
-#     logger.info("Dataset configuration validation passed")
-#     return True
+    logger.info("Dataset configuration validation passed")
+    return True

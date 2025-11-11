@@ -6,13 +6,7 @@ from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.scen import DataScienceScen
-from rdagent.scenarios.finetune.scen.utils import (
-    build_finetune_description,
-    build_folder_description,
-    extract_dataset_info,
-    extract_model_info,
-    generate_dataset_info_config,
-)
+from rdagent.scenarios.finetune.scen.utils import generate_dataset_info_config
 from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
 from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 from rdagent.utils.agent.tpl import T
@@ -45,13 +39,10 @@ class LLMFinetuneScen(DataScienceScen):
         self.timeout_increase_count = 0
 
         self.device_info = get_runtime_environment_by_env(get_ft_env())
-        self.dataset_info = extract_dataset_info(FT_RD_SETTING.dataset)
-
         self.device_dict = json.loads(self.device_info)
         self.memory_gb = self.device_dict.get("gpu", {}).get("total_gpu_memory_gb")
 
         # logger.info(f"Device: {self.memory_gb}GB GPU")
-        # logger.info(f"Dataset: {self.dataset_info['name']}")
         # logger.info(f"LLM Fine-tune scenario initialized for dataset='{self.dataset}', model='{self.base_model}'")
 
     def real_debug_timeout(self):
