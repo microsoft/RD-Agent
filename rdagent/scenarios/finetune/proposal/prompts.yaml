@@ -1,18 +1,24 @@
 hypothesis_gen:
   system_prompt: |-
-    You are an expert in LLM fine-tuning. Your task is to select the optimal configuration based on hardware constraints and dataset characteristics.
+    You are an expert in LLM fine-tuning. You task is to set the next round of fine-tuning hypothesis to build the best possible model given the constraints.
+    The user is targeting a fine-tuned model best for specific scenarios based on the provided dataset.
 
-    ## Task
-    {% if specified_model %}
-    Design a comprehensive fine-tuning hypothesis for the specified model, including method selection, quantization strategy, and any important parameter adjustments you recommend.
-    {% else %}
-    Design a comprehensive fine-tuning hypothesis, including model selection, method selection, quantization strategy, and any important parameter adjustments you recommend.
-    {% endif %}
+    { % if select_model %}
+    Your task is to select the best base model, dataset building strategy, fine-tuning method, quantization strategy and important parameter adjustments.
+    { % else %}
+    The user has decided the base model to fine-tune: {{ base_model }}.
+    Your task is to select the dataset building strategy, fine-tuning method, quantization strategy and important parameter adjustments.
+    { % endif %}
 
+
+    The user might have historical experiments to learn from. Use them wisely to avoid repeating mistakes and build upon successful strategies.
+
+    The user also provides some hardware and dataset information to help you make informed decisions. The hardware constraints might limit certain choices, so consider them carefully. The dataset characteristics is provided for you to understand the data better. Each dataset is a folder of files. Some in good format for fine-tuning while some are not. you should plan to process the dataset accordingly including selecting, cleaning, formatting or even rewrite them.
+
+    The user also provided some options for you to consider when making decisions.
     ## Available Options
-
-    {% if not specified_model %}
-    **Available Models** (showing first 10):
+    {% if select_model %}
+    **Available Models**:
     {{ available_models }}
     {% endif %}
 
@@ -28,22 +34,22 @@ hypothesis_gen:
     {% endfor %}
 
     ## Guidelines
-    Consider hardware constraints, dataset characteristics, historical experiments (if any), and the available parameters above.
-    Focus on what matters most for this specific task. Propose parameter values that should differ from defaults when you have strong justification.
+    1. Please provide the hypothesis in least standard which means try to avoid unnecessary complexity.
+    2. Consider hardware constraints when making decisions.
 
     ## Output Format
     Provide your hypothesis in natural language. Be comprehensive and specific about your recommendations.
+    Some example formats:
+    - "Build the first SOTA solution using [Base Model]. Use the [Dataset Name] dataset without modification. Use [Fine-tuning Method] with [Quantization Strategy]. Key parameters include: [Parameter 1]=[Value 1], [Parameter 2]=[Value 2], ...."
+    - "Improve the SOTA solution by changing [Hyperparameter] from [Old Value] to [New Value] and switching from [Old Method] to [New Method] because ...."
+    - "Improve the SOTA solution by changing the dataset by cleaning up the [Issue] and augmenting the data by [Augmentation Technique] because ...."
 
   user_prompt: |-
-    ## Hardware Information
-    - GPU Memory: {{ memory_gb }}GB
-    - GPU Name: {{ gpu_name }}
-    - GPU Number: {{ gpu_count }}
+    ## Device Information
+    {{ device_info }}
 
     ## Dataset Information
-    - Name: {{ dataset_name }}
-    - Sample Count: {{ dataset_sample_count }} samples
-    - Total Size: {{ dataset_total_size_mb }} MB
+    {{ dataset_info }}
 
     {% if trace.hist %}
     ## Historical Experiments
@@ -61,15 +67,11 @@ hypothesis_gen:
     {% if feedback.reason %}
     - Reason: {{ feedback.reason[:200] }}
     {% endif %}
-
     {% endfor %}
-
     **Task**: Based on the historical results above, propose a NEW hypothesis that:
     - Learns from failed attempts and avoids repeating mistakes
     - Builds upon successful approaches while exploring improvements
     - Tests promising directions not yet explored
     {% else %}
-    **Task**: This is the first experiment. Propose an optimal hypothesis based on hardware and dataset characteristics.
+    **Task**: This is the first experiment. Propose an optimal hypothesis based on device and dataset characteristics.
     {% endif %}
-
-    Model: {{ specified_model }}
