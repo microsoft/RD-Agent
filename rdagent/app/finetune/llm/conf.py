@@ -21,11 +21,6 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     hypothesis_gen: str = "rdagent.scenarios.finetune.proposal.proposal.LLMFinetuneExpGen"
     """Hypothesis generation class for LLM fine-tuning tasks."""
 
-    hypothesis2experiment: str = "rdagent.scenarios.finetune.proposal.proposal.FTHypothesis2Experiment"
-    """Hypothesis to experiment converter.
-    Function: Convert abstract LLM fine-tuning hypotheses into concrete experiment configurations.
-    """
-
     coder: str = "rdagent.components.coder.finetune.LLMFinetuneCoSTEER"
     """Code generator.
     Function: Generate LLM fine-tuning code based on experiment design.
@@ -86,6 +81,9 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     # Docker settings
     docker_enable_cache: bool = False
     """Enable Docker cache for training (set via FT_DOCKER_ENABLE_CACHE)"""
+
+    # data sample count
+    data_sample_count: int = 3
 
 
 # Global setting instance for LLM finetuning scenario

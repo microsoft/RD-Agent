@@ -30,14 +30,30 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         logger.log_object(scen, tag="scenario")
         logger.log_object(PROP_SETTING.model_dump(), tag="RDLOOP_SETTINGS")
         logger.log_object(RD_AGENT_SETTINGS.model_dump(), tag="RD_AGENT_SETTINGS")
-        self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
+        self.hypothesis_gen: HypothesisGen = (
+            import_class(PROP_SETTING.hypothesis_gen)(scen)
+            if hasattr(PROP_SETTING, "hypothesis_gen") and PROP_SETTING.hypothesis_gen
+            else None
+        )
 
-        self.hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.hypothesis2experiment)()
+        self.hypothesis2experiment: Hypothesis2Experiment = (
+            import_class(PROP_SETTING.hypothesis2experiment)()
+            if hasattr(PROP_SETTING, "hypothesis2experiment") and PROP_SETTING.hypothesis2experiment
+            else None
+        )
 
-        self.coder: Developer = import_class(PROP_SETTING.coder)(scen)
-        self.runner: Developer = import_class(PROP_SETTING.runner)(scen)
+        self.coder: Developer = (
+            import_class(PROP_SETTING.coder)(scen) if hasattr(PROP_SETTING, "coder") and PROP_SETTING.coder else None
+        )
+        self.runner: Developer = (
+            import_class(PROP_SETTING.runner)(scen) if hasattr(PROP_SETTING, "runner") and PROP_SETTING.runner else None
+        )
 
-        self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
+        self.summarizer: Experiment2Feedback = (
+            import_class(PROP_SETTING.summarizer)(scen)
+            if hasattr(PROP_SETTING, "summarizer") and PROP_SETTING.summarizer
+            else None
+        )
         self.trace = Trace(scen=scen)
         super().__init__()
 

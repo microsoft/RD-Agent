@@ -218,7 +218,7 @@ class FinetuneDatasetDescriptor:
 
             # Use public interface to describe files
             file_descriptions = []
-            for data_file in data_files[:3]:  # Process first 3 files for samples
+            for data_file in data_files[:FT_RD_SETTING.data_sample_count]:  # Process first N files for samples
                 try:
                     file_desc = self.describe_data_file(data_file)
                     if file_desc.get("samples"):

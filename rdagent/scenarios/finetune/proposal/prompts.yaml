@@ -8,7 +8,7 @@ hypothesis_gen:
     {% else %}
     The user has decided the base model to fine-tune: {{ base_model }}.
     Your task is to select the dataset building strategy, fine-tuning method, quantization strategy and important parameter adjustments.
-    { % endif %}
+    {% endif %}
     You should make your decisions in a hypothesis that aims to achieve the best performance possible given the constraints.
     Following the hypothesis, provide a detailed task for the code generator to implement the hypothesis.
 
@@ -59,20 +59,20 @@ hypothesis_gen:
 
 
     The final output should be in json format as follows:
-    { % if select_model %}
+    {% if select_model %}
     {
       "base_model": "[Selected Base Model]",
       "reason": "[Your Reasoning in Natural Language]",
       "hypothesis": "[Your Hypothesis in Natural Language]",
       "task": "[Your Task in Natural Language]"
     }
-    { % else %}
+    {% else %}
     {
       "reason": "[Your Reasoning in Natural Language]",
       "hypothesis": "[Your Hypothesis in Natural Language]",
       "task": "[Your Task in Natural Language]"
     }
-    { % endif %}
+    {% endif %}
 
   user_prompt: |-
     ## Device Information

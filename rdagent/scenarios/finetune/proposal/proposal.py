@@ -1,18 +1,16 @@
 """LLM Fine-tuning Base Classes"""
 
 import json
-from typing import Literal, Tuple
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.finetune.exp import FTTask
-from rdagent.core.proposal import ExpGen, Hypothesis, Hypothesis2Experiment, Trace
+from rdagent.core.proposal import ExpGen, Hypothesis, Trace
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.finetune.experiment.experiment import FTExperiment
 from rdagent.scenarios.finetune.scen.llama_factory_manager import (
     get_llama_factory_manager,
 )
 from rdagent.scenarios.finetune.scen.scenario import LLMFinetuneScen
-from rdagent.scenarios.finetune.scen.utils import FinetuneDatasetDescriptor
 from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
 from rdagent.utils.agent.tpl import T
 from rdagent.oai.llm_utils import APIBackend

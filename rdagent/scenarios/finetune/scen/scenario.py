@@ -42,12 +42,7 @@ class LLMFinetuneScen(DataScienceScen):
         self.timeout_increase_count = 0
 
         self.device_info = get_runtime_environment_by_env(get_ft_env())
-        self.device_dict = json.loads(self.device_info)
-        self.memory_gb = self.device_dict.get("gpu", {}).get("total_gpu_memory_gb")
         self.dataset_info = self._get_data_folder_description()
-
-        # logger.info(f"Device: {self.memory_gb}GB GPU")
-        # logger.info(f"LLM Fine-tune scenario initialized for dataset='{self.dataset}', model='{self.base_model}'")
 
     def real_debug_timeout(self):
         return FT_RD_SETTING.debug_timeout
