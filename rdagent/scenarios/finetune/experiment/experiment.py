@@ -3,6 +3,7 @@ from typing import Literal
 
 import pandas as pd
 
+from rdagent.components.coder.finetune.conf import FT_YAML_FILE_NAME
 from rdagent.core.experiment import Experiment, Task
 from rdagent.scenarios.finetune.experiment.workspace import FTWorkspace
 
@@ -28,7 +29,7 @@ class FTExperiment(Experiment[Task, FTWorkspace, FTWorkspace]):
         ready to run does not indicate the experiment is runnable
         (so it is different from `trace.next_incomplete_component`.)
         """
-        return self.experiment_workspace is not None and "main.py" in self.experiment_workspace.file_dict
+        return self.experiment_workspace is not None and FT_YAML_FILE_NAME in self.experiment_workspace.file_dict
 
     def set_local_selection(self, local_selection: tuple[int, ...]) -> None:
         self.local_selection = local_selection

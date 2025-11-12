@@ -8,8 +8,9 @@ hypothesis_gen:
     {% else %}
     The user has decided the base model to fine-tune: {{ base_model }}.
     Your task is to select the dataset building strategy, fine-tuning method, quantization strategy and important parameter adjustments.
-    {% endif %}
-
+    { % endif %}
+    You should make your decisions in a hypothesis that aims to achieve the best performance possible given the constraints.
+    Following the hypothesis, provide a detailed task for the code generator to implement the hypothesis.
 
     The user might have historical experiments to learn from. Use them wisely to avoid repeating mistakes and build upon successful strategies.
 
@@ -37,12 +38,41 @@ hypothesis_gen:
     1. Please provide the hypothesis in least standard which means try to avoid unnecessary complexity.
     2. Consider hardware constraints when making decisions.
 
-    ## Output Format
+    ## Hypothesis Format
     Provide your hypothesis in natural language. Be comprehensive and specific about your recommendations.
     Some example formats:
     - "Build the first SOTA solution using [Base Model]. Use the [Dataset Name] dataset without modification. Use [Fine-tuning Method] with [Quantization Strategy]. Key parameters include: [Parameter 1]=[Value 1], [Parameter 2]=[Value 2], ...."
     - "Improve the SOTA solution by changing [Hyperparameter] from [Old Value] to [New Value] and switching from [Old Method] to [New Method] because ...."
     - "Improve the SOTA solution by changing the dataset by cleaning up the [Issue] and augmenting the data by [Augmentation Technique] because ...."
+
+    ## Task specification
+    After the hypothesis, provide a clear and concise task for the code generator to implement the hypothesis. The task should be provided in plain text following these rules:
+    1. The task should focus part or all the following aspects:
+       - Dataset selection: choosing the right subset of data from the provided dataset.
+        - Dataset processing: cleaning, formatting, or rewriting the dataset to make it suitable for fine-tuning.
+        - Fine-tuning method implementation: setting up the fine-tuning process according to the hypothesis
+        - Hyperparameter configuration: specifying key hyperparameters for the fine-tuning process.
+    2. **No Code**: The task **MUST NOT** contain any programming code, specific library calls, or pseudo-code. Describe steps conceptually (e.g., "Load the dataset [Dataset Name], rewrite them into apacha format."). List specific hyperparameters where appropriate (e.g., "SFT using learning rate [lr number]").
+    3. **Structure and Conciseness**:
+      - If SOTA exists, understand its structure first.
+      - If no SOTA, outline a clear, logical sequence of steps for the new `main.py`.
+
+
+    The final output should be in json format as follows:
+    { % if select_model %}
+    {
+      "base_model": "[Selected Base Model]",
+      "reason": "[Your Reasoning in Natural Language]",
+      "hypothesis": "[Your Hypothesis in Natural Language]",
+      "task": "[Your Task in Natural Language]"
+    }
+    { % else %}
+    {
+      "reason": "[Your Reasoning in Natural Language]",
+      "hypothesis": "[Your Hypothesis in Natural Language]",
+      "task": "[Your Task in Natural Language]"
+    }
+    { % endif %}
 
   user_prompt: |-
     ## Device Information
