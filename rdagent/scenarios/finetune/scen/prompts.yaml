@@ -34,9 +34,6 @@ scenario_description: |-
   - Model Specs: {{ model_info.specs }}
   {% endif %}
 
-  ## Task
-  {{ task }}
-
   ## Timeout Constraints
   - Debug Timeout: {{ debug_timeout }}
   - Full Training Timeout: {{ full_timeout }}

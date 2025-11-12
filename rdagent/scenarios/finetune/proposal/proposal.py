@@ -1,6 +1,7 @@
 """LLM Fine-tuning Base Classes"""
 
 import json
+from pathlib import Path
 from typing import Literal
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
@@ -13,6 +14,7 @@ from rdagent.scenarios.finetune.scen.llama_factory_manager import (
     get_llama_factory_manager,
 )
 from rdagent.scenarios.finetune.scen.scenario import LLMFinetuneScen
+from rdagent.scenarios.finetune.scen.utils import FinetuneDatasetDescriptor
 from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
 from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 from rdagent.utils.agent.tpl import T
@@ -87,7 +89,7 @@ class LLMFinetuneExpGen(ExpGen):
         logger.info(f"Using specified model: {FT_RD_SETTING.base_model}")
         base_model = FT_RD_SETTING.base_model
         base_model, hypothesis_text = self.hypothesis_gen(
-            self.scen.device_info, self.scen.dataset_info, trace, specified_model=base_model
+            self.scen.device_info, self.scen.dataset_info, trace, base_model=base_model
         )
 
         # Create hypothesis object with natural language description
@@ -95,7 +97,7 @@ class LLMFinetuneExpGen(ExpGen):
             component="Training",
             base_model=base_model,
             hypothesis=hypothesis_text,
-            reason=f"LLM-generated hypothesis for {memory_gb}GB GPU and {self.scen.dataset_info['name']} dataset",
+            reason="LLM-generated hypothesis based on hardware and dataset characteristics",
         )
 
         return FTHypothesis2Experiment().convert(hypothesis, trace)
@@ -159,5 +161,5 @@ class LLMFinetuneExpGen(ExpGen):
 
         # Return model and hypothesis text
         # Method and quantization will be decided by Coder based on the hypothesis
-        selected_model = specified_model
+        selected_model = base_model
         return selected_model, hypothesis_text

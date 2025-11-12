@@ -6,7 +6,10 @@ from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.scen import DataScienceScen
-from rdagent.scenarios.finetune.scen.utils import generate_dataset_info_config
+from rdagent.scenarios.finetune.scen.utils import (
+    FinetuneDatasetDescriptor,
+    generate_dataset_info_config,
+)
 from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
 from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 from rdagent.utils.agent.tpl import T
@@ -41,6 +44,7 @@ class LLMFinetuneScen(DataScienceScen):
         self.device_info = get_runtime_environment_by_env(get_ft_env())
         self.device_dict = json.loads(self.device_info)
         self.memory_gb = self.device_dict.get("gpu", {}).get("total_gpu_memory_gb")
+        self.dataset_info = self._get_data_folder_description()
 
         # logger.info(f"Device: {self.memory_gb}GB GPU")
         # logger.info(f"LLM Fine-tune scenario initialized for dataset='{self.dataset}', model='{self.base_model}'")
@@ -108,15 +112,29 @@ class LLMFinetuneScen(DataScienceScen):
             raise RuntimeError(f"Failed to write dataset_info.json: {e}")
 
     def _get_data_folder_description(self) -> str:
-        """Generate folder description by running describe_data_folder_v2 inside Docker environment"""
-        return build_folder_description(self.dataset)
+        """Generate folder description for dataset."""
+        descriptor = FinetuneDatasetDescriptor()
+        dataset_path = Path(FT_RD_SETTING.file_path) / "datasets" / self.dataset
+        desc = descriptor.describe_dataset_folder(dataset_path, self.dataset)
+        return str(desc)  # Use __str__ for human-readable format
 
     @property
     def background(self) -> str:
         """Generate background description for LLM fine-tuning scenario"""
-        dataset_info = extract_dataset_info(self.dataset)
-        model_info = extract_model_info(self.base_model)
-        return build_finetune_description(dataset_info=dataset_info, model_info=model_info)
+        descriptor = FinetuneDatasetDescriptor()
+        dataset_path = Path(FT_RD_SETTING.file_path) / "datasets" / self.dataset
+        dataset_info = descriptor.describe_dataset_folder(dataset_path, self.dataset)
+        model_info = descriptor.describe_model(self.base_model)
+        # Render template directly
+        return T(".prompts:task_description").r(
+            model_name=model_info["name"],
+            dataset_name=dataset_info["name"],
+            dataset_description=dataset_info.get("description", ""),
+            dataset_files=dataset_info.get("files", [])[:5],
+            dataset_samples=dataset_info.get("samples", []),
+            model_specs=model_info.get("specs", ""),
+            model_description=model_info.get("description", ""),
+        )
 
     @property
     def metric_direction(self) -> bool:
@@ -125,14 +143,15 @@ class LLMFinetuneScen(DataScienceScen):
 
     def get_scenario_all_desc(self) -> str:
         """Get complete scenario description for LLM fine-tuning"""
-        dataset_info = extract_dataset_info(self.dataset)
-        model_info = extract_model_info(self.base_model)
+        descriptor = FinetuneDatasetDescriptor()
+        dataset_path = Path(FT_RD_SETTING.file_path) / "datasets" / self.dataset
+        dataset_info = descriptor.describe_dataset_folder(dataset_path, self.dataset)
+        model_info = descriptor.describe_model(self.base_model)
 
         return T(".prompts:scenario_description").r(
             background=self.background,
             dataset_info=dataset_info,
             model_info=model_info,
-            task=self.task,
             debug_timeout=f"{self.real_debug_timeout() / 60:.2f} minutes",
             full_timeout=f"{self.real_full_timeout() / 60 / 60:.2f} hours",
         )

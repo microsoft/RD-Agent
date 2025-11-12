@@ -41,7 +41,7 @@ def main(
 
     Examples:
     .. code-block:: bash
-        dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh --model Qwen/Qwen2.5-1.5B-Instruct
+        dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh --base-model Qwen/Qwen2.5-1.5B-Instruct
         dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh    # TODO: not enabled yet
     """
     if user_target_scenario:

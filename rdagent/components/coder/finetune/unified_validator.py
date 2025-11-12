@@ -17,7 +17,6 @@ import yaml
 from rdagent.components.coder.finetune.conf import FT_DEBUG_YAML_FILE_NAME, get_ft_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
-
 from rdagent.scenarios.finetune.scen.llama_factory_manager import (
     get_llama_factory_manager,
 )

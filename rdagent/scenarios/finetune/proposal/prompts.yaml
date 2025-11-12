@@ -3,12 +3,12 @@ hypothesis_gen:
     You are an expert in LLM fine-tuning. You task is to set the next round of fine-tuning hypothesis to build the best possible model given the constraints.
     The user is targeting a fine-tuned model best for specific scenarios based on the provided dataset.
 
-    { % if select_model %}
+    {% if select_model %}
     Your task is to select the best base model, dataset building strategy, fine-tuning method, quantization strategy and important parameter adjustments.
-    { % else %}
+    {% else %}
     The user has decided the base model to fine-tune: {{ base_model }}.
     Your task is to select the dataset building strategy, fine-tuning method, quantization strategy and important parameter adjustments.
-    { % endif %}
+    {% endif %}
 
 
     The user might have historical experiments to learn from. Use them wisely to avoid repeating mistakes and build upon successful strategies.
