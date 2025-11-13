@@ -1,3 +1,4 @@
+import sys
 from rdagent.core.developer import Developer
 from rdagent.core.experiment import Experiment
 from rdagent.log import rdagent_logger as logger
@@ -74,9 +75,11 @@ class AgenticSysCoder(Developer[Experiment]):
 
         class AgenticSystem:
             """Agentic System for task execution"""
+
             def __init__(self):
                 self.name = "AgenticSystem"
                 self.task_count = 0
+
             def run_tasks(self, tasks: Dict[str, Any]) -> Dict[str, Any]:
                 """Run tasks and return results"""
                 start_time = time.time()
@@ -85,14 +88,14 @@ class AgenticSysCoder(Developer[Experiment]):
                     self.task_count += 1
                     result = {{
                         "task_id": task_id,
-                        "status": "True",
+                        "success": "True",
                         "time": time.time() - start_time,
                         "error": None
                     }}
                 except Exception as e:
                     result = {{
                         "task_id": task_id,
-                        "status": False,
+                        "success": False,
                         "time": time.time() - start_time,
                         "error": str(e)
                     }}
@@ -104,9 +107,11 @@ class AgenticSysCoder(Developer[Experiment]):
                          {{"id": i, "type": "test", "data": f"sample{{i}}"}}
                         for i in range(10)
                     ]
+
                 results = []
                 for task in tasks: 
                     result.append(self.run_task(task))
+
                 # Calculate metrics
                 success_count = sum(1 for r in results if r["success"])
                 total_time = sum(r["time"] for r in results)
@@ -156,6 +161,7 @@ class AgenticSysCoder(Developer[Experiment]):
         
 
 class AgenticSysRunner(Developer[Experiment]):
+    """execute agentic system experiment"""
 
     def __init__(self, scen):
         self.scen = scen
@@ -166,7 +172,131 @@ class AgenticSysRunner(Developer[Experiment]):
         execute the experiment
         steps: 
         1. acquire workspace
-        2. execute train.py
-        3. load result file
+        2. execute test.py
+        3. parse output
+        4. collect performance metrics
+        5. record logs
         """
+        logger.info("Starting experiment execution")
+        try: 
+            # acquire workspace
+            ws_path = self.get_workspace_path(exp)
+            logger.info(f"Using workspace at {ws_path}")
+            # validate necessary files
+            self.validate_workspace(ws_path)
+            #execute experiment
+            stdout, stderr = self.execute_experiment(ws_path)
+            #parse result
+            result = self.parse_execution_output(stdout, stderr)
+            exp.result = result
+            # record execution logs
+            self._log_execution_results(exp, result)
+            logger.info("Experiment completed successfully")
+        except Exception as e:
+            logger.error(f"Experiment execution failed: {str(e)}")
+            exp.exception = e
+            exp.result = self._create_error_result(str(e))
+        return exp
+    
+    def get_workspace_path(self, exp):
+        '''
+        Get workspace path for the experiment
+        '''
+        if hasattr(exp, 'experiment_workspace') and exp.experiment_workspace:
+            return Path(exp.experiment_workspace.workspace_path)
+        # Default workspace path
+        return Path("./workspace") / f"exp_{exp.id}"
+    
+    def validate_workspace(self, ws_path: Path):
+        """Validate necessary files in the workspace"""
+        if not ws_path.exists():
+            raise FileNotFoundError(f"Workspace path {ws_path} does not exist.")
+        
+        # examine necessary files
+        required_files = ["train.py", "agent.py"]
+        missing_files = []
+
+        for file_name in required_files:
+            file_path = ws_path / file_name
+            if not file_path.exists():
+                missing_files.append(file_name)
+        
+        if missing_files:
+            raise FileNotFoundError(f"Missing required files in workspace {ws_path}: {', '.join(missing_files)}")
+        
+        loggger.info("workspace validation passed: {ws_path}")
+
+    def execute_experiment(self, ws_path: Path, timeout: int = 300):
+        """Execute the experiment by running train.py"""
+        import subprocess
+
+        cmd = [sys.executable, "train.py"]
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=ws_path
+        )
+
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+            return stdout.decode(), stderr.decode()
+        except subprocess.TimeoutExpired:
+            process.kill()
+            stdout, stderr = process.communicate()
+            raise TimeoutError(f"Experiment execution timed out after {timeout} seconds.")
+        except Exception as e:
+            logger.error(f"Execution failed with exception: {str(e)}")
+            raise RuntimeError(f"Execution error: {str(e)}")
+        
+    def prepare_environment(self):
+        """Prepare execution environment"""
+        import os
+        env = os.environ.copy()
+        # Add any necessary environment variables here
+        if 'PYTHONPATH' in env:
+            env['PYTHONPATH'] = f"{os.getcwd()}:{env['PYTHONPATH']}"
+        else:
+            env['PYTHONPATH'] = os.getcwd()
+        return env
+    
+    def parse_execution_output(self, stdout: str, stderr: str):
+        """Parse execution output to extract performance metrics"""
+        try:
+            #method1, lookup structured output
+            result = self.parse_structured_output(stdout)
+            if result:
+                return result
+            
+            #method2, lookup result file
+            result = self.parse_result_file()
+            if result:
+                return result
+            
+            #method3, parse from stdout
+            result = self.parse_text_output(stdout)
+            if result:
+                return result
+            
+            logger.warning("Could not parse execution output, using default result ")
+            return self._create_default_result(
+                success=False,
+                reason = "Could not parse output"
+            )
+        
+        except Exception as e:
+            logger.error(f"Failed to parse output: {e}")
+            return self._create_error_result(f"Parsing error: {e}")
+    
+    def parse_structured_output(self, stdout:str):
         pass
+
+
+            
+
+
+
+
+
+
+        
