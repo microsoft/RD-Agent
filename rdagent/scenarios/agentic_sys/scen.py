@@ -2,6 +2,8 @@ from rdagent.core.experiment import Task
 from rdagent.core.scenario import Scenario
 
 #define experiment scenario
+#scenario abstraction for agentic system development
+#support different competition contexts
 class AgenticSysScen(Scenario):
     def __init__(self, competition: str) -> None:
         self.competition = competition
@@ -19,7 +21,7 @@ class AgenticSysScen(Scenario):
         }
         base_desc = background_template.get(self.competition,  f"Agentic system development for {self.competition}")
         return f"""Competition: {self.competition}, Objective: {base_desc}. Focus: Create autonomous AI agents that can execute complex tasks with minimal human intervention. Key requirements include task planning, execution monitoring, error handling, and performance optimization."""
-
+    #running environment description and standards
     def get_runtime_environment(self) -> str:
         """Get the runtime environment information"""
         return f"""Runtime Environment for competition {self.competition}: 
@@ -42,6 +44,7 @@ class AgenticSysScen(Scenario):
         - Result validation and reporting
         """
 
+    #task content analyze
     def get_scenario_all_desc(
         self,
         task: Task | None = None,

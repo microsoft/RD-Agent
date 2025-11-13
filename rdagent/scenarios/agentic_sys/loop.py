@@ -15,7 +15,7 @@ from rdagent.core.proposal import Experiment2Feedback, ExperimentFeedback, ExpGe
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-
+from rdagent.scenarios.agentic_sys.exp import AgenticSysExperiment
 from rdagent.core.proposal import ExpGen
 
 

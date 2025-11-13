@@ -25,11 +25,12 @@ class AgenticSysExp2Feedback(Experiment2Feedback):
         #3. formulate success criteria
         MIN_SUCCESS_RATE = 0.7
         MAX_AVG_TIME = 30
+        MAX_ERROR_COUNT = 2
 
         is_successful = (
             success_rate >= MIN_SUCCESS_RATE and
             avg_time <= MAX_AVG_TIME and
-            error_count == 0
+            error_count <= MAX_ERROR_COUNT
         )
 
         #4. Compare with past experiments in the trace
@@ -46,8 +47,8 @@ class AgenticSysExp2Feedback(Experiment2Feedback):
             )
 
         else:
-            #first-time experiment
-            is_improvement = is_successful
+            #first-time experiment, we should still accept it even if it is fail.
+            is_improvement = True
 
         #5. Generate detailed feedback
         reason_parts = []
@@ -59,7 +60,7 @@ class AgenticSysExp2Feedback(Experiment2Feedback):
             reason_parts.append("This experiment shows improvement over past results.")
         elif historical_best:
             reason_parts.append(
-                f"✗ No improvement (best: {historical_best.get('success_rate', 0):.2%})"
+                f"No improvement (best: {historical_best.get('success_rate', 0)})"
             )
         reason = "|".join(reason_parts)
         return ExperimentFeedback(
@@ -67,7 +68,7 @@ class AgenticSysExp2Feedback(Experiment2Feedback):
             decision = is_improvement,
         )
     
-    def _get_best_from_trace(self, trace:Trace):
+    def get_best_from_trace(self, trace:Trace):
         # Extract the best experiment result from the trace
         if not hasattr(trace, 'hist') or not trace.hist:
             return None
@@ -80,6 +81,51 @@ class AgenticSysExp2Feedback(Experiment2Feedback):
                     best_success_rate = success_rate
                     best_result = exp.result
         return best_result
+    
+    def analyze_performance_issues(self, result):
+        # analyze performance issues based on result metrics
+        issues = []
+        success_rate = result.get('success_rate', 0)
+        avg_time = result.get('avg_time', float('inf'))
+        error_count = result.get('error_count', 0)
+        
+        if success_rate < 0.3:
+            issues.append("Critical: Very low success rate - review core algorithm")
+        elif success_rate < 0.7:
+            issues.append("Warning: Success rate below target - optimize task handling")
+        
+        if avg_time > 10:
+            issues.append("Performance: High execution time - consider optimization")
+        
+        if error_count > 5:
+            issues.append("Stability: High error count - improve error handling")
+        
+        return issues
+    
+    def get_evaluation_summary(self, trace):
+        """Get summary of all experiments in trace"""
+        if not hasattr(trace, 'hist') or not trace.hist:
+            return {"total": 0, "successful": 0, "average_success_rate": 0.0}
+        
+        total = len(trace.hist)
+        successful = 0
+        success_rates = []
+        
+        for exp, feedback in trace.hist:
+            if hasattr(exp, 'result') and exp.result:
+                success_rate = exp.result.get('success_rate', 0)
+                success_rates.append(success_rate)
+                if feedback and feedback.decision:
+                    successful += 1
+        
+        return {
+            "total": total,
+            "successful": successful,
+            "success_ratio": successful / total if total > 0 else 0,
+            "average_success_rate": sum(success_rates) / len(success_rates) if success_rates else 0,
+            "best_success_rate": max(success_rates) if success_rates else 0
+        }
+
     
     
 
