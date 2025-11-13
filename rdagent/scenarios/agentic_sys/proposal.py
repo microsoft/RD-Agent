@@ -28,7 +28,7 @@ class AgenticSysExpGen(ExpGen):
         # 1. analyze whether has historical record
         is_first_experiment = not (hasattr(trace, 'hist') and trace.hist)
 
-        # 2. generate hypothesis
+        # 2. incremental tasl generation
         if is_first_experiment: 
             task_desc = self.get_baseline_task()
         else:

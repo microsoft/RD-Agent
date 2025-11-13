@@ -21,6 +21,8 @@ from rdagent.core.proposal import ExpGen
 
 class AgenticSysRDLoop(RDLoop):
     # NOTE: we move the DataScienceRDLoop here to be easier to be imported
+    # Maintain experiment loop history and context
+    # support multi-iteration optimization
     skip_loop_error = (CoderError, RunnerError)
     withdraw_loop_error = (PolicyError,)
 

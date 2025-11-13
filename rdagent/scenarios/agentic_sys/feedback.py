@@ -16,6 +16,8 @@ class AgenticSysExp2Feedback(Experiment2Feedback):
         
         #2. extract important metrics from experiment result
         result = experiment.result
+
+        #evaluation metrics
         success_rate = result.get('success_rate', 0)
         avg_time = result.get('avg_time', float('inf'))
         error_count = result.get('error_count', 0)

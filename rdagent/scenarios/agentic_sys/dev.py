@@ -3,6 +3,11 @@ from rdagent.core.developer import Developer
 from rdagent.core.experiment import Experiment
 from rdagent.log import rdagent_logger as logger
 from pathlib import Path
+import subprocess
+import sys
+import json
+import re
+import os
 
 # TODO:  We only list the dummy coder and runner here.
 # If we want to implement the a comprehensive agentic system R&D Agent, we need to implement it with CoSTEER.
@@ -23,6 +28,7 @@ class AgenticSysCoder(Developer[Experiment]):
         try:
             #acquire workspace 
             ws_path = self.get_workspace_path(exp)
+            #create workspace directory
             ws_path.mkdir(parents=True, exist_ok=True)
             #generate code
             self.generate_files(ws_path, exp)
@@ -47,7 +53,7 @@ class AgenticSysCoder(Developer[Experiment]):
 
     def generate_files(self, ws_path, exp):
         '''
-        Generate necessary files for the agentic system experiment
+        Generate necessary files for the agentic system experiment and write file to disk
         '''
         # Dummy agent code
         (ws_path / "agent.py").write_text(
@@ -81,7 +87,7 @@ class AgenticSysCoder(Developer[Experiment]):
                 self.name = "AgenticSystem"
                 self.task_count = 0
 
-            def run_tasks(self, tasks: Dict[str, Any]) -> Dict[str, Any]:
+            def run_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
                 """Run tasks and return results"""
                 start_time = time.time()
                 try: 
@@ -127,7 +133,7 @@ class AgenticSysCoder(Developer[Experiment]):
         '''
     
     def get_train_template(self):
-        """generate train.py template"""
+        """generate execution template"""
         return '''"""
         Training/Execution script for Agentic System, this is the entry point 
         that will be executed by the runner.
@@ -136,6 +142,7 @@ class AgenticSysCoder(Developer[Experiment]):
         import sys
         from pathlib import Path
         from agent import AgenticSystem
+
         def main():
             """Main execution function"""
             try:
@@ -144,6 +151,11 @@ class AgenticSysCoder(Developer[Experiment]):
                 agent = AgenticSystem()
                 # Run tasks
                 results = agent.run_tasks()
+
+                # Save results to file (for backup parsing)
+                result_file = Path("result.json")
+                result_file.write_text(json.dumps(results, indent = 2))
+
                 #Print for logging
                 print("execution completed")
                 print(f"Success Rate: {results['success_rate']}")
@@ -151,10 +163,13 @@ class AgenticSysCoder(Developer[Experiment]):
                 print(f"Error Count: {results['error_count']}")
                 print(f"Total Tasks: {results['total_tasks']}")
 
+                return 0
+
             except Exception as e:
                 print(f"Execution failed: {str(e)}")
                 import traceback
                 traceback.print_exc()
+                return 1
         
         if __name__ == "__main__":
             main()
@@ -206,7 +221,8 @@ class AgenticSysRunner(Developer[Experiment]):
         if hasattr(exp, 'experiment_workspace') and exp.experiment_workspace:
             return Path(exp.experiment_workspace.workspace_path)
         # Default workspace path
-        return Path("./workspace") / f"exp_{exp.id}"
+        base = Path("./workspace")
+        return base / f"exp_{exp.id}"
     
     def validate_workspace(self, ws_path: Path):
         """Validate necessary files in the workspace"""
@@ -229,26 +245,37 @@ class AgenticSysRunner(Developer[Experiment]):
 
     def execute_experiment(self, ws_path: Path, timeout: int = 300):
         """Execute the experiment by running train.py"""
-        import subprocess
-
         cmd = [sys.executable, "train.py"]
-        process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            cwd=ws_path
-        )
-
+        # use environment variables if necessary
+        env = self._prepare_environment() 
+        
+        logger.info(f"Executing: {' '.join(cmd)} in {ws_path}")
+        
         try:
-            stdout, stderr = process.communicate(timeout=timeout)
-            return stdout.decode(), stderr.decode()
-        except subprocess.TimeoutExpired:
-            process.kill()
-            stdout, stderr = process.communicate()
-            raise TimeoutError(f"Experiment execution timed out after {timeout} seconds.")
+        # pass in environment variables if necessary
+            result = subprocess.run(
+                cmd,
+                cwd=str(ws_path),
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                env=env 
+            )
+            
+            logger.info(f"Process completed with return code: {result.returncode}")
+            
+            if result.returncode != 0:
+                logger.warning(f"Process exited with non-zero code: {result.returncode}")
+            
+            return result.stdout, result.stderr
+            
+        except subprocess.TimeoutExpired as e:
+            logger.error(f"Execution timed out after {timeout} seconds")
+            raise RuntimeError(f"Execution timeout: {timeout}s") from e
+        
         except Exception as e:
             logger.error(f"Execution failed with exception: {str(e)}")
-            raise RuntimeError(f"Execution error: {str(e)}")
+            raise RuntimeError(f"Execution error: {str(e)}") from e
         
     def prepare_environment(self):
         """Prepare execution environment"""
