@@ -12,22 +12,27 @@ from rdagent.core.proposal import (
 from rdagent.scenarios.agentic_sys.scen import AgenticSysScen
 from rdagent.log import rdagent_logger as logger
 
-
+#define experiment generator and generate agentic system experiment
 class AgenticSysExpGen(ExpGen):
+    """
+    1. follow RDAgent Framework design module, inherit ExpGen class
+    2. ensure compatibility with Trace and Experiment classes
+    3. make full use of fundemantal functionality and agreement of RDAgent Framework
+    """
 
     def __init__(self, scen: AgenticSysScen):
+        """insert scenario context"""
         self.scen = scen
         
     def gen(self, trace: Trace) -> AgenticSysExperiment:
-        '''generate experiment from trace'''
         # 1. analyze whether has historical record
         is_first_experiment = not (hasattr(trace, 'hist') and trace.hist)
 
         # 2. generate hypothesis
         if is_first_experiment: 
-            tasks_desc = self._get_baseline_task()
+            task_desc = self.get_baseline_task()
         else:
-            task_desc = self._get_improvement_task(trace)
+            task_desc = self.get_improvement_task(trace)
 
         # 3. construct experiment
         main_task = Task(task_desc)
@@ -36,11 +41,11 @@ class AgenticSysExpGen(ExpGen):
         )
 
         #4. Add assumption 
-        experiment.hypothesis = self._generate_hypothesis(trace)
+        experiment.hypothesis = self.generate_simple_hypothesis(trace)
         logger.info(f"Generated experiment with task: ")
         return experiment
     
-    def _get_baseline_task(self):
+    def get_baseline_task(self):
         """first time experiment task"""
         competition = getattr(self.scen, "competition", 'general') if self.scen else 'general'
         return f"""Design and implement a baseline agentic system for the {competition}.
@@ -57,8 +62,8 @@ The system should demonstrate:
 - Performance measurement
 - Clean code structure
 """
-    def _get_improvement_task(self, trace: Trace) -> str:
-        """基于历史的改进任务"""
+    def get_improvement_task(self, trace: Trace) -> str:
+        """generate improvement task based on trace history"""
         # analyze last experiment feedback
         last_exp, last_feedback = trace.hist[-1]
         
@@ -94,7 +99,7 @@ Improvement requirements:
 Ensure backwards compatibility while introducing improvements.
 """
     
-    def _generate_simple_hypothesis(self, trace: Trace) -> str:
+    def generate_simple_hypothesis(self, trace: Trace) -> str:
         """Generate a simple hypothesis based on trace history"""
         if not hasattr(trace, 'hist') or not trace.hist:
             return "Establish a baseline agentic system with core functionality"

@@ -1,8 +1,7 @@
-
 from rdagent.core.experiment import Task
 from rdagent.core.scenario import Scenario
 
-
+#define experiment scenario
 class AgenticSysScen(Scenario):
     def __init__(self, competition: str) -> None:
         self.competition = competition
@@ -51,11 +50,15 @@ class AgenticSysScen(Scenario):
     ) -> str:
         """Combine all descriptions together"""
         parts = []
+
+        #1. basic information processing
         if simple_background:
             parts.append(f"Competition: {self.competition}. Develop an autonomous agentic system.")
         else:
             parts.append(self.background)
             parts.append(self.get_runtime_environment())
+
+        #2. task specific processing
         if task:
             parts.append(f"\n --- Current Tasks ---")
             parts.append(task.description)
@@ -66,6 +69,7 @@ class AgenticSysScen(Scenario):
                 parts.append("Additional Focus: Parallel execution and concurrency handling.")
             elif 'planning' in task_desc:
                 parts.append("Additional Focus: Advanced planning and multi-step task decomposition.")
+
         if filtered_tag:
             parts.append(f"\n--- Filtered Tags: {filtered_tag} ---")
             tag_guidance = self.get_tag_guidance(filtered_tag)
