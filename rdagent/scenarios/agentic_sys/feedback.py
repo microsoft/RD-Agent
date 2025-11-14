@@ -6,6 +6,11 @@ from rdagent.core.proposal import Experiment2Feedback, ExperimentFeedback, Trace
 
 class AgenticSysExp2Feedback(Experiment2Feedback):
     def generate_feedback(self, experiment: Experiment, trace: Trace) -> ExperimentFeedback:
+
+        # BEGIN drafting
+        # read content from `expriment.workspace_path`
+        # END drafting
+
         # 1. check whether experiment ran successfully
         if not hasattr(experiment, 'result') or experiment.result is None:
             return ExperimentFeedback(

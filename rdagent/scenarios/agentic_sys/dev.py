@@ -1,6 +1,6 @@
 import sys
 from rdagent.core.developer import Developer
-from rdagent.core.experiment import Experiment
+from rdagent.core.experiment import Experiment, FBWorkspace
 from rdagent.log import rdagent_logger as logger
 from pathlib import Path
 import subprocess
@@ -9,6 +9,8 @@ import json
 import re
 import os
 from typing import Dict, Any, List, Optional
+
+from rdagent.scenarios.agentic_sys.env import get_agent_sys_env
 
 # TODO:  We only list the dummy coder and runner here.
 # If we want to implement the a comprehensive agentic system R&D Agent, we need to implement it with CoSTEER.
@@ -26,6 +28,28 @@ class AgenticSysCoder(Developer[Experiment]):
         '''
         logger.info("Starting code generation for the experiment")
 
+        # begin drafting
+        # NOTE:
+        # We should implement CoSTEER here to improve high quality coding ability
+        # 1) generate code
+        # prompting
+        exp.experiment_workspace = FBWorkspace()
+        # exp.experiment_workspace.inject_files(**{"<filename>": <file content>})
+
+        # 2) run code
+        # prepare environment.
+        env = get_agent_sys_env(
+            extra_volumes={exp.experiment_workspace.workspace_path: "/....."},
+            # .....
+        )
+
+        env.run(entry="<entrypoint>", ...)
+
+        # Please refer to the following code for details.
+        # [[rdagent/components/coder/data_science/conf.py:41]]
+        
+
+        # end drafting
         try:
             #acquire workspace 
             ws_path = self.get_workspace_path(exp)
