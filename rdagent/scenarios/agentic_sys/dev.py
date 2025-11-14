@@ -8,6 +8,7 @@ import sys
 import json
 import re
 import os
+from typing import Dict, Any, List, Optional
 
 # TODO:  We only list the dummy coder and runner here.
 # If we want to implement the a comprehensive agentic system R&D Agent, we need to implement it with CoSTEER.
@@ -73,7 +74,8 @@ class AgenticSysCoder(Developer[Experiment]):
     def get_agent_template(self, exp):
         "generate agent code template"
         hypothesis = getattr(exp, 'hypothesis', 'Improve system performance')
-        return f'''"""
+        return f'''
+        """
         Agentic System Implementation
         Hypothesis: {hypothesis}
         """

@@ -38,7 +38,12 @@ class AgenticSysRDLoop(RDLoop):
         self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.feedback)(scen)
         self.trace = Trace(scen=scen)
 
+        #Store configuration
+        self.setting = PROP_SETTING
+
         super(RDLoop, self).__init__()
+
+        logger.info(f"AgenticSysRDLoop initialized for competition: {PROP_SETTING.competition}")
 
     async def direct_exp_gen(self, prev_out: dict[str, Any]):
         exp = await self.exp_gen.async_gen(self.trace, self)
