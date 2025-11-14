@@ -50,12 +50,13 @@ hypothesis_gen:
     1. The task should focus part or all the following aspects:
        - Dataset selection: choosing the right subset of data from the provided dataset.
         - Dataset processing: cleaning, formatting, or rewriting the dataset to make it suitable for fine-tuning.
-        - Fine-tuning method implementation: setting up the fine-tuning process according to the hypothesis
+        - Fine-tuning method implementation: setting up the fine-tuning process according to the hypothesis.
         - Hyperparameter configuration: specifying key hyperparameters for the fine-tuning process.
     2. **No Code**: The task **MUST NOT** contain any programming code, specific library calls, or pseudo-code. Describe steps conceptually (e.g., "Load the dataset [Dataset Name], rewrite them into apacha format."). List specific hyperparameters where appropriate (e.g., "SFT using learning rate [lr number]").
     3. **Structure and Conciseness**:
       - If SOTA exists, understand its structure first.
       - If no SOTA, outline a clear, logical sequence of steps for the new `main.py`.
+    4. **Specificity**: Be specific about the actions to be taken, avoiding vague instructions. The user will only read this task to implement the hypothesis, so clarity is crucial. The steps starts from pure dataset reading to final fine-tuning.
 
 
     The final output should be in json format as follows:
