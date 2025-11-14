@@ -50,11 +50,7 @@ finetune_coder:
     Do NOT add explanations before or after the YAML block.
 
   user: |-
-    ## Hypothesis
-    {{ hypothesis }}
-
     ## Path Configuration
-    - dataset: "{{ dataset_name }}"
     - dataset_dir: "{{ datasets_path }}"
     - output_dir: "/workspace/output"
     - model_name_or_path: "{{ models_path }}{{ base_model }}"
@@ -88,7 +84,7 @@ finetune_coder:
     - finetuning_type: [select appropriate method based on hypothesis]
     - do_train: true
     - model_name_or_path: {{ models_path }}{{ base_model }}
-    - dataset: {{ dataset_name }}
+    - dataset: picked from the task description
     - tokenized_path: /workspace/tokenized_cache
     {% endif %}
 

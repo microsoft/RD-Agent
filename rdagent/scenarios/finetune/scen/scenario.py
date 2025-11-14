@@ -58,7 +58,12 @@ class LLMFinetuneScen(DataScienceScen):
             logger.info(f"FT_FILE_PATH not exists, created FT_FILE_PATH directory: {ft_root}")
 
         # Ensure dataset assets exist
-        ensure_ft_assets_exist(dataset=self.dataset, check_dataset=True)
+        if self.dataset:
+            ensure_ft_assets_exist(dataset=self.dataset, check_dataset=True)
+
+        # Ensure model assets exist
+        if self.base_model:
+            ensure_ft_assets_exist(model=self.base_model, check_model=True)
 
     def _initialize_llama_factory(self):
         """Initialize LLaMA Factory information manager"""
@@ -74,9 +79,6 @@ class LLMFinetuneScen(DataScienceScen):
 
     def _prepare_dataset_info(self):
         """Generate dataset_info.json configuration"""
-        if not self.dataset:
-            return
-
         datasets_dir = Path(FT_RD_SETTING.file_path) / "datasets"
         dataset_info_path = datasets_dir / "dataset_info.json"
 
@@ -86,31 +88,34 @@ class LLMFinetuneScen(DataScienceScen):
             try:
                 with open(dataset_info_path, "r", encoding="utf-8") as f:
                     existing_config = json.load(f)
-                if self.dataset in existing_config:
-                    logger.info(f"Dataset '{self.dataset}' already configured in dataset_info.json, skipping")
-                    return
             except Exception as e:
                 logger.warning(f"Failed to load existing dataset_info.json: {e}")
 
+        target_dataset_list = [] if self.dataset is None else [self.dataset]
         # Generate new configuration
-        logger.info(f"Generating dataset_info.json configuration for dataset '{self.dataset}'")
-        generated_config = generate_dataset_info_config(self.dataset, FT_RD_SETTING.file_path)
-        existing_config[self.dataset] = generated_config
+        logger.info(
+            f"Generating dataset_info.json configuration for datasets '{target_dataset_list if self.dataset else 'all datasets'}'"
+        )
+        generated_config = generate_dataset_info_config(target_dataset_list, FT_RD_SETTING.file_path)
+        for dataset_name, config in generated_config.items():
+            existing_config[dataset_name] = config
 
         try:
             os.makedirs(datasets_dir, mode=0o777, exist_ok=True)
 
             with open(dataset_info_path, "w", encoding="utf-8") as f:
                 json.dump(existing_config, f, indent=2, ensure_ascii=False)
-            logger.info(f"Successfully updated dataset_info.json with configuration for '{self.dataset}'")
+            logger.info(
+                f"Successfully updated dataset_info.json with configuration for '{target_dataset_list if self.dataset else 'all datasets'}'"
+            )
         except Exception as e:
             raise RuntimeError(f"Failed to write dataset_info.json: {e}")
 
     def _get_data_folder_description(self) -> str:
         """Generate folder description for dataset."""
-        descriptor = FinetuneDatasetDescriptor()
-        dataset_path = Path(FT_RD_SETTING.file_path) / "datasets" / self.dataset
-        desc = descriptor.describe_dataset_folder(dataset_path, self.dataset)
+        desc = FinetuneDatasetDescriptor().describe_dataset_folder(
+            Path(FT_RD_SETTING.file_path) / "datasets", self.dataset
+        )
         return str(desc)  # Use __str__ for human-readable format
 
     @property

@@ -52,8 +52,12 @@ class FinetuneDatasetDescription(dict):
         if "file_tree" in self:
             parts.append(f"## File Tree:\n{self['file_tree']}")
 
-        if "data_samples" in self:
-            parts.append(f"## Data Samples:\n{self['data_samples']}")
+        if "file_path_to_descriptions" in self:
+            for file_path, file_desc in self["file_path_to_descriptions"]:
+                parts.append(f"### File path: {file_path}\n{file_desc}")
+
+        if "readme_file_descs" in self:
+            parts.append(f"## Dataset readme Description:\n{self['readme_file_descs']}")
 
         if "stats" in self:
             stats = self["stats"]
@@ -72,56 +76,17 @@ class FinetuneFileDescription(dict):
 
     def __str__(self) -> str:
         """Generate human-readable file description."""
+        output_str = f"File name: {self.get('name', 'unknown')}\nFile Type: {self.get('type', 'unknown')}"
         if "samples" in self:
-            return f"File: {self.get('name', 'unknown')}\n{self['samples']}"
-        return f"File: {self.get('name', 'unknown')}"
+            output_str += f"\nFile Samples:\n{self['samples']}"
+        for k in self:
+            if k not in ["name", "type", "samples"]:
+                output_str += f"\n{k.capitalize()}: {self[k]}"
+        return output_str
 
 
 class FinetuneDatasetDescriptor:
     """Specialized dataset descriptor for finetune scenarios that provides separated file tree and data samples."""
-
-    def _format_samples_output(
-        self, file_descriptions: list[tuple[Path, FinetuneFileDescription]], dataset_path: Path
-    ) -> str:
-        """Format multiple file descriptions into a human-readable string.
-
-        Args:
-            file_descriptions: List of (file_path, FinetuneFileDescription) tuples
-            dataset_path: Base dataset path for computing relative paths
-
-        Returns:
-            Formatted string with file paths summary and sample content
-        """
-        if not file_descriptions:
-            return "No data samples could be extracted"
-
-        sample_file_paths = []
-        sample_contents = []
-
-        for file_path, file_desc in file_descriptions:
-            samples = file_desc.get("samples")
-            if not samples:
-                continue
-
-            # Get relative path
-            try:
-                relative_path = file_path.relative_to(dataset_path)
-                path_str = str(relative_path)
-            except ValueError:
-                path_str = file_path.name
-
-            sample_file_paths.append(path_str)
-
-            # Format samples as JSON string
-            samples_json = json.dumps(samples, ensure_ascii=False, indent=2)
-            sample_contents.append(f"Input file: {path_str}:\n{samples_json}")
-
-        if not sample_contents:
-            return "No data samples could be extracted"
-
-        # Build final output
-        paths_summary = "Sampled File Paths:\n" + "\n".join([f"- {path}" for path in sample_file_paths])
-        return paths_summary + "\n\nSample Data Content:\n\n" + "\n\n".join(sample_contents)
 
     def _generate_file_tree(self, dataset_path: Path) -> str:
         """Generate file tree for the dataset directory."""
@@ -198,7 +163,9 @@ class FinetuneDatasetDescriptor:
                 "file_count": 0,
             }
 
-    def describe_dataset_folder(self, dataset_path: Path, dataset_name: str = None) -> FinetuneDatasetDescription:
+    def describe_dataset_folder(
+        self, dataset_path: Path, dataset_name: str | None = None
+    ) -> FinetuneDatasetDescription:
         """Generate complete dataset folder description.
 
         Args:
@@ -217,20 +184,17 @@ class FinetuneDatasetDescriptor:
             data_files = _find_data_files(dataset_path, max_files=50)
 
             # Use public interface to describe files
-            file_descriptions = []
-            for data_file in data_files[:FT_RD_SETTING.data_sample_count]:  # Process first N files for samples
+            file_path_to_descriptions = []
+            for data_file in data_files[: FT_RD_SETTING.data_sample_count]:  # Process first N files for samples
                 try:
-                    file_desc = self.describe_data_file(data_file)
-                    if file_desc.get("samples"):
-                        file_descriptions.append((data_file, file_desc))
+                    file_path_to_descriptions.append(
+                        (data_file.relative_to(dataset_path), self.describe_data_file(data_file))
+                    )
                 except Exception as e:
                     logger.warning(f"Could not describe file {data_file.name}: {e}")
 
-            # Format samples output
-            data_samples_str = self._format_samples_output(file_descriptions, dataset_path)
-
             # Read description from README
-            description = self._read_dataset_readme(dataset_path)
+            readme_file_descs = self._read_dataset_readme(dataset_path)
 
             # Get file list
             files = []
@@ -241,20 +205,16 @@ class FinetuneDatasetDescriptor:
                 except ValueError:
                     files.append(file_path.name)
 
-            # Extract samples for template (first 2 samples from first file)
-            samples = self._extract_samples_for_template(data_files, max_samples=2)
-
             return FinetuneDatasetDescription(
                 {
                     # For new interface (generate_dataset_info_config)
                     "file_tree": file_tree,
-                    "data_samples": data_samples_str,
+                    "file_path_to_descriptions": file_path_to_descriptions,
                     "stats": stats,
                     # For templates (scenario_description, task_description)
                     "name": dataset_name or dataset_path.name,
-                    "description": description,
+                    "readme_file_descs": readme_file_descs,
                     "files": files,
-                    "samples": samples,
                     "sample_count": stats.get("sample_count", 0),
                     "total_size_mb": stats.get("total_size_mb", 0),
                     "file_count": stats.get("file_count", 0),
@@ -268,9 +228,8 @@ class FinetuneDatasetDescriptor:
                     "data_samples": f"Error: {str(e)}",
                     "stats": {"sample_count": 0, "total_size_mb": 0, "file_count": 0},
                     "name": dataset_name or "unknown",
-                    "description": "",
+                    "readme_file_descs": "",
                     "files": [],
-                    "samples": [],
                     "sample_count": 0,
                     "total_size_mb": 0,
                     "file_count": 0,
@@ -281,6 +240,22 @@ class FinetuneDatasetDescriptor:
         """Calculate dataset statistics (public interface for compatibility)."""
         return self._generate_stats(dataset_path)
 
+    def _walk(self, dir_path: Path, depth: int, max_depth: int, target_names: set[str]) -> None:
+        results = []
+        if depth > max_depth:
+            return results
+        for entry in dir_path.iterdir():
+            if entry.is_file():
+                # 区分大小写匹配（与题目保持一致）
+                if entry.name in target_names:
+                    results.append(entry)
+                # 如果希望大小写不敏感，可用：
+                # if entry.name.lower() in {"readme.md", "readme.txt"}:
+                #     results.append(entry)
+            elif entry.is_dir():
+                results.extend(self._walk(entry, depth + 1, max_depth, target_names))
+        return results
+
     def _read_dataset_readme(self, dataset_path: Path) -> str:
         """Read README description from dataset directory.
 
@@ -290,16 +265,17 @@ class FinetuneDatasetDescriptor:
         Returns:
             README content (truncated to 1000 chars) or empty string
         """
-        for readme in ["README.md", "readme.md", "README.txt"]:
-            readme_path = dataset_path / readme
-            if readme_path.exists():
-                try:
-                    description = readme_path.read_text(encoding="utf-8")[:1000]
-                    logger.info(f"Loaded dataset description from {readme}")
-                    return description
-                except Exception as e:
-                    logger.warning(f"Failed to read {readme}: {e}")
-        return ""
+        target_names = {"README.md", "readme.md", "README.txt"}
+        readme_files = self._walk(dataset_path, depth=0, max_depth=2, target_names=target_names)
+        readme_file_descs = ""
+        for readme_file in readme_files:
+            try:
+                description = readme_file.read_text(encoding="utf-8")[:1000]
+                logger.info(f"Loaded dataset description from {readme_file.relative_to(dataset_path)}")
+                readme_file_descs += f"# From readme file: {readme_file.relative_to(dataset_path)}:\n{description}\n\n"
+            except Exception as e:
+                logger.warning(f"Failed to read {readme_file.relative_to(dataset_path)}: {e}")
+        return readme_file_descs
 
     def _extract_samples_for_template(self, data_files: list[Path], max_samples: int = 2) -> list:
         """Extract samples from first data file for template usage.
@@ -411,6 +387,7 @@ class FinetuneDatasetDescriptor:
 
     def describe_file_jsonl(self, data_file: Path, max_samples: int = 3) -> FinetuneFileDescription:
         samples = []
+        jsonl_shape = None
         try:
             with open(data_file, "r", encoding="utf-8") as f:
                 for i, line in enumerate(f):
@@ -421,34 +398,50 @@ class FinetuneDatasetDescriptor:
                         samples.append(json.loads(line))
             if samples:
                 samples = _truncate_long_values(samples)
+            jsonl_shape = (i + 1,)
+
         except Exception as e:
             logger.warning(f"Error extracting samples from {data_file.name}: {e}")
 
-        return FinetuneFileDescription({"name": data_file.name, "type": "jsonl", "samples": samples})
+        return FinetuneFileDescription(
+            {"name": data_file.name, "type": "jsonl", "samples": samples, "shape": jsonl_shape}
+        )
 
     def describe_file_csv(self, data_file: Path, max_samples: int = 3) -> FinetuneFileDescription:
         samples = []
+        df_shape = None
+        df_columns = []
         try:
             df = pd.read_csv(data_file)
             if len(df) > 0:
                 samples = df.head(max_samples).to_dict("records")
                 samples = _truncate_long_values(samples)
+            df_shape = df.shape
+            df_columns = df.columns.tolist()
         except Exception as e:
             logger.warning(f"Error extracting samples from {data_file.name}: {e}")
 
-        return FinetuneFileDescription({"name": data_file.name, "type": "csv", "samples": samples})
+        return FinetuneFileDescription(
+            {"name": data_file.name, "type": "csv", "samples": samples, "shape": df_shape, "columns": df_columns}
+        )
 
     def describe_file_parquet(self, data_file: Path, max_samples: int = 3) -> FinetuneFileDescription:
         samples = []
+        df_shape = None
+        df_columns = []
         try:
             df = pd.read_parquet(data_file)
             if len(df) > 0:
                 samples = df.head(max_samples).to_dict("records")
                 samples = _truncate_long_values(samples)
+            df_shape = df.shape
+            df_columns = df.columns.tolist()
         except Exception as e:
             logger.warning(f"Error extracting samples from {data_file.name}: {e}")
 
-        return FinetuneFileDescription({"name": data_file.name, "type": "parquet", "samples": samples})
+        return FinetuneFileDescription(
+            {"name": data_file.name, "type": "parquet", "samples": samples, "shape": df_shape, "columns": df_columns}
+        )
 
     def describe_data_file(self, data_file: Path) -> FinetuneFileDescription:
         """Describe data file based on suffix, dispatching to specific format handlers.
@@ -476,7 +469,7 @@ class FinetuneDatasetDescriptor:
         return FinetuneFileDescription({"name": data_file.name, "type": "unknown", "samples": []})
 
 
-def generate_dataset_info_config(dataset: str, ft_file_path: str) -> dict:
+def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str) -> dict:
     """Generate dataset_info.json configuration entry using AI for LLaMA-Factory compatibility.
 
     Args:
@@ -490,16 +483,15 @@ def generate_dataset_info_config(dataset: str, ft_file_path: str) -> dict:
         RuntimeError: If configuration generation or validation fails
     """
     # Use existing descriptor to get dataset information
-    dataset_folder_desc = FinetuneDatasetDescriptor().describe_dataset_folder(Path(ft_file_path) / "datasets" / dataset)
+    dataset_folder_desc = FinetuneDatasetDescriptor().describe_dataset_folder(Path(ft_file_path) / "datasets")
 
     # Create prompt using template
-    system_prompt = T("scenarios.finetune.scen.prompts:dataset_info_generation.system").r()
+    system_prompt = T(".prompts:dataset_info_generation.system").r(
+        target_dataset_list=target_dataset_list,
+    )
     # TODO: select appropriate columns (Reasoning first?)
-    # TODO: guide llm: how to select dir? (not enabled yet)
-    user_prompt = T("scenarios.finetune.scen.prompts:dataset_info_generation.user").r(
-        dataset=dataset,
-        file_tree=dataset_folder_desc.get("file_tree"),
-        data_samples=dataset_folder_desc.get("data_samples"),
+    user_prompt = T(".prompts:dataset_info_generation.user").r(
+        dataset_info=str(dataset_folder_desc),
     )
 
     # Generate configuration using API
@@ -510,16 +502,12 @@ def generate_dataset_info_config(dataset: str, ft_file_path: str) -> dict:
 
     response_dict = json.loads(raw_response)
 
-    # Extract and validate configuration
-    if dataset not in response_dict:
-        raise RuntimeError(f"Generated response missing key '{dataset}'")
+    dataset_info_dict = {}
+    for dataset_key, config in response_dict.items():
+        if _validate_dataset_config(config):
+            dataset_info_dict[dataset_key] = config
 
-    config = response_dict[dataset]
-    if not _validate_dataset_config(config):
-        raise RuntimeError(f"Invalid configuration for '{dataset}'")
-
-    logger.info(f"Generated configuration for '{dataset}'")
-    return config
+    return dataset_info_dict
 
 
 def _validate_dataset_config(config: dict) -> bool:

@@ -54,6 +54,22 @@ dataset_info_generation:
     ## Common Column Mappings:
     - Alpaca: "instruction"→prompt, "input"→query, "output"→response
     - ShareGPT: "conversations"→messages, plus role/content tags
+    
+    ## Dataset Selection
+    {% if target_dataset_list|length == 0 %}
+    Generate configuration for all datasets found in the datasets directory.
+    {% else %}
+    The user only focus on certain dataset(s).
+    Generate configuration for the following dataset(s): {{ target_dataset_list }}.
+    {% endif %}
+
+    ## Specific Instructions
+    - The outer key must be the dataset name (preserve "/" exactly). For example, "my_dataset" or "chat/dataset".
+    - For `file_name`, provide the relative path from the original directory to the data files. Mostly it is under "dataset_name/...".
+    - Choose "alpaca" or "sharegpt" based on data structure.
+    - Map column names from sample data to LLaMA-Factory format.
+    - For datasets not following Alpaca or ShareGPT format. Please choose the closest one and adjust column mappings accordingly.
+    - The folder might contain multiple files also multiple datasets. Please include all valid datasets you can find in your response.
 
     ## Examples:
     ```json
@@ -61,12 +77,7 @@ dataset_info_generation:
       "my_dataset": {
         "file_name": "my_dataset/train.json",
         "columns": {"prompt": "instruction", "response": "output"}
-      }
-    }
-    ```
-
-    ```json  
-    {
+      },
       "chat_dataset": {
         "file_name": "chat_dataset/data.json",
         "formatting": "sharegpt",
@@ -75,34 +86,19 @@ dataset_info_generation:
     }
     ```
 
-  user: |-
-    **Dataset**: {{ dataset }}
-
-    **File Structure**:
-    ```
-    {{ file_tree }}
-    ```
-
-    **Sample Data**:
-    ```
-    {{ data_samples }}
-    ```
-
-    **Requirements**:
-    - Outer key: "{{ dataset }}" (preserve "/" exactly)
-    - `file_name`: Relative path from datasets directory to data files
-      - Single file: "{{ dataset }}/path/to/file.json"
-      - Multiple files in directory: "{{ dataset }}/path/to/directory"
-    - Choose "alpaca" or "sharegpt" based on data structure
-    - Map column names from sample data to LLaMA-Factory format
-
     **Output Format**:
     ```json
     {
-      "{{ dataset }}": {
-        "file_name": "{{ dataset }}/...",
+      "dataset_name": {
+        "file_name": "dataset_name/...",
         "formatting": "alpaca|sharegpt",
         "columns": {...}
       }
     }
+    ```
+
+  user: |-
+    **Dataset folder description**:
+    ```
+    {{ dataset_info }}
     ```
