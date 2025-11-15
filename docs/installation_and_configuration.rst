@@ -162,25 +162,44 @@ If your `Azure OpenAI API Key`` supports `embedding model`, you can refer to the
 Execution Environment Configuration
 ===================================
 
-Model Coder Environment (Docker vs. Conda)
+Coder Environment Configuration (Docker vs. Conda)
 
-RD-Agent's model coder can execute code in different environments. You can control this behavior by setting an environment variable in your ``.env`` file. This is particularly useful for quantitative scenarios where you might want to switch between a local Conda environment and an isolated Docker container.
+RD-Agent's coders can execute code in different environments. You can control this behavior by setting environment variables in your ``.env`` file. This is useful for switching between a local Conda environment and an isolated Docker container.
+
+To configure the environment, add the corresponding line to your ``.env`` file based on the scenario you are running.
+
+**For the Model (Quant) Scenario:**
 
 The execution environment is determined by the ``MODEL_COSTEER_ENV_TYPE`` variable, which is read from ``rdagent/components/coder/model_coder/conf.py``.
 
-To configure the environment, add one of the following lines to your ``.env`` file:
+*   **To use Docker** (recommended for isolated execution):
 
-- **To use Docker** (recommended for isolated execution):
+    .. code-block:: properties
 
-  .. code-block:: properties
+       MODEL_COSTEER_ENV_TYPE=docker
 
-     MODEL_COSTEER_ENV_TYPE=docker
+*   **To use Conda** (for running in a local Conda environment):
 
-- **To use Conda** (for running in a local Conda environment):
+    .. code-block:: properties
 
-  .. code-block:: properties
+       MODEL_COSTEER_ENV_TYPE=conda
 
-     MODEL_COSTEER_ENV_TYPE=conda
+**For the Data Science Scenario:**
+
+The execution environment is determined by the ``DS_CODER_COSTEER_ENV_TYPE`` variable, which is read from ``rdagent/components/coder/data_science/conf.py``.
+
+*   **To use Docker** (recommended for isolated execution):
+
+    .. code-block:: properties
+
+       DS_CODER_COSTEER_ENV_TYPE=docker
+
+*   **To use Conda** (for running in a local Conda environment):
+
+    .. code-block:: properties
+
+       DS_CODER_COSTEER_ENV_TYPE=conda
+
 
 
 Configuration(deprecated)
