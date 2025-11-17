@@ -1,7 +1,9 @@
-
-
+from asyncio.log import logger
+from pathlib import Path
 from rdagent.core.experiment import Experiment
 from rdagent.core.proposal import Experiment2Feedback, ExperimentFeedback, Trace
+import re
+import json
 
 
 class AgenticSysExp2Feedback(Experiment2Feedback):
@@ -10,6 +12,44 @@ class AgenticSysExp2Feedback(Experiment2Feedback):
         # BEGIN drafting
         # read content from `expriment.workspace_path`
         # END drafting
+        try:
+            if hasattr(experiment, 'experiment_workspace') and experiment.experiment_workspace:
+                ws_path = Path(experiment.experiment_workspace.workspace_path)
+                if ws_path.exists() and ws_path.is_dir():
+                    logger.info(f"Reading results from workspace: {ws_path}")
+                    #Try to read result files in order of preference
+                    result_files = [
+                        "result.json",
+                        "detailed_result.json",
+                        "output.json",
+                        "results.json",
+                        "error_result.json"
+                    ]
+                    for result_file in result_files:
+                        result_path = ws_path / result_file
+                        if result_path.exists():
+                            try:
+                                content = result_path.read_text()
+                                data = json.loads(content)
+                                #Extract execution results if nested 
+                                if isinstance(data, dict):
+                                    if "execution_result" in data:
+                                        experiment.result = data["execution_result"]
+                                    else:
+                                        experiment.result = data
+                                else:
+                                    experiment.result = data
+                                break
+                            except Exception as e:
+                                logger.warning(f"Failed to parse {result_file}: {e}")
+                                continue
+                    #if no result file found, try parsing stdout/stderr from workspace
+                    if not hasattr(experiment, 'result') or experiment.result is None:
+                        self.try_parse_logs(experiment, ws_path)
+        except Exception as e:
+            logger.warning(f"Failed to read workspace contents: {e}")
+
+
 
         # 1. check whether experiment ran successfully
         if not hasattr(experiment, 'result') or experiment.result is None:
@@ -72,6 +112,72 @@ class AgenticSysExp2Feedback(Experiment2Feedback):
             reason = reason,
             decision = is_improvement,
         )
+    
+    def try_parse_logs(self, experiment, ws_path):
+        """Try to parse result from workspace log files"""
+        try:
+            # look for commonn log files patterns
+            log_pattern = ["*.log", "*.out", "train_output.txt","execution.log"]
+            for pattern in log_pattern:
+                for log_file in ws_path.glob(pattern):
+                    try:
+                        content = log_file.read_text()
+                        parsed = self.parse_stdout_for_metrics(content)
+                        if parsed:
+                            experiment.result = parsed
+                            return
+                    except Exception as e:
+                        logger.warning(f"Failed to parse log file {log_file}: {e}")
+                        continue
+        except Exception as e:
+            logger.warning(f"Failed to read workspace contents: {e}")
+
+
+    def parse_stdout_for_metrics(self, stdout):
+        """Parse metrics from stdout text"""
+        if not stdout:
+            return None
+        try:
+            # Method 1: Try to extract JSON block
+            json_pattern = r'=== JSON RESULTS ===\s*\n(.*?)\n=== END JSON ==='
+            match = re.search(json_pattern, stdout, re.DOTALL)
+            if match:
+                try:
+                    return json.loads(match.group(1).strip())
+                except json.JSONDecodeError:
+                    pass
+            # Method 2: Try to find any JSON object
+            json_obj_pattern = r'\{[^{}]*"success_rate"[^{}]*\}'
+            match = re.search(json_obj_pattern, stdout)
+            if match:
+                try:
+                    return json.loads(match.group(0))
+                except json.JSONDecodeError:
+                    pass
+            
+            # Method 3: Parse text patterns
+            metrics = {}
+            
+            success_match = re.search(r'Success Rate:\s*([0-9.]+)', stdout)
+            time_match = re.search(r'Average Time:\s*([0-9.]+)', stdout)
+            error_match = re.search(r'Error Count:\s*([0-9]+)', stdout)
+            tasks_match = re.search(r'Total Tasks:\s*([0-9]+)', stdout)
+            
+            if success_match:
+                metrics['success_rate'] = float(success_match.group(1))
+                metrics['avg_time'] = float(time_match.group(1)) if time_match else 0.0
+                metrics['error_count'] = int(error_match.group(1)) if error_match else 0
+                metrics['total_tasks'] = int(tasks_match.group(1)) if tasks_match else 0
+                return metrics
+                
+        except Exception as e:
+            logger.debug(f"Failed to parse stdout: {e}")
+        
+        return None
+
+                    
+
+
     
     def get_best_from_trace(self, trace:Trace):
         # Extract the best experiment result from the trace

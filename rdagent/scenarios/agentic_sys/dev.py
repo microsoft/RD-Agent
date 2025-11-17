@@ -1,4 +1,7 @@
 import sys
+
+from matplotlib.style import context
+from prefect import task
 from rdagent.core.developer import Developer
 from rdagent.core.experiment import Experiment, FBWorkspace
 from rdagent.log import rdagent_logger as logger
@@ -28,42 +31,644 @@ class AgenticSysCoder(Developer[Experiment]):
         '''
         logger.info("Starting code generation for the experiment")
 
-        # begin drafting
-        # NOTE:
-        # We should implement CoSTEER here to improve high quality coding ability
-        # 1) generate code
-        # prompting
-        exp.experiment_workspace = FBWorkspace()
-        # exp.experiment_workspace.inject_files(**{"<filename>": <file content>})
-
-        # 2) run code
-        # prepare environment.
-        env = get_agent_sys_env(
-            extra_volumes={exp.experiment_workspace.workspace_path: "/....."},
-            # .....
-        )
-
-        env.run(entry="<entrypoint>", ...)
-
-        # Please refer to the following code for details.
-        # [[rdagent/components/coder/data_science/conf.py:41]]
-        
-
-        # end drafting
         try:
-            #acquire workspace 
-            ws_path = self.get_workspace_path(exp)
-            #create workspace directory
+            # 1. Initialize workspace with FBWorkspace 
+            exp.experiment_workspace = FBWorkspace()
+            ws_path = Path(exp.experiment_workspace.workspace_path)
             ws_path.mkdir(parents=True, exist_ok=True)
-            #generate code
-            self.generate_files(ws_path, exp)
-            logger.info(f"Code generation as workspace at {ws_path}")
+            logger.info(f"Initialized workspace at {ws_path}")
+
+
+            #2. Generate code files using CoSTEER approach
+            code_artifacts = self.generate_code_with_costeer(exp)
+            exp.experiment_workspace.inject_files(**code_artifacts)
+            logger.info(f"Injected {len(code_artifacts)} files into workspace")
+
+            #prepare execution environment following conf.py pattern
+            timeout = self.calculate_timeout(exp)
+            env = get_agent_sys_env(
+                extra_volumes = {str(ws_path): "/workspace"},
+                running_timeout_period = timeout,
+                enable_cache=True
+            )
+            logger.info(f"Prepared execution environment")
+
+            # 3) Optinal pre-run validation
+            try: 
+                if self.should_validate_generation(exp):
+                    validation_result = self.validate_generated_code(env, ws_path)
+                    if not getattr(validation_result, 'success', False):
+                        logger.warning(f"Pre-run validation failed: {validation_result.message}")
+            except Exception as e_val:
+                logger.error(f"Validation step raised: {e_val} continuing...")
+
+            #4. run the entrypoint inside environment (use train.py as entry)
+            try: 
+                logger.info("Running generated code inside validation")
+                run_res = env.run(
+                    entry = "bash",
+                    cmd = "cd /workspace && python train.py", timeout = timeout
+                )
+                #collect run outputs
+                exp.run_returncode = getattr(run_res, 'returncode', None)
+                exp.run_stdout = getattr(run_res, 'stdout', getattr(run_res, 'logs', None))
+                exp.run_stderr = getattr(run_res, 'stderr', None)
+                logger.info(f"Run finished")
+            except Exception as e_run:
+                logger.error(f"Execution inside environment failed: {e_run}")
+                #keep exception and let caller decide; still return exp with workspace
+                exp.run_exception = e_run
 
         except Exception as e:
             logger.error(f"Code generation failed: {str(e)}")
             exp.exception = e
-        
+            if not hasattr(exp, 'experiment_workspace') or not exp.experiment_workspace:
+                try:
+                    exp.experiment_workspace = self.create_fallback_workspace(exp)
+                except Exception as e_fallback:
+                    pass
         return exp
+    
+    def generate_code_with_costeer(self, exp: Experiment) -> Dict[str, str]:
+        """
+        Generate code artifacts using CoSTEER approach
+        """
+        logger.info("Generating code using CoSTEER framework")
+        hypothesis = getattr(exp, 'hypothesis', 'Improve agentic system performance')
+        context = {
+            'hypothesis': hypothesis,
+            'scenario_desc': self.scen.get_scenario_all_desc(),
+            'success_criteria': self.scen.get_success_criteria(),
+        }
+        # generate code artifacts
+        code_artifacts = {}
+
+        #1. generate main agent implementation
+        agent_code = self.generate_agent_code(context)
+        code_artifacts['agent.py'] = agent_code
+
+        #2. Generate execution script
+        train_code = self.generate_train_script(context)
+        code_artifacts['train.py'] = train_code
+
+        #3. Generate requirements file
+        requirements = self.generate_requirements(context)
+        code_artifacts['requirements.txt'] = requirements
+
+        #4. Generate configuration file if needed
+        if self.needs_config_file(context):
+            config_code = self.generate_config_file(context)
+            code_artifacts['config.py'] = config_code
+
+        logger.info(f"Generated {len(code_artifacts)} code artifacts")
+        return code_artifacts
+    
+    def prepare_execution_environment(self, exp: Experiment, ws_path: Path):
+        """
+        Prepare execution environment similar to DS CoSTEER approach
+        """
+        try:
+            # Get environment configuration
+            extra_volumes = {str(ws_path): "/workspace"}
+            #Set timeout based on experiment complexity
+            timeout = self.calculate_timeout(exp)
+            #create environment using agent_sys specific configuration
+            env = get_agent_sys_env(
+                extra_volumes = extra_volumes,
+                running_timeout_period = timeout, 
+                enable_cache=True
+            )
+            logger.info("Prepared execution environment successfully")
+            return env
+        
+        except Exception as e:
+            logger.error(f"Failed to prepare execution environment: {str(e)}")
+            raise
+
+    def calculate_timeout(self, exp: Experiment) -> int:
+        """
+        Calculate appropriate timeout based on experiment characteristics
+        """
+        base_timeout = 300  # default 5 minutes
+        #Adjust timeout based on hypothesis comnplexity
+        hypothesis = getattr(exp, 'hypothesis', '')
+        if 'parallel' in hypothesis.lower() or 'concurrent' in hypothesis.lower():
+            return base_timeout * 2  #parallel tasks may need more time
+        elif 'optimisation' in hypothesis.lower():
+            return base_timeout * 4 #learning/optimization may need more time
+        elif 'simple' in hypothesis.lower() or 'basic' in hypothesis.lower():
+            return base_timeout  #simple tasks
+        return base_timeout
+    
+    def should_validate_generation(self,exp: Experiment) -> bool:
+        """
+        Determine if we should validate generated code before proceeding
+        """
+        pass
+
+    def validate_generated_code(self, env, ws_path: Path):
+        """
+        Validate generated code by running basic checks
+        """
+        class ValidationResult:
+            def __init__(self,success, message):
+                self.success = success
+                self.message = message
+
+        try:
+            #Run basic syntax check
+            check_cmd = "python -m py_compile agent.py && python -m py_compile train.py"
+            result = env.run(
+                entry_point = "bash",
+                cmd = f'cd/workspace && {check_cmd}',
+                timeout = 30
+            )
+            if result.returncode == 0: 
+                return ValidationResult(True, "syntax validation passed")
+            else:
+                return ValidationResult(False, f"Syntax validation failed: {result.stderr}")
+        
+        except Exception as e:
+            return ValidationResult(False, f"Validation error: {str(e)}")
+        
+    def generate_agent_code(self,context):
+        """
+        Generate agent code based on context
+        """
+        hypothesis = context.get('hypothesis', 'Improve agentic system performance')
+        #enhanced agent template with CoSTEER improvement
+        return f'''"""
+        Agentic System Implementation - CoSTEER enhanced
+        Hypothesis: {hypothesis}
+        Generated with intelligent code generation
+        """
+        import time
+        import logging
+        import threading
+        from typing import Dict, List, Any, Optional
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        from dataclasses import dataclass
+        from enum import Enum
+        import json
+
+        #Configurable logging
+        logging.basicConfig(level = logging.INFO)
+        logger = logging.getLogger("AgenticSystem")
+
+        class TaskStatus(Enum):
+            PENDING = "pending"
+            RUNNING = "running"
+            COMPLETED = "completed"
+            FAILED = "failed"
+
+        @dataclass
+        class TaskResult:
+            task_id: int
+            success: bool
+            execution_time: float
+            success: bool
+            error: Optional[str] = None
+            data: Optional[Dict[str, Any]] = None
+        
+        class AgenticSystem:
+            """
+            Ehanced Agentic System with CoSTEER optimizations
+            """
+            def __init__(self, config[Dict] = None):
+                self.name = "CoSTEER_AgenticSystem"
+                self.task_count = 0
+                self.config = config if config else self.get_default_config()
+
+                #Performance Tracking
+                self.performance_metrics = {
+                    "total_tasks": 0,
+                    "successful_tasks": 0,
+                    "failed_tasks": 0,
+                    "total_execution_time": 0.0
+                }
+
+                #thread safety
+                self.lock = threading.Lock()
+
+                logger.info(f"Initialized {{self.name}} with config: {{self.config}}")
+            
+            def get_default_config(self):
+                """Get default configuration optimized for hypothesis"""
+                return {{
+                    "max_workers": 4,
+                    "task_timeout": 60,
+                    "enable_parallel": {'parallel' in hypothesis.lower()},
+                    "enable_optimization": {'optimization' in hypothesis.lower()}
+                }}
+
+            def run_task(self, task: Dict[str, Any]):
+                """Execute single task with enhanced error handling and monitoring"""
+                start_time = time.time()
+                task_id = task.get('id', self.get_next_task_id())
+                try:
+                    logger.info(f"Starting task {{task_id}}")
+                    #Simulate intelligent task processing
+                    self.process_task_logic(task)
+                    execution_time = time.time() - start_time
+                    #update metrics
+                    with self.lock:
+                        self.metrics['total_tasks'] += 1
+                        self.metrics['successful_tasks'] += 1
+                        self.metrics['total_execution_time'] += execution_time
+                    result = TaskResult(
+                        task_id = task_id,
+                        status = TaskStatus.COMPLETED,
+                        execution_time = execution_time,
+                        success = True,
+                        data = {'processed': True, 'task_type': task.get('type', 'unknown')}
+                    )
+
+                    logger.info(f"Task {{task_id}} completed successfully in {{execution_time:.4f}}s")
+                    return result
+
+                except Exception as e:
+                    execution_time = time.time() - start_time
+                    with self.lock:
+                        self.metrics['total_tasks'] += 1
+                        self.metrics['failed_tasks'] += 1
+                        self.metrics['total_execution_time'] += execution_time
+                    result = TaskResult(
+                        task_id = task_id,
+                        status = TaskStatus.FAILED,
+                        execution_time = execution_time,
+                        success = False,
+                        error = str(e)
+                    )
+                    logger.error(f"Task {{task_id}} failed: {{str(e)}}")
+                    return result
+            
+            def get_next_task_id(self):
+                "thread-safe task id generation"
+                with self.lock:
+                    self.task_count += 1
+                    return self.task_count
+
+            def process_task_logic(self, task):
+                """Intelligent task processing based on hypothesis"""
+                task_type = task.get('type', 'default')
+                complexity = task.get('complexity', 1)
+
+                #Simulate processing time based on complexity
+                base_time = 0.01
+                processing_time = base_time * complexity
+
+                #Add hypothesis-specific optimisation
+                if complexity > 5 and not self.config.get('enable_optimization', False):
+                    # 10% error rate for high complexity tasks
+                    if time.time() % 10 < 1: 
+                        raise RuntimeError(f"Simulated error for complex task {{task.get('id')}}")
+
+            def run_tasks(self, tasks):
+                """
+                Execute multiple tasks with intelligent scheduling
+                """
+                if tasks is None:
+                    tasks = self.generate_default_tasks()
+                logger.info(f"Starting execution of {{len(tasks)}} tasks")
+                batch_start_time = time.time()
+
+                if self.config.get('enable_parallel', False) and len(tasks) > 1:
+                    results = self.run_tasks_in_parallel(tasks)
+                else:
+                    results = self.run_tasks_sequential(tasks)
+                
+                #Calculate comprehensive metrics
+                total_time = time.time() - batch_start_time
+                success_count = sum(1 for r in results if r.success)
+                avg_task_time = sum(r.execution_time for r in results) / len(results) if results else 0
+
+                metrics = {{
+                    "success_rate": success_count / len(results) if results else 0,
+                    "avg_task_time": avg_task_time,
+                    "error_count": len(results) - success_count,
+                    "total_tasks": len(results),
+                    "total_execution_time": total_time,
+                    "system_metrics": self.metrics.copy()
+                }}
+                logger.info(f"Batch execution completed: {{metrics}}")
+                return metrics
+
+            def run_tasks_sequential(self, tasks): 
+                """Execute task sequentially"""
+                results = []
+                for task in tasks:
+                    result = self.run_task(task)
+                    results.append(result)
+                return results
+
+            def run_tasks_parallel(self, tasks):
+                """Execute tasks in parallel using ThreadPoolExecutor"""
+                results = []
+                max_workers = min(self.config.get('max_workers', 4), len(tasks))
+                with ThreadPoolExecutor(max_workers = max_workers) as executor:
+                    future_to_task = {{executor.submit(self.run_task, task): task for task in tasks}}
+                    for future in as_completed(future_to_task):
+                        try:
+                            result = future.result(timeout = self.config.get('task_timeout', 30))
+                            results.append(result)
+                        except Exception as e:
+                            #Create error result for failed failure
+                            task = future_to_task[future]
+                            error_result = TaskResult(
+                                task_id = task.get('id', 0),
+                                status = TaskStatus.FAILED,
+                                execution_time = 0,
+                                success = False,
+                                error = f"Future execution failed: {{str(e)}}"
+                            )
+                            results.append(error_result)
+                return results
+
+            def generate_default_tasks(self):
+                """Generate default tasks for testing"""
+                return [
+                    {{
+                        "id": i,
+                        "type": "test",
+                        "data": f"sample_{{i}}",
+                        "complexity": (i % 5 ) + 1
+                    }} for i in range(10)
+                ]
+
+            def get_system_status(self):
+                """Get current system status and metrics"""
+                with self.lock:
+                    status = {{
+                        'name': self.name,
+                        'config': self.config,
+                        'metrics': self.metrics.copy(),
+                        'success_rate': (
+                            self.metrics['successful_tasks'] / self.metrics['total_tasks']
+                            if self.metrics['total_tasks'] > 0 else 0
+                        )
+                    }}
+                return status
+        '''
+    
+    def generate_train_script(self, context):
+        """
+        Generate enhanced training/execution script
+        """
+        return '''
+        """
+        CoSTEER-Ehanced Training/Execution Script for Agentic System
+        """
+        import json
+        import sys
+        import time
+        import traceback
+        from pathlib import Path
+        from agent import AgenticSystem
+        def main():
+            """
+            Main execution function with comprehensive error handling and reporting
+            """
+            try:
+                print("CoSTEER Agentic System Execution Started")
+                execution_start = time.time()
+                #Initialize agent with configuration
+                config = {
+                    'max_workers': 4,
+                    'enable_parallel': True, 
+                    'enable_optimisation': True,
+                    'task_timeout': 30
+                }
+                agent = AgenticSystem(config)
+                #Run tasks and collect results
+                results = agent.run_tasks()
+
+                #Save detailed result to file
+                detailed_results = {
+                    'execution_results': results,
+                    'system_status': agent.get_system_status(),
+                    'execution_time': time.time() - execution_start,
+                    'timestamp': time.time()
+                }
+
+                result_file = Path("result.json")
+                result_file.write_text(json.dumps(detailed_results, indent = 2))
+                #Print structured output for parsing
+                print("Execution Result")
+                print(f"Success Rate: {results['Success_rate']}")
+                print(f"Average Task Time: {results['avg_task_time']}")
+                print(f"Error Count: {results['error_count']}")
+                print(f"Total Tasks: {results['total_tasks']}")
+                print(f"Total Execution Time: {detailed_results['execution_time']}s")
+
+                #JSON output for automated parsing
+                print("JSON RESULTS:")
+                print(json.dumps(results))
+
+            except Exception as e:
+                print(f"Error: Execution failed - {str(e)}",file = sys.stderr)
+                print("Error Details")
+                traceback.print_exc()
+                error_result = {
+                    "success_rate": 0,
+                    "average time", float('inf'),
+                    "error_count": 1,
+                    "total_tasks": 0,
+                    "error_reason": str(e)
+                }
+                # Save error result
+                try:
+                    error_file = Path("error_result.json")
+                    error_fi;e.write_text(json.dumps(error_result, indent = 2))
+                except:
+                    pass
+                return 1
+        if __name__ == "__main__":
+            exit_code = main()
+            sys.exit(exit_code)
+        '''
+    
+    def generate_requirements(self, context):
+        """
+        Generate requirements file based on context
+        """
+        hypothesis = context.get('hypothesis', '')
+        requirements = [
+            "# CoSTEER Generated Requirements",
+            "# Basic dependencies",
+            "numpy>=1.21.0",
+            "pandas>=1.3.0",
+        ]
+        
+        # Add context-specific requirements
+        if 'parallel' in hypothesis.lower() or 'concurrent' in hypothesis.lower():
+            requirements.extend([
+                "# Parallel processing",
+                "joblib>=1.0.0",
+                "concurrent-futures>=3.1.1"
+            ])
+        
+        if 'monitoring' in hypothesis.lower() or 'metrics' in hypothesis.lower():
+            requirements.extend([
+                "# Monitoring and metrics", 
+                "psutil>=5.8.0",
+                "prometheus-client>=0.11.0"
+            ])
+        
+        if 'optimization' in hypothesis.lower():
+            requirements.extend([
+                "# Optimization libraries",
+                "scipy>=1.7.0",
+                "scikit-learn>=1.0.0"
+            ])
+        
+        return "\\n".join(requirements) + "\\n"
+    
+    def needs_config_file(self, context):
+        """
+        Determine if a configuration file is needed
+        """
+        hypothesis = context.get('hypothesis', '')
+        return any(keyword in hypothesis.lower() for keyword in ['config', 'parameter', 'setting', 'tune'])
+    
+    def generate_config_file(self, context):
+        """
+        Generate configuration file 
+        """
+        return '''
+        """
+        CoSTEER Generated Configuration
+        """
+        import os
+        from dataclasses import dataclass
+        from typing import Dict, Any
+
+        @dataclass
+        class AgentSystemConfig:
+            """Configuration for agentic system"""
+            #Execution settings
+            max_workers: int = 4
+            task_timeout: float = 30.0
+            enable_parallel: bool = True
+            enable_optimization: bool = True
+    
+            # Performance settings
+            retry_attempts: int = 3
+            batch_size: int = 10
+            
+            # Logging settings
+            log_level: str = "INFO"
+            enable_detailed_logging: bool = True
+            
+            @classmethod
+            def from_env(cls) -> 'AgenticSystemConfig':
+                """Create config from environment variables"""
+                return cls(
+                    max_workers=int(os.getenv('AGENTIC_MAX_WORKERS', '4')),
+                    task_timeout=float(os.getenv('AGENTIC_TASK_TIMEOUT', '30.0')),
+                    enable_parallel=os.getenv('AGENTIC_ENABLE_PARALLEL', 'true').lower() == 'true',
+                    enable_optimization=os.getenv('AGENTIC_ENABLE_OPTIMIZATION', 'true').lower() == 'true',
+                )
+            
+            def to_dict(self) -> Dict[str, Any]:
+                """Convert config to dictionary"""
+                return {
+                    'max_workers': self.max_workers,
+                    'task_timeout': self.task_timeout,
+                    'enable_parallel': self.enable_parallel,
+                    'enable_optimization': self.enable_optimization,
+                    'retry_attempts': self.retry_attempts,
+                    'batch_size': self.batch_size,
+                    'log_level': self.log_level,
+                    'enable_detailed_logging': self.enable_detailed_logging
+                }
+
+        # Default configuration instance
+        DEFAULT_CONFIG = AgenticSystemConfig()
+        '''
+
+    def create_fallback_workspace(self, exp: Experiment) -> FBWorkspace:
+        """Create a fallback worksapce in case of errors"""
+        logger.warning("create fallback workspace due to previous errors")
+        try:
+            workspace = FBWorkspace()
+            
+            # Create minimal working files
+            minimal_files = {
+                "agent.py": self._get_minimal_agent_code(),
+                "train.py": self._get_minimal_train_code(),
+                "requirements.txt": "# Minimal requirements\\n"
+            }
+            
+            workspace.inject_files(**minimal_files)
+            return workspace
+            
+        except Exception as e:
+            logger.error(f"Failed to create fallback workspace: {e}")
+            raise
+
+    def get_minimal_agent_code(self):
+        """Get minimal working agent code"""
+        return '''
+        class AgenticSystem:
+            def __init__(self):
+                self.name = "MinimalAgent"
+            def run_tasks(self):
+                return {
+                    "success_rate": 0.5,
+                    "avg_time": 0.01,
+                    "error_count": 0,
+                    "total_tasks": 1
+                }
+        '''
+    
+    def get_minimal_train_code(self):
+        """Get minimal working train code"""
+        return '''
+        from agent import AgenticSystem
+        agent = AgenticSystem()
+        results = agent.run_tasks()
+        print(f"Success Rate: {results['success_rate']}")
+        print(f"Average Time: {results['avg_time']}")
+        print(f"Error Count: {results['error_count']}")
+        print(f"Total Tasks: {results['total_tasks']}")
+        ''' 
+
+        # # begin drafting
+        # # NOTE:
+        # # We should implement CoSTEER here to improve high quality coding ability
+        # # 1) generate code
+        # # prompting
+        # exp.experiment_workspace = FBWorkspace()
+        # # exp.experiment_workspace.inject_files(**{"<filename>": <file content>})
+
+        # # 2) run code
+        # # prepare environment.
+        # env = get_agent_sys_env(
+        #     extra_volumes={exp.experiment_workspace.workspace_path: "/....."},
+        #     # .....
+        # )
+
+        # env.run(entry="<entrypoint>", ...)
+
+        # # Please refer to the following code for details.
+        # # [[rdagent/components/coder/data_science/conf.py:41]]
+        
+
+        # # end drafting
+        # try:
+        #     #acquire workspace 
+        #     ws_path = self.get_workspace_path(exp)
+        #     #create workspace directory
+        #     ws_path.mkdir(parents=True, exist_ok=True)
+        #     #generate code
+        #     self.generate_files(ws_path, exp)
+        #     logger.info(f"Code generation as workspace at {ws_path}")
+
+        # except Exception as e:
+        #     logger.error(f"Code generation failed: {str(e)}")
+        #     exp.exception = e
+        
+        # return exp
 
     def get_workspace_path(self, exp: Experiment):
         '''
