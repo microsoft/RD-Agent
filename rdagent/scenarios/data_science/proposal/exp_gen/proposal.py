@@ -1182,7 +1182,7 @@ You help users retrieve relevant knowledge from community discussions and public
             appendix=hypothesis_dict[max_score_problem_name].get("appendix", None),
         )
     
-    def reward_model_select_hypothesis(self, hypothesis_dict: dict, problem_dict: dict) -> Tuple[str, DSHypothesis]:
+    def reward_model_select_hypothesis(self,trace, hypothesis_dict: dict, problem_dict: dict) -> Tuple[str, DSHypothesis]:
         """
         Select hypothesis based on reward model scores.
         """
@@ -1190,7 +1190,7 @@ You help users retrieve relevant knowledge from community discussions and public
         from transformers import AutoTokenizer
         import os
         logdir = DS_RD_SETTING.reward_model_path
-        base_model = "gpt2"
+        base_model = DS_RD_SETTING.reward_base_model
         adapter_path = os.path.join(logdir, "lora_adapter")
         reward_head_path = os.path.join(logdir, "reward_head.pt")
         calib_path = os.path.join(logdir, "calib.json")
@@ -1203,11 +1203,43 @@ You help users retrieve relevant knowledge from community discussions and public
             base_model_path=base_model,
             adapter_path=adapter_path,
             reward_head_path=reward_head_path,
-            calib_path=calib_path,
         ).to("cuda")
+        model.eval()
+
+        parent_nodes = {}
+        for node in range(len(trace.hist)):
+            parents = trace.get_parents(node)
+            parent_nodes[node] = parents[-2] if len(parents) > 1 else None
+        # FIXME: add the convert logic to method in trace
+        if hasattr(trace, "idx2loop_id"):
+            parent_nodes = {
+                trace.idx2loop_id[n]: trace.idx2loop_id[r] if r is not None else r for n, r in parent_nodes.items()
+            }
+        #if trace.current_selection:
+        #    current_parent_record_id = trace.current_selection[0]  # record id
+        current_parent_record_id = trace.current_selection[0]
+        loop_id2idx = {v: k for k, v in trace.idx2loop_id.items()}
+        loop_id_list = self._get_path(trace.idx2loop_id[current_parent_record_id], parent_nodes)
+
+        hypothesis_list = [
+            trace.hist[loop_id2idx[loop_id]][0].hypothesis.hypothesis
+            for loop_id in loop_id_list
+            if trace.hist[loop_id2idx[loop_id]][1].decision == True
+        ][::-1]
+        sep =  "->"
+
+        hypothesis_chain_list = []
+        accumulate = []
+        for hyp in hypothesis_list:
+            accumulate.append(hyp)
+            hypothesis_chain_list.append(sep.join(accumulate))
+
+        last_text = []
         texts = []
         for name, data in hypothesis_dict.items():
+            last_text.append(hypothesis_chain_list[-1] + sep + data.get("hypothesis", "Hypothesis not provided"))
             texts.append(data.get("hypothesis", "Hypothesis not provided"))
+
         rewards = model.compute_reward(texts, tokenizer)
         max_idx = rewards.index(max(rewards))
         return texts[max_idx]
@@ -1264,14 +1296,14 @@ You help users retrieve relevant knowledge from community discussions and public
             tokenizer.pad_token = tokenizer.eos_token
 
         model = RewardModelInference(
-            base_model_path=base_model,
+            base_model_name=base_model,
             adapter_path=adapter_path,
             reward_head_path=reward_head_path,
         ).to("cuda")
         model.eval()
 
-        parent_rewards = model(hypothesis_chain_list,tokenizer)
-        currnet_rewards = model(last_text,tokenizer)
+        parent_rewards = model.compute_reward(hypothesis_chain_list,tokenizer)
+        currnet_rewards = model.compute_reward(last_text,tokenizer)
 
         avg_win_rate = []
         for re in currnet_rewards:
@@ -1574,7 +1606,7 @@ You help users retrieve relevant knowledge from community discussions and public
             )
             pickled_problem_name = None
         else:
-            if DS_RD_SETTING.enable_reward_model_selection==True:
+            if DS_RD_SETTING.enable_reward_model_selection==True and trace.current_selection:
                 # logger.info("Selecting hypothesis using reward model.")
                 # selected_hypothesis_text = self.reward_model_select_hypothesis(
                 #     hypothesis_dict=hypothesis_dict,
