@@ -1,0 +1,3 @@
+torch
+transformers==4.53.1
+peft==0.6.1
