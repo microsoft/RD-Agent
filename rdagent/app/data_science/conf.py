@@ -201,12 +201,14 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_reward_model_selection: bool = True
     """Enable reward model based hypothesis selection."""
     
-    reward_model_path: str = "/data/userdata/v-lijingyuan/logs/rm_bt_s1024_gc/tb/version_0"
-
+    reward_model_path: str = "/data/userdata/v-lijingyuan/last_run_2"
     """The path to the reward model for hypothesis selection."""
 
+    reward_base_model: str = "Qwen/Qwen3-0.6B"
+    """ Backbone of the reward model"""
 
-
+    max_length = 2200
+    """ max_length of the reward model"""
 
 
 

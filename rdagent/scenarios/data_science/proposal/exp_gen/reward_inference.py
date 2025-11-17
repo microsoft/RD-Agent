@@ -5,80 +5,96 @@ import torch.nn as nn
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import PeftModel
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.app.data_science.conf import DS_RD_SETTING
+
+
 # =====================
 # Reward Model Wrapper
 # =====================
 class RewardModelInference(nn.Module):
-    def __init__(self, base_model_path, adapter_path, reward_head_path, calib_path=None, use_bf16=False):
+    def __init__(self, base_model_name, adapter_path, reward_head_path, device="cuda"):
         super().__init__()
-        dtype = torch.bfloat16 if use_bf16 else torch.float16
-        self.model = AutoModelForCausalLM.from_pretrained(base_model_path, torch_dtype=dtype)
-        self.model = PeftModel.from_pretrained(self.model, adapter_path)
-        self.model.eval()
-
-        # hidden size
-        hs = getattr(self.model.config, "hidden_size",
-                     getattr(self.model.config, "n_embd",
-                     getattr(self.model.config, "d_model", None)))
+        self.device = device
+        self.base = AutoModelForCausalLM.from_pretrained(base_model_name)
+        self.base = PeftModel.from_pretrained(self.base, adapter_path)
+        if hasattr(self.base, "gradient_checkpointing_enable"):
+            self.base.gradient_checkpointing_enable()
+        if hasattr(self.base.config, "use_cache"):
+            self.base.config.use_cache = False
+        hs = getattr(self.base.config, "hidden_size",
+                     getattr(self.base.config, "n_embd",
+                     getattr(self.base.config, "d_model", None)))
         if hs is None:
-            hs = self.model.transformer.wte.embedding_dim
+            hs = self.base.get_input_embeddings().embedding_dim
 
-        # reward head
-        self.reward_head = nn.Linear(hs, 1)
+        self.reward_head = nn.Linear(hs, 1).to(device)
+        self.reward_head.load_state_dict(torch.load(reward_head_path, map_location=device))
 
-        state_dict = torch.load(reward_head_path, map_location="cpu", weights_only=True)
-        self.reward_head.load_state_dict(state_dict)
-        self.reward_head = self.reward_head.to(dtype=self.model.dtype)
-        self.reward_head.eval()
-
-        # load calibration parameters
-        self.calib = {"a": 1.0, "b": 0.0, "tau": 1.0}
-        if calib_path and os.path.exists(calib_path):
-            with open(calib_path, "r", encoding="utf-8") as f:
-                self.calib = json.load(f)
-
-        # ✅ 打印调试信息，确认精度一致
-        print(f"[INFO] Model dtype: {self.model.dtype}, Reward head dtype: {next(self.reward_head.parameters()).dtype}")
-
-    @torch.no_grad()
-    def forward(self, input_ids, attention_mask):
-        out = self.model(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            output_hidden_states=True,
-            use_cache=False,
-        )
-        last_hidden = out.hidden_states[-1]
-        lengths = attention_mask.sum(dim=1) - 1
+    @staticmethod
+    def pool_last_nonpad(last_hidden: torch.Tensor, attn_mask: torch.Tensor) -> torch.Tensor:
+        lengths = attn_mask.sum(dim=1) - 1
         lengths = lengths.clamp(min=0)
         idx = lengths.view(-1, 1, 1).expand(-1, 1, last_hidden.size(-1))
-        pooled = last_hidden.gather(1, idx).squeeze(1)
+        return last_hidden.gather(1, idx).squeeze(1)
+
+    def forward(self, input_ids, attention_mask):
+        out = self.base(
+            input_ids=input_ids.to(self.device),
+            attention_mask=attention_mask.to(self.device),
+            output_hidden_states=True,
+            use_cache=False
+        )
+        last_hidden = out.hidden_states[-1]
+        pooled = self.pool_last_nonpad(last_hidden, attention_mask)
         reward = self.reward_head(pooled).squeeze(-1)
         return reward
 
     def compute_reward(self, texts, tokenizer, system_prompt=None, device="cuda"):
-        if system_prompt is None:
-            system_prompt = (
-                "You are an experienced data science competition judge. "
-                "Evaluate the quality, effectiveness, and innovation of the proposed solutions."
+        if system_prompt is not None:
+            self.system_prompt = system_prompt
+        elif not hasattr(self, "system_prompt"):
+            self.system_prompt = (
+                "You are a senior data science competition judge and solution expert.\n"
+                "Your task is to evaluate the quality, reasoning progression, and innovation of hypothesis chains.\n"
+                "A hypothesis chain shows iterative improvement of solutions.\n"
+                "You should assess:\n"
+                "1) reasoning correctness and consistency across steps,\n"
+                "2) improvement and refinement through the chain,\n"
+                "3) final hypothesis quality and practicality.\n"
+                "Be strict and fair. Provide expert-level insight."
             )
 
-        inputs = [f"{system_prompt} Solution: {t}{tokenizer.eos_token}" for t in texts]
+        inputs = []
+        for s in texts:
+            prompt = (
+                f"{self.system_prompt}\n\n"
+                "Hypothesis Chain (each step separated by '->'):\n"
+                f"{s}\n\n"
+                "<think>\n"
+                "Analyze the evolution of hypotheses, step-by-step, identifying strengths, weaknesses, and logical progression.\n"
+                "Focus on clarity, correctness, and improvement.\n"
+                "Make sure to consider the chain direction from earliest to latest.\n"
+                "</think>\n\n"
+                "Final Evaluation:\n"
+            )
+            inputs.append(prompt)
 
         enc = tokenizer(
             inputs,
             truncation=True,
             padding=True,
-            max_length=1024,
+            max_length=DS_RD_SETTING.max_length,
             return_tensors="pt"
-        ).to(device)
+        )
+
+        enc = {k: v.to(device) for k, v in enc.items()}
 
         rewards = self.forward(enc["input_ids"], enc["attention_mask"])
-        # Apply calibration
-        rewards = self.calib["a"] * rewards + self.calib["b"]
-        return rewards.cpu().exp().tolist()
 
-# =====================
-# Example Usage
-# =====================
+        return torch.exp(rewards).cpu().tolist()
+    
+
+
+
+
 

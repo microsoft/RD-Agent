@@ -1212,6 +1212,77 @@ You help users retrieve relevant knowledge from community discussions and public
         max_idx = rewards.index(max(rewards))
         return texts[max_idx]
 
+    def reward_model_select_hypothesis_base_on_avg_win_rate(self, trace, hypothesis_dict):
+        """
+        Select hypothesis based on avg win rate
+        """
+        parent_nodes = {}
+        for node in range(len(trace.hist)):
+            parents = trace.get_parents(node)
+            parent_nodes[node] = parents[-2] if len(parents) > 1 else None
+        # FIXME: add the convert logic to method in trace
+        if hasattr(trace, "idx2loop_id"):
+            parent_nodes = {
+                trace.idx2loop_id[n]: trace.idx2loop_id[r] if r is not None else r for n, r in parent_nodes.items()
+            }
+        #if trace.current_selection:
+        #    current_parent_record_id = trace.current_selection[0]  # record id
+        current_parent_record_id = trace.current_selection[0]
+        loop_id2idx = {v: k for k, v in trace.idx2loop_id.items()}
+        loop_id_list = self._get_path(trace.idx2loop_id[current_parent_record_id], parent_nodes)
+
+        hypothesis_list = [
+            trace.hist[loop_id2idx[loop_id]][0].hypothesis.hypothesis
+            for loop_id in loop_id_list
+            if trace.hist[loop_id2idx[loop_id]][1].decision == True
+        ][::-1]
+        sep =  "->"
+
+        hypothesis_chain_list = []
+        accumulate = []
+        for hyp in hypothesis_list:
+            accumulate.append(hyp)
+            hypothesis_chain_list.append(sep.join(accumulate))
+
+        last_text = []
+        texts = []
+        for name, data in hypothesis_dict.items():
+            last_text.append(hypothesis_chain_list[-1] + sep + data.get("hypothesis", "Hypothesis not provided"))
+            texts.append(data.get("hypothesis", "Hypothesis not provided"))
+
+        from .reward_inference import RewardModelInference
+        from transformers import AutoTokenizer
+        import os
+        logdir = DS_RD_SETTING.reward_model_path
+        base_model = DS_RD_SETTING.reward_base_model
+
+        adapter_path = os.path.join(logdir, "lora_adapter")
+        reward_head_path = os.path.join(logdir, "reward_head.pt")
+        
+        tokenizer = AutoTokenizer.from_pretrained(base_model)
+        if not getattr(tokenizer, "pad_token", None):
+            tokenizer.pad_token = tokenizer.eos_token
+
+        model = RewardModelInference(
+            base_model_path=base_model,
+            adapter_path=adapter_path,
+            reward_head_path=reward_head_path,
+        ).to("cuda")
+
+        parent_rewards = model(hypothesis_chain_list,tokenizer)
+        currnet_rewards = model(last_text,tokenizer)
+
+        avg_win_rate = []
+        for re in currnet_rewards:
+            win_rate = []
+            for p_re in parent_rewards:
+                current_win_rate = re/(re + p_re)
+                win_rate.append(current_win_rate)
+            avg_win_rate.append(np.mean(win_rate))
+        max_idx = avg_win_rate.index(max(avg_win_rate))
+        return texts[max_idx]
+
+
     def task_gen(
         self,
         component_desc: str,
@@ -1503,11 +1574,15 @@ You help users retrieve relevant knowledge from community discussions and public
             pickled_problem_name = None
         else:
             if DS_RD_SETTING.enable_reward_model_selection==True:
-                logger.info("Selecting hypothesis using reward model.")
-                selected_hypothesis_text = self.reward_model_select_hypothesis(
-                    hypothesis_dict=hypothesis_dict,
-                    problem_dict=all_problems,
-                )
+                # logger.info("Selecting hypothesis using reward model.")
+                # selected_hypothesis_text = self.reward_model_select_hypothesis(
+                #     hypothesis_dict=hypothesis_dict,
+                #     problem_dict=all_problems,
+                # )
+                logger.info("Selecting hypothesis using reward model. (avg win)")
+
+                selected_hypothesis_text=  self.reward_model_select_hypothesis_base_on_avg_win_rate(trace=trace, hypothesis_dict=hypothesis_dict)
+
                 # Find the problem name corresponding to the selected hypothesis text
                 pickled_problem_name = None
                 for problem_name, data in hypothesis_dict.items():
