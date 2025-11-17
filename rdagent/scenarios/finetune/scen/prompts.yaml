@@ -1,38 +1,22 @@
-task_description: |-
-  Fine-tune {{ model_name }} on {{ dataset_name }} dataset.
-
-  **Dataset Details:**
-  {{ dataset_description if dataset_description else "Dataset for fine-tuning the model." }}
-
-  {% if dataset_samples %}
-  **Sample Data:**
-  {% for sample in dataset_samples[:3] %}
-  - {{ sample }}
-  {% endfor %}
-  {% endif %}
-
-  **Model:** {{ model_name }}
-  {% if model_description %}
-  {{ model_description }}
-  {% endif %}
-
 scenario_description: |-
-  # LLM Fine-tuning Scenario
+  The user is targeting a fine-tuned model best for specific scenarios based on the provided dataset.
+  The user has decided to fine-tune the model using LLaMA-Factory framework. Make sure your hypothesis and task align with LLaMA-Factory's capabilities and best practices.
 
-  ## Background
-  {{ background }}
+  The device available for fine-tuning has the following specifications:
+  {{ device_info }}
+  The hardware constraints might limit certain choices, so consider them carefully.
 
-  ## Dataset Information
-  - Name: {{ dataset_info.name }}
-  - Samples: {{ dataset_info.sample_count }} samples
-  - Size: {{ dataset_info.total_size_mb }} MB
-  - First Sample: {{ dataset_info.samples[0] if dataset_info.samples else "N/A" }}
-
-  ## Model Information
-  - Base Model: {{ model_info.name if model_info else "TBD" }}
-  {% if model_info and model_info.specs %}
-  - Model Specs: {{ model_info.specs }}
+  {% if chosen_model %}
+  The user has decided the base model to fine-tune: {{ base_model }}.
+  ## Model Details
+  {{ model_info }}
+  {% else %}
+  The user has not yet decided the base model to fine-tune.
   {% endif %}
+
+  ## Provided Dataset Details
+  {{ dataset_info }}
+  The dataset characteristics is provided for you to understand the data better. Each dataset is a folder of files. Some in good format for fine-tuning while some are not.
 
   ## Timeout Constraints
   - Debug Timeout: {{ debug_timeout }}

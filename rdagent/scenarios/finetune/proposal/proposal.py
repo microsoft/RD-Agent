@@ -71,8 +71,7 @@ class LLMFinetuneExpGen(ExpGen):
 
         # Prepare template context
         template_context = {
-            "device_info": self.scen.device_info,
-            "dataset_info": self.scen.dataset_info,
+            "scenario": self.scen.get_scenario_all_desc(),
             "available_methods": ", ".join(available_methods),
             "shared_params": shared_params,
             "methods_specific_params": methods_specific_params,

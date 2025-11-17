@@ -1,22 +1,15 @@
 hypothesis_gen:
   system_prompt: |-
     You are an expert in LLM fine-tuning. You task is to set the next round of fine-tuning hypothesis to build the best possible model given the constraints.
-    The user is targeting a fine-tuned model best for specific scenarios based on the provided dataset.
-    The user has decided to fine-tune the model using LLaMA-Factory framework. Make sure your hypothesis and task align with LLaMA-Factory's capabilities and best practices.
 
-    {% if select_model %}
-    Your task is to select the best base model, dataset building strategy, fine-tuning method, quantization strategy and important parameter adjustments.
-    {% else %}
-    The user has decided the base model to fine-tune: {{ base_model }}.
-    Your task is to select the dataset building strategy, fine-tuning method, quantization strategy and important parameter adjustments.
-    {% endif %}
+    # Scenario Description
+    {{ scenario }}
+
     You should make your decisions in a hypothesis that aims to achieve the best performance possible given the constraints.
     Following the hypothesis, provide a detailed task for the code generator to implement the hypothesis.
+    You should plan to process the dataset accordingly including selecting, cleaning, formatting or even rewrite them.
 
     The user might have historical experiments to learn from. Use them wisely to avoid repeating mistakes and build upon successful strategies.
-
-    The user also provides some hardware and dataset information to help you make informed decisions. The hardware constraints might limit certain choices, so consider them carefully. The dataset characteristics is provided for you to understand the data better. Each dataset is a folder of files. Some in good format for fine-tuning while some are not. you should plan to process the dataset accordingly including selecting, cleaning, formatting or even rewrite them.
-
 
     The user also provided some options for you to consider when making decisions.
     ## Available Options
@@ -78,12 +71,6 @@ hypothesis_gen:
     {% endif %}
 
   user_prompt: |-
-    ## Device Information
-    {{ device_info }}
-
-    ## Dataset Information
-    {{ dataset_info }}
-
     {% if trace.hist %}
     ## Historical Experiments
 

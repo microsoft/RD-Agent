@@ -43,6 +43,7 @@ class LLMFinetuneScen(DataScienceScen):
 
         self.device_info = get_runtime_environment_by_env(get_ft_env())
         self.dataset_info = self._get_data_folder_description()
+        self.model_info = FinetuneDatasetDescriptor().describe_model(self.base_model)
 
     def real_debug_timeout(self):
         return FT_RD_SETTING.debug_timeout
@@ -119,39 +120,20 @@ class LLMFinetuneScen(DataScienceScen):
         return str(desc)  # Use __str__ for human-readable format
 
     @property
-    def background(self) -> str:
-        """Generate background description for LLM fine-tuning scenario"""
-        descriptor = FinetuneDatasetDescriptor()
-        dataset_path = Path(FT_RD_SETTING.file_path) / "datasets" / self.dataset
-        dataset_info = descriptor.describe_dataset_folder(dataset_path, self.dataset)
-        model_info = descriptor.describe_model(self.base_model)
-        # Render template directly
-        return T(".prompts:task_description").r(
-            model_name=model_info["name"],
-            dataset_name=dataset_info["name"],
-            dataset_description=dataset_info.get("description", ""),
-            dataset_files=dataset_info.get("files", [])[:5],
-            dataset_samples=dataset_info.get("samples", []),
-            model_specs=model_info.get("specs", ""),
-            model_description=model_info.get("description", ""),
-        )
-
-    @property
     def metric_direction(self) -> bool:
         """Metric direction for LLM fine-tuning (higher is better)"""
         return True
 
     def get_scenario_all_desc(self) -> str:
         """Get complete scenario description for LLM fine-tuning"""
-        descriptor = FinetuneDatasetDescriptor()
-        dataset_path = Path(FT_RD_SETTING.file_path) / "datasets" / self.dataset
-        dataset_info = descriptor.describe_dataset_folder(dataset_path, self.dataset)
-        model_info = descriptor.describe_model(self.base_model)
+        model_info = FinetuneDatasetDescriptor().describe_model(self.base_model)
 
         return T(".prompts:scenario_description").r(
-            background=self.background,
-            dataset_info=dataset_info,
-            model_info=model_info,
+            device_info=self.device_info,
+            chosen_model=FT_RD_SETTING.base_model is not None,
+            base_model=FT_RD_SETTING.base_model,
+            dataset_info=self.dataset_info,
+            model_info=self.model_info,
             debug_timeout=f"{self.real_debug_timeout() / 60:.2f} minutes",
             full_timeout=f"{self.real_full_timeout() / 60 / 60:.2f} hours",
         )
