@@ -1268,6 +1268,7 @@ You help users retrieve relevant knowledge from community discussions and public
             adapter_path=adapter_path,
             reward_head_path=reward_head_path,
         ).to("cuda")
+        model.eval()
 
         parent_rewards = model(hypothesis_chain_list,tokenizer)
         currnet_rewards = model(last_text,tokenizer)
