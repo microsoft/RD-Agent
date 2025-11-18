@@ -67,7 +67,7 @@ init-qlib-env:
 	@source $$(conda info --base)/etc/profile.d/conda.sh && conda activate qlibRDAgent && which pip && pip install pyqlib && pip install ruamel-yaml==0.17.21 && pip install torch==2.1.1 && pip install catboost==0.24.3 && conda deactivate
 
 dev:
-	$(PIPRUN) pip install -e .[docs,lint,package,test] -c $(CONSTRAINTS_FILE)
+	$(PIPRUN) pip install -e .[docs,lint,package,test,torch,reward] -c $(CONSTRAINTS_FILE)
 	$(PIPRUN) pip install -U kaggle
 	if [ "$(CI)" != "true" ] && command -v pre-commit > /dev/null 2>&1; then pre-commit install --hook-type pre-push; fi
 
