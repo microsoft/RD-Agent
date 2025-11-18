@@ -1,3 +1,4 @@
 # Requirements for test.
 coverage
 pytest
+pydantic_ai
