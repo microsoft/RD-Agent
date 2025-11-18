@@ -114,6 +114,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # Generate prompts using templates with all required parameters
         system_prompt = T(".prompts:finetune_coder.system").r(
+            scenario=self.scen.get_scenario_all_desc(),
             task_desc=task_info,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
             available_methods=", ".join(available_methods),

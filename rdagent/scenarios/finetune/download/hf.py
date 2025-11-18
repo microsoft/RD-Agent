@@ -111,6 +111,7 @@ def download_model(
     )
     return str(save_path)
 
+
 if __name__ == "__main__":
     # Example usage
     ds_path = download_dataset("shibing624/alpaca-zh", force=True)

@@ -28,7 +28,8 @@ def _find_data_files(dataset_path: Path, max_files: int = 50) -> list[Path]:
     for pattern in patterns:
         files.extend(dataset_path.rglob(pattern))
     # Sort by name for deterministic order, limit count to avoid excessive files
-    return sorted(files, key=lambda x: x.name)[:max_files]
+    dataset_files = sorted(files, key=lambda x: x.name)[:max_files]
+    return [f for f in dataset_files if f != dataset_path / "dataset_info.json"]
 
 
 def _truncate_long_values(obj, max_length: int = 200):
@@ -56,7 +57,7 @@ class FinetuneDatasetDescription(dict):
             for file_path, file_desc in self["file_path_to_descriptions"]:
                 parts.append(f"### File path: {file_path}\n{file_desc}")
 
-        if "readme_file_descs" in self:
+        if "readme_file_descs" in self and self["readme_file_descs"] is not None:
             parts.append(f"## Dataset readme Description:\n{self['readme_file_descs']}")
 
         if "stats" in self:
@@ -164,7 +165,7 @@ class FinetuneDatasetDescriptor:
             }
 
     def describe_dataset_folder(
-        self, dataset_path: Path, dataset_name: str | None = None
+        self, dataset_path: Path, dataset_name: str | None = None, include_dataset_readme: bool = False
     ) -> FinetuneDatasetDescription:
         """Generate complete dataset folder description.
 
@@ -194,7 +195,10 @@ class FinetuneDatasetDescriptor:
                     logger.warning(f"Could not describe file {data_file.name}: {e}")
 
             # Read description from README
-            readme_file_descs = self._read_dataset_readme(dataset_path)
+            if include_dataset_readme:
+                readme_file_descs = self._read_dataset_readme(dataset_path)
+            else:
+                readme_file_descs = None
 
             # Get file list
             files = []
@@ -228,7 +232,7 @@ class FinetuneDatasetDescriptor:
                     "data_samples": f"Error: {str(e)}",
                     "stats": {"sample_count": 0, "total_size_mb": 0, "file_count": 0},
                     "name": dataset_name or "unknown",
-                    "readme_file_descs": "",
+                    "readme_file_descs": None,
                     "files": [],
                     "sample_count": 0,
                     "total_size_mb": 0,
@@ -494,10 +498,10 @@ def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str, e
     remain_dataset_list = check_all_dataset_in_info(ft_file_path, existing_config)
     if len(remain_dataset_list) == 0:
         return {}
-    dataset_folder_desc = FinetuneDatasetDescriptor().describe_dataset_folder(Path(ft_file_path) / "datasets")
-    real_target_dataset_list = (
-        remain_dataset_list if not target_dataset_list else target_dataset_list
+    dataset_folder_desc = FinetuneDatasetDescriptor().describe_dataset_folder(
+        Path(ft_file_path) / "datasets", include_dataset_readme=True
     )
+    real_target_dataset_list = remain_dataset_list if not target_dataset_list else target_dataset_list
 
     # Create prompt using template
     system_prompt = T(".prompts:dataset_info_generation.system").r(

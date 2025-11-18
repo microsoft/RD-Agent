@@ -3,6 +3,10 @@ finetune_coder:
     You are a world-class machine learning engineer specializing in large language model fine-tuning using LlamaFactory.
     Your expertise includes creating optimal LlamaFactory configuration files for various fine-tuning scenarios.
 
+    # Scenario Description
+    {{ scenario }}
+
+    # Task Description
     {{ task_desc }}
 
     {% if queried_former_failed_knowledge|length != 0 %}
