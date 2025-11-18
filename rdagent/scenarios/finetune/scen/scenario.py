@@ -77,7 +77,7 @@ class LLMFinetuneScen(DataScienceScen):
         methods_count = len(info.get("methods", []))
         params_count = sum(len(p) if isinstance(p, dict) else 0 for p in info.get("parameters", {}).values())
         logger.info(f"LLaMA Factory initialized: {methods_count} methods, {params_count} parameters")
-
+    
     def _prepare_dataset_info(self):
         """Generate dataset_info.json configuration"""
         datasets_dir = Path(FT_RD_SETTING.file_path) / "datasets"
@@ -97,7 +97,7 @@ class LLMFinetuneScen(DataScienceScen):
         logger.info(
             f"Generating dataset_info.json configuration for datasets '{target_dataset_list if self.dataset else 'all datasets'}'"
         )
-        generated_config = generate_dataset_info_config(target_dataset_list, FT_RD_SETTING.file_path)
+        generated_config = generate_dataset_info_config(target_dataset_list, FT_RD_SETTING.file_path, existing_config)
         for dataset_name, config in generated_config.items():
             existing_config[dataset_name] = config
 

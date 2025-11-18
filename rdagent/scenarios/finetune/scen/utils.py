@@ -469,7 +469,15 @@ class FinetuneDatasetDescriptor:
         return FinetuneFileDescription({"name": data_file.name, "type": "unknown", "samples": []})
 
 
-def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str) -> dict:
+def check_all_dataset_in_info(ft_file_path, existing_config):
+    root_path = Path(ft_file_path) / "datasets"
+    level_0_dirs = [d for d in root_path.iterdir() if d.is_dir()]
+    dataset_list = [f"{d.name}/{sd.name}" for d in level_0_dirs for sd in d.iterdir() if sd.is_dir()]
+    remain_dataset_list = [dataset_name for dataset_name in dataset_list if dataset_name not in existing_config]
+    return remain_dataset_list
+
+
+def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str, existing_config: dict) -> dict:
     """Generate dataset_info.json configuration entry using AI for LLaMA-Factory compatibility.
 
     Args:
@@ -483,11 +491,17 @@ def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str) -
         RuntimeError: If configuration generation or validation fails
     """
     # Use existing descriptor to get dataset information
+    remain_dataset_list = check_all_dataset_in_info(ft_file_path, existing_config)
+    if len(remain_dataset_list) == 0:
+        return {}
     dataset_folder_desc = FinetuneDatasetDescriptor().describe_dataset_folder(Path(ft_file_path) / "datasets")
+    real_target_dataset_list = (
+        remain_dataset_list if not target_dataset_list else target_dataset_list
+    )
 
     # Create prompt using template
     system_prompt = T(".prompts:dataset_info_generation.system").r(
-        target_dataset_list=target_dataset_list,
+        target_dataset_list=real_target_dataset_list,
     )
     # TODO: select appropriate columns (Reasoning first?)
     user_prompt = T(".prompts:dataset_info_generation.user").r(

@@ -110,3 +110,11 @@ def download_model(
         revision=revision,
     )
     return str(save_path)
+
+if __name__ == "__main__":
+    # Example usage
+    ds_path = download_dataset("shibing624/alpaca-zh", force=True)
+    print(f"Dataset downloaded to: {ds_path}")
+
+    ds_path = download_dataset("HuggingFaceH4/aime_2024", force=True)
+    print(f"Dataset downloaded to: {ds_path}")
