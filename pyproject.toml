@@ -123,4 +123,3 @@ version_scheme = "guess-next-dev"
 all = true
 in_place = true
 trailing_comma_inline_array = true
-c2defc195e9665a86ad7614f14f0fb8ca4f248f4
