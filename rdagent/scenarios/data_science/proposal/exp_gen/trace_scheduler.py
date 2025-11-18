@@ -337,6 +337,11 @@ class MCTSScheduler(ProbabilisticScheduler):
         self.node_visit_count: dict[int, int] = {}
         self.node_value_sum: dict[int, float] = {}
         self.node_prior: dict[int, float] = {}
+
+        self.root_id = -1
+        self.node_visit_count[self.root_id] = 1
+        self.node_value_sum[self.root_id] = 0.0
+
         # Global counter to stabilize U term
         self.global_visit_count: int = 0
         # Last observed commit index for batch feedback observation
@@ -358,7 +363,14 @@ class MCTSScheduler(ProbabilisticScheduler):
 
     def _get_u_uct(self, node_id: int, trace: DSTrace) -> float:
         parents = trace.get_parents(node_id)
-        last_parent_id = parents[-2] if len(parents) > 1 else 0
+
+
+        #last_parent_id = parents[-2] if len(parents) > 1 else 0
+        if len(parents) < 2:
+            last_parent_id = self.root_id
+        else:
+            last_parent_id = parents[-2]
+
         parent_visits = self.node_visit_count.get(last_parent_id, 0)
         visits = self.node_visit_count.get(node_id, 0)
         N = max(1, parent_visits)
@@ -368,29 +380,38 @@ class MCTSScheduler(ProbabilisticScheduler):
     def select(self, trace: DSTrace) -> tuple[int, ...] | None:
         # Step 1: keep same policy to reach target number of parallel traces
         # TODO: expanding from the virtual root node is implemented in a rule-based way.
-        if trace.sub_trace_count + self.uncommited_rec_status[trace.NEW_ROOT] < self.max_trace_num:
-            return trace.NEW_ROOT
+
+        # if trace.sub_trace_count + self.uncommited_rec_status[trace.NEW_ROOT] < self.max_trace_num:
+        #     return trace.NEW_ROOT
+
 
         # Step 2: consider only available leaves (not being expanded)
         available_leaves = list(set(range(len(trace.hist))))
+
+        candidates = list(available_leaves)  # copy
+        candidates_with_root = candidates + [self.root_id]
+
         if not available_leaves:
             return None
 
-        # Step 3: compute priors (P) from potentials via softmax
-        potentials = [self.calculate_potential(trace, leaf) for leaf in available_leaves]
-        if any(p < 0 for p in potentials):
-            raise ValueError("Potential function returned a negative value.")
-        priors = self._softmax_probabilities(potentials)
-        for leaf, p in zip(available_leaves, priors):
-            self.node_prior[leaf] = p
+        # # Step 3: compute priors (P) from potentials via softmax
+        # potentials = [self.calculate_potential(trace, leaf) for leaf in available_leaves]
+        # if any(p < 0 for p in potentials):
+        #     raise ValueError("Potential function returned a negative value.")
+        # priors = self._softmax_probabilities(potentials)
+        # for leaf, p in zip(available_leaves, priors):
+        #     self.node_prior[leaf] = p
 
         # Step 4: score each leaf using PUCT-like rule: Q + U
         best_leaf = None
         best_score = -float("inf")
-        for leaf in available_leaves:
+        for leaf in candidates_with_root:
             q = self._get_q(leaf)
             #u = self._get_u(leaf)
-            u = self._get_u_uct(leaf,trace)
+            #u = self._get_u_uct(leaf,trace)
+            u = self._get_u_uct(leaf, trace) if leaf != self.root_id else self.c_uct * math.sqrt(
+                    math.log(max(1, self.node_visit_count.get(self.root_id, 1))) / max(1, self.node_visit_count.get(self.root_id, 1))
+                )
             score = q + u
             if score > best_score:
                 best_score = score
@@ -399,6 +420,30 @@ class MCTSScheduler(ProbabilisticScheduler):
         if best_leaf is None:
             return None
 
+        if best_leaf == self.root_id:
+            capacity = trace.sub_trace_count + self.uncommited_rec_status.get(trace.NEW_ROOT, 0)
+            if capacity >= self.max_trace_num:
+                # capacity full: pick next best real leaf
+                second_best = None
+                second_score = -float("inf")
+                for node in candidates:
+                    q = self._get_q(node)
+                    u = self._get_u_uct(node, trace)
+                    score = q + u
+                    if score > second_score:
+                        second_score = score
+                        second_best = node
+                if second_best is None:
+                    return None
+                # optimistic visit update for chosen leaf (optional)
+                # self.node_visit_count[second_best] = self.node_visit_count.get(second_best, 0) + 1
+                return (second_best,)
+            else:
+                # choose to expand from virtual root
+                # optimistic visit update for root if desired:
+                # self.node_visit_count[self.root_id] += 1
+                return trace.NEW_ROOT
+            
         # # Step 5: optimistic visit update on selection; value update deferred to observe_feedback
         #self.global_visit_count += 1
 
@@ -434,8 +479,9 @@ class MCTSScheduler(ProbabilisticScheduler):
         else:
             reward = 1.0 if getattr(fb, "decision", False) else 0.0
 
-
         id_list = trace.get_parents(new_idx)
+        id_list = [self.root_id] + id_list
+
         for id in id_list:
             self.node_value_sum[id] = self.node_value_sum.get(id, 0.0) + float(reward)
             self.node_visit_count[id] = self.node_visit_count.get(id, 0) + 1
