@@ -112,7 +112,7 @@ class BenchmarkAnalyzer:
         succ_rate_f = self.reformat_index(succ_rate)
 
         # if it rasis Error when running the evaluator, we will get NaN
-        # Running failures are reguarded to zero score.
+        # Running failures are regarded to zero score.
         format_issue = sum_df_clean[["FactorRowCountEvaluator", "FactorIndexEvaluator"]].apply(
             lambda x: np.mean(x.fillna(0.0)), axis=1
         )
