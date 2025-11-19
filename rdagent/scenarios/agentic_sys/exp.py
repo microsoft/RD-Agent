@@ -4,7 +4,9 @@ from rdagent.core.experiment import Experiment
 # convert code into executable experiment and output standard experiment result
 class AgenticSysExperiment(Experiment):
     def __init__(self, sub_tasks=None, based_experiments=None, experiment_workspace=None):
-        super().__init__(sub_tasks=sub_tasks, based_experiments=based_experiments, experiment_workspace=experiment_workspace)
+        super().__init__(sub_tasks=sub_tasks, based_experiments=based_experiments)
+        if experiment_workspace is not None:
+            self.experiment_workspace = experiment_workspace
 
     def run(self, code:str):
         """
@@ -58,7 +60,7 @@ class AgenticSysExperiment(Experiment):
 
         # parse output for metrics
         metrics = self.parse_output(result.stdout)
-        return ExperimentResult(
+        return Experiment(
             success = result.returncode == 0,
             metrics = metrics,
             logs = result.stdout,

@@ -2,6 +2,7 @@
 from pathlib import Path
 from pydantic_settings.main import SettingsConfigDict
 from rdagent.utils.env import DockerConf, DockerEnv
+from rdagent.app.data_science.conf import DS_RD_SETTING
 
 
 
@@ -34,7 +35,7 @@ def get_agent_sys_env(
     extra_volumes: dict = {},
     running_timeout_period: int | None = DS_RD_SETTING.debug_timeout,
     enable_cache: bool | None = None,
-) -> Env:
+) -> DockerEnv:
     """
     create and prepare Docker environment for agentic system scenario
     """

@@ -78,7 +78,7 @@ class AgenticSysExp2Feedback(Experiment2Feedback):
         )
 
         #4. Compare with past experiments in the trace
-        historical_best = self._get_best_from_trace(trace)
+        historical_best = self.get_best_from_trace(trace)
         is_improvement = False
 
         if historical_best:

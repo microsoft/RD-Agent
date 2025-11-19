@@ -67,12 +67,20 @@ The system should demonstrate:
         # analyze last experiment feedback
         last_exp, last_feedback = trace.hist[-1]
         
-        if last_feedback.decision:
-            # last experiment succeeded, continue improvement
+        # if last_feedback.decision:
+        #     # last experiment succeeded, continue improvement
+        #     base_desc = "Enhance the successful agentic system from the previous experiment."
+        # else:
+        #     # last experiment failed, fix issues
+        #     base_desc = "Fix the issues in the previous agentic system implementation."
+        decision = getattr(last_feedback, 'decision', None)
+        if decision is True:
             base_desc = "Enhance the successful agentic system from the previous experiment."
-        else:
-            # last experiment failed, fix issues
+        elif decision is False:
             base_desc = "Fix the issues in the previous agentic system implementation."
+        else:
+            base_desc = "Review the previous experiment and address any uncovered issues."
+
         # extract specific improvement directions from feedback
         feedback_hint = ""
         if hasattr(last_feedback, 'reason') and last_feedback.reason:

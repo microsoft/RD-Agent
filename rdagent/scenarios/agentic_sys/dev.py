@@ -239,12 +239,7 @@ class AgenticSysCoder(Developer[Experiment]):
                 self.config = config if config else self.get_default_config()
 
                 #Performance Tracking
-                self.performance_metrics = {
-                    "total_tasks": 0,
-                    "successful_tasks": 0,
-                    "failed_tasks": 0,
-                    "total_execution_time": 0.0
-                }
+                self.performance_metrics = {{"total_tasks": 0,"successful_tasks": 0,"failed_tasks": 0,"total_execution_time": 0}}
 
                 #thread safety
                 self.lock = threading.Lock()
@@ -279,7 +274,7 @@ class AgenticSysCoder(Developer[Experiment]):
                         status = TaskStatus.COMPLETED,
                         execution_time = execution_time,
                         success = True,
-                        data = {'processed': True, 'task_type': task.get('type', 'unknown')}
+                        data = {{'processed': True, 'task_type': task.get('type', 'unknown')}}
                     )
 
                     logger.info(f"Task {{task_id}} completed successfully in {{execution_time:.4f}}s")
@@ -879,25 +874,74 @@ class AgenticSysRunner(Developer[Experiment]):
         5. record logs
         """
         logger.info("Starting experiment execution")
-        try: 
-            # acquire workspace
+        # try: 
+        #     # acquire workspace
+        #     ws_path = self.get_workspace_path(exp)
+        #     logger.info(f"Using workspace at {ws_path}")
+        #     # validate necessary files
+        #     self.validate_workspace(ws_path)
+        #     #execute experiment
+        #     stdout, stderr = self.execute_experiment(ws_path)
+        #     #parse result
+        #     result = self.parse_execution_output(stdout, stderr)
+        #     exp.result = result
+        #     # record execution logs
+        #     self._log_execution_results(exp, result)
+        #     logger.info("Experiment completed successfully")
+        # except Exception as e:
+        #     logger.error(f"Experiment execution failed: {str(e)}")
+        #     exp.exception = e
+        #     exp.result = self.create_error_result(str(e))
+        # return exp
+        try:
+            if not self.has_valid_workspace(exp):
+                logger.info("Workspace is not ready, calling coder to generate code")
+                coder = AgenticSysCoder(self.scen)
+                exp = coder.develop(exp)
+                #check if coder succeeded
+                if not self.has_valid_workspace(exp):
+                    raise RuntimeError("Coder failed to generate valid workspace")
+            #1. acquire workspace
             ws_path = self.get_workspace_path(exp)
             logger.info(f"Using workspace at {ws_path}")
-            # validate necessary files
+
+            #2. validate necessary files
             self.validate_workspace(ws_path)
-            #execute experiment
+
+            #3. execute experiment
             stdout, stderr = self.execute_experiment(ws_path)
-            #parse result
+
+            #4. parse result
             result = self.parse_execution_output(stdout, stderr)
             exp.result = result
-            # record execution logs
-            self._log_execution_results(exp, result)
+
+            #5. record execution logs
+            self.log_execution_results(exp, result)
             logger.info("Experiment completed successfully")
+
         except Exception as e:
             logger.error(f"Experiment execution failed: {str(e)}")
             exp.exception = e
-            exp.result = self._create_error_result(str(e))
+            exp.result = self.create_error_result(str(e))
         return exp
+    
+    def has_valid_workspace(self, exp: Experiment):
+        """check if experiment has valid workspace with required files"""
+        try:
+            if not hasattr(exp, 'experiment_workspace') or not exp.experiment_workspace:
+                return False
+            ws_path = Path(exp.experiment_workspace.workspace_path)
+            if not ws_path.exists():
+                return False
+            #check for required files
+            required_files = ["train.py", "agent.py"]
+            for file_name in required_files:
+                if not (ws_path / file_name).exists():
+                    return False
+            return True
+        except Exception as e:
+            logger.warning(f"Error checking workspace validity : {(e)}")
+            return False
     
     def get_workspace_path(self, exp):
         '''
