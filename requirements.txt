@@ -72,7 +72,6 @@ azureml-mlflow
 types-pytz
 
 # Agent
-pydantic-ai-slim[mcp,openai,prefect]==1.9.1
 nest-asyncio
 
 prefect==3.5.0
