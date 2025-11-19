@@ -363,8 +363,7 @@ class MCTSScheduler(ProbabilisticScheduler):
 
     def _get_u_uct(self, node_id: int, trace: DSTrace) -> float:
         parents = trace.get_parents(node_id)
-
-
+        
         #last_parent_id = parents[-2] if len(parents) > 1 else 0
         if len(parents) < 2:
             last_parent_id = self.root_id
@@ -510,3 +509,112 @@ class MCTSScheduler(ProbabilisticScheduler):
         for idx in range(start_idx, end_idx):
             self.observe_feedback(trace, idx)
         self.last_observed_commit_idx = end_idx
+
+
+
+
+class MCGSDAGScheduler(ProbabilisticScheduler):
+    """
+    Monte-Carlo Graph Search Scheduler for multi-parent DAG Trace.
+    Uses normal UCT (Q + U) without prior, and fully uses Trace's DAG utilities.
+    """
+
+    def __init__(self, max_trace_num: int, c: float = 1.0, *args, **kwargs):
+        super().__init__(max_trace_num, temperature=1.0)
+        self.c = c
+        self.node_visit_count: dict[int, int] = {}
+        self.node_value_sum: dict[int, float] = {}
+        self.root_id = -1
+        self.node_visit_count[self.root_id] = 1
+        self.node_value_sum[self.root_id] = 0.0
+        self.last_observed_commit_idx = 0
+
+    # -------------------------
+    # UCT score
+    # -------------------------
+    def _get_q(self, node_id: int) -> float:
+        visits = self.node_visit_count.get(node_id, 0)
+        if visits == 0:
+            return 0.0
+        return self.node_value_sum.get(node_id, 0.0) / visits
+
+    def _get_u(self, node_id: int, trace) -> float:
+        """UCT exploration term using parents in the DAG"""
+        parents = trace.dag_parent[node_id] or (self.root_id,)
+        parent_visits = sum(self.node_visit_count.get(p, 1) for p in parents)
+        n = max(1, self.node_visit_count.get(node_id, 0))
+        return self.c * math.sqrt(math.log(parent_visits) / n)
+
+    # -------------------------
+    # Node selection
+    # -------------------------
+    def select(self, trace):
+        """
+        Select a node to expand based on UCT score.
+        Uses all leaves and optionally full path info.
+        """
+        self.process_uncommitted_nodes(trace)
+
+        leaves = list(range(len(trace.hist)))
+        if not leaves:
+            return None
+
+        best_score = -1e18
+        best_node = None
+
+        for node in leaves + [self.root_id]:
+            all_paths = trace.get_all_paths(node) if node != self.root_id else [[self.root_id]]
+            q_values = [sum(self._get_q(n) for n in path) / len(path) for path in all_paths]
+            avg_q = sum(q_values) / len(q_values)
+            u = self._get_u(node, trace)
+            score = avg_q + u
+            if score > best_score:
+                best_score = score
+                best_node = node
+
+        # Handle NEW_ROOT
+        if best_node == self.root_id:
+            capacity = trace.sub_trace_count + self.uncommited_rec_status.get(trace.NEW_ROOT, 0)
+            if capacity >= self.max_trace_num:
+                # pick best leaf instead
+                best_leaf = max(leaves, key=lambda n: self._get_q(n) + self._get_u(n, trace))
+                return (best_leaf,)
+            else:
+                return trace.NEW_ROOT
+
+        return (best_node,)
+
+    # -------------------------
+    # Backpropagation
+    # -------------------------
+    def observe_feedback(self, trace, idx):
+        """
+        Update Q/N values along all ancestors using
+        """
+        re, fb = trace.hist[idx]
+        reward = 1.0 if getattr(fb, "decision", False) else 0.0
+        ancestors = trace.get_parents_dag(idx) + [idx]  # ancestors first, then self
+        for node in ancestors:
+            self.node_visit_count[node] = self.node_visit_count.get(node, 0) + 1
+            self.node_value_sum[node] = self.node_value_sum.get(node, 0.0) + reward
+
+    # -------------------------
+    # Batch feedback
+    # -------------------------
+    def process_uncommitted_nodes(self, trace):
+        start = self.last_observed_commit_idx
+        end = min(len(trace.dag_parent), len(trace.hist))
+        for i in range(start, end):
+            self.observe_feedback(trace, i)
+        self.last_observed_commit_idx = end
+
+    # -------------------------
+    # Reset
+    # -------------------------
+    def reset(self):
+        super().reset()
+        self.node_visit_count.clear()
+        self.node_value_sum.clear()
+        self.last_observed_commit_idx = 0
+        self.node_visit_count[self.root_id] = 1
+        self.node_value_sum[self.root_id] = 0.0

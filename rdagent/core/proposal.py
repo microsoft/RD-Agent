@@ -162,6 +162,10 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
         self.knowledge_base: ASpecificKB | None = knowledge_base
         self.current_selection: tuple[int, ...] = (-1,)
 
+        self.children: dict[int, list[int]] = {}
+
+
+
     def get_sota_hypothesis_and_experiment(self) -> tuple[Hypothesis | None, Experiment | None]:
         """Access the last experiment result, sub-task, and the corresponding hypothesis."""
         # TODO: The return value does not align with the signature.
@@ -239,6 +243,81 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
             curr = parent_tuple[0]
 
         return ancestors
+
+    def find_same_state_node(self, exp: Experiment) -> int | None:
+        """Return existing node index if the same state exists, else None."""
+        for idx, (e, _) in enumerate(self.hist):
+            if e == exp:
+                return idx
+        return None
+    
+    def add_node(self, exp: Experiment, fb: ExperimentFeedback, parent_idxs: tuple[int, ...]):
+        """
+        Add a new node to the DAG.
+        If the same state exists, merge into existing node (multi-parent).
+        """
+        # 1. Check if same state already exists
+        existing_idx = self.find_same_state_node(exp)
+        if existing_idx is not None:
+            # Merge: add new parents
+            existing_parents = self.dag_parent[existing_idx]
+            merged_parents = tuple(set(existing_parents + parent_idxs))
+            self.dag_parent[existing_idx] = merged_parents
+            # Update children map
+            for p in parent_idxs:
+                if p not in self.children:
+                    self.children[p] = []
+                if existing_idx not in self.children[p]:
+                    self.children[p].append(existing_idx)
+            return existing_idx
+
+        # 2. Insert new node
+        new_idx = len(self.hist)
+        self.hist.append((exp, fb))
+        self.dag_parent.append(parent_idxs)
+        # Update children map
+        for p in parent_idxs:
+            if p not in self.children:
+                self.children[p] = []
+            self.children[p].append(new_idx)
+        return new_idx
+    
+
+    def get_parents_dag(self, child_idx: int) -> list[int]:
+        """
+        Return all ancestors in topological order (root -> leaves)
+        """
+        visited = set()
+        result = []
+
+        def dfs(node):
+            if node in visited:
+                return
+            visited.add(node)
+            for p in self.dag_parent[node]:
+                if p != node:  # avoid self-loop
+                    dfs(p)
+            result.append(node)
+
+        dfs(child_idx)
+        result.remove(child_idx)
+        return result
+
+    def get_all_paths(self, child_idx: int) -> list[list[int]]:
+        """
+        Return all paths from root(s) to the given child in the DAG.
+        """
+        def dfs(node):
+            parents = self.dag_parent[node]
+            if not parents:
+                return [[node]]
+            paths = []
+            for p in parents:
+                for sub_path in dfs(p):
+                    paths.append(sub_path + [node])
+            return paths
+
+        return dfs(child_idx)
 
 
 class CheckpointSelector:
