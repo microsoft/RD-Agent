@@ -8,7 +8,6 @@ from pathlib import Path
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.components.agent.context7 import Agent as DocAgent
 from rdagent.components.coder.CoSTEER import CoSTEERMultiFeedback
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
@@ -307,6 +306,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         do_documentation_search = enable_mcp_documentation_search and wfb.requires_documentation_search
 
         if do_documentation_search:
+            from rdagent.components.agent.context7 import Agent as DocAgent
             # Use MCPAgent for clean, user-friendly interface
             try:
                 # Create agent targeting Context7 service - model config comes from mcp_config.json
