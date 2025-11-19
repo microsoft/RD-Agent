@@ -46,7 +46,7 @@ class AgenticSysCoder(Developer[Experiment]):
             #prepare execution environment following conf.py pattern
             timeout = self.calculate_timeout(exp)
             env = get_agent_sys_env(
-                extra_volumes = {str(ws_path): "/workspace"},
+                # extra_volumes = {str(ws_path): "/workspace"},
                 running_timeout_period = timeout,
                 enable_cache=True
             )
@@ -64,21 +64,24 @@ class AgenticSysCoder(Developer[Experiment]):
             #4. run the entrypoint inside environment (use train.py as entry)
             try: 
                 logger.info("Running generated code inside validation")
-                run_res = env.run(
-                    entry = "bash",
-                    cmd = "cd /workspace && python train.py", timeout = timeout
-                )
+                # run_res = env.run(
+                #     entry = "bash",
+                #     cmd = "cd /workspace && python train.py", timeout = timeout
+                # )
+                run_res = exp.experiment_workspace.run(env=env, entry="python train.py")
                 #collect run outputs
                 exp.run_returncode = getattr(run_res, 'returncode', None)
                 exp.run_stdout = getattr(run_res, 'stdout', getattr(run_res, 'logs', None))
                 exp.run_stderr = getattr(run_res, 'stderr', None)
                 logger.info(f"Run finished")
             except Exception as e_run:
+                raise
                 logger.error(f"Execution inside environment failed: {e_run}")
                 #keep exception and let caller decide; still return exp with workspace
                 exp.run_exception = e_run
 
         except Exception as e:
+            raise
             logger.error(f"Code generation failed: {str(e)}")
             exp.exception = e
             if not hasattr(exp, 'experiment_workspace') or not exp.experiment_workspace:
@@ -473,7 +476,7 @@ class AgenticSysCoder(Developer[Experiment]):
                 print(json.dumps(results))
 
             except Exception as e:
-                print(f"Error: Execution failed - {str(e)}",file = sys.stderr)
+                print(f"Error: Execution failed - {{str(e)}}",file = sys.stderr)
                 print("Error Details")
                 traceback.print_exc()
                 error_result = {{

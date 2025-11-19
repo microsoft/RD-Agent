@@ -12,14 +12,12 @@ class AgentSysDockerConf(DockerConf):
 
     build_from_dockerfile: bool = True
 
-
-    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker" / "DS_docker"
-    image: str = "local_ds:latest"
-    #image: str = "local_agentic_sys:latest"
+    dockerfile_folder_path: Path = Path(__file__).parent / "docker"
+    image: str = "local_agentic_sys:latest"
 
 
     #Mount and execution strategy
-    mount_path: str = "/kaggle/workspace"
+    mount_path: str = "/workspace/rdagent-solution"
     #mount_path: str = "/workspace"
 
 
