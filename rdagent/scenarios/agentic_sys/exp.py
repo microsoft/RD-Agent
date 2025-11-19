@@ -1,17 +1,12 @@
-
-
-
 from pathlib import Path
 from rdagent.core.experiment import Experiment
-from rdagent.components.runner import LocalRunner
-from rdagent.core.experiment import ExperimentResult
 
 # convert code into executable experiment and output standard experiment result
 class AgenticSysExperiment(Experiment):
     def __init__(self, sub_tasks=None, based_experiments=None, experiment_workspace=None):
         super().__init__(sub_tasks=sub_tasks, based_experiments=based_experiments, experiment_workspace=experiment_workspace)
 
-    def run(self, code:str) -> ExperimentResult:
+    def run(self, code:str):
         """
         Run the experiment with the given code.
         Step: 

@@ -1,19 +1,29 @@
 
+from pathlib import Path
 from pydantic_settings.main import SettingsConfigDict
 from rdagent.utils.env import DockerConf, DockerEnv
 
 
+
 class AgentSysDockerConf(DockerConf):
-    """
-    """
     # TODO: change the content
     model_config = SettingsConfigDict(env_prefix="ASYS_DOCKER_")
 
     build_from_dockerfile: bool = True
+
+
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker" / "DS_docker"
     image: str = "local_ds:latest"
+    #image: str = "local_agentic_sys:latest"
+
+
+    #Mount and execution strategy
     mount_path: str = "/kaggle/workspace"
+    #mount_path: str = "/workspace"
+
+
     default_entry: str = "python main.py"
+    #default_entry: str = "python train.py"
 
     running_timeout_period: int | None = 600
     mem_limit: str | None = (
@@ -25,6 +35,9 @@ def get_agent_sys_env(
     running_timeout_period: int | None = DS_RD_SETTING.debug_timeout,
     enable_cache: bool | None = None,
 ) -> Env:
+    """
+    create and prepare Docker environment for agentic system scenario
+    """
     conf = AgentSysDockerConf()
     env = DockerEnv(conf=conf)
     env.conf.extra_volumes = extra_volumes.copy()

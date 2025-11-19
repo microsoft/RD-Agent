@@ -1,5 +1,4 @@
 import sys
-
 from matplotlib.style import context
 from prefect import task
 from rdagent.core.developer import Developer
@@ -197,7 +196,8 @@ class AgenticSysCoder(Developer[Experiment]):
         """
         hypothesis = context.get('hypothesis', 'Improve agentic system performance')
         #enhanced agent template with CoSTEER improvement
-        return f'''"""
+        return f'''
+        """
         Agentic System Implementation - CoSTEER enhanced
         Hypothesis: {hypothesis}
         Generated with intelligent code generation
@@ -226,7 +226,6 @@ class AgenticSysCoder(Developer[Experiment]):
             task_id: int
             success: bool
             execution_time: float
-            success: bool
             error: Optional[str] = None
             data: Optional[Dict[str, Any]] = None
         
@@ -332,7 +331,7 @@ class AgenticSysCoder(Developer[Experiment]):
                 logger.info(f"Starting execution of {{len(tasks)}} tasks")
                 batch_start_time = time.time()
 
-                if self.config.get('enable_parallel', False) and len(tasks) > 1:
+                if self.config.get('enable_parallel', True) and len(tasks) > 1:
                     results = self.run_tasks_in_parallel(tasks)
                 else:
                     results = self.run_tasks_sequential(tasks)
@@ -414,9 +413,18 @@ class AgenticSysCoder(Developer[Experiment]):
         """
         Generate enhanced training/execution script
         """
-        return '''
+        #acquire information from context
+        hypothesis = context.get('hypothesis','Improve agentic system performance')
+        enable_parallel = 'parallel' in hypothesis.lower() or 'concurrent' in hypothesis.lower()
+        enable_optimisation = 'optimization' in hypothesis.lower() or 'optimize' in hypothesis.lower()
+        max_workers = 8 if enable_parallel else 4
+        task_timeout = 60 if enable_optimisation else 30
+
+        #tune the configuration dynamically based on hypothesis
+        return f'''
         """
         CoSTEER-Ehanced Training/Execution Script for Agentic System
+        hypothesis: {hypothesis}
         """
         import json
         import sys
@@ -424,6 +432,7 @@ class AgenticSysCoder(Developer[Experiment]):
         import traceback
         from pathlib import Path
         from agent import AgenticSystem
+
         def main():
             """
             Main execution function with comprehensive error handling and reporting
@@ -432,34 +441,38 @@ class AgenticSysCoder(Developer[Experiment]):
                 print("CoSTEER Agentic System Execution Started")
                 execution_start = time.time()
                 #Initialize agent with configuration
-                config = {
-                    'max_workers': 4,
-                    'enable_parallel': True, 
-                    'enable_optimisation': True,
-                    'task_timeout': 30
-                }
+                config = {{
+                    'max_workers': {max_workers},
+                    'enable_parallel': {enable_parallel}, 
+                    'enable_optimisation': {enable_optimisation},
+                    'task_timeout': {task_timeout}
+                }}
+                
+                print(f"Configuration: {{config}}")
                 agent = AgenticSystem(config)
+                print(f"Initialized: {{agent.name}}")
+
                 #Run tasks and collect results
                 results = agent.run_tasks()
 
                 #Save detailed result to file
-                detailed_results = {
+                detailed_results = {{
                     'execution_results': results,
                     'system_status': agent.get_system_status(),
                     'execution_time': time.time() - execution_start,
-                    'timestamp': time.time()
-                }
+                    'timestamp': time.time(),
+                    'hypothesis': "{hypothesis}"
+                }}
 
                 result_file = Path("result.json")
                 result_file.write_text(json.dumps(detailed_results, indent = 2))
                 #Print structured output for parsing
                 print("Execution Result")
-                print(f"Success Rate: {results['Success_rate']}")
-                print(f"Average Task Time: {results['avg_task_time']}")
-                print(f"Error Count: {results['error_count']}")
-                print(f"Total Tasks: {results['total_tasks']}")
-                print(f"Total Execution Time: {detailed_results['execution_time']}s")
-
+                print(f"Success Rate: {{results['Success_rate']}}")
+                print(f"Average Task Time: {{results['avg_task_time']}}")
+                print(f"Error Count: {{results['error_count']}}")
+                print(f"Total Tasks: {{results['total_tasks']}}")
+                print(f"Total Execution Time: {{detailed_results['execution_time']}}s")
                 #JSON output for automated parsing
                 print("JSON RESULTS:")
                 print(json.dumps(results))
@@ -468,13 +481,13 @@ class AgenticSysCoder(Developer[Experiment]):
                 print(f"Error: Execution failed - {str(e)}",file = sys.stderr)
                 print("Error Details")
                 traceback.print_exc()
-                error_result = {
+                error_result = {{
                     "success_rate": 0,
                     "average time", float('inf'),
                     "error_count": 1,
                     "total_tasks": 0,
                     "error_reason": str(e)
-                }
+                }}
                 # Save error result
                 try:
                     error_file = Path("error_result.json")
@@ -534,6 +547,17 @@ class AgenticSysCoder(Developer[Experiment]):
         """
         Generate configuration file 
         """
+        #acquire hypothesis from context and tune config accordingly
+        hypothesis = context.get('hypothesis', 'Improve agentic system performance')
+
+        #decide default config values based on hypothesis
+        enable_parallel = 'parallel' in hypothesis.lower() or 'concurrent' in hypothesis.lower()
+        enable_optimization = 'optimization' in hypothesis.lower() or 'optimize' in hypothesis.lower()
+        max_workers = 8 if enable_parallel else 4
+        task_timeout = 60 if enable_optimization else 30
+        batch_size = 20 if enable_optimization else 10
+        retry_attempts = 5 if enable_optimization else 3
+
         return '''
         """
         CoSTEER Generated Configuration
@@ -546,14 +570,14 @@ class AgenticSysCoder(Developer[Experiment]):
         class AgentSystemConfig:
             """Configuration for agentic system"""
             #Execution settings
-            max_workers: int = 4
-            task_timeout: float = 30.0
-            enable_parallel: bool = True
-            enable_optimization: bool = True
+            max_workers: int = {max_workers}
+            task_timeout: float = {task_timeout}
+            enable_parallel: bool = {enable_parallel}
+            enable_optimization: bool = {enable_optimization}
     
             # Performance settings
-            retry_attempts: int = 3
-            batch_size: int = 10
+            retry_attempts: int = {retry_attempts}
+            batch_size: int = {batch_size}
             
             # Logging settings
             log_level: str = "INFO"
@@ -563,15 +587,17 @@ class AgenticSysCoder(Developer[Experiment]):
             def from_env(cls) -> 'AgenticSystemConfig':
                 """Create config from environment variables"""
                 return cls(
-                    max_workers=int(os.getenv('AGENTIC_MAX_WORKERS', '4')),
-                    task_timeout=float(os.getenv('AGENTIC_TASK_TIMEOUT', '30.0')),
-                    enable_parallel=os.getenv('AGENTIC_ENABLE_PARALLEL', 'true').lower() == 'true',
-                    enable_optimization=os.getenv('AGENTIC_ENABLE_OPTIMIZATION', 'true').lower() == 'true',
+                    max_workers = int(os.getenv('AGENT_MAX_WORKERS', '{max_workers}')),
+                    task_timeout = float(os.getenv('AGENT_TASK_TIMEOUT', '{task_timeout}')),
+                    enable_parallel = os.getenv('AGENT_ENABLE_PARALLEL', '{str(enable_parallel).lower()}').lower() == 'true',
+                    enable_optimization = os.getenv('AGENT_ENABLE_OPTIMIZATION', '{str(enable_optimization).lower()}').lower() == 'true',
+                    retry_attempts = int(os.getenv('AGENT_RETRY_ATTEMPTS', '{retry_attempts}')),
+                    batch_size = int(os.getenv('AGENT_BATCH_SIZE', '{batch_size}')),
                 )
             
             def to_dict(self) -> Dict[str, Any]:
                 """Convert config to dictionary"""
-                return {
+                return {{
                     'max_workers': self.max_workers,
                     'task_timeout': self.task_timeout,
                     'enable_parallel': self.enable_parallel,
@@ -580,10 +606,14 @@ class AgenticSysCoder(Developer[Experiment]):
                     'batch_size': self.batch_size,
                     'log_level': self.log_level,
                     'enable_detailed_logging': self.enable_detailed_logging
-                }
+                }}
 
         # Default configuration instance
         DEFAULT_CONFIG = AgenticSystemConfig()
+
+        #Example Usage
+        #config = AgenticSystemConfig.from_hypothesis("{hypothesis}")
+        #config = AgenticSystemConfig.from_env()
         '''
 
     def create_fallback_workspace(self, exp: Experiment) -> FBWorkspace:
@@ -591,46 +621,70 @@ class AgenticSysCoder(Developer[Experiment]):
         logger.warning("create fallback workspace due to previous errors")
         try:
             workspace = FBWorkspace()
+            hypothesis = getattr(exp, 'hypothesis', 'Improve agentic system performance')
+            exp_id = getattr(exp, 'id', 'unknown')
             
             # Create minimal working files
             minimal_files = {
-                "agent.py": self._get_minimal_agent_code(),
-                "train.py": self._get_minimal_train_code(),
-                "requirements.txt": "# Minimal requirements\\n"
+                "agent.py": self.get_minimal_agent_code(hypothesis),
+                "train.py": self.get_minimal_train_code(hypothesis,exp_id),
+                "requirements.txt": "# Minimal requirements\\n",
+                "README.md": f"# Fallback Workspace\nExperiment :{exp_id}\n Hypothesis: {hypothesis}\nThis is a fallback workspace with minimal working code."
             }
             
             workspace.inject_files(**minimal_files)
+            logger.info(f"Created fallback workspace for experiment {exp_id}")
             return workspace
             
         except Exception as e:
             logger.error(f"Failed to create fallback workspace: {e}")
             raise
 
-    def get_minimal_agent_code(self):
+    def get_minimal_agent_code(self,hypothesis):
         """Get minimal working agent code"""
-        return '''
+        return f'''
         class AgenticSystem:
             def __init__(self):
-                self.name = "MinimalAgent"
+                self.name = "MinimalFallbackAgent"
+                self.hypothesis = "{hypothesis}"
             def run_tasks(self):
-                return {
+                return {{
                     "success_rate": 0.5,
                     "avg_time": 0.01,
                     "error_count": 0,
-                    "total_tasks": 1
-                }
+                    "total_tasks": 1,
+                    "note": "Fallback implementation"
+                }}
         '''
     
-    def get_minimal_train_code(self):
+    def get_minimal_train_code(self,hypothesis, exp_id):
         """Get minimal working train code"""
-        return '''
+        return f'''
+        import json
+        from pathlib import Path
         from agent import AgenticSystem
-        agent = AgenticSystem()
-        results = agent.run_tasks()
-        print(f"Success Rate: {results['success_rate']}")
-        print(f"Average Time: {results['avg_time']}")
-        print(f"Error Count: {results['error_count']}")
-        print(f"Total Tasks: {results['total_tasks']}")
+        def main():
+            print("Running fallback Implementation")
+            print(f"Experiment: {exp_id}")
+            print(f"Hypothesis: {hypothesis}")
+            agent = AgenticSystem()
+            results = agent.run_tasks()
+
+            #Save results
+            result_file = Path("result.json")
+            result_file.write_text(json.dumps(results, indent=2))
+
+            #Print results
+            print(f"Success Rate: {{results['success_rate']}}")
+            print(f"Average Time: {{results['avg_time']}}")
+            print(f"Error Count: {{results['error_count']}}")
+            print(f"Total Tasks: {{results['total_tasks']}}")
+            print("=== Fallback Execution Completed ===")
+            return 0
+        if __name__ == "__main__":
+            exit_code = main()
+            import sys
+            sys.exit(exit_code)
         ''' 
 
         # # begin drafting

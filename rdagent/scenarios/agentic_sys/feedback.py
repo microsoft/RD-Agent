@@ -22,7 +22,6 @@ class AgenticSysExp2Feedback(Experiment2Feedback):
                         "result.json",
                         "detailed_result.json",
                         "output.json",
-                        "results.json",
                         "error_result.json"
                     ]
                     for result_file in result_files:
