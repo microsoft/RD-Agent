@@ -197,6 +197,22 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     user_interaction_wait_seconds: int = 6000  # seconds to wait for user interaction
     user_interaction_mid_folder: Path = Path.cwd() / "git_ignore_folder" / "RD-Agent_user_interaction"
 
+    #### reward model related
+    enable_reward_model_selection: bool = True
+    """Enable reward model based hypothesis selection."""
+    
+    reward_model_path: str ="/data/Blob_EastUS/FinetuneAgenticLLM/reward_ckpt/last_run_2" #"/data/userdata/v-lijingyuan/last_run_2"# "/data/userdata/v-lijingyuan/last_run_2"#"/data/Blob_EastUS/FinetuneAgenticLLM/reward_ckpt/last_run_2"
+    #"/data/Blob_EastUS/FinetuneAgenticLLM/reward_ckpt/last_run_2"
+    #"/data/userdata/v-lijingyuan/last_run_2"
+    """The path to the reward model for hypothesis selection."""
+
+    reward_base_model: str = "Qwen/Qwen3-0.6B"
+    """ Backbone of the reward model"""
+
+    max_length : int = 2200
+    """ max_length of the reward model"""
+
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()
 

@@ -113,6 +113,7 @@ lint = {file = ["requirements/lint.txt"]}
 package = {file = ["requirements/package.txt"]}
 test = {file = ["requirements/test.txt"]}
 torch = {file = ["requirements/torch.txt"]} # some agent algorithms need torch.  pip install rdagent[torch]
+reward = {file = ["requirements/reward.txt"]}
 
 [tool.setuptools_scm]
 local_scheme = "no-local-version"
