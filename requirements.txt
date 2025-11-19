@@ -1,5 +1,5 @@
 # Requirements for runtime.
-pydantic-settings
+#pydantic-settings
 
 python-Levenshtein
 scikit-learn
