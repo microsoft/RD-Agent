@@ -18,6 +18,9 @@ scenario_description: |-
   {{ dataset_info }}
   The dataset characteristics is provided for you to understand the data better. Each dataset is a folder of files. Some in good format for fine-tuning while some are not.
 
+  ## Dataset info json
+  {{ data_info_json }}
+
   ## Timeout Constraints
   - Debug Timeout: {{ debug_timeout }}
   - Full Training Timeout: {{ full_timeout }}

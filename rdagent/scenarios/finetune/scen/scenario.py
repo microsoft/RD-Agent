@@ -36,7 +36,7 @@ class LLMFinetuneScen(DataScienceScen):
         self._initialize_llama_factory()
 
         # Generate dataset configuration
-        self._prepare_dataset_info()
+        self.data_info_json = self._prepare_dataset_info()
 
         # timeout tracking
         self.timeout_increase_count = 0
@@ -111,6 +111,7 @@ class LLMFinetuneScen(DataScienceScen):
             )
         except Exception as e:
             raise RuntimeError(f"Failed to write dataset_info.json: {e}")
+        return existing_config
 
     def _get_data_folder_description(self) -> str:
         """Generate folder description for dataset."""
@@ -126,13 +127,12 @@ class LLMFinetuneScen(DataScienceScen):
 
     def get_scenario_all_desc(self) -> str:
         """Get complete scenario description for LLM fine-tuning"""
-        model_info = FinetuneDatasetDescriptor().describe_model(self.base_model)
-
         return T(".prompts:scenario_description").r(
             device_info=self.device_info,
             chosen_model=FT_RD_SETTING.base_model is not None,
             base_model=FT_RD_SETTING.base_model,
             dataset_info=self.dataset_info,
+            data_info_json=json.dumps(self.data_info_json, indent=2, ensure_ascii=False),
             model_info=self.model_info,
             debug_timeout=f"{self.real_debug_timeout() / 60:.2f} minutes",
             full_timeout=f"{self.real_full_timeout() / 60 / 60:.2f} hours",
