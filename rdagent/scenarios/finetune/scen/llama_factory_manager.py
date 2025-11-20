@@ -185,22 +185,19 @@ class LLaMAFactoryManager:
         if "finetuning" not in all_params:
             return f"**{method}**: No specific parameters"
 
-        type_params = all_params["finetuning"]
+        finetuning_params = all_params["finetuning"]
+        method_lower = method.lower()
 
-        # Filter by method
-        if method == "lora":
-            type_params = {k: v for k, v in type_params.items() if "lora" in k.lower()}
-        elif method == "freeze":
-            type_params = {k: v for k, v in type_params.items() if "freeze" in k.lower()}
-        elif method == "full":
-            # Full fine-tuning uses shared parameters only, no PEFT-specific params
+        # Full fine-tuning has no PEFT-specific parameters
+        if method_lower == "full":
             return f"**{method}**: Uses shared parameters only (full-parameter training)"
+
+        # Get parameters directly from the structured finetuning_params by method name
+        if method_lower in finetuning_params:
+            type_params = finetuning_params[method_lower]
         else:
-            # For unknown methods, filter out known PEFT params to avoid noise
-            peft_keywords = ["lora", "freeze", "oft", "galore", "apollo", "badam"]
-            type_params = {
-                k: v for k, v in type_params.items() if not any(keyword in k.lower() for keyword in peft_keywords)
-            }
+            # Unknown method, return message
+            return f"**{method}**: No specific parameters found for this method"
 
         if not type_params:
             return f"**{method}**: Uses shared parameters only"

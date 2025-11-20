@@ -15,9 +15,15 @@ from llamafactory.data.template import TEMPLATES
 from llamafactory.extras.constants import METHODS, SUPPORTED_MODELS, TRAINING_STAGES
 from llamafactory.hparams.data_args import DataArguments
 from llamafactory.hparams.finetuning_args import (
+    ApolloArguments,
+    BAdamArgument,
     FinetuningArguments,
     FreezeArguments,
+    GaloreArguments,
     LoraArguments,
+    OFTArguments,
+    RLHFArguments,
+    SwanLabArguments,
 )
 from llamafactory.hparams.model_args import ModelArguments, QuantizationArguments
 from transformers import TrainingArguments
@@ -73,8 +79,26 @@ def extract_params(cls):
     return {field.name: extract_field_info(field) for field in fields(cls)}
 
 
+def extract_base_params(cls):
+    """Extract only the parameters defined in the class itself, not inherited."""
+    # Get all fields from the class
+    all_fields = {f.name: f for f in fields(cls)}
+
+    # Get fields from all parent classes
+    parent_fields = set()
+    for base in cls.__bases__:
+        if hasattr(base, '__dataclass_fields__'):
+            parent_fields.update(base.__dataclass_fields__.keys())
+
+    # Keep only fields defined in the class itself
+    own_fields = {name: field for name, field in all_fields.items()
+                  if name not in parent_fields}
+
+    return {name: extract_field_info(field) for name, field in own_fields.items()}
+
+
 def save_parameters(base_dir):
-    """Extract and save all LLaMA Factory parameters in a flat structure."""
+    """Extract and save all LLaMA Factory parameters with category information."""
     base_path = Path(base_dir)
     base_path.mkdir(parents=True, exist_ok=True)
 
@@ -87,16 +111,24 @@ def save_parameters(base_dir):
     }
     (base_path / "constants.json").write_text(json.dumps(constants, indent=2))
 
-    # Save parameters - extract ALL parameters without filtering
+    # Save parameters - preserve parameter ownership by categorizing them
     parameters = {
         "model": extract_params(ModelArguments),
         "data": extract_params(DataArguments),
         "training": extract_params(TrainingArguments),
         "finetuning": {
-            **extract_params(FinetuningArguments),
-            **extract_params(LoraArguments),
-            **extract_params(FreezeArguments),
-            **extract_params(QuantizationArguments),
+            # Categorize parameters by PEFT method
+            "freeze": extract_params(FreezeArguments),
+            "lora": extract_params(LoraArguments),
+            "oft": extract_params(OFTArguments),
+            "galore": extract_params(GaloreArguments),
+            "apollo": extract_params(ApolloArguments),
+            "badam": extract_params(BAdamArgument),
+            "rlhf": extract_params(RLHFArguments),
+            "swanlab": extract_params(SwanLabArguments),
+            "quantization": extract_params(QuantizationArguments),
+            # Extract only FinetuningArguments' own parameters (excluding inherited ones)
+            "base": extract_base_params(FinetuningArguments),
         },
     }
     (base_path / "parameters.json").write_text(json.dumps(parameters, indent=2))
