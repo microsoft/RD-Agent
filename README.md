@@ -413,16 +413,16 @@ More documents can be found in the **[📖 readthedocs](https://rdagent.readthed
 # 📃 Paper/Work list
 
 ## Overall Technical Report
-- [R&D-Agent: Automating Data-Driven AI Solution Building Through LLM-Powered Automated Research, Development, and Evolution](https://arxiv.org/abs/2505.14738)
+- [R&D-Agent: An LLM-Agent Framework Towards Autonomous Data Science](https://arxiv.org/abs/2505.14738)
 ```BibTeX
-@misc{yang2024rdagent,
-    title={R\&D-Agent: Automating Data-Driven AI Solution Building Through LLM-Powered Automated Research, Development, and Evolution},
-    author={Xu Yang and Xiao Yang and Shikai Fang and Bowen Xian and Yuante Li and Jian Wang and Minrui Xu and Haoran Pan and Xinpeng Hong and Weiqing Liu and Yelong Shen and Weizhu Chen and Jiang Bian},
-    year={2025},
-    eprint={2505.14738},
-    archivePrefix={arXiv},
-    primaryClass={cs.AI},
-    url={https://arxiv.org/abs/2505.14738}
+@misc{yang2025rdagentllmagentframeworkautonomous,
+      title={R&D-Agent: An LLM-Agent Framework Towards Autonomous Data Science}, 
+      author={Xu Yang and Xiao Yang and Shikai Fang and Yifei Zhang and Jian Wang and Bowen Xian and Qizheng Li and Jingyuan Li and Minrui Xu and Yuante Li and Haoran Pan and Yuge Zhang and Weiqing Liu and Yelong Shen and Weizhu Chen and Jiang Bian},
+      year={2025},
+      eprint={2505.14738},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2505.14738}, 
 }
 ```
 ![image](https://github.com/user-attachments/assets/28b0488d-a546-4fef-8dc5-563ed64a9b4d)
@@ -468,13 +468,14 @@ For more detail, please refer to our **[🖥️ Live Demo page](https://rdagent.
 
 - [R&D-Agent-Quant: A Multi-Agent Framework for Data-Centric Factors and Model Joint Optimization](https://arxiv.org/abs/2505.15155)
 ```BibTeX
-@misc{li2025rdagentquant,
-    title={R\&D-Agent-Quant: A Multi-Agent Framework for Data-Centric Factors and Model Joint Optimization},
-    author={Yuante Li and Xu Yang and Xiao Yang and Minrui Xu and Xisen Wang and Weiqing Liu and Jiang Bian},
-    year={2025},
-    eprint={2505.15155},
-    archivePrefix={arXiv},
-    primaryClass={cs.AI}
+@misc{li2025rdagentquantmultiagentframeworkdatacentric,
+      title={R&D-Agent-Quant: A Multi-Agent Framework for Data-Centric Factors and Model Joint Optimization}, 
+      author={Yuante Li and Xu Yang and Xiao Yang and Minrui Xu and Xisen Wang and Weiqing Liu and Jiang Bian},
+      year={2025},
+      eprint={2505.15155},
+      archivePrefix={arXiv},
+      primaryClass={q-fin.CP},
+      url={https://arxiv.org/abs/2505.15155}, 
 }
 ```
 ![image](https://github.com/user-attachments/assets/3186f67a-c2f8-4b6b-8bb9-a9b959c13866)

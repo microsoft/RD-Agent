@@ -101,6 +101,13 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     scheduler_temperature: float = 1.0
     """The temperature for the trace scheduler for softmax calculation, used in ProbabilisticScheduler"""
 
+    # PUCT exploration constant for MCTSScheduler (ignored by other schedulers)
+    scheduler_c_puct: float = 1.0
+    """Exploration constant used by MCTSScheduler (PUCT)."""
+
+    enable_score_reward: bool = False
+    """Enable using score-based reward for trace selection in multi-trace scheduling."""
+
     #### multi-trace:checkpoint selector
     selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.select.expand.LatestCKPSelector"
     """The name of the selector to use"""
@@ -167,6 +174,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     enable_generate_unique_hypothesis: bool = False
     """Enable generate unique hypothesis. If True, generate unique hypothesis for each component. If False, generate unique hypothesis for each component."""
+
+    enable_research_rag: bool = False
+    """Enable research RAG for hypothesis generation."""
 
     #### hypothesis critique and rewrite
     enable_hypo_critique_rewrite: bool = False

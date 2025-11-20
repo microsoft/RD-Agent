@@ -169,5 +169,10 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 continue
             if evo.sub_workspace_list[index] is None:
                 evo.sub_workspace_list[index] = FactorFBWorkspace(target_task=evo.sub_tasks[index])
-            evo.sub_workspace_list[index].inject_files(**{"factor.py": code_list[index]})
+            # Since the `implement_one_task` method is not standardized and the `code_list` has both `str` and `dict` data types,
+            # we ended up getting an `TypeError` here, so we chose to fix the problem temporarily with this dirty method.
+            if isinstance(code_list[index], dict):
+                evo.sub_workspace_list[index].inject_files(**code_list[index])
+            else:
+                evo.sub_workspace_list[index].inject_files(**{"factor.py": code_list[index]})
         return evo
