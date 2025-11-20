@@ -1,5 +1,6 @@
 from pathlib import Path
 from rdagent.core.experiment import Experiment
+from typing import Optional, Dict
 
 # convert code into executable experiment and output standard experiment result
 class AgenticSysExperiment(Experiment):
@@ -7,6 +8,10 @@ class AgenticSysExperiment(Experiment):
         super().__init__(sub_tasks=sub_tasks, based_experiments=based_experiments)
         if experiment_workspace is not None:
             self.experiment_workspace = experiment_workspace
+        
+        # DeepResearch Bench evaluation scores
+        self.deepresearch_scores: Optional[Dict[str, float]] = None
+        self.evaluation_log: Optional[list] = None
 
     def run(self, code:str):
         """
@@ -101,3 +106,23 @@ class AgenticSysExperiment(Experiment):
             print(f"Failed to parse output: {e}")
             
         return metrics
+
+
+    def get_deepresearch_score(self, dimension: str = 'overall') -> float:
+        """Get DeepResearch Bench score for specific dimension"""
+        if not self.deepresearch_scores:
+            return 0.0
+        return self.deepresearch_scores.get(dimension, 0.0)
+    
+    def get_evaluation_summary(self) -> Dict[str, Any]:
+        """Get comprehensive evaluation summary"""
+        if not hasattr(self, 'result') or not self.result:
+            return {'status': 'no_results'}
+        
+        summary = {
+            'execution_metrics': self.result.get('execution_results', {}),
+            'deepresearch_scores': self.result.get('deepresearch_evaluation', {}),
+            'overall_score': self.get_deepresearch_score('overall')
+        }
+        
+        return summary
