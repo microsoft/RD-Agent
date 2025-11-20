@@ -212,6 +212,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     max_length : int = 2200
     """ max_length of the reward model"""
 
+    reward_select_type: int = 1
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()

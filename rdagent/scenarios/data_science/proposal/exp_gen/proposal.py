@@ -1613,9 +1613,14 @@ You help users retrieve relevant knowledge from community discussions and public
                 #     problem_dict=all_problems,
                 # )
                 logger.info("Selecting hypothesis using reward model. (avg win)")
-
-                selected_hypothesis_text=  self.reward_model_select_hypothesis_base_on_avg_win_rate(trace=trace, hypothesis_dict=hypothesis_dict)
-
+                if DS_RD_SETTING.reward_select_type==1:
+                    selected_hypothesis_text=  self.reward_model_select_hypothesis_base_on_avg_win_rate(trace=trace, hypothesis_dict=hypothesis_dict)
+                elif DS_RD_SETTING.reward_select_type==2:
+                    selected_hypothesis_text = self.reward_model_select_hypothesis(
+                        trace=trace,
+                        hypothesis_dict=hypothesis_dict,
+                        problem_dict=all_problems,
+                    )
                 # Find the problem name corresponding to the selected hypothesis text
                 pickled_problem_name = None
                 for problem_name, data in hypothesis_dict.items():
