@@ -1,5 +1,5 @@
 # Requirements for runtime.
-#pydantic-settings
+pydantic-settings
 
 python-Levenshtein
 scikit-learn
@@ -72,6 +72,6 @@ azureml-mlflow
 types-pytz
 
 # Agent
+pydantic-ai-slim[mcp,openai,prefect]
 nest-asyncio
-
 prefect
