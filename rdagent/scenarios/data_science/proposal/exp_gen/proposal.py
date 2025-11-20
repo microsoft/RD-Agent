@@ -10,7 +10,6 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.components.agent.rag import Agent as RAGAgent
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
@@ -650,6 +649,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         # knowledge retrieval
         if DS_RD_SETTING.enable_research_rag:
+            from rdagent.components.agent.rag import Agent as RAGAgent
             rag_agent = RAGAgent(
                 system_prompt="""You are a helpful assistant.
 You help users retrieve relevant knowledge from community discussions and public code."""
@@ -1136,6 +1136,7 @@ You help users retrieve relevant knowledge from community discussions and public
             current_sota_score=current_sota_score,
             ratio_merge_or_ensemble=ratio_merge_or_ensemble,
             current_sota_score_in_current_trace=current_sota_score_in_current_trace,
+            enable_mcts=DS_RD_SETTING.enable_mcts
         )
 
         user_prompt = T(".prompts_v2:hypothesis_select.user").r(

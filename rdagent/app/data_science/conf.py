@@ -101,10 +101,17 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     scheduler_temperature: float = 1.0
     """The temperature for the trace scheduler for softmax calculation, used in ProbabilisticScheduler"""
 
+
+    enable_mcts : bool = False
+    """Enable MCTS-based trace scheduling"""
+
     # PUCT exploration constant for MCTSScheduler (ignored by other schedulers)
     scheduler_c_puct: float = 1.0
     """Exploration constant used by MCTSScheduler (PUCT)."""
 
+    scheduler_c_uct: float = 1.0
+    """Exploration constant used by MCTSScheduler (UCT)."""
+    
     enable_score_reward: bool = False
     """Enable using score-based reward for trace selection in multi-trace scheduling."""
 
