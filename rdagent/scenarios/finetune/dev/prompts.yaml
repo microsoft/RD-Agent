@@ -6,64 +6,62 @@ exp_feedback:
     {{ scenario }}
 
     Your task is to analyze the LLM fine-tuning experiment's hypothesis, implementation, and execution results to provide comprehensive feedback.
+    Your critical decision is to accept or reject the experiment to replace the state of the art (SOTA) method on the same benchmark.
 
-    # Analysis Framework:
+    # Decision Making Framework:
+    ## Step 0: Pre-defination
+    - The user has proposed a hypothesis for fine-tuning a specific base model. Based on this hypothesis, they have planned a detailed task and  implemented a dataset generation pipeline and fine-tuning configuration.
+    - The user has executed the fine-tuning experiment on a mini-batch test and on the whole dataset. The execution was successful.
+    - The user has tested the fine-tuned model on a benchmark suite and obtained evaluation results.
 
-    ## Step 1: Configuration Validation
-    - Verify that the fine-tuning configuration is valid and complete
-    - Check for required parameters (model_name_or_path, dataset, finetuning_type, etc.)
-    - Identify any configuration errors or missing parameters
-    - Ensure the configuration aligns with the chosen fine-tuning method (LoRA, QLoRA, full fine-tuning)
+    ## Step 1: Implementation Validation
+    - The user will provide you the implementation code (e.g., fine-tuning configuration, dataset processing code).
+    - The configuration and code are provided both or partially.
+    - Verify that the fine-tuning configuration and code are aligned to the task.
+    - If configurations or code snippets are not aligned to the task, reject the experiment and start your reason by: [Configuration Mis-align]. Else proceed to next step.
 
-    ## Step 2: Code Quality Assessment  
+    ## Step 2: Benchmark metrics Evaluation
+    - The user will provide you the benchmark evaluation results after executing the fine-tuned model on a benchmark suite.
+    - The user will also provide you the former sota benchmark results on the same benchmark suite for comparison.
+    - Analyze the benchmark results to determine if they support or refute the hypothesis. If the results is signifficantly worse than the sota results, reject the experiment and start your reason by: [Benchmark Performance Issue]. Else proceed to next step.
+
+    ## Step 3: Task and Code Quality Assessment  
     - Evaluate the implementation quality and best practices
-    - Check for proper use of LlamaFactory or other fine-tuning frameworks
-    - Assess data preprocessing and loading logic
-    - Verify training loop implementation and checkpoint handling
+    - Compare the implementation against sota methods. If the implementation is worse than sota methods, reject the experiment and start your reason by: [Implementation Quality Issue]. Else accept the experiment.
 
-    ## Step 3: Execution Analysis
-    - Analyze execution success/failure and error messages
-    - Check for model output files (adapter weights, training logs, etc.)
-    - Evaluate training progress and convergence patterns
-    - Assess resource usage and efficiency
+    # Core improvement identification
+    ## Failure identification (On rejection)
+    - The user has provided you the hypothesis, task description, implementation code, execution logs, and benchmark results. You should analyze them and provide an explaination in depth.
+    - Identify the main cause of failure. Is the hypothesis flawed, task poorly defined, or implementation subpar?
+    - Provide a specific guess on the root cause of failure with detailed analysis.
+    - Put your analysis in the "reason" field of your final response.
 
-    ## Step 4: Hypothesis Evaluation
-    - Determine if the hypothesis is supported by the results
-    - Analyze the effectiveness of the chosen model and fine-tuning method
-    - Evaluate alignment between hypothesis expectations and actual outcomes
+    ## Improvement suggestions (On acceptance or rejection)
+    - Decide the core component that needs improvement for the next iteration.
+    - Suggest specific improvements or alternative approaches.
+    - Put your suggestions in the "reason" field of your final response.
 
-    ## Step 5: Decision Making
-    - Decide whether the experiment should be accepted
-    - Provide actionable recommendations for improvement
-    - Suggest next steps or alternative approaches
+    # Code Change Summary
+    - Summarize the user's implementation approach and key components concisely compared to sota methods.
 
     Provide structured feedback in the following JSON format:
     {
-      "Configuration Valid": "yes or no",
       "Code Summary": "Concise summary of the implementation approach and key components",
-      "Observations": "Key findings from execution analysis, including success/failure status and notable patterns",
-      "Hypothesis Evaluation": "Assessment of whether the hypothesis is confirmed or refuted by the results",
-      "Accept Experiment": "yes or no - whether this experiment should be accepted",
-      "Overall Acceptable": "yes or no - overall quality assessment",
-      "Reasoning": "Detailed explanation of the decision with specific evidence",
-      "New Hypothesis": "Suggested improvements or next hypothesis to test, if applicable"
+      "Reason": "Detailed explanation of the decision with specific evidence, root cause analysis, and improvement suggestions",
+      "Acceptance": "yes or no - whether this experiment should be accepted",
     }
 
   user: |-
     # Current LLM Fine-tuning Experiment Analysis
 
-    ## Hypothesis
-    **Base Model**: {{ base_model }}
-    **Fine-tuning Method**: {{ finetune_method }}
-    **Dataset**: {{ dataset }}
-    **Hypothesis Statement**: {{ hypothesis.hypothesis }}
-    **Reasoning**: {{ hypothesis.reason }}
+    ## hypothesis
+    {{ hypothesis }}
 
     ## Task Description
     {{ task_desc }}
 
-    ## Workspace Files
-    Available files: {{ workspace_files | join(", ") }}
+    ## Workspace files
+    {{ workspace_files }}
 
     ## Execution Results
     {% if execution_analysis.success %}

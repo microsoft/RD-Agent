@@ -11,7 +11,6 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
     CoSTEERSingleFeedback,
 )
-from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
 from rdagent.components.coder.CoSTEER.evolving_strategy import (
     MultiProcessEvolvingStrategy,
 )
