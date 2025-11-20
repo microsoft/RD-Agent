@@ -11,7 +11,8 @@ from tqdm import tqdm
 from rdagent.core.evaluation import EvaluableObj, Evaluator, Feedback
 from rdagent.core.evolving_framework import EvolvableSubjects, EvolvingStrategy, EvoStep
 from rdagent.log import rdagent_logger as logger
-
+from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiEvaluator
 ASpecificEvaluator = TypeVar("ASpecificEvaluator", bound=Evaluator)
 ASpecificEvolvableSubjects = TypeVar("ASpecificEvolvableSubjects", bound=EvolvableSubjects)
 
@@ -92,10 +93,21 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
 
                 # 4. Evaluation
                 if self.with_feedback:
-                    es.feedback = (
-                        eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge)
-                    )
-                    logger.log_object(es.feedback, tag="evolving feedback")
+                    if DS_RD_SETTING.enable_runner_mcts:
+                        if "Runner" in str(self.evolving_strategy.__class__):
+                            es.feedback = (
+                            eva if isinstance(eva, Feedback) else evo.FEEDBACK
+                        )
+                        else:
+                            es.feedback = (
+                            eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge)
+                        )
+                        logger.log_object(es.feedback, tag="evolving feedback")
+                    else:
+                        es.feedback = (
+                            eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge)
+                        )
+                        logger.log_object(es.feedback, tag="evolving feedback")
 
                 # 5. update trace
                 self.evolving_trace.append(es)

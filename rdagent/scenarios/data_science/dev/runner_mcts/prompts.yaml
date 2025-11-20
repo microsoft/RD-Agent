@@ -1,0 +1,287 @@
+DSCoSTEER_eval:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    You will be provided with:
+    1. `Code base`: The code base of the solution
+    2. `The stdout of code execution and testing`: The generated stdout when executing the code base and corresponding testing
+    3, `The time spent on code execution`: The time spent on the code execution
+    4. `The timeout of code execution`: the time limitation of the code execution
+    5. `The percent of timeout used`: the percentage of the time limitation used
+    Your task is to perform the following evaluation(s):
+
+    # Evaluation 1: Code Correctness
+    ## Scenario
+    The code is focusing on the following scenario:
+    {{ scenario }}
+
+    ## Target Task Description
+    The code is focusing on the following task
+    {{ task_desc }}
+
+    ## Evaluation Guidelines
+    1. Evaluate the code base based on several aspects, including execution correctness, return checking, and code quality.
+    2. Ensure the code does not contain any incorrect, fabricated, or deceptive operations, such as mocking data, scores, or results.
+    3. Confirm that the prediction file (`submission.csv`) is generated using only the test dataset, and its format matches the sample submission. Please refer to Submission check section including the format check to the submission.
+    If the code does not satisfy the requirements:
+    - Set "acceptable" to false.
+    If the code satisfy the requirements:
+    - Set "acceptable" to true.
+
+
+    ## Output format
+    Please respond with your feedback in the following JSON format and order without anything else:
+    ```json
+    {
+        "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
+        "execution": "Describe whether the whole code base executed successfully and generating the final submission. Include any errors or issues encountered, and retain all error messages and traceback details.",
+        "return_checking": "Verify the generated files, particularly the submission file. Ensure that its format is valid",
+        "code_accept": <true/false: True if the submitted code executes correctly and contains no bugs or logical errors. False otherwise.>
+        "acceptable": <true/false: if the solution has passed execution, return_checking, and code verification, then it is a valid solution and acceptable. Otherwise it is not acceptable.>,
+    }
+    ```
+
+  user: |-
+    # Current Code base
+    {{ code }}
+    {% if change_summary is not none %}
+    # Current Code Change Summary
+    {{ change_summary }}{% endif %}
+
+    ## Stdout of code execution and testing
+    {{ stdout }}
+
+    {% if queried_former_failed_knowledge|length != 0 %}
+    # Evolving History
+    {% for former_failed_knowledge in queried_former_failed_knowledge %}## Attempt {{ loop.index }}:
+    ### Summary of Changes
+    {{ former_failed_knowledge.implementation.change_summary }}
+    {{ former_failed_knowledge.feedback }}
+    {% endfor %}
+    {% endif %}
+    
+DSCoSTEER:
+  system_debugger: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    You have finished the implementation of the whole workflow which has executed well on a sampled dataset. Now we are working on the full dataset.
+    The user has reported that the workflow failed to execute on the full dataset.
+    Your will be provided with:
+    1. Code base.
+    2. Task description, which is the task the code is trying to solve.
+    3. Feedback generated during the execution of the whole workflow.
+    Your job is to debug the whole code base, try to correct the errors, and ensure that the workflow can execute successfully on the full dataset.
+
+    ## Task description
+    {{ task_desc }}
+
+    ## Instructions
+    1. Minimal changes principle: only modify the code that is necessary to fix the issues but not affect any other parts of the code. Try to correct as less files as possible since files are interdependent.
+    {% if diff_mode %}
+    2. You must output in Code Diff format. The detailed format specification is as follows.
+    {% else %}
+    2. You must output the COMPLETE and FULL code. Do not truncate, summarize, or omit any parts of the code. Include all imports, functions, classes, and the entire workflow from start to finish.
+    {% endif %}
+
+    ## Output Format
+    {% if out_spec %}
+    {{ out_spec }}
+    {% else %}
+    Please response the code in the following JSON format without anything else.
+    {
+        "code": "The Python code as a string."
+    }
+    {% endif %}
+
+  system_refine: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    You are a Kaggle Grandmaster. You have completed the full workflow implementation, which runs successfully on a sampled dataset. Now we are executing it on the full dataset.
+
+    The user has reported:
+    - Current hyperparameters are suboptimal.
+    - The workflow does not fully utilize the available time limit.
+
+    You are provided with:
+    1. Complete code base.
+    2. Feedback generated during the workflow execution.
+
+    Your task:
+      - Refine the code base and adjust hyperparameters based on feedback. Propose **{{num_candidates}} candidate code modifications**.
+      - Keep the overall workflow logic unchanged.
+      - Please make sure to reference the **standard output** when refining.
+
+    Instructions:
+    1. **Fix the cross-validation strategy first**:
+      - Decide on CV folds and split type (StratifiedKFold / GroupKFold / etc.).
+      - This ensures reliable performance comparisons across different hyperparameter settings.
+
+    2. **Adjust hyperparameters according to the following priority**:
+      - **First priority:** Advanced model architectures and input information (determine capacity and upper bound).
+        - Examples (NLP): DeBERTa v3 Large, RoBERTa Large, T5, GPT-2 / GPT-3 fine-tuned
+        - Examples (CV): Swin Transformer, ViT Large / Huge, EfficientNetV2
+        - Also consider `max length` and `image size` when scaling models to fully leverage input data.
+      
+      - **Second priority:** Training stability parameters (`batch size`, `epoch`, `CV folds`).
+        - Before adjusting, check `__change_summary__` and **standard output** of the evolving history. 
+        - If these parameters have already been explored or significantly modified, you may skip or only lightly adjust them.
+      
+      - **Third priority:** Optimization refinements (`lr scheduler`, regularization, dropout, label smoothing, weight decay, etc.).
+        - These fine-tuning techniques further improve convergence and generalization.
+
+    3. **Guiding principle:** 
+      - Adjust hyperparameters progressively according to the above priority list.
+      - Pay attention to which parameters have already been modified or explored in the current code — in such cases, consider moving on to higher-priority hyperparameters instead of repeating.
+      - Ensure the best use of computational resources and the time limit.
+      - Encourage creativity: you may also adjust parameters you believe are most useful or impactful, even if they are outside the strict priority order
+
+    ## Instructions
+    1. Minimal changes principle: only modify necessary hyperparameters.
+    {% if diff_mode %}
+    2. You must output in Code Diff format. The detailed format specification is as follows.
+    {% else %}
+    2. You must output the COMPLETE and FULL code. Do not truncate, summarize, or omit any parts of the code. Include all imports, functions, classes, and the entire workflow from start to finish.
+    {% endif %}
+
+    ## Output Format
+    {% if out_spec %}
+    {{ out_spec }}
+    {% else %}
+    Please response the code in the following JSON format without anything else.
+    {
+        "code": "The Python code as a string."
+    }
+    {% endif %}
+
+  user: |-
+    # Current Code Base
+    {{ code }}
+    {% if change_summary is not none %}
+    # Current Code Change Summary
+    {{ change_summary }}{% endif %}
+
+    # Standard Output:
+     {{stdout}}
+
+    {% if queried_former_failed_knowledge|length != 0 %}
+    # Evolving History
+    {% for former_failed_knowledge in queried_former_failed_knowledge %}## Attempt {{ loop.index }}:
+    ### Summary of Changes
+    {{ former_failed_knowledge.implementation.change_summary }}
+    ### Validation Scores
+    {{ former_failed_knowledge.feedback.score }}
+    {% endfor %}
+    {% endif %}
+
+    ## Instructions for LLM
+    1. Propose **{{num_candidates}} candidate code modifications** that follow the minimal changes principle.
+      Each candidate should be a complete, self-contained code modification ready to inject into the codebase.
+
+    2. You may adjust multiple hyperparameters or code components at once,
+      as long as the changes improve performance or correctness.
+      Prioritize meaningful modifications over minimal ones if multiple changes are beneficial.
+
+    3. **STRICT REQUIREMENT:**  
+      - The generated `main.py` must be **100% complete and executable**.  
+      - It must be identical to the Current Code Base in all parts **except** the places where parameters or hyperparameters are modified.  
+      - **Do NOT use placeholders** such as `...`, `# unchanged`, `...(unchanged lines)`, or anything similar.  
+      - Every single line from the original `main.py` must be present in the output, whether modified or not.  
+
+    4. **OUTPUT REQUIREMENT:**  
+      - Respond with a JSON **list of objects**, each object representing one candidate modification.  
+      - Each object must contain:
+        - `"main.py"`: the full modified content of `main.py` (no omissions).  
+        - `"__change_summary__"`: a short plain-text explanation of the changes.  
+      - The JSON must be valid and contain exactly **{{num_candidates}}** candidate modifications.  
+      - Additionally, append the `__change_summary__` string to the **end of the code file (`main.py`) as a commented block**.  
+
+    5. **HARD CONSTRAINTS:**  
+      - Do not omit, summarize, or collapse any code.  
+      - Do not output anything outside the JSON list.  
+      - Ensure all code blocks are syntactically correct and runnable as-is.  
+
+
+    ## Output Format
+    Please respond with a JSON **list of objects**, each object representing one candidate modification.
+    Each object should be a dictionary with filenames as keys and the corresponding modified content as values.
+    Example:
+    [
+        {'main.py': '...', '__change_summary__': '...'},
+        {'main.py': '...', '__change_summary__': '...'},
+        ...
+    ]
+    Make sure the JSON is valid and contains exactly {{num_candidates}} candidate modifications.
+
+
+
+DSCoSTEER_mcts:
+  system: |-
+    You are a planning assistant that decides whether to perform Monte Carlo Tree Search (MCTS) 
+    given a root node. Evaluate time, memory, and task complexity to make resource-aware recommendations.
+    ## Scenario
+    The code is focusing on the following scenario:
+    {{ scenario }}
+
+    ## Target Task Description
+    The code is focusing on the following task
+    {{ task_desc }}
+
+
+  user: |-
+    You are a planning assistant analyzing whether to perform Monte Carlo Tree Search (MCTS) from the given root node. 
+    Evaluate the following inputs carefully:
+
+    Root Node Information:
+
+    - Existing Code: {{code}}
+    - Standard Output / Feedback: {{stdout}}
+    - Elapsed Time Already Used: {{elapsed_time}} seconds
+    - Evaluation Metric Direction: bigger_is_better = {{bigger_is_better}}
+      (True → higher score is better; False → lower score is better)
+
+    Instructions:
+    1. **Decision**: Determine whether it is worthwhile to enter MCTS search from this root node. 
+      Default to `enter_mcts = true` unless:
+      - Remaining time is extremely low (e.g., < 10 seconds).  
+      - Memory/GPU constraints make search infeasible.  
+      If uncertain, prefer `enter_mcts = true`.
+
+    2. **Resource Estimation** (if entering MCTS):
+      - Estimate approximate time required for the search based on `elapsed_time` and task complexity.
+      - Estimate expected memory usage for the search.
+      - Recommend a reasonable number of MCTS iterations/simulations that balance solution quality and efficiency.
+
+    3. **Output Format** (strictly JSON, do not include extra text):
+      {
+        "enter_mcts": true/false,                   
+        // Whether to perform MCTS from the current root node.
+        // Decision should consider:
+        // - Task complexity and branching factor
+        // - Quality and completeness of existing code
+        // - Information already collected (stdout, EDA)
+        // - Metric direction (`bigger_is_better`)
+        // - Time and resource constraints
+
+        "estimated_time_sec": number,               
+        // Estimated time required to simulate a single node (one rollout), in seconds.
+        // This should be inferred from the elapsed time for the root node (`elapsed_time`),
+        // assuming similar computational cost per simulation.
+        // Provide only a numeric value (no units or strings).
+
+        "gpu_count": 1/2,                           
+        // Recommended number of GPUs to use for MCTS.
+        // 1 → Single GPU sufficient
+        // 2 → Two GPUs recommended for faster computation or large search space
+        // Decision should account for estimated memory load, parallelization benefits,
+        // and the actual GPU status reported under "=== GPU Info (via PyTorch) ===".
+
+        "recommended_search_depth": 1/2,            
+        // Recommended depth of MCTS search tree.
+        // - 1 → Shallow search, for low potential or already well-explored root
+        // - 2 → Deeper search, for promising or complex root nodes
+        // Consider root node potential, branching factor, and expected gain from deeper search.
+      "reasoning": {
+        "text": "Concise reasoning for your decision, highlighting: time (seconds), GPU allocation, task complexity, root node potential, metric direction (bigger_is_better), and trade-offs considered between search depth, time, and resources.",
+        "confidence": number  // Confidence score of this decision, from 0 to 100. Consider the root node's current score and the elapsed execution time. Better root node scores generally indicate a higher likelihood of successful outcomes. Confidence should reflect both the quality of the current solution and the resources available.
+      }
+      }
+
+    Provide concise, logical reasoning for your decision. Quantify time, memory, and search count whenever possible.
+    Ensure the JSON is fully parseable; do not include markdown or extra text outside the JSON.

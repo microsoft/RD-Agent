@@ -52,6 +52,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     #### MCP documentation search integration
     enable_mcp_documentation_search: bool = False
     """Enable MCP documentation search for error resolution. Requires MCP_ENABLED=true and MCP_CONTEXT7_ENABLED=true in environment."""
+    ensemble_timeout: int = 3600*5
 
     ### specific feature
 
@@ -123,6 +124,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     sota_count_threshold: int = 1
     """The threshold for SOTA count"""
 
+    ensemble_with_merge: bool = False
+
+    ratio_merge_or_ensemble: int = 99 # 70% for merge/ensemble
+
     #### multi-trace: SOTA experiment selector
     sota_exp_selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.select.submit.GlobalSOTASelector"
     """The name of the SOTA experiment selector to use"""
@@ -191,6 +196,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     #### hypothesis critique and rewrite
     enable_hypo_critique_rewrite: bool = False
+    enable_hypo_critique_rewrite: bool = False
     """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
     enable_scale_check: bool = False
 
@@ -223,6 +229,41 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
 
 
+    #### hypothesis selection method
+    llm_select_hypothesis: bool = True
+    """Whether to use LLM to select hypothesis. If True, use LLM selection; if False, use the existing ranking method."""
+    #### enable runner code change summary
+    runner_enable_code_change_summary: bool = False
+
+    # runner MCTS settings
+    switch_mcts_ratio : int = 50
+
+
+    enable_runner_mcts: bool = True
+    """Enable MCTS in runner for better code searching"""
+    mcts_max_iterations: int = 2
+    """The maximum number of MCTS iterations to perform.
+
+    - If running in single-process mode, this is set to the total number of nodes in the tree.
+    - If running in multi-process mode, this is set to the maximum depth of the tree.
+    """
+
+    mcts_exploration_constant: float = 1.4
+    """The exploration constant (C) used in the UCT formula."""
+
+    mcts_hypothesis_sample_size: int = 2
+    """The number of hypotheses to sample during MCTS."""
+
+    runner_max_loop: int = mcts_max_iterations*mcts_hypothesis_sample_size +1
+    """The maximum number of MCTS iterations to perform."""
+
+    multiprocessing_mcts_simulation: bool = True
+    """Enable multiprocessing for MCTS simulations."""
+    mcts_multiprocessing_batch_size: int  = 2
+    """ # Recommended to keep it equal to mcts_hypothesis_sample_size """
+    """The batch size for multiprocessing in MCTS simulations."""
+    mcts_n_processes: int = 2
+    """The number of processes to use for multiprocessing in MCTS simulations."""
 DS_RD_SETTING = DataScienceBasePropSetting()
 
 # enable_cross_trace_diversity and llm_select_hypothesis should not be true at the same time

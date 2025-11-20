@@ -8,6 +8,8 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 from pydantic import BaseModel, Field
+import torch
+from rdagent.scenarios.kaggle.kaggle_crawler import get_metric_direction
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
@@ -100,6 +102,70 @@ class ScenarioChallengeCategory(str, Enum):
     DATASET_DRIVEN = "dataset-driven"
     DOMAIN_INFORMED = "domain-informed"
 
+class HypothesisComponent(str, Enum):
+    DataLoadSpec = "DataLoadSpec"
+    FeatureEng = "FeatureEng"
+    Model = "Model"
+    Ensemble = "Ensemble"
+    Workflow = "Workflow"
+
+
+class HypothesisEvaluationReasoningScore(BaseModel):
+    reasoning: str = Field(
+        description="What is the quality of the hypothesis under this criteria? Answer in 1-2 sentence."
+    )
+    score: float = Field(description="The score of the hypothesis under this criteria between 1 and 10.")
+
+
+class HypothesisEvaluation(BaseModel):
+    alignment: HypothesisEvaluationReasoningScore = Field(
+        description="The alignment of the proposed hypothesis with the identified challenge."
+    )
+    impact: HypothesisEvaluationReasoningScore = Field(
+        description="The expected impact of the proposed hypothesis on the current SOTA implementation."
+    )
+    novelty: HypothesisEvaluationReasoningScore = Field(
+        description="The novelty of the proposed hypothesis compared to existing solutions."
+    )
+    feasibility: HypothesisEvaluationReasoningScore = Field(
+        description="The feasibility of implementing the proposed hypothesis in the current SOTA implementation."
+    )
+    risk_reward_balance: HypothesisEvaluationReasoningScore = Field(
+        description="The risk-reward balance of implementing the proposed hypothesis."
+    )
+
+
+class HypothesisDetail(BaseModel):
+    caption: str = Field(description="The caption of the challenge it is based on.")
+    challenge: str = Field(
+        description="Reaffirm the challenge within the current context (e.g., trace history, domain principles, or competition constraints). It should be no more than 2-3 sentences."
+    )
+    hypothesis: str = Field(
+        description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
+    )
+    metric_impact: str = Field(
+        description=(
+            "Brief explanation (max 2 sentences) of the expected impact of the hypothesis on the target metric."
+        )
+    )
+    component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
+    evaluation: HypothesisEvaluation = Field(description="Evaluate the quality of the hypothesis.")
+
+
+class HypothesisSimple(BaseModel):
+    hypothesis: str = Field(
+        description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
+    )
+    component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
+
+
+class HypothesisList(BaseModel):
+    deduplicated_challenges: List[str] = Field(
+        description="A list of deduplicated challenge captions. Each must retain its original wording. If multiple captions are semantically identical, keep the first one."
+    )
+    hypotheses: List[HypothesisDetail] = Field(
+        description="A non-empty list of hypotheses proposed for the next iteration, each corresponding to one challenge. The list length should match the number of challenges."
+    )
 
 class ScenarioChallengeDetail(BaseModel):
     reasoning: str = Field(
@@ -1566,6 +1632,12 @@ You help users retrieve relevant knowledge from community discussions and public
         else:
             former_user_instructions = failed_exp_feedback_list[-1][0].user_instructions
 
+        if len(trace.hist) > 0:
+            extra_exp_feedback_list = [tr[0].hypothesis for tr in trace.experiment_and_feedback_list_after_init(return_type="all",search_type="all") if getattr(tr[1], "decision", False)]
+            exp_feedback_scores = [tr[0].result.loc["ensemble"].iloc[0].round(3) for tr in trace.experiment_and_feedback_list_after_init(return_type="all",search_type="all") if getattr(tr[1], "decision", False)]
+        else:
+            extra_exp_feedback_list = None
+            exp_feedback_scores = None
         # NOTE: we currently don't support inject diverse problems for the parallel + multi-trace mode,
         if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
             if len(trace.current_selection) == 0:

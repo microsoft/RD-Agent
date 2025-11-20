@@ -285,7 +285,8 @@ class CoSTEERRAGStrategyV2(CoSTEERRAGStrategy):
                     target_task = implementations.sub_tasks[task_index]
                     target_task_information = target_task.get_task_information()
                     implementation = implementations.sub_workspace_list[task_index]
-                    single_feedback: CoSTEERSingleFeedback = feedback[task_index]
+                    single_feedback: CoSTEERSingleFeedback = feedback[task_index]#.feedback_list[task_index]#feedback#feedback[task_index]
+                    
                     if implementation is None or single_feedback is None:
                         continue
                     single_knowledge = CoSTEERKnowledge(
