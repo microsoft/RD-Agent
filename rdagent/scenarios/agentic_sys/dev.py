@@ -1,4 +1,5 @@
 import sys
+from blosc2 import exp
 from matplotlib.style import context
 from prefect import task
 from rdagent.core.developer import Developer
@@ -165,8 +166,72 @@ class AgenticSysCoder(Developer[Experiment]):
     def should_validate_generation(self,exp: Experiment) -> bool:
         """
         Determine if we should validate generated code before proceeding
+
+        Validation is recommended when: 
+        1. It's the first experiment (no prior validation history)
+        2. The hypothesis involves complex/risk operations
+        3. Previous experiment has validation failures
+        4. Configuration explicitly requires validation
+        
+        parameters:
+        exp: Experiment
+        The experiment to potentially 
+        Returns: bool
+        True if validation should be performed
         """
-        pass
+        #1. check global configuration flag
+        validation_config = getattr(self.scen, 'enable_code_validation', True)
+        if not validation_config:
+            logger.info("Code validation disabled by configuration")
+            return False
+        #2. always validate first experiment
+        if not hasattr(exp, 'iteration_number') or exp.iteration_number == 0:
+            logger.info("First experiment - validation enabled ")
+            return True
+        #3. check hypothesis complexity/risk indicators
+        hypothesis = getattr(exp, 'hypothesis', '').lower()
+        
+        #High risk keywords that suggest validation is needed
+        high_risk_keywords = [
+            'parallel', 'concurrent', 'multi-thread', 'async',  # Concurrency risks
+            'optimization', 'complex', 'advanced',              # Complexity
+            'distributed', 'network', 'remote',                 # Network operations
+            'file system', 'database', 'io',                    # I/O operations
+            'experimental', 'novel', 'new approach'             # Unproven approaches
+        ]
+
+        if any(keyword in hypothesis for keyword in high_risk_keywords):
+            logger.info(f"High risk hypothesis detected, validation enabled")
+            return True
+        
+        if hasattr(exp, 'previous_validation_failed') and exp.previous_validation_failed:
+            logger.info("Previous validation failed, re-enabling validation")
+            return True
+        
+        #5. skip validation for simple/proven approaches
+        simple_keywords = ['simple', 'basic', 'straightforward', 'minimal']
+        if any(keyword in hypothesis for keyword in simple_keywords):
+            logger.info("Simple hypothesis detected, skipping validation")
+            return False
+
+        # 6. Default behavior: validate every N experiments
+        validation_interval = getattr(self.scen, 'validation_interval', 3)
+        iteration = getattr(exp, 'iteration_number', 0)
+    
+        if iteration % validation_interval == 0:
+            logger.info(f"Periodic validation (interval={validation_interval})")
+            return True
+    
+        # 7. Default: skip validation for efficiency
+        logger.info("No validation triggers met - skipping validation")
+        return False
+        
+
+
+
+
+
+
 
     def validate_generated_code(self, env, ws_path: Path):
         """
