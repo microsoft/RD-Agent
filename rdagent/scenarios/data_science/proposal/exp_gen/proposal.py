@@ -1200,7 +1200,7 @@ You help users retrieve relevant knowledge from community discussions and public
             tokenizer.pad_token = tokenizer.eos_token
 
         model = RewardModelInference(
-            base_model_path=base_model,
+            base_model_name=base_model,
             adapter_path=adapter_path,
             reward_head_path=reward_head_path,
         ).to("cuda")
