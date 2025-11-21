@@ -379,9 +379,10 @@ class MCTSScheduler(ProbabilisticScheduler):
     def select(self, trace: DSTrace) -> tuple[int, ...] | None:
         # Step 1: keep same policy to reach target number of parallel traces
         # TODO: expanding from the virtual root node is implemented in a rule-based way.
-
-        # if trace.sub_trace_count + self.uncommited_rec_status[trace.NEW_ROOT] < self.max_trace_num:
+        # if len(trace.hist) == 0:
         #     return trace.NEW_ROOT
+        if trace.sub_trace_count + self.uncommited_rec_status[trace.NEW_ROOT] < 1:
+            return trace.NEW_ROOT
 
 
         # Step 2: consider only available leaves (not being expanded)
