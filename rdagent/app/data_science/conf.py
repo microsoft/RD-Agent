@@ -196,7 +196,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     user_interaction_wait_seconds: int = 6000  # seconds to wait for user interaction
     user_interaction_mid_folder: Path = Path.cwd() / "git_ignore_folder" / "RD-Agent_user_interaction"
-    lite_model: str = "vllm/qwen3:8b"
+    review_model: str | None = None # "vllm/qwen3:8b"
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()
