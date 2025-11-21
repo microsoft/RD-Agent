@@ -650,16 +650,40 @@ hypothesis_select:
     # Current SOTA Implementation
     {{ sota_exp_desc }}
 
-hypotheses_decide:
+simulate_task:
   system: |-
-    {% include "scenarios.data_science.share:scen.role" %}
-    Please estimate the expected feedback from the real experiment based on the input hypothesis, using the json format provided below:
-    {
-        "acceptable": "yes or no",
-        "reason": "Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences.",
-        "observations": "Clearly summarize current and SOTA ensemble results with exact scores and notable patterns. Limit to no more than three concise, data-focused sentences. Your observation must be grounded by explicit evidence from scenario description or code implementation, not just validation scores.",
-        "feedback": "Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences."
-    }
+    You have a base code for a Kaggle competition and a hypothesis (hoping to make certain modifications to this code to improve the code's score). 
+    Please summarize this code, retain the key parts, and mark the parts of this code that the hypothesis will modify. If no base code is provided, please generate a pseudo-code outline based on the hypothesis that shows the main structure and key components needed to implement the hypothesis.
+    Your response should be in markdown format, and only return the markdown text without any other content.
+  user: |-
+    ## Hypothesis
+    {{ hypothesis }}
+
+    ## Base Code
+    ```python
+    {{ base_code }}
+    ```
+
+predict_feedback:
+  system: 
+    qwen: |-
+      Given a Kaggle competition scenario and a hypothesis, you are provided with a task derived from the hypothesis that specifies how the base code would be modified (the actual base code is not provided).
+      Predict whether, after modifying the base code according to this task, the code's performance will improve ("yes") or worsen ("no"). Base your judgment solely on the scenario, hypothesis, and task.
+      Answer with only "yes" or "no".
+    base: |-
+      Given a Kaggle competition scenario and a hypothesis, you are provided with a task derived from the hypothesis that specifies how the base code would be modified (the actual base code is not provided).
+      Predict whether, after modifying the base code according to this task, the code's performance will improve or worsen. Base your judgment solely on the scenario, hypothesis, and task.
+      Provide your judgment and explanation.
+  user: |-
+    ## Scenario
+    {{ scenario }}
+
+    ## Hypothesis
+    {{ hypothesis }}
+
+    ## Task
+    {{ rewrite_task }}
+
 
 task_gen:
   system: |-
@@ -978,10 +1002,3 @@ output_format:
       "hypothesis": "...",  
       "component": "..."  // Must be one of: 'DataLoadSpec', 'FeatureEng', 'Model', 'Workflow', 'Ensemble'
     }
-
-  hypothesis_score_format: |- 
-    You must return a dictionary in the following format for hypothesis
-    {
-      "score": float
-    }
-
