@@ -19,7 +19,11 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import yaml
+from dotenv import find_dotenv, load_dotenv
 from jinja2 import Template
+
+# Load .env file before importing settings
+load_dotenv(find_dotenv())
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
@@ -135,14 +139,30 @@ def detect_model_type(model_path: str) -> tuple[str, Optional[str]]:
             - For full fine-tuning: (model_path, None)
 
     Raises:
-        FileNotFoundError: If config.json not found
+        FileNotFoundError: If neither config.json nor adapter_config.json found
         ValueError: If base_model_name_or_path missing in config
     """
     model_dir = Path(model_path)
-    config_file = model_dir / "config.json"
 
+    # Check for LoRA adapter first (llama-factory format)
+    adapter_config_file = model_dir / "adapter_config.json"
+    if adapter_config_file.exists():
+        with open(adapter_config_file, "r") as f:
+            adapter_config = json.load(f)
+
+        base_model = adapter_config.get("base_model_name_or_path")
+        if not base_model:
+            raise ValueError(f"Cannot find base_model_name_or_path in {adapter_config_file}")
+
+        logger.info(f"Detected LoRA adapter at {model_path}, base model: {base_model}")
+        return (base_model, str(model_dir.resolve()))
+
+    # Check for full model config
+    config_file = model_dir / "config.json"
     if not config_file.exists():
-        raise FileNotFoundError(f"config.json not found in {model_path}")
+        raise FileNotFoundError(
+            f"Neither config.json nor adapter_config.json found in {model_path}"
+        )
 
     with open(config_file, "r") as f:
         config = json.load(f)
@@ -153,11 +173,10 @@ def detect_model_type(model_path: str) -> tuple[str, Optional[str]]:
     if not base_model:
         raise ValueError(f"Cannot find base model name in {config_file}")
 
-    # Detect LoRA adapter files
+    # Detect LoRA adapter files (alternative LoRA format)
     lora_files = [
         "adapter_model.bin",
         "adapter_model.safetensors",
-        "adapter_config.json",
     ]
     is_lora = any((model_dir / f).exists() for f in lora_files)
 
@@ -233,11 +252,29 @@ def run_benchmark(
     conf = BenchmarkDockerConf()
     conf.running_timeout_period = FT_RD_SETTING.benchmark_timeout
 
+    # Prepare volume mounts
+    extra_volumes = {}
+
+    # Mount benchmark cache directory
     if FT_RD_SETTING.file_path:
         benchmark_cache_dir = Path(FT_RD_SETTING.file_path) / "benchmarks"
-        benchmark_cache_dir.mkdir(parents=True, exist_ok=True)
-        conf.extra_volumes = {str(benchmark_cache_dir.resolve()): {"bind": "/benchmarks", "mode": "rw"}}
+        try:
+            benchmark_cache_dir.mkdir(parents=True, exist_ok=True)
+            extra_volumes[str(benchmark_cache_dir.resolve())] = {"bind": "/benchmarks", "mode": "rw"}
+            logger.info(f"Benchmark cache directory mounted: {benchmark_cache_dir}")
+        except (PermissionError, OSError) as e:
+            logger.warning(f"Cannot create benchmark cache directory {benchmark_cache_dir}: {e}. Skipping cache mount.")
 
+    # Mount LoRA adapter directory if using LoRA
+    if lora_adapter:
+        lora_dir = Path(lora_adapter).resolve()
+        if lora_dir.exists():
+            extra_volumes[str(lora_dir)] = {"bind": str(lora_dir), "mode": "ro"}
+            logger.info(f"LoRA adapter directory mounted: {lora_dir}")
+        else:
+            raise FileNotFoundError(f"LoRA adapter directory not found: {lora_dir}")
+
+    conf.extra_volumes = extra_volumes
     env = BenchmarkDockerEnv(conf=conf)
     env.prepare()
 
@@ -409,13 +446,8 @@ class FTBenchmarkEvaluator(CoSTEEREvaluator):
 
 if __name__ == "__main__":
     """Test benchmark evaluation on Qwen3-1.7B with LoRA adapter."""
-    from dotenv import load_dotenv
-
-    # Load .env file to get environment variables (FT_JUDGE_API_KEY, etc.)
-    load_dotenv()
-
     # Configuration - Fill in your LoRA adapter path
-    LORA_ADAPTER_PATH = None  # e.g., "/path/to/output/checkpoint-100"
+    LORA_ADAPTER_PATH = "/home/v-qizhengli/workspace/FT_workspace/gitignore_folder/B200_FT_workspace/limo/train/b200_sweep_yamls/saves/qwen3-1.7b/lora_b200_lr1e-4_acc4/checkpoint-100"  # e.g., "/path/to/output/checkpoint-100"
     BENCHMARK = "aime25"
 
     print("=" * 80)
