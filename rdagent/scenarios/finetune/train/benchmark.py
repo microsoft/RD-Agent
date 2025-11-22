@@ -196,7 +196,7 @@ def run_benchmark(
         ValueError: Invalid benchmark name or configuration
         RuntimeError: Docker execution failed or results parsing error
     """
-    # Load configurations
+    # Load configurations我
     dataset_imports = get_benchmark_config(benchmark_name)
     base_model, lora_adapter = detect_model_type(model_path)
     inference_config = get_model_inference_config(base_model)
@@ -409,15 +409,20 @@ class FTBenchmarkEvaluator(CoSTEEREvaluator):
 
 if __name__ == "__main__":
     """Test benchmark evaluation on Qwen3-1.7B with LoRA adapter."""
+    from dotenv import load_dotenv
+
+    # Load .env file to get environment variables (FT_JUDGE_API_KEY, etc.)
+    load_dotenv()
 
     # Configuration - Fill in your LoRA adapter path
     LORA_ADAPTER_PATH = None  # e.g., "/path/to/output/checkpoint-100"
     BENCHMARK = "aime25"
-    LIMIT = 5
 
     print("=" * 80)
     print("Benchmark Evaluation Test")
     print("=" * 80)
+    print(f"\n📋 Environment: FT_JUDGE_API_KEY={'✅ Set' if FT_RD_SETTING.judge_api_key else '❌ Not Set'}")
+    print(f"   Judge API Base: {FT_RD_SETTING.judge_api_base or '❌ Not Set'}")
 
     if LORA_ADAPTER_PATH is None:
         print("\n⚠️  Please set LORA_ADAPTER_PATH to your LoRA checkpoint directory")
@@ -426,14 +431,12 @@ if __name__ == "__main__":
 
     print(f"\nModel: {LORA_ADAPTER_PATH}")
     print(f"Benchmark: {BENCHMARK}")
-    print(f"Limit: {LIMIT} samples")
     print("-" * 80)
 
     try:
         scores = run_benchmark(
             model_path=LORA_ADAPTER_PATH,
             benchmark_name=BENCHMARK,
-            limit=LIMIT,
         )
 
         print("\n✅ Evaluation completed!")
