@@ -87,12 +87,11 @@ def extract_base_params(cls):
     # Get fields from all parent classes
     parent_fields = set()
     for base in cls.__bases__:
-        if hasattr(base, '__dataclass_fields__'):
+        if hasattr(base, "__dataclass_fields__"):
             parent_fields.update(base.__dataclass_fields__.keys())
 
     # Keep only fields defined in the class itself
-    own_fields = {name: field for name, field in all_fields.items()
-                  if name not in parent_fields}
+    own_fields = {name: field for name, field in all_fields.items() if name not in parent_fields}
 
     return {name: extract_field_info(field) for name, field in own_fields.items()}
 

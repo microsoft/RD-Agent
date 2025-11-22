@@ -13,10 +13,10 @@ RUN apt-get clean && apt-get update && apt-get install -y \
 RUN pip install --upgrade pip setuptools wheel --no-cache-dir
 
 # Install OpenCompass with vLLM backend support
-RUN pip install opencompass vllm --no-cache-dir
+RUN git clone git@github.com:Jensen246/opencompass.git /opencompass
+WORKDIR /opencompass
 
-# Install additional dependencies for LoRA evaluation and model support
-RUN pip install peft transformers accelerate --no-cache-dir
+RUN pip install ".[vllm]" --no-cache-dir
 
 # Install math evaluation dependencies for AIME/MATH benchmarks
 RUN pip install math_verify latex2sympy2_extended --no-cache-dir

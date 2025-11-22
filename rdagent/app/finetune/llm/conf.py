@@ -65,6 +65,12 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     benchmark_limit: int | None = None
     """Limit number of samples for benchmark evaluation (None for full evaluation). Use for quick testing and debugging."""
 
+    benchmark_num_runs: int = 1
+    """Number of times to run each sample (for computing average or pass@k). Set >1 for multiple runs."""
+
+    benchmark_pass_k: list[int] | None = None
+    """Pass@k parameter list for code generation tasks (e.g., [1, 5, 10]). None to disable."""
+
     # Data paths and processing
     file_path: Path = Path.cwd() / "git_ignore_folder" / "finetune_files"
     show_nan_columns: bool = False
