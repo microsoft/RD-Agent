@@ -25,7 +25,13 @@ RUN pip install math_verify latex2sympy2_extended --no-cache-dir
 WORKDIR /workspace
 
 # Set environment variables for cache directories
-ENV HF_DATASETS_CACHE=/benchmarks
-ENV COMPASS_DATA_CACHE=/benchmarks/opencompass_data
 ENV HF_HOME=/benchmarks/hf_cache
+ENV HF_HUB_CACHE=/benchmarks/hf_cache/hub
+ENV TRANSFORMERS_CACHE=/benchmarks/hf_cache/transformers
+ENV HF_DATASETS_CACHE=/benchmarks/datasets
+ENV COMPASS_DATA_CACHE=/benchmarks/opencompass_data
+
+# Fix MKL threading layer compatibility issue with vLLM
+ENV MKL_SERVICE_FORCE_INTEL=1
+ENV MKL_THREADING_LAYER=GNU
 

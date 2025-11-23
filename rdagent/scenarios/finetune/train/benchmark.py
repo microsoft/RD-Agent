@@ -188,6 +188,156 @@ def detect_model_type(model_path: str) -> tuple[str, Optional[str]]:
         return (str(model_dir.resolve()), None)
 
 
+def _setup_benchmark_cache_volume(file_path: Optional[Path]) -> dict:
+    """Setup benchmark cache directory volume mount.
+
+    Args:
+        file_path: Base path for finetune files
+
+    Returns:
+        dict: Volume mount configuration, empty if setup fails
+    """
+    if not file_path:
+        return {}
+
+    cache_dir = file_path / "benchmarks"
+    try:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Benchmark cache mounted: {cache_dir}")
+        return {str(cache_dir.resolve()): {"bind": "/benchmarks", "mode": "rw"}}
+    except (PermissionError, OSError) as e:
+        logger.warning(f"Cannot mount benchmark cache: {e}")
+        return {}
+
+
+def _setup_lora_volume(lora_adapter: Optional[str]) -> dict:
+    """Setup LoRA adapter directory volume mount.
+
+    Args:
+        lora_adapter: Path to LoRA adapter directory
+
+    Returns:
+        dict: Volume mount configuration
+
+    Raises:
+        FileNotFoundError: If LoRA adapter directory not found
+    """
+    if not lora_adapter:
+        return {}
+
+    lora_dir = Path(lora_adapter).resolve()
+    if not lora_dir.exists():
+        raise FileNotFoundError(f"LoRA adapter not found: {lora_dir}")
+
+    logger.info(f"LoRA adapter mounted: {lora_dir}")
+    return {str(lora_dir): {"bind": str(lora_dir), "mode": "ro"}}
+
+
+def _run_benchmark_in_workspace(
+    workspace_path: Path,
+    config_content: str,
+    benchmark_name: str,
+    model_path: str,
+    base_model: str,
+    lora_adapter: Optional[str],
+    work_dir_override: Optional[str],
+    env: BenchmarkDockerEnv,
+) -> Dict[str, float]:
+    """Execute benchmark evaluation in workspace.
+
+    Args:
+        workspace_path: Path to workspace directory
+        config_content: Rendered OpenCompass config content
+        benchmark_name: Benchmark name
+        model_path: Path to model
+        base_model: Base model name
+        lora_adapter: LoRA adapter path if any
+        work_dir_override: Override work directory path (host path)
+        env: Prepared BenchmarkDockerEnv
+
+    Returns:
+        Dict[str, float]: Benchmark scores
+
+    Raises:
+        RuntimeError: If benchmark execution fails
+    """
+    # Write config file
+    config_file = workspace_path / "config.py"
+    config_file.write_text(config_content)
+
+    # Convert work_dir to container path
+    if work_dir_override:
+        try:
+            rel_path = Path(work_dir_override).relative_to(workspace_path)
+        except ValueError:
+            rel_path = Path("benchmark_results")
+        docker_work_dir = f"/workspace/{rel_path}"
+    else:
+        rel_path = Path("benchmark_results")
+        docker_work_dir = "/workspace/benchmark_results"
+
+    # Logging
+    logger.info(f"Running benchmark '{benchmark_name}' on model: {model_path}")
+    logger.info(f"Base model: {base_model}, LoRA: {lora_adapter is not None}")
+    logger.info(f"Workspace: {workspace_path}")
+    logger.info(f"Docker work_dir: {docker_work_dir}")
+
+    # Environment variables
+    env_vars = {
+        "OC_JUDGE_MODEL": FT_RD_SETTING.judge_model,
+        "OC_JUDGE_API_KEY": FT_RD_SETTING.judge_api_key or "",
+        "OC_JUDGE_API_BASE": FT_RD_SETTING.judge_api_base or "",
+    }
+
+    # Check if results already exist (skip re-running if cached)
+    results_base = workspace_path / rel_path
+    timestamped_dirs = sorted([d for d in results_base.glob("202*_*") if d.is_dir()], reverse=True)
+
+    if timestamped_dirs:
+        logger.info(f"Found existing results in {timestamped_dirs[0].name}, skipping benchmark execution")
+    else:
+        # Run OpenCompass
+        entry_cmd = f"opencompass /workspace/config.py --work-dir {docker_work_dir}"
+
+        result = env.run(
+            entry=entry_cmd,
+            local_path=str(workspace_path),
+            env=env_vars,
+        )
+
+        # Check execution status
+        if result.exit_code != 0:
+            error_msg = result.stdout[-2000:] if result.stdout else "No output"
+            raise RuntimeError(f"Benchmark execution failed (exit_code={result.exit_code})\n{error_msg}")
+
+        # Re-scan for timestamped directories after execution
+        timestamped_dirs = sorted([d for d in results_base.glob("202*_*") if d.is_dir()], reverse=True)
+
+    if not timestamped_dirs:
+        raise FileNotFoundError(f"No timestamped result directory found in {results_base}")
+
+    # OpenCompass stores results in results/<model_name>/<dataset>.json
+    results_subdir = timestamped_dirs[0] / "results"
+    if not results_subdir.exists():
+        raise FileNotFoundError(f"Results subdirectory not found: {results_subdir}")
+
+    # Find main results file (exclude llm_judge files)
+    json_files = [f for f in results_subdir.rglob("*.json") if "_llm_judge_" not in f.name]
+    if not json_files:
+        # Fallback to any JSON file
+        json_files = list(results_subdir.rglob("*.json"))
+    if not json_files:
+        raise FileNotFoundError(f"No result JSON files found in {results_subdir}")
+
+    results_path = json_files[0]
+    logger.info(f"Found results: {results_path.relative_to(results_base)}")
+
+    scores = _parse_results(results_path)
+
+    logger.info(f"Benchmark completed. Average score: {sum(scores.values()) / len(scores):.2f}%")
+    return scores
+
+
 def run_benchmark(
     model_path: str,
     benchmark_name: str,
@@ -251,71 +401,30 @@ def run_benchmark(
     # Prepare Docker environment
     conf = BenchmarkDockerConf()
     conf.running_timeout_period = FT_RD_SETTING.benchmark_timeout
-
-    # Prepare volume mounts
-    extra_volumes = {}
-
-    # Mount benchmark cache directory
-    if FT_RD_SETTING.file_path:
-        benchmark_cache_dir = Path(FT_RD_SETTING.file_path) / "benchmarks"
-        try:
-            benchmark_cache_dir.mkdir(parents=True, exist_ok=True)
-            extra_volumes[str(benchmark_cache_dir.resolve())] = {"bind": "/benchmarks", "mode": "rw"}
-            logger.info(f"Benchmark cache directory mounted: {benchmark_cache_dir}")
-        except (PermissionError, OSError) as e:
-            logger.warning(f"Cannot create benchmark cache directory {benchmark_cache_dir}: {e}. Skipping cache mount.")
-
-    # Mount LoRA adapter directory if using LoRA
-    if lora_adapter:
-        lora_dir = Path(lora_adapter).resolve()
-        if lora_dir.exists():
-            extra_volumes[str(lora_dir)] = {"bind": str(lora_dir), "mode": "ro"}
-            logger.info(f"LoRA adapter directory mounted: {lora_dir}")
-        else:
-            raise FileNotFoundError(f"LoRA adapter directory not found: {lora_dir}")
-
-    conf.extra_volumes = extra_volumes
+    conf.extra_volumes = {
+        **_setup_benchmark_cache_volume(Path(FT_RD_SETTING.file_path) if FT_RD_SETTING.file_path else None),
+        **_setup_lora_volume(lora_adapter),
+    }
     env = BenchmarkDockerEnv(conf=conf)
     env.prepare()
 
-    # Create temporary workspace
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir)
-        config_file = temp_path / "config.py"
-
-        with open(config_file, "w") as f:
-            f.write(config_content)
-
-        logger.info(f"Running benchmark '{benchmark_name}' on model: {model_path}")
-        logger.info(f"Base model: {base_model}, LoRA: {lora_adapter is not None}")
-
-        # Set environment variables
-        env_vars = {
-            "OC_JUDGE_MODEL": FT_RD_SETTING.judge_model,
-            "OC_JUDGE_API_KEY": FT_RD_SETTING.judge_api_key or "",
-            "OC_JUDGE_API_BASE": FT_RD_SETTING.judge_api_base or "",
-        }
-
-        # Run OpenCompass
-        entry_cmd = f"opencompass /workspace/config.py --work-dir /workspace/benchmark_results"
-
-        result = env.run(
-            entry=entry_cmd,
-            local_path=str(temp_path),
-            env=env_vars,
+    # Execute benchmark
+    if work_dir:
+        # Production/test environment: use persistent workspace
+        workspace_path = Path(work_dir).parent
+        workspace_path.mkdir(parents=True, exist_ok=True)
+        return _run_benchmark_in_workspace(
+            workspace_path, config_content, benchmark_name,
+            model_path, base_model, lora_adapter, work_dir, env
         )
-
-        # Check execution status
-        if result.exit_code != 0:
-            error_msg = result.stdout[-2000:] if result.stdout else "No output"
-            raise RuntimeError(f"Benchmark execution failed (exit_code={result.exit_code})\n{error_msg}")
-
-        # Parse and return results
-        results_path = temp_path / "benchmark_results" / "results.json"
-        scores = _parse_results(results_path)
-
-        logger.info(f"Benchmark completed. Average score: {sum(scores.values()) / len(scores):.2f}%")
-        return scores
+    else:
+        # Backward compatibility: use temporary directory
+        logger.warning("Using temporary directory - results will not be saved")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            return _run_benchmark_in_workspace(
+                Path(temp_dir), config_content, benchmark_name,
+                model_path, base_model, lora_adapter, None, env
+            )
 
 
 def _parse_results(results_path: Path) -> Dict[str, float]:
@@ -466,9 +575,20 @@ if __name__ == "__main__":
     print("-" * 80)
 
     try:
+        # Create FBWorkspace for test (auto-generates UUID workspace)
+        test_task = Task(name=f"benchmark_test_{BENCHMARK}")
+        test_workspace = FBWorkspace(target_task=test_task)
+        test_workspace.prepare()
+
+        print(f"\n📁 Workspace: {test_workspace.workspace_path}")
+
+        # Set work_dir to workspace subdirectory
+        work_dir = str((test_workspace.workspace_path / "benchmark_results").resolve())
+
         scores = run_benchmark(
             model_path=LORA_ADAPTER_PATH,
             benchmark_name=BENCHMARK,
+            work_dir=work_dir,
         )
 
         print("\n✅ Evaluation completed!")
@@ -477,6 +597,7 @@ if __name__ == "__main__":
 
         avg_score = sum(scores.values()) / len(scores)
         print(f"\nAverage Score: {avg_score:.2f}%")
+        print(f"\n📂 Results saved to: {work_dir}")
 
     except Exception as e:
         print(f"\n❌ Evaluation failed: {e}")
