@@ -114,7 +114,7 @@ class AgenticSysExperiment(Experiment):
             return 0.0
         return self.deepresearch_scores.get(dimension, 0.0)
     
-    def get_evaluation_summary(self) -> Dict[str, Any]:
+    def get_evaluation_summary(self):
         """Get comprehensive evaluation summary"""
         if not hasattr(self, 'result') or not self.result:
             return {'status': 'no_results'}
