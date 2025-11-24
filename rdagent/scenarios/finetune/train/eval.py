@@ -1,5 +1,7 @@
 from typing import Optional
 
+import yaml
+
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
@@ -9,8 +11,10 @@ from rdagent.components.coder.finetune.conf import (
     get_clear_ws_cmd,
     get_ft_env,
 )
+from rdagent.components.coder.finetune.exp import FTTask
 from rdagent.core.evolving_framework import QueriedKnowledge
-from rdagent.core.experiment import FBWorkspace, Task
+from rdagent.core.experiment import FBWorkspace
+from rdagent.scenarios.finetune.train.benchmark import run_benchmark
 
 
 class FTRunnerEvaluator(CoSTEEREvaluator):
@@ -18,7 +22,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
 
     def evaluate(
         self,
-        target_task: Task,
+        target_task: FTTask,
         implementation: FBWorkspace,
         gt_implementation: FBWorkspace,
         queried_knowledge: Optional[QueriedKnowledge] = None,
@@ -43,6 +47,25 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
+        config = yaml.safe_load(implementation.file_dict.get(FT_YAML_FILE_NAME, ""))
+        test_config = config.copy()
+        test_config.update(
+            {
+                "num_train_epochs": 1,
+                "max_steps": 20,
+                "save_steps": 20,
+                "logging_steps": 10,
+                "warmup_steps": 0,
+                "overwrite_output_dir": True,
+                "report_to": "none",  # Disable all reporting (tensorboard, wandb, etc.)
+                "do_eval": False,  # Disable evaluation in micro-batch test (insufficient samples for val split)
+                "eval_strategy": "no",  # Explicitly disable evaluation
+                "load_best_model_at_end": False,  # Cannot load best model without evaluation
+            }
+        )
+        # Run micro-batch training
+        implementation.inject_files(**{FT_YAML_FILE_NAME: yaml.dump(test_config, default_flow_style=False)})
+
         # Execute LlamaFactory training
         result = implementation.run(env=env, entry=f"llamafactory-cli train {FT_YAML_FILE_NAME}")
         implementation.running_info.running_time = result.running_time
@@ -63,6 +86,14 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         model_output_files = []
         for pattern in ["*.safetensors", "*.bin", "adapter_*"]:
             model_output_files.extend(output_path.glob(pattern))
+
+        # Use open-compass to evaluate the model on benchmark
+        benchmark_result = run_benchmark(
+            workspace_path=str(workspace_path),
+            model_path=output_path,
+            model_name=target_task.base_model,
+            benchmark_name=target_task.benchmark,
+        )
 
         # Final decision: training succeeded AND model files exist
         final_decision = training_success and len(model_output_files) > 0
