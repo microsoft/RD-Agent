@@ -15,11 +15,13 @@ class FTTask(CoSTEERTask):
         self,
         base_model: str,
         description: str,
+        benchmark: str,
         *args,
         **kwargs,
     ) -> None:
         super().__init__(name="LLM-Fine-Tuning", description=description, *args, **kwargs)
         self.base_model = base_model
+        self.benchmark = benchmark
 
     def get_task_information(self) -> str:
         """Get task information for coder prompt generation"""

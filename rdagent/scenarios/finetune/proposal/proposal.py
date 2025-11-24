@@ -102,6 +102,10 @@ class LLMFinetuneExpGen(ExpGen):
 
         ensure_ft_assets_exist(model=hypothesis.base_model, check_model=True)
 
-        task = FTTask(base_model=hypothesis.base_model, description=response_dict.get("task"))
+        task = FTTask(
+            base_model=hypothesis.base_model,
+            description=response_dict.get("task"),
+            benchmark=FT_RD_SETTING.target_benchmark,
+        )
 
         return FTExperiment(sub_tasks=[task], hypothesis=hypothesis)

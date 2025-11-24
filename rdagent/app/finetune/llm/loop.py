@@ -16,6 +16,7 @@ from rdagent.scenarios.finetune.loop import LLMFinetuneRDLoop
 
 def main(
     user_target_scenario: Optional[str] = None,
+    benchmark: Optional[str] = None,
     dataset: Optional[str] = None,
     base_model: Optional[str] = None,
     step_n: Optional[int] = None,
@@ -46,6 +47,11 @@ def main(
     """
     if user_target_scenario:
         FT_RD_SETTING.user_target_scenario = user_target_scenario
+    if benchmark:
+        FT_RD_SETTING.target_benchmark = benchmark
+    assert (
+        FT_RD_SETTING.user_target_scenario or FT_RD_SETTING.target_benchmark
+    ), "Either user_target_scenario or target_benchmark must be specified for LLM fine-tuning."
 
     # Update configuration with provided parameters
     if dataset:
