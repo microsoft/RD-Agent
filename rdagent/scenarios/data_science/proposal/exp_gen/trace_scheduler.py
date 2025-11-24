@@ -381,18 +381,14 @@ class MCTSScheduler(ProbabilisticScheduler):
         # TODO: expanding from the virtual root node is implemented in a rule-based way.
         # if len(trace.hist) == 0:
         #     return trace.NEW_ROOT
-        if trace.sub_trace_count + self.uncommited_rec_status[trace.NEW_ROOT] < 1:
-            return trace.NEW_ROOT
 
-
-        # Step 2: consider only available leaves (not being expanded)
+        # if trace.sub_trace_count + self.uncommited_rec_status[trace.NEW_ROOT] < 1:
+        #     return trace.NEW_ROOT
         available_leaves = list(set(range(len(trace.hist))))
-
         candidates = list(available_leaves)  # copy
         candidates_with_root = candidates + [self.root_id]
 
-        if not available_leaves:
-            return None
+
 
         # # Step 3: compute priors (P) from potentials via softmax
         # potentials = [self.calculate_potential(trace, leaf) for leaf in available_leaves]
@@ -419,7 +415,7 @@ class MCTSScheduler(ProbabilisticScheduler):
 
         if best_leaf is None:
             return None
-
+        logger.info(best_leaf)
         if best_leaf == self.root_id:
             capacity = trace.sub_trace_count + self.uncommited_rec_status.get(trace.NEW_ROOT, 0)
             if capacity >= self.max_trace_num:
