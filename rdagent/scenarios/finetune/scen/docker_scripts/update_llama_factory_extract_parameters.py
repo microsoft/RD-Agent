@@ -21,7 +21,6 @@ from llamafactory.hparams.finetuning_args import (
     FreezeArguments,
     GaloreArguments,
     LoraArguments,
-    OFTArguments,
     RLHFArguments,
     SwanLabArguments,
 )
@@ -119,7 +118,6 @@ def save_parameters(base_dir):
             # Categorize parameters by PEFT method
             "freeze": extract_params(FreezeArguments),
             "lora": extract_params(LoraArguments),
-            "oft": extract_params(OFTArguments),
             "galore": extract_params(GaloreArguments),
             "apollo": extract_params(ApolloArguments),
             "badam": extract_params(BAdamArgument),
