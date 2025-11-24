@@ -395,7 +395,7 @@ class AgenticSysCoder(Developer[Experiment]):
                 batch_start_time = time.time()
 
                 if self.config.get('enable_parallel', True) and len(tasks) > 1:
-                    results = self.run_tasks_in_parallel(tasks)
+                    results = self.run_tasks_parallel(tasks)
                 else:
                     results = self.run_tasks_sequential(tasks)
                 
@@ -1462,7 +1462,7 @@ class AgenticSysRunner(Developer[Experiment]):
         """Execute the experiment by running train.py"""
         cmd = [sys.executable, "train.py"]
         # use environment variables if necessary
-        env = self._prepare_environment() 
+        env = self.prepare_environment() 
         
         logger.info(f"Executing: {' '.join(cmd)} in {ws_path}")
         
@@ -1512,24 +1512,24 @@ class AgenticSysRunner(Developer[Experiment]):
                 return result
             
             # Method 2: Look up result file
-            result = self._parse_result_file()
+            result = self.parse_result_file()
             if result:
                 return result
             
             # Method 3: Parse from stdout text
-            result = self._parse_text_output(stdout)
+            result = self.parse_text_output(stdout)
             if result:
                 return result
             
             logger.warning("Could not parse execution output, using default result")
-            return self._create_default_result(
+            return self.create_default_result(
                 success=False,
                 reason="Could not parse output"
             )
         
         except Exception as e:
             logger.error(f"Failed to parse output: {e}")
-            return self._create_error_result(f"Parsing error: {e}")
+            return self.create_error_result(f"Parsing error: {e}")
         
     def parse_json_results(self, stdout: str):
         """Parse JSON results block from stdout"""
@@ -1546,7 +1546,7 @@ class AgenticSysRunner(Developer[Experiment]):
                 result = json.loads(json_str)
                 
                 # Validate and extract both execution and evaluation results
-                if self._validate_deepresearch_result(result):
+                if self.validate_deepresearch_result(result):
                     logger.info("Successfully parsed DeepResearch Bench results")
                     return result
             
@@ -1656,7 +1656,7 @@ class AgenticSysRunner(Developer[Experiment]):
                     content = file_path.read_text(encoding='utf-8')
                     result = json.loads(content)
                     
-                    if self._validate_result_format(result):
+                    if self.validate_result_format(result):
                         logger.info(f"Successfully parsed result file: {file_path}")
                         return result
             
