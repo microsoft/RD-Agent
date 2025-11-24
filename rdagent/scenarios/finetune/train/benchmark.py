@@ -119,33 +119,64 @@ def detect_model_type(model_path: str) -> bool:
     return False
 
 
-def _run_benchmark_in_workspace(
-    workspace_path: Path,
-    config_content: str,
-    benchmark_name: str,
+def run_benchmark(
+    workspace_path: str,
     model_path: str,
-    base_model: str,
-    lora_adapter: Optional[str],
-    model_is_lora: bool,
+    model_name: str,
+    benchmark_name: str,
+    limit: Optional[int] = None,
+    num_runs: int = 1,
+    pass_k: Optional[List[int]] = None,
 ) -> Dict[str, float]:
-    """Execute benchmark evaluation in workspace.
+    """
+    Run benchmark evaluation on a fine-tuned model.
 
     Args:
         workspace_path: Path to workspace directory
-        config_content: Rendered OpenCompass config content
-        benchmark_name: Benchmark name
-        model_path: Path to model
-        base_model: Base model name
-        lora_adapter: LoRA adapter path if any
-        work_dir_override: Override work directory path (host path)
-        env: Prepared BenchmarkDockerEnv
+        model_path: Path to fine-tuned model (supports full/LoRA auto-detection)
+        benchmark_name: Benchmark dataset name (e.g., "aime25", "gsm8k")
+        limit: Optional dataset size limit for testing
+        num_runs: Number of times to run each sample (default: 1)
+        pass_k: Optional list of k values for pass@k evaluation (e.g., [1, 5, 10])
 
     Returns:
-        Dict[str, float]: Benchmark scores
-
-    Raises:
-        RuntimeError: If benchmark execution fails
+        Dict[str, float]: Scores dictionary {task_name: score, ...}
     """
+    # Load configurations
+    dataset_imports = BENCHMARK_CONFIG_DICT[benchmark_name]
+    model_is_lora = detect_model_type(model_path)
+    inference_config = get_model_inference_config(model_name)
+    workspace_path = Path(workspace_path)
+
+    model_dir_inside_docker = Path("/workspace/") / Path(model_path).relative_to(workspace_path)
+    if model_is_lora:
+        real_model_path = Path("/finetune/models") / model_name
+        real_lora_path = model_dir_inside_docker
+    else:
+        real_model_path = model_dir_inside_docker
+        real_lora_path = ""
+
+    # Prepare template variables (merge inference config from models.yaml)
+    template_vars = {
+        # Model configuration
+        "model_abbr": f"ft-{benchmark_name}",
+        "model_path": real_model_path,
+        "is_lora": model_is_lora,
+        "lora_path": real_lora_path,
+        # Dataset configuration
+        "dataset_imports": [dataset_imports],
+        "limit": limit or "",
+        "num_runs": num_runs,
+        "pass_k": pass_k,
+        "work_dir": model_dir_inside_docker,
+        # Merge all inference parameters from models.yaml (default + model-specific)
+        **inference_config,
+    }
+
+    # Render Jinja2 template
+    config_content = T("rdagent.scenarios.finetune.train.benchmark_configs.opencompass_template:template").r(
+        **template_vars
+    )
 
     # Prepare Docker environment
     conf = BenchmarkDockerConf()
@@ -153,12 +184,10 @@ def _run_benchmark_in_workspace(
     # Inline volume setup (merged _setup_benchmark_cache_volume and _setup_lora_volume)
     extra_volumes: Dict[str, Dict[str, str]] = {}
 
-    # Benchmark cache volume
-    cache_dir = FT_RD_SETTING.file_path / "benchmarks"
+    # Finetune share folder mount
     try:
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Benchmark cache mounted: {cache_dir}")
-        extra_volumes[str(cache_dir.resolve())] = {"bind": "/benchmarks", "mode": "rw"}
+        (FT_RD_SETTING.file_path / "benchmarks").mkdir(parents=True, exist_ok=True)
+        extra_volumes[str(FT_RD_SETTING.file_path.resolve())] = {"bind": "/finetune", "mode": "rw"}
     except (PermissionError, OSError) as e:
         logger.warning(f"Cannot mount benchmark cache: {e}")
 
@@ -171,7 +200,7 @@ def _run_benchmark_in_workspace(
 
     # Logging
     logger.info(f"Running benchmark '{benchmark_name}' on model: {model_path}")
-    logger.info(f"Base model: {base_model}, LoRA?: {lora_adapter is not None}")
+    logger.info(f"Base model: {model_name}, LoRA?: {model_is_lora}")
     logger.info(f"Workspace: {workspace_path}")
     logger.info(f"Docker work_dir: {docker_work_dir}")
 
@@ -206,9 +235,6 @@ def _run_benchmark_in_workspace(
         # Re-scan for timestamped directories after execution
         timestamped_dirs = sorted([d for d in results_base.glob("202*_*") if d.is_dir()], reverse=True)
 
-    if not timestamped_dirs:
-        raise FileNotFoundError(f"No timestamped result directory found in {results_base}")
-
     # OpenCompass stores results in results/<model_name>/<dataset>.json
     results_subdir = timestamped_dirs[0] / "summary"
 
@@ -218,73 +244,7 @@ def _run_benchmark_in_workspace(
 
     # Read and return CSV content
     df = pd.read_csv(results_csv_path)
-    return df.to_dict('records')
-
-
-def run_benchmark(
-    workspace_path: str,
-    model_path: str,
-    model_name: str,
-    benchmark_name: str,
-    work_dir: str,
-    limit: Optional[int] = None,
-    num_runs: int = 1,
-    pass_k: Optional[List[int]] = None,
-) -> Dict[str, float]:
-    """
-    Run benchmark evaluation on a fine-tuned model.
-
-    Args:
-        workspace_path: Path to workspace directory
-        model_path: Path to fine-tuned model (supports full/LoRA auto-detection)
-        benchmark_name: Benchmark dataset name (e.g., "aime25", "gsm8k")
-        work_dir: Work directory for results (within FBWorkspace)
-        limit: Optional dataset size limit for testing
-        num_runs: Number of times to run each sample (default: 1)
-        pass_k: Optional list of k values for pass@k evaluation (e.g., [1, 5, 10])
-
-    Returns:
-        Dict[str, float]: Scores dictionary {task_name: score, ...}
-    """
-    # Load configurations
-    dataset_imports = BENCHMARK_CONFIG_DICT[benchmark_name]
-    model_is_lora = detect_model_type(model_path)
-    inference_config = get_model_inference_config(model_name)
-
-    model_dir_inside_docker = "/workspace/" + Path(model_path).name
-
-    # Prepare template variables (merge inference config from models.yaml)
-    template_vars = {
-        # Model configuration
-        "model_abbr": f"ft-{benchmark_name}",
-        "model_path": model_dir_inside_docker,
-        "is_lora": model_is_lora,
-        "lora_path": model_dir_inside_docker if model_is_lora else "",
-        # Dataset configuration
-        "dataset_imports": [dataset_imports],
-        "limit": limit or "",
-        "num_runs": num_runs,
-        "pass_k": pass_k,
-        "work_dir": model_dir_inside_docker,
-        # Merge all inference parameters from models.yaml (default + model-specific)
-        **inference_config,
-    }
-
-    # Render Jinja2 template
-    config_content = T("rdagent.scenarios.finetune.train.benchmark_configs.opencompass_template:template").r(
-        **template_vars
-    )
-
-    # Execute benchmark
-    return _run_benchmark_in_workspace(
-        workspace_path=Path(workspace_path),
-        config_content=config_content,
-        benchmark_name=benchmark_name,
-        model_path=model_path,
-        base_model=model_name,
-        lora_adapter=model_path if model_is_lora else None,
-        model_is_lora=model_is_lora,
-    )
+    return df.to_dict("records")
 
 
 def _parse_results(results_path: Path) -> Dict[str, float]:
