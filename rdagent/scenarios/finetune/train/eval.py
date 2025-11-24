@@ -47,25 +47,6 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        config = yaml.safe_load(implementation.file_dict.get(FT_YAML_FILE_NAME, ""))
-        test_config = config.copy()
-        test_config.update(
-            {
-                "num_train_epochs": 1,
-                "max_steps": 20,
-                "save_steps": 20,
-                "logging_steps": 10,
-                "warmup_steps": 0,
-                "overwrite_output_dir": True,
-                "report_to": "none",  # Disable all reporting (tensorboard, wandb, etc.)
-                "do_eval": False,  # Disable evaluation in micro-batch test (insufficient samples for val split)
-                "eval_strategy": "no",  # Explicitly disable evaluation
-                "load_best_model_at_end": False,  # Cannot load best model without evaluation
-            }
-        )
-        # Run micro-batch training
-        implementation.inject_files(**{FT_YAML_FILE_NAME: yaml.dump(test_config, default_flow_style=False)})
-
         # Execute LlamaFactory training
         result = implementation.run(env=env, entry=f"llamafactory-cli train {FT_YAML_FILE_NAME}")
         implementation.running_info.running_time = result.running_time
@@ -95,8 +76,10 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
             benchmark_name=target_task.benchmark,
         )
 
+        implementation.running_info.result = benchmark_result
+
         # Final decision: training succeeded AND model files exist
-        final_decision = training_success and len(model_output_files) > 0
+        final_decision = training_success and len(model_output_files) > 0 and benchmark_result is not None
 
         # Build minimal feedback
         execution_msg = f"Training {'succeeded' if training_success else 'failed'} (exit_code={result.exit_code})"
@@ -104,6 +87,9 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
             model_msg = f"Found {len(model_output_files)} model output files"
         else:
             model_msg = "No model output files found"
+
+        if benchmark_result:
+            model_msg += f"; Benchmark result: {benchmark_result}"
 
         feedback_msg = f"{execution_msg}. {model_msg}."
 

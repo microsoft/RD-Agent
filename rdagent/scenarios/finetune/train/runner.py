@@ -24,7 +24,6 @@ from rdagent.components.coder.finetune.conf import (
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.finetune.train.benchmark import FTBenchmarkEvaluator
 from rdagent.scenarios.finetune.train.eval import FTRunnerEvaluator
 
 
@@ -93,7 +92,6 @@ class LLMFinetuneRunner(CoSTEER):
     ) -> None:
         eval_l = [
             FTRunnerEvaluator(scen=scen),  # Training validation
-            FTBenchmarkEvaluator(scen=scen, limit=FT_RD_SETTING.benchmark_limit),  # Benchmark evaluation
         ]
 
         eva = CoSTEERMultiEvaluator(single_evaluator=eval_l, scen=scen)

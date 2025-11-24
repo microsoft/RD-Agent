@@ -238,127 +238,12 @@ def run_benchmark(
     # OpenCompass stores results in results/<model_name>/<dataset>.json
     results_subdir = timestamped_dirs[0] / "summary"
 
-    csv_files = sorted([f for f in results_subdir.rglob("*.csv")], reverse=True)
-    results_csv_path = csv_files[0]
+    results_csv_path = sorted([f for f in results_subdir.rglob("*.csv")], reverse=True)[0]
     logger.info(f"Detailed results CSV: {results_csv_path.relative_to(results_base)}")
 
     # Read and return CSV content
     df = pd.read_csv(results_csv_path)
     return df.to_dict("records")
-
-
-def _parse_results(results_path: Path) -> Dict[str, float]:
-    """Parse OpenCompass results from JSON output."""
-    if not results_path.exists():
-        raise FileNotFoundError(f"Results file not found: {results_path}")
-
-    try:
-        with open(results_path) as f:
-            data = json.load(f)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON in results file: {e}")
-
-    results = data.get("results", {})
-    if not results:
-        raise ValueError("No results found in output")
-
-    scores = {}
-    for task_name, task_results in results.items():
-        for key, value in task_results.items():
-            if not key.endswith("_stderr") and isinstance(value, (int, float)):
-                scores[task_name] = value * 100 if 0 <= value <= 1 else value
-                break
-
-    if not scores:
-        raise ValueError("Failed to extract scores from results")
-
-    return scores
-
-
-class FTBenchmarkEvaluator(CoSTEEREvaluator):
-    """
-    Benchmark evaluator using OpenCompass in Docker (Backward Compatible)
-
-    Wraps the simplified run_benchmark function to maintain compatibility
-    with CoSTEER framework. Raises exceptions directly on any errors.
-    """
-
-    def __init__(
-        self,
-        scen,
-        tasks: Optional[List[str]] = None,
-        limit: Optional[int] = None,
-        num_runs: Optional[int] = None,
-        pass_k: Optional[List[int]] = None,
-    ):
-        super().__init__(scen)
-        self.tasks = tasks
-        self.limit = limit
-        self.num_runs = num_runs if num_runs is not None else FT_RD_SETTING.benchmark_num_runs
-        self.pass_k = pass_k if pass_k is not None else FT_RD_SETTING.benchmark_pass_k
-
-    def evaluate(
-        self,
-        target_task: Task,
-        implementation: FBWorkspace,
-        gt_implementation: FBWorkspace,
-        queried_knowledge: Optional[QueriedKnowledge] = None,
-        **kwargs,
-    ) -> CoSTEERSingleFeedback:
-        """
-        Run benchmark evaluation using the simplified run_benchmark function.
-
-        Evaluates all benchmarks in self.tasks and aggregates results.
-        Raises exceptions directly if any error occurs during evaluation.
-        """
-        workspace_path = implementation.workspace_path
-        limit_str = f" (limit={self.limit})" if self.limit else ""
-        num_runs_str = f" (num_runs={self.num_runs})" if self.num_runs > 1 else ""
-        pass_k_str = f" (pass_k={self.pass_k})" if self.pass_k else ""
-        model_path = str((workspace_path / "output").resolve())
-
-        logger.info(f"Benchmark eval: {self.tasks} on model at {model_path}{limit_str}{num_runs_str}{pass_k_str}")
-
-        if not self.tasks:
-            raise ValueError("No benchmark tasks specified for evaluation")
-
-        # Run all benchmarks and collect results
-        all_scores = {}
-        for benchmark_name in self.tasks:
-            logger.info(f"Running benchmark: {benchmark_name}")
-            scores = run_benchmark(
-                model_path=model_path,
-                benchmark_name=benchmark_name,
-                limit=self.limit,
-                num_runs=self.num_runs,
-                pass_k=self.pass_k,
-                work_dir=str((workspace_path / "benchmark_results" / benchmark_name).resolve()),
-            )
-            # Prefix task names with benchmark name to avoid conflicts
-            for task_name, score in scores.items():
-                all_scores[f"{benchmark_name}/{task_name}"] = score
-
-        # Calculate overall average
-        if all_scores:
-            overall_average = sum(all_scores.values()) / len(all_scores)
-        else:
-            overall_average = 0.0
-
-        details = self._format_report(all_scores)
-
-        return CoSTEERSingleFeedback(
-            execution=f"Benchmark completed: {', '.join(self.tasks)}",
-            return_checking=details,
-            code=f"Overall Average Score: {overall_average:.2f}%",
-            final_decision=True,
-        )
-
-    def _format_report(self, scores: Dict[str, float]) -> str:
-        """Format results as text"""
-        lines = ["Benchmark Results:"]
-        for task, score in scores.items():
-            lines.append(f"  {task}: {score:.2f}%")
-        return "\n".join(lines)
 
 
 if __name__ == "__main__":

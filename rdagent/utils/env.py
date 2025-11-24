@@ -890,6 +890,8 @@ class BenchmarkDockerConf(DockerConf):
     save_logs_to_file: bool = True
     terminal_tail_lines: int = 50  # Show more lines for benchmark progress
 
+    network: str | None = "host"  # Use host network for benchmark access to litellm proxy
+
 
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
 class DockerEnv(Env[DockerConf]):
