@@ -1215,9 +1215,12 @@ You help users retrieve relevant knowledge from community discussions and public
             parent_nodes = {
                 trace.idx2loop_id[n]: trace.idx2loop_id[r] if r is not None else r for n, r in parent_nodes.items()
             }
-        #if trace.current_selection:
-        #    current_parent_record_id = trace.current_selection[0]  # record id
-        current_parent_record_id = trace.current_selection[0]
+        if trace.current_selection:
+           current_parent_record_id = trace.current_selection[0]  # record id
+        else:
+            return texts[0]
+        #
+        #current_parent_record_id = trace.current_selection[0]
         loop_id2idx = {v: k for k, v in trace.idx2loop_id.items()}
         loop_id_list = self._get_path(trace.idx2loop_id[current_parent_record_id], parent_nodes)
 
@@ -1262,9 +1265,11 @@ You help users retrieve relevant knowledge from community discussions and public
             parent_nodes = {
                 trace.idx2loop_id[n]: trace.idx2loop_id[r] if r is not None else r for n, r in parent_nodes.items()
             }
-        #if trace.current_selection:
-        #    current_parent_record_id = trace.current_selection[0]  # record id
-        current_parent_record_id = trace.current_selection[0]
+        if trace.current_selection:
+           current_parent_record_id = trace.current_selection[0]  # record id
+        else:
+            return texts[0]
+        
         loop_id2idx = {v: k for k, v in trace.idx2loop_id.items()}
         loop_id_list = self._get_path(trace.idx2loop_id[current_parent_record_id], parent_nodes)
 
@@ -1616,7 +1621,7 @@ You help users retrieve relevant knowledge from community discussions and public
             pickled_problem_name = None
         else:
             sota_flag = (hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None)
-            if DS_RD_SETTING.enable_reward_model_selection==True and trace.current_selection and sota_flag and not trace.is_selection_new_tree():
+            if DS_RD_SETTING.enable_reward_model_selection==True and sota_flag and not trace.is_selection_new_tree():
                 # logger.info("Selecting hypothesis using reward model.")
                 # selected_hypothesis_text = self.reward_model_select_hypothesis(
                 #     hypothesis_dict=hypothesis_dict,
