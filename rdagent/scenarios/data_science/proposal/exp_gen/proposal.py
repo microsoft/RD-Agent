@@ -1616,7 +1616,7 @@ You help users retrieve relevant knowledge from community discussions and public
             pickled_problem_name = None
         else:
             sota_flag = (hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None)
-            if DS_RD_SETTING.enable_reward_model_selection==True and trace.current_selection and sota_flag:
+            if DS_RD_SETTING.enable_reward_model_selection==True and trace.current_selection and sota_flag and not trace.is_selection_new_tree():
                 # logger.info("Selecting hypothesis using reward model.")
                 # selected_hypothesis_text = self.reward_model_select_hypothesis(
                 #     hypothesis_dict=hypothesis_dict,
