@@ -1543,7 +1543,8 @@ You help users retrieve relevant knowledge from community discussions and public
         # Step 3: Select the best hypothesis
         if DS_RD_SETTING.llm_select_hypothesis:
             if DS_RD_SETTING.review_model is not None:
-                hypothesis_dict = self.hypothesis_review(base_code=sota_exp.experiment_workspace.get_codes("main.py"), scenario=scenario_desc, hypothesis_dict=hypothesis_dict)
+                base_code = sota_exp.experiment_workspace.get_codes("main.py") if sota_exp else ""
+                hypothesis_dict = self.hypothesis_review(base_code=base_code, scenario=scenario_desc, hypothesis_dict=hypothesis_dict)
             response_dict = self.hypothesis_select_with_llm(
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
