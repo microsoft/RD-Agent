@@ -48,7 +48,7 @@ exp_feedback:
     {
       "Code Summary": "Concise summary of the implementation approach and key components",
       "Reason": "Detailed explanation of the decision with specific evidence, root cause analysis, and improvement suggestions",
-      "Acceptance": "yes or no - whether this experiment should be accepted",
+      "Decision": "yes or no - whether this experiment should be accepted",
     }
 
   user: |-
@@ -61,34 +61,12 @@ exp_feedback:
     {{ task_desc }}
 
     ## Workspace files
-    {{ workspace_files }}
+    {% for file_name, file_content in workspace_files.items() %}
+    - {{ file_name }}: {{ file_content }}
+    {% endfor %}
 
-    ## Execution Results
-    {% if execution_analysis.success %}
-    ✅ **Execution Status**: Successful
-    {% else %}
-    ❌ **Execution Status**: Failed
-    {% endif %}
+    **Execution Time**: 
+    {{ execution_time }} seconds
 
-    **Execution Time**: {{ execution_analysis.execution_time }} seconds
-
-    {% if execution_analysis.model_outputs %}
-    **Model Outputs**: {{ execution_analysis.model_outputs | join(", ") }}
-    {% else %}
-    **Model Outputs**: None detected
-    {% endif %}
-
-    {% if execution_analysis.error_analysis %}
-    **Error Analysis**: 
-    {{ execution_analysis.error_analysis }}
-    {% endif %}
-
-    ## Analysis Request
-    Please analyze this LLM fine-tuning experiment based on the hypothesis, implementation quality, and execution results. Focus on:
-
-    1. Whether the configuration and code are properly implemented
-    2. If the execution results support or refute the hypothesis  
-    3. The overall quality and acceptability of this experiment
-    4. Specific recommendations for improvement
-
-    Provide your analysis in the structured JSON format specified in the system prompt.
+    ## Experiment Result
+    {{ exp_result }}

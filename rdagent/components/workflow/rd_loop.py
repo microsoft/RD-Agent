@@ -91,11 +91,10 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         e = prev_out.get(self.EXCEPTION_KEY, None)
         if e is not None:
             feedback = HypothesisFeedback(
-                observations=str(e),
-                hypothesis_evaluation="",
-                new_hypothesis="",
-                reason="",
+                code_change_summary="",
+                reason=str(e),
                 decision=False,
+                acceptable=False,
             )
             logger.log_object(feedback, tag="feedback")
             self.trace.hist.append((prev_out["direct_exp_gen"]["exp_gen"], feedback))

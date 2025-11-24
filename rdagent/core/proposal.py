@@ -96,13 +96,13 @@ class ExperimentFeedback(Feedback):
 class HypothesisFeedback(ExperimentFeedback):
     def __init__(
         self,
-        observations: str,
-        hypothesis_evaluation: str,
-        new_hypothesis: str,
         reason: str,
-        *,
-        code_change_summary: str | None = None,
         decision: bool,
+        code_change_summary: str,
+        *,
+        observations: str | None = None,
+        hypothesis_evaluation: str | None = None,
+        new_hypothesis: str | None = None,
         eda_improvement: str | None = None,
         acceptable: bool | None = None,
     ) -> None:
@@ -118,10 +118,18 @@ class HypothesisFeedback(ExperimentFeedback):
         self.acceptable = acceptable
 
     def __str__(self) -> str:
-        return f"""{super().__str__()}
-Observations: {self.observations}
-Hypothesis Evaluation: {self.hypothesis_evaluation}
-New Hypothesis: {self.new_hypothesis}"""
+        upper_str = f"""{super().__str__()}"""
+        if self.observations is not None:
+            upper_str += f"\nObservations: {self.observations}"
+        if self.hypothesis_evaluation is not None:
+            upper_str += f"\nHypothesis Evaluation: {self.hypothesis_evaluation}"
+        if self.new_hypothesis is not None:
+            upper_str += f"\nNew Hypothesis: {self.new_hypothesis}"
+        if self.eda_improvement is not None:
+            upper_str += f"\nEDA Improvement: {self.eda_improvement}"
+        if self.acceptable is not None:
+            upper_str += f"\nOverall Acceptable: {self.acceptable}"
+        return upper_str
 
 
 ASpecificScen = TypeVar("ASpecificScen", bound=Scenario)

@@ -40,50 +40,33 @@ class FTExperiment2Feedback(Experiment2Feedback):
         # Get task information
         task_desc = exp.sub_tasks[0].get_task_information()
 
-        # Get workspace files and execution results
-        workspace_files = list(exp.experiment_workspace.file_dict.keys()) if exp.experiment_workspace else []
-
         # Generate LLM-based feedback using prompts.yaml templates
         system_prompt = T(f".prompts:{self.version}.system").r(
-            scenario=(
-                self.scen.get_scenario_all_desc() if hasattr(self.scen, "get_scenario_all_desc") else str(self.scen)
-            ),
-            task_desc=task_desc,
+            scenario=self.scen.get_scenario_all_desc(),
         )
         user_prompt = T(f".prompts:{self.version}.user").r(
             hypothesis=exp.hypothesis,
-            workspace_files=workspace_files,
             task_desc=task_desc,
+            workspace_files=exp.experiment_workspace.file_dict,
+            execution_time=exp.experiment_workspace.running_info.running_time,
+            exp_result=exp.experiment_workspace.running_info.result,
         )
 
-        try:
-            resp_dict = json.loads(
-                APIBackend().build_messages_and_create_chat_completion(
-                    user_prompt=user_prompt,
-                    system_prompt=system_prompt,
-                    json_mode=True,
-                    json_target_type=Dict[str, str | bool | int],
-                )
+        resp_dict = json.loads(
+            APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt,
+                system_prompt=system_prompt,
+                json_mode=True,
+                json_target_type=Dict[str, str | bool | int],
             )
+        )
 
-            # Extract feedback components
-            hypothesis_feedback = HypothesisFeedback(
-                observations=dict_get_with_warning(resp_dict, "Observations", "No observations provided"),
-                hypothesis_evaluation=dict_get_with_warning(
-                    resp_dict, "Hypothesis Evaluation", "No evaluation provided"
-                ),
-                new_hypothesis=dict_get_with_warning(resp_dict, "New Hypothesis", "No new hypothesis provided"),
-                reason=dict_get_with_warning(resp_dict, "Reasoning", "No reasoning provided"),
-                code_change_summary=dict_get_with_warning(resp_dict, "Code Summary", "No code summary provided"),
-                decision=convert2bool(dict_get_with_warning(resp_dict, "Accept Experiment", "no")),
-                acceptable=convert2bool(dict_get_with_warning(resp_dict, "Overall Acceptable", "no")),
-            )
+        # Extract feedback components
+        hypothesis_feedback = HypothesisFeedback(
+            code_change_summary=dict_get_with_warning(resp_dict, "Code Summary", "No code summary provided"),
+            reason=dict_get_with_warning(resp_dict, "Reason", "No reasoning provided"),
+            decision=convert2bool(dict_get_with_warning(resp_dict, "Decision", "no")),
+            acceptable=True,  # Always True for FT experiments if training succeeded
+        )
 
-            return hypothesis_feedback
-
-        except Exception as e:
-            # Fallback feedback in case of LLM failure
-            return ExperimentFeedback(
-                reason=f"Failed to generate LLM feedback: {str(e)}. Using fallback evaluation.",
-                decision=execution_analysis.get("success", False),
-            )
+        return hypothesis_feedback
