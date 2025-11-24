@@ -380,8 +380,7 @@ class MCTSScheduler(ProbabilisticScheduler):
         # Step 1: keep same policy to reach target number of parallel traces
         # TODO: expanding from the virtual root node is implemented in a rule-based way.
         
-        if len(trace.hist) == 0:
-            return trace.NEW_ROOT
+
 
         # if trace.sub_trace_count + self.uncommited_rec_status[trace.NEW_ROOT] < 1:
         #     return trace.NEW_ROOT
@@ -392,8 +391,6 @@ class MCTSScheduler(ProbabilisticScheduler):
         candidates = list(available_leaves)  # copy
         candidates_with_root = candidates + [self.root_id]
 
-        if not available_leaves:
-            return None
 
         # # Step 3: compute priors (P) from potentials via softmax
         # potentials = [self.calculate_potential(trace, leaf) for leaf in available_leaves]
