@@ -14,10 +14,10 @@ FT_JUDGE_API_BASE="https://api.openai.com/v1"
 """
 
 import json
-import tempfile
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import pandas as pd
 import yaml
 from dotenv import find_dotenv, load_dotenv
 from jinja2 import Template
@@ -62,19 +62,7 @@ def _get_valid_tensor_parallel_size(num_gpus: int) -> int:
 
 
 def get_benchmark_config(benchmark_name: str) -> List[str]:
-    """
-    Load benchmark dataset import paths from YAML configuration.
-
-    Args:
-        benchmark_name: Benchmark dataset name (e.g., "aime25", "gsm8k")
-
-    Returns:
-        List[str]: List of OpenCompass dataset module import paths
-
-    Raises:
-        FileNotFoundError: If benchmark_datasets.yaml not found
-        ValueError: If benchmark_name not in configuration
-    """
+    """Load benchmark dataset import paths from YAML configuration."""
     config_path = Path(__file__).parent / "benchmark_configs" / "datasets.yaml"
 
     if not config_path.exists():
@@ -92,18 +80,7 @@ def get_benchmark_config(benchmark_name: str) -> List[str]:
 
 
 def get_model_inference_config(base_model_name: str) -> dict:
-    """
-    Load model inference configuration from YAML file.
-
-    Args:
-        base_model_name: HuggingFace model name (e.g., "Qwen/Qwen3-8B")
-
-    Returns:
-        dict: Merged configuration (model-specific overrides default)
-
-    Raises:
-        FileNotFoundError: If model_inference_configs.yaml not found
-    """
+    """Load model inference configuration from YAML file."""
     config_path = Path(__file__).parent / "benchmark_configs" / "models.yaml"
 
     if not config_path.exists():
@@ -127,21 +104,7 @@ def get_model_inference_config(base_model_name: str) -> dict:
 
 
 def detect_model_type(model_path: str) -> tuple[str, Optional[str]]:
-    """
-    Detect model type (full/LoRA) and extract base model name.
-
-    Args:
-        model_path: Path to fine-tuned model output directory
-
-    Returns:
-        tuple: (base_model_name, lora_adapter_path)
-            - For LoRA: (base_model, model_path)
-            - For full fine-tuning: (model_path, None)
-
-    Raises:
-        FileNotFoundError: If neither config.json nor adapter_config.json found
-        ValueError: If base_model_name_or_path missing in config
-    """
+    """Detect if the model is fine-tuned with LoRA or full fine-tuning."""
     model_dir = Path(model_path)
 
     # Check for LoRA adapter first (llama-factory format)
@@ -149,88 +112,15 @@ def detect_model_type(model_path: str) -> tuple[str, Optional[str]]:
     if adapter_config_file.exists():
         with open(adapter_config_file, "r") as f:
             adapter_config = json.load(f)
-
         base_model = adapter_config.get("base_model_name_or_path")
-        if not base_model:
-            raise ValueError(f"Cannot find base_model_name_or_path in {adapter_config_file}")
 
         logger.info(f"Detected LoRA adapter at {model_path}, base model: {base_model}")
-        return (base_model, str(model_dir.resolve()))
+        base_model_dir = FT_RD_SETTING.file_path / "models" / base_model
+        return (base_model_dir, str(model_dir.resolve()))
 
-    # Check for full model config
-    config_file = model_dir / "config.json"
-    if not config_file.exists():
-        raise FileNotFoundError(
-            f"Neither config.json nor adapter_config.json found in {model_path}"
-        )
-
-    with open(config_file, "r") as f:
-        config = json.load(f)
-
-    # Extract base model name
-    base_model = config.get("_name_or_path") or config.get("base_model_name_or_path")
-
-    if not base_model:
-        raise ValueError(f"Cannot find base model name in {config_file}")
-
-    # Detect LoRA adapter files (alternative LoRA format)
-    lora_files = [
-        "adapter_model.bin",
-        "adapter_model.safetensors",
-    ]
-    is_lora = any((model_dir / f).exists() for f in lora_files)
-
-    if is_lora:
-        logger.info(f"Detected LoRA adapter at {model_path}, base model: {base_model}")
-        return (base_model, str(model_dir.resolve()))
-    else:
-        logger.info(f"Detected full fine-tuned model at {model_path}")
-        return (str(model_dir.resolve()), None)
-
-
-def _setup_benchmark_cache_volume(file_path: Optional[Path]) -> dict:
-    """Setup benchmark cache directory volume mount.
-
-    Args:
-        file_path: Base path for finetune files
-
-    Returns:
-        dict: Volume mount configuration, empty if setup fails
-    """
-    if not file_path:
-        return {}
-
-    cache_dir = file_path / "benchmarks"
-    try:
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Benchmark cache mounted: {cache_dir}")
-        return {str(cache_dir.resolve()): {"bind": "/benchmarks", "mode": "rw"}}
-    except (PermissionError, OSError) as e:
-        logger.warning(f"Cannot mount benchmark cache: {e}")
-        return {}
-
-
-def _setup_lora_volume(lora_adapter: Optional[str]) -> dict:
-    """Setup LoRA adapter directory volume mount.
-
-    Args:
-        lora_adapter: Path to LoRA adapter directory
-
-    Returns:
-        dict: Volume mount configuration
-
-    Raises:
-        FileNotFoundError: If LoRA adapter directory not found
-    """
-    if not lora_adapter:
-        return {}
-
-    lora_dir = Path(lora_adapter).resolve()
-    if not lora_dir.exists():
-        raise FileNotFoundError(f"LoRA adapter not found: {lora_dir}")
-
-    logger.info(f"LoRA adapter mounted: {lora_dir}")
-    return {str(lora_dir): {"bind": str(lora_dir), "mode": "ro"}}
+    # Not LoRA, must be full fine-tuning
+    logger.info(f"Detected full fine-tuned model at {model_path}")
+    return (model_path, None)
 
 
 def _run_benchmark_in_workspace(
@@ -240,111 +130,62 @@ def _run_benchmark_in_workspace(
     model_path: str,
     base_model: str,
     lora_adapter: Optional[str],
-    work_dir_override: Optional[str],
+    work_dir: str,
     env: BenchmarkDockerEnv,
 ) -> Dict[str, float]:
-    """Execute benchmark evaluation in workspace.
-
-    Args:
-        workspace_path: Path to workspace directory
-        config_content: Rendered OpenCompass config content
-        benchmark_name: Benchmark name
-        model_path: Path to model
-        base_model: Base model name
-        lora_adapter: LoRA adapter path if any
-        work_dir_override: Override work directory path (host path)
-        env: Prepared BenchmarkDockerEnv
-
-    Returns:
-        Dict[str, float]: Benchmark scores
-
-    Raises:
-        RuntimeError: If benchmark execution fails
-    """
+    """Execute benchmark evaluation in workspace."""
     # Write config file
     config_file = workspace_path / "config.py"
     config_file.write_text(config_content)
 
     # Convert work_dir to container path
-    if work_dir_override:
-        try:
-            rel_path = Path(work_dir_override).relative_to(workspace_path)
-        except ValueError:
-            rel_path = Path("benchmark_results")
-        docker_work_dir = f"/workspace/{rel_path}"
-    else:
-        rel_path = Path("benchmark_results")
-        docker_work_dir = "/workspace/benchmark_results"
+    rel_path = Path(work_dir).relative_to(workspace_path)
+    docker_work_dir = f"/workspace/{rel_path}"
 
     # Logging
     logger.info(f"Running benchmark '{benchmark_name}' on model: {model_path}")
-    logger.info(f"Base model: {base_model}, LoRA: {lora_adapter is not None}")
+    logger.info(f"Base model: {base_model}, LoRA?: {lora_adapter is not None}")
     logger.info(f"Workspace: {workspace_path}")
     logger.info(f"Docker work_dir: {docker_work_dir}")
 
     # Environment variables
     env_vars = {
         "OC_JUDGE_MODEL": FT_RD_SETTING.judge_model,
-        "OC_JUDGE_API_KEY": FT_RD_SETTING.judge_api_key or "",
-        "OC_JUDGE_API_BASE": FT_RD_SETTING.judge_api_base or "",
+        "OC_JUDGE_API_KEY": FT_RD_SETTING.judge_api_key,
+        "OC_JUDGE_API_BASE": FT_RD_SETTING.judge_api_base,
     }
 
-    # Check if results already exist (skip re-running if cached)
+    # Run OpenCompass
+    entry_cmd = f"opencompass /workspace/config.py --work-dir {docker_work_dir}"
+
+    result = env.run(
+        entry=entry_cmd,
+        local_path=str(workspace_path),
+        env=env_vars,
+    )
+
+    # Scan for timestamped directories after execution
     results_base = workspace_path / rel_path
-    timestamped_dirs = sorted([d for d in results_base.glob("202*_*") if d.is_dir()], reverse=True)
-
-    if timestamped_dirs:
-        logger.info(f"Found existing results in {timestamped_dirs[0].name}, skipping benchmark execution")
-    else:
-        # Run OpenCompass
-        entry_cmd = f"opencompass /workspace/config.py --work-dir {docker_work_dir}"
-
-        result = env.run(
-            entry=entry_cmd,
-            local_path=str(workspace_path),
-            env=env_vars,
-        )
-
-        # Check execution status
-        if result.exit_code != 0:
-            error_msg = result.stdout[-2000:] if result.stdout else "No output"
-            raise RuntimeError(f"Benchmark execution failed (exit_code={result.exit_code})\n{error_msg}")
-
-        # Re-scan for timestamped directories after execution
-        timestamped_dirs = sorted([d for d in results_base.glob("202*_*") if d.is_dir()], reverse=True)
-
-    if not timestamped_dirs:
-        raise FileNotFoundError(f"No timestamped result directory found in {results_base}")
-
+    timestamped_dirs = sorted([d for d in results_base.iterdir() if d.is_dir()], reverse=True)
     # OpenCompass stores results in results/<model_name>/<dataset>.json
-    results_subdir = timestamped_dirs[0] / "results"
-    if not results_subdir.exists():
-        raise FileNotFoundError(f"Results subdirectory not found: {results_subdir}")
+    results_subdir = timestamped_dirs[0] / "summary"
 
-    # Find main results file (exclude llm_judge files)
-    json_files = [f for f in results_subdir.rglob("*.json") if "_llm_judge_" not in f.name]
-    if not json_files:
-        # Fallback to any JSON file
-        json_files = list(results_subdir.rglob("*.json"))
-    if not json_files:
-        raise FileNotFoundError(f"No result JSON files found in {results_subdir}")
+    csv_files = sorted([f for f in results_subdir.rglob("*.csv")], reverse=True)
+    results_csv_path = csv_files[0]
+    logger.info(f"Detailed results CSV: {results_csv_path.relative_to(results_base)}")
 
-    results_path = json_files[0]
-    logger.info(f"Found results: {results_path.relative_to(results_base)}")
-
-    scores = _parse_results(results_path)
-
-    logger.info(f"Benchmark completed. Average score: {sum(scores.values()) / len(scores):.2f}%")
-    return scores
+    # Read and return CSV content
+    df = pd.read_csv(results_csv_path)
+    return df.to_dict('records')
 
 
 def run_benchmark(
     model_path: str,
     benchmark_name: str,
+    work_dir: str,
     limit: Optional[int] = None,
     num_runs: int = 1,
     pass_k: Optional[List[int]] = None,
-    work_dir: Optional[str] = None,
 ) -> Dict[str, float]:
     """
     Run benchmark evaluation on a fine-tuned model.
@@ -352,29 +193,24 @@ def run_benchmark(
     Args:
         model_path: Path to fine-tuned model (supports full/LoRA auto-detection)
         benchmark_name: Benchmark dataset name (e.g., "aime25", "gsm8k")
+        work_dir: Work directory for results (within FBWorkspace)
         limit: Optional dataset size limit for testing
         num_runs: Number of times to run each sample (default: 1)
         pass_k: Optional list of k values for pass@k evaluation (e.g., [1, 5, 10])
-        work_dir: Optional work directory for results (default: temp dir)
 
     Returns:
         Dict[str, float]: Scores dictionary {task_name: score, ...}
-
-    Raises:
-        FileNotFoundError: Missing config files or model directory
-        ValueError: Invalid benchmark name or configuration
-        RuntimeError: Docker execution failed or results parsing error
     """
-    # Load configurations我
-    dataset_imports = get_benchmark_config(benchmark_name)
-    base_model, lora_adapter = detect_model_type(model_path)
-    inference_config = get_model_inference_config(base_model)
+    
+    dataset_imports = get_benchmark_config(benchmark_name)  # Load dataset configuration
+    model, lora_adapter = detect_model_type(model_path)    # Detect model type (LoRA or full fine-tuning)
+    inference_config = get_model_inference_config(model)   # Load model inference configuration
 
     # Prepare template variables (merge inference config from models.yaml)
     template_vars = {
         # Model configuration
         "model_abbr": f"ft-{benchmark_name}",
-        "model_path": base_model,
+        "model_path": model,
         "is_lora": lora_adapter is not None,
         "lora_path": lora_adapter or "",
         # Dataset configuration
@@ -389,9 +225,6 @@ def run_benchmark(
 
     # Render Jinja2 template
     template_path = Path(__file__).parent / "benchmark_configs" / "opencompass_template.py.j2"
-    if not template_path.exists():
-        raise FileNotFoundError(f"Template not found: {template_path}")
-
     with open(template_path, "r") as f:
         template_content = f.read()
 
@@ -401,46 +234,41 @@ def run_benchmark(
     # Prepare Docker environment
     conf = BenchmarkDockerConf()
     conf.running_timeout_period = FT_RD_SETTING.benchmark_timeout
-    conf.extra_volumes = {
-        **_setup_benchmark_cache_volume(Path(FT_RD_SETTING.file_path) if FT_RD_SETTING.file_path else None),
-        **_setup_lora_volume(lora_adapter),
-    }
+
+    # Setup volume mounts
+    extra_volumes = {}
+
+    # Setup benchmark cache volume
+    if FT_RD_SETTING.file_path:
+        cache_dir = Path(FT_RD_SETTING.file_path) / "benchmarks"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Benchmark cache mounted: {cache_dir}")
+        extra_volumes[str(cache_dir.resolve())] = {"bind": "/benchmarks", "mode": "rw"}
+
+    # Setup LoRA volume
+    if lora_adapter:
+        lora_dir = Path(lora_adapter).resolve()
+        extra_volumes[str(lora_dir)] = {"bind": "/lora_adapter", "mode": "ro"}
+        base_model_dir = FT_RD_SETTING.file_path / "base_models" / model
+        extra_volumes[base_model_dir] = {"bind": "/model", "mode": "ro"}
+    else :
+        extra_volumes[model_path] = {"bind": "/model", "mode": "ro"}
+
+    conf.extra_volumes = extra_volumes
     env = BenchmarkDockerEnv(conf=conf)
     env.prepare()
 
-    # Execute benchmark
-    if work_dir:
-        # Production/test environment: use persistent workspace
-        workspace_path = Path(work_dir).parent
-        workspace_path.mkdir(parents=True, exist_ok=True)
-        return _run_benchmark_in_workspace(
-            workspace_path, config_content, benchmark_name,
-            model_path, base_model, lora_adapter, work_dir, env
-        )
-    else:
-        # Backward compatibility: use temporary directory
-        logger.warning("Using temporary directory - results will not be saved")
-        with tempfile.TemporaryDirectory() as temp_dir:
-            return _run_benchmark_in_workspace(
-                Path(temp_dir), config_content, benchmark_name,
-                model_path, base_model, lora_adapter, None, env
-            )
+    # Execute benchmark in FBWorkspace
+    workspace_path = Path(work_dir).parent
+    workspace_path.mkdir(parents=True, exist_ok=True)
+    return _run_benchmark_in_workspace(
+        workspace_path, config_content, benchmark_name,
+        model_path, model, lora_adapter, work_dir, env
+    )
 
 
 def _parse_results(results_path: Path) -> Dict[str, float]:
-    """
-    Parse OpenCompass results from JSON output.
-
-    Args:
-        results_path: Path to results.json file
-
-    Returns:
-        Dict[str, float]: Scores dictionary
-
-    Raises:
-        FileNotFoundError: If results file not found
-        ValueError: If results file is invalid or contains no scores
-    """
+    """Parse OpenCompass results from JSON output."""
     if not results_path.exists():
         raise FileNotFoundError(f"Results file not found: {results_path}")
 
@@ -556,7 +384,7 @@ class FTBenchmarkEvaluator(CoSTEEREvaluator):
 if __name__ == "__main__":
     """Test benchmark evaluation on Qwen3-1.7B with LoRA adapter."""
     # Configuration - Fill in your LoRA adapter path
-    LORA_ADAPTER_PATH = "/home/v-qizhengli/workspace/FT_workspace/gitignore_folder/B200_FT_workspace/limo/train/b200_sweep_yamls/saves/qwen3-1.7b/lora_b200_lr1e-4_acc4/checkpoint-100"  # e.g., "/path/to/output/checkpoint-100"
+    LORA_ADAPTER_PATH = "/home/v-qizhengli/workspace/FT_workspace/gitignore_folder/B200/B200_FT_workspace/limo/train/b200_sweep_yamls/saves/qwen3-1.7b/lora_b200_lr1e-4_acc4/checkpoint-100"  # e.g., "/path/to/output/checkpoint-100"
     BENCHMARK = "aime25"
 
     print("=" * 80)

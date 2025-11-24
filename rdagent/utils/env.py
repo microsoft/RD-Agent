@@ -878,7 +878,7 @@ class BenchmarkDockerConf(DockerConf):
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "finetune" / "docker" / "opencompass"
     image: str = "rdagent-opencompass:latest"
     mount_path: str = "/workspace/"
-    default_entry: str = "bash /app/opencompass_eval_entrypoint.sh"
+    default_entry: str = "opencompass --help"
 
     running_timeout_period: int | None = 3600  # 1 hour default for benchmarks
     mem_limit: str | None = "32g"  # Moderate memory for inference
