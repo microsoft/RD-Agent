@@ -1216,7 +1216,9 @@ You help users retrieve relevant knowledge from community discussions and public
                 trace.idx2loop_id[n]: trace.idx2loop_id[r] if r is not None else r for n, r in parent_nodes.items()
             }
         if trace.current_selection:
-           current_parent_record_id = trace.current_selection[0]  # record id
+            current_parent_record_id = trace.current_selection[0]  # record id
+            if current_parent_record_id == -1:
+                return texts[0]
         else:
             return texts[0]
         #
@@ -1266,7 +1268,9 @@ You help users retrieve relevant knowledge from community discussions and public
                 trace.idx2loop_id[n]: trace.idx2loop_id[r] if r is not None else r for n, r in parent_nodes.items()
             }
         if trace.current_selection:
-           current_parent_record_id = trace.current_selection[0]  # record id
+            current_parent_record_id = trace.current_selection[0]  # record id
+            if current_parent_record_id == -1:
+                return texts[0]
         else:
             return texts[0]
         
