@@ -473,6 +473,7 @@ class FinetuneDatasetDescriptor:
         return FinetuneFileDescription({"name": data_file.name, "type": "unknown", "samples": []})
 
 
+# ATTENTION: Only support 2 level dataset structure now
 def check_all_dataset_in_info(ft_file_path, existing_config):
     root_path = Path(ft_file_path) / "datasets"
     level_0_dirs = [d for d in root_path.iterdir() if d.is_dir()]
