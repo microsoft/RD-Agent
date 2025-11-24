@@ -201,15 +201,25 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_reward_model_selection: bool = True
     """Enable reward model based hypothesis selection."""
     
-    reward_model_path: str ="/data/Blob_EastUS/FinetuneAgenticLLM/reward_ckpt/last_run_2" #"/data/userdata/v-lijingyuan/last_run_2"# "/data/userdata/v-lijingyuan/last_run_2"#"/data/Blob_EastUS/FinetuneAgenticLLM/reward_ckpt/last_run_2"
+    reward_model_path: str ="/data/Blob_EastUS/FinetuneAgenticLLM/reward_ckpt/last_run_3" #"/data/userdata/v-lijingyuan/last_run_2"# "/data/userdata/v-lijingyuan/last_run_2"#"/data/Blob_EastUS/FinetuneAgenticLLM/reward_ckpt/last_run_2"
+    
     #"/data/Blob_EastUS/FinetuneAgenticLLM/reward_ckpt/last_run_2"
     #"/data/userdata/v-lijingyuan/last_run_2"
+
+    #reward_model_path: str = "/data/userdata/v-lijingyuan/last_run_3"
+
+
     """The path to the reward model for hypothesis selection."""
+
+    competition_mapping_path: str = "/data/Blob_EastUS/FinetuneAgenticLLM/reward_ckpt/comp_to_scen.json"
+    
+    #competition_mapping_path: str = "/data/userdata/v-lijingyuan/dpo/comp_to_scen.json"
+
 
     reward_base_model: str = "Qwen/Qwen3-0.6B"
     """ Backbone of the reward model"""
 
-    max_length : int = 2200
+    max_length : int = 2300
     """ max_length of the reward model"""
 
     reward_select_type: int = 1

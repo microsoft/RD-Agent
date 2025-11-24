@@ -49,7 +49,7 @@ class RewardModelInference(nn.Module):
         reward = self.reward_head(pooled).squeeze(-1)
         return reward
 
-    def compute_reward(self, texts, tokenizer, system_prompt=None, device="cuda"):
+    def compute_reward(self, texts, tokenizer,comp_description, system_prompt=None, device="cuda"):
         if system_prompt is not None:
             self.system_prompt = system_prompt
         elif not hasattr(self, "system_prompt"):
@@ -68,6 +68,7 @@ class RewardModelInference(nn.Module):
         for s in texts:
             prompt = (
                 f"{self.system_prompt}\n\n"
+                f"Competition description:\n{comp_description}\n\n"
                 "Hypothesis Chain (each step separated by '->'):\n"
                 f"{s}\n\n"
                 "<think>\n"
@@ -77,6 +78,7 @@ class RewardModelInference(nn.Module):
                 "</think>\n\n"
                 "Final Evaluation:\n"
             )
+
             inputs.append(prompt)
 
         enc = tokenizer(
@@ -92,53 +94,3 @@ class RewardModelInference(nn.Module):
         rewards = self.forward(enc["input_ids"], enc["attention_mask"])
 
         return torch.exp(rewards).cpu().tolist()
-    
-    # @torch.no_grad()
-    # def compute_reward(
-    #     self,
-    #     texts: list[str],
-    #     tokenizer,
-    #     batch_size: int = 1,
-    # ) -> list[float]:
-    #     """
-    #     直接对字符串列表计算 reward。
-    #     自动 tokenizer、batch、GPU 支持
-    #     """
-    #     if device is None:
-    #         device = self.device
-
-    #     rewards_all = []
-
-    #     # 分 batch 处理
-    #     for i in range(0, len(texts), batch_size):
-    #         batch_texts = texts[i:i+batch_size]
-    #         # 构建 prompt
-    #         batch_prompts = [
-    #             (
-    #                 "You are a senior data science competition judge and solution expert.\n"
-    #                 "Your task is to evaluate the quality, reasoning progression, and innovation of hypothesis chains.\n"
-    #                 "Hypothesis Chain (each step separated by '->'):\n"
-    #                 f"{s}\n\n"
-    #                 "<think>\n"
-    #                 "Analyze the evolution of hypotheses, step-by-step, identifying strengths, weaknesses, and logical progression.\n"
-    #                 "Focus on clarity, correctness, and improvement.\n"
-    #                 "Make sure to consider the chain direction from earliest to latest.\n"
-    #                 "</think>\n\n"
-    #                 "Final Evaluation:\n"
-    #             )
-    #             for s in batch_texts
-    #         ]
-
-    #         enc = tokenizer(
-    #             batch_prompts,
-    #             truncation=True,
-    #             padding=True,
-    #             max_length=DS_RD_SETTING.max_length,
-    #             return_tensors="pt"
-    #         )
-    #         enc = {k: v.to(device) for k, v in enc.items()}
-
-    #         rewards = self.forward(enc["input_ids"], enc["attention_mask"])
-    #         rewards_all.extend(torch.exp(rewards).cpu().tolist())
-
-    #     return rewards_all

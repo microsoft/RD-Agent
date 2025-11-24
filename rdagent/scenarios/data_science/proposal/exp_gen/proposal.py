@@ -1240,7 +1240,12 @@ You help users retrieve relevant knowledge from community discussions and public
             last_text.append(hypothesis_chain_list[-1] + sep + data.get("hypothesis", "Hypothesis not provided"))
             texts.append(data.get("hypothesis", "Hypothesis not provided"))
 
-        rewards = model.compute_reward(texts, tokenizer)
+        comp_dict_path = DS_RD_SETTING.competition_mapping_path
+        with open(comp_dict_path, "r") as f:
+            comp_dict = json.load(f)
+        competition = trace.scen.competition
+        comp_description = comp_dict[competition]
+        rewards = model.compute_reward(texts, tokenizer,comp_description)
         max_idx = rewards.index(max(rewards))
         return texts[max_idx]
 
@@ -1301,9 +1306,13 @@ You help users retrieve relevant knowledge from community discussions and public
             reward_head_path=reward_head_path,
         ).to("cuda")
         model.eval()
-
-        parent_rewards = model.compute_reward(hypothesis_chain_list,tokenizer)
-        currnet_rewards = model.compute_reward(last_text,tokenizer)
+        comp_dict_path = DS_RD_SETTING.competition_mapping_path
+        with open(comp_dict_path, "r") as f:
+            comp_dict = json.load(f)
+        competition = trace.scen.competition
+        comp_description = comp_dict[competition]
+        parent_rewards = model.compute_reward(hypothesis_chain_list,tokenizer,comp_description)
+        currnet_rewards = model.compute_reward(last_text,tokenizer,comp_description)
 
         avg_win_rate = []
         for re in currnet_rewards:
@@ -1606,7 +1615,8 @@ You help users retrieve relevant knowledge from community discussions and public
             )
             pickled_problem_name = None
         else:
-            if DS_RD_SETTING.enable_reward_model_selection==True and trace.current_selection and not trace.is_selection_new_tree():
+            sota_flag = (hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None)
+            if DS_RD_SETTING.enable_reward_model_selection==True and trace.current_selection and sota_flag:
                 # logger.info("Selecting hypothesis using reward model.")
                 # selected_hypothesis_text = self.reward_model_select_hypothesis(
                 #     hypothesis_dict=hypothesis_dict,
