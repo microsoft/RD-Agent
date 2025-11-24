@@ -1,6 +1,12 @@
-FROM pytorch/pytorch:2.4.0-cuda12.4-cudnn9-runtime
+FROM pytorch/pytorch:2.4.0-cuda12.4-cudnn9-devel
 
 # For GPU support, please choose the proper tag from https://hub.docker.com/r/pytorch/pytorch/tags
+# Note: Using 'devel' tag instead of 'runtime' to include CUDA development tools required for DeepSpeed compilation
+
+# Set CUDA environment variables for DeepSpeed compilation
+ENV CUDA_HOME=/usr/local/cuda
+ENV PATH=$CUDA_HOME/bin:$PATH
+ENV LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 
 RUN apt-get clean && apt-get update && apt-get install -y \  
     curl \  
@@ -12,11 +18,11 @@ RUN apt-get clean && apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/* 
 
 # Install LLaMA-Factory for LLM fine-tuning
-RUN git clone --depth 1 https://github.com/hiyouga/LLaMA-Factory.git /llamafactory
+RUN git clone https://github.com/hiyouga/LLaMA-Factory.git /llamafactory
 WORKDIR /llamafactory
 
 # Install LLaMA-Factory with torch and metrics extras
-RUN PIP_NO_BUILD_ISOLATION=1 pip install -e ".[torch,metrics]"
+RUN PIP_NO_BUILD_ISOLATION=1 pip install -e ".[torch,metrics,deepspeed]"
 
 # Set working directory for experiments
 WORKDIR /workspace

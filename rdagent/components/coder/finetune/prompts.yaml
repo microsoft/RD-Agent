@@ -37,11 +37,11 @@ finetune_coder:
     3. Generate full training configuration (no sample limit)
     4. Ensure all parameters are valid for LlamaFactory
 
-    ## Configuration Principles
-    1. **ONLY include parameters you want to change from defaults**
-    2. If a parameter's default value matches your intention, OMIT it entirely
-    3. This prevents unnecessary dependencies and keeps configuration clean
-    4. Example: if `mixture_of_depths` defaults to `false` and you don't need it, DO NOT include it
+    ## Configuration Principle
+    **ONLY include parameters you want to change from defaults**
+    If a parameter's default value matches your intention, OMIT it entirely
+    This prevents unnecessary dependencies and keeps configuration clean
+    Example: if `mixture_of_depths` defaults to `false` and you don't need it, DO NOT include it
 
     ## Output Format
     You MUST output the YAML configuration in a standard markdown code block:
@@ -64,9 +64,13 @@ finetune_coder:
     - dataset: use dataset name from dataset_info.json (not "processed_dataset")
     - model_name_or_path: use local model path instead of HuggingFace model identifier
     - dataset_info.json path: "{{ datasets_path }}dataset_info.json" contains dataset configurations
-    - template: DO NOT include this field (LlamaFactory auto-detects from tokenizer). NEVER set to "auto" or "none" - these are invalid values.
+    - template: NEVER set to "auto" or "none" - these are invalid values. 
+      - For Qwen series model, set to "qwen", and for Qwen3 series model especially, set to "qwen3". 
+      - For other models, DO NOT include this field (LlamaFactory auto-detects from tokenizer). 
     - tokenized_path: MUST set to "/workspace/tokenized_cache" (datasets directory is read-only mounted)
     - batch_size: Be aware that `auto_find_batch_size` can cause synchronization issues in multi-GPU (DDP) training. Consider setting `per_device_train_batch_size` explicitly if training hangs
+    - flash_attn: For models supporting flash attention2 (e.g., Qwen series, llama series), set to "fa2" to enhance training speed and reduce memory usage
+    - deepspeed: If number of GPUs > 1, use DeepSpeed with ZeRO Stage 2 or 3 for memory optimization. specifically, set to "/llamafactory/examples/deepspeed/ds_z3_config.json" for ZeRO Stage 3, otherwise use "/llamafactory/examples/deepspeed/ds_z2_config.json" for ZeRO Stage 2
 
     {% if latest_code %}
     ## Previous Configuration
