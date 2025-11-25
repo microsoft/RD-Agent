@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.1](https://github.com/microsoft/RD-Agent/compare/v0.8.0...v0.8.1) (2025-11-25)
+
+
+### Bug Fixes
+
+* (to main) litellm's Timeout error is not picklable ([#1294](https://github.com/microsoft/RD-Agent/issues/1294)) ([23ca7db](https://github.com/microsoft/RD-Agent/commit/23ca7db2eb324238bfaa338cfcb748cf435ff66a))
+* avoid triggering errors like "RuntimeError: dictionary changed s… ([#1285](https://github.com/microsoft/RD-Agent/issues/1285)) ([277c72a](https://github.com/microsoft/RD-Agent/commit/277c72a12dc08f9d6bc8520ea272a3dda3f4d0f7))
+* **ci:** remove env-print step to avoid leaking sensitive environment variables ([#1299](https://github.com/microsoft/RD-Agent/issues/1299)) ([25aac39](https://github.com/microsoft/RD-Agent/commit/25aac39d71f25a5d26222791827aaf08e58b6bd6))
+
 ## [0.8.0](https://github.com/microsoft/RD-Agent/compare/v0.7.0...v0.8.0) (2025-11-03)
 
 
