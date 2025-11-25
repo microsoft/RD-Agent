@@ -6,6 +6,7 @@ from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.scen import DataScienceScen
+from rdagent.scenarios.finetune.scen.llama_factory_manager import LLaMAFactory_manager
 from rdagent.scenarios.finetune.scen.utils import (
     FinetuneDatasetDescriptor,
     generate_dataset_info_config,
@@ -13,8 +14,6 @@ from rdagent.scenarios.finetune.scen.utils import (
 from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
 from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 from rdagent.utils.agent.tpl import T
-
-from .llama_factory_manager import get_llama_factory_manager
 
 
 class LLMFinetuneScen(DataScienceScen):
@@ -26,6 +25,8 @@ class LLMFinetuneScen(DataScienceScen):
 
         # Basic attributes
         self.user_target_scenario = FT_RD_SETTING.user_target_scenario
+        self.target_benchmark = FT_RD_SETTING.target_benchmark
+        self.benchmark_description = FT_RD_SETTING.benchmark_description
         self.dataset = FT_RD_SETTING.dataset
         self.base_model = FT_RD_SETTING.base_model
 
@@ -68,10 +69,9 @@ class LLMFinetuneScen(DataScienceScen):
 
     def _initialize_llama_factory(self):
         """Initialize LLaMA Factory information manager"""
-        self.llama_factory_manager = get_llama_factory_manager()
 
         # Extract LLaMA Factory information (pulls latest code automatically)
-        info = self.llama_factory_manager.get_info()
+        info = LLaMAFactory_manager.get_info()
 
         # Log extracted information
         methods_count = len(info.get("methods", []))
@@ -128,6 +128,9 @@ class LLMFinetuneScen(DataScienceScen):
     def get_scenario_all_desc(self) -> str:
         """Get complete scenario description for LLM fine-tuning"""
         return T(".prompts:scenario_description").r(
+            user_target_scenario=self.user_target_scenario,
+            target_benchmark=self.target_benchmark,
+            benchmark_info=self.benchmark_description,
             device_info=self.device_info,
             chosen_model=FT_RD_SETTING.base_model is not None,
             base_model=FT_RD_SETTING.base_model,

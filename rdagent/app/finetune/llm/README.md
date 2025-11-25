@@ -67,22 +67,11 @@ FT_DOCKER_ENABLE_CACHE=True
 **Purpose**: Enable Docker cache to speed up repeated runs (default: `False`)
 - `True`: Keep container and image cache, suitable for development
 - `False`: Clean up each time, suitable for production
-
-#### 3. LLaMA Factory Update
-
-```bash
-FT_UPDATE_LLAMA_FACTORY=False
-```
-
-**Purpose**: Whether to update LLaMA Factory code on each run (default: `True`)
-- `True`: Pull latest code from GitHub each time (slow but guaranteed latest)
-- `False`: Use already downloaded version (fast, suitable for stable environments)
-
 ---
 
 ### Benchmark Evaluation Configuration
 
-#### 4. Benchmark Dataset List
+#### 3. Benchmark Dataset List
 
 ```bash
 # Note: Must be valid JSON array, no trailing comments
@@ -101,7 +90,7 @@ FT_BENCHMARK_DATASETS=["aime25","gsm8k","mmlu"]
 **Mapping Rule**: The system automatically maps short names to OpenCompass full dataset names, e.g.:
 - `aime25` → `aime2025_llmjudge_gen_5e9f4f`
 
-#### 5. Benchmark Sample Limit
+#### 4. Benchmark Sample Limit
 
 ```bash
 FT_BENCHMARK_LIMIT=50
@@ -121,7 +110,7 @@ FT_BENCHMARK_LIMIT=10
 # FT_BENCHMARK_LIMIT=   # Leave empty or unset
 ```
 
-#### 6. Benchmark Timeout
+#### 5. Benchmark Timeout
 
 ```bash
 FT_BENCHMARK_TIMEOUT=3600
@@ -133,7 +122,7 @@ FT_BENCHMARK_TIMEOUT=3600
 
 ### Judge API Configuration (for benchmarks requiring LLM scoring like AIME)
 
-#### 7. Judge Model
+#### 6. Judge Model
 
 ```bash
 FT_JUDGE_MODEL=gpt-4
@@ -141,7 +130,7 @@ FT_JUDGE_MODEL=gpt-4
 
 **Purpose**: Specify the LLM model for scoring (default: `gpt-4`)
 
-#### 8. Judge API Key
+#### 7. Judge API Key
 
 ```bash
 FT_JUDGE_API_KEY=sk-xxxxx
@@ -149,7 +138,7 @@ FT_JUDGE_API_KEY=sk-xxxxx
 
 **Purpose**: API key for the judge model (optional, reads from environment if not set)
 
-#### 9. Judge API Base URL
+#### 8. Judge API Base URL
 
 ```bash
 FT_JUDGE_API_BASE=http://your-api-endpoint:8000
@@ -161,7 +150,7 @@ FT_JUDGE_API_BASE=http://your-api-endpoint:8000
 
 ### Training Timeout Configuration
 
-#### 10. Debug Mode Timeout
+#### 9. Debug Mode Timeout
 
 ```bash
 FT_DEBUG_TIMEOUT=36000
@@ -169,7 +158,7 @@ FT_DEBUG_TIMEOUT=36000
 
 **Purpose**: Training timeout in debug mode in seconds (default: `36000` = 10 hours)
 
-#### 11. Full Training Timeout
+#### 10. Full Training Timeout
 
 ```bash
 FT_FULL_TIMEOUT=360000
@@ -189,7 +178,6 @@ FT_FILE_PATH=/home/user/workspace/finetune
 
 # Docker config (enable cache to speed up debugging)
 FT_DOCKER_ENABLE_CACHE=True
-FT_UPDATE_LLAMA_FACTORY=False
 
 # Benchmark config (quick testing)
 FT_BENCHMARK_DATASETS=["aime25","gsm8k"]
@@ -213,7 +201,6 @@ FT_FILE_PATH=/data/finetune
 
 # Docker config (no cache, keep environment clean)
 FT_DOCKER_ENABLE_CACHE=False
-FT_UPDATE_LLAMA_FACTORY=True
 
 # Benchmark config (full evaluation)
 FT_BENCHMARK_DATASETS=["aime25","aime24","gsm8k","mmlu","math"]

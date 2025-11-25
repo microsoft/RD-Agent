@@ -9,7 +9,7 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.finetune.experiment.experiment import FTExperiment
 from rdagent.scenarios.finetune.scen.llama_factory_manager import (
-    get_llama_factory_manager,
+    LLaMAFactory_manager,
 )
 from rdagent.scenarios.finetune.scen.scenario import LLMFinetuneScen
 from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
@@ -53,21 +53,20 @@ class LLMFinetuneExpGen(ExpGen):
 
     def __init__(self, scen: LLMFinetuneScen):
         super().__init__(scen)
-        self.llama_manager = get_llama_factory_manager()
 
     def gen(self, trace: Trace, plan=None) -> FTExperiment:
         """Generate LLM fine-tuning experiment using LLM-driven selection."""
         # Generate hypothesis using LLM (model is always specified in current use case)
         logger.info(f"Using specified model: {FT_RD_SETTING.base_model}")
         base_model = FT_RD_SETTING.base_model
-        available_models = self.llama_manager.models
-        available_methods = self.llama_manager.methods
+        available_models = LLaMAFactory_manager.models
+        available_methods = LLaMAFactory_manager.methods
 
         # Generate parameter descriptions: shared params once + method-specific params
-        shared_params = self.llama_manager.format_shared_params()
+        shared_params = LLaMAFactory_manager.format_shared_params()
         methods_specific_params = {}
         for method in available_methods:
-            methods_specific_params[method] = self.llama_manager.format_method_specific_params(method)
+            methods_specific_params[method] = LLaMAFactory_manager.format_method_specific_params(method)
 
         # Use template system for prompts
         system_prompt = T(".prompts:hypothesis_gen.system_prompt").r(

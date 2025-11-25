@@ -31,6 +31,7 @@ from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.finetune.scen.llama_factory_manager import LLaMAFactory_manager
 from rdagent.utils.agent.tpl import T
 
 DIRNAME = Path(__file__).absolute().resolve().parent
@@ -41,13 +42,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
 
     def __init__(self, scen: Scenario, settings, *args, **kwargs):
         super().__init__(scen, settings)
-
-        # Lazy import to avoid circular dependency
-        from rdagent.scenarios.finetune.scen.llama_factory_manager import (
-            get_llama_factory_manager,
-        )
-
-        self.llama_factory_manager = get_llama_factory_manager()
+        self.llama_factory_manager = LLaMAFactory_manager
 
     def implement_one_task(
         self,

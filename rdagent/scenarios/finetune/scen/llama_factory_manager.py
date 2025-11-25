@@ -3,16 +3,19 @@ Streamlined LLaMA Factory manager for parameter extraction.
 """
 
 import json
+import re
 import shutil
 from pathlib import Path
 from typing import Dict, List, Optional
+
+import requests
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
 
-UPDATE_LLAMA_FACTORY_SCRIPT_NAME = "update_llama_factory_extract_parameters.py"
+EXTRACT_PARAMETERS_SCRIPT_NAME = "extract_parameters.py"
 
 
 class LLaMAFactoryManager:
@@ -20,19 +23,17 @@ class LLaMAFactoryManager:
 
     def __init__(self):
         """Initialize the manager instance."""
-        base_path = FT_RD_SETTING.file_path
-        self.cache_dir = Path(base_path) / ".llama_factory_info"
+        self.cache_dir = Path(FT_RD_SETTING.file_path) / ".llama_factory_info"
         self._info_cache: Optional[Dict] = None
-        self.update_llama_factory = FT_RD_SETTING.update_llama_factory
 
     def extract_info_from_docker(self) -> Dict:
         """Extract LLaMA Factory information from Docker environment."""
-        if self.update_llama_factory or not self.cache_dir.exists() or not any(self.cache_dir.iterdir()):
+        if not self.cache_dir.exists() or not any(self.cache_dir.iterdir()):
             logger.info("Update & Extract LLaMA Factory parameters from Docker")
             # Prepare extraction script
             workspace = FBWorkspace()
-            script_path = Path(__file__).parent / "docker_scripts" / UPDATE_LLAMA_FACTORY_SCRIPT_NAME
-            workspace.inject_files(**{UPDATE_LLAMA_FACTORY_SCRIPT_NAME: script_path.read_text()})
+            script_path = Path(__file__).parent / "docker_scripts" / EXTRACT_PARAMETERS_SCRIPT_NAME
+            workspace.inject_files(**{EXTRACT_PARAMETERS_SCRIPT_NAME: script_path.read_text()})
 
             # Setup cache directory and Docker volumes
             if self.cache_dir.exists():
@@ -43,7 +44,7 @@ class LLaMAFactoryManager:
             # Run extraction
             result = workspace.run(
                 env=get_ft_env(extra_volumes=volumes, running_timeout_period=120, enable_cache=False),
-                entry=f"python {UPDATE_LLAMA_FACTORY_SCRIPT_NAME}",
+                entry=f"python {EXTRACT_PARAMETERS_SCRIPT_NAME}",
             )
 
             if result.exit_code != 0:
@@ -207,15 +208,4 @@ class LLaMAFactoryManager:
         return "\n".join(lines)
 
 
-# Module-level singleton instance
-_manager_instance: Optional[LLaMAFactoryManager] = None
-
-
-def get_llama_factory_manager() -> LLaMAFactoryManager:
-    """Get the singleton LLaMAFactoryManager instance."""
-    global _manager_instance
-
-    if _manager_instance is None:
-        _manager_instance = LLaMAFactoryManager()
-
-    return _manager_instance
+LLaMAFactory_manager = LLaMAFactoryManager()

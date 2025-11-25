@@ -76,13 +76,11 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     # LLM-specific fields
     user_target_scenario: str | None = None
     target_benchmark: str | None = None
+    benchmark_description: str | None = None
     """Benchmark datasets to evaluate on. Supported: aime25, aime24, mmlu, gsm8k, math, etc.
     Will be mapped to OpenCompass dataset names (e.g., aime25 -> aime2025_llmjudge_gen_5e9f4f)"""
     base_model: str | None = None
     dataset: str | None = None
-
-    # LLaMA Factory
-    update_llama_factory: bool = True
 
     # Docker settings
     docker_enable_cache: bool = False

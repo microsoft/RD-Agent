@@ -17,9 +17,7 @@ import yaml
 from rdagent.components.coder.finetune.conf import FT_DEBUG_YAML_FILE_NAME, get_ft_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.finetune.scen.llama_factory_manager import (
-    get_llama_factory_manager,
-)
+from rdagent.scenarios.finetune.scen.llama_factory_manager import LLaMAFactory_manager
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -44,9 +42,8 @@ class LLMConfigValidator:
     The micro-batch test inherently validates completeness, so no separate completeness check is needed.
     """
 
-    def __init__(self, llama_factory_manager=None):
+    def __init__(self):
         self._supported_params_cache: Optional[Set[str]] = None
-        self.llama_factory_manager = llama_factory_manager
 
     def validate_and_test(self, config_yaml: str, workspace: FBWorkspace, env) -> ValidationResult:
         """Two-step validation: parameter filtering + micro-batch testing"""
@@ -104,11 +101,8 @@ class LLMConfigValidator:
         if self._supported_params_cache is not None:
             return self._supported_params_cache
 
-        if self.llama_factory_manager is None:
-            raise RuntimeError("LlamaFactory Manager not provided to validator")
-
         try:
-            all_params = self.llama_factory_manager.get_parameters()
+            all_params = LLaMAFactory_manager.get_parameters()
 
             # Extract all parameter names from all parameter types (including nested structures)
             supported_params = set()
@@ -197,9 +191,3 @@ class LLMConfigValidator:
             result.errors.append(f"Micro-batch test exception: {str(e)}")
             return result
 
-
-def create_unified_validator(llama_factory_manager=None) -> LLMConfigValidator:
-    """Create simplified validator instance."""
-    if llama_factory_manager is None:
-        llama_factory_manager = get_llama_factory_manager()
-    return LLMConfigValidator(llama_factory_manager)

@@ -36,6 +36,8 @@ finetune_coder:
     2. Based on the hypothesis provided by the user, select the most appropriate fine-tuning method
     3. Generate full training configuration (no sample limit)
     4. Ensure all parameters are valid for LlamaFactory
+    5. Please set logging_strategy to 'steps' and logging_steps to 100 if they are not already set. This ensures consistent logging behavior during training and enables easier debugging and monitoring of the training process.
+    6. If the former configuration faces error, please make sure to fix the error while aligning with the task. If these two goals conflict, please prioritize fixing the error.
 
     ## Configuration Principle
     **ONLY include parameters you want to change from defaults**
@@ -128,16 +130,14 @@ finetune_eval:
 
     # Important Notice
     - You may find that the execution is short with limited data and iterations. This is expected as we are only validating the configuration file's correctness and not performing full-scale training. Don't treat this as a failure.
-    - Please set logging_strategy to 'steps' and logging_steps to 100 if they are not already set. This ensures consistent logging behavior during training and enables easier debugging and monitoring of the training process.
-    - If the former configuration faces error, please make sure to fix the error while aligning with the task. If these two goals conflict, please prioritize fixing the error.
 
     ## Output Format
     Please respond with your feedback in the following JSON format without anything else.
     ```json
     {
-        "execution": "Plain text. Describe whether the yaml code executed successfully. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information. If errors occurred, analyze the root causes: (1) Are they fundamental algorithmic/approach issues, or (2) Implementation details that can be easily fixed, or (3) Environment/dependency problems?",
+        "execution": "State if run succeeded. If errors, include all messages verbatim. Classify cause: algorithm, implementation, or environment."
         "return_checking": "Plain text. Examine the generated files from the user input. Does the output contains a fine-tuned model or expected artifacts? If not, specify what is missing or incorrect.",
-        "code": "Plain text. Provide structured analysis of the provided `train.yaml` configuration file: (1) **Technical Appropriateness**: Does the chosen approach (algorithms, data processing, validation strategy) match this problem's data characteristics and competition requirements? (2) **Effective Components**: What specific parts work well and why are they effective for this problem type? (3) **Issues & Improvements**: Identify concrete problems in the configuration and suggest actionable improvement directions (without providing actual code). (4) **Code Quality**: Assess readability, structure, and adherence to specifications.",
+        "code": "Plain text. Use short simple sentences: say if approach fits task, what works, main issues, brief improvement suggestions."
         "final_decision": <true/false>, # Final decision on whether the configuration is acceptable for full data fine-tuning
     }
     ```

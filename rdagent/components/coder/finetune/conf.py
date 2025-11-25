@@ -93,6 +93,7 @@ def get_ft_env(
     if enable_cache is None:
         enable_cache = FT_RD_SETTING.docker_enable_cache
 
+    assert conf.env_type == "docker", f"LLM finetune only supports docker env, got: {conf.env_type}"
     # Use dedicated LLM docker and conda env
     if conf.env_type == "docker":
         env = FTDockerEnv()

@@ -12,7 +12,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERSingleFeedback,
 )
 from rdagent.components.coder.finetune.conf import FT_YAML_FILE_NAME, get_ft_env
-from rdagent.components.coder.finetune.unified_validator import create_unified_validator
+from rdagent.components.coder.finetune.unified_validator import LLMConfigValidator
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.utils.agent.tpl import T
@@ -26,7 +26,6 @@ class FTCoderEvaluator(CoSTEEREvaluator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.config_validator = create_unified_validator()
 
     def evaluate(
         self,
@@ -65,7 +64,7 @@ class FTCoderEvaluator(CoSTEEREvaluator):
             )
 
         # Two-step validation: parameter filtering + micro-batch test
-        validation_result = self.config_validator.validate_and_test(
+        validation_result = LLMConfigValidator().validate_and_test(
             config_yaml=config_yaml, workspace=implementation, env=env
         )
 

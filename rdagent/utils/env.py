@@ -480,6 +480,10 @@ class Env(Generic[ASpecificEnvConf]):
                 return log_output, []
         return log_output, results
 
+    def refresh_env(self) -> None:
+        """Refresh the environment, e.g., pull the latest docker image. rebuild the conda env."""
+        pass
+
 
 # class EnvWithCache
 #
@@ -1070,7 +1074,7 @@ class DockerEnv(Env[DockerConf]):
             # Also create/update a symlink to the latest log for convenience
             latest_link = logs_dir / "docker_execution_latest.log"
 
-            print(f"[cyan]Full logs will be saved to: logs/{log_file_path.name}[/cyan]")
+            print(f"[cyan]Full logs will be saved to: {log_file_path.absolute()}[/cyan]")
 
         # Process logs with tail mode
         if use_tail_mode:
@@ -1212,6 +1216,23 @@ class DockerEnv(Env[DockerConf]):
             raise RuntimeError(f"Error while running the container: {e}")
         finally:
             cleanup_container(container)
+
+    def refresh_env(self) -> None:
+        """Remove the Docker image associated with this environment."""
+        client = docker.from_env()
+        try:
+            # Remove the specific image
+            client.images.remove(image=self.conf.image, force=True)
+            logger.info(f"Removed Docker image: {self.conf.image}")
+
+            client.images.prune()
+            client.api.prune_builds()
+            logger.info(f"Successfully removed Docker image: {self.conf.image}")
+        except docker.errors.ImageNotFound:
+            logger.warning(f"Docker image not found, cannot remove: {self.conf.image}")
+        except docker.errors.APIError as e:
+            logger.error(f"Error while removing Docker image: {e}")
+        self.prepare()
 
 
 class QTDockerEnv(DockerEnv):
