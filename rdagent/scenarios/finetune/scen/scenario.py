@@ -85,6 +85,8 @@ class LLMFinetuneScen(DataScienceScen):
         """Generate category.json configuration and category.json classification"""
         datasets_dir = Path(FT_RD_SETTING.file_path) / "datasets"
         category_path = datasets_dir / "category.json"
+        category_dict = {}  # Default empty dict
+        
         if not category_path.exists():
             logger.info("Generating category.json (dataset classification by task type)...")
             try:
@@ -96,7 +98,13 @@ class LLMFinetuneScen(DataScienceScen):
             except Exception as e:
                 logger.warning(f"Failed to generate category.json: {e}")
         else:
-            logger.info("category.json already exists, skipping classification")
+            logger.info("category.json already exists, loading from file")
+            try:
+                with open(category_path, "r", encoding="utf-8") as f:
+                    category_dict = json.load(f)
+            except Exception as e:
+                logger.warning(f"Failed to load category.json: {e}")
+        
         return category_dict
 
     def _prepare_dataset_info(self):
