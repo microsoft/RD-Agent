@@ -473,21 +473,136 @@ class FinetuneDatasetDescriptor:
         return FinetuneFileDescription({"name": data_file.name, "type": "unknown", "samples": []})
 
 
-# ATTENTION: Only support 2 level dataset structure now
-def check_all_dataset_in_info(ft_file_path, existing_config):
+def check_all_dataset_in_info(ft_file_path, existing_config, max_depth: int = 3):
+    """Scan datasets directory recursively and return dataset names not yet in existing_config.
+    
+    Recursively scans the datasets directory to find all directories containing data files.
+    Supports configurable directory depth (default: 3 levels) and recognizes train/test/val split patterns.
+    
+    Smart split detection:
+        - If a directory has subdirs like 'train', 'test', 'val' with data files,
+          the parent directory is treated as the dataset
+        - Otherwise, each directory with data files is a separate dataset
+    
+    Examples:
+        - LIMO/limo.jsonl → dataset: "LIMO" (level 1)
+        - s1K-1.1/data/train.parquet → dataset: "s1K-1.1/data" (level 2)
+        - math/en/train/data.json + math/en/test/data.json → dataset: "math/en" (level 2)
+        - code/python/file1.json + code/python/file2.json → dataset: "code/python" (level 2)
+    
+    Args:
+        ft_file_path: Path to finetune directory structure
+        existing_config: Existing dataset_info.json configuration
+        max_depth: Maximum directory depth to scan (default: 3)
+    
+    Returns:
+        list: Dataset names (relative paths) not yet in existing_config
+    """
     root_path = Path(ft_file_path) / "datasets"
-    level_0_dirs = [d for d in root_path.iterdir() if d.is_dir()]
-    dataset_list = [f"{d.name}/{sd.name}" for d in level_0_dirs for sd in d.iterdir() if sd.is_dir()]
+    dataset_list = []
+    
+    # Supported data file extensions
+    data_extensions = {'.json', '.jsonl', '.parquet', '.csv', '.arrow', '.txt'}
+    
+    # Common split names (train/test/validation patterns)
+    split_names = {'train', 'test', 'val', 'validation', 'dev', 'eval'}
+    
+    def has_data_files(directory: Path) -> bool:
+        """Check if directory contains data files."""
+        try:
+            return any(f.is_file() and f.suffix in data_extensions for f in directory.iterdir())
+        except:
+            return False
+    
+    def scan_directory(current_path: Path, relative_path: str = "", depth: int = 0):
+        """Recursively scan directory for data files."""
+        # Check depth limit
+        if depth >= max_depth:
+            logger.debug(f"Reached max depth ({max_depth}) at {relative_path}, stopping scan")
+            return
+            
+        try:
+            # Get all items in current directory
+            items = list(current_path.iterdir())
+            
+            # Check if current directory contains data files
+            data_files = [f for f in items if f.is_file() and f.suffix in data_extensions]
+            subdirs = [d for d in items if d.is_dir() and not d.name.startswith('.')]
+            
+            if data_files:
+                # This directory contains data files directly, mark it as a dataset
+                dataset_name = relative_path if relative_path else current_path.name
+                dataset_list.append(dataset_name)
+                # Don't recurse into subdirectories to avoid treating subsets as separate datasets
+                return
+            
+            # Check if subdirectories look like train/test/val splits
+            subdir_names = {d.name.lower() for d in subdirs}
+            split_subdirs = subdir_names & split_names
+            
+            if split_subdirs and all(has_data_files(current_path / sd.name) for sd in subdirs if sd.name.lower() in split_names):
+                # This looks like a dataset with train/test/val splits
+                # Mark the parent directory as the dataset
+                dataset_name = relative_path if relative_path else current_path.name
+                dataset_list.append(dataset_name)
+                logger.info(f"Detected split dataset: {dataset_name} with splits: {split_subdirs}")
+                return
+            
+            # If no data files and no split pattern, recurse into subdirectories
+            for subdir in subdirs:
+                new_relative_path = f"{relative_path}/{subdir.name}" if relative_path else subdir.name
+                scan_directory(subdir, new_relative_path, depth + 1)
+                
+        except PermissionError:
+            logger.warning(f"Permission denied accessing {current_path}")
+        except Exception as e:
+            logger.warning(f"Error scanning {current_path}: {e}")
+    
+    # Start scanning from root (depth 0 is the dataset root level)
+    for item in root_path.iterdir():
+        if item.is_dir() and not item.name.startswith('.'):
+            scan_directory(item, item.name, depth=0)
+    
     remain_dataset_list = [dataset_name for dataset_name in dataset_list if dataset_name not in existing_config]
     return remain_dataset_list
+
+
+def classify_datasets(ft_file_path: str) -> dict:
+    """Classify datasets by task type using AI analysis.
+
+    Args:
+        ft_file_path: Path to finetune directory structure
+
+    Returns:
+        dict: Classification mapping like {"math_reasoning": ["dataset1", "dataset2"], ...}
+    """
+    dataset_folder_desc = FinetuneDatasetDescriptor().describe_dataset_folder(
+        Path(ft_file_path) / "datasets", include_dataset_readme=True
+    )
+
+    system_prompt = T(".prompts:dataset_classification.system").r()
+    user_prompt = T(".prompts:dataset_classification.user").r(
+        dataset_info=str(dataset_folder_desc),
+    )
+
+    api = APIBackend()
+    classification_response = api.build_messages_and_create_chat_completion(
+        system_prompt=system_prompt, user_prompt=user_prompt, json_mode=True
+    )
+
+    classification_dict = json.loads(classification_response)
+    logger.info(f"Dataset classification completed: {classification_dict}")
+    
+    return classification_dict
 
 
 def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str, existing_config: dict) -> dict:
     """Generate dataset_info.json configuration entry using AI for LLaMA-Factory compatibility.
 
     Args:
-        dataset: Name of the dataset
+        target_dataset_list: List of specific datasets to process (empty for all)
         ft_file_path: Path to finetune directory structure
+        existing_config: Existing dataset_info.json configuration
 
     Returns:
         dict: Configuration entry for dataset_info.json
@@ -508,7 +623,6 @@ def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str, e
     system_prompt = T(".prompts:dataset_info_generation.system").r(
         target_dataset_list=real_target_dataset_list,
     )
-    # TODO: select appropriate columns (Reasoning first?)
     user_prompt = T(".prompts:dataset_info_generation.user").r(
         dataset_info=str(dataset_folder_desc),
     )

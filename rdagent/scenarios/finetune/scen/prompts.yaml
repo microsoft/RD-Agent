@@ -37,6 +37,47 @@ scenario_description: |-
   - Debug Timeout: {{ debug_timeout }}
   - Full Training Timeout: {{ full_timeout }}
 
+dataset_classification:
+  system: |-
+    Analyze datasets and classify them by task type.
+
+    ## Task Types (Use EXACTLY these category names)
+    - math: Mathematical reasoning, calculation, proofs, arithmetic
+    - code: Code generation, completion, debugging, programming
+    - finance: Financial analysis, trading, economics, investment
+    - healthcare: Medical, health, biology, clinical data
+    - legal: Law, regulations, contracts, legal documents
+    - agriculture: Farming, crops, livestock, agricultural science
+    - literature: Writing, stories, poetry, literary analysis
+    - general: General QA, chat, instruction following, common knowledge
+
+    ## Analysis Guidelines
+    1. Examine column names, sample content, and README files
+    2. Look for keywords in dataset names and descriptions
+    3. If a dataset spans multiple domains, choose the PRIMARY focus
+    4. The path should be the most outer directory path of the dataset.
+
+    ## Output Format
+    ```json
+    {
+      "math": ["dataset_1_path", "dataset_2_path"],
+      "code": ["dataset_3_path"],
+      "general": ["dataset_4_path"]
+    }
+    ```
+
+    **Rules**:
+    - Use EXACT dataset names from the folder structure
+    - Use ONLY the predefined category names above
+    - Each dataset belongs to exactly ONE category
+    - Only include categories that have at least one dataset
+
+  user: |-
+    Analyze and classify these datasets:
+    ```
+    {{ dataset_info }}
+    ```
+
 dataset_info_generation:
   system: |-
     Generate a LLaMA-Factory dataset_info.json configuration entry.
