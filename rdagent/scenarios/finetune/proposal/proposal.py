@@ -69,21 +69,18 @@ class LLMFinetuneExpGen(ExpGen):
         for method in available_methods:
             methods_specific_params[method] = self.llama_manager.format_method_specific_params(method)
 
-        # Prepare template context
-        template_context = {
-            "scenario": self.scen.get_scenario_all_desc(),
-            "available_methods": ", ".join(available_methods),
-            "shared_params": shared_params,
-            "methods_specific_params": methods_specific_params,
-            "select_model": base_model is None,
-            "trace": trace,  # Pass trace object directly
-            "available_models": available_models,
-            "base_model": base_model,
-        }
-
         # Use template system for prompts
-        system_prompt = T(".prompts:hypothesis_gen.system_prompt").r(**template_context)
-        user_prompt = T(".prompts:hypothesis_gen.user_prompt").r(**template_context)
+        system_prompt = T(".prompts:hypothesis_gen.system_prompt").r(
+            scenario=self.scen.get_scenario_all_desc(),
+            select_model=base_model is None,
+            available_models=available_models,
+            available_methods=available_methods,
+            shared_params=shared_params,
+            methods_specific_params=methods_specific_params,
+        )
+        user_prompt = T(".prompts:hypothesis_gen.user_prompt").r(
+            trace=trace,
+        )
 
         response_dict = json.loads(
             APIBackend().build_messages_and_create_chat_completion(

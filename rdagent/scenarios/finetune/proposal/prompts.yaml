@@ -77,7 +77,6 @@ hypothesis_gen:
     {% for experiment, feedback in trace.hist[-5:] %}
     ### Experiment {{ loop.index }}
     {% if experiment.hypothesis %}
-    - Configuration: Model={{ experiment.hypothesis.base_model }}, Method={{ experiment.hypothesis.finetune_method }}, Quantization={{ experiment.hypothesis.quantization }}
     - Hypothesis: {{ experiment.hypothesis.hypothesis }}
     {% endif %}
     - Result: {{ "✅ Successful" if feedback.decision else "❌ Failed" }}

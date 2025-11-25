@@ -203,9 +203,13 @@ class LiteLLMAPIBackend(APIBackend):
                 logger.info(
                     f"Current Cost: ${float(cost):.10f}; Accumulated Cost: ${float(ACC_COST):.10f}; {finish_reason=}",
                 )
-
-        prompt_tokens = token_counter(model=model, messages=messages)
-        completion_tokens = token_counter(model=model, text=content)
+        try:
+            prompt_tokens = token_counter(model=model, messages=messages)
+            completion_tokens = token_counter(model=model, text=content)
+        except ValueError as e:
+            logger.warning(f"Token counting failed for model {model}: {e}. Skip token statistics.")
+            prompt_tokens = 0
+            completion_tokens = 0
         logger.log_object(
             {
                 "model": model,
