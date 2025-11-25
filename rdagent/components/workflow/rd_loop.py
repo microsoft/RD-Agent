@@ -91,9 +91,9 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         e = prev_out.get(self.EXCEPTION_KEY, None)
         if e is not None:
             feedback = HypothesisFeedback(
-                code_change_summary="",
                 reason=str(e),
                 decision=False,
+                code_change_summary="",
                 acceptable=False,
             )
             logger.log_object(feedback, tag="feedback")

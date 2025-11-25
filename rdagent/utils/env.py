@@ -711,6 +711,8 @@ class DockerConf(EnvConf):
     retry_count: int = 5  # retry count for the docker run
     retry_wait_seconds: int = 10  # retry wait seconds for the docker run
 
+    terminal_tail_lines: int = 20
+
     @model_validator(mode="after")
     def populate_exclude_chmod_paths(self) -> "DockerConf":
         """
