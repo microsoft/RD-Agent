@@ -1215,14 +1215,12 @@ You help users retrieve relevant knowledge from community discussions and public
             parent_nodes = {
                 trace.idx2loop_id[n]: trace.idx2loop_id[r] if r is not None else r for n, r in parent_nodes.items()
             }
-        if trace.current_selection:
-            current_parent_record_id = trace.current_selection[0]  # record id
-            if current_parent_record_id == -1:
-                return texts[0]
-        else:
-            return texts[0]
-        #
-        #current_parent_record_id = trace.current_selection[0]
+            
+        if not trace.current_selection or trace.current_selection[0] == -1:
+            first_text = next(iter(hypothesis_dict.values())).get("hypothesis", "Hypothesis not provided")
+            return first_text
+
+        current_parent_record_id = trace.current_selection[0]
         loop_id2idx = {v: k for k, v in trace.idx2loop_id.items()}
         loop_id_list = self._get_path(trace.idx2loop_id[current_parent_record_id], parent_nodes)
 
@@ -1240,8 +1238,9 @@ You help users retrieve relevant knowledge from community discussions and public
             hypothesis_chain_list.append(sep.join(accumulate))
 
         if not hypothesis_chain_list:
-            return texts[0]
-        
+            first_text = next(iter(hypothesis_dict.values())).get("hypothesis", "Hypothesis not provided")
+            return first_text
+                
         last_text = []
         texts = []
         for name, data in hypothesis_dict.items():
@@ -1270,12 +1269,11 @@ You help users retrieve relevant knowledge from community discussions and public
             parent_nodes = {
                 trace.idx2loop_id[n]: trace.idx2loop_id[r] if r is not None else r for n, r in parent_nodes.items()
             }
-        if trace.current_selection:
-            current_parent_record_id = trace.current_selection[0]  # record id
-            if current_parent_record_id == -1:
-                return texts[0]
-        else:
-            return texts[0]
+
+        if not trace.current_selection or trace.current_selection[0] == -1:
+            first_text = next(iter(hypothesis_dict.values())).get("hypothesis", "Hypothesis not provided")
+            return first_text
+        current_parent_record_id = trace.current_selection[0]
         
         loop_id2idx = {v: k for k, v in trace.idx2loop_id.items()}
         loop_id_list = self._get_path(trace.idx2loop_id[current_parent_record_id], parent_nodes)
@@ -1294,7 +1292,8 @@ You help users retrieve relevant knowledge from community discussions and public
             hypothesis_chain_list.append(sep.join(accumulate))
 
         if not hypothesis_chain_list:
-            return texts[0]
+            first_text = next(iter(hypothesis_dict.values())).get("hypothesis", "Hypothesis not provided")
+            return first_text
         
         last_text = []
         texts = []
