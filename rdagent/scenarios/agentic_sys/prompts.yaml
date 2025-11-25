@@ -1,0 +1,769 @@
+# ==================== Knowledge Retrieval and RAG ====================
+
+KG_hypothesis_gen_RAG:
+  system: |-
+    You are an expert in agentic systems research with access to knowledge from previous research tasks and current experiments.
+  
+  user: |-
+    {% if insights %}
+    ====== Cross-Task Insights (Transferable Knowledge) ======
+    {% for insight in insights %}
+    Insight {{ loop.index }}:
+    - Task Domain: {{ insight.domain }}
+    - Research Method: {{ insight.method }}
+    - Key Finding: {{ insight.finding }}
+    - Applicability: {{ insight.applicability }}
+    {% endfor %}
+    {% endif %}
+
+    {% if experiences %}
+    ====== Current Task History ======
+    {% for exp in experiences %}
+    Experiment {{ loop.index }}:
+    - Hypothesis: {{ exp.hypothesis }}
+    - Approach: {{ exp.approach }}
+    - Dimensions Improved: {{ exp.improved_dims }}
+    - Lessons Learned: {{ exp.lessons }}
+    {% endfor %}
+    {% endif %}
+    
+    {% if external_sources %}
+    ====== Retrieved External Sources ======
+    {% for source in external_sources %}
+    Source {{ loop.index }}: {{ source.citation }}
+    - Relevance Score: {{ source.relevance }}
+    - Key Information: {{ source.summary }}
+    {% endfor %}
+    {% endif %}
+
+retrieval_query_generation:
+  system: |-
+    You are an expert in formulating effective search queries for research tasks.
+  
+  user: |-
+    Based on the current research task, generate search queries to retrieve relevant information.
+    
+    Task: {{ task_description }}
+    Current Knowledge Gaps: {{ knowledge_gaps }}
+    
+    Generate:
+    1. **Primary Queries**: Core concepts and requirements
+    2. **Exploratory Queries**: Adjacent topics and methodologies
+    3. **Validation Queries**: Fact-checking and source verification
+    
+    Output Format: 
+    {
+      "primary_queries": ["query1", "query2", ...],
+      "exploratory_queries": ["query1", "query2", ...],
+      "validation_queries": ["query1", "query2", ...]
+    }
+
+# ==================== Scenario and Task Description ====================
+
+scenario_description:
+  system: |-
+    You are an expert in agentic system design and DeepResearch benchmark evaluation.
+  
+  user: |-
+    {% if use_raw_description -%}
+    ====== Background of the Research Task ======
+    {{ raw_description }}
+    {% else %}
+    ====== Background of the Research Task ======
+    {{ background }}
+    {% endif %}
+
+    {% if system_analysis_output is not none %}
+    ====== Current System Analysis ======
+    The following is the analysis of the current agentic system implementation:
+    {{ system_analysis_output }}
+    {% endif %}
+
+    ====== Task Requirements ======
+    Your agentic system must address the following research task:
+    {{ task_requirements }}
+
+    ====== System Specifications ======
+    Please ensure your system adheres to the following specifications:
+    - **Architecture**: {{ architecture_requirements }}
+    - **Agent Communication**: {{ communication_protocol }}
+    - **Error Handling**: Graceful failure recovery and proper logging
+    - **Modularity**: Clear separation of concerns and reusable components
+
+    ====== Evaluation Metrics ======
+    Your system will be evaluated on **four dimensions** with scores from 0-10 (continuous):
+
+    **1. Comprehensiveness (Coverage)** - Weight: {{ comprehensiveness_weight | default(0.25) }}
+    Intent: Breadth and depth of content; no major omissions.
+    - Coverage of all required subtopics and scope (time/geo/segments)
+    - Multiple data sources and evidence
+    - Balanced perspectives
+    Scoring Anchors:
+    - 0-2: Misses core parts; narrow, superficial
+    - 4-6: Covers basics; some gaps or shallow treatment
+    - 6-8: Covers all key areas with adequate depth and evidence
+    - 8-10: Exhaustive, balanced, well-evidenced, no meaningful gaps
+
+    **2. Insight (Depth and Originality)** - Weight: {{ insight_weight | default(0.30) }}
+    Intent: Why-think, causality, synthesis, non-obvious implications.
+    - Causal chains and quantified reasoning
+    - Trade-offs and counterfactual analysis
+    - Novel synthesis and frameworks
+    - Acknowledges limitations
+    Scoring Anchors:
+    - 0-2: Descriptive only; platitudes
+    - 4-6: Some analysis; shallow drivers; limited originality
+    - 6-8: Clear causal logic; non-trivial implications; data-backed claims
+    - 8-10: Original frameworks; quantifies impact; anticipates edge cases
+
+    **3. Instruction Following (Task Fit)** - Weight: {{ instruction_weight | default(0.25) }}
+    Intent: Strict adherence to task requirements and constraints.
+    - Answers all sub-questions
+    - Respects scope (topic/geo/time)
+    - Required deliverables and methods
+    - No out-of-scope content
+    Scoring Anchors:
+    - 0-2: Largely off-task; violates constraints
+    - 4-6: Partially compliant; missing notable requirements
+    - 6-8: Fully compliant with minor misses
+    - 8-10: Exact, complete, and precise compliance
+
+    **4. Readability (Clarity and Presentation)** - Weight: {{ readability_weight | default(0.20) }}
+    Intent: Clear structure, fluent language, effective data presentation.
+    - Logical outline with clear headings
+    - Cohesive and precise wording
+    - Concise tables/figures
+    - Defined terms and consistent formatting
+    Scoring Anchors:
+    - 0-2: Hard to follow; disorganized; errors
+    - 4-6: Understandable but clunky or poorly organized
+    - 6-8: Clear, well-structured, minimal friction
+    - 8-10: Publication-ready polish; visuals aid understanding
+
+    {% if evaluation_details is not none %}
+    ====== Additional Evaluation Details ======
+    {{ evaluation_details }}
+    {% endif %}
+
+    ====== Scoring Method ======
+    - **Per Criterion**: Evidence-based scoring; 5 = baseline adequate, adjust ±
+    - **Per Dimension**: Weighted average of its criteria
+    - **Overall Score**: Weighted sum of four dimension scores
+    - **Pairwise Normalization**: target_normalized = target_score / (target_score + reference_score)
+
+    {% if time_limit is not none %}
+    ====== Time Limit On System Execution ======
+    Your system's execution is limited to **{{ time_limit }}**. Ensure efficient implementation.
+    {% endif %}
+
+    {% if runtime_environment is not none %}
+    ====== Runtime Environment ======
+    {{ runtime_environment }}
+    {% endif %}
+
+task_description_template:
+  system: |-
+    You are an expert in agentic system design and research task analysis.
+    The user will provide a research task description, and you need to extract structured information.
+    Please answer in JSON format with the following schema:
+    {
+      "Task Type": "The type of research task, e.g., 'Literature Review', 'Multi-hop QA', 'Data Analysis', 'Code Generation', 'Scientific Research'",
+      "Domain": "The domain of the task, e.g., 'Scientific Research', 'Business Intelligence', 'Software Engineering', 'Healthcare'",
+      "Brief Description": "A brief description of the task (2-3 sentences)",
+      "Scope Requirements": {
+        "Temporal": "Time range if specified, e.g., '2020-2024'",
+        "Geographical": "Geographical scope if relevant, e.g., 'Global', 'US only'",
+        "Topical": "Topic boundaries and depth"
+      },
+      "Required Deliverables": "List of expected outputs, e.g., ['Report', 'Data tables', 'Visualizations', 'Code']",
+      "Data Sources": "Expected or required data sources",
+      "Sub-questions": "List of sub-questions that must be answered",
+      "Constraints": "Any specific constraints or limitations",
+      "Evaluation Focus": {
+        "Comprehensiveness": "What aspects determine coverage completeness",
+        "Insight": "What constitutes deep analysis for this task",
+        "Instruction Following": "Key requirements that must be met",
+        "Readability": "Presentation format expectations"
+      },
+      "Complexity Level": "Low/Medium/High based on research depth and multi-hop reasoning requirements"
+    }
+  
+  user: |-
+    Research Task Description: 
+    {{ task_raw_description }}
+
+    Additional Context:
+    {{ task_context }}
+
+task_background:
+  system: |-
+    You are a world-class AI researcher and system architect specializing in agentic systems for research automation.
+    
+    Your expertise includes:
+    - Multi-agent coordination and planning
+    - Information retrieval and synthesis
+    - Causal reasoning and analysis
+    - Research methodology and evaluation
+    - Large Language Model orchestration
+  
+  user: |-
+    The task type for this research scenario is **{{ task_type }}**.
+    Domain: **{{ domain }}**.
+    
+    Brief task description: {{ brief_description }}.
+    
+    Scope Requirements:
+    {{ scope_requirements }}.
+    
+    Required Deliverables:
+    {{ required_deliverables }}.
+    
+    The task will be evaluated on four dimensions:
+    1. **Comprehensiveness**: {{ comprehensiveness_focus }}
+    2. **Insight**: {{ insight_focus }}
+    3. **Instruction Following**: {{ instruction_focus }}
+    4. **Readability**: {{ readability_focus }}
+
+# ==================== Hypothesis Generation ====================
+
+hypothesis_generation:
+  system: |-
+    You are an expert in agentic system optimization and research automation.
+    Your task is to propose hypotheses to improve the system's performance on DeepResearch evaluation dimensions.
+  
+  user: |-
+    You are proposing a hypothesis to improve the agentic system for research tasks.
+    
+    ====== Current System State ======
+    {{ current_system_description }}
+    
+    ====== Performance on DeepResearch Dimensions ======
+    Current Scores (0-10 scale):
+    - Comprehensiveness: {{ current_comprehensiveness | default("N/A") }}
+    - Insight: {{ current_insight | default("N/A") }}
+    - Instruction Following: {{ current_instruction_following | default("N/A") }}
+    - Readability: {{ current_readability | default("N/A") }}
+    
+    ====== Previous Experiments ======
+    {{ experiment_history }}
+    
+    ====== Identified Weaknesses ======
+    {{ performance_gaps }}
+    
+    ====== Task ======
+    Propose a hypothesis for system improvement that targets one or more evaluation dimensions.
+    
+    Your hypothesis should:
+    1. **Target Dimension(s)**: Which evaluation dimension(s) will this improve?
+    2. **Current Gap**: What specific weakness does it address?
+    3. **Proposed Change**: Concrete architectural or algorithmic modification
+    4. **Expected Impact**: How will this improve the target dimension score(s)?
+    5. **Trade-offs**: Any potential negative impacts on other dimensions?
+    6. **Implementation Feasibility**: Complexity and resource requirements
+    
+    Format your response as:
+    **Hypothesis**: [One clear sentence]
+    **Target Dimensions**: [List with expected improvement, e.g., "Comprehensiveness (+1.5), Insight (+0.8)"]
+    **Rationale**: [Why this will work, with evidence from experiments]
+    **Implementation Plan**: [Step-by-step approach]
+    **Risk Mitigation**: [How to avoid hurting other dimensions]
+
+hypothesis_output_format:
+  system: |-
+    You must format your hypothesis according to the following JSON schema.
+  
+  user: |-
+    The output should follow JSON format with the following schema:
+    {
+      "action": "Choose from ['Information_Gathering', 'Analysis_Synthesis', 'Structure_Refinement', 'Compliance_Verification']. If 'hypothesis_specification' provides the action you need to take, please follow it. Otherwise, based on previous experimental results, suggest the action you believe is most appropriate.",
+      "hypothesis": "One clear sentence stating what improvement will be made",
+      "target_dimensions": [
+        {
+          "name": "Comprehensiveness/Insight/Instruction_Following/Readability",
+          "current_score": 0.0,
+          "target_score": 0.0,
+          "expected_improvement": 0.0,
+          "confidence": "Low/Medium/High"
+        }
+      ],
+      "current_gap": "Specific weakness being addressed (one sentence)",
+      "rationale": "Why this hypothesis should work, with evidence from previous experiments or theoretical principles (2-3 sentences)",
+      "implementation_plan": {
+        "step_1": "First concrete step",
+        "step_2": "Second concrete step",
+        "step_3": "Third concrete step (if needed)"
+      },
+      "risk_assessment": {
+        "potential_negative_impacts": [
+          {"dimension": "dimension_name", "reason": "why it might be affected", "severity": "Low/Medium/High"}
+        ],
+        "mitigation_strategies": ["strategy1", "strategy2", ...]
+      },
+      "resource_requirements": {
+        "time_estimate": "Estimated time to implement and validate",
+        "external_tools": ["tool1", "tool2", ...],
+        "complexity": "Low/Medium/High",
+        "dependencies": ["dependency1", ...]
+      },
+      "success_criteria": {
+        "primary": "Main success indicator (e.g., 'Comprehensiveness score increases by at least 1.0')",
+        "secondary": ["Additional indicators of success"],
+        "validation_method": "How to verify the improvement"
+      },
+      "concise_knowledge": "One-line transferable principle using conditional grammar (e.g., 'If X, then Y'; 'When A, do B'). Must be clear and unambiguous without referencing 'previous hypothesis' or other context-dependent terms."
+    }
+
+hypothesis_and_feedback:
+  system: |-
+    You have access to the complete history of previous experiments and their results.
+    Analyze patterns and learn from past successes and failures.
+  
+  user: |-
+    ====== Recent Experiment History (Last {{ history_window | default(10) }} iterations) ======
+    
+    {% for experiment, feedback in trace.hist[-history_window:] %}
+    ====== Iteration {{ loop.index }} ======
+    **Hypothesis**: {{ experiment.hypothesis }}
+    **Action Type**: {{ experiment.action_type }}
+    **Target Dimensions**: {{ experiment.target_dimensions }}
+    
+    **Results**:
+    - Comprehensiveness: {{ feedback.comprehensiveness_score }} (Δ {{ feedback.comprehensiveness_delta }})
+    - Insight: {{ feedback.insight_score }} (Δ {{ feedback.insight_delta }})
+    - Instruction Following: {{ feedback.instruction_score }} (Δ {{ feedback.instruction_delta }})
+    - Readability: {{ feedback.readability_score }} (Δ {{ feedback.readability_delta }})
+    - Overall: {{ feedback.overall_score }} (Δ {{ feedback.overall_delta }})
+    
+    **Observations**: {{ feedback.observations }}
+    **Decision**: {{ feedback.decision }} (Success/Partial/Failure)
+    **Reason**: {{ feedback.reason }}
+    **Lessons Learned**: {{ feedback.lessons }}
+    
+    {% endfor %}
+    
+    ====== Pattern Analysis ======
+    - Most successful action type: {{ most_successful_action }}
+    - Most improved dimension: {{ most_improved_dimension }}
+    - Persistent weaknesses: {{ persistent_weaknesses }}
+    - Effective strategies: {{ effective_strategies }}
+
+# ==================== Action Type Specifications ====================
+
+hypothesis_specification:
+  Information_Gathering:
+    system: |-
+      You are an expert in information gathering and comprehensive research methodologies.
+    
+    user: |-
+      Action: Information Gathering
+      
+      Focus: Comprehensive data collection and source validation
+      
+      Guidelines:
+      - Start with authoritative sources (peer-reviewed papers, official databases)
+      - Cover multiple perspectives and timeframes
+      - Verify facts through cross-referencing
+      - Document all sources with proper citations
+
+      Evaluation Impact:
+      - Primary: **Comprehensiveness** (improved coverage and evidence)
+      - Secondary: **Instruction Following** (adherence to source requirements)
+
+      Common Pitfalls:
+      - Relying on single sources
+      - Missing key subtopics
+      - Ignoring temporal or geographical constraints
+
+      Output Format:
+      {
+        "sources": [
+          {
+            "citation": "Author (Year). Title. Publisher.",
+            "relevance": "How this source addresses this task",
+            "key_information": "Summary of relevant content",
+            "credibility": "Assessment of source quality"
+          }
+        ],
+        "coverage_checklist": {
+          "temporal_scope": "Covered/Partial/Missing",
+          "geographical_scope": "Covered/Partial/Missing",
+          "subtopics": ["topic1: covered", "topic2: partial", ...]
+        }
+      }
+  
+  Analysis_Synthesis:
+    system: |-
+      You are an expert in causal analysis, quantitative reasoning, and knowledge synthesis.
+    
+    user: |-
+      Action: Analysis and Synthesis
+      
+      Focus: Deep causal reasoning and novel insights
+      
+      Guidelines:
+      - Identify causal relationships (not just correlations)
+      - Quantify impacts where possible
+      - Consider counterfactuals and trade-offs
+      - Acknowledge limitations and uncertainties
+      - Propose original frameworks or synthesis
+      
+      Evaluation Impact:
+      - Primary: **Insight** (depth of analysis and originality)
+      - Secondary: **Comprehensiveness** (improved understanding of topic)
+      
+      Common Pitfalls:
+      - Descriptive summaries without analysis
+      - Correlation presented as causation
+      - Generic "pros and cons" without depth
+      - Ignoring edge cases
+      
+      Output Format:
+      {
+        "causal_chains": [
+          {
+            "cause": "...",
+            "mechanism": "...",
+            "effect": "...",
+            "evidence": "...",
+            "quantification": "X% increase/decrease"
+          }
+        ],
+        "trade_offs": [
+          {
+            "dimension1": "...",
+            "dimension2": "...",
+            "relationship": "...",
+            "implications": "..."
+          }
+        ],
+        "novel_insights": "...",
+        "limitations": "..."
+      }
+
+  Structure_Refinement:
+    system: |-
+      You are an expert in technical writing, information architecture, and presentation design.
+    
+    user: |-
+      Action: Structure and Presentation Refinement
+      
+      Focus: Clear organization and effective communication
+      
+      Guidelines:
+      - Logical hierarchical structure
+      - Clear section headings
+      - Effective use of tables/figures
+      - Consistent terminology
+      - Smooth transitions between sections
+
+      Evaluation Impact:
+      - Primary: **Readability** (clarity and presentation quality)
+      - Secondary: **Instruction Following** (meeting format requirements)
+
+      Common Pitfalls:
+      - Walls of text without structure
+      - Undefined acronyms or jargon
+      - Inconsistent formatting
+      - Cluttered or unclear visualizations
+      
+      Output Format:
+      {
+        "structure": {
+          "sections": [
+            {
+              "title": "...",
+              "subsections": [...],
+              "key_points": [...]
+            }
+          ]
+        },
+        "visual_elements": [
+          {
+            "type": "table/figure/chart",
+            "purpose": "...",
+            "data": "..."
+          }
+        ],
+        "terminology": {
+          "term1": "definition",
+          "term2": "definition"
+        }
+      }
+
+  Compliance_Verification:
+    system: |-
+      You are an expert in requirement validation and compliance checking.
+    
+    user: |-
+      Action: Compliance and Requirement Verification
+      
+      Focus: Ensuring all task requirements are met
+      
+      Guidelines:
+      - Check all sub-questions are answered
+      - Verify scope adherence (time/geo/topic)
+      - Confirm all deliverables are provided
+      - Validate required methods are used
+      - Remove out-of-scope content
+      
+      Evaluation Impact:
+      - Primary: **Instruction Following** (requirement adherence)
+      
+      Common Pitfalls:
+      - Missing mandatory sections
+      - Scope creep
+      - Wrong timeframe or geography
+      - Ignoring format specifications
+      
+      Output Format:
+      {
+        "compliance_checklist": {
+          "sub_questions": [
+            {"question": "...", "status": "answered/partial/missing"}
+          ],
+          "scope_verification": {
+            "temporal": "compliant/violated",
+            "geographical": "compliant/violated",
+            "topical": "compliant/violated"
+          },
+          "deliverables": [
+            {"required": "...", "status": "provided/missing"}
+          ]
+        },
+        "violations": ["list of any violations"],
+        "corrective_actions": ["list of needed fixes"]
+      }
+
+# ==================== Code Generation ====================
+
+code_generation:
+  system: |-
+    You are an expert software engineer specializing in agentic systems and research automation.
+    You write clean, well-documented, evaluation-aware code.
+  
+  user: |-
+    You are implementing the following hypothesis:
+    {{ hypothesis }}
+    
+    Target Evaluation Dimensions: {{ target_dimensions }}
+    
+    ====== Current Codebase ======
+    {{ current_code }}
+    
+    ====== Implementation Requirements ======
+    Your implementation must:
+    1. **Maintain/Improve Target Dimensions**:
+       {% for dim in target_dimensions %}
+       - {{ dim.name }}: Focus on {{ dim.focus_areas }}
+       {% endfor %}
+    
+    2. **Code Quality Standards**:
+       - Clear documentation explaining how code improves target dimensions
+       - Error handling with informative messages
+       - Logging for debugging and analysis
+       - Modular design for maintainability
+    
+    3. **Evaluation-Aware Design**:
+       - For **Comprehensiveness**: Ensure complete coverage of required topics
+       - For **Insight**: Include causal reasoning, quantification, synthesis logic
+       - For **Instruction Following**: Validate all requirements are met
+       - For **Readability**: Structure output clearly, use proper formatting
+    
+    ====== Implementation Guidelines ======
+    {{ implementation_guidelines }}
+    
+    Please generate code with:
+    - Comments explaining dimension-specific improvements
+    - Docstrings describing evaluation impact
+    - Unit tests for critical functionality
+
+# ==================== Feedback and Analysis ====================
+
+feedback_analysis:
+  system: |-
+    You are an expert in experimental analysis and performance evaluation for agentic systems.
+    Analyze results across multiple dimensions and provide actionable insights.
+  
+  user: |-
+    ====== Experiment Results ======
+    Hypothesis: {{ hypothesis }}
+    Target Dimensions: {{ target_dimensions }}
+    
+    ====== Performance Metrics (0-10 scale) ======
+    {% if metrics %}
+    Current vs. Baseline:
+    - Comprehensiveness: {{ metrics.comprehensiveness.current }} (Δ {{ metrics.comprehensiveness.delta }})
+    - Insight: {{ metrics.insight.current }} (Δ {{ metrics.insight.delta }})
+    - Instruction Following: {{ metrics.instruction_following.current }} (Δ {{ metrics.instruction_following.delta }})
+    - Readability: {{ metrics.readability.current }} (Δ {{ metrics.readability.delta }})
+    - Overall Score: {{ metrics.overall.current }} (Δ {{ metrics.overall.delta }})
+    
+    Pairwise Normalized Score: {{ metrics.normalized_score }}
+    {% endif %}
+    
+    ====== Execution Logs ======
+    {{ logs }}
+    
+    ====== Detailed Dimension Analysis ======
+    {% if dimension_feedback %}
+    {{ dimension_feedback }}
+    {% endif %}
+    
+    ====== Analysis Task ======
+    Provide a comprehensive analysis:
+    
+    1. **Success Assessment** (Pass/Fail for each dimension):
+       - Did we improve target dimension(s)?
+       - Were there unexpected changes in non-target dimensions?
+    
+    2. **Dimension-Specific Findings**:
+       For each dimension, explain:
+       - **Comprehensiveness**: Coverage gaps or improvements
+       - **Insight**: Quality of reasoning and originality
+       - **Instruction Following**: Compliance issues or successes
+       - **Readability**: Clarity and presentation quality
+    
+    3. **Root Cause Analysis**:
+       - Why did improvements/regressions occur?
+       - What worked as expected vs. surprises?
+    
+    4. **Trade-off Analysis**:
+       - Did improving one dimension hurt others?
+       - Is the trade-off acceptable?
+    
+    5. **Next Steps**:
+       - Should we iterate on this hypothesis?
+       - New hypothesis directions based on learnings?
+    
+    6. **Knowledge Update**:
+       - What general principles did we learn?
+       - What to avoid in future experiments?
+
+# ==================== Evaluation Rubric ====================
+
+evaluation_rubric:
+  system: |-
+    You are an expert evaluator trained on the DeepResearch Benchmark rubric.
+    Apply consistent, evidence-based scoring across all four dimensions.
+  
+  user: |-
+    ====== DeepResearch Benchmark Evaluation Rubric ======
+    
+    Use this rubric to score outputs on each dimension (0-10 continuous):
+    
+    **Comprehensiveness (0-10)**
+    Check:
+    - [ ] All required subtopics covered
+    - [ ] Appropriate scope (time/geography/segments)
+    - [ ] Multiple data sources and evidence cited
+    - [ ] Balanced perspectives presented
+    - [ ] No major omissions
+    
+    Pitfalls to avoid:
+    - Ignoring time/geographic constraints
+    - One-sided coverage
+    - Missing data/evidence
+    - Superficial treatment of topics
+    
+    **Insight (0-10)**
+    Check:
+    - [ ] Causal chains explained (not just correlation)
+    - [ ] Quantified reasoning where possible
+    - [ ] Trade-offs and counterfactuals discussed
+    - [ ] Limitations acknowledged
+    - [ ] Novel synthesis or frameworks
+    
+    Pitfalls to avoid:
+    - Purely descriptive content
+    - Platitudes and generic statements
+    - Untested assertions
+    - Shallow "pros and cons" lists
+    
+    **Instruction Following (0-10)**
+    Check:
+    - [ ] All sub-questions answered
+    - [ ] Scope respected (topic/geo/time)
+    - [ ] Required deliverables provided
+    - [ ] Required methods used
+    - [ ] No out-of-scope content
+    
+    Pitfalls to avoid:
+    - Missing mandatory sections
+    - Scope drift
+    - Wrong timeframe or geography
+    - Ignoring format requirements
+    
+    **Readability (0-10)**
+    Check:
+    - [ ] Logical structure with clear headings
+    - [ ] Cohesive flow between sections
+    - [ ] Precise and concise wording
+    - [ ] Effective tables/figures
+    - [ ] Terms defined, formatting consistent
+    
+    Pitfalls to avoid:
+    - Walls of text
+    - Undefined acronyms
+    - Noisy or unclear visualizations
+    - Inconsistent terminology
+
+# ==================== UI and Display ====================
+
+rich_style_description:
+  system: |-
+    You are describing the agentic system scenario for display purposes.
+  
+  user: |-
+    ### {{ name }} Agent: Automated Research System for DeepResearch Tasks
+
+    #### [Overview](#_summary)
+    This scenario focuses on automated research and development of agentic systems 
+    optimized for DeepResearch Benchmark evaluation criteria.
+
+    #### {{ name }} Task Info
+    Current Task: {{ task_name }}
+    Task Type: {{ task_type }}
+    Domain: {{ domain }}
+
+    #### [Evaluation Dimensions](#_metrics)
+    - **Comprehensiveness** ({{ comprehensiveness_weight }}): Coverage breadth and depth
+    - **Insight** ({{ insight_weight }}): Causal reasoning and originality
+    - **Instruction Following** ({{ instruction_weight }}): Task requirement adherence
+    - **Readability** ({{ readability_weight }}): Clarity and presentation quality
+
+    #### [Automated R&D Loop](#_rdloops)
+    
+    - **[R (Research)](#_research)**
+      - Hypothesis generation targeting evaluation dimensions
+      - Analysis of dimension-specific performance gaps
+      - Knowledge construction from scored experiments
+    
+    - **[D (Development)](#_development)**
+      - Code evolution optimizing for target dimensions
+      - Multi-dimensional performance validation
+      - Trade-off analysis across dimensions
+    
+    #### [Objective](#_summary)
+    To automatically discover and implement system improvements that maximize 
+    performance across all four DeepResearch evaluation dimensions through 
+    autonomous, dimension-aware research and development cycles.
+
+system_prompt_template:
+  system: |-
+    You are an advanced agentic system designed for research tasks.
+    
+    Your core capabilities:
+    - Multi-hop reasoning and information synthesis
+    - Causal analysis and quantitative reasoning
+    - Structured output generation
+    - Source verification and citation
+  
+  user: |-
+    Evaluation awareness:
+    You will be evaluated on four dimensions (0-10 each):
+    1. **Comprehensiveness**: Complete coverage, no gaps
+    2. **Insight**: Deep analysis, causal thinking, originality
+    3. **Instruction Following**: Strict requirement adherence
+    4. **Readability**: Clear structure and presentation
+    
+    Always optimize for all four dimensions in your responses.
