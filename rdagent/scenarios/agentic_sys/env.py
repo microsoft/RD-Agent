@@ -59,26 +59,8 @@ def build_volume(ws_path, mount_path, extra):
 
 
 
-# def get_agent_sys_env(
-#     extra_volumes: dict = {},
-#     running_timeout_period: int | None = DS_RD_SETTING.debug_timeout,
-#     enable_cache: bool | None = None,
-# ) -> DockerEnv:
-#     """
-#     create and prepare Docker environment for agentic system scenario
-#     """
-#     conf = AgentSysDockerConf()
-#     env = DockerEnv(conf=conf)
-#     env.conf.extra_volumes = extra_volumes.copy()
-#     env.conf.running_timeout_period = running_timeout_period
-#     if enable_cache is not None:
-#         env.conf.enable_cache = enable_cache
-#     env.prepare()
-#     return env
-
-
 def get_agent_sys_env(
-    extra_volumes:dict = {},
+    extra_volumes: dict = {},
     running_timeout_period: int | None = DS_RD_SETTING.debug_timeout,
     enable_cache: bool | None = None,
 ) -> DockerEnv:
@@ -91,18 +73,36 @@ def get_agent_sys_env(
     env.conf.running_timeout_period = running_timeout_period
     if enable_cache is not None:
         env.conf.enable_cache = enable_cache
-    #inject correct volumes before preparation
-    env.conf.mount_path = sanitize_container_path(env.conf.mount_path)
-    
-    # 清理 extra_volumes 中的容器路径
-    if env.conf.extra_volumes:
-        sanitized_extra = {}
-        for host, container in env.conf.extra_volumes.items():
-            sanitized_extra[host] = sanitize_container_path(container)
-        env.conf.extra_volumes = sanitized_extra
-    
     env.prepare()
     return env
+
+
+# def get_agent_sys_env(
+#     extra_volumes:dict = {},
+#     running_timeout_period: int | None = DS_RD_SETTING.debug_timeout,
+#     enable_cache: bool | None = None,
+# ) -> DockerEnv:
+#     """
+#     create and prepare Docker environment for agentic system scenario
+#     """
+#     conf = AgentSysDockerConf()
+#     env = DockerEnv(conf=conf)
+#     env.conf.extra_volumes = extra_volumes.copy()
+#     env.conf.running_timeout_period = running_timeout_period
+#     if enable_cache is not None:
+#         env.conf.enable_cache = enable_cache
+#     #inject correct volumes before preparation
+#     env.conf.mount_path = sanitize_container_path(env.conf.mount_path)
+    
+#     # 清理 extra_volumes 中的容器路径
+#     if env.conf.extra_volumes:
+#         sanitized_extra = {}
+#         for host, container in env.conf.extra_volumes.items():
+#             sanitized_extra[host] = sanitize_container_path(container)
+#         env.conf.extra_volumes = sanitized_extra
+    
+#     env.prepare()
+#     return env
 
 
     

@@ -12,8 +12,8 @@ import json
 import re
 import os
 from typing import Dict, Any, List, Optional
-
 from rdagent.scenarios.agentic_sys.env import get_agent_sys_env
+from rdagent.oai.llm_utils import APIBackend
 
 # TODO:  We only list the dummy coder and runner here.
 # If we want to implement the a comprehensive agentic system R&D Agent, we need to implement it with CoSTEER.
@@ -23,6 +23,10 @@ class AgenticSysCoder(Developer[Experiment]):
     #generate code for agentic system experiment
     def __init__(self, scen):
         self.scen = scen
+
+        #initialize LLM backend 
+        self.api_backend = APIBackend()
+        logger.info("Initialized AgenticSysCoder with LLM backend")
 
     def develop(self, exp: Experiment) -> Experiment:
         # TODO: implement the coder
@@ -227,12 +231,6 @@ class AgenticSysCoder(Developer[Experiment]):
         return False
         
 
-
-
-
-
-
-
     def validate_generated_code(self, env, ws_path: Path):
         """
         Validate generated code by running basic checks
@@ -258,764 +256,1275 @@ class AgenticSysCoder(Developer[Experiment]):
         except Exception as e:
             return ValidationResult(False, f"Validation error: {str(e)}")
         
-    def generate_agent_code(self,context):
-        """
-        Generate agent code based on context
-        """
-        hypothesis = context.get('hypothesis', 'Improve agentic system performance')
-        #enhanced agent template with CoSTEER improvement
-        return f'''
-        """
-        Agentic System Implementation - CoSTEER enhanced
-        Hypothesis: {hypothesis}
-        Generated with intelligent code generation
-        """
-        import time
-        import logging
-        import threading
-        from typing import Dict, List, Any, Optional
-        from concurrent.futures import ThreadPoolExecutor, as_completed
-        from dataclasses import dataclass
-        from enum import Enum
-        import json
+    # def generate_agent_code(self,context):
+    #     """
+    #     Generate agent code based on context
+    #     """
+    #     hypothesis = context.get('hypothesis', 'Improve agentic system performance')
 
-        #Configurable logging
-        logging.basicConfig(level = logging.INFO)
-        logger = logging.getLogger("AgenticSystem")
+    #     #enhanced agent template with CoSTEER improvement
+    #     return f'''
+    #     """
+    #     Agentic System Implementation - CoSTEER enhanced
+    #     Hypothesis: {hypothesis}
+    #     Generated with intelligent code generation
+    #     """
+    #     import time
+    #     import logging
+    #     import threading
+    #     from typing import Dict, List, Any, Optional
+    #     from concurrent.futures import ThreadPoolExecutor, as_completed
+    #     from dataclasses import dataclass
+    #     from enum import Enum
+    #     import json
 
-        class TaskStatus(Enum):
-            PENDING = "pending"
-            RUNNING = "running"
-            COMPLETED = "completed"
-            FAILED = "failed"
+    #     #Configurable logging
+    #     logging.basicConfig(level = logging.INFO)
+    #     logger = logging.getLogger("AgenticSystem")
 
-        @dataclass
-        class TaskResult:
-            task_id: int
-            success: bool
-            execution_time: float
-            error: Optional[str] = None
-            data: Optional[Dict[str, Any]] = None
+    #     class TaskStatus(Enum):
+    #         PENDING = "pending"
+    #         RUNNING = "running"
+    #         COMPLETED = "completed"
+    #         FAILED = "failed"
+
+    #     @dataclass
+    #     class TaskResult:
+    #         task_id: int
+    #         success: bool
+    #         execution_time: float
+    #         error: Optional[str] = None
+    #         data: Optional[Dict[str, Any]] = None
         
-        class AgenticSystem:
-            """
-            Ehanced Agentic System with CoSTEER optimizations
-            """
-            def __init__(self, config[Dict] = None):
-                self.name = "CoSTEER_AgenticSystem"
-                self.task_count = 0
-                self.config = config if config else self.get_default_config()
+    #     class AgenticSystem:
+    #         """
+    #         Ehanced Agentic System with CoSTEER optimizations
+    #         """
+    #         def __init__(self, config[Dict] = None):
+    #             self.name = "CoSTEER_AgenticSystem"
+    #             self.task_count = 0
+    #             self.config = config if config else self.get_default_config()
 
-                #Performance Tracking
-                self.performance_metrics = {{"total_tasks": 0,"successful_tasks": 0,"failed_tasks": 0,"total_execution_time": 0}}
+    #             #Performance Tracking
+    #             self.performance_metrics = {{"total_tasks": 0,"successful_tasks": 0,"failed_tasks": 0,"total_execution_time": 0}}
 
-                #thread safety
-                self.lock = threading.Lock()
+    #             #thread safety
+    #             self.lock = threading.Lock()
 
-                logger.info(f"Initialized {{self.name}} with config: {{self.config}}")
+    #             logger.info(f"Initialized {{self.name}} with config: {{self.config}}")
             
-            def get_default_config(self):
-                """Get default configuration optimized for hypothesis"""
-                return {{
-                    "max_workers": 4,
-                    "task_timeout": 60,
-                    "enable_parallel": {'parallel' in hypothesis.lower()},
-                    "enable_optimization": {'optimization' in hypothesis.lower()}
-                }}
+    #         def get_default_config(self):
+    #             """Get default configuration optimized for hypothesis"""
+    #             return {{
+    #                 "max_workers": 4,
+    #                 "task_timeout": 60,
+    #                 "enable_parallel": {'parallel' in hypothesis.lower()},
+    #                 "enable_optimization": {'optimization' in hypothesis.lower()}
+    #             }}
 
-            def run_task(self, task: Dict[str, Any]):
-                """Execute single task with enhanced error handling and monitoring"""
-                start_time = time.time()
-                task_id = task.get('id', self.get_next_task_id())
-                try:
-                    logger.info(f"Starting task {{task_id}}")
-                    #Simulate intelligent task processing
-                    self.process_task_logic(task)
-                    execution_time = time.time() - start_time
-                    #update metrics
-                    with self.lock:
-                        self.metrics['total_tasks'] += 1
-                        self.metrics['successful_tasks'] += 1
-                        self.metrics['total_execution_time'] += execution_time
-                    result = TaskResult(
-                        task_id = task_id,
-                        status = TaskStatus.COMPLETED,
-                        execution_time = execution_time,
-                        success = True,
-                        data = {{'processed': True, 'task_type': task.get('type', 'unknown')}}
-                    )
+    #         def run_task(self, task: Dict[str, Any]):
+    #             """Execute single task with enhanced error handling and monitoring"""
+    #             start_time = time.time()
+    #             task_id = task.get('id', self.get_next_task_id())
+    #             try:
+    #                 logger.info(f"Starting task {{task_id}}")
+    #                 #Simulate intelligent task processing
+    #                 self.process_task_logic(task)
+    #                 execution_time = time.time() - start_time
+    #                 #update metrics
+    #                 with self.lock:
+    #                     self.metrics['total_tasks'] += 1
+    #                     self.metrics['successful_tasks'] += 1
+    #                     self.metrics['total_execution_time'] += execution_time
+    #                 result = TaskResult(
+    #                     task_id = task_id,
+    #                     status = TaskStatus.COMPLETED,
+    #                     execution_time = execution_time,
+    #                     success = True,
+    #                     data = {{'processed': True, 'task_type': task.get('type', 'unknown')}}
+    #                 )
 
-                    logger.info(f"Task {{task_id}} completed successfully in {{execution_time:.4f}}s")
-                    return result
+    #                 logger.info(f"Task {{task_id}} completed successfully in {{execution_time:.4f}}s")
+    #                 return result
 
-                except Exception as e:
-                    execution_time = time.time() - start_time
-                    with self.lock:
-                        self.metrics['total_tasks'] += 1
-                        self.metrics['failed_tasks'] += 1
-                        self.metrics['total_execution_time'] += execution_time
-                    result = TaskResult(
-                        task_id = task_id,
-                        status = TaskStatus.FAILED,
-                        execution_time = execution_time,
-                        success = False,
-                        error = str(e)
-                    )
-                    logger.error(f"Task {{task_id}} failed: {{str(e)}}")
-                    return result
+    #             except Exception as e:
+    #                 execution_time = time.time() - start_time
+    #                 with self.lock:
+    #                     self.metrics['total_tasks'] += 1
+    #                     self.metrics['failed_tasks'] += 1
+    #                     self.metrics['total_execution_time'] += execution_time
+    #                 result = TaskResult(
+    #                     task_id = task_id,
+    #                     status = TaskStatus.FAILED,
+    #                     execution_time = execution_time,
+    #                     success = False,
+    #                     error = str(e)
+    #                 )
+    #                 logger.error(f"Task {{task_id}} failed: {{str(e)}}")
+    #                 return result
             
-            def get_next_task_id(self):
-                "thread-safe task id generation"
-                with self.lock:
-                    self.task_count += 1
-                    return self.task_count
+    #         def get_next_task_id(self):
+    #             "thread-safe task id generation"
+    #             with self.lock:
+    #                 self.task_count += 1
+    #                 return self.task_count
 
-            def process_task_logic(self, task):
-                """Intelligent task processing based on hypothesis"""
-                task_type = task.get('type', 'default')
-                complexity = task.get('complexity', 1)
+    #         def process_task_logic(self, task):
+    #             """Intelligent task processing based on hypothesis"""
+    #             task_type = task.get('type', 'default')
+    #             complexity = task.get('complexity', 1)
 
-                #Simulate processing time based on complexity
-                base_time = 0.01
-                processing_time = base_time * complexity
+    #             #Simulate processing time based on complexity
+    #             base_time = 0.01
+    #             processing_time = base_time * complexity
 
-                #Add hypothesis-specific optimisation
-                if complexity > 5 and not self.config.get('enable_optimization', False):
-                    # 10% error rate for high complexity tasks
-                    if time.time() % 10 < 1: 
-                        raise RuntimeError(f"Simulated error for complex task {{task.get('id')}}")
+    #             #Add hypothesis-specific optimisation
+    #             if complexity > 5 and not self.config.get('enable_optimization', False):
+    #                 # 10% error rate for high complexity tasks
+    #                 if time.time() % 10 < 1: 
+    #                     raise RuntimeError(f"Simulated error for complex task {{task.get('id')}}")
 
-            def run_tasks(self, tasks):
-                """
-                Execute multiple tasks with intelligent scheduling
-                """
-                if tasks is None:
-                    tasks = self.generate_default_tasks()
-                logger.info(f"Starting execution of {{len(tasks)}} tasks")
-                batch_start_time = time.time()
+    #         def run_tasks(self, tasks):
+    #             """
+    #             Execute multiple tasks with intelligent scheduling
+    #             """
+    #             if tasks is None:
+    #                 tasks = self.generate_default_tasks()
+    #             logger.info(f"Starting execution of {{len(tasks)}} tasks")
+    #             batch_start_time = time.time()
 
-                if self.config.get('enable_parallel', True) and len(tasks) > 1:
-                    results = self.run_tasks_parallel(tasks)
-                else:
-                    results = self.run_tasks_sequential(tasks)
+    #             if self.config.get('enable_parallel', True) and len(tasks) > 1:
+    #                 results = self.run_tasks_parallel(tasks)
+    #             else:
+    #                 results = self.run_tasks_sequential(tasks)
                 
-                #Calculate comprehensive metrics
-                total_time = time.time() - batch_start_time
-                success_count = sum(1 for r in results if r.success)
-                avg_task_time = sum(r.execution_time for r in results) / len(results) if results else 0
+    #             #Calculate comprehensive metrics
+    #             total_time = time.time() - batch_start_time
+    #             success_count = sum(1 for r in results if r.success)
+    #             avg_task_time = sum(r.execution_time for r in results) / len(results) if results else 0
 
-                metrics = {{
-                    "success_rate": success_count / len(results) if results else 0,
-                    "avg_task_time": avg_task_time,
-                    "error_count": len(results) - success_count,
-                    "total_tasks": len(results),
-                    "total_execution_time": total_time,
-                    "system_metrics": self.metrics.copy()
-                }}
-                logger.info(f"Batch execution completed: {{metrics}}")
-                return metrics
+    #             metrics = {{
+    #                 "success_rate": success_count / len(results) if results else 0,
+    #                 "avg_task_time": avg_task_time,
+    #                 "error_count": len(results) - success_count,
+    #                 "total_tasks": len(results),
+    #                 "total_execution_time": total_time,
+    #                 "system_metrics": self.metrics.copy()
+    #             }}
+    #             logger.info(f"Batch execution completed: {{metrics}}")
+    #             return metrics
 
-            def run_tasks_sequential(self, tasks): 
-                """Execute task sequentially"""
-                results = []
-                for task in tasks:
-                    result = self.run_task(task)
-                    results.append(result)
-                return results
+    #         def run_tasks_sequential(self, tasks): 
+    #             """Execute task sequentially"""
+    #             results = []
+    #             for task in tasks:
+    #                 result = self.run_task(task)
+    #                 results.append(result)
+    #             return results
 
-            def run_tasks_parallel(self, tasks):
-                """Execute tasks in parallel using ThreadPoolExecutor"""
-                results = []
-                max_workers = min(self.config.get('max_workers', 4), len(tasks))
-                with ThreadPoolExecutor(max_workers = max_workers) as executor:
-                    future_to_task = {{executor.submit(self.run_task, task): task for task in tasks}}
-                    for future in as_completed(future_to_task):
-                        try:
-                            result = future.result(timeout = self.config.get('task_timeout', 30))
-                            results.append(result)
-                        except Exception as e:
-                            #Create error result for failed failure
-                            task = future_to_task[future]
-                            error_result = TaskResult(
-                                task_id = task.get('id', 0),
-                                status = TaskStatus.FAILED,
-                                execution_time = 0,
-                                success = False,
-                                error = f"Future execution failed: {{str(e)}}"
-                            )
-                            results.append(error_result)
-                return results
+    #         def run_tasks_parallel(self, tasks):
+    #             """Execute tasks in parallel using ThreadPoolExecutor"""
+    #             results = []
+    #             max_workers = min(self.config.get('max_workers', 4), len(tasks))
+    #             with ThreadPoolExecutor(max_workers = max_workers) as executor:
+    #                 future_to_task = {{executor.submit(self.run_task, task): task for task in tasks}}
+    #                 for future in as_completed(future_to_task):
+    #                     try:
+    #                         result = future.result(timeout = self.config.get('task_timeout', 30))
+    #                         results.append(result)
+    #                     except Exception as e:
+    #                         #Create error result for failed failure
+    #                         task = future_to_task[future]
+    #                         error_result = TaskResult(
+    #                             task_id = task.get('id', 0),
+    #                             status = TaskStatus.FAILED,
+    #                             execution_time = 0,
+    #                             success = False,
+    #                             error = f"Future execution failed: {{str(e)}}"
+    #                         )
+    #                         results.append(error_result)
+    #             return results
 
-            def generate_default_tasks(self):
-                """Generate default tasks for testing"""
-                return [
-                    {{
-                        "id": i,
-                        "type": "test",
-                        "data": f"sample_{{i}}",
-                        "complexity": (i % 5 ) + 1
-                    }} for i in range(10)
-                ]
+    #         def generate_default_tasks(self):
+    #             """Generate default tasks for testing"""
+    #             return [
+    #                 {{
+    #                     "id": i,
+    #                     "type": "test",
+    #                     "data": f"sample_{{i}}",
+    #                     "complexity": (i % 5 ) + 1
+    #                 }} for i in range(10)
+    #             ]
 
-            def get_system_status(self):
-                """Get current system status and metrics"""
-                with self.lock:
-                    status = {{
-                        'name': self.name,
-                        'config': self.config,
-                        'metrics': self.metrics.copy(),
-                        'success_rate': (
-                            self.metrics['successful_tasks'] / self.metrics['total_tasks']
-                            if self.metrics['total_tasks'] > 0 else 0
-                        )
-                    }}
-                return status
-        '''
+    #         def get_system_status(self):
+    #             """Get current system status and metrics"""
+    #             with self.lock:
+    #                 status = {{
+    #                     'name': self.name,
+    #                     'config': self.config,
+    #                     'metrics': self.metrics.copy(),
+    #                     'success_rate': (
+    #                         self.metrics['successful_tasks'] / self.metrics['total_tasks']
+    #                         if self.metrics['total_tasks'] > 0 else 0
+    #                     )
+    #                 }}
+    #             return status
+    #     '''
+
+    def generate_agent_code(self, task_info):
+        """
+        Generate agent code using LLM instead of templates
+        """
+        system_prompt = """
+        You are an expert in building AI research agents for complex analytical tasks.
+Generate production-ready Python code implementing a multi-step research agent capable of:
+- Breaking down complex research questions
+- Gathering and synthesizing information
+- Producing comprehensive, insightful answers
+Follow best practices with proper error handling and documentation.
+        """
+        user_prompt = f"""Generate a research agent for DeepResearch Bench evaluation.
+**Research Task:**
+- Domain: {task_info['domain']}
+- Question: {task_info['question']}
+- Sub-Question: {task_info['sub_question']}
+- Required Capabilities: {task_info['required capabilities']}
+- Complexity : {task_info['complexity']}
+
+**Agent Requirements:**
+
+1. Class: ResearchAgent with methods:
+   - __init__(config: Dict = None)
+   - research(question: str) -> Dict: Main research pipeline
+   - decompose_question(question: str) -> List[str]: Break into sub-questions
+   - gather_information(sub_q: str) -> Dict: Information gathering
+   - analyze_information(info_list: List[Dict]) -> Dict: Analysis
+   - synthesize_answer(analyses: List[Dict]) -> str: Final synthesis
+   
+2. Research Pipeline:
+   Step 1: Question Decomposition - Break complex question into manageable sub-questions
+   Step 2: Information Gathering - For each sub-question, gather relevant information
+   Step 3: Analysis - Analyze gathered information with causal reasoning
+   Step 4: Synthesis - Integrate analyses into comprehensive answer
+   
+3. Output Format (critical for evaluation):
+   {{
+       "answer": str,           # Main comprehensive answer
+       "sub_answers": [         # Answers to each sub-question
+           {{"question": str, "answer": str, "evidence": List[str]}}
+       ],
+       "reasoning": str,        # Explanation of research approach and logic
+       "evidence": List[str],   # Supporting citations/sources
+       "confidence": float,     # 0-1 confidence score
+       "metadata": {{           # Additional research metadata
+           "domain": str,
+           "approach": str,
+           "limitations": List[str]
+       }}
+   }}
+   
+4. Domain-Specific Research Strategies:
+   - Biology: Focus on mechanisms, evidence from studies
+   - Business: Market analysis, competitive factors, financial data
+   - Computer Science: Technical analysis, algorithmic reasoning
+   - General: Structured, logical approach
+
+5. Implementation Requirements:
+   - Use logging for tracking research process
+   - Handle edge cases and missing information gracefully
+   - Support different research strategies per domain
+   - Include reasoning traces for explainability
+   - Modular, extensible architecture
+
+Generate ONLY the Python code without markdown blocks or explanations."""
+
+        try:
+            logger.info("Calling LLM to generate research agent code...")
+            response = self.api_backend.build_messages_and_create_chat_completion(
+                user_prompt=user_prompt,
+                system_prompt=system_prompt,
+                json_mode=False
+            )
+            
+            code = self._clean_llm_code_response(response)
+            self._validate_python_syntax(code, "agent.py")
+            
+            logger.info(f"Generated research agent code ({len(code)} chars)")
+            return code
+            
+        except Exception as e:
+            logger.error(f"LLM research agent generation failed: {e}")
+            logger.warning("Using fallback research agent template")
+            return self._get_fallback_research_agent(task_info)
+
+
     
-    def generate_train_script(self, context):
-        """
-        Generate enhanced training/execution script
-        """
-        hypothesis = context.get('hypothesis', 'Improve agentic system performance')
-        task_id = context.get('task_id', 'unknown')
-        task_domain = context.get('task_domain', 'general')
-        evaluation_criteria = context.get('evaluation_criteria', {})
+    # def generate_train_script(self, context):
+    #     """
+    #     Generate enhanced training/execution script
+    #     """
+    #     hypothesis = context.get('hypothesis', 'Improve agentic system performance')
+    #     task_id = context.get('task_id', 'unknown')
+    #     task_domain = context.get('task_domain', 'general')
+    #     evaluation_criteria = context.get('evaluation_criteria', {})
         
-        enable_parallel = 'parallel' in hypothesis.lower() or 'concurrent' in hypothesis.lower()
-        enable_optimization = 'optimization' in hypothesis.lower() or 'optimize' in hypothesis.lower()
-        max_workers = 8 if enable_parallel else 4
-        task_timeout = 60 if enable_optimization else 30
+    #     enable_parallel = 'parallel' in hypothesis.lower() or 'concurrent' in hypothesis.lower()
+    #     enable_optimization = 'optimization' in hypothesis.lower() or 'optimize' in hypothesis.lower()
+    #     max_workers = 8 if enable_parallel else 4
+    #     task_timeout = 60 if enable_optimization else 30
 
-        return f'''"""
-        CoSTEER-Enhanced Training/Execution Script for Agentic System
-        Task ID: {task_id}
-        Domain: {task_domain}
-        Hypothesis: {hypothesis}
+    #     return f'''"""
+    #     CoSTEER-Enhanced Training/Execution Script for Agentic System
+    #     Task ID: {task_id}
+    #     Domain: {task_domain}
+    #     Hypothesis: {hypothesis}
 
-        This script evaluates outputs according to DeepResearch Bench standards:
-        - Comprehensiveness (0-10): Coverage and depth
-        - Insight (0-10): Causal reasoning and originality
-        - Instruction Following (0-10): Task compliance
-        - Readability (0-10): Clarity and presentation
-        """
-        import json
-        import sys
-        import time
-        import traceback
-        from pathlib import Path
-        from typing import Dict, List, Any, Optional
-        from dataclasses import dataclass, asdict
-        from agent import AgenticSystem
+    #     This script evaluates outputs according to DeepResearch Bench standards:
+    #     - Comprehensiveness (0-10): Coverage and depth
+    #     - Insight (0-10): Causal reasoning and originality
+    #     - Instruction Following (0-10): Task compliance
+    #     - Readability (0-10): Clarity and presentation
+    #     """
+    #     import json
+    #     import sys
+    #     import time
+    #     import traceback
+    #     from pathlib import Path
+    #     from typing import Dict, List, Any, Optional
+    #     from dataclasses import dataclass, asdict
+    #     from agent import AgenticSystem
 
-        @dataclass
-        class EvaluationScore:
-            """DeepResearch Bench evaluation score"""
-            comprehensiveness: float = 0.0  # 0-10
-            insight: float = 0.0            # 0-10
-            instruction_following: float = 0.0  # 0-10
-            readability: float = 0.0        # 0-10
-            overall: float = 0.0            # Weighted average
+    #     @dataclass
+    #     class EvaluationScore:
+    #         """DeepResearch Bench evaluation score"""
+    #         comprehensiveness: float = 0.0  # 0-10
+    #         insight: float = 0.0            # 0-10
+    #         instruction_following: float = 0.0  # 0-10
+    #         readability: float = 0.0        # 0-10
+    #         overall: float = 0.0            # Weighted average
             
-            # Dimension weights (customizable per task)
-            weights: Dict[str, float] = None
+    #         # Dimension weights (customizable per task)
+    #         weights: Dict[str, float] = None
             
-            def __post_init__(self):
-                if self.weights is None:
-                    # Default equal weights
-                    self.weights = {{
-                        'comprehensiveness': 0.25,
-                        'insight': 0.25,
-                        'instruction_following': 0.25,
-                        'readability': 0.25
-                    }}
+    #         def __post_init__(self):
+    #             if self.weights is None:
+    #                 # Default equal weights
+    #                 self.weights = {{
+    #                     'comprehensiveness': 0.25,
+    #                     'insight': 0.25,
+    #                     'instruction_following': 0.25,
+    #                     'readability': 0.25
+    #                 }}
             
-            def calculate_overall(self) -> float:
-                """Calculate weighted overall score"""
-                self.overall = (
-                    self.comprehensiveness * self.weights['comprehensiveness'] +
-                    self.insight * self.weights['insight'] +
-                    self.instruction_following * self.weights['instruction_following'] +
-                    self.readability * self.weights['readability']
-                )
-                return self.overall
+    #         def calculate_overall(self) -> float:
+    #             """Calculate weighted overall score"""
+    #             self.overall = (
+    #                 self.comprehensiveness * self.weights['comprehensiveness'] +
+    #                 self.insight * self.weights['insight'] +
+    #                 self.instruction_following * self.weights['instruction_following'] +
+    #                 self.readability * self.weights['readability']
+    #             )
+    #             return self.overall
             
-            def to_dict(self) -> Dict[str, Any]:
-                """Convert to dictionary"""
-                return {{
-                    'comprehensiveness': round(self.comprehensiveness, 2),
-                    'insight': round(self.insight, 2),
-                    'instruction_following': round(self.instruction_following, 2),
-                    'readability': round(self.readability, 2),
-                    'overall': round(self.overall, 2),
-                    'weights': self.weights
-                }}
+    #         def to_dict(self) -> Dict[str, Any]:
+    #             """Convert to dictionary"""
+    #             return {{
+    #                 'comprehensiveness': round(self.comprehensiveness, 2),
+    #                 'insight': round(self.insight, 2),
+    #                 'instruction_following': round(self.instruction_following, 2),
+    #                 'readability': round(self.readability, 2),
+    #                 'overall': round(self.overall, 2),
+    #                 'weights': self.weights
+    #             }}
 
-        class ResearchOutputEvaluator:
-            """Evaluate research outputs according to DeepResearch Bench standards"""
+    #     class ResearchOutputEvaluator:
+    #         """Evaluate research outputs according to DeepResearch Bench standards"""
             
-            def __init__(self, task_domain: str = 'general'):
-                self.task_domain = task_domain
-                self.evaluation_log = []
+    #         def __init__(self, task_domain: str = 'general'):
+    #             self.task_domain = task_domain
+    #             self.evaluation_log = []
             
-            def evaluate_comprehensiveness(self, output: Dict[str, Any], task_requirements: Dict) -> float:
-                """
-                Evaluate comprehensiveness (0-10)
-                - Breadth and depth of content
-                - Coverage of required subtopics
-                - Evidence and data sources
-                - Multiple perspectives
-                """
-                score = 0.0
-                checks = []
+    #         def evaluate_comprehensiveness(self, output: Dict[str, Any], task_requirements: Dict) -> float:
+    #             """
+    #             Evaluate comprehensiveness (0-10)
+    #             - Breadth and depth of content
+    #             - Coverage of required subtopics
+    #             - Evidence and data sources
+    #             - Multiple perspectives
+    #             """
+    #             score = 0.0
+    #             checks = []
                 
-                # Check 1: Coverage of key topics (0-3 points)
-                required_topics = task_requirements.get('required_topics', [])
-                if required_topics:
-                    covered = sum(1 for topic in required_topics 
-                                if self._check_topic_coverage(output, topic))
-                    coverage_score = min(3.0, (covered / len(required_topics)) * 3.0)
-                    score += coverage_score
-                    checks.append(f"Topic coverage: {{covered}}/{{len(required_topics)}} ({{coverage_score:.1f}}/3.0)")
-                else:
-                    score += 2.0  # Default if no specific requirements
-                    checks.append("No specific topic requirements (default 2.0/3.0)")
+    #             # Check 1: Coverage of key topics (0-3 points)
+    #             required_topics = task_requirements.get('required_topics', [])
+    #             if required_topics:
+    #                 covered = sum(1 for topic in required_topics 
+    #                             if self._check_topic_coverage(output, topic))
+    #                 coverage_score = min(3.0, (covered / len(required_topics)) * 3.0)
+    #                 score += coverage_score
+    #                 checks.append(f"Topic coverage: {{covered}}/{{len(required_topics)}} ({{coverage_score:.1f}}/3.0)")
+    #             else:
+    #                 score += 2.0  # Default if no specific requirements
+    #                 checks.append("No specific topic requirements (default 2.0/3.0)")
                 
-                # Check 2: Depth of analysis (0-3 points)
-                depth_indicators = [
-                    'detailed analysis' in str(output).lower(),
-                    'data' in output or 'evidence' in output,
-                    len(str(output)) > 500,  # Substantial content
-                    'methodology' in str(output).lower() or 'approach' in str(output).lower()
-                ]
-                depth_score = sum(depth_indicators) * 0.75
-                score += depth_score
-                checks.append(f"Depth indicators: {{sum(depth_indicators)}}/4 ({{depth_score:.1f}}/3.0)")
+    #             # Check 2: Depth of analysis (0-3 points)
+    #             depth_indicators = [
+    #                 'detailed analysis' in str(output).lower(),
+    #                 'data' in output or 'evidence' in output,
+    #                 len(str(output)) > 500,  # Substantial content
+    #                 'methodology' in str(output).lower() or 'approach' in str(output).lower()
+    #             ]
+    #             depth_score = sum(depth_indicators) * 0.75
+    #             score += depth_score
+    #             checks.append(f"Depth indicators: {{sum(depth_indicators)}}/4 ({{depth_score:.1f}}/3.0)")
                 
-                # Check 3: Evidence and sources (0-2 points)
-                evidence_score = 0.0
-                if 'references' in output or 'sources' in output:
-                    evidence_score += 1.0
-                if 'data' in output or 'statistics' in output:
-                    evidence_score += 1.0
-                score += evidence_score
-                checks.append(f"Evidence & sources: {{evidence_score:.1f}}/2.0")
+    #             # Check 3: Evidence and sources (0-2 points)
+    #             evidence_score = 0.0
+    #             if 'references' in output or 'sources' in output:
+    #                 evidence_score += 1.0
+    #             if 'data' in output or 'statistics' in output:
+    #                 evidence_score += 1.0
+    #             score += evidence_score
+    #             checks.append(f"Evidence & sources: {{evidence_score:.1f}}/2.0")
                 
-                # Check 4: Multiple perspectives (0-2 points)
-                perspective_keywords = ['advantage', 'disadvantage', 'trade-off', 'alternative', 
-                                    'limitation', 'consideration']
-                perspectives_found = sum(1 for kw in perspective_keywords 
-                                        if kw in str(output).lower())
-                perspective_score = min(2.0, perspectives_found * 0.5)
-                score += perspective_score
-                checks.append(f"Multiple perspectives: {{perspectives_found}} keywords ({{perspective_score:.1f}}/2.0)")
+    #             # Check 4: Multiple perspectives (0-2 points)
+    #             perspective_keywords = ['advantage', 'disadvantage', 'trade-off', 'alternative', 
+    #                                 'limitation', 'consideration']
+    #             perspectives_found = sum(1 for kw in perspective_keywords 
+    #                                     if kw in str(output).lower())
+    #             perspective_score = min(2.0, perspectives_found * 0.5)
+    #             score += perspective_score
+    #             checks.append(f"Multiple perspectives: {{perspectives_found}} keywords ({{perspective_score:.1f}}/2.0)")
                 
-                self.evaluation_log.append({{
-                    'dimension': 'comprehensiveness',
-                    'score': score,
-                    'checks': checks
-                }})
+    #             self.evaluation_log.append({{
+    #                 'dimension': 'comprehensiveness',
+    #                 'score': score,
+    #                 'checks': checks
+    #             }})
                 
-                return min(10.0, score)
+    #             return min(10.0, score)
             
-            def evaluate_insight(self, output: Dict[str, Any], task_context: Dict) -> float:
-                """
-                Evaluate insight (0-10)
-                - Causal reasoning and why-think
-                - Quantified analysis
-                - Non-obvious implications
-                - Novel synthesis
-                """
-                score = 0.0
-                checks = []
+    #         def evaluate_insight(self, output: Dict[str, Any], task_context: Dict) -> float:
+    #             """
+    #             Evaluate insight (0-10)
+    #             - Causal reasoning and why-think
+    #             - Quantified analysis
+    #             - Non-obvious implications
+    #             - Novel synthesis
+    #             """
+    #             score = 0.0
+    #             checks = []
                 
-                # Check 1: Causal reasoning (0-3 points)
-                causal_indicators = [
-                    'because' in str(output).lower(),
-                    'therefore' in str(output).lower(),
-                    'as a result' in str(output).lower(),
-                    'leads to' in str(output).lower(),
-                    'causes' in str(output).lower(),
-                    'impacts' in str(output).lower()
-                ]
-                causal_score = min(3.0, sum(causal_indicators) * 0.6)
-                score += causal_score
-                checks.append(f"Causal reasoning: {{sum(causal_indicators)}} indicators ({{causal_score:.1f}}/3.0)")
+    #             # Check 1: Causal reasoning (0-3 points)
+    #             causal_indicators = [
+    #                 'because' in str(output).lower(),
+    #                 'therefore' in str(output).lower(),
+    #                 'as a result' in str(output).lower(),
+    #                 'leads to' in str(output).lower(),
+    #                 'causes' in str(output).lower(),
+    #                 'impacts' in str(output).lower()
+    #             ]
+    #             causal_score = min(3.0, sum(causal_indicators) * 0.6)
+    #             score += causal_score
+    #             checks.append(f"Causal reasoning: {{sum(causal_indicators)}} indicators ({{causal_score:.1f}}/3.0)")
                 
-                # Check 2: Quantified analysis (0-2 points)
-                has_numbers = any(char.isdigit() for char in str(output))
-                has_metrics = any(word in str(output).lower() 
-                                for word in ['percent', 'rate', 'ratio', 'metric', 'measure'])
-                quant_score = (1.0 if has_numbers else 0) + (1.0 if has_metrics else 0)
-                score += quant_score
-                checks.append(f"Quantified analysis: numbers={{has_numbers}}, metrics={{has_metrics}} ({{quant_score:.1f}}/2.0)")
+    #             # Check 2: Quantified analysis (0-2 points)
+    #             has_numbers = any(char.isdigit() for char in str(output))
+    #             has_metrics = any(word in str(output).lower() 
+    #                             for word in ['percent', 'rate', 'ratio', 'metric', 'measure'])
+    #             quant_score = (1.0 if has_numbers else 0) + (1.0 if has_metrics else 0)
+    #             score += quant_score
+    #             checks.append(f"Quantified analysis: numbers={{has_numbers}}, metrics={{has_metrics}} ({{quant_score:.1f}}/2.0)")
                 
-                # Check 3: Non-obvious implications (0-3 points)
-                insight_keywords = ['implication', 'insight', 'suggests', 'indicates', 
-                                'reveals', 'unexpected', 'surprisingly', 'notable']
-                insights_found = sum(1 for kw in insight_keywords if kw in str(output).lower())
-                implication_score = min(3.0, insights_found * 0.5)
-                score += implication_score
-                checks.append(f"Implications: {{insights_found}} keywords ({{implication_score:.1f}}/3.0)")
+    #             # Check 3: Non-obvious implications (0-3 points)
+    #             insight_keywords = ['implication', 'insight', 'suggests', 'indicates', 
+    #                             'reveals', 'unexpected', 'surprisingly', 'notable']
+    #             insights_found = sum(1 for kw in insight_keywords if kw in str(output).lower())
+    #             implication_score = min(3.0, insights_found * 0.5)
+    #             score += implication_score
+    #             checks.append(f"Implications: {{insights_found}} keywords ({{implication_score:.1f}}/3.0)")
                 
-                # Check 4: Novel synthesis (0-2 points)
-                synthesis_indicators = [
-                    'framework' in str(output).lower(),
-                    'model' in str(output).lower(),
-                    'synthesis' in str(output).lower(),
-                    'integration' in str(output).lower()
-                ]
-                synthesis_score = min(2.0, sum(synthesis_indicators) * 0.7)
-                score += synthesis_score
-                checks.append(f"Novel synthesis: {{sum(synthesis_indicators)}} indicators ({{synthesis_score:.1f}}/2.0)")
+    #             # Check 4: Novel synthesis (0-2 points)
+    #             synthesis_indicators = [
+    #                 'framework' in str(output).lower(),
+    #                 'model' in str(output).lower(),
+    #                 'synthesis' in str(output).lower(),
+    #                 'integration' in str(output).lower()
+    #             ]
+    #             synthesis_score = min(2.0, sum(synthesis_indicators) * 0.7)
+    #             score += synthesis_score
+    #             checks.append(f"Novel synthesis: {{sum(synthesis_indicators)}} indicators ({{synthesis_score:.1f}}/2.0)")
                 
-                self.evaluation_log.append({{
-                    'dimension': 'insight',
-                    'score': score,
-                    'checks': checks
-                }})
+    #             self.evaluation_log.append({{
+    #                 'dimension': 'insight',
+    #                 'score': score,
+    #                 'checks': checks
+    #             }})
                 
-                return min(10.0, score)
+    #             return min(10.0, score)
             
-            def evaluate_instruction_following(self, output: Dict[str, Any], 
-                                            task_requirements: Dict) -> float:
-                """
-                Evaluate instruction following (0-10)
-                - Answers all sub-questions
-                - Respects scope and constraints
-                - Required deliverables present
-                - Avoids out-of-scope content
-                """
-                score = 0.0
-                checks = []
+    #         def evaluate_instruction_following(self, output: Dict[str, Any], 
+    #                                         task_requirements: Dict) -> float:
+    #             """
+    #             Evaluate instruction following (0-10)
+    #             - Answers all sub-questions
+    #             - Respects scope and constraints
+    #             - Required deliverables present
+    #             - Avoids out-of-scope content
+    #             """
+    #             score = 0.0
+    #             checks = []
                 
-                # Check 1: All required sections present (0-4 points)
-                required_sections = task_requirements.get('required_sections', [])
-                if required_sections:
-                    present = sum(1 for section in required_sections 
-                                if self._check_section_present(output, section))
-                    section_score = min(4.0, (present / len(required_sections)) * 4.0)
-                    score += section_score
-                    checks.append(f"Required sections: {{present}}/{{len(required_sections)}} ({{section_score:.1f}}/4.0)")
-                else:
-                    score += 3.0  # Default if no specific requirements
-                    checks.append("No specific section requirements (default 3.0/4.0)")
+    #             # Check 1: All required sections present (0-4 points)
+    #             required_sections = task_requirements.get('required_sections', [])
+    #             if required_sections:
+    #                 present = sum(1 for section in required_sections 
+    #                             if self._check_section_present(output, section))
+    #                 section_score = min(4.0, (present / len(required_sections)) * 4.0)
+    #                 score += section_score
+    #                 checks.append(f"Required sections: {{present}}/{{len(required_sections)}} ({{section_score:.1f}}/4.0)")
+    #             else:
+    #                 score += 3.0  # Default if no specific requirements
+    #                 checks.append("No specific section requirements (default 3.0/4.0)")
                 
-                # Check 2: Scope compliance (0-3 points)
-                scope_violations = self._check_scope_violations(output, task_requirements)
-                scope_score = max(0.0, 3.0 - len(scope_violations) * 0.5)
-                score += scope_score
-                if scope_violations:
-                    checks.append(f"Scope violations: {{len(scope_violations)}} ({{scope_score:.1f}}/3.0)")
-                else:
-                    checks.append("No scope violations (3.0/3.0)")
+    #             # Check 2: Scope compliance (0-3 points)
+    #             scope_violations = self._check_scope_violations(output, task_requirements)
+    #             scope_score = max(0.0, 3.0 - len(scope_violations) * 0.5)
+    #             score += scope_score
+    #             if scope_violations:
+    #                 checks.append(f"Scope violations: {{len(scope_violations)}} ({{scope_score:.1f}}/3.0)")
+    #             else:
+    #                 checks.append("No scope violations (3.0/3.0)")
                 
-                # Check 3: Format compliance (0-2 points)
-                format_requirements = task_requirements.get('format', {{}})
-                format_score = 2.0  # Default
-                if format_requirements:
-                    format_checks = [
-                        self._check_format_requirement(output, req, val)
-                        for req, val in format_requirements.items()
-                    ]
-                    format_score = min(2.0, sum(format_checks) * 0.5)
-                score += format_score
-                checks.append(f"Format compliance: ({{format_score:.1f}}/2.0)")
+    #             # Check 3: Format compliance (0-2 points)
+    #             format_requirements = task_requirements.get('format', {{}})
+    #             format_score = 2.0  # Default
+    #             if format_requirements:
+    #                 format_checks = [
+    #                     self._check_format_requirement(output, req, val)
+    #                     for req, val in format_requirements.items()
+    #                 ]
+    #                 format_score = min(2.0, sum(format_checks) * 0.5)
+    #             score += format_score
+    #             checks.append(f"Format compliance: ({{format_score:.1f}}/2.0)")
                 
-                # Check 4: Completeness (0-1 point)
-                completeness_score = 1.0 if len(str(output)) > 200 else 0.5
-                score += completeness_score
-                checks.append(f"Completeness: ({{completeness_score:.1f}}/1.0)")
+    #             # Check 4: Completeness (0-1 point)
+    #             completeness_score = 1.0 if len(str(output)) > 200 else 0.5
+    #             score += completeness_score
+    #             checks.append(f"Completeness: ({{completeness_score:.1f}}/1.0)")
                 
-                self.evaluation_log.append({{
-                    'dimension': 'instruction_following',
-                    'score': score,
-                    'checks': checks
-                }})
+    #             self.evaluation_log.append({{
+    #                 'dimension': 'instruction_following',
+    #                 'score': score,
+    #                 'checks': checks
+    #             }})
                 
-                return min(10.0, score)
+    #             return min(10.0, score)
             
-            def evaluate_readability(self, output: Dict[str, Any]) -> float:
-                """
-                Evaluate readability (0-10)
-                - Clear structure and organization
-                - Fluent language
-                - Effective data presentation
-                - Proper formatting
-                """
-                score = 0.0
-                checks = []
+    #         def evaluate_readability(self, output: Dict[str, Any]) -> float:
+    #             """
+    #             Evaluate readability (0-10)
+    #             - Clear structure and organization
+    #             - Fluent language
+    #             - Effective data presentation
+    #             - Proper formatting
+    #             """
+    #             score = 0.0
+    #             checks = []
                 
-                output_str = str(output)
+    #             output_str = str(output)
                 
-                # Check 1: Structure and organization (0-3 points)
-                structure_indicators = [
-                    '\\n' in output_str,  # Line breaks
-                    any(word in output_str for word in ['Summary', 'Introduction', 'Conclusion']),
-                    len(output_str.split('\\n')) > 5,  # Multiple paragraphs
-                ]
-                structure_score = min(3.0, sum(structure_indicators) * 1.0)
-                score += structure_score
-                checks.append(f"Structure: {{sum(structure_indicators)}} indicators ({{structure_score:.1f}}/3.0)")
+    #             # Check 1: Structure and organization (0-3 points)
+    #             structure_indicators = [
+    #                 '\\n' in output_str,  # Line breaks
+    #                 any(word in output_str for word in ['Summary', 'Introduction', 'Conclusion']),
+    #                 len(output_str.split('\\n')) > 5,  # Multiple paragraphs
+    #             ]
+    #             structure_score = min(3.0, sum(structure_indicators) * 1.0)
+    #             score += structure_score
+    #             checks.append(f"Structure: {{sum(structure_indicators)}} indicators ({{structure_score:.1f}}/3.0)")
                 
-                # Check 2: Language quality (0-3 points)
-                # Simple heuristics for language quality
-                avg_word_length = sum(len(word) for word in output_str.split()) / max(len(output_str.split()), 1)
-                has_variety = len(set(output_str.lower().split())) / max(len(output_str.split()), 1) > 0.5
+    #             # Check 2: Language quality (0-3 points)
+    #             # Simple heuristics for language quality
+    #             avg_word_length = sum(len(word) for word in output_str.split()) / max(len(output_str.split()), 1)
+    #             has_variety = len(set(output_str.lower().split())) / max(len(output_str.split()), 1) > 0.5
                 
-                language_score = 0.0
-                if 4 < avg_word_length < 7:  # Reasonable word length
-                    language_score += 1.5
-                if has_variety:  # Vocabulary variety
-                    language_score += 1.5
+    #             language_score = 0.0
+    #             if 4 < avg_word_length < 7:  # Reasonable word length
+    #                 language_score += 1.5
+    #             if has_variety:  # Vocabulary variety
+    #                 language_score += 1.5
                 
-                score += language_score
-                checks.append(f"Language quality: avg_word_len={{avg_word_length:.1f}}, variety={{has_variety}} ({{language_score:.1f}}/3.0)")
+    #             score += language_score
+    #             checks.append(f"Language quality: avg_word_len={{avg_word_length:.1f}}, variety={{has_variety}} ({{language_score:.1f}}/3.0)")
                 
-                # Check 3: Data presentation (0-2 points)
-                has_formatting = any(marker in output_str for marker in ['|', ':', '-', '*'])
-                has_lists = output_str.count('\\n') > 3
-                presentation_score = (1.0 if has_formatting else 0) + (1.0 if has_lists else 0)
-                score += presentation_score
-                checks.append(f"Data presentation: formatting={{has_formatting}}, lists={{has_lists}} ({{presentation_score:.1f}}/2.0)")
+    #             # Check 3: Data presentation (0-2 points)
+    #             has_formatting = any(marker in output_str for marker in ['|', ':', '-', '*'])
+    #             has_lists = output_str.count('\\n') > 3
+    #             presentation_score = (1.0 if has_formatting else 0) + (1.0 if has_lists else 0)
+    #             score += presentation_score
+    #             checks.append(f"Data presentation: formatting={{has_formatting}}, lists={{has_lists}} ({{presentation_score:.1f}}/2.0)")
                 
-                # Check 4: Clarity (0-2 points)
-                clarity_score = 2.0
-                # Penalize if too short or too verbose
-                if len(output_str) < 100:
-                    clarity_score = 0.5
-                elif len(output_str) > 5000:
-                    clarity_score = 1.5
+    #             # Check 4: Clarity (0-2 points)
+    #             clarity_score = 2.0
+    #             # Penalize if too short or too verbose
+    #             if len(output_str) < 100:
+    #                 clarity_score = 0.5
+    #             elif len(output_str) > 5000:
+    #                 clarity_score = 1.5
                 
-                score += clarity_score
-                checks.append(f"Clarity: length={{len(output_str)}} chars ({{clarity_score:.1f}}/2.0)")
+    #             score += clarity_score
+    #             checks.append(f"Clarity: length={{len(output_str)}} chars ({{clarity_score:.1f}}/2.0)")
                 
-                self.evaluation_log.append({{
-                    'dimension': 'readability',
-                    'score': score,
-                    'checks': checks
-                }})
+    #             self.evaluation_log.append({{
+    #                 'dimension': 'readability',
+    #                 'score': score,
+    #                 'checks': checks
+    #             }})
                 
-                return min(10.0, score)
+    #             return min(10.0, score)
             
-            def _check_topic_coverage(self, output: Dict, topic: str) -> bool:
-                """Check if topic is covered in output"""
-                return topic.lower() in str(output).lower()
+    #         def _check_topic_coverage(self, output: Dict, topic: str) -> bool:
+    #             """Check if topic is covered in output"""
+    #             return topic.lower() in str(output).lower()
             
-            def _check_section_present(self, output: Dict, section: str) -> bool:
-                """Check if required section is present"""
-                return section.lower() in str(output).lower()
+    #         def _check_section_present(self, output: Dict, section: str) -> bool:
+    #             """Check if required section is present"""
+    #             return section.lower() in str(output).lower()
             
-            def _check_scope_violations(self, output: Dict, requirements: Dict) -> List[str]:
-                """Check for scope violations"""
-                violations = []
-                # Add specific violation checks based on requirements
-                return violations
+    #         def _check_scope_violations(self, output: Dict, requirements: Dict) -> List[str]:
+    #             """Check for scope violations"""
+    #             violations = []
+    #             # Add specific violation checks based on requirements
+    #             return violations
             
-            def _check_format_requirement(self, output: Dict, requirement: str, value: Any) -> bool:
-                """Check specific format requirement"""
-                # Implement format checking logic
-                return True
+    #         def _check_format_requirement(self, output: Dict, requirement: str, value: Any) -> bool:
+    #             """Check specific format requirement"""
+    #             # Implement format checking logic
+    #             return True
             
-            def evaluate_all(self, output: Dict[str, Any], 
-                            task_requirements: Dict,
-                            task_context: Dict,
-                            dimension_weights: Optional[Dict[str, float]] = None) -> EvaluationScore:
-                """Evaluate all dimensions and calculate overall score"""
+    #         def evaluate_all(self, output: Dict[str, Any], 
+    #                         task_requirements: Dict,
+    #                         task_context: Dict,
+    #                         dimension_weights: Optional[Dict[str, float]] = None) -> EvaluationScore:
+    #             """Evaluate all dimensions and calculate overall score"""
                 
-                score = EvaluationScore(weights=dimension_weights)
+    #             score = EvaluationScore(weights=dimension_weights)
                 
-                score.comprehensiveness = self.evaluate_comprehensiveness(output, task_requirements)
-                score.insight = self.evaluate_insight(output, task_context)
-                score.instruction_following = self.evaluate_instruction_following(output, task_requirements)
-                score.readability = self.evaluate_readability(output)
-                score.calculate_overall()
+    #             score.comprehensiveness = self.evaluate_comprehensiveness(output, task_requirements)
+    #             score.insight = self.evaluate_insight(output, task_context)
+    #             score.instruction_following = self.evaluate_instruction_following(output, task_requirements)
+    #             score.readability = self.evaluate_readability(output)
+    #             score.calculate_overall()
                 
-                return score
+    #             return score
 
-        def main():
-            """Main execution function with DeepResearch Bench evaluation"""
-            try:
-                print("=" * 60)
-                print("CoSTEER Agentic System Execution Started")
-                print("Task ID: {task_id}")
-                print("Domain: {task_domain}")
-                print("=" * 60)
+    #     def main():
+    #         """Main execution function with DeepResearch Bench evaluation"""
+    #         try:
+    #             print("=" * 60)
+    #             print("CoSTEER Agentic System Execution Started")
+    #             print("Task ID: {task_id}")
+    #             print("Domain: {task_domain}")
+    #             print("=" * 60)
                 
-                execution_start = time.time()
+    #             execution_start = time.time()
                 
-                # Initialize agent with configuration
-                config = {{
-                    'max_workers': {max_workers},
-                    'enable_parallel': {enable_parallel},
-                    'enable_optimization': {enable_optimization},
-                    'task_timeout': {task_timeout}
-                }}
+    #             # Initialize agent with configuration
+    #             config = {{
+    #                 'max_workers': {max_workers},
+    #                 'enable_parallel': {enable_parallel},
+    #                 'enable_optimization': {enable_optimization},
+    #                 'task_timeout': {task_timeout}
+    #             }}
                 
-                print(f"Configuration: {{json.dumps(config, indent=2)}}")
-                agent = AgenticSystem(config)
-                print(f"Initialized: {{agent.name}}")
+    #             print(f"Configuration: {{json.dumps(config, indent=2)}}")
+    #             agent = AgenticSystem(config)
+    #             print(f"Initialized: {{agent.name}}")
                 
-                # Run tasks and collect results
-                print("\\nExecuting tasks...")
-                results = agent.run_tasks()
+    #             # Run tasks and collect results
+    #             print("\\nExecuting tasks...")
+    #             results = agent.run_tasks()
                 
-                # Prepare task requirements for evaluation
-                task_requirements = {{
-                    'required_topics': ['task execution', 'performance metrics'],
-                    'required_sections': ['results', 'metrics'],
-                    'format': {{'type': 'json'}}
-                }}
+    #             # Prepare task requirements for evaluation
+    #             task_requirements = {{
+    #                 'required_topics': ['task execution', 'performance metrics'],
+    #                 'required_sections': ['results', 'metrics'],
+    #                 'format': {{'type': 'json'}}
+    #             }}
                 
-                task_context = {{
-                    'domain': '{task_domain}',
-                    'hypothesis': '{hypothesis}'
-                }}
+    #             task_context = {{
+    #                 'domain': '{task_domain}',
+    #                 'hypothesis': '{hypothesis}'
+    #             }}
                 
-                # Evaluate using DeepResearch Bench standards
-                print("\\nEvaluating results...")
-                evaluator = ResearchOutputEvaluator(task_domain='{task_domain}')
+    #             # Evaluate using DeepResearch Bench standards
+    #             print("\\nEvaluating results...")
+    #             evaluator = ResearchOutputEvaluator(task_domain='{task_domain}')
                 
-                evaluation_score = evaluator.evaluate_all(
-                    output=results,
-                    task_requirements=task_requirements,
-                    task_context=task_context,
-                    dimension_weights={evaluation_criteria} if {evaluation_criteria} else None
-                )
+    #             evaluation_score = evaluator.evaluate_all(
+    #                 output=results,
+    #                 task_requirements=task_requirements,
+    #                 task_context=task_context,
+    #                 dimension_weights={evaluation_criteria} if {evaluation_criteria} else None
+    #             )
                 
-                # Prepare detailed results
-                execution_time = time.time() - execution_start
+    #             # Prepare detailed results
+    #             execution_time = time.time() - execution_start
                 
-                detailed_results = {{
-                    'task_info': {{
-                        'task_id': '{task_id}',
-                        'domain': '{task_domain}',
-                        'hypothesis': '{hypothesis}'
-                    }},
-                    'execution_results': results,
-                    'deepresearch_evaluation': evaluation_score.to_dict(),
-                    'evaluation_log': evaluator.evaluation_log,
-                    'system_status': agent.get_system_status(),
-                    'execution_time': execution_time,
-                    'timestamp': time.time()
-                }}
+    #             detailed_results = {{
+    #                 'task_info': {{
+    #                     'task_id': '{task_id}',
+    #                     'domain': '{task_domain}',
+    #                     'hypothesis': '{hypothesis}'
+    #                 }},
+    #                 'execution_results': results,
+    #                 'deepresearch_evaluation': evaluation_score.to_dict(),
+    #                 'evaluation_log': evaluator.evaluation_log,
+    #                 'system_status': agent.get_system_status(),
+    #                 'execution_time': execution_time,
+    #                 'timestamp': time.time()
+    #             }}
                 
-                # Save detailed results to file
-                result_file = Path("result.json")
-                result_file.write_text(json.dumps(detailed_results, indent=2))
+    #             # Save detailed results to file
+    #             result_file = Path("result.json")
+    #             result_file.write_text(json.dumps(detailed_results, indent=2))
                 
-                # Print structured output
-                print("\\n" + "=" * 60)
-                print("EXECUTION RESULTS")
-                print("=" * 60)
-                print(f"Success Rate: {{results.get('success_rate', 0):.2%}}")
-                print(f"Average Task Time: {{results.get('avg_time', 0):.4f}}s")
-                print(f"Error Count: {{results.get('error_count', 0)}}")
-                print(f"Total Tasks: {{results.get('total_tasks', 0)}}")
-                print(f"Total Execution Time: {{execution_time:.2f}}s")
+    #             # Print structured output
+    #             print("\\n" + "=" * 60)
+    #             print("EXECUTION RESULTS")
+    #             print("=" * 60)
+    #             print(f"Success Rate: {{results.get('success_rate', 0):.2%}}")
+    #             print(f"Average Task Time: {{results.get('avg_time', 0):.4f}}s")
+    #             print(f"Error Count: {{results.get('error_count', 0)}}")
+    #             print(f"Total Tasks: {{results.get('total_tasks', 0)}}")
+    #             print(f"Total Execution Time: {{execution_time:.2f}}s")
                 
-                print("\\n" + "=" * 60)
-                print("DEEPRESEARCH BENCH EVALUATION")
-                print("=" * 60)
-                print(f"Comprehensiveness:      {{evaluation_score.comprehensiveness:.2f}}/10.0")
-                print(f"Insight:                {{evaluation_score.insight:.2f}}/10.0")
-                print(f"Instruction Following:  {{evaluation_score.instruction_following:.2f}}/10.0")
-                print(f"Readability:            {{evaluation_score.readability:.2f}}/10.0")
-                print(f"{{'-' * 60}}")
-                print(f"Overall Score:          {{evaluation_score.overall:.2f}}/10.0")
-                print("=" * 60)
+    #             print("\\n" + "=" * 60)
+    #             print("DEEPRESEARCH BENCH EVALUATION")
+    #             print("=" * 60)
+    #             print(f"Comprehensiveness:      {{evaluation_score.comprehensiveness:.2f}}/10.0")
+    #             print(f"Insight:                {{evaluation_score.insight:.2f}}/10.0")
+    #             print(f"Instruction Following:  {{evaluation_score.instruction_following:.2f}}/10.0")
+    #             print(f"Readability:            {{evaluation_score.readability:.2f}}/10.0")
+    #             print(f"{{'-' * 60}}")
+    #             print(f"Overall Score:          {{evaluation_score.overall:.2f}}/10.0")
+    #             print("=" * 60)
                 
-                # Print evaluation details
-                print("\\nEvaluation Details:")
-                for log_entry in evaluator.evaluation_log:
-                    print(f"\\n{{log_entry['dimension'].upper()}}:")
-                    for check in log_entry['checks']:
-                        print(f"  - {{check}}")
+    #             # Print evaluation details
+    #             print("\\nEvaluation Details:")
+    #             for log_entry in evaluator.evaluation_log:
+    #                 print(f"\\n{{log_entry['dimension'].upper()}}:")
+    #                 for check in log_entry['checks']:
+    #                     print(f"  - {{check}}")
                 
-                # JSON output for automated parsing
-                print("\\n" + "=" * 60)
-                print("JSON_RESULTS_START")
-                print(json.dumps(detailed_results, indent=2))
-                print("JSON_RESULTS_END")
-                print("=" * 60)
+    #             # JSON output for automated parsing
+    #             print("\\n" + "=" * 60)
+    #             print("JSON_RESULTS_START")
+    #             print(json.dumps(detailed_results, indent=2))
+    #             print("JSON_RESULTS_END")
+    #             print("=" * 60)
                 
-                return 0
+    #             return 0
                 
-            except Exception as e:
-                print(f"\\nERROR: Execution failed - {{str(e)}}", file=sys.stderr)
-                print("\\nError Details:")
-                traceback.print_exc()
+    #         except Exception as e:
+    #             print(f"\\nERROR: Execution failed - {{str(e)}}", file=sys.stderr)
+    #             print("\\nError Details:")
+    #             traceback.print_exc()
                 
-                error_result = {{
-                    'task_info': {{
-                        'task_id': '{task_id}',
-                        'domain': '{task_domain}'
-                    }},
-                    'execution_results': {{
-                        "success_rate": 0.0,
-                        "avg_time": float('inf'),
-                        "error_count": 1,
-                        "total_tasks": 0
-                    }},
-                    'deepresearch_evaluation': {{
-                        'comprehensiveness': 0.0,
-                        'insight': 0.0,
-                        'instruction_following': 0.0,
-                        'readability': 0.0,
-                        'overall': 0.0
-                    }},
-                    "error_reason": str(e),
-                    "traceback": traceback.format_exc()
-                }}
+    #             error_result = {{
+    #                 'task_info': {{
+    #                     'task_id': '{task_id}',
+    #                     'domain': '{task_domain}'
+    #                 }},
+    #                 'execution_results': {{
+    #                     "success_rate": 0.0,
+    #                     "avg_time": float('inf'),
+    #                     "error_count": 1,
+    #                     "total_tasks": 0
+    #                 }},
+    #                 'deepresearch_evaluation': {{
+    #                     'comprehensiveness': 0.0,
+    #                     'insight': 0.0,
+    #                     'instruction_following': 0.0,
+    #                     'readability': 0.0,
+    #                     'overall': 0.0
+    #                 }},
+    #                 "error_reason": str(e),
+    #                 "traceback": traceback.format_exc()
+    #             }}
                 
-                # Save error result
-                try:
-                    error_file = Path("error_result.json")
-                    error_file.write_text(json.dumps(error_result, indent=2))
-                except:
-                    pass
+    #             # Save error result
+    #             try:
+    #                 error_file = Path("error_result.json")
+    #                 error_file.write_text(json.dumps(error_result, indent=2))
+    #             except:
+    #                 pass
                 
-                return 1
+    #             return 1
 
-        if __name__ == "__main__":
-            exit_code = main()
-            sys.exit(exit_code)
-        '''
+    #     if __name__ == "__main__":
+    #         exit_code = main()
+    #         sys.exit(exit_code)
+    #     '''
     
-    def generate_requirements(self, context):
+#     def generate_train_script(self,context):
+#         """
+#         Generate training script using LLM
+#         """
+#         hypothesis = context.get('hypothesis', 'Improve agentic system performance')
+#         task_id = context.get('task_id', 'unknown')
+#         task_domain = context.get('task_domain','general')
+#         system_prompt = """You are an expert in creating experiment training scripts. Generate clean, executable 
+#           python code that test AgenticSystem."""
+#         user_prompt = f"""Generate a training script (train.py) for an agentic system experiment.
+#         **Context:**
+# - Task ID: {task_id}
+# - Domain: {task_domain}
+# - Hypothesis: {hypothesis}
+
+# **Requirements:**
+# 1. Import AgenticSystem from agent.py
+# 2. Run tasks and collect results
+# 3. Print results between JSON_RESULTS_START and JSON_RESULTS_END markers
+# 4. Include DeepResearch Bench evaluation scores
+
+# Generate ONLY the Python code without markdown blocks."""
+#         try:
+#             logger.info("Calling LLM to generate train script")
+#             response = self.api_backend.build_messages_and_create_chat_completion(
+#                 user_prompt = user_prompt,
+#                 system_prompt = system_prompt,
+#                 json_mode = False
+#             )
+#             code = self.clean_llm_response(response)
+#             self.validate_python_syntax(code, "train.py")
+#             logger.info(f"Successfully generated train script using LLM")
+#             return code
+#         except Exception as e:
+#             logger.error(f"LLM train script generation failed: {str(e)}")
+#             logger.warning("Falling back to template-based generation")
+#             return self.get_fallback_train_code(hypothesis, task_id)
+
+
+    def generate_execution_script(self, task_info):
         """
-        Generate requirements file based on context
+        generate training script using LLM
         """
-        hypothesis = context.get('hypothesis', '')
+        system_prompt = """You are an expert in creating research execution and evaluation scripts.
+Generate Python code that runs a research agent and evaluates outputs using DeepResearch Bench standards."""
+        user_prompt = f"""Generate a execution script (train.py) for an agentic system experiment task.
+**Task**: 
+- Task ID: {task_info.get('task_id', 'unknown')}
+- Domain: {task_info.get('task_domain', 'general')}
+- Question: {task_info.get('question', 'N/A')}
+- Competition: {task_info.get('competition', 'deepresearch')}
+
+**Script Requirements:**
+
+1. Import modules:
+   - from agent import ResearchAgent
+   - from evaluator import DeepResearchEvaluator
+   - Standard libraries: json, sys, time, pathlib
+
+2. Main execution flow:
+   a) Initialize ResearchAgent
+   b) Execute research on the question
+   c) Evaluate output using DeepResearchEvaluator
+   d) Save results to result.json
+   e) Print structured output
+
+3. DeepResearch Bench Evaluation:
+   Evaluate on 4 dimensions (0-10 each):
+   - Comprehensiveness: Coverage, depth, evidence, perspectives
+   - Insight: Causal reasoning, quantified analysis, non-obvious implications
+   - Instruction Following: Completeness, scope compliance
+   - Readability: Structure, language quality, clarity
+
+4. Output Format (between JSON_RESULTS_START/END markers):
+   {{
+       "task_info": {{
+           "task_id": str,
+           "domain": str,
+           "question": str
+       }},
+       "research_output": {{
+           "answer": str,
+           "sub_answers": List[Dict],
+           "reasoning": str,
+           "evidence": List[str],
+           "confidence": float
+       }},
+       "evaluation_scores": {{
+           "comprehensiveness": float,  # 0-10
+           "insight": float,            # 0-10
+           "instruction_following": float,  # 0-10
+           "readability": float,        # 0-10
+           "overall": float             # Weighted average
+       }},
+       "execution_time": float
+   }}
+
+5. Error Handling:
+   - Wrap in try-except
+   - Log errors to stderr
+   - Return appropriate exit codes
+   - Save error details to error_result.json
+
+Generate ONLY the Python code without markdown blocks."""
+
+        try:
+            logger.info("Calling LLM to generate execution script...")
+            response = self.api_backend.build_messages_and_create_chat_completion(
+                user_prompt=user_prompt,
+                system_prompt=system_prompt,
+                json_mode=False
+            )
+            
+            code = self.clean_llm_code_response(response)
+            self.validate_python_syntax(code, "train.py")
+            
+            logger.info("Generated research execution script")
+            return code
+            
+        except Exception as e:
+            logger.error(f"LLM execution script generation failed: {e}")
+            return self.get_fallback_execution_script(task_info)
+
+    def generate_deepresearch_evaluator_code(self, task_info: Dict) -> str:
+        """Generate DeepResearch Bench evaluator"""
+        
+        system_prompt = """You are an expert in research quality evaluation.
+Generate Python code implementing the DeepResearch Bench evaluation framework with detailed scoring rubrics."""
+
+        user_prompt = f"""Generate evaluator module (evaluator.py) for DeepResearch Bench.
+
+**Evaluator Requirements:**
+
+1. Class: DeepResearchEvaluator with methods:
+   - evaluate_comprehensiveness(output, requirements) -> float (0-10)
+   - evaluate_insight(output, context) -> float (0-10)
+   - evaluate_instruction_following(output, task) -> float (0-10)
+   - evaluate_readability(output) -> float (0-10)
+   - evaluate(output, task_requirements, task_context) -> EvaluationResult
+
+2. Scoring Rubrics:
+
+   **Comprehensiveness (0-10):**
+   - Coverage of sub-topics (0-3): All required topics addressed
+   - Depth of analysis (0-3): Detailed, not superficial
+   - Evidence and sources (0-2): Citations, data, references
+   - Multiple perspectives (0-2): Diverse viewpoints
+
+   **Insight (0-10):**
+   - Causal reasoning (0-3): Why-think, cause-effect relationships
+   - Quantified analysis (0-2): Numbers, metrics, measurements
+   - Non-obvious implications (0-3): Insights beyond surface level
+   - Novel synthesis (0-2): Original frameworks or connections
+
+   **Instruction Following (0-10):**
+   - All sub-questions answered (0-4): Completeness check
+   - Scope compliance (0-3): Stays within bounds
+   - Format requirements (0-2): Structure, deliverables
+   - Completeness (0-1): Nothing major missing
+
+   **Readability (0-10):**
+   - Clear structure (0-3): Organized, logical flow
+   - Language quality (0-3): Fluent, precise
+   - Data presentation (0-2): Tables, lists, formatting
+   - Clarity (0-2): Easy to understand
+
+3. EvaluationResult class:
+   - Scores for each dimension (float)
+   - Overall weighted score (float)
+   - Detailed feedback per criterion (List[str])
+   - Suggestions for improvement (List[str])
+
+4. Normalization (if reference provided):
+   - Scale relative to reference performance
+   - Adjust thresholds based on task difficulty
+
+Generate ONLY the Python code without markdown blocks."""
+
+        try:
+            logger.info("Calling LLM to generate evaluator...")
+            response = self.api_backend.build_messages_and_create_chat_completion(
+                user_prompt=user_prompt,
+                system_prompt=system_prompt,
+                json_mode=False
+            )
+            
+            code = self._clean_llm_code_response(response)
+            self._validate_python_syntax(code, "evaluator.py")
+            
+            logger.info("Generated DeepResearch evaluator")
+            return code
+            
+        except Exception as e:
+            logger.error(f"LLM evaluator generation failed: {e}")
+            return self._get_fallback_evaluator(task_info)
+
+    def generate_research_requirements(self, task_info: Dict) -> str:
+        """Generate requirements for research agent"""
         requirements = [
-            "# CoSTEER Generated Requirements",
-            "# Basic dependencies",
-            "numpy>=1.21.0",
-            "pandas>=1.3.0",
+            "# DeepResearch Bench Requirements",
+            "",
+            "# No external dependencies required",
+            "# Use Python standard library only:",
+            "# - json: JSON serialization",
+            "# - logging: Logging research process",
+            "# - time: Timing measurements",
+            "# - typing: Type hints",
+            "# - dataclasses: Data structures",
+            "# - pathlib: File operations",
+            ""
         ]
         
-        # Add context-specific requirements
-        if 'parallel' in hypothesis.lower() or 'concurrent' in hypothesis.lower():
-            requirements.extend([
-                "# Parallel processing",
-                "joblib>=1.0.0",
-                "concurrent-futures>=3.1.1"
-            ])
+        # Optional: domain-specific suggestions (commented out)
+        domain = task_info['domain']
+        if domain in ['biology', 'medicine']:
+            requirements.append("# Optional (if needed): biopython")
+        elif domain == 'data_analysis':
+            requirements.append("# Optional (if needed): numpy, pandas")
         
-        if 'monitoring' in hypothesis.lower() or 'metrics' in hypothesis.lower():
-            requirements.extend([
-                "# Monitoring and metrics", 
-                "psutil>=5.8.0",
-                "prometheus-client>=0.11.0"
-            ])
+        return "\n".join(requirements)
+
+    def parse_research_output(self, stdout: str) -> Dict:
+        """Parse DeepResearch Bench output"""
+        try:
+            import json
+            import re
+            
+            # Look for JSON_RESULTS block
+            pattern = r'JSON_RESULTS_START\s*(.*?)\s*JSON_RESULTS_END'
+            match = re.search(pattern, stdout, re.DOTALL)
+            
+            if match:
+                json_str = match.group(1)
+                result = json.loads(json_str)
+                
+                if self._validate_research_result_format(result):
+                    logger.info("Successfully parsed DeepResearch output")
+                    return result
+            
+            logger.warning("Could not parse DeepResearch output")
+            return self._create_default_research_result()
+            
+        except Exception as e:
+            logger.error(f"Failed to parse research output: {e}")
+            return self._create_default_research_result()
+
+    def _validate_research_result_format(self, result: Dict) -> bool:
+        """Validate research result format"""
+        required_fields = ['task_info', 'research_output', 'evaluation_scores']
         
-        if 'optimization' in hypothesis.lower():
-            requirements.extend([
-                "# Optimization libraries",
-                "scipy>=1.7.0",
-                "scikit-learn>=1.0.0"
-            ])
+        for field in required_fields:
+            if field not in result:
+                logger.warning(f"Missing field: {field}")
+                return False
         
-        return "\\n".join(requirements) + "\\n"
+        # Validate evaluation scores
+        eval_scores = result['evaluation_scores']
+        required_scores = ['comprehensiveness', 'insight', 'instruction_following', 
+                          'readability', 'overall']
+        
+        for score_name in required_scores:
+            if score_name not in eval_scores:
+                logger.warning(f"Missing score: {score_name}")
+                return False
+            score = eval_scores[score_name]
+            if not isinstance(score, (int, float)) or not (0 <= score <= 10):
+                logger.warning(f"Invalid score for {score_name}: {score}")
+                return False
+        
+        return True
+
+    def _create_default_research_result(self) -> Dict:
+        """Create default research result"""
+        return {
+            "task_info": {"task_id": "unknown", "domain": "unknown"},
+            "research_output": {
+                "answer": "Research execution failed",
+                "sub_answers": [],
+                "reasoning": "No output generated",
+                "evidence": [],
+                "confidence": 0.0
+            },
+            "evaluation_scores": {
+                "comprehensiveness": 0.0,
+                "insight": 0.0,
+                "instruction_following": 0.0,
+                "readability": 0.0,
+                "overall": 0.0
+            },
+            "execution_time": 0.0
+        }
+
+    # Helper methods
+    def _clean_llm_code_response(self, response: str) -> str:
+        """Clean LLM response"""
+        import re
+        code = re.sub(r'^```python\s*\n', '', response, flags=re.MULTILINE)
+        code = re.sub(r'^```\s*\n', '', code, flags=re.MULTILINE)
+        code = re.sub(r'\n```\s*$', '', code, flags=re.MULTILINE)
+        return code.strip()
+
+    def _validate_python_syntax(self, code: str, filename: str):
+        """Validate Python syntax"""
+        try:
+            compile(code, filename, 'exec')
+            logger.info(f"Syntax validation passed for {filename}")
+        except SyntaxError as e:
+            raise ValueError(f"Syntax error in {filename}: {e}")
+
+    def _get_fallback_research_agent(self, task_info: Dict) -> str:
+        """Fallback research agent"""
+        return f'''"""
+Research Agent for DeepResearch Bench (Fallback Template)
+Domain: {task_info['domain']}
+"""
+import logging
+from typing import Dict, List
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("ResearchAgent")
+
+class ResearchAgent:
+    def __init__(self, config: Dict = None):
+        self.config = config or {{}}
+        self.domain = "{task_info['domain']}"
+        logger.info(f"Initialized ResearchAgent for domain: {{self.domain}}")
+    
+    def research(self, question: str) -> Dict:
+        """Conduct research on question"""
+        logger.info(f"Starting research: {{question[:100]}}...")
+        
+        # Decompose
+        sub_questions = self.decompose_question(question)
+        logger.info(f"Decomposed into {{len(sub_questions)}} sub-questions")
+        
+        # Gather & analyze
+        sub_answers = []
+        for sub_q in sub_questions:
+            info = self.gather_information(sub_q)
+            analysis = self.analyze_information([info])
+            sub_answers.append({{
+                "question": sub_q,
+                "answer": analysis.get("summary", "Analysis unavailable"),
+                "evidence": analysis.get("evidence", [])
+            }})
+        
+        # Synthesize
+        final_answer = self.synthesize_answer(sub_answers)
+        
+        return {{
+            "answer": final_answer,
+            "sub_answers": sub_answers,
+            "reasoning": "Multi-step research: decompose, gather, analyze, synthesize",
+            "evidence": [item for sa in sub_answers for item in sa.get("evidence", [])],
+            "confidence": 0.6,
+            "metadata": {{
+                "domain": self.domain,
+                "approach": "structured_research",
+                "limitations": ["Limited information sources", "Basic analysis"]
+            }}
+        }}
+    
+    def decompose_question(self, question: str) -> List[str]:
+        """Break question into sub-questions"""
+        return [question]  # Simplified: treat as single question
+    
+    def gather_information(self, sub_question: str) -> Dict:
+        """Gather information"""
+        return {{
+            "question": sub_question,
+            "info": f"Simulated information for: {{sub_question[:50]}}...",
+            "sources": ["simulated_source_1"]
+        }}
+    
+    def analyze_information(self, info_list: List[Dict]) -> Dict:
+        """Analyze information"""
+        return {{
+            "summary": f"Analysis of {{len(info_list)}} information pieces",
+            "evidence": [item.get("sources", ["unknown"])[0] for item in info_list]
+        }}
+    
+    def synthesize_answer(self, analyses: List[Dict]) -> str:
+        """Synthesize final answer"""
+        parts = [a.get("answer", "") for a in analyses]
+        return f"Synthesized answer based on {{len(parts)}} analyses: " + " ".join(parts[:3])
+'''
+
+    def _get_fallback_execution_script(self, task_info: Dict) -> str:
+        """Fallback execution script"""
+        return f'''"""
+Execution Script for DeepResearch Bench (Fallback)
+"""
+import json
+import sys
+import time
+from pathlib import Path
+
+try:
+    from agent import ResearchAgent
+    from evaluator import DeepResearchEvaluator
+except ImportError as e:
+    print(f"Import error: {{e}}", file=sys.stderr)
+    sys.exit(1)
+
+def main():
+    try:
+        start_time = time.time()
+        
+        # Research
+        agent = ResearchAgent()
+        question = """{task_info['question']}"""
+        research_output = agent.research(question)
+        
+        # Evaluate
+        evaluator = DeepResearchEvaluator()
+        task_requirements = {{"required_sections": ["answer", "reasoning"]}}
+        task_context = {{"domain": "{task_info['domain']}"}}
+        
+        evaluation = evaluator.evaluate(
+            research_output,
+            task_requirements,
+            task_context
+        )
+        
+        # Prepare results
+        results = {{
+            "task_info": {{
+                "task_id": "{task_info['task_id']}",
+                "domain": "{task_info['domain']}",
+                "question": question
+            }},
+            "research_output": research_output,
+            "evaluation_scores": evaluation.to_dict(),
+            "execution_time": time.time() - start_time
+        }}
+        
+        # Save
+        Path("result.json").write_text(json.dumps(results, indent=2))
+        
+        # Output
+        print("\\nJSON_RESULTS_START")
+        print(json.dumps(results, indent=2))
+        print("JSON_RESULTS_END")
+        
+        return 0
+        
+    except Exception as e:
+        print(f"Error: {{e}}", file=sys.stderr)
+        return 1
+
+if __name__ == "__main__":
+    sys.exit(main())
+'''
+
+
+
+    
     
     def needs_config_file(self, context):
         """

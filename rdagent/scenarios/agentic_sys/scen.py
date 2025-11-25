@@ -14,47 +14,12 @@ class AgenticSysScen(Scenario):
         self.evaluator = DeepResearchEvaluator(dimension_weights=evaluation_weights)
 
         # Set competition-specific evaluation weights
-        self.set_competition_weights()
-    
-    def set_competition_weights(self):
-        """Set evaluation weights based on competition type"""
-        weight_configs = {
-            "deepresearch": {
-                'comprehensiveness': 0.30,
-                'insight': 0.35,
-                'instruction_following': 0.20,
-                'readability': 0.15
-            },
-            "tool_usage": {
-                'comprehensiveness': 0.25,
-                'insight': 0.25,
-                'instruction_following': 0.30,
-                'readability': 0.20
-            },
-            "multi_agent": {
-                'comprehensiveness': 0.25,
-                'insight': 0.30,
-                'instruction_following': 0.25,
-                'readability': 0.20
-            },
-            "planning": {
-                'comprehensiveness': 0.20,
-                'insight': 0.40,
-                'instruction_following': 0.25,
-                'readability': 0.15
-            },
-            "general": {
-                'comprehensiveness': 0.25,
-                'insight': 0.25,
-                'instruction_following': 0.25,
-                'readability': 0.25
-            }
+        self.evaluation_weights = evaluation_weights or {
+            'comprehensiveness': 0.25,
+            'insight': 0.25,
+            'instruction_following': 0.25,
+            'readability': 0.25
         }
-        
-        weights = weight_configs.get(self.competition, weight_configs["general"])
-        self.evaluator = DeepResearchEvaluator(dimension_weights=weights)
-
-
 
 
     # Implement dummy functions for the abstract methods in Scenario
@@ -153,8 +118,50 @@ Key requirements include task planning, execution monitoring, error handling, an
 
     def get_task_evaluation_criteria(self, task: Task) -> str:
         """Get evaluation criteria specific to the task"""
+
+        #extract task-specific information
+        task_desc = task.description.lower() if task and task.description else ""
+        task_domain = getattr(task, 'domain', 'general') if task else 'general'
+
+        focus_areas = []
+        emphasis_dimensions = {}
+
+        #Analyze task description to adjust criteria emphasis
+        if 'comprehensive' in task_desc:
+            focus_areas.append("comprehensive coverage")
+            emphasis_dimensions['comprehensiveness'] = 'emphasized'
+
+        if 'analyze' in task_desc or 'explain' in task_desc or 'reason' in task_desc:
+            focus_areas.append("analytical reasoning")
+            emphasis_dimensions['insight'] = 'emphasized'
+
+        if 'follow' in task_desc or 'present' in task_desc or 'format' in task_desc:
+            focus_areas.append("strict instruction adherence")
+            emphasis_dimensions['instruction_following'] = 'emphasized'
+
+        if 'report' in task_desc or 'present' in task_desc or 'clarity' in task_desc:
+            focus_areas.append("clear presentation")
+            emphasis_dimensions['readability'] = 'emphasized'
+        
+        #build focus statement
+        focus_statement = ""
+        if focus_areas:
+            focus_statement = f"\n**Task Focus**: This task particularly emphasizes {', '.join(focus_areas)}.\n"
+        else:
+            focus_statement = "\n**Task Focus**: Standard evaluation across all dimensions, including comprehensiveness, Insight, Instruction following and readability\n"
+        
+        #domain specific guidance
+        domain_guidance = self.get_domain_specific_guidance(task_domain)
+
+        #build criteria with emphasis markers
+        comp_marker = emphasis_dimensions.get('comprehensiveness', '')
+        insight_marker = emphasis_dimensions.get('insight', '')
+        instruction_marker = emphasis_dimensions.get('instruction_following', '')
+        readability_marker = emphasis_dimensions.get('readability', '')
+
         return f"""
 --- Evaluation Criteria (DeepResearch Bench) ---
+{focus_statement}
 
 Your solution will be evaluated on four dimensions (0-10 scale each):
 
@@ -196,6 +203,8 @@ Target: >= 7.0/10.0 overall for success
             "coordination": "Multi-agent communication and collaboration. Evaluation: Focus on comprehensiveness (interaction coverage) and readability (clear protocols)."
         }
         return tag_guidance.get(tag.lower(), f"Focus on {tag} aspects.")
+    
+
     
     def get_success_criteria(self):
         '''acquire success criteria with DeepResearch Bench standards'''
