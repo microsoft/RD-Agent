@@ -41,6 +41,9 @@ def main(
         Number of loops to run; if None, the process will run indefinitely until an error or KeyboardInterrupt occurs.
         - If the current loop is incomplete, it will be counted as the first loop for completion.
         - If both step_n and loop_n are provided, the process will stop as soon as either condition is met.
+    timeout :
+        Maximum duration to run the loop. Accepts a string format recognized by the internal timer.
+        - If None, the loop will run until completion, error, or KeyboardInterrupt.
     competition :
         Competition name.
     replace_timer :
@@ -51,9 +54,11 @@ def main(
 
     Auto R&D Evolving loop for models in a Kaggle scenario.
     You can continue running a session by using the command:
+
     .. code-block:: bash
-        dotenv run -- python rdagent/app/data_science/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is an optional parameter
-        rdagent kaggle --competition playground-series-s4e8  # This command is recommended.
+
+      dotenv run -- python rdagent/app/data_science/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is an optional parameter
+      rdagent kaggle --competition playground-series-s4e8  # This command is recommended.
     """
     if not checkout_path is None:
         checkout = Path(checkout_path)
