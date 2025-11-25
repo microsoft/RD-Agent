@@ -130,7 +130,7 @@ class LLMFinetuneScen(DataScienceScen):
         return T(".prompts:scenario_description").r(
             user_target_scenario=self.user_target_scenario,
             target_benchmark=self.target_benchmark,
-            benchmark_info=self.benchmark_description,
+            benchmark_description=self.benchmark_description,
             device_info=self.device_info,
             chosen_model=FT_RD_SETTING.base_model is not None,
             base_model=FT_RD_SETTING.base_model,

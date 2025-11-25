@@ -3,12 +3,12 @@ scenario_description: |-
   The user has decided to fine-tune the model using LLaMA-Factory framework. Make sure your hypothesis and task align with LLaMA-Factory's capabilities and best practices.
 
   By Fine-tuning the model, the user aims to achieve the following objectives:
-  {% if intention is not none %}
-  The user described their intention as: {{ intention }}
+  {% if user_target_scenario is not none %}
+  The user described their target scenario as: {{ user_target_scenario }}
   {% endif %}
-  {% if target_benchmark is not none %}
+  {% if target_benchmark is not none and benchmark_description is not none %}
   The user aims to excel in the following benchmark(s): {{ target_benchmark }}.
-  The benchmark can be described as: {{ benchmark_info }}.
+  The benchmark can be described as: {{ benchmark_description }}.
   {% endif %}
 
   The device available for fine-tuning has the following specifications:
