@@ -3,7 +3,6 @@ from typing import Any, Literal, Optional, Type, TypedDict, Union, cast
 
 import numpy as np
 from litellm import (
-    BadRequestError,
     completion,
     completion_cost,
     embedding,
@@ -12,6 +11,7 @@ from litellm import (
     supports_response_schema,
     token_counter,
 )
+from litellm.exceptions import BadRequestError, Timeout
 from pydantic import BaseModel
 
 from rdagent.log import LogColors
@@ -28,7 +28,8 @@ def _reduce_no_init(exc: Exception) -> tuple:
 
 
 # suppose you want to apply this to MyError
-copyreg.pickle(BadRequestError, _reduce_no_init)
+for cls in [BadRequestError, Timeout]:
+    copyreg.pickle(cls, _reduce_no_init)
 
 
 class LiteLLMSettings(LLMSettings):

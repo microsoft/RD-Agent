@@ -62,7 +62,7 @@ By leveraging the **Data Science** Agent, researchers and developers can acceler
 🔧 **Set up RD-Agent Environment**
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  - Before you start, please make sure you have installed RD-Agent and configured the environment for RD-Agent correctly. If you want to know how to install and configure the RD-Agent, please refer to the `documentation <../installation_and_configuration.html>`_.
+- Before you start, please make sure you have installed RD-Agent and configured the environment for RD-Agent correctly. If you want to know how to install and configure the RD-Agent, please refer to the `documentation <../installation_and_configuration.html>`_.
 
 - 🔩 **Setting the Environment variables at .env file**
 
@@ -244,6 +244,16 @@ By leveraging the **Data Science** Agent, researchers and developers can acceler
       dotenv set DS_LOCAL_DATA_PATH <your local directory>/ds_data
       dotenv set DS_CODER_ON_WHOLE_PIPELINE True
 
+  - 📘 More Environment Variables (Optional)
+
+    - If you want to see all the available environment variables, you can refer to the configuration file for Data Science scenarios:
+
+    .. literalinclude:: ../../rdagent/app/data_science/conf.py
+      :language: python
+      :linenos:
+
+    - These variables allow you to have finer-grained control in Data Science scenarios.
+
 🚀 **Run the Application**
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -258,6 +268,12 @@ By leveraging the **Data Science** Agent, researchers and developers can acceler
       .. code-block:: sh
 
           rdagent data_science --competition arf-12-hours-prediction-task
+
+    -  More CLI Parameters for `rdagent data_science` command:
+
+      .. automodule:: rdagent.app.data_science.loop
+        :members:
+        :no-index:
 
   - 📈 Visualize the R&D Process
 
@@ -317,6 +333,16 @@ By utilizing the **Kaggle Agent**, data scientists can craft innovative solution
 
     mkdir -p <your local directory>/ds_data
     dotenv set KG_LOCAL_DATA_PATH <your local directory>/ds_data
+
+  - 📘 More Environment Variables (Optional)
+
+    - If you want to see all the available environment variables, you can refer to the configuration file for Data Science scenarios:
+
+    .. literalinclude:: ../../rdagent/app/data_science/conf.py
+      :language: python
+      :linenos:
+
+    - These variables allow you to have finer-grained control in Data Science scenarios.
 
 - 🗳️ **Join the competition**
 
@@ -506,6 +532,12 @@ By utilizing the **Kaggle Agent**, data scientists can craft innovative solution
       .. code-block:: sh
 
           rdagent data_science --competition playground-series-s4e9
+
+    -  More CLI Parameters for `rdagent data_science` command:
+
+      .. automodule:: rdagent.app.data_science.loop
+        :members:
+        :no-index:
 
   - 📈 Visualize the R&D Process
 
