@@ -1239,6 +1239,9 @@ You help users retrieve relevant knowledge from community discussions and public
             accumulate.append(hyp)
             hypothesis_chain_list.append(sep.join(accumulate))
 
+        if not hypothesis_chain_list:
+            return texts[0]
+        
         last_text = []
         texts = []
         for name, data in hypothesis_dict.items():
@@ -1290,6 +1293,9 @@ You help users retrieve relevant knowledge from community discussions and public
             accumulate.append(hyp)
             hypothesis_chain_list.append(sep.join(accumulate))
 
+        if not hypothesis_chain_list:
+            return texts[0]
+        
         last_text = []
         texts = []
         for name, data in hypothesis_dict.items():
