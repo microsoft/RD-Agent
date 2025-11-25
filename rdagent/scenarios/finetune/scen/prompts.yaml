@@ -2,6 +2,7 @@ scenario_description: |-
   The user is targeting a fine-tuned model best for specific scenarios based on the provided dataset.
   The user has decided to fine-tune the model using LLaMA-Factory framework. Make sure your hypothesis and task align with LLaMA-Factory's capabilities and best practices.
 
+  # User objectives
   By Fine-tuning the model, the user aims to achieve the following objectives:
   {% if user_target_scenario is not none %}
   The user described their target scenario as: {{ user_target_scenario }}
@@ -11,11 +12,13 @@ scenario_description: |-
   The benchmark can be described as: {{ benchmark_description }}.
   {% endif %}
 
+  # Device Information
   The device available for fine-tuning has the following specifications:
   {{ device_info }}
   The hardware constraints might limit certain choices, so consider them carefully.
 
   {% if chosen_model %}
+  # Base Model Details
   The user has decided the base model to fine-tune: {{ base_model }}.
   ## Model Details
   {{ model_info }}
@@ -23,7 +26,7 @@ scenario_description: |-
   The user has not yet decided the base model to fine-tune.
   {% endif %}
 
-  ## Provided Dataset Details
+  # Provided Dataset Details
   {{ dataset_info }}
   The dataset characteristics is provided for you to understand the data better. Each dataset is a folder of files. Some in good format for fine-tuning while some are not.
 

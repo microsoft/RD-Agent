@@ -92,5 +92,5 @@ hypothesis_gen:
     - Builds upon successful approaches while exploring improvements
     - Tests promising directions not yet explored
     {% else %}
-    **Task**: This is the first experiment. Propose an optimal hypothesis based on device and dataset characteristics.
+    **Task**: This is the first experiment. Propose an optimal hypothesis and corresponding task based on all the information provided.
     {% endif %}
