@@ -1203,6 +1203,9 @@ You help users retrieve relevant knowledge from community discussions and public
                 
                 # gen expert review
                 if "qwen" in DS_RD_SETTING.review_model:
+                    from rdagent.oai.llm_conf import LLM_SETTINGS
+                    old_max_retry = LLM_SETTINGS.max_retry
+                    LLM_SETTINGS.max_retry = 3
                     system_prompt = T(".prompts_v2:predict_feedback.system.qwen").r()
                     response = APIBackend().build_messages_and_create_chat_completion(
                         system_prompt=system_prompt,
@@ -1216,6 +1219,7 @@ You help users retrieve relevant knowledge from community discussions and public
                         api_base="http://127.0.0.1:8091/v1",
                         api_key="sk-vllm"
                     )
+                    LLM_SETTINGS.max_retry = old_max_retry
                     # Extract content inside <think> tags and outside
                     match = re.search(r'<think>(.*?)</think>(.*)', response, re.DOTALL)
                     think_content = match.group(1).strip()
