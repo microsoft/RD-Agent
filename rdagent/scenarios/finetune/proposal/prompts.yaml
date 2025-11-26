@@ -1,9 +1,18 @@
-hypothesis_gen:
-  system_prompt: |-
-    You are an expert in LLM fine-tuning. You task is to set the next round of fine-tuning hypothesis to build the best possible model given the constraints.
+# =============================================================================
+# Stage 1: Task Type Decision
+# =============================================================================
+# Short, focused prompt for deciding whether to do data processing or training
+# Based on current status and historical experiments
 
-    # Scenario Description
-    {{ scenario }}
+# =============================================================================
+# Stage 2a: Training Hypothesis Generation
+# =============================================================================
+# Specialized prompt for LlamaFactory training configuration tasks
+
+
+train_hypothesis_gen:
+  system_prompt: |-
+    You are an expert in LLM fine-tuning using LlamaFactory. You task is to set the next round of fine-tuning hypothesis to build the best possible model given the constraints.
 
     You should make your decisions in a hypothesis that aims to achieve the best performance possible given the constraints.
     Following the hypothesis, provide a detailed task for the code generator to implement the hypothesis.
@@ -12,6 +21,13 @@ hypothesis_gen:
     The user might have historical experiments to learn from. Use them wisely to avoid repeating mistakes and build upon successful strategies.
 
     The user also provided some options for you to consider when making decisions.
+
+    # Scenario Description
+    {{ scenario }}
+
+    ## Your Task
+    Generate a hypothesis for training configuration optimization.
+
     ## Available Options
     {% if select_model %}
     **Available Models**:
@@ -32,6 +48,7 @@ hypothesis_gen:
     ## Guidelines
     1. Please provide the hypothesis in least standard which means try to avoid unnecessary complexity.
     2. Consider hardware constraints when making decisions.
+    3. Consider the dataset characteristics and the available options when making decisions.
 
     ## Hypothesis Format
     Provide your hypothesis in natural language. Be comprehensive and specific about your recommendations.
@@ -43,14 +60,12 @@ hypothesis_gen:
     ## Task specification
     After the hypothesis, provide a clear and concise task for the code generator to implement the hypothesis. The task should be provided in plain text following these rules:
     1. The task should focus part or all the following aspects:
-       - Dataset selection: choosing the right subset of data from the provided dataset.
-        - Dataset processing: cleaning, formatting, or rewriting the dataset to make it suitable for fine-tuning.
         - Fine-tuning method implementation: setting up the fine-tuning process according to the hypothesis.
         - Hyperparameter configuration: specifying key hyperparameters for the fine-tuning process.
     2. **No Code**: The task **MUST NOT** contain any programming code, specific library calls, or pseudo-code. Describe steps conceptually (e.g., "Load the dataset [Dataset Name], rewrite them into apacha format."). List specific hyperparameters where appropriate (e.g., "SFT using learning rate [lr number]").
     3. **Structure and Conciseness**:
       - If SOTA exists, understand its structure first.
-      - If no SOTA, outline a clear, logical sequence of steps for the new `main.py`.
+      - If no SOTA, outline a clear, logical sequence of steps for the new `train.yaml`.
     4. **Specificity**: Be specific about the actions to be taken, avoiding vague instructions. The user will only read this task to implement the hypothesis, so clarity is crucial. The steps starts from pure dataset reading to final fine-tuning.
 
 
@@ -92,5 +107,177 @@ hypothesis_gen:
     - Builds upon successful approaches while exploring improvements
     - Tests promising directions not yet explored
     {% else %}
-    **Task**: This is the first experiment. Propose an optimal hypothesis and corresponding task based on all the information provided.
+    **Task**: This is the first experiment. Propose an optimal hypothesis based on device and dataset characteristics.
+    {% endif %}
+
+
+# =============================================================================
+# Stage 2b: Data Hypothesis Generation
+# =============================================================================
+# Simple prompt for data processing - let LLM decide the approach
+
+data_hypothesis_gen:
+  system_prompt: |-
+    You are an expert in data processing for LLM training. Your task is to generate a hypothesis and plan for the next round of data processing to build the best possible model given the constraints.
+
+    You should make decisions in a hypothesis that aims to achieve the best performance possible given the constraints. Following the hypothesis, provide a detailed task for the code generator to implement.
+
+    The user might have historical experiments to learn from. Use them wisely to avoid repeating mistakes and build upon successful strategies.
+
+    # Scenario Description
+    {{ scenario }}
+
+    ## Available Resources
+
+    ### Seed Datasets and preview:
+    - Category List:
+    {{category_list}}
+
+    - Dataset Folder Description:
+    {{dataset_folder_desc}}
+
+    ### LLM Endpoints for Data Processing:
+    - OpenAI: gpt-4o for basic data processing(like filtering, deduplication, etc.), gpt-5.1 or gpt-5 for complex data processing(like reasoning or complex data transformation or CoT rewriter, .etc)
+    - Open-source: Any model less than 32B from HuggingFace (Llama, Qwen, Mistral, DeepSeek, etc.)
+
+    ### Available Processing Methods:
+
+    **General Methods**:
+    - Quality filtering: Remove low-quality samples based on perplexity, length, or coherence
+    - Deduplication: N-gram matching or embedding-based deduplication
+    - Diversity sampling: Select diverse samples to improve generalization
+    - Benchmark decontamination: Remove samples similar to evaluation benchmarks
+    - Format normalization: Standardize input/output formats
+    - Category/difficulty balancing: Adjust proportions across categories or difficulty levels
+
+    **Reasoning-Specific Methods**:
+    - Difficulty-based filtering: Use weak model to filter easy problems, strong model to identify boundary-difficulty problems (pass@32=1-3)
+    - Answer-consistency filtering: Keep samples where majority-vote answer matches target answer
+    - CoT quality scoring: Construct a scoring function to score the quality of the CoT, and filter out the low-quality CoT.
+    - Structural health check: Keep CoT with progressive depth, backtracking, and verification nodes; reject wide-shallow or straight-line reasoning
+    - Long-short CoT mixture: Mix original long CoT with compressed short CoT, train with different prompts
+    - Generative selection: Compare multiple solution summaries, come up with methods to select best one
+
+    - Note: You should try to make use of the datasets shown above to generate new training datasets. **But if you think no datasets are not suitable for the task or you have better ideas, you can ignore them and come up with your own datasets(better based on the given seed datasets).**
+
+    ### Avaliable Finetune methods:
+    {{ available_methods }}
+
+    ---
+
+    ## Output Data Format Specification
+
+    Based on the task type, the generated dataset must use the appropriate response format:
+
+    **Non-Reasoning Tasks** (e.g., classification, summarization, general QA):
+    - Standard Alpaca format:
+    ```json
+          {
+            "instruction": "...",
+            "input": "...",
+            "output": "direct answer or response"
+          }
+    ```
+
+    **Reasoning Tasks** (e.g., logic, code debugging, complex QA):
+    - Reasoning format with thinking tags:
+    ```json
+          {
+            "instruction": "...",
+            "input": "...",
+            "output": "<think>\n[step-by-step reasoning process]\n</think>\n[final answer]"
+          }
+    ```
+
+    **Math Reasoning Tasks** (e.g., AIME, AMC, MATH, competition problems):
+    - Math reasoning format with boxed final answer:
+    ```json
+          {
+            "instruction": "...",
+            "input": "...",
+            "output": "<think>\n[step-by-step mathematical reasoning]\n</think>\n\\boxed{result}"
+          }
+    ```
+
+    **ShareGPT Format** (if multi-turn conversation is needed):
+    ```json
+        {
+          "conversations": [
+            {"from": "human", "value": "..."},
+            {"from": "gpt", "value": the same output format as described above for different tasks}
+          ]
+        }
+    ```
+
+    Choose the format that best matches the target task. If using seed datasets, apply the same formatting transformation to them.
+
+    ---
+
+    ## Guidelines
+    1. Please provide the hypothesis in simplest form - avoid unnecessary complexity.
+    2. Consider hardware constraints and available LLM endpoints when making decisions.
+    3. Consider the dataset characteristics and task requirements when selecting processing methods.
+    4. Chain methods logically: filtering → quality scoring → augmentation/generation.
+    5. If history shows a method failed, explain why your new approach differs.
+    6. Ensure the output format matches the task type (standard/reasoning/math_reasoning).
+    7. Always specify which seed datasets will be used in `involving_datasets`.
+
+    ## Hypothesis Format
+    Provide your hypothesis in natural language. Be comprehensive and specific about your recommendations.
+    Example formats:
+    - "Build the initial dataset by selecting [Dataset Names] from seed datasets. Apply [Filtering Method] to remove [Issue]. Use [LLM Endpoint] to [Processing Action]. Expected output: [X] samples."
+    - "Improve upon previous experiment by changing [Method] from [Old] to [New] because [Reason]. Additionally, apply [New Method] to address [Issue]."
+    - "Generate new training data by using [LLM Endpoint] to [Generation Method] based on [Seed Dataset]. Filter results using [Filtering Method] to ensure quality."
+
+    ## Task Specification
+    After the hypothesis, provide a clear and concise task for the code generator to implement. The task should follow these rules:
+    1. **Focus Areas**: The task should cover:
+        - Data loading: Which datasets to load and from where
+        - Processing steps: Filtering, cleaning, scoring, generation, etc.
+        - Output format: Final dataset format and structure
+        - Metadata generation: The code generator must produce a `processed_dataset_info.json` file which mimics the LlamaFactory dataset_info.json format
+    2. **No Code**: The task **MUST NOT** contain any programming code, specific library calls, or pseudo-code. Describe steps conceptually (e.g., "Load dataset [Name], filter samples where response length < 100 tokens, deduplicate using 32-gram matching").
+    3. **Structure and Conciseness**:
+        - If previous experiments exist, reference what to keep or change.
+        - If starting fresh, outline a clear logical sequence from raw data to final dataset.
+    4. **Specificity**: Be specific about:
+        - Which datasets to use
+        - Which LLM endpoints for which processing steps
+        - Filtering thresholds and parameters
+        - Expected sample counts at each stage
+
+    ## Output Format
+    The final output should be in JSON format:
+    ```json
+        {
+          "reason": "[Your reasoning about why this approach should work, referencing history if available]",
+          "hypothesis": "[Your hypothesis in natural language, comprehensive and specific]",
+          "task": "[Step-by-step task description for the code generator, no code]",
+          "involving_datasets": "[List of datasets involved in this experiment]"
+        }
+    ```
+
+  user_prompt: |-
+    {% if trace.hist %}
+    ## Historical Experiments
+
+    {% for experiment, feedback in trace.hist[-5:] %}
+    ### Experiment {{ loop.index }}
+    {% if experiment.hypothesis %}
+    - Hypothesis: {{ experiment.hypothesis.hypothesis }}
+    {% endif %}
+    - Result: {{ "✅ Successful" if feedback.decision else "❌ Failed" }}
+    {% if feedback.observations %}
+    - Observations: {{ feedback.observations[:300] }}
+    {% endif %}
+    {% if feedback.reason %}
+    - Reason: {{ feedback.reason[:200] }}
+    {% endif %}
+    {% endfor %}
+    **Task**: Based on the historical results above, propose a NEW hypothesis that:
+    - Learns from failed attempts and avoids repeating mistakes
+    - Builds upon successful approaches while exploring improvements
+    - Tests promising directions not yet explored
+    {% else %}
+    **Task**: This is the first experiment. Propose an optimal data processing strategy based on the scenarios and the given seed datasets.
     {% endif %}
