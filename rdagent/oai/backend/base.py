@@ -331,6 +331,7 @@ class APIBackend(ABC):
         user_prompt: str,
         system_prompt: str | None = None,
         former_messages: list[dict[str, Any]] | None = None,
+        system_prompt_role: str | None = None,
         *,
         shrink_multiple_break: bool = False,
     ) -> list[dict[str, Any]]:
@@ -350,7 +351,7 @@ class APIBackend(ABC):
         system_prompt = LLM_SETTINGS.default_system_prompt if system_prompt is None else system_prompt
         messages = [
             {
-                "role": LLM_SETTINGS.system_prompt_role,
+                "role": system_prompt_role or LLM_SETTINGS.system_prompt_role,
                 "content": system_prompt,
             },
         ]
@@ -381,6 +382,7 @@ class APIBackend(ABC):
         former_messages: list | None = None,
         chat_cache_prefix: str = "",
         shrink_multiple_break: bool = False,
+        system_prompt_role: str | None = None,
         *args,
         **kwargs,
     ) -> str:
@@ -407,6 +409,7 @@ class APIBackend(ABC):
             user_prompt,
             system_prompt,
             former_messages,
+            system_prompt_role,
             shrink_multiple_break=shrink_multiple_break,
         )
 

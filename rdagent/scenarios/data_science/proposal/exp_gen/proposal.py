@@ -1,4 +1,5 @@
 import json
+import re
 import math
 from datetime import timedelta
 from enum import Enum
@@ -300,6 +301,19 @@ class CodingSketch(BaseModel):
         default=None,
         description="A list of third-party package names (PyPI) that the planned implementation will import. "
         "Used to query the runtime environment dynamically. Leave `null` or omit if not applicable.",
+    )
+
+
+class HypothesisReview(BaseModel):
+    acceptable: str = Field(description="yes or no")
+    reason: str = Field(
+        description="Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences."
+    )
+    observations: str = Field(
+        description="Clearly summarize current and SOTA ensemble results with exact scores and notable patterns. Limit to no more than three concise, data-focused sentences. Your observation must be grounded by explicit evidence from scenario description or code implementation, not just validation scores."
+    )
+    feedback: str = Field(
+        description="Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences."
     )
 
 
@@ -1157,6 +1171,79 @@ You help users retrieve relevant knowledge from community discussions and public
 
     # END: for support llm-based hypothesis selection  -----
 
+    @wait_retry(retry_n=3)
+    def hypothesis_review(
+        self,
+        base_code: str,
+        scenario: str,
+        hypothesis_dict: dict,
+    ) -> dict:
+        """
+        Selects the best hypothesis by scoring each candidate using a local model.
+
+        Args:
+            hypothesis_candidates: A dictionary where keys are hypothesis IDs and
+                                values are dicts containing 'hypothesis',
+                                'component', and 'code'.
+
+        Returns:
+            The dictionary of the selected hypothesis.
+        """
+        for problem_name, data in hypothesis_dict.items():
+            try:
+                # gen rewrite task ( base code + hypothesis )
+                hypothesis_str = f"{data['hypothesis']}\nBecause:\n{data['reason']}"
+                rewrite_task = APIBackend().build_messages_and_create_chat_completion(
+                    system_prompt=T(".prompts_v2:simulate_task.system").r(),
+                    user_prompt=T(".prompts_v2:simulate_task.user").r(
+                        hypothesis=hypothesis_str,
+                        base_code=base_code,
+                    )
+                )
+                
+                # gen expert review
+                if "qwen" in DS_RD_SETTING.review_model:
+                    from rdagent.oai.llm_conf import LLM_SETTINGS
+                    old_max_retry = LLM_SETTINGS.max_retry
+                    LLM_SETTINGS.max_retry = 3
+                    system_prompt = T(".prompts_v2:predict_feedback.system.qwen").r()
+                    response = APIBackend().build_messages_and_create_chat_completion(
+                        system_prompt=system_prompt,
+                        user_prompt=T(".prompts_v2:predict_feedback.user").r(
+                            scenario=scenario,
+                            hypothesis=hypothesis_str,
+                            rewrite_task=rewrite_task,
+                        ),
+                        # system_prompt_role="assistant",
+                        model="hosted_vllm/qwen3-8b", # TODO: litellm-proxied vllm server cannot use completion calls
+                        api_base="http://127.0.0.1:8091/v1",
+                        api_key="sk-vllm"
+                    )
+                    LLM_SETTINGS.max_retry = old_max_retry
+                    # Extract content inside <think> tags and outside
+                    match = re.search(r'<think>(.*?)</think>(.*)', response, re.DOTALL)
+                    think_content = match.group(1).strip()
+                    outside_content = match.group(2).strip()
+                    review_str = ("The hypothesis is acceptable" if "yes" in outside_content else "The hypothesis is not acceptable") + f". Because:\n{think_content}"
+                    hypothesis_dict[problem_name]["expert_review"] = review_str
+                else:
+                    system_prompt = T(".prompts_v2:predict_feedback.system.base").r()
+                    response = APIBackend().build_messages_and_create_chat_completion(
+                        system_prompt=system_prompt,
+                        user_prompt=T(".prompts_v2:predict_feedback.user").r(
+                            scenario=scenario,
+                            hypothesis=hypothesis_str,
+                            rewrite_task=rewrite_task,
+                        ),
+                        # system_prompt_role="assistant",
+                        model=DS_RD_SETTING.review_model,
+                    )
+                    hypothesis_dict[problem_name]["expert_review"] = response
+            except Exception as e:
+                logger.warning(f"Failed to review hypothesis for problem {problem_name}: {e}")
+        
+        return hypothesis_dict
+
     def hypothesis_rank(
         self, hypothesis_dict: dict, problem_dict: dict, selected_idx: Optional[int] = None
     ) -> Tuple[str, DSHypothesis]:
@@ -1459,6 +1546,9 @@ You help users retrieve relevant knowledge from community discussions and public
 
         # Step 3: Select the best hypothesis
         if DS_RD_SETTING.llm_select_hypothesis:
+            if DS_RD_SETTING.review_model is not None:
+                base_code = sota_exp.experiment_workspace.get_codes("main.py") if sota_exp else ""
+                hypothesis_dict = self.hypothesis_review(base_code=base_code, scenario=scenario_desc, hypothesis_dict=hypothesis_dict)
             response_dict = self.hypothesis_select_with_llm(
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
