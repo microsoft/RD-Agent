@@ -11,6 +11,7 @@ from rdagent.scenarios.finetune.scen.utils import (
     FinetuneDatasetDescriptor,
     classify_datasets,
     generate_dataset_info_config,
+    get_dataset_folder_desc,
 )
 from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
 from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
@@ -39,9 +40,8 @@ class LLMFinetuneScen(DataScienceScen):
 
         # Generate dataset configuration
         self.data_info_json = self._prepare_dataset_info()
-
         self.category_dict = self._prepare_category_info()
-
+        self.dataset_folder_desc = get_dataset_folder_desc(FT_RD_SETTING.file_path)
         # timeout tracking
         self.timeout_increase_count = 0
 

@@ -274,9 +274,9 @@ class FinetuneDatasetDescriptor:
         readme_file_descs = ""
         for readme_file in readme_files:
             try:
-                description = readme_file.read_text(encoding="utf-8")[:1000]
+                description = readme_file.read_text(encoding="utf-8")[:5000]
                 logger.info(f"Loaded dataset description from {readme_file.relative_to(dataset_path)}")
-                readme_file_descs += f"# From readme file: {readme_file.relative_to(dataset_path)}:\n{description}\n\n"
+                readme_file_descs += f"### From readme file: {readme_file.relative_to(dataset_path)}:\n<start_of_readme>{description}<end_of_readme>\n\n"
             except Exception as e:
                 logger.warning(f"Failed to read {readme_file.relative_to(dataset_path)}: {e}")
         return readme_file_descs
@@ -566,6 +566,19 @@ def check_all_dataset_in_info(ft_file_path, existing_config, max_depth: int = 3)
     remain_dataset_list = [dataset_name for dataset_name in dataset_list if dataset_name not in existing_config]
     return remain_dataset_list
 
+def get_dataset_folder_desc(ft_file_path: str) -> dict:
+    """Get dataset folder description using AI analysis.
+
+    Args:
+        ft_file_path: Path to finetune directory structure
+
+    Returns:
+        dict: Dataset folder description
+    """
+    dataset_folder_desc = FinetuneDatasetDescriptor().describe_dataset_folder(
+        Path(ft_file_path) / "datasets", include_dataset_readme=True
+    )
+    return dataset_folder_desc
 
 def classify_datasets(ft_file_path: str) -> dict:
     """Classify datasets by task type using AI analysis.
@@ -576,9 +589,7 @@ def classify_datasets(ft_file_path: str) -> dict:
     Returns:
         dict: Classification mapping like {"math_reasoning": ["dataset1", "dataset2"], ...}
     """
-    dataset_folder_desc = FinetuneDatasetDescriptor().describe_dataset_folder(
-        Path(ft_file_path) / "datasets", include_dataset_readme=True
-    )
+    dataset_folder_desc = get_dataset_folder_desc(ft_file_path)
 
     system_prompt = T(".prompts:dataset_classification.system").r()
     user_prompt = T(".prompts:dataset_classification.user").r(
@@ -614,9 +625,7 @@ def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str, e
     remain_dataset_list = check_all_dataset_in_info(ft_file_path, existing_config)
     if len(remain_dataset_list) == 0:
         return {}
-    dataset_folder_desc = FinetuneDatasetDescriptor().describe_dataset_folder(
-        Path(ft_file_path) / "datasets", include_dataset_readme=True
-    )
+    dataset_folder_desc = get_dataset_folder_desc(ft_file_path)
     real_target_dataset_list = remain_dataset_list if not target_dataset_list else target_dataset_list
 
     # Create prompt using template
