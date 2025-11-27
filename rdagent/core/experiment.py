@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, List, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
@@ -241,6 +241,18 @@ class FBWorkspace(Workspace):
                 self.file_dict[k] = v
                 target_file_path.parent.mkdir(parents=True, exist_ok=True)
                 target_file_path.write_text(v)
+
+    def remove_files(self, file_names: str | List[str]) -> None:
+        """
+        Remove specified files from the workspace.
+        """
+        if isinstance(file_names, str):
+            file_names = [file_names]
+        for file_name in file_names:
+            target_file_path = self.workspace_path / file_name
+            if target_file_path.exists():
+                target_file_path.unlink()  # Unlink the file if it exists
+            self.file_dict.pop(file_name, None)  # Safely remove the key from file_dict
 
     def get_files(self) -> list[Path]:
         """

@@ -169,6 +169,9 @@ class LLMConfigValidator:
                 env=env, entry=f"timeout 300 llamafactory-cli train {FT_DEBUG_YAML_FILE_NAME}"
             )
 
+            # Remove micro-batch test files
+            workspace.remove_files([FT_DEBUG_YAML_FILE_NAME])
+
             # Store all execution output
             result.execution_output = training_result.stdout if training_result.stdout else ""
 
@@ -190,4 +193,3 @@ class LLMConfigValidator:
             result.execution_output = str(e)
             result.errors.append(f"Micro-batch test exception: {str(e)}")
             return result
-
