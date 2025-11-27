@@ -191,5 +191,6 @@ class LLMFinetuneCoSTEER(CoSTEER):
             evolving_version=2,
             scen=scen,
             max_loop=FT_RD_SETTING.coder_max_loop if hasattr(FT_RD_SETTING, "coder_max_loop") else 5,
+            stop_eval_chain_on_fail=True, # finetune involve partial implementation.
             **kwargs,
         )

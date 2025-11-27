@@ -28,6 +28,7 @@ class CoSTEER(Developer[Experiment]):
         with_knowledge: bool = True,
         knowledge_self_gen: bool = True,
         max_loop: int | None = None,
+        stop_eval_chain_on_fail: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -46,6 +47,7 @@ class CoSTEER(Developer[Experiment]):
         self.evolving_strategy = es
         self.evaluator = eva
         self.evolving_version = evolving_version
+        self.stop_eval_chain_on_fail = stop_eval_chain_on_fail
 
         # init rag method
         self.rag = (
@@ -99,10 +101,10 @@ class CoSTEER(Developer[Experiment]):
             evolving_strategy=self.evolving_strategy,
             rag=self.rag,
             with_knowledge=self.with_knowledge,
-            with_feedback=True,
             knowledge_self_gen=self.knowledge_self_gen,
             enable_filelock=self.settings.enable_filelock,
             filelock_path=self.settings.filelock_path,
+            stop_eval_chain_on_fail=self.stop_eval_chain_on_fail,
         )
 
         # Evolving the solution
