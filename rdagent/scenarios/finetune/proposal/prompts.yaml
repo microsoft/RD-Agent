@@ -167,7 +167,7 @@ unified_hypothesis_gen:
     {{ available_models }}
     {% endif %}
     
-    **Fine-tuning Methods**:
+    **Available Fine-tuning Methods**:
     {{ available_methods }}
     
     **Shared Parameters** (apply to all methods):
@@ -178,9 +178,6 @@ unified_hypothesis_gen:
     {{ params_desc }}
     {% endfor %}
     
-    ### Available Finetune methods:
-    {{ available_methods }}
-    {% endif %}
     
     ---
     
