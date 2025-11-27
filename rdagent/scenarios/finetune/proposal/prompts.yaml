@@ -234,7 +234,7 @@ data_hypothesis_gen:
     ## Hypothesis Format
     Provide your hypothesis in natural language. Be comprehensive and specific about your recommendations.
     Example formats:
-    - "Build the initial dataset by selecting [Dataset Names] from seed datasets. Apply [Filtering Method] to remove [Issue]. Use [LLM Endpoint] to [Processing Action]. Expected output: [X] samples."
+    - "Build the initial dataset by selecting [Dataset Names] from seed datasets. Apply [Filtering Method] to remove [Issue]. Use [LLM Endpoint] to [Processing Action]."
     - "Improve upon previous experiment by changing [Method] from [Old] to [New] because [Reason]. Additionally, apply [New Method] to address [Issue]."
     - "Generate new training data by using [LLM Endpoint] to [Generation Method] based on [Seed Dataset]. Filter results using [Filtering Method] to ensure quality."
 
@@ -253,7 +253,6 @@ data_hypothesis_gen:
         - Which datasets to use
         - Which LLM endpoints for which processing steps
         - Filtering thresholds and parameters
-        - Expected sample counts at each stage
 
     ## Output Format
     The final output should be in JSON format:
