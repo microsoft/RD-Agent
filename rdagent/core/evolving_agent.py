@@ -50,6 +50,9 @@ class RAGEvaluator(IterEvaluator):
 
         Sending a None feedback will stop the evaluation chain and just return the overall feedback.
 
+        Assumptions:
+        - The evaluation process will make modifications on evo in-place.
+
         A typical implementation of this method is:
 
         .. code-block:: python
@@ -66,13 +69,6 @@ class RAGEvaluator(IterEvaluator):
 
         """
 
-
-def get_return_value(gen: Generator[Any, Any, Feedback]) -> Feedback:
-    """get the return value from a generator"""
-    try:
-        next(gen)
-    except StopIteration as e:
-        return e.value
 
 
 class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[ASpecificEvolvableSubjects]):
@@ -117,6 +113,18 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
         self.filelock_path = filelock_path
         self.stop_eval_chain_on_fail = stop_eval_chain_on_fail
 
+    def _get_overall_feedback(self, eva_iter: Generator[Any, Any, Feedback], evo: EvolvableSubjects, eval_failed_happened: bool) -> Feedback:
+        """get overall feedback from eva_iter"""
+        try:
+            if self.stop_eval_chain_on_fail and eval_failed_happened:
+                fb = eva_iter.send(None)  # send the signal to skip the rest partial evaluation and return the overall feedback directly
+            else:
+                fb = eva_iter.send(evo)
+                if not fb:
+                    eval_failed_happened = True
+        except StopIteration as e:
+            return e.value
+
     def multistep_evolve(
         self,
         evo: ASpecificEvolvableSubjects,
@@ -145,12 +153,14 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
                     queried_knowledge=queried_knowledge,
                 )
                 next(eva_iter) # kick off the first iteration
+                eval_failed_happened = False
                 for evo in evo_iter:
                     step_feedback = eva_iter.send(evo)
-                    if not step_feedback and self.stop_eval_chain_on_fail:
-                        eva_iter.send(None) # sening the signal to skip the rest partial evaluation and return the overall feedback directly
-                        break
-                overall_feedback = get_return_value(eva_iter)
+                    if not step_feedback:
+                        eval_failed_happened = True
+                        if self.stop_eval_chain_on_fail:
+                            break
+                overall_feedback = self._get_overall_feedback(eva_iter, evo, eval_failed_happened)
 
                 # 3. Pack evolve results
                 es = EvoStep[ASpecificEvolvableSubjects](evo, queried_knowledge, overall_feedback)

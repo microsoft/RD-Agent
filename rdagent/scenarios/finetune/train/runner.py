@@ -21,6 +21,7 @@ from rdagent.components.coder.finetune.conf import (
     FT_YAML_FILE_NAME,
     FTCoderCoSTEERSettings,
 )
+from rdagent.components.coder.finetune.eval import FTDataEvaluator
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
@@ -91,6 +92,7 @@ class LLMFinetuneRunner(CoSTEER):
         **kwargs,
     ) -> None:
         eval_l = [
+            FTDataEvaluator(scen=scen),  # Data preparation validation
             FTRunnerEvaluator(scen=scen),  # Training validation
         ]
 

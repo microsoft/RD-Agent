@@ -27,7 +27,6 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         self.settings = settings
         self.improve_mode = improve_mode  # improve mode means we only implement the task which has failed before. The main diff is the first loop will not implement all tasks.
 
-    @abstractmethod
     def implement_one_task(
         self,
         target_task: Task,
@@ -59,8 +58,14 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         """
         raise NotImplementedError
 
-    def implement_func_iter(self) -> Generator[Callable, None, None]:
-        yield self.implement_one_task
+    def implement_func_list(self) -> list[Callable]:
+        """
+        One evolve solution will be divided into multiple implement functions.
+        The functions will be called sequentially.
+
+        `implement_one_task` is the default implementation.  Please refer to its signature for more details.
+        """
+        return [self.implement_one_task]
 
     @abstractmethod
     def assign_code_list_to_evo(self, code_list: list[dict], evo: EvolvingItem) -> None:
@@ -69,6 +74,9 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
 
         Due to the implement_one_task take `workspace` as input and output the `modification`.
         We should apply implementation to evo
+
+        Assumptions:
+        - The modidication on evo should happen in-place!!
 
         The code list is aligned with the evolving item's sub-tasks.
         If a task is not implemented, put a None in the list.
@@ -119,7 +127,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
                         {}
                     )  # empty implementation for skipped task, but assign_code_list_to_evo will still assign it
 
-        for implement_func in self.implement_func_iter():
+        for implement_func in self.implement_func_list():
             result = multiprocessing_wrapper(
                 [
                     (
@@ -138,6 +146,4 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
             for index, target_index in enumerate(to_be_finished_task_index):
                 code_list[target_index] = result[index]
 
-            evo = self.assign_code_list_to_evo(code_list, evo)
-
-            evo = yield evo
+            yield self.assign_code_list_to_evo(code_list, evo)

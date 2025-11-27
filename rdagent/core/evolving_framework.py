@@ -64,7 +64,7 @@ class EvolvingStrategy(ABC, Generic[ASpecificEvolvableSubjects]):
     def evolve_iter(self,
                     evo: ASpecificEvolvableSubjects,
                     queried_knowledge: QueriedKnowledge = None,
-                    evolving_trace: list[EvoStep] = []) -> Generator[ASpecificEvolvableSubjects, ASpecificEvolvableSubjects, None]:
+                    evolving_trace: list[EvoStep] = []) -> Generator[ASpecificEvolvableSubjects, None, None]:
         """
         The evolving trace is a list of (evolvable_subjects, feedback) ordered
         according to the time.
@@ -73,16 +73,17 @@ class EvolvingStrategy(ABC, Generic[ASpecificEvolvableSubjects]):
         - evolving_trace: the historical feedback is important.
         - queried_knowledge: queried knowledge
 
+        Assumptions:
+        - The evolving process will make modifications in-place. So the yield evo and the parameter evo are the same object!!!!
+
 
         Typical implementation of this method is:
 
         .. code-block:: python
 
             for evolve_function in self.evolve_func_iter():
-                evo = yield evolve_function(evo=evo, queried_knowledge=queried_knowledge, evolving_trace=evolving_trace)
-                # =RIGHT: evolve_function will return a partial evolved solution.
-                # LEFT=: the passed in evo is the evaluation `evo` obj after evaluation
-
+                yield evolve_function(evo=evo, queried_knowledge=queried_knowledge, evolving_trace=evolving_trace)
+                # evolve_function will return a partial evolved solution.
         """
 
 

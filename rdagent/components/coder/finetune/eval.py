@@ -6,6 +6,7 @@ No redundant LLM feedback generation - test results speak for themselves.
 """
 
 from pathlib import Path
+from typing import Optional
 
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
@@ -19,6 +20,21 @@ from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 
 DIRNAME = Path(__file__).absolute().resolve().parent
+
+
+class FTDataEvaluator(CoSTEEREvaluator):
+    def evaluate(
+        self,
+        target_task: Task,
+        implementation: FBWorkspace,
+        gt_implementation: FBWorkspace,
+        queried_knowledge: Optional[QueriedKnowledge] = None,
+        **kwargs,
+    ) -> CoSTEERSingleFeedback:
+        # TODO: we just have a dummy evaluator for now
+        return CoSTEERSingleFeedback(execution="", return_checking="", code="", final_decision=True)
+        # return CoSTEERSingleFeedback(execution="data failed", return_checking="data failed", code="data failed", final_decision=False)
+
 
 
 class FTCoderEvaluator(CoSTEEREvaluator):
