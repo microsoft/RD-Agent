@@ -1,0 +1,38 @@
+# SearxNG Configuration
+base_url: "http://localhost:8888"  # Change to your SearxNG server
+timeout: 30
+max_retries: 3
+default_format: "json"
+relevance_threshold: 0.3
+
+# Search Strategy
+max_results_per_query: 5
+preferred_engines:
+  - google
+  - bing
+  - google_scholar
+
+# Credibility Scoring
+credibility_weights:
+  edu_domain: 0.3
+  gov_domain: 0.3
+  org_domain: 0.2
+  academic_engine: 0.4
+  tech_blog: 0.1
+
+# Query Generation
+max_queries_per_search: 5
+query_templates:
+  gap_specific: "how to improve {gap}"
+  best_practice: "best practices for {gap}"
+  case_study: "{methodology} case studies"
+  optimization: "improve {dimension} in research systems"
+
+#Search categories
+categories:
+  - general
+  - science
+
+default_language: "auto"
+
+safesearch: 0 # 0: off, 1: moderate, 2: strict

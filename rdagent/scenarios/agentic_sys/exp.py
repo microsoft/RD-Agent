@@ -1,6 +1,6 @@
 from pathlib import Path
 from rdagent.core.experiment import Experiment
-from typing import Optional, Dict
+from typing import Any, List, Optional, Dict
 
 # convert code into executable experiment and output standard experiment result
 class AgenticSysExperiment(Experiment):
@@ -12,6 +12,18 @@ class AgenticSysExperiment(Experiment):
         # DeepResearch Bench evaluation scores
         self.deepresearch_scores: Optional[Dict[str, float]] = None
         self.evaluation_log: Optional[list] = None
+
+        #web search related attributes (NEW)
+        self.used_web_search: bool = False
+        self.external_sources: List[Dict[str, Any]] = []
+        self.external_knowledge_summary: str = ""
+        self.web_search_timestamp: Optional[str] = None
+        
+        # Existing attributes...
+        self.hypothesis: str = ""
+        self.iteration_number: int = 0
+        self.complexity: str = "medium"
+        self.previous_performance_low: bool = False
 
     def run(self, code:str):
         """

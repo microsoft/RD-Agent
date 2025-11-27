@@ -11,6 +11,7 @@ from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
 from rdagent.core.exception import CoderError, PolicyError, RunnerError
+from rdagent.core.experiment import Experiment
 from rdagent.core.proposal import Experiment2Feedback, ExperimentFeedback, ExpGen, Trace
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
@@ -64,3 +65,52 @@ class AgenticSysRDLoop(RDLoop):
                 ),
                 cur_loop_id,
             )
+    
+    async def propose(self, prev_out):
+        """Propose hypothesis"""
+        #integrate web search tool
+        hypothesis = self.hypothesis_gen.gen(self.trace)
+        #record result
+        if hasattr(hypothesis, 'external_sources'):
+            logger.log_object(
+                hypothesis.external_sources,
+                tag = "research.external.sources"
+            )
+        return hypothesis
+
+
+    async def develop(self, prev_out):
+        """
+        Develop code with optional web search enhancement
+        
+        Args:
+            prev_out: Previous output containing hypothesis
+            
+        Returns:
+            Developed experiment
+        """
+        logger.info("=" * 80)
+        logger.info("DEVELOP PHASE: Generating code")
+        logger.info("=" * 80)
+        
+        hypothesis = prev_out.get("hypothesis")
+        
+        exp = Experiment()
+        exp.hypothesis = hypothesis.hypothesis if hypothesis else "Default hypothesis"
+        exp.iteration_number = len(self.trace.hist)
+        
+        # Develop code (web search is called inside if needed)
+        exp = self.developer.develop(exp)
+        
+        # Track web search usage in development phase
+        if hasattr(self.developer, 'web_search_tool'):
+            web_tool = self.developer.web_search_tool
+            if web_tool is not None and hasattr(exp, 'used_web_search'):
+                if exp.used_web_search:
+                    self.web_search_usage['total_calls'] += 1
+                    self.web_search_usage['successful_calls'] += 1
+        
+        return exp
+
+
+

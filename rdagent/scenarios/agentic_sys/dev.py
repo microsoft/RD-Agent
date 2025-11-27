@@ -14,6 +14,7 @@ import os
 from typing import Dict, Any, List, Optional
 from rdagent.scenarios.agentic_sys.env import get_agent_sys_env
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.agentic_sys.tools.web_search import create_web_search_tool
 
 # TODO:  We only list the dummy coder and runner here.
 # If we want to implement the a comprehensive agentic system R&D Agent, we need to implement it with CoSTEER.
@@ -28,6 +29,22 @@ class AgenticSysCoder(Developer[Experiment]):
         self.api_backend = APIBackend()
         logger.info("Initialized AgenticSysCoder with LLM backend")
 
+        #initialize web search tool
+        search_config_path = Path(__file__).parent / "tools" / "search_config.yaml"
+
+        #web search tool
+        self.web_search_tool = None
+
+        try:
+            self.web_search_tool = create_web_search_tool(search_config_path)
+            logger.info("Initialized web search tool for external knowledge retrieval")
+        except Exception as e:
+            logger.warning(f"Failed to initialize web search tool: {e}")
+            self.web_search_tool = None
+        
+        logger.info("Initialized AgenticSysCoder with LLM")
+
+
     def develop(self, exp: Experiment) -> Experiment:
         # TODO: implement the coder
         '''
@@ -41,6 +58,10 @@ class AgenticSysCoder(Developer[Experiment]):
             ws_path = Path(exp.experiment_workspace.workspace_path)
             ws_path.mkdir(parents=True, exist_ok=True)
             logger.info(f"Initialized workspace at {ws_path}")
+
+            #2. prepare enhanced context with web search
+            context = self.prepare_enhanced_context(exp)
+
 
 
             #2. Generate code files using CoSTEER approach
@@ -95,8 +116,187 @@ class AgenticSysCoder(Developer[Experiment]):
                 except Exception as e_fallback:
                     pass
         return exp
+
+    def prepare_enhanced_context(self, exp:Experiment):
+        """
+        Prepare enhanced context with external knowledge from web search
+        
+        Args:
+            exp: Current experiment
+            
+        Returns:
+            Enhanced context dictionary
+        """
+        hypothesis = getattr(exp, 'hypothesis', 'Improve agentic system performance')
+        
+        # Base context
+        context = {
+            'hypothesis': hypothesis,
+            'scenario_desc': self.scen.get_scenario_all_desc(),
+            'success_criteria': self.scen.get_success_criteria(),
+            'task_id': getattr(exp, 'id', 'unknown'),
+            'task_domain': getattr(self.scen, 'domain', 'general'),
+        }
+        
+        # Add web search results if available (NEW)
+        if self.web_search_tool:
+            try:
+                logger.info("Retrieving external knowledge via web search...")
+                
+                # Check if search service is healthy
+                if not self.web_search_tool.client.health_check():
+                    logger.warning("Search service unavailable, skipping external search")
+                    context['external_sources'] = []
+                    return context
+                
+                # Identify knowledge gaps
+                knowledge_gaps = self._identify_knowledge_gaps(exp, hypothesis)
+                
+                # Prepare search context
+                search_context = {
+                    'methodology': self._extract_methodology(hypothesis),
+                    'complexity': self._assess_complexity(hypothesis)
+                }
+                
+                # Perform web search
+                external_sources = self.web_search_tool.search_for_hypothesis(
+                    task_description=hypothesis,
+                    current_gaps=knowledge_gaps,
+                    context=search_context
+                )
+                
+                context['external_sources'] = external_sources
+                logger.info(f"Retrieved {len(external_sources)} external sources")
+                
+                # Add summary of external sources to context
+                if external_sources:
+                    context['external_knowledge_summary'] = self._summarize_external_sources(
+                        external_sources
+                    )
+                
+            except Exception as e:
+                logger.error(f"Web search failed: {e}")
+                context['external_sources'] = []
+        else:
+            context['external_sources'] = []
+        
+        return context
+
+    def identify_knowledge_gaps(self, exp, hypothesis):
+        """
+        Identify knowledge gaps from hypothesis
+        returns:
+            list of knowledge gap descriptions
+        """
+
+        gaps = []
+
+        #Extract keywords indicating knowledge needs
+        hypothesis_lower = hypothesis.lower()
+
+        #Common agentic system knowledge areas
+        knowledge_areas = {
+            'planning': ['plan', 'planning', 'strategy', 'approach'],
+            'reasoning': ['reason', 'reasoning', 'logic', 'inference'],
+            'learning': ['learn', 'learning', 'adapt', 'optimization'],
+            'memory': ['memory', 'context', 'history', 'recall'],
+            'tool_use': ['tool', 'api', 'external', 'integration'],
+            'evaluation': ['evaluate', 'assessment', 'metric', 'performance'],
+            'communication': ['communicate', 'language', 'dialogue', 'interaction']
+        }
+        
+        for area, keywords in knowledge_areas.items():
+            if any(kw in hypothesis_lower for kw in keywords):
+                gaps.append(f"{area} techniques and best practices")
+        
+        # Add general gaps if none identified
+        if not gaps:
+            gaps.append("agentic system design patterns")
+            gaps.append("system implementation strategies")
+        
+        logger.info(f"Identified knowledge gaps: {gaps}")
+        return gaps[:5]  # Limit to top 5
+
+
+    def extract_methodology(self, hypothesis: str) -> str:
+        """Extract methodology from hypothesis"""
+        hypothesis_lower = hypothesis.lower()
+        
+        methodologies = {
+            'reinforcement learning': ['rl', 'reinforcement', 'q-learning', 'policy'],
+            'retrieval augmented generation': ['rag', 'retrieval', 'augmented'],
+            'chain of thought': ['cot', 'chain of thought', 'reasoning chain'],
+            'tree of thought': ['tot', 'tree of thought', 'reasoning tree'],
+            'multi-agent': ['multi-agent', 'multiple agents', 'agent collaboration'],
+            'iterative refinement': ['iterative', 'refinement', 'feedback loop']
+        }
+        
+        for method, keywords in methodologies.items():
+            if any(kw in hypothesis_lower for kw in keywords):
+                return method
+        
+        return 'general agentic approach'
     
-    def generate_code_with_costeer(self, exp: Experiment) -> Dict[str, str]:
+    def assess_complexity(self, hypothesis: str) -> str:
+        """Assess hypothesis complexity"""
+        hypothesis_lower = hypothesis.lower()
+        
+        high_complexity_indicators = [
+            'complex', 'advanced', 'sophisticated', 'multi-stage',
+            'distributed', 'parallel', 'optimization'
+        ]
+        
+        medium_complexity_indicators = [
+            'moderate', 'standard', 'typical', 'conventional'
+        ]
+        
+        if any(ind in hypothesis_lower for ind in high_complexity_indicators):
+            return 'high'
+        elif any(ind in hypothesis_lower for ind in medium_complexity_indicators):
+            return 'medium'
+        else:
+            return 'low'
+    
+    def summarize_external_sources(self, sources: List[Dict[str, Any]]) -> str:
+        """
+        Summarize external sources for context injection
+        
+        Args:
+            sources: List of external source dictionaries
+            
+        Returns:
+            Formatted summary string
+        """
+        if not sources:
+            return "No external sources available."
+        
+        summary_parts = []
+        
+        # High credibility sources
+        high_cred = [s for s in sources if s.get('credibility_level') == 'High']
+        if high_cred:
+            summary_parts.append(
+                f"High-credibility sources ({len(high_cred)}): "
+                + ", ".join(s['title'][:50] for s in high_cred[:3])
+            )
+        
+        # Key insights
+        key_insights = []
+        for source in sources[:5]:
+            summary = source.get('summary', '')
+            if len(summary) > 50:
+                key_insights.append(summary[:100])
+        
+        if key_insights:
+            summary_parts.append(
+                "Key insights: " + " | ".join(key_insights[:2])
+            )
+        
+        return "\n".join(summary_parts)
+
+
+    
+    def generate_code_with_costeer(self, exp) -> Dict[str, str]:
         """
         Generate code artifacts using CoSTEER approach
         """

@@ -1,4 +1,3 @@
-
 from rdagent.core.experiment import Task
 from rdagent.core.proposal import ExpGen, Trace
 from pathlib import Path
@@ -14,28 +13,49 @@ from rdagent.scenarios.agentic_sys.scen import AgenticSysScen
 from rdagent.log import rdagent_logger as logger
 from rdagent.core.proposal import HypothesisGen, Hypothesis
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.utils.agent.tpl import T
-
+from rdagent.utils.agent.tpl import T  # 使用 T 模板系统
+import json
+from typing import Any, Dict, List, Optional, Tuple
+from rdagent.scenarios.agentic_sys.tools.web_search import create_web_search_tool
 
 
 class AgenticSysHypothesisGen(HypothesisGen):
     """
     Generate hypothesis for agentic system improvements based on DeepResearch evaluation dimensions.
-    Integrates with prompts.yaml for structured hypothesis generation.
+    Uses T() template system to render prompts from prompts.yaml.
     """
 
     def __init__(self, scen: AgenticSysScen):
         super().__init__(scen=scen)
         self.scen = scen
         
-        # Load prompts from prompts.yaml
-        prompt_path = Path(__file__).parent / "prompts.yaml"
-        self.prompt_dict = Prompts(file_path=prompt_path)
-        
         # Initialize LLM backend
         self.api_backend = APIBackend()
+
+        #Initialize web search tool
+        search_config_path = Path(__file__).parent /"tools"/ "search_config.yaml"
+        self.web_search = create_web_search_tool(config_path=search_config_path)
         
-        logger.info("AgenticSysHypothesisGen initialized with prompts from prompts.yaml")
+        logger.info("AgenticSysHypothesisGen initialized with T() template system")
+
+
+    @property
+    def web_search_tool(self):
+        """Lazy load web search tool when needed"""
+        if self._web_search_tool is None:
+            try:
+                search_config_path = Path(__file__).parent / "tools" / "search_config.yaml"
+                if search_config_path.exists():
+                    self._web_search_tool = create_web_search_tool(search_config_path)
+                    logger.info("✓ Web search tool initialized in HypothesisGen")
+                else:
+                    logger.warning(f"Search config not found: {search_config_path}")
+                    self._web_search_tool = False
+            except Exception as e:
+                logger.warning(f"Failed to initialize web search tool: {e}")
+                self._web_search_tool = False
+        return self._web_search_tool if self._web_search_tool is not False else None
+
 
     def gen(self, trace: Trace) -> Hypothesis:
         """
@@ -47,65 +67,237 @@ class AgenticSysHypothesisGen(HypothesisGen):
         Returns:
             Hypothesis object with structured hypothesis data
         """
-        logger.info("Generating hypothesis based on trace history...")
+        logger.info("Generating hypothesis...")
         
-        # 1. Prepare context from trace
-        context = self.prepare_context(trace)
+        # Prepare base context
+        scenario_desc = trace.scen.get_scenario_all_desc()
+        previous_trials = self._extract_previous_trials(trace)
         
-        # 2. Generate hypothesis using LLM with prompts
-        hypothesis_data = self.generate_hypothesis_with_llm(context, trace)
+        # Optionally enhance with web search
+        external_knowledge = []
+        if self._should_use_web_search(trace):
+            external_knowledge = self._retrieve_external_knowledge(trace)
         
-        # 3. Create and return Hypothesis object
-        hypothesis = Hypothesis(
-            hypothesis=hypothesis_data.get("hypothesis", ""),
-            reason=hypothesis_data.get("rationale", ""),
-            concise_reason=hypothesis_data.get("current_gap", ""),
-            concise_observation=self._extract_concise_observation(trace),
-            concise_justification=hypothesis_data.get("concise_knowledge", ""),
-            concise_knowledge=hypothesis_data.get("concise_knowledge", "")
+        # Generate hypothesis using LLM
+        system_prompt = self._build_system_prompt()
+        user_prompt = self._build_user_prompt(
+            scenario_desc=scenario_desc,
+            previous_trials=previous_trials,
+            external_knowledge=external_knowledge
         )
         
-        # Store additional structured data
-        hypothesis.action_type = hypothesis_data.get("action", "Information_Gathering")
-        hypothesis.target_dimensions = hypothesis_data.get("target_dimensions", [])
-        hypothesis.implementation_plan = hypothesis_data.get("implementation_plan", {})
-        hypothesis.risk_assessment = hypothesis_data.get("risk_assessment", {})
-        hypothesis.success_criteria = hypothesis_data.get("success_criteria", {})
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=system_prompt,
+            json_mode=True
+        )
         
-        logger.info(f"Generated hypothesis: {hypothesis.hypothesis}")
-        logger.info(f"Action type: {hypothesis.action_type}")
-        logger.info(f"Target dimensions: {[d['name'] for d in hypothesis.target_dimensions]}")
+        # Parse and return hypothesis
+        hypothesis = self._parse_hypothesis(response, trace)
         
+        logger.info(f"Generated hypothesis: {hypothesis.hypothesis[:100]}...")
         return hypothesis
 
 
-    def _prepare_context(self, trace: Trace) -> Dict[str, Any]:
+    def _should_use_web_search(self, trace: Trace) -> bool:
+        """Determine if web search should be used"""
+        # Check if tool is available
+        if self.web_search_tool is None:
+            return False
+        
+        # Check if service is healthy
+        if not self.web_search_tool.client.health_check():
+            logger.warning("Web search service not healthy")
+            return False
+        
+        # Use for early iterations
+        iteration = len(trace.hist)
+        if iteration < 3:
+            logger.info(f"Early iteration ({iteration}/3), enabling web search")
+            return True
+        
+        # Use if previous performance is low
+        if trace.hist and hasattr(trace.hist[-1][1], 'overall_score'):
+            last_score = trace.hist[-1][1].overall_score
+            if last_score < 6.0:  # Threshold for low performance
+                logger.info(f"Low previous score ({last_score}), enabling web search")
+                return True
+        
+        return False
+    
+    def _retrieve_external_knowledge(self, trace: Trace) -> list:
+        """
+        Retrieve external knowledge using web search tool
+        
+        Args:
+            trace: Execution trace
+            
+        Returns:
+            List of external sources
+        """
+        try:
+            scenario_desc = trace.scen.get_scenario_all_desc()
+            
+            # Identify knowledge gaps
+            knowledge_gaps = self._identify_knowledge_gaps(trace)
+            
+            # Prepare search context
+            search_context = {
+                'iteration': len(trace.hist),
+                'domain': getattr(trace.scen, 'domain', 'general')
+            }
+            
+            # Call web search tool
+            logger.info("Retrieving external knowledge via web search...")
+            external_sources = self.web_search_tool.search_for_hypothesis(
+                task_description=scenario_desc,
+                current_gaps=knowledge_gaps,
+                context=search_context
+            )
+            
+            logger.info(f"Retrieved {len(external_sources)} external sources")
+            return external_sources
+            
+        except Exception as e:
+            logger.error(f"Failed to retrieve external knowledge: {e}")
+            return []
+    
+    def _identify_knowledge_gaps(self, trace: Trace) -> list:
+        """Identify knowledge gaps from trace history"""
+        gaps = []
+        
+        if trace.hist:
+            last_feedback = trace.hist[-1][1]
+            
+            # Check which dimensions performed poorly
+            if hasattr(last_feedback, 'dimension_feedback'):
+                for dim, feedback in last_feedback.dimension_feedback.items():
+                    if hasattr(feedback, 'score') and feedback.score < 6.0:
+                        gaps.append(f"improve {dim}")
+        
+        # Default gaps if none identified
+        if not gaps:
+            gaps = [
+                "agentic system best practices",
+                "system design patterns",
+                "performance optimization"
+            ]
+        
+        return gaps[:5]
+    
+    def _extract_previous_trials(self, trace: Trace) -> str:
+        """Extract previous trials from trace"""
+        if not trace.hist:
+            return "No previous trials"
+        
+        trials = []
+        for exp, feedback in trace.hist[-3:]:  # Last 3 trials
+            trial_summary = {
+                'hypothesis': getattr(exp, 'hypothesis', 'N/A'),
+                'result': getattr(feedback, 'decision', 'N/A'),
+                'score': getattr(feedback, 'overall_score', 0.0)
+            }
+            trials.append(trial_summary)
+        
+        return str(trials)
+    
+    def _build_system_prompt(self) -> str:
+        """Build system prompt for hypothesis generation"""
+        return """You are an expert AI researcher specializing in agentic systems.
+Your task is to generate innovative hypotheses for improving agentic system performance.
+
+Consider:
+1. Previous experimental results
+2. External knowledge from research papers and best practices
+3. Novel approaches and methodologies
+4. Feasibility and implementability
+
+Generate a clear, specific, and testable hypothesis."""
+    
+    def _build_user_prompt(
+        self,
+        scenario_desc: str,
+        previous_trials: str,
+        external_knowledge: list
+    ) -> str:
+        """Build user prompt with all context"""
+        prompt = f"""# Scenario
+{scenario_desc}
+
+# Previous Trials
+{previous_trials}
+"""
+        
+        if external_knowledge:
+            prompt += "\n# External Knowledge\n"
+            for idx, source in enumerate(external_knowledge[:5], 1):
+                prompt += f"\n{idx}. [{source['credibility_level']}] {source['title']}\n"
+                prompt += f"   Summary: {source['summary'][:150]}...\n"
+                prompt += f"   URL: {source['url']}\n"
+        
+        prompt += "\n# Task\nGenerate a hypothesis to improve the agentic system."
+        
+        return prompt
+    
+    def _parse_hypothesis(self, response: str, trace: Trace) -> Hypothesis:
+        """Parse LLM response into Hypothesis object"""
+        # Simplified parsing - in real implementation, use structured output
+        hypothesis_text = response.strip()
+        
+        hypothesis = Hypothesis(
+            hypothesis=hypothesis_text,
+            reason="Generated based on scenario and previous results",
+            concise_reason="Improve system performance",
+            concise_observation="",
+            concise_justification="",
+            concise_knowledge=""
+        )
+        
+        return hypothesis
+
+    def prepare_context(self, trace: Trace):
         """
         Prepare context for hypothesis generation from trace history.
         
-        Similar to data_science scenario's context preparation.
+        KEY METHOD: Uses T() template system like Kaggle scenario
         
         Args:
             trace: Experiment trace
             
         Returns:
-            Dictionary with context information
+            Tuple of (context dictionary, is_first_experiment flag)
         """
+        is_first_experiment = not (hasattr(trace, 'hist') and trace.hist)
+        
+        # Use T() to render hypothesis_and_feedback prompt
+        hypothesis_and_feedback = (
+            T("scenarios.agentic_sys.prompts:hypothesis_and_feedback").r(
+                trace=trace,
+                history_window=10,
+                most_successful_action=self._get_most_successful_action(trace),
+                most_improved_dimension=self._get_most_improved_dimension(trace),
+                persistent_weaknesses=self._get_persistent_weaknesses(trace),
+                effective_strategies=self._get_effective_strategies(trace)
+            )
+            if len(trace.hist) > 0
+            else "No previous hypothesis and feedback available since it's the first round."
+        )
+        
         context = {
-            "is_first_experiment": not (hasattr(trace, 'hist') and trace.hist),
+            "is_first_experiment": is_first_experiment,
             "current_system_description": self._get_system_description(trace),
-            "experiment_history": self._format_experiment_history(trace),
+            "experiment_history": hypothesis_and_feedback,  # 使用渲染后的提示词
             "performance_gaps": self._identify_performance_gaps(trace),
             "current_scores": self._extract_current_scores(trace),
         }
         
-        return context
+        return context, is_first_experiment
 
-    def _prepare_rag_context(self, trace: Trace) -> Dict[str, Any]:
+    def prepare_rag_context(self, trace: Trace):
         """
         Prepare RAG (Retrieval-Augmented Generation) context.
         
-        Similar to: data_science/proposal/exp_gen/base.py knowledge retrieval
+        Uses T() template system for RAG prompt rendering.
         
         Args:
             trace: Experiment trace
@@ -113,16 +305,221 @@ class AgenticSysHypothesisGen(HypothesisGen):
         Returns:
             Dictionary with RAG context
         """
-        rag_context = {
-            "insights": self._retrieve_cross_task_insights(),
-            "experiences": self._retrieve_current_task_experiences(trace),
-            "external_sources": self._retrieve_external_sources(trace)
+        # Retrieve knowledge sources
+        insights = self._retrieve_cross_task_insights()
+        experiences = self._retrieve_current_task_experiences(trace)
+        external_sources = self._retrieve_external_sources(trace)
+        
+        # Render RAG prompt if sources available
+        rag_prompt = ""
+        if insights or experiences or external_sources:
+            try:
+                rag_prompt = T("scenarios.agentic_sys.prompts:KG_hypothesis_gen_RAG").r(
+                    insights=insights,
+                    experiences=experiences,
+                    external_sources=external_sources
+                )
+            except Exception as e:
+                logger.warning(f"Failed to render KG_hypothesis_gen_RAG: {e}")
+        
+        return {
+            "insights": insights,
+            "experiences": experiences,
+            "external_sources": external_sources,
+            "rag_prompt": rag_prompt  # 渲染后的 RAG 提示词
+        }
+
+    def generate_hypothesis_with_llm(
+        self, 
+        context: Dict[str, Any], 
+        rag_context: Dict[str, Any],
+        trace: Trace
+    ) -> Dict[str, Any]:
+        """
+        Generate hypothesis using LLM with prompts from prompts.yaml.
+        
+        Uses T() template system to render all prompts.
+        
+        Args:
+            context: Context dictionary
+            rag_context: RAG context dictionary
+            trace: Experiment trace
+            
+        Returns:
+            Parsed hypothesis data dictionary
+        """
+        # Step 1: Build system prompt using T()
+        try: 
+            system_prompt = T("scenarios.agentic_sys.prompts:hypothesis_generation").s()
+            logger.info("Rendered hypothesis_generation system prompt")
+        except Exception as e:
+            logger.warning(f"Failed to render hypothesis_generation system prompt: {e}")
+            system_prompt = """You are an expert in agentic system optimization and research automation.Your task is to propose hypotheses to improve the system's performance on DeepResearch evaluation dimensions."""
+        
+        # Step 2: Build user prompt using T()
+        user_prompt = self._build_user_prompt_with_t(context, rag_context, trace)
+        
+        # Step 3: Call LLM
+        logger.info("Calling LLM for hypothesis generation...")
+        response = self.api_backend.build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=system_prompt,
+            json_mode=True
+        )
+        
+        # Step 4: Parse JSON response
+        try:
+            hypothesis_data = json.loads(response)
+            logger.info("Successfully parsed hypothesis JSON")
+            return hypothesis_data
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse hypothesis JSON: {e}")
+            logger.error(f"Response: {response}")
+            return self.get_fallback_hypothesis(context)
+
+    def build_user_prompt_with_t(
+        self, 
+        context: Dict[str, Any], 
+        rag_context: Dict[str, Any],
+        trace: Trace
+    ) -> str:
+        """
+        Build user prompt using T() template system.
+        
+        KEY METHOD: Shows how to use T() to render and combine multiple prompts.
+        
+        Pattern:
+        1. T("path:prompt_name").r(**variables) - Render user part
+        2. T("path:prompt_name").s(**variables) - Render system part (if needed)
+        3. Combine multiple rendered prompts with "\n\n"
+        
+        Args:
+            context: Context dictionary
+            rag_context: RAG context dictionary
+            trace: Experiment trace
+            
+        Returns:
+            Complete user prompt string
+        """
+        prompt_parts = []
+        
+        # Part 1: Task background (user part)
+        try:
+            task_bg_user = T("scenarios.agentic_sys.prompts:task_background").r(
+                task_type=getattr(self.scen, 'task_type', 'Research Automation'),
+                domain=getattr(self.scen, 'domain', 'Agentic Systems'),
+                brief_description=getattr(self.scen, 'description', 'Automated research system'),
+                scope_requirements=getattr(self.scen, 'scope', 'N/A'),
+                required_deliverables=getattr(self.scen, 'deliverables', 'N/A'),
+                comprehensiveness_focus=getattr(self.scen, 'comprehensiveness_focus', 'Complete coverage'),
+                insight_focus=getattr(self.scen, 'insight_focus', 'Deep analysis'),
+                instruction_focus=getattr(self.scen, 'instruction_focus', 'Strict adherence'),
+                readability_focus=getattr(self.scen, 'readability_focus', 'Clear presentation')
+            )
+            prompt_parts.append(task_bg_user)
+        except Exception as e:
+            logger.warning(f"Failed to render task_background: {e}")
+            prompt_parts.append(f"""Task Type: {getattr(self.scen, 'task_type', 'Research Automation')}
+Domain: {getattr(self.scen, 'domain', 'Agentic Systems')}
+Brief Description: {getattr(self.scen, 'description', 'Automated research system')}""")
+        
+        # Part 2: RAG context (if available)
+        if rag_context.get("rag_prompt"):
+            prompt_parts.append(rag_context["rag_prompt"])
+            logger.info("Added RAG context")
+        
+        # Part 3: Main hypothesis generation instruction
+        try:
+            hypothesis_gen = T("scenarios.agentic_sys.prompts:hypothesis_generation").r(
+                current_system_description=context["current_system_description"],
+                current_comprehensiveness=context["current_scores"]["comprehensiveness"],
+                current_insight=context["current_scores"]["insight"],
+                current_instruction_following=context["current_scores"]["instruction_following"],
+                current_readability=context["current_scores"]["readability"],
+                experiment_history=context["experiment_history"],
+                performance_gaps=context["performance_gaps"]
+            )
+            prompt_parts.append(hypothesis_gen)
+            logger.info("Rendered hypothesis_generation user prompt")
+        except Exception as e:
+            logger.error(f"Failed to render hypothesis_generation: {e}")
+            raise
+        
+        # Part 4: Output format specification
+        try:
+            output_format = T("scenarios.agentic_sys.prompts:hypothesis_output_format").r()
+            prompt_parts.append(output_format)
+        except Exception as e:
+            logger.warning(f"Failed to render hypothesis_output_format: {e}")
+        
+        # Combine all parts
+        full_prompt = "\n\n".join(prompt_parts)
+        
+        return full_prompt
+
+    # ==================== Helper Methods for Context Preparation ====================
+    
+    def get_most_successful_action(self, trace: Trace) -> str:
+        """Get most successful action type from trace history"""
+        if not hasattr(trace, 'hist') or not trace.hist:
+            return "N/A"
+        
+        action_success = {}
+        for exp, feedback in trace.hist:
+            action_type = getattr(exp, 'action_type', 'Unknown')
+            if getattr(feedback, 'decision', False):
+                action_success[action_type] = action_success.get(action_type, 0) + 1
+        
+        return max(action_success, key=action_success.get) if action_success else "N/A"
+    
+    def get_most_improved_dimension(self, trace: Trace) -> str:
+        """Get most improved dimension from trace history"""
+        if not hasattr(trace, 'hist') or not trace.hist:
+            return "N/A"
+        
+        dimension_improvements = {
+            "comprehensiveness": 0,
+            "insight": 0,
+            "instruction_following": 0,
+            "readability": 0
         }
         
-        return rag_context
+        for exp, feedback in trace.hist:
+            for dim in dimension_improvements.keys():
+                delta_attr = f"{dim}_delta"
+                if hasattr(feedback, delta_attr):
+                    delta = getattr(feedback, delta_attr, 0)
+                    if delta > 0:
+                        dimension_improvements[dim] += delta
+        
+        return max(dimension_improvements, key=dimension_improvements.get)
+    
+    def get_persistent_weaknesses(self, trace: Trace) -> str:
+        """Identify persistent weaknesses from trace history"""
+        if not hasattr(trace, 'hist') or not trace.hist:
+            return "N/A"
+        
+        weaknesses = []
+        if trace.hist:
+            _, last_feedback = trace.hist[-1]
+            for dim in ["comprehensiveness", "insight", "instruction_following", "readability"]:
+                score_attr = f"{dim}_score"
+                if hasattr(last_feedback, score_attr):
+                    score = getattr(last_feedback, score_attr, 0)
+                    if score < 6.0:
+                        weaknesses.append(f"{dim} (score: {score:.1f})")
+        
+        return ", ".join(weaknesses) if weaknesses else "None identified"
+    
+    def get_effective_strategies(self, trace: Trace) -> str:
+        """Get effective strategies from trace history"""
+        most_successful = self._get_most_successful_action(trace)
+        if most_successful != "N/A":
+            return f"{most_successful} action type has been most successful"
+        return "No clear pattern yet"
 
-    def _get_system_description(self, trace: Trace) -> str:
-        """Get current system description from trace."""
+    def get_system_description(self, trace: Trace) -> str:
+        """Get current system description from trace"""
         if not hasattr(trace, 'hist') or not trace.hist:
             return "No previous system implementation. Starting from baseline."
         
@@ -135,112 +532,8 @@ class AgenticSysHypothesisGen(HypothesisGen):
         
         return description
 
-    def _format_experiment_history(self, trace: Trace) -> str:
-        """
-        Format experiment history for prompt.
-        
-        Uses: prompts.yaml::hypothesis_and_feedback template
-        """
-        if not hasattr(trace, 'hist') or not trace.hist:
-            return "No previous experiments."
-        
-        # Try to use the hypothesis_and_feedback template from prompts.yaml
-        try:
-            # Calculate pattern analysis
-            pattern_analysis = self._analyze_patterns(trace)
-            
-            history_prompt = self.prompt_dict["hypothesis_and_feedback"]["user"].render(
-                trace=trace,
-                history_window=10,
-                most_successful_action=pattern_analysis.get("most_successful_action", "N/A"),
-                most_improved_dimension=pattern_analysis.get("most_improved_dimension", "N/A"),
-                persistent_weaknesses=pattern_analysis.get("persistent_weaknesses", "N/A"),
-                effective_strategies=pattern_analysis.get("effective_strategies", "N/A")
-            )
-            return history_prompt
-        except Exception as e:
-            logger.warning(f"Failed to render hypothesis_and_feedback template: {e}")
-            
-            # Fallback: manual formatting
-            history = []
-            for idx, (exp, feedback) in enumerate(trace.hist[-5:], 1):
-                entry = f"Experiment {idx}:\n"
-                entry += f"  Hypothesis: {getattr(exp, 'hypothesis', 'N/A')}\n"
-                entry += f"  Decision: {'Success' if getattr(feedback, 'decision', False) else 'Failed'}\n"
-                entry += f"  Reason: {getattr(feedback, 'reason', 'N/A')[:100]}\n"
-                history.append(entry)
-            
-            return "\n".join(history)
-
-    def _analyze_patterns(self, trace: Trace) -> Dict[str, str]:
-        """
-        Analyze patterns from trace history.
-        
-        Returns:
-            Dictionary with pattern analysis
-        """
-        if not hasattr(trace, 'hist') or not trace.hist:
-            return {
-                "most_successful_action": "N/A",
-                "most_improved_dimension": "N/A",
-                "persistent_weaknesses": "N/A",
-                "effective_strategies": "N/A"
-            }
-        
-        # Count action type success
-        action_success = {}
-        dimension_improvements = {
-            "comprehensiveness": 0,
-            "insight": 0,
-            "instruction_following": 0,
-            "readability": 0
-        }
-        
-        for exp, feedback in trace.hist:
-            action_type = getattr(exp, 'action_type', 'Unknown')
-            if getattr(feedback, 'decision', False):
-                action_success[action_type] = action_success.get(action_type, 0) + 1
-            
-            # Track dimension improvements
-            for dim in dimension_improvements.keys():
-                delta_attr = f"{dim}_delta"
-                if hasattr(feedback, delta_attr):
-                    delta = getattr(feedback, delta_attr, 0)
-                    if delta > 0:
-                        dimension_improvements[dim] += delta
-        
-        # Find most successful action
-        most_successful_action = max(action_success, key=action_success.get) if action_success else "N/A"
-        
-        # Find most improved dimension
-        most_improved_dimension = max(dimension_improvements, key=dimension_improvements.get)
-        
-        # Identify persistent weaknesses
-        weaknesses = []
-        if hasattr(trace, 'hist') and trace.hist:
-            _, last_feedback = trace.hist[-1]
-            for dim, improvement in dimension_improvements.items():
-                if improvement <= 0:
-                    score_attr = f"{dim}_score"
-                    if hasattr(last_feedback, score_attr):
-                        score = getattr(last_feedback, score_attr, 0)
-                        if score < 6.0:
-                            weaknesses.append(f"{dim} (score: {score})")
-        
-        persistent_weaknesses = ", ".join(weaknesses) if weaknesses else "None identified"
-        
-        # Effective strategies
-        effective_strategies = f"{most_successful_action} action type has been most successful"
-        
-        return {
-            "most_successful_action": most_successful_action,
-            "most_improved_dimension": most_improved_dimension,
-            "persistent_weaknesses": persistent_weaknesses,
-            "effective_strategies": effective_strategies
-        }
-
-    def _identify_performance_gaps(self, trace: Trace) -> str:
-        """Identify performance gaps from trace history."""
+    def identify_performance_gaps(self, trace: Trace) -> str:
+        """Identify performance gaps from trace history"""
         if not hasattr(trace, 'hist') or not trace.hist:
             return "Initial baseline establishment needed. Focus on core functionality."
         
@@ -254,15 +547,6 @@ class AgenticSysHypothesisGen(HypothesisGen):
         
         if failed_experiments:
             gaps.append(f"- {len(failed_experiments)} recent failures indicate instability")
-            
-            # Extract common failure patterns
-            failure_reasons = [
-                getattr(fb, 'reason', '') for _, fb in failed_experiments
-            ]
-            if any('error' in reason.lower() for reason in failure_reasons):
-                gaps.append("- Error handling needs improvement")
-            if any('time' in reason.lower() for reason in failure_reasons):
-                gaps.append("- Performance optimization needed")
         
         # Check success rate
         success_rate = self._calculate_success_rate(trace)
@@ -273,8 +557,8 @@ class AgenticSysHypothesisGen(HypothesisGen):
         
         return "\n".join(gaps) if gaps else "System performing well. Focus on advanced optimizations."
 
-    def _extract_current_scores(self, trace: Trace) -> Dict[str, Optional[float]]:
-        """Extract current dimension scores from latest feedback."""
+    def extract_current_scores(self, trace: Trace) -> Dict[str, Optional[float]]:
+        """Extract current dimension scores from latest feedback"""
         if not hasattr(trace, 'hist') or not trace.hist:
             return {
                 "comprehensiveness": None,
@@ -292,8 +576,8 @@ class AgenticSysHypothesisGen(HypothesisGen):
             "readability": getattr(last_feedback, 'readability_score', None)
         }
 
-    def _calculate_success_rate(self, trace: Trace) -> float:
-        """Calculate success rate from trace history."""
+    def calculate_success_rate(self, trace: Trace) -> float:
+        """Calculate success rate from trace history"""
         if not hasattr(trace, 'hist') or not trace.hist:
             return 0.0
         
@@ -304,46 +588,34 @@ class AgenticSysHypothesisGen(HypothesisGen):
         
         return success_count / len(trace.hist)
 
-    def _extract_concise_observation(self, trace: Trace) -> str:
-        """Extract concise observation from trace."""
+    def extract_concise_observation(self, trace: Trace) -> str:
+        """Extract concise observation from trace"""
         if not hasattr(trace, 'hist') or not trace.hist:
             return "Starting baseline implementation"
         
         _, last_feedback = trace.hist[-1]
         observations = getattr(last_feedback, 'observations', '')
         
-        # Extract first sentence or first 100 chars
         if observations:
             first_sentence = observations.split('.')[0]
             return first_sentence[:100] + "..." if len(first_sentence) > 100 else first_sentence
         
         return "Previous experiment completed"
 
-    def _retrieve_cross_task_insights(self) -> List[Dict[str, Any]]:
-        """
-        Retrieve insights from other similar tasks (cross-task knowledge).
-        
-        TODO: Implement actual knowledge base retrieval
-        Similar to: data_science scenario's knowledge base
-        """
-        # Placeholder for RAG implementation
+    # ==================== RAG Methods ====================
+    
+    def retrieve_cross_task_insights(self) -> List[Dict[str, Any]]:
+        """Retrieve insights from other similar tasks"""
+        # TODO: Implement actual knowledge base retrieval
         return []
 
-    def _retrieve_current_task_experiences(self, trace: Trace) -> List[Dict[str, Any]]:
-        """
-        Retrieve relevant experiences from current task's trace history.
-        
-        Args:
-            trace: Experiment trace
-            
-        Returns:
-            List of experience dictionaries
-        """
+    def retrieve_current_task_experiences(self, trace: Trace) -> List[Dict[str, Any]]:
+        """Retrieve relevant experiences from current task's trace history"""
         if not hasattr(trace, 'hist') or not trace.hist:
             return []
         
         experiences = []
-        for exp, fb in trace.hist[-5:]:  # Last 5 experiences
+        for exp, fb in trace.hist[-5:]:
             experiences.append({
                 "hypothesis": getattr(exp, 'hypothesis', 'N/A'),
                 "approach": getattr(exp, 'action_type', 'N/A') if hasattr(exp, 'action_type') else 'N/A',
@@ -353,195 +625,116 @@ class AgenticSysHypothesisGen(HypothesisGen):
         
         return experiences
 
-    def _retrieve_external_sources(self, trace: Trace) -> List[Dict[str, Any]]:
+    def retrieve_external_sources(self, trace: Trace) -> List[Dict[str, Any]]:
+        """Retrieve external sources
+        Args:
+            trace: Experiment trace
+        Returns:
+            List of external source dictionaries
         """
-        Retrieve external sources (papers, documentation, etc.).
-        
-        TODO: Implement actual external source retrieval
-        """
-        # Placeholder for external source retrieval
-        return []
 
-    def _extract_improved_dimensions(self, feedback) -> List[str]:
-        """Extract which dimensions improved from feedback."""
+        #check if web search is available
+        if not self.web_search.client_health_check():
+            logger.warning("SearxNG service unavailable. Skipping external search")
+            return []
+        #prepare search content
+        task_description = getattr(self.scen, 'description', 'Automated research system')
+        knowledge_gaps = self._identify_performance_gaps(trace)
+        context = {
+            "weak_dimension": self._get_most_improved_dimension(trace),
+            "methodology": getattr(self.scen, 'task_type', '')
+        }
+        try:
+            #perform web search
+            external_sources = self.web_search.search_for_hypothesis(
+                task_description = task_description,
+                current_gaps = knowledge_gaps,
+                context = context,
+            )
+
+            logger.info(f"Retrieved {len(external_sources)} external sources")
+            return external_sources
+        except Exception as e:
+            logger.error(f"Failed to retrieve external sources: {e}")
+            return []
+
+    def identify_knowledge_gaps(self, trace):
+        """
+        Identify knowledge gaps from trace history for external search
+        Args:
+            trace: Experiment trace
+        Returns:
+            List of knowledge gap descriptions
+        """
+        gaps = []
+        if not hasattr(trace, 'hist') or not trace.hist:
+            gaps.append("baseline system design")
+            gaps.append("evaluation metrics implementation")
+            return gaps
+        #analyze recent failures
+        for exp, feedback in trace.hist[-3:]:
+            if not getattr(feedback, 'decision', False):
+                reason = getattr(feedback, 'reason', '')
+                if 'error' in reason.lower():
+                    gaps.append("error handling strategies")
+                if 'coverage' in reason.lower():
+                    gaps.append("comprehensive task coverage techniques")
+                if 'insight' in reason.lower():
+                    gaps.append("methods to enhance insight generation")
+
+        #check dimension scores
+        if hasattr(trace, 'hist') and trace.hist:
+            _, last_feedback = trace.hist[-1]
+            dimensions = {
+                'comprehensiveness': getattr(last_feedback, 'comprehensiveness_score', 0),
+                'insight': getattr(last_feedback, 'insight_score', 0),
+                'instruction_following': getattr(last_feedback, 'instruction_score', 0),
+                'readability': getattr(last_feedback, 'readability_score', 0)
+            }
+            #identify low scoring dimensions
+            for dim, score in dimensions.items():
+                if score and score < 6.0:
+                    gaps.append(f"improving {dim} techniques")
+
+        return gaps if gaps else ["general agentic system optimization"]
+
+
+    def get_weak_dimension(self, trace):
+        """
+        get the weakest evaluation dimension from trace history
+        """
+        if not hasattr(trace, 'hist') or not trace.hist:
+            return None
+        _, last_feedback = trace.hist[-1]
+        dimensions = {
+            "comprehensiveness": getattr(last_feedback, 'comprehensiveness_score', 10),
+            "insight": getattr(last_feedback, 'insight_score', 10),
+            "instruction_following": getattr(last_feedback, 'instruction_score', 10),
+            "readability": getattr(last_feedback, 'readability_score', 10)
+        }
+
+        if dimensions:
+            weakest = min(dimensions, key = lambda x: x[1])
+            return weakest[0]
+        
+        return None
+
+
+
+
+    def extract_improved_dimensions(self, feedback) -> List[str]:
+        """Extract which dimensions improved from feedback"""
         improved = []
         
-        if hasattr(feedback, 'comprehensiveness_delta') and getattr(feedback, 'comprehensiveness_delta', 0) > 0:
-            improved.append("Comprehensiveness")
-        if hasattr(feedback, 'insight_delta') and getattr(feedback, 'insight_delta', 0) > 0:
-            improved.append("Insight")
-        if hasattr(feedback, 'instruction_delta') and getattr(feedback, 'instruction_delta', 0) > 0:
-            improved.append("Instruction Following")
-        if hasattr(feedback, 'readability_delta') and getattr(feedback, 'readability_delta', 0) > 0:
-            improved.append("Readability")
+        for dim in ["comprehensiveness", "insight", "instruction_following", "readability"]:
+            delta_attr = f"{dim}_delta"
+            if hasattr(feedback, delta_attr) and getattr(feedback, delta_attr, 0) > 0:
+                improved.append(dim.replace("_", " ").title())
         
         return improved if improved else ["None"]
 
-    def _generate_hypothesis_with_llm(
-        self, 
-        context: Dict[str, Any], 
-        rag_context: Dict[str, Any],
-        trace: Trace
-    ) -> Dict[str, Any]:
-        """
-        Generate hypothesis using LLM with prompts from prompts.yaml.
-        
-        Similar to: data_science/proposal/exp_gen/base.py::_generate_hypothesis
-        
-        This is the CORE method that calls prompts.yaml templates.
-        
-        Args:
-            context: Context dictionary
-            rag_context: RAG context dictionary
-            trace: Experiment trace
-            
-        Returns:
-            Parsed hypothesis data dictionary
-        """
-        # Step 1: Build system prompt with task background
-        system_prompt = self._build_system_prompt()
-        
-        # Step 2: Build user prompt with all components
-        user_prompt = self._build_user_prompt(context, rag_context, trace)
-        
-        # Step 3: Call LLM (same as data_science scenario)
-        logger.info("Calling LLM for hypothesis generation...")
-        response = self.api_backend.build_messages_and_create_chat_completion(
-            user_prompt=user_prompt,
-            system_prompt=system_prompt,
-            json_mode=True  # Force JSON output
-        )
-        
-        # Step 4: Parse JSON response
-        try:
-            hypothesis_data = json.loads(response)
-            logger.info("Successfully parsed hypothesis JSON")
-            return hypothesis_data
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse hypothesis JSON: {e}")
-            logger.error(f"Response: {response}")
-            
-            # Fallback to simple hypothesis
-            return self._get_fallback_hypothesis(context)
-
-    def _build_system_prompt(self) -> str:
-        """
-        Build system prompt from prompts.yaml.
-        
-        Uses: prompts.yaml::task_background::system
-        
-        This method shows how to access nested prompts with system/user structure.
-        """
-        try:
-            # Access the 'system' part of 'task_background'
-            system_prompt = self.prompt_dict["task_background"]["system"]
-            return system_prompt
-        except Exception as e:
-            logger.warning(f"Failed to get task_background system prompt: {e}")
-            # Fallback system prompt
-            return "You are an expert AI researcher specializing in agentic systems."
-
-    def _build_user_prompt(
-        self, 
-        context: Dict[str, Any], 
-        rag_context: Dict[str, Any],
-        trace: Trace
-    ) -> str:
-        """
-        Build user prompt combining multiple components from prompts.yaml.
-        
-        This method demonstrates the KEY pattern for using prompts.yaml:
-        1. Access prompts using self.prompt_dict[prompt_name]
-        2. For system/user structure: self.prompt_dict[prompt_name]["user"]
-        3. Use .render() to substitute Jinja2 variables
-        4. Combine multiple prompts into one user_prompt
-        
-        Components:
-        1. task_background::user (task context)
-        2. KG_hypothesis_gen_RAG::user (if RAG context available)
-        3. hypothesis_generation::user (main generation instruction)
-        4. hypothesis_output_format::user (output specification)
-        
-        Args:
-            context: Context dictionary
-            rag_context: RAG context dictionary
-            trace: Experiment trace
-            
-        Returns:
-            Complete user prompt string
-        """
-        prompt_parts = []
-        
-        # Part 0: Add task background (user part)
-        try:
-            task_bg = self.prompt_dict["task_background"]["user"].render(
-                task_type=getattr(self.scen, 'task_type', 'Research Automation'),
-                domain=getattr(self.scen, 'domain', 'Agentic Systems'),
-                brief_description=getattr(self.scen, 'description', 'Automated research system'),
-                scope_requirements=getattr(self.scen, 'scope', 'N/A'),
-                required_deliverables=getattr(self.scen, 'deliverables', 'N/A'),
-                comprehensiveness_focus=getattr(self.scen, 'comprehensiveness_focus', 'Complete task coverage'),
-                insight_focus=getattr(self.scen, 'insight_focus', 'Deep causal analysis'),
-                instruction_focus=getattr(self.scen, 'instruction_focus', 'Strict requirement adherence'),
-                readability_focus=getattr(self.scen, 'readability_focus', 'Clear presentation')
-            )
-            prompt_parts.append(task_bg)
-        except Exception as e:
-            logger.warning(f"Failed to render task_background user prompt: {e}")
-        
-        # Part 1: Add RAG context if available
-        if rag_context.get("insights") or rag_context.get("experiences") or rag_context.get("external_sources"):
-            try:
-                # Access the 'user' part and render with variables
-                rag_prompt = self.prompt_dict["KG_hypothesis_gen_RAG"]["user"].render(
-                    insights=rag_context.get("insights", []),
-                    experiences=rag_context.get("experiences", []),
-                    external_sources=rag_context.get("external_sources", [])
-                )
-                prompt_parts.append(rag_prompt)
-            except Exception as e:
-                logger.warning(f"Failed to render KG_hypothesis_gen_RAG: {e}")
-        
-        # Part 2: Add main hypothesis generation instruction
-        try:
-            # This is the CORE prompt - access 'user' part and render
-            hypothesis_prompt = self.prompt_dict["hypothesis_generation"]["user"].render(
-                current_system_description=context["current_system_description"],
-                current_comprehensiveness=context["current_scores"]["comprehensiveness"],
-                current_insight=context["current_scores"]["insight"],
-                current_instruction_following=context["current_scores"]["instruction_following"],
-                current_readability=context["current_scores"]["readability"],
-                experiment_history=context["experiment_history"],
-                performance_gaps=context["performance_gaps"]
-            )
-            prompt_parts.append(hypothesis_prompt)
-        except Exception as e:
-            logger.error(f"Failed to render hypothesis_generation: {e}")
-            raise
-        
-        # Part 3: Add output format specification
-        try:
-            # Access the 'user' part for output format
-            output_format = self.prompt_dict["hypothesis_output_format"]["user"]
-            prompt_parts.append(output_format)
-        except Exception as e:
-            logger.warning(f"Failed to get hypothesis_output_format: {e}")
-        
-        # Part 4: Combine all parts with double newlines
-        full_prompt = "\n\n".join(prompt_parts)
-        
-        return full_prompt
-
-    def _get_fallback_hypothesis(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Get fallback hypothesis when LLM parsing fails.
-        
-        Args:
-            context: Context dictionary
-            
-        Returns:
-            Simple fallback hypothesis dictionary
-        """
+    def get_fallback_hypothesis(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Get fallback hypothesis when LLM parsing fails"""
         return {
             "action": "Information_Gathering",
             "hypothesis": "Improve system based on previous feedback",
@@ -554,8 +747,8 @@ class AgenticSysHypothesisGen(HypothesisGen):
                     "confidence": "Low"
                 }
             ],
-            "current_gap": "Unable to generate structured hypothesis due to LLM response parsing failure",
-            "rationale": "LLM response parsing failed. Using fallback hypothesis for system improvement.",
+            "current_gap": "Unable to generate structured hypothesis",
+            "rationale": "LLM response parsing failed. Using fallback hypothesis.",
             "implementation_plan": {
                 "step_1": "Review previous feedback",
                 "step_2": "Implement basic improvements",
@@ -570,33 +763,23 @@ class AgenticSysHypothesisGen(HypothesisGen):
                 "secondary": ["Performance maintained or improved"],
                 "validation_method": "Manual verification"
             },
-            "concise_knowledge": "When LLM parsing fails, use fallback hypothesis with incremental improvements"
+            "concise_knowledge": "When LLM parsing fails, use incremental improvements"
         }
 
 
-#define experiment generator and generate agentic system experiment
 class AgenticSysExpGen(ExpGen):
-    """
-    1. follow RDAgent Framework design module, inherit ExpGen class
-    2. ensure compatibility with Trace and Experiment classes
-    3. make full use of fundemantal functionality and agreement of RDAgent Framework
-    """
+    """Generate experiment based on hypothesis"""
 
     def __init__(self, scen: AgenticSysScen):
-        """insert scenario context"""
         self.scen = scen
-        prompt_path = Path(__file__).parent / "prompts.yaml"
-        self.prompt_dict = Prompts(file_path=prompt_path)
-
-        #initialize LLM backend
         self.api_backend = APIBackend()
-        logger.info("AgenticSysExpGen initialized.")
+        logger.info("AgenticSysExpGen initialized with T() template system")
         
     def gen(self, trace: Trace) -> AgenticSysExperiment:
         """
         Generate experiment based on trace and hypothesis.
         
-        Similar to: data_science/proposal/exp_gen/base.py::ModelExpGen.gen()
+        Uses T() template system for task description generation.
         
         Args:
             trace: Experiment trace
@@ -606,11 +789,11 @@ class AgenticSysExpGen(ExpGen):
         """
         logger.info("Generating experiment from hypothesis...")
         
-        # Step 1: Get hypothesis from trace (should be generated by HypothesisGen)
-        hypothesis = self._get_latest_hypothesis(trace)
+        # Step 1: Get hypothesis from trace
+        hypothesis = self.get_latest_hypothesis(trace)
         
-        # Step 2: Generate task description based on hypothesis
-        task_desc = self._generate_task_description(hypothesis, trace)
+        # Step 2: Generate task description using T()
+        task_desc = self.generate_task_description_with_t(hypothesis, trace)
         
         # Step 3: Create experiment
         main_task = Task(task_desc)
@@ -624,7 +807,7 @@ class AgenticSysExpGen(ExpGen):
             experiment.action_type = getattr(hypothesis, 'action_type', 'Information_Gathering')
             experiment.target_dimensions = getattr(hypothesis, 'target_dimensions', [])
             experiment.implementation_plan = getattr(hypothesis, 'implementation_plan', {})
-            experiment.hypothesis_obj = hypothesis  # Store full hypothesis object
+            experiment.hypothesis_obj = hypothesis
         else:
             experiment.hypothesis = "Baseline implementation"
             experiment.action_type = "Information_Gathering"
@@ -633,17 +816,11 @@ class AgenticSysExpGen(ExpGen):
         
         return experiment
 
-    def _get_latest_hypothesis(self, trace: Trace) -> Optional[Hypothesis]:
-        """
-        Get the latest hypothesis from trace.
-        
-        In RDAgent framework, hypothesis is typically stored in trace or passed separately.
-        """
-        # Option 1: Check if hypothesis is stored in trace
+    def get_latest_hypothesis(self, trace: Trace) -> Optional[Hypothesis]:
+        """Get the latest hypothesis from trace"""
         if hasattr(trace, 'hypothesis') and trace.hypothesis:
             return trace.hypothesis
         
-        # Option 2: Check last experiment in history
         if hasattr(trace, 'hist') and trace.hist:
             last_exp, _ = trace.hist[-1]
             if hasattr(last_exp, 'hypothesis_obj'):
@@ -651,16 +828,18 @@ class AgenticSysExpGen(ExpGen):
         
         return None
 
-    def _generate_task_description(self, hypothesis: Optional[Hypothesis], trace: Trace) -> str:
+    def generate_task_description_with_t(
+        self, 
+        hypothesis: Optional[Hypothesis], 
+        trace: Trace
+    ) -> str:
         """
-        Generate task description based on hypothesis and action type.
+        Generate task description using T() template system.
         
-        KEY METHOD: Shows how to use action-specific prompts from prompts.yaml
-        
-        Uses: prompts.yaml::hypothesis_specification::{action_type}::user
+        KEY METHOD: Shows how to use action-specific prompts with T().
         
         Args:
-            hypothesis: Hypothesis object (can be None for first experiment)
+            hypothesis: Hypothesis object
             trace: Experiment trace
             
         Returns:
@@ -670,58 +849,49 @@ class AgenticSysExpGen(ExpGen):
         
         # First experiment: baseline task
         if is_first_experiment:
-            return self._get_baseline_task()
+            return self.get_baseline_task()
         
-        # No hypothesis available: fallback
+        # No hypothesis: fallback
         if not hypothesis:
-            return self._get_improvement_task_fallback(trace)
+            return self.get_improvement_task_fallback(trace)
         
-        # Generate task based on action type using prompts.yaml
+        # Generate task based on action type using T()
         action_type = getattr(hypothesis, 'action_type', 'Information_Gathering')
         
-        # Try to get action-specific specification from prompts
         try:
-            # KEY PATTERN: Access nested prompts with action type
-            # prompts.yaml structure:
-            # hypothesis_specification:
-            #   Information_Gathering:
-            #     system: ...
-            #     user: ...
+            # Use T() to render action-specific specification
+            action_spec = T(f"scenarios.agentic_sys.prompts:hypothesis_specification.{action_type}").r()
             
-            if "hypothesis_specification" in self.prompt_dict:
-                if action_type in self.prompt_dict["hypothesis_specification"]:
-                    # Get the 'user' part of the action specification
-                    action_spec_user = self.prompt_dict["hypothesis_specification"][action_type]["user"]
-                    
-                    # Build complete task description
-                    task_desc = f"""Action: {action_type}
+            # Build complete task description
+            task_desc = f"""Action: {action_type}
 
 Hypothesis: {hypothesis.hypothesis}
 
 Target Dimensions:
-{self._format_target_dimensions(getattr(hypothesis, 'target_dimensions', []))}
+{self.format_target_dimensions(getattr(hypothesis, 'target_dimensions', []))}
 
 Implementation Plan:
-{self._format_implementation_plan(getattr(hypothesis, 'implementation_plan', {}))}
+{self.format_implementation_plan(getattr(hypothesis, 'implementation_plan', {}))}
 
 ====== Action-Specific Guidelines ======
-{action_spec_user}
+{action_spec}
 
 ====== Success Criteria ======
-{self._format_success_criteria(getattr(hypothesis, 'success_criteria', {}))}
+{self.format_success_criteria(getattr(hypothesis, 'success_criteria', {}))}
 
 ====== Risk Assessment ======
-{self._format_risk_assessment(getattr(hypothesis, 'risk_assessment', {}))}
+{self.format_risk_assessment(getattr(hypothesis, 'risk_assessment', {}))}
 """
-                    return task_desc
+            return task_desc
+            
         except Exception as e:
-            logger.warning(f"Failed to use action specification from prompts.yaml: {e}")
-        
-        # Fallback to simple task description
-        return self._get_improvement_task_fallback(trace)
+            logger.warning(f"Failed to use T() for action specification: {e}")
+            return self._get_improvement_task_fallback(trace)
 
-    def _format_target_dimensions(self, target_dimensions: List[Dict]) -> str:
-        """Format target dimensions for task description."""
+    # ==================== Formatting Helper Methods ====================
+    
+    def format_target_dimensions(self, target_dimensions: List[Dict]) -> str:
+        """Format target dimensions"""
         if not target_dimensions:
             return "- No specific dimension targets"
         
@@ -737,8 +907,8 @@ Implementation Plan:
         
         return "\n".join(lines)
 
-    def _format_implementation_plan(self, plan: Dict) -> str:
-        """Format implementation plan for task description."""
+    def format_implementation_plan(self, plan: Dict) -> str:
+        """Format implementation plan"""
         if not plan:
             return "- No specific implementation plan"
         
@@ -748,8 +918,8 @@ Implementation Plan:
         
         return "\n".join(lines)
 
-    def _format_success_criteria(self, criteria: Dict) -> str:
-        """Format success criteria for task description."""
+    def format_success_criteria(self, criteria: Dict) -> str:
+        """Format success criteria"""
         if not criteria:
             return "- Complete implementation without errors"
         
@@ -771,8 +941,8 @@ Implementation Plan:
         
         return "\n".join(lines) if lines else "- Complete implementation without errors"
 
-    def _format_risk_assessment(self, risk_assessment: Dict) -> str:
-        """Format risk assessment for task description."""
+    def format_risk_assessment(self, risk_assessment: Dict) -> str:
+        """Format risk assessment"""
         if not risk_assessment:
             return "- No specific risks identified"
         
@@ -798,99 +968,47 @@ Implementation Plan:
         
         return "\n".join(lines) if lines else "- No specific risks identified"
 
-    def _get_baseline_task(self) -> str:
-        """
-        Get baseline task description for first experiment.
-        
-        Could also be loaded from prompts.yaml if needed.
-        
-        Returns:
-            Baseline task description string
-        """
+    def get_baseline_task(self) -> str:
+        """Get baseline task description for first experiment"""
         competition = getattr(self.scen, "competition", 'general') if self.scen else 'general'
         
         return f"""Design and implement a baseline agentic system for {competition}.
 
 Requirements:
-1. Create an AgenticSystem class that can execute research tasks autonomously
+1. Create an AgenticSystem class for autonomous research task execution
 2. Implement task execution with performance monitoring
-3. Include metrics collection for all four DeepResearch dimensions:
-   - Comprehensiveness: Coverage breadth and depth
-   - Insight: Causal reasoning and originality
-   - Instruction Following: Requirement adherence
-   - Readability: Clarity and presentation
-4. Add proper error handling and logging
+3. Include metrics collection for DeepResearch dimensions:
+   - Comprehensiveness, Insight, Instruction Following, Readability
+4. Add error handling and logging
 5. Output results in structured JSON format
 
-The system should demonstrate:
-- Information gathering and synthesis
-- Task planning and execution
-- Basic error recovery
-- Performance measurement
-- Clean code structure
-
-Evaluation Focus:
-- Comprehensiveness: Complete task coverage
-- Insight: Basic causal reasoning
-- Instruction Following: Meet all requirements
-- Readability: Clear code and documentation
-
-Target Scores (0-10 scale):
-- Comprehensiveness: ≥ 6.0
-- Insight: ≥ 5.0
-- Instruction Following: ≥ 7.0
-- Readability: ≥ 6.0
+Target Scores: Comprehensiveness ≥6.0, Insight ≥5.0, Instruction Following ≥7.0, Readability ≥6.0
 """
 
-    def _get_improvement_task_fallback(self, trace: Trace) -> str:
-        """
-        Fallback task generation when hypothesis is not available.
-        
-        Args:
-            trace: Experiment trace
-            
-        Returns:
-            Improvement task description
-        """
+    def get_improvement_task_fallback(self, trace: Trace) -> str:
+        """Fallback task generation when hypothesis unavailable"""
         if not hasattr(trace, 'hist') or not trace.hist:
             return self._get_baseline_task()
         
         last_exp, last_feedback = trace.hist[-1]
         
         decision = getattr(last_feedback, 'decision', None)
-        if decision is True:
-            base_desc = "Enhance the successful agentic system from the previous experiment."
-        elif decision is False:
-            base_desc = "Fix the issues in the previous agentic system implementation."
-        else:
-            base_desc = "Review the previous experiment and address any uncovered issues."
+        base_desc = "Enhance successful system" if decision else "Fix issues in previous implementation"
         
-        feedback_reason = getattr(last_feedback, 'reason', 'No specific feedback')[:200]
-        
-        competition = getattr(self.scen, 'competition', 'general') if self.scen else 'general'
+        feedback_reason = getattr(last_feedback, 'reason', 'No feedback')[:200]
         
         return f"""{base_desc}
 
-Competition: {competition}
 Previous feedback: {feedback_reason}
 
-Improvement requirements:
-1. Analyze the previous implementation and identify bottlenecks
-2. Implement specific optimizations based on the feedback
-3. Maintain or improve the current performance metrics on all four dimensions
-4. Add new features or capabilities as needed
-5. Focus on the weakest evaluation dimension
+Focus on improving lowest-scoring dimension.
 
-Ensure backwards compatibility while introducing improvements.
-
-Current Dimension Scores:
-{self._format_current_scores(last_feedback)}
-
-Prioritize improvements in the lowest-scoring dimension.
+Current Scores:
+{self.format_current_scores(last_feedback)}
 """
 
-    def _format_current_scores(self, feedback) -> str:
-        """Format current dimension scores from feedback."""
+    def format_current_scores(self, feedback) -> str:
+        """Format current dimension scores"""
         scores = {
             "Comprehensiveness": getattr(feedback, 'comprehensiveness_score', 'N/A'),
             "Insight": getattr(feedback, 'insight_score', 'N/A'),
@@ -898,8 +1016,4 @@ Prioritize improvements in the lowest-scoring dimension.
             "Readability": getattr(feedback, 'readability_score', 'N/A')
         }
         
-        lines = []
-        for dim, score in scores.items():
-            lines.append(f"- {dim}: {score}")
-        
-        return "\n".join(lines)
+        return "\n".join(f"- {dim}: {score}" for dim, score in scores.items())
