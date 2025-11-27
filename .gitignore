@@ -183,3 +183,5 @@ static/
 .cursor/
 .claude/
 AGENTS.md
+
+scripts/

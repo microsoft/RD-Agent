@@ -154,7 +154,7 @@ class LLMFinetuneScen(DataScienceScen):
         """Metric direction for LLM fine-tuning (higher is better)"""
         return True
 
-    def get_scenario_all_desc(self) -> str:
+    def get_scenario_all_desc(self,enable_dataset_description: bool = True) -> str:
         """Get complete scenario description for LLM fine-tuning"""
         return T(".prompts:scenario_description").r(
             user_target_scenario=self.user_target_scenario,
@@ -168,5 +168,6 @@ class LLMFinetuneScen(DataScienceScen):
             model_info=self.model_info,
             debug_timeout=f"{self.real_debug_timeout() / 60:.2f} minutes",
             full_timeout=f"{self.real_full_timeout() / 60 / 60:.2f} hours",
+            enable_dataset_description=enable_dataset_description,
         )
 

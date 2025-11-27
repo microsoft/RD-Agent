@@ -26,6 +26,7 @@ scenario_description: |-
   The user has not yet decided the base model to fine-tune.
   {% endif %}
 
+  {% if enable_dataset_description %}
   # Provided Dataset Details
   {{ dataset_info }}
   The dataset characteristics is provided for you to understand the data better. Each dataset is a folder of files. Some in good format for fine-tuning while some are not.
@@ -36,7 +37,8 @@ scenario_description: |-
   ## Timeout Constraints
   - Debug Timeout: {{ debug_timeout }}
   - Full Training Timeout: {{ full_timeout }}
-
+  {% endif %}
+  
 dataset_classification:
   system: |-
     Analyze datasets and classify them by task type.

@@ -136,10 +136,6 @@ data_hypothesis_gen:
     - Dataset Folder Description:
     {{dataset_folder_desc}}
 
-    ### LLM Endpoints for Data Processing:
-    - OpenAI: gpt-4o for basic data processing(like filtering, deduplication, etc.), gpt-5.1 or gpt-5 for complex data processing(like reasoning or complex data transformation or CoT rewriter, .etc)
-    - Open-source: Any model less than 32B from HuggingFace (Llama, Qwen, Mistral, DeepSeek, etc.)
-
     ### Available Processing Methods:
 
     **General Methods**:
@@ -155,10 +151,23 @@ data_hypothesis_gen:
     - Answer-consistency filtering: Keep samples where majority-vote answer matches target answer
     - CoT quality scoring: Construct a scoring function to score the quality of the CoT, and filter out the low-quality CoT.
     - Structural health check: Keep CoT with progressive depth, backtracking, and verification nodes; reject wide-shallow or straight-line reasoning
-    - Long-short CoT mixture: Mix original long CoT with compressed short CoT, train with different prompts
     - Generative selection: Compare multiple solution summaries, come up with methods to select best one
 
     - Note: You should try to make use of the datasets shown above to generate new training datasets. **But if you think no datasets are not suitable for the task or you have better ideas, you can ignore them and come up with your own datasets(better based on the given seed datasets).**
+
+    ### Critical: Respect Original Dataset Design
+
+    The seed datasets provided are **published, validated datasets** proven effective for training models. Their response lengths and formats were intentionally designed by researchers.
+
+
+    **Before any length modification:**
+    - Check `max_position_embeddings` in Model Details
+    - Check token statistics (p50, p99) in dataset READMEs
+    - Consider whether modification benefits the model performance.
+
+    **Especially for Reasoning/CoT Datasets:**
+    - Aggressive CoT compression (e.g., 10,000 → 1,000 tokens) may destroy critical reasoning steps
+    - These datasets achieved SOTA results with their original CoT lengths.
 
     ### Avaliable Finetune methods:
     {{ available_methods }}

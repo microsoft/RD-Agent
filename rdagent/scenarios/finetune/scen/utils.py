@@ -276,7 +276,7 @@ class FinetuneDatasetDescriptor:
             try:
                 description = readme_file.read_text(encoding="utf-8")[:5000]
                 logger.info(f"Loaded dataset description from {readme_file.relative_to(dataset_path)}")
-                readme_file_descs += f"### From readme file: {readme_file.relative_to(dataset_path)}:\n<start_of_readme>{description}<end_of_readme>\n\n"
+                readme_file_descs += f"### From readme file: {readme_file.relative_to(dataset_path)}:\n<start_of_readme>\n{description}<end_of_readme>\n\n"
             except Exception as e:
                 logger.warning(f"Failed to read {readme_file.relative_to(dataset_path)}: {e}")
         return readme_file_descs
@@ -354,7 +354,7 @@ class FinetuneDatasetDescriptor:
                 with open(config_path, encoding="utf-8") as f:
                     config = json.load(f)
                     specs = []
-                    for key in ["model_type", "hidden_size", "num_hidden_layers", "vocab_size"]:
+                    for key in ["model_type", "max_position_embeddings"]:
                         if key in config:
                             specs.append(f"{key}: {config[key]}")
                     info["specs"] = ", ".join(specs)

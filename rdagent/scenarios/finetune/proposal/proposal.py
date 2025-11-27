@@ -214,10 +214,10 @@ class LLMFinetuneExpGen(ExpGen):
 
         
         # Get available finetune methods for context
-        available_methods = self.llama_manager.methods
+        available_methods = LLaMAFactory_manager.methods
 
         system_prompt = T(".prompts:data_hypothesis_gen.system_prompt").r(
-            scenario=self.scen.get_scenario_all_desc(),
+            scenario=self.scen.get_scenario_all_desc(enable_dataset_description=False),
             category_list=category_list,
             dataset_folder_desc=dataset_folder_desc,
             available_methods=available_methods,
@@ -231,7 +231,7 @@ class LLMFinetuneExpGen(ExpGen):
             APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=user_prompt,
                 system_prompt=system_prompt,
-                json_mode=True,
+                json_target_type=dict,
             )
         )
 
@@ -265,13 +265,13 @@ class LLMFinetuneExpGen(ExpGen):
         logger.info("Stage 2b: Generating training hypothesis")
 
         # Get LlamaFactory configuration options
-        available_models = self.llama_manager.models
-        available_methods = self.llama_manager.methods
-        shared_params = self.llama_manager.format_shared_params()
+        available_models = LLaMAFactory_manager.models
+        available_methods = LLaMAFactory_manager.methods
+        shared_params = LLaMAFactory_manager.format_shared_params()
 
         methods_specific_params = {}
         for method in available_methods:
-            methods_specific_params[method] = self.llama_manager.format_method_specific_params(method)
+            methods_specific_params[method] = LLaMAFactory_manager.format_method_specific_params(method)
 
         system_prompt = T(".prompts:train_hypothesis_gen.system_prompt").r(
             scenario=self.scen.get_scenario_all_desc(),
