@@ -617,13 +617,14 @@ class APIBackend(ABC):
 
         # 2) refine the response and return
         if LLM_SETTINGS.reasoning_think_rm:
-            # Strategy 1: Try to match complete <think>...</think> pattern
-            match = re.search(r"<think>(.*?)</think>(.*)", all_response, re.DOTALL)
+            # Only remove <think>...</think> if it appears at the beginning of the response
+            # Strategy 1: Try to match complete <think>...</think> pattern at the start
+            match = re.match(r"\s*<think>(.*?)</think>(.*)", all_response, re.DOTALL)
             if match:
                 _, all_response = match.groups()
             else:
-                # Strategy 2: If no complete match, try to match only </think>
-                match = re.search(r"</think>(.*)", all_response, re.DOTALL)
+                # Strategy 2: If no complete match, try to match only </think> at the start
+                match = re.match(r"\s*</think>(.*)", all_response, re.DOTALL)
                 if match:
                     all_response = match.group(1)
                 # If no match at all, keep original content
