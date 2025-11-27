@@ -1,12 +1,13 @@
 """LLM Fine-tuning Proposal Generator
 
-Two-stage Decision + Router architecture:
-- Stage 1: LLM decides task_type (data vs train) based on current status
-- Stage 2: Route to appropriate hypothesis generation prompt
+Two-stage Decision + Generation architecture:
+- Stage 1: LLM decides task_type (data/train/both) based on current status
+- Stage 2: Unified hypothesis generation based on task_type
 
-Supports two task types:
-- "train": Traditional training task, generates train.yaml for LlamaFactory
-- "data": Data processing task, generates main.py for COT-Self-Instruct pipeline
+Supports three task types:
+- "train": Training task only, generates train.yaml for LlamaFactory
+- "data": Data processing task only, generates data processing code
+- "both": Combined task, generates both data processing and training configurations
 """
 
 import json
@@ -29,9 +30,10 @@ from rdagent.utils.agent.tpl import T
 class FTHypothesis(Hypothesis):
     """LLM fine-tuning hypothesis class.
 
-    Supports two task types:
+    Supports three task types:
     - "train": Hypothesis for training configuration
-    - "data": Hypothesis for data processing method (COT-Self-Instruct)
+    - "data": Hypothesis for data processing method
+    - "both": Combined hypothesis for both data processing and training
     """
 
     def __init__(
@@ -39,7 +41,7 @@ class FTHypothesis(Hypothesis):
         base_model: str,
         hypothesis: str | None = None,
         reason: str | None = None,
-        task_type: Literal["train", "data"] = "train",
+        task_type: Literal["train", "data", "both"] = "train",
     ) -> None:
         super().__init__(
             hypothesis,
@@ -69,9 +71,9 @@ class FTHypothesis(Hypothesis):
 class LLMFinetuneExpGen(ExpGen):
     """LLM fine-tuning experiment generator.
 
-    Uses two-stage Decision + Router architecture:
-    - Stage 1: LLM decides task_type based on current status
-    - Stage 2: Route to appropriate hypothesis generation
+    Uses two-stage Decision + Generation architecture:
+    - Stage 1: LLM decides task_type (data/train/both) based on current status
+    - Stage 2: Unified hypothesis generation based on task_type
     """
 
     def __init__(self, scen: LLMFinetuneScen):
@@ -80,8 +82,11 @@ class LLMFinetuneExpGen(ExpGen):
     def gen(self, trace: Trace, plan=None) -> FTExperiment:
         """Generate LLM fine-tuning experiment using two-stage architecture.
 
-        For first loop (no history): Generate both data and train tasks sequentially
-        For subsequent loops: Use decision router to choose task type
+        Stage 1: Decide task_type
+            - First loop: task_type = "both" (generate data + train tasks)
+            - Subsequent loops: LLM decides task_type from ["data", "train", "both"]
+        
+        Stage 2: Generate hypothesis and tasks based on task_type
         """
         base_model = FT_RD_SETTING.base_model
         logger.info(f"Generating experiment with base model: {base_model}")
@@ -92,67 +97,112 @@ class LLMFinetuneExpGen(ExpGen):
         if is_first_loop:
             # First loop: Generate both data and train tasks
             logger.info("First loop detected: Generating combined data + train experiment")
-            return self._gen_first_loop_experiment(trace, base_model)
+            task_type = "both"
+            decision_reason = "First loop initialization"
         else:
             # Subsequent loops: Use decision router
             # Stage 1: Decision - Let LLM decide task_type
             task_type, decision_reason = self._decide_task_type(trace)
             logger.info(f"Stage 1 Decision: task_type = {task_type}, reason = {decision_reason}")
 
-            # Stage 2: Router - Route to appropriate hypothesis generation
-            if task_type == "data":
-                return self._gen_data_hypothesis(trace, base_model, decision_reason)
-            else:
-                return self._gen_train_hypothesis(trace, base_model, decision_reason)
+        # Stage 2: Generate hypothesis based on task_type
+        return self._gen_hypothesis(trace, base_model, task_type, decision_reason)
 
-    def _gen_first_loop_experiment(self, trace: Trace, base_model: str) -> FTExperiment:
-        """Generate combined experiment for first loop with both data and train tasks.
-
-        First loop generates both:
-        1. Data processing hypothesis and task (COT-Self-Instruct)
-        2. Training hypothesis and task (LlamaFactory)
+    def _gen_hypothesis(
+        self, 
+        trace: Trace, 
+        base_model: str, 
+        task_type: Literal["data", "train", "both"],
+        decision_reason: str
+    ) -> FTExperiment:
+        """Unified hypothesis generation method.
 
         Args:
-            trace: Experiment trace history (should be empty for first loop)
+            trace: Experiment trace history
             base_model: Base model name
+            task_type: Type of task to generate ("data", "train", or "both")
+            decision_reason: Reason for this task type selection
 
         Returns:
-            FTExperiment with both data and train tasks combined
+            FTExperiment with appropriate task(s) based on task_type
         """
-        logger.info("Generating first loop experiment: data processing + training")
-        first_loop_reason = "First loop initialization"
+        logger.info(f"Generating hypothesis for task_type: {task_type}")
+        
+        # Prepare all necessary context for prompts
+        category_list = self.scen.category_dict
+        dataset_folder_desc = self.scen.dataset_folder_desc
+        available_models = LLaMAFactory_manager.models
+        available_methods = LLaMAFactory_manager.methods
+        shared_params = LLaMAFactory_manager.format_shared_params()
+        methods_specific_params = {}
+        for method in available_methods:
+            methods_specific_params[method] = LLaMAFactory_manager.format_method_specific_params(method)
+        
+        enable_dataset_description = task_type =="train"
 
-        # Step 1: Generate data experiment and extract hypothesis/task
-        logger.info("Step 1: Generating data processing hypothesis")
-        data_exp = self._gen_data_hypothesis(trace, base_model, first_loop_reason)
-        data_hypothesis = data_exp.hypothesis
-        data_task = data_exp.sub_tasks[0]
-
-        # Step 2: Generate train experiment and extract hypothesis/task
-        logger.info("Step 2: Generating training hypothesis")
-        train_exp = self._gen_train_hypothesis(trace, base_model, first_loop_reason)
-        train_hypothesis = train_exp.hypothesis
-        train_task = train_exp.sub_tasks[0]
-
-        # Combine hypotheses into a single composite hypothesis
-        combined_hypothesis = FTHypothesis(
-            base_model=base_model,
-            hypothesis=f"[Data Processing] {data_hypothesis.hypothesis}\n[Training] {train_hypothesis.hypothesis}",
-            reason=f"First loop: Execute data processing followed by training.\n"
-                   f"Data reason: {data_hypothesis.reason}\n"
-                   f"Train reason: {train_hypothesis.reason}",
-            task_type="data",  # Start with data type since data is processed first. Note: This is a composite task.
+        # Build unified prompt with task_type
+        system_prompt = T(".prompts:unified_hypothesis_gen.system_prompt").r(
+            task_type=task_type,
+            scenario=self.scen.get_scenario_all_desc(enable_dataset_description=enable_dataset_description) ,
+            category_list=category_list,
+            dataset_folder_desc=dataset_folder_desc,
+            available_models=available_models,
+            available_methods=available_methods,
+            shared_params=shared_params,
+            methods_specific_params=methods_specific_params,
+            select_model=base_model is None,
         )
+        
+        user_prompt = T(".prompts:unified_hypothesis_gen.user_prompt").r(
+            trace=trace,
+            task_type=task_type,
+        )
+        
+        # Single LLM call - prompt decides what to generate based on task_type
+        response_dict = json.loads(
+            APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt,
+                system_prompt=system_prompt,
+                json_target_type=dict,
+            )
+        )
+        
+        # Parse involving_datasets for data/both task types
+        involving_datasets = []
+        if task_type in ["data", "both"]:
+            involving_datasets_raw = response_dict.get("involving_datasets", "[]")
+            if isinstance(involving_datasets_raw, str):
+                cleaned = involving_datasets_raw.strip().strip("[]")
+                involving_datasets = [ds.strip() for ds in cleaned.split(",") if ds.strip()]
+            else:
+                involving_datasets = involving_datasets_raw if involving_datasets_raw else []
+        
+        # Ensure model assets exist for training tasks
+        if task_type in ["train", "both"]:
+            ensure_ft_assets_exist(model=base_model, check_model=True)
+        
+        # Create single task with appropriate task_type
+        task = FTTask(
+            base_model=base_model,
+            description=response_dict.get("task"),
+            benchmark=FT_RD_SETTING.target_benchmark,
+            task_type=task_type,
+            involving_datasets=involving_datasets,
+        )
+        
+        # Create hypothesis from response
+        hypothesis = FTHypothesis(
+            base_model=base_model,
+            hypothesis=response_dict.get("hypothesis"),
+            reason=f"{decision_reason}\n{response_dict.get('reason', '')}",
+            task_type=task_type,
+        )
+        
+        logger.info(f"Experiment created with task_type: {task_type}")
+        
+        return FTExperiment(sub_tasks=[task], hypothesis=hypothesis)
 
-        # Combine tasks: data task first, then train task
-        combined_tasks = [data_task, train_task]
-
-        logger.info(f"First loop experiment created with {len(combined_tasks)} tasks: "
-                    f"[{', '.join(t.task_type for t in combined_tasks)}]")
-
-        return FTExperiment(sub_tasks=combined_tasks, hypothesis=combined_hypothesis)
-
-    def _decide_task_type(self, trace: Trace) -> tuple[str, str]:
+    def _decide_task_type(self, trace: Trace) -> tuple[Literal["data", "train", "both"], str]:
         """Stage 1: Let LLM decide task_type based on current status.
 
         Provides comprehensive context to LLM:
@@ -161,7 +211,7 @@ class LLMFinetuneExpGen(ExpGen):
         - Detailed historical experiment results
 
         Returns:
-            tuple: (task_type, reason)
+            tuple: (task_type, reason) where task_type can be "data", "train", or "both"
         """
         # TODO: given the feedback to choose whether to do data processing or training 
         # # Gather dataset status information
@@ -188,126 +238,9 @@ class LLMFinetuneExpGen(ExpGen):
         # reason = result.get("reason", "")
 
         # # Validate task_type
-        # if task_type not in ["train", "data"]:
+        # if task_type not in ["train", "data", "both"]:
         #     logger.warning(f"Invalid task_type '{task_type}', defaulting to 'train'")
         #     task_type = "train"
         task_type = "data"
         reason = "Because the dataset is not good enough, we need to process it."
         return task_type, reason
-
-    def _gen_data_hypothesis(self, trace: Trace, base_model: str, decision_reason: str) -> FTExperiment:
-        """Stage 2a: Generate data processing hypothesis using COT-Self-Instruct.
-
-        Args:
-            trace: Experiment trace history
-            base_model: Base model name
-            decision_reason: Reason from Stage 1 decision
-
-        Returns:
-            FTExperiment with data processing task
-        """
-        logger.info("Stage 2a: Generating data processing hypothesis")
-
-        # Prepare parameters for prompts
-        category_list = self.scen.category_dict
-        dataset_folder_desc = self.scen.dataset_folder_desc
-
-        
-        # Get available finetune methods for context
-        available_methods = LLaMAFactory_manager.methods
-
-        system_prompt = T(".prompts:data_hypothesis_gen.system_prompt").r(
-            scenario=self.scen.get_scenario_all_desc(enable_dataset_description=False),
-            category_list=category_list,
-            dataset_folder_desc=dataset_folder_desc,
-            available_methods=available_methods,
-        )
-        
-        user_prompt = T(".prompts:data_hypothesis_gen.user_prompt").r(
-            trace=trace,
-        )
-
-        response_dict = json.loads(
-            APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
-                json_target_type=dict,
-            )
-        )
-
-        hypothesis = FTHypothesis(
-            base_model=base_model,
-            hypothesis=response_dict.get("hypothesis"),
-            reason=decision_reason,
-            task_type="data",
-        )
-
-        task = FTTask(
-            base_model=base_model,
-            description=response_dict.get("task"),
-            benchmark=FT_RD_SETTING.target_benchmark,
-            task_type="data",
-        )
-
-        return FTExperiment(sub_tasks=[task], hypothesis=hypothesis)
-
-    def _gen_train_hypothesis(self, trace: Trace, base_model: str, decision_reason: str) -> FTExperiment:
-        """Stage 2b: Generate training hypothesis for LlamaFactory.
-
-        Args:
-            trace: Experiment trace history
-            base_model: Base model name
-            decision_reason: Reason from Stage 1 decision
-
-        Returns:
-            FTExperiment with training task
-        """
-        logger.info("Stage 2b: Generating training hypothesis")
-
-        # Get LlamaFactory configuration options
-        available_models = LLaMAFactory_manager.models
-        available_methods = LLaMAFactory_manager.methods
-        shared_params = LLaMAFactory_manager.format_shared_params()
-
-        methods_specific_params = {}
-        for method in available_methods:
-            methods_specific_params[method] = LLaMAFactory_manager.format_method_specific_params(method)
-
-        system_prompt = T(".prompts:train_hypothesis_gen.system_prompt").r(
-            scenario=self.scen.get_scenario_all_desc(),
-            select_model=base_model is None,
-            available_models=available_models,
-            available_methods=available_methods,
-            shared_params=shared_params,
-            methods_specific_params=methods_specific_params,
-        )
-        user_prompt = T(".prompts:train_hypothesis_gen.user_prompt").r(
-            trace=trace,
-        )
-
-        response_dict = json.loads(
-            APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
-                json_mode=True,
-            )
-        )
-
-        hypothesis = FTHypothesis(
-            base_model=base_model,
-            hypothesis=response_dict.get("hypothesis"),
-            reason=decision_reason,
-            task_type="train",
-        )
-
-        # Ensure model assets exist for training
-        ensure_ft_assets_exist(model=hypothesis.base_model, check_model=True)
-
-        task = FTTask(
-            base_model=base_model,
-            description=response_dict.get("task"),
-            benchmark=FT_RD_SETTING.target_benchmark,
-            task_type="train",
-        )
-
-        return FTExperiment(sub_tasks=[task], hypothesis=hypothesis)
