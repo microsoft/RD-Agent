@@ -580,33 +580,6 @@ def get_dataset_folder_desc(ft_file_path: str) -> dict:
     )
     return dataset_folder_desc
 
-def classify_datasets(ft_file_path: str) -> dict:
-    """Classify datasets by task type using AI analysis.
-
-    Args:
-        ft_file_path: Path to finetune directory structure
-
-    Returns:
-        dict: Classification mapping like {"math_reasoning": ["dataset1", "dataset2"], ...}
-    """
-    dataset_folder_desc = get_dataset_folder_desc(ft_file_path)
-
-    system_prompt = T(".prompts:dataset_classification.system").r()
-    user_prompt = T(".prompts:dataset_classification.user").r(
-        dataset_info=str(dataset_folder_desc),
-    )
-
-    api = APIBackend()
-    classification_response = api.build_messages_and_create_chat_completion(
-        system_prompt=system_prompt, user_prompt=user_prompt, json_mode=True
-    )
-
-    classification_dict = json.loads(classification_response)
-    logger.info(f"Dataset classification completed: {classification_dict}")
-    
-    return classification_dict
-
-
 def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str, existing_config: dict) -> dict:
     """Generate dataset_info.json configuration entry using AI for LLaMA-Factory compatibility.
 

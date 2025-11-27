@@ -39,50 +39,9 @@ scenario_description: |-
   - Full Training Timeout: {{ full_timeout }}
   {% endif %}
   
-dataset_classification:
-  system: |-
-    Analyze datasets and classify them by task type.
-
-    ## Task Types (Use EXACTLY these category names)
-    - math: Mathematical reasoning, calculation, proofs, arithmetic
-    - code: Code generation, completion, debugging, programming
-    - finance: Financial analysis, trading, economics, investment
-    - healthcare: Medical, health, biology, clinical data
-    - legal: Law, regulations, contracts, legal documents
-    - agriculture: Farming, crops, livestock, agricultural science
-    - literature: Writing, stories, poetry, literary analysis
-    - general: General QA, chat, instruction following, common knowledge
-
-    ## Analysis Guidelines
-    1. Examine column names, sample content, and README files
-    2. Look for keywords in dataset names and descriptions
-    3. If a dataset spans multiple domains, choose the PRIMARY focus
-    4. The path should be the most outer directory path of the dataset.
-
-    ## Output Format
-    ```json
-    {
-      "math": ["dataset_1_path", "dataset_2_path"],
-      "code": ["dataset_3_path"],
-      "general": ["dataset_4_path"]
-    }
-    ```
-
-    **Rules**:
-    - Use EXACT dataset names from the folder structure
-    - Use ONLY the predefined category names above
-    - Each dataset belongs to exactly ONE category
-    - Only include categories that have at least one dataset
-
-  user: |-
-    Analyze and classify these datasets:
-    ```
-    {{ dataset_info }}
-    ```
-
 dataset_info_generation:
   system: |-
-    Generate a LLaMA-Factory dataset_info.json configuration entry.
+    Generate a LLaMA-Factory dataset_info.json configuration entry with category classification.
 
     ## Format Types:
     **Alpaca**: instruction-response data with "instruction", "input", "output" fields
@@ -92,6 +51,27 @@ dataset_info_generation:
     - `file_name`: relative path from datasets directory
     - `formatting`: "alpaca" (default) or "sharegpt"  
     - `columns`: map data fields to LLaMA-Factory expected names
+    - `category`: list of domain categories (can be one or multiple, see below)
+
+    ## Category Classification
+    Analyze each dataset and classify it by domain. A dataset can belong to **one or multiple** domains. Use one or more of these category names:
+    
+    - **physics**: Physics, mechanics, thermodynamics, quantum mechanics, electromagnetism, optics
+    - **math**: Mathematics, algebra, geometry, calculus, statistics, logic, mathematical reasoning
+    - **chemistry**: Chemistry, organic chemistry, inorganic chemistry, biochemistry, molecular structures
+    - **biology**: Biology, genetics, ecology, microbiology, cell biology, evolution, physiology
+    - **table**: Tabular data, spreadsheets, structured data analysis, data tables, CSV/Excel data
+    - **legal**: Law, regulations, contracts, legal documents, court cases, legislation
+    - **medicine**: Medicine, clinical data, medical diagnosis, pharmaceuticals, healthcare, patient care
+    - **finance**: Finance, trading, economics, investment, markets, banking, financial analysis
+    
+    **Classification Guidelines:**
+    - Examine column names, sample content, and README files carefully
+    - Look for domain-specific keywords in dataset names and descriptions
+    - **A dataset can have multiple categories** if it covers multiple domains (e.g., biophysics → ["biology", "physics"])
+    - List ALL applicable domains, ordered by relevance (most relevant first)
+    - For datasets with structured tabular data format, include "table" along with the content domain
+
 
     ## Common Column Mappings:
     - Alpaca: "instruction"→prompt, "input"→query, "output"→response
@@ -110,6 +90,10 @@ dataset_info_generation:
     - For `file_name`, provide the relative path from the original directory to the data files. Mostly it is under "dataset_name/...".
     - Choose "alpaca" or "sharegpt" based on data structure.
     - Map column names from sample data to LLaMA-Factory format.
+    - Assign appropriate `category` array based on dataset content analysis:
+      - Single domain: `["math"]`
+      - Multiple domains: `["physics", "math"]` (ordered by relevance)
+      - Include "table" if the dataset is in tabular format
     - For datasets not following Alpaca or ShareGPT format. Please choose the closest one and adjust column mappings accordingly.
     - The folder might contain multiple files also multiple datasets. Please include all valid datasets you can find in your response.
 
@@ -118,12 +102,14 @@ dataset_info_generation:
     {
       "my_dataset": {
         "file_name": "my_dataset/train.json",
-        "columns": {"prompt": "instruction", "response": "output"}
+        "columns": {"prompt": "instruction", "response": "output"},
+        "category": ["math"]
       },
       "chat_dataset": {
         "file_name": "chat_dataset/data.json",
         "formatting": "sharegpt",
         "columns": {"messages": "conversations"}
+        "category": ["math","code"]
       }
     }
     ```
@@ -134,7 +120,8 @@ dataset_info_generation:
       "dataset_name": {
         "file_name": "dataset_name/...",
         "formatting": "alpaca|sharegpt",
-        "columns": {...}
+        "columns": {...},
+        "category": ["domain1", "domain2", ...]
       }
     }
     ```

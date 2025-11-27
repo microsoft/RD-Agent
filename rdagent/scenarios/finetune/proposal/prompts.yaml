@@ -54,9 +54,7 @@ unified_hypothesis_gen:
     ## Data Processing Resources
     
     ### Seed Datasets and preview:
-    - Category List:
-    {{category_list}}
-    
+        
     - Dataset Folder Description:
     {{dataset_folder_desc}}
     

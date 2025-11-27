@@ -129,7 +129,6 @@ class LLMFinetuneExpGen(ExpGen):
         logger.info(f"Generating hypothesis for task_type: {task_type}")
         
         # Prepare all necessary context for prompts
-        category_list = self.scen.category_dict
         dataset_folder_desc = self.scen.dataset_folder_desc
         available_models = LLaMAFactory_manager.models
         available_methods = LLaMAFactory_manager.methods
@@ -144,7 +143,6 @@ class LLMFinetuneExpGen(ExpGen):
         system_prompt = T(".prompts:unified_hypothesis_gen.system_prompt").r(
             task_type=task_type,
             scenario=self.scen.get_scenario_all_desc(enable_dataset_description=enable_dataset_description) ,
-            category_list=category_list,
             dataset_folder_desc=dataset_folder_desc,
             available_models=available_models,
             available_methods=available_methods,

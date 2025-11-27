@@ -9,7 +9,6 @@ from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.scenarios.finetune.scen.llama_factory_manager import LLaMAFactory_manager
 from rdagent.scenarios.finetune.scen.utils import (
     FinetuneDatasetDescriptor,
-    classify_datasets,
     generate_dataset_info_config,
     get_dataset_folder_desc,
 )
@@ -40,7 +39,6 @@ class LLMFinetuneScen(DataScienceScen):
 
         # Generate dataset configuration
         self.data_info_json = self._prepare_dataset_info()
-        self.category_dict = self._prepare_category_info()
         self.dataset_folder_desc = get_dataset_folder_desc(FT_RD_SETTING.file_path)
         # timeout tracking
         self.timeout_increase_count = 0
@@ -81,31 +79,6 @@ class LLMFinetuneScen(DataScienceScen):
         params_count = sum(len(p) if isinstance(p, dict) else 0 for p in info.get("parameters", {}).values())
         logger.info(f"LLaMA Factory initialized: {methods_count} methods, {params_count} parameters")
 
-    def _prepare_category_info(self):
-        """Generate category.json configuration and category.json classification"""
-        datasets_dir = Path(FT_RD_SETTING.file_path) / "datasets"
-        category_path = datasets_dir / "category.json"
-        category_dict = {}  # Default empty dict
-        
-        if not category_path.exists():
-            logger.info("Generating category.json (dataset classification by task type)...")
-            try:
-                category_dict = classify_datasets(FT_RD_SETTING.file_path)
-                os.makedirs(datasets_dir, mode=0o777, exist_ok=True)
-                with open(category_path, "w", encoding="utf-8") as f:
-                    json.dump(category_dict, f, indent=2, ensure_ascii=False)
-                logger.info(f"Successfully created category.json: {category_dict}")
-            except Exception as e:
-                logger.warning(f"Failed to generate category.json: {e}")
-        else:
-            logger.info("category.json already exists, loading from file")
-            try:
-                with open(category_path, "r", encoding="utf-8") as f:
-                    category_dict = json.load(f)
-            except Exception as e:
-                logger.warning(f"Failed to load category.json: {e}")
-        
-        return category_dict
 
     def _prepare_dataset_info(self):
         """Generate dataset_info.json configuration"""
