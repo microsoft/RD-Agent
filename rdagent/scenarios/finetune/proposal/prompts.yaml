@@ -175,7 +175,7 @@ unified_hypothesis_gen:
     {% for method, params_desc in methods_specific_params.items() %}
     {{ params_desc }}
     {% endfor %}
-    
+    {% endif %}
     
     ---
     
