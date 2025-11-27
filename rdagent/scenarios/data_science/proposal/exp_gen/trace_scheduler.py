@@ -327,6 +327,7 @@ class MCTSScheduler(ProbabilisticScheduler):
     - Update visits on selection; update values after feedback via observe_feedback.
     - Keep NEW_ROOT policy and uncommitted status handling identical to base classes.
     """
+
     ROOT_ID = -1
 
     def __init__(self, max_trace_num: int, temperature: float = 1.0, *args, **kwargs):
@@ -367,10 +368,9 @@ class MCTSScheduler(ProbabilisticScheduler):
         """
         return [self.ROOT_ID] + list(range(len(trace.hist)))
 
-
     def _get_u_uct(self, node_id: int, trace: DSTrace) -> float:
         parents = self._get_parents(node_id, trace)
-        
+
         if node_id == self.ROOT_ID:
             last_parent_id = self.ROOT_ID
         else:
@@ -407,7 +407,6 @@ class MCTSScheduler(ProbabilisticScheduler):
             if capacity >= self.max_trace_num:
                 second_best, _ = score_id_pairs[1]
                 return (second_best,)
-            
 
         return (best_node,)
 
@@ -421,10 +420,9 @@ class MCTSScheduler(ProbabilisticScheduler):
             return trace.NEW_ROOT
         return base_nodes
 
-    
     def sigmoid(self, x):
         return 1 / (1 + math.exp(-x))
-        
+
     def scaled_tanh(self, x):
         # tanh -> (-1,1), then scale to (0,1)
         return (math.tanh(x) + 1.0) / 2.0
@@ -446,7 +444,7 @@ class MCTSScheduler(ProbabilisticScheduler):
                 if bigger_is_better:
                     reward = self.scaled_tanh(re.result.loc["ensemble"].iloc[0])
                 else:
-                    reward = 1- self.scaled_tanh(re.result.loc["ensemble"].iloc[0])
+                    reward = 1 - self.scaled_tanh(re.result.loc["ensemble"].iloc[0])
             else:
                 reward = 0 if bigger_is_better else 1
         else:
