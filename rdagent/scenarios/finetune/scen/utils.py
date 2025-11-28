@@ -32,7 +32,7 @@ def _find_data_files(dataset_path: Path, max_files: int = 50) -> list[Path]:
     return [f for f in dataset_files if f != dataset_path / "dataset_info.json"]
 
 
-def _truncate_long_values(obj, max_length: int = 200):
+def _truncate_long_values(obj, max_length: int = 3000):
     """Recursively truncate long string values in nested data structures."""
     if isinstance(obj, dict):
         return {k: _truncate_long_values(v, max_length) for k, v in obj.items()}
@@ -260,23 +260,24 @@ class FinetuneDatasetDescriptor:
                 results.extend(self._walk(entry, depth + 1, max_depth, target_names))
         return results
 
-    def _read_dataset_readme(self, dataset_path: Path) -> str:
+    def _read_dataset_readme(self, dataset_path: Path, max_chars: int = 5000) -> str:
         """Read README description from dataset directory.
 
         Args:
             dataset_path: Path to dataset directory
+            max_chars: Maximum characters to read from each README file
 
         Returns:
-            README content (truncated to 1000 chars) or empty string
+            README content (truncated to max_chars) or empty string
         """
         target_names = {"README.md", "readme.md", "README.txt"}
         readme_files = self._walk(dataset_path, depth=0, max_depth=2, target_names=target_names)
         readme_file_descs = ""
         for readme_file in readme_files:
             try:
-                description = readme_file.read_text(encoding="utf-8")[:1000]
+                description = readme_file.read_text(encoding="utf-8")[:max_chars]
                 logger.info(f"Loaded dataset description from {readme_file.relative_to(dataset_path)}")
-                readme_file_descs += f"# From readme file: {readme_file.relative_to(dataset_path)}:\n{description}\n\n"
+                readme_file_descs += f"### From readme file: {readme_file.relative_to(dataset_path)}:\n<start_of_readme>\n{description}<end_of_readme>\n\n"
             except Exception as e:
                 logger.warning(f"Failed to read {readme_file.relative_to(dataset_path)}: {e}")
         return readme_file_descs
@@ -354,7 +355,7 @@ class FinetuneDatasetDescriptor:
                 with open(config_path, encoding="utf-8") as f:
                     config = json.load(f)
                     specs = []
-                    for key in ["model_type", "hidden_size", "num_hidden_layers", "vocab_size"]:
+                    for key in ["model_type", "max_position_embeddings"]:
                         if key in config:
                             specs.append(f"{key}: {config[key]}")
                     info["specs"] = ", ".join(specs)
@@ -473,21 +474,180 @@ class FinetuneDatasetDescriptor:
         return FinetuneFileDescription({"name": data_file.name, "type": "unknown", "samples": []})
 
 
-# ATTENTION: Only support 2 level dataset structure now
-def check_all_dataset_in_info(ft_file_path, existing_config):
+def _read_single_dataset_readme(dataset_path: Path, max_chars: int = 2000) -> str:
+    """Read README file from a single dataset directory or its parent directories.
+
+    Args:
+        dataset_path: Path to the dataset directory
+        max_chars: Maximum characters to read (default: 2000)
+
+    Returns:
+        README content as string, or empty string if not found
+    """
+    target_names = {"README.md", "readme.md", "README.txt", "README"}
+
+    try:
+        # Check current directory first
+        for readme_name in target_names:
+            readme_file = dataset_path / readme_name
+            if readme_file.exists() and readme_file.is_file():
+                try:
+                    content = readme_file.read_text(encoding="utf-8")[:max_chars]
+                    logger.info(f"Loaded README from {readme_file} ({len(content)} chars)")
+                    return content
+                except Exception as e:
+                    logger.warning(f"Failed to read {readme_file}: {e}")
+
+        # If not found in current directory, check parent directory
+        parent_path = dataset_path.parent
+        if parent_path != dataset_path:  # Avoid infinite loop at filesystem root
+            for readme_name in target_names:
+                readme_file = parent_path / readme_name
+                if readme_file.exists() and readme_file.is_file():
+                    try:
+                        content = readme_file.read_text(encoding="utf-8")[:max_chars]
+                        logger.info(f"Loaded README from parent directory {readme_file} ({len(content)} chars)")
+                        return content
+                    except Exception as e:
+                        logger.warning(f"Failed to read {readme_file}: {e}")
+
+        # If still not found, check one level down in subdirectories
+        if dataset_path.exists():
+            for item in dataset_path.iterdir():
+                if item.is_dir():
+                    for readme_name in target_names:
+                        readme_file = item / readme_name
+                        if readme_file.exists() and readme_file.is_file():
+                            try:
+                                content = readme_file.read_text(encoding="utf-8")[:max_chars]
+                                logger.info(f"Loaded README from subdirectory {readme_file} ({len(content)} chars)")
+                                return content
+                            except Exception as e:
+                                logger.warning(f"Failed to read {readme_file}: {e}")
+    except Exception as e:
+        logger.warning(f"Error searching for README in {dataset_path}: {e}")
+
+    return ""
+
+
+def check_all_dataset_in_info(ft_file_path, existing_config, max_depth: int = 3):
+    """Scan datasets directory recursively and return dataset names not yet in existing_config.
+
+    Recursively scans the datasets directory to find all directories containing data files.
+    Supports configurable directory depth (default: 3 levels) and recognizes train/test/val split patterns.
+
+    Smart split detection:
+        - If a directory has subdirs like 'train', 'test', 'val' with data files,
+          the parent directory is treated as the dataset
+        - Otherwise, each directory with data files is a separate dataset
+
+    Examples:
+        - LIMO/limo.jsonl → dataset: "LIMO" (level 1)
+        - s1K-1.1/data/train.parquet → dataset: "s1K-1.1/data" (level 2)
+        - math/en/train/data.json + math/en/test/data.json → dataset: "math/en" (level 2)
+        - code/python/file1.json + code/python/file2.json → dataset: "code/python" (level 2)
+
+    Args:
+        ft_file_path: Path to finetune directory structure
+        existing_config: Existing dataset_info.json configuration
+        max_depth: Maximum directory depth to scan (default: 3)
+
+    Returns:
+        list: Dataset names (relative paths) not yet in existing_config
+    """
     root_path = Path(ft_file_path) / "datasets"
-    level_0_dirs = [d for d in root_path.iterdir() if d.is_dir()]
-    dataset_list = [f"{d.name}/{sd.name}" for d in level_0_dirs for sd in d.iterdir() if sd.is_dir()]
+    dataset_list = []
+
+    # Supported data file extensions
+    data_extensions = {".json", ".jsonl", ".parquet", ".csv", ".arrow", ".txt"}
+
+    # Common split names (train/test/validation patterns)
+    split_names = {"train", "test", "val", "validation", "dev", "eval"}
+
+    def has_data_files(directory: Path) -> bool:
+        """Check if directory contains data files."""
+        try:
+            return any(f.is_file() and f.suffix in data_extensions for f in directory.iterdir())
+        except:
+            return False
+
+    def scan_directory(current_path: Path, relative_path: str = "", depth: int = 0):
+        """Recursively scan directory for data files."""
+        # Check depth limit
+        if depth >= max_depth:
+            logger.debug(f"Reached max depth ({max_depth}) at {relative_path}, stopping scan")
+            return
+
+        try:
+            # Get all items in current directory
+            items = list(current_path.iterdir())
+
+            # Check if current directory contains data files
+            data_files = [f for f in items if f.is_file() and f.suffix in data_extensions]
+            subdirs = [d for d in items if d.is_dir() and not d.name.startswith(".")]
+
+            if data_files:
+                # This directory contains data files directly, mark it as a dataset
+                dataset_name = relative_path if relative_path else current_path.name
+                dataset_list.append(dataset_name)
+                # Don't recurse into subdirectories to avoid treating subsets as separate datasets
+                return
+
+            # Check if subdirectories look like train/test/val splits
+            subdir_names = {d.name.lower() for d in subdirs}
+            split_subdirs = subdir_names & split_names
+
+            if split_subdirs and all(
+                has_data_files(current_path / sd.name) for sd in subdirs if sd.name.lower() in split_names
+            ):
+                # This looks like a dataset with train/test/val splits
+                # Mark the parent directory as the dataset
+                dataset_name = relative_path if relative_path else current_path.name
+                dataset_list.append(dataset_name)
+                logger.info(f"Detected split dataset: {dataset_name} with splits: {split_subdirs}")
+                return
+
+            # If no data files and no split pattern, recurse into subdirectories
+            for subdir in subdirs:
+                new_relative_path = f"{relative_path}/{subdir.name}" if relative_path else subdir.name
+                scan_directory(subdir, new_relative_path, depth + 1)
+
+        except PermissionError:
+            logger.warning(f"Permission denied accessing {current_path}")
+        except Exception as e:
+            logger.warning(f"Error scanning {current_path}: {e}")
+
+    # Start scanning from root (depth 0 is the dataset root level)
+    for item in root_path.iterdir():
+        if item.is_dir() and not item.name.startswith("."):
+            scan_directory(item, item.name, depth=0)
+
     remain_dataset_list = [dataset_name for dataset_name in dataset_list if dataset_name not in existing_config]
     return remain_dataset_list
+
+
+def get_dataset_folder_desc(ft_file_path: str, include_dataset_readme: bool = True) -> dict:
+    """Get dataset folder description using AI analysis.
+
+    Args:
+        ft_file_path: Path to finetune directory structure
+
+    Returns:
+        dict: Dataset folder description
+    """
+    dataset_folder_desc = FinetuneDatasetDescriptor().describe_dataset_folder(
+        Path(ft_file_path) / "datasets", include_dataset_readme=include_dataset_readme
+    )
+    return dataset_folder_desc
 
 
 def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str, existing_config: dict) -> dict:
     """Generate dataset_info.json configuration entry using AI for LLaMA-Factory compatibility.
 
     Args:
-        dataset: Name of the dataset
+        target_dataset_list: List of specific datasets to process (empty for all)
         ft_file_path: Path to finetune directory structure
+        existing_config: Existing dataset_info.json configuration
 
     Returns:
         dict: Configuration entry for dataset_info.json
@@ -499,16 +659,13 @@ def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str, e
     remain_dataset_list = check_all_dataset_in_info(ft_file_path, existing_config)
     if len(remain_dataset_list) == 0:
         return {}
-    dataset_folder_desc = FinetuneDatasetDescriptor().describe_dataset_folder(
-        Path(ft_file_path) / "datasets", include_dataset_readme=True
-    )
+    dataset_folder_desc = get_dataset_folder_desc(ft_file_path)
     real_target_dataset_list = remain_dataset_list if not target_dataset_list else target_dataset_list
 
     # Create prompt using template
     system_prompt = T(".prompts:dataset_info_generation.system").r(
         target_dataset_list=real_target_dataset_list,
     )
-    # TODO: select appropriate columns (Reasoning first?)
     user_prompt = T(".prompts:dataset_info_generation.user").r(
         dataset_info=str(dataset_folder_desc),
     )
@@ -522,8 +679,28 @@ def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str, e
     response_dict = json.loads(raw_response)
 
     dataset_info_dict = {}
+    datasets_root = Path(ft_file_path) / "datasets"
+
     for dataset_key, config in response_dict.items():
         if _validate_dataset_config(config):
+            # Add README content for each dataset
+            dataset_path = datasets_root / dataset_key
+            if dataset_path.exists() and dataset_path.is_dir():
+                readme_content = _read_single_dataset_readme(dataset_path, max_chars=5000)
+                if readme_content:
+                    config["readme"] = readme_content
+                    logger.info(f"Added README to dataset '{dataset_key}' ({len(readme_content)} chars)")
+                else:
+                    logger.info(f"No README found for dataset '{dataset_key}'")
+
+            # Log description status
+            if "description" in config:
+                logger.info(
+                    f"LLM generated description for dataset '{dataset_key}' ({len(config['description'])} chars)"
+                )
+            else:
+                logger.warning(f"No description generated for dataset '{dataset_key}'")
+
             dataset_info_dict[dataset_key] = config
 
     return dataset_info_dict

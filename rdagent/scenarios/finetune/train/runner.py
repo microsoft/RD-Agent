@@ -111,7 +111,7 @@ class LLMFinetuneRunner(CoSTEER):
             evolving_version=2,
             scen=scen,
             max_loop=getattr(FT_RD_SETTING, "runner_max_loop", 1),  # Default to 1 loop for running
-            stop_eval_chain_on_fail=True, # finetune involve partial implementation.
+            stop_eval_chain_on_fail=True,  # finetune involve partial implementation.
             **kwargs,
         )
 

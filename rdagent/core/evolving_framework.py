@@ -61,10 +61,12 @@ class EvolvingStrategy(ABC, Generic[ASpecificEvolvableSubjects]):
     def __init__(self, scen: Scenario) -> None:
         self.scen = scen
 
-    def evolve_iter(self,
-                    evo: ASpecificEvolvableSubjects,
-                    queried_knowledge: QueriedKnowledge = None,
-                    evolving_trace: list[EvoStep] = []) -> Generator[ASpecificEvolvableSubjects, None, None]:
+    def evolve_iter(
+        self,
+        evo: ASpecificEvolvableSubjects,
+        queried_knowledge: QueriedKnowledge = None,
+        evolving_trace: list[EvoStep] = [],
+    ) -> Generator[ASpecificEvolvableSubjects, None, None]:
         """
         The evolving trace is a list of (evolvable_subjects, feedback) ordered
         according to the time.

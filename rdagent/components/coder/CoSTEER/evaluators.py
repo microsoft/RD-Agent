@@ -252,7 +252,9 @@ class CoSTEERMultiEvaluator(RAGEvaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> Generator[CoSTEERMultiFeedback, EvolvingItem | None, CoSTEERMultiFeedback]:
-        evo = yield CoSTEERMultiFeedback([])  # it will receive the evo first, so the first yield is for get the sent evo instead of generate useful feedback
+        evo = yield CoSTEERMultiFeedback(
+            []
+        )  # it will receive the evo first, so the first yield is for get the sent evo instead of generate useful feedback
 
         eval_l = self.single_evaluator if isinstance(self.single_evaluator, list) else [self.single_evaluator]
 

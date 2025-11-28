@@ -17,7 +17,6 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.scenarios.finetune.train.benchmark import run_benchmark
 
 
-
 class FTRunnerEvaluator(CoSTEEREvaluator):
     """LLM Fine-tuning specific evaluator that uses LLM Docker environment."""
 

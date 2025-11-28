@@ -26,6 +26,7 @@ scenario_description: |-
   The user has not yet decided the base model to fine-tune.
   {% endif %}
 
+  {% if enable_dataset_description %}
   # Provided Dataset Details
   {{ dataset_info }}
   The dataset characteristics is provided for you to understand the data better. Each dataset is a folder of files. Some in good format for fine-tuning while some are not.
@@ -36,10 +37,11 @@ scenario_description: |-
   ## Timeout Constraints
   - Debug Timeout: {{ debug_timeout }}
   - Full Training Timeout: {{ full_timeout }}
-
+  {% endif %}
+  
 dataset_info_generation:
   system: |-
-    Generate a LLaMA-Factory dataset_info.json configuration entry.
+    Generate a LLaMA-Factory dataset_info.json configuration entry with category classification and insightful descriptions.
 
     ## Format Types:
     **Alpaca**: instruction-response data with "instruction", "input", "output" fields
@@ -49,6 +51,74 @@ dataset_info_generation:
     - `file_name`: relative path from datasets directory
     - `formatting`: "alpaca" (default) or "sharegpt"  
     - `columns`: map data fields to LLaMA-Factory expected names
+    - `category`: list of domain categories (can be one or multiple, see below)
+    - `description`: AI-generated concise summary (200-300 words) highlighting key insights for fine-tuning
+
+    ## Category Classification
+    Analyze each dataset and classify it by domain. A dataset can belong to **one or multiple** domains. Use one or more of these category names:
+    
+    - **physics**: Physics, mechanics, thermodynamics, quantum mechanics, electromagnetism, optics
+    - **math**: Mathematics, algebra, geometry, calculus, statistics, logic, mathematical reasoning
+    - **chemistry**: Chemistry, organic chemistry, inorganic chemistry, biochemistry, molecular structures
+    - **biology**: Biology, genetics, ecology, microbiology, cell biology, evolution, physiology
+    - **legal**: Law, regulations, contracts, legal documents, court cases, legislation
+    - **medicine**: Medicine, clinical data, medical diagnosis, pharmaceuticals, healthcare, patient care
+    - **finance**: Finance, trading, economics, investment, markets, banking, financial analysis
+    
+    **Classification Guidelines:**
+    - Examine column names, sample content, and README files carefully
+    - Look for domain-specific keywords in dataset names and descriptions
+    - **A dataset can have multiple categories** if it covers multiple domains (e.g., biophysics → ["biology", "physics"])
+    - List ALL applicable domains, ordered by relevance (most relevant first)
+
+    ## Description Generation Guidelines
+    For each dataset, analyze the README content (if available) and data samples to generate **practical insights about the data itself**. Focus ONLY on data characteristics and preprocessing - do NOT include training strategies, hyperparameters, or model selection advice.
+    
+    **Focus Areas (in order of importance):**
+    
+    1. **Data Fitness Assessment** (MOST CRITICAL - varies by task type):
+       
+       **For Reasoning/Math datasets:**
+       - Is the response/solution length sufficient? (reasoning typically needs long chain-of-thought, e.g., >1000 tokens)
+       - If solution is too short (median <500 tokens): suggest it may need **COT rewrite/expansion** before use
+       - Are reasoning chains complete, or just final answers?
+       - Does the format align with common reasoning formats? (see below)
+       
+       **Common Reasoning Data Formats:**
+       - Think-tag format: `<think>[reasoning_traces]</think>[final_answer]`
+       - Boxed answer format: reasoning text ending with `\boxed{final_result}` for extractable answers
+       - If data doesn't match these formats, note what transformation is needed
+       
+       **For General/Instruction-following datasets:**
+       - Are instructions clear and responses appropriate?
+       - Is there good diversity in instruction types?
+       - Response quality and helpfulness
+       
+       **For Conversation datasets:**
+       - Multi-turn coherence and context handling
+       - Role consistency (user/assistant/system)
+    
+    2. **Data Completeness & Structure**:
+       - Are there columns that need to be combined? (e.g., "concatenate 'answer' to 'solution' for complete reasoning chains")
+       - Missing or sparse fields? (e.g., "40% of solution fields are empty - need filtering or fallback")
+       - What percentage of data is actually usable?
+    
+    3. **Actionable Suggestions**:
+       - If data has limitations, what preprocessing could help? (e.g., "short solutions may need COT rewrite", "filter empty fields", "merge columns X and Y")
+       - What is the data best suited for? What should it NOT be used for?
+    
+    4. **Minor Format Issues** (LOW PRIORITY - mention briefly if at all):
+       - LaTeX formatting, special characters, encoding issues
+       - These are trivial to fix and should NOT dominate the description
+    
+    **Description Requirements:**
+    - Write 150-250 words, focused on data itself
+    - **PRIORITIZE**: whether response/solution length is sufficient for reasoning (this is the #1 concern!)
+    - **DO NOT include**: training strategies, hyperparameters, model recommendations, batch sizes, learning rates
+    - **DO NOT mention**: RL, RLHF, DPO, PPO, reward models - we only do SFT/LoRA, not reinforcement learning
+    - **MINIMIZE**: trivial format issues (LaTeX cleanup, character encoding, whitespace) - these are easy to fix and not insightful
+    - **DO include**: data fitness assessment, field transformations, completeness issues, usability concerns
+    - Lead with the most important insight (often: is this data actually useful for reasoning?)
 
     ## Common Column Mappings:
     - Alpaca: "instruction"→prompt, "input"→query, "output"→response
@@ -67,20 +137,33 @@ dataset_info_generation:
     - For `file_name`, provide the relative path from the original directory to the data files. Mostly it is under "dataset_name/...".
     - Choose "alpaca" or "sharegpt" based on data structure.
     - Map column names from sample data to LLaMA-Factory format.
+    - Assign appropriate `category` array based on dataset content analysis:
+      - Single domain: `["math"]`
+      - Multiple domains: `["physics", "math"]` (ordered by relevance)
+    - Generate insightful `description` based on README and sample analysis
     - For datasets not following Alpaca or ShareGPT format. Please choose the closest one and adjust column mappings accordingly.
     - The folder might contain multiple files also multiple datasets. Please include all valid datasets you can find in your response.
 
     ## Examples:
     ```json
     {
-      "my_dataset": {
-        "file_name": "my_dataset/train.json",
-        "columns": {"prompt": "instruction", "response": "output"}
+      "short_answer_math": {
+        "file_name": "short_answer_math/train.jsonl",
+        "columns": {"question": "instruction", "solution": "output"},
+        "category": ["math"],
+        "description": "REASONING FITNESS: Solution field is too short for reasoning training (median ~350 tokens). These are concise solutions without detailed chain-of-thought. SUGGESTION: May need COT rewrite/expansion to be useful for reasoning tasks. Alternatively, suitable for: (1) quick answer generation, (2) mixing with longer-form data. About 40% of solutions are empty - filter before use. Concatenate 'answer' field if final result is needed."
       },
-      "chat_dataset": {
-        "file_name": "chat_dataset/data.json",
-        "formatting": "sharegpt",
-        "columns": {"messages": "conversations"}
+      "reasoning_traces": {
+        "file_name": "reasoning_traces/data.json",
+        "columns": {"problem": "instruction", "thinking": "output"},
+        "category": ["math"],
+        "description": "GOOD FOR REASONING: Detailed chain-of-thought traces (median ~8000 tokens). FORMAT: Raw reasoning without think-tags; final answers use \\boxed{} notation. To convert to think-tag format: wrap 'thinking' field with <think>...</think> and append 'answer' field. 95% samples have complete traces. Competition-level math. Ready for SFT after minor format wrapping."
+      },
+      "instruction_following": {
+        "file_name": "instruction_following/data.jsonl",
+        "columns": {"instruction": "instruction", "response": "output"},
+        "category": ["general"],
+        "description": "GENERAL SFT: Diverse instruction types (writing, QA, summarization, coding). Response lengths vary appropriately by task (50-2000 tokens). Good instruction clarity and response helpfulness. No empty fields. Suitable for training general instruction-following capabilities. Not intended for specialized reasoning tasks."
       }
     }
     ```
@@ -91,7 +174,9 @@ dataset_info_generation:
       "dataset_name": {
         "file_name": "dataset_name/...",
         "formatting": "alpaca|sharegpt",
-        "columns": {...}
+        "columns": {...},
+        "category": ["domain1", "domain2", ...],
+        "description": "Data-centric insights: structure notes, preprocessing needs, quality issues (150-250 words)"
       }
     }
     ```
