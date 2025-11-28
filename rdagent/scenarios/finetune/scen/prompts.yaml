@@ -74,34 +74,51 @@ dataset_info_generation:
     ## Description Generation Guidelines
     For each dataset, analyze the README content (if available) and data samples to generate **practical insights about the data itself**. Focus ONLY on data characteristics and preprocessing - do NOT include training strategies, hyperparameters, or model selection advice.
     
-    **Focus Areas (data-centric insights only):**
+    **Focus Areas (in order of importance):**
     
-    1. **Data Structure Insights** (MOST IMPORTANT):
-       - Are there columns that need to be combined? (e.g., "The 'answer' field only contains final results; concatenate with 'solution' field to get complete reasoning chains")
-       - Missing or incomplete fields that need handling?
-       - Relationships between columns that matter?
+    1. **Data Fitness Assessment** (MOST CRITICAL - varies by task type):
+       
+       **For Reasoning/Math datasets:**
+       - Is the response/solution length sufficient? (reasoning typically needs long chain-of-thought, e.g., >1000 tokens)
+       - If solution is too short (median <500 tokens): suggest it may need **COT rewrite/expansion** before use
+       - Are reasoning chains complete, or just final answers?
+       - Does the format align with common reasoning formats? (see below)
+       
+       **Common Reasoning Data Formats:**
+       - Think-tag format: `<think>[reasoning_traces]</think>[final_answer]`
+       - Boxed answer format: reasoning text ending with `\boxed{final_result}` for extractable answers
+       - If data doesn't match these formats, note what transformation is needed
+       
+       **For General/Instruction-following datasets:**
+       - Are instructions clear and responses appropriate?
+       - Is there good diversity in instruction types?
+       - Response quality and helpfulness
+       
+       **For Conversation datasets:**
+       - Multi-turn coherence and context handling
+       - Role consistency (user/assistant/system)
     
-    2. **Data Quality & Format Issues**:
-       - Any format inconsistencies or cleaning needed?
-       - Edge cases or problematic samples to filter?
-       - Encoding or special character issues?
+    2. **Data Completeness & Structure**:
+       - Are there columns that need to be combined? (e.g., "concatenate 'answer' to 'solution' for complete reasoning chains")
+       - Missing or sparse fields? (e.g., "40% of solution fields are empty - need filtering or fallback")
+       - What percentage of data is actually usable?
     
-    3. **Content Characteristics**:
-       - Token length distribution (if highly variable)
-       - Domain and difficulty level of the content
-       - What makes this dataset unique or valuable as training data?
+    3. **Actionable Suggestions**:
+       - If data has limitations, what preprocessing could help? (e.g., "short solutions may need COT rewrite", "filter empty fields", "merge columns X and Y")
+       - What is the data best suited for? What should it NOT be used for?
     
-    4. **Data Curation Background** (if available from README):
-       - How was the data collected/curated?
-       - Any known limitations or biases?
-       - Benchmark results that validate data quality?
+    4. **Minor Format Issues** (LOW PRIORITY - mention briefly if at all):
+       - LaTeX formatting, special characters, encoding issues
+       - These are trivial to fix and should NOT dominate the description
     
     **Description Requirements:**
     - Write 150-250 words, focused on data itself
+    - **PRIORITIZE**: whether response/solution length is sufficient for reasoning (this is the #1 concern!)
     - **DO NOT include**: training strategies, hyperparameters, model recommendations, batch sizes, learning rates
-    - **DO include**: field transformations, data preprocessing steps, quality issues, content characteristics
-    - Be specific about what preprocessing the data needs before it can be used
-    - Use concrete examples when explaining data operations
+    - **DO NOT mention**: RL, RLHF, DPO, PPO, reward models - we only do SFT/LoRA, not reinforcement learning
+    - **MINIMIZE**: trivial format issues (LaTeX cleanup, character encoding, whitespace) - these are easy to fix and not insightful
+    - **DO include**: data fitness assessment, field transformations, completeness issues, usability concerns
+    - Lead with the most important insight (often: is this data actually useful for reasoning?)
 
     ## Common Column Mappings:
     - Alpaca: "instruction"→prompt, "input"→query, "output"→response
@@ -130,18 +147,23 @@ dataset_info_generation:
     ## Examples:
     ```json
     {
-      "reasoning_problems": {
-        "file_name": "reasoning_problems/train.jsonl",
-        "columns": {"question": "instruction", "thinking": "output"},
+      "short_answer_math": {
+        "file_name": "short_answer_math/train.jsonl",
+        "columns": {"question": "instruction", "solution": "output"},
         "category": ["math"],
-        "description": "DATA STRUCTURE NOTE: The 'thinking' field contains step-by-step reasoning process but does NOT include the final answer; the 'final_answer' field contains only the boxed result. For complete reasoning chains, concatenate 'final_answer' to the end of 'thinking' field. Response lengths are highly variable (500-30000 tokens). Some samples have empty 'final_answer' field - these should be filtered or the answer extracted from the last line of 'thinking'."
+        "description": "REASONING FITNESS: Solution field is too short for reasoning training (median ~350 tokens). These are concise solutions without detailed chain-of-thought. SUGGESTION: May need COT rewrite/expansion to be useful for reasoning tasks. Alternatively, suitable for: (1) quick answer generation, (2) mixing with longer-form data. About 40% of solutions are empty - filter before use. Concatenate 'answer' field if final result is needed."
       },
-      "conversation_corpus": {
-        "file_name": "conversation_corpus/data.json",
-        "formatting": "sharegpt",
-        "columns": {"messages": "conversations"},
+      "reasoning_traces": {
+        "file_name": "reasoning_traces/data.json",
+        "columns": {"problem": "instruction", "thinking": "output"},
+        "category": ["math"],
+        "description": "GOOD FOR REASONING: Detailed chain-of-thought traces (median ~8000 tokens). FORMAT: Raw reasoning without think-tags; final answers use \\boxed{} notation. To convert to think-tag format: wrap 'thinking' field with <think>...</think> and append 'answer' field. 95% samples have complete traces. Competition-level math. Ready for SFT after minor format wrapping."
+      },
+      "instruction_following": {
+        "file_name": "instruction_following/data.jsonl",
+        "columns": {"instruction": "instruction", "response": "output"},
         "category": ["general"],
-        "description": "DATA QUALITY NOTES: Some conversation entries have broken context - the assistant response references content not present in user query. Code blocks may contain escaped characters (\\n shown as literal instead of newline). The 'system' role is inconsistently present across samples. Recommend filtering conversations where turn count < 2."
+        "description": "GENERAL SFT: Diverse instruction types (writing, QA, summarization, coding). Response lengths vary appropriately by task (50-2000 tokens). Good instruction clarity and response helpfulness. No empty fields. Suitable for training general instruction-following capabilities. Not intended for specialized reasoning tasks."
       }
     }
     ```

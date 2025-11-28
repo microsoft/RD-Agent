@@ -686,7 +686,7 @@ def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str, e
             # Add README content for each dataset
             dataset_path = datasets_root / dataset_key
             if dataset_path.exists() and dataset_path.is_dir():
-                readme_content = _read_single_dataset_readme(dataset_path, max_chars=2000)
+                readme_content = _read_single_dataset_readme(dataset_path, max_chars=5000)
                 if readme_content:
                     config["readme"] = readme_content
                     logger.info(f"Added README to dataset '{dataset_key}' ({len(readme_content)} chars)")
