@@ -49,7 +49,6 @@ class Evaluator(ABC):
             2. advanced/summarized feedback information. (evaluate will handle this)
     """
 
-    @abstractmethod
     def evaluate(
         self,
         eo: EvaluableObj,

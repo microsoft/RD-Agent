@@ -1,11 +1,12 @@
 from abc import abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Generator, List
 
 from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Evaluator, Feedback
+from rdagent.core.evolving_agent import RAGEvaluator
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import Task, Workspace
 from rdagent.core.utils import multiprocessing_wrapper
@@ -226,6 +227,7 @@ class CoSTEEREvaluator(Evaluator):
     # TODO:
     # I think we should have unified interface for all evaluates, for examples.
     # So we should adjust the interface of other factors
+    # Based on the implementation, I think a better name is some name like task-implement evaluator
     @abstractmethod
     def evaluate(
         self,
@@ -237,19 +239,21 @@ class CoSTEEREvaluator(Evaluator):
         raise NotImplementedError("Please implement the `evaluator` method")
 
 
-class CoSTEERMultiEvaluator(CoSTEEREvaluator):
+class CoSTEERMultiEvaluator(RAGEvaluator):
     """This is for evaluation of experiment. Due to we have multiple tasks, so we will return a list of evaluation feebacks"""
 
-    def __init__(self, single_evaluator: CoSTEEREvaluator | list[CoSTEEREvaluator], *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, single_evaluator: CoSTEEREvaluator | list[CoSTEEREvaluator], scen: "Scenario") -> None:
+        super().__init__()
+        self.scen = scen
         self.single_evaluator = single_evaluator
 
-    def evaluate(
+    def evaluate_iter(
         self,
-        evo: EvolvingItem,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
-    ) -> CoSTEERMultiFeedback:
+    ) -> Generator[CoSTEERMultiFeedback, EvolvingItem | None, CoSTEERMultiFeedback]:
+        evo = yield CoSTEERMultiFeedback([])  # it will receive the evo first, so the first yield is for get the sent evo instead of generate useful feedback
+
         eval_l = self.single_evaluator if isinstance(self.single_evaluator, list) else [self.single_evaluator]
 
         # 1) Evaluate each sub_task
@@ -279,7 +283,12 @@ class CoSTEERMultiEvaluator(CoSTEEREvaluator):
                 ],
                 n=RD_AGENT_SETTINGS.multi_proc_n,
             )
+            # None received, we skip the rest and return the overall feedback directly
+            evo_next_iter = yield CoSTEERMultiFeedback(multi_implementation_feedback)
             task_li_feedback_li.append(multi_implementation_feedback)
+            if evo_next_iter is None:
+                break
+            evo = evo_next_iter
 
         # 2) merge the feedbacks along the sub_tasks to aggregate the multiple evaluation feedbacks
         merged_task_feedback = []

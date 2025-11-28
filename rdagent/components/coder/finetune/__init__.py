@@ -7,6 +7,7 @@ including evaluators and evolving strategies.
 
 import re
 from pathlib import Path
+from typing import Callable
 
 import yaml
 
@@ -26,7 +27,7 @@ from rdagent.components.coder.finetune.conf import (
     FT_YAML_FILE_NAME,
     FTCoderCoSTEERSettings,
 )
-from rdagent.components.coder.finetune.eval import FTCoderEvaluator
+from rdagent.components.coder.finetune.eval import FTCoderEvaluator, FTDataEvaluator
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
@@ -44,7 +45,19 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         super().__init__(scen, settings)
         self.llama_factory_manager = LLaMAFactory_manager
 
-    def implement_one_task(
+    def implement_func_list(self) -> list[Callable]:
+        return [self.implement_data, self.implement_lf_config]
+
+    def implement_data(
+            self,
+            target_task: Task,
+            queried_knowledge: CoSTEERQueriedKnowledge | None = None,
+            workspace: FBWorkspace | None = None,
+            prev_task_feedback: CoSTEERSingleFeedback | None = None,
+    ) -> dict[str, str]:
+        return {}
+
+    def implement_lf_config(
         self,
         target_task: Task,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
@@ -180,7 +193,7 @@ class LLMFinetuneCoSTEER(CoSTEER):
         **kwargs,
     ) -> None:
         settings = FTCoderCoSTEERSettings()
-        eva = CoSTEERMultiEvaluator(FTCoderEvaluator(scen=scen), scen=scen)
+        eva = CoSTEERMultiEvaluator([FTDataEvaluator(scen=scen), FTCoderEvaluator(scen=scen)], scen=scen)
         es = LLMFinetuneEvolvingStrategy(scen=scen, settings=settings)
 
         super().__init__(
@@ -191,5 +204,6 @@ class LLMFinetuneCoSTEER(CoSTEER):
             evolving_version=2,
             scen=scen,
             max_loop=FT_RD_SETTING.coder_max_loop if hasattr(FT_RD_SETTING, "coder_max_loop") else 5,
+            stop_eval_chain_on_fail=True, # finetune involve partial implementation.
             **kwargs,
         )
