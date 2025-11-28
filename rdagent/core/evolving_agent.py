@@ -42,7 +42,9 @@ class EvoAgent(ABC, Generic[ASpecificEvaluator, ASpecificEvolvableSubjects]):
 class RAGEvaluator(IterEvaluator):
 
     @abstractmethod
-    def evaluate_iter(self, queried_knowledge: object = None, evolving_trace: list[EvoStep] = []) -> Generator[Feedback, EvaluableObj | None, Feedback]:
+    def evaluate_iter(
+        self, queried_knowledge: object = None, evolving_trace: list[EvoStep] = []
+    ) -> Generator[Feedback, EvaluableObj | None, Feedback]:
         """
 
         1) It will yield a evaluation for each implement part and yield the feedback for that part.
@@ -68,7 +70,6 @@ class RAGEvaluator(IterEvaluator):
             return final_fb
 
         """
-
 
 
 class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[ASpecificEvolvableSubjects]):
@@ -113,11 +114,15 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
         self.filelock_path = filelock_path
         self.stop_eval_chain_on_fail = stop_eval_chain_on_fail
 
-    def _get_overall_feedback(self, eva_iter: Generator[Any, Any, Feedback], evo: EvolvableSubjects, eval_failed_happened: bool) -> Feedback:
+    def _get_overall_feedback(
+        self, eva_iter: Generator[Any, Any, Feedback], evo: EvolvableSubjects, eval_failed_happened: bool
+    ) -> Feedback:
         """get overall feedback from eva_iter"""
         try:
             if self.stop_eval_chain_on_fail and eval_failed_happened:
-                fb = eva_iter.send(None)  # send the signal to skip the rest partial evaluation and return the overall feedback directly
+                fb = eva_iter.send(
+                    None
+                )  # send the signal to skip the rest partial evaluation and return the overall feedback directly
             else:
                 fb = eva_iter.send(evo)
                 if not fb:
@@ -141,7 +146,7 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
                 # 2. evolve:
                 # A compelete solution of an evo can be break down into multiple evolving steps.
                 # Each evolving step can be evaluated separately.
-                # Assumptions: 
+                # Assumptions:
                 # - if we want to stop on some point of the implementation, we must have a according evaluator (Otherwise, It is meaningless to stop)
                 evo_iter = self.evolving_strategy.evolve_iter(
                     evo=evo,
@@ -152,7 +157,7 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
                     evolving_trace=self.evolving_trace,
                     queried_knowledge=queried_knowledge,
                 )
-                next(eva_iter) # kick off the first iteration
+                next(eva_iter)  # kick off the first iteration
                 eval_failed_happened = False
                 for evo in evo_iter:
                     step_feedback = eva_iter.send(evo)

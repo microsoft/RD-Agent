@@ -36,7 +36,6 @@ class FTDataEvaluator(CoSTEEREvaluator):
         # return CoSTEERSingleFeedback(execution="data failed", return_checking="data failed", code="data failed", final_decision=False)
 
 
-
 class FTCoderEvaluator(CoSTEEREvaluator):
     """Evaluator for LLM fine-tuning implementations with simplified validation"""
 

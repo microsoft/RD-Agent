@@ -79,7 +79,6 @@ class LLMFinetuneScen(DataScienceScen):
         params_count = sum(len(p) if isinstance(p, dict) else 0 for p in info.get("parameters", {}).values())
         logger.info(f"LLaMA Factory initialized: {methods_count} methods, {params_count} parameters")
 
-
     def _prepare_dataset_info(self):
         """Generate dataset_info.json configuration"""
         datasets_dir = Path(FT_RD_SETTING.file_path) / "datasets"
@@ -127,7 +126,7 @@ class LLMFinetuneScen(DataScienceScen):
         """Metric direction for LLM fine-tuning (higher is better)"""
         return True
 
-    def get_scenario_all_desc(self,enable_dataset_description: bool = True) -> str:
+    def get_scenario_all_desc(self, enable_dataset_description: bool = True) -> str:
         """Get complete scenario description for LLM fine-tuning"""
         return T(".prompts:scenario_description").r(
             user_target_scenario=self.user_target_scenario,
@@ -143,4 +142,3 @@ class LLMFinetuneScen(DataScienceScen):
             full_timeout=f"{self.real_full_timeout() / 60 / 60:.2f} hours",
             enable_dataset_description=enable_dataset_description,
         )
-

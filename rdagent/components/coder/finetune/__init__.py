@@ -49,11 +49,11 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         return [self.implement_data, self.implement_lf_config]
 
     def implement_data(
-            self,
-            target_task: Task,
-            queried_knowledge: CoSTEERQueriedKnowledge | None = None,
-            workspace: FBWorkspace | None = None,
-            prev_task_feedback: CoSTEERSingleFeedback | None = None,
+        self,
+        target_task: Task,
+        queried_knowledge: CoSTEERQueriedKnowledge | None = None,
+        workspace: FBWorkspace | None = None,
+        prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
         return {}
 
@@ -204,6 +204,6 @@ class LLMFinetuneCoSTEER(CoSTEER):
             evolving_version=2,
             scen=scen,
             max_loop=FT_RD_SETTING.coder_max_loop if hasattr(FT_RD_SETTING, "coder_max_loop") else 5,
-            stop_eval_chain_on_fail=True, # finetune involve partial implementation.
+            stop_eval_chain_on_fail=True,  # finetune involve partial implementation.
             **kwargs,
         )

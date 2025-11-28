@@ -85,7 +85,7 @@ class LLMFinetuneExpGen(ExpGen):
         Stage 1: Decide task_type
             - First loop: task_type = "both" (generate data + train tasks)
             - Subsequent loops: LLM decides task_type from ["data", "train", "both"]
-        
+
         Stage 2: Generate hypothesis and tasks based on task_type
         """
         base_model = FT_RD_SETTING.base_model
@@ -109,11 +109,7 @@ class LLMFinetuneExpGen(ExpGen):
         return self._gen_hypothesis(trace, base_model, task_type, decision_reason)
 
     def _gen_hypothesis(
-        self, 
-        trace: Trace, 
-        base_model: str, 
-        task_type: Literal["data", "train", "both"],
-        decision_reason: str
+        self, trace: Trace, base_model: str, task_type: Literal["data", "train", "both"], decision_reason: str
     ) -> FTExperiment:
         """Unified hypothesis generation method.
 
@@ -127,7 +123,7 @@ class LLMFinetuneExpGen(ExpGen):
             FTExperiment with appropriate task(s) based on task_type
         """
         logger.info(f"Generating hypothesis for task_type: {task_type}")
-        
+
         # Prepare all necessary context for prompts
         dataset_folder_desc = self.scen.dataset_folder_desc
         available_models = LLaMAFactory_manager.models
@@ -136,13 +132,13 @@ class LLMFinetuneExpGen(ExpGen):
         methods_specific_params = {}
         for method in available_methods:
             methods_specific_params[method] = LLaMAFactory_manager.format_method_specific_params(method)
-        
-        enable_dataset_description = task_type =="train"
+
+        enable_dataset_description = task_type == "train"
 
         # Build unified prompt with task_type
         system_prompt = T(".prompts:unified_hypothesis_gen.system_prompt").r(
             task_type=task_type,
-            scenario=self.scen.get_scenario_all_desc(enable_dataset_description=enable_dataset_description) ,
+            scenario=self.scen.get_scenario_all_desc(enable_dataset_description=enable_dataset_description),
             dataset_folder_desc=dataset_folder_desc,
             available_models=available_models,
             available_methods=available_methods,
@@ -150,12 +146,12 @@ class LLMFinetuneExpGen(ExpGen):
             methods_specific_params=methods_specific_params,
             select_model=base_model is None,
         )
-        
+
         user_prompt = T(".prompts:unified_hypothesis_gen.user_prompt").r(
             trace=trace,
             task_type=task_type,
         )
-        
+
         # Single LLM call - prompt decides what to generate based on task_type
         response_dict = json.loads(
             APIBackend().build_messages_and_create_chat_completion(
@@ -164,7 +160,7 @@ class LLMFinetuneExpGen(ExpGen):
                 json_target_type=dict,
             )
         )
-        
+
         # Parse involving_datasets for data/both task types
         involving_datasets = []
         if task_type in ["data", "both"]:
@@ -174,11 +170,11 @@ class LLMFinetuneExpGen(ExpGen):
                 involving_datasets = [ds.strip() for ds in cleaned.split(",") if ds.strip()]
             else:
                 involving_datasets = involving_datasets_raw if involving_datasets_raw else []
-        
+
         # Ensure model assets exist for training tasks
         if task_type in ["train", "both"]:
             ensure_ft_assets_exist(model=base_model, check_model=True)
-        
+
         # Create single task with appropriate task_type
         task = FTTask(
             base_model=base_model,
@@ -187,7 +183,7 @@ class LLMFinetuneExpGen(ExpGen):
             task_type=task_type,
             involving_datasets=involving_datasets,
         )
-        
+
         # Create hypothesis from response
         hypothesis = FTHypothesis(
             base_model=base_model,
@@ -195,9 +191,9 @@ class LLMFinetuneExpGen(ExpGen):
             reason=f"{decision_reason}\n{response_dict.get('reason', '')}",
             task_type=task_type,
         )
-        
+
         logger.info(f"Experiment created with task_type: {task_type}")
-        
+
         return FTExperiment(sub_tasks=[task], hypothesis=hypothesis)
 
     def _decide_task_type(self, trace: Trace) -> tuple[Literal["data", "train", "both"], str]:
@@ -211,7 +207,7 @@ class LLMFinetuneExpGen(ExpGen):
         Returns:
             tuple: (task_type, reason) where task_type can be "data", "train", or "both"
         """
-        # TODO: given the feedback to choose whether to do data processing or training 
+        # TODO: given the feedback to choose whether to do data processing or training
         # # Gather dataset status information
         # dataset_info = getattr(self.scen, "dataset_info", None)
 
