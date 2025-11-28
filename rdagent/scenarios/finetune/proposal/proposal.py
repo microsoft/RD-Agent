@@ -125,7 +125,6 @@ class LLMFinetuneExpGen(ExpGen):
         logger.info(f"Generating hypothesis for task_type: {task_type}")
 
         # Prepare all necessary context for prompts
-        dataset_folder_desc = self.scen.dataset_folder_desc
         available_models = LLaMAFactory_manager.models
         available_methods = LLaMAFactory_manager.methods
         shared_params = LLaMAFactory_manager.format_shared_params()
@@ -133,13 +132,11 @@ class LLMFinetuneExpGen(ExpGen):
         for method in available_methods:
             methods_specific_params[method] = LLaMAFactory_manager.format_method_specific_params(method)
 
-        enable_dataset_description = task_type == "train"
 
         # Build unified prompt with task_type
         system_prompt = T(".prompts:unified_hypothesis_gen.system_prompt").r(
             task_type=task_type,
-            scenario=self.scen.get_scenario_all_desc(enable_dataset_description=enable_dataset_description),
-            dataset_folder_desc=dataset_folder_desc,
+            scenario=self.scen.get_scenario_all_desc(enable_dataset_description=True),
             available_models=available_models,
             available_methods=available_methods,
             shared_params=shared_params,

@@ -626,7 +626,7 @@ def check_all_dataset_in_info(ft_file_path, existing_config, max_depth: int = 3)
     return remain_dataset_list
 
 
-def get_dataset_folder_desc(ft_file_path: str) -> dict:
+def get_dataset_folder_desc(ft_file_path: str,include_dataset_readme: bool = True) -> dict:
     """Get dataset folder description using AI analysis.
 
     Args:
@@ -636,7 +636,7 @@ def get_dataset_folder_desc(ft_file_path: str) -> dict:
         dict: Dataset folder description
     """
     dataset_folder_desc = FinetuneDatasetDescriptor().describe_dataset_folder(
-        Path(ft_file_path) / "datasets", include_dataset_readme=True
+        Path(ft_file_path) / "datasets", include_dataset_readme=include_dataset_readme
     )
     return dataset_folder_desc
 

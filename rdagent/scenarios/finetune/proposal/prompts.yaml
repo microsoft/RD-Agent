@@ -21,14 +21,13 @@ unified_hypothesis_gen:
     - Focus on: dataset selection, filtering, cleaning, formatting, and preparation
     - Output will include: reason, hypothesis, task, involving_datasets
     {% elif task_type == "train" %}
-    - You will generate a hypothesis and task for **training configuration only**
+    - You will generate a hypothesis and task for **training configuration only** (single-stage fine-tuning, no multi-stage training)
     - Focus on: fine-tuning method, hyperparameters, optimization strategy
     - Output will include: reason, hypothesis, task
     {% else %}
-    - You will generate a hypothesis and task for **BOTH data processing AND training**
-    - Focus on: complete workflow from raw data to trained model
-    - Output will include: reason (covering both aspects), hypothesis (integrating both), task (complete workflow), involving_datasets
-    - **CRITICAL**: All your outputs (reason, hypothesis, task) MUST comprehensively cover BOTH data processing AND training configuration
+    - You will generate a hypothesis and task for **BOTH data processing AND training configuration** (all outputs must cover both aspects)
+    - Focus on: complete workflow from raw data to trained model (single-stage fine-tuning)
+    - Output will include: reason, hypothesis, task, involving_datasets
     {% endif %}
     
     ---
@@ -52,12 +51,7 @@ unified_hypothesis_gen:
     # Instructions for data processing:
 
     ## Data Processing Resources
-    
-    ### Seed Datasets and preview:
         
-    - Dataset Folder Description:
-    {{dataset_folder_desc}}
-    
     ### Available Processing Methods:
     
     **General Methods**:
@@ -108,51 +102,21 @@ unified_hypothesis_gen:
     - When in doubt between modifying vs. filtering: **prefer filtering out problematic samples** over aggressive modification
     - Always provide clear reasoning for why modification is beneficial over keeping original or filtering
     
-    ### Output Data Format Specification
+    ### Output Data Format
     
-    Based on the task type, the generated dataset must use the appropriate response format:
+    Save all processed data to a single `data.json` file using Alpaca format. Choose output content based on task type:
     
-    **Non-Reasoning Tasks** (e.g., classification, summarization, general QA):
-    - Standard Alpaca format:
     ```json
-          {
-            "instruction": "...",
-            "input": "...",
-            "output": "direct answer or response"
-          }
+    [
+      {
+        "instruction": "...",
+        "input": "...",
+        "output": "direct answer"                                              // Non-Reasoning
+                  // OR "<think>\n[reasoning]\n</think>\n[answer]"             // Reasoning
+                  // OR "<think>\n[math reasoning]\n</think>\n\\boxed{result}" // Math problems which have precise answers
+      }
+    ]
     ```
-    
-    **Reasoning Tasks** (e.g., logic, code debugging, complex QA):
-    - Reasoning format with thinking tags:
-    ```json
-          {
-            "instruction": "...",
-            "input": "...",
-            "output": "<think>\n[step-by-step reasoning process]\n</think>\n[final answer]"
-          }
-    ```
-    
-    **Math Reasoning Tasks** (e.g., AIME, AMC, MATH, competition problems):
-    - Math reasoning format with boxed final answer:
-    ```json
-          {
-            "instruction": "...",
-            "input": "...",
-            "output": "<think>\n[step-by-step mathematical reasoning]\n</think>\n\\boxed{result}"
-          }
-    ```
-    
-    **ShareGPT Format** (if multi-turn conversation is needed):
-    ```json
-        {
-          "conversations": [
-            {"from": "human", "value": "..."},
-            {"from": "gpt", "value": the same output format as described above for different tasks}
-          ]
-        }
-    ```
-    
-    Choose the format that best matches the target task. If using seed datasets, apply the same formatting transformation to them.
     {% endif %}
     
     {% if task_type in ["train", "both"] %}
@@ -175,21 +139,17 @@ unified_hypothesis_gen:
     {% for method, params_desc in methods_specific_params.items() %}
     {{ params_desc }}
     {% endfor %}
+    
     {% endif %}
     
     ---
     
     ## Guidelines
     - Please provide the hypothesis in simplest form - avoid unnecessary complexity
-    - Consider hardware constraints{% if task_type in ["train", "both"] %} for training{% endif %}{% if task_type in ["data", "both"] %} and available LLM endpoints{% endif %} for data processing
-    {% if task_type == "both" %}
-    - **IMPORTANT**: Since task_type is "both", your reason, hypothesis, and task **MUST** cover BOTH data processing AND training configuration aspects
-    {% endif %}
+    - Consider hardware constraints{% if task_type in ["train", "both"] %} for training{% endif %}{% if task_type in ["data", "both"] %} and available LLM endpoints for data processing{% endif %}
     {% if task_type in ["data", "both"] %}
-    - Consider the dataset characteristics and task requirements when selecting processing methods
     - Chain data processing methods logically: filtering → quality scoring → augmentation/generation
     - If history shows a method failed, explain why your new approach differs
-    - Ensure the output format matches the task type (standard/reasoning/math_reasoning)
     - Always specify which seed datasets will be used in `involving_datasets`
     {% endif %}
     {% if task_type in ["train", "both"] %}
@@ -219,8 +179,7 @@ unified_hypothesis_gen:
     {% if task_type in ["data", "both"] %}
     - Data loading: Which datasets to load and from where
     - Processing steps: Filtering, cleaning, scoring, generation, etc.
-    - Output format: Final dataset format and structure
-    - Metadata generation: The code generator must produce a `processed_dataset_info.json` file which mimics the LlamaFactory dataset_info.json format
+    - Output format: Save all processed data to a single `data.json` file with appropriate format (instruction/input/output or conversations)
     {% endif %}
     {% if task_type in ["train", "both"] %}
     - Fine-tuning method implementation: setting up the fine-tuning process according to the hypothesis
@@ -247,8 +206,8 @@ unified_hypothesis_gen:
     - [Data] Which datasets to use and how to process them
     - [Data] Which LLM endpoints for which processing steps
     - [Data] Filtering thresholds and parameters
-    - [Training] Which training methods and hyperparameters to use
-    - [Training] The complete workflow from processed data to trained model
+    - [Training] Which training methods and hyperparameters to use (single-stage training only)
+    - [Training] The complete workflow from processed data to trained model (one training run)
     {% else %}
     {% if task_type == "data" %}
     - Which datasets to use
@@ -256,7 +215,7 @@ unified_hypothesis_gen:
     - Filtering thresholds and parameters
     {% elif task_type == "train" %}
     - The actions to be taken, avoiding vague instructions
-    - The steps start from pure dataset reading to final fine-tuning
+    - The steps start from pure dataset reading to final fine-tuning (single training run only)
     {% endif %}
     {% endif %}
     
