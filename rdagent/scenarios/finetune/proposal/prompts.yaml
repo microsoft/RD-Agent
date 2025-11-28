@@ -71,6 +71,32 @@ unified_hypothesis_gen:
     
     **Note**: You should try to make use of the datasets shown above to generate new training datasets. But if you think the datasets are not suitable for the task or you have better ideas, you can come up with your own approach (better based on the given seed datasets).
     
+    ### Data Quality Adaptation Guide
+    
+    **Principle: Data quality must match training objectives.**
+    
+    Analyze the dataset info carefully - check not just whether fields exist, but whether their **content quality** is sufficient for your goal.
+    
+    **General Strategies:**
+    1. **Augmentation/Rewrite**: Use stronger models to enhance, expand, or rewrite content
+    2. **Direct Use**: Use data as-is if quality matches objectives
+    3. **Filter**: Keep only samples that meet quality threshold
+    
+    **Decision Framework:**
+    - What is your **training objective**? (e.g., reasoning capability, answer accuracy, instruction following)
+    - Does the data **quality** support this objective? (not just existence, but depth/length/richness)
+    - If mismatch: augment/rewrite > filter > direct use with limitations acknowledged
+    
+    **Example - Reasoning/CoT Training:**
+    Dataset info shows: "solution field median ~373 tokens, too short for rich chain-of-thought training"
+    
+    This means existing CoT is **insufficient** for training strong reasoning, even if non-empty. Options:
+    - **Rewrite/Expand**: Use stronger model to generate longer, more detailed reasoning traces
+    - **Filter for long CoT**: Keep only samples with substantial reasoning (e.g., >1000 tokens)
+    - **Generate from scratch**: For answer-only samples, generate full CoT verified against answer
+    
+    Key insight: Short CoT ≠ Good CoT. Training reasoning requires **rich, detailed** thought processes.
+    
     ### Critical: Respect Original Dataset Design & Avoid Aggressive Modifications
     
     The seed datasets provided are **published, validated datasets** proven effective for training models. Their response lengths and formats were intentionally designed by researchers.
@@ -101,6 +127,22 @@ unified_hypothesis_gen:
     - Consider the **model's context window** and **dataset statistics** (p50, p99 token lengths)
     - When in doubt between modifying vs. filtering: **prefer filtering out problematic samples** over aggressive modification
     - Always provide clear reasoning for why modification is beneficial over keeping original or filtering
+    
+    ### Data Processing Guidelines
+    
+    **IMPORTANT: Read `dataset_info.json` description field carefully!**
+    It contains critical information about data quality, field statistics, and recommended preprocessing approaches.
+    
+    **Handling missing/empty fields:**
+    - If a sample has missing critical fields → Filter out (if small portion, e.g., <10%)
+    - If many samples have missing fields → Consider augmentation/generation instead of filtering
+    
+    **Reasoning token length guideline:**
+    - Target reasoning length: approximately `1/2 * max_position_embeddings` of the model
+    - This leaves room for instruction/question while ensuring rich reasoning
+    - Example: For model with 32K context → target ~16K tokens for reasoning
+    - Too short (<500 tokens): May lack depth for reasoning training
+    - Too long (>3/4 context): Risk of truncation or memory issues
     
     ### Output Data Format
     
@@ -145,9 +187,12 @@ unified_hypothesis_gen:
     ---
     
     ## Guidelines
+    
     - Please provide the hypothesis in simplest form - avoid unnecessary complexity
     - Consider hardware constraints{% if task_type in ["train", "both"] %} for training{% endif %}{% if task_type in ["data", "both"] %} and available LLM endpoints for data processing{% endif %}
     {% if task_type in ["data", "both"] %}
+    - **IMPORTANT**: Check dataset info for quality issues - not just missing fields, but whether **content quality** (length, depth, richness) matches training objectives
+    - When data quality is insufficient (e.g., CoT too short for reasoning training), augmentation/rewrite is expected, not direct use
     - Chain data processing methods logically: filtering → quality scoring → augmentation/generation
     - If history shows a method failed, explain why your new approach differs
     - Always specify which seed datasets will be used in `involving_datasets`
@@ -227,7 +272,7 @@ unified_hypothesis_gen:
           "reason": "[Your reasoning about why this approach should work{% if task_type == "both" %}, covering BOTH data processing and training aspects{% endif %}, referencing history if available]",
           "hypothesis": "[Your hypothesis in natural language{% if task_type == "both" %}, integrating both data processing strategy and training configuration{% endif %}, comprehensive and specific]",
           "task": "[Step-by-step task description for the code generator{% if task_type == "both" %}, covering the complete workflow from data processing to training{% endif %}, no code]",
-          "involving_datasets": "[Comma-separated list of datasets involved in this experiment, e.g., LIMO-v2, s1K-1.1]"
+          "involving_datasets": "[List all seed datasets used. For single dataset: 'DatasetName'. For multiple: 'Dataset1, Dataset2']"
         }
     ```
     {% else %}
