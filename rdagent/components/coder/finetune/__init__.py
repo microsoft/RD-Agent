@@ -21,9 +21,13 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
     MultiProcessEvolvingStrategy,
 )
 from rdagent.components.coder.CoSTEER.knowledge_management import (
+    CoSTEERKnowledge,
     CoSTEERQueriedKnowledge,
 )
 from rdagent.components.coder.finetune.conf import (
+    FT_DATA_PROC_FILE_NAME,
+    FT_DATASET_PATH,
+    FT_MODEL_PATH,
     FT_YAML_FILE_NAME,
     FTCoderCoSTEERSettings,
 )
@@ -33,7 +37,9 @@ from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.finetune.scen.llama_factory_manager import LLaMAFactory_manager
+from rdagent.scenarios.finetune.scen.utils import FinetuneDatasetDescriptor
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.agent.ret import PythonAgentOut
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -48,6 +54,51 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
     def implement_func_list(self) -> list[Callable]:
         return [self.implement_data, self.implement_lf_config]
 
+    def _query_knowledge(self, queried_knowledge,
+                         task_info: str) -> tuple[list[CoSTEERKnowledge], CoSTEERKnowledge | None]:
+        """
+        Retrieve former failed knowledge traces and optionally additional context for a given task.
+
+        Parameters
+        ----------
+        queried_knowledge : CoSTEERQueriedKnowledge | None
+            An object produced by the CoSTEERRAGStrategy query methods containing mappings from task info strings
+            to relevant CoSTEERKnowledge entries.
+            Example:
+                CoSTEERQueriedKnowledgeV2(
+                    task_to_former_failed_traces={
+                        "finetune task X": ([CoSTEERKnowledge(...), CoSTEERKnowledge(...)], latest_attempt_obj)
+                    },
+                    ...
+                )
+        task_info : str
+            The unique task description or identifier for which we want to extract former failed traces.
+            Example:
+                "finetune Llama-7B on sentiment analysis dataset"
+
+        Returns
+        -------
+        tuple[list[CoSTEERKnowledge], object]
+            A tuple:
+            - First element: list of CoSTEERKnowledge objects representing past failed implementation attempts
+              for the given task_info. Each contains the target Task, its FBWorkspace implementation, and feedback.
+              Example:
+                  [
+                      CoSTEERKnowledge(target_task=Task(...), implementation=FBWorkspace(...), feedback=CoSTEERSingleFeedback(...)),
+                      ...
+                  ]
+            - Second element: an optional "latest attempt" object (type can vary) representing the most recent attempt
+              after the last successful execution, or None if unavailable.
+              Example:
+                  CoSTEERKnowledge(...) or None
+        """
+        # TODO: queried knowledge is not a well annotated type. We should use a better type for it.
+        queried_former_failed_knowledge = (
+            queried_knowledge.task_to_former_failed_traces[task_info] if queried_knowledge is not None else []
+        )
+        return queried_former_failed_knowledge
+
+    # TODO: retry when failed
     def implement_data(
         self,
         target_task: Task,
@@ -55,7 +106,50 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         workspace: FBWorkspace | None = None,
         prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
-        return {}
+        task_info = target_task.get_task_information()
+        queried_former_failed_knowledge = self._query_knowledge(queried_knowledge, task_info)
+
+        # Avoid reusing “former failed knowledge” that is essentially **identical** to the current code — because it would be redundant for the LLM.
+        queried_former_failed_knowledge = (
+            [
+                knowledge
+                for knowledge in queried_former_failed_knowledge[0]
+                if knowledge.implementation.file_dict.get(FT_DATA_PROC_FILE_NAME)
+                != workspace.file_dict.get(FT_DATA_PROC_FILE_NAME)
+            ],
+            queried_former_failed_knowledge[1],
+        )
+
+        CONF = FTCoderCoSTEERSettings()
+        # Generate prompts using templates with all required parameters
+        system_prompt = T(".prompts:finetune_data_coder.system").r(
+            out_spec=PythonAgentOut.get_spec(),
+            api_base=CONF.api_base,
+            api_key=CONF.api_key,
+            available_api_models=CONF.available_api_models,
+        )
+
+        user_prompt = T(".prompts:finetune_data_coder.user").r(
+            task_desc=task_info,
+            scenario=self.scen.get_scenario_all_desc(),
+            latest_code=workspace.file_dict.get(FT_DATA_PROC_FILE_NAME, ""),
+            latest_feedback=prev_task_feedback,
+            dataset_folder_desc=FinetuneDatasetDescriptor().describe_dataset_folder( Path(FT_RD_SETTING.file_path) / "datasets", include_dataset_readme=True),
+            queried_former_failed_knowledge=queried_former_failed_knowledge[0],
+            datasets_path=FT_DATASET_PATH,
+        )
+
+        # TODO: return {} if no code is required to be generated.
+
+        # Call LLM to generate config
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=system_prompt,
+            json_mode=False,
+        )
+
+        code = PythonAgentOut.extract_output(response)
+        return {FT_DATA_PROC_FILE_NAME: code}
 
     def implement_lf_config(
         self,
@@ -67,10 +161,9 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         """Implement a single fine-tuning task by generating LlamaFactory config"""
 
         task_info = target_task.get_task_information()
+        queried_former_failed_knowledge = self._query_knowledge(queried_knowledge, task_info)
 
-        queried_former_failed_knowledge = (
-            queried_knowledge.task_to_former_failed_traces[task_info] if queried_knowledge is not None else []
-        )
+        # Avoid reusing “former failed knowledge” that is essentially **identical** to the current code — because it would be redundant for the LLM.
         queried_former_failed_knowledge = (
             [
                 knowledge
@@ -117,8 +210,8 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             methods_specific_params[method] = self.llama_factory_manager.format_method_specific_params(method)
 
         # Use fixed Docker paths for simplicity
-        models_path = "/assets/models/"
-        datasets_path = "/assets/datasets/"
+        models_path = FT_MODEL_PATH
+        datasets_path = FT_DATASET_PATH
 
         # Generate prompts using templates with all required parameters
         system_prompt = T(".prompts:finetune_coder.system").r(
