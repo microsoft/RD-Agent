@@ -31,9 +31,40 @@ class FTDataEvaluator(CoSTEEREvaluator):
         queried_knowledge: Optional[QueriedKnowledge] = None,
         **kwargs,
     ) -> CoSTEERSingleFeedback:
-        # TODO: we just have a dummy evaluator for now
-        return CoSTEERSingleFeedback(execution="", return_checking="", code="", final_decision=True)
-        # return CoSTEERSingleFeedback(execution="data failed", return_checking="data failed", code="data failed", final_decision=False)
+        # Execute data processing script to prepare training/validation data
+        env = get_ft_env(
+            running_timeout_period=self.scen.real_full_timeout() # NOTE: we don't use debug mode in this evaluator.
+        )
+        result = implementation.run(env=env, entry="python data_process.py")
+        execution_output = result.get_truncated_stdout()
+        execute_ret_code = result.exit_code
+        implementation.running_info.running_time = result.running_time
+
+        # Evaluate the return value/output of data_process.py
+        if execute_ret_code != 0:
+            return CoSTEERSingleFeedback(
+                execution=execution_output,
+                return_checking="data_process.py execution failed",
+                code="Data generation encountered an error.",
+                final_decision=False,
+            )
+
+        # Check for existence of expected processed data files
+        data_dir = implementation.workspace_path / "dataset"
+        if not data_dir.exists() or not any(data_dir.glob("*")):
+            return CoSTEERSingleFeedback(
+                execution=execution_output,
+                return_checking="No processed data found after running data_process.py",
+                code="Missing expected processed data",
+                final_decision=False,
+            )
+
+        return CoSTEERSingleFeedback(
+            execution=execution_output,
+            return_checking="Data generated successfully",
+            code="Processed data available for training",
+            final_decision=True,
+        )
 
 
 class FTCoderEvaluator(CoSTEEREvaluator):
