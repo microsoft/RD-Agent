@@ -132,7 +132,6 @@ class LLMFinetuneExpGen(ExpGen):
         for method in available_methods:
             methods_specific_params[method] = LLaMAFactory_manager.format_method_specific_params(method)
 
-
         # Build unified prompt with task_type
         system_prompt = T(".prompts:unified_hypothesis_gen.system_prompt").r(
             task_type=task_type,
