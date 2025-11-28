@@ -32,7 +32,7 @@ def _find_data_files(dataset_path: Path, max_files: int = 50) -> list[Path]:
     return [f for f in dataset_files if f != dataset_path / "dataset_info.json"]
 
 
-def _truncate_long_values(obj, max_length: int = 200):
+def _truncate_long_values(obj, max_length: int = 3000):
     """Recursively truncate long string values in nested data structures."""
     if isinstance(obj, dict):
         return {k: _truncate_long_values(v, max_length) for k, v in obj.items()}
@@ -260,21 +260,22 @@ class FinetuneDatasetDescriptor:
                 results.extend(self._walk(entry, depth + 1, max_depth, target_names))
         return results
 
-    def _read_dataset_readme(self, dataset_path: Path) -> str:
+    def _read_dataset_readme(self, dataset_path: Path, max_chars: int = 5000) -> str:
         """Read README description from dataset directory.
 
         Args:
             dataset_path: Path to dataset directory
+            max_chars: Maximum characters to read from each README file
 
         Returns:
-            README content (truncated to 1000 chars) or empty string
+            README content (truncated to max_chars) or empty string
         """
         target_names = {"README.md", "readme.md", "README.txt"}
         readme_files = self._walk(dataset_path, depth=0, max_depth=2, target_names=target_names)
         readme_file_descs = ""
         for readme_file in readme_files:
             try:
-                description = readme_file.read_text(encoding="utf-8")[:5000]
+                description = readme_file.read_text(encoding="utf-8")[:max_chars]
                 logger.info(f"Loaded dataset description from {readme_file.relative_to(dataset_path)}")
                 readme_file_descs += f"### From readme file: {readme_file.relative_to(dataset_path)}:\n<start_of_readme>\n{description}<end_of_readme>\n\n"
             except Exception as e:
@@ -473,6 +474,62 @@ class FinetuneDatasetDescriptor:
         return FinetuneFileDescription({"name": data_file.name, "type": "unknown", "samples": []})
 
 
+def _read_single_dataset_readme(dataset_path: Path, max_chars: int = 2000) -> str:
+    """Read README file from a single dataset directory or its parent directories.
+
+    Args:
+        dataset_path: Path to the dataset directory
+        max_chars: Maximum characters to read (default: 2000)
+
+    Returns:
+        README content as string, or empty string if not found
+    """
+    target_names = {"README.md", "readme.md", "README.txt", "README"}
+
+    try:
+        # Check current directory first
+        for readme_name in target_names:
+            readme_file = dataset_path / readme_name
+            if readme_file.exists() and readme_file.is_file():
+                try:
+                    content = readme_file.read_text(encoding="utf-8")[:max_chars]
+                    logger.info(f"Loaded README from {readme_file} ({len(content)} chars)")
+                    return content
+                except Exception as e:
+                    logger.warning(f"Failed to read {readme_file}: {e}")
+
+        # If not found in current directory, check parent directory
+        parent_path = dataset_path.parent
+        if parent_path != dataset_path:  # Avoid infinite loop at filesystem root
+            for readme_name in target_names:
+                readme_file = parent_path / readme_name
+                if readme_file.exists() and readme_file.is_file():
+                    try:
+                        content = readme_file.read_text(encoding="utf-8")[:max_chars]
+                        logger.info(f"Loaded README from parent directory {readme_file} ({len(content)} chars)")
+                        return content
+                    except Exception as e:
+                        logger.warning(f"Failed to read {readme_file}: {e}")
+
+        # If still not found, check one level down in subdirectories
+        if dataset_path.exists():
+            for item in dataset_path.iterdir():
+                if item.is_dir():
+                    for readme_name in target_names:
+                        readme_file = item / readme_name
+                        if readme_file.exists() and readme_file.is_file():
+                            try:
+                                content = readme_file.read_text(encoding="utf-8")[:max_chars]
+                                logger.info(f"Loaded README from subdirectory {readme_file} ({len(content)} chars)")
+                                return content
+                            except Exception as e:
+                                logger.warning(f"Failed to read {readme_file}: {e}")
+    except Exception as e:
+        logger.warning(f"Error searching for README in {dataset_path}: {e}")
+
+    return ""
+
+
 def check_all_dataset_in_info(ft_file_path, existing_config, max_depth: int = 3):
     """Scan datasets directory recursively and return dataset names not yet in existing_config.
 
@@ -622,8 +679,28 @@ def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str, e
     response_dict = json.loads(raw_response)
 
     dataset_info_dict = {}
+    datasets_root = Path(ft_file_path) / "datasets"
+
     for dataset_key, config in response_dict.items():
         if _validate_dataset_config(config):
+            # Add README content for each dataset
+            dataset_path = datasets_root / dataset_key
+            if dataset_path.exists() and dataset_path.is_dir():
+                readme_content = _read_single_dataset_readme(dataset_path, max_chars=2000)
+                if readme_content:
+                    config["readme"] = readme_content
+                    logger.info(f"Added README to dataset '{dataset_key}' ({len(readme_content)} chars)")
+                else:
+                    logger.info(f"No README found for dataset '{dataset_key}'")
+
+            # Log description status
+            if "description" in config:
+                logger.info(
+                    f"LLM generated description for dataset '{dataset_key}' ({len(config['description'])} chars)"
+                )
+            else:
+                logger.warning(f"No description generated for dataset '{dataset_key}'")
+
             dataset_info_dict[dataset_key] = config
 
     return dataset_info_dict

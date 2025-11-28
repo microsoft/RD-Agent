@@ -41,7 +41,7 @@ scenario_description: |-
   
 dataset_info_generation:
   system: |-
-    Generate a LLaMA-Factory dataset_info.json configuration entry with category classification.
+    Generate a LLaMA-Factory dataset_info.json configuration entry with category classification and insightful descriptions.
 
     ## Format Types:
     **Alpaca**: instruction-response data with "instruction", "input", "output" fields
@@ -52,6 +52,7 @@ dataset_info_generation:
     - `formatting`: "alpaca" (default) or "sharegpt"  
     - `columns`: map data fields to LLaMA-Factory expected names
     - `category`: list of domain categories (can be one or multiple, see below)
+    - `description`: AI-generated concise summary (200-300 words) highlighting key insights for fine-tuning
 
     ## Category Classification
     Analyze each dataset and classify it by domain. A dataset can belong to **one or multiple** domains. Use one or more of these category names:
@@ -60,7 +61,6 @@ dataset_info_generation:
     - **math**: Mathematics, algebra, geometry, calculus, statistics, logic, mathematical reasoning
     - **chemistry**: Chemistry, organic chemistry, inorganic chemistry, biochemistry, molecular structures
     - **biology**: Biology, genetics, ecology, microbiology, cell biology, evolution, physiology
-    - **table**: Tabular data, spreadsheets, structured data analysis, data tables, CSV/Excel data
     - **legal**: Law, regulations, contracts, legal documents, court cases, legislation
     - **medicine**: Medicine, clinical data, medical diagnosis, pharmaceuticals, healthcare, patient care
     - **finance**: Finance, trading, economics, investment, markets, banking, financial analysis
@@ -70,8 +70,38 @@ dataset_info_generation:
     - Look for domain-specific keywords in dataset names and descriptions
     - **A dataset can have multiple categories** if it covers multiple domains (e.g., biophysics → ["biology", "physics"])
     - List ALL applicable domains, ordered by relevance (most relevant first)
-    - For datasets with structured tabular data format, include "table" along with the content domain
 
+    ## Description Generation Guidelines
+    For each dataset, analyze the README content (if available) and data samples to generate **practical insights about the data itself**. Focus ONLY on data characteristics and preprocessing - do NOT include training strategies, hyperparameters, or model selection advice.
+    
+    **Focus Areas (data-centric insights only):**
+    
+    1. **Data Structure Insights** (MOST IMPORTANT):
+       - Are there columns that need to be combined? (e.g., "The 'answer' field only contains final results; concatenate with 'solution' field to get complete reasoning chains")
+       - Missing or incomplete fields that need handling?
+       - Relationships between columns that matter?
+    
+    2. **Data Quality & Format Issues**:
+       - Any format inconsistencies or cleaning needed?
+       - Edge cases or problematic samples to filter?
+       - Encoding or special character issues?
+    
+    3. **Content Characteristics**:
+       - Token length distribution (if highly variable)
+       - Domain and difficulty level of the content
+       - What makes this dataset unique or valuable as training data?
+    
+    4. **Data Curation Background** (if available from README):
+       - How was the data collected/curated?
+       - Any known limitations or biases?
+       - Benchmark results that validate data quality?
+    
+    **Description Requirements:**
+    - Write 150-250 words, focused on data itself
+    - **DO NOT include**: training strategies, hyperparameters, model recommendations, batch sizes, learning rates
+    - **DO include**: field transformations, data preprocessing steps, quality issues, content characteristics
+    - Be specific about what preprocessing the data needs before it can be used
+    - Use concrete examples when explaining data operations
 
     ## Common Column Mappings:
     - Alpaca: "instruction"→prompt, "input"→query, "output"→response
@@ -93,23 +123,25 @@ dataset_info_generation:
     - Assign appropriate `category` array based on dataset content analysis:
       - Single domain: `["math"]`
       - Multiple domains: `["physics", "math"]` (ordered by relevance)
-      - Include "table" if the dataset is in tabular format
+    - Generate insightful `description` based on README and sample analysis
     - For datasets not following Alpaca or ShareGPT format. Please choose the closest one and adjust column mappings accordingly.
     - The folder might contain multiple files also multiple datasets. Please include all valid datasets you can find in your response.
 
     ## Examples:
     ```json
     {
-      "my_dataset": {
-        "file_name": "my_dataset/train.json",
-        "columns": {"prompt": "instruction", "response": "output"},
-        "category": ["math"]
+      "reasoning_problems": {
+        "file_name": "reasoning_problems/train.jsonl",
+        "columns": {"question": "instruction", "thinking": "output"},
+        "category": ["math"],
+        "description": "DATA STRUCTURE NOTE: The 'thinking' field contains step-by-step reasoning process but does NOT include the final answer; the 'final_answer' field contains only the boxed result. For complete reasoning chains, concatenate 'final_answer' to the end of 'thinking' field. Response lengths are highly variable (500-30000 tokens). Some samples have empty 'final_answer' field - these should be filtered or the answer extracted from the last line of 'thinking'."
       },
-      "chat_dataset": {
-        "file_name": "chat_dataset/data.json",
+      "conversation_corpus": {
+        "file_name": "conversation_corpus/data.json",
         "formatting": "sharegpt",
-        "columns": {"messages": "conversations"}
-        "category": ["math","code"]
+        "columns": {"messages": "conversations"},
+        "category": ["general"],
+        "description": "DATA QUALITY NOTES: Some conversation entries have broken context - the assistant response references content not present in user query. Code blocks may contain escaped characters (\\n shown as literal instead of newline). The 'system' role is inconsistently present across samples. Recommend filtering conversations where turn count < 2."
       }
     }
     ```
@@ -121,7 +153,8 @@ dataset_info_generation:
         "file_name": "dataset_name/...",
         "formatting": "alpaca|sharegpt",
         "columns": {...},
-        "category": ["domain1", "domain2", ...]
+        "category": ["domain1", "domain2", ...],
+        "description": "Data-centric insights: structure notes, preprocessing needs, quality issues (150-250 words)"
       }
     }
     ```
