@@ -5,6 +5,7 @@ This module provides fine-tuning specific components for the CoSTEER framework,
 including evaluators and evolving strategies.
 """
 
+import json
 import re
 from pathlib import Path
 from typing import Callable
@@ -24,6 +25,8 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
 from rdagent.components.coder.finetune.conf import (
+    FT_DATA_FILE_NAME,
+    FT_DATA_SCRIPT_NAME,
     FT_YAML_FILE_NAME,
     FTCoderCoSTEERSettings,
 )
@@ -55,7 +58,110 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         workspace: FBWorkspace | None = None,
         prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
-        return {}
+        """Generate data processing script based on task.
+
+        This method generates a Python script that processes seed datasets
+        and outputs a data.json file in Alpaca format.
+
+        Returns:
+            dict with "process_data.py" key containing the script code,
+            or empty dict if task_type is "train" only or data already exists.
+        """
+        # 1. Check task_type - skip if train-only
+        task_type = getattr(target_task, "task_type", "train")
+        if task_type == "train":
+            logger.info("Task type is 'train', skipping data processing")
+            return {}
+
+        # 2. Check if data.json already exists in workspace (skip logic)
+        # Note: validation is done by FTDataEvaluator, here we just check existence
+        if workspace is not None:
+            data_json_path = workspace.workspace_path / FT_DATA_FILE_NAME
+            if data_json_path.exists():
+                logger.info("data.json already exists, skipping data processing")
+                return {}
+
+        # 3. Get dataset information for the task
+        involving_datasets = getattr(target_task, "involving_datasets", [])
+        dataset_info = self._get_dataset_info(involving_datasets)
+
+        # 4. Generate data processing script using LLM
+        system_prompt = T(".prompts:data_coder.system").r(
+            scenario=self.scen.get_scenario_all_desc(),
+            task_desc=target_task.get_task_information(),
+            dataset_info=dataset_info,
+            prev_feedback=prev_task_feedback,
+        )
+
+        user_prompt = T(".prompts:data_coder.user").r()
+
+        try:
+            response = APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt,
+                system_prompt=system_prompt,
+                json_mode=False,
+            )
+
+            # 5. Extract Python code from response (inline extraction)
+            match = re.search(r"```(?:python)?\s*\n(.*?)\n```", response, re.DOTALL | re.IGNORECASE)
+            script_code = match.group(1).strip() if match else response.strip()
+            logger.info(f"Generated data processing script ({len(script_code)} chars)")
+
+            return {FT_DATA_SCRIPT_NAME: script_code}
+
+        except Exception as e:
+            logger.error(f"Failed to generate data processing script: {e}")
+            raise RuntimeError(f"Data processing script generation failed: {e}")
+
+    def _get_dataset_info(self, involving_datasets: list[str]) -> str:
+        """Read dataset_info.json and return information for specified datasets."""
+        datasets_dir = Path(FT_RD_SETTING.file_path) / "datasets"
+        dataset_info_path = datasets_dir / "dataset_info.json"
+
+        if not dataset_info_path.exists():
+            logger.warning(f"dataset_info.json not found at {dataset_info_path}")
+            return "No dataset information available."
+
+        try:
+            with open(dataset_info_path, "r", encoding="utf-8") as f:
+                all_dataset_info = json.load(f)
+        except Exception as e:
+            logger.error(f"Failed to read dataset_info.json: {e}")
+            return f"Error reading dataset info: {e}"
+
+        # Filter to only involved datasets, or use all if none specified
+        if involving_datasets:
+            filtered_info = {name: info for name, info in all_dataset_info.items() if name in involving_datasets}
+        else:
+            filtered_info = all_dataset_info
+
+        if not filtered_info:
+            return "No matching datasets found in dataset_info.json."
+
+        # Format dataset info for the prompt
+        info_parts = []
+        for name, info in filtered_info.items():
+            info_text = f"### Dataset: {name}\n"
+            info_text += f"- File: {info.get('file_name', 'N/A')}\n"
+            info_text += f"- Format: {info.get('formatting', 'N/A')}\n"
+
+            if info.get("columns"):
+                info_text += f"- Columns: {json.dumps(info['columns'])}\n"
+
+            if info.get("description"):
+                # Truncate long descriptions
+                desc = info["description"]
+                if len(desc) > 500:
+                    desc = desc[:500] + "..."
+                info_text += f"- Description: {desc}\n"
+
+            if info.get("stats"):
+                stats = info["stats"]
+                info_text += f"- Sample count: {stats.get('sample_count', 'N/A')}\n"
+
+            info_parts.append(info_text)
+
+        return "\n".join(info_parts)
 
     def implement_lf_config(
         self,
@@ -117,8 +223,10 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             methods_specific_params[method] = self.llama_factory_manager.format_method_specific_params(method)
 
         # Use fixed Docker paths for simplicity
+        # Note: datasets_path points to /workspace/ where processed data.json and
+        # dataset_info.json are located (generated by FTDataEvaluator)
         models_path = "/assets/models/"
-        datasets_path = "/assets/datasets/"
+        datasets_path = "/workspace/"
 
         # Generate prompts using templates with all required parameters
         system_prompt = T(".prompts:finetune_coder.system").r(

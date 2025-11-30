@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Literal
 
@@ -12,6 +13,8 @@ from rdagent.utils.env import (
 
 FT_YAML_FILE_NAME = "train.yaml"
 FT_DEBUG_YAML_FILE_NAME = "debug_train.yaml"
+FT_DATA_FILE_NAME = "data.json"
+FT_DATA_SCRIPT_NAME = "process_data.py"
 
 
 class FTCoderCoSTEERSettings(CoSTEERSettings):
@@ -114,6 +117,47 @@ def get_ft_env(
     env.conf.enable_cache = enable_cache
     env.prepare()
     return env
+
+
+def get_data_processing_env(
+    running_timeout_period: int = 3600,
+    enable_cache: bool | None = None,
+) -> tuple[Env, dict]:
+    """Get environment for data processing scripts with LLM API access.
+
+    This environment is configured for running data processing scripts that may
+    need to call LLM APIs. It includes:
+    - Standard finetune volume mounts (datasets, models)
+    - LLM API environment variables (OPENAI_API_KEY, OPENAI_API_BASE, etc.)
+
+    Args:
+        running_timeout_period: Timeout for script execution (default 1 hour)
+        enable_cache: Whether to enable Docker caching
+
+    Returns:
+        Tuple of (env, env_vars) where env_vars contains LLM API keys
+        to be passed to env.run() as the env parameter
+    """
+    env = get_ft_env(
+        running_timeout_period=running_timeout_period,
+        enable_cache=enable_cache,
+    )
+
+    # Collect LLM API environment variables to pass to env.run()
+    llm_env_vars = {"PYTHONPATH": "./"}  # Base env var
+    for key in [
+        "OPENAI_API_KEY",
+        "OPENAI_API_BASE",
+        "OPENAI_BASE_URL",
+        "AZURE_OPENAI_KEY",
+        "AZURE_OPENAI_ENDPOINT",
+        "ANTHROPIC_API_KEY",
+    ]:
+        value = os.getenv(key)
+        if value:
+            llm_env_vars[key] = value
+
+    return env, llm_env_vars
 
 
 def get_clear_ws_cmd(stage: Literal["before_training", "before_inference"] = "before_training") -> str:

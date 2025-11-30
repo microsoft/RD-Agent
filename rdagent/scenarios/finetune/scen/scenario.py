@@ -139,9 +139,9 @@ class LLMFinetuneScen(DataScienceScen):
         prompt_config = {
             ds_name: {
                 **ds_config,
-                "first_sample": _truncate_long_values(ds_config["samples"][0], max_length=500)
-                if ds_config.get("samples")
-                else None,
+                "first_sample": (
+                    _truncate_long_values(ds_config["samples"][0], max_length=500) if ds_config.get("samples") else None
+                ),
             }
             for ds_name, ds_config in self.dataset_config.items()
         }
