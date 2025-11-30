@@ -150,12 +150,8 @@ dmypy.json
 # reports
 reports/
 
-# git_ignore_folder (use /* to allow exceptions)
-git_ignore_folder/*
-# Exception: keep finetune/datasets tracked
-!git_ignore_folder/finetune/
-git_ignore_folder/finetune/*
-!git_ignore_folder/finetune/datasets/
+# git_ignore_folder
+git_ignore_folder/
 
 #cache
 *cache*/
