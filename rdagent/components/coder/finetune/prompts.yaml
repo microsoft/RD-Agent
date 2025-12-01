@@ -147,7 +147,7 @@ finetune_coder:
     - tokenized_path: MUST set to "/workspace/tokenized_cache" (datasets directory is read-only mounted)
     - batch_size: Be aware that `auto_find_batch_size` can cause synchronization issues in multi-GPU (DDP) training. Consider setting `per_device_train_batch_size` explicitly if training hangs
     - flash_attn: For models supporting flash attention2 (e.g., Qwen series, llama series), set to "fa2" to enhance training speed and reduce memory usage
-    - deepspeed: If number of GPUs > 1, use DeepSpeed with ZeRO Stage 2 or 3 for memory optimization. specifically, set to "/llamafactory/examples/deepspeed/ds_z3_config.json" for ZeRO Stage 3, otherwise use "/llamafactory/examples/deepspeed/ds_z2_config.json" for ZeRO Stage 2
+    - deepspeed: If number of GPUs > 1, use DeepSpeed with ZeRO Stage 2 or 3 for memory optimization. specifically, set to "/app/examples/deepspeed/ds_z3_config.json" for ZeRO Stage 3, otherwise use "/app/examples/deepspeed/ds_z2_config.json" for ZeRO Stage 2
 
     {% if latest_code %}
     ## Previous Configuration
