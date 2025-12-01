@@ -159,6 +159,49 @@ If your `Azure OpenAI API Key`` supports `embedding model`, you can refer to the
       AZURE_API_BASE=<your_unified_api_base>
       AZURE_API_VERSION=<azure api version>
 
+Execution Environment Configuration
+===================================
+
+Coder Environment Configuration (Docker vs. Conda)
+
+RD-Agent's coders can execute code in different environments. You can control this behavior by setting environment variables in your ``.env`` file. This is useful for switching between a local Conda environment and an isolated Docker container.
+
+To configure the environment, add the corresponding line to your ``.env`` file based on the scenario you are running.
+
+**For the Model (Quant) Scenario:**
+
+The execution environment is determined by the ``MODEL_COSTEER_ENV_TYPE`` variable, which is read from ``rdagent/components/coder/model_coder/conf.py``.
+
+*   **To use Docker** (recommended for isolated execution):
+
+    .. code-block:: properties
+
+       MODEL_COSTEER_ENV_TYPE=docker
+
+*   **To use Conda** (for running in a local Conda environment):
+
+    .. code-block:: properties
+
+       MODEL_COSTEER_ENV_TYPE=conda
+
+**For the Data Science Scenario:**
+
+The execution environment is determined by the ``DS_CODER_COSTEER_ENV_TYPE`` variable, which is read from ``rdagent/components/coder/data_science/conf.py``.
+
+*   **To use Docker** (recommended for isolated execution):
+
+    .. code-block:: properties
+
+       DS_CODER_COSTEER_ENV_TYPE=docker
+
+*   **To use Conda** (for running in a local Conda environment):
+
+    .. code-block:: properties
+
+       DS_CODER_COSTEER_ENV_TYPE=conda
+
+
+
 Configuration(deprecated)
 =========================
 
