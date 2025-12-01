@@ -387,7 +387,7 @@ class MCTSScheduler(ProbabilisticScheduler):
         candidates = list(available_leaves)  # copy
         
         candidates_with_root = candidates + [self.root_id]
-        candidates_with_root = [leaf for leaf in candidates_with_root in self.uncommited_rec_status[leaf] == 0]
+        candidates_with_root = [leaf for leaf in candidates_with_root if self.uncommited_rec_status[leaf] == 0]
 
 
         # # Step 3: compute priors (P) from potentials via softmax
