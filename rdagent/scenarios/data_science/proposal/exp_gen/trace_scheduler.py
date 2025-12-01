@@ -130,7 +130,6 @@ class RoundRobinScheduler(BaseScheduler):
 
         return None
 
-
 # ======================================================================================
 # Probabilistic Scheduler and its potential functions
 # ======================================================================================
@@ -386,8 +385,9 @@ class MCTSScheduler(ProbabilisticScheduler):
         #     return trace.NEW_ROOT
         available_leaves = list(set(range(len(trace.hist))))
         candidates = list(available_leaves)  # copy
+        
         candidates_with_root = candidates + [self.root_id]
-
+        candidates_with_root = [leaf for leaf in candidates_with_root in self.uncommited_rec_status[leaf] == 0]
 
 
         # # Step 3: compute priors (P) from potentials via softmax
