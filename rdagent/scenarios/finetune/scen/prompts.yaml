@@ -39,7 +39,7 @@ scenario_description: |-
     {% if ds_info.stats.column_stats %}
     - column_stats:
       {% for col, col_stats in ds_info.stats.column_stats.items() %}
-      - {{ col }}: empty={{ col_stats.empty_count }}, min={{ col_stats.min_len }}, max={{ col_stats.max_len }}, p50={{ col_stats.p50_len }}, p99={{ col_stats.p99_len }}
+      - {{ col }}: empty={{ col_stats.empty_count }}, min_tokens={{ col_stats.min_tokens }}, max_tokens={{ col_stats.max_tokens }}, p50_tokens={{ col_stats.p50_tokens }}, p99_tokens={{ col_stats.p99_tokens }}
       {% endfor %}
     {% endif %}
   {% endif %}
@@ -83,9 +83,9 @@ dataset_info_generation:
     - Sample count: {{ stats.sample_count }}
     - Total size: {{ stats.total_size_mb }} MB
     {% if stats.column_stats %}
-    - Column statistics (length in characters):
+    - Column statistics (token counts, using tokenizer):
     {% for col, col_stats in stats.column_stats.items() %}
-      - `{{ col }}`: empty={{ col_stats.empty_count }}, min={{ col_stats.min_len }}, max={{ col_stats.max_len }}, p50={{ col_stats.p50_len }}, p99={{ col_stats.p99_len }}
+      - `{{ col }}`: empty={{ col_stats.empty_count }}, min_tokens={{ col_stats.min_tokens }}, max_tokens={{ col_stats.max_tokens }}, p50_tokens={{ col_stats.p50_tokens }}, p99_tokens={{ col_stats.p99_tokens }}
     {% endfor %}
     {% endif %}
 

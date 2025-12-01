@@ -6,12 +6,45 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import tiktoken
+from litellm import token_counter
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.scen.utils import FileTreeGenerator
 from rdagent.utils.agent.tpl import T
+
+# Fixed tokenizer model for token counting
+_TOKENIZER_MODEL = "gpt-3.5-turbo"
+
+
+def _count_tokens(text: str) -> int:
+    """Count the number of tokens in a text string.
+
+    Uses litellm's token_counter with tiktoken as fallback.
+    Fixed to use gpt-3.5-turbo tokenizer.
+
+    Args:
+        text: The text to count tokens for
+
+    Returns:
+        Number of tokens in the text
+    """
+    if not text:
+        return 0
+
+    try:
+        return token_counter(model=_TOKENIZER_MODEL, text=text)
+    except Exception as e:
+        logger.debug(f"litellm token_counter failed: {e}, trying tiktoken fallback")
+        try:
+            encoding = tiktoken.encoding_for_model(_TOKENIZER_MODEL)
+            return len(encoding.encode(text))
+        except Exception as e2:
+            logger.warning(f"Token counting failed (both litellm and tiktoken): {e2}")
+            # Fallback to rough estimation: ~4 chars per token for English
+            return len(text) // 4
 
 
 def _find_data_files(dataset_path: Path, max_files: int = 50) -> list[Path]:
@@ -54,14 +87,18 @@ def _truncate_long_values(obj, max_length: int = 3000):
 
 
 def _compute_column_stats(data: list[dict]) -> dict[str, dict]:
-    """Compute statistics for each string column in the dataset.
+    """Compute token statistics for each string column in the dataset.
+
+    Uses litellm/tiktoken to count tokens instead of character length,
+    providing more accurate statistics for LLM training data analysis.
+    Fixed to use gpt-3.5-turbo tokenizer.
 
     Args:
         data: List of dictionaries representing dataset samples
 
     Returns:
-        Dictionary mapping column names to their statistics:
-        {column_name: {empty_count, min_len, max_len, p50_len, p99_len}}
+        Dictionary mapping column names to their token statistics:
+        {column_name: {empty_count, min_tokens, max_tokens, p50_tokens, p99_tokens}}
     """
     if not data:
         return {}
@@ -74,7 +111,7 @@ def _compute_column_stats(data: list[dict]) -> dict[str, dict]:
 
     column_stats = {}
     for col in all_columns:
-        lengths: list[int] = []
+        token_counts: list[int] = []
         empty_count = 0
 
         for item in data:
@@ -84,23 +121,25 @@ def _compute_column_stats(data: list[dict]) -> dict[str, dict]:
                     if not val.strip():
                         empty_count += 1
                     else:
-                        lengths.append(len(val))
+                        # Count tokens instead of character length
+                        token_count = _count_tokens(val)
+                        token_counts.append(token_count)
 
-        if lengths:
+        if token_counts:
             column_stats[col] = {
                 "empty_count": empty_count,
-                "min_len": int(min(lengths)),
-                "max_len": int(max(lengths)),
-                "p50_len": int(np.percentile(lengths, 50)),
-                "p99_len": int(np.percentile(lengths, 99)),
+                "min_tokens": int(min(token_counts)),
+                "max_tokens": int(max(token_counts)),
+                "p50_tokens": int(np.percentile(token_counts, 50)),
+                "p99_tokens": int(np.percentile(token_counts, 99)),
             }
         else:
             column_stats[col] = {
                 "empty_count": empty_count,
-                "min_len": 0,
-                "max_len": 0,
-                "p50_len": 0,
-                "p99_len": 0,
+                "min_tokens": 0,
+                "max_tokens": 0,
+                "p50_tokens": 0,
+                "p99_tokens": 0,
             }
 
     return column_stats
@@ -244,14 +283,17 @@ class FinetuneDatasetDescriptor:
         return 0
 
     def _generate_stats(self, dataset_path: Path, include_column_stats: bool = False) -> dict[str, Any]:
-        """Calculate dataset statistics: sample count, file size, and optionally column stats.
+        """Calculate dataset statistics: sample count, file size, and optionally column token stats.
 
         Args:
             dataset_path: Path to the dataset directory
-            include_column_stats: Whether to compute per-column statistics
+            include_column_stats: Whether to compute per-column token statistics
 
         Returns:
-            Dictionary with sample_count, total_size_mb, file_count, and optionally column_stats
+            Dictionary with sample_count, total_size_mb, file_count, and optionally column_stats.
+            Note: column_stats contains TOKEN counts (not character lengths) for each column,
+            using gpt-3.5-turbo tokenizer:
+            {column_name: {empty_count, min_tokens, max_tokens, p50_tokens, p99_tokens}}
         """
         try:
             data_files = _find_data_files(dataset_path, max_files=50)
@@ -276,15 +318,18 @@ class FinetuneDatasetDescriptor:
                 "file_count": file_count,
             }
 
-            # Compute column statistics if requested
+            # Compute column token statistics if requested
             if include_column_stats and data_files:
                 try:
                     dataset_samples = _load_dataset_for_stats(data_files)
                     if dataset_samples:
                         stats["column_stats"] = _compute_column_stats(dataset_samples)
-                        logger.info(f"Computed column stats for {len(stats['column_stats'])} columns")
+                        logger.info(
+                            f"Computed column token stats for {len(stats['column_stats'])} columns "
+                            f"(using tokenizer: {_TOKENIZER_MODEL})"
+                        )
                 except Exception as e:
-                    logger.warning(f"Failed to compute column stats: {e}")
+                    logger.warning(f"Failed to compute column token stats: {e}")
 
             return stats
 
