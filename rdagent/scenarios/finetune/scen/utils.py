@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
@@ -33,14 +34,125 @@ def _find_data_files(dataset_path: Path, max_files: int = 50) -> list[Path]:
 
 
 def _truncate_long_values(obj, max_length: int = 3000):
-    """Recursively truncate long string values in nested data structures."""
+    """Recursively truncate long string values in nested data structures.
+
+    Args:
+        obj: The object to truncate (dict, list, or str)
+        max_length: Maximum length for string values
+
+    Returns:
+        Truncated object with the same structure, showing omitted character count
+    """
     if isinstance(obj, dict):
         return {k: _truncate_long_values(v, max_length) for k, v in obj.items()}
     elif isinstance(obj, list):
         return [_truncate_long_values(item, max_length) for item in obj]
     elif isinstance(obj, str) and len(obj) > max_length:
-        return obj[:max_length] + "..."
+        omitted = len(obj) - max_length
+        return obj[:max_length] + f"...(omitted {omitted} chars)"
     return obj
+
+
+def _compute_column_stats(data: list[dict]) -> dict[str, dict]:
+    """Compute statistics for each string column in the dataset.
+
+    Args:
+        data: List of dictionaries representing dataset samples
+
+    Returns:
+        Dictionary mapping column names to their statistics:
+        {column_name: {empty_count, min_len, max_len, p50_len, p99_len}}
+    """
+    if not data:
+        return {}
+
+    # Collect all column names from the dataset
+    all_columns: set[str] = set()
+    for item in data:
+        if isinstance(item, dict):
+            all_columns.update(item.keys())
+
+    column_stats = {}
+    for col in all_columns:
+        lengths: list[int] = []
+        empty_count = 0
+
+        for item in data:
+            if isinstance(item, dict):
+                val = item.get(col, "")
+                if isinstance(val, str):
+                    if not val.strip():
+                        empty_count += 1
+                    else:
+                        lengths.append(len(val))
+
+        if lengths:
+            column_stats[col] = {
+                "empty_count": empty_count,
+                "min_len": int(min(lengths)),
+                "max_len": int(max(lengths)),
+                "p50_len": int(np.percentile(lengths, 50)),
+                "p99_len": int(np.percentile(lengths, 99)),
+            }
+        else:
+            column_stats[col] = {
+                "empty_count": empty_count,
+                "min_len": 0,
+                "max_len": 0,
+                "p50_len": 0,
+                "p99_len": 0,
+            }
+
+    return column_stats
+
+
+def _load_dataset_for_stats(data_files: list[Path], max_samples: int = 50000) -> list[dict]:
+    """Load dataset samples from data files for statistics computation.
+
+    Args:
+        data_files: List of data file paths
+        max_samples: Maximum number of samples to load
+
+    Returns:
+        List of dictionaries representing dataset samples
+    """
+    all_data: list[dict] = []
+
+    for data_file in data_files:
+        if len(all_data) >= max_samples:
+            break
+
+        suffix = data_file.suffix.lower()
+        try:
+            if suffix == ".json":
+                with open(data_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if isinstance(data, list):
+                        all_data.extend(data[: max_samples - len(all_data)])
+                    elif isinstance(data, dict):
+                        all_data.append(data)
+
+            elif suffix == ".jsonl":
+                with open(data_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        if len(all_data) >= max_samples:
+                            break
+                        line = line.strip()
+                        if line:
+                            all_data.append(json.loads(line))
+
+            elif suffix == ".csv":
+                df = pd.read_csv(data_file, nrows=max_samples - len(all_data))
+                all_data.extend(df.to_dict("records"))
+
+            elif suffix == ".parquet":
+                df = pd.read_parquet(data_file)
+                all_data.extend(df.head(max_samples - len(all_data)).to_dict("records"))
+
+        except Exception as e:
+            logger.warning(f"Failed to load {data_file.name} for stats: {e}")
+
+    return all_data
 
 
 class FinetuneDatasetDescription(dict):
@@ -131,8 +243,16 @@ class FinetuneDatasetDescriptor:
 
         return 0
 
-    def _generate_stats(self, dataset_path: Path) -> dict[str, Any]:
-        """Calculate dataset statistics: sample count and total file size."""
+    def _generate_stats(self, dataset_path: Path, include_column_stats: bool = False) -> dict[str, Any]:
+        """Calculate dataset statistics: sample count, file size, and optionally column stats.
+
+        Args:
+            dataset_path: Path to the dataset directory
+            include_column_stats: Whether to compute per-column statistics
+
+        Returns:
+            Dictionary with sample_count, total_size_mb, file_count, and optionally column_stats
+        """
         try:
             data_files = _find_data_files(dataset_path, max_files=50)
 
@@ -150,11 +270,23 @@ class FinetuneDatasetDescriptor:
                 # Count samples using unified method
                 total_samples += self._count_samples_in_file(data_file)
 
-            return {
+            stats = {
                 "sample_count": total_samples,
                 "total_size_mb": round(total_size_bytes / (1024 * 1024), 2),
                 "file_count": file_count,
             }
+
+            # Compute column statistics if requested
+            if include_column_stats and data_files:
+                try:
+                    dataset_samples = _load_dataset_for_stats(data_files)
+                    if dataset_samples:
+                        stats["column_stats"] = _compute_column_stats(dataset_samples)
+                        logger.info(f"Computed column stats for {len(stats['column_stats'])} columns")
+                except Exception as e:
+                    logger.warning(f"Failed to compute column stats: {e}")
+
+            return stats
 
         except Exception as e:
             logger.warning(f"Failed to calculate dataset stats: {e}")
@@ -644,6 +776,20 @@ def get_dataset_folder_desc(ft_file_path: str, include_dataset_readme: bool = Tr
 def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str, existing_config: dict) -> dict:
     """Generate dataset_info.json configuration entry using AI for LLaMA-Factory compatibility.
 
+    This function:
+    1. Scans for new datasets not in existing_config
+    2. Computes column statistics for each dataset
+    3. Extracts sample data for each dataset
+    4. Uses LLM to generate description, columns mapping, and category
+    5. Combines all information into the final config
+
+    The resulting config contains:
+    - file_name, formatting, columns: LlamaFactory compatible fields
+    - category: Domain classification
+    - stats: Auto-computed statistics (sample_count, column_stats)
+    - samples: Truncated data samples for LLM understanding
+    - description: AI-generated description
+
     Args:
         target_dataset_list: List of specific datasets to process (empty for all)
         ft_file_path: Path to finetune directory structure
@@ -651,20 +797,43 @@ def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str, e
 
     Returns:
         dict: Configuration entry for dataset_info.json
-
-    Raises:
-        RuntimeError: If configuration generation or validation fails
     """
     # Use existing descriptor to get dataset information
     remain_dataset_list = check_all_dataset_in_info(ft_file_path, existing_config)
     if len(remain_dataset_list) == 0:
         return {}
-    dataset_folder_desc = get_dataset_folder_desc(ft_file_path)
+
+    datasets_root = Path(ft_file_path) / "datasets"
+    descriptor = FinetuneDatasetDescriptor()
+
+    # Pre-compute statistics and samples for all datasets that need processing
+    dataset_stats_map: dict[str, dict] = {}
+    dataset_samples_map: dict[str, list] = {}
     real_target_dataset_list = remain_dataset_list if not target_dataset_list else target_dataset_list
 
-    # Create prompt using template
+    for dataset_name in real_target_dataset_list:
+        dataset_path = datasets_root / dataset_name
+        if dataset_path.exists() and dataset_path.is_dir():
+            # Compute statistics
+            stats = descriptor._generate_stats(dataset_path, include_column_stats=True)
+            dataset_stats_map[dataset_name] = stats
+            logger.info(f"Computed stats for dataset '{dataset_name}': {stats.get('sample_count', 0)} samples")
+
+            # Extract samples
+            data_files = _find_data_files(dataset_path, max_files=5)
+            samples = descriptor._extract_samples_for_template(data_files, max_samples=3)
+            # Truncate long values in samples to avoid bloating JSON
+            samples = [_truncate_long_values(s, max_length=3000) for s in samples]
+            dataset_samples_map[dataset_name] = samples
+            logger.info(f"Extracted {len(samples)} samples for dataset '{dataset_name}'")
+
+    # Get folder description for LLM prompt
+    dataset_folder_desc = get_dataset_folder_desc(ft_file_path)
+
+    # Create prompt using template, include pre-computed stats
     system_prompt = T(".prompts:dataset_info_generation.system").r(
         target_dataset_list=real_target_dataset_list,
+        dataset_stats=dataset_stats_map,
     )
     user_prompt = T(".prompts:dataset_info_generation.user").r(
         dataset_info=str(dataset_folder_desc),
@@ -679,19 +848,20 @@ def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str, e
     response_dict = json.loads(raw_response)
 
     dataset_info_dict = {}
-    datasets_root = Path(ft_file_path) / "datasets"
 
     for dataset_key, config in response_dict.items():
         if _validate_dataset_config(config):
-            # Add README content for each dataset
             dataset_path = datasets_root / dataset_key
-            if dataset_path.exists() and dataset_path.is_dir():
-                readme_content = _read_single_dataset_readme(dataset_path, max_chars=5000)
-                if readme_content:
-                    config["readme"] = readme_content
-                    logger.info(f"Added README to dataset '{dataset_key}' ({len(readme_content)} chars)")
-                else:
-                    logger.info(f"No README found for dataset '{dataset_key}'")
+
+            # Add pre-computed statistics
+            if dataset_key in dataset_stats_map:
+                config["stats"] = dataset_stats_map[dataset_key]
+                logger.info(f"Added stats to dataset '{dataset_key}'")
+
+            # Add samples
+            if dataset_key in dataset_samples_map:
+                config["samples"] = dataset_samples_map[dataset_key]
+                logger.info(f"Added {len(config['samples'])} samples to dataset '{dataset_key}'")
 
             # Log description status
             if "description" in config:

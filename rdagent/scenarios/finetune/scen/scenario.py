@@ -9,8 +9,8 @@ from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.scenarios.finetune.scen.llama_factory_manager import LLaMAFactory_manager
 from rdagent.scenarios.finetune.scen.utils import (
     FinetuneDatasetDescriptor,
+    _truncate_long_values,
     generate_dataset_info_config,
-    get_dataset_folder_desc,
 )
 from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
 from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
@@ -37,14 +37,13 @@ class LLMFinetuneScen(DataScienceScen):
         # Initialize LLaMA Factory manager
         self._initialize_llama_factory()
 
-        # Generate dataset configuration
-        self.data_info_json = self._prepare_dataset_info()
-        self.dataset_folder_desc = get_dataset_folder_desc(FT_RD_SETTING.file_path)
+        # Generate dataset configuration (single source of truth)
+        self.dataset_config = self._prepare_dataset_config()
+
         # timeout tracking
         self.timeout_increase_count = 0
 
         self.device_info = get_runtime_environment_by_env(get_ft_env())
-        self.dataset_info = self._get_data_folder_description()
         self.model_info = FinetuneDatasetDescriptor().describe_model(self.base_model)
 
     def real_debug_timeout(self):
@@ -79,8 +78,19 @@ class LLMFinetuneScen(DataScienceScen):
         params_count = sum(len(p) if isinstance(p, dict) else 0 for p in info.get("parameters", {}).values())
         logger.info(f"LLaMA Factory initialized: {methods_count} methods, {params_count} parameters")
 
-    def _prepare_dataset_info(self):
-        """Generate dataset_info.json configuration"""
+    def _prepare_dataset_config(self) -> dict:
+        """Generate dataset_info.json configuration.
+
+        This is the single source of truth for dataset information, containing:
+        - LlamaFactory compatible fields (file_name, formatting, columns)
+        - Category classification
+        - Auto-computed statistics (stats.column_stats)
+        - Data samples (truncated)
+        - AI-generated description
+
+        Returns:
+            dict: Complete dataset configuration
+        """
         datasets_dir = Path(FT_RD_SETTING.file_path) / "datasets"
         dataset_info_path = datasets_dir / "dataset_info.json"
 
@@ -114,20 +124,28 @@ class LLMFinetuneScen(DataScienceScen):
             raise RuntimeError(f"Failed to write dataset_info.json: {e}")
         return existing_config
 
-    def _get_data_folder_description(self) -> str:
-        """Generate folder description for dataset."""
-        desc = FinetuneDatasetDescriptor().describe_dataset_folder(
-            Path(FT_RD_SETTING.file_path) / "datasets", self.dataset
-        )
-        return str(desc)  # Use __str__ for human-readable format
-
     @property
     def metric_direction(self) -> bool:
         """Metric direction for LLM fine-tuning (higher is better)"""
         return True
 
     def get_scenario_all_desc(self, enable_dataset_description: bool = True) -> str:
-        """Get complete scenario description for LLM fine-tuning"""
+        """Get complete scenario description for LLM fine-tuning.
+
+        Uses dataset_config as the single source of truth for dataset information.
+        The prompt template selectively renders only needed fields (excluding formatting, columns).
+        """
+        # Add first_sample (truncated to 500 chars) for each dataset
+        prompt_config = {
+            ds_name: {
+                **ds_config,
+                "first_sample": (
+                    _truncate_long_values(ds_config["samples"][0], max_length=500) if ds_config.get("samples") else None
+                ),
+            }
+            for ds_name, ds_config in self.dataset_config.items()
+        }
+
         return T(".prompts:scenario_description").r(
             user_target_scenario=self.user_target_scenario,
             target_benchmark=self.target_benchmark,
@@ -135,8 +153,7 @@ class LLMFinetuneScen(DataScienceScen):
             device_info=self.device_info,
             chosen_model=FT_RD_SETTING.base_model is not None,
             base_model=FT_RD_SETTING.base_model,
-            dataset_info=self.dataset_info,
-            data_info_json=json.dumps(self.data_info_json, indent=2, ensure_ascii=False),
+            dataset_config=prompt_config,
             model_info=self.model_info,
             debug_timeout=f"{self.real_debug_timeout() / 60:.2f} minutes",
             full_timeout=f"{self.real_full_timeout() / 60 / 60:.2f} hours",

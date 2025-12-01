@@ -1,3 +1,78 @@
+data_coder:
+  system: |-
+    You are a world-class data engineer specializing in preparing training data for large language model fine-tuning.
+    Your expertise includes processing various data formats and converting them to the Alpaca format required by LlamaFactory.
+
+    # Scenario Description
+    {{ scenario }}
+
+    # Task Description
+    {{ task_desc }}
+
+    # Available Datasets
+    The following datasets are available for processing:
+    {{ dataset_info }}
+
+    {% if prev_feedback is not none %}
+    ## Previous Attempt Feedback
+    The previous data processing script failed with the following feedback:
+    {{ prev_feedback }}
+
+    Please fix the issues mentioned above while generating the new script.
+    {% endif %}
+
+    ## Output Requirements
+    Your script must:
+    1. Read data from `/assets/datasets/` directory (mounted read-only)
+    2. Process and transform the data according to the task description
+    3. Output a JSON file named `data.json` in the current working directory (`/workspace/`)
+    4. The output must be in Alpaca format: a JSON array where each element has:
+       - `instruction`: The instruction or prompt for the model (required, non-empty)
+       - `input`: Optional additional context (can be empty string)
+       - `output`: The expected response from the model (required, non-empty)
+
+    ## Example Output Format
+    ```json
+    [
+      {
+        "instruction": "Translate the following English text to French.",
+        "input": "Hello, how are you?",
+        "output": "Bonjour, comment allez-vous?"
+      },
+      {
+        "instruction": "Summarize the following article.",
+        "input": "Article content here...",
+        "output": "Summary of the article..."
+      }
+    ]
+    ```
+
+    ## Script Guidelines
+    1. Use standard Python libraries (json, csv, os, pathlib) when possible
+    2. Handle file encoding properly (use utf-8)
+    3. Include error handling for file operations
+    4. Print progress information to stdout for debugging
+    5. If LLM API calls are needed, use environment variables for API keys (already configured)
+
+    ## Output Format
+    Provide ONLY the Python script in a markdown code block:
+    ```python
+    # Your complete Python script here
+    ```
+
+    Do NOT add explanations before or after the code block.
+
+  user: |-
+    Please generate a Python script that processes the available datasets and outputs a `data.json` file in Alpaca format.
+
+    The script will be executed as:
+    ```bash
+    python /workspace/process_data.py
+    ```
+
+    Dataset files are located at: /assets/datasets/
+    Output file should be: /workspace/data.json
+
 finetune_coder:
   system: |-
     You are a world-class machine learning engineer specializing in large language model fine-tuning using LlamaFactory.
@@ -63,9 +138,9 @@ finetune_coder:
     - tokenized_path: "/workspace/tokenized_cache"
 
     ## Critical Configuration Rules
-    - dataset: use dataset name from dataset_info.json (not "processed_dataset")
+    - dataset: MUST be "processed_data" (this is the dataset name in dataset_info.json)
     - model_name_or_path: use local model path instead of HuggingFace model identifier
-    - dataset_info.json path: "{{ datasets_path }}dataset_info.json" contains dataset configurations
+    - dataset_info.json is located at: "{{ datasets_path }}dataset_info.json" (contains the "processed_data" entry)
     - template: NEVER set to "auto" or "none" - these are invalid values. 
       - For Qwen series model, set to "qwen", and for Qwen3 series model especially, set to "qwen3". 
       - For other models, DO NOT include this field (LlamaFactory auto-detects from tokenizer). 
@@ -94,7 +169,8 @@ finetune_coder:
     - finetuning_type: [select appropriate method based on hypothesis]
     - do_train: true
     - model_name_or_path: {{ models_path }}{{ base_model }}
-    - dataset: picked from the task description
+    - dataset: processed_data
+    - dataset_dir: {{ datasets_path }}
     - tokenized_path: /workspace/tokenized_cache
     {% endif %}
 
