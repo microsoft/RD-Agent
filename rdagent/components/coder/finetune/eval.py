@@ -184,15 +184,20 @@ class FTDataEvaluator(CoSTEEREvaluator):
             return {"valid": False, "error": f"Error reading file: {e}", "sample_count": 0}
 
     def _update_dataset_info(self, implementation: FBWorkspace, sample_count: int):
-        """Generate dataset_info.json for LlamaFactory to use the processed data."""
+        """Generate dataset_info.json for LlamaFactory to use the processed data.
+
+        Note: LlamaFactory's columns mapping uses internal names (prompt, query, response)
+        that map to the actual column names in the data file (instruction, input, output).
+        See: https://github.com/hiyouga/LLaMA-Factory/blob/main/src/llamafactory/data/parser.py
+        """
         dataset_info = {
             "processed_data": {
                 "file_name": FT_DATA_FILE_NAME,
                 "formatting": "alpaca",
                 "columns": {
-                    "instruction": "instruction",
-                    "input": "input",
-                    "output": "output",
+                    "prompt": "instruction",
+                    "query": "input",
+                    "response": "output",
                 },
             }
         }
