@@ -100,6 +100,37 @@ class CoSTEERRAGStrategy(RAGStrategy):
 
 
 class CoSTEERQueriedKnowledge(QueriedKnowledge):
+    """
+    Data container for knowledge retrieved from the CoSTEER knowledge base during a query operation.
+
+    Parameters
+    ----------
+    success_task_to_knowledge_dict : dict, optional
+        A mapping between task information strings and their corresponding `CoSTEERKnowledge` objects
+        for tasks that were successfully completed.
+        Type: dict[str, CoSTEERKnowledge]
+        Example:
+            {
+                "task_info_1": CoSTEERKnowledge(target_task=Task(...),
+                                                implementation=FBWorkspace(...),
+                                                feedback=CoSTEERSingleFeedback(...)),
+                "task_info_2": CoSTEERKnowledge(...)
+            }
+    failed_task_info_set : set, optional
+        A set containing task information strings that were attempted but failed repeatedly beyond
+        the allowed trial limit.
+        Type: set[str]
+        Example:
+            {
+                "failed_task_info_1",
+                "failed_task_info_2"
+            }
+
+    Returns
+    -------
+    None
+        This class is a data holder, initialization does not return any value.
+    """
     def __init__(self, success_task_to_knowledge_dict: dict = {}, failed_task_info_set: set = set()) -> None:
         self.success_task_to_knowledge_dict = success_task_to_knowledge_dict
         self.failed_task_info_set = failed_task_info_set
@@ -247,6 +278,61 @@ class CoSTEERRAGStrategyV1(CoSTEERRAGStrategy):
 
 
 class CoSTEERQueriedKnowledgeV2(CoSTEERQueriedKnowledgeV1):
+    """
+    Aggregation subclass of `CoSTEERQueriedKnowledgeV1` that extends the queried knowledge to also
+    include mappings between tasks and knowledge related to similar errors from successful executions.
+
+    Parameters
+    ----------
+    task_to_former_failed_traces : dict, optional
+        Mapping from task information strings to a tuple containing:
+            - A list of `CoSTEERKnowledge` objects representing the most recent failed attempts for that task.
+            - An optional `CoSTEERKnowledge` object of the latest failed attempt after a successful execution,
+              or `None` if not applicable.
+        Type: dict[str, tuple[list[CoSTEERKnowledge], CoSTEERKnowledge | None]]
+        Example:
+            {
+                "task_info_A": ([CoSTEERKnowledge(...), CoSTEERKnowledge(...)], None),
+                "task_info_B": ([CoSTEERKnowledge(...), CoSTEERKnowledge(...)], CoSTEERKnowledge(...))
+            }
+
+    task_to_similar_task_successful_knowledge : dict, optional
+        Mapping from task information strings to a list of `CoSTEERKnowledge` objects representing
+        knowledge from similar tasks that have been successfully completed.
+        Type: dict[str, list[CoSTEERKnowledge]]
+        Example:
+            {
+                "task_info_A": [CoSTEERKnowledge(...), CoSTEERKnowledge(...)],
+                "task_info_C": []
+            }
+
+    task_to_similar_error_successful_knowledge : dict, optional
+        Mapping from task information strings to a list of tuples, each containing:
+            - A string describing the error(s) encountered.
+            - A tuple of two `CoSTEERKnowledge` objects:
+                * The first corresponds to the trace where that error was encountered.
+                * The second is related to a successful implementation that had the same error in a prior attempt.
+        Type: dict[str, list[tuple[str, tuple[CoSTEERKnowledge, CoSTEERKnowledge]]]]
+        Example:
+            {
+                "task_info_B": [
+                    (
+                        "1. ErrorType: ValueError; Error line: some_function_call()",
+                        (CoSTEERKnowledge(...), CoSTEERKnowledge(...))
+                    )
+                ]
+            }
+
+    **kwargs : dict
+        Additional keyword arguments passed to the parent constructor, such as:
+            - success_task_to_knowledge_dict: dict[str, CoSTEERKnowledge]
+            - failed_task_info_set: set[str]
+
+    Returns
+    -------
+    None
+        This class is purely a data container and does not return a value upon initialization.
+    """
     # Aggregation of knowledge
     def __init__(
         self,

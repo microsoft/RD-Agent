@@ -12,9 +12,14 @@ from rdagent.utils.env import (
 )
 
 FT_YAML_FILE_NAME = "train.yaml"
+FT_DATA_PROC_FILE_NAME = "data_process.py"
 FT_DEBUG_YAML_FILE_NAME = "debug_train.yaml"
 FT_DATA_FILE_NAME = "data.json"
 FT_DATA_SCRIPT_NAME = "process_data.py"
+
+# ENV Info:  the path of the model and dataset in the container/environment
+FT_MODEL_PATH = "/assets/models"
+FT_DATASET_PATH = "/assets/datasets"
 
 
 class FTCoderCoSTEERSettings(CoSTEERSettings):
@@ -35,6 +40,11 @@ class FTCoderCoSTEERSettings(CoSTEERSettings):
     extra_eval: list[str] = []
     """Extra evaluators"""
 
+    # data related.
+    api_base: str = "http://ep14.213428.xyz:38833"
+    api_key: str = "sk-1234"
+    available_api_models: str = "gpt-4o"
+
 
 def _get_standard_ft_volumes() -> dict:
     """Get standard mount volume configuration for LLM finetune environments.
@@ -51,8 +61,8 @@ def _get_standard_ft_volumes() -> dict:
 
     # Read-only mounts for data and models
     readonly_mounts = [
-        ("models", "/assets/models"),
-        ("datasets", "/assets/datasets"),
+        ("models", FT_MODEL_PATH),
+        ("datasets", FT_DATASET_PATH),
     ]
 
     for local_dir, docker_path in readonly_mounts:
