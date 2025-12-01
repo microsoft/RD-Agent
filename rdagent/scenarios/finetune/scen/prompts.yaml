@@ -26,33 +26,36 @@ scenario_description: |-
   The user has not yet decided the base model to fine-tune.
   {% endif %}
 
-  {% if enable_dataset_description %}
+  {%- if enable_dataset_description %}
   # Dataset Configuration
-  {% for ds_name, ds_info in dataset_config.items() %}
+  {%- for ds_name, ds_info in dataset_config.items() %}
   ## Dataset: {{ ds_name }}
   - **file_name**: {{ ds_info.file_name }}
   - **category**: {{ ds_info.category }}
-  {% if ds_info.stats %}
+  {%- if ds_info.stats %}
   - **stats**:
     - sample_count: {{ ds_info.stats.sample_count }}
     - total_size_mb: {{ ds_info.stats.total_size_mb }}
-    {% if ds_info.stats.column_stats %}
+    {%- if ds_info.stats.column_stats %}
     - column_stats:
-      {% for col, col_stats in ds_info.stats.column_stats.items() %}
+      {%- for col, col_stats in ds_info.stats.column_stats.items() %}
       - {{ col }}: empty={{ col_stats.empty_count }}, min_tokens={{ col_stats.min_tokens }}, max_tokens={{ col_stats.max_tokens }}, p50_tokens={{ col_stats.p50_tokens }}, p99_tokens={{ col_stats.p99_tokens }}
-      {% endfor %}
-    {% endif %}
-  {% endif %}
-  {% if ds_info.first_sample %}
+      {%- endfor %}
+    {%- endif %}
+  {%- endif %}
+  {%- if ds_info.first_sample %}
   - **sample**:
     ```json
     {{ ds_info.first_sample | tojson }}
     ```
-  {% endif %}
-  {% if ds_info.description %}
+  {%- endif %}
+  {%- if ds_info.readme %}
+  - **readme**: {{ ds_info.readme | tojson }}
+  {%- endif %}
+  {%- if ds_info.description %}
   - **description**: {{ ds_info.description }}
-  {% endif %}
-  {% endfor %}
+  {%- endif %}
+  {%- endfor %}
 
   ## Timeout Constraints
   - Debug Timeout: {{ debug_timeout }}
@@ -74,24 +77,24 @@ dataset_info_generation:
     - `category`: list of domain categories (can be one or multiple, see below)
     - `description`: AI-generated concise summary (200-300 words) highlighting key insights for fine-tuning
 
-    {% if dataset_stats %}
+    {%- if dataset_stats %}
     ## Pre-computed Column Statistics
     The following statistics have been automatically computed for each dataset. Use these in your description instead of guessing:
+    {%- for dataset_name, stats in dataset_stats.items() %}
 
-    {% for dataset_name, stats in dataset_stats.items() %}
     **{{ dataset_name }}**:
     - Sample count: {{ stats.sample_count }}
     - Total size: {{ stats.total_size_mb }} MB
-    {% if stats.column_stats %}
+    {%- if stats.column_stats %}
     - Column statistics (token counts, using tokenizer):
-    {% for col, col_stats in stats.column_stats.items() %}
+    {%- for col, col_stats in stats.column_stats.items() %}
       - `{{ col }}`: empty={{ col_stats.empty_count }}, min_tokens={{ col_stats.min_tokens }}, max_tokens={{ col_stats.max_tokens }}, p50_tokens={{ col_stats.p50_tokens }}, p99_tokens={{ col_stats.p99_tokens }}
-    {% endfor %}
-    {% endif %}
+    {%- endfor %}
+    {%- endif %}
+    {%- endfor %}
 
-    {% endfor %}
     **IMPORTANT**: Reference these actual statistics in your description. Do NOT invent or guess statistics.
-    {% endif %}
+    {%- endif %}
 
     ## Category Classification
     Analyze each dataset and classify it by domain. A dataset can belong to **one or multiple** domains. Use one or more of these category names:

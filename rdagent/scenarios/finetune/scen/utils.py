@@ -908,6 +908,15 @@ def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str, e
                 config["samples"] = dataset_samples_map[dataset_key]
                 logger.info(f"Added {len(config['samples'])} samples to dataset '{dataset_key}'")
 
+            # Add README content
+            if dataset_path.exists() and dataset_path.is_dir():
+                readme_content = _read_single_dataset_readme(dataset_path, max_chars=5000)
+                if readme_content:
+                    config["readme"] = readme_content
+                    logger.info(f"Added README to dataset '{dataset_key}' ({len(readme_content)} chars)")
+                else:
+                    logger.debug(f"No README found for dataset '{dataset_key}'")
+
             # Log description status
             if "description" in config:
                 logger.info(
