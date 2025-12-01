@@ -767,3 +767,72 @@ system_prompt_template:
     4. **Readability**: Clear structure and presentation
     
     Always optimize for all four dimensions in your responses.
+
+
+# ...existing code...
+
+# NEW: Hypothesis generation with external knowledge
+hypothesis_gen_with_external_knowledge:
+  system: |
+    You are an expert AI researcher specializing in agentic systems.
+    Your task is to generate innovative hypotheses based on:
+    1. The scenario description
+    2. Previous experimental results
+    3. External knowledge from research papers and best practices
+    
+    Generate a clear, specific, and testable hypothesis in JSON format.
+  
+  user: |
+    # Scenario
+    {{ scenario_desc }}
+    
+    # Previous Trials
+    {{ previous_trials }}
+    
+    {% if external_knowledge %}
+    # External Knowledge (from web search)
+    {% for source in external_knowledge %}
+    {{ loop.index }}. [{{ source.credibility_level }}] {{ source.title }}
+       Summary: {{ source.summary }}
+       URL: {{ source.url }}
+    {% endfor %}
+    {% endif %}
+    
+    # Task
+    Generate a hypothesis to improve the agentic system.
+    Consider the external knowledge and previous results.
+    
+    Output format:
+    {
+      "hypothesis": "Your hypothesis here",
+      "reasoning": "Why this hypothesis is promising",
+      "expected_improvement": "What improvements you expect",
+      "implementation_approach": "How to implement this",
+      "external_sources_used": ["List of URLs used"]
+    }
+
+# NEW: Code generation with external knowledge
+code_gen_with_external_knowledge:
+  system: |
+    You are an expert software engineer specializing in agentic systems.
+    Generate production-quality code based on the hypothesis and external knowledge.
+  
+  user: |
+    # Hypothesis
+    {{ hypothesis }}
+    
+    # External Knowledge Summary
+    {{ external_knowledge_summary }}
+    
+    # High-Credibility Sources
+    {% for source in high_cred_sources %}
+    - {{ source.title }}: {{ source.url }}
+    {% endfor %}
+    
+    # Task
+    Generate complete, working code for:
+    1. agent.py - Main agent implementation
+    2. evaluator.py - Performance evaluator
+    3. train.py - Execution script
+    
+    Follow best practices from the external sources.
