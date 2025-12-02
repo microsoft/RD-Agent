@@ -6,6 +6,7 @@ from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.scen import DataScienceScen
+from rdagent.scenarios.finetune.datasets import prepare_all
 from rdagent.scenarios.finetune.scen.llama_factory_manager import LLaMAFactory_manager
 from rdagent.scenarios.finetune.scen.utils import (
     FinetuneDatasetDescriptor,
@@ -53,15 +54,14 @@ class LLMFinetuneScen(DataScienceScen):
         return FT_RD_SETTING.full_timeout
 
     def _validate_and_prepare_environment(self):
-        """Validate FT_FILE_PATH and ensure dataset exists"""
+        """Validate FT_FILE_PATH and prepare all registered datasets"""
         ft_root = Path(FT_RD_SETTING.file_path)
         if not ft_root.exists():
             os.makedirs(ft_root, mode=0o777, exist_ok=True)
             logger.info(f"FT_FILE_PATH not exists, created FT_FILE_PATH directory: {ft_root}")
 
-        # Ensure dataset assets exist
-        if self.dataset:
-            ensure_ft_assets_exist(dataset=self.dataset, check_dataset=True)
+        # Prepare all registered datasets
+        prepare_all()
 
         # Ensure model assets exist
         if self.base_model:

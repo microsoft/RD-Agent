@@ -131,6 +131,7 @@ class CoSTEERQueriedKnowledge(QueriedKnowledge):
     None
         This class is a data holder, initialization does not return any value.
     """
+
     def __init__(self, success_task_to_knowledge_dict: dict = {}, failed_task_info_set: set = set()) -> None:
         self.success_task_to_knowledge_dict = success_task_to_knowledge_dict
         self.failed_task_info_set = failed_task_info_set
@@ -333,6 +334,7 @@ class CoSTEERQueriedKnowledgeV2(CoSTEERQueriedKnowledgeV1):
     None
         This class is purely a data container and does not return a value upon initialization.
     """
+
     # Aggregation of knowledge
     def __init__(
         self,
