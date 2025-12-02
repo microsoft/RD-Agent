@@ -40,6 +40,17 @@ class FTExperiment2Feedback(Experiment2Feedback):
         # Get task information
         task_desc = exp.sub_tasks[0].get_task_information()
 
+        # Process experiment result - handle both new and legacy formats
+        exp_result = exp.experiment_workspace.running_info.result
+        if isinstance(exp_result, dict) and "benchmark" in exp_result:
+            # New format: contains benchmark and training_metrics
+            benchmark = exp_result.get("benchmark", {})
+            training_metrics = exp_result.get("training_metrics", {})
+        else:
+            # Legacy format: exp_result is directly the benchmark result (list of dicts)
+            benchmark = {"accuracy_summary": exp_result, "error_samples": []}
+            training_metrics = {"loss_history": [], "initial_loss": None, "final_loss": None}
+
         # Generate LLM-based feedback using prompts.yaml templates
         system_prompt = T(f".prompts:{self.version}.system").r(
             scenario=self.scen.get_scenario_all_desc(),
@@ -49,7 +60,8 @@ class FTExperiment2Feedback(Experiment2Feedback):
             task_desc=task_desc,
             workspace_files=exp.experiment_workspace.file_dict,
             execution_time=exp.experiment_workspace.running_info.running_time,
-            exp_result=exp.experiment_workspace.running_info.result,
+            benchmark=benchmark,
+            training_metrics=training_metrics,
         )
 
         resp_dict = json.loads(

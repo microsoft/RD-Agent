@@ -41,6 +41,32 @@ exp_feedback:
     - Suggest specific improvements or alternative approaches.
     - Put your suggestions in the "reason" field of your final response.
 
+    # Training Loss Analysis Guidelines
+    You will receive the complete training loss history. Analyze the following aspects:
+    - Loss convergence pattern: Is the loss decreasing steadily, oscillating, or plateauing?
+    - Signs of overfitting or underfitting based on loss trajectory
+    - Learning rate appropriateness based on loss curve shape
+    - Suggest hyperparameter-level adjustments (learning rate, batch size, epochs), NOT data-level changes
+
+    # Error Sample Analysis Guidelines (CRITICAL - Avoid Benchmark Leakage)
+    You will receive model outputs for incorrectly answered questions.
+    **IMPORTANT**: You must provide INSIGHTS about model capability gaps, NOT specific training suggestions that could lead to benchmark overfitting.
+
+    **DO:**
+    - Identify error patterns (e.g., "model struggles with multi-step reasoning")
+    - Classify error types (calculation errors, logical errors, format errors, early termination)
+    - Analyze capability dimensions (mathematical reasoning, code understanding, chain-of-thought)
+    - Suggest general capability improvements at a conceptual level
+
+    **DO NOT:**
+    - Reference specific question content or numbers from the benchmark
+    - Suggest "add training data similar to question X" or any targeted data augmentation
+    - Reproduce model's specific wrong answers in your analysis
+    - Propose targeted fixes for specific test cases
+
+    Example good insight: "Model shows early termination in reasoning chains, often concluding before fully exploring all cases. This suggests insufficient training on long-form reasoning tasks."
+    Example bad insight: "Model got question 3 wrong about prime numbers, should add more prime number training data."
+
     # Code Change Summary
     - Summarize the user's implementation approach and key components concisely compared to sota methods.
 
@@ -54,19 +80,49 @@ exp_feedback:
   user: |-
     # Current LLM Fine-tuning Experiment Analysis
 
-    ## hypothesis
+    ## Hypothesis
     {{ hypothesis }}
 
     ## Task Description
     {{ task_desc }}
 
-    ## Workspace files
+    ## Workspace Files
     {% for file_name, file_content in workspace_files.items() %}
     - {{ file_name }}: {{ file_content }}
     {% endfor %}
 
-    **Execution Time**: 
-    {{ execution_time }} seconds
+    **Execution Time**: {{ execution_time }} seconds
 
-    ## Experiment Result
-    {{ exp_result }}
+    ## Training Metrics
+    ### Loss History
+    {% if training_metrics.loss_history %}
+    ```json
+    {{ training_metrics.loss_history | tojson(indent=2) }}
+    ```
+    Initial Loss: {{ training_metrics.initial_loss }}
+    Final Loss: {{ training_metrics.final_loss }}
+    {% else %}
+    No loss history available.
+    {% endif %}
+
+    ## Benchmark Results
+    ### Accuracy Summary
+    {% if benchmark.accuracy_summary %}
+    ```json
+    {{ benchmark.accuracy_summary | tojson(indent=2) }}
+    ```
+    {% else %}
+    No accuracy summary available.
+    {% endif %}
+
+    ### Error Sample Analysis ({{ benchmark.error_samples | length }} samples)
+    Below are model outputs for incorrectly answered questions.
+    Analyze the error patterns and provide INSIGHTS, not specific training suggestions:
+
+    {% for sample in benchmark.error_samples %}
+    **Error {{ loop.index }}:**
+    - Question: {{ sample.question[:1000] }}{% if sample.question | length > 1000 %}... (truncated){% endif %}
+    - Expected Answer: {{ sample.gold }}
+    - Model Output: {{ sample.model_output[:500] }}{% if sample.model_output | length > 500 %}... (truncated){% endif %}
+
+    {% endfor %}

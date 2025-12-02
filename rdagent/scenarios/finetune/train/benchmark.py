@@ -14,8 +14,9 @@ FT_JUDGE_API_BASE="https://api.openai.com/v1"
 """
 
 import json
+import random
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 import yaml
@@ -28,12 +29,7 @@ from rdagent.utils.agent.tpl import T
 load_dotenv(find_dotenv())
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
-from rdagent.components.coder.CoSTEER.evaluators import (
-    CoSTEEREvaluator,
-    CoSTEERSingleFeedback,
-)
 from rdagent.components.coder.finetune.conf import get_ft_env
-from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
@@ -119,6 +115,94 @@ def detect_model_type(model_path: str) -> bool:
     return False
 
 
+def extract_error_samples(results_base: Path, max_samples: int = 10) -> List[Dict[str, Any]]:
+    """
+    Extract error samples from OpenCompass detailed results.
+
+    When dump_details=True is set in OpenCompass config, detailed prediction results
+    are saved in the results directory. This function extracts samples where the model
+    answered incorrectly for feedback analysis.
+
+    Args:
+        results_base: Path to benchmark_results/{timestamp} directory
+        max_samples: Maximum number of error samples to return
+
+    Returns:
+        List of error samples, each containing:
+        - question: The original prompt/question
+        - gold: The expected/ground truth answer
+        - model_output: The model's actual output
+    """
+    error_samples = []
+    results_dir = results_base / "results"
+    predictions_dir = results_base / "predictions"
+
+    if not results_dir.exists():
+        logger.warning(f"Results directory not found: {results_dir}")
+        return error_samples
+
+    # Iterate through all result JSON files
+    for result_file in results_dir.rglob("*.json"):
+        try:
+            with open(result_file) as f:
+                data = json.load(f)
+
+            details = data.get("details", [])
+            if not details:
+                continue
+
+            # Find corresponding predictions file
+            rel_path = result_file.relative_to(results_dir)
+            pred_file = predictions_dir / rel_path
+
+            predictions = {}
+            if pred_file.exists():
+                with open(pred_file) as f:
+                    predictions = json.load(f)
+
+            # Extract error samples from OpenCompass detailed results
+            # Structure: details[i].llm_evaluation[0] contains judgment info
+            for idx, detail in enumerate(details):
+                # Get llm_evaluation result (OpenCompass cascade eval format)
+                llm_eval = detail.get("llm_evaluation", [])
+                if not llm_eval:
+                    continue
+
+                eval_result = llm_eval[0]
+                # Check if incorrect: prediction=="B" or llm_correct==False
+                is_error = eval_result.get("prediction") == "B" or not eval_result.get("llm_correct", True)
+
+                if is_error:
+                    pred_entry = predictions.get(str(idx), {})
+
+                    # Extract question - origin_prompt is a list of role/prompt dicts
+                    origin_prompt = pred_entry.get("origin_prompt", [])
+                    if isinstance(origin_prompt, list) and origin_prompt:
+                        question = origin_prompt[0].get("prompt", "N/A")
+                    elif isinstance(origin_prompt, str):
+                        question = origin_prompt
+                    else:
+                        question = "N/A"
+
+                    sample = {
+                        "question": question,
+                        "gold": pred_entry.get("gold", eval_result.get("gold", "N/A")),
+                        "model_output": pred_entry.get("prediction", "N/A"),
+                    }
+                    error_samples.append(sample)
+
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning(f"Failed to parse result file {result_file}: {e}")
+            continue
+
+    # Random sampling if too many error samples
+    if len(error_samples) > max_samples:
+        error_samples = random.sample(error_samples, max_samples)
+
+    logger.info(f"Extracted {len(error_samples)} error samples from benchmark results")
+    return error_samples
+
+
 def run_benchmark(
     workspace_path: str,
     model_path: str,
@@ -127,7 +211,8 @@ def run_benchmark(
     limit: Optional[int] = None,
     num_runs: int = 1,
     pass_k: Optional[List[int]] = None,
-) -> Dict[str, float]:
+    max_error_samples: int = 10,
+) -> Dict[str, Any]:
     """
     Run benchmark evaluation on a fine-tuned model.
 
@@ -138,9 +223,12 @@ def run_benchmark(
         limit: Optional dataset size limit for testing
         num_runs: Number of times to run each sample (default: 1)
         pass_k: Optional list of k values for pass@k evaluation (e.g., [1, 5, 10])
+        max_error_samples: Maximum number of error samples to extract for feedback
 
     Returns:
-        Dict[str, float]: Scores dictionary {task_name: score, ...}
+        Dict containing:
+        - accuracy_summary: List of dicts with accuracy metrics from CSV
+        - error_samples: List of error samples for feedback analysis
     """
     # Load configurations
     dataset_imports = BENCHMARK_CONFIG_DICT[benchmark_name]
@@ -241,9 +329,17 @@ def run_benchmark(
     results_csv_path = sorted([f for f in results_subdir.rglob("*.csv")], reverse=True)[0]
     logger.info(f"Detailed results CSV: {results_csv_path.relative_to(results_base)}")
 
-    # Read and return CSV content
+    # Read CSV content for accuracy summary
     df = pd.read_csv(results_csv_path)
-    return df.to_dict("records")
+    accuracy_summary = df.to_dict("records")
+
+    # Extract error samples for feedback analysis
+    error_samples = extract_error_samples(timestamped_dirs[0], max_samples=max_error_samples)
+
+    return {
+        "accuracy_summary": accuracy_summary,
+        "error_samples": error_samples,
+    }
 
 
 if __name__ == "__main__":

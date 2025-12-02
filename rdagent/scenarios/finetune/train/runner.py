@@ -92,7 +92,6 @@ class LLMFinetuneRunner(CoSTEER):
         **kwargs,
     ) -> None:
         eval_l = [
-            FTDataEvaluator(scen=scen),  # Data preparation validation
             FTRunnerEvaluator(scen=scen),  # Training validation
         ]
 
