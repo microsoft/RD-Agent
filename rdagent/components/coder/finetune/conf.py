@@ -157,11 +157,7 @@ def get_data_processing_env(
     llm_env_vars = {"PYTHONPATH": "./"}  # Base env var
     for key in [
         "OPENAI_API_KEY",
-        "OPENAI_API_BASE",
-        "OPENAI_BASE_URL",
-        "AZURE_OPENAI_KEY",
-        "AZURE_OPENAI_ENDPOINT",
-        "ANTHROPIC_API_KEY",
+        "OPENAI_API_BASE"
     ]:
         value = os.getenv(key)
         if value:

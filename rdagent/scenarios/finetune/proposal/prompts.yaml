@@ -52,7 +52,7 @@ unified_hypothesis_gen:
 
     ## Data Processing Resources
         
-    ### Available Processing Methods:
+    ### Available Processing Methods (May require LLM API calls):
     
     **General Methods**:
     - Quality filtering: Remove low-quality samples based on perplexity, length, or coherence
@@ -63,13 +63,26 @@ unified_hypothesis_gen:
     - Category/difficulty balancing: Adjust proportions across categories or difficulty levels
     
     **Reasoning-Specific Methods**:
-    - Difficulty-based filtering: Use weak model to filter easy problems, strong model to identify boundary-difficulty problems (pass@32=1-3)
+    - Difficulty-based filtering: Use weak model (`gpt-4o-mini`) to filter easy problems, strong model (`gpt-5`/`gpt-5.1`) to identify boundary-difficulty problems (pass@32=1-3)
     - Answer-consistency filtering: Keep samples where majority-vote answer matches target answer
     - CoT quality scoring: Construct a scoring function to score the quality of the CoT, and filter out the low-quality CoT
     - Structural health check: Keep CoT with progressive depth, backtracking, and verification nodes; reject wide-shallow or straight-line reasoning
     - Generative selection: Compare multiple solution summaries, come up with methods to select best one
     
     **Note**: You should try to make use of the datasets shown above to generate new training datasets. But if you think the datasets are not suitable for the task or you have better ideas, you can come up with your own approach (better based on the given seed datasets).
+    
+    ### LLM Endpoints for Data Processing
+    
+    Most processing methods above require LLM API calls. Use these exact model names in your task specification:
+    
+    **Available Models:**
+    - `gpt-4o-mini`: Lightweight tasks (simple filtering, basic format conversion) - cost-effective alternative
+    - `gpt-4o`: Basic tasks (filtering, deduplication, format conversion, quality scoring)
+    - `gpt-5` / `gpt-5.1`: Complex tasks (CoT generation/rewriting, reasoning expansion, difficult problem solving)
+    
+    **API Features:**
+    - Concurrent requests up to 1000 - process large datasets efficiently
+    - Auto-retry 5 times on failure - robust against transient errors
     
     ### Data Quality Adaptation Guide
     
@@ -137,12 +150,21 @@ unified_hypothesis_gen:
     - If a sample has missing critical fields → Filter out (if small portion, e.g., <10%)
     - If many samples have missing fields → Consider augmentation/generation instead of filtering
     
-    **Reasoning token length guideline:**
-    - Target reasoning length: approximately `1/2 * max_position_embeddings` of the model
-    - This leaves room for instruction/question while ensuring rich reasoning
-    - Example: For model with 32K context → target ~16K tokens for reasoning
-    - Too short (<500 tokens): May lack depth for reasoning training
-    - Too long (>3/4 context): Risk of truncation or memory issues
+    **Reasoning token length guideline (CRITICAL for CoT training):**
+    
+    Base your reasoning length on model's `max_position_embeddings`:
+    - **Minimum**: 1000 tokens - shorter reasoning lacks depth for effective training
+    - **Target**: `1/2 * max_position_embeddings` of the target model
+    - **Maximum**: `3/4 * max_position_embeddings` to leave room for instruction
+    
+    Examples:
+    - Model with 32K context → reasoning target ~16K tokens (range: 1000-24K)
+    - Model with 8K context → reasoning target ~4K tokens (range: 1000-6K)
+    - Model with 4K context → reasoning target ~2K tokens (range: 1000-3K)
+    
+    **Then set `cutoff_len` accordingly**: cutoff_len should be ≥ (instruction length + target reasoning length + answer length)
+    
+    **WARNING**: Reasoning < 1000 tokens is generally too short for training strong reasoning capability. If your generated CoT is consistently short, use stronger models (gpt-5/gpt-5.1) to generate richer reasoning traces.
     
     ### Output Data Format
     

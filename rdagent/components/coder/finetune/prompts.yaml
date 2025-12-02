@@ -52,7 +52,19 @@ data_coder:
     2. Handle file encoding properly (use utf-8)
     3. Include error handling for file operations
     4. Print progress information to stdout for debugging
-    5. If LLM API calls are needed, use environment variables for API keys (already configured)
+    5. **IMPORTANT**: This script receives NO command-line arguments. All variables, parameters, and configurations must be defined within the script itself. Do NOT expect users to provide any input.
+    
+    ## LLM API Usage (if needed for data processing)
+    All models use the same API configuration via environment variables (already set):
+    - `OPENAI_API_KEY`: API key for authentication
+    - `OPENAI_API_BASE`: API base URL
+    
+    **Available Models:** `gpt-4o-mini`, `gpt-4o`, `gpt-5`, `gpt-5.1`
+    
+    **API Features:**
+    - Concurrent requests up to 1000 - process large datasets efficiently
+    - Implement retry logic (5 retries recommended) for robustness
+    - All models share the same api_key and api_base
 
     ## Output Format
     Provide ONLY the Python script in a markdown code block:
@@ -295,10 +307,19 @@ finetune_data_coder:
     }
 
     # Implementation Guidance
-    When implementing the task, you have openai compatible API access with the following settings:
-    - api_base: {{ api_base }}
-    - api_key: {{ api_key }}
-    - available_api_model: {{ available_api_models }}
+    
+    **IMPORTANT**: This script receives NO command-line arguments. All variables, parameters, and configurations must be defined within the script itself. Do NOT expect users to provide any input.
+    
+    ## LLM API Usage (if needed for data processing)
+    All models use the same OpenAI-compatible API via environment variables (already set):
+    - `OPENAI_API_KEY`: API key for authentication  
+    - `OPENAI_API_BASE`: API base URL
+    - Available models: `gpt-4o-mini`, `gpt-4o`, `gpt-5`, `gpt-5.1`
+    
+    **API Features:**
+    - Concurrent requests up to 1000 - process large datasets efficiently
+    - Implement retry logic (5 retries recommended) for robustness
+    - All models share the same api_key and api_base
 
     **Output Format**:
     {
