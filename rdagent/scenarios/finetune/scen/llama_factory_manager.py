@@ -29,7 +29,7 @@ class LLaMAFactoryManager:
     def extract_info_from_docker(self) -> Dict:
         """Extract LLaMA Factory information from Docker environment."""
         if not self.cache_dir.exists() or not any(self.cache_dir.iterdir()):
-            logger.info("Update & Extract LLaMA Factory parameters from Docker")
+            logger.info("Extract LLaMA Factory parameters from Docker")
             # Prepare extraction script
             workspace = FBWorkspace()
             script_path = Path(__file__).parent / "docker_scripts" / EXTRACT_PARAMETERS_SCRIPT_NAME
