@@ -65,27 +65,20 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         Returns:
             dict with "process_data.py" key containing the script code,
-            or empty dict if task_type is "train" only or data already exists.
+            or empty dict if data already exists.
         """
-        # 1. Check task_type - skip if train-only
-        task_type = getattr(target_task, "task_type", "train")
-        if task_type == "train":
-            logger.info("Task type is 'train', skipping data processing")
-            return {}
-
-        # 2. Check if data.json already exists in workspace (skip logic)
-        # Note: validation is done by FTDataEvaluator, here we just check existence
+        # Check if data.json already exists in workspace (skip logic)
         if workspace is not None:
             data_json_path = workspace.workspace_path / FT_DATA_FILE_NAME
             if data_json_path.exists():
                 logger.info("data.json already exists, skipping data processing")
                 return {}
 
-        # 3. Get dataset information for the task
+        # Get dataset information for the task
         involving_datasets = getattr(target_task, "involving_datasets", [])
         dataset_info = self._get_dataset_info(involving_datasets)
 
-        # 4. Generate data processing script using LLM
+        # Generate data processing script using LLM
         system_prompt = T(".prompts:data_coder.system").r(
             scenario=self.scen.get_scenario_all_desc(),
             task_desc=target_task.get_task_information(),
@@ -102,7 +95,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
                 json_mode=False,
             )
 
-            # 5. Extract Python code from response (inline extraction)
+            # Extract Python code from response
             match = re.search(r"```(?:python)?\s*\n(.*?)\n```", response, re.DOTALL | re.IGNORECASE)
             script_code = match.group(1).strip() if match else response.strip()
             logger.info(f"Generated data processing script ({len(script_code)} chars)")

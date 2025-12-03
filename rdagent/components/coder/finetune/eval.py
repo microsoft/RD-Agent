@@ -34,10 +34,9 @@ class FTDataEvaluator(CoSTEEREvaluator):
     """Evaluator for data processing results.
 
     This evaluator:
-    1. Checks if task_type requires data processing
-    2. Executes the process_data.py script in Docker
-    3. Validates the output data.json file
-    4. Generates dataset_info.json for LlamaFactory
+    1. Executes the process_data.py script in Docker
+    2. Validates the output data.json file
+    3. Generates dataset_info.json for LlamaFactory
     """
 
     def evaluate(
@@ -50,18 +49,7 @@ class FTDataEvaluator(CoSTEEREvaluator):
     ) -> CoSTEERSingleFeedback:
         """Evaluate data processing implementation."""
 
-        # 1. Check task_type - skip if train-only
-        task_type = getattr(target_task, "task_type", "train")
-        if task_type == "train":
-            logger.info("Task type is 'train', skipping data evaluation")
-            return CoSTEERSingleFeedback(
-                execution="Skipped (train-only task)",
-                return_checking="",
-                code="",
-                final_decision=True,
-            )
-
-        # 2. Check if data.json already exists and is valid (skip execution)
+        # Check if data.json already exists and is valid (skip execution)
         data_json_path = implementation.workspace_path / FT_DATA_FILE_NAME
         if data_json_path.exists():
             validation_result = self._validate_data_json(data_json_path)
@@ -76,7 +64,7 @@ class FTDataEvaluator(CoSTEEREvaluator):
                     final_decision=True,
                 )
 
-        # 3. Check if process_data.py exists
+        # Check if process_data.py exists
         script_code = implementation.file_dict.get(FT_DATA_SCRIPT_NAME, "")
         if not script_code:
             return CoSTEERSingleFeedback(
@@ -86,7 +74,7 @@ class FTDataEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        # 4. Execute the script in Docker
+        # Execute the script in Docker
         env, env_vars = get_data_processing_env(
             running_timeout_period=3600,  # 1 hour timeout for data processing
         )
@@ -113,7 +101,7 @@ class FTDataEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        # 5. Check if data.json was generated
+        # Check if data.json was generated
         if not data_json_path.exists():
             return CoSTEERSingleFeedback(
                 execution=f"Script executed (exit_code={exit_code}) but {FT_DATA_FILE_NAME} not found.\n"
@@ -123,7 +111,7 @@ class FTDataEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        # 6. Validate data.json format
+        # Validate data.json format
         validation_result = self._validate_data_json(data_json_path)
         if not validation_result["valid"]:
             return CoSTEERSingleFeedback(
@@ -133,7 +121,7 @@ class FTDataEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        # 7. Update dataset_info.json for LlamaFactory
+        # Update dataset_info.json for LlamaFactory
         self._update_dataset_info(implementation, validation_result["sample_count"])
 
         logger.info(f"Data processing successful: {validation_result['sample_count']} samples")
