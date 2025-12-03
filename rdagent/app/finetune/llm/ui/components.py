@@ -43,11 +43,10 @@ def show_hypothesis(experiment: Any) -> None:
         hypo = experiment.hypothesis
     elif isinstance(experiment, list) and len(experiment) > 0:
         task = experiment[0]
-        if hasattr(task, "task_type"):
-            # FTTask - 显示 task_type, base_model, involving_datasets
+        if hasattr(task, "base_model"):
+            # FTTask - 显示 base_model, involving_datasets
             col1, col2 = st.columns(2)
             with col1:
-                st.metric("Task Type", getattr(task, "task_type", "N/A"))
                 st.metric("Base Model", getattr(task, "base_model", "N/A"))
             with col2:
                 # 显示 involving_datasets
@@ -70,7 +69,6 @@ def show_hypothesis(experiment: Any) -> None:
 
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("Task Type", getattr(hypo, "task_type", "N/A"))
         st.metric("Base Model", getattr(hypo, "base_model", "N/A"))
     with col2:
         if hasattr(hypo, "hypothesis") and hypo.hypothesis:
