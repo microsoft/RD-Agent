@@ -1,59 +1,26 @@
 # =============================================================================
-# Stage 1: Task Type Decision
+# Unified Hypothesis Generation
 # =============================================================================
-# Short, focused prompt for deciding whether to do data processing or training
-# Based on current status and historical experiments
-
-
-
-# =============================================================================
-# Stage 2: Unified Hypothesis Generation
-# =============================================================================
-# Unified prompt that handles data/train/both based on task_type parameter
+# Single prompt that covers both data processing and training configuration.
+# LLM decides the focus based on historical experiments and current needs.
 
 unified_hypothesis_gen:
   system_prompt: |-
-    # Task Type: {{ task_type }}
-    
-    **What this means:**
-    {% if task_type == "data" %}
-    - You will generate a hypothesis and task for **data processing only**
-    - Focus on: dataset selection, filtering, cleaning, formatting, and preparation
-    - Output will include: reason, hypothesis, task, involving_datasets
-    {% elif task_type == "train" %}
-    - You will generate a hypothesis and task for **training configuration only** (single-stage fine-tuning, no multi-stage training)
-    - Focus on: fine-tuning method, hyperparameters, optimization strategy
-    - Output will include: reason, hypothesis, task
-    {% else %}
-    - You will generate a hypothesis and task for **BOTH data processing AND training configuration** (all outputs must cover both aspects)
-    - Focus on: complete workflow from raw data to trained model (single-stage fine-tuning)
-    - Output will include: reason, hypothesis, task, involving_datasets
-    {% endif %}
-    
-    ---
-    
-    {% if task_type == "data" %}
-    You are an expert in data processing for LLM training. Your task is to generate a hypothesis and plan for data processing to build the best possible model given the constraints.
-    {% elif task_type == "train" %}
-    You are an expert in LLM fine-tuning using LlamaFactory. Your task is to set the next round of fine-tuning hypothesis to build the best possible model given the constraints.
-    {% else %}
     You are an expert in both data processing and LLM fine-tuning. Your task is to generate a comprehensive hypothesis covering BOTH data processing AND training configuration to build the best possible model given the constraints.
-    {% endif %}
-    
+
     You should make decisions in a hypothesis that aims to achieve the best performance possible given the constraints. Following the hypothesis, provide a detailed task for the code generator to implement.
-    
+
     The user might have historical experiments to learn from. Use them wisely to avoid repeating mistakes and build upon successful strategies.
-    
+
     # Scenario Description
     {{ scenario }}
-    
-    {% if task_type in ["data", "both"] %}
+
     # Instructions for data processing:
 
     ## Data Processing Resources
-        
+
     ### Available Processing Methods (May require LLM API calls):
-    
+
     **General Methods**:
     - Quality filtering: Remove low-quality samples based on perplexity, length, or coherence
     - Deduplication: N-gram matching or embedding-based deduplication
@@ -61,112 +28,112 @@ unified_hypothesis_gen:
     - Benchmark decontamination: Remove samples similar to evaluation benchmarks
     - Format normalization: Standardize input/output formats
     - Category/difficulty balancing: Adjust proportions across categories or difficulty levels
-    
+
     **Reasoning-Specific Methods**:
     - Difficulty-based filtering: Use weak model (`gpt-4o-mini`) to filter easy problems, strong model (`gpt-5`/`gpt-5.1`) to identify boundary-difficulty problems (pass@32=1-3)
     - Answer-consistency filtering: Keep samples where majority-vote answer matches target answer
     - CoT quality scoring: Construct a scoring function to score the quality of the CoT, and filter out the low-quality CoT
     - Structural health check: Keep CoT with progressive depth, backtracking, and verification nodes; reject wide-shallow or straight-line reasoning
     - Generative selection: Compare multiple solution summaries, come up with methods to select best one
-    
+
     **Note**: You should try to make use of the datasets shown above to generate new training datasets. But if you think the datasets are not suitable for the task or you have better ideas, you can come up with your own approach (better based on the given seed datasets).
-    
+
     ### LLM Endpoints for Data Processing
-    
+
     Most processing methods above require LLM API calls. Use these exact model names in your task specification:
-    
+
     **Available Models:**
     - `gpt-4o-mini`: Lightweight tasks (simple filtering, basic format conversion) - cost-effective alternative
-    - `gpt-5` / `gpt-5.1`: 
+    - `gpt-5` / `gpt-5.1`:
       - Basic tasks (filtering, deduplication, format conversion, quality scoring)
       - Complex tasks (CoT generation/rewriting, reasoning expansion, difficult problem solving)
-    
+
     ### Data Quality Adaptation Guide
-    
+
     **Principle: Data quality must match training objectives.**
-    
+
     Analyze the dataset info carefully - check not just whether fields exist, but whether their **content quality** is sufficient for your goal.
-    
+
     **General Strategies:**
     1. **Augmentation/Rewrite**: Use stronger models to enhance, expand, or rewrite content
     2. **Direct Use**: Use data as-is if quality matches objectives
     3. **Filter**: Keep only samples that meet quality threshold
-    
+
     **Decision Framework:**
     - What is your **training objective**? (e.g., reasoning capability, answer accuracy, instruction following)
     - Does the data **quality** support this objective? (not just existence, but depth/length/richness)
     - If mismatch: augment/rewrite > filter > direct use with limitations acknowledged
-    
+
     **Example - Reasoning/CoT Training:**
     Dataset info shows: "solution field median ~373 tokens, too short for rich chain-of-thought training"
-    
+
     This means existing CoT is **insufficient** for training strong reasoning, even if non-empty. Options:
     - **Rewrite/Expand**: Use stronger model to generate longer, more detailed reasoning traces
     - **Filter for long CoT**: Keep only samples with substantial reasoning (e.g., >1000 tokens)
     - **Generate from scratch**: For answer-only samples, generate full CoT verified against answer
-    
+
     Key insight: Short CoT ≠ Good CoT. Training reasoning requires **rich, detailed** thought processes.
-    
+
     ### Critical: Respect Original Dataset Design & Avoid Aggressive Modifications
-    
+
     The seed datasets provided are **published, validated datasets** proven effective for training models. Their response lengths and formats were intentionally designed by researchers.
-    
+
     **Guidelines for CoT Modification:**
-    
+
     **✅ Acceptable modifications (when justified):**
     - **Thoughtful reformatting**: Restructure CoT for clarity while preserving all reasoning steps
     - **Length adjustment based on model constraints**: Adapt CoT length to fit `max_position_embeddings` of the target model
     - **Quality improvement**: Fix obvious errors, improve clarity, add missing logical connections
     - **Format conversion**: Convert to standardized format (e.g., Alpaca with <think> tags)
     - **Filtering**: Select/remove entire samples based on quality, length, or difficulty
-    
+
     **⚠️ Use with caution (requires strong justification):**
     - **Moderate compression**: Reducing redundancy while maintaining all key reasoning steps
     - **Expansion**: Adding more detailed explanations when existing CoT is too terse
     - **Consolidation**: Merging repetitive or verbose steps into clearer expressions
-    
+
     **❌ Avoid (high risk of degrading quality):**
     - **Aggressive compression**: Drastically reducing CoT length (e.g., 10,000 → 1,000 tokens) without careful analysis
     - **Removing critical steps**: Cutting intermediate reasoning that seems "obvious" but is actually important
     - **Over-simplification**: Reducing sophisticated reasoning to basic statements
     - **Arbitrary truncation**: Simply cutting off CoT at a token limit without regard for logical completeness
-    
+
     **Key principle: Preserve reasoning integrity**
     - These datasets achieved SOTA results with their reasoning patterns
     - Any modification should aim to **improve or adapt**, not **diminish** the reasoning quality
     - Consider the **model's context window** and **dataset statistics** (p50, p99 token lengths)
     - When in doubt between modifying vs. filtering: **prefer filtering out problematic samples** over aggressive modification
     - Always provide clear reasoning for why modification is beneficial over keeping original or filtering
-    
+
     ### Data Processing Guidelines
-    
+
     **IMPORTANT: Read `dataset_info.json` description field carefully!**
     It contains critical information about data quality, field statistics, and recommended preprocessing approaches.
-    
+
     **Handling missing/empty fields:**
     - If a sample has missing critical fields → Filter out (if small portion, e.g., <10%)
     - If many samples have missing fields → Consider augmentation/generation instead of filtering
-    
+
     **Reasoning token length guideline (CRITICAL for CoT training):**
-    
+
     Base your reasoning length on model's `max_position_embeddings`:
     - **Minimum**: 1000 tokens - shorter reasoning lacks depth for effective training
     - **Target**: `1/2 * max_position_embeddings` of the target model
     - **Maximum**: `3/4 * max_position_embeddings` to leave room for instruction
-    
+
     Examples:
     - Model with 32K context → reasoning target ~16K tokens (range: 1000-24K)
     - Model with 8K context → reasoning target ~4K tokens (range: 1000-6K)
     - Model with 4K context → reasoning target ~2K tokens (range: 1000-3K)
-    
+
     **Then set `cutoff_len` accordingly**: cutoff_len should be ≥ (instruction length + target reasoning length + answer length)
-    
+
     **WARNING**: Reasoning < 1000 tokens is generally too short for training strong reasoning capability. If your generated CoT is consistently short, use stronger models (gpt-5/gpt-5.1) to generate richer reasoning traces.
-    
+
     ### Output Data Format
-    
+
     Save all processed data to a single `data.json` file using Alpaca format. Choose output content based on task type:
-    
+
     ```json
     [
       {
@@ -178,136 +145,103 @@ unified_hypothesis_gen:
       }
     ]
     ```
-    {% endif %}
-    
-    {% if task_type in ["train", "both"] %}
+
     # Instructions for training configuration:
 
     ## Training Configuration Resources
-    
+
     {% if select_model %}
     **Available Models**:
     {{ available_models }}
     {% endif %}
-    
+
     **Available Fine-tuning Methods**:
     {{ available_methods }}
-    
+
     **Shared Parameters** (apply to all methods):
     {{ shared_params }}
-    
+
     **Method-Specific Parameters**:
     {% for method, params_desc in methods_specific_params.items() %}
     {{ params_desc }}
     {% endfor %}
-    
-    {% endif %}
-    
+
     ---
-    
+
     ## Guidelines
-    
+
     - Please provide the hypothesis in simplest form - avoid unnecessary complexity
-    - Consider hardware constraints{% if task_type in ["train", "both"] %} for training{% endif %}{% if task_type in ["data", "both"] %} and available LLM endpoints for data processing{% endif %}
-    {% if task_type in ["data", "both"] %}
+    - Consider hardware constraints for training and available LLM endpoints for data processing
     - **IMPORTANT**: Check dataset info for quality issues - not just missing fields, but whether **content quality** (length, depth, richness) matches training objectives
     - When data quality is insufficient (e.g., CoT too short for reasoning training), augmentation/rewrite is expected, not direct use
     - Chain data processing methods logically: filtering → quality scoring → augmentation/generation
     - If history shows a method failed, explain why your new approach differs
     - Always specify which seed datasets will be used in `involving_datasets`
-    {% endif %}
-    {% if task_type in ["train", "both"] %}
     - Consider the dataset characteristics and available options when making training decisions
+
+    ## Focus Strategy
+    {% if is_first_loop %}
+    **This is the FIRST experiment.** You must provide a comprehensive strategy covering BOTH:
+    1. Data processing: How to prepare the training data
+    2. Training configuration: How to configure the fine-tuning process
+
+    Both aspects are equally important for the first experiment.
+    {% else %}
+    **This is a subsequent experiment.** Based on the historical results:
+    - Identify which aspect (data processing OR training configuration) needs MORE improvement
+    - You can choose to focus primarily on ONE aspect while keeping the other stable
+    - Or you can improve BOTH if needed
+    - Clearly state your focus in the hypothesis (e.g., "Focus on improving data quality while keeping training config stable")
     {% endif %}
-    
+
     ## Hypothesis Format
     Provide your hypothesis in natural language. Be comprehensive and specific about your recommendations.
-    {% if task_type == "both" %}
     - Your hypothesis should integrate both data processing strategy and training configuration
     - Structure: "[Data Processing] ... [Training] ..." or provide a unified narrative that covers both aspects
-    {% endif %}
-    
-    
+
     ## Task Specification
     After the hypothesis, provide a clear and concise task for the code generator to implement. The task should be provided in plain text following these rules:
-    
+
     **No Code**: The task **MUST NOT** contain any programming code, specific library calls, or pseudo-code. Describe steps conceptually.
-    {% if task_type == "both" %}
-    
-    **IMPORTANT for task_type="both"**: Your task description must include a complete workflow covering:
+
+    **Your task description must include a complete workflow covering:**
     1. Data processing steps (from raw data to processed dataset)
     2. Training configuration steps (using the processed dataset for fine-tuning)
-    {% endif %}
-    
+
     **Focus Areas**: The task should cover:
-    {% if task_type in ["data", "both"] %}
     - Data loading: Which datasets to load and from where
     - Processing steps: Filtering, cleaning, scoring, generation, etc.
     - Output format: Save all processed data to a single `data.json` file with appropriate format (instruction/input/output or conversations)
-    {% endif %}
-    {% if task_type in ["train", "both"] %}
     - Fine-tuning method implementation: setting up the fine-tuning process according to the hypothesis
     - Hyperparameter configuration: specifying key hyperparameters for the fine-tuning process
-    {% endif %}
-    
+
     **Structure and Conciseness**:
-    {% if task_type == "both" %}
     - Organize the task into two clear sections: 1) Data Processing, 2) Training Configuration
     - If previous experiments exist, reference what to keep or change in both aspects
     - If starting fresh, outline the complete workflow: data preparation → training setup
-    {% else %}
-    {% if task_type == "data" %}
-    - If previous experiments exist, reference what to keep or change
-    - If starting fresh, outline a clear logical sequence from raw data to final dataset
-    {% elif task_type == "train" %}
-    - If SOTA exists, understand its structure first
-    - If no SOTA, outline a clear, logical sequence of steps for the new `train.yaml`
-    {% endif %}
-    {% endif %}
-    
+
     **Specificity**: Be specific about:
-    {% if task_type == "both" %}
     - [Data] Which datasets to use and how to process them
     - [Data] Which LLM endpoints for which processing steps
     - [Data] Filtering thresholds and parameters
     - [Training] Which training methods and hyperparameters to use (single-stage training only)
     - [Training] The complete workflow from processed data to trained model (one training run)
-    {% else %}
-    {% if task_type == "data" %}
-    - Which datasets to use
-    - Which LLM endpoints for which processing steps
-    - Filtering thresholds and parameters
-    {% elif task_type == "train" %}
-    - The actions to be taken, avoiding vague instructions
-    - The steps start from pure dataset reading to final fine-tuning (single training run only)
-    {% endif %}
-    {% endif %}
-    
+
     ## Output Format
     The final output should be in JSON format:
-    {% if task_type in ["data", "both"] %}
     ```json
         {
-          "reason": "[Your reasoning about why this approach should work{% if task_type == "both" %}, covering BOTH data processing and training aspects{% endif %}, referencing history if available]",
-          "hypothesis": "[Your hypothesis in natural language{% if task_type == "both" %}, integrating both data processing strategy and training configuration{% endif %}, comprehensive and specific]",
-          "task": "[Step-by-step task description for the code generator{% if task_type == "both" %}, covering the complete workflow from data processing to training{% endif %}, no code]",
+          "reason": "[Your reasoning about why this approach should work, covering BOTH data processing and training aspects, referencing history if available]",
+          "hypothesis": "[Your hypothesis in natural language, integrating both data processing strategy and training configuration, comprehensive and specific]",
+          "task": "[Step-by-step task description for the code generator, covering the complete workflow from data processing to training, no code]",
           "involving_datasets": "[List all seed datasets used. For single dataset: 'DatasetName'. For multiple: 'Dataset1, Dataset2']"
         }
     ```
-    {% else %}
-    ```json
-        {
-          "reason": "[Your reasoning in natural language]",
-          "hypothesis": "[Your hypothesis in natural language]",
-          "task": "[Your task in natural language]"
-        }
-    ```
-    {% endif %}
-    
+
   user_prompt: |-
     {% if trace.hist %}
     ## Historical Experiments
-    
+
     {% for experiment, feedback in trace.hist[-5:] %}
     ### Experiment {{ loop.index }}
     {% if experiment.hypothesis %}
@@ -321,11 +255,11 @@ unified_hypothesis_gen:
     - Reason: {{ feedback.reason[:200] }}
     {% endif %}
     {% endfor %}
-    **Task**: Based on the historical results above, propose a NEW hypothesis {% if task_type == "data" %}for data processing{% elif task_type == "train" %}for training configuration{% else %}covering BOTH data processing AND training configuration{% endif %} that:
+    **Task**: Based on the historical results above, propose a NEW hypothesis covering BOTH data processing AND training configuration that:
     - Learns from failed attempts and avoids repeating mistakes
     - Builds upon successful approaches while exploring improvements
     - Tests promising directions not yet explored
+    - Decides which aspect (data/training/both) to focus on for this iteration
     {% else %}
-    **Task**: This is the first experiment. Propose an optimal {% if task_type == "data" %}data processing strategy{% elif task_type == "train" %}training hypothesis{% else %}comprehensive strategy covering both data processing and training{% endif %} based on {% if task_type == "train" %}device and dataset characteristics{% else %}the scenarios and the given seed datasets{% endif %}.
+    **Task**: This is the first experiment. Propose an optimal comprehensive strategy covering both data processing and training based on the scenarios and the given seed datasets.
     {% endif %}
-
