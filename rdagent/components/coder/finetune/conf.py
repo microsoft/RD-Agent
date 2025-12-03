@@ -150,10 +150,7 @@ def get_data_processing_env(
 
     # Collect LLM API environment variables to pass to env.run()
     llm_env_vars = {"PYTHONPATH": "./"}  # Base env var
-    for key in [
-        "OPENAI_API_KEY",
-        "OPENAI_API_BASE"
-    ]:
+    for key in ["OPENAI_API_KEY", "OPENAI_API_BASE"]:
         value = os.getenv(key)
         if value:
             llm_env_vars[key] = value
