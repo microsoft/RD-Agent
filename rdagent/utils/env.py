@@ -873,6 +873,8 @@ class FTDockerConf(DockerConf):
     # Declarative configuration: automatically loads from scenarios/finetune/share.yaml
     _scenario_name: str = "finetune"
     _exclude_path_keys: list[str] = ["assets_path"]
+    
+    network: str | None = "host"    # Use host network for finetune access to litellm proxy
 
 
 class BenchmarkDockerConf(DockerConf):
