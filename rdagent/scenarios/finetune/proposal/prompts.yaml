@@ -77,12 +77,9 @@ unified_hypothesis_gen:
     
     **Available Models:**
     - `gpt-4o-mini`: Lightweight tasks (simple filtering, basic format conversion) - cost-effective alternative
-    - `gpt-4o`: Basic tasks (filtering, deduplication, format conversion, quality scoring)
-    - `gpt-5` / `gpt-5.1`: Complex tasks (CoT generation/rewriting, reasoning expansion, difficult problem solving)
-    
-    **API Features:**
-    - Concurrent requests up to 1000 - process large datasets efficiently
-    - Auto-retry 5 times on failure - robust against transient errors
+    - `gpt-5` / `gpt-5.1`: 
+      - Basic tasks (filtering, deduplication, format conversion, quality scoring)
+      - Complex tasks (CoT generation/rewriting, reasoning expansion, difficult problem solving)
     
     ### Data Quality Adaptation Guide
     

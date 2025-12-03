@@ -40,11 +40,6 @@ class FTCoderCoSTEERSettings(CoSTEERSettings):
     extra_eval: list[str] = []
     """Extra evaluators"""
 
-    # data related.
-    api_base: str = "http://ep14.213428.xyz:38833"
-    api_key: str = "sk-1234"
-    available_api_models: str = "gpt-4o"
-
 
 def _get_standard_ft_volumes() -> dict:
     """Get standard mount volume configuration for LLM finetune environments.

@@ -59,7 +59,7 @@ data_coder:
     - `OPENAI_API_KEY`: API key for authentication
     - `OPENAI_API_BASE`: API base URL
     
-    **Available Models:** `gpt-4o-mini`, `gpt-4o`, `gpt-5`, `gpt-5.1`
+    **Available Models:** `gpt-4o-mini`, `gpt-5`, `gpt-5.1`
     
     **API Features:**
     - Concurrent requests up to 1000 - process large datasets efficiently
@@ -314,7 +314,7 @@ finetune_data_coder:
     All models use the same OpenAI-compatible API via environment variables (already set):
     - `OPENAI_API_KEY`: API key for authentication  
     - `OPENAI_API_BASE`: API base URL
-    - Available models: `gpt-4o-mini`, `gpt-4o`, `gpt-5`, `gpt-5.1`
+    - Available models: `gpt-4o-mini`, `gpt-5`, `gpt-5.1`
     
     **API Features:**
     - Concurrent requests up to 1000 - process large datasets efficiently
