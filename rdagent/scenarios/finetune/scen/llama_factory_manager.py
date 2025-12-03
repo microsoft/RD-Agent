@@ -17,6 +17,55 @@ from rdagent.log import rdagent_logger as logger
 
 EXTRACT_PARAMETERS_SCRIPT_NAME = "extract_parameters.py"
 
+# Regex patterns to exclude parameters not relevant for SFT training prompts
+EXCLUDED_PARAM_PATTERNS = [
+    # Inference engines
+    r"^infer_",  # Inference related
+    r"^vllm_",  # vLLM engine
+    r"^sglang_",  # SGLang engine
+    r"^kt_",  # KTransformers config (kt_maxlen, kt_mode, etc.)
+    r"^use_kt$",  # KTransformers toggle
+    r"^use_kv_cache$",  # Inference only
+    r"^cpu_infer$",  # KTransformers: CPU cores for computation
+    r"^chunk_size$",  # KTransformers: chunk size for CPU compute
+    # Hub/Cloud
+    r"^push_to_hub",  # Hub push
+    r"^hub_",  # Hub related
+    r"_hub_token$",  # Hub tokens (hf_hub_token, ms_hub_token, om_hub_token)
+    # Multimodal inputs (text-only SFT)
+    r"^image_",  # Image inputs
+    r"^video_",  # Video inputs
+    r"^audio_",  # Audio inputs
+    r"^crop_to_patches$",  # Image processing for internvl
+    r"^use_audio_in_video$",  # Video audio
+    r"^media_dir$",  # Media directory for multimodal
+    # Export (post-training)
+    r"^export_",  # Model export
+    # Hardware specific
+    r"^tpu_",  # TPU related (tpu_num_cores, tpu_metrics_debug)
+    # Third-party logging
+    r"^ray_",  # Ray hyperparameter search
+    r"^swanlab_",  # SwanLab logging
+    r"^use_swanlab$",  # SwanLab toggle
+    r"^trackio_",  # Trackio logging
+    # RLHF/DPO (not for SFT)
+    r"^pref_",  # Preference learning (DPO/KTO/ORPO/SimPO)
+    r"^dpo_",  # DPO specific
+    r"^kto_",  # KTO specific
+    r"^simpo_",  # SimPO specific
+    r"^ppo_",  # PPO specific
+    r"^ref_model",  # Reference model for RLHF
+    r"^reward_model",  # Reward model for PPO
+    r"^ld_alpha$",  # LD-DPO
+    # Deprecated (per help text)
+    r"^no_cuda$",  # Deprecated in transformers 5.0
+    r"^use_mps_device$",  # Deprecated in transformers 5.0
+    r"^per_gpu_",  # Deprecated: use per_device_* instead
+    # Unsloth (third-party, not used by default)
+    r"^use_unsloth",  # use_unsloth, use_unsloth_gc
+]
+EXCLUDED_PARAM_REGEX = re.compile("|".join(EXCLUDED_PARAM_PATTERNS))
+
 
 class LLaMAFactoryManager:
     """Manager for LLaMA Factory parameter extraction and caching."""
@@ -164,7 +213,7 @@ class LLaMAFactoryManager:
         return [
             self._format_param_line(name, info, truncate_help)
             for name, info in params_dict.items()
-            if isinstance(info, dict) and "help" in info
+            if isinstance(info, dict) and "help" in info and not EXCLUDED_PARAM_REGEX.search(name)
         ]
 
     def format_shared_params(self, truncate_help: bool = True) -> str:
