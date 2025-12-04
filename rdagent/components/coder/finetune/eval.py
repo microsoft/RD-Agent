@@ -6,6 +6,7 @@ No redundant LLM feedback generation - test results speak for themselves.
 """
 
 import json
+import random
 from pathlib import Path
 from typing import Optional
 
@@ -47,89 +48,135 @@ class FTDataEvaluator(CoSTEEREvaluator):
         queried_knowledge: Optional[QueriedKnowledge] = None,
         **kwargs,
     ) -> CoSTEERSingleFeedback:
-        """Evaluate data processing implementation."""
+        """Evaluate data processing implementation with LLM feedback."""
 
-        # Check if data.json already exists and is valid (skip execution)
-        data_json_path = implementation.workspace_path / FT_DATA_FILE_NAME
-        if data_json_path.exists():
-            validation_result = self._validate_data_json(data_json_path)
-            if validation_result["valid"]:
-                logger.info("Valid data.json already exists, skipping execution")
-                # Update dataset_info.json
-                self._update_dataset_info(implementation, validation_result["sample_count"])
-                return CoSTEERSingleFeedback(
-                    execution=f"Data already exists: {validation_result['sample_count']} samples",
-                    return_checking="data.json valid",
-                    code="",
-                    final_decision=True,
-                )
-
-        # Check if process_data.py exists
         script_code = implementation.file_dict.get(FT_DATA_SCRIPT_NAME, "")
+        data_json_path = implementation.workspace_path / FT_DATA_FILE_NAME
+        execution_output = ""
+        exit_code = 0
+        data = None
+        error_msg = None
+
+        # Step 1: Check script exists
         if not script_code:
             return CoSTEERSingleFeedback(
                 execution=f"No {FT_DATA_SCRIPT_NAME} found",
                 return_checking="Data processing script missing",
-                code="",
+                code="Please generate a data processing script first.",
                 final_decision=False,
             )
 
-        # Execute the script in Docker
-        env, env_vars = get_data_processing_env(
-            running_timeout_period=3600,  # 1 hour timeout for data processing
+        # Step 2: Check if data.json already exists
+        if data_json_path.exists():
+            validation_result = self._validate_data_json(data_json_path)
+            if validation_result["valid"]:
+                logger.info("Valid data.json already exists, skipping execution")
+                self._update_dataset_info(implementation, validation_result["sample_count"])
+        else:
+            # Step 3: Execute script
+            env, env_vars = get_data_processing_env(running_timeout_period=3600)
+            try:
+                implementation.prepare()
+                implementation.inject_files(**implementation.file_dict)
+                result = env.run(
+                    entry=f"python /workspace/{FT_DATA_SCRIPT_NAME}",
+                    local_path=str(implementation.workspace_path),
+                    env=env_vars,
+                )
+                execution_output = result.stdout if hasattr(result, "stdout") else str(result)
+                exit_code = result.exit_code if hasattr(result, "exit_code") else -1
+            except Exception as e:
+                logger.error(f"Failed to execute data processing script: {e}")
+                return CoSTEERSingleFeedback(
+                    execution=f"Script execution failed: {e}",
+                    return_checking="Execution error",
+                    code="Check script for syntax errors or missing dependencies.",
+                    final_decision=False,
+                )
+
+            # Step 4: Validate output
+            if not data_json_path.exists():
+                error_msg = f"{FT_DATA_FILE_NAME} not generated"
+            else:
+                validation_result = self._validate_data_json(data_json_path)
+                if not validation_result["valid"]:
+                    error_msg = validation_result["error"]
+                else:
+                    self._update_dataset_info(implementation, validation_result["sample_count"])
+
+        # Step 5: Load data if valid
+        if error_msg is None and data_json_path.exists():
+            with open(data_json_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+        # Step 6: Generate LLM feedback
+        # Only inject logs and script when there's an error (template handles via {% if %})
+        return self._generate_llm_feedback(
+            target_task=target_task,
+            script_code=script_code if error_msg else "",  # Only show script on error
+            stdout=execution_output if error_msg else "",
+            exit_code=exit_code,
+            data=data,
+            error_msg=error_msg,
+            queried_knowledge=queried_knowledge,
         )
 
-        try:
-            # Prepare workspace and inject files
-            implementation.prepare()
-            implementation.inject_files(**implementation.file_dict)
+    def _generate_llm_feedback(
+        self,
+        target_task: Task,
+        script_code: str,
+        stdout: str,
+        exit_code: int,
+        data: Optional[list],
+        error_msg: Optional[str],
+        queried_knowledge: Optional[QueriedKnowledge],
+    ) -> CoSTEERSingleFeedback:
+        """Generate LLM-based feedback for data processing evaluation."""
 
-            # Run with LLM API environment variables
-            result = env.run(
-                entry=f"python /workspace/{FT_DATA_SCRIPT_NAME}",
-                local_path=str(implementation.workspace_path),
-                env=env_vars,
-            )
-            execution_output = result.stdout if hasattr(result, "stdout") else str(result)
-            exit_code = result.exit_code if hasattr(result, "exit_code") else -1
-        except Exception as e:
-            logger.error(f"Failed to execute data processing script: {e}")
-            return CoSTEERSingleFeedback(
-                execution=f"Script execution failed: {e}",
-                return_checking="Execution error",
-                code="",
-                final_decision=False,
-            )
+        # Prepare data statistics and samples
+        if data:
+            stats = self._analyze_data_quality(data)
+            data_stats = json.dumps(stats, indent=2)
+            sampled_data = self._sample_data(data)
+            data_samples = json.dumps(sampled_data, indent=2, ensure_ascii=False)
+            sample_count = len(sampled_data)
+            total_samples = len(data)
+        else:
+            data_stats = json.dumps({"error": error_msg or "No data generated"})
+            data_samples = "[]"
+            sample_count = 0
+            total_samples = 0
 
-        # Check if data.json was generated
-        if not data_json_path.exists():
-            return CoSTEERSingleFeedback(
-                execution=f"Script executed (exit_code={exit_code}) but {FT_DATA_FILE_NAME} not found.\n"
-                f"Output: {execution_output[:2000] if execution_output else 'No output'}",
-                return_checking=f"{FT_DATA_FILE_NAME} not generated",
-                code="",
-                final_decision=False,
-            )
-
-        # Validate data.json format
-        validation_result = self._validate_data_json(data_json_path)
-        if not validation_result["valid"]:
-            return CoSTEERSingleFeedback(
-                execution=f"Script executed successfully but data validation failed: {validation_result['error']}",
-                return_checking=validation_result["error"],
-                code="",
-                final_decision=False,
+        # Extract similar successful knowledge
+        queried_similar_successful_knowledge = []
+        if queried_knowledge is not None:
+            task_info = target_task.get_task_information()
+            queried_similar_successful_knowledge = queried_knowledge.task_to_similar_task_successful_knowledge.get(
+                task_info, []
             )
 
-        # Update dataset_info.json for LlamaFactory
-        self._update_dataset_info(implementation, validation_result["sample_count"])
+        # Build prompts
+        system_prompt = T(".prompts:data_eval.system").r(
+            queried_similar_successful_knowledge=queried_similar_successful_knowledge,
+        )
+        user_prompt = T(".prompts:data_eval.user").r(
+            task_desc=target_task.get_task_information(),
+            script_code=script_code,
+            exit_code=exit_code,
+            stdout=stdout[:3000] if stdout else "",  # Empty string triggers {% if stdout %} = false
+            data_stats=data_stats,
+            sample_count=sample_count,
+            total_samples=total_samples,
+            data_samples=data_samples,
+        )
 
-        logger.info(f"Data processing successful: {validation_result['sample_count']} samples")
-        return CoSTEERSingleFeedback(
-            execution=f"Successfully processed {validation_result['sample_count']} samples",
-            return_checking=f"{FT_DATA_FILE_NAME} valid with {validation_result['sample_count']} samples",
-            code="",
-            final_decision=True,
+        logger.info(f"Generating LLM feedback for data evaluation (samples: {total_samples}, has_error: {bool(error_msg)})")
+
+        return build_cls_from_json_with_retry(
+            CoSTEERSingleFeedback,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
         )
 
     def _validate_data_json(self, data_json_path: Path) -> dict:
@@ -195,6 +242,41 @@ class FTDataEvaluator(CoSTEEREvaluator):
             logger.info(f"Updated dataset_info.json with processed_data ({sample_count} samples)")
         except Exception as e:
             logger.warning(f"Failed to update dataset_info.json: {e}")
+
+    def _sample_data(self, data: list, n: int = 5) -> list:
+        """Random sampling for LLM evaluation."""
+        if len(data) <= n:
+            return data
+        return random.sample(data, n)
+
+    def _analyze_data_quality(self, data: list) -> dict:
+        """Analyze data quality statistics for all fields."""
+        if not data:
+            return {"total_samples": 0, "error": "Empty data"}
+
+        # Analyze length stats for all standard fields
+        fields = ["instruction", "input", "output"]
+        stats = {"total_samples": len(data)}
+
+        for field in fields:
+            lens = [len(str(d.get(field, ""))) for d in data]
+            empty_count = sum(1 for d in data if not d.get(field))
+            stats[f"{field}_len"] = {
+                "min": min(lens),
+                "max": max(lens),
+                "avg": round(sum(lens) / len(lens), 1),
+            }
+            stats[f"{field}_empty_ratio"] = round(empty_count / len(data) * 100, 1)
+
+        # Detect duplicates by full record (instruction + input + output)
+        record_set = set(
+            (str(d.get("instruction", "")), str(d.get("input", "")), str(d.get("output", ""))) for d in data
+        )
+        duplicate_count = len(data) - len(record_set)
+        stats["duplicate_count"] = duplicate_count
+        stats["duplicate_ratio"] = round(duplicate_count / len(data) * 100, 1)
+
+        return stats
 
 
 class FTCoderEvaluator(CoSTEEREvaluator):

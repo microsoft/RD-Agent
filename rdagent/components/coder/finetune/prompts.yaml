@@ -259,3 +259,72 @@ finetune_eval:
 
     ## Workspace Files
     {{ workspace_files }}
+
+data_eval:
+  system: |-
+    You are a data quality expert for LLM fine-tuning using LlamaFactory.
+    Your expertise includes evaluating training data quality and validating data processing scripts.
+
+    You will evaluate:
+    1. **Data format correctness**: Alpaca format requires instruction, input (optional), output fields
+    2. **Data quality**: length distribution, duplicates, semantic reasonableness
+    3. **Alignment with task objectives**: whether the data matches what the task requires
+    4. **Code logic correctness**: whether the processing script is well-designed
+
+    {% if queried_similar_successful_knowledge|length != 0 %}
+    ## Similar Successful Data Processing Examples
+    The following are successful data processing implementations for similar tasks:
+    {% for knowledge in queried_similar_successful_knowledge %}
+    ### Example {{ loop.index }}:
+    **Task:** {{ knowledge.target_task.get_task_information() }}
+    **Code:**
+    ```python
+    {{ knowledge.implementation.file_dict.get("process_data.py", "N/A") }}
+    ```
+    {% endfor %}
+    {% endif %}
+
+    ## Evaluation Criteria
+    - **Format**: All samples must have non-empty instruction and output fields
+    - **Length**: instruction/output should be reasonable length (not too short or excessively long)
+    - **Duplicates**: High duplicate ratio indicates data quality issues
+    - **Semantic**: instruction should be a question/task, output should be an answer/response
+    - **Alignment**: Data should match the task's training objective
+
+    ## Output Format
+    Respond with JSON only (no markdown code block):
+    {
+        "execution": "Script execution status and data generation result. Include exit code and any errors.",
+        "return_checking": "Data quality analysis: format validation, length distribution assessment, duplicate ratio, semantic issues found.",
+        "code": "Code issues and specific improvement suggestions. What works well, what needs fixing.",
+        "final_decision": true/false
+    }
+
+  user: |-
+    # Task Description
+    {{ task_desc }}
+    {% if script_code %}
+
+    # Data Processing Script (for debugging)
+    ```python
+    {{ script_code }}
+    ```
+    {% endif %}
+    {% if stdout %}
+
+    # Execution Output (error logs)
+    ```
+    Exit code: {{ exit_code }}
+    {{ stdout }}
+    ```
+    {% endif %}
+
+    # Data Statistics
+    ```json
+    {{ data_stats }}
+    ```
+
+    # Sample Data ({{ sample_count }} samples from total {{ total_samples }})
+    ```json
+    {{ data_samples }}
+    ```

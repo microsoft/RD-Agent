@@ -67,12 +67,17 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             dict with "process_data.py" key containing the script code,
             or empty dict if data already exists.
         """
-        # Check if data.json already exists in workspace (skip logic)
+        # Check if data.json already exists and evaluation passed
         if workspace is not None:
             data_json_path = workspace.workspace_path / FT_DATA_FILE_NAME
             if data_json_path.exists():
-                logger.info("data.json already exists, skipping data processing")
-                return {}
+                # Only skip if no prior feedback (first run success) or evaluation passed
+                if prev_task_feedback is None or prev_task_feedback.final_decision:
+                    logger.info("data.json already exists and passed evaluation, skipping")
+                    return {}
+                # Evaluation failed, remove old data and regenerate
+                logger.info("data.json exists but evaluation failed, regenerating script...")
+                data_json_path.unlink()
 
         # Get dataset information for the task
         involving_datasets = getattr(target_task, "involving_datasets", [])

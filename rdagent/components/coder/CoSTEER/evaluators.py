@@ -1,3 +1,4 @@
+import json
 from abc import abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
@@ -73,8 +74,8 @@ class CoSTEERSingleFeedback(Feedback):
             raise ValueError(f"'final_decision' must be a boolean, not {type(data['final_decision'])}")
 
         for attr in "execution", "return_checking", "code":
-            if data[attr] is not None and not isinstance(data[attr], str):
-                raise ValueError(f"'{attr}' must be a string, not {type(data[attr])}")
+            if data.get(attr) is not None and not isinstance(data[attr], str):
+                data[attr] = json.dumps(data[attr], indent=2, ensure_ascii=False)
         return data
 
     @classmethod
