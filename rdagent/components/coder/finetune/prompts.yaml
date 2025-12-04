@@ -61,8 +61,16 @@ data_coder:
     
     **Available Models:** `gpt-4o-mini`, `gpt-5`, `gpt-5.1`
     
-    **API Features:**
-    - Concurrent requests up to 1000 - process large datasets efficiently
+    **API Features & Concurrency Requirements:**
+    - **MUST use high concurrency for ALL LLM API calls** - the API handles 5000+ concurrent requests
+    - **Required pattern** - use `ThreadPoolExecutor(max_workers=1000)` for batch processing:
+      ```python
+      with ThreadPoolExecutor(max_workers=1000) as executor:
+          futures = {executor.submit(call_api, item): item for item in items}
+          for future in as_completed(futures):
+              result = future.result()
+      ```
+    - **DO NOT process LLM calls sequentially** - always batch and parallelize
     - Implement retry logic (5 retries recommended) for robustness
     - All models share the same api_key and api_base
 
@@ -248,128 +256,3 @@ finetune_eval:
 
     ## Workspace Files
     {{ workspace_files }}
-
-
-finetune_data_coder:
-  system: |-
-    You are a world-class machine learning engineer specializing in large language model fine-tuning using LlamaFactory.
-    Your expertise includes creating dataset for building dataset for LlamaFactory for various fine-tuning scenarios.
-
-    You'll be provided with
-    - `Scenario Description`: the description of the scenario you are working on.
-    - `Task Description`: the description of the task you are trying to solve.
-    - `Dataset folder description`: the description of original dataset you are based on.
-    - `Previous Implementation`: the previous implementation of the task.
-    - `Feedback on Previous Configuration`: the according feedback on the previous implementation.
-
-    You goal is follow the `Task Description` to create a dataset for further fine-tuning.
-    You only care about the creating a file named `data_process.py` to generate the dataset.
-    You'll base on raw data described in `Dataset folder description` to create a new well-curated dataset for further fine-tuning.
-    `Previous failed attempts` are provided for reference. You should avoid repeating the same mistake and result in the same failed attempt.
-    You should generate a python script to generate the dataset. The generated dataset should follow the `Requiremenmts For the final dataset` below.
-
-    # Requirements For the final dataset
-    The dataset can be loaded by LLaMA-Factory.
-    LLaMA-Factory requires the dataset have a interface like this:
-
-    The dataset is generated in a folder in current working directory `./dataset/`
-
-    A LLaMA-Factory dataset_info.json configuration entry should exist in the folder in `./dataset/dataset_info.json`
-
-    ### Target Format Type:
-    **Alpaca only**: instruction-response data with "instruction", "input", "output" fields. No other format is allowed.
-
-    ### Required Fields:
-    - `file_name`: relative path from datasets directory
-    - `formatting`: must be "alpaca"  
-    - `columns`: map data fields exactly to LLaMA-Factory expected names
-
-    ### Fixed Column Mappings for Alpaca:
-    - "instruction" → prompt
-    - "input" → query
-    - "output" → response
-
-    ### Specific Instructions
-    - The outer key must be the dataset name (preserve "/" exactly). For example, "my_dataset" or "chat/dataset".
-    - For `file_name`, provide the relative path from the original directory to the data files. Mostly it is under "dataset_name/...".
-    - Always set `formatting` to "alpaca".
-    - Map column names exactly as per Alpaca specification above with no deviation.
-    - If dataset columns differ, rename them to match Alpaca specification.
-    - The folder might contain multiple files and multiple datasets. Include all valid Alpaca datasets in the response.
-
-    ### Example of the dataset_info.json:
-    {
-      "my_dataset": {
-        "file_name": "my_dataset/train.json",
-        "formatting": "alpaca",
-        "columns": {"prompt": "instruction", "query": "input", "response": "output"}
-      }
-    }
-
-    # Implementation Guidance
-    
-    **IMPORTANT**: This script receives NO command-line arguments. All variables, parameters, and configurations must be defined within the script itself. Do NOT expect users to provide any input.
-    
-    ## LLM API Usage (if needed for data processing)
-    All models use the same OpenAI-compatible API via environment variables (already set):
-    - `OPENAI_API_KEY`: API key for authentication  
-    - `OPENAI_API_BASE`: API base URL
-    - Available models: `gpt-4o-mini`, `gpt-5`, `gpt-5.1`
-    
-    **API Features:**
-    - Concurrent requests up to 1000 - process large datasets efficiently
-    - Implement retry logic (5 retries recommended) for robustness
-    - All models share the same api_key and api_base
-
-    **Output Format**:
-    {
-      "dataset_name": {
-        "file_name": "dataset_name/...",
-        "formatting": "alpaca",
-        "columns": {"prompt": "instruction", "query": "input", "response": "output"}
-      }
-    }
-
-    # Output format specification
-    {{ out_spec }}
-
-  user: |-
-    # Scenario Description
-    {{ scenario }}
-
-    # Task Description
-    {{ task_desc }}
-
-    # Dataset folder description:
-    All the files path below are relative path to the dataset folder ``{{datasets_path}}``
-    ````
-    {{ dataset_folder_desc }}
-    ````
-
-    # Previous Failed Attempts
-    {% if queried_former_failed_knowledge|length != 0 %}
-    ## Previous Failed Attempts
-    {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
-    =====Code:=====
-    {{ former_failed_knowledge.implementation.all_codes }}
-    =====Feedback:=====
-    {{ former_failed_knowledge.feedback }}
-    {% endfor %}
-    {% endif %}
-
-
-    {% if latest_code %}
-    ## Previous Implementation
-    ```yaml
-    {{ latest_code }}
-    ```
-
-    {% if latest_feedback is not none %}
-    ## Feedback on Previous Configuration
-    {{ latest_feedback }}
-
-    Please improve the configuration based on the feedback above.
-    {% endif %}
-    {% else %}
-    Please create a new Python script based on the given `Task Description` and `Dataset folder description`.
-    {% endif %}
