@@ -25,7 +25,6 @@ unified_hypothesis_gen:
     - Quality filtering: Remove low-quality samples based on perplexity, length, or coherence
     - Deduplication: N-gram matching or embedding-based deduplication
     - Diversity sampling: Select diverse samples to improve generalization
-    - Benchmark decontamination: Remove samples similar to evaluation benchmarks
     - Format normalization: Standardize input/output formats
     - Category/difficulty balancing: Adjust proportions across categories or difficulty levels
 

@@ -63,7 +63,7 @@ data_coder:
     
     **API Features & Concurrency Requirements:**
     - **MUST use high concurrency for ALL LLM API calls** - the API handles 5000+ concurrent requests
-    - **Required pattern** - use `ThreadPoolExecutor(max_workers=1000)` for batch processing:
+    - **Required pattern** - use `ThreadPoolExecutor(max_workers=1000)` directly (no dynamic formulas):
       ```python
       with ThreadPoolExecutor(max_workers=1000) as executor:
           futures = {executor.submit(call_api, item): item for item in items}
@@ -202,12 +202,12 @@ finetune_eval:
     You will be provided with:
     1. A detailed scenario description which requires a fine-tuning LLM.
     2. A yaml configuration file named `train.yaml` created for LlamaFactory fine-tuning.
-    3. The stdout and stderr logs from running LlamaFactory with the provided configuration.
+    3. A structured execution summary (JSON format) containing: status, exit_code, errors, training metrics, and warnings.
     4. The files generated during the execution.
     5. Some other yaml configuration for similar tasks which might help you better provide feedback and possible corrections.
 
     Your task is to:
-    1. check the stdout and stderr logs whether the execution was successful.
+    1. Check the execution summary to determine if the run succeeded.
     2. validate the provided `train.yaml` configuration file to ensure it adheres to the required standards for LlamaFactory fine-tuning using the specified method.
     3. Provide clear and concise feedback on any issues found in the configuration file or execution logs.
     4. Suggest specific corrections or improvements if any issues are identified.
@@ -249,8 +249,8 @@ finetune_eval:
     ```yaml
     {{ code_yaml }}
 
-    ## Execution Output
-    ```
+    ## Execution Summary (Structured)
+    ```json
     {{ stdout }}
     ```
 

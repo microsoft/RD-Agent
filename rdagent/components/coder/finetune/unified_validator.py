@@ -7,6 +7,7 @@ Two-step validation:
 """
 
 import json
+import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -131,6 +132,87 @@ class LLMConfigValidator:
             logger.error(f"Failed to load parameters from LlamaFactory Manager: {e}")
             raise RuntimeError(f"Unable to get supported parameters from LlamaFactory: {e}") from e
 
+    def _parse_execution_log(self, stdout: str, exit_code: int) -> str:
+        """Parse execution log and extract key information for LLM evaluation.
+
+        Reduces log from ~36k tokens to ~500 tokens by extracting only:
+        - Status and exit code
+        - Error messages (if any)
+        - Training metrics (if successful)
+        - Warnings (limited)
+        """
+        result = {
+            "status": "success" if exit_code == 0 else "failed",
+            "exit_code": exit_code,
+        }
+
+        # 1. Extract error information (highest priority)
+        # Strategy: extract rank0's error block (each line prefixed with [rank0]:)
+        error_text = None
+
+        # Method A: Extract [rank0]: prefixed lines and reconstruct traceback
+        rank0_lines = re.findall(r"\[rank0\]:[^\n]+", stdout)
+        if rank0_lines:
+            rank0_block = "\n".join(line.replace("[rank0]: ", "").replace("[rank0]:", "") for line in rank0_lines)
+            # Find traceback in rank0 block
+            tb_match = re.search(
+                r"Traceback \(most recent call last\):.*?(?:Error|Exception):[^\n]+", rank0_block, re.DOTALL
+            )
+            if tb_match:
+                error_text = tb_match.group(0)
+
+        # Method B: Fallback to generic traceback (no rank prefix)
+        if not error_text:
+            generic_match = re.search(
+                r"Traceback \(most recent call last\):.*?(?:Error|Exception):[^\n]+", stdout, re.DOTALL
+            )
+            if generic_match:
+                error_text = generic_match.group(0)
+
+        if error_text:
+            # Limit length but keep from the END (error message is at the end)
+            result["error"] = error_text[-2000:] if len(error_text) > 2000 else error_text
+
+        # 2. Extract training information
+        if "Running training" in stdout:
+            result["training_started"] = True
+
+            # Extract training config
+            num_examples = re.search(r"Num examples\s*=\s*(\d+)", stdout)
+            num_epochs = re.search(r"Num Epochs\s*=\s*(\d+)", stdout)
+            if num_examples:
+                result["num_examples"] = int(num_examples.group(1))
+            if num_epochs:
+                result["num_epochs"] = int(num_epochs.group(1))
+
+            # Extract final metrics (JSON format from trainer output)
+            final_metrics = re.search(r"\{'train_runtime':[^}]+\}", stdout)
+            if final_metrics:
+                try:
+                    metrics = eval(final_metrics.group(0))  # Safe: only numbers and strings
+                    result["final_metrics"] = {
+                        "train_loss": metrics.get("train_loss"),
+                        "train_runtime": metrics.get("train_runtime"),
+                        "train_samples_per_second": metrics.get("train_samples_per_second"),
+                    }
+                except Exception:
+                    pass
+
+            # Check completion
+            if "Training completed" in stdout:
+                result["completed"] = True
+
+        # 3. Extract warnings (limit to 20)
+        warnings = re.findall(r"\[WARNING[^\]]*\][^\n]+", stdout)
+        if warnings:
+            result["warnings"] = list(set(warnings))[:20]
+
+        # 4. Fallback: if parsing failed, include truncated raw log
+        if not result.get("error") and not result.get("training_started"):
+            result["raw_log_tail"] = stdout[-2000:] if len(stdout) > 2000 else stdout
+
+        return json.dumps(result, indent=2, ensure_ascii=False)
+
     def _run_micro_batch_test(self, config_yaml: str, workspace: FBWorkspace, env) -> ValidationResult:
         """Run micro-batch training test for runtime validation"""
         result = ValidationResult(success=True, filtered_config=config_yaml)
@@ -172,8 +254,9 @@ class LLMConfigValidator:
             # Remove micro-batch test files
             workspace.remove_files([FT_DEBUG_YAML_FILE_NAME])
 
-            # Store all execution output
-            result.execution_output = training_result.stdout if training_result.stdout else ""
+            # Parse and store structured execution output (reduces ~36k tokens to ~500)
+            raw_stdout = training_result.stdout if training_result.stdout else ""
+            result.execution_output = self._parse_execution_log(raw_stdout, training_result.exit_code)
 
             # Check results
             progress_indicators = ["train_loss", "Training:", "Epoch", "loss:", "step"]

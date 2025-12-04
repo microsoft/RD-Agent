@@ -33,9 +33,13 @@ def prepare(name: str, force: bool = False) -> str:
         raise ValueError(f"Unknown dataset: {name}. Available: {list(DATASETS.keys())}")
 
     repo_id = DATASETS[name]
-    out_dir_root = str(Path(FT_RD_SETTING.file_path) / "datasets")
+    out_dir_root = Path(FT_RD_SETTING.file_path) / "datasets"
+    save_path = out_dir_root / repo_id
 
-    save_path = download_dataset(repo_id, out_dir_root=out_dir_root, force=force)
+    if not force and save_path.exists():
+        return str(save_path)
+
+    download_dataset(repo_id, out_dir_root=str(out_dir_root), force=force)
 
     # Copy custom README (overwrite if exists)
     custom_readme = Path(__file__).parent / name / "README.md"
