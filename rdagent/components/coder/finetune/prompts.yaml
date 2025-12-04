@@ -168,6 +168,9 @@ finetune_coder:
     - batch_size: Be aware that `auto_find_batch_size` can cause synchronization issues in multi-GPU (DDP) training. Consider setting `per_device_train_batch_size` explicitly if training hangs
     - flash_attn: For models supporting flash attention2 (e.g., Qwen series, llama series), set to "fa2" to enhance training speed and reduce memory usage
     - deepspeed: If number of GPUs > 1, use DeepSpeed with ZeRO Stage 2 or 3 for memory optimization. specifically, set to "/app/examples/deepspeed/ds_z3_config.json" for ZeRO Stage 3, otherwise use "/app/examples/deepspeed/ds_z2_config.json" for ZeRO Stage 2
+    - **IMPORTANT Compatibility Rules**:
+      - `pissa_init: true` is NOT compatible with DeepSpeed ZeRO-3. If using ZeRO-3, do NOT set pissa_init to true
+      - If you need PiSSA initialization, use ZeRO Stage 2 instead of ZeRO Stage 3
 
     {% if latest_code %}
     ## Previous Configuration
