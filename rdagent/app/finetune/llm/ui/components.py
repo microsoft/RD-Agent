@@ -22,6 +22,7 @@ ICONS = {
     "time": "⏱️",
     "settings": "⚙️",
     "hypothesis": "💡",
+    "dataset_selection": "📂",
 }
 
 
@@ -132,6 +133,7 @@ def render_event(event: Event) -> None:
         "time": render_time_info,
         "settings": render_settings,
         "hypothesis": render_hypothesis,
+        "dataset_selection": render_dataset_selection,
     }
 
     renderer = renderers.get(event.type, render_generic)
@@ -151,6 +153,27 @@ def render_scenario(content: Any) -> None:
             st.metric("Target Benchmark", content.target_benchmark)
         if hasattr(content, "device_info"):
             st.text(f"Device: {content.device_info}")
+
+
+def render_dataset_selection(content: Any) -> None:
+    if not isinstance(content, dict):
+        st.json(content) if content else st.info("No content")
+        return
+
+    selected = content.get("selected_datasets", [])
+    total = content.get("total_datasets", 0)
+    reasoning = content.get("reasoning", "")
+
+    st.metric("Selected", f"{len(selected)} / {total}")
+
+    if selected:
+        st.markdown("**Selected Datasets:**")
+        for ds in selected:
+            st.markdown(f"- `{ds}`")
+
+    if reasoning:
+        with st.expander("Selection Reasoning", expanded=True):
+            st.markdown(reasoning)
 
 
 def render_hypothesis(content: Any) -> None:

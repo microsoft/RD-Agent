@@ -15,7 +15,7 @@ from rdagent.app.finetune.llm.ui.components import render_session, render_summar
 from rdagent.app.finetune.llm.ui.data_loader import get_summary, get_valid_sessions, load_ft_session
 
 # Always visible types
-ALWAYS_VISIBLE = ["scenario", "llm_call", "experiment", "code", "docker_exec", "feedback"]
+ALWAYS_VISIBLE = ["scenario", "dataset_selection", "llm_call", "experiment", "code", "docker_exec", "feedback"]
 
 # Optional types with toggles (label, default)
 OPTIONAL_TYPES = {

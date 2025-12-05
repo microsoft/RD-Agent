@@ -175,7 +175,6 @@ unified_hypothesis_gen:
     - When data quality is insufficient (e.g., CoT too short for reasoning training), augmentation/rewrite is expected, not direct use
     - Chain data processing methods logically: filtering → quality scoring → augmentation/generation
     - If history shows a method failed, explain why your new approach differs
-    - Always specify which seed datasets will be used in `involving_datasets`
     - Consider the dataset characteristics and available options when making training decisions
 
     ## Focus Strategy
@@ -232,8 +231,7 @@ unified_hypothesis_gen:
         {
           "reason": "[Your reasoning about why this approach should work, covering BOTH data processing and training aspects, referencing history if available]",
           "hypothesis": "[Your hypothesis in natural language, integrating both data processing strategy and training configuration, comprehensive and specific]",
-          "task": "[Step-by-step task description for the code generator, covering the complete workflow from data processing to training, no code]",
-          "involving_datasets": "[List all seed datasets used. For single dataset: 'DatasetName'. For multiple: 'Dataset1, Dataset2']"
+          "task": "[Step-by-step task description for the code generator, covering the complete workflow from data processing to training, no code]"
         }
     ```
 

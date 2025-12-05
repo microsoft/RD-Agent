@@ -31,7 +31,6 @@ scenario_description: |-
   {%- for ds_name, ds_info in dataset_config.items() %}
   ## Dataset: {{ ds_name }}
   - **file_name**: {{ ds_info.file_name }}
-  - **category**: {{ ds_info.category }}
   {%- if ds_info.stats %}
   - **stats**:
     - sample_count: {{ ds_info.stats.sample_count }}
@@ -74,7 +73,6 @@ dataset_info_generation:
     - `file_name`: relative path from datasets directory
     - `formatting`: "alpaca" (default) or "sharegpt"
     - `columns`: map data fields to LLaMA-Factory expected names
-    - `category`: list of domain categories (can be one or multiple, see below)
     - `description`: AI-generated concise summary (200-300 words) highlighting key insights for fine-tuning
 
     {%- if dataset_stats %}
@@ -95,23 +93,6 @@ dataset_info_generation:
 
     **IMPORTANT**: Reference these actual statistics in your description. Do NOT invent or guess statistics.
     {%- endif %}
-
-    ## Category Classification
-    Analyze each dataset and classify it by domain. A dataset can belong to **one or multiple** domains. Use one or more of these category names:
-    
-    - **physics**: Physics, mechanics, thermodynamics, quantum mechanics, electromagnetism, optics
-    - **math**: Mathematics, algebra, geometry, calculus, statistics, logic, mathematical reasoning
-    - **chemistry**: Chemistry, organic chemistry, inorganic chemistry, biochemistry, molecular structures
-    - **biology**: Biology, genetics, ecology, microbiology, cell biology, evolution, physiology
-    - **legal**: Law, regulations, contracts, legal documents, court cases, legislation
-    - **medicine**: Medicine, clinical data, medical diagnosis, pharmaceuticals, healthcare, patient care
-    - **finance**: Finance, trading, economics, investment, markets, banking, financial analysis
-    
-    **Classification Guidelines:**
-    - Examine column names, sample content, and README files carefully
-    - Look for domain-specific keywords in dataset names and descriptions
-    - **A dataset can have multiple categories** if it covers multiple domains (e.g., biophysics → ["biology", "physics"])
-    - List ALL applicable domains, ordered by relevance (most relevant first)
 
     ## Description Generation Guidelines
     For each dataset, analyze the README content (if available) and data samples to generate **practical insights about the data itself**. Focus ONLY on data characteristics and preprocessing - do NOT include training strategies, hyperparameters, or model selection advice.
@@ -179,9 +160,6 @@ dataset_info_generation:
     - For `file_name`, provide the relative path from the original directory to the data files. Mostly it is under "dataset_name/...".
     - Choose "alpaca" or "sharegpt" based on data structure.
     - Map column names from sample data to LLaMA-Factory format.
-    - Assign appropriate `category` array based on dataset content analysis:
-      - Single domain: `["math"]`
-      - Multiple domains: `["physics", "math"]` (ordered by relevance)
     - Generate insightful `description` based on README and sample analysis
     - For datasets not following Alpaca or ShareGPT format. Please choose the closest one and adjust column mappings accordingly.
     - The folder might contain multiple files also multiple datasets. Please include all valid datasets you can find in your response.
@@ -192,19 +170,16 @@ dataset_info_generation:
       "short_answer_math": {
         "file_name": "short_answer_math/train.jsonl",
         "columns": {"question": "instruction", "solution": "output"},
-        "category": ["math"],
         "description": "REASONING FITNESS: Solution field is too short for reasoning training (median ~350 tokens). These are concise solutions without detailed chain-of-thought. SUGGESTION: May need COT rewrite/expansion to be useful for reasoning tasks. Alternatively, suitable for: (1) quick answer generation, (2) mixing with longer-form data. About 40% of solutions are empty - filter before use. Concatenate 'answer' field if final result is needed."
       },
       "reasoning_traces": {
         "file_name": "reasoning_traces/data.json",
         "columns": {"problem": "instruction", "thinking": "output"},
-        "category": ["math"],
         "description": "GOOD FOR REASONING: Detailed chain-of-thought traces (median ~8000 tokens). FORMAT: Raw reasoning without think-tags; final answers use \\boxed{} notation. To convert to think-tag format: wrap 'thinking' field with <think>...</think> and append 'answer' field. 95% samples have complete traces. Competition-level math. Ready for SFT after minor format wrapping."
       },
       "instruction_following": {
         "file_name": "instruction_following/data.jsonl",
         "columns": {"instruction": "instruction", "response": "output"},
-        "category": ["general"],
         "description": "GENERAL SFT: Diverse instruction types (writing, QA, summarization, coding). Response lengths vary appropriately by task (50-2000 tokens). Good instruction clarity and response helpfulness. No empty fields. Suitable for training general instruction-following capabilities. Not intended for specialized reasoning tasks."
       }
     }
@@ -217,7 +192,6 @@ dataset_info_generation:
         "file_name": "dataset_name/...",
         "formatting": "alpaca|sharegpt",
         "columns": {...},
-        "category": ["domain1", "domain2", ...],
         "description": "Data-centric insights: structure notes, preprocessing needs, quality issues (150-250 words)"
       }
     }
@@ -228,3 +202,64 @@ dataset_info_generation:
     ```
     {{ dataset_info }}
     ```
+
+dataset_selection:
+  system: |-
+    You are a dataset selection expert. Your task is to select relevant datasets for a specific fine-tuning goal.
+
+    ## User Goal
+    {{ user_target_scenario }}
+    {% if target_benchmark %}
+
+    ## Target Benchmark
+    {{ target_benchmark }}
+    {{ benchmark_description }}
+    {% endif %}
+
+    ## Selection Guidelines
+    - Select datasets that are directly relevant to the user's target scenario
+    - Consider domain alignment (e.g., math datasets for math reasoning tasks)
+    - Consider task type alignment (e.g., reasoning datasets for reasoning tasks)
+    - When uncertain, include the dataset (better to have false positives than miss relevant data)
+
+    ## Output Format
+    Return a JSON object:
+    ```json
+    {
+      "selected_datasets": ["dataset1", "dataset2"],
+      "reasoning": "Brief explanation of why these datasets were selected"
+    }
+    ```
+
+  user: |-
+    ## Available Datasets
+    {% for ds in datasets %}
+    ### {{ ds.name }}
+    {%- if ds.stats %}
+    - **stats**:
+      - sample_count: {{ ds.stats.sample_count }}
+      - total_size_mb: {{ ds.stats.total_size_mb }}
+      - file_count: {{ ds.stats.file_count }}
+      {%- if ds.stats.column_stats %}
+      - column_stats:
+        {%- for col, col_stats in ds.stats.column_stats.items() %}
+        - {{ col }}: empty={{ col_stats.empty_count }}, min_tokens={{ col_stats.min_tokens }}, max_tokens={{ col_stats.max_tokens }}, p50_tokens={{ col_stats.p50_tokens }}, p99_tokens={{ col_stats.p99_tokens }}
+        {%- endfor %}
+      {%- endif %}
+    {%- endif %}
+    {%- if ds.first_sample %}
+    - **sample**:
+      ```json
+      {{ ds.first_sample | tojson }}
+      ```
+    {%- endif %}
+    {%- if ds.readme %}
+    - **readme**: {{ ds.readme }}
+    {%- endif %}
+    {%- if ds.description %}
+    - **description**: {{ ds.description }}
+    {%- endif %}
+
+    {% endfor %}
+
+    Please select the datasets most relevant to the user's fine-tuning goal.

@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 from rdagent.log.storage import FileStorage
 
-EventType = Literal["scenario", "llm_call", "template", "experiment", "code", "docker_exec", "feedback", "token", "time", "settings", "hypothesis"]
+EventType = Literal["scenario", "llm_call", "template", "experiment", "code", "docker_exec", "feedback", "token", "time", "settings", "hypothesis", "dataset_selection"]
 
 
 @dataclass
@@ -100,6 +100,13 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
         model = getattr(content, "base_model", "Unknown")
         return Event(type="scenario", timestamp=timestamp, tag=tag,
                      title=f"Scenario: {model}", content=content)
+
+    # Dataset selection
+    if "dataset_selection" in tag:
+        selected = content.get("selected_datasets", []) if isinstance(content, dict) else []
+        total = content.get("total_datasets", 0) if isinstance(content, dict) else 0
+        return Event(type="dataset_selection", timestamp=timestamp, tag=tag,
+                     title=f"Dataset Selection: {len(selected)}/{total}", content=content)
 
     # Settings
     if "SETTINGS" in tag:

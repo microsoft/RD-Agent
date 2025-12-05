@@ -109,20 +109,14 @@ class LLMFinetuneExpGen(ExpGen):
             )
         )
 
-        involving_datasets_raw = response_dict.get("involving_datasets", "[]")
-        if isinstance(involving_datasets_raw, str):
-            cleaned = involving_datasets_raw.strip().strip("[]")
-            involving_datasets = [ds.strip() for ds in cleaned.split(",") if ds.strip()]
-        else:
-            involving_datasets = involving_datasets_raw if involving_datasets_raw else []
-
         ensure_ft_assets_exist(model=base_model, check_model=True)
 
+        # Use pre-selected datasets from scenario initialization
         task = FTTask(
             base_model=base_model,
             description=response_dict.get("task"),
             benchmark=FT_RD_SETTING.target_benchmark,
-            involving_datasets=involving_datasets,
+            involving_datasets=self.scen.selected_datasets,
         )
 
         hypothesis = FTHypothesis(
