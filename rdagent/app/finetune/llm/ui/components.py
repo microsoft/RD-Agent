@@ -1,5 +1,5 @@
 """
-FT 场景 UI 组件
+FT UI Components - Hierarchical Event Renderers
 """
 
 from typing import Any
@@ -7,300 +7,406 @@ from typing import Any
 import plotly.graph_objects as go
 import streamlit as st
 
+from rdagent.app.finetune.llm.ui.data_loader import Event, EvoLoop, Loop, Session
 
-def show_scenario_info(scenario: Any) -> None:
-    """显示场景信息"""
-    if scenario is None:
-        st.info("No scenario info available")
+# Event type icons
+ICONS = {
+    "scenario": "🎯",
+    "llm_call": "💬",
+    "template": "📋",
+    "experiment": "🧪",
+    "code": "📄",
+    "docker_exec": "🐳",
+    "feedback": "📊",
+    "token": "🔢",
+    "time": "⏱️",
+    "settings": "⚙️",
+}
+
+
+def format_duration(seconds: float | None) -> str:
+    if seconds is None:
+        return ""
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+    minutes = int(seconds // 60)
+    secs = seconds % 60
+    return f"{minutes}m {secs:.0f}s"
+
+
+def render_session(session: Session, show_types: list[str]) -> None:
+    """Render full session with hierarchy"""
+    # Init events (before any loop)
+    if session.init_events:
+        filtered = [e for e in session.init_events if e.type in show_types]
+        if filtered:
+            with st.expander("🚀 **Initialization**", expanded=False):
+                for event in filtered:
+                    render_event(event)
+
+    # Loops
+    for loop_id in sorted(session.loops.keys()):
+        loop = session.loops[loop_id]
+        render_loop(loop, show_types)
+
+
+def render_loop(loop: Loop, show_types: list[str]) -> None:
+    """Render a single loop with its stages"""
+    # Count successes/failures for loop header
+    evo_results = []
+    for evo in loop.coding.values():
+        if evo.success is True:
+            evo_results.append("✓")
+        elif evo.success is False:
+            evo_results.append("✗")
+    result_str = " ".join(evo_results) if evo_results else ""
+
+    with st.expander(f"🔄 **Loop {loop.loop_id}** {result_str}", expanded=True):
+        # Exp Gen
+        if loop.exp_gen:
+            filtered = [e for e in loop.exp_gen if e.type in show_types]
+            if filtered:
+                st.markdown("#### 🧪 Experiment Generation")
+                for event in filtered:
+                    render_event(event)
+
+        # Coding (Evo Loops)
+        if loop.coding:
+            st.markdown("#### 💻 Coding")
+            for evo_id in sorted(loop.coding.keys()):
+                evo = loop.coding[evo_id]
+                render_evo_loop(evo, show_types)
+
+        # Runner
+        if loop.runner:
+            filtered = [e for e in loop.runner if e.type in show_types]
+            if filtered:
+                st.markdown("#### 🏃 Full Train")
+                for event in filtered:
+                    render_event(event)
+
+        # Feedback
+        if loop.feedback:
+            filtered = [e for e in loop.feedback if e.type in show_types]
+            if filtered:
+                st.markdown("#### 📊 Feedback")
+                for event in filtered:
+                    render_event(event)
+
+
+def render_evo_loop(evo: EvoLoop, show_types: list[str]) -> None:
+    """Render evolution loop"""
+    filtered = [e for e in evo.events if e.type in show_types]
+    if not filtered:
         return
 
-    st.subheader("Scenario Info")
+    status = "🟢" if evo.success else "🔴" if evo.success is False else "⚪"
+    with st.expander(f"{status} Evo {evo.evo_id}", expanded=False):
+        for event in filtered:
+            render_event(event)
 
+
+def render_event(event: Event) -> None:
+    """Render a single event"""
+    icon = ICONS.get(event.type, "📌")
+    duration_str = f" ({format_duration(event.duration)})" if event.duration else ""
+
+    status = ""
+    if event.success is True:
+        status = "🟢 "
+    elif event.success is False:
+        status = "🔴 "
+
+    title = f"{event.time_str} {icon} {status}{event.title}{duration_str}"
+
+    renderers = {
+        "scenario": render_scenario,
+        "llm_call": render_llm_call,
+        "template": render_template,
+        "experiment": render_experiment,
+        "code": render_code,
+        "docker_exec": render_docker_exec,
+        "feedback": render_feedback,
+        "token": render_token,
+        "time": render_time_info,
+        "settings": render_settings,
+    }
+
+    renderer = renderers.get(event.type, render_generic)
+    with st.expander(title, expanded=False):
+        renderer(event.content)
+
+
+def render_scenario(content: Any) -> None:
     col1, col2 = st.columns(2)
     with col1:
-        if hasattr(scenario, "base_model"):
-            st.metric("Base Model", scenario.base_model)
-        if hasattr(scenario, "target_benchmark"):
-            st.metric("Target Benchmark", scenario.target_benchmark)
+        if hasattr(content, "base_model"):
+            st.metric("Base Model", content.base_model)
+        if hasattr(content, "dataset"):
+            st.metric("Dataset", content.dataset)
     with col2:
-        if hasattr(scenario, "dataset"):
-            st.metric("Dataset", scenario.dataset)
-        if hasattr(scenario, "device_info"):
-            st.text(f"Device: {scenario.device_info}")
+        if hasattr(content, "target_benchmark"):
+            st.metric("Target Benchmark", content.target_benchmark)
+        if hasattr(content, "device_info"):
+            st.text(f"Device: {content.device_info}")
 
 
-def show_hypothesis(experiment: Any) -> None:
-    """显示假设信息（不显示 benchmark，显示 involving_datasets）"""
-    if experiment is None:
-        st.info("No experiment info available")
+def render_settings(content: Any) -> None:
+    if isinstance(content, dict):
+        st.json(content)
+    else:
+        st.code(str(content))
+
+
+def render_llm_call(content: Any) -> None:
+    if not isinstance(content, dict):
+        st.json(content) if content else st.info("No content")
         return
 
-    st.subheader("Hypothesis")
+    if content.get("start") and content.get("end"):
+        duration = (content["end"] - content["start"]).total_seconds()
+        st.caption(f"Duration: {format_duration(duration)}")
 
-    # experiment 可能是 list[Task] 或 FTExperiment
-    hypo = None
-    if hasattr(experiment, "hypothesis"):
-        hypo = experiment.hypothesis
-    elif isinstance(experiment, list) and len(experiment) > 0:
-        task = experiment[0]
-        if hasattr(task, "base_model"):
-            # FTTask - 显示 base_model, involving_datasets
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("Base Model", getattr(task, "base_model", "N/A"))
-            with col2:
-                # 显示 involving_datasets
-                datasets = getattr(task, "involving_datasets", None)
-                if datasets:
-                    st.markdown("**Involving Datasets:**")
-                    for ds in datasets:
-                        st.markdown(f"- `{ds}`")
-                else:
-                    st.markdown("**Involving Datasets:** None")
+    system = content.get("system", "")
+    if system:
+        with st.expander("System Prompt", expanded=False):
+            st.code(system, language="text", line_numbers=True)
 
-            if hasattr(task, "description"):
-                with st.expander("Task Description", expanded=True):
-                    st.markdown(task.description)
-            return
+    user = content.get("user", "")
+    if user:
+        with st.expander("User Prompt", expanded=True):
+            st.code(user, language="text", line_numbers=True)
 
-    if hypo is None:
-        st.info("No hypothesis available")
+    resp = content.get("resp", "")
+    if resp:
+        st.markdown("**Response:**")
+        if resp.strip().startswith("{") or resp.strip().startswith("["):
+            st.code(resp, language="json", line_numbers=True)
+        elif resp.strip().startswith("```"):
+            st.markdown(resp)
+        else:
+            st.code(resp, language="text", line_numbers=True)
+
+
+def render_template(content: Any) -> None:
+    if not isinstance(content, dict):
+        st.json(content) if content else st.info("No content")
         return
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Base Model", getattr(hypo, "base_model", "N/A"))
-    with col2:
-        if hasattr(hypo, "hypothesis") and hypo.hypothesis:
-            st.markdown(f"**Hypothesis:** {hypo.hypothesis}")
-        if hasattr(hypo, "reason") and hypo.reason:
-            st.markdown(f"**Reason:** {hypo.reason}")
+    uri = content.get("uri", "")
+    st.caption(f"URI: `{uri}`")
+
+    context = content.get("context", {})
+    if context:
+        with st.expander("Context Variables", expanded=False):
+            st.json(context)
+
+    template = content.get("template", "")
+    if template:
+        with st.expander("Template", expanded=False):
+            st.code(template, language="text", line_numbers=True)
+
+    rendered = content.get("rendered", "")
+    if rendered:
+        with st.expander("Rendered", expanded=True):
+            st.code(rendered, language="text", line_numbers=True)
 
 
-def show_files(workspace_list: list[Any] | None) -> None:
-    """显示生成的代码文件"""
-    st.subheader("Generated Files")
+def render_experiment(content: Any) -> None:
+    if isinstance(content, list):
+        for i, task in enumerate(content):
+            if len(content) > 1:
+                st.markdown(f"**Task {i}**")
 
-    if not workspace_list:
-        st.info("No workspace available")
+            if hasattr(task, "base_model"):
+                st.metric("Base Model", task.base_model)
+
+            if hasattr(task, "involving_datasets") and task.involving_datasets:
+                st.markdown("**Datasets:**")
+                for ds in task.involving_datasets:
+                    st.markdown(f"- `{ds}`")
+
+            if hasattr(task, "description") and task.description:
+                st.markdown("**Description:**")
+                st.markdown(task.description)
+    else:
+        st.json(content) if content else st.info("No content")
+
+
+def render_code(content: Any) -> None:
+    if not isinstance(content, list):
+        st.info("No code available")
         return
 
-    for i, ws in enumerate(workspace_list):
+    for i, ws in enumerate(content):
         if not hasattr(ws, "file_dict") or not ws.file_dict:
             continue
 
-        if len(workspace_list) > 1:
+        if len(content) > 1:
             st.markdown(f"**Workspace {i}**")
 
-        for filename, content in ws.file_dict.items():
+        for filename, code in ws.file_dict.items():
             lang = "yaml" if filename.endswith((".yaml", ".yml")) else "python"
-            with st.expander(f"{filename}"):
-                st.code(content, language=lang, line_numbers=True)
+            with st.expander(filename, expanded=False):
+                st.code(code, language=lang, line_numbers=True)
 
 
-def show_evo_loops(evo_loops: dict[int, dict]) -> None:
-    """显示演化循环信息（包含完整的 feedback）"""
-    if not evo_loops:
+def render_docker_exec(content: Any) -> None:
+    # CoSTEERMultiFeedback (evolving feedback)
+    if hasattr(content, "feedback_list"):
+        for i, fb in enumerate(content.feedback_list):
+            if len(content.feedback_list) > 1:
+                st.markdown(f"**Feedback {i}**")
+
+            decision = getattr(fb, "final_decision", None)
+            if decision is True:
+                st.success("Execution: PASS")
+            elif decision is False:
+                st.error("Execution: FAIL")
+
+            execution = getattr(fb, "execution", "")
+            if execution:
+                with st.expander("Execution Log", expanded=True):
+                    st.code(execution, language="text", line_numbers=True)
+
+            return_checking = getattr(fb, "return_checking", "")
+            if return_checking:
+                with st.expander("Return Checking", expanded=False):
+                    st.code(return_checking, language="text", line_numbers=True)
+
+            code_fb = getattr(fb, "code", "")
+            if code_fb:
+                st.markdown("**Code Feedback:**")
+                st.markdown(code_fb)
         return
 
-    st.subheader("Evolution Loops")
+    # FTExperiment (runner result)
+    if hasattr(content, "sub_workspace_list"):
+        for ws in content.sub_workspace_list:
+            if not hasattr(ws, "running_info") or ws.running_info is None:
+                continue
 
-    for evo_id in sorted(evo_loops.keys()):
-        evo_data = evo_loops[evo_id]
-        with st.expander(f"Evo Loop {evo_id}"):
-            # 代码（可折叠）
-            code_list = evo_data.get("code")
-            if code_list and isinstance(code_list, list):
-                st.markdown("**Generated Code:**")
-                for ws in code_list:
-                    if hasattr(ws, "file_dict") and ws.file_dict:
-                        for filename, content in ws.file_dict.items():
-                            lang = "yaml" if filename.endswith((".yaml", ".yml")) else "python"
-                            with st.expander(filename):
-                                st.code(content, language=lang, line_numbers=True)
+            info = ws.running_info
+            running_time = getattr(info, "running_time", None)
+            if running_time:
+                st.metric("Running Time", f"{running_time:.1f}s")
 
-            # 反馈 - 显示合并后的反馈（包含 Data Processing + Debug Train）
-            feedback = evo_data.get("feedback")
-            if feedback is not None and hasattr(feedback, "feedback_list"):
-                st.markdown("**Feedback:**")
-                for i, fb in enumerate(feedback.feedback_list):
-                    decision = getattr(fb, "final_decision", None)
-                    status = "Pass" if decision else "Fail" if decision is not None else "Unknown"
+            stdout = getattr(info, "stdout", "")
+            if stdout:
+                with st.expander("Full Train Log", expanded=True):
+                    st.code(stdout, language="text", line_numbers=True)
 
-                    # feedback_list 通常只有 1 个元素（合并了 Data Processing + Debug Train）
-                    label = "Coder Feedback" if len(feedback.feedback_list) == 1 else f"Feedback {i}"
-
-                    with st.expander(f"{label} [{status}]"):
-                        # execution（包含 Data Processing + Debug Train 的合并日志）
-                        if hasattr(fb, "execution") and fb.execution:
-                            st.markdown("**Execution Log (Data Processing + Debug Train):**")
-                            st.code(fb.execution, language="text")
-
-                        # return_checking
-                        if hasattr(fb, "return_checking") and fb.return_checking:
-                            st.markdown("**Return Checking:**")
-                            st.code(fb.return_checking, language="text")
-
-                        # code feedback
-                        if hasattr(fb, "code") and fb.code:
-                            st.markdown("**Code Feedback:**")
-                            st.markdown(fb.code)
-
-
-def show_results(workspace_list: list[Any] | None) -> None:
-    """显示训练结果（Benchmark 结果）"""
-    st.subheader("Results")
-
-    if not workspace_list:
-        st.info("No results available")
+            result = getattr(info, "result", {})
+            if result:
+                render_training_result(result)
         return
 
-    has_result = False
-    for ws in workspace_list:
-        if not hasattr(ws, "running_info") or not ws.running_info:
-            continue
-
-        result = getattr(ws.running_info, "result", None)
-        if not result:
-            continue
-
-        has_result = True
-
-        # 训练指标
-        training_metrics = result.get("training_metrics", {})
-        loss_history = training_metrics.get("loss_history", [])
-
-        if loss_history:
-            fig = go.Figure()
-            steps = [entry.get("step", i) for i, entry in enumerate(loss_history)]
-            losses = [entry.get("loss", 0) for entry in loss_history]
-            fig.add_trace(go.Scatter(x=steps, y=losses, mode="lines+markers", name="Loss"))
-            fig.update_layout(title="Training Loss", xaxis_title="Step", yaxis_title="Loss", height=300)
-            st.plotly_chart(fig, use_container_width=True)
-
-            col1, col2 = st.columns(2)
-            initial_loss = training_metrics.get("initial_loss")
-            final_loss = training_metrics.get("final_loss")
-            if initial_loss:
-                col1.metric("Initial Loss", f"{initial_loss:.4f}")
-            if final_loss:
-                col2.metric("Final Loss", f"{final_loss:.4f}")
-
-        # Benchmark 结果
-        benchmark = result.get("benchmark", {})
-        if benchmark:
-            st.markdown("**Benchmark Results:**")
-            accuracy_summary = benchmark.get("accuracy_summary", [])
-            if accuracy_summary:
-                st.dataframe(accuracy_summary)
-
-            # 错误样本
-            error_samples = benchmark.get("error_samples", [])
-            if error_samples:
-                with st.expander(f"Error Samples ({len(error_samples)})"):
-                    for sample in error_samples[:5]:
-                        st.json(sample)
-
-    if not has_result:
-        st.info("No results available")
+    st.json(content) if content else st.info("No content")
 
 
-def show_feedback(feedback: Any) -> None:
-    """显示最终反馈（显示所有可用字段）"""
-    st.subheader("Final Feedback")
-
-    if feedback is None:
-        st.info("No feedback available")
-        return
-
-    # 基本决策信息
+def render_feedback(content: Any) -> None:
     col1, col2 = st.columns(2)
     with col1:
-        decision = getattr(feedback, "decision", None)
+        decision = getattr(content, "decision", None)
         if decision is not None:
             st.metric("Decision", "Accept" if decision else "Reject")
     with col2:
-        acceptable = getattr(feedback, "acceptable", None)
+        acceptable = getattr(content, "acceptable", None)
         if acceptable is not None:
             st.metric("Acceptable", "Yes" if acceptable else "No")
 
-    # code_change_summary
-    code_change_summary = getattr(feedback, "code_change_summary", None)
-    if code_change_summary:
-        st.markdown(f"**Code Change Summary:** {code_change_summary}")
+    fields = [
+        ("code_change_summary", "Code Change Summary"),
+        ("observations", "Observations"),
+        ("hypothesis_evaluation", "Hypothesis Evaluation"),
+        ("new_hypothesis", "New Hypothesis"),
+        ("eda_improvement", "EDA Improvement"),
+    ]
 
-    # observations
-    observations = getattr(feedback, "observations", None)
-    if observations:
-        with st.expander("Observations"):
-            st.markdown(observations)
+    for attr, label in fields:
+        value = getattr(content, attr, None)
+        if value:
+            with st.expander(label, expanded=False):
+                st.markdown(value)
 
-    # hypothesis_evaluation
-    hypothesis_evaluation = getattr(feedback, "hypothesis_evaluation", None)
-    if hypothesis_evaluation:
-        with st.expander("Hypothesis Evaluation"):
-            st.markdown(hypothesis_evaluation)
-
-    # new_hypothesis
-    new_hypothesis = getattr(feedback, "new_hypothesis", None)
-    if new_hypothesis:
-        with st.expander("New Hypothesis"):
-            st.markdown(new_hypothesis)
-
-    # eda_improvement
-    eda_improvement = getattr(feedback, "eda_improvement", None)
-    if eda_improvement:
-        with st.expander("EDA Improvement"):
-            st.markdown(eda_improvement)
-
-    # reason - 通常包含完整的执行日志
-    reason = getattr(feedback, "reason", None)
+    reason = getattr(content, "reason", None)
     if reason:
         with st.expander("Reason (Full Details)", expanded=True):
-            st.code(reason, language="text")
+            st.code(reason, language="text", line_numbers=True)
 
-    # exception
-    exception = getattr(feedback, "exception", None)
+    exception = getattr(content, "exception", None)
     if exception:
         st.error(f"Exception: {exception}")
 
 
-def show_runner_result(runner_result: Any) -> None:
-    """显示 Full Train 执行结果"""
-    st.subheader("Full Train Result")
+def render_token(content: Any) -> None:
+    if isinstance(content, dict):
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Prompt", content.get("prompt_tokens", 0))
+        with col2:
+            st.metric("Completion", content.get("completion_tokens", 0))
+        with col3:
+            st.metric("Total", content.get("total_tokens", 0))
+    else:
+        st.json(content) if content else st.info("No content")
 
-    if runner_result is None:
-        st.info("No runner result available (training may have been skipped)")
-        return
 
-    # runner_result 是 FTExperiment 对象
-    if not hasattr(runner_result, "sub_workspace_list"):
-        st.warning("Invalid runner result format")
-        return
+def render_time_info(content: Any) -> None:
+    if isinstance(content, dict):
+        for k, v in content.items():
+            st.metric(k, f"{v:.1f}s" if isinstance(v, (int, float)) else str(v))
+    else:
+        st.json(content) if content else st.info("No content")
 
-    for i, ws in enumerate(runner_result.sub_workspace_list):
-        if not hasattr(ws, "running_info") or ws.running_info is None:
-            continue
 
-        running_info = ws.running_info
+def render_generic(content: Any) -> None:
+    if hasattr(content, "__dict__"):
+        st.json(vars(content))
+    elif content:
+        st.json(content)
+    else:
+        st.info("No content")
 
-        # 显示执行时间
-        running_time = getattr(running_info, "running_time", None)
-        if running_time:
-            st.metric("Running Time", f"{running_time:.1f}s")
 
-        # 显示执行日志
-        stdout = getattr(running_info, "stdout", None)
-        if stdout:
-            with st.expander("Full Train Execution Log", expanded=True):
-                st.code(stdout, language="text")
+def render_training_result(result: dict) -> None:
+    training_metrics = result.get("training_metrics", {})
+    loss_history = training_metrics.get("loss_history", [])
 
-        # 显示结果摘要
-        result = getattr(running_info, "result", None)
-        if result:
-            # 训练是否成功
-            training_metrics = result.get("training_metrics", {})
-            if training_metrics:
-                final_loss = training_metrics.get("final_loss")
-                if final_loss:
-                    st.metric("Final Loss", f"{final_loss:.4f}")
+    if loss_history:
+        fig = go.Figure()
+        steps = [entry.get("step", i) for i, entry in enumerate(loss_history)]
+        losses = [entry.get("loss", 0) for entry in loss_history]
+        fig.add_trace(go.Scatter(x=steps, y=losses, mode="lines+markers", name="Loss"))
+        fig.update_layout(title="Training Loss", xaxis_title="Step", yaxis_title="Loss", height=300)
+        st.plotly_chart(fig, use_container_width=True)
+
+        col1, col2 = st.columns(2)
+        initial_loss = training_metrics.get("initial_loss")
+        final_loss = training_metrics.get("final_loss")
+        if initial_loss:
+            col1.metric("Initial Loss", f"{initial_loss:.4f}")
+        if final_loss:
+            col2.metric("Final Loss", f"{final_loss:.4f}")
+
+    benchmark = result.get("benchmark", {})
+    if benchmark:
+        st.markdown("**Benchmark Results:**")
+        accuracy_summary = benchmark.get("accuracy_summary", [])
+        if accuracy_summary:
+            st.dataframe(accuracy_summary)
+
+
+def render_summary(summary: dict) -> None:
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Loops", summary.get("loop_count", 0))
+    with col2:
+        st.metric("LLM Calls", summary.get("llm_call_count", 0))
+    with col3:
+        llm_time = summary.get("llm_total_time", 0)
+        st.metric("LLM Time", format_duration(llm_time))
+    with col4:
+        success = summary.get("docker_success", 0)
+        fail = summary.get("docker_fail", 0)
+        st.metric("Docker", f"{success}✓ / {fail}✗")

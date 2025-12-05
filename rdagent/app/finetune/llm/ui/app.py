@@ -1,8 +1,8 @@
 """
-FT (Fine-tune) 场景前端可视化
-用于分析 LLM 微调实验的历史记录
+FT (Fine-tune) Timeline Viewer
+Hierarchical view: Session > Loop > Stage > EvoLoop > Events
 
-运行命令：
+Run:
     streamlit run rdagent/app/finetune/llm/ui/app.py
 """
 
@@ -11,24 +11,53 @@ from pathlib import Path
 import streamlit as st
 from streamlit import session_state as state
 
-from rdagent.app.finetune.llm.ui.components import (
-    show_evo_loops,
-    show_feedback,
-    show_files,
-    show_hypothesis,
-    show_results,
-    show_runner_result,
-    show_scenario_info,
-)
-from rdagent.app.finetune.llm.ui.data_loader import get_valid_sessions, load_ft_data
+from rdagent.app.finetune.llm.ui.components import render_session, render_summary
+from rdagent.app.finetune.llm.ui.data_loader import get_summary, get_valid_sessions, load_ft_session
+
+# Always visible types
+ALWAYS_VISIBLE = ["scenario", "llm_call", "experiment", "code", "docker_exec", "feedback"]
+
+# Optional types with toggles (label, default)
+OPTIONAL_TYPES = {
+    "template": ("📋 Template", False),
+    "token": ("🔢 Token", False),
+    "time": ("⏱️ Time", False),
+    "settings": ("⚙️ Settings", False),
+}
 
 
 def main():
-    st.set_page_config(layout="wide", page_title="FT Trace Viewer", page_icon="FT")
+    st.set_page_config(layout="wide", page_title="FT Timeline", page_icon="🔬")
+
+    # Enable word wrap for code blocks (like VSCode)
+    st.markdown("""
+    <style>
+    /* Target all code elements in Streamlit */
+    .stCodeBlock pre,
+    .stCodeBlock code,
+    .stCodeBlock [data-testid="stCodeBlock"] pre,
+    .stCodeBlock [data-testid="stCodeBlock"] code,
+    code[class*="language-"],
+    pre[class*="language-"],
+    .hljs {
+        white-space: pre-wrap !important;
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    /* Ensure the container doesn't force horizontal scroll */
+    .stCodeBlock,
+    .stCodeBlock > div,
+    [data-testid="stCodeBlock"],
+    [data-testid="stCodeBlock"] > div {
+        overflow-x: visible !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
     # ========== Sidebar ==========
     with st.sidebar:
-        st.header("Settings")
+        st.header("Session")
 
         log_folder = st.text_input("Log Folder", value="./log")
         log_path = Path(log_folder)
@@ -40,86 +69,49 @@ def main():
 
         selected_session = st.selectbox("Session", sessions)
 
-        if st.button("Load Data") or "ft_data" not in state:
+        if st.button("Load", type="primary") or "session" not in state:
             with st.spinner("Loading..."):
-                state.ft_data = load_ft_data(log_path / selected_session)
+                state.session = load_ft_session(log_path / selected_session)
                 state.session_name = selected_session
 
         st.divider()
 
-        # 显示加载状态
-        if "ft_data" in state:
-            loops = state.ft_data.get("loops", {})
-            st.metric("Loops", len(loops))
+        # Optional type toggles
+        st.subheader("Show More")
+        selected_types = ALWAYS_VISIBLE.copy()
+        for event_type, (label, default) in OPTIONAL_TYPES.items():
+            if st.toggle(label, value=default, key=f"toggle_{event_type}"):
+                selected_types.append(event_type)
+
+        st.divider()
+
+        # Summary in sidebar
+        if "session" in state:
+            summary = get_summary(state.session)
+            st.subheader("Summary")
+            st.metric("Loops", summary.get("loop_count", 0))
+            st.metric("LLM Calls", summary.get("llm_call_count", 0))
+            success = summary.get("docker_success", 0)
+            fail = summary.get("docker_fail", 0)
+            st.metric("Docker", f"{success}✓ / {fail}✗")
 
     # ========== Main Content ==========
-    st.title("FT (Fine-tune) Trace Viewer")
+    st.title("🔬 FT Timeline Viewer")
 
-    if "ft_data" not in state:
-        st.info("Please select a session and click 'Load Data'")
+    if "session" not in state:
+        st.info("Select a session and click **Load** to view")
         return
 
-    data = state.ft_data
-    loops = data.get("loops", {})
+    session = state.session
+    summary = get_summary(session)
 
-    if not loops:
-        st.warning("No loop data found in this session")
-        show_scenario_info(data.get("scenario"))
-        return
-
-    # 场景信息
-    show_scenario_info(data.get("scenario"))
+    # Summary bar
+    render_summary(summary)
 
     st.divider()
 
-    # Loop 选择
-    loop_ids = sorted(loops.keys())
-    if len(loop_ids) > 1:
-        loop_id = st.select_slider("Loop", options=loop_ids, value=loop_ids[0])
-    else:
-        loop_id = loop_ids[0]
-        st.info(f"Loop {loop_id}")
-
-    loop_data = loops[loop_id]
-    evo_loops = loop_data.get("evo_loops", {})
-
-    # ========== Hypothesis ==========
-    show_hypothesis(loop_data.get("experiment"))
-
-    st.divider()
-
-    # ========== Generated Files（纵向排布）==========
-    if evo_loops:
-        last_evo_id = max(evo_loops.keys())
-        last_code = evo_loops[last_evo_id].get("code")
-        show_files(last_code)
-    else:
-        show_files(None)
-
-    st.divider()
-
-    # ========== Results（纵向排布）==========
-    if evo_loops:
-        last_evo_id = max(evo_loops.keys())
-        last_code = evo_loops[last_evo_id].get("code")
-        show_results(last_code)
-    else:
-        show_results(None)
-
-    st.divider()
-
-    # ========== Evolution Loops ==========
-    show_evo_loops(evo_loops)
-
-    st.divider()
-
-    # ========== Full Train Result ==========
-    show_runner_result(loop_data.get("runner_result"))
-
-    st.divider()
-
-    # ========== Final Feedback ==========
-    show_feedback(loop_data.get("feedback"))
+    # Hierarchical view
+    render_session(session, selected_types)
 
 
 if __name__ == "__main__":

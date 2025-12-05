@@ -1,141 +1,274 @@
 """
-FT 场景日志数据加载模块
-从文件系统读取 pkl 日志文件，解析为结构化数据
+FT UI Data Loader
+Load pkl logs and convert to hierarchical timeline structure
 """
 
 import re
+from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from rdagent.log.storage import FileStorage
 
+EventType = Literal["scenario", "llm_call", "template", "experiment", "code", "docker_exec", "feedback", "token", "time", "settings"]
+
+
+@dataclass
+class Event:
+    """Timeline event"""
+    type: EventType
+    timestamp: datetime
+    tag: str
+    title: str
+    content: Any
+    loop_id: int | None = None
+    evo_id: int | None = None
+    stage: str = ""
+    duration: float | None = None
+    success: bool | None = None
+
+    @property
+    def time_str(self) -> str:
+        return self.timestamp.strftime("%H:%M:%S")
+
+
+@dataclass
+class EvoLoop:
+    """Evolution loop containing events"""
+    evo_id: int
+    events: list[Event] = field(default_factory=list)
+    success: bool | None = None
+
+
+@dataclass
+class Loop:
+    """Main loop containing stages"""
+    loop_id: int
+    exp_gen: list[Event] = field(default_factory=list)
+    coding: dict[int, EvoLoop] = field(default_factory=dict)  # evo_id -> EvoLoop
+    runner: list[Event] = field(default_factory=list)
+    feedback: list[Event] = field(default_factory=list)
+
+
+@dataclass
+class Session:
+    """Session containing init events and loops"""
+    init_events: list[Event] = field(default_factory=list)
+    loops: dict[int, Loop] = field(default_factory=dict)  # loop_id -> Loop
+
 
 def extract_loop_id(tag: str) -> int | None:
-    """从 tag 中提取 Loop ID"""
     match = re.search(r"Loop_(\d+)", tag)
     return int(match.group(1)) if match else None
 
 
 def extract_evo_id(tag: str) -> int | None:
-    """从 tag 中提取 evo_loop ID"""
     match = re.search(r"evo_loop_(\d+)", tag)
     return int(match.group(1)) if match else None
 
 
+def extract_stage(tag: str) -> str:
+    if "direct_exp_gen" in tag:
+        return "exp_gen"
+    if "coding" in tag:
+        return "coding"
+    if "runner" in tag:
+        return "runner"
+    if "feedback" in tag:
+        return "feedback"
+    return ""
+
+
 def get_valid_sessions(log_folder: Path) -> list[str]:
-    """获取所有有效的会话目录（按时间倒序）"""
     if not log_folder.exists():
         return []
-
     sessions = []
     for d in log_folder.iterdir():
         if d.is_dir() and d.joinpath("__session__").exists():
             sessions.append(d.name)
-
     return sorted(sessions, reverse=True)
 
 
-def load_ft_data(log_path: Path) -> dict[str, Any]:
-    """
-    加载 FT 日志数据
+def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
+    loop_id = extract_loop_id(tag)
+    evo_id = extract_evo_id(tag)
+    stage = extract_stage(tag)
 
-    返回结构：
-    {
-        "scenario": LLMFinetuneScen | None,
-        "settings": dict,
-        "loops": {
-            0: {
-                "experiment": FTExperiment | None,
-                "evo_loops": {
-                    0: {"code": list, "feedback": Any},
-                    ...
-                },
-                "feedback": HypothesisFeedback | None,
-                "time_info": dict
-            },
-            ...
-        }
-    }
-    """
-    data: dict[str, Any] = {
-        "scenario": None,
-        "settings": {},
-        "loops": {},
-    }
+    # Scenario
+    if tag == "scenario":
+        model = getattr(content, "base_model", "Unknown")
+        return Event(type="scenario", timestamp=timestamp, tag=tag,
+                     title=f"Scenario: {model}", content=content)
 
+    # Settings
+    if "SETTINGS" in tag:
+        name = tag.replace("_SETTINGS", "").replace("SETTINGS", "")
+        return Event(type="settings", timestamp=timestamp, tag=tag,
+                     title=f"Settings: {name}", content=content)
+
+    # LLM Call
+    if "debug_llm" in tag:
+        if isinstance(content, dict) and "system" in content:
+            duration = None
+            if content.get("start") and content.get("end"):
+                duration = (content["end"] - content["start"]).total_seconds()
+            return Event(type="llm_call", timestamp=timestamp, tag=tag,
+                         title="LLM Call", content=content,
+                         loop_id=loop_id, evo_id=evo_id, stage=stage, duration=duration)
+
+    # Template
+    if "debug_tpl" in tag:
+        if isinstance(content, dict) and "uri" in content:
+            uri = content.get("uri", "")
+            tpl_name = uri.split(":")[-1] if ":" in uri else uri
+            return Event(type="template", timestamp=timestamp, tag=tag,
+                         title=f"Template: {tpl_name}", content=content,
+                         loop_id=loop_id, evo_id=evo_id, stage=stage)
+
+    # Experiment generation
+    if "experiment generation" in tag:
+        task_count = len(content) if isinstance(content, list) else 1
+        return Event(type="experiment", timestamp=timestamp, tag=tag,
+                     title=f"Experiment ({task_count} task)", content=content,
+                     loop_id=loop_id, stage=stage)
+
+    # Evolving code
+    if "evolving code" in tag:
+        file_count = 0
+        if isinstance(content, list):
+            for ws in content:
+                if hasattr(ws, "file_dict"):
+                    file_count += len(ws.file_dict)
+        return Event(type="code", timestamp=timestamp, tag=tag,
+                     title=f"Code ({file_count} files)", content=content,
+                     loop_id=loop_id, evo_id=evo_id, stage="coding")
+
+    # Evolving feedback
+    if "evolving feedback" in tag:
+        success = None
+        if hasattr(content, "feedback_list") and content.feedback_list:
+            fb = content.feedback_list[0]
+            success = getattr(fb, "final_decision", None)
+        return Event(type="docker_exec", timestamp=timestamp, tag=tag,
+                     title=f"Docker {'✓' if success else '✗' if success is False else '?'}",
+                     content=content, loop_id=loop_id, evo_id=evo_id,
+                     stage="coding", success=success)
+
+    # Final feedback
+    if "feedback.feedback" in tag or (tag.endswith(".feedback") and "evo_loop" not in tag):
+        decision = getattr(content, "decision", None)
+        return Event(type="feedback", timestamp=timestamp, tag=tag,
+                     title=f"Feedback: {'Accept' if decision else 'Reject'}",
+                     content=content, loop_id=loop_id, stage="feedback", success=decision)
+
+    # Runner result
+    if "runner result" in tag:
+        return Event(type="docker_exec", timestamp=timestamp, tag=tag,
+                     title="Full Train", content=content,
+                     loop_id=loop_id, stage="runner")
+
+    # Token cost
+    if "token_cost" in tag:
+        if isinstance(content, dict):
+            total = content.get("total_tokens", 0)
+            return Event(type="token", timestamp=timestamp, tag=tag,
+                         title=f"Token: {total}", content=content,
+                         loop_id=loop_id, evo_id=evo_id, stage=stage)
+
+    # Time info
+    if "time_info" in tag:
+        return Event(type="time", timestamp=timestamp, tag=tag,
+                     title="Time Info", content=content,
+                     loop_id=loop_id, stage=stage)
+
+    return None
+
+
+def load_ft_session(log_path: Path) -> Session:
+    """Load events into hierarchical session structure"""
+    session = Session()
     storage = FileStorage(log_path)
 
+    events = []
     for msg in storage.iter_msg():
-        tag = msg.tag
-        content = msg.content
+        if not msg.tag:
+            continue
+        event = parse_event(msg.tag, msg.content, msg.timestamp)
+        if event:
+            events.append(event)
 
-        if not tag:
+    # Sort by timestamp
+    events.sort(key=lambda e: e.timestamp)
+
+    # Organize into hierarchy
+    for event in events:
+        if event.loop_id is None:
+            session.init_events.append(event)
             continue
 
-        # 解析 scenario
-        if tag == "scenario":
-            data["scenario"] = content
-            continue
+        # Ensure loop exists
+        if event.loop_id not in session.loops:
+            session.loops[event.loop_id] = Loop(loop_id=event.loop_id)
+        loop = session.loops[event.loop_id]
 
-        # 解析 settings
-        if "SETTINGS" in tag:
-            data["settings"][tag] = content
-            continue
+        # Place event in appropriate stage
+        if event.stage == "exp_gen":
+            loop.exp_gen.append(event)
+        elif event.stage == "coding":
+            if event.evo_id is not None:
+                if event.evo_id not in loop.coding:
+                    loop.coding[event.evo_id] = EvoLoop(evo_id=event.evo_id)
+                evo = loop.coding[event.evo_id]
+                evo.events.append(event)
+                if event.type == "docker_exec" and event.success is not None:
+                    evo.success = event.success
+            else:
+                # Coding events without evo_id go to evo 0
+                if 0 not in loop.coding:
+                    loop.coding[0] = EvoLoop(evo_id=0)
+                loop.coding[0].events.append(event)
+        elif event.stage == "runner":
+            loop.runner.append(event)
+        elif event.stage == "feedback":
+            loop.feedback.append(event)
+        else:
+            # Unknown stage - put in exp_gen
+            loop.exp_gen.append(event)
 
-        # 解析 Loop 数据
-        loop_id = extract_loop_id(tag)
-        if loop_id is None:
-            continue
+    return session
 
-        if loop_id not in data["loops"]:
-            data["loops"][loop_id] = {
-                "experiment": None,
-                "evo_loops": {},
-                "feedback": None,
-                "runner_result": None,
-                "time_info": {},
-            }
 
-        loop_data = data["loops"][loop_id]
+def get_summary(session: Session) -> dict:
+    """Get summary statistics"""
+    llm_calls = []
+    docker_execs = []
 
-        # experiment generation
-        if "experiment generation" in tag:
-            loop_data["experiment"] = content
-            continue
+    # Collect from init
+    for e in session.init_events:
+        if e.type == "llm_call":
+            llm_calls.append(e)
+        elif e.type == "docker_exec":
+            docker_execs.append(e)
 
-        # evolving code
-        if "evolving code" in tag:
-            evo_id = extract_evo_id(tag)
-            if evo_id is not None:
-                if evo_id not in loop_data["evo_loops"]:
-                    loop_data["evo_loops"][evo_id] = {"code": None, "feedback": None}
-                loop_data["evo_loops"][evo_id]["code"] = content
-            continue
+    # Collect from loops
+    for loop in session.loops.values():
+        for e in loop.exp_gen + loop.runner + loop.feedback:
+            if e.type == "llm_call":
+                llm_calls.append(e)
+            elif e.type == "docker_exec":
+                docker_execs.append(e)
+        for evo in loop.coding.values():
+            for e in evo.events:
+                if e.type == "llm_call":
+                    llm_calls.append(e)
+                elif e.type == "docker_exec":
+                    docker_execs.append(e)
 
-        # evolving feedback - 注意 tag 中有空格
-        if "evolving feedback" in tag:
-            evo_id = extract_evo_id(tag)
-            if evo_id is not None:
-                if evo_id not in loop_data["evo_loops"]:
-                    loop_data["evo_loops"][evo_id] = {"code": None, "feedback": None}
-                # 直接存储，不依赖 bool 值
-                evo_entry = loop_data["evo_loops"][evo_id]
-                evo_entry["feedback"] = content
-            continue
-
-        # feedback (final)
-        if "feedback.feedback" in tag or (tag.endswith(".feedback") and "evo_loop" not in tag):
-            loop_data["feedback"] = content
-            continue
-
-        # runner result (Full Train)
-        if "runner result" in tag:
-            loop_data["runner_result"] = content
-            continue
-
-        # time_info
-        if "time_info" in tag:
-            stage = "direct_exp_gen" if "direct_exp_gen" in tag else "coding" if "coding" in tag else "feedback"
-            loop_data["time_info"][stage] = content
-
-    return data
+    return {
+        "loop_count": len(session.loops),
+        "llm_call_count": len(llm_calls),
+        "llm_total_time": sum(e.duration or 0 for e in llm_calls),
+        "docker_success": sum(1 for e in docker_execs if e.success is True),
+        "docker_fail": sum(1 for e in docker_execs if e.success is False),
+    }
