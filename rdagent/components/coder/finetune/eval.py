@@ -182,6 +182,8 @@ class FTDataEvaluator(CoSTEEREvaluator):
             init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
         )
         feedback.raw_execution = raw_stdout
+        # Log for UI display
+        logger.log_object(feedback, tag=f"docker_exec.{self.__class__.__name__}")
         return feedback
 
     def _validate_data_json(self, data_json_path: Path) -> dict:
@@ -364,4 +366,6 @@ class FTCoderEvaluator(CoSTEEREvaluator):
             init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
         )
         feedback.raw_execution = validation_result.raw_stdout or ""
+        # Log for UI display
+        logger.log_object(feedback, tag=f"docker_exec.{self.__class__.__name__}")
         return feedback

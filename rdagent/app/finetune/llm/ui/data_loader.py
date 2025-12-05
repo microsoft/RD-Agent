@@ -157,6 +157,23 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
                      title=f"Code ({file_count} files)", content=content,
                      loop_id=loop_id, evo_id=evo_id, stage=stage or "coding")
 
+    # Docker execution (individual evaluator feedback)
+    if "docker_exec." in tag:
+        class_name = tag.split("docker_exec.")[-1].split(".")[0]
+        # Map class names to display names
+        display_names = {
+            "FTDataEvaluator": "Data Processing",
+            "FTCoderEvaluator": "Micro-batch Test",
+            "FTRunnerEvaluator": "Full Train",
+        }
+        evaluator_name = display_names.get(class_name, class_name)
+        # Single feedback object (new format)
+        success = getattr(content, "final_decision", None)
+        title = f"Docker ({evaluator_name}) {'✓' if success else '✗' if success is False else '?'}"
+        return Event(type="docker_exec", timestamp=timestamp, tag=tag,
+                     title=title, content=content, loop_id=loop_id, evo_id=evo_id,
+                     stage=stage or "coding", success=success)
+
     # Evolving feedback
     if "evolving feedback" in tag:
         success = None

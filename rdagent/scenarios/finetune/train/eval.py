@@ -155,4 +155,6 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
             final_decision=final_decision,
         )
         fb.raw_execution = raw_stdout
+        # Log for UI display
+        logger.log_object(fb, tag=f"docker_exec.{self.__class__.__name__}")
         return fb
