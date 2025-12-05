@@ -53,7 +53,29 @@ data_coder:
     3. Include error handling for file operations
     4. Print progress information to stdout for debugging
     5. **IMPORTANT**: This script receives NO command-line arguments. All variables, parameters, and configurations must be defined within the script itself. Do NOT expect users to provide any input.
-    
+
+    ## Output Guidelines (IMPORTANT)
+    Your script should print clear, structured progress information:
+
+    1. **Progress messages** - Print at key stages:
+       - `[START] Processing {dataset_name}...`
+       - `[PROGRESS] Processed {n}/{total} samples`
+       - `[DONE] Generated {count} samples, saved to data.json`
+
+    2. **Summary at the end** - Always print a final summary:
+       ```
+       ========== SUMMARY ==========
+       Total samples: {count}
+       Success rate: {success}/{total}
+       Output file: data.json
+       =============================
+       ```
+
+    3. **Minimize noise**:
+       - Do NOT print every retry attempt - only log final failure after all retries exhausted
+       - Print progress at 20%, 40%, 60%, 80%, 100% completion (every 1/5 of total)
+       - Keep API call logs minimal (e.g., batch progress only)
+
     ## LLM API Usage (if needed for data processing)
     All models use the same API configuration via environment variables (already set):
     - `OPENAI_API_KEY`: API key for authentication
@@ -312,7 +334,7 @@ data_eval:
     {% endif %}
     {% if stdout %}
 
-    # Execution Output (error logs)
+    # Execution Output ({% if exit_code != 0 %}error logs{% else %}summary{% endif %})
     ```
     Exit code: {{ exit_code }}
     {{ stdout }}

@@ -110,15 +110,17 @@ class FTDataEvaluator(CoSTEEREvaluator):
                 data = json.load(f)
 
         # Step 6: Generate LLM feedback
-        # Note: stdout only passed on error to reduce LLM token usage
+        # Truncate stdout from end for LLM (summary at the end is more useful)
+        stdout_summary = execution_output[-1500:] if execution_output else ""
         return self._generate_llm_feedback(
             target_task=target_task,
             script_code=script_code if error_msg else "",  # Only show script on error
-            stdout=execution_output if error_msg else "",  # Only show stdout on error
+            stdout=stdout_summary,  # Always show summary (truncated from end)
             exit_code=exit_code,
             data=data,
             error_msg=error_msg,
             queried_knowledge=queried_knowledge,
+            raw_stdout=execution_output,  # Full log for UI
         )
 
     def _generate_llm_feedback(
@@ -130,6 +132,7 @@ class FTDataEvaluator(CoSTEEREvaluator):
         data: Optional[list],
         error_msg: Optional[str],
         queried_knowledge: Optional[QueriedKnowledge],
+        raw_stdout: str = "",
     ) -> CoSTEERSingleFeedback:
         """Generate LLM-based feedback for data processing evaluation."""
 
@@ -172,12 +175,14 @@ class FTDataEvaluator(CoSTEEREvaluator):
 
         logger.info(f"Generating LLM feedback for data evaluation (samples: {total_samples}, has_error: {bool(error_msg)})")
 
-        return build_cls_from_json_with_retry(
+        feedback = build_cls_from_json_with_retry(
             CoSTEERSingleFeedback,
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
         )
+        feedback.raw_execution = raw_stdout
+        return feedback
 
     def _validate_data_json(self, data_json_path: Path) -> dict:
         """Validate data.json file format and content."""
