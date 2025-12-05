@@ -90,6 +90,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         # Execute LlamaFactory training
         result = implementation.run(env=env, entry=f"llamafactory-cli train {FT_YAML_FILE_NAME}")
         implementation.running_info.running_time = result.running_time
+        raw_stdout = result.stdout or ""
 
         # Simple success check: exit code
         training_success = result.exit_code == 0
@@ -98,12 +99,14 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         workspace_path = implementation.workspace_path
         output_path = workspace_path / "output"
         if not output_path.exists():
-            return CoSTEERSingleFeedback(
-                execution="Output directory not found",
-                return_checking="Output directory not found",
-                code="Output directory not found",
+            fb = CoSTEERSingleFeedback(
+                execution=f"Output directory not found (exit_code={result.exit_code})",
+                return_checking="Training failed - no output generated",
+                code="Check training logs for errors",
                 final_decision=False,
             )
+            fb.raw_execution = raw_stdout
+            return fb
         model_output_files = []
         for pattern in ["*.safetensors", "*.bin", "adapter_*"]:
             model_output_files.extend(output_path.glob(pattern))
@@ -145,9 +148,11 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
 
         feedback_msg = f"{execution_msg}. {model_msg}."
 
-        return CoSTEERSingleFeedback(
+        fb = CoSTEERSingleFeedback(
             execution=feedback_msg,
             return_checking=model_msg,
             code=execution_msg,
             final_decision=final_decision,
         )
+        fb.raw_execution = raw_stdout
+        return fb

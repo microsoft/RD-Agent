@@ -39,12 +39,13 @@ class CoSTEERSingleFeedback(Feedback):
     It is design align the phases of the implemented code
     - Execution -> Return Value -> Code -> Final Decision
     """
-    execution: str
+    execution: str  # Summarized execution feedback
     # execution_feedback
     return_checking: str | None  # including every check in the testing (constraints about the generated value)
     # value_feedback, shape_feedback, value_generated_flag
     code: str
     final_decision: bool | None = None
+    raw_execution: str = ""  # Full raw stdout for UI display
 
     @staticmethod
     def val_and_update_init_dict(data: dict) -> dict:

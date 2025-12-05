@@ -110,11 +110,11 @@ class FTDataEvaluator(CoSTEEREvaluator):
                 data = json.load(f)
 
         # Step 6: Generate LLM feedback
-        # Only inject logs and script when there's an error (template handles via {% if %})
+        # Note: stdout only passed on error to reduce LLM token usage
         return self._generate_llm_feedback(
             target_task=target_task,
             script_code=script_code if error_msg else "",  # Only show script on error
-            stdout=execution_output if error_msg else "",
+            stdout=execution_output if error_msg else "",  # Only show stdout on error
             exit_code=exit_code,
             data=data,
             error_msg=error_msg,
@@ -352,9 +352,11 @@ class FTCoderEvaluator(CoSTEEREvaluator):
                 ]
             ),
         )
-        return build_cls_from_json_with_retry(
+        feedback = build_cls_from_json_with_retry(
             CoSTEERSingleFeedback,
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
         )
+        feedback.raw_execution = validation_result.raw_stdout or ""
+        return feedback

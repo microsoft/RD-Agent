@@ -27,6 +27,7 @@ class LLMFinetuneRDLoop(RDLoop):
     async def direct_exp_gen(self, prev_out: dict[str, Any]):
         """Generate LLM fine-tuning experiment"""
         exp = await self.hypothesis_gen.async_gen(self.trace, self)
+        logger.log_object(exp.hypothesis, tag="hypothesis")
         logger.log_object(exp.sub_tasks, tag="experiment generation")
         return exp
 

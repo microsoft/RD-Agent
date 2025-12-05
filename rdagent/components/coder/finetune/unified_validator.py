@@ -29,7 +29,8 @@ class ValidationResult:
 
     success: bool
     filtered_config: str
-    execution_output: str = ""  # stdout/stderr from micro-batch test
+    execution_output: str = ""  # Parsed/summarized output for LLM
+    raw_stdout: str = ""  # Full raw stdout for UI display
     errors: List[str] = field(default_factory=list)
     execution_time: float = 0.0
 
@@ -256,6 +257,7 @@ class LLMConfigValidator:
 
             # Parse and store structured execution output (reduces ~36k tokens to ~500)
             raw_stdout = training_result.stdout if training_result.stdout else ""
+            result.raw_stdout = raw_stdout  # Keep full log for UI
             result.execution_output = self._parse_execution_log(raw_stdout, training_result.exit_code)
 
             # Check results

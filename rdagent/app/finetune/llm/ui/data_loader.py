@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 from rdagent.log.storage import FileStorage
 
-EventType = Literal["scenario", "llm_call", "template", "experiment", "code", "docker_exec", "feedback", "token", "time", "settings"]
+EventType = Literal["scenario", "llm_call", "template", "experiment", "code", "docker_exec", "feedback", "token", "time", "settings", "hypothesis"]
 
 
 @dataclass
@@ -73,7 +73,7 @@ def extract_stage(tag: str) -> str:
         return "exp_gen"
     if "coding" in tag:
         return "coding"
-    if "runner" in tag:
+    if "running" in tag:  # Note: tag uses "running", not "runner"
         return "runner"
     if "feedback" in tag:
         return "feedback"
@@ -106,6 +106,12 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
         name = tag.replace("_SETTINGS", "").replace("SETTINGS", "")
         return Event(type="settings", timestamp=timestamp, tag=tag,
                      title=f"Settings: {name}", content=content)
+
+    # Hypothesis
+    if tag == "hypothesis" or (loop_id is not None and "hypothesis" in tag):
+        return Event(type="hypothesis", timestamp=timestamp, tag=tag,
+                     title="Hypothesis", content=content,
+                     loop_id=loop_id, stage="exp_gen")
 
     # LLM Call
     if "debug_llm" in tag:
@@ -142,7 +148,7 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
                     file_count += len(ws.file_dict)
         return Event(type="code", timestamp=timestamp, tag=tag,
                      title=f"Code ({file_count} files)", content=content,
-                     loop_id=loop_id, evo_id=evo_id, stage="coding")
+                     loop_id=loop_id, evo_id=evo_id, stage=stage or "coding")
 
     # Evolving feedback
     if "evolving feedback" in tag:
@@ -150,10 +156,10 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
         if hasattr(content, "feedback_list") and content.feedback_list:
             fb = content.feedback_list[0]
             success = getattr(fb, "final_decision", None)
+        title = "Running(Full Train)" if stage == "runner" else f"Docker {'✓' if success else '✗' if success is False else '?'}"
         return Event(type="docker_exec", timestamp=timestamp, tag=tag,
-                     title=f"Docker {'✓' if success else '✗' if success is False else '?'}",
-                     content=content, loop_id=loop_id, evo_id=evo_id,
-                     stage="coding", success=success)
+                     title=title, content=content, loop_id=loop_id, evo_id=evo_id,
+                     stage=stage or "coding", success=success)
 
     # Final feedback
     if "feedback.feedback" in tag or (tag.endswith(".feedback") and "evo_loop" not in tag):

@@ -21,6 +21,7 @@ ICONS = {
     "token": "🔢",
     "time": "⏱️",
     "settings": "⚙️",
+    "hypothesis": "💡",
 }
 
 
@@ -81,7 +82,7 @@ def render_loop(loop: Loop, show_types: list[str]) -> None:
         if loop.runner:
             filtered = [e for e in loop.runner if e.type in show_types]
             if filtered:
-                st.markdown("#### 🏃 Full Train")
+                st.markdown("#### 🏃 Running(Full Train)")
                 for event in filtered:
                     render_event(event)
 
@@ -130,6 +131,7 @@ def render_event(event: Event) -> None:
         "token": render_token,
         "time": render_time_info,
         "settings": render_settings,
+        "hypothesis": render_hypothesis,
     }
 
     renderer = renderers.get(event.type, render_generic)
@@ -149,6 +151,17 @@ def render_scenario(content: Any) -> None:
             st.metric("Target Benchmark", content.target_benchmark)
         if hasattr(content, "device_info"):
             st.text(f"Device: {content.device_info}")
+
+
+def render_hypothesis(content: Any) -> None:
+    if hasattr(content, "base_model"):
+        st.metric("Base Model", content.base_model)
+    if hasattr(content, "hypothesis") and content.hypothesis:
+        st.markdown("**Hypothesis:**")
+        st.markdown(content.hypothesis)
+    if hasattr(content, "reason") and content.reason:
+        with st.expander("Reason", expanded=False):
+            st.markdown(content.reason)
 
 
 def render_settings(content: Any) -> None:
@@ -268,6 +281,11 @@ def render_docker_exec(content: Any) -> None:
             if execution:
                 with st.expander("Execution Log", expanded=True):
                     st.code(execution, language="text", line_numbers=True)
+
+            raw_execution = getattr(fb, "raw_execution", "")
+            if raw_execution:
+                with st.expander("Full Docker Log", expanded=False):
+                    st.code(raw_execution, language="text", line_numbers=True)
 
             return_checking = getattr(fb, "return_checking", "")
             if return_checking:
