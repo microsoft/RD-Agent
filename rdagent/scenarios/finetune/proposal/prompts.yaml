@@ -248,10 +248,10 @@ unified_hypothesis_gen:
     {% endif %}
     - Result: {{ "✅ Successful" if feedback.decision else "❌ Failed" }}
     {% if feedback.observations %}
-    - Observations: {{ feedback.observations[:300] }}
+    - Observations: {{ feedback.observations }}
     {% endif %}
     {% if feedback.reason %}
-    - Reason: {{ feedback.reason[:200] }}
+    - Reason: {{ feedback.reason }}
     {% endif %}
     {% endfor %}
     **Task**: Based on the historical results above, propose a NEW hypothesis covering BOTH data processing AND training configuration that:

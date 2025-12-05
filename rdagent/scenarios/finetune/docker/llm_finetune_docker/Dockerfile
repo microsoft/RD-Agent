@@ -14,7 +14,7 @@ RUN apt-get clean && apt-get update && apt-get install -y \
     unzip \
     && rm -rf /var/lib/apt/lists/* 
 
-RUN pip install "bitsandbytes>=0.39.0" "mixture-of-depth>=1.1.6"
+RUN pip install "bitsandbytes>=0.39.0" "mixture-of-depth>=1.1.6" "openai"
 
 # Set working directory for experiments
 WORKDIR /workspace
