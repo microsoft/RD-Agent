@@ -59,12 +59,14 @@ class FTDataEvaluator(CoSTEEREvaluator):
 
         # Step 1: Check script exists
         if not script_code:
-            return CoSTEERSingleFeedback(
+            feedback = CoSTEERSingleFeedback(
                 execution=f"No {FT_DATA_SCRIPT_NAME} found",
                 return_checking="Data processing script missing",
                 code="Please generate a data processing script first.",
                 final_decision=False,
             )
+            logger.log_object(feedback, tag="evaluator_feedback.FTDataEvaluator")
+            return feedback
 
         # Step 2: Check if data.json already exists
         if data_json_path.exists():
@@ -86,12 +88,14 @@ class FTDataEvaluator(CoSTEEREvaluator):
                 exit_code = result.exit_code if hasattr(result, "exit_code") else -1
             except Exception as e:
                 logger.error(f"Failed to execute data processing script: {e}")
-                return CoSTEERSingleFeedback(
+                feedback = CoSTEERSingleFeedback(
                     execution=f"Script execution failed: {e}",
                     return_checking="Execution error",
                     code="Check script for syntax errors or missing dependencies.",
                     final_decision=False,
                 )
+                logger.log_object(feedback, tag="evaluator_feedback.FTDataEvaluator")
+                return feedback
 
             # Step 4: Validate output
             if not data_json_path.exists():
@@ -183,6 +187,7 @@ class FTDataEvaluator(CoSTEEREvaluator):
             init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
         )
         feedback.raw_execution = raw_stdout
+        logger.log_object(feedback, tag="evaluator_feedback.FTDataEvaluator")
         return feedback
 
     def _validate_data_json(self, data_json_path: Path) -> dict:
@@ -308,24 +313,28 @@ class FTCoderEvaluator(CoSTEEREvaluator):
             if task_info in queried_knowledge.success_task_to_knowledge_dict:
                 return queried_knowledge.success_task_to_knowledge_dict[task_info].feedback
             elif task_info in queried_knowledge.failed_task_info_set:
-                return CoSTEERSingleFeedback(
+                feedback = CoSTEERSingleFeedback(
                     execution="Task failed too many times, skipping.",
                     return_checking="Task failed too many times, skipping.",
                     code="Task failed too many times, skipping.",
                     final_decision=False,
                 )
+                logger.log_object(feedback, tag="evaluator_feedback.FTCoderEvaluator")
+                return feedback
 
         env = get_ft_env(
             running_timeout_period=self.scen.real_debug_timeout() if hasattr(self.scen, "real_debug_timeout") else 3600,
         )
         config_yaml = implementation.file_dict.get(FT_YAML_FILE_NAME, "")
         if not config_yaml:
-            return CoSTEERSingleFeedback(
+            feedback = CoSTEERSingleFeedback(
                 execution=f"No {FT_YAML_FILE_NAME} found",
                 return_checking="Configuration file missing",
                 code="No valid configuration file",
                 final_decision=False,
             )
+            logger.log_object(feedback, tag="evaluator_feedback.FTCoderEvaluator")
+            return feedback
 
         # Two-step validation: parameter filtering + micro-batch test
         validation_result = LLMConfigValidator().validate_and_test(
@@ -366,4 +375,5 @@ class FTCoderEvaluator(CoSTEEREvaluator):
             init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
         )
         feedback.raw_execution = validation_result.raw_stdout or ""
+        logger.log_object(feedback, tag="evaluator_feedback.FTCoderEvaluator")
         return feedback

@@ -264,6 +264,24 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
             success=success,
         )
 
+    # Evaluator feedback (logged from FT evaluators with final_decision)
+    if "evaluator_feedback." in tag:
+        class_name = tag.split("evaluator_feedback.")[-1].split(".")[0]
+        evaluator_name, default_stage = EVALUATOR_CONFIG.get(class_name, (class_name, "coding"))
+        success = getattr(content, "final_decision", None)
+        title = f"Eval ({evaluator_name}) {'✓' if success else '✗' if success is False else '?'}"
+        return Event(
+            type="docker_exec",  # Reuse docker_exec type for consistent rendering
+            timestamp=timestamp,
+            tag=tag,
+            title=title,
+            content=content,
+            loop_id=loop_id,
+            evo_id=evo_id,
+            stage=stage or default_stage,
+            success=success,
+        )
+
     # Final feedback
     if "feedback.feedback" in tag or (tag.endswith(".feedback") and "evo_loop" not in tag):
         decision = getattr(content, "decision", None)

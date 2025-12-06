@@ -7,7 +7,6 @@ Two-step validation:
 """
 
 import json
-import random
 import re
 import time
 from dataclasses import dataclass, field
@@ -252,13 +251,10 @@ class LLMConfigValidator:
             )
 
             # Run micro-batch training
-            # Use fixed MASTER_PORT to avoid find_available_port() failure when ephemeral ports are exhausted
-            master_port = random.randint(29500, 29999)
             workspace.inject_files(**{FT_DEBUG_YAML_FILE_NAME: yaml.dump(test_config, default_flow_style=False)})
             training_result = workspace.run(
                 env=env,
                 entry=f"timeout 300 llamafactory-cli train {FT_DEBUG_YAML_FILE_NAME}",
-                env_vars={"MASTER_PORT": str(master_port)},
             )
 
             # Remove micro-batch test files
