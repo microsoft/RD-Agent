@@ -30,39 +30,64 @@ class FTExperiment2Feedback(Experiment2Feedback):
         super().__init__(scen)
         self.version = version
 
-    def generate_feedback(self, exp: FTExperiment, trace=None) -> ExperimentFeedback:
+    def generate_feedback(
+        self, exp: FTExperiment, trace=None, error_info: str | None = None
+    ) -> ExperimentFeedback:
         """
         Generate comprehensive feedback for LLM fine-tuning experiment.
 
-        Note: If this method is called, it means training has already succeeded
-        (runner.develop() returned without exception). We only evaluate the quality/effectiveness.
+        Args:
+            exp: The experiment to analyze
+            trace: Experiment trace (optional)
+            error_info: If provided, indicates experiment failed and contains error details
+
+        Note: If error_info is None, it means training succeeded and we evaluate quality/effectiveness.
+              If error_info is provided, we analyze the failure cause.
         """
         # Get task information
         task_desc = exp.sub_tasks[0].get_task_information()
 
-        # Process experiment result - handle both new and legacy formats
-        exp_result = exp.experiment_workspace.running_info.result
-        if isinstance(exp_result, dict) and "benchmark" in exp_result:
-            # New format: contains benchmark and training_metrics
-            benchmark = exp_result.get("benchmark", {})
-            training_metrics = exp_result.get("training_metrics", {})
+        if error_info is not None:
+            # Error case: use error analysis prompt
+            version = "exp_feedback_error"
+            system_prompt = T(f".prompts:{version}.system").r(
+                scenario=self.scen.get_scenario_all_desc(),
+            )
+            # Get workspace files safely
+            workspace_files = {}
+            if hasattr(exp, "experiment_workspace") and exp.experiment_workspace is not None:
+                workspace_files = exp.experiment_workspace.file_dict
+            user_prompt = T(f".prompts:{version}.user").r(
+                hypothesis=exp.hypothesis,
+                task_desc=task_desc,
+                workspace_files=workspace_files,
+                error_info=error_info,
+            )
         else:
-            # Legacy format: exp_result is directly the benchmark result (list of dicts)
-            benchmark = {"accuracy_summary": exp_result, "error_samples": []}
-            training_metrics = {"loss_history": [], "initial_loss": None, "final_loss": None}
+            # Success case: use normal feedback prompt
+            version = self.version
+            # Process experiment result - handle both new and legacy formats
+            exp_result = exp.experiment_workspace.running_info.result
+            if isinstance(exp_result, dict) and "benchmark" in exp_result:
+                # New format: contains benchmark and training_metrics
+                benchmark = exp_result.get("benchmark", {})
+                training_metrics = exp_result.get("training_metrics", {})
+            else:
+                # Legacy format: exp_result is directly the benchmark result (list of dicts)
+                benchmark = {"accuracy_summary": exp_result, "error_samples": []}
+                training_metrics = {"loss_history": [], "initial_loss": None, "final_loss": None}
 
-        # Generate LLM-based feedback using prompts.yaml templates
-        system_prompt = T(f".prompts:{self.version}.system").r(
-            scenario=self.scen.get_scenario_all_desc(),
-        )
-        user_prompt = T(f".prompts:{self.version}.user").r(
-            hypothesis=exp.hypothesis,
-            task_desc=task_desc,
-            workspace_files=exp.experiment_workspace.file_dict,
-            execution_time=exp.experiment_workspace.running_info.running_time,
-            benchmark=benchmark,
-            training_metrics=training_metrics,
-        )
+            system_prompt = T(f".prompts:{version}.system").r(
+                scenario=self.scen.get_scenario_all_desc(),
+            )
+            user_prompt = T(f".prompts:{version}.user").r(
+                hypothesis=exp.hypothesis,
+                task_desc=task_desc,
+                workspace_files=exp.experiment_workspace.file_dict,
+                execution_time=exp.experiment_workspace.running_info.running_time,
+                benchmark=benchmark,
+                training_metrics=training_metrics,
+            )
 
         resp_dict = json.loads(
             APIBackend().build_messages_and_create_chat_completion(
@@ -78,7 +103,7 @@ class FTExperiment2Feedback(Experiment2Feedback):
             code_change_summary=dict_get_with_warning(resp_dict, "Code Summary", "No code summary provided"),
             reason=dict_get_with_warning(resp_dict, "Reason", "No reasoning provided"),
             decision=convert2bool(dict_get_with_warning(resp_dict, "Decision", "no")),
-            acceptable=True,  # Always True for FT experiments if training succeeded
+            acceptable=error_info is None,  # Only acceptable if no error
         )
 
         return hypothesis_feedback

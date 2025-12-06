@@ -15,6 +15,8 @@ from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.finetune.train.benchmark import run_benchmark
+from rdagent.utils.agent.tpl import T
+from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 
 
 def extract_loss_history(output_path) -> List[Dict[str, Any]]:
@@ -139,28 +141,66 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
             },
         }
 
-        # Final decision: training succeeded AND model files exist
+        # Final decision: training succeeded AND model files exist AND benchmark ran
         final_decision = training_success and len(model_output_files) > 0 and benchmark_result is not None
 
-        # Build minimal feedback
-        execution_msg = f"Training {'succeeded' if training_success else 'failed'} (exit_code={result.exit_code})"
-        if model_output_files:
-            model_msg = f"Found {len(model_output_files)} model output files"
+        # Call LLM for feedback analysis (both success and failure cases)
+        if final_decision:
+            # Success: analyze benchmark results and training metrics
+            return self._generate_llm_feedback(
+                target_task=target_task,
+                implementation=implementation,
+                raw_stdout=raw_stdout,
+                training_success=True,
+                benchmark_result=benchmark_result,
+                loss_history=loss_history,
+            )
         else:
-            model_msg = "No model output files found"
+            # Failure: analyze error cause
+            error_msg = f"exit_code={result.exit_code}"
+            if not training_success:
+                error_msg = f"Training failed: {error_msg}"
+            elif len(model_output_files) == 0:
+                error_msg = "No model output files generated"
+            elif benchmark_result is None:
+                error_msg = "Benchmark evaluation failed"
+            return self._generate_llm_feedback(
+                target_task=target_task,
+                implementation=implementation,
+                raw_stdout=raw_stdout,
+                training_success=False,
+                error_msg=error_msg,
+            )
 
-        if benchmark_result:
-            accuracy_summary = benchmark_result.get("accuracy_summary", [])
-            model_msg += f"; Benchmark result: {accuracy_summary}"
+    def _generate_llm_feedback(
+        self,
+        target_task: FTTask,
+        implementation: FBWorkspace,
+        raw_stdout: str,
+        training_success: bool,
+        benchmark_result: Optional[Dict] = None,
+        loss_history: Optional[List[Dict]] = None,
+        error_msg: Optional[str] = None,
+    ) -> CoSTEERSingleFeedback:
+        """Generate LLM-based feedback for runner evaluation."""
+        version = "runner_eval" if training_success else "runner_eval_error"
 
-        feedback_msg = f"{execution_msg}. {model_msg}."
-
-        fb = CoSTEERSingleFeedback(
-            execution=feedback_msg,
-            return_checking=model_msg,
-            code=execution_msg,
-            final_decision=final_decision,
+        system_prompt = T(f".prompts:{version}.system").r()
+        user_prompt = T(f".prompts:{version}.user").r(
+            task_desc=target_task.get_task_information(),
+            config_yaml=implementation.file_dict.get(FT_YAML_FILE_NAME, ""),
+            stdout=raw_stdout[-3000:] if raw_stdout else "",  # Truncate from end
+            benchmark_result=json.dumps(benchmark_result, indent=2) if benchmark_result else "N/A",
+            loss_history=json.dumps(loss_history[-20:] if loss_history else [], indent=2),
+            error_msg=error_msg or "",
         )
-        fb.raw_execution = raw_stdout
-        logger.log_object(fb, tag="evaluator_feedback.FTRunnerEvaluator")
-        return fb
+
+        feedback = build_cls_from_json_with_retry(
+            CoSTEERSingleFeedback,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
+        )
+        feedback.raw_execution = raw_stdout
+        logger.log_object(feedback, tag="evaluator_feedback.FTRunnerEvaluator")
+        return feedback

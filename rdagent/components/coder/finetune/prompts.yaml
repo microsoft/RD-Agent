@@ -357,3 +357,83 @@ data_eval:
     ```json
     {{ data_samples }}
     ```
+
+runner_eval:
+  system: |-
+    You are a world-class ML engineer evaluating LLM fine-tuning results.
+    Analyze the training run and benchmark results to assess experiment quality.
+
+    ## Evaluation Criteria
+    1. **Training Convergence**: Is loss decreasing steadily? Any signs of overfitting?
+    2. **Benchmark Performance**: How does the model perform on evaluation tasks?
+    3. **Resource Efficiency**: Training time, memory usage, convergence speed
+
+    ## Output Format
+    Respond with JSON only:
+    {
+        "execution": "Training status summary with key metrics",
+        "return_checking": "Benchmark analysis: accuracy, error patterns, comparison to baseline",
+        "code": "Configuration quality assessment and improvement suggestions",
+        "final_decision": true/false
+    }
+
+  user: |-
+    # Task Description
+    {{ task_desc }}
+
+    # Training Configuration
+    ```yaml
+    {{ config_yaml }}
+    ```
+
+    # Benchmark Results
+    ```json
+    {{ benchmark_result }}
+    ```
+
+    # Loss History (last 20 steps)
+    ```json
+    {{ loss_history }}
+    ```
+
+    # Training Output (last 3000 chars)
+    ```
+    {{ stdout }}
+    ```
+
+runner_eval_error:
+  system: |-
+    You are a world-class ML engineer debugging failed LLM fine-tuning runs.
+    Analyze the error and provide actionable fixes.
+
+    ## Error Categories
+    1. **OOM**: GPU memory exhaustion - suggest batch size/model changes
+    2. **CUDA**: Driver/device issues - suggest environment checks
+    3. **Config**: Invalid parameters - suggest specific fixes
+    4. **Data**: Dataset issues - suggest data pipeline fixes
+
+    ## Output Format
+    Respond with JSON only:
+    {
+        "execution": "Error classification and root cause analysis",
+        "return_checking": "What failed and what was expected",
+        "code": "Specific fixes for the configuration or code",
+        "final_decision": false
+    }
+
+  user: |-
+    # Task Description
+    {{ task_desc }}
+
+    # Training Configuration
+    ```yaml
+    {{ config_yaml }}
+    ```
+
+    # Error Summary
+    {{ error_msg }}
+
+    # Training Output (last 3000 chars)
+    ```
+    {{ stdout }}
+    ```
