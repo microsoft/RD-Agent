@@ -12,7 +12,11 @@ import streamlit as st
 from streamlit import session_state as state
 
 from rdagent.app.finetune.llm.ui.components import render_session, render_summary
-from rdagent.app.finetune.llm.ui.data_loader import get_summary, get_valid_sessions, load_ft_session
+from rdagent.app.finetune.llm.ui.data_loader import (
+    get_summary,
+    get_valid_sessions,
+    load_ft_session,
+)
 
 # Always visible types
 ALWAYS_VISIBLE = ["scenario", "dataset_selection", "llm_call", "experiment", "code", "docker_exec", "feedback"]
@@ -30,7 +34,8 @@ def main():
     st.set_page_config(layout="wide", page_title="FT Timeline", page_icon="🔬")
 
     # Enable word wrap for code blocks (like VSCode)
-    st.markdown("""
+    st.markdown(
+        """
     <style>
     /* Target all code elements in Streamlit */
     .stCodeBlock pre,
@@ -53,7 +58,9 @@ def main():
         overflow-x: visible !important;
     }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     # ========== Sidebar ==========
     with st.sidebar:

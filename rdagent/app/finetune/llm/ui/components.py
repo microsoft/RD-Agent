@@ -287,38 +287,47 @@ def render_code(content: Any) -> None:
                 st.code(code, language=lang, line_numbers=True)
 
 
+def _render_single_feedback(fb: Any) -> None:
+    """Render a single CoSTEERSingleFeedback object."""
+    decision = getattr(fb, "final_decision", None)
+    if decision is True:
+        st.success("Execution: PASS")
+    elif decision is False:
+        st.error("Execution: FAIL")
+
+    execution = getattr(fb, "execution", "")
+    if execution:
+        with st.expander("Execution Log", expanded=True):
+            st.code(execution, language="text", line_numbers=True)
+
+    raw_execution = getattr(fb, "raw_execution", "")
+    if raw_execution:
+        with st.expander("Full Docker Log", expanded=False):
+            st.code(raw_execution, language="text", line_numbers=True)
+
+    return_checking = getattr(fb, "return_checking", "")
+    if return_checking:
+        with st.expander("Return Checking", expanded=False):
+            st.code(return_checking, language="text", line_numbers=True)
+
+    code_fb = getattr(fb, "code", "")
+    if code_fb:
+        st.markdown("**Code Feedback:**")
+        st.markdown(code_fb)
+
+
 def render_docker_exec(content: Any) -> None:
-    # CoSTEERMultiFeedback (evolving feedback)
+    # CoSTEERMultiFeedback (has feedback_list)
     if hasattr(content, "feedback_list"):
         for i, fb in enumerate(content.feedback_list):
             if len(content.feedback_list) > 1:
                 st.markdown(f"**Feedback {i}**")
+            _render_single_feedback(fb)
+        return
 
-            decision = getattr(fb, "final_decision", None)
-            if decision is True:
-                st.success("Execution: PASS")
-            elif decision is False:
-                st.error("Execution: FAIL")
-
-            execution = getattr(fb, "execution", "")
-            if execution:
-                with st.expander("Execution Log", expanded=True):
-                    st.code(execution, language="text", line_numbers=True)
-
-            raw_execution = getattr(fb, "raw_execution", "")
-            if raw_execution:
-                with st.expander("Full Docker Log", expanded=False):
-                    st.code(raw_execution, language="text", line_numbers=True)
-
-            return_checking = getattr(fb, "return_checking", "")
-            if return_checking:
-                with st.expander("Return Checking", expanded=False):
-                    st.code(return_checking, language="text", line_numbers=True)
-
-            code_fb = getattr(fb, "code", "")
-            if code_fb:
-                st.markdown("**Code Feedback:**")
-                st.markdown(code_fb)
+    # Single CoSTEERSingleFeedback (has final_decision)
+    if hasattr(content, "final_decision"):
+        _render_single_feedback(content)
         return
 
     # FTExperiment (runner result)

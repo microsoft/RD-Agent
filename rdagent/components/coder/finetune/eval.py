@@ -173,7 +173,9 @@ class FTDataEvaluator(CoSTEEREvaluator):
             data_samples=data_samples,
         )
 
-        logger.info(f"Generating LLM feedback for data evaluation (samples: {total_samples}, has_error: {bool(error_msg)})")
+        logger.info(
+            f"Generating LLM feedback for data evaluation (samples: {total_samples}, has_error: {bool(error_msg)})"
+        )
 
         feedback = build_cls_from_json_with_retry(
             CoSTEERSingleFeedback,

@@ -11,12 +11,26 @@ from typing import Any, Literal
 
 from rdagent.log.storage import FileStorage
 
-EventType = Literal["scenario", "llm_call", "template", "experiment", "code", "docker_exec", "feedback", "token", "time", "settings", "hypothesis", "dataset_selection"]
+EventType = Literal[
+    "scenario",
+    "llm_call",
+    "template",
+    "experiment",
+    "code",
+    "docker_exec",
+    "feedback",
+    "token",
+    "time",
+    "settings",
+    "hypothesis",
+    "dataset_selection",
+]
 
 
 @dataclass
 class Event:
     """Timeline event"""
+
     type: EventType
     timestamp: datetime
     tag: str
@@ -36,6 +50,7 @@ class Event:
 @dataclass
 class EvoLoop:
     """Evolution loop containing events"""
+
     evo_id: int
     events: list[Event] = field(default_factory=list)
     success: bool | None = None
@@ -44,6 +59,7 @@ class EvoLoop:
 @dataclass
 class Loop:
     """Main loop containing stages"""
+
     loop_id: int
     exp_gen: list[Event] = field(default_factory=list)
     coding: dict[int, EvoLoop] = field(default_factory=dict)  # evo_id -> EvoLoop
@@ -54,6 +70,7 @@ class Loop:
 @dataclass
 class Session:
     """Session containing init events and loops"""
+
     init_events: list[Event] = field(default_factory=list)
     loops: dict[int, Loop] = field(default_factory=dict)  # loop_id -> Loop
 
@@ -98,27 +115,36 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
     # Scenario
     if tag == "scenario":
         model = getattr(content, "base_model", "Unknown")
-        return Event(type="scenario", timestamp=timestamp, tag=tag,
-                     title=f"Scenario: {model}", content=content)
+        return Event(type="scenario", timestamp=timestamp, tag=tag, title=f"Scenario: {model}", content=content)
 
     # Dataset selection
     if "dataset_selection" in tag:
         selected = content.get("selected_datasets", []) if isinstance(content, dict) else []
         total = content.get("total_datasets", 0) if isinstance(content, dict) else 0
-        return Event(type="dataset_selection", timestamp=timestamp, tag=tag,
-                     title=f"Dataset Selection: {len(selected)}/{total}", content=content)
+        return Event(
+            type="dataset_selection",
+            timestamp=timestamp,
+            tag=tag,
+            title=f"Dataset Selection: {len(selected)}/{total}",
+            content=content,
+        )
 
     # Settings
     if "SETTINGS" in tag:
         name = tag.replace("_SETTINGS", "").replace("SETTINGS", "")
-        return Event(type="settings", timestamp=timestamp, tag=tag,
-                     title=f"Settings: {name}", content=content)
+        return Event(type="settings", timestamp=timestamp, tag=tag, title=f"Settings: {name}", content=content)
 
     # Hypothesis
     if tag == "hypothesis" or (loop_id is not None and "hypothesis" in tag):
-        return Event(type="hypothesis", timestamp=timestamp, tag=tag,
-                     title="Hypothesis", content=content,
-                     loop_id=loop_id, stage="exp_gen")
+        return Event(
+            type="hypothesis",
+            timestamp=timestamp,
+            tag=tag,
+            title="Hypothesis",
+            content=content,
+            loop_id=loop_id,
+            stage="exp_gen",
+        )
 
     # LLM Call
     if "debug_llm" in tag:
@@ -126,25 +152,46 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
             duration = None
             if content.get("start") and content.get("end"):
                 duration = (content["end"] - content["start"]).total_seconds()
-            return Event(type="llm_call", timestamp=timestamp, tag=tag,
-                         title="LLM Call", content=content,
-                         loop_id=loop_id, evo_id=evo_id, stage=stage, duration=duration)
+            return Event(
+                type="llm_call",
+                timestamp=timestamp,
+                tag=tag,
+                title="LLM Call",
+                content=content,
+                loop_id=loop_id,
+                evo_id=evo_id,
+                stage=stage,
+                duration=duration,
+            )
 
     # Template
     if "debug_tpl" in tag:
         if isinstance(content, dict) and "uri" in content:
             uri = content.get("uri", "")
             tpl_name = uri.split(":")[-1] if ":" in uri else uri
-            return Event(type="template", timestamp=timestamp, tag=tag,
-                         title=f"Template: {tpl_name}", content=content,
-                         loop_id=loop_id, evo_id=evo_id, stage=stage)
+            return Event(
+                type="template",
+                timestamp=timestamp,
+                tag=tag,
+                title=f"Template: {tpl_name}",
+                content=content,
+                loop_id=loop_id,
+                evo_id=evo_id,
+                stage=stage,
+            )
 
     # Experiment generation
     if "experiment generation" in tag:
         task_count = len(content) if isinstance(content, list) else 1
-        return Event(type="experiment", timestamp=timestamp, tag=tag,
-                     title=f"Experiment ({task_count} task)", content=content,
-                     loop_id=loop_id, stage=stage)
+        return Event(
+            type="experiment",
+            timestamp=timestamp,
+            tag=tag,
+            title=f"Experiment ({task_count} task)",
+            content=content,
+            loop_id=loop_id,
+            stage=stage,
+        )
 
     # Evolving code
     if "evolving code" in tag:
@@ -153,9 +200,16 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
             for ws in content:
                 if hasattr(ws, "file_dict"):
                     file_count += len(ws.file_dict)
-        return Event(type="code", timestamp=timestamp, tag=tag,
-                     title=f"Code ({file_count} files)", content=content,
-                     loop_id=loop_id, evo_id=evo_id, stage=stage or "coding")
+        return Event(
+            type="code",
+            timestamp=timestamp,
+            tag=tag,
+            title=f"Code ({file_count} files)",
+            content=content,
+            loop_id=loop_id,
+            evo_id=evo_id,
+            stage=stage or "coding",
+        )
 
     # Docker execution (individual evaluator feedback)
     if "docker_exec." in tag:
@@ -170,47 +224,64 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
         # Single feedback object (new format)
         success = getattr(content, "final_decision", None)
         title = f"Docker ({evaluator_name}) {'✓' if success else '✗' if success is False else '?'}"
-        return Event(type="docker_exec", timestamp=timestamp, tag=tag,
-                     title=title, content=content, loop_id=loop_id, evo_id=evo_id,
-                     stage=stage or "coding", success=success)
-
-    # Evolving feedback
-    if "evolving feedback" in tag:
-        success = None
-        if hasattr(content, "feedback_list") and content.feedback_list:
-            fb = content.feedback_list[0]
-            success = getattr(fb, "final_decision", None)
-        title = "Running(Full Train)" if stage == "runner" else f"Docker {'✓' if success else '✗' if success is False else '?'}"
-        return Event(type="docker_exec", timestamp=timestamp, tag=tag,
-                     title=title, content=content, loop_id=loop_id, evo_id=evo_id,
-                     stage=stage or "coding", success=success)
+        return Event(
+            type="docker_exec",
+            timestamp=timestamp,
+            tag=tag,
+            title=title,
+            content=content,
+            loop_id=loop_id,
+            evo_id=evo_id,
+            stage=stage or "coding",
+            success=success,
+        )
 
     # Final feedback
     if "feedback.feedback" in tag or (tag.endswith(".feedback") and "evo_loop" not in tag):
         decision = getattr(content, "decision", None)
-        return Event(type="feedback", timestamp=timestamp, tag=tag,
-                     title=f"Feedback: {'Accept' if decision else 'Reject'}",
-                     content=content, loop_id=loop_id, stage="feedback", success=decision)
+        return Event(
+            type="feedback",
+            timestamp=timestamp,
+            tag=tag,
+            title=f"Feedback: {'Accept' if decision else 'Reject'}",
+            content=content,
+            loop_id=loop_id,
+            stage="feedback",
+            success=decision,
+        )
 
     # Runner result
     if "runner result" in tag:
-        return Event(type="docker_exec", timestamp=timestamp, tag=tag,
-                     title="Full Train", content=content,
-                     loop_id=loop_id, stage="runner")
+        return Event(
+            type="docker_exec",
+            timestamp=timestamp,
+            tag=tag,
+            title="Full Train",
+            content=content,
+            loop_id=loop_id,
+            stage="runner",
+        )
 
     # Token cost
     if "token_cost" in tag:
         if isinstance(content, dict):
             total = content.get("total_tokens", 0)
-            return Event(type="token", timestamp=timestamp, tag=tag,
-                         title=f"Token: {total}", content=content,
-                         loop_id=loop_id, evo_id=evo_id, stage=stage)
+            return Event(
+                type="token",
+                timestamp=timestamp,
+                tag=tag,
+                title=f"Token: {total}",
+                content=content,
+                loop_id=loop_id,
+                evo_id=evo_id,
+                stage=stage,
+            )
 
     # Time info
     if "time_info" in tag:
-        return Event(type="time", timestamp=timestamp, tag=tag,
-                     title="Time Info", content=content,
-                     loop_id=loop_id, stage=stage)
+        return Event(
+            type="time", timestamp=timestamp, tag=tag, title="Time Info", content=content, loop_id=loop_id, stage=stage
+        )
 
     return None
 
