@@ -1,4 +1,5 @@
 import json
+import random
 from typing import Any, Dict, List, Optional
 
 from rdagent.components.coder.CoSTEER.evaluators import (
@@ -88,7 +89,13 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
             )
 
         # Execute LlamaFactory training
-        result = implementation.run(env=env, entry=f"llamafactory-cli train {FT_YAML_FILE_NAME}")
+        # Use fixed MASTER_PORT to avoid find_available_port() failure when ephemeral ports are exhausted
+        master_port = random.randint(29500, 29999)
+        result = implementation.run(
+            env=env,
+            entry=f"llamafactory-cli train {FT_YAML_FILE_NAME}",
+            env_vars={"MASTER_PORT": str(master_port)},
+        )
         implementation.running_info.running_time = result.running_time
         raw_stdout = result.stdout or ""
         # NOTE: Docker execution is logged by FTWorkspace.run() automatically
@@ -107,8 +114,6 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
             fb.raw_execution = raw_stdout
-            # Log for UI display (even on failure)
-            logger.log_object(fb, tag=f"docker_exec.{self.__class__.__name__}")
             return fb
         model_output_files = []
         for pattern in ["*.safetensors", "*.bin", "adapter_*"]:
@@ -158,6 +163,4 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
             final_decision=final_decision,
         )
         fb.raw_execution = raw_stdout
-        # Log for UI display
-        logger.log_object(fb, tag=f"docker_exec.{self.__class__.__name__}")
         return fb

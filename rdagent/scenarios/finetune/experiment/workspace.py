@@ -40,9 +40,27 @@ class FTWorkspace(FBWorkspace):
         RD_AGENT_SETTINGS.workspace_ckp_white_list_names = [FT_YAML_FILE_NAME]
         RD_AGENT_SETTINGS.workspace_ckp_size_limit = 100 * 1024
 
-    def run(self, env: "Env", entry: str) -> "EnvResult":
-        """Execute the code in the environment with unified Docker logging."""
-        result = super().run(env, entry)
+    def run(self, env: "Env", entry: str, env_vars: dict | None = None) -> "EnvResult":
+        """Execute the code in the environment with unified Docker logging.
+
+        Args:
+            env: The environment to run in (DockerEnv, LocalEnv, etc.)
+            entry: The command to execute
+            env_vars: Optional additional environment variables (e.g., LLM API keys)
+                     Will be merged with default {"PYTHONPATH": "./"}
+
+        Returns:
+            EnvResult with stdout, exit_code, running_time
+        """
+        self.prepare()
+        self.inject_files(**self.file_dict)
+
+        # Merge default env with custom env_vars
+        run_env = {"PYTHONPATH": "./"}
+        if env_vars:
+            run_env.update(env_vars)
+
+        result = env.run(entry, str(self.workspace_path), env=run_env)
 
         # Unified Docker execution logging for FT scenario
         if isinstance(env, DockerEnv):

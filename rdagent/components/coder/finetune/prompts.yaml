@@ -66,7 +66,7 @@ data_coder:
        ```
        ========== SUMMARY ==========
        Total samples: {count}
-       Success rate: {success}/{total}
+       Raw samples: {total}
        Output file: data.json
        =============================
        ```
@@ -95,6 +95,13 @@ data_coder:
     - **DO NOT process LLM calls sequentially** - always batch and parallelize
     - Implement retry logic (5 retries recommended) for robustness
     - All models share the same api_key and api_base
+
+    ## Scope Clarification (IMPORTANT)
+    **Your script should ONLY handle data processing and output data.json.**
+    - DO NOT generate training configuration files (e.g., train.yaml, training_config.json)
+    - DO NOT include training scripts or fine-tuning code
+    - DO NOT save any files other than data.json
+    - Training configuration will be handled separately by another component
 
     ## Output Format
     Provide ONLY the Python script in a markdown code block:

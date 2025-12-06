@@ -136,7 +136,7 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
 
     # LLM Call
     if "debug_llm" in tag:
-        if isinstance(content, dict) and "system" in content:
+        if isinstance(content, dict) and ("user" in content or "system" in content):
             duration = None
             if content.get("start") and content.get("end"):
                 duration = (content["end"] - content["start"]).total_seconds()
@@ -366,7 +366,10 @@ def load_ft_session(log_path: Path) -> Session:
                 evo = loop.coding[event.evo_id]
                 evo.events.append(event)
                 if event.type == "docker_exec" and event.success is not None:
-                    evo.success = event.success
+                    if evo.success is None:
+                        evo.success = event.success
+                    else:
+                        evo.success = evo.success and event.success  # AND logic: all evaluators must pass
             else:
                 # Coding events without evo_id go to evo 0
                 if 0 not in loop.coding:

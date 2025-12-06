@@ -76,20 +76,14 @@ class FTDataEvaluator(CoSTEEREvaluator):
             # Step 3: Execute script
             env, env_vars = get_data_processing_env(running_timeout_period=3600)
             try:
-                implementation.prepare()
-                implementation.inject_files(**implementation.file_dict)
-                result = env.run(
+                # Use FTWorkspace.run() for unified Docker logging
+                result = implementation.run(
+                    env=env,
                     entry=f"python /workspace/{FT_DATA_SCRIPT_NAME}",
-                    local_path=str(implementation.workspace_path),
-                    env=env_vars,
+                    env_vars=env_vars,
                 )
                 execution_output = result.stdout if hasattr(result, "stdout") else str(result)
                 exit_code = result.exit_code if hasattr(result, "exit_code") else -1
-                # Log Docker execution immediately (before LLM evaluation)
-                logger.log_object(
-                    {"exit_code": exit_code, "stdout": execution_output},
-                    tag=f"docker_run.{self.__class__.__name__}",
-                )
             except Exception as e:
                 logger.error(f"Failed to execute data processing script: {e}")
                 return CoSTEERSingleFeedback(
@@ -189,8 +183,6 @@ class FTDataEvaluator(CoSTEEREvaluator):
             init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
         )
         feedback.raw_execution = raw_stdout
-        # Log for UI display
-        logger.log_object(feedback, tag=f"docker_exec.{self.__class__.__name__}")
         return feedback
 
     def _validate_data_json(self, data_json_path: Path) -> dict:
@@ -374,6 +366,4 @@ class FTCoderEvaluator(CoSTEEREvaluator):
             init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
         )
         feedback.raw_execution = validation_result.raw_stdout or ""
-        # Log for UI display
-        logger.log_object(feedback, tag=f"docker_exec.{self.__class__.__name__}")
         return feedback
