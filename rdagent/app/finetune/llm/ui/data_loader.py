@@ -224,10 +224,14 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
             entry = content.get("entry", "") if isinstance(content, dict) else ""
             if "llamafactory-cli train" in entry and "timeout" not in entry:
                 evaluator_name, default_stage = "Full Train", "runner"
-            elif "process_data" in entry.lower() or "data" in entry.lower():
-                evaluator_name, default_stage = "Data Processing", "coding"
-            else:
+            elif "timeout" in entry and "llamafactory-cli train" in entry:
                 evaluator_name, default_stage = "Micro-batch Test", "coding"
+            elif "process_data" in entry.lower():
+                evaluator_name, default_stage = "Data Processing", "coding"
+            elif entry.startswith("rm "):
+                evaluator_name, default_stage = "Cleanup", "runner"
+            else:
+                evaluator_name, default_stage = "Docker Run", "coding"
         else:
             evaluator_name, default_stage = EVALUATOR_CONFIG.get(class_name, (class_name, "coding"))
 
@@ -271,7 +275,7 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
         success = getattr(content, "final_decision", None)
         title = f"Eval ({evaluator_name}) {'✓' if success else '✗' if success is False else '?'}"
         return Event(
-            type="docker_exec",  # Reuse docker_exec type for consistent rendering
+            type="evaluator",  # Use dedicated evaluator type with 📝 icon
             timestamp=timestamp,
             tag=tag,
             title=title,
@@ -383,7 +387,8 @@ def load_ft_session(log_path: Path) -> Session:
                     loop.coding[event.evo_id] = EvoLoop(evo_id=event.evo_id)
                 evo = loop.coding[event.evo_id]
                 evo.events.append(event)
-                if event.type == "docker_exec" and event.success is not None:
+                # Use evaluator feedback (final_decision) for evo success, fallback to docker_exec
+                if event.type in ("evaluator", "docker_exec") and event.success is not None:
                     if evo.success is None:
                         evo.success = event.success
                     else:

@@ -126,6 +126,7 @@ def render_event(event: Event) -> None:
         "experiment": render_experiment,
         "code": render_code,
         "docker_exec": render_docker_exec,
+        "evaluator": render_docker_exec,  # Reuse docker_exec renderer for evaluator feedback
         "feedback": render_feedback,
         "token": render_token,
         "time": render_time_info,

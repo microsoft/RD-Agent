@@ -14,6 +14,7 @@ EventType = Literal[
     "experiment",
     "code",
     "docker_exec",
+    "evaluator",  # Evaluator feedback (separate from docker_exec)
     "feedback",
     "token",
     "time",
@@ -30,6 +31,7 @@ ICONS = {
     "experiment": "🧪",
     "code": "📄",
     "docker_exec": "🐳",
+    "evaluator": "📝",  # Evaluator feedback icon
     "feedback": "📊",
     "token": "🔢",
     "time": "⏱️",
@@ -53,6 +55,7 @@ ALWAYS_VISIBLE_TYPES = [
     "experiment",
     "code",
     "docker_exec",
+    "evaluator",
     "feedback",
 ]
 
