@@ -85,6 +85,11 @@ class FTDataEvaluator(CoSTEEREvaluator):
                 )
                 execution_output = result.stdout if hasattr(result, "stdout") else str(result)
                 exit_code = result.exit_code if hasattr(result, "exit_code") else -1
+                # Log Docker execution immediately (before LLM evaluation)
+                logger.log_object(
+                    {"exit_code": exit_code, "stdout": execution_output},
+                    tag=f"docker_run.{self.__class__.__name__}",
+                )
             except Exception as e:
                 logger.error(f"Failed to execute data processing script: {e}")
                 return CoSTEERSingleFeedback(
@@ -334,6 +339,7 @@ class FTCoderEvaluator(CoSTEEREvaluator):
         validation_result = LLMConfigValidator().validate_and_test(
             config_yaml=config_yaml, workspace=implementation, env=env
         )
+        # NOTE: Docker execution is logged by FTWorkspace.run() automatically
 
         # Update config with filtered version
         if validation_result.filtered_config != config_yaml:

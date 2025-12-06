@@ -10,14 +10,21 @@ Design Philosophy:
 - This separation keeps concerns clear and checkpoints lightweight
 """
 
+from typing import TYPE_CHECKING
+
 from rdagent.components.coder.finetune.conf import FT_YAML_FILE_NAME
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.experiment import FBWorkspace
+from rdagent.log import rdagent_logger as logger
+from rdagent.utils.env import DockerEnv
+
+if TYPE_CHECKING:
+    from rdagent.utils.env import Env, EnvResult
 
 
 class FTWorkspace(FBWorkspace):
     """
-    Fine-tuning workspace with minimal checkpoint strategy.
+    Fine-tuning workspace with minimal checkpoint strategy and unified Docker logging.
 
     Checkpoint Strategy:
     - Only saves configuration files (train.yaml) for version control
@@ -32,3 +39,21 @@ class FTWorkspace(FBWorkspace):
         # Training outputs are managed separately by save_final_model()
         RD_AGENT_SETTINGS.workspace_ckp_white_list_names = [FT_YAML_FILE_NAME]
         RD_AGENT_SETTINGS.workspace_ckp_size_limit = 100 * 1024
+
+    def run(self, env: "Env", entry: str) -> "EnvResult":
+        """Execute the code in the environment with unified Docker logging."""
+        result = super().run(env, entry)
+
+        # Unified Docker execution logging for FT scenario
+        if isinstance(env, DockerEnv):
+            logger.log_object(
+                {
+                    "exit_code": result.exit_code,
+                    "stdout": result.stdout or "",
+                    "running_time": result.running_time,
+                    "entry": entry,
+                },
+                tag="docker_run.FTWorkspace",
+            )
+
+        return result

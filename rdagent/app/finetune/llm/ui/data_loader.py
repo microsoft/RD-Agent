@@ -7,24 +7,12 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
+import streamlit as st
+
+from rdagent.app.finetune.llm.ui.config import EVALUATOR_CONFIG, EventType
 from rdagent.log.storage import FileStorage
-
-EventType = Literal[
-    "scenario",
-    "llm_call",
-    "template",
-    "experiment",
-    "code",
-    "docker_exec",
-    "feedback",
-    "token",
-    "time",
-    "settings",
-    "hypothesis",
-    "dataset_selection",
-]
 
 
 @dataclass
@@ -211,19 +199,41 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
             stage=stage or "coding",
         )
 
-    # Docker execution (individual evaluator feedback)
-    if "docker_exec." in tag:
-        class_name = tag.split("docker_exec.")[-1].split(".")[0]
-        # Map class names to display names
-        display_names = {
-            "FTDataEvaluator": "Data Processing",
-            "FTCoderEvaluator": "Micro-batch Test",
-            "FTRunnerEvaluator": "Full Train",
-        }
-        evaluator_name = display_names.get(class_name, class_name)
-        # Single feedback object (new format)
-        success = getattr(content, "final_decision", None)
-        title = f"Docker ({evaluator_name}) {'✓' if success else '✗' if success is False else '?'}"
+    # Benchmark Docker execution (must check before generic docker_run.)
+    if "docker_run.Benchmark" in tag:
+        benchmark_name = content.get("benchmark_name", "Unknown") if isinstance(content, dict) else "Unknown"
+        exit_code = content.get("exit_code") if isinstance(content, dict) else None
+        success = exit_code == 0 if exit_code is not None else None
+        return Event(
+            type="docker_exec",
+            timestamp=timestamp,
+            tag=tag,
+            title=f"Benchmark ({benchmark_name}) {'✓' if success else '✗' if success is False else ''}",
+            content=content,
+            loop_id=loop_id,
+            stage="runner",
+            success=success,
+        )
+
+    # Docker run (raw execution, logged before LLM evaluation)
+    if "docker_run." in tag:
+        class_name = tag.split("docker_run.")[-1].split(".")[0]
+
+        # FTWorkspace unified logging - determine type from entry command
+        if class_name == "FTWorkspace":
+            entry = content.get("entry", "") if isinstance(content, dict) else ""
+            if "llamafactory-cli train" in entry and "timeout" not in entry:
+                evaluator_name, default_stage = "Full Train", "runner"
+            elif "process_data" in entry.lower() or "data" in entry.lower():
+                evaluator_name, default_stage = "Data Processing", "coding"
+            else:
+                evaluator_name, default_stage = "Micro-batch Test", "coding"
+        else:
+            evaluator_name, default_stage = EVALUATOR_CONFIG.get(class_name, (class_name, "coding"))
+
+        exit_code = content.get("exit_code") if isinstance(content, dict) else None
+        success = exit_code == 0 if exit_code is not None else content.get("success")
+        title = f"Docker ({evaluator_name}) {'✓' if success else '✗' if success is False else ''}"
         return Event(
             type="docker_exec",
             timestamp=timestamp,
@@ -232,7 +242,25 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
             content=content,
             loop_id=loop_id,
             evo_id=evo_id,
-            stage=stage or "coding",
+            stage=stage or default_stage,
+            success=success,
+        )
+
+    # Docker execution (individual evaluator feedback, logged after LLM evaluation)
+    if "docker_exec." in tag:
+        class_name = tag.split("docker_exec.")[-1].split(".")[0]
+        evaluator_name, default_stage = EVALUATOR_CONFIG.get(class_name, (class_name, "coding"))
+        success = getattr(content, "final_decision", None)
+        title = f"Eval ({evaluator_name}) {'✓' if success else '✗' if success is False else '?'}"
+        return Event(
+            type="docker_exec",
+            timestamp=timestamp,
+            tag=tag,
+            title=title,
+            content=content,
+            loop_id=loop_id,
+            evo_id=evo_id,
+            stage=stage or default_stage,
             success=success,
         )
 
@@ -248,6 +276,20 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
             loop_id=loop_id,
             stage="feedback",
             success=decision,
+        )
+
+    # Benchmark result
+    if "benchmark_result" in tag:
+        benchmark_name = content.get("benchmark_name", "Unknown") if isinstance(content, dict) else "Unknown"
+        accuracy = content.get("accuracy_summary", []) if isinstance(content, dict) else []
+        return Event(
+            type="feedback",
+            timestamp=timestamp,
+            tag=tag,
+            title=f"Benchmark Result ({benchmark_name}: {len(accuracy)} metrics)",
+            content=content,
+            loop_id=loop_id,
+            stage="runner",
         )
 
     # Runner result
@@ -286,6 +328,7 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
     return None
 
 
+@st.cache_data(ttl=300, hash_funcs={Path: str})
 def load_ft_session(log_path: Path) -> Session:
     """Load events into hierarchical session structure"""
     session = Session()

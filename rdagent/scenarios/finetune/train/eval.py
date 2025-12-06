@@ -91,6 +91,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         result = implementation.run(env=env, entry=f"llamafactory-cli train {FT_YAML_FILE_NAME}")
         implementation.running_info.running_time = result.running_time
         raw_stdout = result.stdout or ""
+        # NOTE: Docker execution is logged by FTWorkspace.run() automatically
 
         # Simple success check: exit code
         training_success = result.exit_code == 0
@@ -106,6 +107,8 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
             fb.raw_execution = raw_stdout
+            # Log for UI display (even on failure)
+            logger.log_object(fb, tag=f"docker_exec.{self.__class__.__name__}")
             return fb
         model_output_files = []
         for pattern in ["*.safetensors", "*.bin", "adapter_*"]:

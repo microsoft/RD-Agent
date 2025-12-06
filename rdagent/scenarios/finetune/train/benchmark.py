@@ -315,6 +315,17 @@ def run_benchmark(
             env=env_vars,
         )
 
+        # Log Docker execution immediately (for UI display)
+        logger.log_object(
+            {
+                "exit_code": result.exit_code,
+                "stdout": (result.stdout or ""),
+                "benchmark_name": benchmark_name,
+                "model_path": str(model_path),
+            },
+            tag="docker_run.Benchmark",
+        )
+
         # Check execution status
         if result.exit_code != 0:
             error_msg = result.stdout[-2000:] if result.stdout else "No output"
@@ -335,6 +346,16 @@ def run_benchmark(
 
     # Extract error samples for feedback analysis
     error_samples = extract_error_samples(timestamped_dirs[0], max_samples=max_error_samples)
+
+    # Log benchmark result for UI display
+    logger.log_object(
+        {
+            "accuracy_summary": accuracy_summary,
+            "error_samples": error_samples,
+            "benchmark_name": benchmark_name,
+        },
+        tag="benchmark_result",
+    )
 
     return {
         "accuracy_summary": accuracy_summary,
