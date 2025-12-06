@@ -10,6 +10,7 @@ from rdagent.components.coder.finetune.conf import (
     get_clear_ws_cmd,
     get_ft_env,
 )
+from rdagent.components.coder.finetune.unified_validator import LLMConfigValidator
 from rdagent.components.coder.finetune.exp import FTTask
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace
@@ -151,6 +152,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
                 target_task=target_task,
                 implementation=implementation,
                 raw_stdout=raw_stdout,
+                exit_code=result.exit_code,
                 training_success=True,
                 benchmark_result=benchmark_result,
                 loss_history=loss_history,
@@ -168,6 +170,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
                 target_task=target_task,
                 implementation=implementation,
                 raw_stdout=raw_stdout,
+                exit_code=result.exit_code,
                 training_success=False,
                 error_msg=error_msg,
             )
@@ -177,6 +180,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         target_task: FTTask,
         implementation: FBWorkspace,
         raw_stdout: str,
+        exit_code: int,
         training_success: bool,
         benchmark_result: Optional[Dict] = None,
         loss_history: Optional[List[Dict]] = None,
@@ -185,11 +189,15 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         """Generate LLM-based feedback for runner evaluation."""
         version = "runner_eval" if training_success else "runner_eval_error"
 
+        # Parse execution log to extract structured info (reuse unified_validator's method)
+        # Reduces ~36k tokens to ~500 tokens by extracting: status, errors, metrics, warnings
+        parsed_stdout = LLMConfigValidator()._parse_execution_log(raw_stdout, exit_code)
+
         system_prompt = T(f".prompts:{version}.system").r()
         user_prompt = T(f".prompts:{version}.user").r(
             task_desc=target_task.get_task_information(),
             config_yaml=implementation.file_dict.get(FT_YAML_FILE_NAME, ""),
-            stdout=raw_stdout[-3000:] if raw_stdout else "",  # Truncate from end
+            stdout=parsed_stdout,  # Structured JSON instead of raw truncated log
             benchmark_result=json.dumps(benchmark_result, indent=2) if benchmark_result else "N/A",
             loss_history=json.dumps(loss_history[-20:] if loss_history else [], indent=2),
             error_msg=error_msg or "",
