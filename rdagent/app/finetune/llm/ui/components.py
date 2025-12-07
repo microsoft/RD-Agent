@@ -2,6 +2,7 @@
 FT UI Components - Hierarchical Event Renderers
 """
 
+import re
 from typing import Any
 
 import plotly.graph_objects as go
@@ -137,7 +138,11 @@ def render_event(event: Event) -> None:
 
     renderer = renderers.get(event.type, render_generic)
     with st.expander(title, expanded=False):
-        renderer(event.content)
+        # Pass event.title to docker_exec/evaluator renderers for context-aware labels
+        if event.type in ("docker_exec", "evaluator"):
+            renderer(event.content, event.title)
+        else:
+            renderer(event.content)
 
 
 def render_scenario(content: Any) -> None:
@@ -286,7 +291,13 @@ def render_code(content: Any) -> None:
                 st.code(code, language=lang, line_numbers=True)
 
 
-def _render_single_feedback(fb: Any) -> None:
+def _extract_evaluator_name(title: str) -> str:
+    """Extract evaluator name from event title like 'Eval (Data Processing) ✓'."""
+    match = re.search(r"\(([^)]+)\)", title)
+    return match.group(1) if match else ""
+
+
+def _render_single_feedback(fb: Any, evaluator_name: str = "") -> None:
     """Render a single CoSTEERSingleFeedback object."""
     decision = getattr(fb, "final_decision", None)
     if decision is True:
@@ -296,7 +307,8 @@ def _render_single_feedback(fb: Any) -> None:
 
     execution = getattr(fb, "execution", "")
     if execution:
-        with st.expander("Execution Log", expanded=True):
+        label = f"{evaluator_name} Feedback" if evaluator_name else "Execution Log"
+        with st.expander(label, expanded=True):
             st.code(execution, language="text", line_numbers=True)
 
     raw_execution = getattr(fb, "raw_execution", "")
@@ -315,7 +327,10 @@ def _render_single_feedback(fb: Any) -> None:
         st.markdown(code_fb)
 
 
-def render_docker_exec(content: Any) -> None:
+def render_docker_exec(content: Any, event_title: str = "") -> None:
+    # Extract evaluator name from event title for context-aware labels
+    evaluator_name = _extract_evaluator_name(event_title)
+
     # Docker run raw output (dict with exit_code/stdout)
     if isinstance(content, dict) and ("exit_code" in content or "stdout" in content or "success" in content):
         exit_code = content.get("exit_code")
@@ -333,7 +348,8 @@ def render_docker_exec(content: Any) -> None:
 
         stdout = content.get("stdout", "")
         if stdout:
-            with st.expander("Docker Output", expanded=True):
+            label = f"{evaluator_name} Output" if evaluator_name else "Docker Output"
+            with st.expander(label, expanded=True):
                 st.code(stdout, language="text", line_numbers=True)
         return
 
@@ -342,12 +358,12 @@ def render_docker_exec(content: Any) -> None:
         for i, fb in enumerate(content.feedback_list):
             if len(content.feedback_list) > 1:
                 st.markdown(f"**Feedback {i}**")
-            _render_single_feedback(fb)
+            _render_single_feedback(fb, evaluator_name)
         return
 
     # Single CoSTEERSingleFeedback (has final_decision)
     if hasattr(content, "final_decision"):
-        _render_single_feedback(content)
+        _render_single_feedback(content, evaluator_name)
         return
 
     # FTExperiment (runner result)

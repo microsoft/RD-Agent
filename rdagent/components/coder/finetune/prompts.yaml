@@ -415,7 +415,7 @@ runner_eval_error:
     ## Output Format
     Respond with JSON only:
     {
-        "execution": "Error classification and root cause analysis",
+        "execution": "Error category [OOM/CUDA/Config/Data] and detailed root cause: include the specific error message and which component failed",
         "return_checking": "What failed and what was expected",
         "code": "Specific fixes for the configuration or code",
         "final_decision": false
