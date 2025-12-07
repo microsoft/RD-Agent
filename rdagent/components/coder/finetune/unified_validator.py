@@ -163,16 +163,20 @@ class LLMConfigValidator:
                 error_text = tb_match.group(0)
 
         # Method B: Fallback to generic traceback (no rank prefix)
+        # Use findall to get ALL tracebacks, then keep the first one (root cause)
         if not error_text:
-            generic_match = re.search(
+            all_tracebacks = re.findall(
                 r"Traceback \(most recent call last\):.*?(?:Error|Exception):[^\n]+", stdout, re.DOTALL
             )
-            if generic_match:
-                error_text = generic_match.group(0)
+            if all_tracebacks:
+                # First traceback is usually the root cause
+                error_text = all_tracebacks[0]
+                if len(all_tracebacks) > 1:
+                    error_text += f"\n\n[Note: {len(all_tracebacks)} total errors, showing root cause]"
 
         if error_text:
-            # Limit length but keep from the END (error message is at the end)
-            result["error"] = error_text[-2000:] if len(error_text) > 2000 else error_text
+            # Limit length but keep from the START (root cause is at the start)
+            result["error"] = error_text[:2000] if len(error_text) > 2000 else error_text
 
         # 2. Extract training information
         if "Running training" in stdout:
@@ -249,7 +253,8 @@ class LLMConfigValidator:
             # Run micro-batch training
             workspace.inject_files(**{FT_DEBUG_YAML_FILE_NAME: yaml.dump(test_config, default_flow_style=False)})
             training_result = workspace.run(
-                env=env, entry=f"timeout 300 llamafactory-cli train {FT_DEBUG_YAML_FILE_NAME}"
+                env=env,
+                entry=f"timeout 300 llamafactory-cli train {FT_DEBUG_YAML_FILE_NAME}",
             )
 
             # Remove micro-batch test files

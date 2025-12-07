@@ -6,6 +6,7 @@ from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.exception import CoderError
+from rdagent.core.proposal import HypothesisFeedback
 from rdagent.log import rdagent_logger as logger
 
 
@@ -27,7 +28,6 @@ class LLMFinetuneRDLoop(RDLoop):
     async def direct_exp_gen(self, prev_out: dict[str, Any]):
         """Generate LLM fine-tuning experiment"""
         exp = await self.hypothesis_gen.async_gen(self.trace, self)
-        logger.log_object(exp.hypothesis, tag="hypothesis")
         logger.log_object(exp.sub_tasks, tag="experiment generation")
         return exp
 
@@ -37,3 +37,21 @@ class LLMFinetuneRDLoop(RDLoop):
         exp = self.coder.develop(exp)
         logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
+
+    def feedback(self, prev_out: dict[str, Any]):
+        """Generate feedback for LLM fine-tuning experiment - always call LLM"""
+        e = prev_out.get(self.EXCEPTION_KEY, None)
+
+        # Get experiment from available sources
+        exp = prev_out.get("running") or prev_out.get("coding") or prev_out.get("direct_exp_gen")
+
+        if e is not None:
+            # Error case: pass error info to summarizer for LLM analysis
+            feedback = self.summarizer.generate_feedback(exp, self.trace, error_info=str(e))
+            feedback.acceptable = False
+        else:
+            # Success case: normal LLM analysis
+            feedback = self.summarizer.generate_feedback(exp, self.trace)
+
+        logger.log_object(feedback, tag="feedback")
+        self.trace.hist.append((exp, feedback))

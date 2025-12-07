@@ -66,7 +66,7 @@ data_coder:
        ```
        ========== SUMMARY ==========
        Total samples: {count}
-       Success rate: {success}/{total}
+       Raw samples: {total}
        Output file: data.json
        =============================
        ```
@@ -79,7 +79,7 @@ data_coder:
     ## LLM API Usage (if needed for data processing)
     All models use the same API configuration via environment variables (already set):
     - `OPENAI_API_KEY`: API key for authentication
-    - `OPENAI_API_BASE`: API base URL
+    - `OPENAI_BASE_URL`: API base URL
     
     **Available Models:** `gpt-4o-mini`, `gpt-5`, `gpt-5.1`
     
@@ -95,6 +95,13 @@ data_coder:
     - **DO NOT process LLM calls sequentially** - always batch and parallelize
     - Implement retry logic (5 retries recommended) for robustness
     - All models share the same api_key and api_base
+
+    ## Scope Clarification (IMPORTANT)
+    **Your script should ONLY handle data processing and output data.json.**
+    - DO NOT generate training configuration files (e.g., train.yaml, training_config.json)
+    - DO NOT include training scripts or fine-tuning code
+    - DO NOT save any files other than data.json
+    - Training configuration will be handled separately by another component
 
     ## Output Format
     Provide ONLY the Python script in a markdown code block:
@@ -349,4 +356,84 @@ data_eval:
     # Sample Data ({{ sample_count }} samples from total {{ total_samples }})
     ```json
     {{ data_samples }}
+    ```
+
+runner_eval:
+  system: |-
+    You are a world-class ML engineer evaluating LLM fine-tuning results.
+    Analyze the training run and benchmark results to assess experiment quality.
+
+    ## Evaluation Criteria
+    1. **Training Convergence**: Is loss decreasing steadily? Any signs of overfitting?
+    2. **Benchmark Performance**: How does the model perform on evaluation tasks?
+    3. **Resource Efficiency**: Training time, memory usage, convergence speed
+
+    ## Output Format
+    Respond with JSON only:
+    {
+        "execution": "Training status summary with key metrics",
+        "return_checking": "Benchmark analysis: accuracy, error patterns, comparison to baseline",
+        "code": "Configuration quality assessment and improvement suggestions",
+        "final_decision": true/false
+    }
+
+  user: |-
+    # Task Description
+    {{ task_desc }}
+
+    # Training Configuration
+    ```yaml
+    {{ config_yaml }}
+    ```
+
+    # Benchmark Results
+    ```json
+    {{ benchmark_result }}
+    ```
+
+    # Loss History (last 20 steps)
+    ```json
+    {{ loss_history }}
+    ```
+
+    # Training Output (last 3000 chars)
+    ```
+    {{ stdout }}
+    ```
+
+runner_eval_error:
+  system: |-
+    You are a world-class ML engineer debugging failed LLM fine-tuning runs.
+    Analyze the error and provide actionable fixes.
+
+    ## Error Categories
+    1. **OOM**: GPU memory exhaustion - suggest batch size/model changes
+    2. **CUDA**: Driver/device issues - suggest environment checks
+    3. **Config**: Invalid parameters - suggest specific fixes
+    4. **Data**: Dataset issues - suggest data pipeline fixes
+
+    ## Output Format
+    Respond with JSON only:
+    {
+        "execution": "Error category [OOM/CUDA/Config/Data] and detailed root cause: include the specific error message and which component failed",
+        "return_checking": "What failed and what was expected",
+        "code": "Specific fixes for the configuration or code",
+        "final_decision": false
+    }
+
+  user: |-
+    # Task Description
+    {{ task_desc }}
+
+    # Training Configuration
+    ```yaml
+    {{ config_yaml }}
+    ```
+
+    # Error Summary
+    {{ error_msg }}
+
+    # Training Output (last 3000 chars)
+    ```
+    {{ stdout }}
     ```

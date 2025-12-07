@@ -12,25 +12,20 @@ import streamlit as st
 from streamlit import session_state as state
 
 from rdagent.app.finetune.llm.ui.components import render_session, render_summary
-from rdagent.app.finetune.llm.ui.data_loader import get_summary, get_valid_sessions, load_ft_session
-
-# Always visible types
-ALWAYS_VISIBLE = ["scenario", "dataset_selection", "llm_call", "experiment", "code", "docker_exec", "feedback"]
-
-# Optional types with toggles (label, default)
-OPTIONAL_TYPES = {
-    "template": ("📋 Template", False),
-    "token": ("🔢 Token", False),
-    "time": ("⏱️ Time", False),
-    "settings": ("⚙️ Settings", False),
-}
+from rdagent.app.finetune.llm.ui.config import ALWAYS_VISIBLE_TYPES, OPTIONAL_TYPES
+from rdagent.app.finetune.llm.ui.data_loader import (
+    get_summary,
+    get_valid_sessions,
+    load_ft_session,
+)
 
 
 def main():
     st.set_page_config(layout="wide", page_title="FT Timeline", page_icon="🔬")
 
     # Enable word wrap for code blocks (like VSCode)
-    st.markdown("""
+    st.markdown(
+        """
     <style>
     /* Target all code elements in Streamlit */
     .stCodeBlock pre,
@@ -53,7 +48,9 @@ def main():
         overflow-x: visible !important;
     }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     # ========== Sidebar ==========
     with st.sidebar:
@@ -78,7 +75,7 @@ def main():
 
         # Optional type toggles
         st.subheader("Show More")
-        selected_types = ALWAYS_VISIBLE.copy()
+        selected_types = ALWAYS_VISIBLE_TYPES.copy()
         for event_type, (label, default) in OPTIONAL_TYPES.items():
             if st.toggle(label, value=default, key=f"toggle_{event_type}"):
                 selected_types.append(event_type)

@@ -70,11 +70,11 @@ exp_feedback:
     # Code Change Summary
     - Summarize the user's implementation approach and key components concisely compared to sota methods.
 
-    Provide structured feedback in the following JSON format:
+    Provide structured feedback in the following JSON format (all values must be strings, not arrays):
     {
       "Code Summary": "Concise summary of the implementation approach and key components",
-      "Reason": "Detailed explanation of the decision with specific evidence, root cause analysis, and improvement suggestions",
-      "Decision": "yes or no - whether this experiment should be accepted",
+      "Reason": "A single paragraph (not a list) explaining the decision with specific evidence, root cause analysis, and improvement suggestions. Limit to 3-5 sentences.",
+      "Decision": "yes or no - whether this experiment should be accepted"
     }
 
   user: |-
@@ -126,3 +126,59 @@ exp_feedback:
     - Model Output: {{ sample.model_output[:500] }}{% if sample.model_output | length > 500 %}... (truncated){% endif %}
 
     {% endfor %}
+
+exp_feedback_error:
+  system: |-
+    You are an expert LLM fine-tuning debugger specializing in analyzing experiment failures.
+
+    Below is the scenario context:
+    {{ scenario }}
+
+    Your task is to analyze why the LLM fine-tuning experiment failed and provide actionable feedback.
+
+    # Failure Analysis Framework:
+
+    ## Step 1: Error Classification
+    Identify the type of failure:
+    - Configuration Error: YAML syntax, invalid parameters, missing files
+    - Data Processing Error: Dataset format issues, tokenization failures
+    - Training Error: OOM, CUDA errors, convergence issues
+    - Environment Error: Missing dependencies, version conflicts
+
+    ## Step 2: Root Cause Analysis
+    - Examine the error message and stack trace
+    - Identify the specific component that failed
+    - Determine if it's a code bug, configuration issue, or resource limitation
+
+    ## Step 3: Actionable Suggestions
+    - Provide specific fixes for the identified issues
+    - Suggest configuration changes or code modifications
+    - Recommend debugging steps if root cause is unclear
+
+    Provide structured feedback in JSON format (all values must be strings, not arrays):
+    {
+      "Code Summary": "Brief description of what was attempted",
+      "Reason": "A single paragraph (not a list) with detailed error analysis, root cause, and specific fix suggestions. Limit to 3-5 sentences.",
+      "Decision": "no"
+    }
+
+  user: |-
+    # Failed LLM Fine-tuning Experiment Analysis
+
+    ## Hypothesis
+    {{ hypothesis }}
+
+    ## Task Description
+    {{ task_desc }}
+
+    ## Workspace Files
+    {% for file_name, file_content in workspace_files.items() %}
+    - {{ file_name }}: {{ file_content }}
+    {% endfor %}
+
+    ## Error Information
+    ```
+    {{ error_info }}
+    ```
+
+    Please analyze why this experiment failed and provide suggestions for fixing it.

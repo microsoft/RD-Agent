@@ -59,12 +59,14 @@ class FTDataEvaluator(CoSTEEREvaluator):
 
         # Step 1: Check script exists
         if not script_code:
-            return CoSTEERSingleFeedback(
+            feedback = CoSTEERSingleFeedback(
                 execution=f"No {FT_DATA_SCRIPT_NAME} found",
                 return_checking="Data processing script missing",
                 code="Please generate a data processing script first.",
                 final_decision=False,
             )
+            logger.log_object(feedback, tag="evaluator_feedback.FTDataEvaluator")
+            return feedback
 
         # Step 2: Check if data.json already exists
         if data_json_path.exists():
@@ -76,23 +78,24 @@ class FTDataEvaluator(CoSTEEREvaluator):
             # Step 3: Execute script
             env, env_vars = get_data_processing_env(running_timeout_period=3600)
             try:
-                implementation.prepare()
-                implementation.inject_files(**implementation.file_dict)
-                result = env.run(
+                # Use FTWorkspace.run() for unified Docker logging
+                result = implementation.run(
+                    env=env,
                     entry=f"python /workspace/{FT_DATA_SCRIPT_NAME}",
-                    local_path=str(implementation.workspace_path),
-                    env=env_vars,
+                    env_vars=env_vars,
                 )
                 execution_output = result.stdout if hasattr(result, "stdout") else str(result)
                 exit_code = result.exit_code if hasattr(result, "exit_code") else -1
             except Exception as e:
                 logger.error(f"Failed to execute data processing script: {e}")
-                return CoSTEERSingleFeedback(
+                feedback = CoSTEERSingleFeedback(
                     execution=f"Script execution failed: {e}",
                     return_checking="Execution error",
                     code="Check script for syntax errors or missing dependencies.",
                     final_decision=False,
                 )
+                logger.log_object(feedback, tag="evaluator_feedback.FTDataEvaluator")
+                return feedback
 
             # Step 4: Validate output
             if not data_json_path.exists():
@@ -173,7 +176,9 @@ class FTDataEvaluator(CoSTEEREvaluator):
             data_samples=data_samples,
         )
 
-        logger.info(f"Generating LLM feedback for data evaluation (samples: {total_samples}, has_error: {bool(error_msg)})")
+        logger.info(
+            f"Generating LLM feedback for data evaluation (samples: {total_samples}, has_error: {bool(error_msg)})"
+        )
 
         feedback = build_cls_from_json_with_retry(
             CoSTEERSingleFeedback,
@@ -182,8 +187,7 @@ class FTDataEvaluator(CoSTEEREvaluator):
             init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
         )
         feedback.raw_execution = raw_stdout
-        # Log for UI display
-        logger.log_object(feedback, tag=f"docker_exec.{self.__class__.__name__}")
+        logger.log_object(feedback, tag="evaluator_feedback.FTDataEvaluator")
         return feedback
 
     def _validate_data_json(self, data_json_path: Path) -> dict:
@@ -309,29 +313,34 @@ class FTCoderEvaluator(CoSTEEREvaluator):
             if task_info in queried_knowledge.success_task_to_knowledge_dict:
                 return queried_knowledge.success_task_to_knowledge_dict[task_info].feedback
             elif task_info in queried_knowledge.failed_task_info_set:
-                return CoSTEERSingleFeedback(
+                feedback = CoSTEERSingleFeedback(
                     execution="Task failed too many times, skipping.",
                     return_checking="Task failed too many times, skipping.",
                     code="Task failed too many times, skipping.",
                     final_decision=False,
                 )
+                logger.log_object(feedback, tag="evaluator_feedback.FTCoderEvaluator")
+                return feedback
 
         env = get_ft_env(
             running_timeout_period=self.scen.real_debug_timeout() if hasattr(self.scen, "real_debug_timeout") else 3600,
         )
         config_yaml = implementation.file_dict.get(FT_YAML_FILE_NAME, "")
         if not config_yaml:
-            return CoSTEERSingleFeedback(
+            feedback = CoSTEERSingleFeedback(
                 execution=f"No {FT_YAML_FILE_NAME} found",
                 return_checking="Configuration file missing",
                 code="No valid configuration file",
                 final_decision=False,
             )
+            logger.log_object(feedback, tag="evaluator_feedback.FTCoderEvaluator")
+            return feedback
 
         # Two-step validation: parameter filtering + micro-batch test
         validation_result = LLMConfigValidator().validate_and_test(
             config_yaml=config_yaml, workspace=implementation, env=env
         )
+        # NOTE: Docker execution is logged by FTWorkspace.run() automatically
 
         # Update config with filtered version
         if validation_result.filtered_config != config_yaml:
@@ -366,6 +375,5 @@ class FTCoderEvaluator(CoSTEEREvaluator):
             init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
         )
         feedback.raw_execution = validation_result.raw_stdout or ""
-        # Log for UI display
-        logger.log_object(feedback, tag=f"docker_exec.{self.__class__.__name__}")
+        logger.log_object(feedback, tag="evaluator_feedback.FTCoderEvaluator")
         return feedback

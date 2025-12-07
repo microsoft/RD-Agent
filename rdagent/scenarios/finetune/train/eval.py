@@ -10,11 +10,14 @@ from rdagent.components.coder.finetune.conf import (
     get_clear_ws_cmd,
     get_ft_env,
 )
+from rdagent.components.coder.finetune.unified_validator import LLMConfigValidator
 from rdagent.components.coder.finetune.exp import FTTask
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.finetune.train.benchmark import run_benchmark
+from rdagent.utils.agent.tpl import T
+from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 
 
 def extract_loss_history(output_path) -> List[Dict[str, Any]]:
@@ -80,17 +83,24 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
 
         # Check if FT_YAML_FILE_NAME exists
         if FT_YAML_FILE_NAME not in implementation.file_dict:
-            return CoSTEERSingleFeedback(
+            fb = CoSTEERSingleFeedback(
                 execution=f"No {FT_YAML_FILE_NAME} found in workspace",
                 return_checking="Config file missing",
                 code="No valid configuration file",
                 final_decision=False,
             )
+            implementation.feedback = fb
+            logger.log_object(fb, tag="evaluator_feedback.FTRunnerEvaluator")
+            return fb
 
         # Execute LlamaFactory training
-        result = implementation.run(env=env, entry=f"llamafactory-cli train {FT_YAML_FILE_NAME}")
+        result = implementation.run(
+            env=env,
+            entry=f"llamafactory-cli train {FT_YAML_FILE_NAME}",
+        )
         implementation.running_info.running_time = result.running_time
         raw_stdout = result.stdout or ""
+        # NOTE: Docker execution is logged by FTWorkspace.run() automatically
 
         # Simple success check: exit code
         training_success = result.exit_code == 0
@@ -98,23 +108,29 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         # Check for model output files
         workspace_path = implementation.workspace_path
         output_path = workspace_path / "output"
-        if not output_path.exists():
-            fb = CoSTEERSingleFeedback(
-                execution=f"Output directory not found (exit_code={result.exit_code})",
-                return_checking="Training failed - no output generated",
-                code="Check training logs for errors",
-                final_decision=False,
+        model_output_files = list(output_path.glob("*.safetensors")) + list(output_path.glob("*.bin")) + list(output_path.glob("adapter_*")) if output_path.exists() else []
+
+        # Early return if training failed
+        if not training_success or len(model_output_files) == 0:
+            if not output_path.exists():
+                error_msg = f"Output directory not found (exit_code={result.exit_code})"
+            elif not training_success:
+                error_msg = f"Training failed (exit_code={result.exit_code})"
+            else:
+                error_msg = "No model output files generated"
+            return self._generate_llm_feedback(
+                target_task=target_task,
+                implementation=implementation,
+                raw_stdout=raw_stdout,
+                exit_code=result.exit_code,
+                training_success=False,
+                error_msg=error_msg,
             )
-            fb.raw_execution = raw_stdout
-            return fb
-        model_output_files = []
-        for pattern in ["*.safetensors", "*.bin", "adapter_*"]:
-            model_output_files.extend(output_path.glob(pattern))
 
         # Extract loss history from training output
         loss_history = extract_loss_history(output_path)
 
-        # Use open-compass to evaluate the model on benchmark
+        # Use open-compass to evaluate the model on benchmark (only if training succeeded)
         benchmark_result = run_benchmark(
             workspace_path=str(workspace_path),
             model_path=output_path,
@@ -132,29 +148,74 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
             },
         }
 
-        # Final decision: training succeeded AND model files exist
+        # Final decision: training succeeded AND model files exist AND benchmark ran
         final_decision = training_success and len(model_output_files) > 0 and benchmark_result is not None
 
-        # Build minimal feedback
-        execution_msg = f"Training {'succeeded' if training_success else 'failed'} (exit_code={result.exit_code})"
-        if model_output_files:
-            model_msg = f"Found {len(model_output_files)} model output files"
+        # Call LLM for feedback analysis (both success and failure cases)
+        if final_decision:
+            # Success: analyze benchmark results and training metrics
+            return self._generate_llm_feedback(
+                target_task=target_task,
+                implementation=implementation,
+                raw_stdout=raw_stdout,
+                exit_code=result.exit_code,
+                training_success=True,
+                benchmark_result=benchmark_result,
+                loss_history=loss_history,
+            )
         else:
-            model_msg = "No model output files found"
+            # Failure: analyze error cause
+            error_msg = f"exit_code={result.exit_code}"
+            if not training_success:
+                error_msg = f"Training failed: {error_msg}"
+            elif len(model_output_files) == 0:
+                error_msg = "No model output files generated"
+            elif benchmark_result is None:
+                error_msg = "Benchmark evaluation failed"
+            return self._generate_llm_feedback(
+                target_task=target_task,
+                implementation=implementation,
+                raw_stdout=raw_stdout,
+                exit_code=result.exit_code,
+                training_success=False,
+                error_msg=error_msg,
+            )
 
-        if benchmark_result:
-            accuracy_summary = benchmark_result.get("accuracy_summary", [])
-            model_msg += f"; Benchmark result: {accuracy_summary}"
+    def _generate_llm_feedback(
+        self,
+        target_task: FTTask,
+        implementation: FBWorkspace,
+        raw_stdout: str,
+        exit_code: int,
+        training_success: bool,
+        benchmark_result: Optional[Dict] = None,
+        loss_history: Optional[List[Dict]] = None,
+        error_msg: Optional[str] = None,
+    ) -> CoSTEERSingleFeedback:
+        """Generate LLM-based feedback for runner evaluation."""
+        version = "runner_eval" if training_success else "runner_eval_error"
 
-        feedback_msg = f"{execution_msg}. {model_msg}."
+        # Parse execution log to extract structured info (reuse unified_validator's method)
+        # Reduces ~36k tokens to ~500 tokens by extracting: status, errors, metrics, warnings
+        parsed_stdout = LLMConfigValidator()._parse_execution_log(raw_stdout, exit_code)
 
-        fb = CoSTEERSingleFeedback(
-            execution=feedback_msg,
-            return_checking=model_msg,
-            code=execution_msg,
-            final_decision=final_decision,
+        system_prompt = T(f"rdagent.components.coder.finetune.prompts:{version}.system").r()
+        user_prompt = T(f"rdagent.components.coder.finetune.prompts:{version}.user").r(
+            task_desc=target_task.get_task_information(),
+            config_yaml=implementation.file_dict.get(FT_YAML_FILE_NAME, ""),
+            stdout=parsed_stdout,  # Structured JSON instead of raw truncated log
+            benchmark_result=json.dumps(benchmark_result, indent=2) if benchmark_result else "N/A",
+            loss_history=json.dumps(loss_history[-20:] if loss_history else [], indent=2),
+            error_msg=error_msg or "",
         )
-        fb.raw_execution = raw_stdout
-        # Log for UI display
-        logger.log_object(fb, tag=f"docker_exec.{self.__class__.__name__}")
-        return fb
+
+        feedback = build_cls_from_json_with_retry(
+            CoSTEERSingleFeedback,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
+        )
+        feedback.raw_execution = raw_stdout
+        implementation.feedback = feedback
+        logger.log_object(feedback, tag="evaluator_feedback.FTRunnerEvaluator")
+        return feedback

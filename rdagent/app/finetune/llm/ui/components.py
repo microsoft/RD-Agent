@@ -2,28 +2,14 @@
 FT UI Components - Hierarchical Event Renderers
 """
 
+import re
 from typing import Any
 
 import plotly.graph_objects as go
 import streamlit as st
 
+from rdagent.app.finetune.llm.ui.config import ICONS
 from rdagent.app.finetune.llm.ui.data_loader import Event, EvoLoop, Loop, Session
-
-# Event type icons
-ICONS = {
-    "scenario": "🎯",
-    "llm_call": "💬",
-    "template": "📋",
-    "experiment": "🧪",
-    "code": "📄",
-    "docker_exec": "🐳",
-    "feedback": "📊",
-    "token": "🔢",
-    "time": "⏱️",
-    "settings": "⚙️",
-    "hypothesis": "💡",
-    "dataset_selection": "📂",
-}
 
 
 def format_duration(seconds: float | None) -> str:
@@ -53,7 +39,7 @@ def render_session(session: Session, show_types: list[str]) -> None:
 
 
 def render_loop(loop: Loop, show_types: list[str]) -> None:
-    """Render a single loop with its stages"""
+    """Render a single loop with lazy loading"""
     # Count successes/failures for loop header
     evo_results = []
     for evo in loop.coding.values():
@@ -63,37 +49,50 @@ def render_loop(loop: Loop, show_types: list[str]) -> None:
             evo_results.append("✗")
     result_str = " ".join(evo_results) if evo_results else ""
 
-    with st.expander(f"🔄 **Loop {loop.loop_id}** {result_str}", expanded=True):
-        # Exp Gen
-        if loop.exp_gen:
-            filtered = [e for e in loop.exp_gen if e.type in show_types]
-            if filtered:
-                st.markdown("#### 🧪 Experiment Generation")
-                for event in filtered:
-                    render_event(event)
+    loop_key = f"loop_{loop.loop_id}_loaded"
+    with st.expander(f"🔄 **Loop {loop.loop_id}** {result_str}", expanded=False):
+        if not st.session_state.get(loop_key, False):
+            # Lazy load: show button first
+            if st.button("📥 Load Content", key=f"load_{loop.loop_id}"):
+                st.session_state[loop_key] = True
+                st.rerun()
+        else:
+            # Render actual content
+            _render_loop_content(loop, show_types)
 
-        # Coding (Evo Loops)
-        if loop.coding:
-            st.markdown("#### 💻 Coding")
-            for evo_id in sorted(loop.coding.keys()):
-                evo = loop.coding[evo_id]
-                render_evo_loop(evo, show_types)
 
-        # Runner
-        if loop.runner:
-            filtered = [e for e in loop.runner if e.type in show_types]
-            if filtered:
-                st.markdown("#### 🏃 Running(Full Train)")
-                for event in filtered:
-                    render_event(event)
+def _render_loop_content(loop: Loop, show_types: list[str]) -> None:
+    """Render loop content (called after lazy load)"""
+    # Exp Gen
+    if loop.exp_gen:
+        filtered = [e for e in loop.exp_gen if e.type in show_types]
+        if filtered:
+            st.markdown("#### 🧪 Experiment Generation")
+            for event in filtered:
+                render_event(event)
 
-        # Feedback
-        if loop.feedback:
-            filtered = [e for e in loop.feedback if e.type in show_types]
-            if filtered:
-                st.markdown("#### 📊 Feedback")
-                for event in filtered:
-                    render_event(event)
+    # Coding (Evo Loops)
+    if loop.coding:
+        st.markdown("#### 💻 Coding")
+        for evo_id in sorted(loop.coding.keys()):
+            evo = loop.coding[evo_id]
+            render_evo_loop(evo, show_types)
+
+    # Runner
+    if loop.runner:
+        filtered = [e for e in loop.runner if e.type in show_types]
+        if filtered:
+            st.markdown("#### 🏃 Running(Full Train)")
+            for event in filtered:
+                render_event(event)
+
+    # Feedback
+    if loop.feedback:
+        filtered = [e for e in loop.feedback if e.type in show_types]
+        if filtered:
+            st.markdown("#### 📊 Feedback")
+            for event in filtered:
+                render_event(event)
 
 
 def render_evo_loop(evo: EvoLoop, show_types: list[str]) -> None:
@@ -128,6 +127,7 @@ def render_event(event: Event) -> None:
         "experiment": render_experiment,
         "code": render_code,
         "docker_exec": render_docker_exec,
+        "evaluator": render_docker_exec,  # Reuse docker_exec renderer for evaluator feedback
         "feedback": render_feedback,
         "token": render_token,
         "time": render_time_info,
@@ -138,7 +138,11 @@ def render_event(event: Event) -> None:
 
     renderer = renderers.get(event.type, render_generic)
     with st.expander(title, expanded=False):
-        renderer(event.content)
+        # Pass event.title to docker_exec/evaluator renderers for context-aware labels
+        if event.type in ("docker_exec", "evaluator"):
+            renderer(event.content, event.title)
+        else:
+            renderer(event.content)
 
 
 def render_scenario(content: Any) -> None:
@@ -287,38 +291,79 @@ def render_code(content: Any) -> None:
                 st.code(code, language=lang, line_numbers=True)
 
 
-def render_docker_exec(content: Any) -> None:
-    # CoSTEERMultiFeedback (evolving feedback)
+def _extract_evaluator_name(title: str) -> str:
+    """Extract evaluator name from event title like 'Eval (Data Processing) ✓'."""
+    match = re.search(r"\(([^)]+)\)", title)
+    return match.group(1) if match else ""
+
+
+def _render_single_feedback(fb: Any, evaluator_name: str = "") -> None:
+    """Render a single CoSTEERSingleFeedback object."""
+    decision = getattr(fb, "final_decision", None)
+    if decision is True:
+        st.success("Execution: PASS")
+    elif decision is False:
+        st.error("Execution: FAIL")
+
+    execution = getattr(fb, "execution", "")
+    if execution:
+        label = f"{evaluator_name} Feedback" if evaluator_name else "Execution Log"
+        with st.expander(label, expanded=True):
+            st.code(execution, language="text", line_numbers=True)
+
+    raw_execution = getattr(fb, "raw_execution", "")
+    if raw_execution:
+        with st.expander("Full Docker Log", expanded=False):
+            st.code(raw_execution, language="text", line_numbers=True)
+
+    return_checking = getattr(fb, "return_checking", "")
+    if return_checking:
+        with st.expander("Return Checking", expanded=False):
+            st.code(return_checking, language="text", line_numbers=True)
+
+    code_fb = getattr(fb, "code", "")
+    if code_fb:
+        st.markdown("**Code Feedback:**")
+        st.markdown(code_fb)
+
+
+def render_docker_exec(content: Any, event_title: str = "") -> None:
+    # Extract evaluator name from event title for context-aware labels
+    evaluator_name = _extract_evaluator_name(event_title)
+
+    # Docker run raw output (dict with exit_code/stdout)
+    if isinstance(content, dict) and ("exit_code" in content or "stdout" in content or "success" in content):
+        exit_code = content.get("exit_code")
+        success = content.get("success")
+        if exit_code is not None:
+            if exit_code == 0:
+                st.success(f"Exit code: {exit_code}")
+            else:
+                st.error(f"Exit code: {exit_code}")
+        elif success is not None:
+            if success:
+                st.success("Execution: PASS")
+            else:
+                st.error("Execution: FAIL")
+
+        stdout = content.get("stdout", "")
+        if stdout:
+            label = f"{evaluator_name} Output" if evaluator_name else "Docker Output"
+            with st.expander(label, expanded=True):
+                st.code(stdout, language="text", line_numbers=True)
+        return
+
+    # CoSTEERMultiFeedback (has feedback_list)
     if hasattr(content, "feedback_list"):
         for i, fb in enumerate(content.feedback_list):
             if len(content.feedback_list) > 1:
                 st.markdown(f"**Feedback {i}**")
+            _render_single_feedback(fb, evaluator_name)
+        return
 
-            decision = getattr(fb, "final_decision", None)
-            if decision is True:
-                st.success("Execution: PASS")
-            elif decision is False:
-                st.error("Execution: FAIL")
-
-            execution = getattr(fb, "execution", "")
-            if execution:
-                with st.expander("Execution Log", expanded=True):
-                    st.code(execution, language="text", line_numbers=True)
-
-            raw_execution = getattr(fb, "raw_execution", "")
-            if raw_execution:
-                with st.expander("Full Docker Log", expanded=False):
-                    st.code(raw_execution, language="text", line_numbers=True)
-
-            return_checking = getattr(fb, "return_checking", "")
-            if return_checking:
-                with st.expander("Return Checking", expanded=False):
-                    st.code(return_checking, language="text", line_numbers=True)
-
-            code_fb = getattr(fb, "code", "")
-            if code_fb:
-                st.markdown("**Code Feedback:**")
-                st.markdown(code_fb)
+    # Single CoSTEERSingleFeedback (has final_decision)
+    if hasattr(content, "final_decision"):
+        _render_single_feedback(content, evaluator_name)
         return
 
     # FTExperiment (runner result)
@@ -346,6 +391,11 @@ def render_docker_exec(content: Any) -> None:
 
 
 def render_feedback(content: Any) -> None:
+    # Handle benchmark result (dict with accuracy_summary)
+    if isinstance(content, dict) and "accuracy_summary" in content:
+        render_benchmark_result(content)
+        return
+
     col1, col2 = st.columns(2)
     with col1:
         decision = getattr(content, "decision", None)
@@ -356,12 +406,10 @@ def render_feedback(content: Any) -> None:
         if acceptable is not None:
             st.metric("Acceptable", "Yes" if acceptable else "No")
 
+    # FT scenario only uses code_change_summary (observations, hypothesis_evaluation,
+    # new_hypothesis, eda_improvement are DS scenario specific)
     fields = [
         ("code_change_summary", "Code Change Summary"),
-        ("observations", "Observations"),
-        ("hypothesis_evaluation", "Hypothesis Evaluation"),
-        ("new_hypothesis", "New Hypothesis"),
-        ("eda_improvement", "EDA Improvement"),
     ]
 
     for attr, label in fields:
@@ -436,6 +484,29 @@ def render_training_result(result: dict) -> None:
         accuracy_summary = benchmark.get("accuracy_summary", [])
         if accuracy_summary:
             st.dataframe(accuracy_summary)
+
+
+def render_benchmark_result(content: dict) -> None:
+    """Render benchmark evaluation result"""
+    benchmark_name = content.get("benchmark_name", "Unknown")
+    st.markdown(f"**Benchmark: {benchmark_name}**")
+
+    # Accuracy summary table
+    accuracy_summary = content.get("accuracy_summary", [])
+    if accuracy_summary:
+        st.markdown("**Accuracy Summary:**")
+        st.dataframe(accuracy_summary)
+
+    # Error samples
+    error_samples = content.get("error_samples", [])
+    if error_samples:
+        with st.expander(f"Error Samples ({len(error_samples)})", expanded=False):
+            for i, sample in enumerate(error_samples):
+                st.markdown(f"**Sample {i+1}:**")
+                st.markdown(f"- **Question:** {sample.get('question', 'N/A')[:500]}...")
+                st.markdown(f"- **Gold:** {sample.get('gold', 'N/A')}")
+                st.markdown(f"- **Model Output:** {sample.get('model_output', 'N/A')[:500]}...")
+                st.divider()
 
 
 def render_summary(summary: dict) -> None:

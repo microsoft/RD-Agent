@@ -5,10 +5,10 @@ from pathlib import Path
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.finetune.conf import get_ft_env
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.scenarios.finetune.datasets import prepare_all
 from rdagent.scenarios.finetune.scen.llama_factory_manager import LLaMAFactory_manager
-from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.finetune.scen.utils import (
     FinetuneDatasetDescriptor,
     _truncate_long_values,
@@ -120,8 +120,7 @@ class LLMFinetuneScen(DataScienceScen):
                 "readme": ds_config.get("readme"),
                 "description": ds_config.get("description"),
                 "first_sample": (
-                    _truncate_long_values(ds_config["samples"][0], max_length=500)
-                    if ds_config.get("samples") else None
+                    _truncate_long_values(ds_config["samples"][0], max_length=500) if ds_config.get("samples") else None
                 ),
             }
             for ds_name, ds_config in self.dataset_config.items()
@@ -169,7 +168,9 @@ class LLMFinetuneScen(DataScienceScen):
 
         # Generate config for all datasets (will be filtered later by _select_relevant_datasets)
         target_dataset_list = [] if self.dataset is None else [self.dataset]
-        logger.info(f"Generating dataset_info.json configuration for: {target_dataset_list if target_dataset_list else 'all datasets'}")
+        logger.info(
+            f"Generating dataset_info.json configuration for: {target_dataset_list if target_dataset_list else 'all datasets'}"
+        )
         generated_config = generate_dataset_info_config(target_dataset_list, FT_RD_SETTING.file_path, existing_config)
         for dataset_name, config in generated_config.items():
             existing_config[dataset_name] = config
