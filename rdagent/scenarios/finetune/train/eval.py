@@ -89,6 +89,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
                 code="No valid configuration file",
                 final_decision=False,
             )
+            implementation.feedback = fb
             logger.log_object(fb, tag="evaluator_feedback.FTRunnerEvaluator")
             return fb
 
@@ -107,23 +108,16 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         # Check for model output files
         workspace_path = implementation.workspace_path
         output_path = workspace_path / "output"
-        if not output_path.exists():
-            fb = CoSTEERSingleFeedback(
-                execution=f"Output directory not found (exit_code={result.exit_code})",
-                return_checking="Training failed - no output generated",
-                code="Check training logs for errors",
-                final_decision=False,
-            )
-            fb.raw_execution = raw_stdout
-            logger.log_object(fb, tag="evaluator_feedback.FTRunnerEvaluator")
-            return fb
-        model_output_files = []
-        for pattern in ["*.safetensors", "*.bin", "adapter_*"]:
-            model_output_files.extend(output_path.glob(pattern))
+        model_output_files = list(output_path.glob("*.safetensors")) + list(output_path.glob("*.bin")) + list(output_path.glob("adapter_*")) if output_path.exists() else []
 
-        # Early return if training failed or no model files generated
+        # Early return if training failed
         if not training_success or len(model_output_files) == 0:
-            error_msg = f"Training failed (exit_code={result.exit_code})" if not training_success else "No model output files generated"
+            if not output_path.exists():
+                error_msg = f"Output directory not found (exit_code={result.exit_code})"
+            elif not training_success:
+                error_msg = f"Training failed (exit_code={result.exit_code})"
+            else:
+                error_msg = "No model output files generated"
             return self._generate_llm_feedback(
                 target_task=target_task,
                 implementation=implementation,
@@ -222,5 +216,6 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
             init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
         )
         feedback.raw_execution = raw_stdout
+        implementation.feedback = feedback
         logger.log_object(feedback, tag="evaluator_feedback.FTRunnerEvaluator")
         return feedback

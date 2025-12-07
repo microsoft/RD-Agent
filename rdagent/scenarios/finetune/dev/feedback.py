@@ -50,6 +50,27 @@ class FTExperiment2Feedback(Experiment2Feedback):
         if error_info is not None:
             # Error case: use error analysis prompt
             version = "exp_feedback_error"
+
+            # Try to get FTRunnerEvaluator's analysis result from workspace
+            # This contains structured feedback (execution, return_checking, code) instead of raw error string
+            runner_feedback = None
+            if exp.sub_workspace_list:
+                for ws in exp.sub_workspace_list:
+                    if ws and hasattr(ws, "feedback") and ws.feedback:
+                        runner_feedback = ws.feedback
+                        break
+
+            if runner_feedback:
+                # Use FTRunnerEvaluator's structured analysis result
+                error_info = f"""## Execution Analysis
+{runner_feedback.execution}
+
+## Return Checking
+{runner_feedback.return_checking}
+
+## Code Analysis
+{runner_feedback.code}"""
+
             system_prompt = T(f".prompts:{version}.system").r(
                 scenario=self.scen.get_scenario_all_desc(),
             )
