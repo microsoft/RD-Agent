@@ -70,11 +70,11 @@ exp_feedback:
     # Code Change Summary
     - Summarize the user's implementation approach and key components concisely compared to sota methods.
 
-    Provide structured feedback in the following JSON format:
+    Provide structured feedback in the following JSON format (all values must be strings, not arrays):
     {
       "Code Summary": "Concise summary of the implementation approach and key components",
-      "Reason": "Detailed explanation of the decision with specific evidence, root cause analysis, and improvement suggestions",
-      "Decision": "yes or no - whether this experiment should be accepted",
+      "Reason": "A single paragraph (not a list) explaining the decision with specific evidence, root cause analysis, and improvement suggestions. Limit to 3-5 sentences.",
+      "Decision": "yes or no - whether this experiment should be accepted"
     }
 
   user: |-
@@ -155,10 +155,10 @@ exp_feedback_error:
     - Suggest configuration changes or code modifications
     - Recommend debugging steps if root cause is unclear
 
-    Provide structured feedback in JSON format:
+    Provide structured feedback in JSON format (all values must be strings, not arrays):
     {
       "Code Summary": "Brief description of what was attempted",
-      "Reason": "Detailed error analysis with root cause and specific fix suggestions",
+      "Reason": "A single paragraph (not a list) with detailed error analysis, root cause, and specific fix suggestions. Limit to 3-5 sentences.",
       "Decision": "no"
     }
 

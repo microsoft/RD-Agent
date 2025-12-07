@@ -121,10 +121,22 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         for pattern in ["*.safetensors", "*.bin", "adapter_*"]:
             model_output_files.extend(output_path.glob(pattern))
 
+        # Early return if training failed or no model files generated
+        if not training_success or len(model_output_files) == 0:
+            error_msg = f"Training failed (exit_code={result.exit_code})" if not training_success else "No model output files generated"
+            return self._generate_llm_feedback(
+                target_task=target_task,
+                implementation=implementation,
+                raw_stdout=raw_stdout,
+                exit_code=result.exit_code,
+                training_success=False,
+                error_msg=error_msg,
+            )
+
         # Extract loss history from training output
         loss_history = extract_loss_history(output_path)
 
-        # Use open-compass to evaluate the model on benchmark
+        # Use open-compass to evaluate the model on benchmark (only if training succeeded)
         benchmark_result = run_benchmark(
             workspace_path=str(workspace_path),
             model_path=output_path,
@@ -193,8 +205,8 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         # Reduces ~36k tokens to ~500 tokens by extracting: status, errors, metrics, warnings
         parsed_stdout = LLMConfigValidator()._parse_execution_log(raw_stdout, exit_code)
 
-        system_prompt = T(f".prompts:{version}.system").r()
-        user_prompt = T(f".prompts:{version}.user").r(
+        system_prompt = T(f"rdagent.components.coder.finetune.prompts:{version}.system").r()
+        user_prompt = T(f"rdagent.components.coder.finetune.prompts:{version}.user").r(
             task_desc=target_task.get_task_information(),
             config_yaml=implementation.file_dict.get(FT_YAML_FILE_NAME, ""),
             stdout=parsed_stdout,  # Structured JSON instead of raw truncated log

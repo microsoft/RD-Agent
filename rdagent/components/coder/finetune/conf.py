@@ -133,7 +133,7 @@ def get_data_processing_env(
     This environment is configured for running data processing scripts that may
     need to call LLM APIs. It includes:
     - Standard finetune volume mounts (datasets, models)
-    - LLM API environment variables (OPENAI_API_KEY, OPENAI_API_BASE, etc.)
+    - LLM API environment variables (OPENAI_API_KEY, OPENAI_BASE_URL, etc.)
 
     Args:
         running_timeout_period: Timeout for script execution (default 1 hour)
@@ -150,10 +150,14 @@ def get_data_processing_env(
 
     # Collect LLM API environment variables to pass to env.run()
     llm_env_vars = {"PYTHONPATH": "./"}  # Base env var
-    for key in ["OPENAI_API_KEY", "OPENAI_API_BASE"]:
-        value = os.getenv(key)
-        if value:
-            llm_env_vars[key] = value
+
+    # Pass OPENAI_API_KEY directly
+    if api_key := os.getenv("OPENAI_API_KEY"):
+        llm_env_vars["OPENAI_API_KEY"] = api_key
+
+    # Read OPENAI_API_BASE from env, but pass as OPENAI_BASE_URL (OpenAI SDK expects this name)
+    if api_base := os.getenv("OPENAI_API_BASE"):
+        llm_env_vars["OPENAI_BASE_URL"] = api_base
 
     return env, llm_env_vars
 

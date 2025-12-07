@@ -79,7 +79,7 @@ data_coder:
     ## LLM API Usage (if needed for data processing)
     All models use the same API configuration via environment variables (already set):
     - `OPENAI_API_KEY`: API key for authentication
-    - `OPENAI_API_BASE`: API base URL
+    - `OPENAI_BASE_URL`: API base URL
     
     **Available Models:** `gpt-4o-mini`, `gpt-5`, `gpt-5.1`
     

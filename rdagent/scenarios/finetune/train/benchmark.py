@@ -72,13 +72,26 @@ def get_model_inference_config(base_model_name: str) -> dict:
 
     Returns:
         dict: Merged configuration (model-specific overrides default)
-
-    Raises:
-        FileNotFoundError: If model_inference_configs.yaml not found
+              Uses exact match first, then longest prefix match, finally default only.
     """
     config_data = yaml.safe_load(open(Path(__file__).parent / "benchmark_configs" / "models.yaml", "r"))
 
-    final_config = {**config_data.get("default", {}), **config_data["models"].get(base_model_name)}
+    default_config = config_data.get("default", {})
+    models_config = config_data.get("models", {})
+
+    # 1. Exact match
+    if base_model_name in models_config:
+        model_specific = models_config[base_model_name]
+    else:
+        # 2. Prefix match - find longest matching prefix
+        model_specific = {}
+        best_match_len = 5
+        for configured_model in models_config:
+            if base_model_name.startswith(configured_model) and len(configured_model) > best_match_len:
+                model_specific = models_config[configured_model]
+                best_match_len = len(configured_model)
+
+    final_config = {**default_config, **model_specific}
 
     # Handle auto tensor_parallel_size
     if final_config.get("tensor_parallel_size") == "auto":
