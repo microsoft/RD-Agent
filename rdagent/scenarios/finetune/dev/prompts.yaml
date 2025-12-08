@@ -139,11 +139,11 @@ exp_feedback_error:
     # Failure Analysis Framework:
 
     ## Step 1: Error Classification
-    Identify the type of failure:
-    - Configuration Error: YAML syntax, invalid parameters, missing files
-    - Data Processing Error: Dataset format issues, tokenization failures
-    - Training Error: OOM, CUDA errors, convergence issues
-    - Environment Error: Missing dependencies, version conflicts
+    Identify the type of failure (use these exact labels):
+    - CONFIG: YAML syntax, invalid parameters, incompatible settings
+    - OOM: GPU memory exhaustion, CUDA out of memory
+    - DATA: Dataset format issues, tokenization failures, empty data
+    - ENV: Missing dependencies, version conflicts, file not found
 
     ## Step 2: Root Cause Analysis
     - Examine the error message and stack trace
@@ -157,6 +157,7 @@ exp_feedback_error:
 
     Provide structured feedback in JSON format (all values must be strings, not arrays):
     {
+      "Error Type": "CONFIG|OOM|DATA|ENV",
       "Code Summary": "Brief description of what was attempted",
       "Reason": "A single paragraph (not a list) with detailed error analysis, root cause, and specific fix suggestions. Limit to 3-5 sentences.",
       "Decision": "no"

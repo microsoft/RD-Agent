@@ -244,10 +244,8 @@ unified_hypothesis_gen:
     {% if experiment.hypothesis %}
     - Hypothesis: {{ experiment.hypothesis.hypothesis }}
     {% endif %}
-    - Result: {{ "✅ Successful" if feedback.decision else "❌ Failed" }}
-    {% if feedback.observations %}
-    - Observations: {{ feedback.observations }}
-    {% endif %}
+    - Result: {{ "✅ Successful" if feedback.decision else "❌ Failed" }}{% if feedback.observations %} [{{ feedback.observations }}]{% endif %}
+
     {% if feedback.reason %}
     - Reason: {{ feedback.reason }}
     {% endif %}

@@ -120,11 +120,13 @@ class FTExperiment2Feedback(Experiment2Feedback):
         )
 
         # Extract feedback components
+        error_type = resp_dict.get("Error Type") if error_info is not None else None
         hypothesis_feedback = HypothesisFeedback(
             code_change_summary=dict_get_with_warning(resp_dict, "Code Summary", "No code summary provided"),
             reason=dict_get_with_warning(resp_dict, "Reason", "No reasoning provided"),
             decision=convert2bool(dict_get_with_warning(resp_dict, "Decision", "no")),
             acceptable=error_info is None,  # Only acceptable if no error
+            observations=error_type,  # Store error type for history display
         )
 
         return hypothesis_feedback

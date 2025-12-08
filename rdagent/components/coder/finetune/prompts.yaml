@@ -199,7 +199,8 @@ finetune_coder:
     - deepspeed: If number of GPUs > 1, use DeepSpeed with ZeRO Stage 2 or 3 for memory optimization. specifically, set to "/app/examples/deepspeed/ds_z3_config.json" for ZeRO Stage 3, otherwise use "/app/examples/deepspeed/ds_z2_config.json" for ZeRO Stage 2
     - **IMPORTANT Compatibility Rules**:
       - `pissa_init: true` is NOT compatible with DeepSpeed ZeRO-3. If using ZeRO-3, do NOT set pissa_init to true
-      - If you need PiSSA initialization, use ZeRO Stage 2 instead of ZeRO Stage 3
+        - If you need PiSSA initialization, use ZeRO Stage 2 instead of ZeRO Stage 3
+      - `load_best_model_at_end: true` requires `eval_strategy` == `save_strategy` (both "steps" or both "epoch"). If unsure, set `load_best_model_at_end: false`
 
     {% if latest_code %}
     ## Previous Configuration

@@ -455,7 +455,7 @@ def render_feedback(content: Any) -> None:
         render_benchmark_result(content)
         return
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         decision = getattr(content, "decision", None)
         if decision is not None:
@@ -464,6 +464,10 @@ def render_feedback(content: Any) -> None:
         acceptable = getattr(content, "acceptable", None)
         if acceptable is not None:
             st.metric("Acceptable", "Yes" if acceptable else "No")
+    with col3:
+        error_type = getattr(content, "observations", None)
+        if error_type:
+            st.metric("Error Type", error_type)
 
     # FT scenario only uses code_change_summary (observations, hypothesis_evaluation,
     # new_hypothesis, eda_improvement are DS scenario specific)
