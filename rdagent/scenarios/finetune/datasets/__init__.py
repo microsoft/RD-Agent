@@ -15,7 +15,9 @@ from rdagent.scenarios.finetune.download.hf import download_dataset
 
 # Dataset registry: name -> HuggingFace repo_id
 # Empty for debug: use local limo dataset instead of downloading
-DATASETS = {}
+DATASETS = {
+    # "deepscaler": "agentica-org/DeepScaleR-Preview-Dataset", # Removed for debug(Need to prepare data manually)
+}
 
 
 def prepare(name: str, force: bool = False) -> str:

@@ -12,6 +12,21 @@ from rdagent.app.finetune.llm.ui.config import ICONS
 from rdagent.app.finetune.llm.ui.data_loader import Event, EvoLoop, Loop, Session
 
 
+def convert_latex_for_streamlit(text: str) -> str:
+    """Convert LaTeX syntax to Streamlit-compatible format.
+
+    Streamlit uses $...$ and $$...$$ for LaTeX rendering.
+    This converts \(...\) and \[...\] to the Streamlit format.
+    """
+    if not text:
+        return text
+    # Convert \(...\) to $...$
+    text = text.replace(r"\(", "$").replace(r"\)", "$")
+    # Convert \[...\] to $$...$$
+    text = text.replace(r"\[", "$$").replace(r"\]", "$$")
+    return text
+
+
 def format_duration(seconds: float | None) -> str:
     if seconds is None:
         return ""
@@ -40,14 +55,47 @@ def render_session(session: Session, show_types: list[str]) -> None:
 
 def render_loop(loop: Loop, show_types: list[str]) -> None:
     """Render a single loop with lazy loading"""
-    # Count successes/failures for loop header
+    # 1. Coding stage results
     evo_results = []
     for evo in loop.coding.values():
         if evo.success is True:
             evo_results.append("✓")
         elif evo.success is False:
             evo_results.append("✗")
-    result_str = " ".join(evo_results) if evo_results else ""
+    coding_str = f"💻{''.join(evo_results)}" if evo_results else ""
+
+    # 2. Running stage results
+    runner_success = None
+    benchmark_score = None
+    for event in loop.runner:
+        # Docker (Full Train) result - check exit_code, not LLM evaluation
+        if event.type == "docker_exec" and "Full Train" in event.title and event.success is not None:
+            runner_success = event.success
+        # Benchmark score - always show if available
+        if event.type == "feedback" and "Benchmark Result" in event.title:
+            content = event.content
+            if isinstance(content, dict):
+                accuracy_summary = content.get("accuracy_summary", [])
+                if accuracy_summary:
+                    first_result = accuracy_summary[0]
+                    # Find score field (exclude metadata fields)
+                    for key, value in first_result.items():
+                        if key not in ("dataset", "version", "metric", "mode") and isinstance(value, (int, float)):
+                            benchmark_score = value
+                            break
+
+    # 3. Build title string (only show existing stages)
+    parts = []
+    if coding_str:
+        parts.append(coding_str)
+    if runner_success is not None:
+        runner_str = "🏃✓" if runner_success else "🏃✗"
+        parts.append(runner_str)
+    # Show benchmark score if available (regardless of eval result)
+    if benchmark_score is not None:
+        parts.append(f"📊{benchmark_score:.2f}")
+
+    result_str = " ".join(parts) if parts else ""
 
     loop_key = f"loop_{loop.loop_id}_loaded"
     with st.expander(f"🔄 **Loop {loop.loop_id}** {result_str}", expanded=False):
@@ -502,11 +550,19 @@ def render_benchmark_result(content: dict) -> None:
     if error_samples:
         with st.expander(f"Error Samples ({len(error_samples)})", expanded=False):
             for i, sample in enumerate(error_samples):
-                st.markdown(f"**Sample {i+1}:**")
-                st.markdown(f"- **Question:** {sample.get('question', 'N/A')[:500]}...")
-                st.markdown(f"- **Gold:** {sample.get('gold', 'N/A')}")
-                st.markdown(f"- **Model Output:** {sample.get('model_output', 'N/A')[:500]}...")
-                st.divider()
+                with st.expander(f"Sample {i+1} (Gold: {sample.get('gold', 'N/A')})", expanded=False):
+                    st.markdown(
+                        '<div style="font-size: 0.85em;">',
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown("**Question:**")
+                    st.markdown(convert_latex_for_streamlit(sample.get("question", "N/A")))
+                    st.markdown("---")
+                    st.markdown(f"**Gold:** `{sample.get('gold', 'N/A')}`")
+                    st.markdown("---")
+                    st.markdown("**Model Output:**")
+                    st.markdown(convert_latex_for_streamlit(sample.get("model_output", "N/A")))
+                    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_summary(summary: dict) -> None:
