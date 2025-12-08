@@ -30,9 +30,7 @@ class FTExperiment2Feedback(Experiment2Feedback):
         super().__init__(scen)
         self.version = version
 
-    def generate_feedback(
-        self, exp: FTExperiment, trace=None, error_info: str | None = None
-    ) -> ExperimentFeedback:
+    def generate_feedback(self, exp: FTExperiment, trace=None, error_info: str | None = None) -> ExperimentFeedback:
         """
         Generate comprehensive feedback for LLM fine-tuning experiment.
 
@@ -92,11 +90,27 @@ class FTExperiment2Feedback(Experiment2Feedback):
             if isinstance(exp_result, dict) and "benchmark" in exp_result:
                 # New format: contains benchmark and training_metrics
                 benchmark = exp_result.get("benchmark", {})
-                training_metrics = exp_result.get("training_metrics", {})
+                raw_metrics = exp_result.get("training_metrics", {})
+                # Convert loss_history to summary to save tokens
+                loss_history = raw_metrics.get("loss_history", [])
+                if loss_history:
+                    losses = [e["loss"] for e in loss_history]
+                    min_idx = losses.index(min(losses))
+                    training_metrics = {
+                        "logged_entries": len(loss_history),
+                        "final_step": loss_history[-1].get("step"),
+                        "initial_loss": round(loss_history[0]["loss"], 4),
+                        "final_loss": round(loss_history[-1]["loss"], 4),
+                        "min_loss": round(min(losses), 4),
+                        "min_loss_at_entry": min_idx + 1,
+                        "loss_trend": "rising_late" if losses[-1] > min(losses) * 1.1 else "stable",
+                    }
+                else:
+                    training_metrics = raw_metrics
             else:
                 # Legacy format: exp_result is directly the benchmark result (list of dicts)
                 benchmark = {"accuracy_summary": exp_result, "error_samples": []}
-                training_metrics = {"loss_history": [], "initial_loss": None, "final_loss": None}
+                training_metrics = {}
 
             system_prompt = T(f".prompts:{version}.system").r(
                 scenario=self.scen.get_scenario_all_desc(),

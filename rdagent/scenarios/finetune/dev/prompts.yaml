@@ -94,15 +94,12 @@ exp_feedback:
     **Execution Time**: {{ execution_time }} seconds
 
     ## Training Metrics
-    ### Loss History
-    {% if training_metrics.loss_history %}
+    {% if training_metrics %}
     ```json
-    {{ training_metrics.loss_history | tojson(indent=2) }}
+    {{ training_metrics | tojson(indent=2) }}
     ```
-    Initial Loss: {{ training_metrics.initial_loss }}
-    Final Loss: {{ training_metrics.final_loss }}
     {% else %}
-    No loss history available.
+    No training metrics available.
     {% endif %}
 
     ## Benchmark Results

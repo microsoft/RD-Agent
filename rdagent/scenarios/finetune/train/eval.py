@@ -10,8 +10,8 @@ from rdagent.components.coder.finetune.conf import (
     get_clear_ws_cmd,
     get_ft_env,
 )
-from rdagent.components.coder.finetune.unified_validator import LLMConfigValidator
 from rdagent.components.coder.finetune.exp import FTTask
+from rdagent.components.coder.finetune.unified_validator import LLMConfigValidator
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
@@ -108,7 +108,13 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         # Check for model output files
         workspace_path = implementation.workspace_path
         output_path = workspace_path / "output"
-        model_output_files = list(output_path.glob("*.safetensors")) + list(output_path.glob("*.bin")) + list(output_path.glob("adapter_*")) if output_path.exists() else []
+        model_output_files = (
+            list(output_path.glob("*.safetensors"))
+            + list(output_path.glob("*.bin"))
+            + list(output_path.glob("adapter_*"))
+            if output_path.exists()
+            else []
+        )
 
         # Early return if training failed
         if not training_success or len(model_output_files) == 0:
@@ -199,13 +205,28 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         # Reduces ~36k tokens to ~500 tokens by extracting: status, errors, metrics, warnings
         parsed_stdout = LLMConfigValidator()._parse_execution_log(raw_stdout, exit_code)
 
+        # Build loss summary instead of raw history (saves tokens, provides key insights)
+        loss_summary = {}
+        if loss_history:
+            losses = [e["loss"] for e in loss_history]
+            min_idx = losses.index(min(losses))
+            loss_summary = {
+                "logged_entries": len(loss_history),
+                "final_step": loss_history[-1].get("step"),
+                "initial_loss": round(loss_history[0]["loss"], 4),
+                "final_loss": round(loss_history[-1]["loss"], 4),
+                "min_loss": round(min(losses), 4),
+                "min_loss_at_entry": min_idx + 1,  # 1-indexed
+                "loss_trend": "rising_late" if losses[-1] > min(losses) * 1.1 else "stable",
+            }
+
         system_prompt = T(f"rdagent.components.coder.finetune.prompts:{version}.system").r()
         user_prompt = T(f"rdagent.components.coder.finetune.prompts:{version}.user").r(
             task_desc=target_task.get_task_information(),
             config_yaml=implementation.file_dict.get(FT_YAML_FILE_NAME, ""),
             stdout=parsed_stdout,  # Structured JSON instead of raw truncated log
             benchmark_result=json.dumps(benchmark_result, indent=2) if benchmark_result else "N/A",
-            loss_history=json.dumps(loss_history[-20:] if loss_history else [], indent=2),
+            loss_summary=json.dumps(loss_summary, indent=2) if loss_summary else "N/A",
             error_msg=error_msg or "",
         )
 

@@ -53,11 +53,19 @@ class LLMConfigValidator:
 
         try:
             # Step 1: Parameter filtering
-            filtered_config = self._filter_parameters(config_yaml)
+            filtered_config, removed_params = self._filter_parameters(config_yaml)
 
             # Step 2: Micro-batch testing (validates everything at runtime)
             result = self._run_micro_batch_test(filtered_config, workspace, env)
             result.execution_time = time.time() - start_time
+
+            # Add filtered params info to execution_output for agent learning
+            if removed_params:
+                filter_info = (
+                    f"\n\n[Filtered Parameters] {len(removed_params)} unsupported params removed: {removed_params}"
+                )
+                result.execution_output += filter_info
+
             return result
 
         except Exception as e:
@@ -70,16 +78,19 @@ class LLMConfigValidator:
                 execution_time=time.time() - start_time,
             )
 
-    def _filter_parameters(self, config_yaml: str) -> str:
-        """Filter configuration parameters to only include supported ones"""
+    def _filter_parameters(self, config_yaml: str) -> tuple[str, List[str]]:
+        """Filter configuration parameters to only include supported ones.
+
+        Returns:
+            tuple: (filtered_yaml, removed_params_list)
+        """
         try:
             config_dict = yaml.safe_load(config_yaml)
             if not isinstance(config_dict, dict):
-                return config_yaml
+                return config_yaml, []
 
             supported_params = self._get_supported_parameters()
 
-            # filter parameters
             filtered_config = {}
             removed_params = []
             for k, v in config_dict.items():
@@ -88,15 +99,14 @@ class LLMConfigValidator:
                 else:
                     removed_params.append(k)
 
-            removed_count = len(removed_params)
-            if removed_count > 0:
-                logger.info(f"Filtered out {removed_count} unsupported parameters: {removed_params}")
+            if removed_params:
+                logger.info(f"Filtered out {len(removed_params)} unsupported parameters: {removed_params}")
 
-            return yaml.dump(filtered_config, default_flow_style=False, sort_keys=False)
+            return yaml.dump(filtered_config, default_flow_style=False, sort_keys=False), removed_params
 
         except yaml.YAMLError as e:
             logger.error(f"YAML parsing error during filtering: {e}")
-            return config_yaml
+            return config_yaml, []
 
     def _get_supported_parameters(self) -> Set[str]:
         """Get supported parameters from LlamaFactory Manager"""

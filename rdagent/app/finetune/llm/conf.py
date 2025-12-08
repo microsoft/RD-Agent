@@ -46,8 +46,8 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
 
     # Benchmark evaluation (always enabled as part of evaluation pipeline)
 
-    benchmark_timeout: int = 3600
-    """Benchmark evaluation timeout in seconds"""
+    benchmark_timeout: int = 0
+    """Benchmark evaluation timeout in seconds. 0 means no timeout."""
 
     # Judge API configuration (for llmjudge benchmarks like AIME)
     judge_model: str = "gpt-5"

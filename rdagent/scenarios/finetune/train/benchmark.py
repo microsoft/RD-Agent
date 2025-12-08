@@ -281,7 +281,8 @@ def run_benchmark(
 
     # Prepare Docker environment
     conf = BenchmarkDockerConf()
-    conf.running_timeout_period = FT_RD_SETTING.benchmark_timeout
+    # 0 means no timeout, use 7 days as practical "infinite"
+    conf.running_timeout_period = FT_RD_SETTING.benchmark_timeout if FT_RD_SETTING.benchmark_timeout > 0 else 86400 * 7
     # Inline volume setup (merged _setup_benchmark_cache_volume and _setup_lora_volume)
     extra_volumes: Dict[str, Dict[str, str]] = {}
 

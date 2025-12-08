@@ -38,9 +38,9 @@ class FTWorkspace(FBWorkspace):
         # Configure checkpoint to save essential files for training
         # Training outputs (models, checkpoints) are managed separately by save_final_model()
         RD_AGENT_SETTINGS.workspace_ckp_white_list_names = [
-            FT_YAML_FILE_NAME,      # train.yaml - training config
-            FT_DATA_FILE_NAME,      # data.json - processed training data
-            "dataset_info.json",    # LlamaFactory dataset config
+            FT_YAML_FILE_NAME,  # train.yaml - training config
+            FT_DATA_FILE_NAME,  # data.json - processed training data
+            "dataset_info.json",  # LlamaFactory dataset config
         ]
         RD_AGENT_SETTINGS.workspace_ckp_size_limit = 100 * 1024
 

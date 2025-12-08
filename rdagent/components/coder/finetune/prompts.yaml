@@ -392,9 +392,9 @@ runner_eval:
     {{ benchmark_result }}
     ```
 
-    # Loss History (last 20 steps)
+    # Loss Summary
     ```json
-    {{ loss_history }}
+    {{ loss_summary }}
     ```
 
     # Training Output (last 3000 chars)
