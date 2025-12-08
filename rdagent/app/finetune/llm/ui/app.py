@@ -82,6 +82,12 @@ def main():
 
         st.divider()
 
+        # Display options
+        st.subheader("Display Options")
+        state.render_markdown = st.toggle("Render Prompts", value=False, key="render_markdown_toggle")
+
+        st.divider()
+
         # Summary in sidebar
         if "session" in state:
             summary = get_summary(state.session)

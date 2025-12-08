@@ -255,20 +255,31 @@ def render_llm_call(content: Any) -> None:
         duration = (content["end"] - content["start"]).total_seconds()
         st.caption(f"Duration: {format_duration(duration)}")
 
+    # Check if markdown rendering is enabled
+    render_md = st.session_state.get("render_markdown_toggle", False)
+
     system = content.get("system", "")
     if system:
         with st.expander("System Prompt", expanded=False):
-            st.code(system, language="text", line_numbers=True)
+            if render_md:
+                st.markdown(system)
+            else:
+                st.code(system, language="text", line_numbers=True)
 
     user = content.get("user", "")
     if user:
-        with st.expander("User Prompt", expanded=True):
-            st.code(user, language="text", line_numbers=True)
+        with st.expander("User Prompt", expanded=False):
+            if render_md:
+                st.markdown(user)
+            else:
+                st.code(user, language="text", line_numbers=True)
 
     resp = content.get("resp", "")
     if resp:
         st.markdown("**Response:**")
-        if resp.strip().startswith("{") or resp.strip().startswith("["):
+        if render_md:
+            st.markdown(resp)
+        elif resp.strip().startswith("{") or resp.strip().startswith("["):
             st.code(resp, language="json", line_numbers=True)
         elif resp.strip().startswith("```"):
             st.markdown(resp)
