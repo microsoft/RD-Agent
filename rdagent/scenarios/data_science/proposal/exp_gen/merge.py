@@ -499,23 +499,17 @@ class ExpGen3Hypothesis(DSProposalV2ExpGen):
         self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str, hypothesis_candidates: dict
     ):
 
-        res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
-        total_time = RD_Agent_TIMER_wrapper.timer.all_duration
-        use_time = round(total_time.total_seconds(), 2) - round(res_time.total_seconds(), 2)
-        use_ratio = 100 * use_time / round(total_time.total_seconds(), 2)
-        use_ratio = round(use_ratio, 2)
-
-        ensemble_timeout = DS_RD_SETTING.ensemble_timeout
+        # res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
+        # total_time = RD_Agent_TIMER_wrapper.timer.all_duration
+        # use_time = round(total_time.total_seconds(), 2) - round(res_time.total_seconds(), 2)
+        # use_ratio = 100 * use_time / round(total_time.total_seconds(), 2)
+        # use_ratio = round(use_ratio, 2)
+        #ensemble_timeout = DS_RD_SETTING.ensemble_timeout
         hypothesis_candidates = str(json.dumps(hypothesis_candidates, indent=2))
 
         sys_prompt = T(".merge:hypothesis_gen_smooth.system").r(
             hypothesis_candidates=hypothesis_candidates,
-            res_time=round(res_time.total_seconds(), 2),
-            ensemble_timeout=ensemble_timeout,
-            use_ratio=use_ratio,
-            hypothesis_output_format=T(".merge:output_format.hypothesis_gen_smooth").r(
-                hypothesis_candidates=hypothesis_candidates
-            ),
+            hypothesis_output_format=T(".merge:output_format.hypothesis_gen_smooth")
         )
         user_prompt = T(".merge:hypothesis_gen_smooth.user").r(
             scenario_desc=scenario_desc,
