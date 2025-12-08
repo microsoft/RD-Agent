@@ -46,7 +46,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_model_dump: bool = False
     enable_doc_dev: bool = False
     model_dump_check_level: Literal["medium", "high"] = "medium"
-
+    ensemble_timeout: int = 18000
     ### specific feature
 
     ### notebook integration

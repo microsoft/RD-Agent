@@ -3,6 +3,8 @@
 import json
 from datetime import timedelta
 from typing import Dict, Tuple
+from enum import Enum
+from pydantic import BaseModel, Field
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
@@ -21,6 +23,21 @@ from rdagent.utils.workflow import wait_retry
 from .proposal import (
     HypothesisComponent,  # FIXME: for statistic of other branches after running, remove this later
 )
+
+
+class HypothesisComponent(str, Enum):
+    DataLoadSpec = "DataLoadSpec"
+    FeatureEng = "FeatureEng"
+    Model = "Model"
+    Ensemble = "Ensemble"
+    Workflow = "Workflow"
+
+
+class HypothesisSimple(BaseModel):
+    hypothesis: str = Field(
+        description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
+    )
+    component: HypothesisComponent = Field(description="The component tag of the hypothesis.")
 
 
 class MergeExpGen(ExpGen):
@@ -444,3 +461,202 @@ class ExpGen2TraceAndMergeV3(ExpGen):
                             break
                 trace.set_current_selection(selection)
                 return self.merge_exp_gen.gen(trace)
+
+
+class ExpGen3Hypothesis(DSProposalV2ExpGen):
+    @wait_retry(retry_n=5)
+    def hypothesis_gen(
+        self,
+        component_desc: str,
+        sota_exp_desc: str,
+        enable_idea_pool: bool,
+        pipeline: bool = True,
+        exp_feedback_list_desc: str = "",
+        scenario_desc: str = "",
+        problems: dict = {},
+    ) -> Dict:
+        sys_prompt = T(".merge:hypothesis_gen.system").r(
+            component_desc=component_desc,
+            hypothesis_output_format=T(".prompts_v2:output_format.hypothesis").r(
+                pipeline=pipeline, enable_idea_pool=enable_idea_pool
+            ),
+            pipeline=pipeline,
+        )
+        user_prompt = T(".merge:hypothesis_gen.user").r(
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, Dict[str, str | Dict[str, str | int]]],
+        )
+        resp_dict = json.loads(response)
+        return resp_dict
+
+    def hypothesis_select_with_llm(
+        self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str, hypothesis_candidates: dict
+    ):
+
+        res_time = RD_Agent_TIMER_wrapper.timer.remain_time()
+        total_time = RD_Agent_TIMER_wrapper.timer.all_duration
+        use_time = round(total_time.total_seconds(), 2) - round(res_time.total_seconds(), 2)
+        use_ratio = 100 * use_time / round(total_time.total_seconds(), 2)
+        use_ratio = round(use_ratio, 2)
+
+        ensemble_timeout = DS_RD_SETTING.ensemble_timeout
+        hypothesis_candidates = str(json.dumps(hypothesis_candidates, indent=2))
+
+        sys_prompt = T(".merge:hypothesis_gen_smooth.system").r(
+            hypothesis_candidates=hypothesis_candidates,
+            res_time=round(res_time.total_seconds(), 2),
+            ensemble_timeout=ensemble_timeout,
+            use_ratio=use_ratio,
+            hypothesis_output_format=T(".merge:output_format.hypothesis_gen_smooth").r(
+                hypothesis_candidates=hypothesis_candidates
+            ),
+        )
+        user_prompt = T(".merge:hypothesis_gen_smooth.user").r(
+            scenario_desc=scenario_desc,
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format=HypothesisSimple if self.supports_response_schema else {"type": "json_object"},
+            json_target_type=(
+                Dict[str, Dict[str, str | Dict[str, str | int]]] if not self.supports_response_schema else None
+            ),
+        )
+
+        response_dict = json.loads(response)
+        return response_dict
+
+    def get_exp_index(self, trace: DSTrace) -> int:
+        leaves: list[int] = trace.get_leaves()
+        if trace.sota_exp_to_submit is not None:
+            sota_submit_value = trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0]
+            trace_scores = []
+            for i, leaf in enumerate(leaves):
+                if leaf == trace.current_selection[0]:
+                    continue
+                fb = trace.sota_experiment_fb(selection=(leaf,))
+                if fb is None:
+                    continue
+                final_score = fb[0].result.loc["ensemble"].iloc[0]
+                trace_scores.append((i, abs(final_score - sota_submit_value)))
+            if trace_scores:
+                return min(trace_scores, key=lambda item: item[1])[0]
+        return next((i for i, leaf in enumerate(leaves) if leaf != trace.current_selection[0]))
+
+    def gen(self, trace: DSTrace) -> DSExperiment:
+        # Ignore the selection argument and use all leaves instead.
+        sota_exp_fb = trace.sota_experiment_fb(selection=trace.current_selection)
+
+        if sota_exp_fb:
+            sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
+                exp=sota_exp_fb[0],
+                heading="Best previous exploration of the scenario",
+            )
+            eda_output = sota_exp_fb[0].experiment_workspace.file_dict.get("EDA.md", None)
+        else:
+            sota_exp_desc = ""
+            eda_output = None
+
+        trace_fbs = []
+        # find the best exp to merge
+        leaves: list[int] = trace.get_leaves()
+        for leaf in leaves:
+            if leaf == trace.current_selection[0]:
+                continue
+
+            trace_fbs.append(
+                trace.experiment_and_feedback_list_after_init(
+                    return_type="sota",
+                    search_type="ancestors",
+                    selection=(leaf,),
+                )
+            )
+
+        num_to_slice = 20
+        if sum(len(fb_list) for fb_list in trace_fbs) > num_to_slice:
+            success_fb_trace_count = sum(1 for fb_list in trace_fbs if fb_list)
+            success_fb_list = [
+                fb for fb_list in trace_fbs for fb in fb_list[-(num_to_slice // success_fb_trace_count) :]
+            ]
+        else:
+            success_fb_list = [fb for fb_list in trace_fbs for fb in fb_list]
+
+        if len(success_fb_list) > 0:
+            exp_to_merge_fb_desc = T("scenarios.data_science.proposal.exp_gen.merge:trace").r(
+                exp_and_feedback_list=success_fb_list,
+                type="success",
+                heading="Successful iterations:",
+                success_trial_desc="These trials are the steps or changes that led to the success of the solution to be merged",
+                pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
+            )
+        else:
+            exp_index = self.get_exp_index(trace)
+            exp_to_merge_fb = trace.sota_experiment_fb(selection=(exp_index,))
+            if exp_to_merge_fb is None:
+                exp_to_merge_fb = trace.hist[exp_index]
+
+            exp_to_merge_fb_desc = T("scenarios.data_science.share:describe.feedback").r(
+                exp_and_feedback=exp_to_merge_fb,
+                heading="The feedback for the solution to be merged",
+            )
+
+        component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
+        scenario_desc = trace.scen.get_scenario_all_desc(eda_output=eda_output)
+        hypothesis_dict = self.hypothesis_gen(
+            component_desc=component_desc,
+            exp_feedback_list_desc=exp_to_merge_fb_desc,
+            sota_exp_desc=sota_exp_desc,
+            enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
+            pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
+        )
+
+        response_dict = self.hypothesis_select_with_llm(
+            scenario_desc=scenario_desc,
+            exp_feedback_list_desc=exp_to_merge_fb_desc,
+            sota_exp_desc=sota_exp_desc,
+            hypothesis_candidates=hypothesis_dict,
+        )
+        component_map = {
+            "Model": HypothesisComponent.Model,
+            "Ensemble": HypothesisComponent.Ensemble,
+            "Workflow": HypothesisComponent.Workflow,
+            "FeatureEng": HypothesisComponent.FeatureEng,
+            "DataLoadSpec": HypothesisComponent.DataLoadSpec,
+        }
+
+        comp_str = response_dict.get("component")
+        hypo_str = response_dict.get("hypothesis")
+
+        if comp_str in component_map and hypo_str is not None:
+            new_hypothesis = DSHypothesis(component=component_map[comp_str], hypothesis=hypo_str)
+
+        all_problems = None
+        pickled_problem_name = None
+        # all_problems = {}
+        # pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+        #     hypothesis_dict=hypothesis_dict,
+        #     problem_dict=all_problems,
+        #     selected_idx=0,
+        # )
+
+        if DS_RD_SETTING.enable_knowledge_base:
+            trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
+
+        return self.task_gen(
+            component_desc=component_desc,
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            sota_exp=sota_exp_fb[0] if sota_exp_fb else None,
+            hypotheses=[new_hypothesis],
+            pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
+            failed_exp_feedback_list_desc="",
+        )
