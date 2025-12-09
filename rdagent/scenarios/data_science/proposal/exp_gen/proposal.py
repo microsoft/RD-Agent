@@ -577,6 +577,7 @@ class DSProposalV2ExpGen(ExpGen):
     def identify_problem(
         self,
         current_sub_trace,
+        simple_scenario_desc,
         scenario_desc,
         sota_exp_desc,
         exp_feedback_list_desc,
@@ -592,7 +593,7 @@ class DSProposalV2ExpGen(ExpGen):
         all_problems = {}
         if self.scen_prob_multiplier > 0:
             scen_problems = self.identify_scenario_problem(
-                scenario_desc=scenario_desc,
+                scenario_desc=simple_scenario_desc,
                 sota_exp_desc=sota_exp_desc,
                 exp_gen_plan=exp_gen_plan,
                 sibling_exp=sibling_exp,
@@ -1379,7 +1380,8 @@ You help users retrieve relevant knowledge from community discussions and public
         # Step 1: Identify problems
         all_problems = self.identify_problem(
             current_sub_trace=trace.get_parent_exps(),
-            scenario_desc=simple_sen,
+            simple_scenario_desc=simple_sen,
+            scenario_desc = scenario_desc,
             sota_exp_desc=sota_exp_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
             inject_diverse=inject_diverse,
