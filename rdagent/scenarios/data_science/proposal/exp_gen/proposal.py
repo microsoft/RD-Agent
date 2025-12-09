@@ -495,7 +495,7 @@ class DSProposalV2ExpGen(ExpGen):
         self.supports_response_schema = APIBackend().supports_response_schema()
 
 
-    def _simple_scenario_desc(competition):
+    def _simple_scenario_desc(self,competition):
         comp_dict_path = DS_RD_SETTING.competition_mapping_path
         with open(comp_dict_path, "r") as f:
             comp_dict = json.load(f)
