@@ -1,11 +1,11 @@
 import importlib.metadata
 import platform
-import re
 import sys
 from pathlib import Path
 
 import docker
 import requests
+from packaging.requirements import Requirement
 from setuptools_scm import get_version
 
 from rdagent.log import rdagent_logger as logger
@@ -49,15 +49,6 @@ def docker_info():
         logger.info(f"No run containers.")
 
 
-def extract_pkg_name(req: str) -> str:
-    """
-    Parsing the real package name from the requirements statement
-    """
-    req = re.sub(r"\[.*?\]", "", req)
-    m = re.match(r"^[A-Za-z0-9._-]+", req)
-    return m.group(0) if m else req
-
-
 def rdagent_info():
     """collect rdagent related info"""
     current_version = importlib.metadata.version("rdagent")
@@ -79,9 +70,9 @@ def rdagent_info():
     ]
     package_version_list = []
     for req in package_list:
-        pkg = extract_pkg_name(req)
-        version = importlib.metadata.version(pkg)
-        package_version_list.append(f"{pkg}=={version}")
+        pkg = Requirement(req)
+        version = importlib.metadata.version(pkg.name)
+        package_version_list.append(f"{pkg.name}=={version}")
     logger.info(f"Package version: {package_version_list}")
     return None
 
