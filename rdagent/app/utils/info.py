@@ -5,6 +5,7 @@ from pathlib import Path
 
 import docker
 import requests
+from packaging.requirements import Requirement
 from setuptools_scm import get_version
 
 from rdagent.log import rdagent_logger as logger
@@ -69,10 +70,9 @@ def rdagent_info():
     ]
     package_version_list = []
     for package in package_list:
-        if package == "typer[all]":
-            package = "typer"
-        version = importlib.metadata.version(package)
-        package_version_list.append(f"{package}=={version}")
+        pkg = Requirement(package)
+        version = importlib.metadata.version(pkg.name)
+        package_version_list.append(f"{pkg.name}=={version}")
     logger.info(f"Package version: {package_version_list}")
     return None
 
