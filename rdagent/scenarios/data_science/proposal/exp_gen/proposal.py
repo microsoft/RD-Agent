@@ -494,6 +494,14 @@ class DSProposalV2ExpGen(ExpGen):
         super().__init__(*args, **kwargs)
         self.supports_response_schema = APIBackend().supports_response_schema()
 
+
+    def _simple_scenario_desc(competition):
+        comp_dict_path = DS_RD_SETTING.competition_mapping_path
+        with open(comp_dict_path, "r") as f:
+            comp_dict = json.load(f)
+        comp_description = comp_dict[competition]
+        return comp_description
+    
     def identify_scenario_problem(
         self,
         scenario_desc: str,
@@ -1304,6 +1312,8 @@ You help users retrieve relevant knowledge from community discussions and public
         trace: DSTrace,
         plan: DSExperimentPlan | None = None,
     ) -> DSExperiment:
+        simple_sen = self._simple_scenario_desc(trace.scen.competition)
+
         pipeline = DS_RD_SETTING.coder_on_whole_pipeline
         if not pipeline and (draft_exp := draft_exp_in_decomposition(self.scen, trace)):
             return draft_exp
@@ -1369,7 +1379,7 @@ You help users retrieve relevant knowledge from community discussions and public
         # Step 1: Identify problems
         all_problems = self.identify_problem(
             current_sub_trace=trace.get_parent_exps(),
-            scenario_desc=scenario_desc,
+            scenario_desc=simple_sen,
             sota_exp_desc=sota_exp_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
             inject_diverse=inject_diverse,
@@ -1393,7 +1403,7 @@ You help users retrieve relevant knowledge from community discussions and public
         # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
         hypothesis_dict = self.hypothesis_gen(
             component_desc=component_desc,
-            scenario_desc=scenario_desc,
+            scenario_desc=simple_sen,
             exp_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
             problems=all_problems,
@@ -1460,7 +1470,7 @@ You help users retrieve relevant knowledge from community discussions and public
         # Step 3: Select the best hypothesis
         if DS_RD_SETTING.llm_select_hypothesis:
             response_dict = self.hypothesis_select_with_llm(
-                scenario_desc=scenario_desc,
+                scenario_desc=simple_sen,
                 exp_feedback_list_desc=exp_feedback_list_desc,
                 # extra_exp_feedback_list_desc=extra_exp_feedback_list_desc,
                 # exp_feedback_scores=exp_feedback_scores,

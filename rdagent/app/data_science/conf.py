@@ -197,6 +197,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     user_interaction_wait_seconds: int = 6000  # seconds to wait for user interaction
     user_interaction_mid_folder: Path = Path.cwd() / "git_ignore_folder" / "RD-Agent_user_interaction"
 
+    competition_mapping_path: str = "/data/Blob_EastUS/FinetuneAgenticLLM/reward_ckpt/comp_to_scen.json"
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()
 
