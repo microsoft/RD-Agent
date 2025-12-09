@@ -15,6 +15,7 @@ from typing import Dict, List, Optional, Set
 
 import yaml
 
+from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.finetune.conf import FT_DEBUG_YAML_FILE_NAME, get_ft_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
@@ -264,7 +265,7 @@ class LLMConfigValidator:
             workspace.inject_files(**{FT_DEBUG_YAML_FILE_NAME: yaml.dump(test_config, default_flow_style=False)})
             training_result = workspace.run(
                 env=env,
-                entry=f"timeout 300 llamafactory-cli train {FT_DEBUG_YAML_FILE_NAME}",
+                entry=f"timeout {FT_RD_SETTING.micro_batch_timeout} llamafactory-cli train {FT_DEBUG_YAML_FILE_NAME}",
             )
 
             # Remove micro-batch test files

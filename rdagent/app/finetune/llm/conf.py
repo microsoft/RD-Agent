@@ -39,6 +39,10 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     # Timeouts (longer for LLM training)
     debug_timeout: int = 36000
     full_timeout: int = 360000
+    data_processing_timeout: int = 14400
+    """Data processing script timeout in seconds (default 4 hours, env: FT_DATA_PROCESSING_TIMEOUT)."""
+    micro_batch_timeout: int = 1800
+    """Micro-batch test timeout in seconds (default 30 minutes, env: FT_MICRO_BATCH_TIMEOUT)."""
 
     # Pipeline behavior
     coder_on_whole_pipeline: bool = True
