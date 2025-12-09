@@ -69,8 +69,8 @@ def rdagent_info():
         item.split("#")[0].strip() for item in all_file_contents if item.strip() and not item.startswith("#")
     ]
     package_version_list = []
-    for req in package_list:
-        pkg = Requirement(req)
+    for package in package_list:
+        pkg = Requirement(package)
         version = importlib.metadata.version(pkg.name)
         package_version_list.append(f"{pkg.name}=={version}")
     logger.info(f"Package version: {package_version_list}")
