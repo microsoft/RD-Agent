@@ -222,10 +222,12 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
         # FTWorkspace unified logging - determine type from entry command
         if class_name == "FTWorkspace":
             entry = content.get("entry", "") if isinstance(content, dict) else ""
-            if "llamafactory-cli train" in entry and "timeout" not in entry:
-                evaluator_name, default_stage = "Full Train", "runner"
-            elif "timeout" in entry and "llamafactory-cli train" in entry:
-                evaluator_name, default_stage = "Micro-batch Test", "coding"
+            if "llamafactory-cli train" in entry:
+                # Distinguish by yaml file name: debug_train.yaml for micro-batch, train.yaml for full training
+                if "debug_train.yaml" in entry:
+                    evaluator_name, default_stage = "Micro-batch Test", "coding"
+                else:
+                    evaluator_name, default_stage = "Full Train", "runner"
             elif "process_data" in entry.lower():
                 evaluator_name, default_stage = "Data Processing", "coding"
             elif entry.startswith("rm "):

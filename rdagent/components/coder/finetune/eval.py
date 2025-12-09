@@ -10,7 +10,6 @@ import random
 from pathlib import Path
 from typing import Optional
 
-from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
@@ -77,9 +76,7 @@ class FTDataEvaluator(CoSTEEREvaluator):
                 self._update_dataset_info(implementation, validation_result["sample_count"])
         else:
             # Step 3: Execute script
-            env, env_vars = get_data_processing_env(
-                running_timeout_period=FT_RD_SETTING.data_processing_timeout
-            )
+            env, env_vars = get_data_processing_env()
             try:
                 # Use FTWorkspace.run() for unified Docker logging
                 result = implementation.run(
@@ -325,9 +322,7 @@ class FTCoderEvaluator(CoSTEEREvaluator):
                 logger.log_object(feedback, tag="evaluator_feedback.FTCoderEvaluator")
                 return feedback
 
-        env = get_ft_env(
-            running_timeout_period=self.scen.real_debug_timeout() if hasattr(self.scen, "real_debug_timeout") else 3600,
-        )
+        env = get_ft_env(operation="micro_batch")
         config_yaml = implementation.file_dict.get(FT_YAML_FILE_NAME, "")
         if not config_yaml:
             feedback = CoSTEERSingleFeedback(

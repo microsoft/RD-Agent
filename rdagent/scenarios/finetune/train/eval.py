@@ -74,9 +74,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         """Evaluate LLM fine-tuning implementation using dedicated LLM environment."""
 
         # Use LLM-specific environment with appropriate timeout for training
-        timeout_period = getattr(self.scen, "real_full_timeout", lambda: 3600)()
-
-        env = get_ft_env(running_timeout_period=timeout_period)
+        env = get_ft_env(operation="full_training")
 
         # Clean workspace before execution
         implementation.execute(env=env, entry=get_clear_ws_cmd())

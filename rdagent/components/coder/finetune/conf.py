@@ -34,9 +34,6 @@ class FTCoderCoSTEERSettings(CoSTEERSettings):
     env_type: str = "docker"
     """Environment type for LLM fine-tuning (docker/conda)"""
 
-    extra_evaluator: list[str] = ["rdagent.app.finetune.share.eval.PrevModelLoadEvaluator"]
-    """LLM-specific evaluators for prev model loading check"""
-
     extra_eval: list[str] = []
     """Extra evaluators"""
 
@@ -69,7 +66,7 @@ def _get_standard_ft_volumes() -> dict:
 
 def get_ft_env(
     extra_volumes: dict = {},
-    running_timeout_period: int | None = None,
+    operation: str = "full_training",
     enable_cache: bool | None = None,
 ) -> Env:
     """LLM finetune dedicated environment construction function.
@@ -84,7 +81,10 @@ def get_ft_env(
 
     Args:
         extra_volumes: Additional volume mounts beyond standard ones
-        running_timeout_period: Timeout period for environment operations
+        operation: Operation type for timeout selection.
+            - "data_processing": Data processing (data_processing_timeout)
+            - "micro_batch": Micro-batch test (micro_batch_timeout)
+            - "full_training": Full training (full_timeout)
         enable_cache: Whether to enable caching (None means use config value)
 
     Returns:
@@ -93,9 +93,13 @@ def get_ft_env(
 
     conf = FTCoderCoSTEERSettings()
 
-    # Use default timeout if not provided
-    if running_timeout_period is None:
-        running_timeout_period = FT_RD_SETTING.debug_timeout
+    # Select timeout based on operation type
+    timeout_map = {
+        "data_processing": FT_RD_SETTING.data_processing_timeout,
+        "micro_batch": FT_RD_SETTING.micro_batch_timeout,
+        "full_training": FT_RD_SETTING.full_timeout,
+    }
+    running_timeout_period = timeout_map.get(operation, FT_RD_SETTING.full_timeout)
 
     # Use config value if enable_cache is not explicitly provided
     if enable_cache is None:
@@ -125,7 +129,6 @@ def get_ft_env(
 
 
 def get_data_processing_env(
-    running_timeout_period: int = 3600,
     enable_cache: bool | None = None,
 ) -> tuple[Env, dict]:
     """Get environment for data processing scripts with LLM API access.
@@ -136,7 +139,6 @@ def get_data_processing_env(
     - LLM API environment variables (OPENAI_API_KEY, OPENAI_BASE_URL, etc.)
 
     Args:
-        running_timeout_period: Timeout for script execution (default 1 hour)
         enable_cache: Whether to enable Docker caching
 
     Returns:
@@ -144,7 +146,7 @@ def get_data_processing_env(
         to be passed to env.run() as the env parameter
     """
     env = get_ft_env(
-        running_timeout_period=running_timeout_period,
+        operation="data_processing",
         enable_cache=enable_cache,
     )
 

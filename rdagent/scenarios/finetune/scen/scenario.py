@@ -54,9 +54,6 @@ class LLMFinetuneScen(DataScienceScen):
         self.device_info = get_runtime_environment_by_env(get_ft_env())
         self.model_info = FinetuneDatasetDescriptor().describe_model(self.base_model)
 
-    def real_debug_timeout(self):
-        return FT_RD_SETTING.debug_timeout
-
     def real_full_timeout(self):
         return FT_RD_SETTING.full_timeout
 
@@ -216,7 +213,6 @@ class LLMFinetuneScen(DataScienceScen):
             base_model=FT_RD_SETTING.base_model,
             dataset_config=prompt_config,
             model_info=self.model_info,
-            debug_timeout=f"{self.real_debug_timeout() / 60:.2f} minutes",
             full_timeout=f"{self.real_full_timeout() / 60 / 60:.2f} hours",
             enable_dataset_description=enable_dataset_description,
         )

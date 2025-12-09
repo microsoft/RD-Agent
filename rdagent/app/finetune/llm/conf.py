@@ -36,9 +36,9 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     Function: Analyze fine-tuning results and generate feedback, including performance metrics and error analysis.
     """
 
-    # Timeouts (longer for LLM training)
-    debug_timeout: int = 36000
+    # Timeouts (longer for LLM training, all for Docker container timeout)
     full_timeout: int = 360000
+    """Full training timeout in seconds (default 100 hours, env: FT_FULL_TIMEOUT). Used in running stage for complete model training."""
     data_processing_timeout: int = 14400
     """Data processing script timeout in seconds (default 4 hours, env: FT_DATA_PROCESSING_TIMEOUT)."""
     micro_batch_timeout: int = 1800
