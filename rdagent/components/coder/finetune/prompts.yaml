@@ -56,7 +56,7 @@ data_coder:
 
     ## Debug Mode Support (CRITICAL)
     Your script MUST support `--debug` for fast validation:
-    - `--debug`: Process only first ~100 raw samples, print estimated full output
+    - `--debug`: Randomly sample ~100 raw samples, print estimated full output
     - No flag: Process ALL raw samples, print actual total
 
     **SUMMARY output format (print at end):**
@@ -80,9 +80,9 @@ data_coder:
 
     **Example:**
     ```python
+    import random
     DEBUG_RAW_LIMIT = 100
-    samples = raw_data[:DEBUG_RAW_LIMIT] if args.debug else raw_data
-    # ... process samples ...
+    samples = random.sample(raw_data, min(DEBUG_RAW_LIMIT, len(raw_data))) if args.debug else raw_data
     ```
 
     **Logging:** Only print progress at 20%, 40%, 60%, 80%, 100%. No per-item logs.
@@ -126,7 +126,7 @@ data_coder:
     Please generate a Python script that processes the available datasets and outputs a `data.json` file in Alpaca format.
 
     The script will be executed in two modes:
-    1. **Debug mode (coding phase):** `python /workspace/process_data.py --debug` - generates ~10 samples for fast validation
+    1. **Debug mode (coding phase):** `python /workspace/process_data.py --debug` - process 100 samples for fast validation
     2. **Full mode (running phase):** `python /workspace/process_data.py` - generates all samples for training
 
     Dataset files are located at: /assets/datasets/

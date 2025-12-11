@@ -73,36 +73,39 @@ unified_hypothesis_gen:
 
     Key insight: Short CoT ≠ Good CoT. Training reasoning requires **rich, detailed** thought processes.
 
-    ### Critical: Respect Original Dataset Design & Avoid Aggressive Modifications
+    ### CoT Length & cutoff_len: A Unified Decision (CRITICAL)
 
-    The seed datasets provided are **published, validated datasets** proven effective for training models. Their response lengths and formats were intentionally designed by researchers.
+    **Core Principle: Data processing and training config must be coordinated.**
 
-    **Guidelines for CoT Modification:**
+    The CoT length you generate in data processing directly determines the `cutoff_len` needed in training. These two decisions should be made together, not separately.
 
-    **✅ Acceptable modifications (when justified):**
-    - **Thoughtful reformatting**: Restructure CoT for clarity while preserving all reasoning steps
-    - **Length adjustment based on model constraints**: Adapt CoT length to fit `max_position_embeddings` of the target model
-    - **Quality improvement**: Fix obvious errors, improve clarity, add missing logical connections
-    - **Format conversion**: Convert to standardized format (e.g., Alpaca with <think> tags)
-    - **Filtering**: Select/remove entire samples based on quality, length, or difficulty
+    **Decision Framework:**
+    1. **Analyze your data characteristics:**
+       - How long are the inputs (instruction + context)?
+       - How complex is the reasoning needed?
+       - What's the model's `max_position_embeddings`?
 
-    **⚠️ Use with caution (requires strong justification):**
-    - **Moderate compression**: Reducing redundancy while maintaining all key reasoning steps
-    - **Expansion**: Adding more detailed explanations when existing CoT is too terse
-    - **Consolidation**: Merging repetitive or verbose steps into clearer expressions
+    2. **Allocate context budget:**
+       - `cutoff_len` ≤ `max_position_embeddings`
+       - `cutoff_len` = input_tokens + cot_tokens + answer_tokens
+       - If inputs are long → less room for CoT
+       - If inputs are short → can generate longer CoT
 
-    **❌ Avoid (high risk of degrading quality):**
-    - **Aggressive compression**: Drastically reducing CoT length (e.g., 10,000 → 1,000 tokens) without careful analysis
-    - **Removing critical steps**: Cutting intermediate reasoning that seems "obvious" but is actually important
-    - **Over-simplification**: Reducing sophisticated reasoning to basic statements
-    - **Arbitrary truncation**: Simply cutting off CoT at a token limit without regard for logical completeness
+    3. **Match CoT length to available budget:**
+       - Use the remaining context after inputs for CoT
+       - Longer CoT generally improves reasoning capability
+       - But don't exceed what the model can handle
 
-    **Key principle: Preserve reasoning integrity**
-    - These datasets achieved SOTA results with their reasoning patterns
-    - Any modification should aim to **improve or adapt**, not **diminish** the reasoning quality
-    - Consider the **model's context window** and **dataset statistics** (p50, p99 token lengths)
-    - When in doubt between modifying vs. filtering: **prefer filtering out problematic samples** over aggressive modification
-    - Always provide clear reasoning for why modification is beneficial over keeping original or filtering
+    **Examples:**
+    - Long inputs (8K tokens), 32K context → CoT target ~20K, cutoff_len ~30K
+    - Short inputs (500 tokens), 32K context → CoT target ~24K, cutoff_len ~28K
+    - Short inputs (500 tokens), 8K context → CoT target ~6K, cutoff_len ~7K
+
+    **Key Guidelines:**
+    - **Maximize useful CoT length** within context constraints
+    - **Never compress long CoT** just to fit arbitrary limits
+    - **Expand short CoT** when context budget allows
+    - Use `gpt-5`/`gpt-5.1` for generating rich, detailed reasoning
 
     ### Data Processing Guidelines
 
@@ -112,22 +115,6 @@ unified_hypothesis_gen:
     **Handling missing/empty fields:**
     - If a sample has missing critical fields → Filter out (if small portion, e.g., <10%)
     - If many samples have missing fields → Consider augmentation/generation instead of filtering
-
-    **Reasoning token length guideline (CRITICAL for CoT training):**
-
-    Base your reasoning length on model's `max_position_embeddings`:
-    - **Minimum**: 1000 tokens - shorter reasoning lacks depth for effective training
-    - **Target**: `1/2 * max_position_embeddings` of the target model
-    - **Maximum**: `3/4 * max_position_embeddings` to leave room for instruction
-
-    Examples:
-    - Model with 32K context → reasoning target ~16K tokens (range: 1000-24K)
-    - Model with 8K context → reasoning target ~4K tokens (range: 1000-6K)
-    - Model with 4K context → reasoning target ~2K tokens (range: 1000-3K)
-
-    **Then set `cutoff_len` accordingly**: cutoff_len should be ≥ (instruction length + target reasoning length + answer length)
-
-    **WARNING**: Reasoning < 1000 tokens is generally too short for training strong reasoning capability. If your generated CoT is consistently short, use stronger models (gpt-5/gpt-5.1) to generate richer reasoning traces.
 
     ### Output Data Format
 
