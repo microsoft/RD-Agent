@@ -89,6 +89,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             task_desc=target_task.get_task_information(),
             dataset_info=dataset_info,
             prev_feedback=prev_task_feedback,
+            api_max_workers=FT_RD_SETTING.api_max_workers,
         )
 
         user_prompt = T(".prompts:data_coder.user").r()

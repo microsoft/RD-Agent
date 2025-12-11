@@ -96,6 +96,10 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     # data sample count
     data_sample_count: int = 3
 
+    # API concurrency for data processing
+    api_max_workers: int = 1000
+    """Max concurrent workers for LLM API calls in data processing scripts (env: FT_API_MAX_WORKERS)"""
+
 
 # Global setting instance for LLM finetuning scenario
 FT_RD_SETTING = LLMFinetunePropSetting()

@@ -95,10 +95,12 @@ data_coder:
     **Available Models:** `gpt-4o-mini`, `gpt-5`, `gpt-5.1`
     
     **API Features & Concurrency Requirements:**
-    - **MUST use high concurrency for ALL LLM API calls** - the API handles 5000+ concurrent requests
-    - **Required pattern** - use `ThreadPoolExecutor(max_workers=1000)` directly (no dynamic formulas):
+    - **Use concurrent execution for LLM API calls** to maximize throughput
+    - **Required pattern** - use `ThreadPoolExecutor(max_workers={{ api_max_workers }})`:
+      - This value ({{ api_max_workers }}) is configured based on the target API's capacity
+      - DO NOT hardcode different values or use dynamic formulas
       ```python
-      with ThreadPoolExecutor(max_workers=1000) as executor:
+      with ThreadPoolExecutor(max_workers={{ api_max_workers }}) as executor:
           futures = {executor.submit(call_api, item): item for item in items}
           for future in as_completed(futures):
               result = future.result()
