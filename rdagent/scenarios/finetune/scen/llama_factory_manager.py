@@ -113,8 +113,10 @@ class LLaMAFactoryManager:
             volumes = {str(self.cache_dir): {"bind": "/workspace/.llama_factory_info", "mode": "rw"}}
 
             # Run extraction
+            env = get_ft_env(extra_volumes=volumes, enable_cache=False)
+            env.conf.running_timeout_period = 120  # Short timeout for parameter extraction
             result = workspace.run(
-                env=get_ft_env(extra_volumes=volumes, running_timeout_period=120, enable_cache=False),
+                env=env,
                 entry=f"python {EXTRACT_PARAMETERS_SCRIPT_NAME}",
             )
 
