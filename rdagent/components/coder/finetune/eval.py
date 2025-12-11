@@ -75,13 +75,14 @@ class FTDataEvaluator(CoSTEEREvaluator):
                 logger.info("Valid data.json already exists, skipping execution")
                 self._update_dataset_info(implementation, validation_result["sample_count"])
         else:
-            # Step 3: Execute script
+            # Step 3: Execute script in DEBUG mode (generates ~10 samples for fast validation)
             env, env_vars = get_data_processing_env()
             try:
                 # Use FTWorkspace.run() for unified Docker logging
+                # --debug flag tells the script to generate only ~10 samples
                 result = implementation.run(
                     env=env,
-                    entry=f"python /workspace/{FT_DATA_SCRIPT_NAME}",
+                    entry=f"python /workspace/{FT_DATA_SCRIPT_NAME} --debug",
                     env_vars=env_vars,
                 )
                 execution_output = result.stdout if hasattr(result, "stdout") else str(result)

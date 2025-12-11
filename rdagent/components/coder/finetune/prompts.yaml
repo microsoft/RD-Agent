@@ -52,7 +52,75 @@ data_coder:
     2. Handle file encoding properly (use utf-8)
     3. Include error handling for file operations
     4. Print progress information to stdout for debugging
-    5. **IMPORTANT**: This script receives NO command-line arguments. All variables, parameters, and configurations must be defined within the script itself. Do NOT expect users to provide any input.
+    5. **IMPORTANT**: Your script MUST support the `--debug` command-line argument (see Debug Mode Support below). Other than `--debug`, do NOT expect any other command-line arguments.
+
+    ## Debug Mode Support (CRITICAL)
+    Your script MUST support a `--debug` command line argument for fast validation:
+
+    ```python
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--debug', action='store_true', help='Generate limited samples for testing')
+    args = parser.parse_args()
+
+    DEBUG_MODE = args.debug
+    DEBUG_SAMPLE_COUNT = 10  # Target output count for debug mode
+    ```
+
+    **When `--debug` is passed:**
+    - **Target output: ~10 valid samples** (enough for format validation and mini training test)
+    - You should still apply your data processing logic (filtering, transformation, etc.)
+    - But stop early once you have ~10 valid output samples
+    - Print `[DEBUG MODE] Target: {DEBUG_SAMPLE_COUNT} samples` at the start
+    - This mode is used during coding phase for fast validation
+
+    **When `--debug` is NOT passed (production mode):**
+    - Generate ALL valid samples from the dataset
+    - Process complete data without any limits
+    - Print `[FULL MODE] Processing all data` at the start
+    - This mode is used during running phase for full training
+
+    **Example Implementation Pattern:**
+    ```python
+    import argparse
+    import json
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--debug', action='store_true')
+    args = parser.parse_args()
+
+    DEBUG_MODE = args.debug
+    DEBUG_SAMPLE_COUNT = 10
+
+    def process_data():
+        raw_samples = load_raw_data()  # Your data loading logic
+
+        if DEBUG_MODE:
+            print(f"[DEBUG MODE] Target: {DEBUG_SAMPLE_COUNT} samples")
+        else:
+            print(f"[FULL MODE] Processing all data ({len(raw_samples)} raw samples)")
+
+        results = []
+        for sample in raw_samples:
+            processed = process_single(sample)  # Your processing logic (may filter/transform)
+            if processed is not None:  # Only add valid samples
+                results.append(processed)
+
+            # In debug mode, stop early once we have enough valid samples
+            if DEBUG_MODE and len(results) >= DEBUG_SAMPLE_COUNT:
+                break
+
+        with open("data.json", "w") as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+
+        print(f"[DONE] Generated {len(results)} samples")
+
+    if __name__ == "__main__":
+        process_data()
+    ```
+
+    **Key Point:** In debug mode, the limit applies to **valid output samples**, not raw input.
+    Your filtering/transformation logic should work the same way in both modes.
 
     ## Output Guidelines (IMPORTANT)
     Your script should print clear, structured progress information:
@@ -114,13 +182,14 @@ data_coder:
   user: |-
     Please generate a Python script that processes the available datasets and outputs a `data.json` file in Alpaca format.
 
-    The script will be executed as:
-    ```bash
-    python /workspace/process_data.py
-    ```
+    The script will be executed in two modes:
+    1. **Debug mode (coding phase):** `python /workspace/process_data.py --debug` - generates ~10 samples for fast validation
+    2. **Full mode (running phase):** `python /workspace/process_data.py` - generates all samples for training
 
     Dataset files are located at: /assets/datasets/
     Output file should be: /workspace/data.json
+
+    **IMPORTANT**: Make sure your script supports the `--debug` argument as described in the system prompt.
 
 finetune_coder:
   system: |-
@@ -314,6 +383,16 @@ data_eval:
     {% endfor %}
     {% endif %}
 
+    ## Debug Mode Context (IMPORTANT)
+    This evaluation runs during the CODING phase in DEBUG MODE.
+    - The script is executed with `--debug` flag to generate only ~10 samples for fast validation
+    - Sample count of ~10 is EXPECTED and should NOT be considered a quality issue
+    - Focus on evaluating:
+      1. Data format correctness (Alpaca format)
+      2. Data quality of the generated samples
+      3. Script logic correctness (will it work in full mode?)
+    - Do NOT fail the evaluation just because sample count is low (~10)
+
     ## Evaluation Criteria
     - **Format**: All samples must have non-empty instruction and output fields
     - **Length**: instruction/output should be reasonable length (not too short or excessively long)
@@ -354,7 +433,7 @@ data_eval:
     {{ data_stats }}
     ```
 
-    # Sample Data ({{ sample_count }} samples from total {{ total_samples }})
+    # Sample Data ({{ sample_count }} samples from total {{ total_samples }}) [DEBUG MODE: ~10 samples expected]
     ```json
     {{ data_samples }}
     ```

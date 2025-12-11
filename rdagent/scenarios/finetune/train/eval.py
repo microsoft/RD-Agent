@@ -6,8 +6,10 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERSingleFeedback,
 )
 from rdagent.components.coder.finetune.conf import (
+    FT_DATA_SCRIPT_NAME,
     FT_YAML_FILE_NAME,
     get_clear_ws_cmd,
+    get_data_processing_env,
     get_ft_env,
 )
 from rdagent.components.coder.finetune.exp import FTTask
@@ -71,13 +73,13 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         queried_knowledge: Optional[QueriedKnowledge] = None,
         **kwargs,
     ) -> CoSTEERSingleFeedback:
-        """Evaluate LLM fine-tuning implementation using dedicated LLM environment."""
+        """Evaluate LLM fine-tuning implementation using dedicated LLM environment.
 
-        # Use LLM-specific environment with appropriate timeout for training
-        env = get_ft_env(operation="full_training")
-
-        # Clean workspace before execution
-        implementation.execute(env=env, entry=get_clear_ws_cmd())
+        This evaluator performs three stages:
+        0. Clean workspace (remove old training outputs)
+        1. Full data processing (without --debug flag) to generate complete data.json
+        2. Full training with the complete dataset
+        """
 
         # Check if FT_YAML_FILE_NAME exists
         if FT_YAML_FILE_NAME not in implementation.file_dict:
@@ -91,13 +93,45 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
             logger.log_object(fb, tag="evaluator_feedback.FTRunnerEvaluator")
             return fb
 
+        # Use LLM-specific environment with appropriate timeout for training
+        env = get_ft_env(operation="full_training")
+
+        # ========== Stage 0: Clean Workspace ==========
+        # Clean old training outputs before data processing and training
+        implementation.execute(env=env, entry=get_clear_ws_cmd())
+
+        # ========== Stage 1: Full Data Processing ==========
+        # Execute data processing WITHOUT --debug flag to generate complete data.json
+        data_result = self._run_full_data_processing(implementation)
+        data_stdout = data_result.stdout or ""
+
+        if data_result.exit_code != 0:
+            # Data processing failed, return feedback to enter next loop
+            logger.error(f"Full data processing failed with exit_code={data_result.exit_code}")
+            return self._generate_llm_feedback(
+                target_task=target_task,
+                implementation=implementation,
+                raw_stdout=data_stdout,
+                exit_code=data_result.exit_code,
+                training_success=False,
+                error_msg=f"Full data processing failed (exit_code={data_result.exit_code}). "
+                "The script passed debug mode but failed in full mode. Check for edge cases or resource limits.",
+            )
+
+        logger.info("Full data processing completed successfully")
+
+        # ========== Stage 2: Full Training ==========
+
         # Execute LlamaFactory training
         result = implementation.run(
             env=env,
             entry=f"llamafactory-cli train {FT_YAML_FILE_NAME}",
         )
+        # Combine data processing and training stdout for comprehensive feedback
+        combined_stdout = (
+            f"=== DATA PROCESSING OUTPUT ===\n{data_stdout}\n\n=== TRAINING OUTPUT ===\n{result.stdout or ''}"
+        )
         implementation.running_info.running_time = result.running_time
-        raw_stdout = result.stdout or ""
         # NOTE: Docker execution is logged by FTWorkspace.run() automatically
 
         # Simple success check: exit code
@@ -125,7 +159,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
             return self._generate_llm_feedback(
                 target_task=target_task,
                 implementation=implementation,
-                raw_stdout=raw_stdout,
+                raw_stdout=combined_stdout,  # Use combined stdout for comprehensive feedback
                 exit_code=result.exit_code,
                 training_success=False,
                 error_msg=error_msg,
@@ -161,7 +195,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
             return self._generate_llm_feedback(
                 target_task=target_task,
                 implementation=implementation,
-                raw_stdout=raw_stdout,
+                raw_stdout=combined_stdout,  # Use combined stdout for comprehensive feedback
                 exit_code=result.exit_code,
                 training_success=True,
                 benchmark_result=benchmark_result,
@@ -179,7 +213,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
             return self._generate_llm_feedback(
                 target_task=target_task,
                 implementation=implementation,
-                raw_stdout=raw_stdout,
+                raw_stdout=combined_stdout,  # Use combined stdout for comprehensive feedback
                 exit_code=result.exit_code,
                 training_success=False,
                 error_msg=error_msg,
@@ -238,3 +272,29 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         implementation.feedback = feedback
         logger.log_object(feedback, tag="evaluator_feedback.FTRunnerEvaluator")
         return feedback
+
+    def _run_full_data_processing(self, implementation: FBWorkspace):
+        """Execute full data processing (without --debug flag) to generate complete data.json.
+
+        This is called at the beginning of the running stage to regenerate data.json
+        with all samples instead of the debug subset created during coding stage.
+
+        Args:
+            implementation: The workspace containing process_data.py
+
+        Returns:
+            EnvResult with exit_code, stdout, etc.
+        """
+        # Get data processing environment with LLM API access
+        env, env_vars = get_data_processing_env()
+
+        logger.info("Starting full data processing (without --debug flag)")
+
+        # Execute WITHOUT --debug flag to generate all samples
+        result = implementation.run(
+            env=env,
+            entry=f"python /workspace/{FT_DATA_SCRIPT_NAME}",  # No --debug flag
+            env_vars=env_vars,
+        )
+
+        return result
