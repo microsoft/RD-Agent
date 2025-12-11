@@ -194,7 +194,7 @@ class LLaMAFactoryManager:
 
     def _format_param_line(self, param_name: str, param_info: dict, truncate_help: bool = True) -> str:
         """Format a single parameter line (extracted common logic)."""
-        help_text = param_info["help"][:80] if truncate_help else param_info["help"]
+        help_text = param_info["help"][:150] if truncate_help else param_info["help"]
         type_text = param_info.get("type", "").replace("typing.", "")
         default_val = param_info.get("default")
 

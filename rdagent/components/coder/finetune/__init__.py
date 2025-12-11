@@ -236,12 +236,16 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             methods_specific_params=methods_specific_params,
         )
 
+        # Read data_stats.json from workspace (injected by FTDataEvaluator)
+        data_stats = workspace.file_dict.get("data_stats.json", "")
+
         user_prompt = T(".prompts:finetune_coder.user").r(
             latest_code=workspace.file_dict.get(FT_YAML_FILE_NAME, ""),
             latest_feedback=prev_feedback,
             base_model=base_model,
             models_path=models_path,
             datasets_path=datasets_path,
+            data_stats=data_stats,
         )
 
         # Call LLM to generate config

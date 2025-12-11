@@ -7,6 +7,7 @@ No redundant LLM feedback generation - test results speak for themselves.
 
 import json
 import random
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -25,6 +26,7 @@ from rdagent.components.coder.finetune.unified_validator import LLMConfigValidat
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.finetune.scen.utils import _compute_column_stats
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 
@@ -112,6 +114,10 @@ class FTDataEvaluator(CoSTEEREvaluator):
         if error_msg is None and data_json_path.exists():
             with open(data_json_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
+
+        # Step 5.5: Compute token stats and inject data_stats for yaml coder
+        if data is not None and error_msg is None:
+            self._inject_data_stats(implementation, data, execution_output)
 
         # Step 6: Generate LLM feedback
         # Truncate stdout from end for LLM (summary at the end is more useful)
@@ -289,6 +295,63 @@ class FTDataEvaluator(CoSTEEREvaluator):
         stats["duplicate_ratio"] = round(duplicate_count / len(data) * 100, 1)
 
         return stats
+
+    def _parse_estimation_from_stdout(self, stdout: str) -> dict:
+        """Parse estimation info from script SUMMARY output.
+
+        Expected format in stdout:
+        ========== SUMMARY ==========
+        Total output samples: 10
+        Raw samples processed: 100
+        Raw samples total: 50000
+        Estimated full output: ~5000
+        =============================
+        """
+        estimation = {}
+        if not stdout:
+            return estimation
+
+        patterns = {
+            "output_samples": r"Total output samples:\s*(\d+)",
+            "raw_processed": r"Raw samples processed:\s*(\d+)",
+            "raw_total": r"Raw samples total:\s*(\d+)",
+            "estimated_full": r"Estimated full output:\s*~?(\d+)",
+        }
+        for key, pattern in patterns.items():
+            match = re.search(pattern, stdout)
+            if match:
+                estimation[key] = int(match.group(1))
+
+        return estimation
+
+    def _inject_data_stats(self, implementation: FBWorkspace, data: list, stdout: str) -> None:
+        """Compute token statistics and inject data_stats.json for yaml coder.
+
+        This method:
+        1. Computes token statistics using utils._compute_column_stats
+        2. Parses estimation info from script stdout
+        3. Injects data_stats.json into workspace.file_dict for yaml coder to read
+        """
+        try:
+            # Compute token statistics (min/max/p50/p99 for each field)
+            token_stats = _compute_column_stats(data)
+
+            # Parse estimation from stdout
+            estimation = self._parse_estimation_from_stdout(stdout)
+
+            # Combine into data_stats
+            data_stats = {
+                "total_samples": len(data),
+                "token_stats": token_stats,
+                "estimation": estimation,
+            }
+
+            # Inject into workspace for yaml coder to read
+            implementation.inject_files(**{"data_stats.json": json.dumps(data_stats, indent=2)})
+            logger.info(f"Injected data_stats.json with token stats for {len(data)} samples")
+
+        except Exception as e:
+            logger.warning(f"Failed to inject data_stats: {e}")
 
 
 class FTCoderEvaluator(CoSTEEREvaluator):

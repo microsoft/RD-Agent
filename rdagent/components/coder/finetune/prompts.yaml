@@ -130,14 +130,24 @@ data_coder:
        - `[PROGRESS] Processed {n}/{total} samples`
        - `[DONE] Generated {count} samples, saved to data.json`
 
-    2. **Summary at the end** - Always print a final summary:
+    2. **Summary at the end** - Always print a final summary with estimation info:
        ```
        ========== SUMMARY ==========
-       Total samples: {count}
-       Raw samples: {total}
+       Total output samples: {output_count}
+       Raw samples processed: {processed_count}
+       Raw samples total: {total_raw_in_dataset}
+       Estimated full output: ~{estimated_full_output}
        Output file: data.json
        =============================
        ```
+
+       **Estimation logic for debug mode:**
+       - `Raw samples processed`: How many raw samples you actually read/processed in debug mode
+       - `Raw samples total`: Total raw samples available in the dataset (count without loading all)
+       - `Estimated full output`: `output_count * (total_raw / processed_count)` - extrapolate from debug ratio
+
+       Example: If debug mode processed 100 raw samples and generated 10 valid outputs,
+       and the dataset has 50000 total raw samples, then estimated full output = 10 * (50000/100) = 5000
 
     3. **Minimize noise**:
        - Do NOT print every retry attempt - only log final failure after all retries exhausted
@@ -270,6 +280,17 @@ finetune_coder:
       - `pissa_init: true` is NOT compatible with DeepSpeed ZeRO-3. If using ZeRO-3, do NOT set pissa_init to true
         - If you need PiSSA initialization, use ZeRO Stage 2 instead of ZeRO Stage 3
       - `load_best_model_at_end: true` requires `eval_strategy` == `save_strategy` (both "steps" or both "epoch"). If unsure, set `load_best_model_at_end: false`
+
+    {% if data_stats %}
+    ## Processed Data Statistics (from debug mode)
+    {{ data_stats }}
+
+    **Configuration Guidelines based on data statistics:**
+    - `cutoff_len`: Set to cover p99 total tokens (sum of instruction + input + output). If p99 is 512, set cutoff_len to 512 or slightly higher.
+    - `per_device_train_batch_size`: Consider GPU memory vs tokens per sample. For longer sequences (p99 > 1024), use smaller batch sizes (1-2). For shorter sequences, can use larger batch sizes (4-8).
+    - `num_train_epochs` / `max_steps`: Based on estimated_full_samples. For small datasets (<1000 samples), use more epochs (3-5). For large datasets (>10000), 1-2 epochs may suffice.
+    - `gradient_accumulation_steps`: If batch_size is small due to long sequences, increase this to maintain effective batch size (e.g., batch_size=1, gradient_accumulation=8 gives effective batch of 8).
+    {% endif %}
 
     {% if latest_code %}
     ## Previous Configuration
