@@ -984,14 +984,33 @@ class DockerEnv(Env[DockerConf]):
             raise RuntimeError(f"Error while pulling the image: {e}")
 
     def _gpu_kwargs(self, client: docker.DockerClient) -> dict:  # type: ignore[no-any-unimported]
-        """get gpu kwargs based on its availability"""
+        """get gpu kwargs based on its availability.
+
+        Supports GPU selection via CUDA_VISIBLE_DEVICES environment variable.
+        If set, only the specified GPUs will be available in the container.
+        Example: CUDA_VISIBLE_DEVICES=0,1 will only expose GPU 0 and 1.
+        """
         if not self.conf.enable_gpu:
             return {}
-        gpu_kwargs = {
-            "device_requests": (
-                [docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])] if self.conf.enable_gpu else None
-            ),
-        }
+
+        # Check if specific GPUs are requested via CUDA_VISIBLE_DEVICES
+        cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES")
+        if cuda_visible:
+            # Use device_ids to specify exact GPUs (cannot use count with device_ids)
+            device_ids = [gpu.strip() for gpu in cuda_visible.split(",") if gpu.strip()]
+            gpu_kwargs = {
+                "device_requests": [
+                    docker.types.DeviceRequest(device_ids=device_ids, capabilities=[["gpu"]])
+                ],
+            }
+            logger.info(f"GPU selection: using specific GPUs {device_ids}")
+        else:
+            # Default: use all available GPUs
+            gpu_kwargs = {
+                "device_requests": [
+                    docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])
+                ],
+            }
 
         def get_image(image_name: str) -> None:
             try:
