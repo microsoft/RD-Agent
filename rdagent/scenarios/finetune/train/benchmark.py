@@ -311,6 +311,7 @@ def run_benchmark(
         "OC_JUDGE_MODEL": FT_RD_SETTING.judge_model or LLM_SETTINGS.chat_model,
         "OC_JUDGE_API_KEY": FT_RD_SETTING.judge_api_key or LLM_SETTINGS.openai_api_key,
         "OC_JUDGE_API_BASE": FT_RD_SETTING.judge_api_base or LLM_SETTINGS.openai_api_base,
+        "OC_JUDGE_RETRY": str(FT_RD_SETTING.judge_retry),
     }
 
     # Check if results already exist (skip re-running if cached)

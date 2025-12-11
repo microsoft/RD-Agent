@@ -90,7 +90,6 @@ template: |-
         runner=dict(
             type='LocalRunner',
             max_num_workers=16,
-            retry=2,
             task=dict(
                 type='OpenICLInferTask',
             ),
@@ -105,7 +104,6 @@ template: |-
         runner=dict(
             type='LocalRunner',
             max_num_workers=16,
-            retry=5000,
             task=dict(
                 type='OpenICLEvalTask',
                 dump_details=True,

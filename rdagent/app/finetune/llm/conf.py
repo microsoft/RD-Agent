@@ -54,7 +54,7 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     """Benchmark evaluation timeout in seconds. 0 means no timeout."""
 
     # Judge API configuration (for llmjudge benchmarks like AIME)
-    judge_model: str = "gpt-5"
+    judge_model: str = "gpt-5.1"
     """LLM judge model name for evaluation"""
 
     judge_api_key: str | None = None
@@ -62,6 +62,9 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
 
     judge_api_base: str | None = None
     """API base URL for judge model (if None, will use default)"""
+
+    judge_retry: int = 10
+    """Number of retries for LLM judge API calls (env: FT_JUDGE_RETRY)"""
 
     benchmark_limit: int | None = None
     """Limit number of samples for benchmark evaluation (None for full evaluation). Use for quick testing and debugging."""
