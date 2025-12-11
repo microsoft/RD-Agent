@@ -339,13 +339,13 @@ data_eval:
 
     ## Debug Mode Context (IMPORTANT)
     This evaluation runs during the CODING phase in DEBUG MODE.
-    - The script is executed with `--debug` flag to generate only ~10 samples for fast validation
-    - Sample count of ~10 is EXPECTED and should NOT be considered a quality issue
+    - The script is executed with `--debug` flag to process only ~100 samples for fast validation
+    - Sample count less than 100 is EXPECTED and should NOT be considered a quality issue
     - Focus on evaluating:
       1. Data format correctness (Alpaca format)
       2. Data quality of the generated samples
       3. Script logic correctness (will it work in full mode?)
-    - Do NOT fail the evaluation just because sample count is low (~10)
+    - Do NOT fail the evaluation just because sample count is low
 
     ## Evaluation Criteria
     - **Format**: All samples must have non-empty instruction and output fields
@@ -387,7 +387,7 @@ data_eval:
     {{ data_stats }}
     ```
 
-    # Sample Data ({{ sample_count }} samples from total {{ total_samples }}) [DEBUG MODE: ~10 samples expected]
+    # Sample Data ({{ sample_count }} samples from total {{ total_samples }}) [DEBUG MODE]
     ```json
     {{ data_samples }}
     ```

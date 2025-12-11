@@ -16,16 +16,18 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
 
 EXTRACT_PARAMETERS_SCRIPT_NAME = "extract_parameters.py"
+DEFAULT_HELP_TRUNCATE_LEN = None  # Default max length for help text in formatted output
 
 # Regex patterns to exclude parameters not relevant for SFT training prompts
 EXCLUDED_PARAM_PATTERNS = [
-    # Inference engines
-    r"^infer_",  # Inference related
+    # Inference engines & inference-only params
+    r"^infer_",  # Inference related (infer_backend, infer_dtype)
     r"^vllm_",  # vLLM engine
     r"^sglang_",  # SGLang engine
     r"^kt_",  # KTransformers config (kt_maxlen, kt_mode, etc.)
     r"^use_kt$",  # KTransformers toggle
     r"^use_kv_cache$",  # Inference only
+    r"^use_cache$",  # KV cache for generation
     r"^cpu_infer$",  # KTransformers: CPU cores for computation
     r"^chunk_size$",  # KTransformers: chunk size for CPU compute
     # Hub/Cloud
@@ -39,10 +41,16 @@ EXCLUDED_PARAM_PATTERNS = [
     r"^crop_to_patches$",  # Image processing for internvl
     r"^use_audio_in_video$",  # Video audio
     r"^media_dir$",  # Media directory for multimodal
+    r"^freeze_vision_tower$",  # MLLM: freeze vision encoder
+    r"^freeze_multi_modal_projector$",  # MLLM: freeze projector
+    r"^freeze_language_model$",  # MLLM: freeze LLM backbone
     # Export (post-training)
     r"^export_",  # Model export
-    # Hardware specific
+    # Hardware specific (non-NVIDIA)
     r"^tpu_",  # TPU related (tpu_num_cores, tpu_metrics_debug)
+    r"^use_cpu$",  # CPU-only training
+    r"^use_ipex$",  # Intel Extension for PyTorch
+    r"^jit_mode_eval$",  # PyTorch JIT for inference
     # Third-party logging
     r"^ray_",  # Ray hyperparameter search
     r"^swanlab_",  # SwanLab logging
@@ -61,8 +69,22 @@ EXCLUDED_PARAM_PATTERNS = [
     r"^no_cuda$",  # Deprecated in transformers 5.0
     r"^use_mps_device$",  # Deprecated in transformers 5.0
     r"^per_gpu_",  # Deprecated: use per_device_* instead
+    r"^torchdynamo$",  # Deprecated: use torch_compile_backend
+    r"^fp16_backend$",  # Deprecated: use half_precision_backend
+    r"^include_inputs_for_metrics$",  # Deprecated: use include_for_metrics
     # Unsloth (third-party, not used by default)
     r"^use_unsloth",  # use_unsloth, use_unsloth_gc
+    # Internal/derived params (help says "Do not specify it")
+    r"^compute_dtype$",
+    r"^device_map$",
+    r"^model_max_length$",
+    r"^block_diag_attn$",
+    # Platform-specific / internal
+    r"^mp_parameters$",  # SageMaker launcher only
+    r"^_n_gpu$",  # Internal variable
+    r"^use_legacy_prediction_loop$",  # Legacy feature
+    r"^past_index$",  # Rarely used
+    r"^print_param_status$",  # Debug only
 ]
 EXCLUDED_PARAM_REGEX = re.compile("|".join(EXCLUDED_PARAM_PATTERNS))
 
@@ -148,11 +170,7 @@ class LLaMAFactoryManager:
     def hf_models(self) -> List[str]:
         """Available HuggingFace models."""
         supported_models = self.get_info().get("supported_models", {})
-        hf_model_set = set()
-        for hf_model in supported_models.values():
-            if isinstance(hf_model, str):
-                hf_model_set.add(hf_model)
-        return list(hf_model_set)
+        return list({v for v in supported_models.values() if isinstance(v, str)})
 
     @property
     def peft_methods(self) -> List[str]:
@@ -170,17 +188,6 @@ class LLaMAFactoryManager:
         """Available chat templates."""
         return self.get_info().get("templates", [])
 
-    def get_template_for_model(self, model_name: str) -> Optional[str]:
-        """Get template for model. Returns None to let LlamaFactory auto-detect.
-
-        Args:
-            model_name: Model name (e.g., "Qwen/Qwen2.5-1.5B-Instruct")
-
-        Returns:
-            None - LlamaFactory will automatically detect the appropriate template
-        """
-        return None
-
     def is_peft_method(self, method: str) -> bool:
         """Check if the given method is a PEFT method."""
         return method in self.peft_methods
@@ -192,45 +199,54 @@ class LLaMAFactoryManager:
             return params.get(param_type, {})
         return params
 
-    def _format_param_line(self, param_name: str, param_info: dict, truncate_help: bool = True) -> str:
-        """Format a single parameter line (extracted common logic)."""
-        help_text = param_info["help"][:150] if truncate_help else param_info["help"]
+    def _format_param_line(self, param_name: str, param_info: dict, max_help_len: int | None) -> str:
+        """Format a single parameter line.
+
+        Args:
+            max_help_len: Max length for help text. None means no truncation.
+        """
+        help_text = param_info["help"]
+        if max_help_len:
+            help_text = help_text[:max_help_len]
         type_text = param_info.get("type", "").replace("typing.", "")
         default_val = param_info.get("default")
 
-        param_line = f"- {param_name}"
-        if type_text or default_val is not None:
-            param_line += " ("
-            if type_text:
-                param_line += f"{type_text}"
-            if default_val is not None:
-                param_line += f", default={default_val}" if type_text else f"default={default_val}"
-            param_line += ")"
-        return param_line + f": {help_text}"
+        # Build metadata: filter out empty parts, join with comma
+        parts = [p for p in [type_text, f"default={default_val}" if default_val is not None else ""] if p]
+        meta = f" ({', '.join(parts)})" if parts else ""
+        return f"- {param_name}{meta}: {help_text}"
 
-    def _format_params_dict(self, params_dict: dict, truncate_help: bool = True) -> list[str]:
-        """Format a dictionary of parameters (extracted common logic)."""
+    def _format_params_dict(self, params_dict: dict, max_help_len: int | None) -> list[str]:
+        """Format a dictionary of parameters."""
         return [
-            self._format_param_line(name, info, truncate_help)
+            self._format_param_line(name, info, max_help_len)
             for name, info in params_dict.items()
             if isinstance(info, dict) and "help" in info and not EXCLUDED_PARAM_REGEX.search(name)
         ]
 
-    def format_shared_params(self, truncate_help: bool = True) -> str:
-        """Format shared parameters (model, data, training) that apply to all methods."""
+    def format_shared_params(self, max_help_len: int | None = DEFAULT_HELP_TRUNCATE_LEN) -> str:
+        """Format shared parameters (model, data, training) that apply to all methods.
+
+        Args:
+            max_help_len: Max length for help text. None means no truncation.
+        """
         all_params = self.get_parameters()
         sections = []
 
         for param_type in ["model", "data", "training"]:
             if param_type in all_params:
                 sections.append(f"### {param_type.upper()} Parameters:")
-                sections.extend(self._format_params_dict(all_params[param_type], truncate_help))
-                sections.append("")  # Empty line
+                sections.extend(self._format_params_dict(all_params[param_type], max_help_len))
+                sections.append("")
 
         return "\n".join(sections).rstrip()
 
-    def format_method_specific_params(self, method: str, truncate_help: bool = True) -> str:
-        """Format only method-specific finetuning parameters."""
+    def format_method_specific_params(self, method: str, max_help_len: int | None = DEFAULT_HELP_TRUNCATE_LEN) -> str:
+        """Format only method-specific finetuning parameters.
+
+        Args:
+            max_help_len: Max length for help text. None means no truncation.
+        """
         all_params = self.get_parameters()
         if "finetuning" not in all_params:
             return f"**{method}**: No specific parameters"
@@ -238,22 +254,14 @@ class LLaMAFactoryManager:
         finetuning_params = all_params["finetuning"]
         method_lower = method.lower()
 
-        # Full fine-tuning has no PEFT-specific parameters
         if method_lower == "full":
             return f"**{method}**: Uses shared parameters only (full-parameter training)"
 
-        # Get parameters directly from the structured finetuning_params by method name
-        if method_lower in finetuning_params:
-            type_params = finetuning_params[method_lower]
-        else:
-            # Unknown method, return message
-            return f"**{method}**: No specific parameters found for this method"
-
-        if not type_params:
+        if method_lower not in finetuning_params or not finetuning_params[method_lower]:
             return f"**{method}**: Uses shared parameters only"
 
         lines = [f"**{method}**:"]
-        lines.extend(self._format_params_dict(type_params, truncate_help))
+        lines.extend(self._format_params_dict(finetuning_params[method_lower], max_help_len))
         return "\n".join(lines)
 
 
