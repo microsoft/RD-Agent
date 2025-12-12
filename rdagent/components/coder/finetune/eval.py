@@ -21,6 +21,7 @@ from rdagent.components.coder.finetune.conf import (
     FT_YAML_FILE_NAME,
     get_data_processing_env,
     get_ft_env,
+    get_workspace_prefix,
 )
 from rdagent.components.coder.finetune.unified_validator import LLMConfigValidator
 from rdagent.core.evolving_framework import QueriedKnowledge
@@ -79,12 +80,13 @@ class FTDataEvaluator(CoSTEEREvaluator):
         else:
             # Step 3: Execute script in DEBUG mode (generates ~10 samples for fast validation)
             env, env_vars = get_data_processing_env()
+            ws_prefix = get_workspace_prefix(env)
             try:
                 # Use FTWorkspace.run() for unified Docker logging
                 # --debug flag tells the script to generate only ~10 samples
                 result = implementation.run(
                     env=env,
-                    entry=f"python /workspace/{FT_DATA_SCRIPT_NAME} --debug",
+                    entry=f"python {ws_prefix}/{FT_DATA_SCRIPT_NAME} --debug",
                     env_vars=env_vars,
                 )
                 execution_output = result.stdout if hasattr(result, "stdout") else str(result)

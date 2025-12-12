@@ -199,25 +199,28 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
             stage=stage or "coding",
         )
 
-    # Benchmark Docker execution (must check before generic docker_run.)
-    if "docker_run.Benchmark" in tag:
+    # Benchmark execution (Docker or Conda) - must check before generic docker_run/conda_run
+    if "docker_run.Benchmark" in tag or "conda_run.Benchmark" in tag:
         benchmark_name = content.get("benchmark_name", "Unknown") if isinstance(content, dict) else "Unknown"
         exit_code = content.get("exit_code") if isinstance(content, dict) else None
         success = exit_code == 0 if exit_code is not None else None
+        env_type = "Docker" if "docker_run" in tag else "Conda"
         return Event(
             type="docker_exec",
             timestamp=timestamp,
             tag=tag,
-            title=f"Benchmark ({benchmark_name}) {'✓' if success else '✗' if success is False else ''}",
+            title=f"Benchmark ({benchmark_name}) [{env_type}] {'✓' if success else '✗' if success is False else ''}",
             content=content,
             loop_id=loop_id,
             stage="runner",
             success=success,
         )
 
-    # Docker run (raw execution, logged before LLM evaluation)
-    if "docker_run." in tag:
-        class_name = tag.split("docker_run.")[-1].split(".")[0]
+    # Environment run (Docker or Conda, raw execution logged before LLM evaluation)
+    if "docker_run." in tag or "conda_run." in tag:
+        is_docker = "docker_run." in tag
+        tag_prefix = "docker_run." if is_docker else "conda_run."
+        class_name = tag.split(tag_prefix)[-1].split(".")[0]
 
         # FTWorkspace unified logging - determine type from entry command
         if class_name == "FTWorkspace":
@@ -233,13 +236,14 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
             elif entry.startswith("rm "):
                 evaluator_name, default_stage = "Cleanup", "runner"
             else:
-                evaluator_name, default_stage = "Docker Run", "coding"
+                evaluator_name, default_stage = "Env Run", "coding"
         else:
             evaluator_name, default_stage = EVALUATOR_CONFIG.get(class_name, (class_name, "coding"))
 
         exit_code = content.get("exit_code") if isinstance(content, dict) else None
         success = exit_code == 0 if exit_code is not None else content.get("success")
-        title = f"Docker ({evaluator_name}) {'✓' if success else '✗' if success is False else ''}"
+        env_label = "Docker" if is_docker else "Conda"
+        title = f"{env_label} ({evaluator_name}) {'✓' if success else '✗' if success is False else ''}"
         return Event(
             type="docker_exec",
             timestamp=timestamp,

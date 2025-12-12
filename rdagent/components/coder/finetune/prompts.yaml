@@ -23,9 +23,9 @@ data_coder:
 
     ## Output Requirements
     Your script must:
-    1. Read data from `/assets/datasets/` directory (mounted read-only)
+    1. Read data from `{{ datasets_path }}` directory (mounted read-only)
     2. Process and transform the data according to the task description
-    3. Output a JSON file named `data.json` in the current working directory (`/workspace/`)
+    3. Output a JSON file named `data.json` in the current working directory (`{{ workspace_path }}`)
     4. The output must be in Alpaca format: a JSON array where each element has:
        - `instruction`: The instruction or prompt for the model (required, non-empty)
        - `input`: Optional additional context (can be empty string)
@@ -67,14 +67,14 @@ data_coder:
     Raw samples processed: {processed_count}
     Raw samples total: {total_raw}
     Estimated full output: ~{actual_output * total_raw / processed_count}
-    Output file: /workspace/data.json
+    Output file: {{ workspace_path }}data.json
     =============================
 
     # Full mode (no --debug):
     ========== SUMMARY ==========
     Total output samples: {actual_output}
     Raw samples total: {total_raw}
-    Output file: /workspace/data.json
+    Output file: {{ workspace_path }}data.json
     =============================
     ```
 
@@ -128,11 +128,11 @@ data_coder:
     Please generate a Python script that processes the available datasets and outputs a `data.json` file in Alpaca format.
 
     The script will be executed in two modes:
-    1. **Debug mode (coding phase):** `python /workspace/process_data.py --debug` - process 100 samples for fast validation
-    2. **Full mode (running phase):** `python /workspace/process_data.py` - generates all samples for training
+    1. **Debug mode (coding phase):** `python {{ workspace_path }}process_data.py --debug` - process 100 samples for fast validation
+    2. **Full mode (running phase):** `python {{ workspace_path }}process_data.py` - generates all samples for training
 
-    Dataset files are located at: /assets/datasets/
-    Output file should be: /workspace/data.json
+    Dataset files are located at: {{ datasets_path }}
+    Output file should be: {{ workspace_path }}data.json
 
     **IMPORTANT**: Make sure your script supports the `--debug` argument as described in the system prompt.
 
@@ -196,21 +196,21 @@ finetune_coder:
   user: |-
     ## Path Configuration
     - dataset_dir: "{{ datasets_path }}"
-    - output_dir: "/workspace/output"
+    - output_dir: "{{ workspace_path }}output"
     - model_name_or_path: "{{ models_path }}{{ base_model }}"
-    - tokenized_path: "/workspace/tokenized_cache"
+    - tokenized_path: "{{ workspace_path }}tokenized_cache"
 
     ## Critical Configuration Rules
     - dataset: MUST be "processed_data" (this is the dataset name in dataset_info.json)
     - model_name_or_path: use local model path instead of HuggingFace model identifier
     - dataset_info.json is located at: "{{ datasets_path }}dataset_info.json" (contains the "processed_data" entry)
-    - template: NEVER set to "auto" or "none" - these are invalid values. 
-      - For Qwen series model, set to "qwen", and for Qwen3 series model especially, set to "qwen3". 
-      - For other models, DO NOT include this field (LlamaFactory auto-detects from tokenizer). 
-    - tokenized_path: MUST set to "/workspace/tokenized_cache" (datasets directory is read-only mounted)
+    - template: NEVER set to "auto" or "none" - these are invalid values.
+      - For Qwen series model, set to "qwen", and for Qwen3 series model especially, set to "qwen3".
+      - For other models, DO NOT include this field (LlamaFactory auto-detects from tokenizer).
+    - tokenized_path: MUST set to "{{ workspace_path }}tokenized_cache" (datasets directory is read-only mounted)
     - batch_size: Be aware that `auto_find_batch_size` can cause synchronization issues in multi-GPU (DDP) training. Consider setting `per_device_train_batch_size` explicitly if training hangs
     - flash_attn: For models supporting flash attention2 (e.g., Qwen series, llama series), set to "fa2" to enhance training speed and reduce memory usage
-    - deepspeed: If number of GPUs > 1, use DeepSpeed with ZeRO Stage 2 or 3 for memory optimization. specifically, set to "/app/examples/deepspeed/ds_z3_config.json" for ZeRO Stage 3, otherwise use "/app/examples/deepspeed/ds_z2_config.json" for ZeRO Stage 2
+    {% if deepspeed_path %}- deepspeed: If number of GPUs > 1, use DeepSpeed with ZeRO Stage 2 or 3 for memory optimization. specifically, set to "{{ deepspeed_path }}ds_z3_config.json" for ZeRO Stage 3, otherwise use "{{ deepspeed_path }}ds_z2_config.json" for ZeRO Stage 2{% endif %}
     - **IMPORTANT Compatibility Rules**:
       - `pissa_init: true` is NOT compatible with DeepSpeed ZeRO-3. If using ZeRO-3, do NOT set pissa_init to true
         - If you need PiSSA initialization, use ZeRO Stage 2 instead of ZeRO Stage 3
@@ -249,7 +249,7 @@ finetune_coder:
     - model_name_or_path: {{ models_path }}{{ base_model }}
     - dataset: processed_data
     - dataset_dir: {{ datasets_path }}
-    - tokenized_path: /workspace/tokenized_cache
+    - tokenized_path: {{ workspace_path }}tokenized_cache
     {% endif %}
 
 finetune_eval:

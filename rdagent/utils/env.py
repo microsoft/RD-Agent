@@ -765,8 +765,96 @@ class QlibCondaEnv(LocalEnv[QlibCondaConf]):
                     f"conda run -n {self.conf.conda_env_name} pip install catboost xgboost scipy==1.11.4 tables torch",
                     shell=True,
                 )
+
         except Exception as e:
             print(f"[red]Failed to prepare conda env: {e}[/red]")
+
+
+# ========== Conda Environment Configuration Loader ==========
+# Config files location: rdagent/scenarios/finetune/conda/
+
+FT_CONDA_CONFIG_DIR = Path(__file__).parent.parent / "scenarios" / "finetune" / "conda"
+
+# Track which conda environments have been prepared in this process
+# This avoids redundant pip install checks that produce verbose output
+_CONDA_ENV_PREPARED: set[str] = set()
+
+
+def _prepare_conda_env(env_name: str, requirements_file: Path, python_version: str = "3.10") -> None:
+    """Prepare conda environment with dependencies from requirements.txt.
+
+    Creates the env if it doesn't exist, then installs dependencies.
+    Uses a process-level cache to avoid redundant preparation in the same run.
+
+    Args:
+        env_name: Conda environment name
+        requirements_file: Path to requirements.txt file
+        python_version: Python version for the environment
+    """
+    # Skip if already prepared in this process
+    if env_name in _CONDA_ENV_PREPARED:
+        return
+
+    # 1. Create conda environment if not exists
+    result = subprocess.run(f"conda env list | grep -q '^{env_name} '", shell=True)
+    if result.returncode != 0:
+        print(f"[yellow]Creating conda env '{env_name}' (Python {python_version})...[/yellow]")
+        subprocess.check_call(f"conda create -y -n {env_name} python={python_version}", shell=True)
+        subprocess.check_call(f"conda run -n {env_name} pip install --upgrade pip", shell=True)
+
+    print(f"[yellow]Installing dependencies from {requirements_file.name}...[/yellow]")
+    subprocess.check_call(f"conda run -n {env_name} pip install -r {requirements_file}", shell=True)
+    print(f"[green]Conda env '{env_name}' ready[/green]")
+
+    _CONDA_ENV_PREPARED.add(env_name)
+
+
+# ========== FT (LLaMA Factory) Conda Environment ==========
+class FTCondaConf(CondaConf):
+    """Conda configuration for LLM fine-tuning environment."""
+
+    conda_env_name: str = "llm_finetune"
+    default_entry: str = "llamafactory-cli version"
+    enable_cache: bool = False
+
+
+class FTCondaEnv(LocalEnv[FTCondaConf]):
+    """LLaMA Factory Conda Environment with auto-dependency installation.
+
+    Requirements: rdagent/scenarios/finetune/conda/llm_finetune_requirements.txt
+    Docker equivalent: rdagent/scenarios/finetune/docker/llm_finetune_docker/Dockerfile
+    """
+
+    def prepare(self) -> None:
+        try:
+            req_file = FT_CONDA_CONFIG_DIR / "llm_finetune_requirements.txt"
+            _prepare_conda_env(self.conf.conda_env_name, req_file)
+        except Exception as e:
+            print(f"[red]Failed to prepare LLaMA Factory conda env: {e}[/red]")
+
+
+# ========== Benchmark (OpenCompass) Conda Environment ==========
+class BenchmarkCondaConf(CondaConf):
+    """Conda configuration for OpenCompass benchmark evaluation."""
+
+    conda_env_name: str = "opencompass"
+    default_entry: str = "opencompass --help"
+    enable_cache: bool = False
+
+
+class BenchmarkCondaEnv(LocalEnv[BenchmarkCondaConf]):
+    """OpenCompass Conda Environment with auto-dependency installation.
+
+    Requirements: rdagent/scenarios/finetune/conda/opencompass_requirements.txt
+    Docker equivalent: rdagent/scenarios/finetune/docker/opencompass/Dockerfile
+    """
+
+    def prepare(self) -> None:
+        try:
+            req_file = FT_CONDA_CONFIG_DIR / "opencompass_requirements.txt"
+            _prepare_conda_env(self.conf.conda_env_name, req_file)
+        except Exception as e:
+            print(f"[red]Failed to prepare OpenCompass conda env: {e}[/red]")
 
 
 class QlibDockerConf(DockerConf):
@@ -999,17 +1087,13 @@ class DockerEnv(Env[DockerConf]):
             # Use device_ids to specify exact GPUs (cannot use count with device_ids)
             device_ids = [gpu.strip() for gpu in cuda_visible.split(",") if gpu.strip()]
             gpu_kwargs = {
-                "device_requests": [
-                    docker.types.DeviceRequest(device_ids=device_ids, capabilities=[["gpu"]])
-                ],
+                "device_requests": [docker.types.DeviceRequest(device_ids=device_ids, capabilities=[["gpu"]])],
             }
             logger.info(f"GPU selection: using specific GPUs {device_ids}")
         else:
             # Default: use all available GPUs
             gpu_kwargs = {
-                "device_requests": [
-                    docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])
-                ],
+                "device_requests": [docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])],
             }
 
         def get_image(image_name: str) -> None:

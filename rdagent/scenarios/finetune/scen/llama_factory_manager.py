@@ -11,7 +11,11 @@ from typing import Dict, List, Optional
 import requests
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
-from rdagent.components.coder.finetune.conf import get_ft_env
+from rdagent.components.coder.finetune.conf import (
+    get_ft_env,
+    get_workspace_prefix,
+    is_docker_env,
+)
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
 
@@ -98,15 +102,15 @@ class LLaMAFactoryManager:
         self._info_cache: Optional[Dict] = None
 
     def extract_info_from_docker(self) -> Dict:
-        """Extract LLaMA Factory information from Docker environment."""
+        """Extract LLaMA Factory information from Docker/Conda environment."""
         if not self.cache_dir.exists() or not any(self.cache_dir.iterdir()):
-            logger.info("Extract LLaMA Factory parameters from Docker")
+            logger.info("Extract LLaMA Factory parameters")
             # Prepare extraction script
             workspace = FBWorkspace()
             script_path = Path(__file__).parent / "docker_scripts" / EXTRACT_PARAMETERS_SCRIPT_NAME
             workspace.inject_files(**{EXTRACT_PARAMETERS_SCRIPT_NAME: script_path.read_text()})
 
-            # Setup cache directory and Docker volumes
+            # Setup cache directory and volumes
             if self.cache_dir.exists():
                 shutil.rmtree(self.cache_dir)
             self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -115,9 +119,14 @@ class LLaMAFactoryManager:
             # Run extraction
             env = get_ft_env(extra_volumes=volumes, enable_cache=False)
             env.conf.running_timeout_period = 120  # Short timeout for parameter extraction
+
+            # Determine output path based on environment type
+            ws_prefix = get_workspace_prefix(env)
+            output_path = f"{ws_prefix}/.llama_factory_info"
+
             result = workspace.run(
                 env=env,
-                entry=f"python {EXTRACT_PARAMETERS_SCRIPT_NAME}",
+                entry=f"python {EXTRACT_PARAMETERS_SCRIPT_NAME} {output_path}",
             )
 
             if result.exit_code != 0:

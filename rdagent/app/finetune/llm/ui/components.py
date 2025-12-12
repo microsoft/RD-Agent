@@ -372,7 +372,7 @@ def _render_single_feedback(fb: Any, evaluator_name: str = "") -> None:
 
     raw_execution = getattr(fb, "raw_execution", "")
     if raw_execution:
-        with st.expander("Full Docker Log", expanded=False):
+        with st.expander("Full Execution Log", expanded=False):
             st.code(raw_execution, language="text", line_numbers=True)
 
     return_checking = getattr(fb, "return_checking", "")
@@ -407,7 +407,7 @@ def render_docker_exec(content: Any, event_title: str = "") -> None:
 
         stdout = content.get("stdout", "")
         if stdout:
-            label = f"{evaluator_name} Output" if evaluator_name else "Docker Output"
+            label = f"{evaluator_name} Output" if evaluator_name else "Execution Output"
             with st.expander(label, expanded=True):
                 st.code(stdout, language="text", line_numbers=True)
         return
@@ -592,4 +592,4 @@ def render_summary(summary: dict) -> None:
     with col4:
         success = summary.get("docker_success", 0)
         fail = summary.get("docker_fail", 0)
-        st.metric("Docker", f"{success}✓ / {fail}✗")
+        st.metric("Executions", f"{success}✓ / {fail}✗")

@@ -1,0 +1,13 @@
+# LLaMA Factory Environment Requirements
+# Equivalent to: rdagent/scenarios/finetune/docker/llm_finetune_docker/Dockerfile
+
+# Core LlamaFactory package
+llamafactory==0.9.3
+
+# Additional dependencies (matches Dockerfile line 17)
+bitsandbytes>=0.39.0
+mixture-of-depth>=1.1.6
+openai
+
+# Common utilities for data processing scripts
+requests

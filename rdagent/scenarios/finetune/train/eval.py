@@ -11,6 +11,7 @@ from rdagent.components.coder.finetune.conf import (
     get_clear_ws_cmd,
     get_data_processing_env,
     get_ft_env,
+    get_workspace_prefix,
 )
 from rdagent.components.coder.finetune.exp import FTTask
 from rdagent.components.coder.finetune.unified_validator import LLMConfigValidator
@@ -287,13 +288,14 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         """
         # Get data processing environment with LLM API access
         env, env_vars = get_data_processing_env()
+        ws_prefix = get_workspace_prefix(env)
 
         logger.info("Starting full data processing (without --debug flag)")
 
         # Execute WITHOUT --debug flag to generate all samples
         result = implementation.run(
             env=env,
-            entry=f"python /workspace/{FT_DATA_SCRIPT_NAME}",  # No --debug flag
+            entry=f"python {ws_prefix}/{FT_DATA_SCRIPT_NAME}",  # No --debug flag
             env_vars=env_vars,
         )
 

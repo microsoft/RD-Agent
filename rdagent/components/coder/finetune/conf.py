@@ -5,11 +5,30 @@ from typing import Literal
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
 from rdagent.utils.env import (
-    CondaConf,
+    BenchmarkCondaConf,
+    BenchmarkCondaEnv,
+    BenchmarkDockerConf,
+    BenchmarkDockerEnv,
+    DockerEnv,
     Env,
+    FTCondaConf,
+    FTCondaEnv,
     FTDockerEnv,
-    LocalEnv,
 )
+
+
+def is_docker_env(env: Env) -> bool:
+    """Check if the environment is Docker-based."""
+    return isinstance(env, DockerEnv)
+
+
+def get_workspace_prefix(env: Env) -> str:
+    """Return workspace path prefix based on env type.
+
+    Docker uses /workspace as mount point, conda uses current directory.
+    """
+    return "/workspace" if is_docker_env(env) else "."
+
 
 FT_YAML_FILE_NAME = "train.yaml"
 FT_DATA_PROC_FILE_NAME = "data_process.py"
@@ -20,6 +39,54 @@ FT_DATA_SCRIPT_NAME = "process_data.py"
 # ENV Info:  the path of the model and dataset in the container/environment
 FT_MODEL_PATH = "/assets/models"
 FT_DATASET_PATH = "/assets/datasets"
+
+
+class FTPathConfig:
+    """Centralized path configuration for FT scenario.
+
+    Provides environment-aware paths for Docker vs Conda modes.
+    Uses lazy evaluation (properties) to avoid import-time errors.
+
+    Usage:
+        from rdagent.components.coder.finetune.conf import FT_PATHS
+
+        models_path = FT_PATHS.models      # e.g., "/assets/models/" or "/path/to/finetune/models/"
+        datasets_path = FT_PATHS.datasets  # e.g., "/assets/datasets/" or "/path/to/finetune/datasets/"
+        workspace_path = FT_PATHS.workspace  # e.g., "/workspace/" or "./"
+    """
+
+    @property
+    def is_docker(self) -> bool:
+        """Check if current environment is Docker-based."""
+        return FTCoderCoSTEERSettings().env_type == "docker"
+
+    @property
+    def models(self) -> str:
+        """Model directory path (with trailing slash)."""
+        if self.is_docker:
+            return FT_MODEL_PATH + "/"
+        return str(FT_RD_SETTING.file_path / "models") + "/"
+
+    @property
+    def datasets(self) -> str:
+        """Dataset directory path for raw datasets (with trailing slash)."""
+        if self.is_docker:
+            return FT_DATASET_PATH + "/"
+        return str(FT_RD_SETTING.file_path / "datasets") + "/"
+
+    @property
+    def workspace(self) -> str:
+        """Workspace path prefix for prompts (with trailing slash)."""
+        return "/workspace/" if self.is_docker else "./"
+
+    @property
+    def deepspeed(self) -> str:
+        """DeepSpeed config directory (empty string if conda mode)."""
+        return "/app/examples/deepspeed/" if self.is_docker else ""
+
+
+# Singleton instance for path configuration
+FT_PATHS = FTPathConfig()
 
 
 class FTCoderCoSTEERSettings(CoSTEERSettings):
@@ -105,23 +172,21 @@ def get_ft_env(
     if enable_cache is None:
         enable_cache = FT_RD_SETTING.docker_enable_cache
 
-    assert conf.env_type == "docker", f"LLM finetune only supports docker env, got: {conf.env_type}"
-    # Use dedicated LLM docker and conda env
+    # Use dedicated LLM docker or conda env based on config
     if conf.env_type == "docker":
         env = FTDockerEnv()
+        # Docker mode: setup volume mounts for models/datasets
+        standard_volumes = _get_standard_ft_volumes()
+        combined_volumes = standard_volumes.copy()
+        combined_volumes.update(extra_volumes)
+        env.conf.extra_volumes = combined_volumes
     elif conf.env_type == "conda":
-        # Use a dedicated llm conda env name
-        # TODO: enable conda environment
-        env = LocalEnv(conf=CondaConf(conda_env_name="llm_finetune"))
+        env = FTCondaEnv(conf=FTCondaConf())  # Auto-installs dependencies if env doesn't exist
+        # Conda mode: no volume mounts needed, use local paths directly
+        # extra_volumes are ignored in conda mode
     else:
         raise ValueError(f"Unknown env type: {conf.env_type}")
 
-    # Combine standard finetune volumes with extra volumes
-    standard_volumes = _get_standard_ft_volumes()
-    combined_volumes = standard_volumes.copy()
-    combined_volumes.update(extra_volumes)
-
-    env.conf.extra_volumes = combined_volumes
     env.conf.running_timeout_period = running_timeout_period
     env.conf.enable_cache = enable_cache
     env.prepare()
@@ -183,3 +248,52 @@ def get_clear_ws_cmd(stage: Literal["before_training", "before_inference"] = "be
         # Clean only logs before inference (keep model outputs)
         cmd = f"rm -f training_*.json *_metrics.json {FT_YAML_FILE_NAME} trace.log"
     return cmd
+
+
+def get_benchmark_env(
+    extra_volumes: dict = {},
+    timeout: int | None = None,
+) -> Env:
+    """OpenCompass benchmark environment construction function.
+
+    Supports both Docker and conda environments based on FT_Coder_CoSTEER_env_type.
+
+    Args:
+        extra_volumes: Additional volume mounts (only used in Docker mode)
+        timeout: Running timeout in seconds (None uses config default)
+
+    Returns:
+        Configured environment ready for benchmark evaluation
+    """
+    conf = FTCoderCoSTEERSettings()
+
+    # Use benchmark-specific timeout or config default
+    if timeout is None:
+        # 0 means no timeout, use 7 days as practical "infinite"
+        timeout = FT_RD_SETTING.benchmark_timeout if FT_RD_SETTING.benchmark_timeout > 0 else 86400 * 7
+
+    if conf.env_type == "docker":
+        docker_conf = BenchmarkDockerConf()
+        docker_conf.running_timeout_period = timeout
+
+        # Setup finetune share folder mount for models
+        benchmark_volumes = {}
+        try:
+            (FT_RD_SETTING.file_path / "benchmarks").mkdir(parents=True, exist_ok=True)
+            benchmark_volumes[str(FT_RD_SETTING.file_path.resolve())] = {"bind": "/finetune", "mode": "rw"}
+        except (PermissionError, OSError):
+            pass
+
+        benchmark_volumes.update(extra_volumes)
+        docker_conf.extra_volumes = benchmark_volumes
+
+        env = BenchmarkDockerEnv(conf=docker_conf)
+    elif conf.env_type == "conda":
+        conda_conf = BenchmarkCondaConf()
+        conda_conf.running_timeout_period = timeout
+        env = BenchmarkCondaEnv(conf=conda_conf)  # Auto-installs dependencies if env doesn't exist
+    else:
+        raise ValueError(f"Unknown env type: {conf.env_type}")
+
+    env.prepare()
+    return env

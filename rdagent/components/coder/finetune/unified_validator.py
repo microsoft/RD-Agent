@@ -15,7 +15,11 @@ from typing import Dict, List, Optional, Set
 
 import yaml
 
-from rdagent.components.coder.finetune.conf import FT_DEBUG_YAML_FILE_NAME, get_ft_env
+from rdagent.components.coder.finetune.conf import (
+    FT_DEBUG_YAML_FILE_NAME,
+    get_ft_env,
+    get_workspace_prefix,
+)
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.finetune.scen.llama_factory_manager import LLaMAFactory_manager
@@ -231,6 +235,7 @@ class LLMConfigValidator:
     def _run_micro_batch_test(self, config_yaml: str, workspace: FBWorkspace, env) -> ValidationResult:
         """Run micro-batch training test for runtime validation"""
         result = ValidationResult(success=True, filtered_config=config_yaml)
+        ws_prefix = get_workspace_prefix(env)
 
         try:
             # Create micro-batch test configuration
@@ -252,13 +257,13 @@ class LLMConfigValidator:
                     "save_steps": 1000,
                     "logging_steps": 1,
                     "warmup_steps": 0,
-                    "output_dir": "/workspace/micro_test_output",
+                    "output_dir": f"{ws_prefix}/micro_test_output",
                     "overwrite_output_dir": True,
                     "report_to": "none",  # Disable all reporting (tensorboard, wandb, etc.)
                     "do_eval": False,  # Disable evaluation in micro-batch test (insufficient samples for val split)
                     "eval_strategy": "no",  # Explicitly disable evaluation
                     "load_best_model_at_end": False,  # Cannot load best model without evaluation
-                    "tokenized_path": "/workspace/micro_test_cache",  # Use writable workspace instead of read-only /assets
+                    "tokenized_path": f"{ws_prefix}/micro_test_cache",  # Use writable workspace instead of read-only /assets
                 }
             )
 

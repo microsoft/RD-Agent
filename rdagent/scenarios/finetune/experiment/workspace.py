@@ -16,7 +16,7 @@ from rdagent.components.coder.finetune.conf import FT_DATA_FILE_NAME, FT_YAML_FI
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
-from rdagent.utils.env import DockerEnv
+from rdagent.utils.env import DockerEnv, LocalEnv
 
 if TYPE_CHECKING:
     from rdagent.utils.env import Env, EnvResult
@@ -66,16 +66,22 @@ class FTWorkspace(FBWorkspace):
 
         result = env.run(entry, str(self.workspace_path), env=run_env)
 
-        # Unified Docker execution logging for FT scenario
+        # Unified execution logging for FT scenario (supports both Docker and Conda)
         if isinstance(env, DockerEnv):
-            logger.log_object(
-                {
-                    "exit_code": result.exit_code,
-                    "stdout": result.stdout or "",
-                    "running_time": result.running_time,
-                    "entry": entry,
-                },
-                tag="docker_run.FTWorkspace",
-            )
+            tag_prefix = "docker_run"
+        elif isinstance(env, LocalEnv):
+            tag_prefix = "conda_run"
+        else:
+            tag_prefix = "env_run"
+
+        logger.log_object(
+            {
+                "exit_code": result.exit_code,
+                "stdout": result.stdout or "",
+                "running_time": result.running_time,
+                "entry": entry,
+            },
+            tag=f"{tag_prefix}.FTWorkspace",
+        )
 
         return result

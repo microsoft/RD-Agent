@@ -29,11 +29,15 @@ from rdagent.utils.agent.tpl import T
 load_dotenv(find_dotenv())
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
-from rdagent.components.coder.finetune.conf import get_ft_env
+from rdagent.components.coder.finetune.conf import (
+    get_benchmark_env,
+    get_ft_env,
+    get_workspace_prefix,
+    is_docker_env,
+)
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
-from rdagent.utils.env import BenchmarkDockerConf, BenchmarkDockerEnv
 
 BENCHMARK_CONFIG_DICT = {
     # Math Reasoning Benchmarks
@@ -249,12 +253,25 @@ def run_benchmark(
     inference_config = get_model_inference_config(model_name)
     workspace_path = Path(workspace_path)
 
-    model_dir_inside_docker = Path("/workspace/") / Path(model_path).relative_to(workspace_path)
+    # Get environment first to determine path prefix
+    env = get_benchmark_env()
+    ws_prefix = get_workspace_prefix(env)
+    is_docker = is_docker_env(env)
+
+    # Determine model paths based on environment type
+    model_rel_path = Path(model_path).relative_to(workspace_path)
+    model_dir_inside_env = Path(ws_prefix) / model_rel_path
+
     if model_is_lora:
-        real_model_path = Path("/finetune/models") / model_name
-        real_lora_path = model_dir_inside_docker
+        if is_docker:
+            # Docker: use /finetune/models mount
+            real_model_path = Path("/finetune/models") / model_name
+        else:
+            # Conda: use actual file path
+            real_model_path = Path(FT_RD_SETTING.file_path) / "models" / model_name
+        real_lora_path = model_dir_inside_env
     else:
-        real_model_path = model_dir_inside_docker
+        real_model_path = model_dir_inside_env
         real_lora_path = ""
 
     # Prepare template variables (merge inference config from models.yaml)
@@ -269,7 +286,7 @@ def run_benchmark(
         "limit": limit or "",
         "num_runs": num_runs,
         "pass_k": pass_k,
-        "work_dir": model_dir_inside_docker,
+        "work_dir": model_dir_inside_env,
         # Merge all inference parameters from models.yaml (default + model-specific)
         **inference_config,
     }
@@ -279,32 +296,16 @@ def run_benchmark(
         **template_vars
     )
 
-    # Prepare Docker environment
-    conf = BenchmarkDockerConf()
-    # 0 means no timeout, use 7 days as practical "infinite"
-    conf.running_timeout_period = FT_RD_SETTING.benchmark_timeout if FT_RD_SETTING.benchmark_timeout > 0 else 86400 * 7
-    # Inline volume setup (merged _setup_benchmark_cache_volume and _setup_lora_volume)
-    extra_volumes: Dict[str, Dict[str, str]] = {}
-
-    # Finetune share folder mount
-    try:
-        (FT_RD_SETTING.file_path / "benchmarks").mkdir(parents=True, exist_ok=True)
-        extra_volumes[str(FT_RD_SETTING.file_path.resolve())] = {"bind": "/finetune", "mode": "rw"}
-    except (PermissionError, OSError) as e:
-        logger.warning(f"Cannot mount benchmark cache: {e}")
-
-    conf.extra_volumes = extra_volumes
-    env = BenchmarkDockerEnv(conf=conf)
-    env.prepare()
+    # Note: env was already created above via get_benchmark_env()
 
     (workspace_path / "config.py").write_text(config_content)
-    docker_work_dir = "/workspace/benchmark_results"
+    benchmark_work_dir = f"{ws_prefix}/benchmark_results"
 
     # Logging
     logger.info(f"Running benchmark '{benchmark_name}' on model: {model_path}")
     logger.info(f"Base model: {model_name}, LoRA?: {model_is_lora}")
     logger.info(f"Workspace: {workspace_path}")
-    logger.info(f"Docker work_dir: {docker_work_dir}")
+    logger.info(f"Benchmark work_dir: {benchmark_work_dir}")
 
     # Environment variables
     env_vars = {
@@ -322,7 +323,7 @@ def run_benchmark(
         logger.info(f"Found existing results in {timestamped_dirs[0].name}, skipping benchmark execution")
     else:
         # Run OpenCompass
-        entry_cmd = f"opencompass /workspace/config.py --work-dir {docker_work_dir}"
+        entry_cmd = f"opencompass {ws_prefix}/config.py --work-dir {benchmark_work_dir}"
 
         result = env.run(
             entry=entry_cmd,
@@ -330,7 +331,8 @@ def run_benchmark(
             env=env_vars,
         )
 
-        # Log Docker execution immediately (for UI display)
+        # Log execution immediately (for UI display)
+        tag_prefix = "docker_run" if is_docker else "conda_run"
         logger.log_object(
             {
                 "exit_code": result.exit_code,
@@ -338,7 +340,7 @@ def run_benchmark(
                 "benchmark_name": benchmark_name,
                 "model_path": str(model_path),
             },
-            tag="docker_run.Benchmark",
+            tag=f"{tag_prefix}.Benchmark",
         )
 
         # Check execution status
