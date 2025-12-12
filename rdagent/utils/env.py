@@ -655,6 +655,15 @@ class CondaConf(LocalConf):
 
     @model_validator(mode="after")
     def change_bin_path(self, **data: Any) -> "CondaConf":
+        self._update_bin_path()
+        return self
+
+    def _update_bin_path(self) -> None:
+        """Update bin_path by querying the conda environment's PATH.
+
+        This is called during initialization and can be called again after prepare()
+        to ensure bin_path is set correctly even if the conda env was just created.
+        """
         conda_path_result = subprocess.run(
             f"conda run -n {self.conda_env_name} --no-capture-output env | grep '^PATH='",
             capture_output=True,
@@ -662,7 +671,6 @@ class CondaConf(LocalConf):
             shell=True,
         )
         self.bin_path = conda_path_result.stdout.strip().split("=")[1] if conda_path_result.returncode == 0 else ""
-        return self
 
 
 class MLECondaConf(CondaConf):
@@ -829,6 +837,10 @@ class FTCondaEnv(LocalEnv[FTCondaConf]):
         try:
             req_file = FT_CONDA_CONFIG_DIR / "llm_finetune_requirements.txt"
             _prepare_conda_env(self.conf.conda_env_name, req_file)
+            # Re-update bin_path after prepare() in case the conda env was just created
+            # This fixes the issue where bin_path is empty if queried before env exists
+            if not self.conf.bin_path:
+                self.conf._update_bin_path()
         except Exception as e:
             print(f"[red]Failed to prepare LLaMA Factory conda env: {e}[/red]")
 
@@ -853,6 +865,9 @@ class BenchmarkCondaEnv(LocalEnv[BenchmarkCondaConf]):
         try:
             req_file = FT_CONDA_CONFIG_DIR / "opencompass_requirements.txt"
             _prepare_conda_env(self.conf.conda_env_name, req_file)
+            # Re-update bin_path after prepare() in case the conda env was just created
+            if not self.conf.bin_path:
+                self.conf._update_bin_path()
         except Exception as e:
             print(f"[red]Failed to prepare OpenCompass conda env: {e}[/red]")
 

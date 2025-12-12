@@ -121,8 +121,13 @@ class LLaMAFactoryManager:
             env.conf.running_timeout_period = 120  # Short timeout for parameter extraction
 
             # Determine output path based on environment type
-            ws_prefix = get_workspace_prefix(env)
-            output_path = f"{ws_prefix}/.llama_factory_info"
+            # Docker: uses volume mount, output to /workspace/.llama_factory_info
+            # Conda: no volume mount, output directly to cache_dir (absolute path)
+            if is_docker_env(env):
+                output_path = "/workspace/.llama_factory_info"
+            else:
+                # For conda mode, use absolute path to cache_dir
+                output_path = str(self.cache_dir)
 
             result = workspace.run(
                 env=env,
