@@ -24,35 +24,6 @@ from rdagent.app.finetune.llm.ui.data_loader import (
 def main():
     st.set_page_config(layout="wide", page_title="FT Timeline", page_icon="🔬")
 
-    # Enable word wrap for code blocks (like VSCode)
-    st.markdown(
-        """
-    <style>
-    /* Target all code elements in Streamlit */
-    .stCodeBlock pre,
-    .stCodeBlock code,
-    .stCodeBlock [data-testid="stCodeBlock"] pre,
-    .stCodeBlock [data-testid="stCodeBlock"] code,
-    code[class*="language-"],
-    pre[class*="language-"],
-    .hljs {
-        white-space: pre-wrap !important;
-        word-wrap: break-word !important;
-        word-break: break-word !important;
-        overflow-wrap: break-word !important;
-    }
-    /* Ensure the container doesn't force horizontal scroll */
-    .stCodeBlock,
-    .stCodeBlock > div,
-    [data-testid="stCodeBlock"],
-    [data-testid="stCodeBlock"] > div {
-        overflow-x: visible !important;
-    }
-    </style>
-    """,
-        unsafe_allow_html=True,
-    )
-
     # ========== Sidebar ==========
     with st.sidebar:
         st.header("Session")

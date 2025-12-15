@@ -243,7 +243,7 @@ def render_settings(content: Any) -> None:
     if isinstance(content, dict):
         st.json(content)
     else:
-        st.code(str(content))
+        st.code(str(content), wrap_lines=True)
 
 
 def render_llm_call(content: Any) -> None:
@@ -264,7 +264,7 @@ def render_llm_call(content: Any) -> None:
             if render_md:
                 st.markdown(system)
             else:
-                st.code(system, language="text", line_numbers=True)
+                st.code(system, language="text", line_numbers=True, wrap_lines=True)
 
     user = content.get("user", "")
     if user:
@@ -272,7 +272,7 @@ def render_llm_call(content: Any) -> None:
             if render_md:
                 st.markdown(user)
             else:
-                st.code(user, language="text", line_numbers=True)
+                st.code(user, language="text", line_numbers=True, wrap_lines=True)
 
     resp = content.get("resp", "")
     if resp:
@@ -280,11 +280,11 @@ def render_llm_call(content: Any) -> None:
         if render_md:
             st.markdown(resp)
         elif resp.strip().startswith("{") or resp.strip().startswith("["):
-            st.code(resp, language="json", line_numbers=True)
+            st.code(resp, language="json", line_numbers=True, wrap_lines=True)
         elif resp.strip().startswith("```"):
             st.markdown(resp)
         else:
-            st.code(resp, language="text", line_numbers=True)
+            st.code(resp, language="text", line_numbers=True, wrap_lines=True)
 
 
 def render_template(content: Any) -> None:
@@ -303,12 +303,12 @@ def render_template(content: Any) -> None:
     template = content.get("template", "")
     if template:
         with st.expander("Template", expanded=False):
-            st.code(template, language="text", line_numbers=True)
+            st.code(template, language="text", line_numbers=True, wrap_lines=True)
 
     rendered = content.get("rendered", "")
     if rendered:
         with st.expander("Rendered", expanded=True):
-            st.code(rendered, language="text", line_numbers=True)
+            st.code(rendered, language="text", line_numbers=True, wrap_lines=True)
 
 
 def render_experiment(content: Any) -> None:
@@ -347,7 +347,7 @@ def render_code(content: Any) -> None:
         for filename, code in ws.file_dict.items():
             lang = "yaml" if filename.endswith((".yaml", ".yml")) else "python"
             with st.expander(filename, expanded=False):
-                st.code(code, language=lang, line_numbers=True)
+                st.code(code, language=lang, line_numbers=True, wrap_lines=True)
 
 
 def _extract_evaluator_name(title: str) -> str:
@@ -368,17 +368,17 @@ def _render_single_feedback(fb: Any, evaluator_name: str = "") -> None:
     if execution:
         label = f"{evaluator_name} Feedback" if evaluator_name else "Execution Log"
         with st.expander(label, expanded=True):
-            st.code(execution, language="text", line_numbers=True)
+            st.code(execution, language="text", line_numbers=True, wrap_lines=True)
 
     raw_execution = getattr(fb, "raw_execution", "")
     if raw_execution:
         with st.expander("Full Execution Log", expanded=False):
-            st.code(raw_execution, language="text", line_numbers=True)
+            st.code(raw_execution, language="text", line_numbers=True, wrap_lines=True)
 
     return_checking = getattr(fb, "return_checking", "")
     if return_checking:
         with st.expander("Return Checking", expanded=False):
-            st.code(return_checking, language="text", line_numbers=True)
+            st.code(return_checking, language="text", line_numbers=True, wrap_lines=True)
 
     code_fb = getattr(fb, "code", "")
     if code_fb:
@@ -409,7 +409,7 @@ def render_docker_exec(content: Any, event_title: str = "") -> None:
         if stdout:
             label = f"{evaluator_name} Output" if evaluator_name else "Execution Output"
             with st.expander(label, expanded=True):
-                st.code(stdout, language="text", line_numbers=True)
+                st.code(stdout, language="text", line_numbers=True, wrap_lines=True)
         return
 
     # CoSTEERMultiFeedback (has feedback_list)
@@ -439,7 +439,7 @@ def render_docker_exec(content: Any, event_title: str = "") -> None:
             stdout = getattr(info, "stdout", "")
             if stdout:
                 with st.expander("Full Train Log", expanded=True):
-                    st.code(stdout, language="text", line_numbers=True)
+                    st.code(stdout, language="text", line_numbers=True, wrap_lines=True)
 
             result = getattr(info, "result", {})
             if result:
@@ -484,7 +484,7 @@ def render_feedback(content: Any) -> None:
     reason = getattr(content, "reason", None)
     if reason:
         with st.expander("Reason (Full Details)", expanded=True):
-            st.code(reason, language="text", line_numbers=True)
+            st.code(reason, language="text", line_numbers=True, wrap_lines=True)
 
     exception = getattr(content, "exception", None)
     if exception:
