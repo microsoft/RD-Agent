@@ -357,33 +357,48 @@ def _extract_evaluator_name(title: str) -> str:
 
 
 def _render_single_feedback(fb: Any, evaluator_name: str = "") -> None:
-    """Render a single CoSTEERSingleFeedback object."""
+    """Render a single CoSTEERSingleFeedback object.
+
+    Structure:
+    - execution: LLM-generated execution summary (what happened, success/failure reason)
+    - raw_execution: Raw script stdout/stderr output
+    - return_checking: LLM-generated data quality assessment
+    - code: LLM-generated code improvement suggestions
+    """
     decision = getattr(fb, "final_decision", None)
     if decision is True:
         st.success("Execution: PASS")
     elif decision is False:
         st.error("Execution: FAIL")
 
+    # 1. Execution Summary (LLM-generated)
     execution = getattr(fb, "execution", "")
     if execution:
-        label = f"{evaluator_name} Feedback" if evaluator_name else "Execution Log"
+        label = f"{evaluator_name} Summary" if evaluator_name else "Execution Summary"
         with st.expander(label, expanded=True):
             st.code(execution, language="text", line_numbers=True, wrap_lines=True)
 
+    # 2. Raw Execution Log (script stdout)
     raw_execution = getattr(fb, "raw_execution", "")
     if raw_execution:
-        with st.expander("Full Execution Log", expanded=False):
+        with st.expander("Raw Output (stdout)", expanded=False):
             st.code(raw_execution, language="text", line_numbers=True, wrap_lines=True)
 
+    # 3. Data Quality Check (LLM-generated)
     return_checking = getattr(fb, "return_checking", "")
     if return_checking:
-        with st.expander("Return Checking", expanded=False):
+        with st.expander("Data Quality Check", expanded=False):
             st.code(return_checking, language="text", line_numbers=True, wrap_lines=True)
 
+    # 4. Code Improvement Suggestions (LLM-generated, often very long)
     code_fb = getattr(fb, "code", "")
     if code_fb:
-        st.markdown("**Code Feedback:**")
-        st.markdown(code_fb)
+        with st.expander("Code Improvement Suggestions", expanded=False):
+            # Use markdown rendering if content contains markdown formatting
+            if "**" in code_fb or "```" in code_fb or "- " in code_fb:
+                st.markdown(code_fb)
+            else:
+                st.code(code_fb, language="text", line_numbers=True, wrap_lines=True)
 
 
 def render_docker_exec(content: Any, event_title: str = "") -> None:

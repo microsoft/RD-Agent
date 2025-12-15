@@ -118,7 +118,7 @@ unified_hypothesis_gen:
 
     ### Output Data Format
 
-    Save all processed data to a single `data.json` file using Alpaca format. Choose output content based on task type:
+    Output filename: `data.json` (do NOT specify path, path handled by system). Use Alpaca format. Choose output content based on task type:
 
     ```json
     [

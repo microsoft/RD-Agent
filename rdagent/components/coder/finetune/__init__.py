@@ -259,7 +259,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
                 system_prompt=system_prompt,
                 json_mode=False,
                 code_block_language="yaml",
-                code_block_fallback=True,  # Fallback to raw response if no code block found
+                code_block_fallback=False, 
             )
 
             # Validate YAML syntax
