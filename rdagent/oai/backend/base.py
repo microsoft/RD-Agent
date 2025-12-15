@@ -16,7 +16,7 @@ from typing import Any, Callable, List, Optional, Tuple, Type, Union, cast
 import pytz
 from pydantic import BaseModel, TypeAdapter
 
-from rdagent.core.exception import PolicyError
+from rdagent.core.exception import CodeBlockParseError, PolicyError
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
@@ -134,6 +134,62 @@ class JSONParser:
         decoder = json.JSONDecoder()
         obj, _ = decoder.raw_decode(response)
         return json.dumps(obj)
+
+
+class CodeBlockParser:
+    """
+    Generic code block extractor supporting multiple languages.
+    Raises CodeBlockParseError on extraction failure to trigger retry.
+    """
+
+    SUPPORTED_LANGUAGES = {
+        "python": ["python", "py", "python3", "Python", "Py"],
+        "yaml": ["yaml", "yml"],
+    }
+
+    def __init__(self, language: str = "python", fallback_to_raw: bool = False) -> None:
+        """
+        Args:
+            language: Target language type (python, yaml, etc.)
+            fallback_to_raw: If True, return raw content when extraction fails.
+                           If False (default), raise CodeBlockParseError to trigger retry.
+        """
+        self.language = language.lower()
+        self.fallback_to_raw = fallback_to_raw
+        self._lang_aliases = self._get_language_aliases(self.language)
+
+    def _get_language_aliases(self, language: str) -> List[str]:
+        """Get all possible aliases for the language."""
+        for lang, aliases in self.SUPPORTED_LANGUAGES.items():
+            if language in [lang] + aliases:
+                return [lang] + aliases
+        return [language]
+
+    def parse(self, content: str) -> str:
+        """
+        Parse content and extract code block with exact language tag.
+
+        Returns:
+            Extracted code string.
+
+        Raises:
+            CodeBlockParseError: When extraction fails and fallback_to_raw=False.
+        """
+        # Match code block with exact language tag (```python, ```yaml, etc.)
+        for alias in self._lang_aliases:
+            pattern = rf"```{alias}\s*\n(.*?)\n```"
+            match = re.search(pattern, content, re.DOTALL | re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
+
+        if self.fallback_to_raw:
+            return content.strip()
+
+        raise CodeBlockParseError(
+            message=f"Failed to extract {self.language} code block",
+            content=content,
+            language=self.language,
+        )
 
 
 class SQliteLazyCache(SingletonBaseClass):
@@ -568,6 +624,8 @@ class APIBackend(ABC):
         json_target_type: Optional[str] = None,
         add_json_in_prompt: bool = False,
         response_format: Optional[Union[dict, Type[BaseModel]]] = None,
+        code_block_language: Optional[str] = None,
+        code_block_fallback: bool = False,
         **kwargs: Any,
     ) -> str:
         """
@@ -636,6 +694,14 @@ class APIBackend(ABC):
             if json_target_type:
                 # deepseek will enter this branch
                 TypeAdapter(json_target_type).validate_json(all_response)
+
+        # 4) code block extraction
+        if code_block_language:
+            code_parser = CodeBlockParser(
+                language=code_block_language,
+                fallback_to_raw=code_block_fallback,
+            )
+            all_response = code_parser.parse(all_response)
 
         if response_format is not None:
             if not isinstance(response_format, dict) and issubclass(response_format, BaseModel):

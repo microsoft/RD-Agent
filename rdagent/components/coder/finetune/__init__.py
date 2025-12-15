@@ -6,7 +6,6 @@ including evaluators and evolving strategies.
 """
 
 import json
-import re
 from pathlib import Path
 from typing import Callable
 
@@ -101,15 +100,13 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         try:
-            response = APIBackend().build_messages_and_create_chat_completion(
+            script_code = APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=user_prompt,
                 system_prompt=system_prompt,
                 json_mode=False,
+                code_block_language="python",
+                code_block_fallback=False,
             )
-
-            # Extract Python code from response
-            match = re.search(r"```(?:python)?\s*\n(.*?)\n```", response, re.DOTALL | re.IGNORECASE)
-            script_code = match.group(1).strip() if match else response.strip()
             logger.info(f"Generated data processing script ({len(script_code)} chars)")
 
             return {FT_DATA_SCRIPT_NAME: script_code}
@@ -257,33 +254,22 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # Call LLM to generate config
         try:
-            response = APIBackend().build_messages_and_create_chat_completion(
+            extracted_yaml = APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=user_prompt,
                 system_prompt=system_prompt,
                 json_mode=False,
+                code_block_language="yaml",
+                code_block_fallback=True,  # Fallback to raw response if no code block found
             )
 
-            # Extract YAML content from response
-            # Try markdown code block first (standard format from improved prompt)
-            match = re.search(r"```(?:yaml)?\s*\n(.*?)\n```", response, re.DOTALL | re.IGNORECASE)
-            if match:
-                extracted_yaml = match.group(1).strip()
-                try:
-                    yaml.safe_load(extracted_yaml)
-                    logger.info("Extracted YAML from markdown code block")
-                    return extracted_yaml
-                except yaml.YAMLError as e:
-                    logger.warning(f"Extracted YAML is invalid: {e}")
-                    raise RuntimeError(f"Invalid YAML in code block: {e}")
-
-            # Fallback: try to use entire response as YAML
+            # Validate YAML syntax
             try:
-                yaml.safe_load(response)
-                logger.info("Using entire response as YAML")
-                return response.strip()
+                yaml.safe_load(extracted_yaml)
+                logger.info("Extracted YAML config successfully")
+                return extracted_yaml
             except yaml.YAMLError as e:
-                logger.error(f"Failed to parse response as YAML: {e}")
-                raise RuntimeError(f"Failed to extract valid YAML from LLM response: {e}")
+                logger.error(f"Invalid YAML syntax: {e}")
+                raise RuntimeError(f"Invalid YAML syntax: {e}")
 
         except Exception as e:
             logger.error(f"Failed to generate config with LLM: {e}")
