@@ -6,6 +6,7 @@ Run:
     streamlit run rdagent/app/finetune/llm/ui/app.py
 """
 
+import os
 from pathlib import Path
 
 import streamlit as st
@@ -56,7 +57,8 @@ def main():
     with st.sidebar:
         st.header("Session")
 
-        log_folder = st.text_input("Log Folder", value="./log")
+        default_log = os.environ.get("FT_LOG_PATH", "./log")
+        log_folder = st.text_input("Log Folder", value=default_log)
         log_path = Path(log_folder)
 
         sessions = get_valid_sessions(log_path)
