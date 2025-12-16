@@ -1065,6 +1065,9 @@ class DSProposalV2ExpGen(ExpGen):
                         ("Use LightGBM with early stopping", 0.834)
                     ]
         """
+        # w/o history context: don't use success memory when disabled
+        if not DS_RD_SETTING.enable_success_memory:
+            return []
         return [
             (exp.hypothesis, exp.result.loc["ensemble"].iloc[0])
             for exp, _ in trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="all")
@@ -1337,17 +1340,32 @@ class DSProposalV2ExpGen(ExpGen):
             eda_output = sota_exp.experiment_workspace.file_dict.get("EDA.md", None)
         scenario_desc = self.scen.get_scenario_all_desc(eda_output=eda_output)
 
-        # the only sota exp
-        sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
-            exp=sota_exp, heading="Best of previous exploration of the scenario"
-        )
+        # the only sota exp (controlled by enable_success_memory for ablation study)
+        if DS_RD_SETTING.enable_success_memory:
+            sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
+                exp=sota_exp, heading="Best of previous exploration of the scenario"
+            )
+        else:
+            # w/o history context: don't use SOTA experiment description
+            sota_exp_desc = ""
+            logger.info("Success memory disabled: not using SOTA experiment description")
 
-        # all exp and feedbacks
-        exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
-            type="all",
-            pipeline=pipeline,
-        )
+        # exp and feedbacks (controlled by enable_success_memory for ablation study)
+        if DS_RD_SETTING.enable_success_memory:
+            # all exp and feedbacks (including success)
+            exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+                exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
+                type="all",
+                pipeline=pipeline,
+            )
+        else:
+            # w/o history context: only use failed experiments
+            exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+                exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
+                type="failed",
+                pipeline=pipeline,
+            )
+            logger.info("Success memory disabled: only using failed experiments in trace")
 
         # all failed exp and feedbacks
         failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(

@@ -159,6 +159,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_simple_hypothesis: bool = False
     """If true, generate simple hypothesis, no more than 2 sentences each."""
 
+    enable_success_memory: bool = True
+    """If True, use success memory (SOTA experiments) in hypothesis generation (Momentum analogy).
+    If False, only use failed experiments for ablation study (w/o history context)."""
+
     enable_generate_unique_hypothesis: bool = False
     """Enable generate unique hypothesis. If True, generate unique hypothesis for each component. If False, generate unique hypothesis for each component."""
 
