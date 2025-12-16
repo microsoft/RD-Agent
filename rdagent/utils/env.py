@@ -835,10 +835,25 @@ class FTCondaEnv(LocalEnv[FTCondaConf]):
 
     def prepare(self) -> None:
         try:
+            env_name = self.conf.conda_env_name
+
+            # Skip if already prepared
+            if env_name in _CONDA_ENV_PREPARED:
+                return
+
+            # Step 1: Install base dependencies (torch, llamafactory, etc.)
             req_file = FT_CONDA_CONFIG_DIR / "llm_finetune_requirements.txt"
-            _prepare_conda_env(self.conf.conda_env_name, req_file)
+            _prepare_conda_env(env_name, req_file)
+
+            # Step 2: Install flash-attn (requires torch first, uses --no-build-isolation)
+            # --no-cache-dir: avoid cross-filesystem hardlink error when /tmp and ~/.cache/pip are on different mounts
+            print("[yellow]Installing flash-attn (compiling, may take a few minutes)...[/yellow]")
+            subprocess.check_call(
+                f"conda run -n {env_name} pip install 'flash-attn>=2.5.6,<=2.7.4' --no-build-isolation --no-cache-dir",
+                shell=True,
+            )
+
             # Re-update bin_path after prepare() in case the conda env was just created
-            # This fixes the issue where bin_path is empty if queried before env exists
             if not self.conf.bin_path:
                 self.conf._update_bin_path()
         except Exception as e:
