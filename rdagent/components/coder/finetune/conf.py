@@ -81,8 +81,14 @@ class FTPathConfig:
 
     @property
     def deepspeed(self) -> str:
-        """DeepSpeed config directory (empty string if conda mode)."""
-        return "/app/examples/deepspeed/" if self.is_docker else ""
+        """DeepSpeed config directory."""
+        if self.is_docker:
+            return "/app/examples/deepspeed/"
+        # Conda mode: use bundled deepspeed configs in project
+        # Path: conf.py -> finetune -> coder -> components -> rdagent -> scenarios/finetune/deepspeed
+        rdagent_root = Path(__file__).parent.parent.parent.parent
+        deepspeed_path = rdagent_root / "scenarios" / "finetune" / "deepspeed"
+        return str(deepspeed_path) + "/" if deepspeed_path.exists() else ""
 
 
 # Singleton instance for path configuration
