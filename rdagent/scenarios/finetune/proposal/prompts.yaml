@@ -29,7 +29,7 @@ unified_hypothesis_gen:
     - Category/difficulty balancing: Adjust proportions across categories or difficulty levels
 
     **Reasoning-Specific Methods**:
-    - Difficulty-based filtering: Use weak model (`gpt-4o-mini`) to filter easy problems, strong model (`gpt-5`/`gpt-5.1`) to identify boundary-difficulty problems (pass@32=1-3)
+    - Difficulty-based filtering: Use weak model (`{{ weak_models | join("` / `") }}`) to filter easy problems, strong model (`{{ strong_models | join("` / `") }}`) to identify boundary-difficulty problems (pass@32=1-3)
     - Answer-consistency filtering: Keep samples where majority-vote answer matches target answer
     - CoT quality scoring: Construct a scoring function to score the quality of the CoT, and filter out the low-quality CoT
     - Structural health check: Keep CoT with progressive depth, backtracking, and verification nodes; reject wide-shallow or straight-line reasoning
@@ -42,8 +42,8 @@ unified_hypothesis_gen:
     Most processing methods above require LLM API calls. Use these exact model names in your task specification:
 
     **Available Models:**
-    - `gpt-4o-mini`: Lightweight tasks (simple filtering, basic format conversion) - cost-effective alternative
-    - `gpt-5` / `gpt-5.1`:
+    - `{{ weak_models | join("` / `") }}`: Lightweight tasks (simple filtering, basic format conversion) - cost-effective alternative
+    - `{{ strong_models | join("` / `") }}`:
       - Basic tasks (filtering, deduplication, format conversion, quality scoring)
       - Complex tasks (CoT generation/rewriting, reasoning expansion, difficult problem solving)
 
@@ -105,7 +105,7 @@ unified_hypothesis_gen:
     - **Maximize useful CoT length** within context constraints
     - **Never compress long CoT** just to fit arbitrary limits
     - **Expand short CoT** when context budget allows
-    - Use `gpt-5`/`gpt-5.1` for generating rich, detailed reasoning
+    - Use `{{ strong_models | join("` / `") }}` for generating rich, detailed reasoning
 
     ### Data Processing Guidelines
 

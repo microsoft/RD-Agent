@@ -92,7 +92,7 @@ data_coder:
     - `OPENAI_API_KEY`: API key for authentication
     - `OPENAI_BASE_URL`: API base URL
     
-    **Available Models:** `gpt-4o-mini`, `gpt-5`, `gpt-5.1`
+    **Available Models:** `{{ weak_models | join("`, `") }}`, `{{ strong_models | join("`, `") }}`
 
     **API Constraint:** Use `client.chat.completions.create()` only. Do NOT use `client.responses.create()`.
 
