@@ -11,3 +11,6 @@ openai
 
 # Common utilities for data processing scripts
 requests
+
+# DeepSpeed for memory optimization (version constraint from LlamaFactory 0.9.3)
+deepspeed>=0.10.0,<=0.16.9
