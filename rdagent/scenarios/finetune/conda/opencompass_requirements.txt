@@ -1,15 +1,16 @@
 # OpenCompass Benchmark Environment Requirements
 # Equivalent to: rdagent/scenarios/finetune/docker/opencompass/Dockerfile
 
-# PyTorch with CUDA 12.1
+# PyTorch 2.1.0 with CUDA 12.1 (matches Dockerfile base image: pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime)
 --index-url https://download.pytorch.org/whl/cu121
-torch
-torchvision
+torch==2.1.0
+torchvision==0.16.0
 
 # Reset to default index for other packages
 --index-url https://pypi.org/simple
 
 # OpenCompass with vLLM support (custom fork)
+# Note: opencompass[vllm] will install compatible vllm version
 opencompass[vllm] @ git+https://github.com/Jensen246/opencompass.git
 
 # Math evaluation dependencies (matches Dockerfile line 22)
