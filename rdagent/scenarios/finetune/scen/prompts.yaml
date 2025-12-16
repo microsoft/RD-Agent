@@ -17,6 +17,10 @@ scenario_description: |-
   {{ device_info }}
   The hardware constraints might limit certain choices, so consider them carefully.
 
+  {% if memory_report %}
+  {{ memory_report }}
+  {% endif %}
+
   {% if chosen_model %}
   # Base Model Details
   The user has decided the base model to fine-tune: {{ base_model }}.

@@ -220,11 +220,15 @@ finetune_coder:
     ## Processed Data Statistics (from debug mode)
     {{ data_stats }}
 
-    **Configuration Guidelines based on data statistics:**
-    - `cutoff_len`: Set to cover p99 total tokens (sum of instruction + input + output). If p99 is 512, set cutoff_len to 512 or slightly higher.
-    - `per_device_train_batch_size`: Consider GPU memory vs tokens per sample. For longer sequences (p99 > 1024), use smaller batch sizes (1-2). For shorter sequences, can use larger batch sizes (4-8).
-    - `num_train_epochs` / `max_steps`: Based on estimated_full_samples. For small datasets (<1000 samples), use more epochs (3-5). For large datasets (>10000), 1-2 epochs may suffice.
-    - `gradient_accumulation_steps`: If batch_size is small due to long sequences, increase this to maintain effective batch size (e.g., batch_size=1, gradient_accumulation=8 gives effective batch of 8).
+    **Configuration Guidelines based on memory estimates:**
+    - `per_device_train_batch_size`: Use the recommended value from Scenario's Memory Estimates table
+      - For long CoT training (>8K tokens), prefer batch_size=1
+      - **IMPORTANT**: Smaller batch = can fit longer sequences = better reasoning quality
+    - `gradient_accumulation_steps`: Adjust to achieve effective batch of 16-64 (batch × accum × num_gpus)
+    - `cutoff_len`: Must accommodate your CoT length target
+      - Check data p99 and ensure cutoff_len > p99
+      - For reasoning tasks, aim for cutoff_len >= 8192
+    - `num_train_epochs` / `max_steps`: For small datasets (<1000), use 3-5 epochs. For large datasets (>10000), 1-2 epochs.
     {% endif %}
 
     {% if latest_code %}

@@ -9,6 +9,7 @@ from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.scenarios.finetune.datasets import prepare_all
 from rdagent.scenarios.finetune.scen.llama_factory_manager import LLaMAFactory_manager
+from rdagent.scenarios.finetune.scen.memory_estimator import MemoryEstimator
 from rdagent.scenarios.finetune.scen.utils import (
     FinetuneDatasetDescriptor,
     _truncate_long_values,
@@ -54,8 +55,46 @@ class LLMFinetuneScen(DataScienceScen):
         self.device_info = get_runtime_environment_by_env(get_ft_env())
         self.model_info = FinetuneDatasetDescriptor().describe_model(self.base_model)
 
+        # Initialize memory estimator
+        self.memory_report = self._generate_memory_report()
+
     def real_full_timeout(self):
         return FT_RD_SETTING.full_timeout
+
+    def _generate_memory_report(self) -> str:
+        """Generate memory estimation report based on hardware and model."""
+        try:
+            # Parse device info
+            device_info = json.loads(self.device_info) if isinstance(self.device_info, str) else self.device_info
+            gpu_info = device_info.get("gpu", {})
+
+            # Extract GPU info based on source
+            if gpu_info.get("source") == "pytorch":
+                # PyTorch format: has gpu_count and total_gpu_memory_gb directly
+                num_gpus = gpu_info.get("gpu_count")
+                gpu_mem = gpu_info.get("total_gpu_memory_gb")
+            else:
+                # nvidia-smi format: has gpus array with memory_total_mb
+                gpus = gpu_info.get("gpus", [])
+                num_gpus = len(gpus) if gpus else None
+                gpu_mem = gpus[0].get("memory_total_mb", 0) / 1024 if gpus else None  # MB -> GB
+
+            # Skip if GPU info not available
+            if not num_gpus or not gpu_mem:
+                logger.warning("GPU info not available, skipping memory report")
+                return ""
+
+            # Create estimator from model name (pass model_specs for max_position_embeddings)
+            estimator = MemoryEstimator.from_model_name(
+                name=self.base_model,
+                gpu_mem=gpu_mem,
+                num_gpus=num_gpus,
+                model_specs=self.model_info.get("specs", ""),
+            )
+            return estimator.format()
+        except Exception as e:
+            logger.warning(f"Failed to generate memory report: {e}")
+            return ""
 
     def _validate_and_prepare_environment(self):
         """Validate FT_FILE_PATH and prepare all registered datasets"""
@@ -209,6 +248,7 @@ class LLMFinetuneScen(DataScienceScen):
             target_benchmark=self.target_benchmark,
             benchmark_description=self.benchmark_description,
             device_info=self.device_info,
+            memory_report=self.memory_report,
             chosen_model=FT_RD_SETTING.base_model is not None,
             base_model=FT_RD_SETTING.base_model,
             dataset_config=prompt_config,

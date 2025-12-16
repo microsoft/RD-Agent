@@ -132,6 +132,50 @@ unified_hypothesis_gen:
     ]
     ```
 
+    # ═══════════════════════════════════════════════════════════════
+    # CRITICAL: How to Use Memory Constraints Table (READ FIRST)
+    # ═══════════════════════════════════════════════════════════════
+
+    ## Understanding the Table
+
+    The **Hardware Memory Constraints** table in Scenario Description shows:
+    - Max `seq_len` each method can support at `batch_size=1`
+    - Model's `max_position_embeddings` limit
+
+    ## Step 1: Choose Method Based on Your seq_len Needs
+
+    1. **Determine your required seq_len**: input_tokens + cot_tokens + answer_tokens
+       - For reasoning tasks, aim for 8K-16K+ CoT tokens
+       - Check dataset statistics for typical input lengths
+
+    2. **Check which methods support your seq_len**:
+       - If you need long context (e.g., 16K+) → check which methods have max_seq_len >= your need
+       - Among viable methods: **prefer `full` > `full_gc` > `lora` > `qlora`** for quality
+       - `full` is not always viable - choose based on your actual seq_len requirements
+
+    ## Step 2: Set cutoff_len
+
+    `cutoff_len` must satisfy: **cutoff_len ≤ min(max_seq_len from table, max_position_embeddings)**
+
+    For reasoning tasks, maximize `cutoff_len` to enable longer CoT:
+    - Longer CoT generally = better reasoning capability
+    - Short CoT (<2K tokens) is usually insufficient for complex reasoning
+
+    ## Step 3: Adjust batch_size
+
+    The table shows max seq_len at `batch_size=1`. Trade-offs:
+    - Smaller seq_len → can increase batch_size
+    - Larger seq_len → must decrease batch_size (possibly to 1)
+    - Use `gradient_accumulation_steps` to achieve effective batch size of 16-64
+
+    ## Example Decision Flow
+
+    **Given**: 4×48GB GPU, 7B model, need 16K seq_len for rich CoT
+    1. Check table: `full`=18K ✓, `full_gc`=52K ✓, `lora`=89K ✓
+    2. All methods viable → choose `full` (best quality)
+    3. Set `cutoff_len`=16384 (≤ 18K and ≤ max_position_embeddings)
+    4. batch_size=1, gradient_accumulation=16 → effective batch=64
+
     # Instructions for training configuration:
 
     ## Training Configuration Resources

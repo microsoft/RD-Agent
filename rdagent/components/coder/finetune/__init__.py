@@ -248,7 +248,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             models_path=FT_PATHS.models,
             datasets_path=FT_PATHS.workspace,  # Training config uses workspace path for processed data
             workspace_path=FT_PATHS.workspace,
-            deepspeed_path=FT_PATHS.deepspeed,  # Empty string in conda mode (disables DeepSpeed hints)
+            deepspeed_path=FT_PATHS.deepspeed,
             data_stats=data_stats,
         )
 
@@ -259,7 +259,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
                 system_prompt=system_prompt,
                 json_mode=False,
                 code_block_language="yaml",
-                code_block_fallback=False, 
+                code_block_fallback=False,
             )
 
             # Validate YAML syntax
