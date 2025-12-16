@@ -1,8 +1,20 @@
 # LLaMA Factory Environment Requirements
 # Equivalent to: rdagent/scenarios/finetune/docker/llm_finetune_docker/Dockerfile
+# Docker base: hiyouga/llamafactory:0.9.4 uses PyTorch 2.6.0 + CUDA 12.4 + flash-attn 2.7.4
 
-# Core LlamaFactory package
+# PyTorch 2.6.0 with CUDA 12.4 (matches Docker base image)
+--index-url https://download.pytorch.org/whl/cu124
+torch==2.6.0
+torchvision==0.21.0
+
+# Reset to default index for other packages
+--index-url https://pypi.org/simple
+
+# Core LlamaFactory package (PyPI latest is 0.9.3, Docker uses 0.9.4 from GitHub)
 llamafactory==0.9.3
+
+# FlashAttention-2 (matches Docker base image version)
+flash-attn==2.7.4
 
 # Additional dependencies (matches Dockerfile line 17)
 bitsandbytes>=0.39.0
@@ -12,5 +24,5 @@ openai
 # Common utilities for data processing scripts
 requests
 
-# DeepSpeed for memory optimization (version constraint from LlamaFactory 0.9.3)
+# DeepSpeed for memory optimization (version constraint from LlamaFactory)
 deepspeed>=0.10.0,<=0.16.9
