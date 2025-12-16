@@ -189,8 +189,8 @@ class LLMConfigValidator:
                     error_text += f"\n\n[Note: {len(all_tracebacks)} total errors, showing root cause]"
 
         if error_text:
-            # Limit length but keep from the START (root cause is at the start)
-            result["error"] = error_text[:2000] if len(error_text) > 2000 else error_text
+            # Limit length but keep from the END (actual error type/message is at the end of traceback)
+            result["error"] = error_text[-4000:] if len(error_text) > 4000 else error_text
 
         # 2. Extract training information
         if "Running training" in stdout:
