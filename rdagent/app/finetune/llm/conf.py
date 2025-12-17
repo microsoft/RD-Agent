@@ -90,11 +90,13 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     dataset: str | None = None
 
     # Data processing LLM models (for API calls in data processing scripts)
-    strong_models: list[str] = ["gpt-5", "gpt-5.1", "gpt-5.2"]
+    strong_models: list[str] = ["gpt-5", "gpt-5.1"]
     """Strong models for complex tasks (CoT generation, reasoning) - supports list (env: FT_STRONG_MODELS)"""
 
-    weak_models: list[str] = ["gpt-4o-mini"]
+    weak_models: list[str] = ["gpt-4o-mini", "o4-mini", "gpt-5-mini"]
     """Weak models for simple tasks (filtering, format conversion) - supports list (env: FT_WEAK_MODELS)"""
+
+    embedding_models: list[str] = ["text-embedding-3-small", "text-embedding-3-large"]
 
     # Docker settings
     docker_enable_cache: bool = False

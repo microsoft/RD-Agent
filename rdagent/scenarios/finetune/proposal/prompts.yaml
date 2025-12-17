@@ -102,7 +102,7 @@ unified_hypothesis_gen:
     - Short inputs (500 tokens), 8K context → CoT target ~6K, cutoff_len ~7K
 
     **Key Guidelines:**
-    - **Maximize useful CoT length** within context constraints
+    - **Maximize useful CoT length** within context constraints, starting from the biggest target length and adjusting down as needed
     - **Never compress long CoT** just to fit arbitrary limits
     - **Expand short CoT** when context budget allows
     - Use `{{ strong_models | join("` / `") }}` for generating rich, detailed reasoning

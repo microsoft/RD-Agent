@@ -20,7 +20,7 @@ llamafactory==0.9.3
 # Additional dependencies (matches Dockerfile line 17)
 bitsandbytes>=0.39.0
 mixture-of-depth>=1.1.6
-openai
+litellm
 
 # Common utilities for data processing scripts
 requests
