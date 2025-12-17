@@ -103,10 +103,22 @@ class LLMFinetuneExpGen(ExpGen):
 
         user_prompt = T(".prompts:unified_hypothesis_gen.user_prompt").r(trace=trace)
 
-        response_dict = json.loads(
-            APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
+        session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
+        reason_dict = json.loads(
+            session.build_chat_completion(
+                user_prompt=user_prompt + "\n" + T(".prompts:unified_hypothesis_gen.specific_format").r(field="reason"),
+                json_target_type=dict,
+            )
+        )
+        hypothesis_dict = json.loads(
+            session.build_chat_completion(
+                user_prompt=T(".prompts:unified_hypothesis_gen.specific_format").r(field="hypothesis"),
+                json_target_type=dict,
+            )
+        )
+        task_dict = json.loads(
+            session.build_chat_completion(
+                user_prompt=T(".prompts:unified_hypothesis_gen.specific_format").r(field="task"),
                 json_target_type=dict,
             )
         )
@@ -116,15 +128,15 @@ class LLMFinetuneExpGen(ExpGen):
         # Use pre-selected datasets from scenario initialization
         task = FTTask(
             base_model=base_model,
-            description=response_dict.get("task"),
+            description=task_dict.get("task"),
             benchmark=FT_RD_SETTING.target_benchmark,
             involving_datasets=self.scen.selected_datasets,
         )
 
         hypothesis = FTHypothesis(
             base_model=base_model,
-            hypothesis=response_dict.get("hypothesis"),
-            reason=response_dict.get("reason", ""),
+            hypothesis=hypothesis_dict.get("hypothesis"),
+            reason=reason_dict.get("reason", ""),
         )
 
         logger.info("Experiment created")

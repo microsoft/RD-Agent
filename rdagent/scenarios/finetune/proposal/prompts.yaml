@@ -265,11 +265,11 @@ unified_hypothesis_gen:
           "task": "[Step-by-step task description for the code generator, covering the complete workflow from data processing to training, no code]"
         }
     ```
+    Since responding the whole content in one message may exceed the token limit, the user has requested you to provide reason, hypothesis, and task one by one in separate messages. Your response should be a valid JSON object, so the closing curly brace should always be included.
 
   user_prompt: |-
     {% if trace.hist %}
     ## Historical Experiments
-
     {% for experiment, feedback in trace.hist[-5:] %}
     ### Experiment {{ loop.index }}
     {% if experiment.hypothesis %}
@@ -289,3 +289,12 @@ unified_hypothesis_gen:
     {% else %}
     **Task**: This is the first experiment. Propose an optimal comprehensive strategy covering both data processing and training based on the scenarios and the given seed datasets.
     {% endif %}
+
+  specific_format: |-
+    In your response, provide ONLY the following JSON structure without any additional text or explanation:
+
+    ```json
+    {
+      "{{ field }}": "the content to {{ field }} following the instruction in the previous message"
+    }
+    ```
