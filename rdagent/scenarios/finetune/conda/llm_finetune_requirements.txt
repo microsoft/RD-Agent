@@ -27,3 +27,24 @@ requests
 
 # DeepSpeed for memory optimization (version constraint from LlamaFactory)
 deepspeed>=0.10.0,<=0.16.9
+
+# LlamaFactory optional dependencies (commonly used)
+# Liger Kernel - fused triton kernels for training acceleration
+liger-kernel>=0.5.5
+
+# Metrics for evaluation
+nltk
+jieba
+rouge-chinese
+
+# Advanced optimizers
+galore-torch
+apollo-torch
+badam>=1.2.1
+adam-mini
+
+# Quantization
+hqq
+
+# FP8 training support
+torchao>=0.8.0
