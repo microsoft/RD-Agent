@@ -13,14 +13,6 @@ data_coder:
     The following datasets are available for processing:
     {{ dataset_info }}
 
-    {% if prev_feedback is not none %}
-    ## Previous Attempt Feedback
-    The previous data processing script failed with the following feedback:
-    {{ prev_feedback }}
-
-    Please fix the issues mentioned above while generating the new script.
-    {% endif %}
-
     ## Output Requirements
     Your script must:
     1. Read data from `{{ datasets_path }}` directory (mounted read-only)
@@ -93,9 +85,12 @@ data_coder:
     - `OPENAI_API_KEY`: API key for authentication
     - `OPENAI_BASE_URL`: API base URL
     
-    **Available Models:** `{{ weak_models | join("`, `") }}`, `{{ strong_models | join("`, `") }}`
-
-    **API Constraint:** Use `client.chat.completions.create()` only. Do NOT use `client.responses.create()`.
+    **Available Models:**
+    *** Chat Completion & Text Completion Models: ***
+    - Strong models: {{ strong_models | join(", ") }} (for complex tasks)
+    - Weak but fast models: {{ weak_models | join(", ") }} (for simple tasks)
+    *** Embedding Models: ***
+    - Embedding model: {{ embedding_models }}
 
     **API Features & Concurrency Requirements:**
     - **Use concurrent execution for LLM API calls** to maximize throughput
@@ -111,6 +106,21 @@ data_coder:
     - **DO NOT process LLM calls sequentially** - always batch and parallelize
     - Implement retry logic (5 retries recommended) for robustness
     - All models share the same api_key and api_base
+    - We support and recommend using litellm to call the APIs, please see the example:
+      ```python
+      from litellm import completion, embedding
+      # Chat Completion
+      response = completion(
+          model=<"model_name">,
+          messages=[{"role": "user", "content": "Your prompt here"}],
+      ).choices[0].message.content
+      # Embedding
+      response = embedding(
+          model=<"embedding_model_name">,
+          input="Your text here", # or a list of texts
+      )
+      embedding_result = [data["embedding"] for data in response.data]
+      ```
 
     ## Scope Clarification (IMPORTANT)
     **Your script should ONLY handle data processing and output data.json.**
@@ -118,6 +128,16 @@ data_coder:
     - DO NOT include training scripts or fine-tuning code
     - DO NOT save any files other than data.json
     - Training configuration will be handled separately by another component
+
+    {% if queried_former_failed_knowledge|length != 0 %}
+    ## Previous Failed Attempts
+    {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
+    =====Code:=====
+    {{ former_failed_knowledge.implementation.all_codes }}
+    =====Feedback:=====
+    {{ former_failed_knowledge.feedback }}
+    {% endfor %}
+    {% endif %}
 
     ## Output Format
     Provide ONLY the Python script in a markdown code block:
@@ -136,6 +156,22 @@ data_coder:
 
     Dataset files are located at: {{ datasets_path }}
     Output file should be: {{ workspace_path }}data.json
+
+    {% if latest_code %}
+    ## Previous Data Processing Script
+    ```python
+    {{ latest_code }}
+    ```
+
+    {% if latest_feedback is not none %}
+    ## Feedback on Previous Script
+    {{ latest_feedback }}
+
+    Please improve the Script based on the feedback above and the hypothesis.
+    {% endif %}
+    {% else %}
+    Please create a new Data Processing Script based on the task description.
+    {% endif %}
 
     **IMPORTANT**: Make sure your script supports the `--debug` argument as described in the system prompt.
 
@@ -362,6 +398,11 @@ data_eval:
     - **Duplicates**: High duplicate ratio indicates data quality issues
     - **Semantic**: instruction should be a question/task, output should be an answer/response
     - **Alignment**: Data should match the task's training objective
+
+    ## Final Decision Guidelines
+    - Approve (true) if data format is correct, quality is good, and script logic is sound
+    - Reject (false) if any critical issues are found in format, quality, or script logic
+    - For data quality issues if the quality issues are minor (e.g., some exceedes the token limit but most are fine), you can still approve it.
 
     ## Output Format
     Respond with JSON only (no markdown code block):

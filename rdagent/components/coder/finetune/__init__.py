@@ -78,6 +78,20 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
                 # Evaluation failed, remove old data and regenerate
                 logger.info("data.json exists but evaluation failed, regenerating script...")
                 data_json_path.unlink()
+        
+        # build former failed trace
+        queried_former_failed_knowledge = (
+            queried_knowledge.task_to_former_failed_traces[target_task.get_task_information()] if queried_knowledge is not None else []
+        )
+        queried_former_failed_knowledge = (
+            [
+                knowledge
+                for knowledge in queried_former_failed_knowledge[0]
+                if knowledge.implementation.file_dict.get(FT_YAML_FILE_NAME)
+                != workspace.file_dict.get(FT_YAML_FILE_NAME)
+            ],
+            queried_former_failed_knowledge[1],
+        )
 
         # Get dataset information for the task
         involving_datasets = getattr(target_task, "involving_datasets", [])
@@ -88,17 +102,20 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             scenario=self.scen.get_scenario_all_desc(),
             task_desc=target_task.get_task_information(),
             dataset_info=dataset_info,
-            prev_feedback=prev_task_feedback,
+            queried_former_failed_knowledge=queried_former_failed_knowledge[0],
             api_max_workers=FT_RD_SETTING.api_max_workers,
             datasets_path=FT_PATHS.datasets,
             workspace_path=FT_PATHS.workspace,
             strong_models=FT_RD_SETTING.strong_models,
             weak_models=FT_RD_SETTING.weak_models,
+            embedding_models=FT_RD_SETTING.embedding_models,
         )
 
         user_prompt = T(".prompts:data_coder.user").r(
             datasets_path=FT_PATHS.datasets,
             workspace_path=FT_PATHS.workspace,
+            latest_code=workspace.file_dict.get(FT_DATA_SCRIPT_NAME, "") if workspace else "",
+            latest_feedback=prev_task_feedback,
         )
 
         try:
