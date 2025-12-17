@@ -53,6 +53,7 @@ data_coder:
     3. Include error handling for file operations
     4. Print progress information to stdout for debugging
     5. **IMPORTANT**: Your script MUST support the `--debug` command-line argument (see Debug Mode Support below). Other than `--debug`, do NOT expect any other command-line arguments.
+    6. **Data Validation**: Before writing the final data.json, verify that all samples have correct and consistent answers (ensure the reasoning process matches the final boxed answer). Filter out any samples with mismatched or incorrect answers.
 
     ## Debug Mode Support (CRITICAL)
     Your script MUST support `--debug` for fast validation:

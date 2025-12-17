@@ -252,7 +252,7 @@ unified_hypothesis_gen:
     **Specificity**: Be specific about:
     - [Data] Which datasets to use and how to process them
     - [Data] Which LLM endpoints for which processing steps
-    - [Data] Filtering thresholds and parameters
+    - [Data] Filtering strategy (do NOT hardcode specific thresholds like "score < 8.0" or "length < 200")
     - [Training] Which training methods and hyperparameters to use (single-stage training only)
     - [Training] The complete workflow from processed data to trained model (one training run)
 
