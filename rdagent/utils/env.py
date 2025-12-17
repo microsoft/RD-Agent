@@ -847,9 +847,10 @@ class FTCondaEnv(LocalEnv[FTCondaConf]):
 
             # Step 2: Install flash-attn (requires torch first, uses --no-build-isolation)
             # --no-cache-dir: avoid cross-filesystem hardlink error when /tmp and ~/.cache/pip are on different mounts
+            # Note: flash-attn>=2.8 is required for B200 (sm_100) support
             print("[yellow]Installing flash-attn (compiling, may take a few minutes)...[/yellow]")
             subprocess.check_call(
-                f"conda run -n {env_name} pip install 'flash-attn>=2.5.6,<=2.7.4' --no-build-isolation --no-cache-dir",
+                f"conda run -n {env_name} pip install 'flash-attn>=2.8' --no-build-isolation --no-cache-dir",
                 shell=True,
             )
 

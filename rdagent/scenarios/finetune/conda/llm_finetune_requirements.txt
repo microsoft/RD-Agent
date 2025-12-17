@@ -2,11 +2,12 @@
 # Equivalent to: rdagent/scenarios/finetune/docker/llm_finetune_docker/Dockerfile
 # Docker base: hiyouga/llamafactory:0.9.4 uses PyTorch 2.6.0 + CUDA 12.4 + flash-attn 2.7.4
 
-# PyTorch 2.6.0 with CUDA 12.8 (for B200 GPUs)
-# Note: Change to cu124 for CUDA 12.4 machines
+# PyTorch 2.9.0 with CUDA 12.8 (for B200 GPUs with sm_100 architecture)
+# Note: PyTorch 2.6.0 only supports up to sm_90, B200 requires 2.8.0+
+# For non-B200 machines with CUDA 12.4, change to cu124 and torch==2.6.0
 --index-url https://download.pytorch.org/whl/cu128
-torch==2.6.0
-torchvision==0.21.0
+torch==2.9.0
+torchvision==0.24.0
 
 # Reset to default index for other packages
 --index-url https://pypi.org/simple
@@ -25,7 +26,8 @@ litellm
 # Common utilities for data processing scripts
 requests
 
-# DeepSpeed for memory optimization (version constraint from LlamaFactory)
+# DeepSpeed for memory optimization
+# Note: LlamaFactory 0.9.3 requires deepspeed<=0.16.9 (hardcoded check in parser.py)
 deepspeed>=0.10.0,<=0.16.9
 
 # LlamaFactory optional dependencies (commonly used)
