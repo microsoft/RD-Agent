@@ -81,6 +81,20 @@ def main():
     session = state.session
     summary = get_summary(session)
 
+    # Global info header (Base Model, Datasets, Benchmark) - compact style
+    scenario_event = next((e for e in session.init_events if e.type == "scenario"), None)
+    dataset_event = next((e for e in session.init_events if e.type == "dataset_selection"), None)
+
+    if scenario_event or dataset_event:
+        if scenario_event and hasattr(scenario_event.content, "base_model"):
+            st.markdown(f"🧠 **Model:** `{scenario_event.content.base_model}`")
+        if dataset_event:
+            selected = dataset_event.content.get("selected_datasets", []) if isinstance(dataset_event.content, dict) else []
+            if selected:
+                st.markdown(f"📂 **Datasets:** `{', '.join(selected)}`")
+        if scenario_event and hasattr(scenario_event.content, "target_benchmark"):
+            st.markdown(f"🎯 **Benchmark:** `{scenario_event.content.target_benchmark}`")
+
     # Summary bar
     render_summary(summary)
 

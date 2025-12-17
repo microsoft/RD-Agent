@@ -51,6 +51,7 @@ EVALUATOR_CONFIG = {
 ALWAYS_VISIBLE_TYPES = [
     "scenario",
     "dataset_selection",
+    "hypothesis",
     "llm_call",
     "experiment",
     "code",

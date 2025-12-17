@@ -194,17 +194,75 @@ def render_event(event: Event) -> None:
 
 
 def render_scenario(content: Any) -> None:
-    col1, col2 = st.columns(2)
-    with col1:
-        if hasattr(content, "base_model"):
-            st.metric("Base Model", content.base_model)
-        if hasattr(content, "dataset"):
-            st.metric("Dataset", content.dataset)
-    with col2:
-        if hasattr(content, "target_benchmark"):
-            st.metric("Target Benchmark", content.target_benchmark)
-        if hasattr(content, "device_info"):
-            st.text(f"Device: {content.device_info}")
+    """Render scenario details (main info shown in page header, this shows extras)."""
+    import json
+
+    # 1. User target scenario
+    if hasattr(content, "user_target_scenario") and content.user_target_scenario:
+        st.markdown(f"**Target Scenario:** {content.user_target_scenario}")
+
+    # 2. Benchmark description
+    if hasattr(content, "benchmark_description") and content.benchmark_description:
+        st.markdown(f"**Benchmark Description:** {content.benchmark_description}")
+
+    # 3. Full timeout
+    if hasattr(content, "real_full_timeout"):
+        try:
+            timeout_hours = content.real_full_timeout() / 60 / 60
+            st.markdown(f"**Full Train Timeout:** {timeout_hours:.2f} hours")
+        except Exception:
+            pass
+
+    # 4. Device info - formatted nicely
+    if hasattr(content, "device_info") and content.device_info:
+        device = content.device_info
+        # Parse string to dict if needed
+        if isinstance(device, str):
+            try:
+                device = json.loads(device)
+            except json.JSONDecodeError:
+                st.markdown(f"**Device:** `{device}`")
+                device = None
+        if isinstance(device, dict):
+            parts = []
+            # Runtime info
+            runtime = device.get("runtime", {})
+            if runtime.get("python_version"):
+                parts.append(f"🐍 Python `{runtime['python_version'].split()[0]}`")
+            if runtime.get("os"):
+                parts.append(f"💻 {runtime['os']}")
+            # GPU info
+            gpu_info = device.get("gpu", {})
+            gpus = gpu_info.get("gpus", [])
+            if gpus:
+                gpu_name = gpus[0].get("name", "Unknown")
+                gpu_mem = gpus[0].get("memory_total_mb", 0)
+                gpu_mem_gb = gpu_mem // 1024 if gpu_mem else 0
+                if len(gpus) > 1:
+                    parts.append(f"🎮 {len(gpus)}x {gpu_name} ({gpu_mem_gb}GB)")
+                else:
+                    parts.append(f"🎮 {gpu_name} ({gpu_mem_gb}GB)")
+            if parts:
+                st.markdown(" · ".join(parts))
+
+    # 5. Model info (detailed specs)
+    if hasattr(content, "model_info") and content.model_info:
+        model_info = content.model_info
+        if isinstance(model_info, dict) and model_info:
+            with st.expander("Model Info", expanded=False):
+                # Show key specs in a readable format
+                if "specs" in model_info and model_info["specs"]:
+                    st.markdown("**Specs:**")
+                    st.code(model_info["specs"], language="text", wrap_lines=True)
+                # Show other fields
+                other_info = {k: v for k, v in model_info.items() if k != "specs" and v}
+                if other_info:
+                    st.json(other_info)
+
+    # 6. Memory report (estimation based on hardware and model)
+    if hasattr(content, "memory_report") and content.memory_report:
+        with st.expander("Memory Estimation", expanded=False):
+            st.code(content.memory_report, language="text", wrap_lines=True)
 
 
 def render_dataset_selection(content: Any) -> None:
@@ -216,12 +274,8 @@ def render_dataset_selection(content: Any) -> None:
     total = content.get("total_datasets", 0)
     reasoning = content.get("reasoning", "")
 
-    st.metric("Selected", f"{len(selected)} / {total}")
-
     if selected:
-        st.markdown("**Selected Datasets:**")
-        for ds in selected:
-            st.markdown(f"- `{ds}`")
+        st.markdown(f"**Selected ({len(selected)}/{total}):** " + ", ".join(f"`{ds}`" for ds in selected))
 
     if reasoning:
         with st.expander("Selection Reasoning", expanded=True):
@@ -229,8 +283,7 @@ def render_dataset_selection(content: Any) -> None:
 
 
 def render_hypothesis(content: Any) -> None:
-    if hasattr(content, "base_model"):
-        st.metric("Base Model", content.base_model)
+    """Render hypothesis content (Base Model shown in page header, not here)."""
     if hasattr(content, "hypothesis") and content.hypothesis:
         st.markdown("**Hypothesis:**")
         st.markdown(content.hypothesis)
@@ -312,18 +365,11 @@ def render_template(content: Any) -> None:
 
 
 def render_experiment(content: Any) -> None:
+    """Render experiment tasks (Base Model and Datasets shown in page header, not here)."""
     if isinstance(content, list):
         for i, task in enumerate(content):
             if len(content) > 1:
                 st.markdown(f"**Task {i}**")
-
-            if hasattr(task, "base_model"):
-                st.metric("Base Model", task.base_model)
-
-            if hasattr(task, "involving_datasets") and task.involving_datasets:
-                st.markdown("**Datasets:**")
-                for ds in task.involving_datasets:
-                    st.markdown(f"- `{ds}`")
 
             if hasattr(task, "description") and task.description:
                 st.markdown("**Description:**")
