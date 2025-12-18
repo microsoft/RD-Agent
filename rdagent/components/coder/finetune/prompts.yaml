@@ -326,7 +326,7 @@ finetune_eval:
     {% endif %}
 
     # Important Notice
-    - You may find that the execution is short with limited data and iterations. This is expected as we are only validating the configuration file's correctness and not performing full-scale training. Don't treat this as a failure.
+    - You may find that the execution is short with limited data and iterations. This is expected as we are only validating the configuration file's correctness and not performing full-scale training. Don't treat this as a failure. Also do not put this information in your feedback.
 
     ## Output Format
     Please respond with your feedback in the following JSON format without anything else.

@@ -196,6 +196,7 @@ class FTDataEvaluator(CoSTEEREvaluator):
             init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
         )
         feedback.raw_execution = raw_stdout
+        feedback.source_feedback[self.__class__.__name__] = feedback.final_decision
         logger.log_object(feedback, tag="evaluator_feedback.FTDataEvaluator")
         return feedback
 
@@ -439,5 +440,6 @@ class FTCoderEvaluator(CoSTEEREvaluator):
             init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
         )
         feedback.raw_execution = validation_result.raw_stdout or ""
+        feedback.source_feedback[self.__class__.__name__] = feedback.final_decision
         logger.log_object(feedback, tag="evaluator_feedback.FTCoderEvaluator")
         return feedback

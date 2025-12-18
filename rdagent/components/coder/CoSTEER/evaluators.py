@@ -1,8 +1,8 @@
 import json
 from abc import abstractmethod
 from copy import deepcopy
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Generator, List
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Dict, Generator, List
 
 from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
 from rdagent.core.conf import RD_AGENT_SETTINGS
@@ -44,8 +44,9 @@ class CoSTEERSingleFeedback(Feedback):
     return_checking: str | None  # including every check in the testing (constraints about the generated value)
     # value_feedback, shape_feedback, value_generated_flag
     code: str
-    final_decision: bool | None = None
+    final_decision: bool
     raw_execution: str = ""  # Full raw stdout for UI display
+    source_feedback: Dict[str, bool] = field(default_factory=dict) # Record the source of the feedback since it might be merged from multiple feedbacks, stores the mapping from source tag to its final_decision, this dict also includes the feedback source of itself
 
     @staticmethod
     def val_and_update_init_dict(data: dict) -> dict:
@@ -98,6 +99,10 @@ class CoSTEERSingleFeedback(Feedback):
                 attr,
                 "\n\n".join([getattr(_fb, attr) for _fb in feedback_li if getattr(_fb, attr) is not None]),
             )
+        fb.source_feedback = {}
+        for _fb in feedback_li:
+            for tag, decision in _fb.source_feedback.items():
+                fb.source_feedback[tag] = decision
         return fb
 
     def __str__(self) -> str:

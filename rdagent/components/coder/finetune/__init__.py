@@ -67,6 +67,11 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             dict with "process_data.py" key containing the script code,
             or empty dict if data already exists.
         """
+        # check whether the current code passes evaluation
+        if prev_task_feedback is not None and "FTDataEvaluator" in prev_task_feedback.source_feedback and prev_task_feedback.source_feedback["FTDataEvaluator"]:
+            logger.info("Previous data processing code passed evaluation, skipping regeneration")
+            return {}
+
         # Check if data.json already exists and evaluation passed
         if workspace is not None:
             data_json_path = workspace.workspace_path / FT_DATA_FILE_NAME
@@ -192,6 +197,10 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
         """Implement a single fine-tuning task by generating LlamaFactory config"""
+        if prev_task_feedback is not None and "FTCoderEvaluator" in prev_task_feedback.source_feedback and prev_task_feedback.source_feedback["FTCoderEvaluator"]:
+            logger.info("Previous data processing code passed evaluation, skipping regeneration")
+            return {}
+
 
         task_info = target_task.get_task_information()
 
@@ -272,27 +281,23 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         # Call LLM to generate config
+        extracted_yaml = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=system_prompt,
+            json_mode=False,
+            code_block_language="yaml",
+            code_block_fallback=False,
+        )
+
+        # Validate YAML syntax
         try:
-            extracted_yaml = APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
-                json_mode=False,
-                code_block_language="yaml",
-                code_block_fallback=False,
-            )
+            yaml.safe_load(extracted_yaml)
+            logger.info("Extracted YAML config successfully")
+            return extracted_yaml
+        except yaml.YAMLError as e:
+            logger.error(f"Invalid YAML syntax: {e}")
+            raise RuntimeError(f"Invalid YAML syntax: {e}")
 
-            # Validate YAML syntax
-            try:
-                yaml.safe_load(extracted_yaml)
-                logger.info("Extracted YAML config successfully")
-                return extracted_yaml
-            except yaml.YAMLError as e:
-                logger.error(f"Invalid YAML syntax: {e}")
-                raise RuntimeError(f"Invalid YAML syntax: {e}")
-
-        except Exception as e:
-            logger.error(f"Failed to generate config with LLM: {e}")
-            raise RuntimeError(f"LLM config generation failed: {e}")
 
     def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
         """Assign generated code to the evolving experiment"""
