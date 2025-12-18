@@ -788,6 +788,34 @@ FT_CONDA_CONFIG_DIR = Path(__file__).parent.parent / "scenarios" / "finetune" / 
 _CONDA_ENV_PREPARED: set[str] = set()
 
 
+def _sync_conda_cache_with_real_envs() -> None:
+    """Ensure the prepared cache includes environments that already exist on disk."""
+    try:
+        result = subprocess.run(
+            "conda env list",
+            capture_output=True,
+            text=True,
+            shell=True,
+            check=False,
+        )
+    except Exception as exc:  # pragma: no cover - best-effort helper
+        logger.warning(f"Failed to inspect conda env list: {exc}")
+        return
+
+    env_names: set[str] = set()
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        # Lines look like: "base                  *  /opt/conda"
+        first_column = line.split()[0]
+        name = first_column.replace("*", "").strip()
+        if name:
+            env_names.add(name)
+
+    _CONDA_ENV_PREPARED.update(env_names)
+
+
 def _prepare_conda_env(env_name: str, requirements_file: Path, python_version: str = "3.10") -> None:
     """Prepare conda environment with dependencies from requirements.txt.
 
@@ -799,10 +827,6 @@ def _prepare_conda_env(env_name: str, requirements_file: Path, python_version: s
         requirements_file: Path to requirements.txt file
         python_version: Python version for the environment
     """
-    # Skip if already prepared in this process
-    if env_name in _CONDA_ENV_PREPARED:
-        return
-
     # 1. Create conda environment if not exists
     result = subprocess.run(f"conda env list | grep -q '^{env_name} '", shell=True)
     if result.returncode != 0:
@@ -835,22 +859,21 @@ class FTCondaEnv(LocalEnv[FTCondaConf]):
 
     def prepare(self) -> None:
         try:
-            env_name = self.conf.conda_env_name
-
             # Skip if already prepared
-            if env_name in _CONDA_ENV_PREPARED:
+            _sync_conda_cache_with_real_envs()
+            if self.conf.conda_env_name in _CONDA_ENV_PREPARED:
                 return
 
             # Step 1: Install base dependencies (torch, llamafactory, etc.)
             req_file = FT_CONDA_CONFIG_DIR / "llm_finetune_requirements.txt"
-            _prepare_conda_env(env_name, req_file)
+            _prepare_conda_env(self.conf.conda_env_name, req_file)
 
             # Step 2: Install flash-attn (requires torch first, uses --no-build-isolation)
             # --no-cache-dir: avoid cross-filesystem hardlink error when /tmp and ~/.cache/pip are on different mounts
             # Note: flash-attn>=2.8 is required for B200 (sm_100) support
             print("[yellow]Installing flash-attn (compiling, may take a few minutes)...[/yellow]")
             subprocess.check_call(
-                f"conda run -n {env_name} pip install 'flash-attn>=2.8' --no-build-isolation --no-cache-dir",
+                f"conda run -n {self.conf.conda_env_name} pip install 'flash-attn>=2.8' --no-build-isolation --no-cache-dir",
                 shell=True,
             )
 
@@ -879,6 +902,10 @@ class BenchmarkCondaEnv(LocalEnv[BenchmarkCondaConf]):
 
     def prepare(self) -> None:
         try:
+            # Skip if already prepared
+            _sync_conda_cache_with_real_envs()
+            if self.conf.conda_env_name in _CONDA_ENV_PREPARED:
+                return
             req_file = FT_CONDA_CONFIG_DIR / "opencompass_requirements.txt"
             _prepare_conda_env(self.conf.conda_env_name, req_file)
             # Re-update bin_path after prepare() in case the conda env was just created
