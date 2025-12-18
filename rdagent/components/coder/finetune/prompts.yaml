@@ -122,6 +122,78 @@ data_coder:
       embedding_result = [data["embedding"] for data in response.data]
       ```
 
+    ## LLM Prompt Guidelines
+    When constructing prompts for LLM API calls in your data processing script, follow these guidelines:
+
+    ### General Prompt Guidelines
+    1. **Be Specific**: Clearly define the task, expected output format, and any constraints
+    2. **Provide Examples**: Include 1-2 examples when output format is complex
+    3. **Set Output Format**: Explicitly specify JSON/text/structured output requirements
+    4. **Handle Edge Cases**: Instruct how to handle invalid inputs or uncertain cases
+    5. **Consistency**: Use consistent formatting across all prompts in your script
+
+    ### CoT Generation Guidelines (Reasoning Tasks Only)
+    **This section applies ONLY when processing Reasoning/CoT data (math, code, complex reasoning).**
+
+    #### Prompt Requirements
+    **When calling LLM to generate Chain-of-Thought reasoning, your prompt MUST include:**
+
+    **1. Length Requirements (CRITICAL - include in prompt):**
+    ```
+    Generate a detailed chain-of-thought reasoning with the following length requirements:
+    - Target length: {target_cot_tokens} tokens (approximately {target_cot_tokens // 4} words)
+    - Minimum length: {min_cot_tokens} tokens (25% of model's max context)
+    - Maximum length: {max_cot_tokens} tokens (do NOT exceed this)
+    ```
+    - `target_cot_tokens`: typically 50-75% of available context after input
+    - `min_cot_tokens`: 25% of `max_position_embeddings`
+    - `max_cot_tokens`: `max_position_embeddings - input_tokens - answer_tokens`
+
+    **2. Style Requirements (CRITICAL - include in prompt):**
+    ```
+    Use EXPLORATORY reasoning style, NOT summary/inductive style:
+    - Think step-by-step, showing your work at each stage
+    - Verify intermediate results before proceeding
+    - When stuck, backtrack and try alternative approaches
+    - Compare different solution paths when applicable
+    - Show genuine exploration of the problem space
+    
+    DO NOT:
+    - Jump directly to conclusions
+    - Give overly concise answers
+    - Skip verification steps
+    - Use summary-style reasoning that just restates the answer
+    ```
+
+    #### Post-Generation Validation & Filtering
+    After generating or processing CoT data, implement these validations:
+
+    **1. Over-length Filtering (MANDATORY):**
+    - Filter out samples where `total_tokens > max_position_embeddings`
+    - Total tokens = input_tokens + cot_tokens + answer_tokens
+    - Do NOT truncate long CoT - truncation breaks reasoning completeness
+    - Log filtered count in SUMMARY output
+
+    **2. Under-length Detection (RECOMMENDED):**
+    - Calculate `cot_utilization = cot_tokens / max_position_embeddings`
+    - For Math/Code tasks: flag samples where `cot_utilization < 0.25` (25%)
+    - If under-length ratio > 30%, this indicates CoT quality issues - consider regenerating
+
+    **3. Validation Actions:**
+    - If too short: regenerate with stronger length emphasis in prompt
+    - If too long: filter out (do NOT truncate - breaks reasoning integrity)
+
+    #### CoT SUMMARY Output Format
+    **For Reasoning tasks, include in SUMMARY:**
+    ```
+    ========== COT LENGTH STATS ==========
+    Max position embeddings: {max_pos_emb}
+    Over-length filtered: {count} ({percentage}%)
+    Under-length samples (< 25%): {count} ({percentage}%)
+    CoT length distribution: p25={}, p50={}, p75={}, p99={}
+    ======================================
+    ```
+
     ## Scope Clarification (IMPORTANT)
     **Your script should ONLY handle data processing and output data.json.**
     - DO NOT generate training configuration files (e.g., train.yaml, training_config.json)
@@ -398,6 +470,31 @@ data_eval:
     - **Duplicates**: High duplicate ratio indicates data quality issues
     - **Semantic**: instruction should be a question/task, output should be an answer/response
     - **Alignment**: Data should match the task's training objective
+
+    ## CoT Length Evaluation (Reasoning Tasks Only)
+    **Apply these criteria ONLY for Reasoning/CoT tasks (math, code, complex reasoning).**
+
+    1. **Over-length Check**:
+       - Report percentage of samples exceeding `max_position_embeddings`
+       - If >5% samples are over-length: FAIL (data will be truncated during training)
+
+    2. **Under-length Check**:
+       - Calculate CoT utilization: `cot_tokens / max_position_embeddings`
+       - Report percentage of samples with utilization < 25%
+       - If >30% samples are under-length: WARN (suggest improving CoT generation strategy)
+
+    3. **Length Distribution**:
+       - Report p25/p50/p75/p99 of CoT token lengths
+       - Healthy distribution: p50 should be at least 25% of max_position_embeddings
+       - If p75 < 25% of max_position_embeddings: suggest using stronger LLM or expanding CoT
+
+    4. **CoT Style Assessment**:
+       - Check if CoT shows exploratory reasoning (step-by-step, verification, backtracking)
+       - Flag if CoT appears to be inductive/summary style (too concise, no exploration)
+
+    **Include in return_checking for Reasoning tasks:**
+    - "CoT length stats: p50={}, over-length={X}%, under-length={Y}%"
+    - Assessment of whether CoT quality is sufficient for training
 
     ## Final Decision Guidelines
     - Approve (true) if data format is correct, quality is good, and script logic is sound

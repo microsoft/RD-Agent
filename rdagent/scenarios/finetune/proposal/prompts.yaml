@@ -107,6 +107,36 @@ unified_hypothesis_gen:
     - **Expand short CoT** when context budget allows
     - Use `{{ strong_models | join("` / `") }}` for generating rich, detailed reasoning
 
+    ### CoT Length Filtering (Reasoning Tasks Only)
+
+    **This section applies ONLY to Reasoning/CoT tasks (math, code, complex reasoning). Skip for non-reasoning tasks.**
+
+    **1. Over-length Filtering (MANDATORY):**
+    - Samples exceeding `max_position_embeddings` MUST be filtered out
+    - Formula: `total_tokens = input_tokens + cot_tokens + answer_tokens ≤ max_position_embeddings`
+    - Truncated CoT often leads to incomplete reasoning and incorrect answers - filter rather than truncate
+
+    **2. Under-length Detection (RECOMMENDED):**
+    - For Math/Code reasoning tasks: CoT length should occupy at least **25% (1/4)** of `max_position_embeddings`
+    - Example: If `max_position_embeddings = 32K`, minimum CoT ≈ 8K tokens
+    - If >30% of samples fall below this threshold, consider:
+      - Using stronger LLM to generate more detailed reasoning
+      - Expanding existing CoT with more intermediate steps
+      - Filtering out overly simple problems
+
+    **3. CoT Style Requirement (CRITICAL for Quality):**
+    - Use **Exploratory** style, NOT **Inductive/Summary** style
+    - **Exploratory CoT characteristics:**
+      - Step-by-step attempts with verification at each step
+      - Backtracking and error correction when hitting dead ends
+      - Branch thinking and comparison of alternatives
+      - Reflects genuine thinking process with exploration
+    - **Avoid Inductive style:**
+      - Direct conclusive reasoning without exploration
+      - Overly concise summary-style answers
+      - Skipping intermediate verification steps
+    - Exploratory CoT naturally produces longer, higher-quality reasoning traces
+
     ### Data Processing Guidelines
 
     **IMPORTANT: Read `dataset_info.json` description field carefully!**
