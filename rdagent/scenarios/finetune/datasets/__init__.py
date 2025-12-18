@@ -4,9 +4,11 @@ Usage:
     from rdagent.scenarios.finetune.datasets import prepare, prepare_all
 
     prepare("deepscaler")   # Prepare single dataset
+    prepare("chemcot")      # Prepare ChemCoT dataset (with JSON consolidation)
     prepare_all()           # Prepare all registered datasets
 """
 
+import json
 import shutil
 from pathlib import Path
 
@@ -17,7 +19,80 @@ from rdagent.scenarios.finetune.download.hf import download_dataset
 # Empty for debug: use local limo dataset instead of downloading
 DATASETS = {
     "deepscaler": "agentica-org/DeepScaleR-Preview-Dataset",  # Removed for debug(Need to prepare data manually)
+    "chemcot": "OpenMol/ChemCoTDataset",
 }
+
+# Datasets that require post-processing (consolidation)
+DATASETS_WITH_POSTPROCESS = {"chemcot"}
+
+
+def _consolidate_chemcot_jsons(dataset_path: Path) -> None:
+    """Consolidate all ChemCoT JSON files into a single JSON file.
+
+    The consolidated file will have the structure:
+    [
+        {
+            "id": "...",
+            "query": "...",
+            "task": "rxn|mol_und|mol_edit|mol_opt",
+            "subtask": "...",
+            "struct_cot": "...",
+            "raw_cot": "...",
+            "meta": "..."
+        },
+        ...
+    ]
+
+    After consolidation, the original downloaded subdirectories are removed,
+    keeping only consolidated.json and README.md.
+
+    Args:
+        dataset_path: Path to the downloaded ChemCoT dataset
+    """
+    consolidated_data = []
+    subdirs = ["rxn", "mol_und", "mol_edit", "mol_opt"]
+
+    # Find the actual data root (may be nested in chemcotbench-cot/)
+    data_root = dataset_path
+    if (dataset_path / "chemcotbench-cot").exists():
+        data_root = dataset_path / "chemcotbench-cot"
+
+    for subdir in subdirs:
+        subdir_path = data_root / subdir
+        if not subdir_path.exists():
+            continue
+
+        for json_file in subdir_path.glob("*.json"):
+            try:
+                with open(json_file, encoding="utf-8") as f:
+                    data = json.load(f)
+
+                if isinstance(data, list):
+                    # Each item should already have task/subtask fields
+                    consolidated_data.extend(data)
+                else:
+                    # Single object
+                    consolidated_data.append(data)
+            except (json.JSONDecodeError, IOError) as e:
+                print(f"Warning: Failed to load {json_file}: {e}")
+                continue
+
+    # Write consolidated JSON to dataset root
+    output_file = dataset_path / "consolidated.json"
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(consolidated_data, f, ensure_ascii=False, indent=2)
+
+    print(f"Consolidated {len(consolidated_data)} samples into {output_file}")
+
+    # Clean up: remove ALL other files (including hidden), keep only consolidated.json and README.md
+    keep_files = {"consolidated.json", "README.md"}
+    for item in dataset_path.iterdir():
+        if item.name not in keep_files:
+            if item.is_dir():
+                shutil.rmtree(item)
+            else:
+                item.unlink()
+    print(f"Cleaned up original files, kept only: {', '.join(keep_files)}")
 
 
 def prepare(name: str, force: bool = False) -> str:
@@ -47,6 +122,11 @@ def prepare(name: str, force: bool = False) -> str:
     if custom_readme.exists():
         shutil.copy(custom_readme, Path(save_path) / "README.md")
 
+    # Post-processing for specific datasets
+    if name in DATASETS_WITH_POSTPROCESS:
+        if name == "chemcot":
+            _consolidate_chemcot_jsons(save_path)
+
     return save_path
 
 
@@ -63,5 +143,8 @@ def prepare_all(force: bool = False) -> dict[str, str]:
 
 
 if __name__ == "__main__":
-    path = prepare("deepscaler")
+    import sys
+
+    dataset_name = sys.argv[1] if len(sys.argv) > 1 else "deepscaler"
+    path = prepare(dataset_name)
     print(f"Dataset prepared at: {path}")
