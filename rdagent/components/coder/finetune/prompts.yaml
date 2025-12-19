@@ -132,66 +132,76 @@ data_coder:
     4. **Handle Edge Cases**: Instruct how to handle invalid inputs or uncertain cases
     5. **Consistency**: Use consistent formatting across all prompts in your script
 
-    ### CoT Generation Guidelines (Reasoning Tasks Only)
-    **This section applies ONLY when processing Reasoning/CoT data (math, code, complex reasoning).**
+    ### CoT Quality Guidelines (Task-Adaptive for Reasoning Tasks)
+    **IMPORTANT: CoT quality ≠ CoT length. Check README's `CoT Quality Assessment` section first!**
 
-    #### Prompt Requirements
-    **When calling LLM to generate Chain-of-Thought reasoning, your prompt MUST include:**
+    #### Quality Decision Framework
+    1. **All raw data MUST be polished** - never use directly, always enhance
+    2. Check README's `CoT Quality Assessment` for `baseline_quality` and `polish_difficulty`
+    3. **High baseline** → expand and enrich (easier, but still required)
+    4. **Low baseline** → generate from scratch (harder, needs strong LLM)
+    5. Follow `polish_strategy` in README for specific enhancement approach
+    6. Adapt validation criteria based on `task_type`
 
-    **1. Length Requirements (CRITICAL - include in prompt):**
-    ```
-    Generate a detailed chain-of-thought reasoning with the following length requirements:
-    - Target length: {target_cot_tokens} tokens (approximately {target_cot_tokens // 4} words)
-    - Minimum length: {min_cot_tokens} tokens (25% of model's max context)
-    - Maximum length: {max_cot_tokens} tokens (do NOT exceed this)
-    ```
-    - `target_cot_tokens`: typically 50-75% of available context after input
-    - `min_cot_tokens`: 25% of `max_position_embeddings`
-    - `max_cot_tokens`: `max_position_embeddings - input_tokens - answer_tokens`
+    #### Task-Adaptive Standards
+    | Task Type | CoT Style | Length Guideline | Key Quality Metrics |
+    |-----------|-----------|------------------|---------------------|
+    | Math/Code | Exploratory | 5K+ tokens | Step verification, backtracking |
+    | Chemistry | Structured | 300-1000 tokens OK | JSON structure, clear steps |
+    | General | Direct | No minimum | Answer correctness |
 
-    **2. Style Requirements (CRITICAL - include in prompt):**
+    #### CoT Generation (When polish_needed: true)
+    **When calling LLM to generate/expand CoT, adapt prompt based on task type:**
+
+    **For Math/Code tasks (exploratory style):**
     ```
-    Use EXPLORATORY reasoning style, NOT summary/inductive style:
-    - Think step-by-step, showing your work at each stage
-    - Verify intermediate results before proceeding
+    Generate detailed step-by-step reasoning:
+    - Show your work at each stage with verification
     - When stuck, backtrack and try alternative approaches
-    - Compare different solution paths when applicable
-    - Show genuine exploration of the problem space
-    
-    DO NOT:
-    - Jump directly to conclusions
-    - Give overly concise answers
-    - Skip verification steps
-    - Use summary-style reasoning that just restates the answer
+    - Target length: 5K+ tokens for complex problems
     ```
 
-    #### Post-Generation Validation & Filtering
-    After generating or processing CoT data, implement these validations:
+    **For Chemistry/Structured tasks:**
+    ```
+    Generate structured reasoning in clear steps:
+    - Use "Step 1:", "Step 2:" markers or JSON format
+    - Be concise but complete (500-1000 tokens is fine)
+    - Focus on chemical validity and logical flow
+    ```
 
-    **1. Over-length Filtering (MANDATORY):**
+    #### Post-Processing Validation (Multi-dimensional)
+    After processing CoT data, implement these validations:
+
+    **1. Over-length Filtering (MANDATORY for all tasks):**
     - Filter out samples where `total_tokens > max_position_embeddings`
-    - Total tokens = input_tokens + cot_tokens + answer_tokens
-    - Do NOT truncate long CoT - truncation breaks reasoning completeness
-    - Log filtered count in SUMMARY output
+    - Do NOT truncate - filter instead
 
-    **2. Under-length Detection (RECOMMENDED):**
-    - Calculate `cot_utilization = cot_tokens / max_position_embeddings`
-    - For Math/Code tasks: flag samples where `cot_utilization < 0.25` (25%)
-    - If under-length ratio > 30%, this indicates CoT quality issues - consider regenerating
+    **2. Answer Consistency Check (CRITICAL):**
+    - Verify reasoning leads to stated answer
+    - For math: check calculation matches `\boxed{}` result
+    - For chemistry: verify molecular transformations are valid
+    - Filter samples with reasoning-answer mismatch
 
-    **3. Validation Actions:**
-    - If too short: regenerate with stronger length emphasis in prompt
-    - If too long: filter out (do NOT truncate - breaks reasoning integrity)
+    **3. Structure Check (Task-adaptive):**
+    - Math/Code: Look for step markers, verification statements
+    - Chemistry: Look for JSON structure or "Step N:" format
+    - General: No strict structure requirement
 
-    #### CoT SUMMARY Output Format
-    **For Reasoning tasks, include in SUMMARY:**
+    **4. Task-Adaptive Length Check:**
+    - Math/Code: Warn if < 500 tokens (may need expansion)
+    - Chemistry/Structured: OK if 100-1000 tokens with good structure
+    - General: No length requirement
+
+    #### CoT Quality SUMMARY Output Format
     ```
-    ========== COT LENGTH STATS ==========
-    Max position embeddings: {max_pos_emb}
+    ========== COT QUALITY STATS ==========
+    Task type: {task_type}
+    Quality ready (from README): {quality_ready}
     Over-length filtered: {count} ({percentage}%)
-    Under-length samples (< 25%): {count} ({percentage}%)
-    CoT length distribution: p25={}, p50={}, p75={}, p99={}
-    ======================================
+    Answer consistency check: {passed}/{total} passed
+    Structure check: {structured_count}/{total} have clear structure
+    Length distribution: p25={}, p50={}, p75={}, p99={}
+    =======================================
     ```
 
     ## Scope Clarification (IMPORTANT)
@@ -471,30 +481,41 @@ data_eval:
     - **Semantic**: instruction should be a question/task, output should be an answer/response
     - **Alignment**: Data should match the task's training objective
 
-    ## CoT Length Evaluation (Reasoning Tasks Only)
-    **Apply these criteria ONLY for Reasoning/CoT tasks (math, code, complex reasoning).**
+    ## CoT Quality Evaluation (Task-Adaptive)
+    **IMPORTANT: CoT quality ≠ CoT length. Adapt criteria based on task type from README metadata.**
 
-    1. **Over-length Check**:
+    **Check README's `CoT Quality Assessment` section for `task_type` and `quality_ready` fields.**
+
+    1. **Over-length Check** (MANDATORY for all tasks):
        - Report percentage of samples exceeding `max_position_embeddings`
-       - If >5% samples are over-length: FAIL (data will be truncated during training)
+       - If >5% samples are over-length: FAIL
 
-    2. **Under-length Check**:
-       - Calculate CoT utilization: `cot_tokens / max_position_embeddings`
-       - Report percentage of samples with utilization < 25%
-       - If >30% samples are under-length: WARN (suggest improving CoT generation strategy)
+    2. **Answer Consistency Check** (CRITICAL):
+       - Verify reasoning leads to stated answer
+       - For math: calculation should match `\boxed{}` result
+       - Flag samples with reasoning-answer mismatch
 
-    3. **Length Distribution**:
-       - Report p25/p50/p75/p99 of CoT token lengths
-       - Healthy distribution: p50 should be at least 25% of max_position_embeddings
-       - If p75 < 25% of max_position_embeddings: suggest using stronger LLM or expanding CoT
+    3. **Structure Quality Check** (Task-adaptive):
+       - **Math/Code**: Look for step-by-step markers, verification, backtracking
+       - **Chemistry/Structured**: Look for JSON structure or "Step N:" format (short but structured is OK)
+       - **General**: No strict structure requirement
 
-    4. **CoT Style Assessment**:
-       - Check if CoT shows exploratory reasoning (step-by-step, verification, backtracking)
-       - Flag if CoT appears to be inductive/summary style (too concise, no exploration)
+    4. **Length Assessment** (Task-adaptive, NOT absolute):
+       - **Math/Code tasks**: p50 < 500 tokens may indicate quality issues
+       - **Chemistry/Structured tasks**: 300-1000 tokens is often sufficient if well-structured
+       - **General tasks**: No minimum length requirement
+       - Report distribution but do NOT fail based solely on length for non-math tasks
 
-    **Include in return_checking for Reasoning tasks:**
-    - "CoT length stats: p50={}, over-length={X}%, under-length={Y}%"
-    - Assessment of whether CoT quality is sufficient for training
+    5. **Polish Quality Assessment**:
+       - All data must be polished before use
+       - If README shows `baseline_quality: high`: verify enrichment was applied
+       - If README shows `baseline_quality: low`: verify full generation/rewrite was done
+       - Check polish met the requirements in `polish_strategy`
+
+    **Include in return_checking:**
+    - "Task type: {type}, Quality ready: {ready}"
+    - "CoT stats: p50={}, over-length={X}%, structure quality={Y}%"
+    - Assessment based on task-appropriate criteria
 
     ## Final Decision Guidelines
     - Approve (true) if data format is correct, quality is good, and script logic is sound

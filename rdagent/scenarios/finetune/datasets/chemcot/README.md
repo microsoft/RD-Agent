@@ -44,7 +44,17 @@ For column `raw_cot`, the token statistics is:
   "p99": 6357
 }
 
+## CoT Quality Assessment
 
+**IMPORTANT**: Raw data must be polished before training.
+
+| Dimension | Value |
+|-----------|-------|
+| baseline_quality | high |
+| task_type | chemistry |
+| polish_difficulty | moderate |
+
+**Baseline**: `struct_cot` has good structure but needs enrichment to 500-1500 tokens with more detailed chemical reasoning.
 
 ## Tasks
 
