@@ -4,7 +4,7 @@ Usage:
     from rdagent.scenarios.finetune.datasets import prepare, prepare_all, load_split
 
     prepare("panorama-par4pc")   # Download train split only (safe, no test leakage)
-    prepare("chemcot")           # Prepare ChemCoT dataset
+    prepare("chemcot-mol_opt")   # Prepare ChemCoT molecular optimization task
     prepare_all()                # Prepare all registered datasets
     load_split("panorama-par4pc")  # Load as Dataset object
 """
@@ -72,9 +72,32 @@ DATASETS: dict[str, DatasetConfig] = {
         repo_id="agentica-org/DeepScaleR-Preview-Dataset",
         train_split="train",
     ),
-    # ChemCoT - Chemical Reasoning with Chain-of-Thought
-    "chemcot": DatasetConfig(
+    # ChemCoT - Chemical Reasoning with Chain-of-Thought (4 separate tasks)
+    # Paper: https://arxiv.org/abs/2505.21318
+    # All data files are under chemcotbench-cot/ directory
+    # TODO: rxn/rcr.json has different schema，we need to handle it separately
+    "chemcot-mol_und": DatasetConfig(
         repo_id="OpenMol/ChemCoTDataset",
+        data_dir="chemcotbench-cot/mol_und",  # Molecular understanding: functional group counting, ring counting, scaffold extraction
+        train_split="train",
+    ),
+    "chemcot-mol_edit": DatasetConfig(
+        repo_id="OpenMol/ChemCoTDataset",
+        data_dir="chemcotbench-cot/mol_edit",  # Molecular editing: add, delete, substitute functional groups
+        train_split="train",
+    ),
+    "chemcot-mol_opt": DatasetConfig(
+        repo_id="OpenMol/ChemCoTDataset",
+        data_dir="chemcotbench-cot/mol_opt",  # Molecular optimization: LogP, solubility, QED, drug targets
+        train_split="train",
+    ),
+    "chemcot-rxn": DatasetConfig(
+        repo_id="OpenMol/ChemCoTDataset",
+        # Note: rcr.json has different schema (gt, cot_result), so we only load fs_*.json files
+        data_files=[
+            "chemcotbench-cot/rxn/fs_major_product.json",
+            "chemcotbench-cot/rxn/fs_by_product.json",
+        ],
         train_split="train",
     ),
 }
