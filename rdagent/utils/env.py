@@ -558,6 +558,11 @@ class LocalEnv(Env[ASpecificLocalConf]):
             # Setup environment
             if env is None:
                 env = {}
+
+            # Auto-propagate CUDA_VISIBLE_DEVICES for proper GPU isolation
+            if "CUDA_VISIBLE_DEVICES" in os.environ and "CUDA_VISIBLE_DEVICES" not in env:
+                env["CUDA_VISIBLE_DEVICES"] = os.environ["CUDA_VISIBLE_DEVICES"]
+
             path = [
                 *self.conf.bin_path.split(":"),
                 "/bin/",

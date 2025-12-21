@@ -31,13 +31,11 @@ load_dotenv(find_dotenv())
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.finetune.conf import (
     get_benchmark_env,
-    get_ft_env,
     get_workspace_prefix,
     is_docker_env,
 )
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.shared.get_runtime_info import get_runtime_environment_by_env
 
 BENCHMARK_CONFIG_DICT = {
     # Math Reasoning Benchmarks
@@ -54,25 +52,13 @@ BENCHMARK_CONFIG_DICT = {
 }
 
 
-def _get_gpu_count() -> int:
-    device_info_json = json.loads(get_runtime_environment_by_env(get_ft_env()))
-    gpu_info = device_info_json.get("gpu", {})
-
-    if "gpu_count" in gpu_info:
-        return gpu_info["gpu_count"]
-
-    if "gpus" in gpu_info:
-        return len(gpu_info["gpus"])
-
-    return 0
-
-
-def get_model_inference_config(base_model_name: str) -> dict:
+def get_model_inference_config(base_model_name: str, gpu_count: int) -> dict:
     """
     Load model inference configuration from YAML file.
 
     Args:
         base_model_name: HuggingFace model name (e.g., "Qwen/Qwen3-8B")
+        gpu_count: GPU count for tensor_parallel_size (from scenario.device_info)
 
     Returns:
         dict: Merged configuration (model-specific overrides default)
@@ -99,12 +85,12 @@ def get_model_inference_config(base_model_name: str) -> dict:
 
     # Handle auto tensor_parallel_size
     if final_config.get("tensor_parallel_size") == "auto":
-        num_gpus = _get_gpu_count()
-        if num_gpus <= 0:
+        if gpu_count <= 0:
             final_config["tensor_parallel_size"] = 1
         else:
+            # Round down to nearest power of 2
             power = 0
-            while (1 << (power + 1)) <= num_gpus:
+            while (1 << (power + 1)) <= gpu_count:
                 power += 1
             final_config["tensor_parallel_size"] = 1 << power
 
@@ -225,6 +211,7 @@ def run_benchmark(
     model_path: str,
     model_name: str,
     benchmark_name: str,
+    gpu_count: int,
     limit: Optional[int] = None,
     num_runs: int = 1,
     pass_k: Optional[List[int]] = None,
@@ -236,7 +223,9 @@ def run_benchmark(
     Args:
         workspace_path: Path to workspace directory
         model_path: Path to fine-tuned model (supports full/LoRA auto-detection)
+        model_name: HuggingFace model name
         benchmark_name: Benchmark dataset name (e.g., "aime25", "gsm8k")
+        gpu_count: GPU count for tensor_parallel_size (from scenario.device_info)
         limit: Optional dataset size limit for testing
         num_runs: Number of times to run each sample (default: 1)
         pass_k: Optional list of k values for pass@k evaluation (e.g., [1, 5, 10])
@@ -250,7 +239,7 @@ def run_benchmark(
     # Load configurations
     dataset_imports = BENCHMARK_CONFIG_DICT[benchmark_name]
     model_is_lora = detect_model_type(model_path)
-    inference_config = get_model_inference_config(model_name)
+    inference_config = get_model_inference_config(model_name, gpu_count)
     workspace_path = Path(workspace_path)
 
     # Get environment first to determine path prefix
