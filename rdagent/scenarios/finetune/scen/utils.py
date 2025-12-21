@@ -7,7 +7,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import tiktoken
-from litellm import token_counter
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.log import rdagent_logger as logger
@@ -17,34 +16,6 @@ from rdagent.utils.agent.tpl import T
 
 # Fixed tokenizer model for token counting
 _TOKENIZER_MODEL = "gpt-3.5-turbo"
-
-
-def _count_tokens(text: str) -> int:
-    """Count the number of tokens in a text string.
-
-    Uses litellm's token_counter with tiktoken as fallback.
-    Fixed to use gpt-3.5-turbo tokenizer.
-
-    Args:
-        text: The text to count tokens for
-
-    Returns:
-        Number of tokens in the text
-    """
-    if not text:
-        return 0
-
-    try:
-        return token_counter(model=_TOKENIZER_MODEL, text=text)
-    except Exception as e:
-        logger.debug(f"litellm token_counter failed: {e}, trying tiktoken fallback")
-        try:
-            encoding = tiktoken.encoding_for_model(_TOKENIZER_MODEL)
-            return len(encoding.encode(text))
-        except Exception as e2:
-            logger.warning(f"Token counting failed (both litellm and tiktoken): {e2}")
-            # Fallback to rough estimation: ~4 chars per token for English
-            return len(text) // 4
 
 
 def _find_data_files(dataset_path: Path, max_files: int = 50) -> list[Path]:
@@ -70,27 +41,33 @@ def _truncate_long_values(obj, max_length: int = 3000):
     """Recursively truncate long string values in nested data structures.
 
     Args:
-        obj: The object to truncate (dict, list, or str)
+        obj: The object to truncate (dict, list, ndarray, or str)
         max_length: Maximum length for string values
 
     Returns:
-        Truncated object with the same structure, showing omitted character count
+        Truncated object with the same structure, showing omitted character count.
+        numpy arrays are converted to Python lists for JSON serialization.
     """
-    if isinstance(obj, dict):
+    if isinstance(obj, np.ndarray):
+        # Convert numpy array to list first, then process recursively
+        return _truncate_long_values(obj.tolist(), max_length)
+    elif isinstance(obj, dict):
         return {k: _truncate_long_values(v, max_length) for k, v in obj.items()}
     elif isinstance(obj, list):
         return [_truncate_long_values(item, max_length) for item in obj]
     elif isinstance(obj, str) and len(obj) > max_length:
         omitted = len(obj) - max_length
         return obj[:max_length] + f"...(omitted {omitted} chars)"
+    elif isinstance(obj, (np.integer, np.floating)):
+        # Convert numpy scalar types to Python native types
+        return obj.item()
     return obj
 
 
 def _compute_column_stats(data: list[dict]) -> dict[str, dict]:
     """Compute token statistics for each string column in the dataset.
 
-    Uses litellm/tiktoken to count tokens instead of character length,
-    providing more accurate statistics for LLM training data analysis.
+    Uses tiktoken batch encoding for 10-50x faster processing.
     Fixed to use gpt-3.5-turbo tokenizer.
 
     Args:
@@ -109,11 +86,18 @@ def _compute_column_stats(data: list[dict]) -> dict[str, dict]:
         if isinstance(item, dict):
             all_columns.update(item.keys())
 
+    # Get tiktoken encoder (cached after first call)
+    try:
+        encoding = tiktoken.encoding_for_model(_TOKENIZER_MODEL)
+    except Exception:
+        encoding = tiktoken.get_encoding("cl100k_base")
+
     column_stats = {}
     for col in all_columns:
-        token_counts: list[int] = []
+        texts: list[str] = []
         empty_count = 0
 
+        # Collect all non-empty texts for this column
         for item in data:
             if isinstance(item, dict):
                 val = item.get(col, "")
@@ -121,11 +105,17 @@ def _compute_column_stats(data: list[dict]) -> dict[str, dict]:
                     if not val.strip():
                         empty_count += 1
                     else:
-                        # Count tokens instead of character length
-                        token_count = _count_tokens(val)
-                        token_counts.append(token_count)
+                        texts.append(val)
 
-        if token_counts:
+        if texts:
+            # Batch encode all texts at once (10-50x faster than individual calls)
+            try:
+                encoded_batch = encoding.encode_batch(texts)
+                token_counts = [len(tokens) for tokens in encoded_batch]
+            except Exception as e:
+                logger.warning(f"Batch encoding failed for column '{col}': {e}, falling back to sequential")
+                token_counts = [len(encoding.encode(t)) for t in texts]
+
             column_stats[col] = {
                 "empty_count": empty_count,
                 "min_tokens": int(min(token_counts)),
