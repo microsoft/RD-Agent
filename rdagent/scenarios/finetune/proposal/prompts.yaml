@@ -64,14 +64,35 @@ unified_hypothesis_gen:
     - If mismatch: augment/rewrite > filter > direct use with limitations acknowledged
 
     **Example - Reasoning/CoT Training:**
-    Dataset info shows: "solution field median ~373 tokens, too short for rich chain-of-thought training"
-
-    This means existing CoT is **insufficient** for training strong reasoning, even if non-empty. Options:
-    - **Rewrite/Expand**: Use stronger model to generate longer, more detailed reasoning traces
-    - **Filter for long CoT**: Keep only samples with substantial reasoning (e.g., >1000 tokens)
-    - **Generate from scratch**: For answer-only samples, generate full CoT verified against answer
-
-    Key insight: Short CoT ≠ Good CoT. Training reasoning requires **rich, detailed** thought processes.
+    
+    **IMPORTANT: CoT quality ≠ CoT length. Check README's `CoT Quality Assessment` section first!**
+    
+    Different datasets have different quality characteristics:
+    - **High-quality structured CoT** (e.g., ChemCoTBench): Short but structured (300 tokens) can be effective
+    - **Low-quality or missing CoT** (e.g., DeepScaler): 82% empty solutions need generation
+    
+    **Quality Decision Framework:**
+    1. **All raw data MUST be polished** - never use directly without enhancement
+    2. Check README's `CoT Quality Assessment` for `baseline_quality` and `polish_difficulty`
+    3. **High baseline** (e.g., ChemCoT) → focus on enrichment (add details, verify correctness)
+    4. **Low baseline** (e.g., DeepScaler) → full generation/rewrite needed
+    5. Follow `polish_strategy` in README for specific approach
+    
+    **Multi-dimensional Quality Criteria:**
+    - **Structure Completeness**: Clear step separation, logical flow (JSON structure or "Step N:" markers)
+    - **Reasoning Coherence**: Steps logically connected, no jumps in reasoning
+    - **Answer Consistency**: Reasoning process supports and leads to final answer
+    - **Information Density**: No redundancy, relevant content only
+    - **Task Appropriateness**: CoT style matches task type (see table below)
+    
+    **Task-Type Adaptive Standards:**
+    | Task Type | Recommended CoT Style | Length Guideline |
+    |-----------|----------------------|------------------|
+    | Math/Code | Exploratory (step-by-step, verification, backtracking) | Longer preferred (2K-8K+) |
+    | Chemistry/Structured | Structured (JSON, clear steps) | Concise OK (300-1000) |
+    | General QA | Direct or brief reasoning | Short OK (100-500) |
+    
+    Key insight: **Quality = Structure + Coherence + Consistency**, not just length.
 
     ### CoT Length & cutoff_len: A Unified Decision (CRITICAL)
 
@@ -106,6 +127,42 @@ unified_hypothesis_gen:
     - **Never compress long CoT** just to fit arbitrary limits
     - **Expand short CoT** when context budget allows
     - Use `{{ strong_models | join("` / `") }}` for generating rich, detailed reasoning
+
+    ### CoT Quality Filtering (Multi-dimensional)
+
+    **This section applies to Reasoning/CoT tasks. Adapt criteria based on task type from README metadata.**
+
+    **1. Over-length Filtering (MANDATORY for all tasks):**
+    - Samples exceeding `max_position_embeddings` MUST be filtered out
+    - Formula: `total_tokens = input_tokens + cot_tokens + answer_tokens ≤ max_position_embeddings`
+    - Truncated CoT leads to incomplete reasoning - filter rather than truncate
+
+    **2. Quality-based Filtering (Task-Adaptive):**
+    
+    **For Math/Code tasks (need exploratory CoT):**
+    - Length: Recommend 2K-8K+ tokens for complex reasoning
+    - Style: Exploratory with step-by-step verification and backtracking
+    - If existing CoT is summary-style → consider regeneration with exploratory prompts
+    
+    **For Chemistry/Structured tasks:**
+    - Length: 300-1000 tokens is often sufficient if well-structured
+    - Style: Structured JSON or clear step markers ("Step 1:", "Step 2:")
+    - If `quality_ready: true` in README → use directly without expansion
+    
+    **For General QA:**
+    - Length: No minimum requirement
+    - Style: Direct reasoning is acceptable
+
+    **3. Answer Consistency Check (CRITICAL for all tasks):**
+    - Verify reasoning process leads to stated answer
+    - For math: calculation steps must match `\boxed{}` result
+    - For chemistry: molecular transformations must be valid
+    - Filter samples with inconsistent reasoning-answer pairs
+
+    **4. Structure Check:**
+    - Prefer CoT with clear step markers or JSON structure
+    - Reject wall-of-text without logical organization
+    - Good structure often indicates good reasoning quality
 
     ### Data Processing Guidelines
 

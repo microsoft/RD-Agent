@@ -4,6 +4,7 @@ Usage:
     from rdagent.scenarios.finetune.datasets import prepare, prepare_all, load_split
 
     prepare("panorama-par4pc")   # Download train split only (safe, no test leakage)
+    prepare("chemcot")           # Prepare ChemCoT dataset
     prepare_all()                # Prepare all registered datasets
     load_split("panorama-par4pc")  # Load as Dataset object
 """
@@ -69,6 +70,11 @@ DATASETS: dict[str, DatasetConfig] = {
     # DeepScaleR
     "deepscaler": DatasetConfig(
         repo_id="agentica-org/DeepScaleR-Preview-Dataset",
+        train_split="train",
+    ),
+    # ChemCoT - Chemical Reasoning with Chain-of-Thought
+    "chemcot": DatasetConfig(
+        repo_id="OpenMol/ChemCoTDataset",
         train_split="train",
     ),
 }
@@ -162,7 +168,15 @@ def prepare_all(force: bool = False) -> dict[str, str]:
 
 
 if __name__ == "__main__":
-    # Example: load PANORAMA PAR4PC train split
-    ds = load_split("panorama-par4pc")
-    print(f"Loaded PANORAMA PAR4PC train split: {len(ds)} samples")
-    print(f"Columns: {ds.column_names}")
+    import sys
+
+    if len(sys.argv) > 1:
+        dataset_name = sys.argv[1]
+        path = prepare(dataset_name)
+        print(f"Dataset prepared at: {path}")
+    else:
+        # Default: show available datasets and load example
+        print(f"Available datasets: {list(DATASETS.keys())}")
+        ds = load_split("panorama-par4pc")
+        print(f"Loaded PANORAMA PAR4PC train split: {len(ds)} samples")
+        print(f"Columns: {ds.column_names}")

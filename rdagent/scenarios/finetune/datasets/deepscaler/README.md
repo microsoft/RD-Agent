@@ -54,6 +54,17 @@ For column `solution`, the token statistics is:
   "p99": 1208
 }
 
+## CoT Quality Assessment
+
+**IMPORTANT**: Raw data must be polished before training.
+
+| Dimension | Value |
+|-----------|-------|
+| baseline_quality | low |
+| task_type | math |
+| polish_difficulty | high |
+
+**Baseline**: 82% empty `solution`, 18% too short (p50=373 tokens, summary-style). Need to generate exploratory CoT (For your reference, the length of a well-structured CoT is usually longer than 1/4 * the model max_position_embeddings tokens) for all samples.
 
 ## Example
 ```json

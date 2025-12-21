@@ -122,6 +122,88 @@ data_coder:
       embedding_result = [data["embedding"] for data in response.data]
       ```
 
+    ## LLM Prompt Guidelines
+    When constructing prompts for LLM API calls in your data processing script, follow these guidelines:
+
+    ### General Prompt Guidelines
+    1. **Be Specific**: Clearly define the task, expected output format, and any constraints
+    2. **Provide Examples**: Include 1-2 examples when output format is complex
+    3. **Set Output Format**: Explicitly specify JSON/text/structured output requirements
+    4. **Handle Edge Cases**: Instruct how to handle invalid inputs or uncertain cases
+    5. **Consistency**: Use consistent formatting across all prompts in your script
+
+    ### CoT Quality Guidelines (Task-Adaptive for Reasoning Tasks)
+    **IMPORTANT: CoT quality ≠ CoT length. Check README's `CoT Quality Assessment` section first!**
+
+    #### Quality Decision Framework
+    1. **All raw data MUST be polished** - never use directly, always enhance
+    2. Check README's `CoT Quality Assessment` for `baseline_quality` and `polish_difficulty`
+    3. **High baseline** → expand and enrich (easier, but still required)
+    4. **Low baseline** → generate from scratch (harder, needs strong LLM)
+    5. Follow `polish_strategy` in README for specific enhancement approach
+    6. Adapt validation criteria based on `task_type`
+
+    #### Task-Adaptive Standards
+    | Task Type | CoT Style | Length Guideline | Key Quality Metrics |
+    |-----------|-----------|------------------|---------------------|
+    | Math/Code | Exploratory | 5K+ tokens | Step verification, backtracking |
+    | Chemistry | Structured | 300-1000 tokens OK | JSON structure, clear steps |
+    | General | Direct | No minimum | Answer correctness |
+
+    #### CoT Generation (When polish_needed: true)
+    **When calling LLM to generate/expand CoT, adapt prompt based on task type:**
+
+    **For Math/Code tasks (exploratory style):**
+    ```
+    Generate detailed step-by-step reasoning:
+    - Show your work at each stage with verification
+    - When stuck, backtrack and try alternative approaches
+    - Target length: 5K+ tokens for complex problems
+    ```
+
+    **For Chemistry/Structured tasks:**
+    ```
+    Generate structured reasoning in clear steps:
+    - Use "Step 1:", "Step 2:" markers or JSON format
+    - Be concise but complete (500-1000 tokens is fine)
+    - Focus on chemical validity and logical flow
+    ```
+
+    #### Post-Processing Validation (Multi-dimensional)
+    After processing CoT data, implement these validations:
+
+    **1. Over-length Filtering (MANDATORY for all tasks):**
+    - Filter out samples where `total_tokens > max_position_embeddings`
+    - Do NOT truncate - filter instead
+
+    **2. Answer Consistency Check (CRITICAL):**
+    - Verify reasoning leads to stated answer
+    - For math: check calculation matches `\boxed{}` result
+    - For chemistry: verify molecular transformations are valid
+    - Filter samples with reasoning-answer mismatch
+
+    **3. Structure Check (Task-adaptive):**
+    - Math/Code: Look for step markers, verification statements
+    - Chemistry: Look for JSON structure or "Step N:" format
+    - General: No strict structure requirement
+
+    **4. Task-Adaptive Length Check:**
+    - Math/Code: Warn if < 500 tokens (may need expansion)
+    - Chemistry/Structured: OK if 100-1000 tokens with good structure
+    - General: No length requirement
+
+    #### CoT Quality SUMMARY Output Format
+    ```
+    ========== COT QUALITY STATS ==========
+    Task type: {task_type}
+    Quality ready (from README): {quality_ready}
+    Over-length filtered: {count} ({percentage}%)
+    Answer consistency check: {passed}/{total} passed
+    Structure check: {structured_count}/{total} have clear structure
+    Length distribution: p25={}, p50={}, p75={}, p99={}
+    =======================================
+    ```
+
     ## Scope Clarification (IMPORTANT)
     **Your script should ONLY handle data processing and output data.json.**
     - DO NOT generate training configuration files (e.g., train.yaml, training_config.json)
@@ -398,6 +480,42 @@ data_eval:
     - **Duplicates**: High duplicate ratio indicates data quality issues
     - **Semantic**: instruction should be a question/task, output should be an answer/response
     - **Alignment**: Data should match the task's training objective
+
+    ## CoT Quality Evaluation (Task-Adaptive)
+    **IMPORTANT: CoT quality ≠ CoT length. Adapt criteria based on task type from README metadata.**
+
+    **Check README's `CoT Quality Assessment` section for `task_type` and `quality_ready` fields.**
+
+    1. **Over-length Check** (MANDATORY for all tasks):
+       - Report percentage of samples exceeding `max_position_embeddings`
+       - If >5% samples are over-length: FAIL
+
+    2. **Answer Consistency Check** (CRITICAL):
+       - Verify reasoning leads to stated answer
+       - For math: calculation should match `\boxed{}` result
+       - Flag samples with reasoning-answer mismatch
+
+    3. **Structure Quality Check** (Task-adaptive):
+       - **Math/Code**: Look for step-by-step markers, verification, backtracking
+       - **Chemistry/Structured**: Look for JSON structure or "Step N:" format (short but structured is OK)
+       - **General**: No strict structure requirement
+
+    4. **Length Assessment** (Task-adaptive, NOT absolute):
+       - **Math/Code tasks**: p50 < 500 tokens may indicate quality issues
+       - **Chemistry/Structured tasks**: 300-1000 tokens is often sufficient if well-structured
+       - **General tasks**: No minimum length requirement
+       - Report distribution but do NOT fail based solely on length for non-math tasks
+
+    5. **Polish Quality Assessment**:
+       - All data must be polished before use
+       - If README shows `baseline_quality: high`: verify enrichment was applied
+       - If README shows `baseline_quality: low`: verify full generation/rewrite was done
+       - Check polish met the requirements in `polish_strategy`
+
+    **Include in return_checking:**
+    - "Task type: {type}, Quality ready: {ready}"
+    - "CoT stats: p50={}, over-length={X}%, structure quality={Y}%"
+    - Assessment based on task-appropriate criteria
 
     ## Final Decision Guidelines
     - Approve (true) if data format is correct, quality is good, and script logic is sound
