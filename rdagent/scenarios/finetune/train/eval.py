@@ -74,9 +74,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         """
         try:
             device_info = (
-                json.loads(self.scen.device_info)
-                if isinstance(self.scen.device_info, str)
-                else self.scen.device_info
+                json.loads(self.scen.device_info) if isinstance(self.scen.device_info, str) else self.scen.device_info
             )
             gpu_info = device_info.get("gpu", {})
 

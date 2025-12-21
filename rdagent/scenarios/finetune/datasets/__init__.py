@@ -9,12 +9,35 @@ Usage:
     load_split("panorama-par4pc")  # Load as Dataset object
 """
 
+import importlib.util
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
+
+from datasets import Dataset
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.scenarios.finetune.download.hf import export_dataset, load_dataset_split
+
+
+def _load_prepare_fn(dataset_name: str) -> Callable[[Dataset], Dataset] | None:
+    """Dynamically load prepare function from dataset directory.
+
+    Looks for prepare.py in the dataset's directory and returns the prepare function.
+    Returns None if no prepare.py exists.
+    """
+    prepare_path = Path(__file__).parent / dataset_name / "prepare.py"
+    if not prepare_path.exists():
+        return None
+
+    spec = importlib.util.spec_from_file_location(f"{dataset_name}.prepare", prepare_path)
+    if spec is None or spec.loader is None:
+        return None
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return getattr(module, "prepare", None)
 
 
 @dataclass
@@ -75,7 +98,6 @@ DATASETS: dict[str, DatasetConfig] = {
     # ChemCoT - Chemical Reasoning with Chain-of-Thought (4 separate tasks)
     # Paper: https://arxiv.org/abs/2505.21318
     # All data files are under chemcotbench-cot/ directory
-    # TODO: rxn/rcr.json has different schema，we need to handle it separately
     "chemcot-mol_und": DatasetConfig(
         repo_id="OpenMol/ChemCoTDataset",
         data_dir="chemcotbench-cot/mol_und",  # Molecular understanding: functional group counting, ring counting, scaffold extraction
@@ -91,12 +113,13 @@ DATASETS: dict[str, DatasetConfig] = {
         data_dir="chemcotbench-cot/mol_opt",  # Molecular optimization: LogP, solubility, QED, drug targets
         train_split="train",
     ),
+    # chemcot-rxn: uses prepare.py for schema unification (rcr.json uses 'cot_result' instead of 'struct_cot')
     "chemcot-rxn": DatasetConfig(
         repo_id="OpenMol/ChemCoTDataset",
-        # Note: rcr.json has different schema (gt, cot_result), so we only load fs_*.json files
         data_files=[
             "chemcotbench-cot/rxn/fs_major_product.json",
             "chemcotbench-cot/rxn/fs_by_product.json",
+            "chemcotbench-cot/rxn/rcr.json",
         ],
         train_split="train",
     ),
@@ -108,6 +131,9 @@ def prepare(name: str, force: bool = False) -> str:
 
     Only exports the train split to prevent test data leakage.
     The exported file is saved as: datasets/<name>/train.<format>
+
+    If a prepare.py exists in the dataset directory, its prepare() function
+    will be applied to transform the data before export.
 
     Args:
         name: Dataset name (must be registered in DATASETS)
@@ -126,6 +152,9 @@ def prepare(name: str, force: bool = False) -> str:
     if not force and out_file.exists():
         return str(out_dir)
 
+    # Load prepare_fn from dataset directory if exists
+    prepare_fn = _load_prepare_fn(name)
+
     # Load only the train split (never load test to prevent leakage)
     ds = load_dataset_split(
         repo_id=config.repo_id,
@@ -133,6 +162,7 @@ def prepare(name: str, force: bool = False) -> str:
         name=config.name,
         data_dir=config.data_dir,
         data_files=config.data_files,
+        prepare_fn=prepare_fn,
     )
 
     # Export to local file
@@ -148,6 +178,9 @@ def prepare(name: str, force: bool = False) -> str:
 
 def load_split(name: str, split: str | None = None, cache_dir: str | None = None):
     """Load a specific split from a registered dataset as Dataset object.
+
+    If a prepare.py exists in the dataset directory, its prepare() function
+    will be applied to transform the data.
 
     Args:
         name: Dataset name (must be registered in DATASETS)
@@ -168,6 +201,9 @@ def load_split(name: str, split: str | None = None, cache_dir: str | None = None
     else:
         effective_split = split or config.train_split
 
+    # Load prepare_fn from dataset directory if exists
+    prepare_fn = _load_prepare_fn(name)
+
     return load_dataset_split(
         repo_id=config.repo_id,
         split=effective_split,
@@ -175,6 +211,7 @@ def load_split(name: str, split: str | None = None, cache_dir: str | None = None
         data_dir=config.data_dir,
         data_files=config.data_files,
         cache_dir=cache_dir,
+        prepare_fn=prepare_fn,
     )
 
 

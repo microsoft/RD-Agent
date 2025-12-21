@@ -323,7 +323,13 @@ class ChatSession:
             )
             end_time = datetime.now(pytz.timezone("Asia/Shanghai"))
             logger.log_object(
-                {"system": self.system_prompt, "user": user_prompt, "resp": response, "start": start_time, "end": end_time},
+                {
+                    "system": self.system_prompt,
+                    "user": user_prompt,
+                    "resp": response,
+                    "start": start_time,
+                    "end": end_time,
+                },
                 tag="debug_llm",
             )
 

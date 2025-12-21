@@ -46,7 +46,9 @@ class CoSTEERSingleFeedback(Feedback):
     code: str
     final_decision: bool
     raw_execution: str = ""  # Full raw stdout for UI display
-    source_feedback: Dict[str, bool] = field(default_factory=dict) # Record the source of the feedback since it might be merged from multiple feedbacks, stores the mapping from source tag to its final_decision, this dict also includes the feedback source of itself
+    source_feedback: Dict[str, bool] = field(
+        default_factory=dict
+    )  # Record the source of the feedback since it might be merged from multiple feedbacks, stores the mapping from source tag to its final_decision, this dict also includes the feedback source of itself
 
     @staticmethod
     def val_and_update_init_dict(data: dict) -> dict:

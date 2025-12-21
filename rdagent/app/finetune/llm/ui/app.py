@@ -89,7 +89,9 @@ def main():
         if scenario_event and hasattr(scenario_event.content, "base_model"):
             st.markdown(f"🧠 **Model:** `{scenario_event.content.base_model}`")
         if dataset_event:
-            selected = dataset_event.content.get("selected_datasets", []) if isinstance(dataset_event.content, dict) else []
+            selected = (
+                dataset_event.content.get("selected_datasets", []) if isinstance(dataset_event.content, dict) else []
+            )
             if selected:
                 st.markdown(f"📂 **Datasets:** `{', '.join(selected)}`")
         if scenario_event and hasattr(scenario_event.content, "target_benchmark"):

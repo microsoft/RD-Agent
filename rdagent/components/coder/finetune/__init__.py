@@ -68,7 +68,11 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             or empty dict if data already exists.
         """
         # check whether the current code passes evaluation
-        if prev_task_feedback is not None and "FTDataEvaluator" in prev_task_feedback.source_feedback and prev_task_feedback.source_feedback["FTDataEvaluator"]:
+        if (
+            prev_task_feedback is not None
+            and "FTDataEvaluator" in prev_task_feedback.source_feedback
+            and prev_task_feedback.source_feedback["FTDataEvaluator"]
+        ):
             logger.info("Previous data processing code passed evaluation, skipping regeneration")
             return {}
 
@@ -83,10 +87,12 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
                 # Evaluation failed, remove old data and regenerate
                 logger.info("data.json exists but evaluation failed, regenerating script...")
                 data_json_path.unlink()
-        
+
         # build former failed trace
         queried_former_failed_knowledge = (
-            queried_knowledge.task_to_former_failed_traces[target_task.get_task_information()] if queried_knowledge is not None else []
+            queried_knowledge.task_to_former_failed_traces[target_task.get_task_information()]
+            if queried_knowledge is not None
+            else []
         )
         queried_former_failed_knowledge = (
             [
@@ -197,10 +203,13 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
         """Implement a single fine-tuning task by generating LlamaFactory config"""
-        if prev_task_feedback is not None and "FTCoderEvaluator" in prev_task_feedback.source_feedback and prev_task_feedback.source_feedback["FTCoderEvaluator"]:
+        if (
+            prev_task_feedback is not None
+            and "FTCoderEvaluator" in prev_task_feedback.source_feedback
+            and prev_task_feedback.source_feedback["FTCoderEvaluator"]
+        ):
             logger.info("Previous data processing code passed evaluation, skipping regeneration")
             return {}
-
 
         task_info = target_task.get_task_information()
 
@@ -297,7 +306,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         except yaml.YAMLError as e:
             logger.error(f"Invalid YAML syntax: {e}")
             raise RuntimeError(f"Invalid YAML syntax: {e}")
-
 
     def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
         """Assign generated code to the evolving experiment"""

@@ -76,8 +76,56 @@ class DatasetConfig:
     data_dir: str | None = None           # 仓库内子目录（如 "PAR4PC"）
     data_files: str | list[str] | None = None  # 指定文件路径
     name: str | None = None               # subset/config 名称
-    export_format: str = "json"           # 导出格式
+    export_format: str = "parquet"        # 导出格式
 ```
+
+### 自定义数据处理（prepare_fn）
+
+对于需要特殊处理的数据集（如列名映射、数据过滤等），可以在数据集目录下创建 `prepare.py` 文件：
+
+```python
+# datasets/my-dataset/prepare.py
+from datasets import Dataset
+
+def prepare(ds: Dataset) -> Dataset:
+    """Transform dataset after loading."""
+    # 示例：重命名列
+    if "old_column" in ds.column_names:
+        ds = ds.rename_column("old_column", "new_column")
+    return ds
+```
+
+系统会自动加载并应用这个函数，无需在 `DatasetConfig` 中显式配置。
+
+### 调用链路
+
+```
+load_split("chemcot-rxn") 或 prepare("chemcot-rxn")
+              │
+              ▼
+    _load_prepare_fn("chemcot-rxn")
+              │
+              ├──► 查找 chemcot-rxn/prepare.py
+              │         │
+              │         ▼ 存在
+              │    动态导入 prepare() 函数
+              │
+              ▼
+    load_dataset_split(..., prepare_fn)
+              │
+              ├──► 多文件场景 (data_files 为列表)
+              │         │
+              │         ▼
+              │    逐文件加载 → prepare(ds) → 合并
+              │
+              ▼
+    返回处理后的 Dataset
+```
+
+**关键点**：
+- 系统自动检测 `<dataset>/prepare.py` 是否存在
+- 多文件场景：每个文件单独加载并应用 `prepare()`，然后合并
+- 单文件场景：加载后直接应用 `prepare()`
 
 ### 已注册数据集
 
@@ -87,6 +135,10 @@ class DatasetConfig:
 | `panorama-noc4pc` | LG-AI-Research/PANORAMA | 专利新颖性/非显而易见性分类 | 136,211 |
 | `panorama-pi4pc` | LG-AI-Research/PANORAMA | 专利段落识别 | 64,210 |
 | `deepscaler` | agentica-org/DeepScaleR-Preview-Dataset | 数学推理 | 40,315 |
+| `chemcot-mol_und` | OpenMol/ChemCoTDataset | 分子理解（官能团计数、环计数） | ~3,000 |
+| `chemcot-mol_edit` | OpenMol/ChemCoTDataset | 分子编辑（添加/删除官能团） | ~4,000 |
+| `chemcot-mol_opt` | OpenMol/ChemCoTDataset | 分子优化（LogP、溶解度、QED） | 5,587 |
+| `chemcot-rxn` | OpenMol/ChemCoTDataset | 反应预测 + 条件推荐 | 6,820 |
 
 ## 添加新数据集
 
@@ -115,8 +167,17 @@ datasets/
 │   └── README.md        # PAR4PC 任务说明
 ├── panorama-noc4pc/
 │   └── README.md        # NOC4PC 任务说明
-└── panorama-pi4pc/
-    └── README.md        # PI4PC 任务说明
+├── panorama-pi4pc/
+│   └── README.md        # PI4PC 任务说明
+├── chemcot-mol_und/
+│   └── README.md        # ChemCoT 分子理解任务
+├── chemcot-mol_edit/
+│   └── README.md        # ChemCoT 分子编辑任务
+├── chemcot-mol_opt/
+│   └── README.md        # ChemCoT 分子优化任务
+└── chemcot-rxn/
+    ├── README.md        # ChemCoT 反应预测任务
+    └── prepare.py       # 自定义处理：统一 schema（rcr.json 列名映射）
 ```
 
 ## 与 LlamaFactory 集成

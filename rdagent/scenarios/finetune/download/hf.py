@@ -1,8 +1,9 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Optional
-from datasets import load_dataset
+from typing import Callable, Optional
+
+from datasets import Dataset, concatenate_datasets, load_dataset
 
 
 def _ensure_parent(path: Path) -> None:
@@ -27,6 +28,7 @@ def load_dataset_split(
     data_files: Optional[str | list[str]] = None,
     cache_dir: Optional[str] = None,
     token: Optional[str] = None,
+    prepare_fn: Optional[Callable[[Dataset], Dataset]] = None,
 ):
     """
     Load a specific split from HuggingFace dataset using datasets library.
@@ -39,19 +41,48 @@ def load_dataset_split(
         data_files: Specific file(s) to load (e.g., "chemcotbench-cot/mol_edit/add.json")
         cache_dir: Local cache directory
         token: HuggingFace token for private datasets
+        prepare_fn: Optional function to transform the dataset after loading
 
     Returns:
         datasets.Dataset object
     """
-    return load_dataset(
+    hf_token = _get_hf_token(token)
+
+    # If multiple files with prepare_fn, load each file separately, apply prepare_fn, then concatenate
+    if isinstance(data_files, list) and prepare_fn:
+
+        datasets_list = []
+        for file in data_files:
+            ds = load_dataset(
+                repo_id,
+                name=name,
+                data_dir=data_dir,
+                data_files=file,
+                split=split,
+                cache_dir=cache_dir,
+                token=hf_token,
+            )
+            ds = prepare_fn(ds)
+            datasets_list.append(ds)
+
+        return concatenate_datasets(datasets_list)
+
+    # Standard loading
+    ds = load_dataset(
         repo_id,
         name=name,
         data_dir=data_dir,
         data_files=data_files,
         split=split,
         cache_dir=cache_dir,
-        token=_get_hf_token(token),
+        token=hf_token,
     )
+
+    # Apply prepare_fn if provided
+    if prepare_fn:
+        ds = prepare_fn(ds)
+
+    return ds
 
 
 def export_dataset(
