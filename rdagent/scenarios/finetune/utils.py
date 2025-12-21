@@ -2,7 +2,8 @@ from pathlib import Path
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.finetune.download.hf import download_dataset, download_model
+from rdagent.scenarios.finetune.datasets import prepare as prepare_dataset
+from rdagent.scenarios.finetune.download.hf import download_model
 
 
 def ensure_ft_assets_exist(
@@ -12,7 +13,7 @@ def ensure_ft_assets_exist(
 
     Args:
         model: Model name to check/download. Required if check_model=True.
-        dataset: Dataset name to check/download. Required if check_dataset=True.
+        dataset: Dataset name (registered in DATASETS) to check/download. Required if check_dataset=True.
         check_model: Whether to ensure model exists.
         check_dataset: Whether to ensure dataset exists.
 
@@ -28,10 +29,10 @@ def ensure_ft_assets_exist(
         dataset_dir = Path(FT_RD_SETTING.file_path) / "datasets" / dataset
         if not dataset_dir.exists():
             try:
-                logger.info(f"Downloading dataset '{dataset}' to {dataset_dir}")
-                download_dataset(dataset, out_dir_root=str(Path(FT_RD_SETTING.file_path) / "datasets"))
+                logger.info(f"Preparing dataset '{dataset}' to {dataset_dir}")
+                prepare_dataset(dataset)
             except Exception as e:
-                raise Exception(f"Failed to download dataset '{dataset}' to {dataset_dir}: {e}") from e
+                raise Exception(f"Failed to prepare dataset '{dataset}' to {dataset_dir}: {e}") from e
 
     # Ensure model exists if requested
     if check_model:

@@ -1,53 +1,152 @@
 """Dataset preparation module for finetune scenarios.
 
 Usage:
-    from rdagent.scenarios.finetune.datasets import prepare, prepare_all
+    from rdagent.scenarios.finetune.datasets import prepare, prepare_all, load_split
 
-    prepare("deepscaler")   # Prepare single dataset
-    prepare_all()           # Prepare all registered datasets
+    prepare("panorama-par4pc")   # Download train split only (safe, no test leakage)
+    prepare_all()                # Prepare all registered datasets
+    load_split("panorama-par4pc")  # Load as Dataset object
 """
 
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
-from rdagent.scenarios.finetune.download.hf import download_dataset
+from rdagent.scenarios.finetune.download.hf import export_dataset, load_dataset_split
 
-# Dataset registry: name -> HuggingFace repo_id
-# Empty for debug: use local limo dataset instead of downloading
-DATASETS = {
-    "deepscaler": "agentica-org/DeepScaleR-Preview-Dataset",  # Removed for debug(Need to prepare data manually)
+
+@dataclass
+class DatasetConfig:
+    """Configuration for a registered dataset.
+
+    Attributes:
+        repo_id: HuggingFace dataset repository ID
+        train_split: Split name for training data (default: "train")
+        eval_split: Optional split name for evaluation data
+        data_dir: Subdirectory within the repo (e.g., "PAR4PC" for PANORAMA)
+        data_files: Specific file(s) to load (e.g., "chemcotbench-cot/mol_edit/add.json")
+        name: Dataset config/subset name (for datasets with multiple configs)
+        export_format: Export format - "json", "jsonl", "csv", or "parquet"
+    """
+
+    repo_id: str
+    train_split: str = "train"
+    # TODO: eval_split is currently NOT used in training. To enable eval during training:
+    #   1. prepare() should also export eval split to eval.<format>
+    #   2. process_data.py prompt should handle eval data
+    #   3. train.yaml should include eval_dataset, do_eval=true, eval_strategy
+    #   4. ...
+    eval_split: str | None = None
+    data_dir: str | None = None
+    data_files: str | list[str] | None = None
+    name: str | None = None
+    export_format: str = "parquet"
+
+
+# Dataset registry: name -> DatasetConfig
+# Note: Only train_split is configured to prevent test data leakage
+DATASETS: dict[str, DatasetConfig] = {
+    # PANORAMA - Patent Analysis Tasks (3 separate tasks)
+    "panorama-par4pc": DatasetConfig(
+        repo_id="LG-AI-Research/PANORAMA",
+        data_dir="PAR4PC",  # Prior Art Retrieval for Patent Claims
+        train_split="train",
+        eval_split="validation",
+    ),
+    "panorama-noc4pc": DatasetConfig(
+        repo_id="LG-AI-Research/PANORAMA",
+        data_dir="NOC4PC",  # Notice of Compliance for Patent Claims
+        train_split="train",
+        eval_split="validation",
+    ),
+    "panorama-pi4pc": DatasetConfig(
+        repo_id="LG-AI-Research/PANORAMA",
+        data_dir="PI4PC",  # Patent Infringement for Patent Claims
+        train_split="train",
+        eval_split="validation",
+    ),
+    # DeepScaleR
+    "deepscaler": DatasetConfig(
+        repo_id="agentica-org/DeepScaleR-Preview-Dataset",
+        train_split="train",
+    ),
 }
 
 
 def prepare(name: str, force: bool = False) -> str:
-    """Download dataset and apply custom README.
+    """Download and export dataset train split to local directory.
+
+    Only exports the train split to prevent test data leakage.
+    The exported file is saved as: datasets/<name>/train.<format>
 
     Args:
         name: Dataset name (must be registered in DATASETS)
         force: If True, re-download even if exists
 
     Returns:
-        Path to downloaded dataset directory
+        Path to the dataset directory
     """
     if name not in DATASETS:
         raise ValueError(f"Unknown dataset: {name}. Available: {list(DATASETS.keys())}")
 
-    repo_id = DATASETS[name]
-    out_dir_root = Path(FT_RD_SETTING.file_path) / "datasets"
-    save_path = out_dir_root / repo_id
+    config = DATASETS[name]
+    out_dir = Path(FT_RD_SETTING.file_path) / "datasets" / name
+    out_file = out_dir / f"train.{config.export_format}"
 
-    if not force and save_path.exists():
-        return str(save_path)
+    if not force and out_file.exists():
+        return str(out_dir)
 
-    download_dataset(repo_id, out_dir_root=str(out_dir_root), force=force)
+    # Load only the train split (never load test to prevent leakage)
+    ds = load_dataset_split(
+        repo_id=config.repo_id,
+        split=config.train_split,
+        name=config.name,
+        data_dir=config.data_dir,
+        data_files=config.data_files,
+    )
 
-    # Copy custom README (overwrite if exists)
+    # Export to local file
+    export_dataset(ds, str(out_file), format=config.export_format)
+
+    # Copy custom README if exists
     custom_readme = Path(__file__).parent / name / "README.md"
     if custom_readme.exists():
-        shutil.copy(custom_readme, Path(save_path) / "README.md")
+        shutil.copy(custom_readme, out_dir / "README.md")
 
-    return save_path
+    return str(out_dir)
+
+
+def load_split(name: str, split: str | None = None, cache_dir: str | None = None):
+    """Load a specific split from a registered dataset as Dataset object.
+
+    Args:
+        name: Dataset name (must be registered in DATASETS)
+        split: Split to load ("train" or "eval"). Defaults to train_split.
+        cache_dir: Local cache directory (default: HF cache)
+
+    Returns:
+        datasets.Dataset object
+    """
+    if name not in DATASETS:
+        raise ValueError(f"Unknown dataset: {name}. Available: {list(DATASETS.keys())}")
+
+    config = DATASETS[name]
+
+    # Determine effective split
+    if split == "eval" and config.eval_split:
+        effective_split = config.eval_split
+    else:
+        effective_split = split or config.train_split
+
+    return load_dataset_split(
+        repo_id=config.repo_id,
+        split=effective_split,
+        name=config.name,
+        data_dir=config.data_dir,
+        data_files=config.data_files,
+        cache_dir=cache_dir,
+    )
 
 
 def prepare_all(force: bool = False) -> dict[str, str]:
@@ -63,5 +162,7 @@ def prepare_all(force: bool = False) -> dict[str, str]:
 
 
 if __name__ == "__main__":
-    path = prepare("deepscaler")
-    print(f"Dataset prepared at: {path}")
+    # Example: load PANORAMA PAR4PC train split
+    ds = load_split("panorama-par4pc")
+    print(f"Loaded PANORAMA PAR4PC train split: {len(ds)} samples")
+    print(f"Columns: {ds.column_names}")

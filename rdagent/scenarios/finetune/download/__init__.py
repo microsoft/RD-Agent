@@ -1,32 +1,30 @@
 """
 Hugging Face download utility module
 
-Provides convenient functions to download models and datasets from the Hugging Face Hub.
+Provides convenient functions to download models and load datasets from the Hugging Face Hub.
 Uses FT_RD_SETTING for unified path management in finetune scenarios.
 
 Main functions:
-- download_dataset: Download datasets
-- download_model: Download models
+- load_dataset_split: Load a specific split from a HF dataset as Dataset object
+- export_dataset: Export Dataset object to local file (json, jsonl, csv, parquet)
+- download_model: Download models using snapshot_download
+
+For high-level dataset management (with registered datasets), use:
+    from rdagent.scenarios.finetune.datasets import prepare, load_split
 
 Environment variable configuration:
 - HF_TOKEN / HUGGINGFACE_TOKEN / HUGGING_FACE_HUB_TOKEN: Hugging Face access token
 - FT_FILE_PATH: Root directory for finetuning files (managed by FT_RD_SETTING)
 
 Usage example:
-    from rdagent.scenarios.finetune.download import download_dataset, download_model
+    from rdagent.scenarios.finetune.download.hf import load_dataset_split, export_dataset, download_model
 
-    # Download dataset (uses FT_RD_SETTING.dataset_path by default)
-    ds_path = download_dataset("shibing624/alpaca-zh", force=True)
+    # Load specific split from dataset (does not download entire repo)
+    ds = load_dataset_split("LG-AI-Research/PANORAMA", split="train", data_dir="PAR4PC")
 
-    # Download model to specified directory (overrides default path)
-    model_path = download_model("Qwen/Qwen2.5-7B", out_dir_root="/path/to/models")
+    # Export to local file
+    export_dataset(ds, "/path/to/train.json", format="json")
 
-    # Download model using default path (FT_RD_SETTING.model_path)
+    # Download model
     model_path = download_model("Qwen/Qwen2.5-7B")
-
-    # Download private model with token
-    model_path = download_model("private/model", token="hf_xxx")
-
-    # Download specific revision
-    model_path = download_model("model/repo", revision="main")
 """

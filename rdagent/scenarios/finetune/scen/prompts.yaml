@@ -39,9 +39,9 @@ scenario_description: |-
   - **stats**:
     - sample_count: {{ ds_info.stats.sample_count }}
     - total_size_mb: {{ ds_info.stats.total_size_mb }}
-    {%- if ds_info.stats.column_stats %}
+    {%- if ds_info.stats.get('column_stats') %}
     - column_stats:
-      {%- for col, col_stats in ds_info.stats.column_stats.items() %}
+      {%- for col, col_stats in ds_info.stats.get('column_stats').items() %}
       - {{ col }}: empty={{ col_stats.empty_count }}, min_tokens={{ col_stats.min_tokens }}, max_tokens={{ col_stats.max_tokens }}, p50_tokens={{ col_stats.p50_tokens }}, p99_tokens={{ col_stats.p99_tokens }}
       {%- endfor %}
     {%- endif %}
@@ -86,9 +86,9 @@ dataset_info_generation:
     **{{ dataset_name }}**:
     - Sample count: {{ stats.sample_count }}
     - Total size: {{ stats.total_size_mb }} MB
-    {%- if stats.column_stats %}
+    {%- if stats.get('column_stats') %}
     - Column statistics (token counts, using tokenizer):
-    {%- for col, col_stats in stats.column_stats.items() %}
+    {%- for col, col_stats in stats.get('column_stats').items() %}
       - `{{ col }}`: empty={{ col_stats.empty_count }}, min_tokens={{ col_stats.min_tokens }}, max_tokens={{ col_stats.max_tokens }}, p50_tokens={{ col_stats.p50_tokens }}, p99_tokens={{ col_stats.p99_tokens }}
     {%- endfor %}
     {%- endif %}
@@ -243,9 +243,9 @@ dataset_selection:
       - sample_count: {{ ds.stats.sample_count }}
       - total_size_mb: {{ ds.stats.total_size_mb }}
       - file_count: {{ ds.stats.file_count }}
-      {%- if ds.stats.column_stats %}
+      {%- if ds.stats.get('column_stats') %}
       - column_stats:
-        {%- for col, col_stats in ds.stats.column_stats.items() %}
+        {%- for col, col_stats in ds.stats.get('column_stats').items() %}
         - {{ col }}: empty={{ col_stats.empty_count }}, min_tokens={{ col_stats.min_tokens }}, max_tokens={{ col_stats.max_tokens }}, p50_tokens={{ col_stats.p50_tokens }}, p99_tokens={{ col_stats.p99_tokens }}
         {%- endfor %}
       {%- endif %}
