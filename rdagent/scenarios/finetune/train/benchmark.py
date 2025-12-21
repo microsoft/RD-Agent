@@ -46,9 +46,24 @@ BENCHMARK_CONFIG_DICT = {
     "math": "opencompass.configs.datasets.math.math_0shot_gen_393424",
     # General Knowledge Benchmarks
     "mmlu": "opencompass.configs.datasets.mmlu.mmlu_gen",
-    # Code Generation Benchmarks (examples, add as needed)
+    # Code Generation Benchmarks
     "humaneval": "opencompass.configs.datasets.humaneval.humaneval_gen",
     "mbpp": "opencompass.configs.datasets.mbpp.mbpp_gen",
+    # PANORAMA - Patent Analysis Benchmarks (zero-shot)
+    "panorama": "opencompass.configs.datasets.panorama.panorama_gen",
+    "panorama_par4pc": "opencompass.configs.datasets.panorama.panorama_par4pc_gen",
+    "panorama_pi4pc": "opencompass.configs.datasets.panorama.panorama_pi4pc_gen",
+    "panorama_noc4pc": "opencompass.configs.datasets.panorama.panorama_noc4pc_gen",
+    # PANORAMA - Patent Analysis Benchmarks (CoT)
+    "panorama_par4pc_cot": "opencompass.configs.datasets.panorama.panorama_par4pc_cot_gen",
+    "panorama_pi4pc_cot": "opencompass.configs.datasets.panorama.panorama_pi4pc_cot_gen",
+    "panorama_noc4pc_cot": "opencompass.configs.datasets.panorama.panorama_noc4pc_cot_gen",
+    # ChemCoTBench - Chemistry Reasoning Benchmarks
+    "chemcotbench": "opencompass.configs.datasets.chemcotbench.chemcotbench_gen",
+    "chemcotbench_mol_und": "opencompass.configs.datasets.chemcotbench.chemcotbench_mol_und_gen",
+    "chemcotbench_mol_edit": "opencompass.configs.datasets.chemcotbench.chemcotbench_mol_edit_gen",
+    "chemcotbench_mol_opt": "opencompass.configs.datasets.chemcotbench.chemcotbench_mol_opt_gen",
+    "chemcotbench_reaction": "opencompass.configs.datasets.chemcotbench.chemcotbench_reaction_gen",
 }
 
 
@@ -212,7 +227,7 @@ def run_benchmark(
     model_name: str,
     benchmark_name: str,
     gpu_count: int,
-    limit: Optional[int] = None,
+    limit: Optional[int] = 100,
     num_runs: int = 1,
     pass_k: Optional[List[int]] = None,
     max_error_samples: int = 10,
