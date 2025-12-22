@@ -14,7 +14,7 @@
 HuggingFace Dataset
         │
         ▼
-load_dataset_split()  ──→  Dataset 对象  ──→  export_dataset()  ──→  本地 JSON 文件
+load_dataset_split()  ──→  Dataset 对象  ──→  export_dataset()  ──→  本地 parquet/json 文件
         │                       │                                        │
         │                       ▼                                        ▼
         │               用于分析/统计                           process_data.py
