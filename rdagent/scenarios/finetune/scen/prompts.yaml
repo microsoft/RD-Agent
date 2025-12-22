@@ -34,29 +34,36 @@ scenario_description: |-
   # Dataset Configuration
   {%- for ds_name, ds_info in dataset_config.items() %}
   ## Dataset: {{ ds_name }}
-  - **file_name**: {{ ds_info.file_name }}
-  {%- if ds_info.stats %}
-  - **stats**:
-    - sample_count: {{ ds_info.stats.sample_count }}
-    - total_size_mb: {{ ds_info.stats.total_size_mb }}
-    {%- if ds_info.stats.get('column_stats') %}
+  - **total_samples**: {{ ds_info.total_samples }}
+  - **total_size_mb**: {{ ds_info.total_size_mb }}
+  {%- if ds_info.file_tree %}
+  - **file_tree**:
+    ```
+    {{ ds_info.file_tree }}
+    ```
+  {%- endif %}
+  {%- if ds_info.tasks %}
+  - **tasks**:
+    {%- for task_name, task_info in ds_info.tasks.items() %}
+    ### {{ "(root)" if task_name == "_root" else task_name }}
+    - files: {{ task_info.files }}
+    - sample_count: {{ task_info.sample_count }}
+    {%- if task_info.column_stats %}
     - column_stats:
-      {%- for col, col_stats in ds_info.stats.get('column_stats').items() %}
+      {%- for col, col_stats in task_info.column_stats.items() %}
       - {{ col }}: empty={{ col_stats.empty_count }}, min_tokens={{ col_stats.min_tokens }}, max_tokens={{ col_stats.max_tokens }}, p50_tokens={{ col_stats.p50_tokens }}, p99_tokens={{ col_stats.p99_tokens }}
       {%- endfor %}
     {%- endif %}
-  {%- endif %}
-  {%- if ds_info.first_sample %}
-  - **sample**:
-    ```json
-    {{ ds_info.first_sample | tojson }}
-    ```
+    {%- if task_info.samples and task_info.samples | length > 0 %}
+    - first_sample:
+      ```json
+      {{ task_info.samples[0] | tojson }}
+      ```
+    {%- endif %}
+    {%- endfor %}
   {%- endif %}
   {%- if ds_info.readme %}
   - **readme**: {{ ds_info.readme | tojson }}
-  {%- endif %}
-  {%- if ds_info.description %}
-  - **description**: {{ ds_info.description }}
   {%- endif %}
   {%- endfor %}
 
@@ -238,29 +245,23 @@ dataset_selection:
     ## Available Datasets
     {% for ds in datasets %}
     ### {{ ds.name }}
-    {%- if ds.stats %}
-    - **stats**:
-      - sample_count: {{ ds.stats.sample_count }}
-      - total_size_mb: {{ ds.stats.total_size_mb }}
-      - file_count: {{ ds.stats.file_count }}
-      {%- if ds.stats.get('column_stats') %}
+    - **total_samples**: {{ ds.total_samples }}
+    - **total_size_mb**: {{ ds.total_size_mb }}
+    {%- if ds.tasks %}
+    - **tasks**:
+      {%- for task_name, task_info in ds.tasks.items() %}
+      #### {{ "(root)" if task_name == "_root" else task_name }}
+      - sample_count: {{ task_info.sample_count }}
+      {%- if task_info.column_stats %}
       - column_stats:
-        {%- for col, col_stats in ds.stats.get('column_stats').items() %}
-        - {{ col }}: empty={{ col_stats.empty_count }}, min_tokens={{ col_stats.min_tokens }}, max_tokens={{ col_stats.max_tokens }}, p50_tokens={{ col_stats.p50_tokens }}, p99_tokens={{ col_stats.p99_tokens }}
+        {%- for col, col_stats in task_info.column_stats.items() %}
+        - {{ col }}: p50={{ col_stats.p50_tokens }}, p99={{ col_stats.p99_tokens }}
         {%- endfor %}
       {%- endif %}
-    {%- endif %}
-    {%- if ds.first_sample %}
-    - **sample**:
-      ```json
-      {{ ds.first_sample | tojson }}
-      ```
+      {%- endfor %}
     {%- endif %}
     {%- if ds.readme %}
     - **readme**: {{ ds.readme }}
-    {%- endif %}
-    {%- if ds.description %}
-    - **description**: {{ ds.description }}
     {%- endif %}
 
     {% endfor %}

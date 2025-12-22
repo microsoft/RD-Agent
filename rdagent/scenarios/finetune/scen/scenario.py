@@ -12,7 +12,6 @@ from rdagent.scenarios.finetune.scen.llama_factory_manager import LLaMAFactory_m
 from rdagent.scenarios.finetune.scen.memory_estimator import MemoryEstimator
 from rdagent.scenarios.finetune.scen.utils import (
     FinetuneDatasetDescriptor,
-    _truncate_long_values,
     generate_dataset_info_config,
 )
 from rdagent.scenarios.finetune.utils import ensure_ft_assets_exist
@@ -149,15 +148,14 @@ class LLMFinetuneScen(DataScienceScen):
 
     def _llm_select_datasets(self) -> tuple[list[str], str]:
         """Use LLM to select relevant datasets."""
+        # Pass dataset_config directly - it already has the unified tasks structure
         dataset_summaries = [
             {
                 "name": ds_name,
-                "stats": ds_config.get("stats"),
+                "total_samples": ds_config.get("total_samples"),
+                "total_size_mb": ds_config.get("total_size_mb"),
+                "tasks": ds_config.get("tasks", {}),
                 "readme": ds_config.get("readme"),
-                "description": ds_config.get("description"),
-                "first_sample": (
-                    _truncate_long_values(ds_config["samples"][0], max_length=500) if ds_config.get("samples") else None
-                ),
             }
             for ds_name, ds_config in self.dataset_config.items()
         ]
@@ -230,19 +228,8 @@ class LLMFinetuneScen(DataScienceScen):
         """Get complete scenario description for LLM fine-tuning.
 
         Uses dataset_config as the single source of truth for dataset information.
-        The prompt template selectively renders only needed fields (excluding formatting, columns).
+        The prompt template renders tasks with their statistics and samples.
         """
-        # Add first_sample (truncated to 500 chars) for each dataset
-        prompt_config = {
-            ds_name: {
-                **ds_config,
-                "first_sample": (
-                    _truncate_long_values(ds_config["samples"][0], max_length=500) if ds_config.get("samples") else None
-                ),
-            }
-            for ds_name, ds_config in self.dataset_config.items()
-        }
-
         return T(".prompts:scenario_description").r(
             user_target_scenario=self.user_target_scenario,
             target_benchmark=self.target_benchmark,
@@ -251,7 +238,7 @@ class LLMFinetuneScen(DataScienceScen):
             memory_report=self.memory_report,
             chosen_model=FT_RD_SETTING.base_model is not None,
             base_model=FT_RD_SETTING.base_model,
-            dataset_config=prompt_config,
+            dataset_config=self.dataset_config,
             model_info=self.model_info,
             full_timeout=f"{self.real_full_timeout() / 60 / 60:.2f} hours",
             enable_dataset_description=enable_dataset_description,

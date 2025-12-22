@@ -10,9 +10,7 @@ import tiktoken
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.log import rdagent_logger as logger
-from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.scen.utils import FileTreeGenerator
-from rdagent.utils.agent.tpl import T
 
 # Fixed tokenizer model for token counting
 _TOKENIZER_MODEL = "gpt-3.5-turbo"
@@ -640,6 +638,104 @@ class FinetuneDatasetDescriptor:
         # For unsupported file types, return basic info
         return FinetuneFileDescription({"name": data_file.name, "type": "unknown", "samples": []})
 
+    def _discover_subtasks(self, dataset_dir: Path) -> dict:
+        """Discover subtasks by scanning directory structure.
+
+        Groups data files by their parent directory name. The deepest directory
+        containing data files is considered a subtask.
+
+        Args:
+            dataset_dir: Root directory of the dataset
+
+        Returns:
+            Dictionary mapping subtask names to their info:
+            {subtask_name: {"files": [relative_paths], "file_paths": [absolute_paths]}}
+        """
+        data_extensions = {".json", ".jsonl", ".parquet", ".csv"}
+        subtasks: dict[str, dict] = {}
+
+        for data_file in dataset_dir.rglob("*"):
+            if not data_file.is_file():
+                continue
+            if data_file.suffix.lower() not in data_extensions:
+                continue
+            if data_file.name.startswith("."):
+                continue
+
+            rel_path = data_file.relative_to(dataset_dir)
+            # Use deepest directory name as subtask, or "_root" if file is in top-level
+            subtask_name = rel_path.parent.name if len(rel_path.parts) > 1 else "_root"
+
+            if subtask_name not in subtasks:
+                subtasks[subtask_name] = {"files": [], "file_paths": []}
+            subtasks[subtask_name]["files"].append(str(rel_path))
+            subtasks[subtask_name]["file_paths"].append(data_file)
+
+        return subtasks
+
+    def analyze_dataset(self, dataset_dir: Path) -> dict:
+        """Analyze a dataset directory and generate dataset_info.json entry.
+
+        This method:
+        1. Reads README from the dataset directory
+        2. Generates file tree for LLM understanding
+        3. Discovers tasks by directory structure
+        4. Computes statistics for each task (sample count, token stats)
+        5. Extracts sample data for each task
+
+        All datasets have a unified "tasks" structure. For datasets with files
+        directly in the root directory, "_root" is used as the task name.
+
+        Args:
+            dataset_dir: Root directory of the dataset
+
+        Returns:
+            Dictionary containing dataset info ready for dataset_info.json
+        """
+        # 1. Read README
+        readme = self._read_dataset_readme(dataset_dir)
+
+        # 2. Generate file tree (for LLM to understand directory structure)
+        file_tree = self._generate_file_tree(dataset_dir)
+
+        # 3. Discover tasks
+        tasks = self._discover_subtasks(dataset_dir)
+
+        if not tasks:
+            logger.warning(f"No data files found in {dataset_dir}")
+            return {
+                "readme": readme,
+                "file_tree": file_tree,
+                "total_samples": 0,
+                "total_size_mb": 0,
+                "tasks": {},
+            }
+
+        # 4. Compute stats for each task
+        total_samples = 0
+        total_size = 0
+        for name, info in tasks.items():
+            file_paths = info["file_paths"]
+            data = _load_dataset_for_stats(file_paths)
+            info["sample_count"] = len(data)
+            info["column_stats"] = _compute_column_stats(data)
+            info["samples"] = _truncate_long_values(
+                self._extract_samples_for_template(file_paths, max_samples=3)
+            )
+            total_samples += info["sample_count"]
+            total_size += sum(f.stat().st_size for f in file_paths)
+            # Remove file_paths as it's not JSON serializable and not needed in output
+            del info["file_paths"]
+
+        # 5. Return unified structure (all datasets have tasks)
+        return {
+            "readme": readme,
+            "file_tree": file_tree,
+            "total_samples": total_samples,
+            "total_size_mb": round(total_size / 1024 / 1024, 2),
+            "tasks": tasks,
+        }
+
 
 def _read_single_dataset_readme(dataset_path: Path, max_chars: int = 2000) -> str:
     """Read README file from a single dataset directory or its parent directories.
@@ -698,264 +794,82 @@ def _read_single_dataset_readme(dataset_path: Path, max_chars: int = 2000) -> st
 
 
 def check_all_dataset_in_info(ft_file_path, existing_config, max_depth: int = 3):
-    """Scan datasets directory recursively and return dataset names not yet in existing_config.
+    """Scan datasets directory and return top-level dataset names not yet in existing_config.
 
-    Recursively scans the datasets directory to find all directories containing data files.
-    Supports configurable directory depth (default: 3 levels) and recognizes train/test/val split patterns.
-
-    Smart split detection:
-        - If a directory has subdirs like 'train', 'test', 'val' with data files,
-          the parent directory is treated as the dataset
-        - Otherwise, each directory with data files is a separate dataset
+    Only scans first-level directories under datasets/. Each top-level directory is treated
+    as a single dataset, regardless of its internal structure.
 
     Examples:
-        - LIMO/limo.jsonl → dataset: "LIMO" (level 1)
-        - s1K-1.1/data/train.parquet → dataset: "s1K-1.1/data" (level 2)
-        - math/en/train/data.json + math/en/test/data.json → dataset: "math/en" (level 2)
-        - code/python/file1.json + code/python/file2.json → dataset: "code/python" (level 2)
+        - datasets/chemcot/ → dataset: "chemcot"
+        - datasets/panorama/ → dataset: "panorama"
+        - datasets/deepscaler/ → dataset: "deepscaler"
 
     Args:
         ft_file_path: Path to finetune directory structure
         existing_config: Existing dataset_info.json configuration
-        max_depth: Maximum directory depth to scan (default: 3)
+        max_depth: Unused, kept for API compatibility
 
     Returns:
-        list: Dataset names (relative paths) not yet in existing_config
+        list: Dataset names (top-level directory names) not yet in existing_config
     """
     root_path = Path(ft_file_path) / "datasets"
     dataset_list = []
 
-    # Supported data file extensions
-    data_extensions = {".json", ".jsonl", ".parquet", ".csv", ".arrow", ".txt"}
-
-    # Common split names (train/test/validation patterns)
-    split_names = {"train", "test", "val", "validation", "dev", "eval"}
-
-    def has_data_files(directory: Path) -> bool:
-        """Check if directory contains data files."""
-        try:
-            return any(f.is_file() and f.suffix in data_extensions for f in directory.iterdir())
-        except:
-            return False
-
-    def scan_directory(current_path: Path, relative_path: str = "", depth: int = 0):
-        """Recursively scan directory for data files."""
-        # Check depth limit
-        if depth >= max_depth:
-            logger.debug(f"Reached max depth ({max_depth}) at {relative_path}, stopping scan")
-            return
-
-        try:
-            # Get all items in current directory
-            items = list(current_path.iterdir())
-
-            # Check if current directory contains data files
-            data_files = [f for f in items if f.is_file() and f.suffix in data_extensions]
-            subdirs = [d for d in items if d.is_dir() and not d.name.startswith(".")]
-
-            if data_files:
-                # This directory contains data files directly, mark it as a dataset
-                dataset_name = relative_path if relative_path else current_path.name
-                dataset_list.append(dataset_name)
-                # Don't recurse into subdirectories to avoid treating subsets as separate datasets
-                return
-
-            # Check if subdirectories look like train/test/val splits
-            subdir_names = {d.name.lower() for d in subdirs}
-            split_subdirs = subdir_names & split_names
-
-            if split_subdirs and all(
-                has_data_files(current_path / sd.name) for sd in subdirs if sd.name.lower() in split_names
-            ):
-                # This looks like a dataset with train/test/val splits
-                # Mark the parent directory as the dataset
-                dataset_name = relative_path if relative_path else current_path.name
-                dataset_list.append(dataset_name)
-                logger.info(f"Detected split dataset: {dataset_name} with splits: {split_subdirs}")
-                return
-
-            # If no data files and no split pattern, recurse into subdirectories
-            for subdir in subdirs:
-                new_relative_path = f"{relative_path}/{subdir.name}" if relative_path else subdir.name
-                scan_directory(subdir, new_relative_path, depth + 1)
-
-        except PermissionError:
-            logger.warning(f"Permission denied accessing {current_path}")
-        except Exception as e:
-            logger.warning(f"Error scanning {current_path}: {e}")
-
-    # Start scanning from root (depth 0 is the dataset root level)
-    for item in root_path.iterdir():
-        if item.is_dir() and not item.name.startswith("."):
-            scan_directory(item, item.name, depth=0)
+    try:
+        for item in root_path.iterdir():
+            if item.is_dir() and not item.name.startswith("."):
+                dataset_list.append(item.name)
+    except Exception as e:
+        logger.warning(f"Error scanning datasets directory: {e}")
 
     remain_dataset_list = [dataset_name for dataset_name in dataset_list if dataset_name not in existing_config]
     return remain_dataset_list
 
 
-def get_dataset_folder_desc(ft_file_path: str, include_dataset_readme: bool = True) -> dict:
-    """Get dataset folder description using AI analysis.
-
-    Args:
-        ft_file_path: Path to finetune directory structure
-
-    Returns:
-        dict: Dataset folder description
-    """
-    dataset_folder_desc = FinetuneDatasetDescriptor().describe_dataset_folder(
-        Path(ft_file_path) / "datasets", include_dataset_readme=include_dataset_readme
-    )
-    return dataset_folder_desc
-
-
 def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str, existing_config: dict) -> dict:
-    """Generate dataset_info.json configuration entry using AI for LLaMA-Factory compatibility.
+    """Generate dataset_info.json configuration with auto-discovered subtasks.
 
-    This function:
-    1. Scans for new datasets not in existing_config
-    2. Computes column statistics for each dataset
-    3. Extracts sample data for each dataset
-    4. Uses LLM to generate description, columns mapping, and category
-    5. Combines all information into the final config
+    This function analyzes datasets not yet in existing_config and generates
+    structured information including:
+    - README content
+    - File tree structure
+    - Auto-discovered subtasks with statistics
+    - Column token statistics for each subtask
+    - Sample data for LLM understanding
 
-    The resulting config contains:
-    - file_name, formatting, columns: LlamaFactory compatible fields
-    - category: Domain classification
-    - stats: Auto-computed statistics (sample_count, column_stats)
-    - samples: Truncated data samples for LLM understanding
-    - description: AI-generated description
+    The dataset_info.json acts as a cache - existing datasets are skipped.
 
     Args:
         target_dataset_list: List of specific datasets to process (empty for all)
         ft_file_path: Path to finetune directory structure
-        existing_config: Existing dataset_info.json configuration
+        existing_config: Existing dataset_info.json configuration (used as cache)
 
     Returns:
-        dict: Configuration entry for dataset_info.json
+        dict: New configuration entries for dataset_info.json
     """
-    # Use existing descriptor to get dataset information
+    # Find datasets not yet in existing_config
     remain_dataset_list = check_all_dataset_in_info(ft_file_path, existing_config)
-    if len(remain_dataset_list) == 0:
+    if not remain_dataset_list:
         return {}
 
     datasets_root = Path(ft_file_path) / "datasets"
     descriptor = FinetuneDatasetDescriptor()
+    new_config = {}
 
-    # Pre-compute statistics and samples for all datasets that need processing
-    dataset_stats_map: dict[str, dict] = {}
-    dataset_samples_map: dict[str, list] = {}
-    real_target_dataset_list = remain_dataset_list if not target_dataset_list else target_dataset_list
+    # Determine which datasets to process
+    datasets_to_process = remain_dataset_list if not target_dataset_list else [
+        d for d in target_dataset_list if d in remain_dataset_list
+    ]
 
-    for dataset_name in real_target_dataset_list:
-        dataset_path = datasets_root / dataset_name
-        if dataset_path.exists() and dataset_path.is_dir():
-            # Compute statistics
-            stats = descriptor._generate_stats(dataset_path, include_column_stats=True)
-            dataset_stats_map[dataset_name] = stats
-            logger.info(f"Computed stats for dataset '{dataset_name}': {stats.get('sample_count', 0)} samples")
+    for dataset_name in datasets_to_process:
+        dataset_dir = datasets_root / dataset_name
+        if dataset_dir.exists() and dataset_dir.is_dir():
+            logger.info(f"Analyzing dataset '{dataset_name}'...")
+            new_config[dataset_name] = descriptor.analyze_dataset(dataset_dir)
+            logger.info(
+                f"Analyzed dataset '{dataset_name}': "
+                f"{new_config[dataset_name].get('total_samples', 0)} samples, "
+                f"{new_config[dataset_name].get('total_size_mb', 0)} MB"
+            )
 
-            # Extract samples
-            data_files = _find_data_files(dataset_path, max_files=5)
-            samples = descriptor._extract_samples_for_template(data_files, max_samples=3)
-            # Truncate long values in samples to avoid bloating JSON
-            samples = [_truncate_long_values(s, max_length=3000) for s in samples]
-            dataset_samples_map[dataset_name] = samples
-            logger.info(f"Extracted {len(samples)} samples for dataset '{dataset_name}'")
-
-    # Get folder description for LLM prompt
-    dataset_folder_desc = get_dataset_folder_desc(ft_file_path)
-
-    # Create prompt using template, include pre-computed stats
-    system_prompt = T(".prompts:dataset_info_generation.system").r(
-        target_dataset_list=real_target_dataset_list,
-        dataset_stats=dataset_stats_map,
-    )
-    user_prompt = T(".prompts:dataset_info_generation.user").r(
-        dataset_info=str(dataset_folder_desc),
-    )
-
-    # Generate configuration using API
-    api = APIBackend()
-    raw_response = api.build_messages_and_create_chat_completion(
-        system_prompt=system_prompt, user_prompt=user_prompt, json_mode=True
-    )
-
-    response_dict = json.loads(raw_response)
-
-    dataset_info_dict = {}
-
-    for dataset_key, config in response_dict.items():
-        if _validate_dataset_config(config):
-            dataset_path = datasets_root / dataset_key
-
-            # Add pre-computed statistics
-            if dataset_key in dataset_stats_map:
-                config["stats"] = dataset_stats_map[dataset_key]
-                logger.info(f"Added stats to dataset '{dataset_key}'")
-
-            # Add samples
-            if dataset_key in dataset_samples_map:
-                config["samples"] = dataset_samples_map[dataset_key]
-                logger.info(f"Added {len(config['samples'])} samples to dataset '{dataset_key}'")
-
-            # Add README content
-            if dataset_path.exists() and dataset_path.is_dir():
-                readme_content = _read_single_dataset_readme(dataset_path, max_chars=5000)
-                if readme_content:
-                    config["readme"] = readme_content
-                    logger.info(f"Added README to dataset '{dataset_key}' ({len(readme_content)} chars)")
-                else:
-                    logger.debug(f"No README found for dataset '{dataset_key}'")
-
-            # Log description status
-            if "description" in config:
-                logger.info(
-                    f"LLM generated description for dataset '{dataset_key}' ({len(config['description'])} chars)"
-                )
-            else:
-                logger.warning(f"No description generated for dataset '{dataset_key}'")
-
-            dataset_info_dict[dataset_key] = config
-
-    return dataset_info_dict
-
-
-def _validate_dataset_config(config: dict) -> bool:
-    """Validate generated dataset configuration for LLaMA-Factory compliance.
-
-    Args:
-        config: Configuration dictionary to validate
-
-    Returns:
-        bool: True if valid, False otherwise
-    """
-    if "file_name" not in config:
-        logger.error("Configuration must contain 'file_name' field")
-        return False
-
-    file_name = config["file_name"]
-    if not isinstance(file_name, (str, list)):
-        logger.error("'file_name' must be a string or list of strings")
-        return False
-
-    # Validate file_name format
-    if isinstance(file_name, list):
-        for fn in file_name:
-            if not isinstance(fn, str) or fn.startswith("/"):
-                logger.error("file_name entries must be relative paths (not absolute)")
-                return False
-    elif isinstance(file_name, str) and file_name.startswith("/"):
-        logger.error("file_name must be a relative path (not absolute)")
-        return False
-
-    formatting = config.get("formatting", "alpaca")
-    if formatting not in ["alpaca", "sharegpt"]:
-        logger.error(f"Invalid formatting: {formatting}. Must be 'alpaca' or 'sharegpt'")
-        return False
-
-    if "columns" in config and not isinstance(config["columns"], dict):
-        logger.error("'columns' field must be a dictionary")
-        return False
-
-    logger.info("Dataset configuration validation passed")
-    return True
+    return new_config

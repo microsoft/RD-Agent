@@ -106,7 +106,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # Get dataset information for the task
         involving_datasets = getattr(target_task, "involving_datasets", [])
-        dataset_info = self._get_dataset_info(involving_datasets)
+        dataset_info = self._get_dataset_info(involving_datasets, datasets_path=FT_PATHS.datasets)
 
         # Generate data processing script using LLM
         system_prompt = T(".prompts:data_coder.system").r(
@@ -145,10 +145,25 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             logger.error(f"Failed to generate data processing script: {e}")
             raise RuntimeError(f"Data processing script generation failed: {e}")
 
-    def _get_dataset_info(self, involving_datasets: list[str]) -> str:
-        """Read dataset_info.json and return information for specified datasets."""
+    def _get_dataset_info(self, involving_datasets: list[str], datasets_path: str = None) -> str:
+        """Read dataset_info.json and return information for specified datasets.
+
+        Handles unified tasks structure:
+        - readme: Dataset README content
+        - file_tree: Directory structure
+        - total_samples: Total sample count
+        - tasks: Dict of task info (use "_root" for root-level data files)
+
+        Args:
+            involving_datasets: List of dataset names to include
+            datasets_path: Base path for datasets (e.g., "/assets/datasets/")
+        """
         datasets_dir = Path(FT_RD_SETTING.file_path) / "datasets"
         dataset_info_path = datasets_dir / "dataset_info.json"
+
+        # Use provided path or get from config
+        if datasets_path is None:
+            datasets_path = FT_PATHS.datasets
 
         if not dataset_info_path.exists():
             logger.warning(f"dataset_info.json not found at {dataset_info_path}")
@@ -174,22 +189,49 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         info_parts = []
         for name, info in filtered_info.items():
             info_text = f"### Dataset: {name}\n"
-            info_text += f"- File: {info.get('file_name', 'N/A')}\n"
-            info_text += f"- Format: {info.get('formatting', 'N/A')}\n"
+            # IMPORTANT: Tell LLM the full path to dataset directory
+            dataset_full_path = f"{datasets_path}{name}/"
+            info_text += f"- **Dataset path**: `{dataset_full_path}` (each dataset has its own subdirectory)\n"
+            info_text += f"- Total samples: {info.get('total_samples', 'N/A')}\n"
+            info_text += f"- Size: {info.get('total_size_mb', 'N/A')} MB\n"
 
-            if info.get("columns"):
-                info_text += f"- Columns: {json.dumps(info['columns'])}\n"
+            # File tree for understanding directory structure
+            if info.get("file_tree"):
+                file_tree = info["file_tree"]
+                # Truncate if too long
+                if len(file_tree) > 1000:
+                    file_tree = file_tree[:1000] + "\n..."
+                info_text += f"\n**File Structure** (relative to `{dataset_full_path}`):\n```\n{file_tree}\n```\n"
 
-            if info.get("description"):
-                # Truncate long descriptions
-                desc = info["description"]
-                if len(desc) > 500:
-                    desc = desc[:500] + "..."
-                info_text += f"- Description: {desc}\n"
+            # Handle unified tasks structure
+            tasks = info.get("tasks", {})
+            if tasks:
+                info_text += "\n**Tasks:**\n"
+                for task_name, task_info in tasks.items():
+                    # "_root" indicates data files are in root directory
+                    display_name = "(root)" if task_name == "_root" else task_name
+                    info_text += f"\n#### {display_name}\n"
+                    # Show full paths for data files
+                    files = task_info.get('files', [])
+                    info_text += f"- Files: {files}\n"
+                    if files:
+                        info_text += f"  - Full path example: `{dataset_full_path}{files[0]}`\n"
+                    info_text += f"- Sample count: {task_info.get('sample_count', 'N/A')}\n"
+                    if task_info.get("column_stats"):
+                        # Show key token stats
+                        stats_summary = []
+                        for col, stats in task_info["column_stats"].items():
+                            if stats.get("p50_tokens", 0) > 0:
+                                stats_summary.append(f"{col}: p50={stats['p50_tokens']}, p99={stats['p99_tokens']}")
+                        if stats_summary:
+                            info_text += f"- Token stats: {'; '.join(stats_summary[:5])}\n"
 
-            if info.get("stats"):
-                stats = info["stats"]
-                info_text += f"- Sample count: {stats.get('sample_count', 'N/A')}\n"
+            # README excerpt
+            if info.get("readme"):
+                readme = info["readme"]
+                if len(readme) > 500:
+                    readme = readme[:500] + "..."
+                info_text += f"\n**README:**\n{readme}\n"
 
             info_parts.append(info_text)
 
