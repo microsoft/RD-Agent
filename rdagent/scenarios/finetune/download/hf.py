@@ -1,9 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Callable, Optional
-
-from datasets import Dataset, concatenate_datasets, load_dataset
+from typing import Optional
 
 
 def _ensure_parent(path: Path) -> None:
@@ -20,102 +18,49 @@ def _get_hf_token(token: Optional[str] = None) -> Optional[str]:
     )
 
 
-def load_dataset_split(
+def download_dataset(
     repo_id: str,
-    split: str = "train",
-    name: Optional[str] = None,
-    data_dir: Optional[str] = None,
-    data_files: Optional[str | list[str]] = None,
-    cache_dir: Optional[str] = None,
+    out_dir: str,
     token: Optional[str] = None,
-    prepare_fn: Optional[Callable[[Dataset], Dataset]] = None,
-):
+    revision: Optional[str] = None,
+    force: bool = False,
+) -> str:
     """
-    Load a specific split from HuggingFace dataset using datasets library.
+    Download HuggingFace dataset to a specified directory using snapshot_download.
+    Preserves the original file structure from HuggingFace.
 
     Args:
         repo_id: HuggingFace dataset repository ID
-        split: Dataset split to load ("train", "validation", "test")
-        name: Dataset config/subset name (if dataset has multiple configs)
-        data_dir: Subdirectory within the dataset repo (e.g., "PAR4PC" for PANORAMA)
-        data_files: Specific file(s) to load (e.g., "chemcotbench-cot/mol_edit/add.json")
-        cache_dir: Local cache directory
+        out_dir: Directory to save the dataset
         token: HuggingFace token for private datasets
-        prepare_fn: Optional function to transform the dataset after loading
+        revision: Specific revision to download
+        force: If True, re-download even if exists
 
     Returns:
-        datasets.Dataset object
+        Path to the downloaded dataset directory
     """
-    hf_token = _get_hf_token(token)
+    save_path = Path(out_dir)
+    _ensure_parent(save_path)
 
-    # If multiple files with prepare_fn, load each file separately, apply prepare_fn, then concatenate
-    if isinstance(data_files, list) and prepare_fn:
+    if force and save_path.exists():
+        shutil.rmtree(save_path)
 
-        datasets_list = []
-        for file in data_files:
-            ds = load_dataset(
-                repo_id,
-                name=name,
-                data_dir=data_dir,
-                data_files=file,
-                split=split,
-                cache_dir=cache_dir,
-                token=hf_token,
-            )
-            ds = prepare_fn(ds)
-            datasets_list.append(ds)
+    try:
+        from huggingface_hub import snapshot_download
+    except Exception as e:
+        raise ImportError(
+            "huggingface_hub is missing. Please install it first: pip install -U 'huggingface_hub[cli]'"
+        ) from e
 
-        return concatenate_datasets(datasets_list)
-
-    # Standard loading
-    ds = load_dataset(
-        repo_id,
-        name=name,
-        data_dir=data_dir,
-        data_files=data_files,
-        split=split,
-        cache_dir=cache_dir,
-        token=hf_token,
+    snapshot_download(
+        repo_id=repo_id,
+        repo_type="dataset",
+        local_dir=str(save_path),
+        local_dir_use_symlinks=False,
+        token=_get_hf_token(token),
+        revision=revision,
     )
-
-    # Apply prepare_fn if provided
-    if prepare_fn:
-        ds = prepare_fn(ds)
-
-    return ds
-
-
-def export_dataset(
-    dataset,
-    output_path: str,
-    format: str = "json",
-) -> str:
-    """
-    Export a Dataset object to a local file.
-
-    Args:
-        dataset: datasets.Dataset object to export
-        output_path: Path to save the exported file
-        format: Export format - "json", "jsonl", "csv", or "parquet"
-
-    Returns:
-        Path to the exported file
-    """
-    path = Path(output_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    if format == "json":
-        dataset.to_json(str(path))
-    elif format == "jsonl":
-        dataset.to_json(str(path), lines=True)
-    elif format == "csv":
-        dataset.to_csv(str(path))
-    elif format == "parquet":
-        dataset.to_parquet(str(path))
-    else:
-        raise ValueError(f"Unsupported format: {format}. Use 'json', 'jsonl', 'csv', or 'parquet'.")
-
-    return str(path)
+    return str(save_path)
 
 
 def download_model(
@@ -161,9 +106,3 @@ def download_model(
         revision=revision,
     )
     return str(save_path)
-
-
-if __name__ == "__main__":
-    # Example usage
-    ds = load_dataset_split("shibing624/alpaca-zh", split="train")
-    print(f"Loaded dataset with {len(ds)} samples")
