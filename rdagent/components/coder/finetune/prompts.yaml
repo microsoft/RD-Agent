@@ -108,7 +108,12 @@ data_coder:
     - All models share the same api_key and api_base
     - We support and recommend using litellm to call the APIs, please see the example:
       ```python
+      import litellm
       from litellm import completion, embedding
+
+      # Suppress LiteLLM debug info (IMPORTANT: add this at the top of your script)
+      litellm.suppress_debug_info = True
+
       # Chat Completion
       response = completion(
           model=<"model_name">,
