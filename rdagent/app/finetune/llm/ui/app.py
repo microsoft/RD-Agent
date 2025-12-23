@@ -21,7 +21,7 @@ from rdagent.app.finetune.llm.ui.data_loader import (
 )
 from rdagent.app.finetune.llm.ui.ft_summary import render_job_summary
 
-DEFAULT_LOG_BASE = "/home/v-qizhengli/workspace/RD-Agent/git_ignore_folder/b200_jobs/logs"
+DEFAULT_LOG_BASE = "log/"
 
 
 def get_job_options(base_path: Path) -> list[str]:
