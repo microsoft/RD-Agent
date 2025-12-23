@@ -33,7 +33,7 @@ def merge_model(env, workspace_path: Path, base_model_path: str, adapter_path: s
     }
 
     # Render Jinja2 template
-    merge_script = T("rdagent.scenarios.finetune.train.merge.merge_model_template:template").r(
+    merge_script = T("rdagent.scenarios.finetune.benchmark.merge.merge_model_template:template").r(
         **template_vars
     )
 
