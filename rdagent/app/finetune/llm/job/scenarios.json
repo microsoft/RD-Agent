@@ -1,0 +1,87 @@
+{
+  "_comment": "Benchmark scenarios for FT tasks. Used by run_ft_job.sh and UI.",
+
+  "aime24": {
+    "category": "math",
+    "description": "Improve performance on AIME 2024 math competition problems"
+  },
+  "aime25": {
+    "category": "math",
+    "description": "Improve performance on AIME 2025 math competition problems"
+  },
+  "gsm8k": {
+    "category": "math",
+    "description": "Improve grade school math reasoning ability"
+  },
+  "math": {
+    "category": "math",
+    "description": "Improve mathematical problem solving skills"
+  },
+
+  "humaneval": {
+    "category": "code",
+    "description": "Improve Python code generation capability",
+    "_note": "No training data yet"
+  },
+  "mbpp": {
+    "category": "code",
+    "description": "Improve Python programming problem solving",
+    "_note": "No training data yet"
+  },
+
+  "mmlu": {
+    "category": "general",
+    "description": "Improve general knowledge and reasoning",
+    "_note": "No training data yet"
+  },
+
+  "panorama": {
+    "category": "patent",
+    "description": "Improve patent examination capabilities including prior art retrieval, paragraph identification, and novelty/obviousness assessment based on USPTO Office Action documents"
+  },
+  "panorama_par4pc": {
+    "category": "patent",
+    "description": "Improve prior art retrieval for patent claims: given a patent claim, retrieve the most relevant prior art patents from a candidate pool that could be used to reject the claim"
+  },
+  "panorama_pi4pc": {
+    "category": "patent",
+    "description": "Improve paragraph identification for patents: given a patent claim and a cited prior art patent, identify the specific paragraphs in the prior art that are most relevant to evaluating the claim"
+  },
+  "panorama_noc4pc": {
+    "category": "patent",
+    "description": "Improve novelty and obviousness classification for patent claims: determine whether a claim lacks novelty (anticipation) or is obvious based on the cited prior art paragraphs"
+  },
+  "panorama_par4pc_cot": {
+    "category": "patent",
+    "description": "Improve prior art retrieval with step-by-step reasoning: retrieve relevant prior art patents while providing detailed rationale for why each patent is relevant to the claim"
+  },
+  "panorama_pi4pc_cot": {
+    "category": "patent",
+    "description": "Improve paragraph identification with chain-of-thought: identify relevant prior art paragraphs while explaining the technical connections between the claim elements and cited content"
+  },
+  "panorama_noc4pc_cot": {
+    "category": "patent",
+    "description": "Improve novelty/obviousness classification with detailed reasoning: assess patentability while providing examiner-style rationale explaining how prior art anticipates or renders obvious the claim"
+  },
+
+  "chemcotbench": {
+    "category": "chemistry",
+    "description": "Improve chemistry reasoning across molecule understanding, editing, optimization, and reaction prediction tasks using chain-of-thought reasoning on SMILES structures"
+  },
+  "chemcotbench_mol_und": {
+    "category": "chemistry",
+    "description": "Improve molecule understanding: identify functional groups, ring systems, and structural features from SMILES representations with step-by-step structural analysis"
+  },
+  "chemcotbench_mol_edit": {
+    "category": "chemistry",
+    "description": "Improve molecule editing: perform precise substructure addition, deletion, or substitution operations on SMILES while maintaining chemical validity"
+  },
+  "chemcotbench_mol_opt": {
+    "category": "chemistry",
+    "description": "Improve molecule optimization: modify molecular structures to achieve desired properties (solubility, binding affinity, etc.) through systematic structural modifications"
+  },
+  "chemcotbench_reaction": {
+    "category": "chemistry",
+    "description": "Improve chemical reaction prediction: predict reaction products, mechanisms, and conditions with detailed reasoning about bond breaking/forming and electron flow"
+  }
+}
