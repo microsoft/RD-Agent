@@ -21,6 +21,45 @@ from rdagent.app.finetune.llm.ui.data_loader import (
 )
 from rdagent.app.finetune.llm.ui.ft_summary import render_job_summary
 
+DEFAULT_LOG_BASE = "/home/v-qizhengli/workspace/RD-Agent/git_ignore_folder/b200_jobs/logs"
+
+
+def get_job_options(base_path: Path) -> list[str]:
+    """
+    Scan directory and return job options list.
+    - "." means standalone tasks in root directory
+    - Others are job directory names
+    """
+    options = []
+    has_root_tasks = False
+    job_dirs = []
+
+    if not base_path.exists():
+        return options
+
+    for d in base_path.iterdir():
+        if not d.is_dir():
+            continue
+        # Check if standalone task (has __session__ directly)
+        if (d / "__session__").exists():
+            has_root_tasks = True
+        # Check if job directory (subdirs have __session__)
+        else:
+            try:
+                if any((sub / "__session__").exists() for sub in d.iterdir() if sub.is_dir()):
+                    job_dirs.append((d.name, d.stat().st_mtime))
+            except PermissionError:
+                pass
+
+    # Sort job dirs by mtime descending
+    job_dirs.sort(key=lambda x: x[1], reverse=True)
+
+    if has_root_tasks:
+        options.append(". (Current)")
+    options.extend([name for name, _ in job_dirs])
+
+    return options
+
 
 def main():
     st.set_page_config(layout="wide", page_title="FT Timeline", page_icon="🔬")
@@ -32,14 +71,29 @@ def main():
 
         st.divider()
 
-        default_log = os.environ.get("FT_LOG_PATH", "./log")
+        default_log = os.environ.get("FT_LOG_PATH", DEFAULT_LOG_BASE)
         job_folder = default_log  # Initialize for both modes
         selected_types = ALWAYS_VISIBLE_TYPES.copy()  # Initialize for both modes
+        is_root_job = False  # Track if viewing root tasks
 
         if view_mode == "Job Summary":
             # Job Summary mode
             st.header("Job")
-            job_folder = st.text_input("Job Folder", value=default_log, key="job_folder_input")
+            base_folder = st.text_input("Base Folder", value=default_log, key="base_folder_input")
+            base_path = Path(base_folder)
+
+            job_options = get_job_options(base_path)
+            if job_options:
+                selected_job = st.selectbox("Select Job", job_options, key="job_select")
+                if selected_job.startswith("."):
+                    job_folder = base_folder
+                    is_root_job = True
+                else:
+                    job_folder = str(base_path / selected_job)
+            else:
+                st.warning("No jobs found in this directory")
+                job_folder = base_folder
+
             if st.button("Refresh", type="primary", key="refresh_job"):
                 st.rerun()
         else:
@@ -92,7 +146,7 @@ def main():
         st.title("📊 FT Job Summary")
         job_path = Path(job_folder)
         if job_path.exists():
-            render_job_summary(job_path)
+            render_job_summary(job_path, is_root=is_root_job)
         else:
             st.warning(f"Job folder not found: {job_folder}")
         return

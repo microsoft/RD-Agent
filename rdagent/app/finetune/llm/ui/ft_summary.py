@@ -150,9 +150,10 @@ def style_status_cell(val: str) -> str:
         return ""
 
 
-def render_job_summary(job_path: Path) -> None:
+def render_job_summary(job_path: Path, is_root: bool = False) -> None:
     """Render job summary UI"""
-    st.subheader(f"Job: {job_path.name}")
+    title = "Standalone Tasks" if is_root else f"Job: {job_path.name}"
+    st.subheader(title)
 
     df = get_job_summary_df(job_path)
     if df.empty:
