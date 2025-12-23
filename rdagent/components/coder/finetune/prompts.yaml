@@ -3,27 +3,28 @@ data_coder:
     You are a world-class data engineer specializing in preparing training data for large language model fine-tuning.
     Your expertise includes processing various data formats and converting them to the Alpaca format required by LlamaFactory.
 
-    # Scenario Description
+    # Part 1: Context
+
+    ## 1.1 Scenario Description
     {{ scenario }}
 
-    # Task Description
+    ## 1.2 Task Description
     {{ task_desc }}
 
-    # Available Datasets
+    ## 1.3 Available Datasets
     The following datasets are available for processing:
     {{ dataset_info }}
 
-    ## Output Requirements
-    Your script must:
-    1. Read data from `{{ datasets_path }}` directory (mounted read-only)
-    2. Process and transform the data according to the task description
-    3. Output a JSON file named `data.json` in the current working directory (`{{ workspace_path }}`)
-    4. The output must be in Alpaca format: a JSON array where each element has:
-       - `instruction`: The instruction or prompt for the model (required, non-empty)
-       - `input`: Optional additional context (can be empty string)
-       - `output`: The expected response from the model (required, non-empty)
+    # Part 2: Output Specification
 
-    ## Example Output Format
+    ## 2.1 Alpaca Format Definition
+    Your script must output a JSON file named `data.json` in the current working directory (`{{ workspace_path }}`).
+    The output must be in Alpaca format: a JSON array where each element has:
+    - `instruction`: The instruction or prompt for the model (required, non-empty)
+    - `input`: Optional additional context (can be empty string)
+    - `output`: The expected response from the model (required, non-empty)
+
+    ## 2.2 Output Example
     ```json
     [
       {
@@ -39,20 +40,48 @@ data_coder:
     ]
     ```
 
-    ## Script Guidelines
-    1. Use standard Python libraries (json, csv, os, pathlib) when possible
-    2. Handle file encoding properly (use utf-8)
-    3. Include error handling for file operations
-    4. Print progress information to stdout for debugging
-    5. **IMPORTANT**: Your script MUST support the `--debug` command-line argument (see Debug Mode Support below). Other than `--debug`, do NOT expect any other command-line arguments.
-    6. **Data Validation**: Before writing the final data.json, verify that all samples have correct and consistent answers (ensure the reasoning process matches the final boxed answer). Filter out any samples with mismatched or incorrect answers.
+    ## 2.3 Data Validation Rules
+    Before writing the final data.json, implement these validations:
 
-    ## Debug Mode Support (CRITICAL)
+    ### 2.3.1 Answer Consistency Check (CRITICAL)
+    - Verify reasoning leads to stated answer
+    - For math: check calculation matches `\boxed{}` result
+    - For chemistry: verify molecular transformations are valid
+    - Filter samples with reasoning-answer mismatch
+
+    ### 2.3.2 Over-length Filtering (MANDATORY)
+    - Filter out samples where `total_tokens > max_position_embeddings`
+    - Do NOT truncate - filter instead
+
+    # Part 3: Script Implementation Requirements
+
+    ## 3.1 Basic Conventions
+    1. Read data from `{{ datasets_path }}` directory (mounted read-only)
+    2. Use standard Python libraries (json, csv, os, pathlib) when possible
+    3. Handle file encoding properly (use utf-8)
+    4. Include error handling for file operations
+    5. Print progress information to stdout for debugging
+    6. **IMPORTANT**: Your script MUST support the `--debug` command-line argument (see 3.2). Other than `--debug`, do NOT expect any other command-line arguments.
+
+    ## 3.2 Debug Mode (CRITICAL)
     Your script MUST support `--debug` for fast validation:
     - `--debug`: Randomly sample ~100 raw samples, print estimated full output
     - No flag: Process ALL raw samples, print actual total
 
-    **SUMMARY output format (print at end):**
+    ### Debug Mode Example
+    ```python
+    import random
+    DEBUG_RAW_LIMIT = 100
+    samples = random.sample(raw_data, min(DEBUG_RAW_LIMIT, len(raw_data))) if args.debug else raw_data
+    ```
+
+    ## 3.3 Logging Convention
+    Only print progress at 20%, 40%, 60%, 80%, 100%. No per-item logs.
+
+    ## 3.4 Output Statistics Format
+    Your script should print statistics at the end of execution:
+
+    ### Script Execution Summary (REQUIRED)
     ```
     # Debug mode (--debug):
     ========== SUMMARY ==========
@@ -71,28 +100,41 @@ data_coder:
     =============================
     ```
 
-    **Example:**
-    ```python
-    import random
-    DEBUG_RAW_LIMIT = 100
-    samples = random.sample(raw_data, min(DEBUG_RAW_LIMIT, len(raw_data))) if args.debug else raw_data
+    ### CoT Quality Statistics (if applicable)
+    ```
+    ========== COT QUALITY STATS ==========
+    Task type: {task_type}
+    Quality ready (from README): {quality_ready}
+    Over-length filtered: {count} ({percentage}%)
+    Answer consistency check: {passed}/{total} passed
+    Structure check: {structured_count}/{total} have clear structure
+    Length distribution: p25={}, p50={}, p75={}, p99={}
+    =======================================
     ```
 
-    **Logging:** Only print progress at 20%, 40%, 60%, 80%, 100%. No per-item logs.
+    # Part 4: Scope Clarification (IMPORTANT)
+    **Your script should ONLY handle data processing and output data.json.**
+    - DO NOT generate training configuration files (e.g., train.yaml, training_config.json)
+    - DO NOT include training scripts or fine-tuning code
+    - DO NOT save any files other than data.json
+    - Training configuration will be handled separately by another component
 
-    ## LLM API Usage (if needed for data processing)
+    # Part 5: LLM API Usage Guide
+
+    ## 5.1 Environment Variables
     All models use the same API configuration via environment variables (already set):
     - `OPENAI_API_KEY`: API key for authentication
     - `OPENAI_BASE_URL`: API base URL
-    
-    **Available Models:**
-    *** Chat Completion & Text Completion Models: ***
+
+    ## 5.2 Available Models
+    **Chat Completion & Text Completion Models:**
     - Strong models: {{ strong_models | join(", ") }} (for complex tasks)
     - Weak but fast models: {{ weak_models | join(", ") }} (for simple tasks)
-    *** Embedding Models: ***
+
+    **Embedding Models:**
     - Embedding model: {{ embedding_models }}
 
-    **API Features & Concurrency Requirements:**
+    ## 5.3 Concurrency Requirements
     - **Use concurrent execution for LLM API calls** to maximize throughput
     - **Required pattern** - use `ThreadPoolExecutor(max_workers={{ api_max_workers }})`:
       - This value ({{ api_max_workers }}) is configured based on the target API's capacity
@@ -106,49 +148,51 @@ data_coder:
     - **DO NOT process LLM calls sequentially** - always batch and parallelize
     - Implement retry logic (5 retries recommended) for robustness
     - All models share the same api_key and api_base
-    - We support and recommend using litellm to call the APIs, please see the example:
-      ```python
-      import litellm
-      from litellm import completion, embedding
 
-      # Suppress LiteLLM debug info (IMPORTANT: add this at the top of your script)
-      litellm.suppress_debug_info = True
+    ## 5.4 litellm Usage Example
+    We support and recommend using litellm to call the APIs:
+    ```python
+    import litellm
+    from litellm import completion, embedding
 
-      # Chat Completion (drop_params=True is required to avoid UnsupportedParamsError)
-      response = completion(
-          model=<"model_name">,
-          messages=[{"role": "user", "content": "Your prompt here"}],
-          drop_params=True,
-      ).choices[0].message.content
-      # Embedding
-      response = embedding(
-          model=<"embedding_model_name">,
-          input="Your text here", # or a list of texts
-          drop_params=True,
-      )
-      embedding_result = [data["embedding"] for data in response.data]
-      ```
+    # Suppress LiteLLM debug info (IMPORTANT: add this at the top of your script)
+    litellm.suppress_debug_info = True
 
-    ## CoT Parsing Guidelines
+    # Chat Completion (drop_params=True is required to avoid UnsupportedParamsError)
+    response = completion(
+        model=<"model_name">,
+        messages=[{"role": "user", "content": "Your prompt here"}],
+        drop_params=True,
+    ).choices[0].message.content
+    # Embedding
+    response = embedding(
+        model=<"embedding_model_name">,
+        input="Your text here", # or a list of texts
+        drop_params=True,
+    )
+    embedding_result = [data["embedding"] for data in response.data]
+    ```
+
+    # Part 6: CoT Processing Guide
+
+    ## 6.1 CoT Parsing Rules
     When parsing LLM-generated CoT responses:
     - Do NOT require `<think>` tags - many models ignore this format instruction
     - Instead, treat everything before the last `\\boxed{}` as the reasoning content
     - If `<think>` tags are present, use them; otherwise fall back to this approach
 
-    ## LLM Prompt Guidelines
-    When constructing prompts for LLM API calls in your data processing script, follow these guidelines:
-
-    ### General Prompt Guidelines
+    ## 6.2 General Prompt Guidelines
+    When constructing prompts for LLM API calls in your data processing script:
     1. **Be Specific**: Clearly define the task, expected output format, and any constraints
     2. **Provide Examples**: Include 1-2 examples when output format is complex
     3. **Set Output Format**: Explicitly specify JSON/text/structured output requirements
     4. **Handle Edge Cases**: Instruct how to handle invalid inputs or uncertain cases
     5. **Consistency**: Use consistent formatting across all prompts in your script
 
-    ### CoT Quality Guidelines (Task-Adaptive for Reasoning Tasks)
+    ## 6.3 CoT Quality Standards
     **IMPORTANT: CoT quality ≠ CoT length. Check README's `CoT Quality Assessment` section first!**
 
-    #### Quality Decision Framework
+    ### Quality Decision Framework
     1. **All raw data MUST be polished** - never use directly, always enhance
     2. Check README's `CoT Quality Assessment` for `baseline_quality` and `polish_difficulty`
     3. **High baseline** → expand and enrich (easier, but still required)
@@ -156,14 +200,14 @@ data_coder:
     5. Follow `polish_strategy` in README for specific enhancement approach
     6. Adapt validation criteria based on `task_type`
 
-    #### Task-Adaptive Standards
+    ### Task-Adaptive Standards
     | Task Type | CoT Style | Length Guideline | Key Quality Metrics |
     |-----------|-----------|------------------|---------------------|
     | Math/Code | Exploratory | 5K+ tokens | Step verification, backtracking |
     | Chemistry | Structured | 300-1000 tokens OK | JSON structure, clear steps |
     | General | Direct | No minimum | Answer correctness |
 
-    #### CoT Generation (When polish_needed: true)
+    ### CoT Generation (When polish_needed: true)
     **When calling LLM to generate/expand CoT, adapt prompt based on task type:**
 
     **For Math/Code tasks (exploratory style):**
@@ -172,7 +216,6 @@ data_coder:
     - Show complete work at each stage with verification
     - When stuck, backtrack and try alternative approaches
     - End with the final answer in \\boxed{} format
-    - NOTE: Do NOT require <think> tags - many models ignore them. Instead, treat all text before \\boxed{} as reasoning.
     ```
 
     **For Chemistry/Structured tasks:**
@@ -183,50 +226,22 @@ data_coder:
     - Focus on chemical validity and logical flow
     ```
 
-    #### Post-Processing Validation (Multi-dimensional)
+    ## 6.4 Post-Processing Validation
     After processing CoT data, implement these validations:
+    - **Mandatory validations**: See Part 2.3 (Answer Consistency Check + Over-length Filtering)
 
-    **1. Over-length Filtering (MANDATORY for all tasks):**
-    - Filter out samples where `total_tokens > max_position_embeddings`
-    - Do NOT truncate - filter instead
-
-    **2. Answer Consistency Check (CRITICAL):**
-    - Verify reasoning leads to stated answer
-    - For math: check calculation matches `\boxed{}` result
-    - For chemistry: verify molecular transformations are valid
-    - Filter samples with reasoning-answer mismatch
-
-    **3. Structure Check (Task-adaptive):**
+    ### 6.4.1 Structure Check (Task-adaptive)
     - Math/Code: Look for step markers, verification statements
     - Chemistry: Look for JSON structure or "Step N:" format
     - General: No strict structure requirement
 
-    **4. Task-Adaptive Length Check:**
+    ### 6.4.2 Task-Adaptive Length Check
     - Math/Code: Warn if < 500 tokens (may need expansion)
     - Chemistry/Structured: OK if 100-1000 tokens with good structure
     - General: No length requirement
 
-    #### CoT Quality SUMMARY Output Format
-    ```
-    ========== COT QUALITY STATS ==========
-    Task type: {task_type}
-    Quality ready (from README): {quality_ready}
-    Over-length filtered: {count} ({percentage}%)
-    Answer consistency check: {passed}/{total} passed
-    Structure check: {structured_count}/{total} have clear structure
-    Length distribution: p25={}, p50={}, p75={}, p99={}
-    =======================================
-    ```
-
-    ## Scope Clarification (IMPORTANT)
-    **Your script should ONLY handle data processing and output data.json.**
-    - DO NOT generate training configuration files (e.g., train.yaml, training_config.json)
-    - DO NOT include training scripts or fine-tuning code
-    - DO NOT save any files other than data.json
-    - Training configuration will be handled separately by another component
-
+    # Part 7: Previous Failed Attempts
     {% if queried_former_failed_knowledge|length != 0 %}
-    ## Previous Failed Attempts
     {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
     =====Code:=====
     {{ former_failed_knowledge.implementation.all_codes }}
@@ -235,7 +250,7 @@ data_coder:
     {% endfor %}
     {% endif %}
 
-    ## Output Format
+    # Part 8: Response Format
     Provide ONLY the Python script in a markdown code block:
     ```python
     # Your complete Python script here
@@ -431,6 +446,7 @@ finetune_eval:
 
     # Important Notice
     - You may find that the execution is short with limited data and iterations. This is expected as we are only validating the configuration file's correctness and not performing full-scale training. Don't treat this as a failure. Also do not put this information in your feedback.
+    - Training duration parameters (`num_train_epochs`, `max_steps`) in the task description are RECOMMENDATIONS, not hard requirements. If the configuration uses slightly different values (e.g., 3-4 epochs instead of 1-2), do NOT fail the evaluation for this reason alone. Focus on whether the configuration is technically correct and will run successfully.
 
     ## Output Format
     Please respond with your feedback in the following JSON format without anything else.

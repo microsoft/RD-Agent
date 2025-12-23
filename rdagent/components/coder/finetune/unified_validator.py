@@ -247,16 +247,11 @@ class LLMConfigValidator:
                 return result
 
             test_config = config.copy()
-            # NOTE: max_samples is NOT overridden because debug mode data.json only has ~10 samples
-            # This allows us to use the actual debug data for validation instead of artificially limiting
+            # NOTE: save_steps/logging_steps/warmup_steps not overridden - debug data.json only has ~10 samples,
+            # so total training steps are naturally small and these optimizations are unnecessary
             test_config.update(
                 {
-                    # "max_samples": 4,  # Removed: debug data.json already has ~10 samples
                     "num_train_epochs": 1,
-                    "max_steps": 2,
-                    "save_steps": 1000,
-                    "logging_steps": 1,
-                    "warmup_steps": 0,
                     "output_dir": f"{ws_prefix}/micro_test_output",
                     "overwrite_output_dir": True,
                     "report_to": "none",  # Disable all reporting (tensorboard, wandb, etc.)

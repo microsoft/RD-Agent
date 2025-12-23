@@ -15,11 +15,13 @@ unified_hypothesis_gen:
     # Scenario Description
     {{ scenario }}
 
-    # Instructions for data processing:
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PART 1: DATA PROCESSING
+    # ═══════════════════════════════════════════════════════════════════════════
 
-    ## Data Processing Resources
+    ## 1.1 Available Processing Methods
 
-    ### Available Processing Methods (May require LLM API calls):
+    These methods may require LLM API calls:
 
     **General Methods**:
     - Quality filtering: Remove low-quality samples based on perplexity, length, or coherence
@@ -37,7 +39,7 @@ unified_hypothesis_gen:
 
     **Note**: You should try to make use of the datasets shown above to generate new training datasets. But if you think the datasets are not suitable for the task or you have better ideas, you can come up with your own approach (better based on the given seed datasets).
 
-    ### LLM Endpoints for Data Processing
+    ## 1.2 LLM Endpoints
 
     Most processing methods above require LLM API calls. Use these exact model names in your task specification:
 
@@ -47,135 +49,93 @@ unified_hypothesis_gen:
       - Basic tasks (filtering, deduplication, format conversion, quality scoring)
       - Complex tasks (CoT generation/rewriting, reasoning expansion, difficult problem solving)
 
-    ### Data Quality Adaptation Guide
+    ## 1.3 Data Quality Guide
 
     **Principle: Data quality must match training objectives.**
 
     Analyze the dataset info carefully - check not just whether fields exist, but whether their **content quality** is sufficient for your goal.
 
-    **General Strategies:**
+    ### 1.3.1 General Strategies
+
     1. **Augmentation/Rewrite**: Use stronger models to enhance, expand, or rewrite content
     2. **Direct Use**: Use data as-is if quality matches objectives
     3. **Filter**: Keep only samples that meet quality threshold
 
-    **Decision Framework:**
-    - What is your **training objective**? (e.g., reasoning capability, answer accuracy, instruction following)
-    - Does the data **quality** support this objective? (not just existence, but depth/length/richness)
-    - If mismatch: augment/rewrite > filter > direct use with limitations acknowledged
+    Decision priority: augment/rewrite > filter > direct use with limitations acknowledged
 
-    **Example - Reasoning/CoT Training:**
-    
+    ### 1.3.2 CoT Quality Assessment
+
     **IMPORTANT: CoT quality ≠ CoT length. Check README's `CoT Quality Assessment` section first!**
-    
+
     Different datasets have different quality characteristics:
     - **High-quality structured CoT** (e.g., ChemCoTBench): Short but structured (300 tokens) can be effective
     - **Low-quality or missing CoT** (e.g., DeepScaler): 82% empty solutions need generation
-    
+
     **Quality Decision Framework:**
     1. **All raw data MUST be polished** - never use directly without enhancement
     2. Check README's `CoT Quality Assessment` for `baseline_quality` and `polish_difficulty`
-    3. **High baseline** (e.g., ChemCoT) → focus on enrichment (add details, verify correctness)
-    4. **Low baseline** (e.g., DeepScaler) → full generation/rewrite needed
+    3. **High baseline** → focus on enrichment (add details, verify correctness)
+    4. **Low baseline** → full generation/rewrite needed
     5. Follow `polish_strategy` in README for specific approach
-    
+
+    ### 1.3.3 Quality Criteria & Task-Type Standards
+
     **Multi-dimensional Quality Criteria:**
     - **Structure Completeness**: Clear step separation, logical flow (JSON structure or "Step N:" markers)
     - **Reasoning Coherence**: Steps logically connected, no jumps in reasoning
-    - **Answer Consistency**: Reasoning process supports and leads to final answer
+    - **Answer Consistency**: Reasoning process supports and leads to final answer (calculation steps must match `\boxed{}` result)
     - **Information Density**: No redundancy, relevant content only
-    - **Task Appropriateness**: CoT style matches task type (see table below)
-    
+
     **Task-Type Adaptive Standards:**
-    | Task Type | Recommended CoT Style | Length Guideline |
-    |-----------|----------------------|------------------|
-    | Math/Code | Exploratory (step-by-step, verification, backtracking) | Longer preferred (2K-8K+) |
-    | Chemistry/Structured | Structured (JSON, clear steps) | Concise OK (300-1000) |
-    | General QA | Direct or brief reasoning | Short OK (100-500) |
-    
+
+    | Task Type | CoT Style | Length | Filtering Notes |
+    |-----------|-----------|--------|-----------------|
+    | Math/Code | Exploratory (step-by-step, verification, backtracking) | 2K-8K+ tokens | If summary-style → regenerate with exploratory prompts |
+    | Chemistry/Structured | Structured (JSON, clear steps) | 300-1000 tokens | If `quality_ready: true` in README → use directly |
+    | General QA | Direct or brief reasoning | 100-500 tokens | No minimum requirement |
+
     Key insight: **Quality = Structure + Coherence + Consistency**, not just length.
 
-    ### CoT Length & cutoff_len: A Unified Decision (CRITICAL)
+    ## 1.4 CoT Length & Filtering
 
-    **Core Principle: Data processing and training config must be coordinated.**
+    ### 1.4.1 Length Budget Planning
 
-    The CoT length you generate in data processing directly determines the `cutoff_len` needed in training. These two decisions should be made together, not separately.
+    **Core Formula**: `total_tokens = input_tokens + cot_tokens + answer_tokens`
 
-    **Decision Framework:**
-    1. **Analyze your data characteristics:**
-       - How long are the inputs (instruction + context)?
-       - How complex is the reasoning needed?
-       - What's the model's `max_position_embeddings`?
+    This total must satisfy: `total_tokens ≤ cutoff_len ≤ max_position_embeddings`
 
-    2. **Allocate context budget:**
-       - `cutoff_len` ≤ `max_position_embeddings`
-       - `cutoff_len` = input_tokens + cot_tokens + answer_tokens
-       - If inputs are long → less room for CoT
-       - If inputs are short → can generate longer CoT
-
-    3. **Match CoT length to available budget:**
-       - Use the remaining context after inputs for CoT
-       - Longer CoT generally improves reasoning capability
-       - But don't exceed what the model can handle
+    **Decision Steps:**
+    1. Check model's `max_position_embeddings` and hardware's max `seq_len` (from Memory Constraints table)
+    2. Estimate typical input length from dataset statistics
+    3. Allocate remaining budget to CoT (longer CoT generally improves reasoning capability)
+    4. Set `cutoff_len` accordingly
 
     **Examples:**
     - Long inputs (8K tokens), 32K context → CoT target ~20K, cutoff_len ~30K
     - Short inputs (500 tokens), 32K context → CoT target ~24K, cutoff_len ~28K
     - Short inputs (500 tokens), 8K context → CoT target ~6K, cutoff_len ~7K
 
-    **Key Guidelines:**
-    - **Maximize useful CoT length** within context constraints, starting from the biggest target length and adjusting down as needed
-    - **Never compress long CoT** just to fit arbitrary limits
-    - **Expand short CoT** when context budget allows
-    - Use `{{ strong_models | join("` / `") }}` for generating rich, detailed reasoning
+    ### 1.4.2 Filtering Rules
 
-    ### CoT Quality Filtering (Multi-dimensional)
-
-    **This section applies to Reasoning/CoT tasks. Adapt criteria based on task type from README metadata.**
-
-    **1. Over-length Filtering (MANDATORY for all tasks):**
-    - Samples exceeding `max_position_embeddings` MUST be filtered out
-    - Formula: `total_tokens = input_tokens + cot_tokens + answer_tokens ≤ max_position_embeddings`
+    **Over-length Filtering (MANDATORY):**
+    - Samples exceeding context limit MUST be filtered out
     - Truncated CoT leads to incomplete reasoning - filter rather than truncate
 
-    **2. Quality-based Filtering (Task-Adaptive):**
-    
-    **For Math/Code tasks (need exploratory CoT):**
-    - Length: Recommend 2K-8K+ tokens for complex reasoning
-    - Style: Exploratory with step-by-step verification and backtracking
-    - If existing CoT is summary-style → consider regeneration with exploratory prompts
-    
-    **For Chemistry/Structured tasks:**
-    - Length: 300-1000 tokens is often sufficient if well-structured
-    - Style: Structured JSON or clear step markers ("Step 1:", "Step 2:")
-    - If `quality_ready: true` in README → use directly without expansion
-    
-    **For General QA:**
-    - Length: No minimum requirement
-    - Style: Direct reasoning is acceptable
+    **Key Guidelines:**
+    - Maximize useful CoT length within constraints
+    - Never compress long CoT just to fit arbitrary limits
+    - Expand short CoT when context budget allows
+    - Use `{{ strong_models | join("` / `") }}` for generating rich, detailed reasoning
 
-    **3. Answer Consistency Check (CRITICAL for all tasks):**
-    - Verify reasoning process leads to stated answer
-    - For math: calculation steps must match `\boxed{}` result
-    - For chemistry: molecular transformations must be valid
-    - Filter samples with inconsistent reasoning-answer pairs
+    ## 1.5 Output Format
 
-    **4. Structure Check:**
-    - Prefer CoT with clear step markers or JSON structure
-    - Reject wall-of-text without logical organization
-    - Good structure often indicates good reasoning quality
-
-    ### Data Processing Guidelines
-
-    **IMPORTANT: Read `dataset_info.json` description field carefully!**
-    It contains critical information about data quality, field statistics, and recommended preprocessing approaches.
+    **IMPORTANT: Read `dataset_info.json` description field carefully!** It contains critical information about data quality, field statistics, and recommended preprocessing approaches.
 
     **Handling missing/empty fields:**
-    - If a sample has missing critical fields → Filter out (if small portion, e.g., <10%)
-    - If many samples have missing fields → Consider augmentation/generation instead of filtering
+    - Small portion missing (<10%) → Filter out
+    - Many samples missing → Consider augmentation/generation instead
 
-    ### Output Data Format
-
-    Output filename: `data.json` (do NOT specify path, path handled by system). Use Alpaca format. Choose output content based on task type:
+    Output filename: `data.json` (do NOT specify path, path handled by system). Use Alpaca format:
 
     ```json
     [
@@ -184,58 +144,41 @@ unified_hypothesis_gen:
         "input": "...",
         "output": "direct answer"                                              // Non-Reasoning
                   // OR "<think>\n[reasoning]\n</think>\n[answer]"             // Reasoning
-                  // OR "<think>\n[math reasoning]\n</think>\n\\boxed{result}" // Math problems which have precise answers
+                  // OR "<think>\n[math reasoning]\n</think>\n\\boxed{result}" // Math problems
       }
     ]
     ```
 
-    # ═══════════════════════════════════════════════════════════════
-    # CRITICAL: How to Use Memory Constraints Table (READ FIRST)
-    # ═══════════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PART 2: TRAINING CONFIGURATION
+    # ═══════════════════════════════════════════════════════════════════════════
 
-    ## Understanding the Table
+    ## 2.1 Hardware Memory Constraints
 
     The **Hardware Memory Constraints** table in Scenario Description shows:
     - Max `seq_len` each method can support at `batch_size=1`
     - Model's `max_position_embeddings` limit
 
-    ## Step 1: Choose Method Based on Your seq_len Needs
+    **Method Selection based on seq_len needs:**
+    1. Check which methods support your required seq_len
+    2. Among viable methods: **prefer `full` > `full_gc` > `lora` > `qlora`** for quality
+    3. `full` is not always viable - choose based on your actual seq_len requirements
 
-    1. **Determine your required seq_len**: input_tokens + cot_tokens + answer_tokens
-       - For reasoning tasks, aim for 8K-16K+ CoT tokens
-       - Check dataset statistics for typical input lengths
+    **Set cutoff_len:** `cutoff_len ≤ min(max_seq_len from table, max_position_embeddings)`
 
-    2. **Check which methods support your seq_len**:
-       - If you need long context (e.g., 16K+) → check which methods have max_seq_len >= your need
-       - Among viable methods: **prefer `full` > `full_gc` > `lora` > `qlora`** for quality
-       - `full` is not always viable - choose based on your actual seq_len requirements
-
-    ## Step 2: Set cutoff_len
-
-    `cutoff_len` must satisfy: **cutoff_len ≤ min(max_seq_len from table, max_position_embeddings)**
-
-    For reasoning tasks, maximize `cutoff_len` to enable longer CoT:
-    - Longer CoT generally = better reasoning capability
-    - Short CoT (<2K tokens) is usually insufficient for complex reasoning
-
-    ## Step 3: Adjust batch_size
-
-    The table shows max seq_len at `batch_size=1`. Trade-offs:
+    **Batch size trade-offs:**
     - Smaller seq_len → can increase batch_size
     - Larger seq_len → must decrease batch_size (possibly to 1)
     - Use `gradient_accumulation_steps` to achieve effective batch size of 16-64
 
-    ## Example Decision Flow
-
-    **Given**: 4×48GB GPU, 7B model, need 16K seq_len for rich CoT
+    **Example Decision Flow:**
+    Given 4×48GB GPU, 7B model, need 16K seq_len for rich CoT:
     1. Check table: `full`=18K ✓, `full_gc`=52K ✓, `lora`=89K ✓
     2. All methods viable → choose `full` (best quality)
     3. Set `cutoff_len`=16384 (≤ 18K and ≤ max_position_embeddings)
     4. batch_size=1, gradient_accumulation=16 → effective batch=64
 
-    # Instructions for training configuration:
-
-    ## Training Configuration Resources
+    ## 2.2 Available Resources
 
     {% if select_model %}
     **Available Models**:
@@ -248,24 +191,27 @@ unified_hypothesis_gen:
     **Shared Parameters** (apply to all methods):
     {{ shared_params }}
 
-    **Method-Specific Parameters**:
+    ## 2.3 Method-Specific Parameters
+
     {% for method, params_desc in methods_specific_params.items() %}
     {{ params_desc }}
     {% endfor %}
 
-    ---
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PART 3: OUTPUT SPECIFICATION
+    # ═══════════════════════════════════════════════════════════════════════════
 
-    ## Guidelines
+    ## 3.1 Guidelines
 
     - Please provide the hypothesis in simplest form - avoid unnecessary complexity
     - Consider hardware constraints for training and available LLM endpoints for data processing
     - **IMPORTANT**: Check dataset info for quality issues - not just missing fields, but whether **content quality** (length, depth, richness) matches training objectives
-    - When data quality is insufficient (e.g., CoT too short for reasoning training), augmentation/rewrite is expected, not direct use
+    - When data quality is insufficient, augmentation/rewrite is expected, not direct use
     - Chain data processing methods logically: filtering → quality scoring → augmentation/generation
     - If history shows a method failed, explain why your new approach differs
-    - Consider the dataset characteristics and available options when making training decisions
 
-    ## Focus Strategy
+    ## 3.2 Focus Strategy
+
     {% if is_first_loop %}
     **This is the FIRST experiment.** You must provide a comprehensive strategy covering BOTH:
     1. Data processing: How to prepare the training data
@@ -280,41 +226,20 @@ unified_hypothesis_gen:
     - Clearly state your focus in the hypothesis (e.g., "Focus on improving data quality while keeping training config stable")
     {% endif %}
 
-    ## Hypothesis Format
-    Provide your hypothesis in natural language. Be comprehensive and specific about your recommendations.
-    - Your hypothesis should integrate both data processing strategy and training configuration
-    - Structure: "[Data Processing] ... [Training] ..." or provide a unified narrative that covers both aspects
+    ## 3.3 Response Format
 
-    ## Task Specification
-    After the hypothesis, provide a clear and concise task for the code generator to implement. The task should be provided in plain text following these rules:
+    **Hypothesis**: Provide in natural language, integrating both data processing strategy and training configuration. Structure: "[Data Processing] ... [Training] ..." or a unified narrative covering both aspects.
 
-    **No Code**: The task **MUST NOT** contain any programming code, specific library calls, or pseudo-code. Describe steps conceptually.
+    **Task Specification**: A clear task for the code generator, following these rules:
+    - **No Code**: MUST NOT contain programming code, library calls, or pseudo-code
+    - **Structure**: Organize into 1) Data Processing, 2) Training Configuration
+    - **Specificity**:
+      - [Data] Which datasets to use and how to process them
+      - [Data] Which LLM endpoints for which processing steps
+      - [Data] Filtering strategy (do NOT hardcode specific thresholds like "score < 8.0")
+      - [Training] Which training methods and hyperparameters to use (single-stage only)
 
-    **Your task description must include a complete workflow covering:**
-    1. Data processing steps (from raw data to processed dataset)
-    2. Training configuration steps (using the processed dataset for fine-tuning)
-
-    **Focus Areas**: The task should cover:
-    - Data loading: Which datasets to load and from where
-    - Processing steps: Filtering, cleaning, scoring, generation, etc.
-    - Output format: Save all processed data to a single `data.json` file with appropriate format (instruction/input/output or conversations)
-    - Fine-tuning method implementation: setting up the fine-tuning process according to the hypothesis
-    - Hyperparameter configuration: specifying key hyperparameters for the fine-tuning process
-
-    **Structure and Conciseness**:
-    - Organize the task into two clear sections: 1) Data Processing, 2) Training Configuration
-    - If previous experiments exist, reference what to keep or change in both aspects
-    - If starting fresh, outline the complete workflow: data preparation → training setup
-
-    **Specificity**: Be specific about:
-    - [Data] Which datasets to use and how to process them
-    - [Data] Which LLM endpoints for which processing steps
-    - [Data] Filtering strategy (do NOT hardcode specific thresholds like "score < 8.0" or "length < 200")
-    - [Training] Which training methods and hyperparameters to use (single-stage training only)
-    - [Training] The complete workflow from processed data to trained model (one training run)
-
-    ## Output Format
-    The final output should be in JSON format:
+    **Output JSON format:**
     ```json
         {
           "reason": "[Your reasoning about why this approach should work, covering BOTH data processing and training aspects, referencing history if available]",

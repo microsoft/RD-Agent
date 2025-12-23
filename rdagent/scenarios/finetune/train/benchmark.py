@@ -72,10 +72,10 @@ BENCHMARK_CONFIG_DICT = {
     "tablebench_fact_checking": "opencompass.configs.datasets.tablebench.tablebench_fact_checking_gen",
     "tablebench_numerical_reasoning": "opencompass.configs.datasets.tablebench.tablebench_numerical_reasoning_gen",
     "tablebench_visualization": "opencompass.configs.datasets.tablebench.tablebench_visualization_gen",
-    "tablebench_gen":"opencompass.configs.datasets.tablebench.tablebench_gen",
-    "tablebench_gen_base":"opencompass.configs.datasets.tablebench.tablebench_gen_base",
+    "tablebench_gen": "opencompass.configs.datasets.tablebench.tablebench_gen",
+    "tablebench_gen_base": "opencompass.configs.datasets.tablebench.tablebench_gen_base",
     # native opencompass benchmarks
-    "FinanceIQ_ppl": "opencompass.configs.datasets.FinanceIQ.FinanceIQ_gen_e0e6b5"
+    "FinanceIQ_ppl": "opencompass.configs.datasets.FinanceIQ.FinanceIQ_gen_e0e6b5",
 }
 
 
