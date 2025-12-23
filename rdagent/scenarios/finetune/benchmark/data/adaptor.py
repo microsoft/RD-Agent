@@ -1,0 +1,141 @@
+"""
+Benchmark dataset configuration and data preparation adaptor for finetune benchmarks.
+
+This module centralizes:
+- Mapping of benchmark names to OpenCompass dataset config import paths.
+- Optional dataset download / preparation hooks for benchmarks.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Optional
+
+from rdagent.app.finetune.llm.conf import FT_RD_SETTING
+from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.finetune.benchmark.data.default import extract_error_samples
+from rdagent.scenarios.finetune.benchmark.data import financeiq_ppl
+
+
+DownloadFunc = Callable[[], None]
+ExtractErrorSamplesFunc = Callable[[Path, int], List[Dict[str, Any]]]
+
+
+@dataclass
+class BenchmarkConfig:
+    """
+    Configuration for a single benchmark.
+
+    Attributes:
+        dataset: Import path for the dataset config in OpenCompass.
+        download: Optional function to ensure the dataset is available (e.g. download from HF).
+        extract_error_samples: Function to extract error samples from results.
+                               Defaults to the generic extract_error_samples implementation.
+    """
+
+    dataset: str
+    download: Optional[DownloadFunc] = None
+    extract_error_samples: ExtractErrorSamplesFunc = field(
+        default_factory=lambda: extract_error_samples
+    )
+
+
+# Mapping from benchmark_name -> benchmark configuration.
+BENCHMARK_CONFIG_DICT: Dict[str, BenchmarkConfig] = {
+    # Math Reasoning Benchmarks
+    "aime24": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.aime2024.aime2024_gen_17d799",
+    ),
+    "aime25": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.aime2025.aime2025_cascade_eval_gen_5e9f4f",
+    ),
+    "aime2025": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.aime2025.aime2025_cascade_eval_gen_5e9f4f",
+    ),
+    "gsm8k": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.gsm8k.gsm8k_gen_1d7fe4",
+    ),
+    "math": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.math.math_0shot_gen_393424",
+    ),
+    # General Knowledge Benchmarks
+    "mmlu": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.mmlu.mmlu_gen",
+    ),
+    # Code Generation Benchmarks
+    "humaneval": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.humaneval.humaneval_gen",
+    ),
+    "mbpp": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.mbpp.mbpp_gen",
+    ),
+    # PANORAMA - Patent Analysis Benchmarks (zero-shot)
+    "panorama": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.panorama.panorama_gen",
+    ),
+    "panorama_par4pc": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.panorama.panorama_par4pc_gen",
+    ),
+    "panorama_pi4pc": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.panorama.panorama_pi4pc_gen",
+    ),
+    "panorama_noc4pc": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.panorama.panorama_noc4pc_gen",
+    ),
+    # PANORAMA - Patent Analysis Benchmarks (CoT)
+    "panorama_par4pc_cot": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.panorama.panorama_par4pc_cot_gen",
+    ),
+    "panorama_pi4pc_cot": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.panorama.panorama_pi4pc_cot_gen",
+    ),
+    "panorama_noc4pc_cot": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.panorama.panorama_noc4pc_cot_gen",
+    ),
+    # ChemCoTBench - Chemistry Reasoning Benchmarks
+    "chemcotbench": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.chemcotbench.chemcotbench_gen",
+    ),
+    "chemcotbench_mol_und": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.chemcotbench.chemcotbench_mol_und_gen",
+    ),
+    "chemcotbench_mol_edit": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.chemcotbench.chemcotbench_mol_edit_gen",
+    ),
+    "chemcotbench_mol_opt": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.chemcotbench.chemcotbench_mol_opt_gen",
+    ),
+    "chemcotbench_reaction": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.chemcotbench.chemcotbench_reaction_gen",
+    ),
+
+    # TableBench - Table Question Answering Benchmarks (ensure consistent BenchmarkConfig format and GPU targeting last two GPUs)
+    "tablebench_data_analysis": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.tablebench.tablebench_data_analysis_gen",
+    ),
+    "tablebench_fact_checking": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.tablebench.tablebench_fact_checking_gen",
+    ),
+    "tablebench_numerical_reasoning": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.tablebench.tablebench_numerical_reasoning_gen",
+    ),
+    "tablebench_visualization": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.tablebench.tablebench_visualization_gen",
+    ),
+    "tablebench_gen": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.tablebench.tablebench_gen",
+    ),
+    "tablebench_gen_base": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.tablebench.tablebench_gen_base",
+    ),
+
+    # Native OpenCompass benchmarks
+    "FinanceIQ_ppl": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.FinanceIQ.FinanceIQ_gen_e0e6b5",
+        download=financeiq_ppl.download_financeiq_dataset,
+        extract_error_samples=lambda results_base, max_samples=10: financeiq_ppl.extract_error_samples(
+            results_base, max_samples
+        ),
+    ),
+}

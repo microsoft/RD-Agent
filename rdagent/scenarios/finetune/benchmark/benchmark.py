@@ -33,77 +33,16 @@ from rdagent.components.coder.finetune.conf import (
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
+from rdagent.scenarios.finetune.benchmark.data.adaptor import (
+    BENCHMARK_CONFIG_DICT,
+    BenchmarkConfig,
+    extract_error_samples,
+)
+from rdagent.scenarios.finetune.benchmark.merge.merge import (
+    check_if_merging_needed,
+    merge_model,
+)
 from rdagent.utils.agent.tpl import T
-
-from .merge.merge import check_if_merging_needed, merge_model
-
-BENCHMARK_CONFIG_DICT = {
-    # Math Reasoning Benchmarks
-    "aime24": "opencompass.configs.datasets.aime2024.aime2024_gen_17d799",
-    "aime25": "opencompass.configs.datasets.aime2025.aime2025_cascade_eval_gen_5e9f4f",
-    "aime2025": "opencompass.configs.datasets.aime2025.aime2025_cascade_eval_gen_5e9f4f",
-    "gsm8k": "opencompass.configs.datasets.gsm8k.gsm8k_gen_1d7fe4",
-    "math": "opencompass.configs.datasets.math.math_0shot_gen_393424",
-    # General Knowledge Benchmarks
-    "mmlu": "opencompass.configs.datasets.mmlu.mmlu_gen",
-    # Code Generation Benchmarks
-    "humaneval": "opencompass.configs.datasets.humaneval.humaneval_gen",
-    "mbpp": "opencompass.configs.datasets.mbpp.mbpp_gen",
-    # PANORAMA - Patent Analysis Benchmarks (zero-shot)
-    "panorama": "opencompass.configs.datasets.panorama.panorama_gen",
-    "panorama_par4pc": "opencompass.configs.datasets.panorama.panorama_par4pc_gen",
-    "panorama_pi4pc": "opencompass.configs.datasets.panorama.panorama_pi4pc_gen",
-    "panorama_noc4pc": "opencompass.configs.datasets.panorama.panorama_noc4pc_gen",
-    # PANORAMA - Patent Analysis Benchmarks (CoT)
-    "panorama_par4pc_cot": "opencompass.configs.datasets.panorama.panorama_par4pc_cot_gen",
-    "panorama_pi4pc_cot": "opencompass.configs.datasets.panorama.panorama_pi4pc_cot_gen",
-    "panorama_noc4pc_cot": "opencompass.configs.datasets.panorama.panorama_noc4pc_cot_gen",
-    # ChemCoTBench - Chemistry Reasoning Benchmarks
-    "chemcotbench": "opencompass.configs.datasets.chemcotbench.chemcotbench_gen",
-    "chemcotbench_mol_und": "opencompass.configs.datasets.chemcotbench.chemcotbench_mol_und_gen",
-    "chemcotbench_mol_edit": "opencompass.configs.datasets.chemcotbench.chemcotbench_mol_edit_gen",
-    "chemcotbench_mol_opt": "opencompass.configs.datasets.chemcotbench.chemcotbench_mol_opt_gen",
-    "chemcotbench_reaction": "opencompass.configs.datasets.chemcotbench.chemcotbench_reaction_gen",
-    # TableBench - Table Question Answering Benchmarks
-    "tablebench_data_analysis": "opencompass.configs.datasets.tablebench.tablebench_data_analysis_gen",
-    "tablebench_fact_checking": "opencompass.configs.datasets.tablebench.tablebench_fact_checking_gen",
-    "tablebench_numerical_reasoning": "opencompass.configs.datasets.tablebench.tablebench_numerical_reasoning_gen",
-    "tablebench_visualization": "opencompass.configs.datasets.tablebench.tablebench_visualization_gen",
-    "tablebench_gen": "opencompass.configs.datasets.tablebench.tablebench_gen",
-    "tablebench_gen_base": "opencompass.configs.datasets.tablebench.tablebench_gen_base",
-    # native opencompass benchmarks
-    "FinanceIQ_ppl": "opencompass.configs.datasets.FinanceIQ.FinanceIQ_gen_e0e6b5",
-}
-
-
-def _download_FinanceIQ_ppl():
-    # download data from Duxiaoman-DI/FinanceIQ to benchmarks in file_path
-    target_dir = FT_RD_SETTING.file_path / "benchmarks" / "opencompass_data" / "data" / "FinanceIQ"
-    if not target_dir.exists():
-        logger.info(f"Downloading FinanceIQ dataset to {target_dir}")
-        target_dir.parent.mkdir(parents=True, exist_ok=True)
-        # Use git clone to download the dataset
-        subprocess.check_call(
-            ["git", "clone", "https://huggingface.co/datasets/Duxiaoman-DI/FinanceIQ", str(target_dir)]
-        )
-
-        # Move dev and test folders to upper level (opencompass_data/data/FinanceIQ)
-        # The git clone creates a 'data' subfolder which we don't want
-        data_subdir = target_dir / "data"
-        if data_subdir.exists():
-            for folder in ["dev", "test"]:
-                src = data_subdir / folder
-                if src.exists():
-                    shutil.move(str(src), str(target_dir / folder))
-            shutil.rmtree(data_subdir)
-    else:
-        logger.info(f"FinanceIQ dataset already exists at {target_dir}")
-
-
-BENCHMARK_DOWNLOAD_MAP = {
-    "FinanceIQ_ppl": _download_FinanceIQ_ppl,
-}
-
 
 
 def get_model_inference_config(base_model_name: str, gpu_count: int) -> dict:
@@ -172,94 +111,6 @@ def detect_model_type(model_path: str) -> bool:
     return False
 
 
-def extract_error_samples(results_base: Path, max_samples: int = 10) -> List[Dict[str, Any]]:
-    """
-    Extract error samples from OpenCompass detailed results.
-
-    When dump_details=True is set in OpenCompass config, detailed prediction results
-    are saved in the results directory. This function extracts samples where the model
-    answered incorrectly for feedback analysis.
-
-    Args:
-        results_base: Path to benchmark_results/{timestamp} directory
-        max_samples: Maximum number of error samples to return
-
-    Returns:
-        List of error samples, each containing:
-        - question: The original prompt/question
-        - gold: The expected/ground truth answer
-        - model_output: The model's actual output
-    """
-    error_samples = []
-    results_dir = results_base / "results"
-    predictions_dir = results_base / "predictions"
-
-    if not results_dir.exists():
-        logger.warning(f"Results directory not found: {results_dir}")
-        return error_samples
-
-    # Iterate through all result JSON files
-    for result_file in results_dir.rglob("*.json"):
-        try:
-            with open(result_file) as f:
-                data = json.load(f)
-
-            details = data.get("details", [])
-            if not details:
-                continue
-
-            # Find corresponding predictions file
-            rel_path = result_file.relative_to(results_dir)
-            pred_file = predictions_dir / rel_path
-
-            predictions = {}
-            if pred_file.exists():
-                with open(pred_file) as f:
-                    predictions = json.load(f)
-
-            # Extract error samples from OpenCompass detailed results
-            # Structure: details[i].llm_evaluation[0] contains judgment info
-            for idx, detail in enumerate(details):
-                # Get llm_evaluation result (OpenCompass cascade eval format)
-                llm_eval = detail.get("llm_evaluation", [])
-                if not llm_eval:
-                    continue
-
-                eval_result = llm_eval[0]
-                # Check if incorrect: prediction=="B" or llm_correct==False
-                is_error = eval_result.get("prediction") == "B" or not eval_result.get("llm_correct", True)
-
-                if is_error:
-                    pred_entry = predictions.get(str(idx), {})
-
-                    # Extract question - origin_prompt is a list of role/prompt dicts
-                    origin_prompt = pred_entry.get("origin_prompt", [])
-                    if isinstance(origin_prompt, list) and origin_prompt:
-                        question = origin_prompt[0].get("prompt", "N/A")
-                    elif isinstance(origin_prompt, str):
-                        question = origin_prompt
-                    else:
-                        question = "N/A"
-
-                    sample = {
-                        "question": question,
-                        "gold": pred_entry.get("gold", eval_result.get("gold", "N/A")),
-                        "model_output": pred_entry.get("prediction", "N/A"),
-                    }
-                    error_samples.append(sample)
-
-        except (json.JSONDecodeError, OSError) as e:
-            logger.warning(f"Failed to parse result file {result_file}: {e}")
-            continue
-
-    # Random sampling if too many error samples
-    if len(error_samples) > max_samples:
-        error_samples = random.sample(error_samples, max_samples)
-
-    logger.info(f"Extracted {len(error_samples)} error samples from benchmark results")
-    return error_samples
-
-
 def run_benchmark(
     workspace_path: str,
     model_path: str,
@@ -291,11 +142,15 @@ def run_benchmark(
         - error_samples: List of error samples for feedback analysis
     """
     # Load configurations
-    dataset_imports = BENCHMARK_CONFIG_DICT[benchmark_name]
+    benchmark_cfg: BenchmarkConfig = BENCHMARK_CONFIG_DICT[benchmark_name]
+    dataset_imports = benchmark_cfg.dataset
 
-    # Auto download dependent data
-    if benchmark_name in BENCHMARK_DOWNLOAD_MAP:
-        BENCHMARK_DOWNLOAD_MAP[benchmark_name]()
+    # Auto download dependent data if configured on this benchmark
+    if benchmark_cfg.download is not None:
+        benchmark_cfg.download()
+
+    # Error-sample extractor (dataset-specific or default)
+    extract_error_samples_fn = benchmark_cfg.extract_error_samples
 
     model_is_lora = detect_model_type(model_path)
     inference_config = get_model_inference_config(model_name, gpu_count)
@@ -431,7 +286,7 @@ def run_benchmark(
     accuracy_summary = df.to_dict("records")
 
     # Extract error samples for feedback 
-    error_samples = extract_error_samples(timestamped_dirs[0], max_samples=max_error_samples)
+    error_samples = extract_error_samples_fn(timestamped_dirs[0], max_samples=max_error_samples)
 
     # Log benchmark result for UI display
     logger.log_object(
