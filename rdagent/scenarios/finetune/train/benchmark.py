@@ -14,24 +14,17 @@ FT_JUDGE_API_BASE="https://api.openai.com/v1"
 """
 
 import json
-import os
+from pathlib import Path
 import random
 import shutil
 import subprocess
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
 import yaml
-from dotenv import find_dotenv, load_dotenv
-
-from rdagent.oai.llm_conf import LLM_SETTINGS
-from rdagent.utils.agent.tpl import T
-
-# Load .env file before importing settings
-load_dotenv(find_dotenv())
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
+from rdagent.components.coder.finetune.conf import FT_MODEL_PATH, get_ft_env
 from rdagent.components.coder.finetune.conf import (
     get_benchmark_env,
     get_workspace_prefix,
@@ -39,6 +32,10 @@ from rdagent.components.coder.finetune.conf import (
 )
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_conf import LLM_SETTINGS
+from rdagent.utils.agent.tpl import T
+
+from .merge.merge import check_if_merging_needed, merge_model
 
 BENCHMARK_CONFIG_DICT = {
     # Math Reasoning Benchmarks
@@ -106,6 +103,7 @@ def _download_FinanceIQ_ppl():
 BENCHMARK_DOWNLOAD_MAP = {
     "FinanceIQ_ppl": _download_FinanceIQ_ppl,
 }
+
 
 
 def get_model_inference_config(base_model_name: str, gpu_count: int) -> dict:
@@ -310,33 +308,54 @@ def run_benchmark(
 
     # Determine model paths based on environment type
     model_rel_path = Path(model_path).relative_to(workspace_path)
-    model_dir_inside_env = Path(ws_prefix) / model_rel_path
+    adapter_path_in_env = Path(ws_prefix) / model_rel_path
 
     if model_is_lora:
         if is_docker:
-            # Docker: use /finetune/models mount
-            real_model_path = Path("/finetune/models") / model_name
+            # Docker: use /assets/models mount
+            model_path_in_env = Path(FT_MODEL_PATH) / model_name
         else:
             # Conda: use actual file path
-            real_model_path = Path(FT_RD_SETTING.file_path) / "models" / model_name
-        real_lora_path = model_dir_inside_env
+            model_path_in_env = Path(FT_RD_SETTING.file_path) / "models" / model_name
+        lora_path_in_env = adapter_path_in_env
+        
+        # Check if we need to merge the model (e.g. vLLM doesn't support LoRA with modules_to_save)
+        if check_if_merging_needed(model_path):
+            merged_model_dir_inside_env = Path(ws_prefix) / "merged_model"
+            
+            # Create a temporary environment for merging (use FT env as it has peft/transformers)
+            merge_env = get_ft_env()
+            
+            merge_model(
+                env=merge_env,
+                workspace_path=workspace_path,
+                base_model_path=str(model_path_in_env),
+                adapter_path=str(lora_path_in_env),
+                output_path=str(merged_model_dir_inside_env)
+            )
+            
+            # Switch to using the merged model
+            model_path_in_env = merged_model_dir_inside_env
+            model_is_lora = False
+            lora_path_in_env = ""
+            adapter_path_in_env = merged_model_dir_inside_env
     else:
-        real_model_path = model_dir_inside_env
-        real_lora_path = ""
+        model_path_in_env = adapter_path_in_env
+        lora_path_in_env = ""
 
     # Prepare template variables (merge inference config from models.yaml)
     template_vars = {
         # Model configuration
         "model_abbr": f"ft-{benchmark_name}",
-        "model_path": real_model_path,
+        "model_path": model_path_in_env,
         "is_lora": model_is_lora,
-        "lora_path": real_lora_path,
+        "lora_path": lora_path_in_env,
         # Dataset configuration
         "dataset_imports": [dataset_imports],
         "limit": limit or "",
         "num_runs": num_runs,
         "pass_k": pass_k,
-        "work_dir": model_dir_inside_env,
+        "work_dir": adapter_path_in_env,
         # Merge all inference parameters from models.yaml (default + model-specific)
         **inference_config,
     }
@@ -411,7 +430,7 @@ def run_benchmark(
     df = pd.read_csv(results_csv_path)
     accuracy_summary = df.to_dict("records")
 
-    # Extract error samples for feedback analysis
+    # Extract error samples for feedback 
     error_samples = extract_error_samples(timestamped_dirs[0], max_samples=max_error_samples)
 
     # Log benchmark result for UI display

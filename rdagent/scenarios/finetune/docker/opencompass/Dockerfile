@@ -21,6 +21,9 @@ RUN pip install ".[vllm]" --no-cache-dir
 # Install math evaluation dependencies for AIME/MATH benchmarks
 RUN pip install math_verify latex2sympy2_extended --no-cache-dir
 
+# Install peft and transformers for model merging
+RUN pip install peft transformers --no-cache-dir
+
 # Set working directory
 WORKDIR /workspace
 
