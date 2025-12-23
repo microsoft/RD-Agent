@@ -55,6 +55,9 @@ DATASETS: dict[str, DatasetConfig] = {
     "financeiq": DatasetConfig(
         repo_id="Duxiaoman-DI/FinanceIQ",
     )
+    "tableinstruct": DatasetConfig(	
+        repo_id="Multilingual-Multimodal-NLP/TableInstruct",
+    ),
 }
 
 

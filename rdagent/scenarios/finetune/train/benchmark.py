@@ -67,8 +67,15 @@ BENCHMARK_CONFIG_DICT = {
     "chemcotbench_mol_edit": "opencompass.configs.datasets.chemcotbench.chemcotbench_mol_edit_gen",
     "chemcotbench_mol_opt": "opencompass.configs.datasets.chemcotbench.chemcotbench_mol_opt_gen",
     "chemcotbench_reaction": "opencompass.configs.datasets.chemcotbench.chemcotbench_reaction_gen",
+    # TableBench - Table Question Answering Benchmarks
+    "tablebench_data_analysis": "opencompass.configs.datasets.tablebench.tablebench_data_analysis_gen",
+    "tablebench_fact_checking": "opencompass.configs.datasets.tablebench.tablebench_fact_checking_gen",
+    "tablebench_numerical_reasoning": "opencompass.configs.datasets.tablebench.tablebench_numerical_reasoning_gen",
+    "tablebench_visualization": "opencompass.configs.datasets.tablebench.tablebench_visualization_gen",
+    "tablebench_gen":"opencompass.configs.datasets.tablebench.tablebench_gen",
+    "tablebench_gen_base":"opencompass.configs.datasets.tablebench.tablebench_gen_base",
     # native opencompass benchmarks
-    "FinanceIQ_ppl": "opencompass.configs.datasets.FinanceIQ.FinanceIQ_gen_e0e6b5",
+    "FinanceIQ_ppl": "opencompass.configs.datasets.FinanceIQ.FinanceIQ_gen_e0e6b5"
 }
 
 def _download_FinanceIQ_ppl():
