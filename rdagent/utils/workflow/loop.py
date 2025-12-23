@@ -470,6 +470,8 @@ class LoopBase:
         if path.is_dir():
             if path.name != "__session__":
                 session_folder = path / "__session__"
+            else:
+                session_folder = path
 
             if not session_folder.exists():
                 raise FileNotFoundError(f"No session file found in {path}")
@@ -500,7 +502,7 @@ class LoopBase:
                 session.session_folder = checkout / "__session__"
                 logger.set_storages_path(checkout)
 
-            logger.info(f"Checkout session to {session_folder}")
+            logger.info(f"Checkout session to {session.session_folder.parent}")
 
         if session.timer.started:
             if replace_timer:

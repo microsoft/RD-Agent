@@ -97,19 +97,6 @@ BENCHMARK_DOWNLOAD_MAP = {
 }
 
 
-def _get_gpu_count() -> int:
-    device_info_json = json.loads(get_runtime_environment_by_env(get_ft_env(enable_cache=False)))  # disable cache; we may adjust GPU count during debugging
-    gpu_info = device_info_json.get("gpu", {})
-
-    if "gpu_count" in gpu_info:
-        return gpu_info["gpu_count"]
-
-    if "gpus" in gpu_info:
-        return len(gpu_info["gpus"])
-
-    return 0
-
-
 def get_model_inference_config(base_model_name: str, gpu_count: int) -> dict:
     """
     Load model inference configuration from YAML file.
