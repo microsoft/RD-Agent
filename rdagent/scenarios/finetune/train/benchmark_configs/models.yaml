@@ -41,6 +41,7 @@ models:
     max_seq_len: 40960
     max_out_len: 38912
     enable_thinking: true
+    gpu_memory_utilization: 0.7  # It does not use too much GPU memory. But it is worth 
 
   # Qwen2.5 series - standard configuration
   "Qwen/Qwen2.5-7B-Instruct":

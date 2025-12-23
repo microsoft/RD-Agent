@@ -20,7 +20,7 @@ template: |-
         # Limit dataset size for faster testing
         if 'reader_cfg' not in ds:
             ds['reader_cfg'] = {}
-        ds['reader_cfg']['test_range'] = ':{{ limit }}'
+        ds['reader_cfg']['test_range'] = '[:{{ limit }}]'
 
         # Sync to evaluator's dataset_cfg
         if 'eval_cfg' in ds and 'evaluator' in ds['eval_cfg']:
@@ -28,7 +28,7 @@ template: |-
             if isinstance(evaluator, dict) and 'dataset_cfg' in evaluator:
                 if 'reader_cfg' not in evaluator['dataset_cfg']:
                     evaluator['dataset_cfg']['reader_cfg'] = {}
-                evaluator['dataset_cfg']['reader_cfg']['test_range'] = ':{{ limit }}'
+                evaluator['dataset_cfg']['reader_cfg']['test_range'] = '[:{{ limit }}]'
     {% endif %}
     {% if num_runs and num_runs > 1 %}
         # Multiple runs (repeat each sample n times for averaging or pass@k)

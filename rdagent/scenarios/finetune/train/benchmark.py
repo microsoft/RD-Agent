@@ -14,7 +14,10 @@ FT_JUDGE_API_BASE="https://api.openai.com/v1"
 """
 
 import json
+import os
 import random
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -64,7 +67,47 @@ BENCHMARK_CONFIG_DICT = {
     "chemcotbench_mol_edit": "opencompass.configs.datasets.chemcotbench.chemcotbench_mol_edit_gen",
     "chemcotbench_mol_opt": "opencompass.configs.datasets.chemcotbench.chemcotbench_mol_opt_gen",
     "chemcotbench_reaction": "opencompass.configs.datasets.chemcotbench.chemcotbench_reaction_gen",
+    # native opencompass benchmarks
+    "FinanceIQ_ppl": "opencompass.configs.datasets.FinanceIQ.FinanceIQ_gen_e0e6b5",
 }
+
+def _download_FinanceIQ_ppl():
+    # download data from Duxiaoman-DI/FinanceIQ to benchmarks in file_path
+    target_dir = FT_RD_SETTING.file_path / "benchmarks" / "opencompass_data" / "data" / "FinanceIQ"
+    if not target_dir.exists():
+        logger.info(f"Downloading FinanceIQ dataset to {target_dir}")
+        target_dir.parent.mkdir(parents=True, exist_ok=True)
+        # Use git clone to download the dataset
+        subprocess.check_call(["git", "clone", "https://huggingface.co/datasets/Duxiaoman-DI/FinanceIQ", str(target_dir)])
+        
+        # Move dev and test folders to upper level (opencompass_data/data/FinanceIQ)
+        # The git clone creates a 'data' subfolder which we don't want
+        data_subdir = target_dir / "data"
+        if data_subdir.exists():
+            for folder in ["dev", "test"]:
+                src = data_subdir / folder
+                if src.exists():
+                    shutil.move(str(src), str(target_dir / folder))
+            shutil.rmtree(data_subdir)
+    else:
+        logger.info(f"FinanceIQ dataset already exists at {target_dir}")
+
+BENCHMARK_DOWNLOAD_MAP = {
+    "FinanceIQ_ppl": _download_FinanceIQ_ppl,
+}
+
+
+def _get_gpu_count() -> int:
+    device_info_json = json.loads(get_runtime_environment_by_env(get_ft_env(enable_cache=False)))  # disable cache; we may adjust GPU count during debugging
+    gpu_info = device_info_json.get("gpu", {})
+
+    if "gpu_count" in gpu_info:
+        return gpu_info["gpu_count"]
+
+    if "gpus" in gpu_info:
+        return len(gpu_info["gpus"])
+
+    return 0
 
 
 def get_model_inference_config(base_model_name: str, gpu_count: int) -> dict:
@@ -253,6 +296,11 @@ def run_benchmark(
     """
     # Load configurations
     dataset_imports = BENCHMARK_CONFIG_DICT[benchmark_name]
+    
+    # Auto download dependent data
+    if benchmark_name in BENCHMARK_DOWNLOAD_MAP:
+        BENCHMARK_DOWNLOAD_MAP[benchmark_name]()
+    
     model_is_lora = detect_model_type(model_path)
     inference_config = get_model_inference_config(model_name, gpu_count)
     workspace_path = Path(workspace_path)

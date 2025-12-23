@@ -287,6 +287,10 @@ def get_benchmark_env(
         try:
             (FT_RD_SETTING.file_path / "benchmarks").mkdir(parents=True, exist_ok=True)
             benchmark_volumes[str(FT_RD_SETTING.file_path.resolve())] = {"bind": "/finetune", "mode": "rw"}
+            benchmark_volumes[str((FT_RD_SETTING.file_path / "benchmarks").resolve())] = {
+                "bind": "/benchmarks",
+                "mode": "rw",
+            }
         except (PermissionError, OSError):
             pass
 

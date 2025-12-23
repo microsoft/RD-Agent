@@ -36,6 +36,7 @@ from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.finetune.scen.llama_factory_manager import LLaMAFactory_manager
+from rdagent.scenarios.finetune.scen.utils import FinetuneDatasetDescriptor
 from rdagent.utils.agent.tpl import T
 
 DIRNAME = Path(__file__).absolute().resolve().parent
@@ -127,6 +128,10 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             workspace_path=FT_PATHS.workspace,
             latest_code=workspace.file_dict.get(FT_DATA_SCRIPT_NAME, "") if workspace else "",
             latest_feedback=prev_task_feedback,
+            involved_dataset_folder_desc={
+                ds_name: FinetuneDatasetDescriptor().describe_dataset_folder( Path(FT_RD_SETTING.file_path) / "datasets" / ds_name, include_dataset_readme=True)
+                for ds_name in involving_datasets
+            },
         )
 
         try:

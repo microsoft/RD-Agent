@@ -242,6 +242,14 @@ data_coder:
     2. **Full mode (running phase):** `python {{ workspace_path }}process_data.py` - generates all samples for training
 
     Dataset files are located at: {{ datasets_path }}
+
+    ## Detailed Dataset Descriptions
+    {% for ds_name, ds_desc in involved_dataset_folder_desc.items() %}
+    ### Dataset: {{ ds_name }}
+    (Note: All file paths for this dataset are relative to `{{ datasets_path }}{{ ds_name }}/`)
+    {{ ds_desc }}
+    {% endfor %}
+
     Output file should be: {{ workspace_path }}data.json
 
     {% if latest_code %}
