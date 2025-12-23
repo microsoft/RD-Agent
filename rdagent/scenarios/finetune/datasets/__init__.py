@@ -52,6 +52,9 @@ DATASETS: dict[str, DatasetConfig] = {
     "deepscaler": DatasetConfig(
         repo_id="agentica-org/DeepScaleR-Preview-Dataset",
     ),
+    "financeiq": DatasetConfig(
+        repo_id="Duxiaoman-DI/FinanceIQ",
+    )
 }
 
 

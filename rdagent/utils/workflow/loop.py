@@ -465,28 +465,33 @@ class LoopBase:
             An instance of LoopBase with the loaded session.
         """
         path = Path(path)
+        session_folder = None
         # if the path is a directory, load the latest session
         if path.is_dir():
             if path.name != "__session__":
-                path = path / "__session__"
+                session_folder = path / "__session__"
 
-            if not path.exists():
+            if not session_folder.exists():
                 raise FileNotFoundError(f"No session file found in {path}")
 
             # iterate the dump steps in increasing order
-            files = sorted(path.glob("*/*_*"), key=lambda f: (int(f.parent.name), int(f.name.split("_")[0])))
+            files = sorted(session_folder.glob("*/*_*"), key=lambda f: (int(f.parent.name), int(f.name.split("_")[0])))
             path = files[-1]
             logger.info(f"Loading latest session from {path}")
+        else:
+            session_folder = path.parent.parent
+
         with path.open("rb") as f:
             session = cast(LoopBase, pickle.load(f))
 
         # set session folder
         if checkout:
             if checkout is True:
+                session.session_folder = session_folder
                 logger.set_storages_path(session.session_folder.parent)
-                max_loop = max(session.loop_trace.keys())
 
                 # truncate log storages after the max loop
+                max_loop = max(session.loop_trace.keys())
                 session.truncate_session_folder(max_loop, len(session.loop_trace[max_loop]) - 1)
                 logger.truncate_storages(session.loop_trace[max_loop][-1].end)
             else:
@@ -494,6 +499,8 @@ class LoopBase:
                 checkout.mkdir(parents=True, exist_ok=True)
                 session.session_folder = checkout / "__session__"
                 logger.set_storages_path(checkout)
+
+            logger.info(f"Checkout session to {session_folder}")
 
         if session.timer.started:
             if replace_timer:

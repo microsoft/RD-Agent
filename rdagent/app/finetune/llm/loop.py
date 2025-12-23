@@ -5,9 +5,12 @@ Standard RDLoop entry point for LLM fine-tuning, consistent with data science im
 """
 
 import asyncio
-from typing import Optional
+from pathlib import Path
+from typing import Optional, cast
 
 import fire
+import typer
+from typing_extensions import Annotated
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.log import rdagent_logger as logger
@@ -15,6 +18,8 @@ from rdagent.scenarios.finetune.loop import LLMFinetuneRDLoop
 
 
 def main(
+    path: Optional[str] = None,
+    checkout: Annotated[bool, typer.Option("--checkout/--no-checkout", "-c/-C")] = True,
     user_target_scenario: Optional[str] = None,
     benchmark: Optional[str] = None,
     benchmark_description: Optional[str] = None,
@@ -29,6 +34,12 @@ def main(
 
     Parameters
     ----------
+    path :
+        A path like `$LOG_PATH/__session__/1/0_propose`. This indicates that we restore the state after finishing step 0 in loop 1.
+    checkout :
+        Used to control the log session path. Boolean type, default is True.
+        - If True, the new loop will use the existing folder and clear logs for sessions after the one corresponding to the given path.
+        - If False, the new loop will use the existing folder but keep the logs for sessions after the one corresponding to the given path.
     dataset : str
         Dataset name for fine-tuning (e.g., 'shibing624/alpaca-zh')
     base_model : str, optional
@@ -46,6 +57,7 @@ def main(
         dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh --base-model Qwen/Qwen2.5-1.5B-Instruct
         dotenv run -- python rdagent/app/finetune/llm/loop.py --dataset shibing624/alpaca-zh    # TODO: not enabled yet
     """
+
     if user_target_scenario:
         FT_RD_SETTING.user_target_scenario = user_target_scenario
     if benchmark and benchmark_description:
@@ -71,9 +83,14 @@ def main(
     ), "Base model auto selection not yet supported, please specify via --base-model"
 
     logger.info(f"Starting LLM fine-tuning on dataset='{data_set_target}' with model='{model_target}'")
-    loop = LLMFinetuneRDLoop(FT_RD_SETTING)
+
+    if path is None:
+        loop = LLMFinetuneRDLoop(FT_RD_SETTING)
+    else:
+        loop = cast(LLMFinetuneRDLoop, LLMFinetuneRDLoop.load(str(path), checkout=checkout))
+
     asyncio.run(loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout))
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    typer.run(main)
