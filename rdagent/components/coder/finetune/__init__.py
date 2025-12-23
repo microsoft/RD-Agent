@@ -129,7 +129,9 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             latest_code=workspace.file_dict.get(FT_DATA_SCRIPT_NAME, "") if workspace else "",
             latest_feedback=prev_task_feedback,
             involved_dataset_folder_desc={
-                ds_name: FinetuneDatasetDescriptor().describe_dataset_folder( Path(FT_RD_SETTING.file_path) / "datasets" / ds_name, include_dataset_readme=True)
+                ds_name: FinetuneDatasetDescriptor().describe_dataset_folder(
+                    Path(FT_RD_SETTING.file_path) / "datasets" / ds_name, include_dataset_readme=True
+                )
                 for ds_name in involving_datasets
             },
         )
@@ -217,7 +219,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
                     display_name = "(root)" if task_name == "_root" else task_name
                     info_text += f"\n#### {display_name}\n"
                     # Show full paths for data files
-                    files = task_info.get('files', [])
+                    files = task_info.get("files", [])
                     info_text += f"- Files: {files}\n"
                     if files:
                         info_text += f"  - Full path example: `{dataset_full_path}{files[0]}`\n"

@@ -62,6 +62,26 @@ Common fields across all tasks:
 - `silver_answers`: Partially correct answers
 - `negative_answers`: Incorrect options
 
+## CoT Quality Assessment
+
+**IMPORTANT**: This dataset does NOT contain CoT annotations.
+
+| Dimension | Value |
+|-----------|-------|
+| baseline_quality | N/A (no CoT) |
+| task_type | legal reasoning |
+| polish_difficulty | high |
+
+**Baseline**: Raw data contains rejection reasons but NO step-by-step reasoning chains. Paper explicitly states *"lacked ground-truth CoTs"*. **You MUST generate CoT** for all samples before training.
+
+## Baseline Performance (CoT Prompting)
+
+| Task | Best Model | Score |
+|------|-----------|-------|
+| PAR4PC | Gemma-3-12B | 77.30% |
+| PI4PC | GPT-4o | 62.62% |
+| NOC4PC | Claude-3.7-Sonnet | 45.40% |
+
 ## Citation
 
 ```bibtex

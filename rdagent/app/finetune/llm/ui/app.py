@@ -67,7 +67,7 @@ def main():
     # ========== Sidebar ==========
     with st.sidebar:
         # View mode selection
-        view_mode = st.radio("View Mode", ["Single Task", "Job Summary"], horizontal=True)
+        view_mode = st.radio("View Mode", ["Job Summary", "Single Task"], horizontal=True)
 
         st.divider()
 

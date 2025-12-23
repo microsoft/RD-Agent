@@ -44,16 +44,6 @@ The dataset contains three key fields:
 - `solution`: Official solution to the problem, including LaTeX formatting and boxed final answers. If there is no solution, the `solution` field is an empty string
 - `answer`: The final mathematical result/answer, usually extracted from the solution
 
-### token statistics
-For column `solution`, the token statistics is:
-{
-  "empty_value_count": 32924,
-  "min": 2,
-  "max": 4264,
-  "p50": 373,
-  "p99": 1208
-}
-
 ## CoT Quality Assessment
 
 **IMPORTANT**: Raw data must be polished before training.
@@ -65,16 +55,6 @@ For column `solution`, the token statistics is:
 | polish_difficulty | high |
 
 **Baseline**: 82% empty `solution`, 18% too short (p50=373 tokens, summary-style). Need to generate exploratory CoT (For your reference, the length of a well-structured CoT is usually longer than 1/4 * the model max_position_embeddings tokens) for all samples.
-
-## Example
-```json
-{
-  "problem": "Let $a_n=6^{n}+8^{n}$. Determine the remainder upon dividing $a_{83}$ by $49$.",
-  "solution": "$6^{83} + 8^{83} = (6+8)(6^{82}-6^{81}8+\\ldots-8^{81}6+8^{82})$\nBecause $7|(6+8)$, we only consider $6^{82}-6^{81}8+\\ldots-8^{81}6+8^{82} \\pmod{7}$\n$6^{82}-6^{81}8+\\ldots-8^{81}6+8^{82} \\equiv (-1)^{82} - (-1)^{81}+ \\ldots - (-1)^1 + 1 = 83 \\equiv 6 \\pmod{7}$\n$6^{83} + 8^{83} \\equiv 14 \\cdot 6 \\equiv \\boxed{035} \\pmod{49}$",
-  "answer": "35"
-}
-```
-
 
 ## License
 

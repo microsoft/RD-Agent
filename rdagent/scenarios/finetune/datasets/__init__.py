@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
+from rdagent.scenarios.finetune.datasets.chemcot import normalize_rcr
 from rdagent.scenarios.finetune.download.hf import download_dataset
 
 
@@ -44,6 +45,7 @@ def _remove_eval_splits(out_dir: str) -> None:
 DATASETS: dict[str, DatasetConfig] = {
     "chemcot": DatasetConfig(
         repo_id="OpenMol/ChemCoTDataset",
+        post_download_fn=normalize_rcr,
     ),
     "panorama": DatasetConfig(
         repo_id="LG-AI-Research/PANORAMA",
@@ -54,7 +56,7 @@ DATASETS: dict[str, DatasetConfig] = {
     ),
     "financeiq": DatasetConfig(
         repo_id="Duxiaoman-DI/FinanceIQ",
-    )
+    ),
 }
 
 

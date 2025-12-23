@@ -71,6 +71,7 @@ BENCHMARK_CONFIG_DICT = {
     "FinanceIQ_ppl": "opencompass.configs.datasets.FinanceIQ.FinanceIQ_gen_e0e6b5",
 }
 
+
 def _download_FinanceIQ_ppl():
     # download data from Duxiaoman-DI/FinanceIQ to benchmarks in file_path
     target_dir = FT_RD_SETTING.file_path / "benchmarks" / "opencompass_data" / "data" / "FinanceIQ"
@@ -78,8 +79,10 @@ def _download_FinanceIQ_ppl():
         logger.info(f"Downloading FinanceIQ dataset to {target_dir}")
         target_dir.parent.mkdir(parents=True, exist_ok=True)
         # Use git clone to download the dataset
-        subprocess.check_call(["git", "clone", "https://huggingface.co/datasets/Duxiaoman-DI/FinanceIQ", str(target_dir)])
-        
+        subprocess.check_call(
+            ["git", "clone", "https://huggingface.co/datasets/Duxiaoman-DI/FinanceIQ", str(target_dir)]
+        )
+
         # Move dev and test folders to upper level (opencompass_data/data/FinanceIQ)
         # The git clone creates a 'data' subfolder which we don't want
         data_subdir = target_dir / "data"
@@ -91,6 +94,7 @@ def _download_FinanceIQ_ppl():
             shutil.rmtree(data_subdir)
     else:
         logger.info(f"FinanceIQ dataset already exists at {target_dir}")
+
 
 BENCHMARK_DOWNLOAD_MAP = {
     "FinanceIQ_ppl": _download_FinanceIQ_ppl,
@@ -283,11 +287,11 @@ def run_benchmark(
     """
     # Load configurations
     dataset_imports = BENCHMARK_CONFIG_DICT[benchmark_name]
-    
+
     # Auto download dependent data
     if benchmark_name in BENCHMARK_DOWNLOAD_MAP:
         BENCHMARK_DOWNLOAD_MAP[benchmark_name]()
-    
+
     model_is_lora = detect_model_type(model_path)
     inference_config = get_model_inference_config(model_name, gpu_count)
     workspace_path = Path(workspace_path)

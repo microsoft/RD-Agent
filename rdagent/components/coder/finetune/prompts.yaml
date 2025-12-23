@@ -114,18 +114,26 @@ data_coder:
       # Suppress LiteLLM debug info (IMPORTANT: add this at the top of your script)
       litellm.suppress_debug_info = True
 
-      # Chat Completion
+      # Chat Completion (drop_params=True is required to avoid UnsupportedParamsError)
       response = completion(
           model=<"model_name">,
           messages=[{"role": "user", "content": "Your prompt here"}],
+          drop_params=True,
       ).choices[0].message.content
       # Embedding
       response = embedding(
           model=<"embedding_model_name">,
           input="Your text here", # or a list of texts
+          drop_params=True,
       )
       embedding_result = [data["embedding"] for data in response.data]
       ```
+
+    ## CoT Parsing Guidelines
+    When parsing LLM-generated CoT responses:
+    - Do NOT require `<think>` tags - many models ignore this format instruction
+    - Instead, treat everything before the last `\\boxed{}` as the reasoning content
+    - If `<think>` tags are present, use them; otherwise fall back to this approach
 
     ## LLM Prompt Guidelines
     When constructing prompts for LLM API calls in your data processing script, follow these guidelines:
@@ -161,9 +169,10 @@ data_coder:
     **For Math/Code tasks (exploratory style):**
     ```
     Generate detailed step-by-step reasoning:
-    - Show your work at each stage with verification
+    - Show complete work at each stage with verification
     - When stuck, backtrack and try alternative approaches
-    - Target length: 5K+ tokens for complex problems
+    - End with the final answer in \\boxed{} format
+    - NOTE: Do NOT require <think> tags - many models ignore them. Instead, treat all text before \\boxed{} as reasoning.
     ```
 
     **For Chemistry/Structured tasks:**

@@ -719,9 +719,7 @@ class FinetuneDatasetDescriptor:
             data = _load_dataset_for_stats(file_paths)
             info["sample_count"] = len(data)
             info["column_stats"] = _compute_column_stats(data)
-            info["samples"] = _truncate_long_values(
-                self._extract_samples_for_template(file_paths, max_samples=3)
-            )
+            info["samples"] = _truncate_long_values(self._extract_samples_for_template(file_paths, max_samples=3))
             total_samples += info["sample_count"]
             total_size += sum(f.stat().st_size for f in file_paths)
             # Remove file_paths as it's not JSON serializable and not needed in output
@@ -857,9 +855,9 @@ def generate_dataset_info_config(target_dataset_list: list, ft_file_path: str, e
     new_config = {}
 
     # Determine which datasets to process
-    datasets_to_process = remain_dataset_list if not target_dataset_list else [
-        d for d in target_dataset_list if d in remain_dataset_list
-    ]
+    datasets_to_process = (
+        remain_dataset_list if not target_dataset_list else [d for d in target_dataset_list if d in remain_dataset_list]
+    )
 
     for dataset_name in datasets_to_process:
         dataset_dir = datasets_root / dataset_name

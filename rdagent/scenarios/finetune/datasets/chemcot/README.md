@@ -19,6 +19,20 @@ Chemical reasoning dataset with Chain-of-Thought annotations from [ChemCoTBench]
 
 **Repository**: [OpenMol/ChemCoTDataset](https://huggingface.co/datasets/OpenMol/ChemCoTDataset)
 
+## Overview
+
+The **ChemCoTDataset** provides ~23K high-quality chain-of-thought samples for training chemical reasoning models. CoT annotations were distilled from state-of-the-art reasoning models (Gemini-2.5-pro, DeepSeek-R1, Claude-3.7-sonnet-thinking) and validated by 13 chemistry PhD candidates with >90% accuracy.
+
+### Dataset Scale
+
+| Category | Subtasks | Samples |
+|----------|----------|---------|
+| mol_und | fg_count, ring_count, ring_system_scaffold, Murcko_scaffold | 6,319 |
+| mol_edit | add, delete, sub | 4,497 |
+| mol_opt | drd, gsk, jnk, qed, solubility, logp | 5,587 |
+| rxn | fs_by_product, fs_major_product, rcr | 6,820 |
+| **Total** | **16 subtasks** | **23,223** |
+
 ## Tasks
 
 ### 1. Molecular Understanding (mol_und)
@@ -75,6 +89,18 @@ Chemical reasoning dataset with Chain-of-Thought annotations from [ChemCoTBench]
 | `struct_cot` | string | Structured chain-of-thought reasoning |
 | `raw_cot` | string | Raw chain-of-thought annotation |
 | `meta` | object | Additional metadata |
+
+## CoT Quality Assessment
+
+**IMPORTANT**: Distilled CoT may require domain refinement.
+
+| Dimension | Value |
+|-----------|-------|
+| baseline_quality | medium-high |
+| task_type | chemistry |
+| polish_difficulty | medium |
+
+**Baseline**: CoT distilled from Gemini-2.5-pro/DeepSeek-R1/Claude, validated by 13 chemistry PhD candidates (>90% accuracy). Paper notes: *"distillation strategy falters in chemistry"* - consider expert refinement for optimal results.
 
 ## License
 
