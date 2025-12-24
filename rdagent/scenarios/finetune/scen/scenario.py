@@ -51,7 +51,8 @@ class LLMFinetuneScen(DataScienceScen):
         # timeout tracking
         self.timeout_increase_count = 0
 
-        self.device_info = get_runtime_environment_by_env(get_ft_env())
+        # NOTE: we disable the cache for environment. in case of changing cuda config
+        self.device_info = get_runtime_environment_by_env(get_ft_env(enable_cache=False))
         self.model_info = FinetuneDatasetDescriptor().describe_model(self.base_model)
 
         # Initialize memory estimator
