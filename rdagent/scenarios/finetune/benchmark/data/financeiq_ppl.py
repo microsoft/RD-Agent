@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.finetune.datasets.financeiq.split import split_financeiq_dataset
 
 
 def download_financeiq_dataset() -> None:
@@ -46,6 +47,9 @@ def download_financeiq_dataset() -> None:
             if src.exists():
                 shutil.move(str(src), str(target_dir / folder))
         shutil.rmtree(data_subdir)
+    
+    # Apply split for benchmark (keep test set only)
+    split_financeiq_dataset(str(target_dir), split="test")
 
 
 def extract_error_samples(results_base: Path, max_samples: int = 10) -> List[Dict[str, Any]]:
@@ -91,50 +95,45 @@ def extract_error_samples(results_base: Path, max_samples: int = 10) -> List[Dic
 
     # Iterate through all FinanceIQ subject JSON files
     for result_file in sorted(results_dir.glob("*.json")):
-        try:
-            with open(result_file) as f:
-                data = json.load(f)
+        with open(result_file) as f:
+            data = json.load(f)
 
-            details = data.get("details", {})
-            if not isinstance(details, dict):
+        details = data.get("details", {})
+        if not isinstance(details, dict):
+            continue
+
+        # Each key in details except "type" is a sample index
+        for key, sample in details.items():
+            if key == "type" or not isinstance(sample, dict):
                 continue
 
-            # Each key in details except "type" is a sample index
-            for key, sample in details.items():
-                if key == "type" or not isinstance(sample, dict):
-                    continue
+            pred = sample.get("predictions")
+            gold = sample.get("references")
 
-                pred = sample.get("predictions")
-                gold = sample.get("references")
+            # Skip if either is missing
+            if pred is None or gold is None:
+                continue
 
-                # Skip if either is missing
-                if pred is None or gold is None:
-                    continue
+            # Only keep incorrect predictions
+            if str(pred) == str(gold):
+                continue
 
-                # Only keep incorrect predictions
-                if str(pred) == str(gold):
-                    continue
+            prompt_list = sample.get("prompt", [])
+            question = "N/A"
+            if isinstance(prompt_list, list) and prompt_list:
+                # Take the last HUMAN message as the question
+                for msg in reversed(prompt_list):
+                    if isinstance(msg, dict) and msg.get("role") == "HUMAN":
+                        question = msg.get("prompt", "N/A")
+                        break
 
-                prompt_list = sample.get("prompt", [])
-                question = "N/A"
-                if isinstance(prompt_list, list) and prompt_list:
-                    # Take the last HUMAN message as the question
-                    for msg in reversed(prompt_list):
-                        if isinstance(msg, dict) and msg.get("role") == "HUMAN":
-                            question = msg.get("prompt", "N/A")
-                            break
-
-                error_samples.append(
-                    {
-                        "question": question,
-                        "gold": str(gold),
-                        "model_output": str(pred),
-                    }
-                )
-
-        except (json.JSONDecodeError, OSError) as e:
-            logger.warning(f"Failed to parse FinanceIQ_ppl result file {result_file}: {e}")
-            continue
+            error_samples.append(
+                {
+                    "question": question,
+                    "gold": str(gold),
+                    "model_output": str(pred),
+                }
+            )
 
     if not error_samples:
         logger.info("No FinanceIQ_ppl error samples found")

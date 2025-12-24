@@ -15,6 +15,7 @@ from typing import Callable, Optional
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.scenarios.finetune.datasets.chemcot import normalize_rcr
+from rdagent.scenarios.finetune.datasets.financeiq.split import split_financeiq_dataset
 from rdagent.scenarios.finetune.download.hf import download_dataset
 
 
@@ -56,6 +57,7 @@ DATASETS: dict[str, DatasetConfig] = {
     ),
     "financeiq": DatasetConfig(
         repo_id="Duxiaoman-DI/FinanceIQ",
+        post_download_fn=lambda out_dir: split_financeiq_dataset(out_dir, split="train"),
     ),
     "tableinstruct": DatasetConfig(
         repo_id="Multilingual-Multimodal-NLP/TableInstruct",
