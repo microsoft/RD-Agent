@@ -83,5 +83,35 @@
   "chemcotbench_reaction": {
     "category": "chemistry",
     "description": "Improve chemical reaction prediction: predict reaction products, mechanisms, and conditions with detailed reasoning about bond breaking/forming and electron flow"
+  },
+
+  "tablebench_data_analysis": {
+    "category": "table_qa",
+    "description": "Improve table-based data analysis: impact analysis, correlation analysis, trend forecasting, and statistical analysis on tabular data"
+  },
+  "tablebench_fact_checking": {
+    "category": "table_qa",
+    "description": "Improve fact verification against table data: validate statements by cross-referencing with tabular information"
+  },
+  "tablebench_numerical_reasoning": {
+    "category": "table_qa",
+    "description": "Improve numerical reasoning on tables: arithmetic operations, aggregations, and comparative analysis"
+  },
+  "tablebench_visualization": {
+    "category": "table_qa",
+    "description": "Improve chart generation from tables: create bar charts, line charts, pie charts, and scatter plots based on tabular data"
+  },
+  "tablebench_gen": {
+    "category": "table_qa",
+    "description": "Improve overall table question answering across all task categories (fact checking, numerical reasoning, data analysis, visualization)"
+  },
+  "tablebench_gen_base": {
+    "category": "table_qa",
+    "description": "Improve base table question answering capabilities with simplified prompts"
+  },
+
+  "FinanceIQ_ppl": {
+    "category": "finance",
+    "description": "Improve financial question answering capabilities including accounting, auditing, economics, finance, insurance, securities, and tax domains"
   }
 }

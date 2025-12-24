@@ -101,7 +101,27 @@ for ((i=0; i<NUM_TASKS; i++)); do
     echo ""
 
     # Stagger starts
-    [[ $i -lt $((NUM_TASKS - 1)) ]] && sleep $STAGGER_DELAY
+    if [[ $i -eq 0 ]]; then
+        # First task: wait for initialization
+        # Get FT_FILE_PATH from .env or use default
+        FT_FILE_PATH=$(grep -E "^FT_FILE_PATH=" "$ENV_FILE" | cut -d= -f2 | tr -d '"' || echo "")
+        [[ -z "$FT_FILE_PATH" ]] && FT_FILE_PATH="$RDAGENT_DIR/git_ignore_folder/finetune"
+        DATASET_INFO="$FT_FILE_PATH/datasets/dataset_info.json"
+
+        echo "  Waiting for scenario initialization (dataset_info.json)..."
+        while [[ ! -f "$DATASET_INFO" ]]; do
+            sleep 5
+        done
+        echo "  Scenario initialized!"
+
+        echo "  Waiting for llm_finetune conda env..."
+        while ! conda run -n llm_finetune python -c "import requests" 2>/dev/null; do
+            sleep 10
+        done
+        echo "  Environment ready!"
+    elif [[ $i -lt $((NUM_TASKS - 1)) ]]; then
+        sleep $STAGGER_DELAY
+    fi
 done
 
 echo "=============================================="
