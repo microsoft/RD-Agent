@@ -152,8 +152,9 @@ unified_hypothesis_gen:
     **IMPORTANT: CoT quality ≠ CoT length. Check README's `CoT Quality Assessment` section first!**
 
     Different datasets have different quality characteristics:
-    - **High-quality structured CoT** (e.g., ChemCoTBench): Short but structured (300 tokens) can be effective
-    - **Low-quality or missing CoT** (e.g., DeepScaler): 82% empty solutions need generation
+    - **High-quality structured CoT**: Well-organized reasoning with clear step separation
+    - **Low-quality CoT**: Reasoning exists but lacks depth or coherence
+    - **Missing CoT**: Empty or minimal solutions that need generation
 
     **Quality Decision Framework:**
     1. **All raw data MUST be polished** - never use directly without enhancement
