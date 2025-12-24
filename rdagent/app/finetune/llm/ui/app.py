@@ -51,12 +51,13 @@ def get_job_options(base_path: Path) -> list[str]:
             except PermissionError:
                 pass
 
-    # Sort job dirs by mtime descending
+    # Sort job dirs by mtime descending (newest first)
     job_dirs.sort(key=lambda x: x[1], reverse=True)
 
+    # Add job dirs first, then root tasks at the end
+    options.extend([name for name, _ in job_dirs])
     if has_root_tasks:
         options.append(". (Current)")
-    options.extend([name for name, _ in job_dirs])
 
     return options
 
@@ -90,6 +91,8 @@ def main():
                     is_root_job = True
                 else:
                     job_folder = str(base_path / selected_job)
+                # Save to session_state for Single Task mode
+                state.selected_job_folder = job_folder
             else:
                 st.warning("No jobs found in this directory")
                 job_folder = base_folder
@@ -99,7 +102,9 @@ def main():
         else:
             # Single Task mode
             st.header("Session")
-            log_folder = st.text_input("Log Folder", value=default_log)
+            # Use job_folder from Job Summary mode if available
+            default_path = getattr(state, "selected_job_folder", default_log)
+            log_folder = st.text_input("Log Folder", value=default_path)
             log_path = Path(log_folder)
 
             sessions = get_valid_sessions(log_path)
