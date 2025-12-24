@@ -784,9 +784,9 @@ class QlibCondaEnv(LocalEnv[QlibCondaConf]):
 
 
 # ========== Conda Environment Configuration Loader ==========
-# Config files location: rdagent/scenarios/finetune/conda/
+# Config files location: rdagent/scenarios/finetune/env/conda/
 
-FT_CONDA_CONFIG_DIR = Path(__file__).parent.parent / "scenarios" / "finetune" / "conda"
+FT_CONDA_CONFIG_DIR = Path(__file__).parent.parent / "scenarios" / "finetune" / "env" / "conda"
 
 # Track which conda environments have been prepared in this process
 # This avoids redundant pip install checks that produce verbose output
@@ -1005,7 +1005,7 @@ class FTDockerConf(DockerConf):
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = (
-        Path(__file__).parent.parent / "scenarios" / "finetune" / "docker" / "llm_finetune_docker"
+        Path(__file__).parent.parent / "scenarios" / "finetune" / "env" / "docker" / "llm_finetune"
     )
     image: str = "local_llm_finetune:latest"
     mount_path: str = "/workspace/"
@@ -1034,7 +1034,7 @@ class BenchmarkDockerConf(DockerConf):
     model_config = SettingsConfigDict(env_prefix="BENCHMARK_DOCKER_")
 
     build_from_dockerfile: bool = True
-    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "finetune" / "docker" / "opencompass"
+    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "finetune" / "env" / "docker" / "opencompass"
     image: str = "rdagent-opencompass:latest"
     mount_path: str = "/workspace/"
     default_entry: str = "opencompass --help"

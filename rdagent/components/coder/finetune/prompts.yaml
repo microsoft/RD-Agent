@@ -175,11 +175,16 @@ data_coder:
 
     # Part 6: CoT Processing Guide
 
-    ## 6.1 CoT Parsing Rules
-    When parsing LLM-generated CoT responses:
-    - Do NOT require `<think>` tags - many models ignore this format instruction
-    - Instead, treat everything before the last `\\boxed{}` as the reasoning content
-    - If `<think>` tags are present, use them; otherwise fall back to this approach
+    ## 6.1 CoT Format Rules (CRITICAL)
+    **GENERATION CONSTRAINT - When calling LLM to generate CoT:**
+    - NEVER ask for `<think>...</think>` tags in your prompts - most models ignore or refuse this format
+    - Simply ask: "Provide detailed step-by-step reasoning, then give the final answer in \\boxed{}"
+    - Good prompt example: "Solve step by step with verification. End with \\boxed{answer}"
+    - Bad prompt example: "Output must contain <think>...</think> block" (DO NOT USE)
+
+    **PARSING - When parsing LLM-generated CoT responses:**
+    - Treat everything before the last `\\boxed{}` as the reasoning content
+    - If `<think>` tags happen to be present, you can use them; otherwise use the fallback above
 
     ## 6.2 General Prompt Guidelines
     When constructing prompts for LLM API calls in your data processing script:

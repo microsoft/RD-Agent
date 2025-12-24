@@ -85,9 +85,9 @@ class FTPathConfig:
         if self.is_docker:
             return "/app/examples/deepspeed/"
         # Conda mode: use bundled deepspeed configs in project
-        # Path: conf.py -> finetune -> coder -> components -> rdagent -> scenarios/finetune/deepspeed
+        # Path: conf.py -> finetune -> coder -> components -> rdagent -> scenarios/finetune/env/conda/deepspeed
         rdagent_root = Path(__file__).parent.parent.parent.parent
-        deepspeed_path = rdagent_root / "scenarios" / "finetune" / "deepspeed"
+        deepspeed_path = rdagent_root / "scenarios" / "finetune" / "env" / "conda" / "deepspeed"
         return str(deepspeed_path) + "/" if deepspeed_path.exists() else ""
 
 

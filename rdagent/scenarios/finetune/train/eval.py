@@ -18,7 +18,7 @@ from rdagent.components.coder.finetune.unified_validator import LLMConfigValidat
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.finetune.train.benchmark import run_benchmark
+from rdagent.scenarios.finetune.benchmark import run_benchmark
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 
