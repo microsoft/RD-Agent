@@ -55,11 +55,14 @@ EXCLUDED_PARAM_PATTERNS = [
     r"^use_cpu$",  # CPU-only training
     r"^use_ipex$",  # Intel Extension for PyTorch
     r"^jit_mode_eval$",  # PyTorch JIT for inference
-    # Third-party logging
+    # Third-party logging & reporting tools
     r"^ray_",  # Ray hyperparameter search
     r"^swanlab_",  # SwanLab logging
     r"^use_swanlab$",  # SwanLab toggle
     r"^trackio_",  # Trackio logging
+    r"^logging_dir$",  # Tensorboard log directory
+    r"^report_to$",  # Logging integrations (wandb, tensorboard, mlflow, comet)
+    r"^run_name$",  # Run name for logging tools (wandb, mlflow, trackio, comet, swanlab)
     # RLHF/DPO (not for SFT)
     r"^pref_",  # Preference learning (DPO/KTO/ORPO/SimPO)
     r"^dpo_",  # DPO specific
