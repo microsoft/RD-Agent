@@ -59,7 +59,7 @@ DATASETS: dict[str, DatasetConfig] = {
     ),
     "tableinstruct": DatasetConfig(
         repo_id="Multilingual-Multimodal-NLP/TableInstruct",
-    ),
+    )
 }
 
 
