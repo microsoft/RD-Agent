@@ -97,8 +97,6 @@ class LLMFinetuneExpGen(ExpGen):
             shared_params=shared_params,
             methods_specific_params=methods_specific_params,
             select_model=base_model is None,
-            strong_models=FT_RD_SETTING.strong_models,
-            weak_models=FT_RD_SETTING.weak_models,
         )
 
         user_prompt = T(".prompts:unified_hypothesis_gen.user_prompt").r(trace=trace)

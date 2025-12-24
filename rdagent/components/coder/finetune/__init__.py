@@ -118,9 +118,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             api_max_workers=FT_RD_SETTING.api_max_workers,
             datasets_path=FT_PATHS.datasets,
             workspace_path=FT_PATHS.workspace,
-            strong_models=FT_RD_SETTING.strong_models,
-            weak_models=FT_RD_SETTING.weak_models,
-            embedding_models=FT_RD_SETTING.embedding_models,
         )
 
         user_prompt = T(".prompts:data_coder.user").r(

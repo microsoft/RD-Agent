@@ -18,6 +18,9 @@ llamafactory==0.9.3
 # FlashAttention-2: installed separately via llm_finetune_flash_attn.txt
 # (requires torch installed first, and --no-build-isolation flag)
 
+# Transformers library (for tokenizer)
+transformers
+
 # Additional dependencies (matches Dockerfile line 17)
 bitsandbytes>=0.39.0
 mixture-of-depth>=1.1.6

@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 from typing import Literal
@@ -231,6 +232,10 @@ def get_data_processing_env(
     # Read OPENAI_API_BASE from env, but pass as OPENAI_BASE_URL (OpenAI SDK expects this name)
     if api_base := os.getenv("OPENAI_API_BASE"):
         llm_env_vars["OPENAI_BASE_URL"] = api_base
+
+    # Pass model pools as JSON environment variables for load balancing
+    llm_env_vars["STRONG_MODEL_POOL"] = json.dumps(FT_RD_SETTING.strong_models)
+    llm_env_vars["WEAK_MODEL_POOL"] = json.dumps(FT_RD_SETTING.weak_models)
 
     return env, llm_env_vars
 

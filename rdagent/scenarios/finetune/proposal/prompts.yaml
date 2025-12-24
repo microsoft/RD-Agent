@@ -31,7 +31,7 @@ unified_hypothesis_gen:
     - Category/difficulty balancing: Adjust proportions across categories or difficulty levels
 
     **Reasoning-Specific Methods**:
-    - Difficulty-based filtering: Use weak model (`{{ weak_models | join("` / `") }}`) to filter easy problems, strong model (`{{ strong_models | join("` / `") }}`) to identify boundary-difficulty problems (pass@32=1-3)
+    - Difficulty-based filtering: Assess problem difficulty relative to the base model (the model to be fine-tuned). Base model is not available, so use proxy metrics like reasoning path complexity (CoT length, backtracking steps) or cross-model disagreement (strong model correct + weak model incorrect → moderate difficulty). Focus on "boundary-difficulty" problems that are challenging but solvable for the base model.
     - Answer-consistency filtering: Keep samples where majority-vote answer matches target answer
     - CoT quality scoring: Construct a scoring function to score the quality of the CoT, and filter out the low-quality CoT
     - Structural health check: Keep CoT with progressive depth, backtracking, and verification nodes; reject wide-shallow or straight-line reasoning
@@ -39,15 +39,19 @@ unified_hypothesis_gen:
 
     **Note**: You should try to make use of the datasets shown above to generate new training datasets. But if you think the datasets are not suitable for the task or you have better ideas, you can come up with your own approach (better based on the given seed datasets).
 
-    ## 1.2 LLM Endpoints
+    ## 1.2 LLM Capabilities
 
-    Most processing methods above require LLM API calls. Use these exact model names in your task specification:
+    Most processing methods above require LLM API calls. The system provides model pools with load balancing:
 
-    **Available Models:**
-    - `{{ weak_models | join("` / `") }}`: Lightweight tasks (simple filtering, basic format conversion) - cost-effective alternative
-    - `{{ strong_models | join("` / `") }}`:
-      - Basic tasks (filtering, deduplication, format conversion, quality scoring)
-      - Complex tasks (CoT generation/rewriting, reasoning expansion, difficult problem solving)
+    **Model Tiers (selected automatically at runtime):**
+    - **Strong models**: Complex tasks requiring advanced reasoning
+      - CoT generation/rewriting, reasoning expansion, difficult problem solving
+      - Mathematical reasoning, code generation, complex analysis
+    - **Weak/Fast models**: Simple, high-volume tasks
+      - Simple filtering, basic format conversion, quality scoring
+      - Deduplication, format validation
+
+    **Note**: Do NOT specify exact model names in your hypothesis. Instead, describe which tier (strong/weak) should be used for each processing step. The actual model selection and load balancing is handled automatically by the system at runtime.
 
     ## 1.3 Data Quality Guide
 
@@ -125,7 +129,7 @@ unified_hypothesis_gen:
     - Maximize useful CoT length within constraints
     - Never compress long CoT just to fit arbitrary limits
     - Expand short CoT when context budget allows
-    - Use `{{ strong_models | join("` / `") }}` for generating rich, detailed reasoning
+    - Use strong models for generating rich, detailed reasoning
 
     ## 1.5 Output Format
 

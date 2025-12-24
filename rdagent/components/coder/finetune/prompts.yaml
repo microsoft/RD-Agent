@@ -44,10 +44,10 @@ data_coder:
     Before writing the final data.json, implement these validations:
 
     ### 2.3.1 Answer Consistency Check (CRITICAL)
-    - Verify reasoning leads to stated answer
-    - For math: check calculation matches `\boxed{}` result
-    - For chemistry: verify molecular transformations are valid
-    - Filter samples with reasoning-answer mismatch
+    - Verify generated answer matches expected answer
+    - Prefer string normalization over LLM when feasible
+    - Answer format varies by task (e.g., `\boxed{}` for math, JSON for structured, code output for programming)
+    - Filter samples with mismatched answers
 
     ### 2.3.2 Over-length Filtering (MANDATORY)
     - Filter out samples where `total_tokens > max_position_embeddings`
@@ -121,56 +121,51 @@ data_coder:
 
     # Part 5: LLM API Usage Guide
 
-    ## 5.1 Environment Variables
-    All models use the same API configuration via environment variables (already set):
-    - `OPENAI_API_KEY`: API key for authentication
-    - `OPENAI_BASE_URL`: API base URL
+    ## 5.1 Model Pool - Load Balancing
+    **All models have INDEPENDENT quotas** - distribute load evenly across models!
 
-    ## 5.2 Available Models
-    **Chat Completion & Text Completion Models:**
-    - Strong models: {{ strong_models | join(", ") }} (for complex tasks)
-    - Weak but fast models: {{ weak_models | join(", ") }} (for simple tasks)
-
-    **Embedding Models:**
-    - Embedding model: {{ embedding_models }}
-
-    ## 5.3 Concurrency Requirements
-    - **Use concurrent execution for LLM API calls** to maximize throughput
-    - **Required pattern** - use `ThreadPoolExecutor(max_workers={{ api_max_workers }})`:
-      - This value ({{ api_max_workers }}) is configured based on the target API's capacity
-      - DO NOT hardcode different values or use dynamic formulas
-      ```python
-      with ThreadPoolExecutor(max_workers={{ api_max_workers }}) as executor:
-          futures = {executor.submit(call_api, item): item for item in items}
-          for future in as_completed(futures):
-              result = future.result()
-      ```
-    - **DO NOT process LLM calls sequentially** - always batch and parallelize
-    - Implement retry logic (5 retries recommended) for robustness
-    - All models share the same api_key and api_base
-
-    ## 5.4 litellm Usage Example
-    We support and recommend using litellm to call the APIs:
     ```python
-    import litellm
-    from litellm import completion, embedding
+    import os, json
+    import litellm; litellm.suppress_debug_info = True
+    from litellm import completion
 
-    # Suppress LiteLLM debug info (IMPORTANT: add this at the top of your script)
-    litellm.suppress_debug_info = True
+    STRONG_MODELS = json.loads(os.getenv("STRONG_MODEL_POOL", "[]"))  # CoT generation
+    WEAK_MODELS = json.loads(os.getenv("WEAK_MODEL_POOL", "[]"))      # simple/fast tasks
 
-    # Chat Completion (drop_params=True is required to avoid UnsupportedParamsError)
-    response = completion(
-        model=<"model_name">,
-        messages=[{"role": "user", "content": "Your prompt here"}],
-        drop_params=True,
-    ).choices[0].message.content
-    # Embedding
-    response = embedding(
-        model=<"embedding_model_name">,
-        input="Your text here", # or a list of texts
-        drop_params=True,
-    )
-    embedding_result = [data["embedding"] for data in response.data]
+    # Default timeout for API calls (in seconds)
+    API_TIMEOUT = 120
+
+    def call_llm(messages, models, start_idx=0, timeout=API_TIMEOUT):
+        """Load-balanced LLM call with timeout. Use start_idx to distribute across models."""
+        if not models:
+            raise RuntimeError("Model pool is empty. Set STRONG_MODEL_POOL/WEAK_MODEL_POOL env vars.")
+        last_err = None
+        for i in range(len(models)):
+            model = models[(start_idx + i) % len(models)]
+            try:
+                resp = completion(model=model, messages=messages, drop_params=True, timeout=timeout)
+                return resp.choices[0].message.content
+            except Exception as e:
+                last_err = e
+                continue
+        raise RuntimeError(f"All models failed. Last error: {last_err}")
+    ```
+
+    ## 5.2 Timeout & Efficiency (CRITICAL)
+    - Set `timeout=120` for API calls to prevent blocking on complex problems
+    - If timeout after retries, skip sample and continue
+    - Prefer string/regex over LLM for validation (answer check, structure check) when possible
+
+    ## 5.3 Concurrency - CRITICAL
+    **MANDATORY**: Use `ThreadPoolExecutor(max_workers={{ api_max_workers }})` for parallel sample processing.
+    - DO NOT use `os.cpu_count()` - it limits parallelism unnecessarily
+    - The value {{ api_max_workers }} is intentional for maximizing API throughput
+    - Pass `start_idx=sample_index % len(models)` to distribute load evenly
+
+    ```python
+    with ThreadPoolExecutor(max_workers={{ api_max_workers }}) as executor:  # NOT os.cpu_count()!
+        futures = {executor.submit(process_sample, i, sample, i % len(STRONG_MODELS)): i
+                   for i, sample in enumerate(samples)}
     ```
 
     # Part 6: CoT Processing Guide
@@ -232,18 +227,15 @@ data_coder:
     ```
 
     ## 6.4 Post-Processing Validation
-    After processing CoT data, implement these validations:
-    - **Mandatory validations**: See Part 2.3 (Answer Consistency Check + Over-length Filtering)
+    Implement validations per Part 2.3. Prefer string/regex for efficiency:
+    - **Answer check**: Normalize and compare strings (extract `\boxed{}`, strip whitespace)
+    - **Structure check**: `"step" in text.lower() or text.count("\n") >= 3`
+    - **Length check**: Estimate tokens as `len(text) / 4`
 
-    ### 6.4.1 Structure Check (Task-adaptive)
-    - Math/Code: Look for step markers, verification statements
-    - Chemistry: Look for JSON structure or "Step N:" format
-    - General: No strict structure requirement
-
-    ### 6.4.2 Task-Adaptive Length Check
-    - Math/Code: Warn if < 500 tokens (may need expansion)
-    - Chemistry/Structured: OK if 100-1000 tokens with good structure
-    - General: No length requirement
+    Task-adaptive thresholds:
+    - Math/Code: Warn if reasoning < 500 tokens
+    - Chemistry: 100-1000 tokens OK if well-structured
+    - General: No strict requirements
 
     # Part 7: Previous Failed Attempts
     {% if queried_former_failed_knowledge|length != 0 %}
