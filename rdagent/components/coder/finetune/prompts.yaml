@@ -65,14 +65,25 @@ data_coder:
 
     ## 3.2 Debug Mode (CRITICAL)
     Your script MUST support `--debug` for fast validation:
-    - `--debug`: Randomly sample ~100 raw samples, print estimated full output
-    - No flag: Process ALL raw samples, print actual total
+    - Sampling/filtering is pure code operation (no LLM), so it runs completely in both modes
+    - `--debug`: Process ~100 samples through LLM pipeline, print actual sampled total
+    - No flag: Process ALL sampled data through LLM pipeline
 
     ### Debug Mode Example
     ```python
     import random
-    DEBUG_RAW_LIMIT = 100
-    samples = random.sample(raw_data, min(DEBUG_RAW_LIMIT, len(raw_data))) if args.debug else raw_data
+
+    # Step 1: Run complete sampling/filtering (fast, no LLM) - runs in BOTH modes
+    sampled_data = apply_sampling_strategy(raw_data)  # e.g., 50000 → 2000
+
+    # Step 2: Limit LLM processing in debug mode only
+    if args.debug:
+        samples_to_process = random.sample(sampled_data, min(100, len(sampled_data)))
+    else:
+        samples_to_process = sampled_data
+
+    # Step 3: Report actual sampled count (not estimated)
+    print(f"Sampled data: {len(sampled_data)}")  # Actual training data size
     ```
 
     ## 3.3 Logging Convention
@@ -86,16 +97,15 @@ data_coder:
     # Debug mode (--debug):
     ========== SUMMARY ==========
     Total output samples: {actual_output}
-    Raw samples processed: {processed_count}
-    Raw samples total: {total_raw}
-    Estimated full output: ~{actual_output * total_raw / processed_count}
+    Sampled from raw: {sampled_count} / {raw_count}
+    Debug samples processed: {debug_processed_count}
     Output file: {{ workspace_path }}data.json
     =============================
 
     # Full mode (no --debug):
     ========== SUMMARY ==========
     Total output samples: {actual_output}
-    Raw samples total: {total_raw}
+    Sampled from raw: {sampled_count} / {raw_count}
     Output file: {{ workspace_path }}data.json
     =============================
     ```
