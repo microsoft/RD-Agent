@@ -40,16 +40,23 @@ data_coder:
     ]
     ```
 
-    ## 2.3 Data Validation Rules
+    ## 2.3 Data Quality Awareness (IMPORTANT)
+    - Raw datasets may contain low-quality, noisy, or incorrect samples
+    - It is better to DISCARD questionable samples than to include them in training data
+    - When encountering samples that are ambiguous, malformed, or have inconsistent answers, prefer filtering them out
+    - A smaller but high-quality dataset is more valuable than a larger noisy one
+    - High filtering rate is acceptable and expected - it means the script is doing quality control properly
+
+    ## 2.4 Data Validation Rules
     Before writing the final data.json, implement these validations:
 
-    ### 2.3.1 Answer Consistency Check (CRITICAL)
+    ### 2.4.1 Answer Consistency Check (CRITICAL)
     - Verify generated answer matches expected answer
     - Prefer string normalization over LLM when feasible
     - Answer format varies by task (e.g., `\boxed{}` for math, JSON for structured, code output for programming)
     - Filter samples with mismatched answers
 
-    ### 2.3.2 Over-length Filtering (MANDATORY)
+    ### 2.4.2 Over-length Filtering (MANDATORY)
     - Filter out samples where `total_tokens > max_position_embeddings`
     - Do NOT truncate - filter instead
 
@@ -531,25 +538,24 @@ data_eval:
 
     **Check README's `CoT Quality Assessment` section for `task_type` and `quality_ready` fields.**
 
-    1. **Over-length Check** (MANDATORY for all tasks):
+    1. **Over-length Check** (Report only):
        - Report percentage of samples exceeding `max_position_embeddings`
-       - If >5% samples are over-length: FAIL
+       - High over-length ratio is a warning sign, but NOT an automatic failure if the script handles it correctly
 
-    2. **Answer Consistency Check** (CRITICAL):
-       - Verify reasoning leads to stated answer
-       - For math: calculation should match `\boxed{}` result
-       - Flag samples with reasoning-answer mismatch
+    2. **Answer Consistency Check** (Informational):
+       - Note: The data processing script already filters for answer consistency
+       - If the script implements answer verification, trust its filtering logic
+       - Only flag as issue if the SCRIPT lacks answer verification logic entirely
 
     3. **Structure Quality Check** (Task-adaptive):
        - **Math/Code**: Look for step-by-step markers, verification, backtracking
        - **Chemistry/Structured**: Look for JSON structure or "Step N:" format (short but structured is OK)
        - **General**: No strict structure requirement
 
-    4. **Length Assessment** (Task-adaptive, NOT absolute):
-       - **Math/Code tasks**: p50 < 500 tokens may indicate quality issues
-       - **Chemistry/Structured tasks**: 300-1000 tokens is often sufficient if well-structured
-       - **General tasks**: No minimum length requirement
-       - Report distribution but do NOT fail based solely on length for non-math tasks
+    4. **Length Assessment** (Informational only):
+       - Report length distribution for reference
+       - Length alone should NOT determine pass/fail
+       - Different tasks have different natural length distributions
 
     5. **Polish Quality Assessment**:
        - All data must be polished before use
@@ -563,9 +569,25 @@ data_eval:
     - Assessment based on task-appropriate criteria
 
     ## Final Decision Guidelines
-    - Approve (true) if data format is correct, quality is good, and script logic is sound
-    - Reject (false) if any critical issues are found in format, quality, or script logic
-    - For data quality issues if the quality issues are minor (e.g., some exceedes the token limit but most are fine), you can still approve it.
+    **Core Principle: Be lenient on data quality, strict on script logic.**
+
+    - **Approve (true)** if:
+      - Script runs successfully (exit_code == 0)
+      - At least 1 sample is generated (0 samples = automatic fail)
+      - Data format is correct (Alpaca format with instruction/output)
+      - Script logic appears sound for full-scale execution
+
+    - **Reject (false)** ONLY if:
+      - Script fails to run (exit_code != 0)
+      - Zero samples are generated
+      - Data format is fundamentally broken (e.g., missing required fields)
+      - Script has obvious logic bugs that would cause issues in full mode
+
+    - **Do NOT reject** for:
+      - Low sample count in debug mode (expected behavior)
+      - Moderate quality variations in individual samples
+      - Length distribution not matching ideal patterns
+      - High filtering rate (this means the script is doing its job)
 
     ## Output Format
     Respond with JSON only (no markdown code block):
