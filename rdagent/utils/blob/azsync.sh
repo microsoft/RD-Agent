@@ -1,16 +1,22 @@
 #!/bin/bash
-# Azure Blob sync script - for syncing FT scenario log files across machines
+# Azure Blob sync script - for syncing FT scenario files across machines
+# Supports both logs and workspace directories
 
 # ========== Configuration ==========
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$SCRIPT_DIR/../../.."
-LOCAL_LOG_DIR="$PROJECT_ROOT/log"
 TOKEN_FILE="$PROJECT_ROOT/git_ignore_folder/.az_sas_token"
 
 # Blob configuration
 ACCOUNT="epeastus"
 CONTAINER="rdagent"
-REMOTE_PATH="FinetuneAgenticLLM/FT_qizheng/logs"  # Modify this to specify the blob path
+REMOTE_BASE="FinetuneAgenticLLM/FT_qizheng"
+
+# Directory mappings
+LOCAL_LOG_DIR="$PROJECT_ROOT/log"
+LOCAL_WORKSPACE_DIR="$PROJECT_ROOT/git_ignore_folder/RD-Agent_workspace"
+REMOTE_LOG_PATH="${REMOTE_BASE}/logs"
+REMOTE_WORKSPACE_PATH="${REMOTE_BASE}/workspace"
 
 # Read SAS Token
 if [ -f "$TOKEN_FILE" ]; then
@@ -20,18 +26,41 @@ else
 fi
 # ========== End Configuration ==========
 
-BLOB_URL="https://${ACCOUNT}.blob.core.windows.net/${CONTAINER}/${REMOTE_PATH}?${SAS_TOKEN}"
+# Get paths based on sync type (logs/workspace)
+get_paths() {
+    local sync_type="${1:-logs}"
+    case "$sync_type" in
+        logs)
+            LOCAL_DIR="$LOCAL_LOG_DIR"
+            REMOTE_PATH="$REMOTE_LOG_PATH"
+            ;;
+        workspace)
+            LOCAL_DIR="$LOCAL_WORKSPACE_DIR"
+            REMOTE_PATH="$REMOTE_WORKSPACE_PATH"
+            ;;
+        *)
+            echo "Error: Unknown sync type '$sync_type'. Use 'logs' or 'workspace'."
+            exit 1
+            ;;
+    esac
+    BLOB_URL="https://${ACCOUNT}.blob.core.windows.net/${CONTAINER}/${REMOTE_PATH}?${SAS_TOKEN}"
+}
 
 usage() {
-    echo "Usage: $0 [up|down]"
+    echo "Usage: $0 [up|down] [logs|workspace]"
     echo ""
-    echo "  up    Upload local log to blob"
-    echo "  down  Download blob to local log"
+    echo "  up    Upload local directory to blob"
+    echo "  down  Download blob to local directory"
     echo "  (no args) Show this help"
     echo ""
+    echo "Sync types:"
+    echo "  logs      Sync log directory (default)"
+    echo "  workspace Sync workspace directory"
+    echo ""
     echo "Configuration:"
-    echo "  Local directory: $LOCAL_LOG_DIR"
-    echo "  Remote path: $REMOTE_PATH"
+    echo "  Log directory:       $LOCAL_LOG_DIR"
+    echo "  Workspace directory: $LOCAL_WORKSPACE_DIR"
+    echo "  Remote base:         $REMOTE_BASE"
     echo ""
     echo "SAS Token: Run ./gen_token.sh to generate"
     exit 0
@@ -48,15 +77,17 @@ check_token() {
 case "${1:-}" in
     up)
         check_token
-        echo "Uploading: $LOCAL_LOG_DIR -> $REMOTE_PATH"
-        azcopy sync "$LOCAL_LOG_DIR" "$BLOB_URL" --recursive=true \
+        get_paths "${2:-logs}"
+        echo "Uploading: $LOCAL_DIR -> $REMOTE_PATH"
+        azcopy sync "$LOCAL_DIR" "$BLOB_URL" --recursive=true \
             --exclude-path="pickle_cache;prompt_cache.db"
         ;;
     down)
         check_token
-        mkdir -p "$LOCAL_LOG_DIR"
-        echo "Downloading: $REMOTE_PATH -> $LOCAL_LOG_DIR"
-        azcopy sync "$BLOB_URL" "$LOCAL_LOG_DIR" --recursive=true
+        get_paths "${2:-logs}"
+        mkdir -p "$LOCAL_DIR"
+        echo "Downloading: $REMOTE_PATH -> $LOCAL_DIR"
+        azcopy sync "$BLOB_URL" "$LOCAL_DIR" --recursive=true
         ;;
     *)
         usage
