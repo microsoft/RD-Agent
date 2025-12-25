@@ -53,3 +53,6 @@ hqq
 
 # FP8 training support
 torchao>=0.8.0
+
+# Chemistry support
+rdkit
