@@ -41,3 +41,19 @@ class DSExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):
 
     def set_local_selection(self, local_selection: tuple[int, ...]) -> None:
         self.local_selection = local_selection
+
+
+class ExperimentResult:
+    def __init__(
+        self,
+        success: bool,
+        metrics: dict[str, float] | pd.DataFrame | None = None,
+        logs: str | None = None,
+        errors: str | None = None,
+        metadata: dict | None = None,
+    ) -> None:
+        self.success = success
+        self.metrics = metrics
+        self.logs = logs
+        self.errors = errors
+        self.metadata = metadata if metadata is not None else {}

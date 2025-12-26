@@ -61,8 +61,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
         self.sota_exp_to_submit: DSExperiment | None = None  # grab the global best exp to submit
 
-        self.uncommitted_experiments: dict[int, DSExperiment] = {}  # loop_id -> DSExperiment
-
     def should_inject_diversity(self, current_selection: tuple[int, ...] | None = None) -> bool:
         """
         Check if diversity context should be injected based on the current selection.
@@ -77,13 +75,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         )
 
     COMPLETE_ORDER = ("DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow")
-
-    def register_uncommitted_exp(self, exp: DSExperiment, loop_id: int):
-        self.uncommitted_experiments[loop_id] = exp
-
-    def deregister_uncommitted_exp(self, loop_id: int):
-        if loop_id in self.uncommitted_experiments:
-            del self.uncommitted_experiments[loop_id]
 
     def set_sota_exp_to_submit(self, exp: DSExperiment) -> None:
         self.sota_exp_to_submit = exp
@@ -135,32 +126,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             if idx not in ignore_leaf_idx:
                 sibling_exps.append(self.hist[idx][0])
         return sibling_exps
-
-    def sync_dag_parent_and_hist(
-        self,
-        exp_and_fb: tuple[Experiment, ExperimentFeedback],
-        cur_loop_id: int,
-    ) -> None:
-        """
-        Adding corresponding parent index to the dag_parent when the hist is going to be changed.
-        Should be called when the hist is changed.
-        """
-
-        if len(self.hist) == 0 or len(self.get_current_selection()) == 0:
-            # the node we are going to add is the first node of hist / root node of a new sub-trace
-            self.dag_parent.append(())
-
-        else:
-            current_node_idx = self.current_selection[0]
-
-            if current_node_idx == -1:
-                # the current selection is the latest one
-                current_node_idx = len(self.hist) - 1
-
-            self.dag_parent.append((current_node_idx,))
-        self.hist.append(exp_and_fb)
-        self.idx2loop_id[len(self.hist) - 1] = cur_loop_id
-        self.deregister_uncommitted_exp(cur_loop_id)
 
     def retrieve_search_list(
         self,
