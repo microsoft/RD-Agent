@@ -44,14 +44,14 @@ def ui(port=19899, log_dir="", debug: bool = False, data_science: bool = False):
             subprocess.run(cmds)
         return
     with rpath("rdagent.log.ui", "app.py") as app_path:
-        cmds = ["streamlit", "run", app_path, f"--server.port={port}"]
+        cmds = ["streamlit", "run", str(app_path), f"--server.port={port}"]
         if log_dir or debug:
             cmds.append("--")
         if log_dir:
             cmds.append(f"--log_dir={log_dir}")
         if debug:
             cmds.append("--debug")
-        subprocess.run(cmds)
+        subprocess.run(" ".join(cmds), shell=True)  # shell=True will make the environment work better.
 
 
 def server_ui(port=19899):
