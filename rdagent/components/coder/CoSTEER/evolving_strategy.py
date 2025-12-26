@@ -83,6 +83,29 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         """
         raise NotImplementedError
 
+    def assign_code_list_to_evo(self, code_list: list[dict | None], evo) -> None:
+        """Assign code modifications to evolving item.
+
+        For runner, coder already generated full training config, so typically no modifications.
+        But this method is required by the abstract base class.
+        """
+        for index in range(len(evo.sub_tasks)):
+            if code_list[index] is None:
+                continue
+            if evo.sub_workspace_list[index] is None:
+                evo.sub_workspace_list[index] = evo.experiment_workspace
+
+            # If there are any modifications (usually empty for runner)
+            if code_list[index]:
+                # Handle change summary if present
+                if self.KEY_CHANGE_SUMMARY in code_list[index]:
+                    evo.sub_workspace_list[index].change_summary = code_list[index].pop(self.KEY_CHANGE_SUMMARY)
+                # Inject any modified files
+                evo.sub_workspace_list[index].inject_files(**code_list[index])
+
+        return evo
+
+
     def evolve_iter(
         self,
         *,
@@ -146,4 +169,5 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
             for index, target_index in enumerate(to_be_finished_task_index):
                 code_list[target_index] = result[index]
 
-            yield self.assign_code_list_to_evo(code_list, evo)
+            self.assign_code_list_to_evo(code_list, evo)
+            yield evo

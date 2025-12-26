@@ -59,28 +59,6 @@ class FTRunnerEvolvingStrategy(MultiProcessEvolvingStrategy):
         # Return empty dict to indicate no changes
         return {}
 
-    def assign_code_list_to_evo(self, code_list: list[dict], evo) -> None:
-        """Assign code modifications to evolving item.
-
-        For runner, coder already generated full training config, so typically no modifications.
-        But this method is required by the abstract base class.
-        """
-        for index in range(len(evo.sub_tasks)):
-            if code_list[index] is None:
-                continue
-            if evo.sub_workspace_list[index] is None:
-                evo.sub_workspace_list[index] = evo.experiment_workspace
-
-            # If there are any modifications (usually empty for runner)
-            if code_list[index]:
-                # Handle change summary if present
-                if self.KEY_CHANGE_SUMMARY in code_list[index]:
-                    evo.sub_workspace_list[index].change_summary = code_list[index].pop(self.KEY_CHANGE_SUMMARY)
-                # Inject any modified files
-                evo.sub_workspace_list[index].inject_files(**code_list[index])
-
-        return evo
-
 
 class LLMFinetuneRunner(CoSTEER):
     """LLM Fine-tuning specific runner that executes LLaMA-Factory configurations."""

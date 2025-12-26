@@ -133,21 +133,16 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             },
         )
 
-        try:
-            script_code = APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
-                json_mode=False,
-                code_block_language="python",
-                code_block_fallback=False,
-            )
-            logger.info(f"Generated data processing script ({len(script_code)} chars)")
+        script_code = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=system_prompt,
+            json_mode=False,
+            code_block_language="python",
+            code_block_fallback=False,
+        )
+        logger.info(f"Generated data processing script ({len(script_code)} chars)")
 
-            return {FT_DATA_SCRIPT_NAME: script_code}
-
-        except Exception as e:
-            logger.error(f"Failed to generate data processing script: {e}")
-            raise RuntimeError(f"Data processing script generation failed: {e}")
+        return {FT_DATA_SCRIPT_NAME: script_code}
 
     def _get_dataset_info(self, involving_datasets: list[str], datasets_path: str = None) -> str:
         """Read dataset_info.json and return information for specified datasets.
@@ -352,16 +347,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         except yaml.YAMLError as e:
             logger.error(f"Invalid YAML syntax: {e}")
             raise RuntimeError(f"Invalid YAML syntax: {e}")
-
-    def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
-        """Assign generated code to the evolving experiment"""
-        for index in range(len(evo.sub_tasks)):
-            if code_list[index] is None:
-                continue
-            if evo.sub_workspace_list[index] is None:
-                evo.sub_workspace_list[index] = evo.experiment_workspace
-            evo.sub_workspace_list[index].inject_files(**code_list[index])
-        return evo
 
 
 class LLMFinetuneCoSTEER(CoSTEER):
