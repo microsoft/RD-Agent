@@ -439,6 +439,12 @@ class FTCoderEvaluator(CoSTEEREvaluator):
             user_prompt=user_prompt,
             init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
         )
+
+        # Force failure if validation failed programmatically
+        if not validation_result.success:
+            feedback.final_decision = False
+            logger.warning("FTCoderEvaluator: Forced final_decision=False due to validation failure")
+
         feedback.raw_execution = validation_result.raw_stdout or ""
         feedback.source_feedback[self.__class__.__name__] = feedback.final_decision
         logger.log_object(feedback, tag="evaluator_feedback.FTCoderEvaluator")

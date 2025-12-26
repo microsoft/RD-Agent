@@ -445,6 +445,9 @@ finetune_eval:
     2. validate the provided `train.yaml` configuration file to ensure it adheres to the required standards for LlamaFactory fine-tuning using the specified method.
     3. Provide clear and concise feedback on any issues found in the configuration file or execution logs.
     4. Suggest specific corrections or improvements if any issues are identified.
+
+    You must give a false final decision in following cases:
+    - The execution of the fails with non-zero exit code.
     
     {% if queried_similar_successful_knowledge|length != 0 %}
     ### Similar Successful Implementations to help training config Improvement

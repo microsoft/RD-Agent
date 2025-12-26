@@ -55,32 +55,21 @@ class LLMConfigValidator:
         """Two-step validation: parameter filtering + micro-batch testing"""
         start_time = time.time()
 
-        try:
-            # Step 1: Parameter filtering
-            filtered_config, removed_params = self._filter_parameters(config_yaml)
+        # Step 1: Parameter filtering
+        filtered_config, removed_params = self._filter_parameters(config_yaml)
 
-            # Step 2: Micro-batch testing (validates everything at runtime)
-            result = self._run_micro_batch_test(filtered_config, workspace, env)
-            result.execution_time = time.time() - start_time
+        # Step 2: Micro-batch testing (validates everything at runtime)
+        result = self._run_micro_batch_test(filtered_config, workspace, env)
+        result.execution_time = time.time() - start_time
 
-            # Add filtered params info to execution_output for agent learning
-            if removed_params:
-                filter_info = (
-                    f"\n\n[Filtered Parameters] {len(removed_params)} unsupported params removed: {removed_params}"
-                )
-                result.execution_output += filter_info
-
-            return result
-
-        except Exception as e:
-            logger.error(f"Validation failed: {e}")
-            return ValidationResult(
-                success=False,
-                filtered_config=config_yaml,
-                execution_output=f"Validation exception: {str(e)}",
-                errors=[f"Validation exception: {str(e)}"],
-                execution_time=time.time() - start_time,
+        # Add filtered params info to execution_output for agent learning
+        if removed_params:
+            filter_info = (
+                f"\n\n[Filtered Parameters] {len(removed_params)} unsupported params removed: {removed_params}"
             )
+            result.execution_output += filter_info
+
+        return result
 
     def _filter_parameters(self, config_yaml: str) -> tuple[str, List[str]]:
         """Filter configuration parameters to only include supported ones.
@@ -88,64 +77,54 @@ class LLMConfigValidator:
         Returns:
             tuple: (filtered_yaml, removed_params_list)
         """
-        try:
-            config_dict = yaml.safe_load(config_yaml)
-            if not isinstance(config_dict, dict):
-                return config_yaml, []
-
-            supported_params = self._get_supported_parameters()
-
-            filtered_config = {}
-            removed_params = []
-            for k, v in config_dict.items():
-                if k in supported_params:
-                    filtered_config[k] = v
-                else:
-                    removed_params.append(k)
-
-            if removed_params:
-                logger.info(f"Filtered out {len(removed_params)} unsupported parameters: {removed_params}")
-
-            return yaml.dump(filtered_config, default_flow_style=False, sort_keys=False), removed_params
-
-        except yaml.YAMLError as e:
-            logger.error(f"YAML parsing error during filtering: {e}")
+        config_dict = yaml.safe_load(config_yaml)
+        if not isinstance(config_dict, dict):
             return config_yaml, []
+
+        supported_params = self._get_supported_parameters()
+
+        filtered_config = {}
+        removed_params = []
+        for k, v in config_dict.items():
+            if k in supported_params:
+                filtered_config[k] = v
+            else:
+                removed_params.append(k)
+
+        if removed_params:
+            logger.info(f"Filtered out {len(removed_params)} unsupported parameters: {removed_params}")
+
+        return yaml.dump(filtered_config, default_flow_style=False, sort_keys=False), removed_params
 
     def _get_supported_parameters(self) -> Set[str]:
         """Get supported parameters from LlamaFactory Manager"""
         if self._supported_params_cache is not None:
             return self._supported_params_cache
 
-        try:
-            all_params = LLaMAFactory_manager.get_parameters()
+        all_params = LLaMAFactory_manager.get_parameters()
 
-            # Extract all parameter names from all parameter types (including nested structures)
-            supported_params = set()
-            for param_type, params_dict in all_params.items():
-                if isinstance(params_dict, dict):
-                    # Recursively extract parameter names from nested dictionaries
-                    for key, value in params_dict.items():
-                        if isinstance(value, dict) and "name" in value:
-                            # This is a parameter definition with metadata
-                            supported_params.add(key)
-                        elif isinstance(value, dict):
-                            # This is a nested category (e.g., BaseModelArguments, LoraArguments)
-                            # Extract parameter names from the nested structure
-                            for nested_key, nested_value in value.items():
-                                if isinstance(nested_value, dict) and "name" in nested_value:
-                                    supported_params.add(nested_key)
+        # Extract all parameter names from all parameter types (including nested structures)
+        supported_params = set()
+        for param_type, params_dict in all_params.items():
+            if isinstance(params_dict, dict):
+                # Recursively extract parameter names from nested dictionaries
+                for key, value in params_dict.items():
+                    if isinstance(value, dict) and "name" in value:
+                        # This is a parameter definition with metadata
+                        supported_params.add(key)
+                    elif isinstance(value, dict):
+                        # This is a nested category (e.g., BaseModelArguments, LoraArguments)
+                        # Extract parameter names from the nested structure
+                        for nested_key, nested_value in value.items():
+                            if isinstance(nested_value, dict) and "name" in nested_value:
+                                supported_params.add(nested_key)
 
-            if not supported_params:
-                raise RuntimeError("No parameters found in LlamaFactory Manager")
+        if not supported_params:
+            raise RuntimeError("No parameters found in LlamaFactory Manager")
 
-            logger.info(f"Loaded {len(supported_params)} parameters from LlamaFactory Manager")
-            self._supported_params_cache = supported_params
-            return supported_params
-
-        except Exception as e:
-            logger.error(f"Failed to load parameters from LlamaFactory Manager: {e}")
-            raise RuntimeError(f"Unable to get supported parameters from LlamaFactory: {e}") from e
+        logger.info(f"Loaded {len(supported_params)} parameters from LlamaFactory Manager")
+        self._supported_params_cache = supported_params
+        return supported_params
 
     def _parse_execution_log(self, stdout: str, exit_code: int) -> str:
         """Parse execution log and extract key information for LLM evaluation.
@@ -237,61 +216,54 @@ class LLMConfigValidator:
         result = ValidationResult(success=True, filtered_config=config_yaml)
         ws_prefix = get_workspace_prefix(env)
 
-        try:
-            # Create micro-batch test configuration
-            config = yaml.safe_load(config_yaml)
-            if not isinstance(config, dict):
-                result.success = False
-                result.execution_output = "Invalid YAML configuration"
-                result.errors.append("Invalid configuration for micro-batch test")
-                return result
-
-            test_config = config.copy()
-            # NOTE: save_steps/logging_steps/warmup_steps not overridden - debug data.json only has ~10 samples,
-            # so total training steps are naturally small and these optimizations are unnecessary
-            test_config.update(
-                {
-                    "num_train_epochs": 1,
-                    "output_dir": f"{ws_prefix}/micro_test_output",
-                    "overwrite_output_dir": True,
-                    "report_to": "none",  # Disable all reporting (tensorboard, wandb, etc.)
-                    "do_eval": False,  # Disable evaluation in micro-batch test (insufficient samples for val split)
-                    "eval_strategy": "no",  # Explicitly disable evaluation
-                    "load_best_model_at_end": False,  # Cannot load best model without evaluation
-                    "tokenized_path": f"{ws_prefix}/micro_test_cache",  # Use writable workspace instead of read-only /assets
-                }
-            )
-
-            # Run micro-batch training
-            workspace.inject_files(**{FT_DEBUG_YAML_FILE_NAME: yaml.dump(test_config, default_flow_style=False)})
-            training_result = workspace.run(
-                env=env,
-                entry=f"llamafactory-cli train {FT_DEBUG_YAML_FILE_NAME}",
-            )
-
-            # Remove micro-batch test files
-            workspace.remove_files([FT_DEBUG_YAML_FILE_NAME])
-
-            # Parse and store structured execution output (reduces ~36k tokens to ~500)
-            raw_stdout = training_result.stdout if training_result.stdout else ""
-            result.raw_stdout = raw_stdout  # Keep full log for UI
-            result.execution_output = self._parse_execution_log(raw_stdout, training_result.exit_code)
-
-            # Check results
-            progress_indicators = ["train_loss", "Training:", "Epoch", "loss:", "step"]
-            has_progress = any(ind.lower() in training_result.stdout.lower() for ind in progress_indicators)
-
-            if training_result.exit_code == 0 and has_progress:
-                logger.info("Micro-batch test passed")
-                result.success = True
-            else:
-                result.success = False
-                result.errors.append(f"Micro-batch test failed (exit_code={training_result.exit_code})")
-
-            return result
-
-        except Exception as e:
+        # Create micro-batch test configuration
+        config = yaml.safe_load(config_yaml)
+        if not isinstance(config, dict):
             result.success = False
-            result.execution_output = str(e)
-            result.errors.append(f"Micro-batch test exception: {str(e)}")
+            result.execution_output = "Invalid YAML configuration"
+            result.errors.append("Invalid configuration for micro-batch test")
             return result
+
+        test_config = config.copy()
+        # NOTE: save_steps/logging_steps/warmup_steps not overridden - debug data.json only has ~10 samples,
+        # so total training steps are naturally small and these optimizations are unnecessary
+        test_config.update(
+            {
+                "num_train_epochs": 1,
+                "output_dir": f"{ws_prefix}/micro_test_output",
+                "overwrite_output_dir": True,
+                "report_to": "none",  # Disable all reporting (tensorboard, wandb, etc.)
+                "do_eval": False,  # Disable evaluation in micro-batch test (insufficient samples for val split)
+                "eval_strategy": "no",  # Explicitly disable evaluation
+                "load_best_model_at_end": False,  # Cannot load best model without evaluation
+                "tokenized_path": f"{ws_prefix}/micro_test_cache",  # Use writable workspace instead of read-only /assets
+            }
+        )
+
+        # Run micro-batch training
+        workspace.inject_files(**{FT_DEBUG_YAML_FILE_NAME: yaml.dump(test_config, default_flow_style=False)})
+        training_result = workspace.run(
+            env=env,
+            entry=f"llamafactory-cli train {FT_DEBUG_YAML_FILE_NAME}",
+        )
+
+        # Remove micro-batch test files
+        workspace.remove_files([FT_DEBUG_YAML_FILE_NAME])
+
+        # Parse and store structured execution output (reduces ~36k tokens to ~500)
+        raw_stdout = training_result.stdout if training_result.stdout else ""
+        result.raw_stdout = raw_stdout  # Keep full log for UI
+        result.execution_output = self._parse_execution_log(raw_stdout, training_result.exit_code)
+
+        # Check results
+        progress_indicators = ["train_loss", "Training:", "Epoch", "loss:", "step"]
+        has_progress = any(ind.lower() in training_result.stdout.lower() for ind in progress_indicators)
+
+        if training_result.exit_code == 0 and has_progress:
+            logger.info("Micro-batch test passed")
+            result.success = True
+        else:
+            result.success = False
+            result.errors.append(f"Micro-batch test failed (exit_code={training_result.exit_code})")
+
+        return result
