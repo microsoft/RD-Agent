@@ -72,11 +72,30 @@ class FTDataEvaluator(CoSTEEREvaluator):
             return feedback
 
         # Step 2: Check if data.json already exists
+        # If data.json exists and is valid, skip LLM feedback generation entirely.
+        # This relies on implement_data() deleting data.json when FTDataEvaluator fails,
+        # so if data.json exists here, it means the previous evaluation passed.
         if data_json_path.exists():
             validation_result = self._validate_data_json(data_json_path)
             if validation_result["valid"]:
-                logger.info("Valid data.json already exists, skipping execution")
+                logger.info("Valid data.json already exists, skipping execution and LLM feedback")
                 self._update_dataset_info(implementation, validation_result["sample_count"])
+
+                # Load data and inject data_stats (yaml coder needs this)
+                with open(data_json_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                self._inject_data_stats(implementation, data, "")
+
+                # Return success feedback directly, skip LLM call
+                feedback = CoSTEERSingleFeedback(
+                    execution="Data already validated in previous evolution",
+                    return_checking=f"data.json exists and valid ({validation_result['sample_count']} samples)",
+                    code="Skipped - no regeneration needed",
+                    final_decision=True,
+                )
+                feedback.source_feedback[self.__class__.__name__] = True
+                logger.log_object(feedback, tag="evaluator_feedback.FTDataEvaluator")
+                return feedback
         else:
             # Step 3: Execute script in DEBUG mode (generates ~10 samples for fast validation)
             env, env_vars = get_data_processing_env()
