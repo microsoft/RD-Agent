@@ -54,6 +54,7 @@ def download_financeiq_dataset() -> None:
 
 def extract_error_samples(results_base: Path, max_samples: int = 10) -> List[Dict[str, Any]]:
     """
+    (Deprecated, processed by unified logic now)
     Extract error samples specifically for FinanceIQ_ppl benchmark.
 
     FinanceIQ_ppl result files (per subject) look like:

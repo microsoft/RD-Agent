@@ -14,7 +14,7 @@ REMOTE_BASE="FinetuneAgenticLLM/FT_qizheng"
 
 # Directory mappings
 LOCAL_LOG_DIR="$PROJECT_ROOT/log"
-LOCAL_WORKSPACE_DIR="$PROJECT_ROOT/git_ignore_folder/RD-Agent_workspace"
+LOCAL_WORKSPACE_DIR="$PROJECT_ROOT/git_ignore_folder/b200_jobs/workspace"
 REMOTE_LOG_PATH="${REMOTE_BASE}/logs"
 REMOTE_WORKSPACE_PATH="${REMOTE_BASE}/workspace"
 

@@ -36,8 +36,8 @@ from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.scenarios.finetune.benchmark.data.adaptor import (
     BENCHMARK_CONFIG_DICT,
     BenchmarkConfig,
-    extract_error_samples,
 )
+from rdagent.scenarios.finetune.benchmark.data.default import extract_error_samples
 from rdagent.scenarios.finetune.benchmark.merge.merge import (
     check_if_merging_needed,
     merge_model,
@@ -148,9 +148,6 @@ def run_benchmark(
     # Auto download dependent data if configured on this benchmark
     if benchmark_cfg.download is not None:
         benchmark_cfg.download()
-
-    # Error-sample extractor (dataset-specific or default)
-    extract_error_samples_fn = benchmark_cfg.extract_error_samples
 
     model_is_lora = detect_model_type(model_path)
     inference_config = get_model_inference_config(model_name, gpu_count)
@@ -281,12 +278,26 @@ def run_benchmark(
     results_csv_path = sorted([f for f in results_subdir.rglob("*.csv")], reverse=True)[0]
     logger.info(f"Detailed results CSV: {results_csv_path.relative_to(results_base)}")
 
-    # Read CSV content for accuracy summary
+    # Read CSV content for accuracy summary (grouped by dataset)
     df = pd.read_csv(results_csv_path)
-    accuracy_summary = df.to_dict("records")
+    # Get score column (the model name column, e.g., 'api-chemcotbench')
+    score_col = [c for c in df.columns if c not in ['dataset', 'version', 'metric', 'mode']][0]
+    # Pivot to group by dataset, with metrics as columns (use pivot_table to handle duplicates)
+    pivoted = df.pivot_table(
+        index='dataset', columns='metric', values=score_col, aggfunc='first'
+    ).to_dict('index')
+    # Filter out NaN values (different datasets have different metrics)
+    accuracy_summary = {
+        ds: {k: v for k, v in metrics.items() if pd.notna(v)}
+        for ds, metrics in pivoted.items()
+    }
 
-    # Extract error samples for feedback 
-    error_samples = extract_error_samples_fn(timestamped_dirs[0], max_samples=max_error_samples)
+    # Extract error samples for feedback
+    error_samples = extract_error_samples(
+        timestamped_dirs[0],
+        max_samples=max_error_samples,
+        evaluator_type=benchmark_cfg.evaluator_type,
+    )
 
     # Log benchmark result for UI display
     logger.log_object(
@@ -306,22 +317,25 @@ def run_benchmark(
 
 if __name__ == "__main__":
     """Test benchmark evaluation on Qwen3-1.7B with LoRA adapter."""
-    # Configuration - Fill in your LoRA adapter path
-    LORA_ADAPTER_PATH = "/home/v-qizhengli/workspace/FT_workspace/gitignore_folder/B200/B200_FT_workspace/limo/train/b200_sweep_yamls/saves/qwen3-1.7b/lora_b200_lr1e-4_acc4/checkpoint-100"  # e.g., "/path/to/output/checkpoint-100"
+    # Configuration - Fill in your LoRA adapter path and model name
+    LORA_ADAPTER_PATH = "/home/v-qizhengli/workspace/FT_workspace/gitignore_folder/B200/B200_FT_workspace/limo/train/b200_sweep_yamls/saves/qwen3-1.7b/lora_b200_lr1e-4_acc4/checkpoint-100"
+    MODEL_NAME = "Qwen/Qwen3-1.7B"
     BENCHMARK = "aime25"
+    GPU_COUNT = 1
 
     print("=" * 80)
     print("Benchmark Evaluation Test")
     print("=" * 80)
-    print(f"\n📋 Environment: FT_JUDGE_API_KEY={'✅ Set' if FT_RD_SETTING.judge_api_key else '❌ Not Set'}")
-    print(f"   Judge API Base: {FT_RD_SETTING.judge_api_base or '❌ Not Set'}")
+    print(f"\nEnvironment: FT_JUDGE_API_KEY={'Set' if FT_RD_SETTING.judge_api_key else 'Not Set'}")
+    print(f"Judge API Base: {FT_RD_SETTING.judge_api_base or 'Not Set'}")
 
-    if LORA_ADAPTER_PATH is None:
-        print("\n⚠️  Please set LORA_ADAPTER_PATH to your LoRA checkpoint directory")
-        print('   Example: LORA_ADAPTER_PATH = "/workspace/output"')
+    if not Path(LORA_ADAPTER_PATH).exists():
+        print(f"\nPlease set LORA_ADAPTER_PATH to a valid checkpoint directory")
+        print(f"Current path does not exist: {LORA_ADAPTER_PATH}")
         exit(1)
 
-    print(f"\nModel: {LORA_ADAPTER_PATH}")
+    print(f"\nModel: {MODEL_NAME}")
+    print(f"Adapter: {LORA_ADAPTER_PATH}")
     print(f"Benchmark: {BENCHMARK}")
     print("-" * 80)
 
@@ -331,27 +345,22 @@ if __name__ == "__main__":
         test_workspace = FBWorkspace(target_task=test_task)
         test_workspace.prepare()
 
-        print(f"\n📁 Workspace: {test_workspace.workspace_path}")
+        print(f"\nWorkspace: {test_workspace.workspace_path}")
 
-        # Set work_dir to workspace subdirectory
-        work_dir = str((test_workspace.workspace_path / "benchmark_results").resolve())
-
-        scores = run_benchmark(
+        result = run_benchmark(
+            workspace_path=str(test_workspace.workspace_path),
             model_path=LORA_ADAPTER_PATH,
+            model_name=MODEL_NAME,
             benchmark_name=BENCHMARK,
-            work_dir=work_dir,
+            gpu_count=GPU_COUNT,
         )
 
-        print("\n✅ Evaluation completed!")
-        for task, score in scores.items():
-            print(f"  {task}: {score:.2f}%")
-
-        avg_score = sum(scores.values()) / len(scores)
-        print(f"\nAverage Score: {avg_score:.2f}%")
-        print(f"\n📂 Results saved to: {work_dir}")
+        print("\nEvaluation completed!")
+        print(f"Accuracy Summary: {result['accuracy_summary']}")
+        print(f"Error Samples: {len(result['error_samples'])} samples")
+        print(f"\nResults saved to: {test_workspace.workspace_path / 'benchmark_results'}")
 
     except Exception as e:
-        print(f"\n❌ Evaluation failed: {e}")
+        print(f"\nEvaluation failed: {e}")
         import traceback
-
         traceback.print_exc()
