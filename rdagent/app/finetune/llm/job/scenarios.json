@@ -9,10 +9,6 @@
     "category": "math",
     "description": "Improve performance on AIME 2025 math competition problems"
   },
-  "gsm8k": {
-    "category": "math",
-    "description": "Improve grade school math reasoning ability"
-  },
   "math": {
     "category": "math",
     "description": "Improve mathematical problem solving skills"
@@ -104,10 +100,6 @@
   "tablebench_gen": {
     "category": "table_qa",
     "description": "Improve overall table question answering across all task categories (fact checking, numerical reasoning, data analysis, visualization)"
-  },
-  "tablebench_gen_base": {
-    "category": "table_qa",
-    "description": "Improve base table question answering capabilities with simplified prompts"
   },
 
   "FinanceIQ_ppl": {

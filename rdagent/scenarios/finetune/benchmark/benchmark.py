@@ -138,7 +138,7 @@ def run_benchmark(
 
     Returns:
         Dict containing:
-        - accuracy_summary: List of dicts with accuracy metrics from CSV
+        - accuracy_summary: Dict mapping dataset -> {metric: value}, grouped by dataset
         - error_samples: List of error samples for feedback analysis
     """
     # Load configurations
@@ -296,7 +296,6 @@ def run_benchmark(
     error_samples = extract_error_samples(
         timestamped_dirs[0],
         max_samples=max_error_samples,
-        evaluator_type=benchmark_cfg.evaluator_type,
     )
 
     # Log benchmark result for UI display
