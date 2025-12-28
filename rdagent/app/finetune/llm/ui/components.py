@@ -75,14 +75,20 @@ def render_loop(loop: Loop, show_types: list[str]) -> None:
         if event.type == "feedback" and "Benchmark Result" in event.title:
             content = event.content
             if isinstance(content, dict):
-                accuracy_summary = content.get("accuracy_summary", [])
-                if accuracy_summary:
-                    first_result = accuracy_summary[0]
-                    # Find score field (exclude metadata fields)
-                    for key, value in first_result.items():
-                        if key not in ("dataset", "version", "metric", "mode") and isinstance(value, (int, float)):
-                            benchmark_score = value
-                            break
+                accuracy_summary = content.get("accuracy_summary", {})
+                # accuracy_summary is a dict: {dataset_name: {metric: value, ...}, ...}
+                if isinstance(accuracy_summary, dict) and accuracy_summary:
+                    # Get first dataset's metrics
+                    first_dataset_metrics = next(iter(accuracy_summary.values()))
+                    if isinstance(first_dataset_metrics, dict):
+                        # Prefer 'accuracy' metric, otherwise take any numeric value
+                        if "accuracy" in first_dataset_metrics:
+                            benchmark_score = first_dataset_metrics["accuracy"]
+                        else:
+                            for key, value in first_dataset_metrics.items():
+                                if isinstance(value, (int, float)):
+                                    benchmark_score = value
+                                    break
 
     # 3. Build title string (only show existing stages)
     parts = []
@@ -605,9 +611,11 @@ def render_training_result(result: dict) -> None:
     benchmark = result.get("benchmark", {})
     if benchmark:
         st.markdown("**Benchmark Results:**")
-        accuracy_summary = benchmark.get("accuracy_summary", [])
+        accuracy_summary = benchmark.get("accuracy_summary", {})
         if accuracy_summary:
-            st.dataframe(accuracy_summary)
+            # Convert dict {dataset: {metric: value}} to list of dicts for dataframe
+            rows = [{"dataset": ds, **metrics} for ds, metrics in accuracy_summary.items()]
+            st.dataframe(rows)
 
 
 def render_benchmark_result(content: dict) -> None:
@@ -616,10 +624,13 @@ def render_benchmark_result(content: dict) -> None:
     st.markdown(f"**Benchmark: {benchmark_name}**")
 
     # Accuracy summary table
-    accuracy_summary = content.get("accuracy_summary", [])
-    if accuracy_summary:
+    # accuracy_summary is a dict: {dataset_name: {metric: value, ...}, ...}
+    accuracy_summary = content.get("accuracy_summary", {})
+    if accuracy_summary and isinstance(accuracy_summary, dict):
         st.markdown("**Accuracy Summary:**")
-        st.dataframe(accuracy_summary)
+        # Convert dict {dataset: {metric: value}} to list of dicts for dataframe
+        rows = [{"dataset": ds, **metrics} for ds, metrics in accuracy_summary.items()]
+        st.dataframe(rows)
 
     # Error samples
     error_samples = content.get("error_samples", [])

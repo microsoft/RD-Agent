@@ -30,15 +30,18 @@ def extract_benchmark_score(loop_path: Path) -> float | None:
                 content = pickle.load(f)
             if isinstance(content, dict):
                 # Try to extract accuracy from accuracy_summary
-                accuracy_summary = content.get("accuracy_summary", [])
-                if accuracy_summary:
-                    # Find first numeric value in accuracy_summary
-                    if isinstance(accuracy_summary, list) and len(accuracy_summary) > 0:
-                        first_row = accuracy_summary[0]
-                        if isinstance(first_row, dict):
-                            for k, v in first_row.items():
-                                if k != "dataset" and isinstance(v, (int, float)):
-                                    return float(v)
+                # accuracy_summary is a dict: {dataset_name: {metric: value, ...}, ...}
+                accuracy_summary = content.get("accuracy_summary", {})
+                if isinstance(accuracy_summary, dict) and accuracy_summary:
+                    first_dataset_metrics = next(iter(accuracy_summary.values()))
+                    if isinstance(first_dataset_metrics, dict):
+                        # Prefer 'accuracy' metric
+                        if "accuracy" in first_dataset_metrics:
+                            return float(first_dataset_metrics["accuracy"])
+                        # Otherwise take any numeric value
+                        for k, v in first_dataset_metrics.items():
+                            if isinstance(v, (int, float)):
+                                return float(v)
         except Exception:
             pass
     return None

@@ -309,12 +309,12 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
     # Benchmark result
     if "benchmark_result" in tag:
         benchmark_name = content.get("benchmark_name", "Unknown") if isinstance(content, dict) else "Unknown"
-        accuracy = content.get("accuracy_summary", []) if isinstance(content, dict) else []
+        accuracy = content.get("accuracy_summary", {}) if isinstance(content, dict) else {}
         return Event(
             type="feedback",
             timestamp=timestamp,
             tag=tag,
-            title=f"Benchmark Result ({benchmark_name}: {len(accuracy)} metrics)",
+            title=f"Benchmark Result ({benchmark_name}: {len(accuracy)} datasets)",
             content=content,
             loop_id=loop_id,
             stage="runner",
