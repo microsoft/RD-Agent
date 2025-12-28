@@ -850,6 +850,8 @@ def _prepare_conda_env(env_name: str, requirements_file: Path, python_version: s
 class FTCondaConf(CondaConf):
     """Conda configuration for LLM fine-tuning environment."""
 
+    model_config = SettingsConfigDict(env_prefix="FT_CONDA_")
+
     conda_env_name: str = "llm_finetune"
     default_entry: str = "llamafactory-cli version"
     enable_cache: bool = False
@@ -892,6 +894,8 @@ class FTCondaEnv(LocalEnv[FTCondaConf]):
 # ========== Benchmark (OpenCompass) Conda Environment ==========
 class BenchmarkCondaConf(CondaConf):
     """Conda configuration for OpenCompass benchmark evaluation."""
+
+    model_config = SettingsConfigDict(env_prefix="BENCHMARK_CONDA_")
 
     conda_env_name: str = "opencompass"
     default_entry: str = "opencompass --help"
