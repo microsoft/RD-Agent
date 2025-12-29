@@ -61,6 +61,9 @@ DATASETS: dict[str, DatasetConfig] = {
     ),
     "tableinstruct": DatasetConfig(
         repo_id="Multilingual-Multimodal-NLP/TableInstruct",
+    ),
+    "bioprobench": DatasetConfig(
+        repo_id="bowenxian/BioProBench",
     )
 }
 
