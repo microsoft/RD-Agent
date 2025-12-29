@@ -689,8 +689,10 @@ runner_eval:
     ```json
     {{ loss_summary }}
     ```
+    {% include "components.coder.finetune.prompts:runner_eval.train_output" %}
 
-    # Training Output (last 3000 chars)
+  train_output: |-
+    # Training Output (key information extracted from stdout)
     ```
     {{ stdout }}
     ```
@@ -726,8 +728,5 @@ runner_eval_error:
 
     # Error Summary
     {{ error_msg }}
-
-    # Training Output (last 3000 chars)
-    ```
-    {{ stdout }}
-    ```
+    
+    {% include "components.coder.finetune.prompts:runner_eval.train_output" %}

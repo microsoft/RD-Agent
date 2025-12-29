@@ -177,12 +177,13 @@ class LLMConfigValidator:
             result["training_started"] = True
 
             # Extract training config
-            num_examples = re.search(r"Num examples\s*=\s*(\d+)", stdout)
-            num_epochs = re.search(r"Num Epochs\s*=\s*(\d+)", stdout)
+            # NOTE: we may have log like "Num examples = 1,000,000" and "Num Epochs = 1,000"; So we need to handle ","
+            num_examples = re.search(r"Num examples\s*=\s*([\d,]+)", stdout)
+            num_epochs = re.search(r"Num Epochs\s*=\s*([\d,]+)", stdout)
             if num_examples:
-                result["num_examples"] = int(num_examples.group(1))
+                result["num_examples"] = int(num_examples.group(1).replace(",", ""))
             if num_epochs:
-                result["num_epochs"] = int(num_epochs.group(1))
+                result["num_epochs"] = int(num_epochs.group(1).replace(",", ""))
 
             # Extract final metrics (JSON format from trainer output)
             final_metrics = re.search(r"\{'train_runtime':[^}]+\}", stdout)
