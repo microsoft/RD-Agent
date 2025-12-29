@@ -39,6 +39,46 @@ data_coder:
       }
     ]
     ```
+    ### Answer Format Requirements by Task Type:
+     **For Numerical/TableBench tasks:**
+    - The `output` MUST contain the final answer
+    - If you include Chain-of-Thought (CoT) reasoning, use `<think>...</think>` tags:
+      - Put reasoning inside `<think>` tags
+      - Put ONLY the final answer after `</think>` tag
+      - Format: `"<think>Step 1: ...\nStep 2: ...</think>\n{final_answer}"`
+    - The benchmark extractor will parse content AFTER `</think>` tag
+    - If no `<think>` tags, the ENTIRE output is treated as the answer
+
+    **For Math tasks with \\boxed{}:**
+    - Use `\\boxed{answer}` format (double backslash in the string)
+    - Example output: `"Step 1: ...\nStep 2: ...\nTherefore, the answer is \\boxed{42}"`
+    - The answer extractor will extract content from `\\boxed{}`
+
+    **Example - TableBench Numerical Reasoning:**
+    
+    {
+      "instruction": "What is the total revenue across all quarters for Product X?",
+      "input": "| Quarter | Product X Revenue |\n|---------|------------------|\n| Q1      | 150              |\n| Q2      | 200              |\n| Q3      | 175              |\n| Q4      | 225              |",
+      "output": "<think>\nStep 1: Identify all revenue values: Q1=150, Q2=200, Q3=175, Q4=225\nStep 2: Sum them: 150 + 200 + 175 + 225 = 750\n</think>\n750"
+    }
+        **Example - Math with CoT:**
+    {
+      "instruction": "Solve: If x + 5 = 12, what is x?",
+      "input": "",
+      "output": "Let me solve step by step:\n1. Start with x + 5 = 12\n2. Subtract 5 from both sides: x = 12 - 5\n3. x = 7\n\nTherefore, the answer is \\boxed{7}"
+    }
+        ### Common Benchmark Parsing Errors to Avoid:
+    1. Mixing reasoning with answer: `"The answer is 750 because we add all quarters"`
+       → Benchmark may fail to extract "750"
+    2. Using conversational endings: `"750 is the total revenue."`
+       → Benchmark expects clean numeric output
+    3. Correct: `"<think>Reasoning here...</think>\n750"` or just `"750"`
+
+    ## 2.3 Data Quality Awareness (IMPORTANT)
+    - Raw datasets may contain low-quality, noisy, or incorrect samples
+    ...
+
+
 
     ## 2.3 Data Quality Awareness (IMPORTANT)
     - Raw datasets may contain low-quality, noisy, or incorrect samples
@@ -362,6 +402,8 @@ finetune_coder:
     stage: sft
     ...
     ```
+    
+
 
     Do NOT add explanations before or after the YAML block.
 
