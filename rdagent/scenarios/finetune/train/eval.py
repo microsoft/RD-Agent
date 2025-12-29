@@ -8,7 +8,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
 from rdagent.components.coder.finetune.conf import (
     FT_DATA_SCRIPT_NAME,
     FT_YAML_FILE_NAME,
-    get_clear_ws_cmd,
+    clear_workspace,
     get_data_processing_env,
     get_ft_env,
     get_workspace_prefix,
@@ -119,7 +119,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
 
         # ========== Stage 0: Clean Workspace ==========
         # Clean old training outputs before data processing and training
-        implementation.execute(env=env, entry=get_clear_ws_cmd(implementation))
+        clear_workspace(implementation, env)
 
         # ========== Stage 1: Full Data Processing ==========
         # Execute data processing WITHOUT --debug flag to generate complete data.json

@@ -89,8 +89,8 @@ data_coder:
     else:
         samples_to_process = sampled_data
 
-    # Step 3: Report actual sampled count (not estimated)
-    print(f"Sampled data: {len(sampled_data)}")  # Actual training data size
+    # Step 3: Show the actual number of sampled items (Do not estimate; count the exact number of samples that will be processed when not in debug mode.)
+    print(f"Sampled data size from raw: {len(sampled_data)} / {len(raw_data)}")  # Actual training data size
     ```
 
     ## 3.3 Logging Convention
@@ -104,7 +104,7 @@ data_coder:
     # Debug mode (--debug):
     ========== SUMMARY ==========
     Total output samples: {actual_output}
-    Sampled from raw: {sampled_count} / {raw_count}
+    Sampled data size from raw: {sampled_count} / {raw_count}
     Debug samples processed: {debug_processed_count}
     Output file: {{ workspace_path }}data.json
     =============================
@@ -112,7 +112,7 @@ data_coder:
     # Full mode (no --debug):
     ========== SUMMARY ==========
     Total output samples: {actual_output}
-    Sampled from raw: {sampled_count} / {raw_count}
+    Sampled data size from raw: {sampled_count} / {raw_count}
     Output file: {{ workspace_path }}data.json
     =============================
     ```
@@ -588,6 +588,9 @@ data_eval:
     - "CoT stats: p50={}, over-length={X}%, structure quality={Y}%"
     - Assessment based on task-appropriate criteria
 
+    ## Hard Check Criteria
+    {% include "scenarios.finetune.proposal.prompts:unified_hypothesis_gen.hard_check" %}
+
     ## Final Decision Guidelines
     **Core Principle: Be lenient on data quality, strict on script logic.**
 
@@ -602,6 +605,8 @@ data_eval:
       - Zero samples are generated
       - Data format is fundamentally broken (e.g., missing required fields)
       - Script has obvious logic bugs that would cause issues in full mode
+      - From the execution output, the results do not match the expectations described in the task. For instance, it processes more samples than intended.
+      - The solution does not meet the hard check criteria
 
     - **Do NOT reject** for:
       - Low sample count in debug mode (expected behavior)
@@ -613,7 +618,7 @@ data_eval:
     Respond with JSON only (no markdown code block):
     {
         "execution": "Script execution status and data generation result. Include exit code and any errors.",
-        "return_checking": "Data quality analysis: format validation, length distribution assessment, duplicate ratio, semantic issues found.",
+    "return_checking": "Data quality analysis: format validation, length distribution assessment, duplicate ratio, semantic issues found; Hard check criteria: does the solution meet the hard check criteria",
         "code": "Code issues and specific improvement suggestions. What works well, what needs fixing.",
         "final_decision": true/false
     }

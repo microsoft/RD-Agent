@@ -19,7 +19,7 @@ from rdagent.components.coder.finetune.conf import (
     FT_DATA_FILE_NAME,
     FT_DATA_SCRIPT_NAME,
     FT_YAML_FILE_NAME,
-    get_clear_ws_cmd,
+    clear_workspace,
     get_data_processing_env,
     get_ft_env,
     get_workspace_prefix,
@@ -79,7 +79,7 @@ class FTDataEvaluator(CoSTEEREvaluator):
         env, env_vars = get_data_processing_env()
 
         # Clear workspace (except logs and file_dict items) before data processing
-        implementation.execute(env=env, entry=get_clear_ws_cmd(implementation))
+        clear_workspace(implementation, env=env)
         ws_prefix = get_workspace_prefix(env)
 
         # Use FTWorkspace.run() for unified Docker logging

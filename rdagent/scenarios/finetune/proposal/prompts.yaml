@@ -50,7 +50,6 @@ unified_hypothesis_gen:
 
     The hypothesis should specify which sampling strategy to use based on dataset info. The data processing script will implement it.
 
-    **Target**: 1,000-2,000 samples for training (filter first, then sample if still too large).
 
     ## 1.3 LLM Capabilities
 
@@ -258,6 +257,11 @@ unified_hypothesis_gen:
       - [Data] Filtering strategy (do NOT hardcode specific thresholds like "score < 8.0")
       - [Training] Which training methods and hyperparameters to use (single-stage only)
 
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PART 4: Hard Check
+    # ═══════════════════════════════════════════════════════════════════════════
+    {% include "scenarios.finetune.proposal.prompts:unified_hypothesis_gen.hard_check" %}
+
     **Output JSON format:**
     ```json
         {
@@ -299,3 +303,8 @@ unified_hypothesis_gen:
       "{{ field }}": "the content to {{ field }} following the instruction in the previous message"
     }
     ```
+  # hard check is some criteria that must be met to pass the test. So it is also included in the evaluation part.
+  hard_check: |-
+    - For large datasets (>5,000 samples), use code-based sampling to reduce to 1,000-2,000 samples before any LLM processing. This is fast (no LLM calls) and controls costs.
+      **Target**: 1,000-2,000 samples for training (filter first, then sample if still too large).
+

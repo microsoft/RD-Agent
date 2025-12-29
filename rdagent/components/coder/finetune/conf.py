@@ -1,11 +1,13 @@
 import json
 import os
+import shutil
 from pathlib import Path
 from typing import Any, Literal
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
 from rdagent.core.experiment import FBWorkspace
+from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import (
     BenchmarkCondaConf,
     BenchmarkCondaEnv,
@@ -242,27 +244,39 @@ def get_data_processing_env(
     return env, llm_env_vars
 
 
-def get_clear_ws_cmd(workspace: FBWorkspace) -> str:
+def clear_workspace(workspace: FBWorkspace, env: Env) -> None:
     """
     Clean the files in LLM finetune workspace.
     Only keeps the files that are injected by the coder (in workspace.file_dict) and `logs`.
 
     Args:
         workspace: The workspace object containing the file dictionary.
-
-    Returns:
-        Command string to clean workspace files
+        env: The environment to execute the clean command in.
     """
-    keep_items = {"logs", ".", ".."}
+    target_path = workspace.workspace_path
+    if not target_path.exists():
+        return
+
+    # The cache_path is created when mounting, so the permissions changes does not work.
+    keep_items = {"logs", T("scenarios.data_science.share:scen.cache_path").r()}
+
     for file_path in workspace.file_dict.keys():
         top_level = Path(file_path).parts[0]
         keep_items.add(top_level)
 
-    exclude_args = " ".join([f"! -name '{item}'" for item in keep_items])
-    # Use find to delete everything else in the current directory
-    # maxdepth 1 to only look at top level
-    cmd = f"find . -maxdepth 1 {exclude_args} -exec rm -rf {{}} +"
-    return cmd
+    remove_items = []
+    for item in target_path.iterdir():
+        if item.name in keep_items:
+            continue
+        remove_items.append(item.name)
+
+    if remove_items:
+        ws_prefix = get_workspace_prefix(env)
+        # Construct rm command with all items to remove
+        # Items are relative to workspace root inside the env
+        items_str = " ".join([f"'{ws_prefix}/{item}'" for item in remove_items])
+        cmd = f"rm -rf {items_str}"
+        workspace.execute(env=env, entry=cmd)
 
 
 def get_benchmark_env(
