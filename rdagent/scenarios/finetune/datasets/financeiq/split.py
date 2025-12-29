@@ -26,7 +26,17 @@ def split_financeiq_dataset(data_dir: str, split: Literal["train", "test"]) -> N
     path = Path(data_dir)
     
     # Process CSV files
-    for f in path.rglob("*.csv"):
+    for f in list(path.rglob("*.csv")):
+        # HACK:
+        # FinanceIQ specific: 'dev' folder is small and used for few-shot.
+        # We preserve it for benchmarking (split='test') but remove for training (split='train') to avoid leakage.
+        # Some times, the training in debug mode of llama factory will only check few samples. Which may results in failures
+        rel_parts = f.relative_to(path).parts
+        if "dev" in rel_parts:
+            if split == "train":
+                f.unlink()
+            continue
+
         rows = []
         header = None
         # Use 'utf-8-sig' to handle potential BOM in Excel-saved CSVs, or just 'utf-8'

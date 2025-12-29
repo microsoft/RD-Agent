@@ -27,6 +27,7 @@ from rdagent.components.coder.finetune.conf import (
     FT_DATA_FILE_NAME,
     FT_DATA_SCRIPT_NAME,
     FT_PATHS,
+    FT_TEST_PARAMS_FILE_NAME,
     FT_YAML_FILE_NAME,
     FTCoderCoSTEERSettings,
 )
@@ -272,7 +273,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # Use LLM to generate LlamaFactory config YAML
         # Coder will decide method based on hypothesis and available parameters
-        config_yaml = self._generate_llamafactory_config_with_llm(
+        config_files = self._generate_llamafactory_config_with_llm(
             base_model=base_model,
             task_info=task_info,
             queried_former_failed_knowledge=queried_former_failed_knowledge,
@@ -280,8 +281,8 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             workspace=workspace,
         )
 
-        # Return generated config directly - validation happens in evaluator
-        return {FT_YAML_FILE_NAME: config_yaml}
+        # Return generated config files directly - validation happens in evaluator
+        return config_files
 
     def _generate_llamafactory_config_with_llm(
         self,
@@ -290,7 +291,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         queried_former_failed_knowledge: tuple = None,
         prev_feedback=None,
         workspace=None,
-    ) -> str:
+    ) -> dict[str, str]:
         """Generate LlamaFactory configuration YAML using LLM"""
 
         # Query LLaMA Factory parameters: shared params once + method-specific params
@@ -330,23 +331,40 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             data_stats=data_stats,
         )
 
-        # Call LLM to generate config
-        extracted_yaml = APIBackend().build_messages_and_create_chat_completion(
+        # Call LLM to generate config (multi-turn)
+        session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
+        
+        # Turn 1: Generate main training config
+        train_config_yaml = session.build_chat_completion(
             user_prompt=user_prompt,
-            system_prompt=system_prompt,
             json_mode=False,
             code_block_language="yaml",
             code_block_fallback=False,
         )
 
-        # Validate YAML syntax
-        try:
-            yaml.safe_load(extracted_yaml)
-            logger.info("Extracted YAML config successfully")
-            return extracted_yaml
-        except yaml.YAMLError as e:
-            logger.error(f"Invalid YAML syntax: {e}")
-            raise RuntimeError(f"Invalid YAML syntax: {e}")
+        # Validate main config YAML syntax
+        yaml.safe_load(train_config_yaml)
+        logger.info("Extracted main YAML config successfully")
+
+        # Turn 2: Generate test parameters (test_params.yaml)
+        test_params_prompt = T(".prompts:finetune_coder.user_test_params").r(
+            workspace_path=FT_PATHS.workspace
+        )
+        test_params_yaml = session.build_chat_completion(
+            user_prompt=test_params_prompt,
+            json_mode=False,
+            code_block_language="yaml",
+            code_block_fallback=False,
+        )
+
+        # Validate test params YAML syntax
+        yaml.safe_load(test_params_yaml)
+        logger.info("Extracted test params YAML successfully")
+
+        return {
+            FT_YAML_FILE_NAME: train_config_yaml,
+            FT_TEST_PARAMS_FILE_NAME: test_params_yaml
+        }
 
 
 class LLMFinetuneCoSTEER(CoSTEER):

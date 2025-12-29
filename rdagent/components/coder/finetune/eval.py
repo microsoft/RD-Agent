@@ -19,6 +19,7 @@ from rdagent.components.coder.finetune.conf import (
     FT_DATA_FILE_NAME,
     FT_DATA_SCRIPT_NAME,
     FT_YAML_FILE_NAME,
+    get_clear_ws_cmd,
     get_data_processing_env,
     get_ft_env,
     get_workspace_prefix,
@@ -71,65 +72,35 @@ class FTDataEvaluator(CoSTEEREvaluator):
             logger.log_object(feedback, tag="evaluator_feedback.FTDataEvaluator")
             return feedback
 
-        # Step 2: Check if data.json already exists
-        # If data.json exists and is valid, skip LLM feedback generation entirely.
-        # This relies on implement_data() deleting data.json when FTDataEvaluator fails,
-        # so if data.json exists here, it means the previous evaluation passed.
-        if data_json_path.exists():
-            validation_result = self._validate_data_json(data_json_path)
-            if validation_result["valid"]:
-                logger.info("Valid data.json already exists, skipping execution and LLM feedback")
-                self._update_dataset_info(implementation, validation_result["sample_count"])
+        # NOTE: we depends cache for speeding up the process of data generation.
+        # So we clear the workspace every time.
 
-                # Load data and inject data_stats (yaml coder needs this)
-                with open(data_json_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                self._inject_data_stats(implementation, data, "")
+        # Step 3: Execute script in DEBUG mode (generates ~10 samples for fast validation)
+        env, env_vars = get_data_processing_env()
 
-                # Return success feedback directly, skip LLM call
-                feedback = CoSTEERSingleFeedback(
-                    execution="Data already validated in previous evolution",
-                    return_checking=f"data.json exists and valid ({validation_result['sample_count']} samples)",
-                    code="Skipped - no regeneration needed",
-                    final_decision=True,
-                )
-                feedback.source_feedback[self.__class__.__name__] = True
-                logger.log_object(feedback, tag="evaluator_feedback.FTDataEvaluator")
-                return feedback
+        # Clear workspace (except logs and file_dict items) before data processing
+        implementation.execute(env=env, entry=get_clear_ws_cmd(implementation))
+        ws_prefix = get_workspace_prefix(env)
+
+        # Use FTWorkspace.run() for unified Docker logging
+        # --debug flag tells the script to generate only ~10 samples
+        result = implementation.run(
+            env=env,
+            entry=f"python {ws_prefix}/{FT_DATA_SCRIPT_NAME} --debug",
+            env_vars=env_vars,
+        )
+        execution_output = result.stdout if hasattr(result, "stdout") else str(result)
+        exit_code = result.exit_code if hasattr(result, "exit_code") else -1
+
+        # Step 4: Validate output
+        if not data_json_path.exists():
+            error_msg = f"{FT_DATA_FILE_NAME} not generated"
         else:
-            # Step 3: Execute script in DEBUG mode (generates ~10 samples for fast validation)
-            env, env_vars = get_data_processing_env()
-            ws_prefix = get_workspace_prefix(env)
-            try:
-                # Use FTWorkspace.run() for unified Docker logging
-                # --debug flag tells the script to generate only ~10 samples
-                result = implementation.run(
-                    env=env,
-                    entry=f"python {ws_prefix}/{FT_DATA_SCRIPT_NAME} --debug",
-                    env_vars=env_vars,
-                )
-                execution_output = result.stdout if hasattr(result, "stdout") else str(result)
-                exit_code = result.exit_code if hasattr(result, "exit_code") else -1
-            except Exception as e:
-                logger.error(f"Failed to execute data processing script: {e}")
-                feedback = CoSTEERSingleFeedback(
-                    execution=f"Script execution failed: {e}",
-                    return_checking="Execution error",
-                    code="Check script for syntax errors or missing dependencies.",
-                    final_decision=False,
-                )
-                logger.log_object(feedback, tag="evaluator_feedback.FTDataEvaluator")
-                return feedback
-
-            # Step 4: Validate output
-            if not data_json_path.exists():
-                error_msg = f"{FT_DATA_FILE_NAME} not generated"
+            validation_result = self._validate_data_json(data_json_path)
+            if not validation_result["valid"]:
+                error_msg = validation_result["error"]
             else:
-                validation_result = self._validate_data_json(data_json_path)
-                if not validation_result["valid"]:
-                    error_msg = validation_result["error"]
-                else:
-                    self._update_dataset_info(implementation, validation_result["sample_count"])
+                self._update_dataset_info(implementation, validation_result["sample_count"])
 
         # Step 5: Load data if valid
         if error_msg is None and data_json_path.exists():
@@ -214,6 +185,11 @@ class FTDataEvaluator(CoSTEEREvaluator):
             user_prompt=user_prompt,
             init_kwargs_update_func=CoSTEERSingleFeedback.val_and_update_init_dict,
         )
+
+        # NOTE: 0 exit code is a hard criteria for success
+        if exit_code != 0:
+            feedback.final_decision = False
+
         feedback.raw_execution = raw_stdout
         feedback.source_feedback[self.__class__.__name__] = feedback.final_decision
         logger.log_object(feedback, tag="evaluator_feedback.FTDataEvaluator")

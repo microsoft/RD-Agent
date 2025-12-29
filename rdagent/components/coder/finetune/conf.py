@@ -1,10 +1,11 @@
 import json
 import os
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
+from rdagent.core.experiment import FBWorkspace
 from rdagent.utils.env import (
     BenchmarkCondaConf,
     BenchmarkCondaEnv,
@@ -34,6 +35,7 @@ def get_workspace_prefix(env: Env) -> str:
 FT_YAML_FILE_NAME = "train.yaml"
 FT_DATA_PROC_FILE_NAME = "data_process.py"
 FT_DEBUG_YAML_FILE_NAME = "debug_train.yaml"
+FT_TEST_PARAMS_FILE_NAME = "test_params.yaml"
 FT_DATA_FILE_NAME = "data.json"
 FT_DATA_SCRIPT_NAME = "process_data.py"
 
@@ -240,24 +242,26 @@ def get_data_processing_env(
     return env, llm_env_vars
 
 
-def get_clear_ws_cmd(stage: Literal["before_training", "before_inference"] = "before_training") -> str:
+def get_clear_ws_cmd(workspace: FBWorkspace) -> str:
     """
-    Clean the files in LLM finetune workspace to a specific stage
+    Clean the files in LLM finetune workspace.
+    Only keeps the files that are injected by the coder (in workspace.file_dict) and `logs`.
 
     Args:
-        stage: Stage to clean to, either "before_training" or "before_inference"
+        workspace: The workspace object containing the file dictionary.
 
     Returns:
         Command string to clean workspace files
     """
-    assert stage in ["before_training", "before_inference"], f"Unknown stage: {stage}"
+    keep_items = {"logs", ".", ".."}
+    for file_path in workspace.file_dict.keys():
+        top_level = Path(file_path).parts[0]
+        keep_items.add(top_level)
 
-    if stage == "before_training":
-        # Clean all training outputs before new training
-        cmd = f"rm -rf output/ checkpoint-* adapter_* *.safetensors *.bin training_*.json *_metrics.json {FT_YAML_FILE_NAME} trace.log"
-    else:
-        # Clean only logs before inference (keep model outputs)
-        cmd = f"rm -f training_*.json *_metrics.json {FT_YAML_FILE_NAME} trace.log"
+    exclude_args = " ".join([f"! -name '{item}'" for item in keep_items])
+    # Use find to delete everything else in the current directory
+    # maxdepth 1 to only look at top level
+    cmd = f"find . -maxdepth 1 {exclude_args} -exec rm -rf {{}} +"
     return cmd
 
 

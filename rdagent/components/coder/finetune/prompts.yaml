@@ -428,6 +428,23 @@ finetune_coder:
     - tokenized_path: {{ workspace_path }}tokenized_cache
     {% endif %}
 
+  user_test_params: |-
+    Now, please provide a set of "test parameters" that will be merged into the above configuration specifically for the DEBUG/MICRO-BATCH test phase.
+    
+    The debug phase runs on a very small subset (~10 samples).
+    You need to override parameters that adapt to the dataset for quick debugging the yaml config.
+
+    **Example for Test Parameters:**
+    - Set `num_train_epochs` to 1.
+    - Set `max_samples` to a very small number.
+
+    **Output Format:**
+    Output ONLY the YAML block for these test parameters:
+    ```yaml
+    num_train_epochs: 1
+    ...
+    ```
+
 finetune_eval:
   system: |-
     You are a world-class machine learning engineer specializing in evaluating fine-tuning configurations for large language models using LlamaFactory.

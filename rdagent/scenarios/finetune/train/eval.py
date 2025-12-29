@@ -119,7 +119,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
 
         # ========== Stage 0: Clean Workspace ==========
         # Clean old training outputs before data processing and training
-        implementation.execute(env=env, entry=get_clear_ws_cmd())
+        implementation.execute(env=env, entry=get_clear_ws_cmd(implementation))
 
         # ========== Stage 1: Full Data Processing ==========
         # Execute data processing WITHOUT --debug flag to generate complete data.json
