@@ -45,8 +45,9 @@ unified_hypothesis_gen:
 
     **Sampling Principles** (choose strategy based on dataset characteristics):
     - **Quality-first**: Prefer samples with complete fields, reasonable length, and clear structure
-    - **Diversity**: If dataset has categories/sources, sample proportionally to preserve distribution
-    - **Difficulty-aware**: If difficulty metadata exists, prioritize medium-difficulty samples
+    - **Diversity**: 
+        - If dataset has categories/sources, sample proportionally to preserve distribution
+        - **Difficulty-aware**: If difficulty metadata exists, use stratified sampling to maintain difficulty distribution (e.g., 20% easy, 60% medium, 20% hard). Adjust proportions based on base model capability and training objectives - focus more on the model's capability boundary for maximum learning efficiency
 
     The hypothesis should specify which sampling strategy to use based on dataset info. The data processing script will implement it.
 
