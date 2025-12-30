@@ -109,6 +109,20 @@ BENCHMARK_CONFIG_DICT: Dict[str, BenchmarkConfig] = {
     "tablebench_gen": BenchmarkConfig(
         dataset="opencompass.configs.datasets.tablebench.tablebench_gen",
     ),
+    # BioProBench
+    "bioprobench_gen": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.bioprobench.bioprobench_gen",
+    ),
+    "bioprobench_ord": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.bioprobench.bioprobench_ord",
+    ),
+    "bioprobench_err": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.bioprobench.bioprobench_err",
+    ),
+    "bioprobench_pqa": BenchmarkConfig(
+        dataset="opencompass.configs.datasets.bioprobench.bioprobench_pqa",
+    ),
+
     # Native OpenCompass benchmarks
     "FinanceIQ_ppl": BenchmarkConfig(
         dataset="opencompass.configs.datasets.FinanceIQ.FinanceIQ_gen_e0e6b5",

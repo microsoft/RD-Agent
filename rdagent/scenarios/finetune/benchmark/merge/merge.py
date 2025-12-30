@@ -1,8 +1,30 @@
 from pathlib import Path
 import json
+import subprocess
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.agent.tpl import T
 from rdagent.components.coder.finetune.conf import get_workspace_prefix
+
+
+BLACKWELL_GPU_KEYWORDS = ["b100", "b200", "b300"]
+
+
+def is_blackwell_gpu() -> bool:
+    """Check if the current GPU is NVIDIA Blackwell architecture (B100, B200, B300)."""
+    try:
+        result = subprocess.run(
+            ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0:
+            gpu_names = result.stdout.strip().lower()
+            return any(kw in gpu_names for kw in BLACKWELL_GPU_KEYWORDS)
+    except Exception:
+        pass
+    return False
+
 
 def check_if_merging_needed(model_path: str | Path) -> bool:
     """
@@ -18,6 +40,9 @@ def check_if_merging_needed(model_path: str | Path) -> bool:
     # The logic is based in https://github.com/vllm-project/vllm/issues/9280
     if config.get("modules_to_save") is not None:
         logger.info(f"Model merging required due to modules_to_save: {config.get('modules_to_save')}")
+        return True
+    if is_blackwell_gpu():
+        logger.info("Model merging required due to Blackwell GPU (B100/B200/B300)")
         return True
     return False
 

@@ -105,5 +105,22 @@
   "FinanceIQ_ppl": {
     "category": "finance",
     "description": "Improve financial question answering capabilities including accounting, auditing, economics, finance, insurance, securities, and tax domains"
+  },
+
+  "bioprobench_gen": {
+    "category": "biology",
+    "description": "Improve biological protocol generation: generate complete and detailed experimental protocol steps given context, purpose, and summary instructions"
+  },
+  "bioprobench_ord": {
+    "category": "biology",
+    "description": "Improve biological protocol step ordering: arrange shuffled experimental procedure steps in the correct logical and temporal sequence"
+  },
+  "bioprobench_err": {
+    "category": "biology",
+    "description": "Improve biological protocol error correction: identify and correct errors in protocol text including parameter values, reagent names, and procedural operations"
+  },
+  "bioprobench_pqa": {
+    "category": "biology",
+    "description": "Improve biological protocol question answering: extract factual information from experimental protocols such as temperatures, concentrations, and procedural details"
   }
 }
