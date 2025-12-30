@@ -611,11 +611,23 @@ def render_training_result(result: dict) -> None:
     benchmark = result.get("benchmark", {})
     if benchmark:
         st.markdown("**Benchmark Results:**")
-        accuracy_summary = benchmark.get("accuracy_summary", {})
-        if accuracy_summary:
-            # Convert dict {dataset: {metric: value}} to list of dicts for dataframe
-            rows = [{"dataset": ds, **metrics} for ds, metrics in accuracy_summary.items()]
-            st.dataframe(rows)
+        # Detect format: old format has "accuracy_summary" at top level,
+        # new format has benchmark names as keys with nested accuracy_summary
+        if "accuracy_summary" in benchmark:
+            # Old format: {accuracy_summary: {...}, error_samples: [...]}
+            accuracy_summary = benchmark.get("accuracy_summary", {})
+            if accuracy_summary:
+                rows = [{"dataset": ds, **metrics} for ds, metrics in accuracy_summary.items()]
+                st.dataframe(rows)
+        else:
+            # New format: {bm_name: {accuracy_summary: {...}}, ...}
+            for bm_name, bm_result in benchmark.items():
+                if isinstance(bm_result, dict) and "accuracy_summary" in bm_result:
+                    st.markdown(f"*{bm_name}:*")
+                    accuracy_summary = bm_result.get("accuracy_summary", {})
+                    if accuracy_summary:
+                        rows = [{"dataset": ds, **metrics} for ds, metrics in accuracy_summary.items()]
+                        st.dataframe(rows)
 
 
 def render_benchmark_result(content: dict) -> None:

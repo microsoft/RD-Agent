@@ -189,14 +189,26 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         # Extract loss history from training output
         loss_history = extract_loss_history(output_path)
 
-        # Use open-compass to evaluate the model on benchmark (only if training succeeded)
-        benchmark_result = run_benchmark(
-            workspace_path=str(workspace_path),
-            model_path=output_path,
-            model_name=target_task.base_model,
-            benchmark_name=target_task.benchmark,
-            gpu_count=self._get_gpu_count_from_scenario(),
-        )
+        # Use open-compass to evaluate the model on benchmark(s) (only if training succeeded)
+        # Support both single benchmark (str) and multiple benchmarks (list)
+        benchmarks = target_task.benchmark if isinstance(target_task.benchmark, list) else [target_task.benchmark]
+        benchmark_result = {}  # Dict indexed by benchmark name
+
+        for bm_name in benchmarks:
+            try:
+                result = run_benchmark(
+                    workspace_path=str(workspace_path),
+                    model_path=output_path,
+                    model_name=target_task.base_model,
+                    benchmark_name=bm_name,
+                    gpu_count=self._get_gpu_count_from_scenario(),
+                )
+                # Only store successful results
+                if result is not None:
+                    benchmark_result[bm_name] = result
+            except Exception as e:
+                logger.warning(f"Benchmark '{bm_name}' failed: {e}")
+                # Continue with other benchmarks
 
         # Build comprehensive result with training metrics and benchmark results
         implementation.running_info.result = {
@@ -209,7 +221,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         }
 
         # Final decision: training succeeded AND model files exist AND benchmark ran
-        final_decision = training_success and len(model_output_files) > 0 and benchmark_result is not None
+        final_decision = training_success and len(model_output_files) > 0 and len(benchmark_result) > 0
 
         # Call LLM for feedback analysis (both success and failure cases)
         if final_decision:
@@ -230,8 +242,8 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
                 error_msg = f"Training failed: {error_msg}"
             elif len(model_output_files) == 0:
                 error_msg = "No model output files generated"
-            elif benchmark_result is None:
-                error_msg = "Benchmark evaluation failed"
+            elif len(benchmark_result) == 0:
+                error_msg = "No benchmark results"
             return self._generate_llm_feedback(
                 target_task=target_task,
                 implementation=implementation,

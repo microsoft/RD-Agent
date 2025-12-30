@@ -82,10 +82,11 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
 
     # LLM-specific fields
     user_target_scenario: str | None = None
-    target_benchmark: str | None = None
+    target_benchmark: str | list[str] | None = None
+    """Benchmark datasets to evaluate on. Supports single benchmark name or list of benchmarks.
+    Supported: aime25, aime24, mmlu, gsm8k, math, etc.
+    Example: 'aime25' or ['aime25', 'gsm8k', 'math']"""
     benchmark_description: str | None = None
-    """Benchmark datasets to evaluate on. Supported: aime25, aime24, mmlu, gsm8k, math, etc.
-    Will be mapped to OpenCompass dataset names (e.g., aime25 -> aime2025_llmjudge_gen_5e9f4f)"""
     base_model: str | None = None
     dataset: str | None = None
 

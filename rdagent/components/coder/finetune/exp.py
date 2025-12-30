@@ -16,14 +16,14 @@ class FTTask(CoSTEERTask):
         self,
         base_model: str,
         description: str,
-        benchmark: str,
+        benchmark: str | List[str],
         involving_datasets: Optional[List[str]] = None,
         *args,
         **kwargs,
     ) -> None:
         super().__init__(name="LLM-Fine-Tuning", description=description, *args, **kwargs)
         self.base_model = base_model
-        self.benchmark = benchmark
+        self.benchmark = benchmark  # Can be single benchmark name or list of benchmarks
         self.involving_datasets = involving_datasets or []
 
     def get_task_information(self) -> str:
