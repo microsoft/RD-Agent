@@ -8,6 +8,7 @@ from rdagent.core.utils import cache_with_pickle
 
 pandarallel.initialize(verbose=1)
 
+from rdagent.app.qlib_rd_loop.conf import FactorBasePropSetting
 from rdagent.components.runner import CachedRunner
 from rdagent.core.exception import FactorEmptyError
 from rdagent.log import rdagent_logger as logger
@@ -136,7 +137,15 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
                 exp.experiment_workspace.inject_files(
                     **{"model.py": sota_model_exp.sub_workspace_list[0].file_dict["model.py"]}
                 )
-                env_to_use = {"PYTHONPATH": "./"}
+                env_to_use = {
+                    "PYTHONPATH": "./",
+                    "train_start": FactorBasePropSetting.train_start,
+                    "train_end": FactorBasePropSetting.train_end,
+                    "valid_start": FactorBasePropSetting.valid_start,
+                    "valid_end": FactorBasePropSetting.valid_end,
+                    "test_start": FactorBasePropSetting.test_start,
+                    "test_end": FactorBasePropSetting.test_end,
+                }
                 sota_training_hyperparameters = sota_model_exp.sub_tasks[0].training_hyperparameters
                 if sota_training_hyperparameters:
                     env_to_use.update(
@@ -165,14 +174,16 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
                 result, stdout = exp.experiment_workspace.execute(
                     qlib_config_name=(
                         f"conf_baseline.yaml" if len(exp.based_experiments) == 0 else "conf_combined_factors.yaml"
-                    )
+                    ),
+                    run_env=env_to_use,
                 )
         else:
             logger.info(f"Experiment execution ...")
             result, stdout = exp.experiment_workspace.execute(
                 qlib_config_name=(
                     f"conf_baseline.yaml" if len(exp.based_experiments) == 0 else "conf_combined_factors.yaml"
-                )
+                ),
+                run_env=env_to_use,
             )
 
         if result is None:
