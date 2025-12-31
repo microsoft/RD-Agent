@@ -244,6 +244,12 @@ unified_hypothesis_gen:
     - You can choose to focus primarily on ONE aspect while keeping the other stable
     - Or you can improve BOTH if needed
     - Clearly state your focus in the hypothesis (e.g., "Focus on improving data quality while keeping training config stable")
+
+    **Data Processing Skip Option:**
+    If the SOTA's data processing strategy is already good and you want to focus ONLY on training configuration improvements:
+    - Set `skip_data_processing: true` in your response to reuse the SOTA's data.json
+    - This saves LLM API costs and allows you to focus purely on hyperparameter tuning
+    - Only use this option when you believe the data quality is sufficient
     {% endif %}
 
     ## 3.3 Response Format
@@ -269,7 +275,8 @@ unified_hypothesis_gen:
         {
           "reason": "[Your reasoning about why this approach should work, covering BOTH data processing and training aspects, referencing history if available]",
           "hypothesis": "[Your hypothesis in natural language, integrating both data processing strategy and training configuration, comprehensive and specific]",
-          "task": "[Step-by-step task description for the code generator, covering the complete workflow from data processing to training, no code]"
+          "task": "[Step-by-step task description for the code generator, covering the complete workflow from data processing to training, no code]",
+          "skip_data_processing": false  // Set to true ONLY if you want to reuse SOTA's data.json (not applicable for first experiment)
         }
     ```
     Since responding the whole content in one message may exceed the token limit, the user has requested you to provide reason, hypothesis, and task one by one in separate messages. Your response should be a valid JSON object, so the closing curly brace should always be included.
@@ -288,6 +295,44 @@ unified_hypothesis_gen:
     - Reason: {{ feedback.reason }}
     {% endif %}
     {% endfor %}
+    {% endif %}
+
+    {% if sota_info %}
+    ## Current SOTA (Best Performing Experiment)
+    This is the current best experiment that you should try to improve upon.
+
+    ### SOTA Hypothesis
+    {{ sota_info.hypothesis }}
+
+    {% if sota_info.config %}
+    ### SOTA Training Configuration
+    ```yaml
+    {{ sota_info.config }}
+    ```
+    {% endif %}
+
+    {% if sota_info.data_script %}
+    ### SOTA Data Processing Script
+    ```python
+    {{ sota_info.data_script }}
+    ```
+    {% endif %}
+
+    {% if sota_info.benchmark %}
+    ### SOTA Benchmark Results
+    ```json
+    {{ sota_info.benchmark | tojson(indent=2) }}
+    ```
+    {% endif %}
+
+    **Improvement Focus**: Analyze the SOTA's limitations and propose improvements. Consider:
+    - What aspects of the current SOTA could be improved?
+    - Are there any hyperparameters that seem suboptimal?
+    - Could the data processing strategy be enhanced?
+    - If SOTA's data processing is already good, you may focus on training config improvements only.
+    {% endif %}
+
+    {% if trace.hist %}
     **Task**: Based on the historical results above, propose a NEW hypothesis covering BOTH data processing AND training configuration that:
     - Learns from failed attempts and avoids repeating mistakes
     - Builds upon successful approaches while exploring improvements
@@ -300,11 +345,21 @@ unified_hypothesis_gen:
   specific_format: |-
     In your response, provide ONLY the following JSON structure without any additional text or explanation:
 
+    {% if field == "task" %}
+    ```json
+    {
+      "task": "the step-by-step task description for the code generator",
+      "skip_data_processing": false
+    }
+    ```
+    Note: Set `skip_data_processing` to `true` ONLY if you want to reuse SOTA's data.json and focus purely on training configuration improvements. This is only valid for subsequent experiments (not the first one).
+    {% else %}
     ```json
     {
       "{{ field }}": "the content to {{ field }} following the instruction in the previous message"
     }
     ```
+    {% endif %}
   # hard check is some criteria that must be met to pass the test. So it is also included in the evaluation part.
   hard_check: |-
     - For large datasets (>5,000 samples), use code-based sampling to reduce to 1,000-2,000 samples before any LLM processing. This is fast (no LLM calls) and controls costs.

@@ -6,6 +6,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERSingleFeedback,
 )
 from rdagent.components.coder.finetune.conf import (
+    FT_DATA_FILE_NAME,
     FT_DATA_SCRIPT_NAME,
     FT_YAML_FILE_NAME,
     clear_workspace,
@@ -140,6 +141,14 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
             )
 
         logger.info("Full data processing completed successfully")
+
+        # Sync data files from disk to file_dict to prevent inject_files from overwriting
+        # the newly generated full dataset with the old debug dataset
+        for filename in [FT_DATA_FILE_NAME, "dataset_info.json"]:
+            file_path = implementation.workspace_path / filename
+            if file_path.exists():
+                implementation.file_dict[filename] = file_path.read_text()
+        logger.info("Synced data.json and dataset_info.json to file_dict after full data processing")
 
         # ========== Stage 2: Full Training ==========
 

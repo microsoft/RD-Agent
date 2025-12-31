@@ -18,6 +18,7 @@ class FTTask(CoSTEERTask):
         description: str,
         benchmark: str | List[str],
         involving_datasets: Optional[List[str]] = None,
+        skip_data_processing: bool = False,
         *args,
         **kwargs,
     ) -> None:
@@ -25,6 +26,7 @@ class FTTask(CoSTEERTask):
         self.base_model = base_model
         self.benchmark = benchmark  # Can be single benchmark name or list of benchmarks
         self.involving_datasets = involving_datasets or []
+        self.skip_data_processing = skip_data_processing  # If True, reuse SOTA's data.json
 
     def get_task_information(self) -> str:
         """Get task information for coder prompt generation"""

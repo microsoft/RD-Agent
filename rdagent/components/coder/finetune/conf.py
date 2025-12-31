@@ -307,15 +307,16 @@ def get_benchmark_env(
 
         # Setup finetune share folder mount for models
         benchmark_volumes = {}
-        try:
-            (FT_RD_SETTING.file_path / "benchmarks").mkdir(parents=True, exist_ok=True)
-            benchmark_volumes[str(FT_RD_SETTING.file_path.resolve())] = {"bind": "/finetune", "mode": "rw"}
-            benchmark_volumes[str((FT_RD_SETTING.file_path / "benchmarks").resolve())] = {
-                "bind": "/benchmarks",
-                "mode": "rw",
-            }
-        except (PermissionError, OSError):
-            pass
+        (FT_RD_SETTING.file_path / "benchmarks").mkdir(parents=True, exist_ok=True)
+        benchmark_volumes[str(FT_RD_SETTING.file_path.resolve())] = {"bind": "/finetune", "mode": "rw"}
+        benchmark_volumes[str((FT_RD_SETTING.file_path / "benchmarks").resolve())] = {
+            "bind": "/benchmarks",
+            "mode": "rw",
+        }
+        # Mount models directory for LoRA base model access (vLLM needs base model config)
+        models_path = FT_RD_SETTING.file_path / "models"
+        if models_path.exists():
+            benchmark_volumes[str(models_path.resolve())] = {"bind": FT_MODEL_PATH, "mode": "ro"}
 
         benchmark_volumes.update(extra_volumes)
         docker_conf.extra_volumes = benchmark_volumes

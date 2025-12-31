@@ -25,9 +25,32 @@ exp_feedback:
     - The user will also provide you the former sota benchmark results on the same benchmark suite for comparison.
     - Analyze the benchmark results to determine if they support or refute the hypothesis. If the results is signifficantly worse than the sota results, reject the experiment and start your reason by: [Benchmark Performance Issue]. Else proceed to next step.
 
-    ## Step 3: Task and Code Quality Assessment  
+    {% if is_first_loop %}
+    ## Special Case: First Experiment (No SOTA to compare)
+    **This is the FIRST experiment. There is no SOTA to compare against.**
+    **CRITICAL: You MUST set "Decision": "yes" if the experiment completed successfully with valid benchmark results.**
+    - The first successful experiment automatically becomes the SOTA baseline
+    - Focus on verifying implementation correctness, not comparing to non-existent SOTA
+    - Skip Step 2's "compare to SOTA" requirement since there's nothing to compare against
+    - Do NOT reject the first experiment just because there's no SOTA to compare - that's expected!
+    {% endif %}
+
+    ## Step 3: Task and Code Quality Assessment
     - Evaluate the implementation quality and best practices
     - Compare the implementation against sota methods. If the implementation is worse than sota methods, reject the experiment and start your reason by: [Implementation Quality Issue]. Else accept the experiment.
+
+    ## Step 4: SOTA Update Decision
+    You MUST return a field "should_update_sota" (true/false) in your response:
+
+    **Case 1: First experiment (no SOTA to compare)**
+    - If this is the first successful experiment with valid benchmark results
+    - Return "should_update_sota": "yes" to establish the initial SOTA baseline
+
+    **Case 2: Subsequent experiments (has SOTA to compare)**
+    - Compare the current experiment's benchmark results with SOTA
+    - Consider ALL metrics comprehensively, not just one
+    - Return "should_update_sota": "yes" if current experiment is better overall
+    - Return "should_update_sota": "no" if SOTA is still better or if this experiment should be rejected
 
     # Core improvement identification
     ## Failure identification (On rejection)
@@ -74,7 +97,8 @@ exp_feedback:
     {
       "Code Summary": "Concise summary of the implementation approach and key components",
       "Reason": "A single paragraph (not a list) explaining the decision with specific evidence, root cause analysis, and improvement suggestions. Limit to 3-5 sentences.",
-      "Decision": "yes or no - whether this experiment should be accepted"
+      "Decision": "yes or no - whether this experiment should be accepted",
+      "should_update_sota": "yes or no - whether this experiment should replace the current SOTA (see Step 4)"
     }
 
   user: |-
@@ -123,6 +147,27 @@ exp_feedback:
     - Model Output: {{ sample.model_output[:500] }}{% if sample.model_output | length > 500 %}... (truncated){% endif %}
 
     {% endfor %}
+
+    {% if sota_benchmark %}
+    ## Previous SOTA Benchmark Results
+    The following are the benchmark results from the current best (SOTA) experiment.
+    Compare the current results with these to determine if the current experiment should replace the SOTA.
+
+    ### SOTA Accuracy Summary
+    {% if sota_benchmark.accuracy_summary %}
+    ```json
+    {{ sota_benchmark.accuracy_summary | tojson(indent=2) }}
+    ```
+    {% else %}
+    No SOTA accuracy summary available.
+    {% endif %}
+    {% endif %}
+
+    {% if is_first_loop %}
+    **CRITICAL - FIRST EXPERIMENT**: This is the FIRST experiment. There is no SOTA to compare against.
+    You MUST set "Decision": "yes" if the experiment completed successfully with valid benchmark results.
+    The first successful experiment will establish the initial SOTA baseline for future comparisons.
+    {% endif %}
 
 exp_feedback_error:
   system: |-

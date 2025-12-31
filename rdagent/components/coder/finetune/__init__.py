@@ -69,6 +69,24 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             dict with "process_data.py" key containing the script code,
             or empty dict if data already exists.
         """
+        # Check if proposal decided to skip data processing (reuse SOTA's data.json)
+        if getattr(target_task, "skip_data_processing", False):
+            # Defensive check: ensure data.json actually exists before skipping
+            data_exists = False
+            if workspace is not None:
+                data_json_path = workspace.workspace_path / FT_DATA_FILE_NAME
+                data_exists = data_json_path.exists() or FT_DATA_FILE_NAME in workspace.file_dict
+
+            if data_exists:
+                logger.info("Proposal decided to skip data processing, reusing SOTA's data.json")
+                return {}
+            else:
+                logger.warning(
+                    "skip_data_processing=True but data.json not found in workspace, "
+                    "this indicates SOTA injection failed - system design issue"
+                )
+                # Don't fallback silently, let it fail early to expose the issue
+
         # check whether the current code passes evaluation
         if (
             prev_task_feedback is not None

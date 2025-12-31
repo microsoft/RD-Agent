@@ -8,6 +8,7 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.exception import CoderError
 from rdagent.core.proposal import HypothesisFeedback
 from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.finetune.proposal.trace import FTTrace
 
 
 class LLMFinetuneRDLoop(RDLoop):
@@ -24,6 +25,9 @@ class LLMFinetuneRDLoop(RDLoop):
 
         # Initialize using base class
         super().__init__(PROP_SETTING)
+
+        # Replace generic Trace with FTTrace for SOTA tracking
+        self.trace = FTTrace(scen=self.trace.scen)
 
     async def direct_exp_gen(self, prev_out: dict[str, Any]):
         """Generate LLM fine-tuning experiment"""
