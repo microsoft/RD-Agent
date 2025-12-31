@@ -50,7 +50,7 @@ fi
 command -v jq &>/dev/null || { echo "Error: jq required"; exit 1; }
 
 # ========== SETUP ==========
-JOB_ID=$(date +%Y-%m-%d)
+JOB_ID=$(date +%Y-%m-%d_%H-%M)
 JOB_DIR="$RDAGENT_DIR/log/$JOB_ID"
 if [[ -d "$JOB_DIR" ]]; then
     i=1; while [[ -d "${JOB_DIR}_$i" ]]; do ((i++)); done
