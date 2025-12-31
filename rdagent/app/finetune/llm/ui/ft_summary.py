@@ -9,6 +9,8 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from rdagent.app.finetune.llm.ui.benchmarks import get_core_metric_score
+
 
 def is_valid_task(task_path: Path) -> bool:
     """Check if directory is a valid FT task (has __session__ subdirectory)"""
@@ -21,46 +23,48 @@ def get_loop_dirs(task_path: Path) -> list[Path]:
     return sorted(loops, key=lambda d: int(d.name.split("_")[1]))
 
 
-def extract_benchmark_score(loop_path: Path) -> float | None:
-    """Extract benchmark score from loop directory"""
-    # Look for benchmark_result pkl files
+def extract_benchmark_score(loop_path: Path) -> tuple[str, float, bool] | None:
+    """Extract benchmark score, metric name, and direction from loop directory.
+
+    Returns:
+        (metric_name, score, higher_is_better) or None
+        - metric_name includes "(average)" suffix if multiple datasets are averaged
+        - higher_is_better: True if higher values are better
+    """
     for pkl_file in loop_path.rglob("**/benchmark_result/**/*.pkl"):
         try:
             with open(pkl_file, "rb") as f:
                 content = pickle.load(f)
             if isinstance(content, dict):
-                # Try to extract accuracy from accuracy_summary
-                # accuracy_summary is a dict: {dataset_name: {metric: value, ...}, ...}
+                benchmark_name = content.get("benchmark_name", "")
                 accuracy_summary = content.get("accuracy_summary", {})
                 if isinstance(accuracy_summary, dict) and accuracy_summary:
-                    first_dataset_metrics = next(iter(accuracy_summary.values()))
-                    if isinstance(first_dataset_metrics, dict):
-                        # Prefer 'accuracy' metric
-                        if "accuracy" in first_dataset_metrics:
-                            return float(first_dataset_metrics["accuracy"])
-                        # Otherwise take any numeric value
-                        for k, v in first_dataset_metrics.items():
-                            if isinstance(v, (int, float)):
-                                return float(v)
+                    result = get_core_metric_score(benchmark_name, accuracy_summary)
+                    if result is not None:
+                        return result
         except Exception:
             pass
     return None
 
 
-def get_loop_status(task_path: Path, loop_id: int) -> tuple[str, float | None]:
+def get_loop_status(task_path: Path, loop_id: int) -> tuple[str, float | None, str | None]:
     """
-    Get loop status and score
-    Returns: (status_str, score_or_none)
+    Get loop status, score, and metric name with direction arrow
+    Returns: (status_str, score_or_none, metric_display_or_none)
     Status: 'C'=Coding, 'R'=Running, 'X'=Failed, score_str=Success
+    metric_display: metric name with direction arrow (e.g., "accuracy ↑")
     """
     loop_path = task_path / f"Loop_{loop_id}"
     if not loop_path.exists():
-        return "-", None
+        return "-", None, None
 
     # Check for benchmark result first (highest priority - means completed)
-    score = extract_benchmark_score(loop_path)
-    if score is not None:
-        return f"{score:.1f}", score
+    result = extract_benchmark_score(loop_path)
+    if result is not None:
+        metric_name, score, higher_is_better = result
+        arrow = "↑" if higher_is_better else "↓"
+        metric_display = f"{metric_name} {arrow}"
+        return f"{score:.1f}", score, metric_display
 
     # Check feedback stage
     feedback_files = list(loop_path.rglob("**/feedback/**/*.pkl"))
@@ -72,22 +76,22 @@ def get_loop_status(task_path: Path, loop_id: int) -> tuple[str, float | None]:
                     content = pickle.load(fp)
                 decision = getattr(content, "decision", None)
                 if decision is not None:
-                    return ("OK" if decision else "X"), None
+                    return ("OK" if decision else "X"), None, None
             except Exception:
                 pass
 
     # Check running stage
     running_files = list(loop_path.rglob("**/running/**/*.pkl"))
     if running_files:
-        return "R", None
+        return "R", None, None
 
     # Check coding stage
     coding_files = list(loop_path.rglob("**/coding/**/*.pkl"))
     if coding_files:
-        return "C", None
+        return "C", None, None
 
     # Has directory but no recognized files
-    return "?", None
+    return "?", None, None
 
 
 def get_max_loops(job_path: Path) -> int:
@@ -117,18 +121,27 @@ def get_job_summary_df(job_path: Path) -> pd.DataFrame:
     for task_path in tasks:
         row = {"Task": task_path.name}
         best_score = None
+        best_metric = None
 
         for i in range(max_loops):
-            status, score = get_loop_status(task_path, i)
+            status, score, metric_name = get_loop_status(task_path, i)
             row[f"L{i}"] = status
             if score is not None:
                 if best_score is None or score > best_score:
                     best_score = score
+                    best_metric = metric_name
 
         row["Best"] = f"{best_score:.1f}" if best_score is not None else "-"
+        row["Metric"] = best_metric if best_metric else "-"
         data.append(row)
 
-    return pd.DataFrame(data)
+    # Ensure column order: Task, Metric, L0, L1, ..., Best
+    df = pd.DataFrame(data)
+    if not df.empty:
+        loop_cols = [c for c in df.columns if c.startswith("L")]
+        cols = ["Task", "Metric"] + sorted(loop_cols, key=lambda x: int(x[1:])) + ["Best"]
+        df = df[cols]
+    return df
 
 
 def style_status_cell(val: str) -> str:
@@ -178,20 +191,10 @@ def render_job_summary(job_path: Path, is_root: bool = False) -> None:
     st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
     # Summary stats
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
         st.metric("Tasks", len(df))
     with col2:
         # Count tasks with any score
         tasks_with_score = df["Best"].apply(lambda x: x != "-").sum()
         st.metric("With Score", tasks_with_score)
-    with col3:
-        # Average best score
-        scores = []
-        for val in df["Best"]:
-            try:
-                scores.append(float(val))
-            except ValueError:
-                pass
-        avg_score = sum(scores) / len(scores) if scores else 0
-        st.metric("Avg Best", f"{avg_score:.1f}" if scores else "-")

@@ -8,6 +8,7 @@ from typing import Any
 import plotly.graph_objects as go
 import streamlit as st
 
+from rdagent.app.finetune.llm.ui.benchmarks import get_core_metric_score
 from rdagent.app.finetune.llm.ui.config import ICONS
 from rdagent.app.finetune.llm.ui.data_loader import Event, EvoLoop, Loop, Session
 
@@ -71,24 +72,16 @@ def render_loop(loop: Loop, show_types: list[str]) -> None:
         # Docker (Full Train) result - check exit_code, not LLM evaluation
         if event.type == "docker_exec" and "Full Train" in event.title and event.success is not None:
             runner_success = event.success
-        # Benchmark score - always show if available
+        # Benchmark score - use core metric from processor
         if event.type == "feedback" and "Benchmark Result" in event.title:
             content = event.content
             if isinstance(content, dict):
+                benchmark_name = content.get("benchmark_name", "")
                 accuracy_summary = content.get("accuracy_summary", {})
-                # accuracy_summary is a dict: {dataset_name: {metric: value, ...}, ...}
                 if isinstance(accuracy_summary, dict) and accuracy_summary:
-                    # Get first dataset's metrics
-                    first_dataset_metrics = next(iter(accuracy_summary.values()))
-                    if isinstance(first_dataset_metrics, dict):
-                        # Prefer 'accuracy' metric, otherwise take any numeric value
-                        if "accuracy" in first_dataset_metrics:
-                            benchmark_score = first_dataset_metrics["accuracy"]
-                        else:
-                            for key, value in first_dataset_metrics.items():
-                                if isinstance(value, (int, float)):
-                                    benchmark_score = value
-                                    break
+                    result = get_core_metric_score(benchmark_name, accuracy_summary)
+                    if result is not None:
+                        _, benchmark_score, _ = result
 
     # 3. Build title string (only show existing stages)
     parts = []
@@ -632,6 +625,8 @@ def render_training_result(result: dict) -> None:
 
 def render_benchmark_result(content: dict) -> None:
     """Render benchmark evaluation result"""
+    import pandas as pd
+
     benchmark_name = content.get("benchmark_name", "Unknown")
     st.markdown(f"**Benchmark: {benchmark_name}**")
 
@@ -641,8 +636,16 @@ def render_benchmark_result(content: dict) -> None:
     if accuracy_summary and isinstance(accuracy_summary, dict):
         st.markdown("**Accuracy Summary:**")
         # Convert dict {dataset: {metric: value}} to list of dicts for dataframe
-        rows = [{"dataset": ds, **metrics} for ds, metrics in accuracy_summary.items()]
-        st.dataframe(rows)
+        rows = []
+        for ds, metrics in accuracy_summary.items():
+            row = {"dataset": ds, **metrics}
+            rows.append(row)
+
+        # Create DataFrame and reorder columns
+        df = pd.DataFrame(rows)
+        cols = ["dataset"] + [c for c in df.columns if c != "dataset"]
+        df = df[cols]
+        st.dataframe(df)
 
     # Error samples
     error_samples = content.get("error_samples", [])
