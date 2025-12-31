@@ -144,19 +144,19 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         # ========== Stage 2: Full Training ==========
 
         # Execute LlamaFactory training
-        result = implementation.run(
+        train_result = implementation.run(
             env=env,
             entry=f"llamafactory-cli train {FT_YAML_FILE_NAME}",
         )
         # Combine data processing and training stdout for comprehensive feedback
         combined_stdout = (
-            f"=== DATA PROCESSING OUTPUT ===\n{data_stdout}\n\n=== TRAINING OUTPUT ===\n{result.stdout or ''}"
+            f"=== DATA PROCESSING OUTPUT ===\n{data_stdout}\n\n=== TRAINING OUTPUT ===\n{train_result.stdout or ''}"
         )
-        implementation.running_info.running_time = result.running_time
+        implementation.running_info.running_time = train_result.running_time
         # NOTE: Docker execution is logged by FTWorkspace.run() automatically
 
         # Simple success check: exit code
-        training_success = result.exit_code == 0
+        training_success = train_result.exit_code == 0
 
         # Check for model output files
         workspace_path = implementation.workspace_path
@@ -172,16 +172,16 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         # Early return if training failed
         if not training_success or len(model_output_files) == 0:
             if not output_path.exists():
-                error_msg = f"Output directory not found (exit_code={result.exit_code})"
+                error_msg = f"Output directory not found (exit_code={train_result.exit_code})"
             elif not training_success:
-                error_msg = f"Training failed (exit_code={result.exit_code})"
+                error_msg = f"Training failed (exit_code={train_result.exit_code})"
             else:
                 error_msg = "No model output files generated"
             return self._generate_llm_feedback(
                 target_task=target_task,
                 implementation=implementation,
                 raw_stdout=combined_stdout,  # Use combined stdout for comprehensive feedback
-                exit_code=result.exit_code,
+                exit_code=train_result.exit_code,
                 training_success=False,
                 error_msg=error_msg,
             )
@@ -196,7 +196,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
 
         for bm_name in benchmarks:
             try:
-                result = run_benchmark(
+                bm_result = run_benchmark(
                     workspace_path=str(workspace_path),
                     model_path=output_path,
                     model_name=target_task.base_model,
@@ -204,8 +204,8 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
                     gpu_count=self._get_gpu_count_from_scenario(),
                 )
                 # Only store successful results
-                if result is not None:
-                    benchmark_result[bm_name] = result
+                if bm_result is not None:
+                    benchmark_result[bm_name] = bm_result
             except Exception as e:
                 logger.warning(f"Benchmark '{bm_name}' failed: {e}")
                 # Continue with other benchmarks
@@ -230,14 +230,14 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
                 target_task=target_task,
                 implementation=implementation,
                 raw_stdout=combined_stdout,  # Use combined stdout for comprehensive feedback
-                exit_code=result.exit_code,
+                exit_code=train_result.exit_code,
                 training_success=True,
                 benchmark_result=benchmark_result,
                 loss_history=loss_history,
             )
         else:
             # Failure: analyze error cause
-            error_msg = f"exit_code={result.exit_code}"
+            error_msg = f"exit_code={train_result.exit_code}"
             if not training_success:
                 error_msg = f"Training failed: {error_msg}"
             elif len(model_output_files) == 0:
@@ -248,7 +248,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
                 target_task=target_task,
                 implementation=implementation,
                 raw_stdout=combined_stdout,  # Use combined stdout for comprehensive feedback
-                exit_code=result.exit_code,
+                exit_code=train_result.exit_code,
                 training_success=False,
                 error_msg=error_msg,
             )
