@@ -76,10 +76,14 @@ class FTExperiment2Feedback(Experiment2Feedback):
             system_prompt = T(f".prompts:{version}.system").r(
                 scenario=self.scen.get_scenario_all_desc(),
             )
-            # Get workspace files safely
+            # Get workspace files safely, truncate data.json to avoid huge prompts
             workspace_files = {}
             if hasattr(exp, "experiment_workspace") and exp.experiment_workspace is not None:
-                workspace_files = exp.experiment_workspace.file_dict
+                for name, content in exp.experiment_workspace.file_dict.items():
+                    if name == "data.json" and len(content) > 5000:
+                        workspace_files[name] = content[:5000] + f"\n... (truncated, total {len(content)} chars)"
+                    else:
+                        workspace_files[name] = content
             user_prompt = T(f".prompts:{version}.user").r(
                 hypothesis=exp.hypothesis,
                 task_desc=task_desc,
