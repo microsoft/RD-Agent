@@ -351,7 +351,8 @@ finetune_coder:
        - Calculate `logging_steps` adaptively:
          * Estimate total_steps = (num_samples × num_epochs) / (batch_size × gradient_accumulation_steps × num_gpus)
          * Target 20-50 log entries total
-       - Also set `save_steps` to same value as `logging_steps` for checkpoint alignment
+       - **Checkpoint Saving**: Do NOT set `save_steps` - we only need the final model, not intermediate checkpoints
+       - **Storage Optimization**: Set `save_only_model: true` to save only model weights (not optimizer/scheduler states)
     6. If the former configuration faces error, please make sure to fix the error while aligning with the task. If these two goals conflict, please prioritize fixing the error.
 
     ## Configuration Principle
