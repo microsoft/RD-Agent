@@ -12,9 +12,10 @@ ACCOUNT="epeastus"
 CONTAINER="rdagent"
 REMOTE_BASE="FinetuneAgenticLLM/FT_qizheng"
 
-# Directory mappings
-LOCAL_LOG_DIR="$PROJECT_ROOT/log"
-LOCAL_WORKSPACE_DIR="$PROJECT_ROOT/git_ignore_folder/RD-Agent_workspace"
+# Directory mappings (support environment variable override)
+# Default to project-relative paths; can be overridden by environment variables
+LOCAL_LOG_DIR="${FT_LOG_BASE:-$PROJECT_ROOT/log}"
+LOCAL_WORKSPACE_DIR="${FT_WORKSPACE_BASE:-$PROJECT_ROOT/git_ignore_folder/RD-Agent_workspace}"
 REMOTE_LOG_PATH="${REMOTE_BASE}/logs"
 REMOTE_WORKSPACE_PATH="${REMOTE_BASE}/workspace"
 
