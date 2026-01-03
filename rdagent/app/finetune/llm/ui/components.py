@@ -652,6 +652,246 @@ def render_benchmark_result(content: dict) -> None:
                     st.markdown("</div>", unsafe_allow_html=True)
 
 
+def render_multi_experiment_comparison(job_path):
+    """
+    Render comprehensive multi-experiment metrics comparison view. 
+    Each experiment gets its own table showing all loops and metrics.
+    """ 
+    import pandas as pd
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+    st.markdown("**Multi-Experiment Metrics Comparison**")
+    with st.spinner("Multi-Experiment Metrics Comparison"):
+        df = load_multi_experiment_metrics(job_path)
+    if df.empty:
+        st.warning("No experiment data found in job directory")
+        return
+    
+    st.markdown("Overview")
+    n_experiments = df["Experiment"].nunique()
+    n_total_loops = len(df)
+    metric_cols = [col for col in df.columns if col not in ["Experiment", "Loop"]]
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Experiments", n_experiments)
+    col2.metric("Total Loops", n_total_loops)
+    col3.metric("Metrics", len(metric_cols))
+    if metric_cols:
+        primary_metric = st.selectbox(
+            "Primary metric for ranking",
+            options = metric_cols,
+            index = 0 if "accuracy" not in metric_cols else metric_cols.index("accuracy"),
+            key = "metric_select"
+        )
+
+        ascending = 'loss' in primary_metric.lower()
+        best_idx = df[primary_metric].idxmin() if ascending else df[primary_metric].idxmax()
+        best_row = df.loc[best_idx]
+        st.info(
+            f"**Best {primary_metric}** {best_row[primary_metric]:.4f} "
+            f"({best_row['Experiment']} / Loop {best_row['Loop']})"
+        )
+    st.markdown("---")
+    st.markdown("Individual Experiment Results")
+
+    col1, col2 = st.columns([3,1])
+    with col1:
+        experiments = sorted(df["Experiment"].unique())
+        show_all = st.checkbox("Show all experiments", value = True,key = "show_all_experiments")
+        if not show_all:
+            selected_experiments = st.multiselect(
+                "Select Experiments to show",
+                options = experiments,
+                default = experiments[:3] if len(experiments) > 3 else experiments,
+                key = "selected_experiments"
+            )
+        else:
+            selected_experiments = experiments
+    with col2:
+        compact_view = st.checkbox("Compact view", value = False, key = "compact_view")
+    
+    #Render each experiment in its own table
+    for exp_name in selected_experiments:
+        exp_data = df[df["Experiment"] == exp_name].sort_values(by = "Loop")
+        if exp_data.empty:
+            continue
+
+        #Experiment header with expander
+        n_loops = len(exp_data)
+        with st.expander(f"Experiment **{exp_name}** ({n_loops} loops)", expanded = not compact_view):
+            #display the metrics table for this experiment
+            display_df = exp_data[["Loop"] + metric_cols].copy()
+            def highlight_best_in_exp(s):
+                """Highlight the best value in each metric for this experiment"""
+                if s.name == "Loop":
+                    return [''] * len(s)
+                if 'loss' in s.name.lower():
+                    is_best = (s == s.min())
+                else:
+                    is_best = (s == s.max())
+
+                return ['background-color: #d4edda; color: #155724;' if val else '' for val in is_best]
+            
+            styled_df = display_df.style.apply(highlight_best_in_exp, axis = 0)
+
+            #Format numbers
+            format_dict = {col: '{:.4f}' for col in metric_cols}
+            styled_df = styled_df.format(format_dict)
+
+            #display table
+            st.dataframe(
+                styled_df,
+                use_container_width = True,
+                height = min(400, len(display_df) * 30 + 50)
+            )
+
+            #show best loop info
+            if len(exp_data) > 1 and metric_cols:
+                st.markdown("Metrics Breakdown:")
+                best_cols = st.columns(min(4, len(metric_cols)))
+                for idx, metric in enumerate(metric_cols[:4]):
+                    with best_cols[idx]:
+                        if 'loss' in metric.lower():
+                            best_val = exp_data[metric].min()
+                            best_loop = exp_data.loc[exp_data[metric].idxmin(), "Loop"]
+                        else:
+                            best_val = exp_data[metric].max()
+                            best_loop = exp_data.loc[exp_data[metric].idxmax(), "Loop"]
+                        st.metric(
+                            label = metric, 
+                            value = f"{best_val:.4f}",
+                            delta = f"Loop {int(best_loop)}",
+                            delta_color = "off"
+                        )     
+        st.markdown("")
+    st.markdown("---")
+
+
+def load_multi_experiment_metrics(job_path):
+    """
+    Load metrics from all experiments in the job directory.
+    """
+    import pandas as pd
+    from pathlib import Path
+
+    all_data = []
+    if not job_path.exists():
+        return pd.DataFrame()
+    
+    #find all useful task directories
+    task_dirs = []
+    for item in job_path.iterdir():
+         if item.is_dir() and (item / "__session__").exists():
+            task_dirs.append(item)
+    
+    # 按名称排序，确保展示顺序一致
+    task_dirs = sorted(task_dirs, key=lambda x: x.name)
+    
+    # ========== 2. 遍历每个实验 ==========
+    for task_dir in task_dirs:
+        experiment_name = task_dir.name
+        
+        # 查找该实验下的所有Loop目录
+        loop_dirs = []
+        for item in task_dir.iterdir():
+            if item.is_dir() and item.name.startswith("Loop_"):
+                try:
+                    # 验证Loop_后面确实是数字
+                    loop_num = int(item.name.split("_")[1])
+                    loop_dirs.append((loop_num, item))
+                except (ValueError, IndexError):
+                    continue
+        
+        # 按Loop编号排序
+        loop_dirs.sort(key=lambda x: x[0])
+        
+        # ========== 3. 遍历每个Loop ==========
+        for loop_id, loop_dir in loop_dirs:
+            try:
+                # 提取该Loop的所有metrics
+                metrics = extract_all_metrics_from_loop(loop_dir)
+                
+                # 只有当找到至少一个metric时才添加这一行
+                if metrics:
+                    row = {
+                        "Experiment": experiment_name,
+                        "Loop": loop_id,
+                        **metrics  # 展开所有metrics
+                    }
+                    all_data.append(row)
+            
+            except Exception as e:
+                # 单个loop出错不影响其他loop
+                print(f"Warning: Failed to process {experiment_name}/Loop_{loop_id}: {e}")
+                continue
+    
+    # ========== 4. 转换为DataFrame ==========
+    if not all_data:
+        return pd.DataFrame()
+    
+    df = pd.DataFrame(all_data)
+    
+    # 确保列的顺序：Experiment, Loop, 然后是其他metrics（按字母排序）
+    metric_cols = sorted([col for col in df.columns if col not in ["Experiment", "Loop"]])
+    df = df[["Experiment", "Loop"] + metric_cols]
+    
+    return df
+
+
+def extract_all_metrics_from_loop(loop_path):
+    """
+    Extract all metrics from a loop directory.
+    """
+    import pickle
+    from pathlib import Path
+    metrics = {}
+    #1. acquire benchmark result
+    benchmark_files = list(loop_path.rglob("**/benchmark_result/**/*.pkl"))
+    for pkl_file in benchmark_files:
+        with open(pkl_file, "rb") as f:
+            content = pickle.load(f)
+        if not isinstance(content, dict):
+            continue
+        accuracy_summary = content.get("accuracy_summary", {})
+        if isinstance(accuracy_summary, dict):
+            for dataset_name, dataset_metrics in accuracy_summary.items():
+                if isinstance(dataset_metrics, dict):
+                    for metric_name, metric_value in dataset_metrics.items():
+                        if isinstance(metric_value, (int, float)):
+                            if len(accuracy_summary) > 1:
+                                key = f"benchmark_{dataset_name}_{metric_name}"
+                            else:
+                                key = metric_name
+                            metrics[key] = metric_value
+    #2. acquire feedback result
+    feedback_files = list(loop_path.rglob("**/feedback/**/*.pkl"))
+    for pkl_file in feedback_files:
+        with open(pkl_file, "rb") as f:
+            content = pickle.load(f)
+        if hasattr(content, "training_metrics"):
+            training_metrics = content.training_metrics
+            if isinstance(training_metrics, dict):
+                if "final_loss" in training_metrics and training_metrics["final_loss"] is not None:
+                        metrics["final_loss"] = float(training_metrics["final_loss"])
+                if "initial_loss" in training_metrics and training_metrics["initial_loss"] is not None:
+                    metrics["initial_loss"] = float(training_metrics["initial_loss"]) 
+                # 可以添加其他训练指标
+                if "eval_loss" in training_metrics and training_metrics["eval_loss"] is not None:
+                    metrics["eval_loss"] = float(training_metrics["eval_loss"])
+    return metrics
+        
+   
+
+
+
+                
+
+
+
+
+
+    
+
+
 def render_summary(summary: dict) -> None:
     col1, col2, col3, col4 = st.columns(4)
     with col1:
