@@ -67,6 +67,11 @@ exp_feedback:
     # Training Loss Analysis Guidelines
     You will receive the complete training loss history. Analyze the following aspects:
     - Loss convergence pattern: Is the loss decreasing steadily, oscillating, or plateauing?
+    - - **Overfitting Detection**:
+      * If final training loss < 0.01(near-zero loss), it is likely overfitting. 
+      * If validation loss not provided: Flag missing evaluation as serious issue.
+      * If training loss << validation loss, it is likely overfitting, clearly state this in the reason.
+      * Compare loss trend: if loss drop too fast or reaches near-zero, suggest reduing epochs or adding regularization. 
     - Signs of overfitting or underfitting based on loss trajectory
     - Learning rate appropriateness based on loss curve shape
     - Suggest hyperparameter-level adjustments (learning rate, batch size, epochs), NOT data-level changes

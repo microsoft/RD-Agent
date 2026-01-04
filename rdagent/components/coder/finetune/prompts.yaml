@@ -392,7 +392,20 @@ finetune_coder:
          * Estimate total_steps = (num_samples × num_epochs) / (batch_size × gradient_accumulation_steps × num_gpus)
          * Target 20-50 log entries total
        - **Checkpoint Saving**: Do NOT set `save_steps` - we only need the final model, not intermediate checkpoints
-    6. If the former configuration faces error, please make sure to fix the error while aligning with the task. If these two goals conflict, please prioritize fixing the error.
+    6. **Validation and Evaluation Strategy (CRITICAL)**:
+       - **enable validation**: Set `val_size` to 0.05-0.1 (5-10% of training data) for validation
+       - **enable evaluation**: Set `evaluation_strategy: "epoch"` to evaluate after each epoch
+       - **enable metric-based saving**: Set `save_strategy: "epoch"` and `load_best_model_at_end: true`
+       - **set early stopping metric**: Set `metric_for_best_model` to match your task (e.g., "accuracy", "loss")
+       - This allows monitoring validation loss/metrics to detect overfitting early
+    7. **Regularization and Overfitting Prevention (IMPORTANT)**:
+      - For small datasets (<2000 samples), consider:
+      * Reducing epochs to 2-3 (not 5+) to prevent memorization
+      - Using dropout if available (check model config)
+      - Using weight_decay (e.g., 0.01-0.1) for L2 regularization
+      - Consider LoRA/QLoRA instead of full fine-tuning for better generalization
+      - Monitor training vs validation loss divergence - if training loss << validation loss, you're overfitting
+    8. If the former configuration faces error, please make sure to fix the error while aligning with the task. If these two goals conflict, please prioritize fixing the error.
 
     ## Configuration Principle
     **ONLY include parameters you want to change from defaults**

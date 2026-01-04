@@ -285,6 +285,13 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         if loss_history:
             losses = [e["loss"] for e in loss_history]
             min_idx = losses.index(min(losses))
+
+            #calculate loss statistics
+            final_loss = loss_history[-1]["loss"]
+
+            # Check for overfitting indicators
+            overfitting_risk = "high" if final_loss < 0.01 else ("moderate" if final_loss < 0.1 else "low")
+
             loss_summary = {
                 "logged_entries": len(loss_history),
                 "final_step": loss_history[-1].get("step"),
@@ -293,6 +300,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
                 "min_loss": round(min(losses), 4),
                 "min_loss_at_entry": min_idx + 1,  # 1-indexed
                 "loss_trend": "rising_late" if losses[-1] > min(losses) * 1.1 else "stable",
+                "overfitting_risk": overfitting_risk,
             }
 
         system_prompt = T(f"rdagent.components.coder.finetune.prompts:{version}.system").r()
