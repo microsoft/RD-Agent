@@ -47,15 +47,15 @@ def get_job_options(base_path: Path) -> list[str]:
         else:
             try:
                 if any((sub / "__session__").exists() for sub in d.iterdir() if sub.is_dir()):
-                    job_dirs.append((d.name, d.stat().st_mtime))
+                    job_dirs.append(d.name)
             except PermissionError:
                 pass
 
-    # Sort job dirs by mtime descending (newest first)
-    job_dirs.sort(key=lambda x: x[1], reverse=True)
+    # Sort job dirs by name descending (newest first, since names are date-based)
+    job_dirs.sort(reverse=True)
 
     # Add job dirs first, then root tasks at the end
-    options.extend([name for name, _ in job_dirs])
+    options.extend(job_dirs)
     if has_root_tasks:
         options.append(". (Current)")
 

@@ -53,14 +53,17 @@ class LLMConfigValidator:
         self._supported_params_cache: Optional[Set[str]] = None
 
     def validate_and_test(self, config_yaml: str, workspace: FBWorkspace, env) -> ValidationResult:
-        """Two-step validation: parameter filtering + micro-batch testing"""
+        """Three-step validation: parameter filtering + injection + micro-batch testing"""
         start_time = time.time()
 
         # Step 1: Parameter filtering
         filtered_config, removed_params = self._filter_parameters(config_yaml)
 
-        # Step 2: Micro-batch testing (validates everything at runtime)
-        result = self._run_micro_batch_test(filtered_config, workspace, env)
+        # Step 2: Inject required parameters for multi-task environments
+        injected_config = self._inject_required_parameters(filtered_config)
+
+        # Step 3: Micro-batch testing (validates everything at runtime)
+        result = self._run_micro_batch_test(injected_config, workspace, env)
         result.execution_time = time.time() - start_time
 
         # Add filtered params info to execution_output for agent learning
@@ -96,6 +99,23 @@ class LLMConfigValidator:
             logger.info(f"Filtered out {len(removed_params)} unsupported parameters: {removed_params}")
 
         return yaml.dump(filtered_config, default_flow_style=False, sort_keys=False), removed_params
+
+    def _inject_required_parameters(self, config_yaml: str) -> str:
+        """Inject required parameters for multi-task environments.
+
+        These parameters are hardcoded to ensure:
+        - overwrite_cache: Avoid HF datasets cache lock contention
+        - save_only_model: Save disk space
+        """
+        config = yaml.safe_load(config_yaml)
+        if not isinstance(config, dict):
+            return config_yaml
+
+        config["overwrite_cache"] = True
+        config["save_only_model"] = True
+
+        logger.info("Injected required parameters: overwrite_cache=True, save_only_model=True")
+        return yaml.dump(config, default_flow_style=False, sort_keys=False)
 
     def _get_supported_parameters(self) -> Set[str]:
         """Get supported parameters from LlamaFactory Manager"""

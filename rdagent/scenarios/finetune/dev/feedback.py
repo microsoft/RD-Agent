@@ -15,10 +15,12 @@ from rdagent.core.proposal import (
     HypothesisFeedback,
 )
 from rdagent.core.scenario import Scenario
+from rdagent.log import rdagent_logger as logger
 from rdagent.log.utils import dict_get_with_warning
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.finetune.experiment.experiment import FTExperiment
 from rdagent.scenarios.finetune.proposal.proposal import FTHypothesis
+from rdagent.scenarios.finetune.proposal.trace import FTTrace
 from rdagent.utils import convert2bool
 from rdagent.utils.agent.tpl import T
 
@@ -30,7 +32,9 @@ class FTExperiment2Feedback(Experiment2Feedback):
         super().__init__(scen)
         self.version = version
 
-    def generate_feedback(self, exp: FTExperiment, trace=None, error_info: str | None = None) -> ExperimentFeedback:
+    def generate_feedback(
+        self, exp: FTExperiment, trace: FTTrace | None = None, error_info: str | None = None
+    ) -> ExperimentFeedback:
         """
         Generate comprehensive feedback for LLM fine-tuning experiment.
 
@@ -72,10 +76,14 @@ class FTExperiment2Feedback(Experiment2Feedback):
             system_prompt = T(f".prompts:{version}.system").r(
                 scenario=self.scen.get_scenario_all_desc(),
             )
-            # Get workspace files safely
+            # Get workspace files safely, truncate data.json to avoid huge prompts
             workspace_files = {}
             if hasattr(exp, "experiment_workspace") and exp.experiment_workspace is not None:
-                workspace_files = exp.experiment_workspace.file_dict
+                for name, content in exp.experiment_workspace.file_dict.items():
+                    if name == "data.json" and len(content) > 5000:
+                        workspace_files[name] = content[:5000] + f"\n... (truncated, total {len(content)} chars)"
+                    else:
+                        workspace_files[name] = content
             user_prompt = T(f".prompts:{version}.user").r(
                 hypothesis=exp.hypothesis,
                 task_desc=task_desc,
@@ -112,8 +120,15 @@ class FTExperiment2Feedback(Experiment2Feedback):
                 benchmark = {"accuracy_summary": exp_result, "error_samples": []}
                 training_metrics = {}
 
+            # Get SOTA experiment's benchmark results for comparison
+            sota_benchmark = trace.sota_benchmark() if trace else None
+
+            # Check if this is the first loop (no history yet)
+            is_first_loop = trace is None or len(trace.hist) == 0
+
             system_prompt = T(f".prompts:{version}.system").r(
                 scenario=self.scen.get_scenario_all_desc(),
+                is_first_loop=is_first_loop,
             )
             user_prompt = T(f".prompts:{version}.user").r(
                 hypothesis=exp.hypothesis,
@@ -122,6 +137,8 @@ class FTExperiment2Feedback(Experiment2Feedback):
                 execution_time=exp.experiment_workspace.running_info.running_time,
                 benchmark=benchmark,
                 training_metrics=training_metrics,
+                sota_benchmark=sota_benchmark,
+                is_first_loop=is_first_loop,
             )
 
         resp_dict = json.loads(
@@ -142,5 +159,18 @@ class FTExperiment2Feedback(Experiment2Feedback):
             acceptable=error_info is None,  # Only acceptable if no error
             observations=error_type,  # Store error type for history display
         )
+
+        # Update SOTA based on LLM judgment (only for successful experiments)
+        if error_info is None and trace is not None:
+            if is_first_loop:
+                # First successful experiment automatically becomes SOTA (no LLM judgment needed)
+                trace.update_sota(exp)
+                logger.info("First successful experiment set as SOTA baseline")
+            else:
+                # Subsequent experiments: LLM compares benchmark scores to decide
+                should_update_sota = convert2bool(resp_dict.get("should_update_sota", "no"))
+                if should_update_sota:
+                    trace.update_sota(exp)
+                    logger.info("SOTA updated based on benchmark comparison")
 
         return hypothesis_feedback

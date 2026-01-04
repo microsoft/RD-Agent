@@ -50,8 +50,13 @@ fi
 command -v jq &>/dev/null || { echo "Error: jq required"; exit 1; }
 
 # ========== SETUP ==========
-JOB_ID=$(date +%Y-%m-%d)
-JOB_DIR="$RDAGENT_DIR/log/$JOB_ID"
+# Get log and workspace base paths from environment or use defaults
+# Default to project-relative paths; can be overridden by environment variables
+FT_LOG_BASE="${FT_LOG_BASE:-$RDAGENT_DIR/log}"
+FT_WORKSPACE_BASE="${FT_WORKSPACE_BASE:-$RDAGENT_DIR/git_ignore_folder/RD-Agent_workspace}"
+
+JOB_ID=$(date +%Y-%m-%d_%H-%M)
+JOB_DIR="$FT_LOG_BASE/$JOB_ID"
 if [[ -d "$JOB_DIR" ]]; then
     i=1; while [[ -d "${JOB_DIR}_$i" ]]; do ((i++)); done
     JOB_ID="${JOB_ID}_$i"; JOB_DIR="${JOB_DIR}_$i"
@@ -65,9 +70,10 @@ NUM_TASKS=$(jq '.tasks | length' "$CONFIG_FILE")
 echo "=============================================="
 echo "FT Job: $JOB_ID"
 echo "=============================================="
-echo "Config: $CONFIG_FILE"
-echo "Tasks:  $NUM_TASKS"
-echo "Log:    $JOB_DIR"
+echo "Config:    $CONFIG_FILE"
+echo "Tasks:     $NUM_TASKS"
+echo "Log:       $JOB_DIR"
+echo "Workspace: $FT_WORKSPACE_BASE/$JOB_ID"
 echo ""
 
 declare -a PIDS
@@ -86,10 +92,13 @@ for ((i=0; i<NUM_TASKS; i++)); do
 
     # Run task
     # Source .env from job directory, then override with task-specific values
+    task_workspace="$FT_WORKSPACE_BASE/$JOB_ID/$task_name"
+    mkdir -p "$task_workspace"
     (
         set -a && source "$ENV_FILE" && set +a
         export CUDA_VISIBLE_DEVICES="$gpus"
         export LOG_TRACE_PATH="$trace_path"
+        export WORKSPACE_PATH="$task_workspace"
         export FT_TARGET_BENCHMARK="$benchmark"
         export FT_USER_TARGET_SCENARIO="$scenario"
         cd "$RDAGENT_DIR"

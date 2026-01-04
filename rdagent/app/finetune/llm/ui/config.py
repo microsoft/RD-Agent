@@ -67,3 +67,4 @@ OPTIONAL_TYPES = {
     "time": ("⏱️ Time", False),
     "settings": ("⚙️ Settings", False),
 }
+

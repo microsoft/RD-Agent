@@ -6,6 +6,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERSingleFeedback,
 )
 from rdagent.components.coder.finetune.conf import (
+    FT_DATA_FILE_NAME,
     FT_DATA_SCRIPT_NAME,
     FT_YAML_FILE_NAME,
     clear_workspace,
@@ -141,22 +142,30 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
 
         logger.info("Full data processing completed successfully")
 
+        # Sync data files from disk to file_dict to prevent inject_files from overwriting
+        # the newly generated full dataset with the old debug dataset
+        for filename in [FT_DATA_FILE_NAME, "dataset_info.json"]:
+            file_path = implementation.workspace_path / filename
+            if file_path.exists():
+                implementation.file_dict[filename] = file_path.read_text()
+        logger.info("Synced data.json and dataset_info.json to file_dict after full data processing")
+
         # ========== Stage 2: Full Training ==========
 
         # Execute LlamaFactory training
-        result = implementation.run(
+        train_result = implementation.run(
             env=env,
             entry=f"llamafactory-cli train {FT_YAML_FILE_NAME}",
         )
         # Combine data processing and training stdout for comprehensive feedback
         combined_stdout = (
-            f"=== DATA PROCESSING OUTPUT ===\n{data_stdout}\n\n=== TRAINING OUTPUT ===\n{result.stdout or ''}"
+            f"=== DATA PROCESSING OUTPUT ===\n{data_stdout}\n\n=== TRAINING OUTPUT ===\n{train_result.stdout or ''}"
         )
-        implementation.running_info.running_time = result.running_time
+        implementation.running_info.running_time = train_result.running_time
         # NOTE: Docker execution is logged by FTWorkspace.run() automatically
 
         # Simple success check: exit code
-        training_success = result.exit_code == 0
+        training_success = train_result.exit_code == 0
 
         # Check for model output files
         workspace_path = implementation.workspace_path
@@ -172,16 +181,16 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         # Early return if training failed
         if not training_success or len(model_output_files) == 0:
             if not output_path.exists():
-                error_msg = f"Output directory not found (exit_code={result.exit_code})"
+                error_msg = f"Output directory not found (exit_code={train_result.exit_code})"
             elif not training_success:
-                error_msg = f"Training failed (exit_code={result.exit_code})"
+                error_msg = f"Training failed (exit_code={train_result.exit_code})"
             else:
                 error_msg = "No model output files generated"
             return self._generate_llm_feedback(
                 target_task=target_task,
                 implementation=implementation,
                 raw_stdout=combined_stdout,  # Use combined stdout for comprehensive feedback
-                exit_code=result.exit_code,
+                exit_code=train_result.exit_code,
                 training_success=False,
                 error_msg=error_msg,
             )
@@ -189,14 +198,26 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         # Extract loss history from training output
         loss_history = extract_loss_history(output_path)
 
-        # Use open-compass to evaluate the model on benchmark (only if training succeeded)
-        benchmark_result = run_benchmark(
-            workspace_path=str(workspace_path),
-            model_path=output_path,
-            model_name=target_task.base_model,
-            benchmark_name=target_task.benchmark,
-            gpu_count=self._get_gpu_count_from_scenario(),
-        )
+        # Use open-compass to evaluate the model on benchmark(s) (only if training succeeded)
+        # Support both single benchmark (str) and multiple benchmarks (list)
+        benchmarks = target_task.benchmark if isinstance(target_task.benchmark, list) else [target_task.benchmark]
+        benchmark_result = {}  # Dict indexed by benchmark name
+
+        for bm_name in benchmarks:
+            try:
+                bm_result = run_benchmark(
+                    workspace_path=str(workspace_path),
+                    model_path=output_path,
+                    model_name=target_task.base_model,
+                    benchmark_name=bm_name,
+                    gpu_count=self._get_gpu_count_from_scenario(),
+                )
+                # Only store successful results
+                if bm_result is not None:
+                    benchmark_result[bm_name] = bm_result
+            except Exception as e:
+                logger.warning(f"Benchmark '{bm_name}' failed: {e}")
+                # Continue with other benchmarks
 
         # Build comprehensive result with training metrics and benchmark results
         implementation.running_info.result = {
@@ -209,7 +230,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         }
 
         # Final decision: training succeeded AND model files exist AND benchmark ran
-        final_decision = training_success and len(model_output_files) > 0 and benchmark_result is not None
+        final_decision = training_success and len(model_output_files) > 0 and len(benchmark_result) > 0
 
         # Call LLM for feedback analysis (both success and failure cases)
         if final_decision:
@@ -218,25 +239,25 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
                 target_task=target_task,
                 implementation=implementation,
                 raw_stdout=combined_stdout,  # Use combined stdout for comprehensive feedback
-                exit_code=result.exit_code,
+                exit_code=train_result.exit_code,
                 training_success=True,
                 benchmark_result=benchmark_result,
                 loss_history=loss_history,
             )
         else:
             # Failure: analyze error cause
-            error_msg = f"exit_code={result.exit_code}"
+            error_msg = f"exit_code={train_result.exit_code}"
             if not training_success:
                 error_msg = f"Training failed: {error_msg}"
             elif len(model_output_files) == 0:
                 error_msg = "No model output files generated"
-            elif benchmark_result is None:
-                error_msg = "Benchmark evaluation failed"
+            elif len(benchmark_result) == 0:
+                error_msg = "No benchmark results"
             return self._generate_llm_feedback(
                 target_task=target_task,
                 implementation=implementation,
                 raw_stdout=combined_stdout,  # Use combined stdout for comprehensive feedback
-                exit_code=result.exit_code,
+                exit_code=train_result.exit_code,
                 training_success=False,
                 error_msg=error_msg,
             )
