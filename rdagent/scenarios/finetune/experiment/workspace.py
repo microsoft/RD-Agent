@@ -69,8 +69,10 @@ class FTWorkspace(FBWorkspace):
         # For LocalEnv, redirect output to file to avoid pipe buffer blocking
         # (timeout command doesn't consume child stdout, causing write() to block)
         # Note: Don't use { } wrapper - it breaks with timeout command in /bin/sh (dash)
+        # PYTHONUNBUFFERED=1 forces Python to flush stdout immediately (no block buffering)
         if isinstance(env, LocalEnv):
             log_file = self.workspace_path / ".stdout.log"
+            run_env["PYTHONUNBUFFERED"] = "1"
             result = env.run(f"{entry} > {log_file} 2>&1", str(self.workspace_path), env=run_env)
             stdout = log_file.read_text() if log_file.exists() else ""
             log_file.unlink(missing_ok=True)
