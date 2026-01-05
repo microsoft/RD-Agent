@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Test LLM connectivity for multiple models in parallel."""
-import os
 import concurrent.futures
+import os
 
 os.environ["OPENAI_API_KEY"] = "sk-1234"
 os.environ["OPENAI_API_BASE"] = "http://localhost:4000"
 
 import litellm
+
 litellm.suppress_debug_info = True
 from litellm import completion
 
@@ -27,17 +28,19 @@ MODELS = [
     "gpt-4o",
 ]
 
+
 def test_model(model: str) -> tuple:
     try:
         resp = completion(
             model=model,
             messages=[{"role": "user", "content": "Who is the president of the United States?"}],
             drop_params=True,
-            timeout=TIMEOUT
+            timeout=TIMEOUT,
         )
         return (model, True, resp.choices[0].message.content)
     except Exception as e:
         return (model, False, str(e))
+
 
 if __name__ == "__main__":
     print(f"Testing {len(MODELS)} model(s)...\n")

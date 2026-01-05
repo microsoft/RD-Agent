@@ -6,6 +6,7 @@ Usage:
 
 Uses OpenAI-compatible API with Docker environment for running opencompass.
 """
+
 from __future__ import annotations
 
 import json
@@ -22,7 +23,6 @@ import pandas as pd
 from rdagent.components.coder.finetune.conf import get_benchmark_env
 from rdagent.scenarios.finetune.benchmark.data.adaptor import BENCHMARK_CONFIG_DICT
 from rdagent.scenarios.finetune.benchmark.data.default import extract_error_samples
-
 
 # OpenCompass API config template
 API_CONFIG_TEMPLATE = """
@@ -107,9 +107,7 @@ def generate_api_config(
 ) -> str:
     """Generate OpenCompass config for API-based model evaluation."""
     # Format dataset imports
-    dataset_import_lines = "\n".join(
-        f"    from {module} import *" for module in dataset_imports
-    )
+    dataset_import_lines = "\n".join(f"    from {module} import *" for module in dataset_imports)
 
     # Format limit config
     if limit:
@@ -271,16 +269,11 @@ def run_benchmark_api(
     # Parse benchmark results from CSV, grouped by dataset
     df = pd.read_csv(csv_files[0])
     # Get score column (the model name column, e.g., 'api-chemcotbench')
-    score_col = [c for c in df.columns if c not in ['dataset', 'version', 'metric', 'mode']][0]
+    score_col = [c for c in df.columns if c not in ["dataset", "version", "metric", "mode"]][0]
     # Pivot to group by dataset, with metrics as columns (use pivot_table to handle duplicates)
-    pivoted = df.pivot_table(
-        index='dataset', columns='metric', values=score_col, aggfunc='first'
-    ).to_dict('index')
+    pivoted = df.pivot_table(index="dataset", columns="metric", values=score_col, aggfunc="first").to_dict("index")
     # Filter out NaN values (different datasets have different metrics)
-    benchmark_results = {
-        ds: {k: v for k, v in metrics.items() if pd.notna(v)}
-        for ds, metrics in pivoted.items()
-    }
+    benchmark_results = {ds: {k: v for k, v in metrics.items() if pd.notna(v)} for ds, metrics in pivoted.items()}
 
     # Extract error samples
     errors = extract_error_samples(

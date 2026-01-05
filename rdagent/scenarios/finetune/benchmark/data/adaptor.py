@@ -13,7 +13,6 @@ from typing import Callable, Dict, Optional
 
 from rdagent.scenarios.finetune.benchmark.data import financeiq_ppl
 
-
 DownloadFunc = Callable[[], None]
 
 
@@ -122,7 +121,6 @@ BENCHMARK_CONFIG_DICT: Dict[str, BenchmarkConfig] = {
     "bioprobench_pqa": BenchmarkConfig(
         dataset="opencompass.configs.datasets.bioprobench.bioprobench_pqa",
     ),
-
     # Native OpenCompass benchmarks
     "FinanceIQ_ppl": BenchmarkConfig(
         dataset="opencompass.configs.datasets.FinanceIQ.FinanceIQ_gen_e0e6b5",

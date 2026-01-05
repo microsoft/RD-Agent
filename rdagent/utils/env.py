@@ -1038,7 +1038,9 @@ class BenchmarkDockerConf(DockerConf):
     model_config = SettingsConfigDict(env_prefix="BENCHMARK_DOCKER_")
 
     build_from_dockerfile: bool = True
-    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "finetune" / "env" / "docker" / "opencompass"
+    dockerfile_folder_path: Path = (
+        Path(__file__).parent.parent / "scenarios" / "finetune" / "env" / "docker" / "opencompass"
+    )
     image: str = "rdagent-opencompass:latest"
     mount_path: str = "/workspace/"
     default_entry: str = "opencompass --help"

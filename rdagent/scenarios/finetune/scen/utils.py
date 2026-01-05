@@ -12,7 +12,6 @@ from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.core.utils import cache_with_pickle
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.scen.utils import FileTreeGenerator
-
 from rdagent.utils import md5_hash
 
 # Fixed tokenizer model for token counting
@@ -332,15 +331,13 @@ class FinetuneDatasetDescriptor:
                 "file_count": 0,
             }
 
-    def hash_dataset_path(self, dataset_path: Path, dataset_name: str | None = None, include_dataset_readme: bool = False) -> str:
+    def hash_dataset_path(
+        self, dataset_path: Path, dataset_name: str | None = None, include_dataset_readme: bool = False
+    ) -> str:
         """Generate hash key for dataset description caching."""
         key_parts = []
         key_parts.append(str(dataset_path))
-        files = sorted(
-            str(path.relative_to(dataset_path))
-            for path in dataset_path.rglob("*")
-            if path.is_file()
-        )
+        files = sorted(str(path.relative_to(dataset_path)) for path in dataset_path.rglob("*") if path.is_file())
         key_parts.append(",".join(files))
         if dataset_name:
             key_parts.append(dataset_name)

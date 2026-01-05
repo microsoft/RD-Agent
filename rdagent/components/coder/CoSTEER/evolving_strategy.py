@@ -105,7 +105,6 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
 
         return evo
 
-
     def evolve_iter(
         self,
         *,

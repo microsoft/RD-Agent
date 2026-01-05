@@ -64,7 +64,7 @@ DATASETS: dict[str, DatasetConfig] = {
     ),
     "bioprobench": DatasetConfig(
         repo_id="bowenxian/BioProBench",
-    )
+    ),
 }
 
 

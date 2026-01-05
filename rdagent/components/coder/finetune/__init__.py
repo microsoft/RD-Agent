@@ -351,7 +351,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # Call LLM to generate config (multi-turn)
         session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
-        
+
         # Turn 1: Generate main training config
         train_config_yaml = session.build_chat_completion(
             user_prompt=user_prompt,
@@ -365,9 +365,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         logger.info("Extracted main YAML config successfully")
 
         # Turn 2: Generate test parameters (test_params.yaml)
-        test_params_prompt = T(".prompts:finetune_coder.user_test_params").r(
-            workspace_path=FT_PATHS.workspace
-        )
+        test_params_prompt = T(".prompts:finetune_coder.user_test_params").r(workspace_path=FT_PATHS.workspace)
         test_params_yaml = session.build_chat_completion(
             user_prompt=test_params_prompt,
             json_mode=False,
@@ -379,10 +377,7 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         yaml.safe_load(test_params_yaml)
         logger.info("Extracted test params YAML successfully")
 
-        return {
-            FT_YAML_FILE_NAME: train_config_yaml,
-            FT_TEST_PARAMS_FILE_NAME: test_params_yaml
-        }
+        return {FT_YAML_FILE_NAME: train_config_yaml, FT_TEST_PARAMS_FILE_NAME: test_params_yaml}
 
 
 class LLMFinetuneCoSTEER(CoSTEER):

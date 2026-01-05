@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
 import json
 import random
 import shutil
 import subprocess
+from pathlib import Path
 from typing import Any, Dict, List
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
@@ -47,7 +47,7 @@ def download_financeiq_dataset() -> None:
             if src.exists():
                 shutil.move(str(src), str(target_dir / folder))
         shutil.rmtree(data_subdir)
-    
+
     # Apply split for benchmark (keep test set only)
     split_financeiq_dataset(str(target_dir), split="test")
 
@@ -144,7 +144,5 @@ def extract_error_samples(results_base: Path, max_samples: int = 10) -> List[Dic
     if len(error_samples) > max_samples:
         error_samples = random.sample(error_samples, max_samples)
 
-    logger.info(
-        f"Extracted {len(error_samples)} FinanceIQ_ppl error samples from {results_dir}"
-    )
+    logger.info(f"Extracted {len(error_samples)} FinanceIQ_ppl error samples from {results_dir}")
     return error_samples

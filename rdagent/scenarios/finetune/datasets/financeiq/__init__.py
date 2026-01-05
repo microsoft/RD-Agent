@@ -1,1 +1,1 @@
-from .split import split_financeiq_dataset, get_split_indices
+from .split import get_split_indices, split_financeiq_dataset

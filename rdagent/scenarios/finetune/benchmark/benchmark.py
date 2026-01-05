@@ -14,19 +14,20 @@ FT_JUDGE_API_BASE="https://api.openai.com/v1"
 """
 
 import json
-from pathlib import Path
 import random
 import shutil
 import subprocess
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
 import yaml
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
-from rdagent.components.coder.finetune.conf import FT_MODEL_PATH, get_ft_env
 from rdagent.components.coder.finetune.conf import (
+    FT_MODEL_PATH,
     get_benchmark_env,
+    get_ft_env,
     get_workspace_prefix,
     is_docker_env,
 )
@@ -170,22 +171,22 @@ def run_benchmark(
             # Conda: use actual file path
             model_path_in_env = Path(FT_RD_SETTING.file_path) / "models" / model_name
         lora_path_in_env = adapter_path_in_env
-        
+
         # Check if we need to merge the model (e.g. vLLM doesn't support LoRA with modules_to_save)
         if check_if_merging_needed(model_path):
             merged_model_dir_inside_env = Path(ws_prefix) / "merged_model"
-            
+
             # Create a temporary environment for merging (use FT env as it has peft/transformers)
             merge_env = get_ft_env()
-            
+
             merge_model(
                 env=merge_env,
                 workspace_path=workspace_path,
                 base_model_path=str(model_path_in_env),
                 adapter_path=str(lora_path_in_env),
-                output_path=str(merged_model_dir_inside_env)
+                output_path=str(merged_model_dir_inside_env),
             )
-            
+
             # Switch to using the merged model
             model_path_in_env = merged_model_dir_inside_env
             model_is_lora = False
@@ -213,9 +214,7 @@ def run_benchmark(
     }
 
     # Render Jinja2 template
-    config_content = T("rdagent.scenarios.finetune.benchmark.configs.opencompass_template:template").r(
-        **template_vars
-    )
+    config_content = T("rdagent.scenarios.finetune.benchmark.configs.opencompass_template:template").r(**template_vars)
 
     # Note: env was already created above via get_benchmark_env()
 
@@ -283,16 +282,11 @@ def run_benchmark(
     # Read CSV content for accuracy summary (grouped by dataset)
     df = pd.read_csv(results_csv_path)
     # Get score column (the model name column, e.g., 'api-chemcotbench')
-    score_col = [c for c in df.columns if c not in ['dataset', 'version', 'metric', 'mode']][0]
+    score_col = [c for c in df.columns if c not in ["dataset", "version", "metric", "mode"]][0]
     # Pivot to group by dataset, with metrics as columns (use pivot_table to handle duplicates)
-    pivoted = df.pivot_table(
-        index='dataset', columns='metric', values=score_col, aggfunc='first'
-    ).to_dict('index')
+    pivoted = df.pivot_table(index="dataset", columns="metric", values=score_col, aggfunc="first").to_dict("index")
     # Filter out NaN values (different datasets have different metrics)
-    accuracy_summary = {
-        ds: {k: v for k, v in metrics.items() if pd.notna(v)}
-        for ds, metrics in pivoted.items()
-    }
+    accuracy_summary = {ds: {k: v for k, v in metrics.items() if pd.notna(v)} for ds, metrics in pivoted.items()}
 
     # Extract error samples for feedback
     error_samples = extract_error_samples(
@@ -364,4 +358,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\nEvaluation failed: {e}")
         import traceback
+
         traceback.print_exc()

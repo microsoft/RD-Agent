@@ -4,6 +4,7 @@ Error sample extraction from OpenCompass benchmark results.
 This module provides a unified approach to extract error samples from various
 OpenCompass evaluator formats using both results and predictions directories.
 """
+
 from __future__ import annotations
 
 import json
@@ -13,10 +14,10 @@ from typing import Any, Dict, List
 
 from rdagent.log import rdagent_logger as logger
 
-
 # ============================================================================
 # Helper Functions
 # ============================================================================
+
 
 def _to_bool(value: Any) -> bool:
     """
@@ -124,7 +125,7 @@ def _extract_tag_content(prompt: Any, tag_name: str) -> str:
     end = prompt_str.find(end_tag)
 
     if start != -1 and end > start:
-        content = prompt_str[start + len(start_tag):end].strip()
+        content = prompt_str[start + len(start_tag) : end].strip()
         # Clean up formatting artifacts
         if content.startswith(": \\n"):
             content = content[4:]
@@ -202,6 +203,7 @@ def _get_prediction(sample: Dict, pred_entry: Dict) -> str:
 # ============================================================================
 # Main Entry Point
 # ============================================================================
+
 
 def extract_error_samples(
     results_base: Path,

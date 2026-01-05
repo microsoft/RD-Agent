@@ -1,10 +1,10 @@
-from pathlib import Path
 import json
 import subprocess
+from pathlib import Path
+
+from rdagent.components.coder.finetune.conf import get_workspace_prefix
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.agent.tpl import T
-from rdagent.components.coder.finetune.conf import get_workspace_prefix
-
 
 BLACKWELL_GPU_KEYWORDS = ["b100", "b200", "b300"]
 
@@ -46,6 +46,7 @@ def check_if_merging_needed(model_path: str | Path) -> bool:
         return True
     return False
 
+
 def merge_model(env, workspace_path: Path, base_model_path: str, adapter_path: str, output_path: str):
     """
     Merge LoRA adapter into base model using a template-generated script.
@@ -58,18 +59,16 @@ def merge_model(env, workspace_path: Path, base_model_path: str, adapter_path: s
     }
 
     # Render Jinja2 template
-    merge_script = T("rdagent.scenarios.finetune.benchmark.merge.merge_model_template:template").r(
-        **template_vars
-    )
+    merge_script = T("rdagent.scenarios.finetune.benchmark.merge.merge_model_template:template").r(**template_vars)
 
     script_path = workspace_path / "merge_model.py"
     script_path.write_text(merge_script)
-    
+
     logger.info(f"Starting model merging from {adapter_path}...")
-    
+
     ws_prefix = get_workspace_prefix(env)
     cmd = f"python {ws_prefix}/merge_model.py"
-    
+
     result = env.run(cmd, local_path=str(workspace_path))
     if result.exit_code != 0:
         raise RuntimeError(f"Model merging failed (exit_code={result.exit_code}):\n{result.stdout}")

@@ -6,6 +6,7 @@ Usage:
 
 Uses rdagent's Docker environment with cache enabled.
 """
+
 from __future__ import annotations
 
 import os
@@ -127,16 +128,11 @@ def run_benchmark_simple(
     # Parse benchmark results from CSV, grouped by dataset
     df = pd.read_csv(csv_files[0])
     # Get score column (the model name column, e.g., 'test-chemcotbench')
-    score_col = [c for c in df.columns if c not in ['dataset', 'version', 'metric', 'mode']][0]
+    score_col = [c for c in df.columns if c not in ["dataset", "version", "metric", "mode"]][0]
     # Pivot to group by dataset, with metrics as columns (use pivot_table to handle duplicates)
-    pivoted = df.pivot_table(
-        index='dataset', columns='metric', values=score_col, aggfunc='first'
-    ).to_dict('index')
+    pivoted = df.pivot_table(index="dataset", columns="metric", values=score_col, aggfunc="first").to_dict("index")
     # Filter out NaN values (different datasets have different metrics)
-    benchmark_results = {
-        ds: {k: v for k, v in metrics.items() if pd.notna(v)}
-        for ds, metrics in pivoted.items()
-    }
+    benchmark_results = {ds: {k: v for k, v in metrics.items() if pd.notna(v)} for ds, metrics in pivoted.items()}
 
     # Extract error samples
     errors = extract_error_samples(
