@@ -19,7 +19,9 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import DockerEnv, LocalEnv
 
 if TYPE_CHECKING:
-    from rdagent.utils.env import Env, EnvResult
+    from rdagent.utils.env import Env
+
+from rdagent.utils.env import EnvResult
 
 
 class FTWorkspace(FBWorkspace):
@@ -64,7 +66,16 @@ class FTWorkspace(FBWorkspace):
         if env_vars:
             run_env.update(env_vars)
 
-        result = env.run(entry, str(self.workspace_path), env=run_env)
+        # For LocalEnv, redirect output to file to avoid pipe buffer blocking
+        # (timeout command doesn't consume child stdout, causing write() to block)
+        if isinstance(env, LocalEnv):
+            log_file = self.workspace_path / ".stdout.log"
+            result = env.run(f"{{ {entry}; }} > {log_file} 2>&1", str(self.workspace_path), env=run_env)
+            stdout = log_file.read_text() if log_file.exists() else ""
+            log_file.unlink(missing_ok=True)
+            result = EnvResult(stdout=stdout, exit_code=result.exit_code, running_time=result.running_time)
+        else:
+            result = env.run(entry, str(self.workspace_path), env=run_env)
 
         # Unified execution logging for FT scenario (supports both Docker and Conda)
         if isinstance(env, DockerEnv):
