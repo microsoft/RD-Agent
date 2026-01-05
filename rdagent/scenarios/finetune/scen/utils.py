@@ -9,8 +9,11 @@ import pandas as pd
 import tiktoken
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
+from rdagent.core.utils import cache_with_pickle
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.scen.utils import FileTreeGenerator
+
+from rdagent.utils import md5_hash
 
 # Fixed tokenizer model for token counting
 _TOKENIZER_MODEL = "gpt-3.5-turbo"
@@ -329,6 +332,22 @@ class FinetuneDatasetDescriptor:
                 "file_count": 0,
             }
 
+    def hash_dataset_path(self, dataset_path: Path, dataset_name: str | None = None, include_dataset_readme: bool = False) -> str:
+        """Generate hash key for dataset description caching."""
+        key_parts = []
+        key_parts.append(str(dataset_path))
+        files = sorted(
+            str(path.relative_to(dataset_path))
+            for path in dataset_path.rglob("*")
+            if path.is_file()
+        )
+        key_parts.append(",".join(files))
+        if dataset_name:
+            key_parts.append(dataset_name)
+        key_parts.append(str(include_dataset_readme))
+        return md5_hash("|".join(key_parts))
+
+    @cache_with_pickle(hash_dataset_path)
     def describe_dataset_folder(
         self, dataset_path: Path, dataset_name: str | None = None, include_dataset_readme: bool = False
     ) -> FinetuneDatasetDescription:
@@ -342,6 +361,7 @@ class FinetuneDatasetDescriptor:
             FinetuneDatasetDescription with comprehensive dataset information
         """
         try:
+            logger.info(f"Generating dataset folder description for {dataset_path}...")
             # Generate file tree and stats
             file_tree = self._generate_file_tree(dataset_path)
             stats = self._generate_stats(dataset_path)
