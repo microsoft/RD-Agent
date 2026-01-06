@@ -59,14 +59,15 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
         # to replace & inject code
         exp.experiment_workspace.inject_files(**{"model.py": exp.sub_workspace_list[0].file_dict["model.py"]})
 
+        mbps = ModelBasePropSetting()
         env_to_use = {
             "PYTHONPATH": "./",
-            "train_start": ModelBasePropSetting.train_start,
-            "train_end": ModelBasePropSetting.train_end,
-            "valid_start": ModelBasePropSetting.valid_start,
-            "valid_end": ModelBasePropSetting.valid_end,
-            "test_start": ModelBasePropSetting.test_start,
-            "test_end": ModelBasePropSetting.test_end,
+            "train_start": mbps.train_start,
+            "train_end": mbps.train_end,
+            "valid_start": mbps.valid_start,
+            "valid_end": mbps.valid_end,
+            "test_start": mbps.test_start,
+            "test_end": mbps.test_end,
         }
 
         training_hyperparameters = exp.sub_tasks[0].training_hyperparameters

@@ -81,6 +81,17 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             logger.info(f"Baseline experiment execution ...")
             exp.based_experiments[-1] = self.develop(exp.based_experiments[-1])
 
+        fbps = FactorBasePropSetting()
+        env_to_use = {
+            "PYTHONPATH": "./",
+            "train_start": fbps.train_start,
+            "train_end": fbps.train_end,
+            "valid_start": fbps.valid_start,
+            "valid_end": fbps.valid_end,
+            "test_start": fbps.test_start,
+            "test_end": fbps.test_end,
+        }
+
         if exp.based_experiments:
             SOTA_factor = None
             # Filter and retain only QlibFactorExperiment instances
@@ -137,15 +148,6 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
                 exp.experiment_workspace.inject_files(
                     **{"model.py": sota_model_exp.sub_workspace_list[0].file_dict["model.py"]}
                 )
-                env_to_use = {
-                    "PYTHONPATH": "./",
-                    "train_start": FactorBasePropSetting.train_start,
-                    "train_end": FactorBasePropSetting.train_end,
-                    "valid_start": FactorBasePropSetting.valid_start,
-                    "valid_end": FactorBasePropSetting.valid_end,
-                    "test_start": FactorBasePropSetting.test_start,
-                    "test_end": FactorBasePropSetting.test_end,
-                }
                 sota_training_hyperparameters = sota_model_exp.sub_tasks[0].training_hyperparameters
                 if sota_training_hyperparameters:
                     env_to_use.update(
