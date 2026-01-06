@@ -47,6 +47,34 @@ def extract_benchmark_score(loop_path: Path) -> tuple[str, float, bool] | None:
     return None
 
 
+def extract_baseline_score(task_path: Path) -> tuple[str, float] | None:
+    """Extract baseline benchmark score from scenario object.
+
+    Returns:
+        (metric_name, score) or None
+    """
+    scenario_dir = task_path / "scenario"
+    if not scenario_dir.exists():
+        return None
+
+    for pkl_file in scenario_dir.rglob("*.pkl"):
+        try:
+            with open(pkl_file, "rb") as f:
+                scenario = pickle.load(f)
+            baseline_score = getattr(scenario, "baseline_benchmark_score", None)
+            if baseline_score and isinstance(baseline_score, dict):
+                benchmark_name = getattr(scenario, "target_benchmark", "")
+                accuracy_summary = baseline_score.get("accuracy_summary", {})
+                if isinstance(accuracy_summary, dict) and accuracy_summary:
+                    result = get_core_metric_score(benchmark_name, accuracy_summary)
+                    if result is not None:
+                        metric_name, score, _ = result
+                        return metric_name, score
+        except Exception:
+            pass
+    return None
+
+
 def get_loop_status(task_path: Path, loop_id: int) -> tuple[str, float | None, str | None]:
     """
     Get loop status, score, and metric name with direction arrow
@@ -109,7 +137,7 @@ def get_job_summary_df(job_path: Path) -> pd.DataFrame:
     if not job_path.exists():
         return pd.DataFrame()
 
-    tasks = [d for d in sorted(job_path.iterdir()) if is_valid_task(d)]
+    tasks = [d for d in sorted(job_path.iterdir(), reverse=True) if is_valid_task(d)]
     if not tasks:
         return pd.DataFrame()
 
@@ -123,6 +151,14 @@ def get_job_summary_df(job_path: Path) -> pd.DataFrame:
         best_score = None
         best_metric = None
 
+        # Extract baseline score from scenario
+        baseline_result = extract_baseline_score(task_path)
+        if baseline_result:
+            _, baseline_score = baseline_result
+            row["Baseline"] = f"{baseline_score:.1f}"
+        else:
+            row["Baseline"] = "-"
+
         for i in range(max_loops):
             status, score, metric_name = get_loop_status(task_path, i)
             row[f"L{i}"] = status
@@ -135,11 +171,11 @@ def get_job_summary_df(job_path: Path) -> pd.DataFrame:
         row["Metric"] = best_metric if best_metric else "-"
         data.append(row)
 
-    # Ensure column order: Task, Metric, L0, L1, ..., Best
+    # Ensure column order: Task, Metric, Baseline, L0, L1, ..., Best
     df = pd.DataFrame(data)
     if not df.empty:
         loop_cols = [c for c in df.columns if c.startswith("L")]
-        cols = ["Task", "Metric"] + sorted(loop_cols, key=lambda x: int(x[1:])) + ["Best"]
+        cols = ["Task", "Metric", "Baseline"] + sorted(loop_cols, key=lambda x: int(x[1:])) + ["Best"]
         df = df[cols]
     return df
 

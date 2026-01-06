@@ -12,6 +12,7 @@ from pathlib import Path
 import streamlit as st
 from streamlit import session_state as state
 
+from rdagent.app.finetune.llm.ui.benchmarks import get_core_metric_score
 from rdagent.app.finetune.llm.ui.components import render_session, render_summary
 from rdagent.app.finetune.llm.ui.config import ALWAYS_VISIBLE_TYPES, OPTIONAL_TYPES
 from rdagent.app.finetune.llm.ui.data_loader import (
@@ -181,6 +182,17 @@ def main():
                 st.markdown(f"📂 **Datasets:** `{', '.join(selected)}`")
         if scenario_event and hasattr(scenario_event.content, "target_benchmark"):
             st.markdown(f"🎯 **Benchmark:** `{scenario_event.content.target_benchmark}`")
+        # Display baseline benchmark score
+        if scenario_event and hasattr(scenario_event.content, "baseline_benchmark_score"):
+            baseline = scenario_event.content.baseline_benchmark_score
+            if baseline and isinstance(baseline, dict):
+                benchmark_name = getattr(scenario_event.content, "target_benchmark", "")
+                accuracy_summary = baseline.get("accuracy_summary", {})
+                if accuracy_summary:
+                    result = get_core_metric_score(benchmark_name, accuracy_summary)
+                    if result:
+                        metric_name, score, _ = result
+                        st.markdown(f"📊 **Baseline:** `{metric_name} = {score:.1f}`")
 
     # Summary bar
     render_summary(summary)
