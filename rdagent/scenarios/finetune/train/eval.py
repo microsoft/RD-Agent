@@ -67,26 +67,6 @@ def extract_loss_history(output_path) -> List[Dict[str, Any]]:
 class FTRunnerEvaluator(CoSTEEREvaluator):
     """LLM Fine-tuning specific evaluator that uses LLM Docker environment."""
 
-    def _get_gpu_count_from_scenario(self) -> int:
-        """Extract GPU count from scenario's device_info.
-
-        Returns GPU count from scenario, which was detected at startup.
-        This avoids redundant runtime detection in benchmark.
-        """
-        try:
-            device_info = (
-                json.loads(self.scen.device_info) if isinstance(self.scen.device_info, str) else self.scen.device_info
-            )
-            gpu_info = device_info.get("gpu", {})
-
-            if gpu_info.get("source") == "pytorch":
-                return gpu_info.get("gpu_count", 0)
-            elif "gpus" in gpu_info:
-                return len(gpu_info["gpus"])
-        except (json.JSONDecodeError, AttributeError, TypeError):
-            pass
-        return 0
-
     def evaluate(
         self,
         target_task: FTTask,
@@ -210,7 +190,7 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
                     model_path=output_path,
                     model_name=target_task.base_model,
                     benchmark_name=bm_name,
-                    gpu_count=self._get_gpu_count_from_scenario(),
+                    gpu_count=self.scen.gpu_count,
                 )
                 # Only store successful results
                 if bm_result is not None:

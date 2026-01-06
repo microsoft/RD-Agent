@@ -150,6 +150,7 @@ class EnvConf(ExtendedBaseSettings):
     default_entry: str
     extra_volumes: dict = {}
     running_timeout_period: int | None = 3600  # 10 minutes
+    redirect_stdout_to_file: bool = False
     # helper settings to support transparent;
     enable_cache: bool = True
     retry_count: int = 5  # retry count for the docker run
@@ -171,14 +172,24 @@ class EnvResult:
     The result of running the environment.
     It contains the stdout, the exit code, and the running time in seconds.
     """
-
-    stdout: str
-    exit_code: int
-    running_time: float
+    def __init__(self, stdout: str, exit_code: int, running_time: float):
+        self.full_stdout = stdout
+        self.exit_code = exit_code
+        self.running_time = running_time
+        self.stored_full_stdout_to_truncated_stdout = {}
+    
+    def update_stdout(self, stdout: str) -> None:
+        self.full_stdout = stdout
+    
+    @property
+    def stdout(self) -> str:
+        if self.full_stdout not in self.stored_full_stdout_to_truncated_stdout:
+            self.stored_full_stdout_to_truncated_stdout[self.full_stdout] = self.get_truncated_stdout()
+        return self.stored_full_stdout_to_truncated_stdout[self.full_stdout]
 
     def get_truncated_stdout(self) -> str:
         return shrink_text(
-            filter_redundant_text(self.stdout),
+            filter_redundant_text(self.full_stdout),
             context_lines=RD_AGENT_SETTINGS.stdout_context_len,
             line_len=RD_AGENT_SETTINGS.stdout_line_len,
         )
@@ -340,6 +351,12 @@ class Env(Generic[ASpecificEnvConf]):
             chmod_cmd = f"{find_cmd} -exec chmod -R 777 {{}} +"
             return chmod_cmd
 
+        if self.conf.redirect_stdout_to_file:
+            log_file_name = md5_hash(entry)[:8] + ".log"
+            log_file = Path(local_path) / f"{log_file_name}"
+            log_file_relative_path = log_file.relative_to(Path(local_path))
+            entry = f"{entry} > {log_file_relative_path} 2>&1"
+
         if self.conf.running_timeout_period is None:
             timeout_cmd = entry
         else:
@@ -368,6 +385,12 @@ class Env(Generic[ASpecificEnvConf]):
                 env,
                 running_extra_volume,
             )
+        if self.conf.redirect_stdout_to_file:
+            stdout = log_file.read_text()
+            log_file.unlink(missing_ok=True)
+            result.update_stdout(stdout)
+        if str(Path(local_path).resolve()) in result.stdout:
+            result.update_stdout(result.stdout.replace(str(Path(local_path).resolve()), "<WORKSPACE_PATH>"))
 
         return result
 

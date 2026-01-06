@@ -300,7 +300,7 @@ data_coder:
     ## Feedback on Previous Script
     {{ latest_feedback }}
 
-    Please improve the Script based on the feedback above and the hypothesis.
+    Please improve the 'Previous Data Processing Script' based on the feedback above. Do not create a new script. Consider the feedback carefully and make necessary corrections. If the feedback asks for more information or logging, make sure to include that in your revised script to help the evaluator to better assess your implementation.
     {% endif %}
     {% else %}
     Please create a new Data Processing Script based on the task description.
@@ -618,6 +618,11 @@ data_eval:
       - Moderate quality variations in individual samples
       - Length distribution not matching ideal patterns
       - High filtering rate (this means the script is doing its job)
+  
+    ## Important Note
+    - Do not summarize the code into your feedback and DO NOT copy the task description also. Only provide new insights based on your evaluation.
+    - If you think the current logging information is not sufficient to find out the issues, please specify what additional logging information is needed in your feedback and put this information in 'code' block. The user will add further provide you the additional logging information in the next iteration.
+    - Do not write any code in your response, use plain text only.
 
     ## Output Format
     Respond with JSON only (no markdown code block):

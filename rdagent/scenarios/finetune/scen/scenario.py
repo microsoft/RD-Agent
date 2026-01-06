@@ -4,10 +4,13 @@ from pathlib import Path
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.finetune.conf import get_ft_env
+from rdagent.core.utils import cache_with_pickle
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.scen import DataScienceScen
+from rdagent.scenarios.finetune.benchmark.benchmark import run_benchmark
 from rdagent.scenarios.finetune.datasets import prepare_all
+from rdagent.scenarios.finetune.experiment.workspace import FTWorkspace
 from rdagent.scenarios.finetune.scen.llama_factory_manager import LLaMAFactory_manager
 from rdagent.scenarios.finetune.scen.memory_estimator import MemoryEstimator
 from rdagent.scenarios.finetune.scen.utils import (
@@ -57,6 +60,34 @@ class LLMFinetuneScen(DataScienceScen):
 
         # Initialize memory estimator
         self.memory_report = self._generate_memory_report()
+
+        self.baseline_benchmark_score = self.run_baseline_model_evaluation(model_name=self.base_model, benchmark_name=self.target_benchmark)
+
+        self.gpu_count = self._get_gpu_count()
+    
+    def _get_gpu_count(self) -> int:
+        """Return GPU count parsed from device_info stored at initialization."""
+        gpu_info = json.loads(self.device_info).get("gpu", {})
+        if gpu_info.get("source") == "pytorch":
+            return gpu_info.get("gpu_count", 0)
+        elif "gpus" in gpu_info:
+            return len(gpu_info["gpus"])
+
+    def benchmark_hash(self, model_name, benchmark_name) -> str:
+        return f"llm_finetune_baseline_eval_{model_name}_{benchmark_name}"
+
+    @cache_with_pickle(benchmark_hash)
+    def run_baseline_model_evaluation(self, model_name, benchmark_name) -> dict:
+        # ws = FTWorkspace()
+        # bm = run_benchmark(
+        #     workspace_path=str(ws.workspace_path),
+        #     model_path=Path(FT_RD_SETTING.file_path) / "models" / model_name,
+        #     model_name=model_name,
+        #     benchmark_name=benchmark_name,
+        #     gpu_count=self.gpu_count,
+        # )
+        # return bm
+        pass
 
     def real_full_timeout(self):
         return FT_RD_SETTING.full_timeout

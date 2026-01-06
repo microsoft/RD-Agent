@@ -110,6 +110,8 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     api_max_workers: int = 1000
     """Max concurrent workers for LLM API calls in data processing scripts (env: FT_API_MAX_WORKERS)"""
 
+    # Coder settings
+    coder_max_loop: int = 10
 
 # Global setting instance for LLM finetuning scenario
 FT_RD_SETTING = LLMFinetunePropSetting()
