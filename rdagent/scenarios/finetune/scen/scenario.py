@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import shutil
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.finetune.conf import get_ft_env
@@ -79,9 +80,14 @@ class LLMFinetuneScen(DataScienceScen):
     @cache_with_pickle(benchmark_hash)
     def run_baseline_model_evaluation(self, model_name, benchmark_name) -> dict:
         ws = FTWorkspace()
+        shutil.copytree(
+            Path(FT_RD_SETTING.file_path) / "models" / model_name,
+            ws.workspace_path / "models" / model_name,
+            dirs_exist_ok=True,
+        )
         bm = run_benchmark(
             workspace_path=str(ws.workspace_path),
-            model_path=Path(FT_RD_SETTING.file_path) / "models" / model_name,
+            model_path=ws.workspace_path / "models" / model_name,
             model_name=model_name,
             benchmark_name=benchmark_name,
             gpu_count=self.gpu_count,
