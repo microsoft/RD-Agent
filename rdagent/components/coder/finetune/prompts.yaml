@@ -665,20 +665,28 @@ data_eval:
 runner_eval:
   system: |-
     You are a world-class ML engineer evaluating LLM fine-tuning results.
-    Analyze the training run and benchmark results to assess experiment quality.
+
+    ## Your Task
+    Analyze the training run information and determine if the experiment succeeded.
 
     ## Evaluation Criteria
-    1. **Training Convergence**: Is loss decreasing steadily? Any signs of overfitting?
-    2. **Benchmark Performance**: How does the model perform on evaluation tasks?
-    3. **Resource Efficiency**: Training time, memory usage, convergence speed
+    1. **Execution Success**: Did training complete without errors? Check exit_code and model outputs.
+    2. **Training Quality**: If successful, is loss decreasing? Any signs of overfitting?
+    3. **Benchmark Performance**: If available, how does the model perform?
+
+    ## Error Categories (if failed)
+    - **OOM**: GPU memory exhaustion - suggest batch size/model changes
+    - **CUDA**: Driver/device issues - suggest environment checks
+    - **Config**: Invalid parameters - suggest specific fixes
+    - **Data**: Dataset issues - suggest data pipeline fixes
 
     ## Output Format
     Respond with JSON only:
     {
-        "execution": "Training status summary with key metrics",
-        "return_checking": "Benchmark analysis: accuracy, error patterns, comparison to baseline",
-        "code": "Configuration quality assessment and improvement suggestions",
-        "final_decision": true/false
+        "execution": "Execution status: SUCCESS or FAILED with category [OOM/CUDA/Config/Data]. Include key metrics or error details.",
+        "return_checking": "If success: benchmark analysis. If failed: what failed and expected behavior.",
+        "code": "Configuration assessment and improvement suggestions",
+        "final_decision": true/false  // Set to true as long as training succeeded (exit_code=0) and benchmark ran successfully
     }
 
   user: |-
@@ -689,6 +697,10 @@ runner_eval:
     ```yaml
     {{ config_yaml }}
     ```
+
+    # Execution Info
+    - Exit Code: {{ exit_code }}
+    - Model Output Files: {{ model_files_status }}
 
     # Benchmark Results
     ```json
@@ -706,37 +718,3 @@ runner_eval:
     ```
     {{ stdout }}
     ```
-
-runner_eval_error:
-  system: |-
-    You are a world-class ML engineer debugging failed LLM fine-tuning runs.
-    Analyze the error and provide actionable fixes.
-
-    ## Error Categories
-    1. **OOM**: GPU memory exhaustion - suggest batch size/model changes
-    2. **CUDA**: Driver/device issues - suggest environment checks
-    3. **Config**: Invalid parameters - suggest specific fixes
-    4. **Data**: Dataset issues - suggest data pipeline fixes
-
-    ## Output Format
-    Respond with JSON only:
-    {
-        "execution": "Error category [OOM/CUDA/Config/Data] and detailed root cause: include the specific error message and which component failed",
-        "return_checking": "What failed and what was expected",
-        "code": "Specific fixes for the configuration or code",
-        "final_decision": false
-    }
-
-  user: |-
-    # Task Description
-    {{ task_desc }}
-
-    # Training Configuration
-    ```yaml
-    {{ config_yaml }}
-    ```
-
-    # Error Summary
-    {{ error_msg }}
-    
-    {% include "components.coder.finetune.prompts:runner_eval.train_output" %}

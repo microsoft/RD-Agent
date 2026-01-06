@@ -115,9 +115,9 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
                 implementation=implementation,
                 raw_stdout=data_stdout,
                 exit_code=data_result.exit_code,
-                training_success=False,
-                error_msg=f"Full data processing failed (exit_code={data_result.exit_code}). "
-                "The script passed debug mode but failed in full mode. Check for edge cases or resource limits.",
+                model_files_exist=False,
+                benchmark_result=None,
+                loss_history=None,
             )
 
         logger.info("Full data processing completed successfully")
@@ -160,19 +160,14 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
 
         # Early return if training failed
         if not training_success or len(model_output_files) == 0:
-            if not output_path.exists():
-                error_msg = f"Output directory not found (exit_code={train_result.exit_code})"
-            elif not training_success:
-                error_msg = f"Training failed (exit_code={train_result.exit_code})"
-            else:
-                error_msg = "No model output files generated"
             return self._generate_llm_feedback(
                 target_task=target_task,
                 implementation=implementation,
-                raw_stdout=combined_stdout,  # Use combined stdout for comprehensive feedback
+                raw_stdout=combined_stdout,
                 exit_code=train_result.exit_code,
-                training_success=False,
-                error_msg=error_msg,
+                model_files_exist=len(model_output_files) > 0,
+                benchmark_result=None,
+                loss_history=None,
             )
 
         # Extract loss history from training output
@@ -209,38 +204,16 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
             },
         }
 
-        # Final decision: training succeeded AND model files exist AND benchmark ran
-        final_decision = training_success and len(model_output_files) > 0 and len(benchmark_result) > 0
-
-        # Call LLM for feedback analysis (both success and failure cases)
-        if final_decision:
-            # Success: analyze benchmark results and training metrics
-            return self._generate_llm_feedback(
-                target_task=target_task,
-                implementation=implementation,
-                raw_stdout=combined_stdout,  # Use combined stdout for comprehensive feedback
-                exit_code=train_result.exit_code,
-                training_success=True,
-                benchmark_result=benchmark_result,
-                loss_history=loss_history,
-            )
-        else:
-            # Failure: analyze error cause
-            error_msg = f"exit_code={train_result.exit_code}"
-            if not training_success:
-                error_msg = f"Training failed: {error_msg}"
-            elif len(model_output_files) == 0:
-                error_msg = "No model output files generated"
-            elif len(benchmark_result) == 0:
-                error_msg = "No benchmark results"
-            return self._generate_llm_feedback(
-                target_task=target_task,
-                implementation=implementation,
-                raw_stdout=combined_stdout,  # Use combined stdout for comprehensive feedback
-                exit_code=train_result.exit_code,
-                training_success=False,
-                error_msg=error_msg,
-            )
+        # Call LLM for feedback analysis - LLM will determine final_decision
+        return self._generate_llm_feedback(
+            target_task=target_task,
+            implementation=implementation,
+            raw_stdout=combined_stdout,
+            exit_code=train_result.exit_code,
+            model_files_exist=len(model_output_files) > 0,
+            benchmark_result=benchmark_result,
+            loss_history=loss_history,
+        )
 
     def _generate_llm_feedback(
         self,
@@ -248,14 +221,14 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         implementation: FBWorkspace,
         raw_stdout: str,
         exit_code: int,
-        training_success: bool,
+        model_files_exist: bool,
         benchmark_result: Optional[Dict] = None,
         loss_history: Optional[List[Dict]] = None,
-        error_msg: Optional[str] = None,
     ) -> CoSTEERSingleFeedback:
-        """Generate LLM-based feedback for runner evaluation."""
-        version = "runner_eval" if training_success else "runner_eval_error"
+        """Generate LLM-based feedback for runner evaluation.
 
+        LLM will determine final_decision based on all provided information.
+        """
         # Parse execution log to extract structured info (reuse unified_validator's method)
         # Reduces ~36k tokens to ~500 tokens by extracting: status, errors, metrics, warnings
         parsed_stdout = LLMConfigValidator()._parse_execution_log(raw_stdout, exit_code)
@@ -275,14 +248,15 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
                 "loss_trend": "rising_late" if losses[-1] > min(losses) * 1.1 else "stable",
             }
 
-        system_prompt = T(f"rdagent.components.coder.finetune.prompts:{version}.system").r()
-        user_prompt = T(f"rdagent.components.coder.finetune.prompts:{version}.user").r(
+        system_prompt = T("rdagent.components.coder.finetune.prompts:runner_eval.system").r()
+        user_prompt = T("rdagent.components.coder.finetune.prompts:runner_eval.user").r(
             task_desc=target_task.get_task_information(),
             config_yaml=implementation.file_dict.get(FT_YAML_FILE_NAME, ""),
+            exit_code=exit_code,
+            model_files_status="Found" if model_files_exist else "Not found",
             stdout=parsed_stdout,  # Structured JSON instead of raw truncated log
-            benchmark_result=json.dumps(benchmark_result, indent=2) if benchmark_result else "N/A",
+            benchmark_result=json.dumps(benchmark_result, indent=2) if benchmark_result else "N/A (not executed or failed)",
             loss_summary=json.dumps(loss_summary, indent=2) if loss_summary else "N/A",
-            error_msg=error_msg or "",
         )
 
         feedback = build_cls_from_json_with_retry(
