@@ -49,6 +49,9 @@ class FTExperiment2Feedback(Experiment2Feedback):
         # Get task information
         task_desc = exp.sub_tasks[0].get_task_information()
 
+        # Initialize for SOTA update logic later
+        sota_benchmark = None
+
         if error_info is not None:
             # Error case: use error analysis prompt
             version = "exp_feedback_error"
@@ -123,12 +126,12 @@ class FTExperiment2Feedback(Experiment2Feedback):
             # Get SOTA experiment's benchmark results for comparison
             sota_benchmark = trace.sota_benchmark() if trace else None
 
-            # Check if this is the first loop (no history yet)
-            is_first_loop = trace is None or len(trace.hist) == 0
+            # Get baseline benchmark (always exists, computed at scenario init)
+            baseline_benchmark = getattr(self.scen, 'baseline_benchmark_score', None)
 
             system_prompt = T(f".prompts:{version}.system").r(
                 scenario=self.scen.get_scenario_all_desc(),
-                is_first_loop=is_first_loop,
+                has_sota=sota_benchmark is not None,
             )
             user_prompt = T(f".prompts:{version}.user").r(
                 hypothesis=exp.hypothesis,
@@ -138,7 +141,7 @@ class FTExperiment2Feedback(Experiment2Feedback):
                 benchmark=benchmark,
                 training_metrics=training_metrics,
                 sota_benchmark=sota_benchmark,
-                is_first_loop=is_first_loop,
+                baseline_benchmark=baseline_benchmark,
             )
 
         resp_dict = json.loads(
@@ -161,16 +164,15 @@ class FTExperiment2Feedback(Experiment2Feedback):
         )
 
         # Update SOTA based on LLM judgment (only for successful experiments)
+        # If no SOTA exists, LLM compares with baseline; otherwise compares with SOTA
         if error_info is None and trace is not None:
-            if is_first_loop:
-                # First successful experiment automatically becomes SOTA (no LLM judgment needed)
+            should_update_sota = convert2bool(resp_dict.get("should_update_sota", "no"))
+            if should_update_sota:
                 trace.update_sota(exp)
-                logger.info("First successful experiment set as SOTA baseline")
-            else:
-                # Subsequent experiments: LLM compares benchmark scores to decide
-                should_update_sota = convert2bool(resp_dict.get("should_update_sota", "no"))
-                if should_update_sota:
-                    trace.update_sota(exp)
-                    logger.info("SOTA updated based on benchmark comparison")
+                if trace.sota_experiment() == exp:  # Confirm update succeeded
+                    if sota_benchmark is None:
+                        logger.info("First experiment set as SOTA (exceeded baseline)")
+                    else:
+                        logger.info("SOTA updated based on benchmark comparison")
 
         return hypothesis_feedback

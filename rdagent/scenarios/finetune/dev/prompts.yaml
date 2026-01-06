@@ -22,17 +22,12 @@ exp_feedback:
 
     ## Step 2: Benchmark metrics Evaluation
     - The user will provide you the benchmark evaluation results after executing the fine-tuned model on a benchmark suite.
+    {% if has_sota %}
     - The user will also provide you the former sota benchmark results on the same benchmark suite for comparison.
     - Analyze the benchmark results to determine if they support or refute the hypothesis. If the results is signifficantly worse than the sota results, reject the experiment and start your reason by: [Benchmark Performance Issue]. Else proceed to next step.
-
-    {% if is_first_loop %}
-    ## Special Case: First Experiment (No SOTA to compare)
-    **This is the FIRST experiment. There is no SOTA to compare against.**
-    **CRITICAL: You MUST set "Decision": "yes" if the experiment completed successfully with valid benchmark results.**
-    - The first successful experiment automatically becomes the SOTA baseline
-    - Focus on verifying implementation correctness, not comparing to non-existent SOTA
-    - Skip Step 2's "compare to SOTA" requirement since there's nothing to compare against
-    - Do NOT reject the first experiment just because there's no SOTA to compare - that's expected!
+    {% else %}
+    - The user will provide you the baseline benchmark results (pre-trained model without fine-tuning) for comparison.
+    - Analyze the benchmark results to determine if they exceed the baseline. If the results are worse than or equal to the baseline, reject the experiment and start your reason by: [Benchmark Performance Issue]. Else proceed to next step.
     {% endif %}
 
     ## Step 3: Task and Code Quality Assessment
@@ -42,15 +37,19 @@ exp_feedback:
     ## Step 4: SOTA Update Decision
     You MUST return a field "should_update_sota" (true/false) in your response:
 
-    **Case 1: First experiment (no SOTA to compare)**
-    - If this is the first successful experiment with valid benchmark results
-    - Return "should_update_sota": "yes" to establish the initial SOTA baseline
-
-    **Case 2: Subsequent experiments (has SOTA to compare)**
+    {% if has_sota %}
+    **Compare with SOTA**
     - Compare the current experiment's benchmark results with SOTA
     - Consider ALL metrics comprehensively, not just one
     - Return "should_update_sota": "yes" if current experiment is better overall
     - Return "should_update_sota": "no" if SOTA is still better or if this experiment should be rejected
+    {% else %}
+    **Compare with BASELINE (no SOTA yet)**
+    - Compare the current experiment's benchmark results with the BASELINE (pre-trained model without fine-tuning)
+    - The baseline results will be provided in the user prompt
+    - Return "should_update_sota": "yes" ONLY if current experiment EXCEEDS baseline
+    - Return "should_update_sota": "no" if current experiment is worse than or equal to baseline
+    {% endif %}
 
     # Core improvement identification
     ## Failure identification (On rejection)
@@ -161,12 +160,15 @@ exp_feedback:
     {% else %}
     No SOTA accuracy summary available.
     {% endif %}
-    {% endif %}
+    {% else %}
+    ## Baseline Benchmark Results (Pre-trained Model)
+    **No SOTA exists yet.** Compare against the BASELINE (model performance before fine-tuning).
+    **IMPORTANT**: Only set "should_update_sota": "yes" if the fine-tuned model EXCEEDS this baseline.
 
-    {% if is_first_loop %}
-    **CRITICAL - FIRST EXPERIMENT**: This is the FIRST experiment. There is no SOTA to compare against.
-    You MUST set "Decision": "yes" if the experiment completed successfully with valid benchmark results.
-    The first successful experiment will establish the initial SOTA baseline for future comparisons.
+    ### Baseline Accuracy Summary
+    ```json
+    {{ baseline_benchmark.accuracy_summary | tojson(indent=2) }}
+    ```
     {% endif %}
 
 exp_feedback_error:
