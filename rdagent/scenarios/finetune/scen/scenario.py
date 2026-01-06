@@ -56,6 +56,7 @@ class LLMFinetuneScen(DataScienceScen):
 
         # NOTE: we disable the cache for environment. in case of changing cuda config
         self.device_info = get_runtime_environment_by_env(get_ft_env(enable_cache=False))
+        self.gpu_count = self._get_gpu_count()
         self.model_info = FinetuneDatasetDescriptor().describe_model(self.base_model)
 
         # Initialize memory estimator
@@ -63,7 +64,6 @@ class LLMFinetuneScen(DataScienceScen):
 
         self.baseline_benchmark_score = self.run_baseline_model_evaluation(model_name=self.base_model, benchmark_name=self.target_benchmark)
 
-        self.gpu_count = self._get_gpu_count()
     
     def _get_gpu_count(self) -> int:
         """Return GPU count parsed from device_info stored at initialization."""
@@ -78,16 +78,15 @@ class LLMFinetuneScen(DataScienceScen):
 
     @cache_with_pickle(benchmark_hash)
     def run_baseline_model_evaluation(self, model_name, benchmark_name) -> dict:
-        # ws = FTWorkspace()
-        # bm = run_benchmark(
-        #     workspace_path=str(ws.workspace_path),
-        #     model_path=Path(FT_RD_SETTING.file_path) / "models" / model_name,
-        #     model_name=model_name,
-        #     benchmark_name=benchmark_name,
-        #     gpu_count=self.gpu_count,
-        # )
-        # return bm
-        pass
+        ws = FTWorkspace()
+        bm = run_benchmark(
+            workspace_path=str(ws.workspace_path),
+            model_path=Path(FT_RD_SETTING.file_path) / "models" / model_name,
+            model_name=model_name,
+            benchmark_name=benchmark_name,
+            gpu_count=self.gpu_count,
+        )
+        return bm
 
     def real_full_timeout(self):
         return FT_RD_SETTING.full_timeout
