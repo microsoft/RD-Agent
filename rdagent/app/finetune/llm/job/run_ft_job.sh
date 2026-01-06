@@ -17,6 +17,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RDAGENT_DIR="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 ENV_FILE="$SCRIPT_DIR/.env"
+SCENARIOS_FILE="$SCRIPT_DIR/scenarios.json"
 STAGGER_DELAY=60
 
 usage() {
@@ -82,8 +83,19 @@ for ((i=0; i<NUM_TASKS; i++)); do
     model=$(jq -r ".tasks[$i].model" "$CONFIG_FILE")
     benchmark=$(jq -r ".tasks[$i].benchmark" "$CONFIG_FILE")
     gpus=$(jq -r ".tasks[$i].gpus // \"0\"" "$CONFIG_FILE")
+
+    # Load scenario: tasks.json -> scenarios.json -> default
     scenario=$(jq -r ".tasks[$i].scenario // empty" "$CONFIG_FILE")
+    if [[ -z "$scenario" ]]; then
+        scenario=$(jq -r ".[\"$benchmark\"].scenario // empty" "$SCENARIOS_FILE")
+    fi
     [[ -z "$scenario" ]] && scenario="Improve model performance on $benchmark"
+
+    # Load benchmark_description: tasks.json -> scenarios.json
+    benchmark_desc=$(jq -r ".tasks[$i].benchmark_description // empty" "$CONFIG_FILE")
+    if [[ -z "$benchmark_desc" ]]; then
+        benchmark_desc=$(jq -r ".[\"$benchmark\"].benchmark_description // empty" "$SCENARIOS_FILE")
+    fi
     model_name=$(basename "$model")
     task_name="${benchmark}_${model_name}"
     trace_path="$JOB_DIR/$task_name"
@@ -101,6 +113,7 @@ for ((i=0; i<NUM_TASKS; i++)); do
         export WORKSPACE_PATH="$task_workspace"
         export FT_TARGET_BENCHMARK="$benchmark"
         export FT_USER_TARGET_SCENARIO="$scenario"
+        [[ -n "$benchmark_desc" ]] && export FT_BENCHMARK_DESCRIPTION="$benchmark_desc"
         cd "$RDAGENT_DIR"
         python rdagent/app/finetune/llm/loop.py --base-model "$model"
     ) > "$JOB_DIR/${task_name}.log" 2>&1 &
