@@ -232,22 +232,22 @@ unified_hypothesis_gen:
 
     ## 3.2 Focus Strategy
 
-    {% if is_first_loop %}
-    **This is the FIRST experiment.** You must provide a comprehensive strategy covering BOTH:
+    {% if not based_on_a_successful_parent %}
+    **You are drafting a expreriment from scratch..** You must provide a comprehensive strategy covering BOTH:
     1. Data processing: How to prepare the training data
     2. Training configuration: How to configure the fine-tuning process
 
-    Both aspects are equally important for the first experiment.
+    Both aspects are equally important.
     {% else %}
-    **This is a subsequent experiment.** Based on the historical results:
+    **This is a subsequent experiment.** Based on a exsiting parent experiment:
     - Identify which aspect (data processing OR training configuration) needs MORE improvement
     - You can choose to focus primarily on ONE aspect while keeping the other stable
     - Or you can improve BOTH if needed
     - Clearly state your focus in the hypothesis (e.g., "Focus on improving data quality while keeping training config stable")
 
     **Data Processing Skip Option:**
-    If the SOTA's data processing strategy is already good and you want to focus ONLY on training configuration improvements:
-    - Set `skip_data_processing: true` in your response to reuse the SOTA's data.json
+    If the Parent's data processing strategy is already good and you want to focus ONLY on training configuration improvements:
+    - Set `skip_data_processing: true` in your response to reuse the Parent's data.json
     - This saves LLM API costs and allows you to focus purely on hyperparameter tuning
     - Only use this option when you believe the data quality is sufficient
     {% endif %}
@@ -276,70 +276,67 @@ unified_hypothesis_gen:
           "reason": "[Your reasoning about why this approach should work, covering BOTH data processing and training aspects, referencing history if available]",
           "hypothesis": "[Your hypothesis in natural language, integrating both data processing strategy and training configuration, comprehensive and specific]",
           "task": "[Step-by-step task description for the code generator, covering the complete workflow from data processing to training, no code]",
-          "skip_data_processing": false  // Set to true ONLY if you want to reuse SOTA's data.json (not applicable for first experiment)
+          "skip_data_processing": false  // Set to true ONLY if you want to reuse Parent's data.json (not applicable for first experiment)
         }
     ```
     Since responding the whole content in one message may exceed the token limit, the user has requested you to provide reason, hypothesis, and task one by one in separate messages. Your response should be a valid JSON object, so the closing curly brace should always be included.
 
   user_prompt: |-
-    {% if trace.hist %}
-    ## Historical Experiments
-    {% for experiment, feedback in trace.hist[-5:] %}
-    ### Experiment {{ loop.index }}
-    {% if experiment.hypothesis %}
-    - Hypothesis: {{ experiment.hypothesis.hypothesis }}
-    {% endif %}
-    - Result: {{ "✅ Successful" if feedback.decision else "❌ Failed" }}{% if feedback.observations %} [{{ feedback.observations }}]{% endif %}
-
-    {% if feedback.reason %}
-    - Reason: {{ feedback.reason }}
-    {% endif %}
+    {% if siblings %}
+    ## Sibling Experiments
+    These are other experiments that branched from the same parent.
+    {% for sib_exp, sib_fb in siblings %}
+    ### Sibling {{ loop.index }}
+    - Hypothesis: {{ sib_exp.hypothesis }}
+    - Result: {{ "✅ Successful" if sib_fb.decision else "❌ Failed" }}{% if sib_fb.observations %} [{{ sib_fb.observations }}]{% endif %}
+    - Reason: {{ sib_fb.reason }}
     {% endfor %}
     {% endif %}
 
-    {% if sota_info %}
-    ## Current SOTA (Best Performing Experiment)
-    This is the current best experiment that you should try to improve upon.
+    {% if parent_exp %}
+    {% set parent_info = trace.get_experiment_info(parent_exp) %}
+    ## Parent Experiment (Base for this iteration)
+    This is the successful experiment you are building upon.
 
-    ### SOTA Hypothesis
-    {{ sota_info.hypothesis }}
+    ### Parent Hypothesis
+    {{ parent_info.hypothesis }}
 
-    {% if sota_info.config %}
-    ### SOTA Training Configuration
+    {% if parent_info.config %}
+    ### Parent Training Configuration
     ```yaml
-    {{ sota_info.config }}
+    {{ parent_info.config }}
     ```
     {% endif %}
 
-    {% if sota_info.data_script %}
-    ### SOTA Data Processing Script
+    {% if parent_info.data_script %}
+    ### Parent Data Processing Script
     ```python
-    {{ sota_info.data_script }}
+    {{ parent_info.data_script }}
     ```
     {% endif %}
 
-    {% if sota_info.benchmark %}
-    ### SOTA Benchmark Results
+    {% if parent_info.benchmark %}
+    ### Parent Benchmark Results
     ```json
-    {{ sota_info.benchmark | tojson(indent=2) }}
+    {{ parent_info.benchmark | tojson(indent=2) }}
     ```
     {% endif %}
 
-    **Improvement Focus**: Analyze the SOTA's limitations and propose improvements. Consider:
-    - What aspects of the current SOTA could be improved?
+    **Improvement Focus**: Analyze the Parent's limitations and propose improvements. Consider:
+    - What aspects of the current Parent could be improved?
     - Are there any hyperparameters that seem suboptimal?
     - Could the data processing strategy be enhanced?
-    - If SOTA's data processing is already good, you may focus on training config improvements only.
+    - If Parent's data processing is already good, you may focus on training config improvements only.
     {% endif %}
 
-    {% if trace.hist %}
-    **Task**: Based on the historical results above, propose a NEW hypothesis covering BOTH data processing AND training configuration that:
-    - Learns from failed attempts and avoids repeating mistakes
-    - Builds upon successful approaches while exploring improvements
+    {% if based_on_a_successful_parent %}
+    **Task**: Based on the parent and sibling results above, propose a NEW hypothesis covering BOTH data processing AND training configuration that:
+    - Learns from sibling failures to avoid repeating mistakes
+    - Builds upon the successful parent while exploring improvements
     - Tests promising directions not yet explored
     - Decides which aspect (data/training/both) to focus on for this iteration
     {% else %}
-    **Task**: This is the first experiment. Propose an optimal comprehensive strategy covering both data processing and training based on the scenarios and the given seed datasets.
+    **Task**: This is the first experiment (or starting from scratch). Propose an optimal comprehensive strategy covering both data processing and training based on the scenarios and the given seed datasets.
     {% endif %}
 
   specific_format: |-

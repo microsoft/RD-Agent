@@ -59,4 +59,10 @@ class LLMFinetuneRDLoop(RDLoop):
             feedback = self.summarizer.generate_feedback(exp, self.trace)
 
         logger.log_object(feedback, tag="feedback")
-        self.trace.hist.append((exp, feedback))
+        return feedback
+
+    def record(self, prev_out: dict[str, Any]):
+        """Record the experiment and feedback into trace"""
+        feedback = prev_out["feedback"]
+        exp = prev_out.get("running") or prev_out.get("coding") or prev_out.get("direct_exp_gen")
+        self.trace.sync_dag_parent_and_hist((exp, feedback), prev_out[self.LOOP_IDX_KEY])

@@ -163,16 +163,4 @@ class FTExperiment2Feedback(Experiment2Feedback):
             observations=error_type,  # Store error type for history display
         )
 
-        # Update SOTA based on LLM judgment (only for successful experiments)
-        # If no SOTA exists, LLM compares with baseline; otherwise compares with SOTA
-        if error_info is None and trace is not None:
-            should_update_sota = convert2bool(resp_dict.get("should_update_sota", "no"))
-            if should_update_sota:
-                trace.update_sota(exp)
-                if trace.sota_experiment() == exp:  # Confirm update succeeded
-                    if sota_benchmark is None:
-                        logger.info("First experiment set as SOTA (exceeded baseline)")
-                    else:
-                        logger.info("SOTA updated based on benchmark comparison")
-
         return hypothesis_feedback

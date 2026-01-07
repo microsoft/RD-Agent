@@ -62,26 +62,30 @@ class LLMFinetuneExpGen(ExpGen):
     def __init__(self, scen: LLMFinetuneScen):
         super().__init__(scen)
 
-    def gen(self, trace: Trace, plan=None) -> FTExperiment:
+    def gen(self, trace: Trace) -> FTExperiment:
         """Generate LLM fine-tuning experiment."""
         base_model = FT_RD_SETTING.base_model
         logger.info(f"Generating experiment with base model: {base_model}")
 
-        is_first_loop = not trace.hist
-        return self._gen_hypothesis(trace, base_model, is_first_loop)
+        sota_exp = trace.get_sota_experiment()  # use sota_exp as the parent
 
-    def _gen_hypothesis(self, trace: Trace, base_model: str, is_first_loop: bool) -> FTExperiment:
+        return self._gen_hypothesis(trace, base_model, parent_exp=sota_exp)
+
+    def _gen_hypothesis(
+        self, trace: Trace, base_model: str, parent_exp: FTExperiment | None = None
+    ) -> FTExperiment:
         """Generate hypothesis covering both data processing and training configuration.
 
         Args:
             trace: Experiment trace history
             base_model: Base model name
-            is_first_loop: Whether this is the first experiment
+            parent_exp: Parent experiment to base this one on; usually the SOTA experiment
 
         Returns:
             FTExperiment with tasks for both data processing and training
         """
-        logger.info(f"Generating hypothesis (is_first_loop={is_first_loop})")
+        based_on_a_successful_parent = parent_exp is not None
+        logger.info(f"Generating hypothesis based on (parent_exp={parent_exp})")
 
         available_models = LLaMAFactory_manager.models
         available_methods = LLaMAFactory_manager.methods
@@ -90,13 +94,19 @@ class LLMFinetuneExpGen(ExpGen):
         for method in available_methods:
             methods_specific_params[method] = LLaMAFactory_manager.format_method_specific_params(method)
 
-        # Get SOTA experiment info for guidance
-        sota_info = trace.sota_info() if isinstance(trace, FTTrace) else None
-        if sota_info:
-            logger.info("SOTA experiment found, will include in hypothesis generation")
+        # Get siblings
+        siblings = []
+        if isinstance(trace, FTTrace):
+            # Find siblings
+            parent_idx = trace.exp2idx(parent_exp) if parent_exp else None
+            # Handle potential list return
+            if isinstance(parent_idx, list):
+                parent_idx = parent_idx[0] if parent_idx else None
+            
+            siblings = trace.get_children(parent_idx)
 
         system_prompt = T(".prompts:unified_hypothesis_gen.system_prompt").r(
-            is_first_loop=is_first_loop,
+            based_on_a_successful_parent=based_on_a_successful_parent,
             scenario=self.scen.get_scenario_all_desc(enable_dataset_description=True),
             available_models=available_models,
             available_methods=available_methods,
@@ -106,8 +116,10 @@ class LLMFinetuneExpGen(ExpGen):
         )
 
         user_prompt = T(".prompts:unified_hypothesis_gen.user_prompt").r(
+            parent_exp=parent_exp,
+            siblings=siblings,
             trace=trace,
-            sota_info=sota_info,
+            based_on_a_successful_parent=based_on_a_successful_parent,
         )
 
         session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
@@ -134,9 +146,9 @@ class LLMFinetuneExpGen(ExpGen):
 
         # Get skip_data_processing from task_dict (merged with task in 3rd LLM call)
         # Only valid for subsequent experiments, first experiment always generates data
-        skip_data_processing = task_dict.get("skip_data_processing", False) if not is_first_loop else False
+        skip_data_processing = task_dict.get("skip_data_processing", False) if based_on_a_successful_parent else False
         if skip_data_processing:
-            logger.info("Proposal decided to skip data processing, will reuse SOTA's data.json")
+            logger.info("Proposal decided to skip data processing, will reuse Parent's data.json")
 
         # Use pre-selected datasets from scenario initialization
         task = FTTask(
@@ -154,13 +166,15 @@ class LLMFinetuneExpGen(ExpGen):
         )
 
         exp = FTExperiment(sub_tasks=[task], hypothesis=hypothesis)
+        if parent_exp:
+            parent_idx = trace.exp2idx(parent_exp)
+            if parent_idx is not None:
+                exp.set_local_selection((parent_idx,))
 
-        # Inject workspace files from SOTA experiment (if available)
-        if isinstance(trace, FTTrace):
-            sota_exp = trace.sota_experiment()
-            if sota_exp is not None and (ws := sota_exp.experiment_workspace) is not None and ws.file_dict:
-                exp.experiment_workspace.inject_code_from_file_dict(ws)
-                logger.info(f"Injected {len(ws.file_dict)} files from SOTA: {list(ws.file_dict.keys())}")
+        # Inject workspace files from Parent or SOTA experiment (if available)
+        if parent_exp and (ws := parent_exp.experiment_workspace) is not None and ws.file_dict:
+            exp.experiment_workspace.inject_code_from_file_dict(ws)
+            logger.info(f"Injected {len(ws.file_dict)} files from parent: {list(ws.file_dict.keys())}")
 
         logger.info("Experiment created")
 

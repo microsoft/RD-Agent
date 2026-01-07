@@ -139,6 +139,7 @@ ASpecificKB = TypeVar("ASpecificKB", bound=KnowledgeBase)
 class Trace(Generic[ASpecificScen, ASpecificKB]):
     NodeType = tuple[Experiment, ExperimentFeedback]  # Define NodeType as a new type representing the tuple
     NEW_ROOT: tuple = ()
+    SEL_LATEST_SOTA: tuple = (-1,)  # select the SOTA experiment in latest node
 
     def __init__(self, scen: ASpecificScen, knowledge_base: ASpecificKB | None = None) -> None:
         self.scen: ASpecificScen = scen
@@ -168,7 +169,9 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
 
         # TODO: self.hist is 2-tuple now, remove hypothesis from it, change old code for this later.
         self.knowledge_base: ASpecificKB | None = knowledge_base
-        self.current_selection: tuple[int, ...] = (-1,)
+
+        # The next expending point of the selection. Set it as a state of the trace will make 
+        self.current_selection: tuple[int, ...] = self.SEL_LATEST_SOTA
 
     def get_sota_hypothesis_and_experiment(self) -> tuple[Hypothesis | None, Experiment | None]:
         """Access the last experiment result, sub-task, and the corresponding hypothesis."""
@@ -248,6 +251,66 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
 
         return ancestors
 
+    def sync_dag_parent_and_hist(
+        self,
+        exp_and_fb: NodeType,
+        cur_loop_id: int,
+    ) -> None:
+        """
+        Adding corresponding parent index to the dag_parent when the hist is going to be changed.
+        Should be called when the hist is changed.
+        """
+
+        if len(self.hist) == 0 or len(self.get_current_selection()) == 0:
+            # the node we are going to add is the first node of hist / root node of a new sub-trace
+            self.dag_parent.append(())
+
+        else:
+            current_node_idx = self.current_selection[0]
+
+            if current_node_idx == -1:
+                # the current selection is the latest one
+                current_node_idx = len(self.hist) - 1
+
+            self.dag_parent.append((current_node_idx,))
+        self.hist.append(exp_and_fb)
+        self.idx2loop_id[len(self.hist) - 1] = cur_loop_id
+
+    def get_children(self, parent_idx: int | None = None) -> list[NodeType]:
+        """
+        Get all children nodes for a given parent index.
+        If parent_idx is None, returns the root nodes (experiments starting from scratch).
+        """
+        target_parents = (parent_idx,) if parent_idx is not None else ()
+        children = []
+        for i, parents in enumerate(self.dag_parent):
+            if parents == target_parents and i < len(self.hist):
+                children.append(self.hist[i])
+        return children
+
+    def get_sota_experiment(self, node_id: int | None = None) -> Experiment | None:
+        """
+        Get the SOTA experiment from the trace by traversing ancestors backwards from node_id.
+        """
+        # NOTE: it is first used in the finetune scenario.
+        if node_id is None:
+            selection = self.get_current_selection()
+            if self.is_selection_new_tree(selection):
+                return None
+            node_id = selection[0]
+
+        if node_id == -1:
+            if not self.hist:
+                return None
+            node_id = len(self.hist) - 1
+
+        ancestors = self.get_parents(node_id)
+        for i in reversed(ancestors):
+            if self.hist[i][1].decision:
+                return self.hist[i][0]
+        return None
+
+
 
 class CheckpointSelector:
     """
@@ -306,7 +369,7 @@ class ExpGen(ABC):
         self.scen = scen
 
     @abstractmethod
-    def gen(self, trace: Trace, plan: ExperimentPlan | None = None) -> Experiment:
+    def gen(self, trace: Trace) -> Experiment:
         """
         Generate the experiment based on the trace.
         Planning is part of gen, but since we may support multi-stage planning,

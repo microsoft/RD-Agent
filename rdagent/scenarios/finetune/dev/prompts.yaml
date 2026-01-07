@@ -6,11 +6,11 @@ exp_feedback:
     {{ scenario }}
 
     Your task is to analyze the LLM fine-tuning experiment's hypothesis, implementation, and execution results to provide comprehensive feedback.
-    Your critical decision is to accept or reject the experiment to replace the state of the art (SOTA) method on the same benchmark.
+    Your critical decision is to accept or reject the experiment as the new state of the art (SOTA) method.
 
     # Decision Making Framework:
     ## Step 0: Pre-defination
-    - The user has proposed a hypothesis for fine-tuning a specific base model. Based on this hypothesis, they have planned a detailed task and  implemented a dataset generation pipeline and fine-tuning configuration.
+    - The user has proposed a hypothesis for fine-tuning a specific base model. Based on this hypothesis, they have planned a detailed task and implemented a dataset generation pipeline and fine-tuning configuration.
     - The user has executed the fine-tuning experiment on a mini-batch test and on the whole dataset. The execution was successful.
     - The user has tested the fine-tuned model on a benchmark suite and obtained evaluation results.
 
@@ -32,23 +32,23 @@ exp_feedback:
 
     ## Step 3: Task and Code Quality Assessment
     - Evaluate the implementation quality and best practices
-    - Compare the implementation against sota methods. If the implementation is worse than sota methods, reject the experiment and start your reason by: [Implementation Quality Issue]. Else accept the experiment.
+    - Compare the implementation against sota methods. If the implementation is worse than sota methods, reject the experiment and start your reason by: [Implementation Quality Issue]. Else proceed to next step.
 
-    ## Step 4: SOTA Update Decision
-    You MUST return a field "should_update_sota" (true/false) in your response:
+    ## Step 4: Final Decision (Acceptance as SOTA)
+    You MUST determine the "Decision" (yes/no) based on the following:
 
     {% if has_sota %}
     **Compare with SOTA**
     - Compare the current experiment's benchmark results with SOTA
     - Consider ALL metrics comprehensively, not just one
-    - Return "should_update_sota": "yes" if current experiment is better overall
-    - Return "should_update_sota": "no" if SOTA is still better or if this experiment should be rejected
+    - Set "Decision": "yes" if current experiment is better overall than the current SOTA
+    - Set "Decision": "no" if SOTA is still better or if this experiment should be rejected
     {% else %}
     **Compare with BASELINE (no SOTA yet)**
     - Compare the current experiment's benchmark results with the BASELINE (pre-trained model without fine-tuning)
     - The baseline results will be provided in the user prompt
-    - Return "should_update_sota": "yes" ONLY if current experiment EXCEEDS baseline
-    - Return "should_update_sota": "no" if current experiment is worse than or equal to baseline
+    - Set "Decision": "yes" ONLY if current experiment EXCEEDS baseline
+    - Set "Decision": "no" if current experiment is worse than or equal to baseline
     {% endif %}
 
     # Core improvement identification
@@ -96,8 +96,7 @@ exp_feedback:
     {
       "Code Summary": "Concise summary of the implementation approach and key components",
       "Reason": "A single paragraph (not a list) explaining the decision with specific evidence, root cause analysis, and improvement suggestions. Limit to 3-5 sentences.",
-      "Decision": "yes or no - whether this experiment should be accepted",
-      "should_update_sota": "yes or no - whether this experiment should replace the current SOTA (see Step 4)"
+      "Decision": "yes or no - whether this experiment should be accepted as the new SOTA (see Step 4)"
     }
 
   user: |-
@@ -150,7 +149,7 @@ exp_feedback:
     {% if sota_benchmark %}
     ## Previous SOTA Benchmark Results
     The following are the benchmark results from the current best (SOTA) experiment.
-    Compare the current results with these to determine if the current experiment should replace the SOTA.
+    Compare the current results with these to determine if the current experiment should become the new SOTA.
 
     ### SOTA Accuracy Summary
     {% if sota_benchmark.accuracy_summary %}
@@ -163,7 +162,7 @@ exp_feedback:
     {% else %}
     ## Baseline Benchmark Results (Pre-trained Model)
     **No SOTA exists yet.** Compare against the BASELINE (model performance before fine-tuning).
-    **IMPORTANT**: Only set "should_update_sota": "yes" if the fine-tuned model EXCEEDS this baseline.
+    **IMPORTANT**: Only set "Decision": "yes" if the fine-tuned model EXCEEDS this baseline.
 
     ### Baseline Accuracy Summary
     ```json

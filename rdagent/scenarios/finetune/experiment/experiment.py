@@ -30,6 +30,3 @@ class FTExperiment(Experiment[Task, FTWorkspace, FTWorkspace]):
         (so it is different from `trace.next_incomplete_component`.)
         """
         return self.experiment_workspace is not None and FT_YAML_FILE_NAME in self.experiment_workspace.file_dict
-
-    def set_local_selection(self, local_selection: tuple[int, ...]) -> None:
-        self.local_selection = local_selection
