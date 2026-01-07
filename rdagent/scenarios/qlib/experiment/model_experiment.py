@@ -1,6 +1,7 @@
 from copy import deepcopy
 from pathlib import Path
 
+from rdagent.app.qlib_rd_loop.conf import MODEL_PROP_SETTING
 from rdagent.components.coder.model_coder.conf import get_model_env
 from rdagent.components.coder.model_coder.model import (
     ModelExperiment,
@@ -33,7 +34,16 @@ class QlibModelScenario(Scenario):
         self._interface = deepcopy(T(".prompts:qlib_model_interface").r())
         self._simulator = deepcopy(T(".prompts:qlib_model_simulator").r())
         self._rich_style_description = deepcopy(T(".prompts:qlib_model_rich_style_description").r())
-        self._experiment_setting = deepcopy(T(".prompts:qlib_model_experiment_setting").r())
+        self._experiment_setting = deepcopy(
+            T(".prompts:qlib_model_experiment_setting").r(
+                train_start=MODEL_PROP_SETTING.train_start,
+                train_end=MODEL_PROP_SETTING.train_end,
+                valid_start=MODEL_PROP_SETTING.valid_start,
+                valid_end=MODEL_PROP_SETTING.valid_end,
+                test_start=MODEL_PROP_SETTING.test_start,
+                test_end=MODEL_PROP_SETTING.test_end,
+            )
+        )
 
     @property
     def background(self) -> str:

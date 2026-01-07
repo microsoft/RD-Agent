@@ -201,6 +201,90 @@ The execution environment is determined by the ``DS_CODER_COSTEER_ENV_TYPE`` var
        DS_CODER_COSTEER_ENV_TYPE=conda
 
 
+Custom Time Segment Configuration (Train / Valid / Test)
+=========================================================
+
+RD-Agent now supports user-defined time segments for training, validation,
+and testing (backtesting). Users can customize these segments via environment
+variables in the ``.env`` file, depending on the scenario being executed.
+
+This feature allows greater flexibility when running experiments on different
+time ranges without modifying code or YAML configurations.
+
+Fin-Factor Scenario
+-------------------
+
+When running the **fin_factor** scenario, you can configure the time segments
+using the following environment variables. These variables are read by the
+Factor-related PropSettings and directly affect the execution process.
+
+Add the following entries to your ``.env`` file as needed:
+
+.. code-block:: properties
+
+   QLIB_FACTOR_TRAIN_START=<train start date, default is 2008-01-01>
+   QLIB_FACTOR_TRAIN_END=<train end date, default is 2014-12-31>
+   QLIB_FACTOR_VALID_START=<valid start date, default is 2015-01-01>
+   QLIB_FACTOR_VALID_END=<valid end date, default is 2016-12-31>
+   QLIB_FACTOR_TEST_START=<test / backtest start date, default is 2017-01-01>
+   QLIB_FACTOR_TEST_END=<test / backtest end date, default is 2020-12-31>
+
+Fin-Model Scenario
+------------------
+
+When running the **fin_model** scenario, the model training, validation, and
+testing time segments can be configured independently via the following
+environment variables:
+
+.. code-block:: properties
+
+   QLIB_MODEL_TRAIN_START=<train start date, default is 2008-01-01>
+   QLIB_MODEL_TRAIN_END=<train end date, default is 2014-12-31>
+   QLIB_MODEL_VALID_START=<valid start date, default is 2015-01-01>
+   QLIB_MODEL_VALID_END=<valid end date, default is 2016-12-31>
+   QLIB_MODEL_TEST_START=<test / backtest start date, default is 2017-01-01>
+   QLIB_MODEL_TEST_END=<test / backtest end date, default is 2020-12-31>
+
+These settings are used during model training and evaluation and directly
+impact the execution workflow.
+
+Fin-Quant Scenario
+------------------
+
+When running the **fin_quant** scenario, RD-Agent supports configuring time
+segments for factor, model, and quant stages simultaneously.
+
+**Note:** The ``QLIB_QUANT_*`` variables are only used for front-end UI display
+purposes and do **not** affect the actual execution process.
+
+You may configure the following variables in your ``.env`` file:
+
+.. code-block:: properties
+
+   QLIB_FACTOR_TRAIN_START=<train start date, default is 2008-01-01>
+   QLIB_FACTOR_TRAIN_END=<train end date, default is 2014-12-31>
+   QLIB_FACTOR_VALID_START=<valid start date, default is 2015-01-01>
+   QLIB_FACTOR_VALID_END=<valid end date, default is 2016-12-31>
+   QLIB_FACTOR_TEST_START=<test / backtest start date, default is 2017-01-01>
+   QLIB_FACTOR_TEST_END=<test / backtest end date, default is 2020-12-31>
+
+   QLIB_MODEL_TRAIN_START=<train start date, default is 2008-01-01>
+   QLIB_MODEL_TRAIN_END=<train end date, default is 2014-12-31>
+   QLIB_MODEL_VALID_START=<valid start date, default is 2015-01-01>
+   QLIB_MODEL_VALID_END=<valid end date, default is 2016-12-31>
+   QLIB_MODEL_TEST_START=<test / backtest start date, default is 2017-01-01>
+   QLIB_MODEL_TEST_END=<test / backtest end date, default is 2020-12-31>
+
+   QLIB_QUANT_TRAIN_START=<train start date, default is 2008-01-01>
+   QLIB_QUANT_TRAIN_END=<train end date, default is 2014-12-31>
+   QLIB_QUANT_VALID_START=<valid start date, default is 2015-01-01>
+   QLIB_QUANT_VALID_END=<valid end date, default is 2016-12-31>
+   QLIB_QUANT_TEST_START=<test / backtest start date, default is 2017-01-01>
+   QLIB_QUANT_TEST_END=<test / backtest end date, default is 2020-12-31>
+
+This setup allows the front-end to display consistent segment information
+across different stages while keeping execution logic unchanged.
+
 
 Configuration(deprecated)
 =========================

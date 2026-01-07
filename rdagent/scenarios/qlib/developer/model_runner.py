@@ -1,5 +1,6 @@
 import pandas as pd
 
+from rdagent.app.qlib_rd_loop.conf import ModelBasePropSetting
 from rdagent.components.runner import CachedRunner
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.exception import ModelEmptyError
@@ -58,7 +59,16 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
         # to replace & inject code
         exp.experiment_workspace.inject_files(**{"model.py": exp.sub_workspace_list[0].file_dict["model.py"]})
 
-        env_to_use = {"PYTHONPATH": "./"}
+        mbps = ModelBasePropSetting()
+        env_to_use = {
+            "PYTHONPATH": "./",
+            "train_start": mbps.train_start,
+            "train_end": mbps.train_end,
+            "valid_start": mbps.valid_start,
+            "valid_end": mbps.valid_end,
+            "test_start": mbps.test_start,
+            "test_end": mbps.test_end,
+        }
 
         training_hyperparameters = exp.sub_tasks[0].training_hyperparameters
         if training_hyperparameters:
