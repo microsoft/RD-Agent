@@ -201,7 +201,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_reward_model_selection: bool = True
     """Enable reward model based hypothesis selection."""
     
-    reward_model_path: str ="/data/Blob_EastUS/FinetuneAgenticLLM/reward_ckpt/last_run_7" #"/data/userdata/v-lijingyuan/last_run_2"# "/data/userdata/v-lijingyuan/last_run_2"#"/data/Blob_EastUS/FinetuneAgenticLLM/reward_ckpt/last_run_2"
+    reward_model_path: str ="/data/Blob_EastUS/FinetuneAgenticLLM/reward_ckpt/last_run_8" #"/data/userdata/v-lijingyuan/last_run_2"# "/data/userdata/v-lijingyuan/last_run_2"#"/data/Blob_EastUS/FinetuneAgenticLLM/reward_ckpt/last_run_2"
     
     #"/data/Blob_EastUS/FinetuneAgenticLLM/reward_ckpt/last_run_2"
     #"/data/userdata/v-lijingyuan/last_run_2"
