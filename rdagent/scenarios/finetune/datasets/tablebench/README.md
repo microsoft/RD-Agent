@@ -68,12 +68,126 @@ The benchmark covers **4 major categories** with **18 sub-tasks**:
 
 The dataset contains the following key fields:
 
+The TableInstruct dataset contains the following fields:
+
+- `id` (string): Unique identifier for each sample
+- `qtype` (string): Major task category (4 values)
+  - `FactChecking`, `NumericalReasoning`, `DataAnalysis`, `Visualization`
+- `qsubtype` (string): Specific sub-task type (18 values)
+  - Examples: `Counting`, `Aggregation`, `Comparison`, `CorrelationAnalysis`, etc.
+- `instruction` (string): Complete instruction template with task guidelines
+  - Contains the full prompt template defining how to approach the task
+  - Includes role definition, guidelines, code format requirements
+  - Typically 800-15,000 characters depending on instruction type
+- `instruction_type` (string): Reasoning strategy type (4 values)
+  - `DP` (Direct Prompting), `TCoT` (Textual Chain-of-Thought)
+  - `PoT` (Program-of-Thought), `SCoT` (Structured Chain-of-Thought)
+- `table` (string): Table data in JSON format
+  - Structure: `{"columns": [...], "data": [[...], [...], ...]}`
+- `question` (string): Specific question about the table
+- `response` (string): Model's answer including reasoning process
+
+**TableBench Test Dataset Fields**:
+
 - `question`: The table question or task description
+- `table`: The table data (JSON format)
+- `answer`: The ground truth answer
+- `category`: Major category
+- `subcategory`: Specific sub-task type
+
+<!-- - `question`: The table question or task description
 - `table`: The table data (various formats: CSV, JSON, markdown)
 - `answer`: The ground truth answer or expected output
 - `category`: Major category (Fact Checking, Numerical Reasoning, Data Analysis, Visualization)
 - `subcategory`: Specific sub-task type
-- `reasoning_steps`: Optional chain-of-thought reasoning (for training data)
+- `reasoning_steps`: Optional chain-of-thought reasoning (for training data) -->
+
+### Instruction Types and Reasoning Strategies
+Tablebench training data (TableInstruct) supports multiple instruction types content that define how the model approaches reasoning and generates answers. Understanding these types is crucial for dataset filtering and fine-tuning strategy selection.
+
+### Available Instruction Type
+**1. Direct Prompting(DP)**
+**Characteristics**:
+- Provides solutions directly without intermediate reasoning steps
+- Simplest instruction format focused on immediate answer generation
+- Best for straightforward fact-checking and simple queries
+**Instruction Template Pattern**：
+  You are a table analyst. Your task is to answer questions based on the table content.
+  Read the table below in JSON format: [TABLE]
+  Question: [QUESTION]
+  Answer directly.
+  **Response Format**:
+  [Direct Answer]
+
+**2. Textual Chain-of-Thought (TCoT)**
+**Characteristics**:
+- LLMs incrementally derive intermediate steps through textual reasoning
+- Natural language explanations for each reasoning step
+- Suitable for complex reasoning requiring logical deduction
+
+**Instruction Template Pattern**:
+  You are a table analyst. Your task is to answer questions based on the table content.
+  [Guidelines for step-by-step reasoning]
+  Think step by step
+  Show your reasoning process
+  Provide the final answer
+  ***Response Format**:
+  Let's analyze this step by step:
+  [First reasoning step]
+  [Second reasoning step]
+  ...
+  Final Answer: [Answer]
+
+ 
+#### 3. Program-of-Thought (PoT)
+
+**Characteristics**:
+- Decomposes problems into executable Python code
+- Separates computation from reasoning using programming
+- Ideal for numerical reasoning and computational tasks
+- Most common type in TableInstruct for analytical tasks
+
+**Instruction Template Pattern** (actual from dataset):
+  You are a data analyst proficient in Python. Your task is to write executable Python
+  code to analyze the table and then answer questions.
+  [Guidelines]
+  1. Based on the question, write out your analytical approach, then write Python code
+  2. The code needs to be concise and easy to understand
+  3. Code blocks need to strictly start with
+  '''
+  import pandas as pd
+  df = pd.read_csv('table.csv')
+  ...
+  print(f'Final Answer: {answer}')
+  '''
+  4.Your analysis must be based entirely on the above data
+  5.Generate executable code with results using print function
+  6.Ensure to load the table with: df = pd.read_csv('table.csv')
+
+
+#### 4. Symbolic Chain-of-Thought (SCoT)
+
+**Characteristics**:
+- A methodology that utilizes Python-based instructions to facilitate logical reasoning
+- Combines symbolic reasoning with executable code verification
+- Three primary steps repeated until a definitive conclusion is derived
+- Distinguishes itself from PoT by emphasizing iterative analysis-generation-simulation cycles
+
+**Three-Step Process**:
+- **STEP-1**: Analyzing the available information to determine the next move
+- **STEP-2**: Generating instructions using Python programming language commands
+- **STEP-3**: Simulating the outcomes by executing the instructions and analyzing the results
+
+**Instruction Template Pattern**:
+  You are a table analyst. Use symbolic reasoning with iterative Python commands.
+  Process:
+  STEP-1: Analyze available information to determine the next move
+  STEP-2: Generate Python programming language commands
+  STEP-3: Simulate outcomes by executing instructions and analyzing results
+  Repeat these three steps until reaching a definitive conclusion
+
+
+
 
 ### Evaluation Metrics
 
