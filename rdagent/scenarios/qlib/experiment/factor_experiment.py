@@ -1,6 +1,7 @@
 from copy import deepcopy
 from pathlib import Path
 
+from rdagent.app.qlib_rd_loop.conf import FACTOR_PROP_SETTING
 from rdagent.components.coder.factor_coder.config import get_factor_env
 from rdagent.components.coder.factor_coder.factor import (
     FactorExperiment,
@@ -36,7 +37,16 @@ class QlibFactorScenario(Scenario):
         self._strategy = deepcopy(T(".prompts:qlib_factor_strategy").r())
         self._simulator = deepcopy(T(".prompts:qlib_factor_simulator").r())
         self._rich_style_description = deepcopy(T(".prompts:qlib_factor_rich_style_description").r())
-        self._experiment_setting = deepcopy(T(".prompts:qlib_factor_experiment_setting").r())
+        self._experiment_setting = deepcopy(
+            T(".prompts:qlib_factor_experiment_setting").r(
+                train_start=FACTOR_PROP_SETTING.train_start,
+                train_end=FACTOR_PROP_SETTING.train_end,
+                valid_start=FACTOR_PROP_SETTING.valid_start,
+                valid_end=FACTOR_PROP_SETTING.valid_end,
+                test_start=FACTOR_PROP_SETTING.test_start,
+                test_end=FACTOR_PROP_SETTING.test_end,
+            )
+        )
 
     @property
     def background(self) -> str:

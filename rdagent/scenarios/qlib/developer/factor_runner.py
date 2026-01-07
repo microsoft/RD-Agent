@@ -8,6 +8,7 @@ from rdagent.core.utils import cache_with_pickle
 
 pandarallel.initialize(verbose=1)
 
+from rdagent.app.qlib_rd_loop.conf import FactorBasePropSetting
 from rdagent.components.runner import CachedRunner
 from rdagent.core.exception import FactorEmptyError
 from rdagent.log import rdagent_logger as logger
@@ -80,6 +81,17 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             logger.info(f"Baseline experiment execution ...")
             exp.based_experiments[-1] = self.develop(exp.based_experiments[-1])
 
+        fbps = FactorBasePropSetting()
+        env_to_use = {
+            "PYTHONPATH": "./",
+            "train_start": fbps.train_start,
+            "train_end": fbps.train_end,
+            "valid_start": fbps.valid_start,
+            "valid_end": fbps.valid_end,
+            "test_start": fbps.test_start,
+            "test_end": fbps.test_end,
+        }
+
         if exp.based_experiments:
             SOTA_factor = None
             # Filter and retain only QlibFactorExperiment instances
@@ -136,7 +148,6 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
                 exp.experiment_workspace.inject_files(
                     **{"model.py": sota_model_exp.sub_workspace_list[0].file_dict["model.py"]}
                 )
-                env_to_use = {"PYTHONPATH": "./"}
                 sota_training_hyperparameters = sota_model_exp.sub_tasks[0].training_hyperparameters
                 if sota_training_hyperparameters:
                     env_to_use.update(
@@ -165,14 +176,16 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
                 result, stdout = exp.experiment_workspace.execute(
                     qlib_config_name=(
                         f"conf_baseline.yaml" if len(exp.based_experiments) == 0 else "conf_combined_factors.yaml"
-                    )
+                    ),
+                    run_env=env_to_use,
                 )
         else:
             logger.info(f"Experiment execution ...")
             result, stdout = exp.experiment_workspace.execute(
                 qlib_config_name=(
                     f"conf_baseline.yaml" if len(exp.based_experiments) == 0 else "conf_combined_factors.yaml"
-                )
+                ),
+                run_env=env_to_use,
             )
 
         if result is None:

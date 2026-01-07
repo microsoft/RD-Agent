@@ -1,6 +1,8 @@
 from copy import deepcopy
 from pathlib import Path
 
+from rdagent.app.qlib_rd_loop.conf import QUANT_PROP_SETTING
+
 # Factor
 from rdagent.components.coder.factor_coder.config import get_factor_env
 from rdagent.components.coder.factor_coder.factor import (
@@ -42,7 +44,16 @@ class QlibQuantScenario(Scenario):
         self._source_data = deepcopy(get_data_folder_intro())
 
         self._rich_style_description = deepcopy(T(".prompts:qlib_factor_rich_style_description").r())
-        self._experiment_setting = deepcopy(T(".prompts:qlib_factor_experiment_setting").r())
+        self._experiment_setting = deepcopy(
+            T(".prompts:qlib_factor_experiment_setting").r(
+                train_start=QUANT_PROP_SETTING.train_start,
+                train_end=QUANT_PROP_SETTING.train_end,
+                valid_start=QUANT_PROP_SETTING.valid_start,
+                valid_end=QUANT_PROP_SETTING.valid_end,
+                test_start=QUANT_PROP_SETTING.test_start,
+                test_end=QUANT_PROP_SETTING.test_end,
+            )
+        )
 
     def background(self, tag=None) -> str:
         assert tag in [None, "factor", "model"]
