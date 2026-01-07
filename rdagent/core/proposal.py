@@ -170,7 +170,7 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
         # TODO: self.hist is 2-tuple now, remove hypothesis from it, change old code for this later.
         self.knowledge_base: ASpecificKB | None = knowledge_base
 
-        # The next expending point of the selection. Set it as a state of the trace will make 
+        # The next expending point of the selection. Set it as a state of the trace will make
         self.current_selection: tuple[int, ...] = self.SEL_LATEST_SOTA
 
     def get_sota_hypothesis_and_experiment(self) -> tuple[Hypothesis | None, Experiment | None]:
@@ -268,7 +268,7 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
 
         if len(self.hist) == 0 or len(selection) == 0:
             # the node we are going to add is the first node of hist / root node of a new sub-trace
-            self.dag_parent.append(())
+            self.dag_parent.append(self.NEW_ROOT)
 
         else:
             current_node_idx = selection[0]
@@ -286,7 +286,7 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
         Get all children nodes for a given parent index.
         If parent_idx is None, returns the root nodes (experiments starting from scratch).
         """
-        target_parents = (parent_idx,) if parent_idx is not None else ()
+        target_parents = (parent_idx,) if parent_idx is not None else self.NEW_ROOT
         children = []
         for i, parents in enumerate(self.dag_parent):
             if parents == target_parents and i < len(self.hist):
@@ -455,7 +455,10 @@ class Experiment2Feedback(ABC):
         self.scen = scen
 
     @abstractmethod
-    def generate_feedback(self, exp: Experiment, trace: Trace) -> ExperimentFeedback:
+    def generate_feedback(self,
+                          exp: Experiment,
+                          trace: Trace,
+                          exception: Exception | None = None) -> ExperimentFeedback:
         """
         The `exp` should be executed and the results should be included, as well as the comparison
         between previous results (done by LLM).

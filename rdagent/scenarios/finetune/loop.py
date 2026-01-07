@@ -45,18 +45,11 @@ class LLMFinetuneRDLoop(RDLoop):
 
     def feedback(self, prev_out: dict[str, Any]):
         """Generate feedback for LLM fine-tuning experiment - always call LLM"""
-        e = prev_out.get(self.EXCEPTION_KEY, None)
 
         # Get experiment from available sources
         exp = prev_out.get("running") or prev_out.get("coding") or prev_out.get("direct_exp_gen")
-
-        if e is not None:
-            # Error case: pass error info to summarizer for LLM analysis
-            feedback = self.summarizer.generate_feedback(exp, self.trace, error_info=str(e))
-            feedback.acceptable = False
-        else:
-            # Success case: normal LLM analysis
-            feedback = self.summarizer.generate_feedback(exp, self.trace)
+        e = prev_out.get(self.EXCEPTION_KEY, None)
+        feedback = self.summarizer.generate_feedback(exp, self.trace, exception=e)
 
         logger.log_object(feedback, tag="feedback")
         return feedback

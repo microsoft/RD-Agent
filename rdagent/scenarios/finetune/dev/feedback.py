@@ -33,7 +33,7 @@ class FTExperiment2Feedback(Experiment2Feedback):
         self.version = version
 
     def generate_feedback(
-        self, exp: FTExperiment, trace: FTTrace | None = None, error_info: str | None = None
+        self, exp: FTExperiment, trace: FTTrace | None = None, exception: Exception | None = None
     ) -> ExperimentFeedback:
         """
         Generate comprehensive feedback for LLM fine-tuning experiment.
@@ -41,10 +41,10 @@ class FTExperiment2Feedback(Experiment2Feedback):
         Args:
             exp: The experiment to analyze
             trace: Experiment trace (optional)
-            error_info: If provided, indicates experiment failed and contains error details
+            exception: If provided, indicates experiment failed and contains error details
 
-        Note: If error_info is None, it means training succeeded and we evaluate quality/effectiveness.
-              If error_info is provided, we analyze the failure cause.
+        Note: If exception is None, it means training succeeded and we evaluate quality/effectiveness.
+              If exception is provided, we analyze the failure cause.
         """
         # Get task information
         task_desc = exp.sub_tasks[0].get_task_information()
@@ -52,9 +52,10 @@ class FTExperiment2Feedback(Experiment2Feedback):
         # Initialize for SOTA update logic later
         sota_benchmark = None
 
-        if error_info is not None:
+        if exception is not None:
             # Error case: use error analysis prompt
             version = "exp_feedback_error"
+            error_info = str(exception)
 
             # Try to get FTRunnerEvaluator's analysis result from workspace
             # This contains structured feedback (execution, return_checking, code) instead of raw error string
@@ -154,12 +155,12 @@ class FTExperiment2Feedback(Experiment2Feedback):
         )
 
         # Extract feedback components
-        error_type = resp_dict.get("Error Type") if error_info is not None else None
+        error_type = resp_dict.get("Error Type") if exception is not None else None
         hypothesis_feedback = HypothesisFeedback(
             code_change_summary=dict_get_with_warning(resp_dict, "Code Summary", "No code summary provided"),
             reason=dict_get_with_warning(resp_dict, "Reason", "No reasoning provided"),
             decision=convert2bool(dict_get_with_warning(resp_dict, "Decision", "no")),
-            acceptable=error_info is None,  # Only acceptable if no error
+            acceptable=exception is None,  # Only acceptable if no error
             observations=error_type,  # Store error type for history display
         )
 

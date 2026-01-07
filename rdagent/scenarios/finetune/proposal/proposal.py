@@ -171,7 +171,7 @@ class LLMFinetuneExpGen(ExpGen):
 
         # Inject workspace files from Parent or SOTA experiment (if available)
         if parent_exp and (ws := parent_exp.experiment_workspace) is not None and ws.file_dict:
-            exp.experiment_workspace.inject_code_from_file_dict(ws)
+            exp.experiment_workspace.inject_from_workspace(ws)
             logger.info(f"Injected {len(ws.file_dict)} files from parent: {list(ws.file_dict.keys())}")
 
         logger.info("Experiment created")

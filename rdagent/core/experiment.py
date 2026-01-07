@@ -276,6 +276,11 @@ class FBWorkspace(Workspace):
         """
         Load the workspace from the file_dict
         """
+        # NOTE: this is a deprecated method, use inject_from_workspace instead
+        # TODO: remove this method; it is only for compatibility with old codes
+        self.inject_from_workspace(workspace)
+
+    def inject_from_workspace(self, workspace: FBWorkspace) -> None:
         for name, code in workspace.file_dict.items():
             self.inject_files(**{name: code})
 
