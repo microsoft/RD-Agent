@@ -82,6 +82,7 @@ class FTWorkspace(FBWorkspace):
                 "stdout": result.stdout or "",
                 "running_time": result.running_time,
                 "entry": entry,
+                "workspace_path": str(self.workspace_path),
             },
             tag=f"{tag_prefix}.FTWorkspace",
         )

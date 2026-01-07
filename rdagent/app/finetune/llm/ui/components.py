@@ -3,6 +3,7 @@ FT UI Components - Hierarchical Event Renderers
 """
 
 import re
+from pathlib import Path
 from typing import Any
 
 import plotly.graph_objects as go
@@ -452,6 +453,12 @@ def render_docker_exec(content: Any, event_title: str = "") -> None:
 
     # Docker run raw output (dict with exit_code/stdout)
     if isinstance(content, dict) and ("exit_code" in content or "stdout" in content or "success" in content):
+        # Show workspace ID if available (only the UUID part)
+        workspace_path = content.get("workspace_path")
+        if workspace_path:
+            workspace_id = Path(workspace_path).name
+            st.caption(f"📁 `{workspace_id}`")
+
         exit_code = content.get("exit_code")
         success = content.get("success")
         if exit_code is not None:
