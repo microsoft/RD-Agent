@@ -94,16 +94,14 @@ class LLMFinetuneExpGen(ExpGen):
         for method in available_methods:
             methods_specific_params[method] = LLaMAFactory_manager.format_method_specific_params(method)
 
-        # Get siblings
-        siblings = []
-        if isinstance(trace, FTTrace):
-            # Find siblings
-            parent_idx = trace.exp2idx(parent_exp) if parent_exp else None
-            # Handle potential list return
-            if isinstance(parent_idx, list):
-                parent_idx = parent_idx[0] if parent_idx else None
-            
-            siblings = trace.get_children(parent_idx)
+        # Find siblings
+        parent_idx = trace.exp2idx(parent_exp) if parent_exp else None
+        # Handle potential list return
+        if isinstance(parent_idx, list):
+            parent_idx = parent_idx[0] if parent_idx else None
+
+        # If no parent, start from void root node
+        siblings = trace.get_children(parent_idx)
 
         system_prompt = T(".prompts:unified_hypothesis_gen.system_prompt").r(
             based_on_a_successful_parent=based_on_a_successful_parent,
@@ -169,7 +167,7 @@ class LLMFinetuneExpGen(ExpGen):
         if parent_exp:
             parent_idx = trace.exp2idx(parent_exp)
             if parent_idx is not None:
-                exp.set_local_selection((parent_idx,))
+                exp.local_selection = (parent_idx,)
 
         # Inject workspace files from Parent or SOTA experiment (if available)
         if parent_exp and (ws := parent_exp.experiment_workspace) is not None and ws.file_dict:

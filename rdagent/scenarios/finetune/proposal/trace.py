@@ -61,8 +61,8 @@ class FTTrace(Trace["LLMFinetuneScen", KnowledgeBase]):
             return info
 
         if ws.file_dict:
-            if "train.yaml" in ws.file_dict:
-                info["config"] = ws.file_dict["train.yaml"]
+            if FT_YAML_FILE_NAME in ws.file_dict:
+                info["config"] = ws.file_dict[FT_YAML_FILE_NAME]
             if FT_DATA_SCRIPT_NAME in ws.file_dict:
                 info["data_script"] = ws.file_dict[FT_DATA_SCRIPT_NAME]
 

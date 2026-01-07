@@ -103,6 +103,6 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
 
     def record(self, prev_out: dict[str, Any]):
         feedback = prev_out["feedback"]
-        exp = prev_out.get("running") or prev_out.get("direct_exp_gen", {}).get("exp_gen")
+        exp = prev_out.get("running") or prev_out.get("coding") or prev_out.get("direct_exp_gen", {}).get("exp_gen")
         self.trace.sync_dag_parent_and_hist((exp, feedback), prev_out[self.LOOP_IDX_KEY])
 

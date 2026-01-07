@@ -260,13 +260,18 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
         Adding corresponding parent index to the dag_parent when the hist is going to be changed.
         Should be called when the hist is changed.
         """
+        # Prioritize local_selection from the experiment if available
+        exp = exp_and_fb[0]
+        selection = getattr(exp, "local_selection", None)
+        if selection is None:
+            selection = self.get_current_selection()
 
-        if len(self.hist) == 0 or len(self.get_current_selection()) == 0:
+        if len(self.hist) == 0 or len(selection) == 0:
             # the node we are going to add is the first node of hist / root node of a new sub-trace
             self.dag_parent.append(())
 
         else:
-            current_node_idx = self.current_selection[0]
+            current_node_idx = selection[0]
 
             if current_node_idx == -1:
                 # the current selection is the latest one
