@@ -16,7 +16,7 @@ class FTTask(CoSTEERTask):
         self,
         base_model: str,
         description: str,
-        benchmark: str | List[str],
+        benchmark: str,
         involving_datasets: Optional[List[str]] = None,
         skip_data_processing: bool = False,
         *args,
@@ -24,7 +24,7 @@ class FTTask(CoSTEERTask):
     ) -> None:
         super().__init__(name="LLM-Fine-Tuning", description=description, *args, **kwargs)
         self.base_model = base_model
-        self.benchmark = benchmark  # Can be single benchmark name or list of benchmarks
+        self.benchmark = benchmark
         self.involving_datasets = involving_datasets or []
         self.skip_data_processing = skip_data_processing  # If True, reuse SOTA's data.json
 

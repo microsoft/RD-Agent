@@ -173,26 +173,14 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
         # Extract loss history from training output
         loss_history = extract_loss_history(output_path)
 
-        # Use open-compass to evaluate the model on benchmark(s) (only if training succeeded)
-        # Support both single benchmark (str) and multiple benchmarks (list)
-        benchmarks = target_task.benchmark if isinstance(target_task.benchmark, list) else [target_task.benchmark]
-        benchmark_result = {}  # Dict indexed by benchmark name
-
-        for bm_name in benchmarks:
-            try:
-                bm_result = run_benchmark(
-                    workspace_path=str(workspace_path),
-                    model_path=output_path,
-                    model_name=target_task.base_model,
-                    benchmark_name=bm_name,
-                    gpu_count=self.scen.gpu_count,
-                )
-                # Only store successful results
-                if bm_result is not None:
-                    benchmark_result[bm_name] = bm_result
-            except Exception as e:
-                logger.warning(f"Benchmark '{bm_name}' failed: {e}")
-                # Continue with other benchmarks
+        # Use open-compass to evaluate the model on benchmark (only if training succeeded)
+        benchmark_result = run_benchmark(
+            workspace_path=str(workspace_path),
+            model_path=output_path,
+            model_name=target_task.base_model,
+            benchmark_name=target_task.benchmark,
+            gpu_count=self.scen.gpu_count,
+        )
 
         # Build comprehensive result with training metrics and benchmark results
         implementation.running_info.result = {
