@@ -95,6 +95,7 @@ class LoopBase:
     loop_trace: dict[int, list[LoopTrace]]
 
     skip_loop_error: tuple[type[BaseException], ...] = ()  # you can define a list of error that will skip current loop
+    skip_loop_error_stepname: str | None = None  # if skip_loop_error exception happens, what's the next step to work on
     withdraw_loop_error: tuple[
         type[BaseException], ...
     ] = ()  # you can define a list of error that will withdraw current loop
@@ -245,8 +246,13 @@ class LoopBase:
                 except Exception as e:
                     if isinstance(e, self.skip_loop_error):
                         logger.warning(f"Skip loop {li} due to {e}")
-                        # Jump to the last step (assuming last step is for recording)
-                        next_step_idx = len(self.steps) - 1
+                        if self.skip_loop_error_stepname:
+                            next_step_idx = self.steps.index(self.skip_loop_error_stepname)
+                            if next_step_idx <= si:
+                                raise RuntimeError(f"Cannot skip backwards or to same step. Current: {si} ({name}), Target: {next_step_idx} ({self.skip_loop_error_stepname})") from e
+                        else:
+                            # Jump to the last step (assuming last step is for recording)
+                            next_step_idx = len(self.steps) - 1
                         self.loop_prev_out[li][name] = None
                         self.loop_prev_out[li][self.EXCEPTION_KEY] = e
                     elif isinstance(e, self.withdraw_loop_error):

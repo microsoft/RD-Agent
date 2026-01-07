@@ -15,6 +15,7 @@ class LLMFinetuneRDLoop(RDLoop):
     """LLM fine-tuning loop using standard RDLoop workflow"""
 
     skip_loop_error = (CoderError,)
+    skip_loop_error_stepname = "feedback"  # if `skip_loop_error` happens, we should skip and continue on feedback step
     withdraw_loop_error = ()
 
     def __init__(self, PROP_SETTING: LLMFinetunePropSetting):
