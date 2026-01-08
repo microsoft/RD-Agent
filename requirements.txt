@@ -71,6 +71,9 @@ mlflow
 azureml-mlflow
 types-pytz
 
+# mcp
+llama-index
+llama-index-tools-mcp
 # Agent
 pydantic-ai-slim[mcp,openai,prefect]
 nest-asyncio

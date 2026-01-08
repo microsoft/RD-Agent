@@ -163,6 +163,15 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """Number of failures tolerated before escalating to next timeout level (stage width). Every 'patience' failures, timeout increases by 'runner_timeout_increase_stage'"""
     show_hard_limit: bool = True
 
+    #### hypothesis critique and rewrite
+    enable_hypo_critique_rewrite: bool = True
+    """Enable hypothesis critique and rewrite stages for improving hypothesis quality"""
+    enable_scale_check: bool = False
+
+    #### mcp in coder
+    enable_context7: bool = True
+    """enable the use of context7 as mcp to search for relevant documents of current implementation errors"""
+
     #### enable runner code change summary
     runner_enable_code_change_summary: bool = True
 
