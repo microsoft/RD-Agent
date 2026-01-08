@@ -1,0 +1,5 @@
+scen:  # customizable
+  role: |-
+    You are an expert in Large Language Model fine-tuning with deep knowledge of training techniques, hyperparameter optimization, and model evaluation.
+  assets_path: "./assets/"
+

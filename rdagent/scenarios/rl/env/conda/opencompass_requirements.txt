@@ -1,0 +1,22 @@
+# OpenCompass Benchmark Environment Requirements
+# Equivalent to: rdagent/scenarios/finetune/docker/opencompass/Dockerfile
+
+# PyTorch 2.9.0 with CUDA 12.8 (for B200 GPUs with sm_100 architecture)
+# Note: PyTorch 2.1.0 only supports up to sm_90, B200 requires 2.8.0+
+# For non-B200 machines with CUDA 12.4, change to cu124 and torch==2.6.0
+--index-url https://download.pytorch.org/whl/cu128
+torch==2.9.0
+torchvision==0.24.0
+
+# Reset to default index for other packages
+--index-url https://pypi.org/simple
+
+# vLLM for model inference (latest version supports PyTorch 2.9.0)
+vllm>=0.12.0
+
+# OpenCompass benchmark framework (custom fork with cascade eval support)
+opencompass @ git+https://github.com/Jensen246/opencompass.git
+
+# Math evaluation dependencies (matches Dockerfile line 22)
+math_verify
+latex2sympy2_extended
