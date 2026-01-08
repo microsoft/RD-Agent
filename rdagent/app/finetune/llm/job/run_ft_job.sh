@@ -85,13 +85,6 @@ for ((i=0; i<NUM_TASKS; i++)); do
     gpus=$(jq -r ".tasks[$i].gpus // \"0\"" "$CONFIG_FILE")
     port=$(jq -r ".tasks[$i].port // empty" "$CONFIG_FILE")
 
-    # Load scenario: tasks.json -> scenarios.json -> default
-    scenario=$(jq -r ".tasks[$i].scenario // empty" "$CONFIG_FILE")
-    if [[ -z "$scenario" ]]; then
-        scenario=$(jq -r ".[\"$benchmark\"].scenario // empty" "$SCENARIOS_FILE")
-    fi
-    [[ -z "$scenario" ]] && scenario="Improve model performance on $benchmark"
-
     # Load benchmark_description: tasks.json -> scenarios.json
     benchmark_desc=$(jq -r ".tasks[$i].benchmark_description // empty" "$CONFIG_FILE")
     if [[ -z "$benchmark_desc" ]]; then
@@ -115,7 +108,6 @@ for ((i=0; i<NUM_TASKS; i++)); do
         export LOG_TRACE_PATH="$trace_path"
         export WORKSPACE_PATH="$task_workspace"
         export FT_TARGET_BENCHMARK="$benchmark"
-        export FT_USER_TARGET_SCENARIO="$scenario"
         [[ -n "$benchmark_desc" ]] && export FT_BENCHMARK_DESCRIPTION="$benchmark_desc"
         [[ -n "$port" ]] && export OPENAI_API_BASE="http://localhost:$port"
         cd "$RDAGENT_DIR"
