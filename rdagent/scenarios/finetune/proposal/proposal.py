@@ -168,6 +168,9 @@ class LLMFinetuneExpGen(ExpGen):
             parent_idx = trace.exp2idx(parent_exp)
             if parent_idx is not None:
                 exp.local_selection = (parent_idx,)
+        else:
+            # If no parent, it is a experiment from scratch
+            exp.local_selection = trace.NEW_ROOT
 
         # Inject workspace files from Parent or SOTA experiment (if available)
         if parent_exp and (ws := parent_exp.experiment_workspace) is not None and ws.file_dict:
