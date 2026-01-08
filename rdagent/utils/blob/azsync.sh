@@ -16,8 +16,10 @@ REMOTE_BASE="FinetuneAgenticLLM/FT_qizheng"
 # Default to project-relative paths; can be overridden by environment variables
 LOCAL_LOG_DIR="${FT_LOG_BASE:-$PROJECT_ROOT/log}"
 LOCAL_WORKSPACE_DIR="${FT_WORKSPACE_BASE:-$PROJECT_ROOT/git_ignore_folder/RD-Agent_workspace}"
-REMOTE_LOG_PATH="${REMOTE_BASE}/logs"
-REMOTE_WORKSPACE_PATH="${REMOTE_BASE}/workspace"
+# Support sub-path for syncing specific job directory (e.g., SYNC_SUBPATH="2024-01-01_12-00")
+SYNC_SUBPATH="${SYNC_SUBPATH:-}"
+REMOTE_LOG_PATH="${REMOTE_BASE}/logs${SYNC_SUBPATH:+/$SYNC_SUBPATH}"
+REMOTE_WORKSPACE_PATH="${REMOTE_BASE}/workspace${SYNC_SUBPATH:+/$SYNC_SUBPATH}"
 
 # Read SAS Token
 if [ -f "$TOKEN_FILE" ]; then

@@ -83,6 +83,7 @@ for ((i=0; i<NUM_TASKS; i++)); do
     model=$(jq -r ".tasks[$i].model" "$CONFIG_FILE")
     benchmark=$(jq -r ".tasks[$i].benchmark" "$CONFIG_FILE")
     gpus=$(jq -r ".tasks[$i].gpus // \"0\"" "$CONFIG_FILE")
+    port=$(jq -r ".tasks[$i].port // empty" "$CONFIG_FILE")
 
     # Load scenario: tasks.json -> scenarios.json -> default
     scenario=$(jq -r ".tasks[$i].scenario // empty" "$CONFIG_FILE")
@@ -100,7 +101,9 @@ for ((i=0; i<NUM_TASKS; i++)); do
     task_name="${benchmark}_${model_name}"
     trace_path="$JOB_DIR/$task_name"
 
-    echo "Task $i: $task_name (model=$model, benchmark=$benchmark, gpus=$gpus)"
+    port_info=""
+    [[ -n "$port" ]] && port_info=", port=$port"
+    echo "Task $i: $task_name (model=$model, benchmark=$benchmark, gpus=$gpus$port_info)"
 
     # Run task
     # Source .env from job directory, then override with task-specific values
@@ -114,6 +117,7 @@ for ((i=0; i<NUM_TASKS; i++)); do
         export FT_TARGET_BENCHMARK="$benchmark"
         export FT_USER_TARGET_SCENARIO="$scenario"
         [[ -n "$benchmark_desc" ]] && export FT_BENCHMARK_DESCRIPTION="$benchmark_desc"
+        [[ -n "$port" ]] && export OPENAI_API_BASE="http://localhost:$port"
         cd "$RDAGENT_DIR"
         python rdagent/app/finetune/llm/loop.py --base-model "$model"
     ) > "$JOB_DIR/${task_name}.log" 2>&1 &
