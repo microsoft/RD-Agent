@@ -87,6 +87,7 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     benchmark_description: str | None = None
     base_model: str | None = None
     dataset: str | None = None
+    upper_data_size_limit: int = 2000
 
     # Data processing LLM models (for API calls in data processing scripts)
     strong_models: list[str] = ["gpt-5", "gpt-5.1"]

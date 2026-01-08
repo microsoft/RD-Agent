@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
+from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
@@ -193,7 +194,9 @@ class FTDataEvaluator(CoSTEEREvaluator):
 
         # Build prompts
         system_prompt = T(".prompts:data_eval.system").r(
+            scenario=self.scen.get_scenario_all_desc(),
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
+            upper_data_size_limit=FT_RD_SETTING.upper_data_size_limit,
         )
         user_prompt = T(".prompts:data_eval.user").r(
             task_desc=target_task.get_task_information(),

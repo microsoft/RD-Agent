@@ -528,6 +528,9 @@ data_eval:
     3. **Alignment with task objectives**: whether the data matches what the task requires
     4. **Code logic correctness**: whether the processing script is well-designed
 
+    ## The Main Scenario Description
+    {{ scenario }}
+
     {% if queried_similar_successful_knowledge|length != 0 %}
     ## Similar Successful Data Processing Examples
     The following are successful data processing implementations for similar tasks:
@@ -594,7 +597,10 @@ data_eval:
     - Assessment based on task-appropriate criteria
 
     ## Hard Check Criteria
-    {% include "scenarios.finetune.proposal.prompts:unified_hypothesis_gen.hard_check" %}
+      The log will include the number of samples generated in the debug run and also the estimated number of samples for full run.
+      You should check both the number of samples generated in debug mode and the estimated number of samples for full run meets the requirements.
+      The debug mode should generate about 100 samples and the estimated number of samples for full run should be at most {{ upper_data_size_limit }}.
+      You should reject the solution if either of these two criteria is not met and provide feedback in return_checking.
 
     ## Final Decision Guidelines
     **Core Principle: Be lenient on data quality, strict on script logic.**

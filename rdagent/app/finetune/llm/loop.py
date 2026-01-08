@@ -23,6 +23,7 @@ def main(
     benchmark_description: Optional[str] = None,
     dataset: Optional[str] = None,
     base_model: Optional[str] = None,
+    upper_data_size_limit: Optional[int] = None,
     step_n: Optional[int] = None,
     loop_n: Optional[int] = None,
     timeout: Optional[str] = None,
@@ -58,6 +59,10 @@ def main(
 
     if user_target_scenario:
         FT_RD_SETTING.user_target_scenario = user_target_scenario
+    assert FT_RD_SETTING.user_target_scenario is None, "user_target_scenario is not yet supported, please specify via benchmark and benchmark_description"
+    if upper_data_size_limit:
+        FT_RD_SETTING.upper_data_size_limit = upper_data_size_limit
+        logger.info(f"Set upper_data_size_limit to {FT_RD_SETTING.upper_data_size_limit}")
     if benchmark and benchmark_description:
         FT_RD_SETTING.target_benchmark = benchmark
         FT_RD_SETTING.benchmark_description = benchmark_description

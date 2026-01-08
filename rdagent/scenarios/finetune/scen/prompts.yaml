@@ -70,6 +70,20 @@ scenario_description: |-
   ## Timeout Constraints
   - Full Training Timeout: {{ full_timeout }}
   {% endif %}
+
+  ## (Very important!)Sample Size Control (Code-Based, No LLM)
+  To avoid unlimited training cost, we have a strict upper limit on the number of training samples fed into LLM fine-tuning. You should sample the data with some rule which does not including feeding all the data into LLM because going through all data may exceed budget or time limits.
+  The upper limit is {{ upper_data_size_limit }} samples.
+
+  You can choose one of the following strategies to control the sample size(all strategies should be code based, no LLM calls):
+  1. Quality-first: Prefer samples with complete fields, reasonable length, and clear structure
+  2. Diversity: 
+      - If dataset has categories/sources, sample proportionally to preserve distribution
+      - **Difficulty-aware**: If difficulty metadata exists, use stratified sampling to maintain difficulty distribution of target benchmark/test set to ensure training coverage across all evaluation scenarios during initial training stage. For the subsequent training stages, 
+      adjust difficulty proportions based on base model capability, training objectives and previous experiment results - focus more on the model's capability boundary for maximum learning efficiency.
+
+  The hypothesis should specify which sampling strategy to use based on dataset info. The data processing script will implement it.
+
   
 dataset_info_generation:
   system: |-
