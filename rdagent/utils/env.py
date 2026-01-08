@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Generator, Generic, Mapping, Optional, TypeVar, cast
+from typing import Any, Callable, Generator, Generic, Mapping, Optional, TypeVar, cast
 
 import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
@@ -50,6 +50,9 @@ from rdagent.utils import filter_redundant_text
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.fmt import shrink_text
 from rdagent.utils.workflow import wait_retry
+
+
+CacheKeyFunc = Callable[[str | Path], list[list[str]]]
 
 
 def extract_dir_name_from_path_config(path_str: str) -> str:
@@ -251,17 +254,27 @@ class Env(Generic[ASpecificEnvConf]):
                         os.path.relpath(os.path.join(root, file), folder_path),
                     )
 
-    def unzip_a_file_into_a_folder(self, zip_file_path: str, folder_path: str) -> None:
+    def unzip_a_file_into_a_folder(
+        self, zip_file_path: str, folder_path: str, files_to_extract: list[str] | None = None
+    ) -> None:
         """
         Unzip a file into a folder, use zipfile instead of subprocess
         """
-        # Clear folder_path before extracting
-        if os.path.exists(folder_path):
-            shutil.rmtree(folder_path)
-        os.makedirs(folder_path)
+        if files_to_extract is None:
+            # Clear folder_path before extracting
+            if os.path.exists(folder_path):
+                shutil.rmtree(folder_path)
+            os.makedirs(folder_path)
 
         with zipfile.ZipFile(zip_file_path, "r") as z:
-            z.extractall(folder_path)
+            if files_to_extract is not None:
+                for file_name in files_to_extract:
+                    try:
+                        z.extract(file_name, folder_path)
+                    except KeyError:
+                        logger.warning(f"File {file_name} not found in cache zip.")
+            else:
+                z.extractall(folder_path)
 
     @abstractmethod
     def prepare(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
@@ -337,7 +350,9 @@ class Env(Generic[ASpecificEnvConf]):
         entry: str | None = None,
         local_path: str = ".",
         env: dict | None = None,
-        **kwargs: dict,
+        running_extra_volume: Mapping = MappingProxyType({}),
+        cache_key_extra_func: CacheKeyFunc | None = None,
+        cache_files_to_extract: list[str] | None = None,
     ) -> EnvResult:
         """
         Run the folder under the environment and return the stdout, exit code, and running time.
@@ -354,12 +369,17 @@ class Env(Generic[ASpecificEnvConf]):
             - simply run the image. The results are produced by output or network
         env : dict | None
             Run the code with your specific environment.
+        running_extra_volume : Mapping
+            Extra volumes to mount during execution.
+        cache_key_extra_func : CacheKeyFunc | None
+            Optional function to calculate extra information for cache key calculation
+        cache_files_to_extract : list[str] | None
+            Optional list of files to extract from cache zip. If None, extract all.
 
         Returns
         -------
             EnvResult: An object containing the stdout, the exit code, and the running time in seconds.
         """
-        running_extra_volume = kwargs.get("running_extra_volume", {})
         if entry is None:
             entry = self.conf.default_entry
 
@@ -409,7 +429,14 @@ class Env(Generic[ASpecificEnvConf]):
         )
 
         if self.conf.enable_cache:
-            result = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
+            result = self.cached_run(
+                entry_add_timeout,
+                local_path,
+                env,
+                running_extra_volume,
+                cache_key_extra_func,
+                cache_files_to_extract,
+            )
         else:
             result = self.__run_with_retry(
                 entry_add_timeout,
@@ -432,6 +459,8 @@ class Env(Generic[ASpecificEnvConf]):
         local_path: str = ".",
         env: dict | None = None,
         running_extra_volume: Mapping = MappingProxyType({}),
+        cache_key_extra_func: CacheKeyFunc | None = None,
+        cache_files_to_extract: list[str] | None = None,
     ) -> EnvResult:
         """
         Run the folder under the environment.
@@ -441,7 +470,10 @@ class Env(Generic[ASpecificEnvConf]):
         target_folder = Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / f"utils.env.run"
         target_folder.mkdir(parents=True, exist_ok=True)
 
-        cache_key_extra = self.conf.get_workspace_content_for_hash(local_path)
+        if cache_key_extra_func is not None:
+            cache_key_extra = cache_key_extra_func(local_path)
+        else:
+            cache_key_extra = self.conf.get_workspace_content_for_hash(local_path)
 
         key = md5_hash(
             json.dumps(cache_key_extra)
@@ -452,7 +484,7 @@ class Env(Generic[ASpecificEnvConf]):
         if Path(target_folder / f"{key}.pkl").exists() and Path(target_folder / f"{key}.zip").exists():
             with open(target_folder / f"{key}.pkl", "rb") as f:
                 ret = pickle.load(f)
-            self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path)
+            self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path, cache_files_to_extract)
         else:
             ret = self.__run_with_retry(entry, local_path, env, running_extra_volume)
             with open(target_folder / f"{key}.pkl", "wb") as f:

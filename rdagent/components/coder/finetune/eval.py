@@ -21,6 +21,7 @@ from rdagent.components.coder.finetune.conf import (
     FT_DATA_SCRIPT_NAME,
     FT_YAML_FILE_NAME,
     clear_workspace,
+    get_data_processing_cache_key,
     get_data_processing_env,
     get_ft_env,
     get_workspace_prefix,
@@ -89,6 +90,8 @@ class FTDataEvaluator(CoSTEEREvaluator):
             env=env,
             entry=f"python {ws_prefix}/{FT_DATA_SCRIPT_NAME} --debug",
             env_vars=env_vars,
+            cache_key_extra_func=get_data_processing_cache_key,
+            cache_files_to_extract=[FT_DATA_FILE_NAME],
         )
         execution_output = result.stdout if hasattr(result, "stdout") else str(result)
         exit_code = result.exit_code if hasattr(result, "exit_code") else -1

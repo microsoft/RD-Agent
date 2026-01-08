@@ -46,6 +46,24 @@ FT_MODEL_PATH = "/assets/models"
 FT_DATASET_PATH = "/assets/datasets"
 
 
+def get_data_processing_cache_key(local_path: str | Path) -> list[list[str]]:
+    """Generate cache key based only on data processing script and dataset info.
+
+    This ensures that data processing results are reused as long as the script
+    and dataset configuration remain unchanged, even if other files in the
+    workspace (like training config) have been modified.
+    """
+    content = []
+    local_path = Path(local_path)
+    # We only care about the script that generates data and the dataset configuration
+    for filename in [FT_DATA_SCRIPT_NAME, "dataset_info.json"]:
+        file_path = local_path / filename
+        if file_path.exists():
+            content.append([filename, file_path.read_text()])
+    content.sort(key=lambda x: x[0])
+    return content
+
+
 class FTPathConfig:
     """Centralized path configuration for FT scenario.
 

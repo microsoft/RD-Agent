@@ -10,13 +10,13 @@ Design Philosophy:
 - This separation keeps concerns clear and checkpoints lightweight
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from rdagent.components.coder.finetune.conf import FT_YAML_FILE_NAME
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
-from rdagent.utils.env import DockerEnv, LocalEnv
+from rdagent.utils.env import CacheKeyFunc, DockerEnv, LocalEnv
 
 if TYPE_CHECKING:
     from rdagent.utils.env import Env
@@ -45,7 +45,14 @@ class FTWorkspace(FBWorkspace):
         ]
         RD_AGENT_SETTINGS.workspace_ckp_size_limit = 100 * 1024
 
-    def run(self, env: "Env", entry: str, env_vars: dict | None = None) -> "EnvResult":
+    def run(
+        self,
+        env: "Env",
+        entry: str,
+        env_vars: dict | None = None,
+        cache_key_extra_func: CacheKeyFunc | None = None,
+        cache_files_to_extract: list[str] | None = None,
+    ) -> "EnvResult":
         """Execute the code in the environment with unified Docker logging.
 
         Args:
@@ -53,6 +60,8 @@ class FTWorkspace(FBWorkspace):
             entry: The command to execute
             env_vars: Optional additional environment variables (e.g., LLM API keys)
                      Will be merged with default {"PYTHONPATH": "./"}
+            cache_key_extra_func: Optional extra function for cache key calculation
+            cache_files_to_extract: Optional list of files to extract from cache
 
         Returns:
             EnvResult with stdout, exit_code, running_time
@@ -65,7 +74,13 @@ class FTWorkspace(FBWorkspace):
         if env_vars:
             run_env.update(env_vars)
 
-        result = env.run(entry, str(self.workspace_path), env=run_env)
+        result = env.run(
+            entry,
+            str(self.workspace_path),
+            env=run_env,
+            cache_key_extra_func=cache_key_extra_func,
+            cache_files_to_extract=cache_files_to_extract,
+        )
 
         # Unified execution logging for FT scenario (supports both Docker and Conda)
         if isinstance(env, DockerEnv):
