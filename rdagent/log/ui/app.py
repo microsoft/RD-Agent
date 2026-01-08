@@ -1104,10 +1104,17 @@ if state.scenario is not None:
     if isinstance(state.scenario, SIMILAR_SCENARIOS):
         st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
         if len(state.msgs) > 1:
-            r_options = list(state.msgs.keys())
+            r_options = sorted(state.msgs.keys())
             if 0 in r_options:
                 r_options.remove(0)
-            round = st.radio("**Loops**", horizontal=True, options=r_options, index=state.lround - 1)
+            if r_options:
+                if state.lround in r_options:
+                    r_index = r_options.index(state.lround)
+                else:
+                    r_index = 0
+                round = st.radio("**Loops**", horizontal=True, options=r_options, index=r_index)
+            else:
+                round = 1
         else:
             round = 1
 
