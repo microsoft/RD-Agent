@@ -43,6 +43,7 @@ from tqdm import tqdm
 
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.experiment import RD_AGENT_SETTINGS
+from rdagent.core.utils import cache_with_pickle
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils import filter_redundant_text
@@ -184,12 +185,16 @@ class EnvResult:
     @property
     def stdout(self) -> str:
         if self.full_stdout not in self.stored_full_stdout_to_truncated_stdout:
-            self.stored_full_stdout_to_truncated_stdout[self.full_stdout] = self.get_truncated_stdout()
+            self.stored_full_stdout_to_truncated_stdout[self.full_stdout] = self._get_truncated_stdout(full_stdout=self.full_stdout)
         return self.stored_full_stdout_to_truncated_stdout[self.full_stdout]
 
-    def get_truncated_stdout(self) -> str:
+    def hash_full_stdout(self, full_stdout) -> str:
+        return md5_hash(full_stdout)
+
+    @cache_with_pickle(hash_full_stdout)
+    def _get_truncated_stdout(self, full_stdout) -> str:
         return shrink_text(
-            filter_redundant_text(self.full_stdout),
+            filter_redundant_text(full_stdout),
             context_lines=RD_AGENT_SETTINGS.stdout_context_len,
             line_len=RD_AGENT_SETTINGS.stdout_line_len,
         )

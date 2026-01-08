@@ -309,7 +309,7 @@ class FBWorkspace(Workspace):
         Before each execution, make sure to prepare and inject code.
         """
         result = self.run(env, entry)
-        return result.get_truncated_stdout()  # NOTE: truncating just for aligning with the old code.
+        return result.stdout  # NOTE: truncating just for aligning with the old code.
 
     def run(self, env: Env, entry: str) -> EnvResult:
         """
