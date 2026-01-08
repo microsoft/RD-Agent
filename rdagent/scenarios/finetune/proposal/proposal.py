@@ -146,7 +146,7 @@ class LLMFinetuneExpGen(ExpGen):
         # Only valid for subsequent experiments, first experiment always generates data
         skip_data_processing = task_dict.get("skip_data_processing", False) if based_on_a_successful_parent else False
         if skip_data_processing:
-            logger.info("Proposal decided to skip data processing, will reuse Parent's data.json")
+            logger.info("Proposal decided to skip data processing, will reuse Parent's data script")
 
         # Use pre-selected datasets from scenario initialization
         task = FTTask(

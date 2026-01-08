@@ -24,7 +24,6 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
 from rdagent.components.coder.finetune.conf import (
-    FT_DATA_FILE_NAME,
     FT_DATA_SCRIPT_NAME,
     FT_PATHS,
     FT_TEST_PARAMS_FILE_NAME,
@@ -69,20 +68,19 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
             dict with "process_data.py" key containing the script code,
             or empty dict if data already exists.
         """
-        # Check if proposal decided to skip data processing (reuse SOTA's data.json)
+        # Check if proposal decided to skip data processing (reuse SOTA's data processing script)
         if getattr(target_task, "skip_data_processing", False):
-            # Defensive check: ensure data.json actually exists before skipping
-            data_exists = False
+            # Defensive check: ensure data script actually exists before skipping
+            script_exists = False
             if workspace is not None:
-                data_json_path = workspace.workspace_path / FT_DATA_FILE_NAME
-                data_exists = data_json_path.exists() or FT_DATA_FILE_NAME in workspace.file_dict
+                script_exists = FT_DATA_SCRIPT_NAME in workspace.file_dict
 
-            if data_exists:
-                logger.info("Proposal decided to skip data processing, reusing SOTA's data.json")
+            if script_exists:
+                logger.info("Proposal decided to skip data processing, reusing SOTA's data script")
                 return {}
             else:
                 logger.warning(
-                    "skip_data_processing=True but data.json not found in workspace, "
+                    "skip_data_processing=True but process_data.py not found in workspace, "
                     "this indicates SOTA injection failed - system design issue"
                 )
                 # Don't fallback silently, let it fail early to expose the issue
@@ -95,18 +93,6 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         ):
             logger.info("Previous data processing code passed evaluation, skipping regeneration")
             return {}
-
-        # Check if data.json already exists and evaluation passed
-        if workspace is not None:
-            data_json_path = workspace.workspace_path / FT_DATA_FILE_NAME
-            if data_json_path.exists():
-                # Only skip if no prior feedback (first run success) or evaluation passed
-                if prev_task_feedback is None or prev_task_feedback.final_decision:
-                    logger.info("data.json already exists and passed evaluation, skipping")
-                    return {}
-                # Evaluation failed, remove old data and regenerate
-                logger.info("data.json exists but evaluation failed, regenerating script...")
-                data_json_path.unlink()
 
         # build former failed trace
         queried_former_failed_knowledge = (
@@ -265,10 +251,9 @@ class LLMFinetuneEvolvingStrategy(MultiProcessEvolvingStrategy):
         """Implement a single fine-tuning task by generating LlamaFactory config"""
         if (
             prev_task_feedback is not None
-            and "FTCoderEvaluator" in prev_task_feedback.source_feedback
-            and prev_task_feedback.source_feedback["FTCoderEvaluator"]
+            and prev_task_feedback.source_feedback.get("FTCoderEvaluator", False)
         ):
-            logger.info("Previous data processing code passed evaluation, skipping regeneration")
+            logger.info("Previous training code passed evaluation, skipping regeneration")
             return {}
 
         task_info = target_task.get_task_information()

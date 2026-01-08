@@ -26,7 +26,7 @@ class FTTask(CoSTEERTask):
         self.base_model = base_model
         self.benchmark = benchmark
         self.involving_datasets = involving_datasets or []
-        self.skip_data_processing = skip_data_processing  # If True, reuse SOTA's data.json
+        self.skip_data_processing = skip_data_processing  # If True, reuse SOTA's data processing script
 
     def get_task_information(self) -> str:
         """Get task information for coder prompt generation"""

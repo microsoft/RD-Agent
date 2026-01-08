@@ -232,7 +232,7 @@ unified_hypothesis_gen:
 
     **Data Processing Skip Option:**
     If the Parent's data processing strategy is already good and you want to focus ONLY on training configuration improvements:
-    - Set `skip_data_processing: true` in your response to reuse the Parent's data.json
+    - Set `skip_data_processing: true` in your response to reuse the Parent's data processing script
     - This saves LLM API costs and allows you to focus purely on hyperparameter tuning
     - Only use this option when you believe the data quality is sufficient
     {% endif %}
@@ -256,7 +256,7 @@ unified_hypothesis_gen:
           "reason": "[Your reasoning about why this approach should work, covering BOTH data processing and training aspects, referencing history if available]",
           "hypothesis": "[Your hypothesis in natural language, integrating both data processing strategy and training configuration, comprehensive and specific]",
           "task": "[Step-by-step task description for the code generator, covering the complete workflow from data processing to training, no code]",
-          "skip_data_processing": false  // Set to true ONLY if you want to reuse Parent's data.json (not applicable for first experiment)
+          "skip_data_processing": false  // Set to true ONLY if you want to reuse Parent's data processing script (not applicable for first experiment)
         }
     ```
     Since responding the whole content in one message may exceed the token limit, the user has requested you to provide reason, hypothesis, and task one by one in separate messages. Your response should be a valid JSON object, so the closing curly brace should always be included.
@@ -329,7 +329,7 @@ unified_hypothesis_gen:
       "skip_data_processing": false
     }
     ```
-    Note: Set `skip_data_processing` to `true` ONLY if you want to reuse SOTA's data.json and focus purely on training configuration improvements. This is only valid for subsequent experiments (not the first one).
+    Note: Set `skip_data_processing` to `true` ONLY if you want to reuse SOTA's data processing script and focus purely on training configuration improvements. This is only valid for subsequent experiments (not the first one).
     {% else %}
     ```json
     {

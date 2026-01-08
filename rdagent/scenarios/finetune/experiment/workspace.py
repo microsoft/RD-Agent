@@ -12,7 +12,7 @@ Design Philosophy:
 
 from typing import TYPE_CHECKING
 
-from rdagent.components.coder.finetune.conf import FT_DATA_FILE_NAME, FT_YAML_FILE_NAME
+from rdagent.components.coder.finetune.conf import FT_YAML_FILE_NAME
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
@@ -41,7 +41,6 @@ class FTWorkspace(FBWorkspace):
         # Training outputs (models, checkpoints) are managed separately by save_final_model()
         RD_AGENT_SETTINGS.workspace_ckp_white_list_names = [
             FT_YAML_FILE_NAME,  # train.yaml - training config
-            FT_DATA_FILE_NAME,  # data.json - processed training data
             "dataset_info.json",  # LlamaFactory dataset config
         ]
         RD_AGENT_SETTINGS.workspace_ckp_size_limit = 100 * 1024

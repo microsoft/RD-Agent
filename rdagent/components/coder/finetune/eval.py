@@ -62,30 +62,6 @@ class FTDataEvaluator(CoSTEEREvaluator):
         data = None
         error_msg = None
 
-        # Step 0: Check if data.json already exists and is valid (supports skip_data_processing)
-        # This allows reusing SOTA's data.json without requiring a script
-        if data_json_path.exists():
-            validation_result = self._validate_data_json(data_json_path)
-            if validation_result["valid"]:
-                # data.json already exists and is valid, skip script execution
-                with open(data_json_path, "r", encoding="utf-8") as f:
-                    data_content = f.read()
-                data = json.loads(data_content)
-                self._update_dataset_info(implementation, validation_result["sample_count"])
-                self._inject_data_stats(implementation, data, "Data loaded from existing data.json")
-
-                # Inject data.json into file_dict to ensure it's available for SOTA reuse
-                implementation.inject_files(**{FT_DATA_FILE_NAME: data_content})
-
-                feedback = CoSTEERSingleFeedback(
-                    execution="Using existing valid data.json (skip data processing)",
-                    return_checking="Data validation passed",
-                    code="",
-                    final_decision=True,
-                )
-                logger.log_object(feedback, tag="evaluator_feedback.FTDataEvaluator")
-                return feedback
-
         # Step 1: Check script exists
         if not script_code:
             feedback = CoSTEERSingleFeedback(
@@ -135,13 +111,6 @@ class FTDataEvaluator(CoSTEEREvaluator):
         # Step 5.5: Compute token stats and inject data_stats for yaml coder
         if data is not None and error_msg is None:
             self._inject_data_stats(implementation, data, execution_output)
-
-        # Step 5.6: Inject data.json into file_dict for SOTA reuse
-        # This ensures data.json is available when injecting SOTA workspace to new experiments
-        if data is not None and error_msg is None:
-            with open(data_json_path, "r", encoding="utf-8") as f:
-                data_content = f.read()
-            implementation.inject_files(**{FT_DATA_FILE_NAME: data_content})
 
         # Step 6: Generate LLM feedback
         # Truncate stdout from end for LLM (summary at the end is more useful)

@@ -151,6 +151,33 @@ class EnvConf(ExtendedBaseSettings):
     default_entry: str
     extra_volumes: dict = {}
     running_timeout_period: int | None = 3600  # 10 minutes
+
+    """it is a function to calculating hash keys"""
+    def get_workspace_content_for_hash(self, local_path: str | Path) -> list[list[str]]:
+        """Get content of key files in workspace for cache hash calculation.
+
+        Scans .py, .csv, and .yaml files.
+        """
+        # we must add the information of data (beyond code) into the key.
+        # Otherwise, all commands operating on data will become invalid (e.g. rm -r submission.csv)
+        # So we recursively walk in the folder and add the sorted relative filename list as part of the key.
+        # data_key = []
+        # for path in Path(local_path).rglob("*"):
+        #     p = str(path.relative_to(Path(local_path)))
+        #     if p.startswith("__pycache__"):
+        #         continue
+        #     data_key.append(p)
+        # data_key = sorted(data_key)
+        local_path = Path(local_path)
+        return [
+            [str(path.relative_to(local_path)), path.read_text()]
+            for path in sorted(
+                list(local_path.rglob("*.py"))
+                + list(local_path.rglob("*.csv"))
+                + list(local_path.rglob("*.yaml"))
+            )
+        ]
+
     redirect_stdout_to_file: bool = False
     # helper settings to support transparent;
     enable_cache: bool = True
@@ -414,28 +441,10 @@ class Env(Generic[ASpecificEnvConf]):
         target_folder = Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / f"utils.env.run"
         target_folder.mkdir(parents=True, exist_ok=True)
 
-        # we must add the information of data (beyond code) into the key.
-        # Otherwise, all commands operating on data will become invalid (e.g. rm -r submission.csv)
-        # So we recursively walk in the folder and add the sorted relative filename list as part of the key.
-        # data_key = []
-        # for path in Path(local_path).rglob("*"):
-        #     p = str(path.relative_to(Path(local_path)))
-        #     if p.startswith("__pycache__"):
-        #         continue
-        #     data_key.append(p)
-        # data_key = sorted(data_key)
+        cache_key_extra = self.conf.get_workspace_content_for_hash(local_path)
 
         key = md5_hash(
-            json.dumps(
-                [
-                    [str(path.relative_to(Path(local_path))), path.read_text()]
-                    for path in sorted(
-                        list(Path(local_path).rglob("*.py"))
-                        + list(Path(local_path).rglob("*.csv"))
-                        + list(Path(local_path).rglob("*.yaml"))
-                    )
-                ]
-            )
+            json.dumps(cache_key_extra)
             + json.dumps({"entry": entry, "running_extra_volume": dict(running_extra_volume)})
             + json.dumps({"extra_volumes": self.conf.extra_volumes})
             # + json.dumps(data_key)
@@ -1058,6 +1067,19 @@ class FTDockerConf(DockerConf):
     _exclude_path_keys: list[str] = ["assets_path"]
 
     network: str | None = "host"  # Use host network for finetune access to litellm proxy
+
+    def get_workspace_content_for_hash(self, local_path: str | Path) -> list[list[str]]:
+        """Include dataset_info.json in cache key calculation."""
+        content = super().get_workspace_content_for_hash(local_path)
+        local_path = Path(local_path)
+        # Add dataset_info.json if it exists
+        # NOTE: data.json is excluded because it is a generated file
+        for path in local_path.rglob("dataset_info.json"):
+            content.append([str(path.relative_to(local_path)), path.read_text()])
+
+        # Sort again to ensure deterministic order (though super is sorted, appended one might not be)
+        content.sort(key=lambda x: x[0])
+        return content
 
 
 class BenchmarkDockerConf(DockerConf):

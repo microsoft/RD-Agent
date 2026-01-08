@@ -8,7 +8,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from rdagent.components.coder.finetune.conf import (
-    FT_DATA_FILE_NAME,
     FT_DATA_SCRIPT_NAME,
     FT_YAML_FILE_NAME,
 )
