@@ -7,9 +7,9 @@ class TableBenchProcessor(BenchmarkProcessor):
     """TableBench: Table QA with different subtasks."""
 
     CORE_METRICS = {
-        "fact": "exact_match",
+        "fact": "accuracy",
         "numerical": "accuracy",
-        "analysis": "exact_match",
+        "analysis": "accuracy",
         "visualization": "f1_score",
     }
 
