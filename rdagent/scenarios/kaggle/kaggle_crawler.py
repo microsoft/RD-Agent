@@ -109,6 +109,9 @@ def crawl_descriptions(
 
 def download_data(competition: str, settings: ExtendedBaseSettings, enable_create_debug_data: bool = True) -> None:
     local_path = settings.local_data_path
+    if (Path(local_path) / f"{competition}").exists():
+        logger.info(f"{competition} already exists, skipping download.")
+        return
     if settings.if_using_mle_data:
         zipfile_path = f"{local_path}/zip_files"
         zip_competition_path = Path(zipfile_path) / competition
