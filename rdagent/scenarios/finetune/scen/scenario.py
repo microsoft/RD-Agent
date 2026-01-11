@@ -234,6 +234,11 @@ class LLMFinetuneScen(DataScienceScen):
             try:
                 with open(dataset_info_path, "r", encoding="utf-8") as f:
                     existing_config = json.load(f)
+
+                # Only keep entries that have corresponding local directories
+                local_datasets = {d.name for d in datasets_dir.iterdir() if d.is_dir() and not d.name.startswith(".")}
+                existing_config = {k: v for k, v in existing_config.items() if k in local_datasets}
+
             except Exception as e:
                 logger.warning(f"Failed to load existing dataset_info.json: {e}")
 
