@@ -1,11 +1,13 @@
+import json
 from abc import abstractmethod
 from copy import deepcopy
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, List
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Dict, Generator, List
 
 from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Evaluator, Feedback
+from rdagent.core.evolving_agent import RAGEvaluator
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import Task, Workspace
 from rdagent.core.utils import multiprocessing_wrapper
@@ -37,12 +39,16 @@ class CoSTEERSingleFeedback(Feedback):
     It is design align the phases of the implemented code
     - Execution -> Return Value -> Code -> Final Decision
     """
-    execution: str
+    execution: str  # Summarized execution feedback
     # execution_feedback
     return_checking: str | None  # including every check in the testing (constraints about the generated value)
     # value_feedback, shape_feedback, value_generated_flag
     code: str
-    final_decision: bool | None = None
+    final_decision: bool
+    raw_execution: str = ""  # Full raw stdout for UI display
+    source_feedback: Dict[str, bool] = field(
+        default_factory=dict
+    )  # Record the source of the feedback since it might be merged from multiple feedbacks, stores the mapping from source tag to its final_decision, this dict also includes the feedback source of itself
 
     @staticmethod
     def val_and_update_init_dict(data: dict) -> dict:
@@ -72,8 +78,8 @@ class CoSTEERSingleFeedback(Feedback):
             raise ValueError(f"'final_decision' must be a boolean, not {type(data['final_decision'])}")
 
         for attr in "execution", "return_checking", "code":
-            if data[attr] is not None and not isinstance(data[attr], str):
-                raise ValueError(f"'{attr}' must be a string, not {type(data[attr])}")
+            if data.get(attr) is not None and not isinstance(data[attr], str):
+                data[attr] = json.dumps(data[attr], indent=2, ensure_ascii=False)
         return data
 
     @classmethod
@@ -95,6 +101,10 @@ class CoSTEERSingleFeedback(Feedback):
                 attr,
                 "\n\n".join([getattr(_fb, attr) for _fb in feedback_li if getattr(_fb, attr) is not None]),
             )
+        fb.source_feedback = {}
+        for _fb in feedback_li:
+            for tag, decision in _fb.source_feedback.items():
+                fb.source_feedback[tag] = decision
         return fb
 
     def __str__(self) -> str:
@@ -226,6 +236,7 @@ class CoSTEEREvaluator(Evaluator):
     # TODO:
     # I think we should have unified interface for all evaluates, for examples.
     # So we should adjust the interface of other factors
+    # Based on the implementation, I think a better name is some name like task-implement evaluator
     @abstractmethod
     def evaluate(
         self,
@@ -237,19 +248,23 @@ class CoSTEEREvaluator(Evaluator):
         raise NotImplementedError("Please implement the `evaluator` method")
 
 
-class CoSTEERMultiEvaluator(CoSTEEREvaluator):
+class CoSTEERMultiEvaluator(RAGEvaluator):
     """This is for evaluation of experiment. Due to we have multiple tasks, so we will return a list of evaluation feebacks"""
 
-    def __init__(self, single_evaluator: CoSTEEREvaluator | list[CoSTEEREvaluator], *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, single_evaluator: CoSTEEREvaluator | list[CoSTEEREvaluator], scen: "Scenario") -> None:
+        super().__init__()
+        self.scen = scen
         self.single_evaluator = single_evaluator
 
-    def evaluate(
+    def evaluate_iter(
         self,
-        evo: EvolvingItem,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
-    ) -> CoSTEERMultiFeedback:
+    ) -> Generator[CoSTEERMultiFeedback, EvolvingItem | None, CoSTEERMultiFeedback]:
+        evo = yield CoSTEERMultiFeedback(
+            []
+        )  # it will receive the evo first, so the first yield is for get the sent evo instead of generate useful feedback
+
         eval_l = self.single_evaluator if isinstance(self.single_evaluator, list) else [self.single_evaluator]
 
         # 1) Evaluate each sub_task
@@ -279,7 +294,12 @@ class CoSTEERMultiEvaluator(CoSTEEREvaluator):
                 ],
                 n=RD_AGENT_SETTINGS.multi_proc_n,
             )
+            # None received, we skip the rest and return the overall feedback directly
+            evo_next_iter = yield CoSTEERMultiFeedback(multi_implementation_feedback)
             task_li_feedback_li.append(multi_implementation_feedback)
+            if evo_next_iter is None:
+                break
+            evo = evo_next_iter
 
         # 2) merge the feedbacks along the sub_tasks to aggregate the multiple evaluation feedbacks
         merged_task_feedback = []

@@ -1,0 +1,228 @@
+exp_feedback:
+  system: |-
+    You are an expert AI assistant specializing in analyzing LLM fine-tuning experiments.
+
+    Below is the scenario context for the current LLM fine-tuning task:
+    {{ scenario }}
+
+    Your task is to analyze the LLM fine-tuning experiment's hypothesis, implementation, and execution results to provide comprehensive feedback.
+    Your critical decision is to accept or reject the experiment as the new state of the art (SOTA) method.
+
+    # Decision Making Framework:
+    ## Step 0: Pre-defination
+    - The user has proposed a hypothesis for fine-tuning a specific base model. Based on this hypothesis, they have planned a detailed task and implemented a dataset generation pipeline and fine-tuning configuration.
+    - The user has executed the fine-tuning experiment on a mini-batch test and on the whole dataset. The execution was successful.
+    - The user has tested the fine-tuned model on a benchmark suite and obtained evaluation results.
+
+    ## Step 1: Implementation Validation
+    - The user will provide you the implementation code (e.g., fine-tuning configuration, dataset processing code).
+    - The configuration and code are provided both or partially.
+    - Verify that the fine-tuning configuration and code are aligned to the task.
+    - If configurations or code snippets are not aligned to the task, reject the experiment and start your reason by: [Configuration Mis-align]. Else proceed to next step.
+
+    ## Step 2: Benchmark metrics Evaluation
+    - The user will provide you the benchmark evaluation results after executing the fine-tuned model on a benchmark suite.
+    {% if has_sota %}
+    - The user will also provide you the former sota benchmark results on the same benchmark suite for comparison.
+    - Analyze the benchmark results to determine if they support or refute the hypothesis. If the results is signifficantly worse than the sota results, reject the experiment and start your reason by: [Benchmark Performance Issue]. Else proceed to next step.
+    {% else %}
+    - The user will provide you the baseline benchmark results (pre-trained model without fine-tuning) for comparison.
+    - Analyze the benchmark results to determine if they exceed the baseline. If the results are worse than or equal to the baseline, reject the experiment and start your reason by: [Benchmark Performance Issue]. Else proceed to next step.
+    {% endif %}
+
+    ## Step 3: Task and Code Quality Assessment
+    - Evaluate the implementation quality and best practices
+    - Compare the implementation against sota methods. If the implementation is worse than sota methods, reject the experiment and start your reason by: [Implementation Quality Issue]. Else proceed to next step.
+
+    ## Step 4: Final Decision (Acceptance as SOTA)
+    You MUST determine the "Decision" (yes/no) based on the following:
+
+    {% if has_sota %}
+    **Compare with SOTA**
+    - Compare the current experiment's benchmark results with SOTA
+    - Consider ALL metrics comprehensively, not just one
+    - Set "Decision": "yes" if current experiment is better overall than the current SOTA
+    - Set "Decision": "no" if SOTA is still better or if this experiment should be rejected
+    {% else %}
+    **Compare with BASELINE (no SOTA yet)**
+    - Compare the current experiment's benchmark results with the BASELINE (pre-trained model without fine-tuning)
+    - The baseline results will be provided in the user prompt
+    - Set "Decision": "yes" ONLY if current experiment EXCEEDS baseline
+    - Set "Decision": "no" if current experiment is worse than or equal to baseline
+    {% endif %}
+
+    # Core improvement identification
+    ## Failure identification (On rejection)
+    - The user has provided you the hypothesis, task description, implementation code, execution logs, and benchmark results. You should analyze them and provide an explaination in depth.
+    - Identify the main cause of failure. Is the hypothesis flawed, task poorly defined, or implementation subpar?
+    - Provide a specific guess on the root cause of failure with detailed analysis.
+    - Put your analysis in the "reason" field of your final response.
+
+    ## Improvement suggestions (On acceptance or rejection)
+    - Decide the core component that needs improvement for the next iteration.
+    - Suggest specific improvements or alternative approaches.
+    - Put your suggestions in the "reason" field of your final response.
+
+    # Training Loss Analysis Guidelines
+    You will receive the complete training loss history. Analyze the following aspects:
+    - Loss convergence pattern: Is the loss decreasing steadily, oscillating, or plateauing?
+    - Signs of overfitting or underfitting based on loss trajectory
+    - Learning rate appropriateness based on loss curve shape
+    - Suggest hyperparameter-level adjustments (learning rate, batch size, epochs), NOT data-level changes
+
+    # Error Sample Analysis Guidelines (CRITICAL - Avoid Benchmark Leakage)
+    You will receive model outputs for incorrectly answered questions.
+    **IMPORTANT**: You must provide INSIGHTS about model capability gaps, NOT specific training suggestions that could lead to benchmark overfitting.
+
+    **DO:**
+    - Identify error patterns (e.g., "model struggles with multi-step reasoning")
+    - Classify error types (calculation errors, logical errors, format errors, early termination)
+    - Analyze capability dimensions (mathematical reasoning, code understanding, chain-of-thought)
+    - Suggest general capability improvements at a conceptual level
+
+    **DO NOT:**
+    - Reference specific question content or numbers from the benchmark
+    - Suggest "add training data similar to question X" or any targeted data augmentation
+    - Reproduce model's specific wrong answers in your analysis
+    - Propose targeted fixes for specific test cases
+
+    Example good insight: "Model shows early termination in reasoning chains, often concluding before fully exploring all cases. This suggests insufficient training on long-form reasoning tasks."
+    Example bad insight: "Model got question 3 wrong about prime numbers, should add more prime number training data."
+
+    # Code Change Summary
+    - Summarize the user's implementation approach and key components concisely compared to sota methods.
+
+    Provide structured feedback in the following JSON format (all values must be strings, not arrays):
+    {
+      "Code Summary": "Concise summary of the implementation approach and key components",
+      "Reason": "A single paragraph (not a list) explaining the decision with specific evidence, root cause analysis, and improvement suggestions. Limit to 3-5 sentences.",
+      "Decision": "yes or no - whether this experiment should be accepted as the new SOTA (see Step 4)"
+    }
+
+  user: |-
+    # Current LLM Fine-tuning Experiment Analysis
+
+    ## Hypothesis
+    {{ hypothesis }}
+
+    ## Task Description
+    {{ task_desc }}
+
+    ## Workspace Files
+    {% for file_name, file_content in workspace_files.items() %}
+    - {{ file_name }}: {{ file_content }}
+    {% endfor %}
+
+    **Execution Time**: {{ execution_time }} seconds
+
+    ## Training Metrics
+    {% if training_metrics %}
+    ```json
+    {{ training_metrics | tojson(indent=2) }}
+    ```
+    {% else %}
+    No training metrics available.
+    {% endif %}
+
+    ## Benchmark Results
+    ### Accuracy Summary
+    {% if benchmark.accuracy_summary %}
+    ```json
+    {{ benchmark.accuracy_summary | tojson(indent=2) }}
+    ```
+    {% else %}
+    No accuracy summary available.
+    {% endif %}
+
+    ### Error Sample Analysis ({{ benchmark.error_samples | length }} samples)
+    Below are model outputs for incorrectly answered questions.
+    Analyze the error patterns and provide INSIGHTS, not specific training suggestions:
+
+    {% for sample in benchmark.error_samples %}
+    **Error {{ loop.index }}:**
+    - Question: {{ sample.question[:1000] }}{% if sample.question | length > 1000 %}... (truncated){% endif %}
+    - Expected Answer: {{ sample.gold }}
+    - Model Output: {{ sample.model_output[:500] }}{% if sample.model_output | length > 500 %}... (truncated){% endif %}
+
+    {% endfor %}
+
+    {% if sota_benchmark %}
+    ## Previous SOTA Benchmark Results
+    The following are the benchmark results from the current best (SOTA) experiment.
+    Compare the current results with these to determine if the current experiment should become the new SOTA.
+
+    ### SOTA Accuracy Summary
+    {% if sota_benchmark.accuracy_summary %}
+    ```json
+    {{ sota_benchmark.accuracy_summary | tojson(indent=2) }}
+    ```
+    {% else %}
+    No SOTA accuracy summary available.
+    {% endif %}
+    {% else %}
+    ## Baseline Benchmark Results (Pre-trained Model)
+    **No SOTA exists yet.** Compare against the BASELINE (model performance before fine-tuning).
+    **IMPORTANT**: Only set "Decision": "yes" if the fine-tuned model EXCEEDS this baseline.
+
+    ### Baseline Accuracy Summary
+    ```json
+    {{ baseline_benchmark.accuracy_summary | tojson(indent=2) }}
+    ```
+    {% endif %}
+
+exp_feedback_error:
+  system: |-
+    You are an expert LLM fine-tuning debugger specializing in analyzing experiment failures.
+
+    Below is the scenario context:
+    {{ scenario }}
+
+    Your task is to analyze why the LLM fine-tuning experiment failed and provide actionable feedback.
+
+    # Failure Analysis Framework:
+
+    ## Step 1: Error Classification
+    Identify the type of failure (use these exact labels):
+    - CONFIG: YAML syntax, invalid parameters, incompatible settings
+    - OOM: GPU memory exhaustion, CUDA out of memory
+    - DATA: Dataset format issues, tokenization failures, empty data
+    - ENV: Missing dependencies, version conflicts, file not found
+
+    ## Step 2: Root Cause Analysis
+    - Examine the error message and stack trace
+    - Identify the specific component that failed
+    - Determine if it's a code bug, configuration issue, or resource limitation
+
+    ## Step 3: Actionable Suggestions
+    - Provide specific fixes for the identified issues
+    - Suggest configuration changes or code modifications
+    - Recommend debugging steps if root cause is unclear
+
+    Provide structured feedback in JSON format (all values must be strings, not arrays):
+    {
+      "Error Type": "CONFIG|OOM|DATA|ENV",
+      "Code Summary": "Brief description of what was attempted",
+      "Reason": "A single paragraph (not a list) with detailed error analysis, root cause, and specific fix suggestions. Limit to 3-5 sentences.",
+      "Decision": "no"
+    }
+
+  user: |-
+    # Failed LLM Fine-tuning Experiment Analysis
+
+    ## Hypothesis
+    {{ hypothesis }}
+
+    ## Task Description
+    {{ task_desc }}
+
+    ## Workspace Files
+    {% for file_name, file_content in workspace_files.items() %}
+    - {{ file_name }}: {{ file_content }}
+    {% endfor %}
+
+    ## Error Information
+    ```
+    {{ error_info }}
+    ```
+
+    Please analyze why this experiment failed and provide suggestions for fixing it.

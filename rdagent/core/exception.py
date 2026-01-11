@@ -10,6 +10,16 @@ class FormatError(WorkflowError):
     """
 
 
+class CodeBlockParseError(FormatError):
+    """Raised when code block extraction fails after all strategies."""
+
+    def __init__(self, message: str, content: str, language: str):
+        self.message = message
+        self.content = content
+        self.language = language
+        super().__init__(message)
+
+
 class CoderError(WorkflowError):
     """
     Exceptions raised when Implementing and running code.

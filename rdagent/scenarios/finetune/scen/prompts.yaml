@@ -1,0 +1,283 @@
+scenario_description: |-
+  The user is targeting a fine-tuned model best for specific scenarios based on the provided dataset.
+  The user has decided to fine-tune the model using LLaMA-Factory framework. Make sure your hypothesis and task align with LLaMA-Factory's capabilities and best practices.
+
+  # User objectives
+  By Fine-tuning the model, the user aims to achieve the following objectives:
+  {% if user_target_scenario is not none %}
+  The user described their target scenario as: {{ user_target_scenario }}
+  {% endif %}
+  {% if target_benchmark is not none and benchmark_description is not none %}
+  The user aims to excel in the following benchmark(s): {{ target_benchmark }}.
+  The benchmark can be described as: {{ benchmark_description }}.
+  {% endif %}
+
+  # Device Information
+  The device available for fine-tuning has the following specifications:
+  {{ device_info }}
+  The hardware constraints might limit certain choices, so consider them carefully.
+
+  {% if memory_report %}
+  {{ memory_report }}
+  {% endif %}
+
+  {% if chosen_model %}
+  # Base Model Details
+  The user has decided the base model to fine-tune: {{ base_model }}.
+  ## Model Details
+  {{ model_info }}
+  {% else %}
+  The user has not yet decided the base model to fine-tune.
+  {% endif %}
+
+  {%- if enable_dataset_description %}
+  # Dataset Configuration
+  {%- for ds_name, ds_info in dataset_config.items() %}
+  ## Dataset: {{ ds_name }}
+  - **total_samples**: {{ ds_info.total_samples }}
+  - **total_size_mb**: {{ ds_info.total_size_mb }}
+  {%- if ds_info.file_tree %}
+  - **file_tree**:
+    ```
+    {{ ds_info.file_tree }}
+    ```
+  {%- endif %}
+  {%- if ds_info.tasks %}
+  - **tasks**:
+    {%- for task_name, task_info in ds_info.tasks.items() %}
+    ### {{ "(root)" if task_name == "_root" else task_name }}
+    - files: {{ task_info.files }}
+    - sample_count: {{ task_info.sample_count }}
+    {%- if task_info.column_stats %}
+    - column_stats:
+      {%- for col, col_stats in task_info.column_stats.items() %}
+      - {{ col }}: empty={{ col_stats.empty_count }}, min_tokens={{ col_stats.min_tokens }}, max_tokens={{ col_stats.max_tokens }}, p50_tokens={{ col_stats.p50_tokens }}, p99_tokens={{ col_stats.p99_tokens }}
+      {%- endfor %}
+    {%- endif %}
+    {%- if task_info.samples and task_info.samples | length > 0 %}
+    - first_sample:
+      ```json
+      {{ task_info.samples[0] | tojson }}
+      ```
+    {%- endif %}
+    {%- endfor %}
+  {%- endif %}
+  {%- if ds_info.readme %}
+  - **readme**: {{ ds_info.readme | tojson }}
+  {%- endif %}
+  {%- endfor %}
+
+  ## Timeout Constraints
+  - Full Training Timeout: {{ full_timeout }}
+  {% endif %}
+
+  ## (Very important!)Sample Size Control (Code-Based, No LLM)
+  To avoid unlimited training cost, we have a strict upper limit on the number of training samples fed into LLM fine-tuning. You should sample the data with some rule which does not including feeding all the data into LLM because going through all data may exceed budget or time limits.
+  The upper limit is {{ upper_data_size_limit }} samples.
+
+  You can choose one of the following strategies to control the sample size(all strategies should be code based, no LLM calls):
+  1. Quality-first: Prefer samples with complete fields, reasonable length, and clear structure
+  2. Diversity: 
+      - If dataset has categories/sources, sample proportionally to preserve distribution
+      - **Difficulty-aware**: If difficulty metadata exists, use stratified sampling to maintain difficulty distribution of target benchmark/test set to ensure training coverage across all evaluation scenarios during initial training stage. For the subsequent training stages, 
+      adjust difficulty proportions based on base model capability, training objectives and previous experiment results - focus more on the model's capability boundary for maximum learning efficiency.
+
+  The hypothesis should specify which sampling strategy to use based on dataset info. The data processing script will implement it.
+
+  
+dataset_info_generation:
+  system: |-
+    Generate a LLaMA-Factory dataset_info.json configuration entry with category classification and insightful descriptions.
+
+    ## Format Types:
+    **Alpaca**: instruction-response data with "instruction", "input", "output" fields
+    **ShareGPT**: conversational data with message arrays
+
+    ## Required Fields:
+    - `file_name`: relative path from datasets directory
+    - `formatting`: "alpaca" (default) or "sharegpt"
+    - `columns`: map data fields to LLaMA-Factory expected names
+    - `description`: AI-generated concise summary (200-300 words) highlighting key insights for fine-tuning
+
+    {%- if dataset_stats %}
+    ## Pre-computed Column Statistics
+    The following statistics have been automatically computed for each dataset. Use these in your description instead of guessing:
+    {%- for dataset_name, stats in dataset_stats.items() %}
+
+    **{{ dataset_name }}**:
+    - Sample count: {{ stats.sample_count }}
+    - Total size: {{ stats.total_size_mb }} MB
+    {%- if stats.get('column_stats') %}
+    - Column statistics (token counts, using tokenizer):
+    {%- for col, col_stats in stats.get('column_stats').items() %}
+      - `{{ col }}`: empty={{ col_stats.empty_count }}, min_tokens={{ col_stats.min_tokens }}, max_tokens={{ col_stats.max_tokens }}, p50_tokens={{ col_stats.p50_tokens }}, p99_tokens={{ col_stats.p99_tokens }}
+    {%- endfor %}
+    {%- endif %}
+    {%- endfor %}
+
+    **IMPORTANT**: Reference these actual statistics in your description. Do NOT invent or guess statistics.
+    {%- endif %}
+
+    ## Description Generation Guidelines
+    For each dataset, analyze the README content (if available) and data samples to generate **practical insights about the data itself**. Focus ONLY on data characteristics and preprocessing - do NOT include training strategies, hyperparameters, or model selection advice.
+    
+    **Focus Areas (in order of importance):**
+    
+    1. **Data Fitness Assessment** (MOST CRITICAL - varies by task type):
+       
+       **For Reasoning/Math datasets:**
+       - Is the response/solution length sufficient? (reasoning typically needs long chain-of-thought, e.g., >1000 tokens)
+       - If solution is too short (median <500 tokens): suggest it may need **COT rewrite/expansion** before use
+       - Are reasoning chains complete, or just final answers?
+       - Does the format align with common reasoning formats? (see below)
+       
+       **Common Reasoning Data Formats:**
+       - Think-tag format: `<think>[reasoning_traces]</think>[final_answer]`
+       - Boxed answer format: reasoning text ending with `\boxed{final_result}` for extractable answers
+       - If data doesn't match these formats, note what transformation is needed
+       
+       **For General/Instruction-following datasets:**
+       - Are instructions clear and responses appropriate?
+       - Is there good diversity in instruction types?
+       - Response quality and helpfulness
+       
+       **For Conversation datasets:**
+       - Multi-turn coherence and context handling
+       - Role consistency (user/assistant/system)
+    
+    2. **Data Completeness & Structure**:
+       - Are there columns that need to be combined? (e.g., "concatenate 'answer' to 'solution' for complete reasoning chains")
+       - Missing or sparse fields? (e.g., "40% of solution fields are empty - need filtering or fallback")
+       - What percentage of data is actually usable?
+    
+    3. **Actionable Suggestions**:
+       - If data has limitations, what preprocessing could help? (e.g., "short solutions may need COT rewrite", "filter empty fields", "merge columns X and Y")
+       - What is the data best suited for? What should it NOT be used for?
+    
+    4. **Minor Format Issues** (LOW PRIORITY - mention briefly if at all):
+       - LaTeX formatting, special characters, encoding issues
+       - These are trivial to fix and should NOT dominate the description
+    
+    **Description Requirements:**
+    - Write 150-250 words, focused on data itself
+    - **PRIORITIZE**: whether response/solution length is sufficient for reasoning (this is the #1 concern!)
+    - **DO NOT include**: training strategies, hyperparameters, model recommendations, batch sizes, learning rates
+    - **DO NOT mention**: RL, RLHF, DPO, PPO, reward models - we only do SFT/LoRA, not reinforcement learning
+    - **MINIMIZE**: trivial format issues (LaTeX cleanup, character encoding, whitespace) - these are easy to fix and not insightful
+    - **DO include**: data fitness assessment, field transformations, completeness issues, usability concerns
+    - Lead with the most important insight (often: is this data actually useful for reasoning?)
+
+    ## Common Column Mappings:
+    - Alpaca: "instruction"→prompt, "input"→query, "output"→response
+    - ShareGPT: "conversations"→messages, plus role/content tags
+    
+    ## Dataset Selection
+    {% if target_dataset_list|length == 0 %}
+    Generate configuration for all datasets found in the datasets directory.
+    {% else %}
+    The user only focus on certain dataset(s).
+    Generate configuration for the following dataset(s): {{ target_dataset_list }}.
+    {% endif %}
+
+    ## Specific Instructions
+    - The outer key must be the dataset name (preserve "/" exactly). For example, "my_dataset" or "chat/dataset".
+    - For `file_name`, provide the relative path from the original directory to the data files. Mostly it is under "dataset_name/...".
+    - Choose "alpaca" or "sharegpt" based on data structure.
+    - Map column names from sample data to LLaMA-Factory format.
+    - Generate insightful `description` based on README and sample analysis
+    - For datasets not following Alpaca or ShareGPT format. Please choose the closest one and adjust column mappings accordingly.
+    - The folder might contain multiple files also multiple datasets. Please include all valid datasets you can find in your response.
+
+    ## Examples:
+    ```json
+    {
+      "short_answer_math": {
+        "file_name": "short_answer_math/train.jsonl",
+        "columns": {"question": "instruction", "solution": "output"},
+        "description": "REASONING FITNESS: Solution field is too short for reasoning training (median ~350 tokens). These are concise solutions without detailed chain-of-thought. SUGGESTION: May need COT rewrite/expansion to be useful for reasoning tasks. Alternatively, suitable for: (1) quick answer generation, (2) mixing with longer-form data. About 40% of solutions are empty - filter before use. Concatenate 'answer' field if final result is needed."
+      },
+      "reasoning_traces": {
+        "file_name": "reasoning_traces/data.json",
+        "columns": {"problem": "instruction", "thinking": "output"},
+        "description": "GOOD FOR REASONING: Detailed chain-of-thought traces (median ~8000 tokens). FORMAT: Raw reasoning without think-tags; final answers use \\boxed{} notation. To convert to think-tag format: wrap 'thinking' field with <think>...</think> and append 'answer' field. 95% samples have complete traces. Competition-level math. Ready for SFT after minor format wrapping."
+      },
+      "instruction_following": {
+        "file_name": "instruction_following/data.jsonl",
+        "columns": {"instruction": "instruction", "response": "output"},
+        "description": "GENERAL SFT: Diverse instruction types (writing, QA, summarization, coding). Response lengths vary appropriately by task (50-2000 tokens). Good instruction clarity and response helpfulness. No empty fields. Suitable for training general instruction-following capabilities. Not intended for specialized reasoning tasks."
+      }
+    }
+    ```
+
+    **Output Format**:
+    ```json
+    {
+      "dataset_name": {
+        "file_name": "dataset_name/...",
+        "formatting": "alpaca|sharegpt",
+        "columns": {...},
+        "description": "Data-centric insights: structure notes, preprocessing needs, quality issues (150-250 words)"
+      }
+    }
+    ```
+
+  user: |-
+    **Dataset folder description**:
+    ```
+    {{ dataset_info }}
+    ```
+
+dataset_selection:
+  system: |-
+    You are a dataset selection expert. Your task is to select relevant datasets for a specific fine-tuning goal.
+
+    ## User Goal
+    {{ user_target_scenario }}
+    {% if target_benchmark %}
+
+    ## Target Benchmark
+    {{ target_benchmark }}
+    {{ benchmark_description }}
+    {% endif %}
+
+    ## Selection Guidelines
+    - Select datasets that are directly relevant to the user's target scenario
+    - Consider domain alignment (e.g., math datasets for math reasoning tasks)
+    - Consider task type alignment (e.g., reasoning datasets for reasoning tasks)
+    - When uncertain, include the dataset (better to have false positives than miss relevant data)
+
+    ## Output Format
+    Return a JSON object:
+    ```json
+    {
+      "selected_datasets": ["dataset1", "dataset2"],
+      "reasoning": "Brief explanation of why these datasets were selected"
+    }
+    ```
+
+  user: |-
+    ## Available Datasets
+    {% for ds in datasets %}
+    ### {{ ds.name }}
+    - **total_samples**: {{ ds.total_samples }}
+    - **total_size_mb**: {{ ds.total_size_mb }}
+    {%- if ds.tasks %}
+    - **tasks**:
+      {%- for task_name, task_info in ds.tasks.items() %}
+      #### {{ "(root)" if task_name == "_root" else task_name }}
+      - sample_count: {{ task_info.sample_count }}
+      {%- if task_info.column_stats %}
+      - column_stats:
+        {%- for col, col_stats in task_info.column_stats.items() %}
+        - {{ col }}: p50={{ col_stats.p50_tokens }}, p99={{ col_stats.p99_tokens }}
+        {%- endfor %}
+      {%- endif %}
+      {%- endfor %}
+    {%- endif %}
+    {%- if ds.readme %}
+    - **readme**: {{ ds.readme }}
+    {%- endif %}
+
+    {% endfor %}
+
+    Please select the datasets most relevant to the user's fine-tuning goal.

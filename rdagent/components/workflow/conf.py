@@ -7,14 +7,14 @@ class BasePropSetting(ExtendedBaseSettings):
     You can add following config in the subclass to distinguish the environment variables.
     """
 
-    scen: str = ""
-    knowledge_base: str = ""
-    knowledge_base_path: str = ""
-    hypothesis_gen: str = ""
-    interactor: str = ""
-    hypothesis2experiment: str = ""
-    coder: str = ""
-    runner: str = ""
-    summarizer: str = ""
+    scen: str | None = None
+    knowledge_base: str | None = None
+    knowledge_base_path: str | None = None
+    hypothesis_gen: str | None = None
+    interactor: str | None = None
+    hypothesis2experiment: str | None = None
+    coder: str | None = None
+    runner: str | None = None
+    summarizer: str | None = None
 
     evolving_n: int = 10

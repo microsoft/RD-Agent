@@ -95,6 +95,7 @@ class LoopBase:
     loop_trace: dict[int, list[LoopTrace]]
 
     skip_loop_error: tuple[type[BaseException], ...] = ()  # you can define a list of error that will skip current loop
+    skip_loop_error_stepname: str | None = None  # if skip_loop_error exception happens, what's the next step to work on
     withdraw_loop_error: tuple[
         type[BaseException], ...
     ] = ()  # you can define a list of error that will withdraw current loop
@@ -245,8 +246,13 @@ class LoopBase:
                 except Exception as e:
                     if isinstance(e, self.skip_loop_error):
                         logger.warning(f"Skip loop {li} due to {e}")
-                        # Jump to the last step (assuming last step is for recording)
-                        next_step_idx = len(self.steps) - 1
+                        if self.skip_loop_error_stepname:
+                            next_step_idx = self.steps.index(self.skip_loop_error_stepname)
+                            if next_step_idx <= si:
+                                raise RuntimeError(f"Cannot skip backwards or to same step. Current: {si} ({name}), Target: {next_step_idx} ({self.skip_loop_error_stepname})") from e
+                        else:
+                            # Jump to the last step (assuming last step is for recording)
+                            next_step_idx = len(self.steps) - 1
                         self.loop_prev_out[li][name] = None
                         self.loop_prev_out[li][self.EXCEPTION_KEY] = e
                     elif isinstance(e, self.withdraw_loop_error):
@@ -465,28 +471,35 @@ class LoopBase:
             An instance of LoopBase with the loaded session.
         """
         path = Path(path)
+        session_folder = None
         # if the path is a directory, load the latest session
         if path.is_dir():
             if path.name != "__session__":
-                path = path / "__session__"
+                session_folder = path / "__session__"
+            else:
+                session_folder = path
 
-            if not path.exists():
+            if not session_folder.exists():
                 raise FileNotFoundError(f"No session file found in {path}")
 
             # iterate the dump steps in increasing order
-            files = sorted(path.glob("*/*_*"), key=lambda f: (int(f.parent.name), int(f.name.split("_")[0])))
+            files = sorted(session_folder.glob("*/*_*"), key=lambda f: (int(f.parent.name), int(f.name.split("_")[0])))
             path = files[-1]
             logger.info(f"Loading latest session from {path}")
+        else:
+            session_folder = path.parent.parent
+
         with path.open("rb") as f:
             session = cast(LoopBase, pickle.load(f))
 
         # set session folder
         if checkout:
             if checkout is True:
+                session.session_folder = session_folder
                 logger.set_storages_path(session.session_folder.parent)
-                max_loop = max(session.loop_trace.keys())
 
                 # truncate log storages after the max loop
+                max_loop = max(session.loop_trace.keys())
                 session.truncate_session_folder(max_loop, len(session.loop_trace[max_loop]) - 1)
                 logger.truncate_storages(session.loop_trace[max_loop][-1].end)
             else:
@@ -494,6 +507,8 @@ class LoopBase:
                 checkout.mkdir(parents=True, exist_ok=True)
                 session.session_folder = checkout / "__session__"
                 logger.set_storages_path(checkout)
+
+            logger.info(f"Checkout session to {session.session_folder.parent}")
 
         if session.timer.started:
             if replace_timer:

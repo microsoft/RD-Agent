@@ -1,0 +1,154 @@
+{
+  "_comment": "Benchmark scenarios for FT tasks. Used by run_ft_job.sh and UI.",
+
+  "aime24": {
+    "category": "math",
+    "scenario": "Improve the model's ability to solve advanced competition math problems through multi-step reasoning, including number theory, combinatorics, geometry, and algebraic manipulation, with answers expressed as integers from 0 to 999.",
+    "benchmark_description": "AIME 2024 (American Invitational Mathematics Examination) - Advanced high school math competition problems requiring creative problem-solving. Each answer is an integer 0-999. Topics include number theory, algebra, geometry, trigonometry, probability, and combinatorics. Problems require multi-step reasoning and often have elegant solutions."
+  },
+  "aime25": {
+    "category": "math",
+    "scenario": "Improve the model's ability to solve advanced competition math problems through multi-step reasoning, including number theory, combinatorics, geometry, and algebraic manipulation, with answers expressed as integers from 0 to 999.",
+    "benchmark_description": "AIME 2025 (American Invitational Mathematics Examination) - Advanced high school math competition problems requiring creative problem-solving. Each answer is an integer 0-999. Topics include number theory, algebra, geometry, trigonometry, probability, and combinatorics. Problems require multi-step reasoning and often have elegant solutions."
+  },
+  "math": {
+    "category": "math",
+    "scenario": "Improve the model's mathematical problem-solving capabilities across algebra, calculus, number theory, geometry, and probability, with emphasis on step-by-step derivations and formal mathematical notation.",
+    "benchmark_description": "General mathematics benchmark covering algebra, calculus, number theory, geometry, probability, and mathematical reasoning. Problems range from basic computation to complex proofs requiring formal mathematical notation and step-by-step derivations."
+  },
+
+  "humaneval": {
+    "category": "code",
+    "scenario": "Improve the model's ability to generate correct, executable Python code from function signatures and docstring descriptions, ensuring the code passes all unit tests for algorithm and data structure problems.",
+    "benchmark_description": "HumanEval evaluates code synthesis from docstrings. Given a function signature and docstring description, generate correct Python code that passes all unit tests. Problems test algorithms, data structures, string manipulation, and Python idioms. Requires understanding problem requirements and producing executable, correct code.",
+    "_note": "No training data yet"
+  },
+  "mbpp": {
+    "category": "code",
+    "scenario": "Improve the model's ability to solve basic Python programming problems involving loops, conditionals, list/string operations, and fundamental algorithms based on natural language task descriptions.",
+    "benchmark_description": "MBPP (Mostly Basic Python Problems) tests basic Python programming skills. Given a task description, generate a Python function that solves the problem. Focus on fundamental programming: loops, conditionals, list/string operations, basic math. Problems are designed to be solvable by entry-level programmers.",
+    "_note": "No training data yet"
+  },
+
+  "mmlu": {
+    "category": "general",
+    "scenario": "Improve the model's world knowledge and reasoning across academic subjects including STEM, humanities, social sciences, and professional domains through multiple-choice question answering.",
+    "benchmark_description": "MMLU (Massive Multitask Language Understanding) tests world knowledge and reasoning through multiple-choice questions. Covers 57 subjects: STEM (physics, chemistry, math, CS), humanities (history, philosophy, law), social sciences (economics, psychology), and professional domains (medicine, accounting). Requires both factual recall and reasoning.",
+    "_note": "No training data yet"
+  },
+
+  "panorama": {
+    "category": "patent",
+    "scenario": "Improve the model's patent examination capabilities including prior art retrieval, paragraph identification, and novelty/obviousness classification based on USPTO standards.",
+    "benchmark_description": "PANORAMA tests patent examination capabilities based on real USPTO Office Actions. Tasks include: retrieving relevant prior art patents, identifying specific paragraphs in prior art that relate to claims, and classifying claims as allowable, lacking novelty (102), or obvious (103). Requires understanding patent law, technical document analysis, and legal reasoning."
+  },
+  "panorama_par4pc": {
+    "category": "patent",
+    "scenario": "Improve the model's ability to retrieve relevant prior art patents given a patent claim, by understanding claim scope, identifying technical similarities, and ranking patents by relevance for rejection analysis.",
+    "benchmark_description": "PAR4PC (Prior Art Retrieval for Patent Claims) - Given a patent claim, retrieve the most relevant prior art patents from a candidate pool. Requires understanding claim scope, identifying technical similarities, and ranking patents by relevance for potential 35 USC 102/103 rejections."
+  },
+  "panorama_pi4pc": {
+    "category": "patent",
+    "scenario": "Improve the model's ability to identify specific paragraphs in prior art patents that are most relevant for evaluating a claim's novelty and obviousness through element-by-element analysis.",
+    "benchmark_description": "PI4PC (Paragraph Identification for Patent Claims) - Given a patent claim and cited prior art patent, identify specific paragraphs most relevant for evaluating novelty and obviousness. Requires detailed technical reading, element-by-element claim analysis, and understanding how prior art teachings map to claim limitations."
+  },
+  "panorama_noc4pc": {
+    "category": "patent",
+    "scenario": "Improve the model's ability to classify patent claims as allowable, anticipated, or obvious by applying patent law standards to analyze claim limitations against prior art.",
+    "benchmark_description": "NOC4PC (Novelty/Obviousness Classification) - Classify patent claims as ALLOW (patentable), 102 (anticipated/lacks novelty), or 103 (obvious). Requires applying patent law standards: 102 when single reference discloses all elements, 103 when combination of references with motivation makes claim obvious to skilled artisan."
+  },
+  "panorama_par4pc_cot": {
+    "category": "patent",
+    "scenario": "Improve the model's ability to retrieve relevant prior art patents while providing explicit chain-of-thought reasoning explaining which claim elements each patent teaches and how it supports a rejection.",
+    "benchmark_description": "PAR4PC with chain-of-thought - Retrieve relevant prior art while providing explicit reasoning. Explain why each retrieved patent is relevant: which claim elements it teaches, what technical problems it addresses, and how it could support a rejection."
+  },
+  "panorama_pi4pc_cot": {
+    "category": "patent",
+    "scenario": "Improve the model's ability to identify relevant prior art paragraphs while providing element-by-element mapping showing how specific paragraph teachings correspond to claim limitations.",
+    "benchmark_description": "PI4PC with chain-of-thought - Identify relevant prior art paragraphs while explaining the technical connections. Provide element-by-element mapping showing how specific paragraph teachings correspond to claim limitations."
+  },
+  "panorama_noc4pc_cot": {
+    "category": "patent",
+    "scenario": "Improve the model's ability to classify patent claims with examiner-style rationale, explaining how references anticipate limitations or how combinations with motivation render claims obvious.",
+    "benchmark_description": "NOC4PC with chain-of-thought - Classify claims with examiner-style rationale. For 102: explain how reference anticipates each limitation. For 103: identify references, explain motivation to combine, and show how combination renders claim obvious. Use proper USPTO citation format."
+  },
+
+  "chemcotbench": {
+    "category": "chemistry",
+    "scenario": "Improve the model's chemical reasoning capabilities on molecular structures including understanding molecular features, editing molecules, optimizing properties, and predicting reaction outcomes.",
+    "benchmark_description": "ChemCoTBench tests step-wise chemical reasoning on SMILES molecular structures. Tasks include molecule understanding (identify functional groups, ring systems), molecule editing (add/delete/substitute groups while maintaining validity), molecule optimization (modify for desired properties), and reaction prediction (products, mechanisms, conditions)."
+  },
+  "chemcotbench_mol_und": {
+    "category": "chemistry",
+    "scenario": "Improve the model's ability to analyze molecular structures and identify structural features including functional groups (hydroxyl, carboxyl, amine), ring systems (aromatic, aliphatic), and molecular scaffolds.",
+    "benchmark_description": "Molecule Understanding - Analyze SMILES strings to identify structural features: count functional groups (hydroxyl, carboxyl, amine, etc.), identify ring systems (aromatic, aliphatic), check SMILES equivalence, and generate Murcko scaffolds. Requires parsing SMILES notation and applying organic chemistry knowledge."
+  },
+  "chemcotbench_mol_edit": {
+    "category": "chemistry",
+    "scenario": "Improve the model's ability to perform precise structural modifications on molecules (add, delete, substitute functional groups) while maintaining chemical validity and molecule integrity.",
+    "benchmark_description": "Molecule Editing - Perform precise structural modifications on SMILES: add functional groups at valid positions, delete groups while maintaining molecule integrity, substitute one group for another. Output must be valid SMILES representing chemically feasible molecules."
+  },
+  "chemcotbench_mol_opt": {
+    "category": "chemistry",
+    "scenario": "Improve the model's ability to modify molecular structures to achieve target properties such as improved solubility, drug-likeness, or binding affinity to specific biological targets.",
+    "benchmark_description": "Molecule Optimization - Modify molecular structures to achieve target properties: improve solubility (logP), drug-likeness (QED), or binding affinity to specific targets (DRD, GSK, JNK). Requires understanding structure-property relationships and making chemically sensible modifications."
+  },
+  "chemcotbench_reaction": {
+    "category": "chemistry",
+    "scenario": "Improve the model's ability to predict chemical reaction outcomes including forward synthesis, retrosynthesis, mechanism selection, and reaction conditions based on functional group transformations.",
+    "benchmark_description": "Reaction Prediction - Predict chemical reaction outcomes: forward synthesis (reactants → products), retrosynthesis (products → reactants), mechanism selection, and reaction condition prediction. Requires understanding reaction types, functional group transformations, and chemical feasibility."
+  },
+
+  "tablebench_data_analysis": {
+    "category": "table_qa",
+    "scenario": "Improve the model's ability to analyze tabular data for complex questions including trend identification, correlation analysis, statistical computation, and data-driven forecasting.",
+    "benchmark_description": "Table Data Analysis - Analyze tabular data to answer complex questions: identify trends and patterns, perform correlation analysis between variables, make forecasts based on historical data, and compute statistical measures. Requires reading tables accurately and applying analytical reasoning."
+  },
+  "tablebench_fact_checking": {
+    "category": "table_qa",
+    "scenario": "Improve the model's ability to verify factual claims against tabular data through accurate data extraction, implicit relationship understanding, and multi-hop reasoning across table cells.",
+    "benchmark_description": "Table Fact Checking - Verify factual claims against tabular data. Determine if statements are supported, refuted, or not determinable from the table. Requires accurate data extraction, understanding implicit relationships, and multi-hop reasoning across table cells."
+  },
+  "tablebench_numerical_reasoning": {
+    "category": "table_qa",
+    "scenario": "Improve the model's ability to perform mathematical operations on table data including arithmetic, aggregations (sum, average, count), comparisons, percentages, and multi-step calculations.",
+    "benchmark_description": "Table Numerical Reasoning - Perform mathematical operations on table data: arithmetic (sum, difference, product), aggregations (average, count, max/min), comparisons, percentages, and multi-step calculations. Requires accurate number extraction and correct mathematical computation."
+  },
+  "tablebench_visualization": {
+    "category": "table_qa",
+    "scenario": "Improve the model's ability to generate Python code that creates appropriate visualizations (bar, line, pie, scatter charts) from tabular data with correct chart type selection and data mapping.",
+    "benchmark_description": "Table Visualization - Generate Python code to create appropriate visualizations from tabular data: bar charts, line charts, pie charts, scatter plots. Select correct chart type for data, map columns correctly to axes, and produce executable matplotlib/pandas code."
+  },
+  "tablebench_gen": {
+    "category": "table_qa",
+    "scenario": "Improve the model's overall table question answering capabilities across fact checking, numerical reasoning, data analysis, and visualization by understanding table structure and generating accurate answers.",
+    "benchmark_description": "TableBench General - Comprehensive table QA covering fact checking, numerical reasoning, data analysis, and visualization. Questions require understanding table structure, extracting relevant data, performing reasoning or computation, and generating accurate answers or code."
+  },
+
+  "FinanceIQ_ppl": {
+    "category": "finance",
+    "scenario": "Improve the model's financial domain knowledge across accounting, auditing, economics, corporate finance, insurance, securities, and tax through multiple-choice question answering with conceptual understanding and practical application.",
+    "benchmark_description": "FinanceIQ tests financial domain knowledge through multiple-choice questions. Covers accounting (GAAP, financial statements), auditing (standards, procedures), economics (micro/macro), corporate finance (valuation, capital structure), insurance, securities analysis, and tax law. Requires both conceptual understanding and practical application."
+  },
+
+  "bioprobench_gen": {
+    "category": "biology",
+    "scenario": "Improve the model's ability to generate complete, detailed experimental protocol steps from research context, including specific reagent concentrations, temperatures, incubation times, and equipment settings.",
+    "benchmark_description": "Protocol Generation - Generate complete experimental protocol steps given research context and objectives. Output detailed, actionable instructions: specify reagent concentrations, temperatures, incubation times, equipment settings. Protocols must be scientifically valid and reproducible."
+  },
+  "bioprobench_ord": {
+    "category": "biology",
+    "scenario": "Improve the model's ability to arrange shuffled experimental procedure steps in correct logical and temporal sequence by understanding procedural dependencies and scientific workflow logic.",
+    "benchmark_description": "Step Ordering - Arrange shuffled experimental procedure steps in correct logical and temporal sequence. Requires understanding procedural dependencies: which steps must precede others, timing constraints, and scientific logic of experimental workflows."
+  },
+  "bioprobench_err": {
+    "category": "biology",
+    "scenario": "Improve the model's ability to identify and correct errors in biological protocol text including incorrect temperatures, concentrations, reagents, missing steps, and procedural mistakes.",
+    "benchmark_description": "Error Correction - Identify and correct errors in biological protocol text. Errors include: incorrect temperatures (e.g., 37°C vs 4°C), wrong concentrations, inappropriate reagents, missing steps, or procedural mistakes. Requires domain expertise to spot scientifically incorrect instructions."
+  },
+  "bioprobench_pqa": {
+    "category": "biology",
+    "scenario": "Improve the model's ability to extract specific factual information from experimental protocols including temperatures, concentrations, incubation times, reagent quantities, and procedural details.",
+    "benchmark_description": "Protocol QA - Extract specific factual information from experimental protocols: temperatures, concentrations, incubation times, reagent quantities, equipment specifications, and procedural details. Requires careful reading and accurate information extraction from technical text."
+  }
+}

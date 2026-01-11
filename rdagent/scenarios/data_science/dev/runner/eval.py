@@ -100,7 +100,7 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
 
         # execute workflow
         result = implementation.run(env=env, entry="python -m coverage run main.py")
-        stdout = result.get_truncated_stdout()
+        stdout = result.stdout
         execute_ret_code = result.exit_code
         implementation.running_info.running_time = result.running_time
 

@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, List, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
@@ -242,6 +242,18 @@ class FBWorkspace(Workspace):
                 target_file_path.parent.mkdir(parents=True, exist_ok=True)
                 target_file_path.write_text(v)
 
+    def remove_files(self, file_names: str | List[str]) -> None:
+        """
+        Remove specified files from the workspace.
+        """
+        if isinstance(file_names, str):
+            file_names = [file_names]
+        for file_name in file_names:
+            target_file_path = self.workspace_path / file_name
+            if target_file_path.exists():
+                target_file_path.unlink()  # Unlink the file if it exists
+            self.file_dict.pop(file_name, None)  # Safely remove the key from file_dict
+
     def get_files(self) -> list[Path]:
         """
         Get the environment description.
@@ -264,6 +276,11 @@ class FBWorkspace(Workspace):
         """
         Load the workspace from the file_dict
         """
+        # NOTE: this is a deprecated method, use inject_from_workspace instead
+        # TODO: remove this method; it is only for compatibility with old codes
+        self.inject_from_workspace(workspace)
+
+    def inject_from_workspace(self, workspace: FBWorkspace) -> None:
         for name, code in workspace.file_dict.items():
             self.inject_files(**{name: code})
 
@@ -292,7 +309,7 @@ class FBWorkspace(Workspace):
         Before each execution, make sure to prepare and inject code.
         """
         result = self.run(env, entry)
-        return result.get_truncated_stdout()  # NOTE: truncating just for aligning with the old code.
+        return result.stdout  # NOTE: truncating just for aligning with the old code.
 
     def run(self, env: Env, entry: str) -> EnvResult:
         """
