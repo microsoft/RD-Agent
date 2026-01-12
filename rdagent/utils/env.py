@@ -687,7 +687,7 @@ class QlibCondaEnv(LocalEnv[QlibCondaConf]):
                     shell=True,
                 )
                 subprocess.check_call(
-                    f"conda run -n {self.conf.conda_env_name} pip install catboost xgboost scipy==1.11.4 tables torch",
+                    f"conda run -n {self.conf.conda_env_name} pip install catboost xgboost tables torch",
                     shell=True,
                 )
         except Exception as e:
