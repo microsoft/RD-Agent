@@ -67,8 +67,9 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
             "valid_start": mbps.valid_start,
             "valid_end": mbps.valid_end,
             "test_start": mbps.test_start,
-            "test_end": mbps.test_end,
         }
+        if mbps.test_end is not None:
+            env_to_use.update({"test_end": mbps.test_end})
 
         training_hyperparameters = exp.sub_tasks[0].training_hyperparameters
         if training_hyperparameters:

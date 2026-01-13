@@ -89,8 +89,9 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             "valid_start": fbps.valid_start,
             "valid_end": fbps.valid_end,
             "test_start": fbps.test_start,
-            "test_end": fbps.test_end,
         }
+        if fbps.test_end is not None:
+            env_to_use.update({"test_end": fbps.test_end})
 
         if exp.based_experiments:
             SOTA_factor = None

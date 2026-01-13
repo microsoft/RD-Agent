@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic_settings import SettingsConfigDict
 
 from rdagent.components.workflow.conf import BasePropSetting
@@ -43,7 +45,7 @@ class ModelBasePropSetting(BasePropSetting):
     test_start: str = "2017-01-01"
     """Start date of the test / backtest segment"""
 
-    test_end: str = "2020-08-01"
+    test_end: Optional[str] = None
     """End date of the test / backtest segment"""
 
 
@@ -87,7 +89,7 @@ class FactorBasePropSetting(BasePropSetting):
     test_start: str = "2017-01-01"
     """Start date of the test / backtest segment"""
 
-    test_end: str = "2020-08-01"
+    test_end: Optional[str] = None
     """End date of the test / backtest segment"""
 
 
@@ -164,7 +166,7 @@ class QuantBasePropSetting(BasePropSetting):
     test_start: str = "2017-01-01"
     """Start date of the test / backtest segment"""
 
-    test_end: str = "2020-08-01"
+    test_end: Optional[str] = None
     """End date of the test / backtest segment"""
 
 

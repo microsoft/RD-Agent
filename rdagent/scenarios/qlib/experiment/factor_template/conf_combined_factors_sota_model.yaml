@@ -7,7 +7,7 @@ benchmark: &benchmark SH000300
 
 data_handler_config: &data_handler_config
     start_time: {{ train_start | default("2008-01-01", true) }}
-    end_time: {{ test_end | default("2020-08-01", true) }}
+    end_time: {{ test_end | default(null, true) }}
     instruments: *market
     data_loader:
         class: NestedDataLoader
@@ -61,7 +61,7 @@ port_analysis_config: &port_analysis_config
             n_drop: 5
     backtest:
         start_time: {{ test_start | default("2017-01-01", true) }}
-        end_time: {{ test_end | default("2020-08-01", true) }}
+        end_time: {{ test_end | default(null, true) }}
         account: 100000000
         benchmark: *benchmark
         exchange_kwargs:
@@ -100,7 +100,7 @@ task:
             segments:
                 train: [{{ train_start | default("2008-01-01", true) }}, {{ train_end | default("2014-12-31", true) }}]
                 valid: [{{ valid_start | default("2015-01-01", true) }}, {{ valid_end | default("2016-12-31", true) }}]
-                test: [{{ test_start | default("2017-01-01", true) }}, {{ test_end | default("2020-08-01", true) }}]
+                test: [{{ test_start | default("2017-01-01", true) }}, {{ test_end | default(null, true) }}]
             {% if step_len %}step_len: {{ step_len }}{% endif %}
     record: 
         - class: SignalRecord
