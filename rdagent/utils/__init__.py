@@ -119,7 +119,7 @@ def filter_redundant_text(stdout: str) -> str:
     filtered_stdout = try_regex_sub(progress_bar_pattern, filtered_stdout, flags=regex.VERBOSE)
 
     # Collapse any excessive blank lines/spaces
-    filtered_stdout = try_regex_sub(r"\s*\n\s*", filtered_stdout, replace_with="\n")
+    filtered_stdout = try_regex_sub(r"\s*\n", filtered_stdout, replace_with="\n")
 
     # remove repeated lines
     lines_to_count: dict[str, int] = {}
