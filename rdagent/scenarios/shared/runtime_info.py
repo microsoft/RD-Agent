@@ -18,26 +18,29 @@ def get_gpu_info():
             print("\n=== GPU Info (via PyTorch) ===")
             print(f"CUDA Version: {torch.version.cuda}")
             print(f"GPU Count: {torch.cuda.device_count()}")
-            gpu_name_list = []
-            gpu_total_mem_list = []
-            gpu_allocated_mem_list = []
-            gpu_cached_mem_list = []
+            if torch.cuda.device_count() > 0:
+                gpu_name_list = []
+                gpu_total_mem_list = []
+                gpu_allocated_mem_list = []
+                gpu_cached_mem_list = []
 
-            for i in range(torch.cuda.device_count()):
-                gpu_name_list.append(torch.cuda.get_device_name(i))
-                gpu_total_mem_list.append(torch.cuda.get_device_properties(i).total_memory)
-                gpu_allocated_mem_list.append(torch.cuda.memory_allocated(i))
-                gpu_cached_mem_list.append(torch.cuda.memory_reserved(i))
+                for i in range(torch.cuda.device_count()):
+                    gpu_name_list.append(torch.cuda.get_device_name(i))
+                    gpu_total_mem_list.append(torch.cuda.get_device_properties(i).total_memory)
+                    gpu_allocated_mem_list.append(torch.cuda.memory_allocated(i))
+                    gpu_cached_mem_list.append(torch.cuda.memory_reserved(i))
 
-            for i in range(torch.cuda.device_count()):
-                print(f"  - GPU {i}: {gpu_name_list[i]}")
-                print(f"    Total Memory: {gpu_total_mem_list[i] / 1024**3:.2f} GB")
-                print(f"    Allocated Memory: {gpu_allocated_mem_list[i] / 1024**3:.2f} GB")
-                print(f"    Cached Memory: {gpu_cached_mem_list[i] / 1024**3:.2f} GB")
-            print("  - All GPUs Summary:")
-            print(f"    Total Memory: {sum(gpu_total_mem_list) / 1024**3:.2f} GB")
-            print(f"    Total Allocated Memory: {sum(gpu_allocated_mem_list) / 1024**3:.2f} GB")
-            print(f"    Total Cached Memory: {sum(gpu_cached_mem_list) / 1024**3:.2f} GB")
+                for i in range(torch.cuda.device_count()):
+                    print(f"  - GPU {i}: {gpu_name_list[i]}")
+                    print(f"    Total Memory: {gpu_total_mem_list[i] / 1024**3:.2f} GB")
+                    print(f"    Allocated Memory: {gpu_allocated_mem_list[i] / 1024**3:.2f} GB")
+                    print(f"    Cached Memory: {gpu_cached_mem_list[i] / 1024**3:.2f} GB")
+                print("  - All GPUs Summary:")
+                print(f"    Total Memory: {sum(gpu_total_mem_list) / 1024**3:.2f} GB")
+                print(f"    Total Allocated Memory: {sum(gpu_allocated_mem_list) / 1024**3:.2f} GB")
+                print(f"    Total Cached Memory: {sum(gpu_cached_mem_list) / 1024**3:.2f} GB")
+            else:
+                print("No CUDA GPU detected (PyTorch)!")
         else:
             print("\nNo CUDA GPU detected (PyTorch).")
 
