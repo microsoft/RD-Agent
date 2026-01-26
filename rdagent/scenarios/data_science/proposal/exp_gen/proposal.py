@@ -649,10 +649,8 @@ class DSProposalV2ExpGen(ExpGen):
 
         # knowledge retrieval
         if DS_RD_SETTING.enable_research_rag:
-            rag_agent = RAGAgent(
-                system_prompt="""You are a helpful assistant.
-You help users retrieve relevant knowledge from community discussions and public code."""
-            )
+            rag_agent = RAGAgent(system_prompt="""You are a helpful assistant.
+You help users retrieve relevant knowledge from community discussions and public code.""")
             knowledge = rag_agent.query(problem_formatted_str)
         else:
             knowledge = None

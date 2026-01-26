@@ -463,9 +463,7 @@ def __deduplicate_factor_dict(factor_dict: dict[str, dict[str, str]]) -> list[li
         description = factor_dict[factor_name]["description"]
         formulation = factor_dict[factor_name]["formulation"]
         variables = factor_dict[factor_name]["variables"]
-        factor_name_to_full_str[
-            factor_name
-        ] = f"""Factor name: {factor_name}
+        factor_name_to_full_str[factor_name] = f"""Factor name: {factor_name}
 Factor description: {description}
 Factor formulation: {formulation}
 Factor variables: {variables}

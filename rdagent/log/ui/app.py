@@ -561,11 +561,9 @@ def research_window():
             if hg := state.msgs[round]["hypothesis generation"]:
                 st.markdown("**Hypothesis💡**")  # 🧠
                 h: Hypothesis = hg[0].content
-                st.markdown(
-                    f"""
+                st.markdown(f"""
 - **Hypothesis**: {h.hypothesis}
-- **Reason**: {h.reason}"""
-                )
+- **Reason**: {h.reason}""")
 
             if eg := state.msgs[round]["experiment generation"]:
                 tasks_window(eg[0].content)
@@ -644,14 +642,12 @@ def feedback_window():
                     st.plotly_chart(fig)
                 st.markdown("**Hypothesis Feedback🔍**")
                 h: HypothesisFeedback = fb[0].content
-                st.markdown(
-                    f"""
+                st.markdown(f"""
 - **Observations**: {h.observations}
 - **Hypothesis Evaluation**: {h.hypothesis_evaluation}
 - **New Hypothesis**: {h.new_hypothesis}
 - **Decision**: {h.decision}
-- **Reason**: {h.reason}"""
-                )
+- **Reason**: {h.reason}""")
 
             if isinstance(state.scenario, KGScenario):
                 if fbe := state.msgs[round]["runner result"]:
