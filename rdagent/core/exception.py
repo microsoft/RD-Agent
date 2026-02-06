@@ -13,7 +13,7 @@ class FormatError(WorkflowError):
 class CodeBlockParseError(FormatError):
     """Raised when code block extraction fails after all strategies."""
 
-    def __init__(self, message: str, content: str, language: str):
+    def __init__(self, message: str, content: str, language: str) -> None:
         self.message = message
         self.content = content
         self.language = language
@@ -73,4 +73,9 @@ class KaggleError(Exception):
 class PolicyError(Exception):
     """
     Exceptions raised due to content management policy
+    """
+
+class EvaluatorDidNotTerminateError(RuntimeError):
+    """
+    Evaluator generator did not terminate with a final Feedback.
     """

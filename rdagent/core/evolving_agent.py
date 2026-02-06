@@ -16,6 +16,7 @@ from rdagent.core.evolving_framework import (
     IterEvaluator,
     RAGStrategy,
 )
+from rdagent.core.exception import EvaluatorDidNotTerminateError
 from rdagent.log import rdagent_logger as logger
 
 ASpecificEvaluator = TypeVar("ASpecificEvaluator", bound=Evaluator)
@@ -132,7 +133,7 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
                 fb = eva_iter.send(evo)
                 if not fb:
                     eval_failed_happened = True
-            raise RuntimeError("Evaluator did not terminate with a final Feedback")
+            raise EvaluatorDidNotTerminateError
         except StopIteration as e:
             return cast("Feedback", e.value)
 
@@ -165,16 +166,16 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
                 )
                 next(eva_iter)  # kick off the first iteration
                 eval_failed_happened = False
-                for evo in evo_iter:
-                    step_feedback = eva_iter.send(evo)
+                for evolved_evo in evo_iter:
+                    step_feedback = eva_iter.send(evolved_evo)
                     if not step_feedback:
                         eval_failed_happened = True
                         if self.stop_eval_chain_on_fail:
                             break
-                overall_feedback = self._get_overall_feedback(eva_iter, evo, eval_failed_happened)
+                overall_feedback = self._get_overall_feedback(eva_iter, evolved_evo, eval_failed_happened)
 
                 # 3. Pack evolve results
-                es = EvoStep[ASpecificEvolvableSubjects](evo, queried_knowledge, overall_feedback)
+                es = EvoStep[ASpecificEvolvableSubjects](evolved_evo, queried_knowledge, overall_feedback)
 
                 # 4. Evaluation
                 logger.log_object(es.feedback, tag="evolving feedback")

@@ -455,7 +455,7 @@ class Experiment2Feedback(ABC):
 
     @abstractmethod
     def generate_feedback(
-        self, exp: Experiment, trace: Trace, exception: Exception | None = None
+        self, exp: Experiment, trace: Trace, exception: Exception | None = None,
     ) -> ExperimentFeedback:
         """
         The `exp` should be executed and the results should be included, as well as the comparison
