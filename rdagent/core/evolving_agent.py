@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Generator
 from contextlib import nullcontext
-from typing import Any, Generic, TypeVar
+from typing import Generic, TypeVar, cast
 
 from filelock import FileLock
 from tqdm import tqdm
@@ -43,7 +43,9 @@ class RAGEvaluator(IterEvaluator):
 
     @abstractmethod
     def evaluate_iter(
-        self, queried_knowledge: object = None, evolving_trace: list[EvoStep] = []
+        self,
+        queried_knowledge: object | None = None,
+        evolving_trace: list[EvoStep] | None = None,
     ) -> Generator[Feedback, EvaluableObj | None, Feedback]:
         """
 
@@ -115,20 +117,24 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
         self.stop_eval_chain_on_fail = stop_eval_chain_on_fail
 
     def _get_overall_feedback(
-        self, eva_iter: Generator[Any, Any, Feedback], evo: EvolvableSubjects, eval_failed_happened: bool
+        self,
+        eva_iter: Generator[Feedback, EvaluableObj | None, Feedback],
+        evo: EvolvableSubjects,
+        eval_failed_happened: bool,
     ) -> Feedback:
         """get overall feedback from eva_iter"""
         try:
             if self.stop_eval_chain_on_fail and eval_failed_happened:
                 fb = eva_iter.send(
-                    None
+                    None,
                 )  # send the signal to skip the rest partial evaluation and return the overall feedback directly
             else:
                 fb = eva_iter.send(evo)
                 if not fb:
                     eval_failed_happened = True
+            raise RuntimeError("Evaluator did not terminate with a final Feedback")
         except StopIteration as e:
-            return e.value
+            return cast("Feedback", e.value)
 
     def multistep_evolve(
         self,
@@ -186,6 +192,6 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
                 yield evo  # yield the control to caller for process control and logging.
 
                 # 7. check if all tasks are completed
-                if es.feedback.finished():
+                if es.feedback is not None and es.feedback.finished():
                     logger.info("All tasks in evolving subject have been completed.")
                     break

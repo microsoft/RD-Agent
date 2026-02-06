@@ -3,7 +3,8 @@ from __future__ import annotations
 import copy
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Generator, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from collections.abc import Generator
 
 from rdagent.core.evaluation import EvaluableObj, Evaluator
 from rdagent.core.knowledge_base import KnowledgeBase
@@ -61,11 +62,12 @@ class EvolvingStrategy(ABC, Generic[ASpecificEvolvableSubjects]):
     def __init__(self, scen: Scenario) -> None:
         self.scen = scen
 
+    @abstractmethod
     def evolve_iter(
         self,
         evo: ASpecificEvolvableSubjects,
-        queried_knowledge: QueriedKnowledge = None,
-        evolving_trace: list[EvoStep] = [],
+        queried_knowledge: QueriedKnowledge | None = None,
+        evolving_trace: list[EvoStep] | None = None,
     ) -> Generator[ASpecificEvolvableSubjects, None, None]:
         """
         The evolving trace is a list of (evolvable_subjects, feedback) ordered

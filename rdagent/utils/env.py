@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Callable, Generator, Generic, Mapping, Optional, TypeVar, cast
+from typing import Any, Callable, Generator, Generic, Mapping, Optional, TypeVar, cast, Dict, Iterable, Deque
 
 import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
@@ -203,6 +203,11 @@ class EnvResult:
     It contains the stdout, the exit code, and the running time in seconds.
     """
 
+    full_stdout: str
+    exit_code: int
+    running_time: float
+    stored_full_stdout_to_truncated_stdout: Dict[str, str]
+
     def __init__(self, stdout: str, exit_code: int, running_time: float):
         self.full_stdout = stdout
         self.exit_code = exit_code
@@ -215,16 +220,15 @@ class EnvResult:
     @property
     def stdout(self) -> str:
         if self.full_stdout not in self.stored_full_stdout_to_truncated_stdout:
-            self.stored_full_stdout_to_truncated_stdout[self.full_stdout] = self._get_truncated_stdout(
-                full_stdout=self.full_stdout
-            )
+            truncated: str = self._get_truncated_stdout(self.full_stdout)
+            self.stored_full_stdout_to_truncated_stdout[self.full_stdout] = truncated
         return self.stored_full_stdout_to_truncated_stdout[self.full_stdout]
 
-    def hash_full_stdout(self, full_stdout) -> str:
+    def hash_full_stdout(self, full_stdout: str) -> str:
         return md5_hash(full_stdout)
 
     @cache_with_pickle(hash_full_stdout)
-    def _get_truncated_stdout(self, full_stdout) -> str:
+    def _get_truncated_stdout(self, full_stdout: str) -> str:
         return shrink_text(
             filter_redundant_text(full_stdout),
             context_lines=RD_AGENT_SETTINGS.stdout_context_len,
@@ -289,29 +293,18 @@ class Env(Generic[ASpecificEnvConf]):
         entry: str | None = None,
         local_path: str = ".",
         env: dict | None = None,
-        **kwargs: dict,
+        running_extra_volume: Mapping = MappingProxyType({}),
+        cache_key_extra_func: CacheKeyFunc | None = None,
+        cache_files_to_extract: list[str] | None = None,
     ) -> str:
-        """
-        Run the folder under the environment.
-
-        Parameters
-        ----------
-        entry : str | None
-            We may we the entry point when we run it.
-            For example, we may have different entries when we run and summarize the project.
-        local_path : str | None
-            the local path (to project, mainly for code) will be mounted into the docker
-            Here are some examples for a None local path
-            - for example, run docker for updating the data in the extra_volumes.
-            - simply run the image. The results are produced by output or network
-        env : dict | None
-            Run the code with your specific environment.
-
-        Returns
-        -------
-            the stdout
-        """
-        result = self.run(entry=entry, local_path=local_path, env=env, **kwargs)
+        result = self.run(
+            entry=entry,
+            local_path=local_path,
+            env=env,
+            running_extra_volume=running_extra_volume,
+            cache_key_extra_func=cache_key_extra_func,
+            cache_files_to_extract=cache_files_to_extract,
+        )
         return result.stdout
 
     def __run_with_retry(
@@ -452,7 +445,7 @@ class Env(Generic[ASpecificEnvConf]):
                 running_extra_volume,
             )
         if self.conf.redirect_stdout_to_file:
-            stdout = log_file.read_text(errors='replace')
+            stdout = log_file.read_text(errors="replace")
             log_file.unlink(missing_ok=True)
             result.update_stdout(stdout)
         if str(Path(local_path).resolve()) in result.stdout:
@@ -799,7 +792,7 @@ class DockerConf(EnvConf):
 
     retry_count: int = 5  # retry count for the docker run
     retry_wait_seconds: int = 10  # retry wait seconds for the docker run
-
+    save_logs_to_file: bool = True
     terminal_tail_lines: int = 20
 
     @model_validator(mode="after")
@@ -1299,7 +1292,7 @@ class DockerEnv(Env[DockerConf]):
         header += "=" * 80 + "\n\n"
         return header
 
-    def _process_container_logs(self, logs, local_path: str = ".", entry: str | None = None) -> str:
+    def _process_container_logs(self, logs: Iterable[bytes], local_path: str = ".", entry: str | None = None) -> str:
         """
         Process Docker container logs with optional tail mode.
 
@@ -1346,9 +1339,9 @@ class DockerEnv(Env[DockerConf]):
         # Process logs with tail mode
         if use_tail_mode:
 
-            log_buffer = deque(maxlen=self.conf.terminal_tail_lines)
+            log_buffer: Deque[str] = deque(maxlen=self.conf.terminal_tail_lines)
 
-            def format_tail_display():
+            def format_tail_display() -> Text:
                 text = Text()
                 text.append(
                     f"[Showing last {len(log_buffer)}/{self.conf.terminal_tail_lines} lines",
