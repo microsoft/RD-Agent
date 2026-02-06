@@ -141,7 +141,9 @@ def extract_baseline_scores(task_path: Path) -> dict[str, tuple[str, float, bool
     return {"validation": None, "test": None}
 
 
-def get_loop_status(task_path: Path, loop_id: int) -> tuple[str, float | None, float | None, str | None, bool | None, bool]:
+def get_loop_status(
+    task_path: Path, loop_id: int
+) -> tuple[str, float | None, float | None, str | None, bool | None, bool]:
     """
     Get loop status, validation score, test score, metric name with direction arrow, feedback decision, and direction.
     Returns: (status_str, val_score_or_none, test_score_or_none, metric_display_or_none, feedback_decision, higher_is_better)
@@ -263,7 +265,9 @@ def get_job_summary_df(job_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
         decision_row["Baseline"] = None
 
         for i in range(max_loops):
-            status, val_score, test_score, metric_name, feedback_decision, higher_is_better = get_loop_status(task_path, i)
+            status, val_score, test_score, metric_name, feedback_decision, higher_is_better = get_loop_status(
+                task_path, i
+            )
             row[f"L{i}"] = status
             decision_row[f"L{i}"] = feedback_decision
             if val_score is not None:
@@ -272,8 +276,9 @@ def get_job_summary_df(job_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
                     best_val_score = val_score
                     best_higher_is_better = higher_is_better
                     best_metric = metric_name
-                elif (higher_is_better and val_score > best_val_score) or \
-                     (not higher_is_better and val_score < best_val_score):
+                elif (higher_is_better and val_score > best_val_score) or (
+                    not higher_is_better and val_score < best_val_score
+                ):
                     best_val_score = val_score
                     best_higher_is_better = higher_is_better
                     best_metric = metric_name
@@ -281,8 +286,9 @@ def get_job_summary_df(job_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
                 # Use same direction as validation score for consistency
                 if best_test_score is None:
                     best_test_score = test_score
-                elif (best_higher_is_better and test_score > best_test_score) or \
-                     (not best_higher_is_better and test_score < best_test_score):
+                elif (best_higher_is_better and test_score > best_test_score) or (
+                    not best_higher_is_better and test_score < best_test_score
+                ):
                     best_test_score = test_score
 
         # Show best validation and test scores

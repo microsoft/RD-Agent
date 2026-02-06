@@ -330,7 +330,7 @@ def get_benchmark_env(
     benchmark_volumes = {}
     # Setup finetune share folder mount for models
     (FT_RD_SETTING.file_path / "benchmarks").mkdir(parents=True, exist_ok=True)
-    # NOTE: we choose a folder in the workspace as the mount point due to we may run multiple instances in same 
+    # NOTE: we choose a folder in the workspace as the mount point due to we may run multiple instances in same
     # host machine. If conda env is used, the mount point will conflict with each other.
     benchmark_volumes[str((FT_RD_SETTING.file_path / "benchmarks").resolve())] = {
         "bind": "./benchmarks",

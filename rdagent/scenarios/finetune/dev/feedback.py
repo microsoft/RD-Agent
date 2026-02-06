@@ -104,7 +104,9 @@ class FTExperiment2Feedback(Experiment2Feedback):
                 # Sample train entries if too many to avoid token bloat
                 if len(loss_history.get("train", [])) > 60:
                     loss_history["train"] = loss_history["train"][:30] + loss_history["train"][-30:]
-                training_metrics = {"loss_history": loss_history} if (loss_history.get("train") or loss_history.get("eval")) else {}
+                training_metrics = (
+                    {"loss_history": loss_history} if (loss_history.get("train") or loss_history.get("eval")) else {}
+                )
             else:
                 # Legacy format: exp_result is directly the benchmark result (list of dicts)
                 benchmark = {"accuracy_summary": exp_result, "error_samples": []}
