@@ -7,8 +7,8 @@ import pickle
 from pathlib import Path
 
 import pandas as pd
-from pandas.io.formats.style import Styler
 import streamlit as st
+from pandas.io.formats.style import Styler
 
 from rdagent.app.finetune.llm.ui.benchmarks import get_core_metric_score
 

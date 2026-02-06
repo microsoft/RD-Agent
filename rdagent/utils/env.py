@@ -24,7 +24,19 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Callable, Generator, Generic, Mapping, Optional, TypeVar, cast, Dict, Iterable, Deque
+from typing import (
+    Any,
+    Callable,
+    Deque,
+    Dict,
+    Generator,
+    Generic,
+    Iterable,
+    Mapping,
+    Optional,
+    TypeVar,
+    cast,
+)
 
 import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import copy
 from abc import ABC, abstractmethod
+from collections.abc import Generator
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
-from collections.abc import Generator
 
 from rdagent.core.evaluation import EvaluableObj, Evaluator
 from rdagent.core.knowledge_base import KnowledgeBase
