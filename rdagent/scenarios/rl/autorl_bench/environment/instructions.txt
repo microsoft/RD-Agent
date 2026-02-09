@@ -37,3 +37,4 @@ curl "$GRADING_SERVER_URL/best"
 ## 注意
 - 可多次提交，系统记录最高分
 - 合理利用时间
+- **重要**: trl 保存模型后，`tokenizer_config.json` 中的 `extra_special_tokens` 会被保存为 list 格式，但 vLLM/transformers 加载时需要 dict 格式。保存模型后需删除该字段，否则评测会失败。
