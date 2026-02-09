@@ -6,9 +6,7 @@ echo "Task: $TASK"
 echo "Model: $BASE_MODEL"
 echo "Workspace: $WORKSPACE"
 
-cd /Data/home/v-wanyichen/cwy/program/RD-Agent
-
-# 加载 .env 配置
+# 加载 .env 配置（启动时已在 RD-Agent 目录）
 if [ -f .env ]; then
     export $(grep -v '^#' .env | xargs)
     echo "Loaded .env"

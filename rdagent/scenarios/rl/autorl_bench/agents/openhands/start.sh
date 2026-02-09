@@ -8,8 +8,7 @@ echo "Workspace: $WORKSPACE"
 echo "Grading Server: $GRADING_SERVER_URL"
 echo "Output Dir: $OUTPUT_DIR"
 
-# 加载 .env 配置（包含 LLM API Key）
-cd /Data/home/v-wanyichen/cwy/program/RD-Agent
+# 加载 .env 配置（启动时已在 RD-Agent 目录）
 if [ -f .env ]; then
     export $(grep -v '^#' .env | xargs)
     echo "Loaded .env"
@@ -22,11 +21,12 @@ export LLM_MODEL="${LLM_MODEL:-${CHAT_MODEL:-gpt-5}}"
 export LLM_BASE_URL="${OPENAI_API_BASE}"
 echo "LLM Model: $LLM_MODEL"
 
-# 激活 openhands 环境
-source ~/cwy/miniconda3/bin/activate openhands
+# 激活 openhands 环境（从 .env 读取）
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate "${CONDA_ENV_OPENHANDS:-openhands}"
 
-# 运行 openhands-rl
-cd /Data/home/v-wanyichen/cwy/program/cwy/openhands-rl
+# 运行 openhands-rl（从 .env 读取路径）
+cd "${OPENHANDS_RL_ROOT:-$HOME/openhands-rl}"
 
 python main.py \
     --benchmark "$TASK" \
