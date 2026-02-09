@@ -1,5 +1,0 @@
-# ALFWorld 评测依赖
-alfworld>=0.4.0
-openai  # API 模式
-pyyaml
-numpy

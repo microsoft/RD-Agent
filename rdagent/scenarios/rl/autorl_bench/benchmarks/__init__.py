@@ -1,0 +1,86 @@
+"""
+AutoRL-Bench Benchmarks Registry
+
+注册表，管理所有可用的 benchmark 评测器。
+添加新 benchmark 时，在此注册。
+"""
+import importlib
+from dataclasses import dataclass, field
+from typing import Any, Dict, Optional, Type
+
+from rdagent.scenarios.rl.autorl_bench.core.evaluator import BaseEvaluator
+
+
+@dataclass
+class BenchmarkConfig:
+    """Benchmark 配置"""
+    id: str
+    evaluator_class: str  # 评测器类的完整路径
+    data_source: str  # 数据来源（HuggingFace dataset 或 Git repo）
+    description: str = ""
+    eval_config: Optional[Dict[str, Any]] = field(default=None)
+
+
+# Benchmark 注册表
+BENCHMARKS: Dict[str, BenchmarkConfig] = {
+    # ============================================================
+    # OpenCompass 类 benchmark（只需配置，不需要 eval.py）
+    # ============================================================
+    "gsm8k": BenchmarkConfig(
+        id="gsm8k",
+        evaluator_class="rdagent.scenarios.rl.autorl_bench.core.opencompass.OpenCompassEvaluator",
+        data_source="openai/gsm8k",
+        description="Grade School Math 8K - 小学数学推理",
+        eval_config={
+            "dataset": "opencompass.configs.datasets.gsm8k.gsm8k_gen_1d7fe4",
+        },
+    ),
+    "math": BenchmarkConfig(
+        id="math",
+        evaluator_class="rdagent.scenarios.rl.autorl_bench.core.opencompass.OpenCompassEvaluator",
+        data_source="lighteval/MATH",
+        description="MATH - 竞赛级数学题",
+        eval_config={
+            "dataset": "opencompass.configs.datasets.math.math_0shot_gen_393424",
+        },
+    ),
+    
+    # ============================================================
+    # 自定义评测 benchmark（需要 eval.py）
+    # ============================================================
+    "alfworld": BenchmarkConfig(
+        id="alfworld",
+        evaluator_class="rdagent.scenarios.rl.autorl_bench.benchmarks.alfworld.eval.ALFWorldEvaluator",
+        data_source="https://github.com/alfworld/alfworld.git",
+        description="ALFWorld - 文本游戏交互环境",
+        eval_config={
+            "max_steps": 50,
+            "env_num": 140,
+        },
+    ),
+}
+
+
+def get_benchmark(benchmark_id: str) -> BenchmarkConfig:
+    """获取 benchmark 配置"""
+    if benchmark_id not in BENCHMARKS:
+        available = list(BENCHMARKS.keys())
+        raise ValueError(f"Unknown benchmark: {benchmark_id}. Available: {available}")
+    return BENCHMARKS[benchmark_id]
+
+
+def get_evaluator(benchmark_id: str) -> BaseEvaluator:
+    """获取 benchmark 的评测器实例"""
+    config = get_benchmark(benchmark_id)
+    
+    # 动态导入评测器类
+    module_path, class_name = config.evaluator_class.rsplit(".", 1)
+    module = importlib.import_module(module_path)
+    evaluator_class: Type[BaseEvaluator] = getattr(module, class_name)
+    
+    return evaluator_class(config)
+
+
+def list_benchmarks() -> list[str]:
+    """列出所有可用的 benchmark"""
+    return list(BENCHMARKS.keys())

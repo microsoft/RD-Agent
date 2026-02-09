@@ -37,11 +37,7 @@ def get_results_dir() -> Path:
 
 
 def get_instructions_file() -> Path:
-    return get_autorl_bench_dir() / "environment" / "instructions.txt"
-
-
-def get_grading_server_script() -> Path:
-    return get_autorl_bench_dir() / "environment" / "grading_server.py"
+    return get_autorl_bench_dir() / "core" / "instructions.txt"
 
 
 def get_models_dir() -> Path:

@@ -1,18 +1,13 @@
 """
 测试 benchmark 评测功能
 
-真实流程：启动 grading_server，提交模型到 /submit
-
 用法:
     python -m rdagent.scenarios.rl.autorl_bench.test.test_benchmark \
-        --model-path /Data/home/v-wanyichen/cwy/model/Qwen2.5-Coder-0.5B-Instruct \
+        --model-path /path/to/model \
         --task gsm8k
 """
 import argparse
 import json
-import os
-import signal
-import subprocess
 import sys
 import time
 from pathlib import Path
@@ -47,27 +42,23 @@ def main():
     workspace = get_workspace_dir() / args.task
     workspace.mkdir(parents=True, exist_ok=True)
     print(f"Workspace: {workspace}")
-    print(f"Model: {model_path}")
 
     # 启动 grading_server
-    env = os.environ.copy()
-    env["TASK"] = args.task
-    env["BASE_MODEL"] = model_name
-    env["WORKSPACE"] = str(workspace)
-    env["OUTPUT_DIR"] = str(model_path)
-
+    from rdagent.scenarios.rl.autorl_bench.core.server import init_server, app
+    import threading
+    
+    server = init_server(args.task, model_name, str(workspace))
+    
     print(f"Starting grading server on port {args.port}...")
-    server_proc = subprocess.Popen(
-        [sys.executable, "-m", "rdagent.scenarios.rl.autorl_bench.environment.grading_server",
-         "--port", str(args.port)],
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+    server_thread = threading.Thread(
+        target=lambda: app.run(host="0.0.0.0", port=args.port, debug=False, threaded=False),
+        daemon=True
     )
-
+    server_thread.start()
+    
     # 等待 server 启动
-    for i in range(30):
-        time.sleep(1)
+    for i in range(10):
+        time.sleep(0.5)
         try:
             resp = requests.get(f"{grading_url}/health", timeout=2)
             if resp.status_code == 200:
@@ -77,54 +68,41 @@ def main():
             pass
     else:
         print("[ERROR] Grading server failed to start")
-        server_proc.kill()
         return 1
 
-    try:
-        # 提交评测
-        print("-" * 50)
-        print("Submitting model for evaluation...")
-        print(f"POST {grading_url}/submit")
-        
-        start_time = time.time()
-        resp = requests.post(
-            f"{grading_url}/submit",
-            json={"model_path": str(model_path)},
-            timeout=3600,
-        )
-        elapsed = time.time() - start_time
+    # 提交评测
+    print("-" * 50)
+    print("Submitting model for evaluation...")
+    print(f"POST {grading_url}/submit")
+    
+    start_time = time.time()
+    resp = requests.post(
+        f"{grading_url}/submit",
+        json={"model_path": str(model_path)},
+        timeout=3600,
+    )
+    elapsed = time.time() - start_time
 
+    print("-" * 50)
+    print(f"Response status: {resp.status_code}")
+    print(f"Elapsed: {elapsed:.2f}s")
+    print("Result:")
+    
+    if resp.status_code == 200:
+        result = resp.json()
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        score = result.get("score", 0)
         print("-" * 50)
-        print(f"Response status: {resp.status_code}")
-        print(f"Elapsed: {elapsed:.2f}s")
-        print("Result:")
-        if resp.status_code == 200:
-            print(json.dumps(resp.json(), indent=2, ensure_ascii=False))
+        if score > 0:
+            print(f"[SUCCESS] Score: {score}")
         else:
-            print(f"Error response: {resp.text}")
-
-        if resp.status_code == 200:
-            result = resp.json()
-            score = result.get("score", 0)
-            print("-" * 50)
-            if score > 0:
-                print(f"[SUCCESS] Score: {score}")
-            else:
-                print(f"[FAILED] Score: {score}")
-                if "error" in result.get("metrics", {}):
-                    print(f"Error: {result['metrics']['error']}")
-        else:
-            print("-" * 50)
-            print(f"[ERROR] Server returned {resp.status_code}")
-
-    finally:
-        # 停止 server
+            print(f"[FAILED] Score: {score}")
+    else:
+        print(f"Error response: {resp.text}")
         print("-" * 50)
-        print("Stopping grading server...")
-        server_proc.send_signal(signal.SIGTERM)
-        server_proc.wait(timeout=5)
-        print("Done.")
+        print(f"[ERROR] Server returned {resp.status_code}")
 
+    print("Done.")
     return 0
 
 
