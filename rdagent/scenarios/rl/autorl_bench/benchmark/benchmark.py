@@ -76,6 +76,19 @@ def run_benchmark(
         评测结果字典，包含 accuracy_summary, score 等
     """
     task_config = get_task(benchmark_name)
+
+    """
+    # only keep the following code
+    eval_module = importlib.import_module(
+        f"rdagent.scenarios.rl.autorl_bench.tasks.{benchmark_name}.eval"
+    )
+    return eval_module.run_eval(
+        workspace_path=workspace_path,
+        model_path=model_path,
+        task_config=task_config,
+    )
+    # f"rdagent.scenarios.rl.autorl_bench.tasks.opencompass_adaptor.eval"
+    """
     
     if task_config.eval_type == "opencompass":
         return _run_opencompass_eval(

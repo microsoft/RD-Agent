@@ -180,6 +180,9 @@ def submit():
 
 @app.route("/best", methods=["GET"])
 def best():
+    # TODO:
+    # It is not general enough
+    # _function_name
     start_time = time.time()
     scores = load_scores()
     
