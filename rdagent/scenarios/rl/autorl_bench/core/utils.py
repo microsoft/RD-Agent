@@ -7,6 +7,8 @@ import json
 import os
 import re
 import subprocess
+import threading
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -17,10 +19,12 @@ from huggingface_hub import snapshot_download
 from loguru import logger
 
 from rdagent.scenarios.rl.autorl_bench.conf import (
-    get_models_dir,
-    get_data_dir,
+    AUTORL_BENCH_SETTING,
     get_baseline_cache_dir,
+    get_data_dir,
+    get_models_dir,
 )
+from rdagent.scenarios.rl.autorl_bench.core.server import app, init_server
 
 
 # ============================================================
@@ -45,9 +49,7 @@ def download_model(model_name: str, model_dir: Optional[str] = None) -> str:
 
 def download_data(task: str, data_dir: Optional[str] = None) -> str:
     """下载数据（已存在则跳过）"""
-    # 延迟导入避免循环依赖
     from rdagent.scenarios.rl.autorl_bench.benchmarks import get_benchmark
-    
     config = get_benchmark(task)
     base_dir = Path(data_dir) if data_dir else get_data_dir()
     target_dir = base_dir / task
@@ -105,9 +107,7 @@ def get_baseline_score(
     test_range: str = "[:100]",
     force_rerun: bool = False,
 ) -> float:
-    """
-    获取 baseline score（有缓存则读缓存，没有则评测）
-    """
+    """获取 baseline score（有缓存则读缓存，没有则评测）"""
     safe_name = _safe_model_name(model_name)
     cache_file = get_baseline_cache_dir() / f"{task}_{safe_name}.json"
     
@@ -121,10 +121,9 @@ def get_baseline_score(
         except Exception as e:
             logger.warning(f"Failed to read cache: {e}")
     
-    # 执行评测（延迟导入避免循环依赖）
+    # 执行评测
     logger.info(f"Running baseline evaluation: task={task}, model={model_name}")
     from rdagent.scenarios.rl.autorl_bench.benchmarks import get_evaluator
-    
     evaluator = get_evaluator(task)
     result = evaluator.run_eval(
         model_path=model_path,
@@ -192,3 +191,155 @@ def set_baseline_to_server(score: float, grading_url: Optional[str] = None) -> b
     except Exception as e:
         logger.warning(f"Failed to set baseline: {e}")
         return False
+
+
+# ============================================================
+# Grading Server 上下文管理器
+# ============================================================
+
+class GradingServerContext:
+    """Grading Server 基类"""
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, *args):
+        pass
+    
+    def get_baseline(self, task: str, model_name: str, model_path: str, workspace_path: str) -> float:
+        raise NotImplementedError
+    
+    def load_scores(self) -> list:
+        raise NotImplementedError
+
+
+class LocalServerContext(GradingServerContext):
+    """本地 Flask Server"""
+    
+    def __init__(self, task: str, base_model: str, workspace: str, port: int):
+        self.task = task
+        self.base_model = base_model
+        self.workspace = workspace
+        self.port = port
+        self.server = None
+    
+    def __enter__(self):
+        logger.info(f"[Local Mode] Starting evaluation server on port {self.port}...")
+        self.server = init_server(self.task, self.base_model, self.workspace)
+        
+        server_thread = threading.Thread(
+            target=lambda: app.run(host="0.0.0.0", port=self.port, debug=False, threaded=False),
+            daemon=True
+        )
+        server_thread.start()
+        time.sleep(2)
+        return self
+    
+    def get_baseline(self, task: str, model_name: str, model_path: str, workspace_path: str) -> float:
+        baseline = get_baseline_score(task, model_name, model_path, workspace_path)
+        self.server.set_baseline(baseline)
+        return baseline
+    
+    def load_scores(self) -> list:
+        return self.server.load_scores() if self.server else []
+
+
+class DockerServerContext(GradingServerContext):
+    """Docker 容器 Server"""
+    
+    def __init__(self, benchmark_id: str, docker_image: str, dockerfile_dir: Path, workspace: Path, port: int):
+        self.benchmark_id = benchmark_id
+        self.docker_image = docker_image
+        self.dockerfile_dir = dockerfile_dir
+        self.workspace = workspace
+        self.port = port
+        self.container_name = None
+    
+    def __enter__(self):
+        logger.info(f"[Docker Mode] Starting evaluation server...")
+        self.container_name = start_docker_server(
+            self.benchmark_id, self.docker_image, self.dockerfile_dir, self.workspace, self.port
+        )
+        time.sleep(5)
+        return self
+    
+    def __exit__(self, *args):
+        if self.container_name:
+            stop_docker_server(self.container_name)
+    
+    def get_baseline(self, task: str, model_name: str, model_path: str, workspace_path: str) -> float:
+        return 0.0  # Docker 模式暂不评测 baseline
+    
+    def load_scores(self) -> list:
+        return []  # TODO: 从 Docker 容器获取
+
+
+def create_grading_server(benchmark, workspace: Path, port: int, base_model: str) -> GradingServerContext:
+    """工厂函数：根据 benchmark 配置创建对应的 Server 上下文"""
+    from rdagent.scenarios.rl.autorl_bench.benchmarks import BENCHMARKS_DIR
+    if benchmark.use_docker:
+        return DockerServerContext(
+            benchmark_id=benchmark.id,
+            docker_image=benchmark.docker_image,
+            dockerfile_dir=BENCHMARKS_DIR / benchmark.id,
+            workspace=workspace,
+            port=port,
+        )
+    else:
+        return LocalServerContext(
+            task=benchmark.id,
+            base_model=base_model,
+            workspace=str(workspace),
+            port=port,
+        )
+
+
+# ============================================================
+# Docker 相关
+# ============================================================
+
+def start_docker_server(benchmark_id: str, docker_image: str, dockerfile_dir: Path, workspace: Path, port: int) -> str:
+    """启动 Docker 评测环境，返回容器名"""
+    rdagent_root = AUTORL_BENCH_SETTING.rdagent_root
+    
+    # 构建镜像
+    dockerfile_path = dockerfile_dir / "Dockerfile"
+    if dockerfile_path.exists():
+        logger.info(f"[Docker] Building image: {docker_image}")
+        subprocess.run(["docker", "build", "-t", docker_image, str(dockerfile_dir)], check=True)
+    
+    # 启动容器
+    container_name = f"autorl-bench-{benchmark_id}-{port}"
+    subprocess.run(["docker", "rm", "-f", container_name], capture_output=True)
+    
+    logger.info(f"[Docker] Starting container: {container_name}")
+    result = subprocess.run(
+        [
+            "docker", "run", "-d",
+            "--name", container_name,
+            "-p", f"{port}:5000",
+            "-v", f"{workspace}:/workspace",
+            "-v", f"{rdagent_root}:/app/rdagent",
+            "-e", f"TASK={benchmark_id}",
+            "-e", "PYTHONPATH=/app/rdagent",
+            docker_image,
+            "python", "-m", "rdagent.scenarios.rl.autorl_bench.core.server",
+            "--task", benchmark_id,
+            "--workspace", "/workspace",
+            "--port", "5000",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    
+    if result.returncode != 0:
+        raise RuntimeError(f"Docker start failed: {result.stderr}")
+    
+    logger.info(f"[Docker] Container started: {result.stdout.strip()[:12]}")
+    return container_name
+
+
+def stop_docker_server(container_name: str):
+    """停止 Docker 容器"""
+    logger.info(f"[Docker] Stopping container: {container_name}")
+    subprocess.run(["docker", "rm", "-f", container_name], capture_output=True)

@@ -16,6 +16,7 @@ from .utils import (
     get_baseline_score,
     submit_to_grading_server,
     set_baseline_to_server,
+    create_grading_server,
 )
 
 __all__ = [
@@ -31,4 +32,5 @@ __all__ = [
     "get_baseline_score",
     "submit_to_grading_server",
     "set_baseline_to_server",
+    "create_grading_server",
 ]

@@ -19,6 +19,7 @@ class AutoRLBenchSettings(ExtendedBaseSettings):
     model_config = SettingsConfigDict(env_prefix="AUTORL_", protected_namespaces=())
     
     file_path: Path = Path.cwd() / "git_ignore_folder" / "rl_files"
+    rdagent_root: Path = Path.cwd()  # Docker 挂载用，可通过 AUTORL_RDAGENT_ROOT 覆盖
 
 
 AUTORL_BENCH_SETTING = AutoRLBenchSettings()

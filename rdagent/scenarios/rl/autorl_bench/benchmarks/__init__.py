@@ -6,9 +6,13 @@ AutoRL-Bench Benchmarks Registry
 """
 import importlib
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, Optional, Type
 
 from rdagent.scenarios.rl.autorl_bench.core.evaluator import BaseEvaluator
+
+
+BENCHMARKS_DIR = Path(__file__).parent
 
 
 @dataclass
@@ -19,6 +23,8 @@ class BenchmarkConfig:
     data_source: str  # 数据来源（HuggingFace dataset 或 Git repo）
     description: str = ""
     eval_config: Optional[Dict[str, Any]] = field(default=None)
+    use_docker: bool = False  # 是否使用 Docker 环境评测
+    docker_image: str = ""  # Docker 镜像名
 
 
 # Benchmark 注册表
@@ -57,6 +63,8 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
             "max_steps": 50,
             "env_num": 140,
         },
+        use_docker=True,
+        docker_image="autorl-bench/alfworld:latest",
     ),
 }
 

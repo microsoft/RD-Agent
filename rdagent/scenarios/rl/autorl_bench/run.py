@@ -11,19 +11,16 @@ import argparse
 import json
 import os
 import subprocess
-import threading
-import time
 from datetime import datetime
-from pathlib import Path
 
 from rdagent.scenarios.rl.autorl_bench.agents import get_agent
+from rdagent.scenarios.rl.autorl_bench.benchmarks import get_benchmark
 from rdagent.scenarios.rl.autorl_bench.conf import get_workspace_dir, get_results_dir
 from rdagent.scenarios.rl.autorl_bench.core import (
     download_model,
     download_data,
-    get_baseline_score,
+    create_grading_server,
 )
-from rdagent.scenarios.rl.autorl_bench.core.server import init_server, app
 
 
 def run(
@@ -35,6 +32,7 @@ def run(
 ) -> dict:
     """运行 Agent 评测"""
     start_time = datetime.now()
+    benchmark = get_benchmark(task)
     
     # 1. 准备资源
     print(f"Preparing resources...")
@@ -46,7 +44,6 @@ def run(
     workspace.mkdir(parents=True, exist_ok=True)
     (workspace / "output").mkdir(exist_ok=True)
     
-    # 创建软链接（已存在则跳过）
     model_link = workspace / "models" / base_model
     data_link = workspace / "data"
     model_link.parent.mkdir(parents=True, exist_ok=True)
@@ -56,58 +53,41 @@ def run(
     if not (data_link.is_symlink() or data_link.exists()):
         data_link.symlink_to(data_path)
     
-    # 3. 启动 grading server
-    print(f"Starting grading server on port {port}...")
-    server = init_server(task, base_model, str(workspace))
-    
-    # 在后台线程启动 Flask
-    server_thread = threading.Thread(
-        target=lambda: app.run(host="0.0.0.0", port=port, debug=False, threaded=False),
-        daemon=True
-    )
-    server_thread.start()
-    time.sleep(2)  # 等待服务器启动
-    
-    # 4. 评测 baseline
-    print(f"Evaluating baseline...")
-    baseline = get_baseline_score(
-        task=task,
-        model_name=base_model,
-        model_path=str(model_link),
-        workspace_path=str(workspace),
-    )
-    server.set_baseline(baseline)
-    print(f"  Baseline Score: {baseline}")
-    
-    # 5. 运行 Agent
-    agent = get_agent(agent_id)
-    print(f"Running agent: {agent.name}")
-    
-    env = {
-        **os.environ,
-        "TASK": task,
-        "BASE_MODEL": base_model,
-        "WORKSPACE": str(workspace),
-        "MODEL_PATH": str(model_link),
-        "DATA_PATH": str(data_link),
-        "OUTPUT_DIR": str(workspace / "output"),
-        "GRADING_SERVER_URL": f"http://localhost:{port}",
-        **agent.env_vars,
-    }
-    
-    try:
+    # 3. 启动 grading server & 运行评测
+    with create_grading_server(benchmark, workspace, port, base_model) as grading:
+        # 4. 评测 baseline
+        print(f"Evaluating baseline...")
+        baseline = grading.get_baseline(task, base_model, str(model_link), str(workspace))
+        print(f"  Baseline Score: {baseline}")
+        
+        # 5. 运行 Agent
+        agent = get_agent(agent_id)
+        print(f"Running agent: {agent.name}")
+        
+        env = {
+            **os.environ,
+            "TASK": task,
+            "BASE_MODEL": base_model,
+            "WORKSPACE": str(workspace),
+            "MODEL_PATH": str(model_link),
+            "DATA_PATH": str(data_link),
+            "OUTPUT_DIR": str(workspace / "output"),
+            "GRADING_SERVER_URL": f"http://localhost:{port}",
+            **agent.env_vars,
+        }
+        
         proc = subprocess.run(
             ["bash", str(agent.start)],
             env=env,
             timeout=timeout,
         )
         success = proc.returncode == 0
-    except subprocess.TimeoutExpired:
-        success = False
+        
+        # 6. 收集结果
+        scores = grading.load_scores()
     
-    # 6. 收集结果
+    # 7. 保存结果
     end_time = datetime.now()
-    scores = server.load_scores()
     best = max(scores, key=lambda x: x.get("score", 0)) if scores else None
     
     result = {
@@ -119,16 +99,15 @@ def run(
         "best": best,
         "total_submissions": len(scores),
         "duration_seconds": (end_time - start_time).total_seconds(),
+        "docker_mode": benchmark.use_docker,
     }
     
-    # 保存结果
     result_dir = get_results_dir() / f"{start_time.strftime('%Y-%m-%dT%H-%M-%S')}_{task}_{agent_id}"
     result_dir.mkdir(parents=True, exist_ok=True)
-    (result_dir / "result.json").write_text(
-        json.dumps(result, indent=2, default=str)
-    )
+    (result_dir / "result.json").write_text(json.dumps(result, indent=2, default=str))
     
     print("\n" + "=" * 60)
+    print(f"Mode: {'Docker' if benchmark.use_docker else 'Local'}")
     if best:
         print(f"Best Score: {best.get('score')}")
         print(f"Improvement: {best.get('improvement')}")
