@@ -113,13 +113,10 @@ def get_baseline_score(
     
     # 检查缓存
     if not force_rerun and cache_file.exists():
-        try:
-            data = json.loads(cache_file.read_text())
-            score = data.get("score", 0.0)
-            logger.info(f"Baseline cache hit: {cache_file.name}, score={score}")
-            return score
-        except Exception as e:
-            logger.warning(f"Failed to read cache: {e}")
+        data = json.loads(cache_file.read_text())
+        score = data.get("score", 0.0)
+        logger.info(f"Baseline cache hit: {cache_file.name}, score={score}")
+        return score
     
     # 执行评测
     logger.info(f"Running baseline evaluation: task={task}, model={model_name}")
@@ -164,19 +161,12 @@ def submit_to_grading_server(
     if not url:
         return None
     
-    try:
-        logger.info(f"Submitting to grading server: {url}/submit")
-        resp = requests.post(f"{url}/submit", json={"model_path": model_path}, timeout=timeout)
-        if resp.status_code == 200:
-            result = resp.json()
-            logger.info(f"Grading result: score={result.get('score')}")
-            return result
-        else:
-            logger.warning(f"Grading server returned {resp.status_code}")
-            return None
-    except Exception as e:
-        logger.warning(f"Grading server error: {e}")
-        return None
+    logger.info(f"Submitting to grading server: {url}/submit")
+    resp = requests.post(f"{url}/submit", json={"model_path": model_path}, timeout=timeout)
+    resp.raise_for_status()
+    result = resp.json()
+    logger.info(f"Grading result: score={result.get('score')}")
+    return result
 
 
 def set_baseline_to_server(score: float, grading_url: Optional[str] = None) -> bool:
@@ -185,12 +175,9 @@ def set_baseline_to_server(score: float, grading_url: Optional[str] = None) -> b
     if not url:
         return False
     
-    try:
-        resp = requests.post(f"{url}/set_baseline", json={"score": score}, timeout=30)
-        return resp.status_code == 200
-    except Exception as e:
-        logger.warning(f"Failed to set baseline: {e}")
-        return False
+    resp = requests.post(f"{url}/set_baseline", json={"score": score}, timeout=30)
+    resp.raise_for_status()
+    return True
 
 
 # ============================================================
@@ -268,10 +255,17 @@ class DockerServerContext(GradingServerContext):
             stop_docker_server(self.container_name)
     
     def get_baseline(self, task: str, model_name: str, model_path: str, workspace_path: str) -> float:
-        return 0.0  # Docker 模式暂不评测 baseline
+        # Docker 模式也需要评测 baseline（在主机上调用 grading server）
+        baseline = get_baseline_score(task, model_name, model_path, workspace_path)
+        # 通知 Docker 容器内的 server 设置 baseline
+        set_baseline_to_server(f"http://localhost:{self.port}", baseline)
+        return baseline
     
     def load_scores(self) -> list:
-        return []  # TODO: 从 Docker 容器获取
+        # 从 Docker 容器内的 grading server 获取分数
+        resp = requests.get(f"http://localhost:{self.port}/scores", timeout=30)
+        resp.raise_for_status()
+        return resp.json()
 
 
 def create_grading_server(benchmark, workspace: Path, port: int, base_model: str) -> GradingServerContext:
@@ -300,7 +294,9 @@ def create_grading_server(benchmark, workspace: Path, port: int, base_model: str
 
 def start_docker_server(benchmark_id: str, docker_image: str, dockerfile_dir: Path, workspace: Path, port: int) -> str:
     """启动 Docker 评测环境，返回容器名"""
+    from rdagent.scenarios.rl.autorl_bench.conf import get_data_dir
     rdagent_root = AUTORL_BENCH_SETTING.rdagent_root
+    data_dir = get_data_dir() / benchmark_id
     
     # 构建镜像
     dockerfile_path = dockerfile_dir / "Dockerfile"
@@ -312,25 +308,31 @@ def start_docker_server(benchmark_id: str, docker_image: str, dockerfile_dir: Pa
     container_name = f"autorl-bench-{benchmark_id}-{port}"
     subprocess.run(["docker", "rm", "-f", container_name], capture_output=True)
     
+    # 构建 docker run 命令
+    docker_cmd = [
+        "docker", "run", "-d",
+        "--name", container_name,
+        "-p", f"{port}:5000",
+        "-v", f"{workspace}:/workspace",
+        "-v", f"{rdagent_root}:/app/rdagent",
+        "-e", f"TASK={benchmark_id}",
+        "-e", "PYTHONPATH=/app/rdagent",
+    ]
+    
+    # 挂载数据目录（如果存在）
+    if data_dir.exists():
+        docker_cmd.extend(["-v", f"{data_dir}:/data/{benchmark_id}"])
+    
+    docker_cmd.extend([
+        docker_image,
+        "python", "-m", "rdagent.scenarios.rl.autorl_bench.core.server",
+        "--task", benchmark_id,
+        "--workspace", "/workspace",
+        "--port", "5000",
+    ])
+    
     logger.info(f"[Docker] Starting container: {container_name}")
-    result = subprocess.run(
-        [
-            "docker", "run", "-d",
-            "--name", container_name,
-            "-p", f"{port}:5000",
-            "-v", f"{workspace}:/workspace",
-            "-v", f"{rdagent_root}:/app/rdagent",
-            "-e", f"TASK={benchmark_id}",
-            "-e", "PYTHONPATH=/app/rdagent",
-            docker_image,
-            "python", "-m", "rdagent.scenarios.rl.autorl_bench.core.server",
-            "--task", benchmark_id,
-            "--workspace", "/workspace",
-            "--port", "5000",
-        ],
-        capture_output=True,
-        text=True,
-    )
+    result = subprocess.run(docker_cmd, capture_output=True, text=True)
     
     if result.returncode != 0:
         raise RuntimeError(f"Docker start failed: {result.stderr}")

@@ -15,14 +15,13 @@ RUN pip install --no-cache-dir \
     flask \
     loguru \
     pyyaml \
-    requests
+    requests \
+    pandas
 
-# 下载 ALFWorld 数据
-RUN alfworld-download
-
+# ALFWorld 数据通过 volume 挂载（避免构建时下载失败）
 # rdagent 代码通过 volume 挂载到 /app/rdagent
 ENV PYTHONPATH=/app/rdagent
-ENV ALFWORLD_DATA=/root/alfworld-download
+ENV ALFWORLD_DATA=/data/alfworld
 
 EXPOSE 5000
 CMD ["bash"]
