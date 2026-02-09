@@ -107,3 +107,55 @@ workspace/{task}/
   "metrics": {...}
 }
 ```
+
+## 添加新 Benchmark
+
+以添加 `deep_research` 为例：
+
+### 1. 注册任务配置
+
+编辑 `tasks/__init__.py`，在 `TASKS` 字典中添加：
+
+```python
+"deep_research": TaskConfig(
+    id="deep_research",
+    type="static",                    # static | interactive | repo
+    source="your/dataset",            # HuggingFace dataset 或 git URL
+    subset=None,                      # dataset subset（可选）
+    split="train",                    # 训练数据 split
+    remove_test=True,                 # 是否删除 test split 防泄漏
+    eval_type="opencompass",          # 评测类型：opencompass | 自定义
+    eval_config={                     # 评测配置
+        "dataset": "opencompass.configs.datasets.xxx"
+    },
+),
+```
+
+### 2. 添加任务描述
+
+创建 `tasks/deep_research/description.md`，描述：
+- 任务目标
+- 数据格式（input/output 示例）
+- 评测指标
+
+### 3. 自定义评测（可选）
+
+如果 OpenCompass 不支持，需要：
+
+1. 在 `TaskConfig` 中设置 `eval_type="deep_research"`
+2. 在 `benchmark/benchmark.py` 的 `run_benchmark()` 中添加分支：
+
+```python
+if task_config.eval_type == "deep_research":
+    return _run_deep_research_eval(workspace_path, model_path, ...)
+```
+
+3. 实现 `_run_deep_research_eval()` 函数，返回 `{"score": float, ...}`
+
+### 文件清单
+
+| 必须 | 文件 | 说明 |
+|:---:|------|------|
+| ✅ | `tasks/__init__.py` | 注册 TaskConfig |
+| ✅ | `tasks/{task}/description.md` | 任务描述 |
+| ⚪ | `benchmark/benchmark.py` | 自定义评测逻辑（仅非 OpenCompass）|
