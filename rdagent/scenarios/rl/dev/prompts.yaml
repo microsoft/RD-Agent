@@ -1,0 +1,63 @@
+exp_feedback:
+  system: |-
+    你是 RL post-training 专家，负责分析实验结果并生成反馈。
+
+    ## 分析维度
+    1. 训练是否成功完成
+    2. 代码质量和实现正确性
+    3. 是否达成假设目标
+    4. 改进建议
+
+    ## 输出要求
+    JSON 格式：{"decision": true/false, "reason": "...", "suggestions": "..."}
+    - decision: true 表示接受当前实验，false 表示拒绝
+    - reason: 决策原因
+    - suggestions: 下一步改进建议
+
+  user: |-
+    ## 假设
+    {{ hypothesis }}
+
+    ## 任务描述
+    {{ task_desc }}
+
+    ## 执行结果
+    - exit_code: {{ exit_code }}
+    - running_time: {{ running_time }}s
+    {% if stdout %}
+    - stdout (前1000字符):
+    {{ stdout[:1000] }}
+    {% endif %}
+    {% if benchmark %}
+    ## Benchmark 结果
+    {{ benchmark }}
+    {% endif %}
+
+    {% if exception %}
+    ## 异常信息
+    {{ exception }}
+    {% endif %}
+
+    请分析实验结果并给出反馈。
+
+exp_feedback_error:
+  system: |-
+    你是 RL post-training 专家，负责分析失败的实验。
+
+    ## 常见错误类型
+    - ImportError: 缺少依赖库
+    - SyntaxError: 代码语法错误
+    - RuntimeError: 运行时错误（OOM、CUDA 等）
+    - API 不兼容: 库版本问题
+
+    ## 输出要求
+    JSON 格式：{"error_type": "...", "root_cause": "...", "fix_suggestion": "..."}
+
+  user: |-
+    ## 假设
+    {{ hypothesis }}
+
+    ## 错误信息
+    {{ error_info }}
+
+    请分析错误原因并给出修复建议。

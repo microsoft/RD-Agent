@@ -1,0 +1,12 @@
+# 运行时生成
+workspace/
+results/
+log/
+doc/
+
+# Python
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/

@@ -797,6 +797,9 @@ class DockerConf(EnvConf):
     enable_gpu: bool = True  # because we will automatically disable GPU if not available. So we enable it by default.
     mem_limit: str | None = "48g"  # Add memory limit attribute
     cpu_count: int | None = None  # Add CPU limit attribute
+    read_only: bool = False  # Mount container filesystem as read-only
+    cap_drop_all: bool = False  # Drop all Linux capabilities
+    pids_limit: int | None = None  # Limit the number of processes
 
     running_timeout_period: int | None = 3600  # 1 hour
 
@@ -806,6 +809,7 @@ class DockerConf(EnvConf):
     retry_wait_seconds: int = 10  # retry wait seconds for the docker run
     save_logs_to_file: bool = True
     terminal_tail_lines: int = 20
+    save_logs_to_file: bool = False  # keep the behavior before
 
     @model_validator(mode="after")
     def populate_exclude_chmod_paths(self) -> "DockerConf":
@@ -1458,6 +1462,10 @@ class DockerEnv(Env[DockerConf]):
                 shm_size=self.conf.shm_size,
                 mem_limit=self.conf.mem_limit,  # Set memory limit
                 cpu_count=self.conf.cpu_count,  # Set CPU limit
+                read_only=self.conf.read_only,
+                cap_drop=["ALL"] if self.conf.cap_drop_all else None,
+                pids_limit=self.conf.pids_limit,
+                tmpfs={"/tmp": "rw,noexec,nosuid,size=1g"} if self.conf.read_only else None,
                 **self._gpu_kwargs(client),
             )
             assert container is not None  # Ensure container was created successfully
@@ -1573,4 +1581,41 @@ class BenchmarkDockerEnv(DockerEnv):
     """
 
     def __init__(self, conf: DockerConf = BenchmarkDockerConf()):
+        super().__init__(conf)
+
+
+class RLDockerConf(DockerConf):
+    model_config = SettingsConfigDict(env_prefix="RL_DOCKER_")
+
+    build_from_dockerfile: bool = True
+    dockerfile_folder_path: Path = (
+        Path(__file__).parent.parent / "scenarios" / "rl" / "eval" / "autorl_bench" / "env" / "train"
+    )
+    image: str = "local_rl:latest"
+    mount_path: str = "/workspace/"
+    default_entry: str = "python main.py"
+
+    # 挂载 assets 目录 (只读)
+    extra_volumes: dict = {
+        str(Path(__file__).parent.parent / "scenarios" / "rl" / "eval" / "autorl_bench" / "assets" / "data"): {
+            "bind": "/data",
+            "mode": "ro"
+        },
+        str(Path(__file__).parent.parent / "scenarios" / "rl" / "eval" / "autorl_bench" / "assets" / "models"): {
+            "bind": "/models",
+            "mode": "ro"
+        },
+    }
+
+    running_timeout_period: int | None = 3600
+    mem_limit: str | None = "48g"
+    shm_size: str | None = "16g"
+    enable_gpu: bool = True
+    enable_cache: bool = False
+
+
+class RLDockerEnv(DockerEnv):
+    """RL Docker Environment"""
+
+    def __init__(self, conf: DockerConf = RLDockerConf()):
         super().__init__(conf)

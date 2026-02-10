@@ -3,9 +3,9 @@
 
 # Default configuration (used when model is not explicitly listed)
 default:
-  temperature: 0.6
-  top_p: 0.95
-  top_k: 20
+  temperature: 0.0  # Greedy decoding for reproducible results
+  top_p: 1.0
+  top_k: 1
   max_seq_len: 32768
   max_out_len: 8192
   batch_size: 16

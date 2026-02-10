@@ -58,7 +58,8 @@ def get_model_inference_config(base_model_name: str, gpu_count: int) -> dict:
         dict: Merged configuration (model-specific overrides default)
               Uses exact match first, then longest prefix match, finally default only.
     """
-    config_data = yaml.safe_load(open(Path(__file__).parent / "configs" / "models.yaml", "r"))
+    from rdagent.components.benchmark import BENCHMARK_CONFIGS_DIR
+    config_data = yaml.safe_load(open(BENCHMARK_CONFIGS_DIR / "models.yaml", "r"))
 
     default_config = config_data.get("default", {})
     models_config = config_data.get("models", {})
@@ -222,7 +223,7 @@ def run_benchmark(
         template_vars["use_cot_postprocessor"] = False
 
     # Render Jinja2 template
-    config_content = T("rdagent.scenarios.finetune.benchmark.configs.opencompass_template:template").r(**template_vars)
+    config_content = T("rdagent.components.benchmark.configs.opencompass_template:template").r(**template_vars)
 
     # Note: env was already created above via get_benchmark_env()
 

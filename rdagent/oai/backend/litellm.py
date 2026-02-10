@@ -135,7 +135,11 @@ class LiteLLMAPIBackend(APIBackend):
         Call the chat completion function
         """
 
-        if response_format and not supports_response_schema(model=LITELLM_SETTINGS.chat_model):
+        if response_format and not supports_response_schema(
+            model=LITELLM_SETTINGS.chat_model,
+            # LiteLLM (1.43+) requires this arg; None means auto-infer provider from model.
+            custom_llm_provider=None,
+        ):
             # Deepseek will enter this branch
             logger.warning(
                 f"{LogColors.YELLOW}Model {LITELLM_SETTINGS.chat_model} does not support response schema, ignoring response_format argument.{LogColors.END}",
@@ -227,7 +231,13 @@ class LiteLLMAPIBackend(APIBackend):
         """
         Check if the backend supports function calling
         """
-        return supports_response_schema(model=LITELLM_SETTINGS.chat_model) and LITELLM_SETTINGS.enable_response_schema
+        return (
+            supports_response_schema(
+                model=LITELLM_SETTINGS.chat_model,
+                custom_llm_provider=None,
+            )
+            and LITELLM_SETTINGS.enable_response_schema
+        )
 
     @property
     def chat_token_limit(self) -> int:

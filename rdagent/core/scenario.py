@@ -35,22 +35,20 @@ class Scenario(ABC):
     # We should not set them in the base class
 
     @property
-    @abstractmethod
     def rich_style_description(self) -> str:
         """Rich style description to present"""
+        return self.background
 
-    @abstractmethod
     def get_scenario_all_desc(
         self,
         task: Task | None = None,
-        filtered_tag: str | None = None,
-        simple_background: bool | None = None,
     ) -> str:
         """
         Combine all descriptions together
 
         The scenario description varies based on the task being performed.
         """
+        return f"Task:{task}\n {self.background}"
 
     @abstractmethod
     def get_runtime_environment(self) -> str:
