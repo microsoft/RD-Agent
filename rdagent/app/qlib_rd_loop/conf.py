@@ -45,7 +45,7 @@ class ModelBasePropSetting(BasePropSetting):
     test_start: str = "2017-01-01"
     """Start date of the test / backtest segment"""
 
-    test_end: Optional[str] = None
+    test_end: Optional[str] = "2020-08-01"
     """End date of the test / backtest segment"""
 
 
@@ -89,7 +89,7 @@ class FactorBasePropSetting(BasePropSetting):
     test_start: str = "2017-01-01"
     """Start date of the test / backtest segment"""
 
-    test_end: Optional[str] = None
+    test_end: Optional[str] = "2020-08-01"
     """End date of the test / backtest segment"""
 
 
@@ -166,7 +166,7 @@ class QuantBasePropSetting(BasePropSetting):
     test_start: str = "2017-01-01"
     """Start date of the test / backtest segment"""
 
-    test_end: Optional[str] = None
+    test_end: Optional[str] = "2020-08-01"
     """End date of the test / backtest segment"""
 
 
