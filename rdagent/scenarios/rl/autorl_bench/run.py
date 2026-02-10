@@ -13,6 +13,9 @@ import os
 import subprocess
 from datetime import datetime
 
+from dotenv import load_dotenv
+load_dotenv(".env")
+
 from rdagent.scenarios.rl.autorl_bench.agents import get_agent
 from rdagent.scenarios.rl.autorl_bench.benchmarks import get_benchmark
 from rdagent.scenarios.rl.autorl_bench.conf import get_workspace_dir, get_results_dir

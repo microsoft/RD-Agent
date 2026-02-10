@@ -58,12 +58,16 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
         id="alfworld",
         evaluator_class="rdagent.scenarios.rl.autorl_bench.benchmarks.alfworld.eval.ALFWorldEvaluator",
         data_source="https://github.com/alfworld/alfworld.git",
-        description="ALFWorld - 文本游戏交互环境",
+        description="ALFWorld - 文本游戏交互环境（ReAct agent，支持 vLLM/API）",
         eval_config={
             "max_steps": 50,
-            "env_num": 140,
+            "env_num": 1,  # 默认评测 1 局（完整评测改为 134）
+            # react_prompts: 默认用 eval.py 同目录下的 react_prompts.json
+            # alfworld_data: 默认从环境变量 ALFWORLD_DATA 读取
+            # backend: 自动判断（本地路径→vllm，模型名→api）
+            # api_key / api_base: 从环境变量 OPENAI_API_KEY / OPENAI_API_BASE 读取
         },
-        use_docker=True,
+        use_docker=False,  # 本地已安装 alfworld；生产环境可改为 True 用 Docker
         docker_image="autorl-bench/alfworld:latest",
     ),
 }
