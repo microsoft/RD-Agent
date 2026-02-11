@@ -56,6 +56,7 @@ from .evaluator import (
 )
 from .opencompass import OpenCompassEvaluator
 from .utils import (
+    ensure_symlink,
     download_model,
     download_data,
     get_baseline_score,
@@ -72,6 +73,7 @@ __all__ = [
     "BaseEvaluator",
     "OpenCompassEvaluator",
     # 工具函数
+    "ensure_symlink",
     "download_model",
     "download_data",
     "get_baseline_score",

@@ -33,12 +33,8 @@ def get_workspace_dir() -> Path:
     return get_autorl_bench_dir() / "workspace"
 
 
-def get_results_dir() -> Path:
-    return get_autorl_bench_dir() / "results"
-
-
 def get_instructions_file() -> Path:
-    return get_autorl_bench_dir() / "core" / "instructions.txt"
+    return get_autorl_bench_dir() / "core" / "instructions.md"
 
 
 def get_models_dir() -> Path:

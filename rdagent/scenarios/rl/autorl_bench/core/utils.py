@@ -28,6 +28,16 @@ from rdagent.scenarios.rl.autorl_bench.core.server import app, init_server
 
 
 # ============================================================
+# 文件工具
+# ============================================================
+
+def ensure_symlink(src: Path, dst: Path):
+    """创建软链接（已存在则跳过）"""
+    if src.exists() and not (dst.is_symlink() or dst.exists()):
+        dst.symlink_to(src)
+
+
+# ============================================================
 # 下载相关
 # ============================================================
 
@@ -104,7 +114,7 @@ def get_baseline_score(
     model_path: str,
     workspace_path: str,
     gpu_count: int = 1,
-    test_range: str = "[:100]",
+    test_range: str = "[:]",
     force_rerun: bool = False,
 ) -> float:
     """获取 baseline score（有缓存则读缓存，没有则评测）"""

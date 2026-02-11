@@ -22,6 +22,11 @@
 5. look_at_obj_in_light: 在灯光下查看物品
 6. pick_two_obj_and_place: 拿起两个物品放到指定位置
 
+## 训练范围
+仅使用以下 2 种任务类型进行训练：
+1. pick_and_place: 拿起物品放到指定位置
+2. pick_clean_then_place: 清洁物品后放到指定位置
+
 ## 当前默认评测
 - 默认 1 局: `look_at_obj_in_light`（在灯光下查看 Mug）
-- 完整评测 134 局覆盖全部 6 种任务类型，可通过 `env_num=134` 指定
+<!-- - 完整评测 134 局覆盖全部 6 种任务类型，可通过 `env_num=134` 指定 -->

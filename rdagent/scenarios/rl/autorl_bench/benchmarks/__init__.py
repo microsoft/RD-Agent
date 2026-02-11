@@ -23,6 +23,7 @@ class BenchmarkConfig:
     data_source: str  # 数据来源（HuggingFace dataset 或 Git repo）
     description: str = ""
     eval_config: Optional[Dict[str, Any]] = field(default=None)
+    expose_files: list = field(default_factory=list)  # benchmark 特有的额外文件（description.md 和 instructions.md 由 run.py 统一挂载）
     use_docker: bool = False  # 是否使用 Docker 环境评测
     docker_image: str = ""  # Docker 镜像名
 
@@ -40,16 +41,17 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
         eval_config={
             "dataset": "opencompass.configs.datasets.gsm8k.gsm8k_gen_1d7fe4",
         },
+        # description.md 和 instructions.md 由 run.py 统一挂载，无需在此声明
     ),
-    "math": BenchmarkConfig(
-        id="math",
-        evaluator_class="rdagent.scenarios.rl.autorl_bench.core.opencompass.OpenCompassEvaluator",
-        data_source="lighteval/MATH",
-        description="MATH - 竞赛级数学题",
-        eval_config={
-            "dataset": "opencompass.configs.datasets.math.math_0shot_gen_393424",
-        },
-    ),
+    # "math": BenchmarkConfig(
+    #     id="math",
+    #     evaluator_class="rdagent.scenarios.rl.autorl_bench.core.opencompass.OpenCompassEvaluator",
+    #     data_source="lighteval/MATH",
+    #     description="MATH - 竞赛级数学题",
+    #     eval_config={
+    #         "dataset": "opencompass.configs.datasets.math.math_0shot_gen_393424",
+    #     },
+    # ),
     
     # ============================================================
     # 自定义评测 benchmark（需要 eval.py）
@@ -62,11 +64,8 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
         eval_config={
             "max_steps": 50,
             "env_num": 1,  # 默认评测 1 局（完整评测改为 134）
-            # react_prompts: 默认用 eval.py 同目录下的 react_prompts.json
-            # alfworld_data: 默认从环境变量 ALFWORLD_DATA 读取
-            # backend: 自动判断（本地路径→vllm，模型名→api）
-            # api_key / api_base: 从环境变量 OPENAI_API_KEY / OPENAI_API_BASE 读取
         },
+        expose_files=["eval.py", "react_prompts.json"],  # benchmark 特有文件
         use_docker=False,  # 本地已安装 alfworld；生产环境可改为 True 用 Docker
         docker_image="autorl-bench/alfworld:latest",
     ),
