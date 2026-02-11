@@ -5,7 +5,7 @@ from rdagent.core.proposal import ExpGen, Hypothesis, Trace
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.rl.autorl_bench.tasks import RLTask
+from rdagent.scenarios.rl.experiment.experiment import RLTask
 from rdagent.scenarios.rl.experiment.experiment import RLExperiment
 from rdagent.utils.agent.tpl import T
 

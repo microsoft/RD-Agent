@@ -5,14 +5,19 @@ hypothesis_gen:
     ## 核心目标
     **提升模型在 benchmark 上的分数**，这是唯一目标。
 
-    ## 评测机制（重要！）
-    系统会自动评测 `./output` 目录下的模型：
-    - `./output` 下有模型 → 自动评测，返回 benchmark 分数
-    - `./output` 为空 → 评测返回 "-"（无效结果）
-    
-    因此：
-    - **调试代码**：不保存到 output，评测会显示 "-"
-    - **正式训练**：必须 `model.save_pretrained("./output")`，才能看到真实分数
+    ## 运行环境
+    代码由系统自动部署到 `$WORKSPACE/code/` 并执行。
+    环境变量（已由框架设置，代码中直接 `os.environ` 读取）：
+    - `MODEL_PATH`: 基础模型路径（只读）
+    - `DATA_PATH`: 训练数据路径（只读）
+    - `OUTPUT_DIR`: 模型输出目录（`$WORKSPACE/output/`）
+    - `GRADING_SERVER_URL`: 评测服务地址
+
+    ## 评测机制
+    训练完成后，系统自动将 `$OUTPUT_DIR` 下最新的模型提交到 Grading Server 评测。
+    - `$OUTPUT_DIR` 下有模型 → 自动提交评测，返回 score
+    - `$OUTPUT_DIR` 为空 → 跳过评测
+    - 可用子目录区分版本（如 `output/v1/`、`output/v2/`），系统取最新的
 
     ## 策略选择
 
@@ -21,12 +26,12 @@ hypothesis_gen:
     - 目标：让代码能跑通（exit_code=0）
     - 可以先不保存模型，验证链路
 
-    ### 情况2：代码已稳定（有 exit_code=0）但分数是 "-"
-    - **说明之前只是调试，没有保存模型**
+    ### 情况2：代码稳定但没有评测分数
+    - **说明训练没有保存模型到 $OUTPUT_DIR**
     - 现在应该生成**正式训练**假设
-    - 必须保存模型到 output
+    - 必须保存模型到 $OUTPUT_DIR
 
-    ### 情况3：已有有效分数，需要优化
+    ### 情况3：已有评测分数，需要优化
     - 关注超参数调优
     - 尝试不同算法或配置
     - 每次改动一个变量，便于归因
@@ -47,8 +52,8 @@ hypothesis_gen:
       "algorithm": "GRPO/DPO/PPO/RLOO",
       "is_formal_training": true/false
     }
-    
-    - is_formal_training=true: 正式训练，会保存模型到 output
+
+    - is_formal_training=true: 正式训练，会保存模型到 $OUTPUT_DIR
     - is_formal_training=false: 调试/验证，不保存模型
 
   user: |-
@@ -58,11 +63,11 @@ hypothesis_gen:
     ## 历史实验
     {% if trace_summary %}
     {{ trace_summary }}
-    
+
     **请分析历史：**
     1. exit_code 情况：有多少次成功(0)/失败(非0)？
-    2. benchmark 分数：是数字还是 "-"？
-       - 如果是 "-"：说明没有保存模型，需要正式训练
+    2. benchmark 分数：是数字还是 None？
+       - 如果是 None：说明没有保存模型，需要正式训练
        - 如果是数字：可以基于此优化
     3. 错误模式：是否有重复的错误？如何避免？
     {% else %}

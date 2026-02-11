@@ -3,16 +3,19 @@
 from rdagent.core.experiment import Experiment, Task
 from rdagent.scenarios.rl.experiment.workspace import RLWorkspace
 
-# TODO: maybe we can ke the class simple;
-# if we need functions like `is_ready_to_run`, we create a standalone function. e.g.:
-# def is_ready_to_run(exp) -> bool:
-#     """Check if experiment is ready to run."""
-#     return exp.experiment_workspace is not None and "main.py" in self.experiment_workspace.file_dict
 
-class RLExperiment(Experiment[Task, RLWorkspace, RLWorkspace]):
+class RLTask(Task):
+    """RDLoop 内部的任务描述（每次迭代一个）。
+
+    仅用于 rdagent 框架内部流转，和 autorl_bench 的 benchmark 无关。
+    """
+    pass
+
+
+class RLExperiment(Experiment[RLTask, RLWorkspace, RLWorkspace]):
     """RL post-training experiment with workspace initialization."""
 
-    def __init__(self, sub_tasks: list[Task], *args, **kwargs) -> None:
+    def __init__(self, sub_tasks: list[RLTask], *args, **kwargs) -> None:
         super().__init__(sub_tasks=sub_tasks, *args, **kwargs)
         # Initialize experiment workspace (required by CoSTEER)
         self.experiment_workspace = RLWorkspace()

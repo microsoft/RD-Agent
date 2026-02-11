@@ -1,29 +1,27 @@
 """
-RL Runner - Execute RL training code in Docker
+RL Runner - 执行训练代码并提交 Grading Server 评测
+
+作为 autorl_bench agent 运行：
+- 训练代码在本地执行（$WORKSPACE/code/ 下）
+- 评测通过 HTTP POST $GRADING_SERVER_URL/submit
 """
 
-import hashlib
+import json
+import os
+import subprocess
+import time
 from pathlib import Path
 
-from rdagent.app.rl.conf import RL_RD_SETTING
+import requests
+
 from rdagent.core.developer import Developer
 from rdagent.core.experiment import Experiment
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.rl.env.conf import get_rl_env, RL_MODELS_DIR
-from rdagent.scenarios.rl.autorl_bench.utils.grading import submit_to_grading_server
-
-
-def _file_hash(path: Path, chunk_size: int = 8 * 1024 * 1024) -> str:
-    """计算文件 MD5（只读前 chunk_size 字节，快速判断）"""
-    h = hashlib.md5()
-    with open(path, "rb") as f:
-        h.update(f.read(chunk_size))
-    return h.hexdigest()
 
 
 class RLPostTrainingRunner(Developer):
-    """RL Runner - 在 Docker 中执行训练代码"""
+    """RL Runner - 本地执行训练 + HTTP API 评测"""
 
     def __init__(self, scen: Scenario, timeout: int = 3600) -> None:
         self.scen = scen
@@ -31,78 +29,110 @@ class RLPostTrainingRunner(Developer):
 
     def develop(self, exp: Experiment) -> Experiment:
         """
-        执行 RL 训练代码
-        
+        执行训练代码并提交评测
+
         流程：
-        1. 获取 Docker 环境
-        2. 调用 workspace.run() 执行 main.py
-        3. 验证训练是否真的发生
-        4. 评测训练后模型
+        1. 将生成的代码写入 $WORKSPACE/code/
+        2. 本地执行 main.py
+        3. POST $GRADING_SERVER_URL/submit 提交评测
         """
         workspace = exp.experiment_workspace
-        
-        if workspace is None:
-            logger.warning("No workspace found in experiment")
+        if workspace is None or "main.py" not in workspace.file_dict:
+            logger.warning("No main.py in experiment workspace, skipping")
+            exp.result = {"exit_code": -1, "stdout": "No main.py generated"}
             return exp
-            
-        if "main.py" not in workspace.file_dict:
-            logger.warning("No main.py found in workspace")
+
+        # 从 env var 读取路径（run.py 已设置）
+        ws_dir = os.environ.get("WORKSPACE", "")
+        output_dir = os.environ.get("OUTPUT_DIR", "")
+        grading_url = os.environ.get("GRADING_SERVER_URL", "")
+
+        if not ws_dir:
+            logger.error("WORKSPACE env var not set")
+            exp.result = {"exit_code": -1, "stdout": "WORKSPACE not set"}
             return exp
-        
-        # 获取 Docker 环境（根据 benchmark 自动选择镜像）
-        env = get_rl_env(benchmark=RL_RD_SETTING.benchmark, timeout=self.timeout)
-        
-        # 执行训练
-        logger.info("=== Starting RL Training in Docker ===")
-        result = workspace.run(env, "python main.py")
-        
-        # 记录结果
-        logger.info(f"Training exit code: {result.exit_code}")
-        logger.info(f"Training time: {result.running_time:.2f}s")
-        
-        if result.exit_code != 0:
-            logger.warning(f"Training failed:\n{result.stdout[:1000] if result.stdout else 'No output'}")
-        else:
-            logger.info("Training completed successfully")
-        
-        # 存储结果到 experiment
+
+        code_dir = Path(ws_dir) / "code"
+        code_dir.mkdir(parents=True, exist_ok=True)
+
+        # 1. 将生成的代码写入 code/
+        for filename, content in workspace.file_dict.items():
+            dst = code_dir / filename
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            dst.write_text(content)
+            logger.info(f"  Wrote {dst}")
+
+        # 2. 本地执行 main.py
+        main_py = code_dir / "main.py"
+        logger.info(f"=== Executing {main_py} ===")
+        start_time = time.time()
+
+        try:
+            proc = subprocess.run(
+                ["python", str(main_py)],
+                cwd=str(code_dir),
+                capture_output=True,
+                text=True,
+                timeout=self.timeout,
+                env={**os.environ, "PYTHONUNBUFFERED": "1"},
+            )
+            exit_code = proc.returncode
+            stdout = proc.stdout + proc.stderr
+        except subprocess.TimeoutExpired as e:
+            exit_code = -1
+            stdout = f"Timeout after {self.timeout}s\n{e.stdout or ''}"
+            logger.warning(f"Training timed out after {self.timeout}s")
+
+        elapsed = time.time() - start_time
+        logger.info(f"Training finished: exit_code={exit_code}, time={elapsed:.1f}s")
+
+        if exit_code != 0:
+            logger.warning(f"Training failed:\n{stdout[:2000]}")
+
         exp.result = {
-            "exit_code": result.exit_code,
-            "stdout": result.stdout,
-            "running_time": result.running_time,
+            "exit_code": exit_code,
+            "stdout": stdout,
+            "running_time": elapsed,
+            "benchmark": None,
         }
 
-        # 评测
-        benchmark_name = RL_RD_SETTING.benchmark or getattr(exp.sub_tasks[0], "benchmark", "") if exp.sub_tasks else ""
-        exp.result["benchmark"] = None
-        
-        if not benchmark_name or result.exit_code != 0:
+        # 3. 提交 Grading Server 评测
+        if exit_code != 0 or not grading_url or not output_dir:
             return exp
-        
-        output_model = Path(workspace.workspace_path) / "output" / "model.safetensors"
-        original_model = RL_MODELS_DIR / RL_RD_SETTING.base_model / "model.safetensors"
-        
-        if not output_model.exists():
-            logger.info("No model output, skip benchmark")
+
+        output_path = Path(output_dir)
+        if not output_path.exists() or not any(output_path.iterdir()):
+            logger.info("No model output found, skipping evaluation")
             return exp
-        
-        if original_model.exists() and _file_hash(output_model) == _file_hash(original_model):
-            logger.warning("Model unchanged from baseline, skip benchmark")
-            return exp
-        
-        logger.info(f"=== Benchmark: {benchmark_name} ===")
-        
-        # 优先使用 grading server（如果有的话）
-        grading_result = submit_to_grading_server(str(output_model.parent))
-        if grading_result:
-            exp.result["benchmark"] = grading_result
-        else:
-            # 本地评测
-            from rdagent.scenarios.rl.autorl_bench.benchmark import run_benchmark
-            exp.result["benchmark"] = run_benchmark(
-                workspace_path=str(workspace.workspace_path),
-                model_path=str(output_model.parent),
-                model_name=RL_RD_SETTING.base_model,
-                benchmark_name=benchmark_name,
+
+        # 找到 output/ 下最新的模型目录（可能有 v1/, v2/ 等子目录）
+        model_path = self._find_latest_model(output_path)
+        logger.info(f"=== Submitting to Grading Server: {model_path} ===")
+
+        try:
+            resp = requests.post(
+                f"{grading_url}/submit",
+                json={"model_path": str(model_path)},
+                timeout=600,
             )
+            result = resp.json()
+            exp.result["benchmark"] = result
+            logger.info(f"  Score: {result.get('score')}, "
+                        f"Improvement: {result.get('improvement')}, "
+                        f"Best: {result.get('best', {}).get('score')}")
+        except Exception as e:
+            logger.error(f"Grading server submission failed: {e}")
+
         return exp
+
+    @staticmethod
+    def _find_latest_model(output_dir: Path) -> Path:
+        """找到 output/ 下的模型路径。
+
+        如果有子目录（v1/, v2/ 等），返回最新修改的那个；
+        否则返回 output/ 本身。
+        """
+        subdirs = [d for d in output_dir.iterdir() if d.is_dir() and not d.name.startswith(".")]
+        if subdirs:
+            return max(subdirs, key=lambda d: d.stat().st_mtime)
+        return output_dir
