@@ -1,8 +1,9 @@
 """
 AutoRL-Bench Core Utilities
 
-统一的工具函数：下载、baseline、grading client
+统一的工具函数：下载、baseline、grading client、workspace、results
 """
+import csv
 import json
 import os
 import re
@@ -355,3 +356,102 @@ def stop_docker_server(container_name: str):
     """停止 Docker 容器"""
     logger.info(f"[Docker] Stopping container: {container_name}")
     subprocess.run(["docker", "rm", "-f", container_name], capture_output=True)
+
+
+# ============================================================
+# Workspace 搭建
+# ============================================================
+
+def setup_workspace(
+    run_id: str,
+    agent_id: str,
+    task: str,
+    base_model: str,
+    model_path: str,
+    data_path: str,
+    benchmark,
+) -> Path:
+    """创建隔离的 workspace 目录并挂载资源文件，返回 workspace 路径。"""
+    from rdagent.scenarios.rl.autorl_bench.benchmarks import BENCHMARKS_DIR
+    from rdagent.scenarios.rl.autorl_bench.conf import get_instructions_file, get_workspace_dir
+
+    workspace = get_workspace_dir() / task / f"{run_id}_{agent_id}"
+    workspace.mkdir(parents=True, exist_ok=True)
+    (workspace / "code").mkdir(exist_ok=True)
+    (workspace / "output").mkdir(exist_ok=True)
+
+    # 模型 & 数据 symlink
+    model_link = workspace / "models" / base_model
+    data_link = workspace / "data"
+    model_link.parent.mkdir(parents=True, exist_ok=True)
+
+    ensure_symlink(Path(model_path), model_link)
+    ensure_symlink(Path(data_path), data_link)
+
+    # 挂载文件：任务描述 + 通用说明 + benchmark 特有文件
+    bench_dir = BENCHMARKS_DIR / task
+    ensure_symlink(bench_dir / "description.md", workspace / "description.md")
+    ensure_symlink(get_instructions_file(), workspace / "instructions.md")
+
+    for fname in benchmark.expose_files:
+        ensure_symlink(bench_dir / fname, workspace / fname)
+
+    return workspace
+
+
+# ============================================================
+# Results CSV 记录
+# ============================================================
+
+RESULTS_CSV_COLUMNS = [
+    "run_id", "timestamp", "task", "agent", "driver_model", "base_model",
+    "baseline", "best_score", "improvement", "submissions",
+    "duration_s", "success", "workspace",
+]
+
+
+def detect_driver_model(env: dict) -> str:
+    """从环境变量检测驱动 agent 的 LLM 模型名。"""
+    return (
+        env.get("LLM_MODEL")
+        or os.environ.get("CHAT_MODEL")
+        or os.environ.get("OPENAI_MODEL")
+        or "unknown"
+    )
+
+
+def append_result(row: dict) -> Path:
+    """追加一行到全局 results.csv，返回文件路径。"""
+    from rdagent.scenarios.rl.autorl_bench.conf import get_autorl_bench_dir
+
+    results_csv = get_autorl_bench_dir() / "results.csv"
+    write_header = not results_csv.exists()
+    with open(results_csv, "a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=RESULTS_CSV_COLUMNS)
+        if write_header:
+            writer.writeheader()
+        writer.writerow(row)
+    return results_csv
+
+
+# ============================================================
+# 运行摘要
+# ============================================================
+
+def print_summary(
+    baseline: float,
+    best: dict | None,
+    scores: list,
+    workspace,
+    docker_mode: bool,
+) -> None:
+    """打印运行摘要。"""
+    print("\n" + "=" * 60)
+    print(f"Mode: {'Docker' if docker_mode else 'Local'}")
+    print(f"Baseline: {baseline}")
+    if best:
+        print(f"Best Score: {best.get('score', 0)}")
+        print(f"Improvement: {best.get('improvement')}")
+    print(f"Total Submissions: {len(scores)}")
+    print(f"Workspace: {workspace}")
+    print("=" * 60)

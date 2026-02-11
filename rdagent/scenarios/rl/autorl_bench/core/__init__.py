@@ -63,6 +63,10 @@ from .utils import (
     submit_to_grading_server,
     set_baseline_to_server,
     create_grading_server,
+    setup_workspace,
+    append_result,
+    detect_driver_model,
+    print_summary,
 )
 
 __all__ = [
@@ -80,4 +84,9 @@ __all__ = [
     "submit_to_grading_server",
     "set_baseline_to_server",
     "create_grading_server",
+    # workspace & results
+    "setup_workspace",
+    "append_result",
+    "detect_driver_model",
+    "print_summary",
 ]
