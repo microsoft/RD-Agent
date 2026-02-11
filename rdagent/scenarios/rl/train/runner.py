@@ -23,7 +23,7 @@ from rdagent.log import rdagent_logger as logger
 class RLPostTrainingRunner(Developer):
     """RL Runner - 本地执行训练 + HTTP API 评测"""
 
-    def __init__(self, scen: Scenario, timeout: int = 3600) -> None:
+    def __init__(self, scen: Scenario, timeout: int = 360000) -> None:
         self.scen = scen
         self.timeout = timeout
 

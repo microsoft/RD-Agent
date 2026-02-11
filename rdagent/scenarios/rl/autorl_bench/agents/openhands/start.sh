@@ -25,11 +25,13 @@ echo "LLM Model: $LLM_MODEL"
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate "${CONDA_ENV_OPENHANDS:-openhands}"
 
-# 运行 openhands-rl（从 .env 读取路径）
+# 运行 openhands-rl pipeline（从 .env 读取路径）
 cd "${OPENHANDS_RL_ROOT:-$HOME/openhands-rl}"
 
 python main.py \
     --benchmark "$TASK" \
     --base-model "$BASE_MODEL" \
     --workspace "$WORKSPACE" \
-    --max-iterations ${MAX_ITERATIONS:-50}
+    --max-iterations ${MAX_ITERATIONS:-5} \
+    --training-timeout ${TRAINING_TIMEOUT:-3600} \
+    --max-agent-steps ${MAX_AGENT_STEPS:-25}

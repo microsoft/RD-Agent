@@ -1,3 +1,0 @@
-run_id,timestamp,task,agent,base_model,baseline,best_score,improvement,submissions,duration_s,success,workspace
-20260211T041812,2026-02-11 04:18:12,gsm8k,example_agent,Qwen/Qwen2.5-Coder-0.5B-Instruct,21.61,17.51,-4.1,2,1113,True,/Data/home/v-wanyichen/cwy/program/RD-Agent/rdagent/scenarios/rl/autorl_bench/workspace/gsm8k/20260211T041812
-20260211T070312,2026-02-11 07:03:12,gsm8k,rdagent,Qwen/Qwen2.5-Coder-0.5B-Instruct,21.61,0,,0,17,False,/Data/home/v-wanyichen/cwy/program/RD-Agent/rdagent/scenarios/rl/autorl_bench/workspace/gsm8k/20260211T070312_rdagent

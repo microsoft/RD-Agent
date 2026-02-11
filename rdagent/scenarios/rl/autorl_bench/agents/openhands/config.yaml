@@ -1,6 +1,8 @@
 name: "OpenHands Agent"
-description: "使用 OpenHands SDK，让 LLM 自主决定训练策略（类似 openhands-magic）"
+description: "固定阶段 pipeline：每轮 代码生成→训练→评测→反馈（参考 openhands-magic）"
 start: "start.sh"
 env_vars:
-  MAX_ITERATIONS: "500"
-  LLM_MODEL: "gpt-5"  # 必须用 gpt-5，API proxy 的 gpt-4o 不支持 max_output_tokens
+  MAX_ITERATIONS: "5"           # Pipeline 迭代次数（每轮=写代码+训练+评测）
+  TRAINING_TIMEOUT: "3600"      # 每轮训练超时（秒）
+  MAX_AGENT_STEPS: "25"         # 每轮代码生成 agent 最大步数
+  LLM_MODEL: "gpt-5"
