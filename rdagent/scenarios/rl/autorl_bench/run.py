@@ -10,6 +10,7 @@ Usage:
 """
 import argparse
 import os
+import signal
 import subprocess
 import sys
 from datetime import datetime
@@ -50,6 +51,17 @@ def run(
     workspace.mkdir(parents=True, exist_ok=True)
     log_file = workspace / "run.log"
     _sink_id = loguru_logger.add(log_file, format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}", level="DEBUG")
+
+    # Signal handler: 被 kill 时写结束日志
+    def _on_signal(signum, frame):
+        sig_name = signal.Signals(signum).name
+        logger.warning(f"Received {sig_name}, terminating...")
+        logger.info(f"Run interrupted by {sig_name} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        loguru_logger.remove(_sink_id)
+        sys.exit(128 + signum)
+
+    signal.signal(signal.SIGTERM, _on_signal)
+    signal.signal(signal.SIGINT, _on_signal)
 
     logger.info(f"=== AutoRL-Bench ===")
     logger.info(f"Agent: {agent_id}, Task: {task}, Model: {base_model}")
