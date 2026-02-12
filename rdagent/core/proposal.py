@@ -98,7 +98,7 @@ class HypothesisFeedback(ExperimentFeedback):
         self,
         reason: str,
         decision: bool,
-        code_change_summary: str,
+        code_change_summary: str = "",
         *,
         observations: str | None = None,
         hypothesis_evaluation: str | None = None,

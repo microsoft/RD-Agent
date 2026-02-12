@@ -98,6 +98,20 @@ class IterEvaluator(Evaluator):
     According to that strategy, we have iterative evaluation
     """
 
+    def evaluate(self, eo: EvaluableObj) -> Feedback:
+        """
+        Default implementation that runs evaluate_iter to completion.
+        
+        Iterative evaluators can override this for custom behavior,
+        or just implement evaluate_iter for standard iteration.
+        """
+        gen = self.evaluate_iter()
+        next(gen)  # Kick off the generator
+        try:
+            return gen.send(eo)
+        except StopIteration as e:
+            return e.value
+
     @abstractmethod
     def evaluate_iter(self) -> Generator[Feedback, EvaluableObj | None, Feedback]:
         """

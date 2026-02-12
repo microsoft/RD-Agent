@@ -1026,6 +1026,7 @@ class QlibDockerConf(DockerConf):
     shm_size: str | None = "16g"
     enable_gpu: bool = True
     enable_cache: bool = False
+    save_logs_to_file: bool = True  # Explicitly inherit from DockerConf for compatibility
 
 
 class KGDockerConf(DockerConf):
