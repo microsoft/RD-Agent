@@ -683,7 +683,7 @@ class QlibCondaEnv(LocalEnv[QlibCondaConf]):
                     shell=True,
                 )
                 subprocess.check_call(
-                    f"conda run -n {self.conf.conda_env_name} pip install git+https://github.com/microsoft/qlib.git@3e72593b8c985f01979bebcf646658002ac43b00",
+                    f"conda run -n {self.conf.conda_env_name} pip install git+https://github.com/microsoft/qlib.git@2fb9380b342556ddb50a4b24e4fe8655d548b2b8",
                     shell=True,
                 )
                 subprocess.check_call(
