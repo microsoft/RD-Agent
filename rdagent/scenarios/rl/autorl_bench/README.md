@@ -48,7 +48,7 @@ python -m rdagent.scenarios.rl.autorl_bench.run \
 ```
 run.py 启动
  │
- ├─ 1. 准备资源：下载模型（HuggingFace）+ 下载数据（HF Dataset / Git clone）
+ ├─ 1. 准备资源：下载模型（HuggingFace）+ 下载训练数据（各 benchmark 的 data.py）
  ├─ 2. 构建 workspace：创建隔离目录、软链接模型和数据
  ├─ 3. 挂载文件：description.md + instructions.md + benchmark 特有文件
  ├─ 4. 启动 Grading Server（Flask 评测服务）
@@ -66,8 +66,8 @@ run.py 启动
 git_ignore_folder/rl_files/
 ├── models/Qwen/Qwen2.5-0.5B/    # 模型权重（snapshot_download）
 ├── datasets/
-│   ├── gsm8k/train.jsonl         # HuggingFace 数据集
-│   └── alfworld/                 # git clone 的仓库
+│   ├── gsm8k/train.jsonl         # 训练数据（agent 可见）
+│   └── alfworld/train → ...      # 训练游戏数据（agent 可见，评估数据不在这）
 └── baseline_workspace/           # baseline 分数缓存
     └── gsm8k_Qwen_Qwen2.5-0.5B.json
 ```
@@ -167,9 +167,12 @@ autorl_bench/
 ├── benchmarks/               # 【Benchmark 扩展】
 │   ├── __init__.py           # 注册表 BENCHMARKS
 │   ├── gsm8k/
+│   │   ├── data.py           # 数据下载（train split）
 │   │   └── description.md
 │   └── alfworld/
+│       ├── data.py           # 数据下载（训练游戏数据）
 │       ├── eval.py           # 自定义评测器
+│       ├── requirements.txt  # 额外依赖（alfworld, textworld）
 │       ├── description.md
 │       └── react_prompts.json
 │
@@ -188,22 +191,36 @@ autorl_bench/
 
 ### 添加新 Benchmark
 
-**方式一：OpenCompass 类（只需配置）**
+新建 `benchmarks/new_task/` 目录，需要 3 个文件：
+
+**1. `data.py` — 数据下载（只给 agent 训练数据，评估数据自己管）**
 
 ```python
-# benchmarks/__init__.py
+# benchmarks/new_task/data.py
+from pathlib import Path
+from loguru import logger
+
+def download_train_data(target_dir: Path) -> None:
+    """下载训练数据到 target_dir，agent 只能看到这里的内容"""
+    # target_dir 会被软链接到 workspace/data
+    ...
+```
+
+**2. `description.md` — 任务描述（agent 可见）**
+
+**3. 注册到 `benchmarks/__init__.py`**
+
+```python
 BENCHMARKS["new_task"] = BenchmarkConfig(
     id="new_task",
     evaluator_class="rdagent.scenarios.rl.autorl_bench.core.opencompass.OpenCompassEvaluator",
-    data_source="huggingface/dataset_name",
+    data_module="rdagent.scenarios.rl.autorl_bench.benchmarks.new_task.data",
     description="新任务描述",
     eval_config={"dataset": "opencompass.configs.datasets.xxx"},
 )
 ```
 
-再创建 `benchmarks/new_task/description.md` 描述任务即可。
-
-**方式二：自定义评测（需实现 eval.py）**
+如果需要自定义评测逻辑（不用 OpenCompass），再加一个 `eval.py`：
 
 ```python
 # benchmarks/new_task/eval.py
@@ -214,18 +231,7 @@ class NewTaskEvaluator(BaseEvaluator):
         self.config = config
 
     def run_eval(self, model_path: str, workspace_path: str, **kwargs) -> dict:
-        # 自定义评测逻辑
         return {"score": 85.0, "accuracy_summary": {...}}
-```
-
-```python
-# benchmarks/__init__.py
-BENCHMARKS["new_task"] = BenchmarkConfig(
-    id="new_task",
-    evaluator_class="rdagent.scenarios.rl.autorl_bench.benchmarks.new_task.eval.NewTaskEvaluator",
-    data_source="...",
-    expose_files=["eval.py"],  # benchmark 特有文件（description.md 和 instructions.md 自动挂载）
-)
 ```
 
 ### 添加新 Agent

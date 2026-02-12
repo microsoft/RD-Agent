@@ -10,7 +10,8 @@ from pathlib import Path
 from typing import Optional
 
 from flask import Flask, jsonify, request
-from loguru import logger
+
+from rdagent.log import rdagent_logger as logger
 
 app = Flask(__name__)
 
@@ -29,14 +30,6 @@ class GradingServer:
         self.workspace = Path(workspace)
         self.scores_file = self.workspace / "scores.json"
         self.baseline_score: Optional[float] = None
-        
-        # 配置日志
-        logger.add(
-            self.workspace / "grading_server.log",
-            rotation="10 MB",
-            format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
-            level="INFO"
-        )
     
     def load_scores(self) -> list[dict]:
         if self.scores_file.exists():

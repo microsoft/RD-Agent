@@ -2,18 +2,22 @@
 """
 AutoRL-Bench Runner
 
-入口脚本，使用 core/benchmarks/agents 结构。
+入口脚本。
 
 Usage:
-    python run.py --agent openhands --task gsm8k --model Qwen/Qwen2.5-0.5B
+    python -m rdagent.scenarios.rl.autorl_bench.run \
+        --agent example_agent --task gsm8k --model Qwen/Qwen2.5-0.5B
 """
 import argparse
 import os
 import subprocess
+import sys
 from datetime import datetime
 
 from dotenv import load_dotenv
+from loguru import logger as loguru_logger
 
+from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.rl.autorl_bench.agents import get_agent
 from rdagent.scenarios.rl.autorl_bench.benchmarks import get_benchmark
 from rdagent.scenarios.rl.autorl_bench.core import (
@@ -35,30 +39,43 @@ def run(
     port: int = 5000,
 ) -> dict:
     """运行 Agent 评测"""
+    from rdagent.scenarios.rl.autorl_bench.conf import get_workspace_dir
+
     start_time = datetime.now()
     run_id = start_time.strftime("%Y%m%dT%H%M%S")
     benchmark = get_benchmark(task)
 
+    # 建 workspace 目录，添加 loguru file sink（框架日志 → run.log）
+    workspace = get_workspace_dir() / task / f"{run_id}_{agent_id}"
+    workspace.mkdir(parents=True, exist_ok=True)
+    log_file = workspace / "run.log"
+    _sink_id = loguru_logger.add(log_file, format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}", level="DEBUG")
+
+    logger.info(f"=== AutoRL-Bench ===")
+    logger.info(f"Agent: {agent_id}, Task: {task}, Model: {base_model}")
+    logger.info(f"Workspace: {workspace}")
+    logger.info(f"Start: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+
     # 1. 准备资源（已有则跳过下载）
-    print("Preparing resources...")
+    logger.info("Preparing resources...")
     model_path = download_model(base_model)
     data_path = download_data(task)
 
-    # 2. 搭建 workspace（目录创建 + symlink 挂载）
+    # 2. 搭建 workspace（补充 symlink 挂载）
     workspace = setup_workspace(
         run_id, agent_id, task, base_model, model_path, data_path, benchmark,
     )
 
     # 3. 启动 Grading Server + 运行 Agent
     with create_grading_server(benchmark, workspace, port, base_model) as grading:
-        print("Evaluating baseline...")
+        logger.info("Evaluating baseline...")
         baseline = grading.get_baseline(
             task, base_model, str(workspace / "models" / base_model), str(workspace),
         )
-        print(f"  Baseline Score: {baseline}")
+        logger.info(f"Baseline Score: {baseline}")
 
         agent = get_agent(agent_id)
-        print(f"Running agent: {agent.name}")
+        logger.info(f"Running agent: {agent.name}")
 
         env = {
             **os.environ,
@@ -72,15 +89,20 @@ def run(
             **agent.env_vars,
         }
 
+        agent_log = workspace / "agent.log"
         try:
-            proc = subprocess.run(
-                ["bash", str(agent.start)],
-                env=env,
-                timeout=timeout,
-            )
+            with open(agent_log, "w", encoding="utf-8") as af:
+                proc = subprocess.run(
+                    ["bash", str(agent.start)],
+                    env=env,
+                    timeout=timeout,
+                    stdout=af,
+                    stderr=subprocess.STDOUT,
+                )
             success = proc.returncode == 0
+            logger.info(f"Agent finished, exit_code={proc.returncode}, log: {agent_log}")
         except subprocess.TimeoutExpired:
-            print(f"Agent timed out after {timeout}s, collecting results...")
+            logger.warning(f"Agent timed out after {timeout}s, collecting results...")
             success = False
 
         scores = grading.load_scores()
@@ -98,7 +120,6 @@ def run(
         "best": best,
         "total_submissions": len(scores),
         "duration_seconds": (end_time - start_time).total_seconds(),
-        "docker_mode": benchmark.use_docker,
     }
 
     # 追加到全局 results.csv
@@ -118,7 +139,12 @@ def run(
         "workspace": str(workspace),
     })
 
-    print_summary(baseline, best, scores, workspace, benchmark.use_docker)
+    print_summary(baseline, best, scores, workspace)
+
+    logger.info(f"Log saved to: {log_file}")
+
+    # 移除本次 run 添加的 file sink
+    loguru_logger.remove(_sink_id)
 
     return result
 
@@ -142,7 +168,7 @@ def main():
         port=args.port,
     )
 
-    exit(0 if result["success"] else 1)
+    sys.exit(0 if result["success"] else 1)
 
 
 if __name__ == "__main__":

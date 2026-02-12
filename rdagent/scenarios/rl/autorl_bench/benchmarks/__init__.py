@@ -17,57 +17,40 @@ BENCHMARKS_DIR = Path(__file__).parent
 
 @dataclass
 class BenchmarkConfig:
-    """Benchmark 配置"""
+    """Benchmark 配置
+
+    每个 benchmark 的数据下载/处理逻辑写在各自目录的 data.py 里，
+    不在这里统一处理。这样新增 benchmark 时只需在自己目录下实现即可。
+    """
     id: str
     evaluator_class: str  # 评测器类的完整路径
-    data_source: str  # 数据来源（HuggingFace dataset 或 Git repo）
+    data_module: str = ""  # 数据模块路径（实现 download_train_data 函数）
     description: str = ""
     eval_config: Optional[Dict[str, Any]] = field(default=None)
     expose_files: list = field(default_factory=list)  # benchmark 特有的额外文件（description.md 和 instructions.md 由 run.py 统一挂载）
-    use_docker: bool = False  # 是否使用 Docker 环境评测
-    docker_image: str = ""  # Docker 镜像名
 
 
 # Benchmark 注册表
 BENCHMARKS: Dict[str, BenchmarkConfig] = {
-    # ============================================================
-    # OpenCompass 类 benchmark（只需配置，不需要 eval.py）
-    # ============================================================
     "gsm8k": BenchmarkConfig(
         id="gsm8k",
         evaluator_class="rdagent.scenarios.rl.autorl_bench.core.opencompass.OpenCompassEvaluator",
-        data_source="openai/gsm8k",
+        data_module="rdagent.scenarios.rl.autorl_bench.benchmarks.gsm8k.data",
         description="Grade School Math 8K - 小学数学推理",
         eval_config={
             "dataset": "opencompass.configs.datasets.gsm8k.gsm8k_gen_1d7fe4",
         },
-        # description.md 和 instructions.md 由 run.py 统一挂载，无需在此声明
     ),
-    # "math": BenchmarkConfig(
-    #     id="math",
-    #     evaluator_class="rdagent.scenarios.rl.autorl_bench.core.opencompass.OpenCompassEvaluator",
-    #     data_source="lighteval/MATH",
-    #     description="MATH - 竞赛级数学题",
-    #     eval_config={
-    #         "dataset": "opencompass.configs.datasets.math.math_0shot_gen_393424",
-    #     },
-    # ),
-    
-    # ============================================================
-    # 自定义评测 benchmark（需要 eval.py）
-    # ============================================================
     "alfworld": BenchmarkConfig(
         id="alfworld",
         evaluator_class="rdagent.scenarios.rl.autorl_bench.benchmarks.alfworld.eval.ALFWorldEvaluator",
-        data_source="https://github.com/alfworld/alfworld.git",
+        data_module="rdagent.scenarios.rl.autorl_bench.benchmarks.alfworld.data",
         description="ALFWorld - 文本游戏交互环境（ReAct agent，支持 vLLM/API）",
         eval_config={
             "max_steps": 50,
-            "env_num": 1,  # 默认评测 1 局（完整评测改为 134）
+            "env_num": 1,
         },
-        expose_files=["eval.py", "react_prompts.json"],  # benchmark 特有文件
-        use_docker=False,  # 本地已安装 alfworld；生产环境可改为 True 用 Docker
-        docker_image="autorl-bench/alfworld:latest",
+        expose_files=["eval.py", "react_prompts.json"],
     ),
 }
 

@@ -15,9 +15,9 @@ from pathlib import Path
 from typing import Optional
 
 import requests
-from datasets import load_dataset
 from huggingface_hub import snapshot_download
-from loguru import logger
+
+from rdagent.log import rdagent_logger as logger
 
 from rdagent.scenarios.rl.autorl_bench.conf import (
     AUTORL_BENCH_SETTING,
@@ -59,45 +59,28 @@ def download_model(model_name: str, model_dir: Optional[str] = None) -> str:
 
 
 def download_data(task: str, data_dir: Optional[str] = None) -> str:
-    """下载数据（已存在则跳过）"""
+    """下载训练数据（agent 可见部分）
+
+    调用各 benchmark 自己的 data.py 中的 download_train_data()。
+    每个 benchmark 自己决定下载什么、怎么分 train/test。
+    """
+    import importlib
     from rdagent.scenarios.rl.autorl_bench.benchmarks import get_benchmark
+
     config = get_benchmark(task)
     base_dir = Path(data_dir) if data_dir else get_data_dir()
     target_dir = base_dir / task
-    
-    if target_dir.exists() and any(target_dir.iterdir()):
-        logger.info(f"Data exists: {target_dir}")
-        return str(target_dir)
-    
-    logger.info(f"Downloading data: {task}...")
-    
-    if config.data_source.startswith("http"):
-        # Git repo
-        target_dir.parent.mkdir(parents=True, exist_ok=True)
-        _clone_repo(config.data_source, target_dir)
-    else:
-        # HuggingFace dataset
+
+    if not config.data_module:
+        logger.warning(f"Benchmark {task} has no data_module, skipping data download.")
         target_dir.mkdir(parents=True, exist_ok=True)
-        _download_hf_dataset(config.data_source, target_dir)
-    
-    logger.info(f"Data downloaded to {target_dir}")
+        return str(target_dir)
+
+    # 动态导入 benchmark 的 data 模块，调用 download_train_data
+    module = importlib.import_module(config.data_module)
+    module.download_train_data(target_dir)
+
     return str(target_dir)
-
-
-def _clone_repo(url: str, target_dir: Path) -> None:
-    """克隆 git repo"""
-    logger.info(f"Cloning {url} to {target_dir}...")
-    subprocess.run(["git", "clone", "--depth", "1", url, str(target_dir)], check=True)
-
-
-def _download_hf_dataset(source: str, target_dir: Path, split: str = "train") -> None:
-    """下载 HuggingFace 数据集"""
-    dataset = load_dataset(source, split=split)
-    output_file = target_dir / f"{split}.jsonl"
-    with open(output_file, "w", encoding="utf-8") as f:
-        for item in dataset:
-            f.write(json.dumps(item, ensure_ascii=False) + "\n")
-    logger.info(f"Saved {len(dataset)} samples to {output_file}")
 
 
 # ============================================================
@@ -242,120 +225,14 @@ class LocalServerContext(GradingServerContext):
         return self.server.load_scores() if self.server else []
 
 
-class DockerServerContext(GradingServerContext):
-    """Docker 容器 Server"""
-    
-    def __init__(self, benchmark_id: str, docker_image: str, dockerfile_dir: Path, workspace: Path, port: int):
-        self.benchmark_id = benchmark_id
-        self.docker_image = docker_image
-        self.dockerfile_dir = dockerfile_dir
-        self.workspace = workspace
-        self.port = port
-        self.container_name = None
-    
-    def __enter__(self):
-        logger.info(f"[Docker Mode] Starting evaluation server...")
-        self.container_name = start_docker_server(
-            self.benchmark_id, self.docker_image, self.dockerfile_dir, self.workspace, self.port
-        )
-        time.sleep(5)
-        return self
-    
-    def __exit__(self, *args):
-        if self.container_name:
-            stop_docker_server(self.container_name)
-    
-    def get_baseline(self, task: str, model_name: str, model_path: str, workspace_path: str) -> float:
-        # Docker 模式也需要评测 baseline（在主机上调用 grading server）
-        baseline = get_baseline_score(task, model_name, model_path, workspace_path)
-        # 通知 Docker 容器内的 server 设置 baseline
-        set_baseline_to_server(f"http://localhost:{self.port}", baseline)
-        return baseline
-    
-    def load_scores(self) -> list:
-        # 从 Docker 容器内的 grading server 获取分数
-        resp = requests.get(f"http://localhost:{self.port}/scores", timeout=30)
-        resp.raise_for_status()
-        return resp.json()
-
-
 def create_grading_server(benchmark, workspace: Path, port: int, base_model: str) -> GradingServerContext:
-    """工厂函数：根据 benchmark 配置创建对应的 Server 上下文"""
-    from rdagent.scenarios.rl.autorl_bench.benchmarks import BENCHMARKS_DIR
-    if benchmark.use_docker:
-        return DockerServerContext(
-            benchmark_id=benchmark.id,
-            docker_image=benchmark.docker_image,
-            dockerfile_dir=BENCHMARKS_DIR / benchmark.id,
-            workspace=workspace,
-            port=port,
-        )
-    else:
-        return LocalServerContext(
-            task=benchmark.id,
-            base_model=base_model,
-            workspace=str(workspace),
-            port=port,
-        )
-
-
-# ============================================================
-# Docker 相关
-# ============================================================
-
-def start_docker_server(benchmark_id: str, docker_image: str, dockerfile_dir: Path, workspace: Path, port: int) -> str:
-    """启动 Docker 评测环境，返回容器名"""
-    from rdagent.scenarios.rl.autorl_bench.conf import get_data_dir
-    rdagent_root = AUTORL_BENCH_SETTING.rdagent_root
-    data_dir = get_data_dir() / benchmark_id
-    
-    # 构建镜像
-    dockerfile_path = dockerfile_dir / "Dockerfile"
-    if dockerfile_path.exists():
-        logger.info(f"[Docker] Building image: {docker_image}")
-        subprocess.run(["docker", "build", "-t", docker_image, str(dockerfile_dir)], check=True)
-    
-    # 启动容器
-    container_name = f"autorl-bench-{benchmark_id}-{port}"
-    subprocess.run(["docker", "rm", "-f", container_name], capture_output=True)
-    
-    # 构建 docker run 命令
-    docker_cmd = [
-        "docker", "run", "-d",
-        "--name", container_name,
-        "-p", f"{port}:5000",
-        "-v", f"{workspace}:/workspace",
-        "-v", f"{rdagent_root}:/app/rdagent",
-        "-e", f"TASK={benchmark_id}",
-        "-e", "PYTHONPATH=/app/rdagent",
-    ]
-    
-    # 挂载数据目录（如果存在）
-    if data_dir.exists():
-        docker_cmd.extend(["-v", f"{data_dir}:/data/{benchmark_id}"])
-    
-    docker_cmd.extend([
-        docker_image,
-        "python", "-m", "rdagent.scenarios.rl.autorl_bench.core.server",
-        "--task", benchmark_id,
-        "--workspace", "/workspace",
-        "--port", "5000",
-    ])
-    
-    logger.info(f"[Docker] Starting container: {container_name}")
-    result = subprocess.run(docker_cmd, capture_output=True, text=True)
-    
-    if result.returncode != 0:
-        raise RuntimeError(f"Docker start failed: {result.stderr}")
-    
-    logger.info(f"[Docker] Container started: {result.stdout.strip()[:12]}")
-    return container_name
-
-
-def stop_docker_server(container_name: str):
-    """停止 Docker 容器"""
-    logger.info(f"[Docker] Stopping container: {container_name}")
-    subprocess.run(["docker", "rm", "-f", container_name], capture_output=True)
+    """创建 Grading Server 上下文"""
+    return LocalServerContext(
+        task=benchmark.id,
+        base_model=base_model,
+        workspace=str(workspace),
+        port=port,
+    )
 
 
 # ============================================================
@@ -443,15 +320,13 @@ def print_summary(
     best: dict | None,
     scores: list,
     workspace,
-    docker_mode: bool,
 ) -> None:
     """打印运行摘要。"""
-    print("\n" + "=" * 60)
-    print(f"Mode: {'Docker' if docker_mode else 'Local'}")
-    print(f"Baseline: {baseline}")
+    logger.info("=" * 60)
+    logger.info(f"Baseline: {baseline}")
     if best:
-        print(f"Best Score: {best.get('score', 0)}")
-        print(f"Improvement: {best.get('improvement')}")
-    print(f"Total Submissions: {len(scores)}")
-    print(f"Workspace: {workspace}")
-    print("=" * 60)
+        logger.info(f"Best Score: {best.get('score', 0)}")
+        logger.info(f"Improvement: {best.get('improvement')}")
+    logger.info(f"Total Submissions: {len(scores)}")
+    logger.info(f"Workspace: {workspace}")
+    logger.info("=" * 60)

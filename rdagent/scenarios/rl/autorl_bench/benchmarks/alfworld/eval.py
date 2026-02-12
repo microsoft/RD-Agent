@@ -231,6 +231,9 @@ class ALFWorldEvaluator(BaseEvaluator):
         with open(prompts_path) as f:
             react_prompts = json.load(f)
 
+        # --- 确保 ALFWorld 游戏数据已下载 ---
+        self._ensure_alfworld_data()
+
         # --- 初始化 ALFWorld 环境 ---
         workspace = Path(workspace_path)
 
@@ -340,6 +343,17 @@ class ALFWorldEvaluator(BaseEvaluator):
         sys.stdout = sys.__stdout__
 
         return result
+
+    @staticmethod
+    def _ensure_alfworld_data():
+        """检查 ALFWorld 游戏数据（~2.1GB），没有就自动下载"""
+        import subprocess
+        cache_dir = Path.home() / ".cache" / "alfworld"
+        if (cache_dir / "json_2.1.1").exists():
+            return
+        _log("Downloading ALFWorld game data (~2.1GB, first time only)...")
+        subprocess.run(["alfworld-download"], check=True)
+        _log(f"ALFWorld data downloaded to {cache_dir}")
 
     def _expand_env_vars(self, obj):
         """递归展开环境变量"""
