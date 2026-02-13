@@ -12,12 +12,13 @@ from typing_extensions import Annotated
 
 from rdagent.app.qlib_rd_loop.conf import FACTOR_PROP_SETTING
 from rdagent.components.workflow.rd_loop import RDLoop
-from rdagent.core.exception import FactorEmptyError
+from rdagent.core.exception import CoderError, FactorEmptyError
 from rdagent.log import rdagent_logger as logger
 
 
 class FactorRDLoop(RDLoop):
-    skip_loop_error = (FactorEmptyError,)
+    skip_loop_error = (FactorEmptyError, CoderError)
+    skip_loop_error_stepname = "feedback"
 
     def running(self, prev_out: dict[str, Any]):
         exp = self.runner.develop(prev_out["coding"])
