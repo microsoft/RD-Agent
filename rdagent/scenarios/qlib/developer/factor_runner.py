@@ -89,6 +89,8 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             "valid_start": fbps.valid_start,
             "valid_end": fbps.valid_end,
             "test_start": fbps.test_start,
+            "feature_names": str(list(exp.base_features.keys())),
+            "feature_expressions": str(list(exp.base_features.values())),
         }
         if fbps.test_end is not None:
             env_to_use.update({"test_end": fbps.test_end})
@@ -126,7 +128,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             combined_factors = combined_factors.loc[:, ~combined_factors.columns.duplicated(keep="last")]
             new_columns = pd.MultiIndex.from_product([["feature"], combined_factors.columns])
             combined_factors.columns = new_columns
-            num_features = RD_AGENT_SETTINGS.initial_fator_library_size + len(combined_factors.columns)
+            num_features = len(exp.base_features) + len(combined_factors.columns)
             logger.info(f"Factor data processing completed.")
 
             # Due to the rdagent and qlib docker image in the numpy version of the difference,

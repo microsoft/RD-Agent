@@ -11,6 +11,7 @@ from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
 from rdagent.core.proposal import (
+    ExperimentPlan,
     Experiment2Feedback,
     Hypothesis,
     Hypothesis2Experiment,
@@ -22,6 +23,7 @@ from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.workflow import LoopBase, LoopMeta
+from rdagent.utils.qlib import ALPHA20, validate_qlib_features
 
 
 class RDLoop(LoopBase, metaclass=LoopMeta):
@@ -34,6 +36,7 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
 
         self.hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.hypothesis2experiment)()
+        self.plan: ExperimentPlan = {"features": ALPHA20} # for user interaction
 
         self.coder: Developer = import_class(PROP_SETTING.coder)(scen)
         self.runner: Developer = import_class(PROP_SETTING.runner)(scen)
@@ -46,6 +49,40 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
     def _set_interactor(self, user_request_q: Queue, user_response_q: Queue):
         self.user_request_q = user_request_q
         self.user_response_q = user_response_q
+    
+    def _interact_init_params(self) -> None:
+        if not (hasattr(self, "user_request_q") and hasattr(self, "user_response_q")):
+            return
+
+        logger.info("Waiting for user interaction on initial parameters...")
+        try:
+            self.user_request_q.put({
+                "user_instruction": None,
+            })
+            res_dict = self.user_response_q.get()
+            logger.info("Received user instruction response.")
+            self.plan.update(res_dict)
+            
+            fea_valid_msg = ""
+            while True:
+                logger.info("Requesting base feature configuration from user.")
+                self.user_request_q.put({
+                    "features": self.plan["features"],
+                    "feature_validation_msg": fea_valid_msg,
+                })
+                self.plan["features"] = self.user_response_q.get()
+                logger.info("Received base feature configuration response.")
+                if validate_qlib_features(list(self.plan["features"].values())):
+                    logger.info(f"Base feature validation passed. {len(self.plan['features'])} features selected.")
+                    break
+                else:
+                    logger.info("Base feature validation failed. Asking user to revise.")
+                    fea_valid_msg = "Some features are invalid, please revise."
+            
+        except (EOFError, OSError):
+            logger.info("User interaction failed, using default initial parameters.")
+            return
+        logger.info("Received user interaction on initial parameters.")
 
     def _interact_hypo(self, hypo: Hypothesis) -> Hypothesis:
         if not (hasattr(self, "user_request_q") and hasattr(self, "user_response_q")):
@@ -78,8 +115,8 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         return modified_feedback
 
     def _propose(self):
-        hypothesis = self.hypothesis_gen.gen(self.trace)
-                        
+        hypothesis = self.hypothesis_gen.gen(self.trace, self.plan)
+
         # user can change the hypothesis here
         hypothesis = self._interact_hypo(hypothesis)
 
@@ -97,6 +134,7 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
             if self.get_unfinished_loop_cnt(self.loop_idx) < RD_AGENT_SETTINGS.get_max_parallel():
                 hypo = self._propose()
                 exp = self._exp_gen(hypo)
+                exp.base_features = self.plan["features"]
                 return {"propose": hypo, "exp_gen": exp}
             await asyncio.sleep(1)
 

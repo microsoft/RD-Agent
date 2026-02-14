@@ -14,6 +14,7 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
 from rdagent.core.exception import FactorEmptyError, ModelEmptyError
 from rdagent.core.proposal import (
+    ExperimentPlan,
     Experiment2Feedback,
     Hypothesis2Experiment,
     HypothesisFeedback,
@@ -23,7 +24,7 @@ from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.qlib.proposal.quant_proposal import QuantTrace
-
+from rdagent.utils.qlib import ALPHA20
 
 class QuantRDLoop(RDLoop):
     skip_loop_error = (
@@ -62,6 +63,7 @@ class QuantRDLoop(RDLoop):
         self.model_summarizer: Experiment2Feedback = import_class(PROP_SETTING.model_summarizer)(scen)
         logger.log_object(self.model_summarizer, tag="model summarizer")
 
+        self.plan: ExperimentPlan = {"features": ALPHA20} # for user interaction
         self.trace = QuantTrace(scen=scen)
         super(RDLoop, self).__init__()
 
@@ -75,6 +77,7 @@ class QuantRDLoop(RDLoop):
                 else:
                     exp = self.model_hypothesis2experiment.convert(hypo, self.trace)
                 logger.log_object(exp.sub_tasks, tag="experiment generation")
+                exp.base_features = self.plan["features"]
                 return {"propose": hypo, "exp_gen": exp}
             await asyncio.sleep(1)
 
@@ -107,6 +110,7 @@ class QuantRDLoop(RDLoop):
                 reason="",
                 decision=False,
             )
+            feedback = self._interact_feedback(feedback)
             logger.log_object(feedback, tag="feedback")
             self.trace.hist.append((prev_out["direct_exp_gen"]["exp_gen"], feedback))
         else:
@@ -114,6 +118,7 @@ class QuantRDLoop(RDLoop):
                 feedback = self.factor_summarizer.generate_feedback(prev_out["running"], self.trace)
             elif prev_out["direct_exp_gen"]["propose"].action == "model":
                 feedback = self.model_summarizer.generate_feedback(prev_out["running"], self.trace)
+            feedback = self._interact_feedback(feedback)
             logger.log_object(feedback, tag="feedback")
             self.trace.hist.append((prev_out["running"], feedback))
 
@@ -138,6 +143,8 @@ def main(
         quant_loop = QuantRDLoop.load(path, checkout=checkout)
     if "user_interaction_queues" in kwargs and kwargs["user_interaction_queues"] is not None:
         quant_loop._set_interactor(*kwargs["user_interaction_queues"])
+        quant_loop._interact_init_params()
+        
     asyncio.run(quant_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration))
 
 

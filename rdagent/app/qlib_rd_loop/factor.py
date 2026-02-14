@@ -57,6 +57,7 @@ def main(
     
     if "user_interaction_queues" in kwargs and kwargs["user_interaction_queues"] is not None:
         model_loop._set_interactor(*kwargs["user_interaction_queues"])
+        model_loop._interact_init_params()
     asyncio.run(model_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration))
 
 

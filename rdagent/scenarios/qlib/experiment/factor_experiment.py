@@ -21,6 +21,7 @@ class QlibFactorExperiment(FactorExperiment[FactorTask, QlibFBWorkspace, FactorF
         super().__init__(*args, **kwargs)
         self.experiment_workspace = QlibFBWorkspace(template_folder_path=Path(__file__).parent / "factor_template")
         self.stdout = ""
+        self.base_features: dict[str, str] = {}
 
 
 class QlibFactorScenario(Scenario):
