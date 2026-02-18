@@ -162,6 +162,9 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
         self.knowledge_base: ASpecificKB | None = knowledge_base
         self.current_selection: tuple[int, ...] = (-1,)
 
+        # When parallel multiple nodes in the trace, nodes are not committed before finish running.
+        self.uncommitted_experiments: dict[int, Experiment] = {}  # loop_id -> Experiment
+
     def get_sota_hypothesis_and_experiment(self) -> tuple[Hypothesis | None, Experiment | None]:
         """Access the last experiment result, sub-task, and the corresponding hypothesis."""
         # TODO: The return value does not align with the signature.
@@ -240,6 +243,39 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
 
         return ancestors
 
+    def register_uncommitted_exp(self, exp: DSExperiment, loop_id: int):
+        self.uncommitted_experiments[loop_id] = exp
+
+    def deregister_uncommitted_exp(self, loop_id: int):
+        if loop_id in self.uncommitted_experiments:
+            del self.uncommitted_experiments[loop_id]
+
+    def sync_dag_parent_and_hist(
+        self,
+        exp_and_fb: tuple[Experiment, ExperimentFeedback],
+        cur_loop_id: int,
+    ) -> None:
+        """
+        Adding corresponding parent index to the dag_parent when the hist is going to be changed.
+        Should be called when the hist is changed.
+        """
+
+        if len(self.hist) == 0 or len(self.get_current_selection()) == 0:
+            # the node we are going to add is the first node of hist / root node of a new sub-trace
+            self.dag_parent.append(())
+
+        else:
+            current_node_idx = self.current_selection[0]
+
+            if current_node_idx == -1:
+                # the current selection is the latest one
+                current_node_idx = len(self.hist) - 1
+
+            self.dag_parent.append((current_node_idx,))
+        self.hist.append(exp_and_fb)
+        self.idx2loop_id[len(self.hist) - 1] = cur_loop_id
+        self.deregister_uncommitted_exp(cur_loop_id)
+
 
 class CheckpointSelector:
     """
@@ -298,7 +334,7 @@ class ExpGen(ABC):
         self.scen = scen
 
     @abstractmethod
-    def gen(self, trace: Trace, plan: ExperimentPlan | None = None) -> Experiment:
+    def gen(self, trace: Trace) -> Experiment:
         """
         Generate the experiment based on the trace.
         Planning is part of gen, but since we may support multi-stage planning,
