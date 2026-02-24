@@ -48,7 +48,7 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
         description="ALFWorld - 文本游戏交互环境（ReAct agent，支持 vLLM/API）",
         eval_config={
             "max_steps": 50,
-            "env_num": 1,
+            "env_num": 134,  # 完整评测集（valid_unseen），之前调试时设为 1
         },
         expose_files=["eval.py", "react_prompts.json"],
     ),
