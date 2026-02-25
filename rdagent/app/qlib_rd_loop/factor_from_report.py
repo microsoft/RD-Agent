@@ -137,7 +137,6 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
         return exp
 
 
-
 def main(report_folder=None, path=None, all_duration=None, checkout=True):
     """
     Auto R&D Evolving loop for fintech factors (the factors are extracted from finance reports).

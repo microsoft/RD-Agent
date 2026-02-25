@@ -4,7 +4,7 @@ import copy
 from abc import ABC, abstractmethod
 from collections.abc import Generator
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast
 
 from rdagent.core.evaluation import EvaluableObj, Evaluator
 from rdagent.core.knowledge_base import KnowledgeBase
@@ -101,7 +101,6 @@ class IterEvaluator(Evaluator):
     def evaluate(self, eo: EvaluableObj) -> Feedback:
         """
         Default implementation that runs evaluate_iter to completion.
-        
         Iterative evaluators can override this for custom behavior,
         or just implement evaluate_iter for standard iteration.
         """
@@ -110,7 +109,7 @@ class IterEvaluator(Evaluator):
         try:
             return gen.send(eo)
         except StopIteration as e:
-            return e.value
+            return cast("Feedback", e.value)
 
     @abstractmethod
     def evaluate_iter(self) -> Generator[Feedback, EvaluableObj | None, Feedback]:
