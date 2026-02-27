@@ -80,35 +80,33 @@ if sel_task != "All":
 if len(filtered) > 1:
     st.markdown("#### Agent Summary")
     summary = (
-        filtered.groupby("agent")
+        filtered.groupby(["agent", "task", "base_model"])
         .agg(
             runs=("agent", "size"),
             success=("success", "sum"),
-            task=("task", "first"),
-            base_model=("base_model", "first"),
             best=("best_score", "max"),
             best_improve=("improvement", "max"),
             subs=("submissions", "sum"),
         )
         .round(2)
+        .reset_index()
         .sort_values("best", ascending=False)
     )
-    summary.columns = ["Runs", "Success", "Task", "Base Model", "Best", "Best Impr.", "Submissions"]
-    st.dataframe(summary, use_container_width=True)
+    summary.columns = ["Agent", "Task", "Base Model", "Runs", "Success", "Best", "Best Impr.", "Submissions"]
+    st.dataframe(summary, use_container_width=True, hide_index=True)
 
 st.divider()
 
 # ---------- 结果表格 ----------
 st.markdown("#### Run History")
 display = filtered[[
-    "timestamp", "agent", "driver_model", "task",
+    "timestamp", "agent", "driver_model", "base_model", "task",
     "baseline", "best_score", "improvement", "submissions",
     "duration_min", "success", "workspace",
 ]].sort_values("timestamp", ascending=False)
 
-# 列重命名让表头更好看
 display.columns = [
-    "Time", "Agent", "Driver LLM", "Task",
+    "Time", "Agent", "Driver LLM", "Base Model", "Task",
     "Baseline", "Best Score", "Improvement", "Submissions",
     "Duration(min)", "Success", "Workspace",
 ]
