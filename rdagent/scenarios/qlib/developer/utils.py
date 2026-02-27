@@ -10,6 +10,38 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 
 
+def _normalize_factor_index(df: pd.DataFrame) -> pd.DataFrame | None:
+    """Normalize factor index to a 2-level MultiIndex: (datetime, instrument)."""
+    if df is None or df.empty:
+        return None
+
+    index_names = list(df.index.names)
+    if "datetime" not in index_names:
+        return None
+
+    if "instrument" not in index_names:
+        logger.warning(
+            "Skip factor dataframe because index misses 'instrument'. index names=%s",
+            index_names,
+        )
+        return None
+
+    datetime_values = df.index.get_level_values("datetime")
+    instrument_values = df.index.get_level_values("instrument")
+    normalized = df.copy()
+    normalized.index = pd.MultiIndex.from_arrays(
+        [datetime_values, instrument_values],
+        names=["datetime", "instrument"],
+    )
+    return normalized
+
+
+def _format_index_info(df: pd.DataFrame | None) -> str:
+    if df is None:
+        return "df is None"
+    return f"index_type={type(df.index).__name__}, nlevels={df.index.nlevels}, names={list(df.index.names)}"
+
+
 def process_factor_data(exp_or_list: List[QlibFactorExperiment] | QlibFactorExperiment) -> pd.DataFrame:
     """
     Process and combine factor data from experiment implementations.
@@ -23,6 +55,7 @@ def process_factor_data(exp_or_list: List[QlibFactorExperiment] | QlibFactorExpe
     if isinstance(exp_or_list, QlibFactorExperiment):
         exp_or_list = [exp_or_list]
     factor_dfs = []
+    error_message = ""
 
     # Collect all exp's dataframes
     for exp in exp_or_list:
@@ -40,27 +73,61 @@ def process_factor_data(exp_or_list: List[QlibFactorExperiment] | QlibFactorExpe
                     ],  # only execute successfully feedback
                     n=RD_AGENT_SETTINGS.multi_proc_n,
                 )
-                error_message = ""
                 for message, df in message_and_df_list:
                     # Check if factor generation was successful
                     if df is not None and "datetime" in df.index.names:
+                        normalized_df = _normalize_factor_index(df)
+                        if normalized_df is None:
+                            logger.warning(
+                                "Factor data from %s is skipped due to invalid index structure: %s",
+                                exp.hypothesis.concise_justification,
+                                _format_index_info(df),
+                            )
+                            error_message += (
+                                "Factor data from "
+                                f"{exp.hypothesis.concise_justification} is skipped due to invalid index: "
+                                f"{_format_index_info(df)}. "
+                            )
+                            continue
                         time_diff = df.index.get_level_values("datetime").to_series().diff().dropna().unique()
                         if pd.Timedelta(minutes=1) not in time_diff:
-                            factor_dfs.append(df)
+                            factor_dfs.append(normalized_df)
                             logger.info(
                                 f"Factor data from {exp.hypothesis.concise_justification} is successfully generated."
                             )
                         else:
                             logger.warning(f"Factor data from {exp.hypothesis.concise_justification} is not generated.")
                     else:
-                        error_message += f"Factor data from {exp.hypothesis.concise_justification} is not generated because of {message}"
+                        logger.warning(
+                            "Factor data from %s has invalid execution output or index: %s",
+                            exp.hypothesis.concise_justification,
+                            _format_index_info(df),
+                        )
+                        error_message += (
+                            f"Factor data from {exp.hypothesis.concise_justification} is not generated because of "
+                            f"{message}. index_info={_format_index_info(df)}. "
+                        )
                         logger.warning(
                             f"Factor data from {exp.hypothesis.concise_justification} is not generated because of {message}"
                         )
 
     # Combine all successful factor data
     if factor_dfs:
-        return pd.concat(factor_dfs, axis=1)
+        try:
+            return pd.concat(factor_dfs, axis=1)
+        except Exception as concat_error:
+            concat_index_info = " | ".join(
+                [f"df#{i}: {_format_index_info(df)}" for i, df in enumerate(factor_dfs)]
+            )
+            logger.warning(
+                "Failed to concat factor data due to index misalignment. concat_error=%s; collected_index_info=%s",
+                concat_error,
+                concat_index_info,
+            )
+            raise FactorEmptyError(
+                "Failed to concat factor data due to index misalignment or incompatible index structure. "
+                f"concat_error={concat_error}; collected_index_info={concat_index_info}; details={error_message}"
+            ) from concat_error
     else:
         raise FactorEmptyError(
             f"No valid factor data found to merge (in process_factor_data) because of {error_message}."
