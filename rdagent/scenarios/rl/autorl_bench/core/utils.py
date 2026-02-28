@@ -33,9 +33,13 @@ from rdagent.scenarios.rl.autorl_bench.core.server import app, init_server
 # ============================================================
 
 def ensure_symlink(src: Path, dst: Path):
-    """创建软链接（已存在则跳过）"""
-    if src.exists() and not (dst.is_symlink() or dst.exists()):
+    """创建软链接（已存在则跳过，并发安全）"""
+    if not src.exists():
+        return
+    try:
         dst.symlink_to(src)
+    except FileExistsError:
+        pass
 
 
 # ============================================================
