@@ -135,7 +135,8 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
                 hypo = self._propose()
                 exp = self._exp_gen(hypo)
                 exp.base_features = self.plan["features"]
-                exp.based_experiments[-1].base_features = self.plan["features"]
+                if exp.based_experiments:
+                    exp.based_experiments[-1].base_features = self.plan["features"]
                 return {"propose": hypo, "exp_gen": exp}
             await asyncio.sleep(1)
 

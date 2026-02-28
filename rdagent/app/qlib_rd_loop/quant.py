@@ -78,7 +78,8 @@ class QuantRDLoop(RDLoop):
                     exp = self.model_hypothesis2experiment.convert(hypo, self.trace)
                 logger.log_object(exp.sub_tasks, tag="experiment generation")
                 exp.base_features = self.plan["features"]
-                exp.based_experiments[-1].base_features = self.plan["features"]
+                if exp.based_experiments:
+                    exp.based_experiments[-1].base_features = self.plan["features"]
                 return {"propose": hypo, "exp_gen": exp}
             await asyncio.sleep(1)
 
