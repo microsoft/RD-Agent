@@ -44,7 +44,7 @@ class CoSTEERSingleFeedback(Feedback):
     return_checking: str | None  # including every check in the testing (constraints about the generated value)
     # value_feedback, shape_feedback, value_generated_flag
     code: str
-    final_decision: bool
+    final_decision: bool | None = None
     raw_execution: str = ""  # Full raw stdout for UI display
     source_feedback: Dict[str, bool] = field(
         default_factory=dict
