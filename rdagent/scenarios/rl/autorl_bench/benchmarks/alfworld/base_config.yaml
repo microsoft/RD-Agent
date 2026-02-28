@@ -1,5 +1,5 @@
 # ALFWorld base config (from alfworld official repo)
-# $ALFWORLD_DATA is set by eval.py -> data._get_alfworld_data_dir()
+# $ALFWORLD_DATA is set by eval.py -> data._ensure_alfworld_data()
 
 dataset:
   data_path: '$ALFWORLD_DATA/json_2.1.1/train'

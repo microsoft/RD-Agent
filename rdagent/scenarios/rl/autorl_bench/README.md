@@ -14,21 +14,94 @@
 
 ## 快速开始
 
+### 1. 环境安装
+
+```bash
+# --- 1a. Clone 代码 ---
+git clone git@github.com:microsoft/RD-Agent.git ~/RD-Agent
+cd ~/RD-Agent
+
+# --- 1b. 基础 conda 环境 ---
+conda create -n cwy-rl python=3.10 -y
+conda activate cwy-rl
+pip install -e .
+
+# 全局依赖（trl, vllm, torch, opencompass 等）
+pip install -r rdagent/scenarios/rl/autorl_bench/requirements.txt
+
+# --- 1c. 按需安装 benchmark 额外依赖 ---
+# ALFWorld（alfworld, textworld, openai）
+pip install -r rdagent/scenarios/rl/autorl_bench/benchmarks/alfworld/requirements.txt
+# GSM8K：无额外依赖
+
+# --- 1d. OpenHands Agent（如需使用）---
+git clone git@github.com:couragec/openhands-rl.git ~/openhands-rl
+# OpenHands 需要独立 conda 环境（Python 3.12）
+conda create -n openhands python=3.12 -y
+conda run -n openhands pip install -r ~/openhands-rl/requirements.txt
+```
+
+### 2. 配置 `.env`
+
+```bash
+cp .env.example .env  # 或手动创建
+```
+
+`.env` 中需要配置的关键项：
+
+```env
+# LLM API（OpenHands Agent 必需）
+OPENAI_API_KEY=your_api_key
+OPENAI_API_BASE=https://your-api-endpoint/v1
+CHAT_MODEL=gpt-5.2
+
+# OpenHands 环境（可选，有默认值）
+# CONDA_ENV_OPENHANDS=openhands      # 默认 openhands
+# OPENHANDS_RL_ROOT=$HOME/openhands-rl  # 默认 ~/openhands-rl
+```
+
+### 3. 运行
+
 ```bash
 cd /path/to/RD-Agent
-pip install -e .
+conda activate cwy-rl
 
 # Example Agent（简单 GRPO 训练，验证流程）
 python -m rdagent.scenarios.rl.autorl_bench.run \
     --agent example_agent --task gsm8k --model Qwen/Qwen2.5-0.5B --timeout 7200
 
-# RD-Agent（自主探索优化）
+# OpenHands Agent + GSM8K
 python -m rdagent.scenarios.rl.autorl_bench.run \
-    --agent rdagent --task gsm8k --model Qwen/Qwen2.5-0.5B --timeout 14400
+    --agent openhands --task gsm8k --model Qwen/Qwen2.5-0.5B --timeout 41600
 
-# OpenHands Agent（LLM 驱动）
+# OpenHands Agent + ALFWorld（首次运行自动下载 ~2GB 游戏数据）
 python -m rdagent.scenarios.rl.autorl_bench.run \
-    --agent openhands --task gsm8k --model Qwen/Qwen2.5-0.5B --timeout 14400
+    --agent openhands --task alfworld --model Qwen/Qwen2.5-0.5B-Instruct --timeout 41600
+
+# 后台运行（推荐）
+nohup python -m rdagent.scenarios.rl.autorl_bench.run \
+    --agent openhands --task alfworld --model Qwen/Qwen2.5-0.5B-Instruct \
+    --timeout 41600 > /dev/null 2>&1 &
+```
+
+> **数据自动下载**：首次运行某个 benchmark 时，`run.py` 会自动调用对应 `data.py` 下载训练数据，无需手动操作。
+> - GSM8K：从 HuggingFace 下载 (~5MB)
+> - ALFWorld：调用 `alfworld-download` 从 GitHub Releases 下载 (~2GB，含 json/pddl/tw-pddl/logic)
+
+### 4. 查看结果
+
+```bash
+# 实时查看运行日志
+tail -f workspace/alfworld/20260228T100000_openhands/agent.log
+
+# 查看评分记录
+cat workspace/alfworld/20260228T100000_openhands/scores.json
+
+# 查看全局实验汇总
+cat rdagent/scenarios/rl/autorl_bench/results.csv
+
+# Web UI（Streamlit 面板）
+streamlit run rdagent/scenarios/rl/autorl_bench/core/ui.py --server.port 8511
 ```
 
 ### 命令行参数
@@ -38,7 +111,7 @@ python -m rdagent.scenarios.rl.autorl_bench.run \
 | `--agent` | Agent 类型 | `example_agent`、`rdagent`、`openhands` |
 | `--task` | Benchmark 任务名（对应 `benchmarks/` 子目录） | `gsm8k`、`alfworld` |
 | `--model` | HuggingFace 模型 repo_id，首次自动下载 | `Qwen/Qwen2.5-0.5B` |
-| `--timeout` | Agent 最大运行时长（秒） | `7200`（2h） |
+| `--timeout` | Agent 最大运行时长（秒） | `41600`（~11.5h） |
 | `--port` | Grading Server 端口（默认 5000） | `5000` |
 
 ---
@@ -255,3 +328,5 @@ curl -X POST $GRADING_SERVER_URL/submit \
 ```
 
 Agent 通过 `config.yaml` 自动注册，无需修改代码。
+
+
