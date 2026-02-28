@@ -15,7 +15,6 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List
-import yaml
 from rdagent.scenarios.rl.autorl_bench.core.evaluator import BaseEvaluator
 
 # 日志目录
@@ -235,38 +234,14 @@ class ALFWorldEvaluator(BaseEvaluator):
         # --- 初始化 ALFWorld 环境 ---
         workspace = Path(workspace_path)
 
-        # alfworld_data 查找顺序: cfg > 环境变量 > pip 安装的 alfworld 包路径 > workspace 默认
-        alfworld_data = cfg.get("alfworld_data") or os.getenv("ALFWORLD_DATA")
-        if not alfworld_data:
-            # 尝试从 pip 安装的 alfworld 包获取数据路径
-            try:
-                import alfworld
-                pkg_data = Path(alfworld.__file__).parent / "data"
-                if pkg_data.exists():
-                    alfworld_data = str(pkg_data)
-            except ImportError:
-                pass
-        if not alfworld_data:
-            alfworld_data = str(workspace / "data" / "alfworld" / "data")
+        from rdagent.scenarios.rl.autorl_bench.benchmarks.alfworld.data import _ensure_alfworld_data
+        alfworld_data = str(_ensure_alfworld_data())
         os.environ["ALFWORLD_DATA"] = alfworld_data
 
-        # eval_config 查找顺序: cfg > 环境变量 > 常见路径自动搜索
-        eval_config_path = cfg.get("eval_config_path") or os.getenv("ALFWORLD_CONFIG")
-        if not eval_config_path:
-            for candidate in [
-                workspace / "data" / "configs" / "base_config.yaml",          # 宿主机直接运行（workspace/data 是符号链接）
-                workspace / "data" / "configs" / "eval_config.yaml",
-                Path("/data/alfworld/configs/base_config.yaml"),               # Docker 容器内挂载路径
-                Path(alfworld_data).parent.parent / "configs" / "base_config.yaml",  # 相对于数据目录
-            ]:
-                if candidate.exists():
-                    eval_config_path = str(candidate)
-                    break
-        if not eval_config_path:
-            raise FileNotFoundError(
-                "找不到 ALFWorld config 文件。请设置环境变量 ALFWORLD_CONFIG 或在 eval_config 中传入 eval_config_path。"
-            )
-        with open(eval_config_path) as f:
+        # env_config: 读同目录下官方 base_config.yaml，展开 $ALFWORLD_DATA
+        config_yaml = Path(__file__).parent / "base_config.yaml"
+        with open(config_yaml) as f:
+            import yaml
             env_config = yaml.safe_load(f)
         env_config = self._expand_env_vars(env_config)
 
@@ -354,7 +329,7 @@ class ALFWorldEvaluator(BaseEvaluator):
         _log(f"ALFWorld data downloaded to {cache_dir}")
 
     def _expand_env_vars(self, obj):
-        """递归展开环境变量"""
+        """递归展开 $ENV_VAR"""
         if isinstance(obj, str):
             return os.path.expandvars(obj)
         elif isinstance(obj, dict):

@@ -1,0 +1,36 @@
+# ALFWorld base config (from alfworld official repo)
+# $ALFWORLD_DATA is set by eval.py -> data._get_alfworld_data_dir()
+
+dataset:
+  data_path: '$ALFWORLD_DATA/json_2.1.1/train'
+  eval_id_data_path: '$ALFWORLD_DATA/json_2.1.1/valid_seen'
+  eval_ood_data_path: '$ALFWORLD_DATA/json_2.1.1/valid_unseen'
+  num_train_games: -1
+  num_eval_games: -1
+
+logic:
+  domain: '$ALFWORLD_DATA/logic/alfred.pddl'
+  grammar: '$ALFWORLD_DATA/logic/alfred.twl2'
+
+env:
+  type: 'AlfredTWEnv'
+  domain_randomization: False
+  task_types: [1, 2, 3, 4, 5, 6]
+  expert_timeout_steps: 150
+  expert_type: "handcoded"
+  goal_desc_human_anns_prob: 0.0
+
+controller:
+  type: 'oracle'
+  debug: False
+  load_receps: True
+
+general:
+  random_seed: 42
+  use_cuda: True
+  task: 'alfred'
+  training_method: 'dagger'
+
+dagger:
+  training:
+    max_nb_steps_per_episode: 50
