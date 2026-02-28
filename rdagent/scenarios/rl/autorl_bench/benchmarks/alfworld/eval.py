@@ -124,10 +124,11 @@ def create_llm_fn(backend: str, model_path: str, **kwargs) -> tuple:
             return outputs[0].outputs[0].text
 
         def cleanup():
+            nonlocal llm_engine
             import gc
             import torch
             destroy_model_parallel()
-            del llm_engine
+            llm_engine = None
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
