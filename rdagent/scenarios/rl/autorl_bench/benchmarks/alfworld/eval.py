@@ -102,15 +102,19 @@ def alfworld_run(llm_fn: Callable, env, prompt: str, ob: str, max_steps: int = 5
 # LLM 后端工厂
 # ============================================================
 
-def create_llm_fn(backend: str, model_path: str, **kwargs) -> Callable:
+def create_llm_fn(backend: str, model_path: str, **kwargs) -> tuple:
     """
     创建统一的 llm(prompt, stop) 函数。
 
     backend="vllm": 本地模型，text completion（和 ReAct 原版行为一致）
     backend="api":  OpenAI 兼容 chat API
+
+    Returns:
+        (llm_fn, cleanup_fn): cleanup_fn 释放 GPU 显存
     """
     if backend == "vllm":
         from vllm import LLM, SamplingParams
+        from vllm.distributed.parallel_state import destroy_model_parallel
 
         llm_engine = LLM(model=model_path, tensor_parallel_size=kwargs.get("tensor_parallel_size", 1), trust_remote_code=True)
 
@@ -119,7 +123,17 @@ def create_llm_fn(backend: str, model_path: str, **kwargs) -> Callable:
             outputs = llm_engine.generate([prompt], params)
             return outputs[0].outputs[0].text
 
-        return vllm_fn
+        def cleanup():
+            import gc
+            import torch
+            destroy_model_parallel()
+            del llm_engine
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            _log("vLLM engine released, GPU memory freed.")
+
+        return vllm_fn, cleanup
 
     elif backend == "api":
         from openai import OpenAI
@@ -128,7 +142,7 @@ def create_llm_fn(backend: str, model_path: str, **kwargs) -> Callable:
             api_key=kwargs.get("api_key", os.getenv("OPENAI_API_KEY")),
             base_url=kwargs.get("api_base", os.getenv("OPENAI_API_BASE")),
         )
-        model_name = model_path  # API 模式下 model_path 就是模型名
+        model_name = model_path
 
         system_msg = (
             "You are playing a text-based household game. "
@@ -155,7 +169,7 @@ def create_llm_fn(backend: str, model_path: str, **kwargs) -> Callable:
                 text = text[2:]
             return text
 
-        return api_fn
+        return api_fn, lambda: None
 
     else:
         raise ValueError(f"Unknown backend: {backend}. Use 'vllm' or 'api'.")
@@ -212,7 +226,7 @@ class ALFWorldEvaluator(BaseEvaluator):
         _log(f"ALFWorld eval: backend={backend}, model={model_path}")
 
         # --- 创建 LLM 函数 ---
-        llm_fn = create_llm_fn(
+        llm_fn, llm_cleanup = create_llm_fn(
             backend=backend,
             model_path=model_path,
             api_key=cfg.get("api_key"),
@@ -289,6 +303,7 @@ class ALFWorldEvaluator(BaseEvaluator):
             _log(f"  Running: {total_r}/{total_c} = {total_r / max(total_c, 1):.1%}")
 
         env.close()
+        llm_cleanup()
 
         # --- 汇总结果 ---
         total_success = sum(rs)
