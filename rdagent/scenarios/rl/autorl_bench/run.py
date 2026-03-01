@@ -44,6 +44,8 @@ def run(
 
     start_time = datetime.now()
     run_id = start_time.strftime("%Y%m%dT%H%M%S")
+    if port != 5000:
+        run_id = f"{run_id}_p{port}"
     benchmark = get_benchmark(task)
 
     # 建 workspace 目录，添加 loguru file sink（框架日志 → run.log）
