@@ -1,0 +1,7 @@
+name: humaneval
+task_type: code
+description: "HumanEval code generation benchmark"
+source:
+  hf_dataset: openai/openai_humaneval
+  hf_split: test
+  max_samples: 0  # 0 = 全量（164 条）

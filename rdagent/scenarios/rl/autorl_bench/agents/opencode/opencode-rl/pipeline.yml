@@ -1,0 +1,35 @@
+version: 1
+
+tests:
+  cmds:
+    - "python -c \"import torch; print('torch ok')\""
+
+deploy:
+  setup_cmds:
+    - "bash .opencode_fsm/stages/deploy_setup.sh"
+  health_cmds:
+    - "bash .opencode_fsm/stages/deploy_health.sh"
+  teardown_cmds:
+    - "bash .opencode_fsm/stages/deploy_teardown.sh"
+
+rollout:
+  run_cmds:
+    - "bash .opencode_fsm/stages/rollout.sh"
+  timeout_seconds: 1800
+  env:
+    OPENCODE_EVAL_LIMIT: "200"
+
+evaluation:
+  run_cmds:
+    - "bash .opencode_fsm/stages/evaluation.sh"
+  metrics_path: ".opencode_fsm/metrics.json"
+  required_keys:
+    - "ok"
+    - "score"
+  env:
+    OPENCODE_FSM_REQUIRE_HINTS: "0"
+
+security:
+  mode: "safe"
+  max_cmd_seconds: 1800
+  max_total_seconds: 7200
