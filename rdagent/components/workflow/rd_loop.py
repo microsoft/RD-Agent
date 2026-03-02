@@ -92,7 +92,7 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         try:
             self.user_request_q.put(hypo.__dict__)
             res_dict = self.user_response_q.get()
-            modified_hypo = Hypothesis(**res_dict)
+            modified_hypo = type(hypo)(**res_dict)
         except (EOFError, OSError):
             logger.info("User interaction failed, using original hypothesis.")
             return hypo
