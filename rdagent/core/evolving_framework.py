@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import copy
 from abc import ABC, abstractmethod
+from collections.abc import Generator
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-from rdagent.core.evaluation import EvaluableObj
+from rdagent.core.evaluation import EvaluableObj, Evaluator
 from rdagent.core.knowledge_base import KnowledgeBase
 
 if TYPE_CHECKING:
@@ -62,19 +63,78 @@ class EvolvingStrategy(ABC, Generic[ASpecificEvolvableSubjects]):
         self.scen = scen
 
     @abstractmethod
-    def evolve(
+    def evolve_iter(
         self,
-        *evo: ASpecificEvolvableSubjects,
-        evolving_trace: list[EvoStep[ASpecificEvolvableSubjects]] | None = None,
+        evo: ASpecificEvolvableSubjects,
         queried_knowledge: QueriedKnowledge | None = None,
-        **kwargs: Any,
-    ) -> ASpecificEvolvableSubjects:
-        """The evolving trace is a list of (evolvable_subjects, feedback) ordered
+        evolving_trace: list[EvoStep] | None = None,
+    ) -> Generator[ASpecificEvolvableSubjects, None, None]:
+        """
+        The evolving trace is a list of (evolvable_subjects, feedback) ordered
         according to the time.
 
         The reason why the parameter is important for the evolving.
         - evolving_trace: the historical feedback is important.
         - queried_knowledge: queried knowledge
+
+        Assumptions:
+        - The evolving process will make modifications in-place. So the yield evo and the parameter evo are the same object!!!!
+
+
+        Typical implementation of this method is:
+
+        .. code-block:: python
+
+            for evolve_function in self.evolve_func_iter():
+                yield evolve_function(evo=evo, queried_knowledge=queried_knowledge, evolving_trace=evolving_trace)
+                # evolve_function will return a partial evolved solution.
+        """
+
+
+class IterEvaluator(Evaluator):
+    """
+    Some evolving implementation (i.e. evolve_iter) will iteratively implement partial solutions before a complete final solution.
+
+    According to that strategy, we have iterative evaluation
+    """
+
+    def evaluate(self, eo: EvaluableObj) -> Feedback:
+        """
+        Default implementation that runs evaluate_iter to completion.
+        Iterative evaluators can override this for custom behavior,
+        or just implement evaluate_iter for standard iteration.
+        """
+        gen = self.evaluate_iter()
+        next(gen)  # Kick off the generator
+        try:
+            return gen.send(eo)
+        except StopIteration as e:
+            return e.value  # type: ignore[no-any-return]
+
+    @abstractmethod
+    def evaluate_iter(self) -> Generator[Feedback, EvaluableObj | None, Feedback]:
+        """
+
+        1) It will yield a evaluation for each implement part and yield the feedback for that part.
+        2) And finally, it will get the summarize all the feedback and return a overall feedback.
+
+        Sending a None feedback will stop the evaluation chain and just return the overall feedback.
+
+        A typical implementation of this method is:
+
+        .. code-block:: python
+
+            evo = yield Feedback()  # it will receive the evo first, so the first yield is for get the sent evo instead of generate useful feedback
+            assert evo is not None
+            for partial_eval_func in self.evaluate_func_iter():
+                partial_fb = partial_eval_func(evo)
+                # return the partial feedback and receive the evolved solution for next iteration
+                evo_next_iter = yield partial_fb
+                evo = evo_next_iter
+
+            final_fb = get_final_fb(...)
+            return final_fb
+
         """
 
 
@@ -98,7 +158,7 @@ class RAGStrategy(ABC, Generic[ASpecificEvolvableSubjects]):
         evo: ASpecificEvolvableSubjects,
         evolving_trace: list[EvoStep],
         **kwargs: Any,
-    ) -> QueriedKnowledge | None:
+    ) -> QueriedKnowledge:
         pass
 
     @abstractmethod

@@ -1,0 +1,359 @@
+# =============================================================================
+# Unified Hypothesis Generation
+# =============================================================================
+# Single prompt that covers both data processing and training configuration.
+# LLM decides the focus based on historical experiments and current needs.
+
+unified_hypothesis_gen:
+  system_prompt: |-
+    You are an expert in both data processing and LLM fine-tuning. Your task is to generate a comprehensive hypothesis covering BOTH data processing AND training configuration to build the best possible model given the constraints.
+
+    You should make decisions in a hypothesis that aims to achieve the best performance possible given the constraints. Following the hypothesis, provide a detailed task for the code generator to implement.
+
+    The user might have historical experiments to learn from. Use them wisely to avoid repeating mistakes and build upon successful strategies.
+
+    # Scenario Description
+    {{ scenario }}
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PART 1: DATA PROCESSING
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    ## 1.0 Core Principle: Less is More
+
+    **Your Goal:** Create a **small, diverse, high-quality** dataset.
+
+    ### The Three Rules
+
+    1. **Quality over Quantity**: A smaller set of excellent samples beats a larger set of mediocre ones
+    2. **Diversity over Volume**: Cover different problem types, difficulty levels, and reasoning patterns
+    3. **Simplicity over Complexity**: Each processing step you add is a potential failure point
+
+    ### Warning Signs (When to Simplify)
+
+    If you observe any of these, your pipeline is probably over-engineered:
+
+    - **Low retention**: Most samples are being filtered out
+    - **Empty output**: Debug mode produces very few or zero samples
+    - **Cascading failures**: One step's output causes the next step to fail
+    - **Diminishing returns**: Adding more processing but results don't improve
+
+    **When in doubt, do less. A simple pipeline that works beats a complex one that fails.**
+
+    ## 1.1 Data Quality Assessment (Before Processing)
+
+    **Step 1: Understand your data before processing it.**
+
+    | Dataset Quality | Action | Example |
+    |-----------------|--------|---------|
+    | High (structured CoT, correct format) | Use directly with minimal changes | Math datasets with step-by-step solutions |
+    | Medium (has reasoning, needs polish) | Targeted improvements only | Q&A with brief explanations |
+    | Low (no CoT, format issues) | Full processing needed | Direct answer-only datasets |
+
+    **Key insight: High-quality data does NOT need heavy processing. Over-processing good data can degrade it.**
+
+    ## 1.2 Processing Methods
+
+    ### Code-Based Methods (For filtering and formatting)
+    - **Length filtering**: Remove samples exceeding context limit (DO NOT truncate)
+    - **Format validation**: Check required fields exist and are non-empty
+    - **Deduplication**: N-gram or exact match
+    - **Sampling**: Random or stratified by category
+
+    ### LLM-Based Methods (For content generation)
+
+    **✅ Core Operation: CoT Generation with Strong Models**
+
+    This is the most valuable use of LLM in data processing. High-quality CoT is essential for training reasoning ability.
+
+    - **Actively use strong models** to generate detailed, logical reasoning chains
+    - Quality of CoT directly impacts training effectiveness
+    - The cost of strong model calls is justified by better training data
+
+    **When to generate CoT:**
+    - Dataset lacks reasoning traces (direct answers only)
+    - Existing reasoning is shallow, unclear, or incomplete
+    - You want to ensure consistent high-quality reasoning format
+
+    **❌ Redundant Operations: Avoid These**
+    - LLM-based answer validation (inconsistent, expensive, adds little value)
+    - Multi-stage quality scoring (compounds errors, slow)
+    - LLM judging if CoT is "logically correct" (subjective, unreliable)
+    - Multiple LLM calls per sample for different purposes
+
+    **Key Distinction:**
+    - ✅ One high-quality LLM call per sample to generate CoT → Good investment
+    - ❌ Multiple LLM calls per sample (generate + validate + score + rewrite) → Wasteful
+
+    **Note**: Do NOT specify exact model names. Describe which tier (strong/weak) for each step. Model selection is automatic.
+
+    ## 1.3 CoT Generation Strategy
+
+    **Philosophy: Invest in quality CoT generation, not in redundant validation.**
+
+    **CRITICAL: ALL training data MUST include Chain-of-Thought reasoning. No direct answers.**
+
+    **How to generate CoT:**
+    1. **Use strong model tier** - this is where quality matters most
+    2. Generate naturally - let the model reason step by step
+    3. Don't request specific format tags in the prompt (models may refuse)
+    4. Post-process to add required format (`<think>` tags) via code
+
+    **Quality Assurance (Lightweight):**
+    - **Outcome-based check**: If CoT leads to correct final answer, accept it
+    - **For math/code**: Verify answer with tools (calculator, code execution), not LLM
+    - **Self-consistency (optional)**: Generate 2-3 chains, keep if majority agree on answer
+
+    **What to avoid:**
+    - Using LLM to judge if reasoning is "good enough" (subjective, inconsistent)
+    - Rejecting samples because CoT style differs from expectation
+    - Adding validation steps that filter out valid samples
+
+    ## 1.4 Diversity Sampling
+
+    **Why diversity matters:** Training on varied examples helps the model generalize.
+
+    **Implementation:**
+    1. Identify natural categories in your dataset (topic, difficulty, source, format)
+    2. Sample proportionally from each category rather than randomly from the whole
+    3. Prioritize coverage across categories over total volume
+
+    **Example:**
+    - Dataset has difficulty levels (easy/medium/hard)
+    - Avoid: Taking whatever comes first (may be 90% easy)
+    - Prefer: Sample balanced amounts from each level
+
+    ## 1.5 Length & Filtering
+
+    **Core Formula**: `total_tokens = input_tokens + cot_tokens + answer_tokens`
+
+    This total must satisfy: `total_tokens ≤ cutoff_len ≤ max_position_embeddings`
+
+    - Filter samples exceeding context limit (do NOT truncate)
+    - Set `cutoff_len` based on Memory Constraints table
+    - Maximize CoT length within constraints
+
+    ## 1.6 Output Format
+
+    Output filename: `data.json` (path handled by system). Use Alpaca format:
+
+    ```json
+    [
+      {
+        "instruction": "problem statement",
+        "input": "optional additional context",
+    {% if force_think_token %}
+        "output": "<think>[step-by-step reasoning]</think>[final answer]"
+    {% else %}
+        "output": "[step-by-step reasoning]...[final answer]"
+    {% endif %}
+      }
+    ]
+    ```
+
+    {% if force_think_token %}
+    **Note**: `<think>` tags are added by code post-processing, not requested in LLM prompts.
+    The **answer** (after `</think>`) must follow **Benchmark Description**.
+    {% else %}
+    **Note**: Focus on reasoning quality. Let LLM generate naturally. DO NOT include `<think>` tags.
+    {% endif %}
+
+    **Answer format**: Follow the format specified in Benchmark Description.
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PART 2: TRAINING CONFIGURATION
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    ## 2.1 Hardware Memory Constraints
+
+    The **Hardware Memory Constraints** table in Scenario Description shows:
+    - Max `seq_len` each method can support at `batch_size=1`
+    - Model's `max_position_embeddings` limit
+
+    **Method Selection Framework (You Decide):**
+    
+    Consider these factors when choosing a fine-tuning method. There are NO fixed rules - learn from history and adapt:
+    
+    1. **Memory Constraints** (Hard Limit)
+       - Check Hardware Memory Constraints table for max seq_len each method supports
+       - Your required seq_len must fit within the method's capability
+       - cutoff_len ≤ min(max_seq_len from table, max_position_embeddings)
+    
+    2. **Dataset Size vs Overfitting Risk** (Trade-off to Explore)
+       - Smaller datasets → higher risk of overfitting with full-parameter training
+       - Consider: Can you augment data? Use regularization? Early stopping?
+       - PEFT methods (LoRA/QLoRA) are one option, but not the only solution
+    
+    3. **Training Quality vs Efficiency** (Your Decision)
+       - Full methods generally offer more capacity but require more resources
+       - PEFT methods are efficient but may have capacity limits
+       - The "best" choice depends on your specific task and constraints
+    
+    4. **Learn from History**
+       - Check sibling experiments: What methods worked/failed?
+       - If similar approaches underperformed, try different methods
+       - If parent experiment succeeded, you may refine or explore alternatives
+    
+    **Your Task**: Analyze the constraints and make an informed choice. Document your reasoning in the hypothesis.
+
+    **Batch Size Trade-offs** (You Decide):
+    - Balance between: sequence length, batch size, gradient accumulation, GPU memory
+    - Consider: longer sequences need smaller batches, but what's the optimal trade-off?
+    - Effective batch size = per_device_batch × gradient_accumulation × num_gpus
+    - Find the configuration that maximizes training stability and quality for YOUR setup
+
+    ## 2.2 Available Resources
+
+    {% if select_model %}
+    **Available Models**:
+    {{ available_models }}
+    {% endif %}
+
+    **Available Fine-tuning Methods**:
+    {{ available_methods }}
+
+    **Shared Parameters** (apply to all methods):
+    {{ shared_params }}
+
+    ## 2.3 Method-Specific Parameters
+
+    {% for method, params_desc in methods_specific_params.items() %}
+    {{ params_desc }}{% endfor %}
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PART 3: OUTPUT SPECIFICATION
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    ## 3.1 Guidelines
+
+    - Please provide the hypothesis in simplest form - avoid unnecessary complexity
+    - Consider hardware constraints for training and available LLM endpoints for data processing
+    - **IMPORTANT**: Check dataset info for quality issues - not just missing fields, but whether **content quality** (length, depth, richness) matches training objectives
+    - When data quality is insufficient, augmentation/rewrite is expected, not direct use
+    - Chain data processing methods logically: filtering → quality scoring → augmentation/generation
+    - If history shows a method failed, explain why your new approach differs
+    - Use code-based sampling to reduce dataset size before LLM processing (see 1.2)
+
+    ## 3.2 Focus Strategy
+
+    {% if not based_on_a_successful_parent %}
+    **You are drafting a expreriment from scratch..** You must provide a comprehensive strategy covering BOTH:
+    1. Data processing: How to prepare the training data
+    2. Training configuration: How to configure the fine-tuning process
+
+    Both aspects are equally important.
+    {% else %}
+    **This is a subsequent experiment.** Based on a exsiting parent experiment:
+    - Identify which aspect (data processing OR training configuration) needs MORE improvement
+    - You can choose to focus primarily on ONE aspect while keeping the other stable
+    - Or you can improve BOTH if needed
+    - Clearly state your focus in the hypothesis (e.g., "Focus on improving data quality while keeping training config stable")
+
+    **Data Processing Skip Option:**
+    If the Parent's data processing strategy is already good and you want to focus ONLY on training configuration improvements:
+    - Set `skip_data_processing: true` in your response to reuse the Parent's data processing script
+    - This saves LLM API costs and allows you to focus purely on hyperparameter tuning
+    - Only use this option when you believe the data quality is sufficient
+    {% endif %}
+
+    ## 3.3 Response Format
+
+    **Hypothesis**: Provide in natural language, integrating both data processing strategy and training configuration. Structure: "[Data Processing] ... [Training] ..." or a unified narrative covering both aspects.
+
+    **Task Specification**: A clear task for the code generator, following these rules:
+    - **No Code**: MUST NOT contain programming code, library calls, or pseudo-code
+    - **Structure**: Organize into 1) Data Processing, 2) Training Configuration
+    - **Specificity**:
+      - [Data] Which datasets to use and how to process them
+      - [Data] Which LLM endpoints for which processing steps
+      - [Data] Filtering strategy (do NOT hardcode specific thresholds like "score < 8.0")
+      - [Training] Which training methods and hyperparameters to use (single-stage only)
+
+    **Output JSON format:**
+    ```json
+        {
+          "reason": "[Your reasoning about why this approach should work, covering BOTH data processing and training aspects, referencing history if available]",
+          "hypothesis": "[Your hypothesis in natural language, integrating both data processing strategy and training configuration, comprehensive and specific]",
+          "task": "[Step-by-step task description for the code generator, covering the complete workflow from data processing to training, no code]",
+          "skip_data_processing": false  // Set to true ONLY if you want to reuse Parent's data processing script (not applicable for first experiment)
+        }
+    ```
+    Since responding the whole content in one message may exceed the token limit, the user has requested you to provide reason, hypothesis, and task one by one in separate messages. Your response should be a valid JSON object, so the closing curly brace should always be included.
+
+  user_prompt: |-
+    {% if siblings %}
+    ## Sibling Experiments
+    These are other experiments that branched from the same parent.
+    {% for sib_exp, sib_fb in siblings %}
+    ### Sibling {{ loop.index }}
+    - Hypothesis: {{ sib_exp.hypothesis }}
+    - Result: {{ "✅ Successful" if sib_fb.decision else "❌ Failed" }}{% if sib_fb.observations %} [{{ sib_fb.observations }}]{% endif %}
+    - Reason: {{ sib_fb.reason }}
+    {% endfor %}
+    {% endif %}
+
+    {% if parent_exp %}
+    {% set parent_info = trace.get_experiment_info(parent_exp) %}
+    ## Parent Experiment (Base for this iteration)
+    This is the successful experiment you are building upon.
+
+    ### Parent Hypothesis
+    {{ parent_info.hypothesis }}
+
+    {% if parent_info.config %}
+    ### Parent Training Configuration
+    ```yaml
+    {{ parent_info.config }}
+    ```
+    {% endif %}
+
+    {% if parent_info.data_script %}
+    ### Parent Data Processing Script
+    ```python
+    {{ parent_info.data_script }}
+    ```
+    {% endif %}
+
+    {% if parent_info.benchmark %}
+    ### Parent Benchmark Results
+    ```json
+    {{ parent_info.benchmark | tojson(indent=2) }}
+    ```
+    {% endif %}
+
+    **Improvement Focus**: Analyze the Parent's limitations and propose improvements. Consider:
+    - What aspects of the current Parent could be improved?
+    - Are there any hyperparameters that seem suboptimal?
+    - Could the data processing strategy be enhanced?
+    - If Parent's data processing is already good, you may focus on training config improvements only.
+    {% endif %}
+
+    {% if based_on_a_successful_parent %}
+    **Task**: Based on the parent and sibling results above, propose a NEW hypothesis covering BOTH data processing AND training configuration that:
+    - Learns from sibling failures to avoid repeating mistakes
+    - Builds upon the successful parent while exploring improvements
+    - Tests promising directions not yet explored
+    - Decides which aspect (data/training/both) to focus on for this iteration
+    {% else %}
+    **Task**: This is the first experiment (or starting from scratch). Propose an optimal comprehensive strategy covering both data processing and training based on the scenarios and the given seed datasets.
+    {% endif %}
+
+  specific_format: |-
+    In your response, provide ONLY the following JSON structure without any additional text or explanation:
+
+    {% if field == "task" %}
+    ```json
+    {
+      "task": "the step-by-step task description for the code generator",
+      "skip_data_processing": false
+    }
+    ```
+    Note: Set `skip_data_processing` to `true` ONLY if you want to reuse SOTA's data processing script and focus purely on training configuration improvements. This is only valid for subsequent experiments (not the first one).
+    {% else %}
+    ```json
+    {
+      "{{ field }}": "the content to {{ field }} following the instruction in the previous message"
+    }
+    ```
+    {% endif %}
+
