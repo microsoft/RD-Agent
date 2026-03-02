@@ -21,24 +21,15 @@ export LLM_MODEL="${LLM_MODEL:-${CHAT_MODEL:-gpt-5}}"
 export LLM_BASE_URL="${OPENAI_API_BASE}"
 echo "LLM Model: $LLM_MODEL"
 
-# 初始化 conda（兼容非交互式 shell）
-if ! command -v conda &>/dev/null; then
-    for _p in "$HOME/miniconda3" "/root/miniconda3" "$HOME/anaconda3" "/opt/conda"; do
-        [ -f "$_p/etc/profile.d/conda.sh" ] && { source "$_p/etc/profile.d/conda.sh"; break; }
-    done
+# 训练环境 Python 路径（.env 中设 TRAINING_PYTHON 即可，无需 conda）
+if [ -z "$TRAINING_PYTHON" ]; then
+    echo "WARNING: TRAINING_PYTHON not set in .env, trying conda fallback..."
+    source "$(conda info --base 2>/dev/null || echo /root/miniconda3)/etc/profile.d/conda.sh" 2>/dev/null
+    conda activate "${CONDA_ENV_TRAINING:-cwy-rl}" 2>/dev/null
+    export TRAINING_PYTHON="$(which python)"
+    conda activate "${CONDA_ENV_OPENHANDS:-openhands}" 2>/dev/null
 fi
-if ! command -v conda &>/dev/null; then
-    echo "ERROR: conda not found"; exit 1
-fi
-
-# 记录训练环境的 Python 路径，供 main.py 执行 train.py 时使用
-TRAINING_ENV="${CONDA_ENV_TRAINING:-cwy-rl}"
-conda activate "$TRAINING_ENV"
-export TRAINING_PYTHON="$(which python)"
-echo "Training env: $TRAINING_ENV (python=$TRAINING_PYTHON)"
-
-# 切到 openhands 环境运行 agent
-conda activate "${CONDA_ENV_OPENHANDS:-openhands}"
+echo "Training Python: $TRAINING_PYTHON"
 
 # 运行 openhands-rl pipeline（从 .env 读取路径）
 cd "${OPENHANDS_RL_ROOT:-$HOME/openhands-rl}"
