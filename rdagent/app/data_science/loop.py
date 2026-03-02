@@ -1,15 +1,27 @@
 import asyncio
+from collections.abc import Coroutine
 from pathlib import Path
-from typing import Optional
+from typing import Annotated, Optional
 
 import fire
 import typer
-from typing_extensions import Annotated
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
+
+
+async def run_and_submit_sota(loop_task: Coroutine, competition: str) -> None:
+    """Run the loop coroutine task, and submit the SOTA experiment submission file to kaggle at the end."""
+    from rdagent.scenarios.kaggle.submission import submit_current_sota
+
+    try:
+        # wait for the loop end
+        await loop_task
+    finally:
+        # we do not care about exception, just make sure we can submit
+        submit_current_sota(competition=competition)
 
 
 def main(
@@ -78,7 +90,12 @@ def main(
     if exp_gen_cls is not None:
         kaggle_loop.exp_gen = import_class(exp_gen_cls)(kaggle_loop.exp_gen.scen)
 
-    asyncio.run(kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout))
+    if DS_RD_SETTING.auto_submit:
+        asyncio.run(
+            run_and_submit_sota(kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout), competition)
+        )
+    else:
+        asyncio.run(kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout))
 
 
 if __name__ == "__main__":
