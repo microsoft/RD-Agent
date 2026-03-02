@@ -38,6 +38,6 @@ python main.py \
     --benchmark "$TASK" \
     --base-model "$BASE_MODEL" \
     --workspace "$WORKSPACE" \
-    --max-iterations ${MAX_ITERATIONS:-5} \
-    --training-timeout ${TRAINING_TIMEOUT:-3600} \
-    --max-agent-steps ${MAX_AGENT_STEPS:-25}
+    --max-iterations ${MAX_ITERATIONS:-10} \
+    --training-timeout ${TRAINING_TIMEOUT:-7200} \
+    --max-agent-steps ${MAX_AGENT_STEPS:-50}
