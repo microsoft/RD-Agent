@@ -21,8 +21,14 @@ export LLM_MODEL="${LLM_MODEL:-${CHAT_MODEL:-gpt-5}}"
 export LLM_BASE_URL="${OPENAI_API_BASE}"
 echo "LLM Model: $LLM_MODEL"
 
-# 激活 openhands 环境（从 .env 读取）
+# 记录训练环境（cwy-rl）的 Python 路径，供 main.py 执行 train.py 时使用
 source "$(conda info --base)/etc/profile.d/conda.sh"
+TRAINING_ENV="${CONDA_ENV_TRAINING:-cwy-rl}"
+conda activate "$TRAINING_ENV"
+export TRAINING_PYTHON="$(which python)"
+echo "Training env: $TRAINING_ENV (python=$TRAINING_PYTHON)"
+
+# 切到 openhands 环境运行 agent
 conda activate "${CONDA_ENV_OPENHANDS:-openhands}"
 
 # 运行 openhands-rl pipeline（从 .env 读取路径）
