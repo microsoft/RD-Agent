@@ -18,6 +18,7 @@ The proxy:
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import json
 import queue
 import sys
@@ -29,7 +30,7 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
 
-_upstream: str = ""
+_upstreams: list[str] = []
 _log_path: str = ""
 _debug: bool = False
 _upstream_timeout: int = 600
@@ -65,6 +66,41 @@ def _write_log(msg: str):
                 _log_file.flush()
         except Exception:
             pass
+
+
+def _probe_upstreams(upstreams: list[str], auth: str | None) -> str:
+    """Probe all upstreams with GET /v1/models and return the fastest one.
+
+    When only one upstream is configured, skip probing entirely.
+    On total failure, fall back to the first upstream.
+    """
+    if len(upstreams) <= 1:
+        return upstreams[0]
+
+    def _probe_one(url: str) -> tuple[str, float]:
+        t0 = time.time()
+        req = Request(f"{url}/v1/models", method="GET")
+        if auth:
+            req.add_header("Authorization", auth)
+        urlopen(req, timeout=5)
+        return url, time.time() - t0
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(upstreams)) as pool:
+        futures = {pool.submit(_probe_one, u): u for u in upstreams}
+        for fut in concurrent.futures.as_completed(futures):
+            try:
+                chosen, elapsed = fut.result()
+                _write_log(f"\n[PROBE] chose {chosen} ({elapsed:.2f}s)\n")
+                # Cancel remaining futures
+                for f in futures:
+                    f.cancel()
+                return chosen
+            except Exception:
+                continue
+
+    # All probes failed — fall back to first upstream
+    _write_log(f"\n[PROBE] all probes failed, falling back to {upstreams[0]}\n")
+    return upstreams[0]
 
 
 def _extract_token(chunk: dict) -> str:
@@ -347,7 +383,9 @@ class ProxyHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(content_len) if content_len else b""
 
         # Build upstream request
-        url = f"{_upstream}{self.path}"
+        auth = self.headers.get("Authorization")
+        chosen = _probe_upstreams(_upstreams, auth)
+        url = f"{chosen}{self.path}"
         headers = {}
         for key in ("Content-Type", "Authorization", "Accept"):
             val = self.headers.get(key)
@@ -493,7 +531,9 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         # Forward GET requests (e.g. /v1/models)
-        url = f"{_upstream}{self.path}"
+        auth = self.headers.get("Authorization")
+        chosen = _probe_upstreams(_upstreams, auth)
+        url = f"{chosen}{self.path}"
         headers = {}
         for key in ("Authorization", "Accept"):
             val = self.headers.get(key)
@@ -525,15 +565,16 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, required=True)
-    parser.add_argument("--upstream", type=str, required=True)
+    parser.add_argument("--upstream", action="append", required=True,
+                        help="Upstream URL(s); may be specified multiple times")
     parser.add_argument("--log", type=str, required=True)
     parser.add_argument("--debug", action="store_true", help="Log raw SSE data for debugging")
     parser.add_argument("--timeout", type=int, default=600,
                         help="Upstream request timeout in seconds (default: 600)")
     args = parser.parse_args()
 
-    global _upstream, _log_path, _debug, _upstream_timeout
-    _upstream = args.upstream.rstrip("/")
+    global _upstreams, _log_path, _debug, _upstream_timeout
+    _upstreams = [u.rstrip("/") for u in args.upstream]
     _log_path = args.log
     _debug = args.debug
     _upstream_timeout = max(30, args.timeout)
@@ -541,7 +582,7 @@ def main():
     _open_log()
     try:
         server = ThreadingHTTPServer(("127.0.0.1", args.port), ProxyHandler)
-        print(f"LLM proxy listening on 127.0.0.1:{args.port} -> {_upstream} (timeout={_upstream_timeout}s)", flush=True)
+        print(f"LLM proxy listening on 127.0.0.1:{args.port} -> {_upstreams} (timeout={_upstream_timeout}s)", flush=True)
         server.serve_forever()
     finally:
         _close_log()

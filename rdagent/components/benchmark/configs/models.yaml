@@ -45,6 +45,22 @@ models:
     gpu_memory_utilization: 0.7  # It does not use too much GPU memory. But it is worth 
 
   # Qwen2.5 series - standard configuration with CoT postprocessor for fine-tuned models
+  "Qwen/Qwen2.5-0.5B-Instruct":
+    temperature: 0.0
+    top_p: 1.0
+    top_k: 1
+    max_seq_len: 32768
+    max_out_len: 8192
+    gpu_memory_utilization: 0.5  # 0.5B model is very small, no need for 0.9
+
+  "Qwen/Qwen2.5-0.5B":
+    temperature: 0.0
+    top_p: 1.0
+    top_k: 1
+    max_seq_len: 32768
+    max_out_len: 8192
+    gpu_memory_utilization: 0.5
+
   "Qwen/Qwen2.5-7B-Instruct":
     temperature: 0.0  # Greedy decoding for consistency
     top_p: 1.0

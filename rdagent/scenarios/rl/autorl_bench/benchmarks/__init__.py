@@ -28,6 +28,7 @@ class BenchmarkConfig:
     description: str = ""
     eval_config: Optional[Dict[str, Any]] = field(default=None)
     expose_files: list = field(default_factory=list)  # benchmark 特有的额外文件（description.md 和 instructions.md 由 run.py 统一挂载）
+    bench_dir: Optional[str] = None  # 自定义 benchmark 目录路径（默认 None 则用 BENCHMARKS_DIR / id）
 
 
 # Benchmark 注册表
@@ -53,6 +54,10 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
         expose_files=["eval.py", "react_prompts.json"],
     ),
 }
+
+
+from rdagent.scenarios.rl.autorl_bench.benchmarks.smith import discover_smith_benchmarks
+BENCHMARKS.update(discover_smith_benchmarks())
 
 
 def get_benchmark(benchmark_id: str) -> BenchmarkConfig:

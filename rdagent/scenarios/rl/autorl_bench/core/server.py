@@ -194,9 +194,8 @@ def submit():
     
     if not model_path:
         return jsonify({"error": "Missing model_path"}), 400
-    
+
     server = get_server()
-    
     if gpu is not None:
         gpu = str(gpu)
         err = _validate_gpu(gpu, server.available_gpus)
@@ -205,9 +204,13 @@ def submit():
                 "error": err,
                 "available_gpus": sorted(server.available_gpus, key=int),
             }), 400
-    
-    result = server.submit(model_path, gpu=gpu)
-    return jsonify(result)
+
+    try:
+        result = server.submit(model_path, gpu=gpu)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"[SUBMIT] Error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/health", methods=["GET"])
@@ -240,7 +243,7 @@ def run_server(task: str, base_model: str, workspace: str, host: str = "0.0.0.0"
     """启动服务器"""
     init_server(task, base_model, workspace)
     logger.info(f"Grading Server | task={task} | {host}:{port}")
-    app.run(host=host, port=port, debug=False, threaded=False)
+    app.run(host=host, port=port, debug=False, threaded=True)
 
 
 if __name__ == "__main__":

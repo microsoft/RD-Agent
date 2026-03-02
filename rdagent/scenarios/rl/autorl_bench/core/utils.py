@@ -25,6 +25,8 @@ from rdagent.scenarios.rl.autorl_bench.conf import (
     get_data_dir,
     get_models_dir,
 )
+from werkzeug.serving import make_server
+
 from rdagent.scenarios.rl.autorl_bench.core.server import app, init_server
 
 
@@ -65,24 +67,42 @@ def download_model(model_name: str, model_dir: Optional[str] = None) -> str:
 def download_data(task: str, data_dir: Optional[str] = None) -> str:
     """下载训练数据（agent 可见部分）
 
-    调用各 benchmark 自己的 data.py 中的 download_train_data()。
-    每个 benchmark 自己决定下载什么、怎么分 train/test。
+    支持两种模式：
+    1. data_module 模式（传统）：调用 data.py 中的 download_train_data()
+    2. download_data.py 脚本模式（smith benchmarks）：直接运行脚本
     """
     import importlib
-    from rdagent.scenarios.rl.autorl_bench.benchmarks import get_benchmark
+    import shutil
+    import sys
+    from rdagent.scenarios.rl.autorl_bench.benchmarks import get_benchmark, BENCHMARKS_DIR
 
     config = get_benchmark(task)
     base_dir = Path(data_dir) if data_dir else get_data_dir()
     target_dir = base_dir / task
 
-    if not config.data_module:
-        logger.warning(f"Benchmark {task} has no data_module, skipping data download.")
-        target_dir.mkdir(parents=True, exist_ok=True)
-        return str(target_dir)
-
-    # 动态导入 benchmark 的 data 模块，调用 download_train_data
-    module = importlib.import_module(config.data_module)
-    module.download_train_data(target_dir)
+    if config.data_module:
+        # 传统方式（gsm8k、alfworld 等）
+        module = importlib.import_module(config.data_module)
+        module.download_train_data(target_dir)
+    else:
+        # 脚本方式（所有 smith benchmarks）
+        bench_dir = Path(config.bench_dir) if config.bench_dir else BENCHMARKS_DIR / task
+        script = bench_dir / "download_data.py"
+        if script.exists():
+            target_dir.mkdir(parents=True, exist_ok=True)
+            subprocess.run(
+                [sys.executable, str(script)],
+                cwd=str(bench_dir),
+                check=True,
+            )
+            # 脚本输出到 bench_dir/data/train.jsonl，拷贝到 target_dir
+            src = bench_dir / "data" / "train.jsonl"
+            dst = target_dir / "train.jsonl"
+            if src.exists() and not dst.exists():
+                shutil.copy2(src, dst)
+        else:
+            logger.warning(f"Benchmark {task} has no data_module or download_data.py, skipping.")
+            target_dir.mkdir(parents=True, exist_ok=True)
 
     return str(target_dir)
 
@@ -200,25 +220,43 @@ class GradingServerContext:
 
 class LocalServerContext(GradingServerContext):
     """本地 Flask Server"""
-    
+
     def __init__(self, task: str, base_model: str, workspace: str, port: int):
         self.task = task
         self.base_model = base_model
         self.workspace = workspace
         self.port = port
         self.server = None
-    
+        self._http_server = None
+        self._thread = None
+
     def __enter__(self):
         logger.info(f"[Local Mode] Starting evaluation server on port {self.port}...")
         self.server = init_server(self.task, self.base_model, self.workspace)
-        
-        server_thread = threading.Thread(
-            target=lambda: app.run(host="0.0.0.0", port=self.port, debug=False, threaded=False),
-            daemon=True
-        )
-        server_thread.start()
-        time.sleep(2)
+
+        self._http_server = make_server("0.0.0.0", self.port, app, threaded=True)
+        self._thread = threading.Thread(target=self._http_server.serve_forever, daemon=True)
+        self._thread.start()
+
+        # Poll /health for up to 15 seconds instead of blind sleep(2)
+        deadline = time.time() + 15
+        while time.time() < deadline:
+            try:
+                resp = requests.get(f"http://localhost:{self.port}/health", timeout=2)
+                if resp.status_code == 200:
+                    break
+            except Exception:
+                pass
+            time.sleep(0.5)
+        else:
+            raise RuntimeError(f"Grading server failed to start on port {self.port}")
+
         return self
+
+    def __exit__(self, *args):
+        if self._http_server:
+            self._http_server.shutdown()
+            self._http_server = None
     
     def get_baseline(self, task: str, model_name: str, model_path: str, workspace_path: str) -> float:
         baseline = get_baseline_score(task, model_name, model_path, workspace_path)
@@ -270,7 +308,7 @@ def setup_workspace(
     ensure_symlink(Path(data_path), data_link)
 
     # 挂载文件：任务描述 + 通用说明 + benchmark 特有文件
-    bench_dir = BENCHMARKS_DIR / task
+    bench_dir = Path(benchmark.bench_dir) if benchmark.bench_dir else BENCHMARKS_DIR / task
     ensure_symlink(bench_dir / "description.md", workspace / "description.md")
     ensure_symlink(get_instructions_file(), workspace / "instructions.md")
 

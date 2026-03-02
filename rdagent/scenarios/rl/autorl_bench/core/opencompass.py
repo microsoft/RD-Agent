@@ -154,7 +154,12 @@ class OpenCompassEvaluator(BaseEvaluator):
         if score_col:
             scores = df[score_col[0]].dropna().values
             if len(scores) > 0:
-                result["score"] = float(scores[0])
+                raw = scores[0]
+                try:
+                    result["score"] = float(raw)
+                except (ValueError, TypeError):
+                    logger.warning(f"OpenCompass returned non-numeric score: {raw!r}, treating as 0.0")
+                    result["score"] = 0.0
                 result["accuracy_summary"] = {"accuracy": result["score"]}
         
         return result

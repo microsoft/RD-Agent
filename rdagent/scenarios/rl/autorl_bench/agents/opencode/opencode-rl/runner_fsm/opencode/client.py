@@ -847,22 +847,6 @@ class OpenCodeClient(AgentClient):
                 _trace_entry2["tokens"] = ctx_info
             trace.append(_trace_entry2)
 
-            # For scaffold runs, we don't need the agent to "finish talking" if the contract
-            # is already valid. Some models keep emitting extra tool calls indefinitely.
-            if str(purpose or "").strip().lower() == "scaffold_contract" and self._pipeline_rel:
-                try:
-                    from ..core.pipeline_spec import load_pipeline_spec
-                    from ..contract.validation import validate_scaffold_contract
-
-                    pipeline_path = (self._repo / self._pipeline_rel).resolve()
-                    if pipeline_path.exists():
-                        parsed = load_pipeline_spec(pipeline_path)
-                        report = validate_scaffold_contract(self._repo, pipeline=parsed, require_metrics=True)
-                        if not report.errors:
-                            return AgentResult(assistant_text=assistant_text, raw=msg, tool_trace=trace)
-                except Exception:
-                    pass
-
             prompt = format_tool_results(results)
 
         raise RuntimeError(f"OpenCode tool loop exceeded {self._max_turns} turns without a final response.")
@@ -997,6 +981,15 @@ class OpenCodeClient(AgentClient):
             print("    [diag] WARNING: no upstream URL found for LLM proxy, token logging disabled", flush=True)
             return
 
+        # Collect additional upstream URLs from OPENAI_API_BASE_1 .. _9
+        all_upstreams = [upstream_url]
+        for i in range(1, 10):
+            extra = str(env.get(f"OPENAI_API_BASE_{i}") or "").strip().rstrip("/")
+            if extra:
+                if extra.endswith("/v1"):
+                    extra = extra[:-3]
+                all_upstreams.append(extra)
+
         # ---- 2. Start proxy process ----
         proxy_port = _find_free_port("127.0.0.1")
 
@@ -1008,14 +1001,16 @@ class OpenCodeClient(AgentClient):
         self._proxy_log_file = proxy_log.open("w", encoding="utf-8")
 
         proxy_timeout = int(self._stale_timeout + 300)
+        cmd = [
+            sys.executable, str(proxy_script),
+            "--port", str(proxy_port),
+            "--log", str(self._token_log_path),
+            "--timeout", str(proxy_timeout),
+        ]
+        for u in all_upstreams:
+            cmd.extend(["--upstream", u])
         self._proxy_proc = subprocess.Popen(
-            [
-                sys.executable, str(proxy_script),
-                "--port", str(proxy_port),
-                "--upstream", upstream_url,
-                "--log", str(self._token_log_path),
-                "--timeout", str(proxy_timeout),
-            ],
+            cmd,
             stdin=subprocess.DEVNULL,
             stdout=self._proxy_log_file,
             stderr=self._proxy_log_file,

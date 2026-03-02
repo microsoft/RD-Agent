@@ -14,9 +14,8 @@ if [ -f .env ]; then
     echo "Loaded .env"
 fi
 
-# opencode-rl 路径：默认用 repo 内自带的（start.sh 同级目录下的 opencode-rl/）
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-OPENCODE_RL_ROOT="${OPENCODE_RL_ROOT:-$SCRIPT_DIR/opencode-rl}"
+# opencode-rl 路径：默认用外部独立目录
+OPENCODE_RL_ROOT="${OPENCODE_RL_ROOT:-/data/userdata/v-tiansha/opencode-rl}"
 
 # OPENCODE_MODEL 优先从 config.yaml 传入，否则用 CHAT_MODEL，默认 gpt-5
 export OPENCODE_MODEL="${OPENCODE_MODEL:-${CHAT_MODEL:-gpt-5}}"
@@ -49,7 +48,9 @@ EOCFG
 # 运行 opencode-rl pipeline
 cd "$OPENCODE_RL_ROOT"
 
-python3 main.py \
+# Use exec to REPLACE bash with python3, so signals go directly to python3
+# without an intermediate bash process. This avoids double signal delivery.
+exec python3 main.py \
     --benchmark "$TASK" \
     --base-model "$BASE_MODEL" \
     --max-iterations ${MAX_ITERATIONS:-5} \

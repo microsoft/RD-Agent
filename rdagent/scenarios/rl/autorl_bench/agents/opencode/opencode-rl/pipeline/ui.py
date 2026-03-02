@@ -30,8 +30,6 @@ STYLE_WARNING = "bold yellow"
 STYLE_ERROR = "bold red"
 STYLE_DIM = "dim"
 STYLE_TOOL = "bold cyan"
-STYLE_TOOL_DETAIL = "cyan"
-STYLE_THINKING = "dim italic"
 STYLE_AGENT = "bright_magenta"
 STYLE_SCORE = "bold bright_green"
 STYLE_PHASE_LABEL = "bold bright_blue"
@@ -174,34 +172,6 @@ def print_evaluation_report(score, improvement, best_score, submission_id=None):
                         title=Text("Evaluation Results", style="bold"),
                         border_style="bright_green", box=box.ROUNDED,
                         padding=(0, 2)))
-
-
-# ---------------------------------------------------------------------------
-# Agent monitor lines (used by client.py _tail_token_log)
-# ---------------------------------------------------------------------------
-def print_agent_thinking(elapsed: float):
-    """LLM is generating tokens (no tool call)."""
-    console.print(f"    [{STYLE_THINKING}]... LLM thinking ({elapsed:.0f}s)[/]")
-
-
-def print_agent_tool_call(tool_name: str, elapsed: float):
-    """Agent started a server-side tool call (from [TOOL] event)."""
-    console.print(f"    [{STYLE_TOOL}]... agent calling: {tool_name} ({elapsed:.0f}s)[/]")
-
-
-def print_agent_tool_detail(detail: str):
-    """Tool call completed with detail info (from [TOOL_DETAIL] event)."""
-    # Truncate very long details
-    if len(detail) > 120:
-        detail = detail[:117] + "..."
-    console.print(f"    [{STYLE_TOOL_DETAIL}]    {detail}[/]")
-
-
-def print_agent_token_line(text: str):
-    """A line of streamed token content."""
-    if len(text) > 200:
-        text = text[:197] + "..."
-    console.print(f"    [dim]| {text}[/]")
 
 
 # ---------------------------------------------------------------------------

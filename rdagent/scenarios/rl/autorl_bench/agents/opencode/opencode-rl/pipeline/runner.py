@@ -56,20 +56,6 @@ def _normalize_score(raw) -> float | None:
     return round(raw * 100, 2) if raw <= 1.05 else raw
 
 
-def _find_trained_model(output_dir: str) -> str:
-    """在 output_dir 下找到最新的模型子目录。"""
-    out_path = Path(output_dir)
-    if not out_path.exists():
-        return str(out_path)
-    try:
-        subdirs = [d for d in out_path.iterdir() if d.is_dir() and not d.name.startswith(".")]
-    except OSError:
-        return str(out_path)
-    if subdirs:
-        return str(max(subdirs, key=lambda d: d.stat().st_mtime))
-    return str(out_path)
-
-
 # ---------------------------------------------------------------------------
 # 迭代内各阶段
 # ---------------------------------------------------------------------------

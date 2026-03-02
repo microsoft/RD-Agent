@@ -12,28 +12,6 @@ class CmdResult:
     timed_out: bool = False
 
 @dataclass(frozen=True)
-class StageResult:
-    ok: bool
-    results: list[CmdResult]
-    failed_index: int | None = None
-
-@dataclass(frozen=True)
-class VerificationResult:
-    ok: bool
-    failed_stage: str | None
-    bootstrap: StageResult | None = None
-    auth: StageResult | None = None
-    tests: StageResult | None = None
-    deploy_setup: StageResult | None = None
-    deploy_health: StageResult | None = None
-    rollout: StageResult | None = None
-    evaluation: StageResult | None = None
-    benchmark: StageResult | None = None
-    metrics_path: str | None = None
-    metrics: dict[str, Any] | None = None
-    metrics_errors: list[str] | None = None
-
-@dataclass(frozen=True)
 class TurnEvent:
     """单轮 agent 交互的事件，用于流式输出。"""
     turn: int

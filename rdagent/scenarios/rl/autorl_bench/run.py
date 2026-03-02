@@ -54,10 +54,27 @@ def run(
     log_file = workspace / "run.log"
     _sink_id = loguru_logger.add(log_file, format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}", level="DEBUG")
 
-    # Signal handler: 被 kill 时写结束日志
+    # Mutable container for agent subprocess, accessible by signal handler
+    _agent_proc = [None]  # list so nested function can mutate
+
+    # Signal handler: kill agent process group, then exit
     def _on_signal(signum, frame):
         sig_name = signal.Signals(signum).name
         logger.warning(f"Received {sig_name}, terminating...")
+        # Kill the entire agent process group (bash → main.py → training → ...)
+        proc = _agent_proc[0]
+        if proc is not None and proc.poll() is None:
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                proc.wait(timeout=10)
+            except Exception:
+                try:
+                    os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                except Exception:
+                    try:
+                        proc.kill()
+                    except Exception:
+                        pass
         logger.info(f"Run interrupted by {sig_name} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         loguru_logger.remove(_sink_id)
         sys.exit(128 + signum)
@@ -104,20 +121,31 @@ def run(
         }
 
         agent_log = workspace / "agent.log"
-        try:
-            with open(agent_log, "w", encoding="utf-8") as af:
-                proc = subprocess.run(
-                    ["bash", str(agent.start)],
-                    env=env,
-                    timeout=timeout,
-                    stdout=af,
-                    stderr=subprocess.STDOUT,
-                )
-            success = proc.returncode == 0
-            logger.info(f"Agent finished, exit_code={proc.returncode}, log: {agent_log}")
-        except subprocess.TimeoutExpired:
-            logger.warning(f"Agent timed out after {timeout}s, collecting results...")
-            success = False
+        success = False
+        with open(agent_log, "w", encoding="utf-8") as af:
+            proc = subprocess.Popen(
+                ["bash", str(agent.start)],
+                env=env,
+                stdout=af,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+            _agent_proc[0] = proc
+            try:
+                proc.wait(timeout=timeout)
+                success = proc.returncode == 0
+                logger.info(f"Agent finished, exit_code={proc.returncode}, log: {agent_log}")
+            except subprocess.TimeoutExpired:
+                logger.warning(f"Agent timed out after {timeout}s, killing process group...")
+                try:
+                    os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                    proc.wait(timeout=10)
+                except Exception:
+                    try:
+                        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                    except Exception:
+                        proc.kill()
+                    proc.wait()
 
         scores = grading.load_scores()
 
