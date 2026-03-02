@@ -31,10 +31,11 @@ if [ -z "$TRAINING_PYTHON" ]; then
 fi
 echo "Training Python: $TRAINING_PYTHON"
 
-# 运行 openhands-rl pipeline（从 .env 读取路径）
+# 运行 openhands-rl pipeline
 cd "${OPENHANDS_RL_ROOT:-$HOME/openhands-rl}"
+OPENHANDS_PYTHON="${OPENHANDS_PYTHON:-python}"
 
-python main.py \
+"$OPENHANDS_PYTHON" main.py \
     --benchmark "$TASK" \
     --base-model "$BASE_MODEL" \
     --workspace "$WORKSPACE" \
