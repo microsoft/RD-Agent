@@ -101,8 +101,15 @@ def download_data(task: str, data_dir: Optional[str] = None) -> str:
             if src.exists() and not dst.exists():
                 shutil.copy2(src, dst)
         else:
-            logger.warning(f"Benchmark {task} has no data_module or download_data.py, skipping.")
+            # No download script — copy pre-existing data from bench_dir/data/
             target_dir.mkdir(parents=True, exist_ok=True)
+            src = bench_dir / "data" / "train.jsonl"
+            dst = target_dir / "train.jsonl"
+            if src.exists() and not dst.exists():
+                shutil.copy2(src, dst)
+                logger.info(f"Copied {src} → {dst}")
+            elif not src.exists():
+                logger.warning(f"Benchmark {task} has no data_module, download_data.py, or train.jsonl")
 
     return str(target_dir)
 
