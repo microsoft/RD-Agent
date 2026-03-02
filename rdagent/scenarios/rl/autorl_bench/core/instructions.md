@@ -72,9 +72,25 @@ curl -X POST "$GRADING_SERVER_URL/submit" \
     -H "Content-Type: application/json" \
     -d '{"model_path": "'$OUTPUT_DIR'/v1"}'
 
+# 指定 GPU 评测（可选，默认使用 GPU 0）
+curl -X POST "$GRADING_SERVER_URL/submit" \
+    -H "Content-Type: application/json" \
+    -d '{"model_path": "'$OUTPUT_DIR'/v1", "gpu": "0"}'
+
+# 多卡评测
+curl -X POST "$GRADING_SERVER_URL/submit" \
+    -H "Content-Type: application/json" \
+    -d '{"model_path": "'$OUTPUT_DIR'/v1", "gpu": "2,3"}'
+
 # 健康检查
 curl "$GRADING_SERVER_URL/health"
 ```
+
+### /submit 参数
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| model_path | string | 是 | 模型路径 |
+| gpu | string | 否 | 指定 GPU（如 "0"、"1"、"0,1"），必须是可用 GPU 之一。不传则默认使用第一个可用 GPU。可通过 /health 查看可用列表 |
 
 ### /submit 响应示例
 ```json

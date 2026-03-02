@@ -4,16 +4,36 @@ AutoRL-Bench Grading Server (Simplified)
 精简的评测服务，主要提供 submit 接口。
 """
 import json
+import os
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Set
 
 from flask import Flask, jsonify, request
 
 from rdagent.log import rdagent_logger as logger
 
 app = Flask(__name__)
+
+
+def _get_available_gpus() -> Set[str]:
+    """从 CUDA_VISIBLE_DEVICES 获取可用 GPU 集合"""
+    cuda_env = os.environ.get("CUDA_VISIBLE_DEVICES", "")
+    if not cuda_env.strip():
+        return set()
+    return {g.strip() for g in cuda_env.split(",") if g.strip()}
+
+
+def _validate_gpu(gpu: str, available: Set[str]) -> Optional[str]:
+    """校验 gpu 参数，返回错误信息或 None（合法）"""
+    requested = {g.strip() for g in gpu.split(",") if g.strip()}
+    if not requested:
+        return "gpu parameter is empty"
+    invalid = requested - available
+    if invalid:
+        return f"GPU {invalid} not in available GPUs {sorted(available)} (from CUDA_VISIBLE_DEVICES)"
+    return None
 
 
 class GradingServer:
@@ -30,6 +50,7 @@ class GradingServer:
         self.workspace = Path(workspace)
         self.scores_file = self.workspace / "scores.json"
         self.baseline_score: Optional[float] = None
+        self.available_gpus: Set[str] = _get_available_gpus()
     
     def load_scores(self) -> list[dict]:
         if self.scores_file.exists():
@@ -44,26 +65,51 @@ class GradingServer:
         from rdagent.scenarios.rl.autorl_bench.benchmarks import get_evaluator
         return get_evaluator(self.task)
     
-    def submit(self, model_path: str) -> dict:
+    def submit(self, model_path: str, gpu: Optional[str] = None) -> dict:
         """
         提交模型评测
         
+        Args:
+            model_path: 模型路径
+            gpu: 指定 GPU（如 "0", "1", "0,1"），必须是 CUDA_VISIBLE_DEVICES 中的子集。
+                 None 则使用 CUDA_VISIBLE_DEVICES 中的第一个 GPU。
+            
         Returns:
             包含 score、best、improvement 等完整信息的结果
+            
+        Raises:
+            ValueError: gpu 不在 CUDA_VISIBLE_DEVICES 范围内
         """
+        if self.available_gpus:
+            if gpu is None:
+                gpu = sorted(self.available_gpus, key=int)[0]
+            else:
+                err = _validate_gpu(gpu, self.available_gpus)
+                if err:
+                    raise ValueError(err)
+        
         start_time = time.time()
         scores = self.load_scores()
         submission_id = len(scores) + 1
         
-        logger.info(f"[SUBMIT #{submission_id}] Started | model_path={model_path}")
+        logger.info(f"[SUBMIT #{submission_id}] Started | model_path={model_path} | gpu={gpu}")
         
-        # 运行评测
-        evaluator = self.get_evaluator()
-        result = evaluator.run_eval(
-            model_path=model_path,
-            workspace_path=str(self.workspace),
-            model_name=self.base_model,
-        )
+        old_cuda = os.environ.get("CUDA_VISIBLE_DEVICES")
+        if gpu is not None:
+            os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
+        
+        try:
+            evaluator = self.get_evaluator()
+            result = evaluator.run_eval(
+                model_path=model_path,
+                workspace_path=str(self.workspace),
+                model_name=self.base_model,
+            )
+        finally:
+            if old_cuda is not None:
+                os.environ["CUDA_VISIBLE_DEVICES"] = old_cuda
+            elif "CUDA_VISIBLE_DEVICES" in os.environ:
+                del os.environ["CUDA_VISIBLE_DEVICES"]
         
         elapsed_seconds = time.time() - start_time
         
@@ -144,12 +190,23 @@ def submit():
     """
     data = request.get_json() or {}
     model_path = data.get("model_path")
+    gpu = data.get("gpu")
     
     if not model_path:
         return jsonify({"error": "Missing model_path"}), 400
     
     server = get_server()
-    result = server.submit(model_path)
+    
+    if gpu is not None:
+        gpu = str(gpu)
+        err = _validate_gpu(gpu, server.available_gpus)
+        if err:
+            return jsonify({
+                "error": err,
+                "available_gpus": sorted(server.available_gpus, key=int),
+            }), 400
+    
+    result = server.submit(model_path, gpu=gpu)
     return jsonify(result)
 
 
@@ -161,6 +218,7 @@ def health():
         "status": "ok",
         "task": server.task,
         "workspace": str(server.workspace),
+        "available_gpus": sorted(server.available_gpus, key=int) if server.available_gpus else [],
     })
 
 
