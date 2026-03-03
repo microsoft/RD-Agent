@@ -63,11 +63,24 @@ class OpenCompassEvaluator(BaseEvaluator):
         # 从 models.yaml 获取模型推理配置
         inference_config = self._get_model_inference_config(model_name, gpu_count)
         
+        # Resolve explicit dataset variable names to avoid `import *`,
+        # which leaks non-serializable objects (e.g. `os`, `f` from BBH)
+        # and breaks mmengine's config dump+reload in the CLI.
+        dataset_imports_explicit = []
+        for mod_path in [dataset_import]:
+            try:
+                import importlib
+                mod = importlib.import_module(mod_path)
+                names = [a for a in dir(mod) if (a == "datasets" or a.endswith("_datasets")) and isinstance(getattr(mod, a), list)]
+                dataset_imports_explicit.append({"module": mod_path, "names": names})
+            except Exception:
+                dataset_imports_explicit.append({"module": mod_path, "names": []})
+
         # 生成 OpenCompass 配置
         template_vars = {
             "model_abbr": f"rl-{self.benchmark_id}",
             "model_path": model_path,
-            "dataset_imports": [dataset_import],
+            "dataset_imports": dataset_imports_explicit,
             "test_range": effective_test_range,
             "num_runs": 1,
             "pass_k": None,
@@ -88,9 +101,9 @@ class OpenCompassEvaluator(BaseEvaluator):
         cmd = ["opencompass", str(config_path), "--work-dir", str(work_dir)]
         
         try:
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=7200)
         except subprocess.TimeoutExpired:
-            result["error"] = "OpenCompass timeout (3600s)"
+            result["error"] = "OpenCompass timeout (7200s)"
             return result
         
         if proc.returncode != 0:
@@ -156,14 +169,14 @@ class OpenCompassEvaluator(BaseEvaluator):
         score_col = [c for c in df.columns if c not in ["dataset", "version", "metric", "mode"]]
         
         if score_col:
-            scores = df[score_col[0]].dropna().values
-            if len(scores) > 0:
-                raw = scores[0]
+            numeric = []
+            for raw in df[score_col[0]].dropna().values:
                 try:
-                    result["score"] = float(raw)
+                    numeric.append(float(raw))
                 except (ValueError, TypeError):
-                    logger.warning(f"OpenCompass returned non-numeric score: {raw!r}, treating as 0.0")
-                    result["score"] = 0.0
-                result["accuracy_summary"] = {"accuracy": result["score"]}
+                    logger.warning(f"OpenCompass returned non-numeric score: {raw!r}, skipping")
+            if numeric:
+                result["score"] = sum(numeric) / len(numeric)
+                result["accuracy_summary"] = {"accuracy": result["score"], "num_subdatasets": len(numeric)}
         
         return result

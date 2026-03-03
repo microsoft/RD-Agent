@@ -6,21 +6,16 @@ template: |-
     from opencompass.models import VLLMwithChatTemplate
 
     # ==================== Dataset Import ====================
+    # Use explicit imports (not `import *`) to avoid leaking non-serializable
+    # objects from dataset configs into the namespace.
     with read_base():
-    {% for dataset_module in dataset_imports %}
-        from {{ dataset_module }} import *
+    {% for imp in dataset_imports %}
+    {% if imp.names %}
+        from {{ imp.module }} import {{ imp.names | join(', ') }}
+    {% else %}
+        from {{ imp.module }} import *
+    {% endif %}
     {% endfor %}
-
-    # Clean up non-serializable variables leaked by imported dataset configs.
-    # (e.g. BBH's config.py does `import os` and `with open() as f` at module scope,
-    # which get pulled in by `import *` and break OpenCompass config serialization.)
-    import types as _types
-    _cleanup = {_k for _k, _v in dict(locals()).items()
-                if isinstance(_v, _types.ModuleType) or (hasattr(_v, 'read') and hasattr(_v, 'close'))}
-    del _types
-    for _k in _cleanup:
-        exec(f'{_k} = None')
-    del _cleanup
 
     # Aggregate all dataset variables
     datasets = sum([v for k, v in locals().items() if (k == 'datasets' or k.endswith('_datasets')) and isinstance(v, list)], [])
