@@ -27,13 +27,13 @@ huggingface_hub>=0.20.0
 flask
 flask-cors
 
-# LLM 客户端（OpenCode Agent 需要）
-openai>=1.0.0
-httpx>=0.24.0
+# LLM 客户端（OpenCode Agent 用，其环境单独安装）
+# openai>=1.0.0
+# httpx>=0.24.0
 
 # 工具
 loguru
 requests
 pyyaml
-python-dotenv>=1.0.0
-tenacity>=8.0.0
+# python-dotenv>=1.0.0  # OpenCode Agent 用
+# tenacity>=8.0.0       # OpenCode Agent 用
