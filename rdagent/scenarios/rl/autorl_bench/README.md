@@ -6,7 +6,7 @@
 
 | 角色 | 实例 | 职责 |
 |------|------|------|
-| **Benchmark** | GSM8K、ALFWorld 等 | 提供任务环境、自动评分 |
+| **Benchmark** | GSM8K、HumanEval、ALFWorld 等 | 提供任务环境、自动评分 |
 | **小模型** | Qwen2.5-0.5B/7B | 被 RL 训练的 Agent |
 | **大模型** | GPT-5.2 等 | 离线驱动 RL 优化（生成 reward、调超参等） |
 
@@ -33,6 +33,11 @@ pip install -r rdagent/scenarios/rl/autorl_bench/requirements.txt
 # ALFWorld（alfworld, textworld, openai）
 pip install -r rdagent/scenarios/rl/autorl_bench/benchmarks/alfworld/requirements.txt
 # GSM8K：无额外依赖
+# HumanEval
+git clone git@github.com:XianBW/human-eval.git ~/human-eval
+cd ~/human-eval
+pip install -e .
+cd ~/RD-Agent
 
 # --- 1d. OpenHands Agent（如需使用）---
 git clone git@github.com:couragec/openhands-rl.git ~/openhands-rl
@@ -86,6 +91,7 @@ nohup python -m rdagent.scenarios.rl.autorl_bench.run \
 
 > **数据自动下载**：首次运行某个 benchmark 时，`run.py` 会自动调用对应 `data.py` 下载训练数据，无需手动操作。
 > - GSM8K：从 HuggingFace 下载 (~5MB)
+> - HumanEval：从 HuggingFace 下载 (~164 条样本)
 > - ALFWorld：调用 `alfworld-download` 从 GitHub Releases 下载 (~2GB，含 json/pddl/tw-pddl/logic)
 
 ### 4. 查看结果
@@ -109,7 +115,7 @@ streamlit run rdagent/scenarios/rl/autorl_bench/core/ui.py --server.port 8511
 | 参数 | 说明 | 示例 |
 |------|------|------|
 | `--agent` | Agent 类型 | `example_agent`、`rdagent`、`openhands` |
-| `--task` | Benchmark 任务名（对应 `benchmarks/` 子目录） | `gsm8k`、`alfworld` |
+| `--task` | Benchmark 任务名（对应 `benchmarks/` 子目录） | `gsm8k`、`humaneval`、`alfworld` |
 | `--model` | HuggingFace 模型 repo_id，首次自动下载 | `Qwen/Qwen2.5-0.5B` |
 | `--timeout` | Agent 最大运行时长（秒） | `41600`（~11.5h） |
 | `--port` | Grading Server 端口（默认 5000） | `5000` |
@@ -328,5 +334,3 @@ curl -X POST $GRADING_SERVER_URL/submit \
 ```
 
 Agent 通过 `config.yaml` 自动注册，无需修改代码。
-
-

@@ -55,6 +55,10 @@ class OpenCompassEvaluator(BaseEvaluator):
             "dataset", 
             f"opencompass.configs.datasets.{self.benchmark_id}"
         )
+        # 允许 benchmark 在配置中声明默认评测切片（例如 HumanEval 仅评后半）
+        effective_test_range = test_range
+        if test_range == "[:]" and self.eval_config.get("test_range"):
+            effective_test_range = self.eval_config["test_range"]
         
         # 从 models.yaml 获取模型推理配置
         inference_config = self._get_model_inference_config(model_name, gpu_count)
@@ -64,7 +68,7 @@ class OpenCompassEvaluator(BaseEvaluator):
             "model_abbr": f"rl-{self.benchmark_id}",
             "model_path": model_path,
             "dataset_imports": [dataset_import],
-            "test_range": test_range,
+            "test_range": effective_test_range,
             "num_runs": 1,
             "pass_k": None,
             "work_dir": str(work_dir),

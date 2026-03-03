@@ -42,6 +42,16 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
             "dataset": "opencompass.configs.datasets.gsm8k.gsm8k_gen_1d7fe4",
         },
     ),
+    "humaneval": BenchmarkConfig(
+        id="humaneval",
+        evaluator_class="rdagent.scenarios.rl.autorl_bench.core.opencompass.OpenCompassEvaluator",
+        data_module="rdagent.scenarios.rl.autorl_bench.benchmarks.humaneval.data",
+        description="HumanEval - Python 代码生成",
+        eval_config={
+            "dataset": "opencompass.configs.datasets.humaneval.humaneval_gen",
+            "test_range": "[82:]",
+        },
+    ),
     "alfworld": BenchmarkConfig(
         id="alfworld",
         evaluator_class="rdagent.scenarios.rl.autorl_bench.benchmarks.alfworld.eval.ALFWorldEvaluator",
