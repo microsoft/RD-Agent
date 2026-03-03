@@ -60,6 +60,7 @@ cd "$OPENCODE_RL_ROOT"
 exec "$PYTHON" main.py \
     --benchmark "$TASK" \
     --base-model "$BASE_MODEL" \
+    --run-dir "$WORKSPACE" \
     --max-iterations ${MAX_ITERATIONS:-5} \
     --training-timeout ${TRAINING_TIMEOUT:-7200} \
     --stale-timeout ${STALE_TIMEOUT:-1800} \
