@@ -70,7 +70,9 @@ exec "$PYTHON" main.py \
     --base-model "$BASE_MODEL" \
     --run-dir "$WORKSPACE" \
     --max-iterations ${MAX_ITERATIONS:-5} \
+    --max-retries ${MAX_RETRIES:-20} \
     --training-timeout ${TRAINING_TIMEOUT:-7200} \
     --stale-timeout ${STALE_TIMEOUT:-1800} \
     --http-timeout ${HTTP_TIMEOUT:-600} \
+    --eval-timeout ${EVAL_TIMEOUT:-7200} \
     --max-agent-steps ${MAX_AGENT_STEPS:-25}
