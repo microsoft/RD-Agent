@@ -23,6 +23,13 @@ echo "OpenCode Model: $OPENCODE_MODEL"
 
 export PYTHONUNBUFFERED=1
 
+# opencode CLI 可能装在 ~/.opencode/bin，确保在 PATH 中
+export PATH="$HOME/.opencode/bin:$PATH"
+
+# Python 解释器：优先用 .env 中的 OPENCODE_PYTHON，否则用 python3
+PYTHON="${OPENCODE_PYTHON:-python3}"
+echo "Python: $PYTHON"
+
 # 生成 opencode config（用 RD-Agent 根 .env 中的 API 配置）
 export XDG_CONFIG_HOME="${OPENCODE_RL_ROOT}/.opencode-config"
 mkdir -p "$XDG_CONFIG_HOME/opencode"
@@ -50,13 +57,11 @@ cd "$OPENCODE_RL_ROOT"
 
 # Use exec to REPLACE bash with python3, so signals go directly to python3
 # without an intermediate bash process. This avoids double signal delivery.
-exec python3 main.py \
+exec "$PYTHON" main.py \
     --benchmark "$TASK" \
     --base-model "$BASE_MODEL" \
     --max-iterations ${MAX_ITERATIONS:-5} \
-    --max-retries ${MAX_RETRIES:-20} \
     --training-timeout ${TRAINING_TIMEOUT:-7200} \
     --stale-timeout ${STALE_TIMEOUT:-1800} \
     --http-timeout ${HTTP_TIMEOUT:-600} \
-    --eval-timeout ${EVAL_TIMEOUT:-7200} \
     --max-agent-steps ${MAX_AGENT_STEPS:-25}
