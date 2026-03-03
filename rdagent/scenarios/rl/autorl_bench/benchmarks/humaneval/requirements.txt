@@ -1,0 +1,11 @@
+# HumanEval benchmark 额外依赖
+# 安装方式：
+#   git clone https://github.com/open-compass/human-eval.git ~/human-eval
+#   cd ~/human-eval
+#   sed -i 's/assert len(completion_id) == len(problems).*/if len(completion_id) != len(problems): print("Some problems are not attempted.")/' human_eval/evaluation.py
+#   pip install --no-build-isolation -e .
+
+# 或者
+# 安装方式（需要 --no-build-isolation 因为 setup.py 用了 pkg_resources）：
+#   git clone https://github.com/XianBW/human-eval.git ~/human-eval
+#   cd ~/human-eval && pip install --no-build-isolation -e .
