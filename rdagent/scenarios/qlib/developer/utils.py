@@ -21,8 +21,7 @@ def _normalize_factor_index(df: pd.DataFrame) -> pd.DataFrame | None:
 
     if "instrument" not in index_names:
         logger.warning(
-            "Skip factor dataframe because index misses 'instrument'. index names=%s",
-            index_names,
+            f"Skip factor dataframe because index misses 'instrument'. index names={index_names}"
         )
         return None
 
@@ -79,9 +78,7 @@ def process_factor_data(exp_or_list: List[QlibFactorExperiment] | QlibFactorExpe
                         normalized_df = _normalize_factor_index(df)
                         if normalized_df is None:
                             logger.warning(
-                                "Factor data from %s is skipped due to invalid index structure: %s",
-                                exp.hypothesis.concise_justification,
-                                _format_index_info(df),
+                                f"Factor data from {exp.hypothesis.concise_justification} is skipped due to invalid index structure: {_format_index_info(df)}"
                             )
                             error_message += (
                                 "Factor data from "
@@ -99,9 +96,7 @@ def process_factor_data(exp_or_list: List[QlibFactorExperiment] | QlibFactorExpe
                             logger.warning(f"Factor data from {exp.hypothesis.concise_justification} is not generated.")
                     else:
                         logger.warning(
-                            "Factor data from %s has invalid execution output or index: %s",
-                            exp.hypothesis.concise_justification,
-                            _format_index_info(df),
+                            f"Factor data from {exp.hypothesis.concise_justification} has invalid execution output or index: {_format_index_info(df)}"
                         )
                         error_message += (
                             f"Factor data from {exp.hypothesis.concise_justification} is not generated because of "
@@ -120,9 +115,7 @@ def process_factor_data(exp_or_list: List[QlibFactorExperiment] | QlibFactorExpe
                 [f"df#{i}: {_format_index_info(df)}" for i, df in enumerate(factor_dfs)]
             )
             logger.warning(
-                "Failed to concat factor data due to index misalignment. concat_error=%s; collected_index_info=%s",
-                concat_error,
-                concat_index_info,
+                f"Failed to concat factor data due to index misalignment. concat_error={concat_error}; collected_index_info={concat_index_info}"
             )
             raise FactorEmptyError(
                 "Failed to concat factor data due to index misalignment or incompatible index structure. "
