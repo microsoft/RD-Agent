@@ -37,7 +37,7 @@ $WORKSPACE/
 2. 阅读 `description.md` 了解任务目标
 3. 如果有 `eval.py`，**仔细阅读**——它包含环境交互逻辑、模型推理方式和评测流程
 4. 探索 `data/` 了解训练数据格式
-5. 在 `code/` 下编写 RL 训练脚本（GRPO、PPO 等，禁止使用 SFT——本项目目标是 RL post-training）
+5. 在 `code/` 下编写训练脚本（SFT、GRPO、PPO 等均可，最终目标是 RL post-training）
 6. 保存模型到 $OUTPUT_DIR
 7. 提交评测：POST $GRADING_SERVER_URL/submit
 8. 根据返回的 score 调整策略，重复 5-7
