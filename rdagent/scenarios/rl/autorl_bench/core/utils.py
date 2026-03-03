@@ -252,7 +252,7 @@ class LocalServerContext(GradingServerContext):
                 resp = requests.get(f"http://localhost:{self.port}/health", timeout=2)
                 if resp.status_code == 200:
                     break
-            except Exception:
+            except requests.ConnectionError:
                 pass
             time.sleep(0.5)
         else:

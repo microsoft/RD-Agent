@@ -208,7 +208,7 @@ def submit():
     try:
         result = server.submit(model_path, gpu=gpu)
         return jsonify(result)
-    except Exception as e:
+    except (RuntimeError, ValueError, OSError) as e:
         logger.error(f"[SUBMIT] Error: {e}")
         return jsonify({"error": str(e)}), 500
 

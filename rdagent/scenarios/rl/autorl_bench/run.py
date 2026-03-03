@@ -32,6 +32,25 @@ from rdagent.scenarios.rl.autorl_bench.core import (
 )
 
 
+def _kill_process_group(proc: subprocess.Popen) -> None:
+    """尽力杀掉进程组：SIGTERM → SIGKILL → proc.kill()"""
+    if proc.poll() is not None:
+        return
+    for sig in (signal.SIGTERM, signal.SIGKILL):
+        try:
+            os.killpg(os.getpgid(proc.pid), sig)
+            proc.wait(timeout=10)
+            return
+        except ProcessLookupError:
+            return
+        except subprocess.TimeoutExpired:
+            continue
+        except OSError:
+            break
+    proc.kill()
+    proc.wait()
+
+
 def run(
     agent_id: str,
     task: str,
@@ -48,33 +67,19 @@ def run(
         run_id = f"{run_id}_p{port}"
     benchmark = get_benchmark(task)
 
-    # 建 workspace 目录，添加 loguru file sink（框架日志 → run.log）
     workspace = get_workspace_dir() / task / f"{run_id}_{agent_id}"
     workspace.mkdir(parents=True, exist_ok=True)
     log_file = workspace / "run.log"
     _sink_id = loguru_logger.add(log_file, format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}", level="DEBUG")
 
-    # Mutable container for agent subprocess, accessible by signal handler
-    _agent_proc = [None]  # list so nested function can mutate
+    _agent_proc = [None]
 
-    # Signal handler: kill agent process group, then exit
     def _on_signal(signum, frame):
         sig_name = signal.Signals(signum).name
         logger.warning(f"Received {sig_name}, terminating...")
-        # Kill the entire agent process group (bash → main.py → training → ...)
         proc = _agent_proc[0]
-        if proc is not None and proc.poll() is None:
-            try:
-                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-                proc.wait(timeout=10)
-            except Exception:
-                try:
-                    os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-                except Exception:
-                    try:
-                        proc.kill()
-                    except Exception:
-                        pass
+        if proc is not None:
+            _kill_process_group(proc)
         logger.info(f"Run interrupted by {sig_name} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         loguru_logger.remove(_sink_id)
         sys.exit(128 + signum)
@@ -137,15 +142,7 @@ def run(
                 logger.info(f"Agent finished, exit_code={proc.returncode}, log: {agent_log}")
             except subprocess.TimeoutExpired:
                 logger.warning(f"Agent timed out after {timeout}s, killing process group...")
-                try:
-                    os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-                    proc.wait(timeout=10)
-                except Exception:
-                    try:
-                        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-                    except Exception:
-                        proc.kill()
-                    proc.wait()
+                _kill_process_group(proc)
 
         scores = grading.load_scores()
 
