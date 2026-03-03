@@ -11,6 +11,7 @@ import pandas as pd
 import yaml
 
 from rdagent.components.benchmark import BENCHMARK_CONFIGS_DIR
+from rdagent.components.benchmark.utils import build_dataset_imports_explicit
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.rl.autorl_bench.core.evaluator import BaseEvaluator
 from rdagent.utils.agent.tpl import T
@@ -63,18 +64,7 @@ class OpenCompassEvaluator(BaseEvaluator):
         # 从 models.yaml 获取模型推理配置
         inference_config = self._get_model_inference_config(model_name, gpu_count)
         
-        # Resolve explicit dataset variable names to avoid `import *`,
-        # which leaks non-serializable objects (e.g. `os`, `f` from BBH)
-        # and breaks mmengine's config dump+reload in the CLI.
-        dataset_imports_explicit = []
-        for mod_path in [dataset_import]:
-            try:
-                import importlib
-                mod = importlib.import_module(mod_path)
-                names = [a for a in dir(mod) if (a == "datasets" or a.endswith("_datasets")) and isinstance(getattr(mod, a), list)]
-                dataset_imports_explicit.append({"module": mod_path, "names": names})
-            except Exception:
-                dataset_imports_explicit.append({"module": mod_path, "names": []})
+        dataset_imports_explicit = build_dataset_imports_explicit(dataset_import)
 
         # 生成 OpenCompass 配置
         template_vars = {

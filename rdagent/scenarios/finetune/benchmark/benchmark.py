@@ -31,6 +31,7 @@ from rdagent.components.coder.finetune.conf import (
     get_workspace_prefix,
     is_docker_env,
 )
+from rdagent.components.benchmark.utils import build_dataset_imports_explicit
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
@@ -150,6 +151,8 @@ def run_benchmark(
     benchmark_cfg: BenchmarkConfig = BENCHMARK_CONFIG_DICT[benchmark_name]
     dataset_imports = benchmark_cfg.dataset
 
+    dataset_imports_explicit = build_dataset_imports_explicit(dataset_imports)
+
     # Auto download dependent data if configured on this benchmark
     if benchmark_cfg.download is not None:
         benchmark_cfg.download()
@@ -208,7 +211,7 @@ def run_benchmark(
         "is_lora": model_is_lora,
         "lora_path": lora_path_in_env,
         # Dataset configuration
-        "dataset_imports": [dataset_imports],
+        "dataset_imports": dataset_imports_explicit,
         "test_range": test_range,
         "num_runs": num_runs,
         "pass_k": pass_k,
