@@ -30,6 +30,27 @@ from werkzeug.serving import make_server
 from rdagent.scenarios.rl.autorl_bench.core.server import app, init_server
 
 
+def kill_process_group(proc: "subprocess.Popen") -> None:
+    """尽力杀掉进程组：SIGTERM → SIGKILL → proc.kill()"""
+    import signal as _signal
+
+    if proc.poll() is not None:
+        return
+    for sig in (_signal.SIGTERM, _signal.SIGKILL):
+        try:
+            os.killpg(os.getpgid(proc.pid), sig)
+            proc.wait(timeout=10)
+            return
+        except ProcessLookupError:
+            return
+        except subprocess.TimeoutExpired:
+            continue
+        except OSError:
+            break
+    proc.kill()
+    proc.wait()
+
+
 # ============================================================
 # 文件工具
 # ============================================================

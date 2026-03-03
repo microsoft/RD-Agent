@@ -67,6 +67,7 @@ from .utils import (
     append_result,
     detect_driver_model,
     print_summary,
+    kill_process_group,
 )
 
 __all__ = [
@@ -89,4 +90,5 @@ __all__ = [
     "append_result",
     "detect_driver_model",
     "print_summary",
+    "kill_process_group",
 ]

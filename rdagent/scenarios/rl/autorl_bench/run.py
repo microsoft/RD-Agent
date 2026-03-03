@@ -29,26 +29,8 @@ from rdagent.scenarios.rl.autorl_bench.core import (
     append_result,
     detect_driver_model,
     print_summary,
+    kill_process_group,
 )
-
-
-def _kill_process_group(proc: subprocess.Popen) -> None:
-    """尽力杀掉进程组：SIGTERM → SIGKILL → proc.kill()"""
-    if proc.poll() is not None:
-        return
-    for sig in (signal.SIGTERM, signal.SIGKILL):
-        try:
-            os.killpg(os.getpgid(proc.pid), sig)
-            proc.wait(timeout=10)
-            return
-        except ProcessLookupError:
-            return
-        except subprocess.TimeoutExpired:
-            continue
-        except OSError:
-            break
-    proc.kill()
-    proc.wait()
 
 
 def run(
@@ -79,7 +61,7 @@ def run(
         logger.warning(f"Received {sig_name}, terminating...")
         proc = _agent_proc[0]
         if proc is not None:
-            _kill_process_group(proc)
+            kill_process_group(proc)
         logger.info(f"Run interrupted by {sig_name} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         loguru_logger.remove(_sink_id)
         sys.exit(128 + signum)
@@ -142,7 +124,7 @@ def run(
                 logger.info(f"Agent finished, exit_code={proc.returncode}, log: {agent_log}")
             except subprocess.TimeoutExpired:
                 logger.warning(f"Agent timed out after {timeout}s, killing process group...")
-                _kill_process_group(proc)
+                kill_process_group(proc)
 
         scores = grading.load_scores()
 
