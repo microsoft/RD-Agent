@@ -49,13 +49,16 @@ def run(
         run_id = f"{run_id}_p{port}"
     benchmark = get_benchmark(task)
 
+    # 每次 run 独立 workspace + 独立日志文件
     workspace = get_workspace_dir() / task / f"{run_id}_{agent_id}"
     workspace.mkdir(parents=True, exist_ok=True)
     log_file = workspace / "run.log"
     _sink_id = loguru_logger.add(log_file, format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}", level="DEBUG")
 
+    # 用 mutable 容器让闭包能访问后续赋值的 agent 子进程
     _agent_proc = [None]
 
+    # 收到 SIGTERM/SIGINT 时杀掉整棵进程树再退出
     def _on_signal(signum, frame):
         sig_name = signal.Signals(signum).name
         logger.warning(f"Received {sig_name}, terminating...")
