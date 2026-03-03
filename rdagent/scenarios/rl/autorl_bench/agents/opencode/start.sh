@@ -26,6 +26,14 @@ export PYTHONUNBUFFERED=1
 # opencode CLI 可能装在 ~/.opencode/bin，确保在 PATH 中
 export PATH="$HOME/.opencode/bin:$PATH"
 
+# 把训练环境的 bin 目录加到 PATH，这样 LLM agent 的 bash 工具调用
+# (python3 -c "from trl import ...") 也能用到正确的训练依赖
+if [ -n "$TRAINING_PYTHON" ]; then
+    TRAINING_BIN_DIR="$(dirname "$TRAINING_PYTHON")"
+    export PATH="$TRAINING_BIN_DIR:$PATH"
+    echo "Training env bin: $TRAINING_BIN_DIR (prepended to PATH)"
+fi
+
 # Python 解释器：优先用 .env 中的 OPENCODE_PYTHON，否则用 python3
 PYTHON="${OPENCODE_PYTHON:-python3}"
 echo "Python: $PYTHON"
