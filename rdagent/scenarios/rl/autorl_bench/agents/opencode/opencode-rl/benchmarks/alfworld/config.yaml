@@ -1,7 +1,0 @@
-name: alfworld
-task_type: interactive
-description: "ALFWorld text-based game environment (ReAct agent)"
-expose_files:
-  - eval.py
-  - react_prompts.json
-  - base_config.yaml

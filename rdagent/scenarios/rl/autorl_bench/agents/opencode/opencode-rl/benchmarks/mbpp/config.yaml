@@ -1,8 +1,0 @@
-name: mbpp
-task_type: code
-description: "Mostly Basic Python Problems (MBPP)"
-source:
-  hf_dataset: google-research-datasets/mbpp
-  hf_subset: full
-  hf_split: test
-  max_samples: 50

@@ -1,8 +1,0 @@
-name: gsm8k
-task_type: math
-description: "Grade school math word problems (GSM8K)"
-source:
-  hf_dataset: openai/gsm8k
-  hf_subset: main
-  hf_split: train
-  max_samples: 100
