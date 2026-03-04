@@ -546,7 +546,9 @@ class APIBackend(ABC):
                     kwargs["add_json_in_prompt"] = True
 
                 too_long_error_message = hasattr(e, "message") and (
-                    "maximum context length" in e.message or "input must have less than" in e.message
+                    "maximum context length" in e.message
+                    or "input must have less than" in e.message
+                    or "Request contains an invalid argument" in e.message
                 )
 
                 if embedding and too_long_error_message:
