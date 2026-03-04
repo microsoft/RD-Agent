@@ -24,7 +24,9 @@ transformers>=4.40.0
 huggingface_hub>=0.20.0
 
 # Web 服务
-flask
+# 注意：Flask/Werkzeug 固定为 2.x，兼容 WebShop（Flask 3.x 与 WebShop 不兼容）
+flask==2.2.5
+Werkzeug==2.2.3
 flask-cors
 
 # 工具
