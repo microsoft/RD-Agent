@@ -20,6 +20,19 @@ from rdagent.app.rl.ui.rl_summary import render_job_summary
 DEFAULT_LOG_BASE = "log/"
 
 
+def _safe_resolve(user_input: str, safe_root: Path) -> Path:
+    """Resolve user path and ensure it stays within safe_root."""
+    try:
+        candidate = Path(user_input).expanduser().resolve()
+    except OSError:
+        return safe_root
+    try:
+        candidate.relative_to(safe_root)
+        return candidate
+    except ValueError:
+        return safe_root
+
+
 def get_job_options(base_path: Path) -> list[str]:
     """Scan directory and return job options list."""
     options = []
@@ -57,27 +70,28 @@ def main():
         st.divider()
 
         default_log = os.environ.get("RL_LOG_PATH", DEFAULT_LOG_BASE)
-        job_folder = default_log
+        safe_root = Path(default_log).expanduser().resolve()
+        job_folder = str(safe_root)
         selected_types = ALWAYS_VISIBLE_TYPES.copy()
         is_root_job = False
 
         if view_mode == "Job Summary":
             st.header("Job")
             base_folder = st.text_input("Base Folder", value=default_log, key="base_folder_input")
-            base_path = Path(base_folder)
+            base_path = _safe_resolve(base_folder, safe_root)
 
             job_options = get_job_options(base_path)
             if job_options:
                 selected_job = st.selectbox("Select Job", job_options, key="job_select")
                 if selected_job.startswith("."):
-                    job_folder = base_folder
+                    job_folder = str(base_path)
                     is_root_job = True
                 else:
                     job_folder = str(base_path / selected_job)
                 state.selected_job_folder = job_folder
             else:
                 st.warning("No jobs found in this directory")
-                job_folder = base_folder
+                job_folder = str(base_path)
 
             if st.button("Refresh", type="primary", key="refresh_job"):
                 st.rerun()
@@ -85,7 +99,7 @@ def main():
             st.header("Session")
             default_path = getattr(state, "selected_job_folder", default_log)
             log_folder = st.text_input("Log Folder", value=default_path)
-            log_path = Path(log_folder)
+            log_path = _safe_resolve(log_folder, safe_root)
 
             sessions = get_valid_sessions(log_path)
             if not sessions:
@@ -120,7 +134,7 @@ def main():
 
     if view_mode == "Job Summary":
         st.title("📊 RL Job Summary")
-        job_path = Path(job_folder)
+        job_path = Path(job_folder).resolve()
         if job_path.exists():
             render_job_summary(job_path, is_root=is_root_job)
         else:
