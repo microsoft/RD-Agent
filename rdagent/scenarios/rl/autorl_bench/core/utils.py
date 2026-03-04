@@ -8,8 +8,6 @@ import json
 import os
 import re
 import subprocess
-import threading
-import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -20,14 +18,10 @@ from huggingface_hub import snapshot_download
 from rdagent.log import rdagent_logger as logger
 
 from rdagent.scenarios.rl.autorl_bench.conf import (
-    AUTORL_BENCH_SETTING,
     get_baseline_cache_dir,
     get_data_dir,
     get_models_dir,
 )
-from werkzeug.serving import make_server
-
-from rdagent.scenarios.rl.autorl_bench.core.server import app, init_server
 
 
 def kill_process_group(proc: "subprocess.Popen") -> None:
@@ -228,85 +222,6 @@ def set_baseline_to_server(score: float, grading_url: Optional[str] = None) -> b
     resp = requests.post(f"{url}/set_baseline", json={"score": score}, timeout=30)
     resp.raise_for_status()
     return True
-
-
-# ============================================================
-# Grading Server 上下文管理器
-# ============================================================
-
-class GradingServerContext:
-    """Grading Server 基类"""
-    
-    def __enter__(self):
-        return self
-    
-    def __exit__(self, *args):
-        pass
-    
-    def get_baseline(self, task: str, model_name: str, model_path: str, workspace_path: str) -> float:
-        raise NotImplementedError
-    
-    def load_scores(self) -> list:
-        raise NotImplementedError
-
-
-class LocalServerContext(GradingServerContext):
-    """本地 Flask Server"""
-
-    def __init__(self, task: str, base_model: str, workspace: str, port: int):
-        self.task = task
-        self.base_model = base_model
-        self.workspace = workspace
-        self.port = port
-        self.server = None
-        self._http_server = None
-        self._thread = None
-
-    def __enter__(self):
-        logger.info(f"[Local Mode] Starting evaluation server on port {self.port}...")
-        self.server = init_server(self.task, self.base_model, self.workspace)
-
-        self._http_server = make_server("0.0.0.0", self.port, app, threaded=True)
-        self._thread = threading.Thread(target=self._http_server.serve_forever, daemon=True)
-        self._thread.start()
-
-        # Poll /health for up to 15 seconds instead of blind sleep(2)
-        deadline = time.time() + 15
-        while time.time() < deadline:
-            try:
-                resp = requests.get(f"http://localhost:{self.port}/health", timeout=2)
-                if resp.status_code == 200:
-                    break
-            except requests.ConnectionError:
-                pass
-            time.sleep(0.5)
-        else:
-            raise RuntimeError(f"Grading server failed to start on port {self.port}")
-
-        return self
-
-    def __exit__(self, *args):
-        if self._http_server:
-            self._http_server.shutdown()
-            self._http_server = None
-    
-    def get_baseline(self, task: str, model_name: str, model_path: str, workspace_path: str) -> float:
-        baseline = get_baseline_score(task, model_name, model_path, workspace_path)
-        self.server.set_baseline(baseline)
-        return baseline
-    
-    def load_scores(self) -> list:
-        return self.server.load_scores() if self.server else []
-
-
-def create_grading_server(benchmark, workspace: Path, port: int, base_model: str) -> GradingServerContext:
-    """创建 Grading Server 上下文"""
-    return LocalServerContext(
-        task=benchmark.id,
-        base_model=base_model,
-        workspace=str(workspace),
-        port=port,
-    )
 
 
 # ============================================================

@@ -70,6 +70,9 @@ CHAT_MODEL=gpt-5.2
 # OpenHands 环境（可选，有默认值）
 # CONDA_ENV_OPENHANDS=openhands      # 默认 openhands
 # OPENHANDS_RL_ROOT=$HOME/openhands-rl  # 默认 ~/openhands-rl
+
+# rl-smith benchmark 路径（可选，默认 ../rl-smith/benchmarks/）
+# SMITH_BENCH_DIR=/path/to/rl-smith/benchmarks
 ```
 
 ### 3. 运行
@@ -89,6 +92,10 @@ python -m rdagent.scenarios.rl.autorl_bench.run \
 # OpenHands Agent + ALFWorld（首次运行自动下载 ~2GB 游戏数据）
 python -m rdagent.scenarios.rl.autorl_bench.run \
     --agent openhands --task alfworld --model Qwen/Qwen2.5-0.5B-Instruct --timeout 41600
+
+# Smith benchmark（来自 rl-smith，自动发现，无需手动注册）
+python -m rdagent.scenarios.rl.autorl_bench.run \
+    --agent openhands --task smith-bbh --model Qwen/Qwen2.5-0.5B --timeout 7200
 
 # 后台运行（推荐）
 nohup python -m rdagent.scenarios.rl.autorl_bench.run \
@@ -122,7 +129,7 @@ streamlit run rdagent/scenarios/rl/autorl_bench/core/ui.py --server.port 8511
 | 参数 | 说明 | 示例 |
 |------|------|------|
 | `--agent` | Agent 类型 | `example_agent`、`rdagent`、`openhands` |
-| `--task` | Benchmark 任务名（对应 `benchmarks/` 子目录） | `gsm8k`、`humaneval`、`alfworld` |
+| `--task` | Benchmark 任务名（内置或 `smith-*`） | `gsm8k`、`alfworld`、`smith-bbh` |
 | `--model` | HuggingFace 模型 repo_id，首次自动下载 | `Qwen/Qwen2.5-0.5B` |
 | `--timeout` | Agent 最大运行时长（秒） | `41600`（~11.5h） |
 | `--port` | Grading Server 端口（默认 5000） | `5000` |
@@ -251,7 +258,10 @@ autorl_bench/
 │   └── instructions.md       # Agent 通用指导说明
 │
 ├── benchmarks/               # 【Benchmark 扩展】
-│   ├── __init__.py           # 注册表 BENCHMARKS
+│   ├── __init__.py           # 注册表 BENCHMARKS（含 smith 自动发现）
+│   ├── smith/                # rl-smith 自动发现适配
+│   │   ├── __init__.py       #   discover_smith_benchmarks()
+│   │   └── per_sample_eval.py#   逐条评测器
 │   ├── gsm8k/
 │   │   ├── data.py           # 数据下载（train split）
 │   │   └── description.md
@@ -276,6 +286,37 @@ autorl_bench/
 ## 扩展指南
 
 ### 添加新 Benchmark
+
+#### 方式一：通过 rl-smith 自动生成（推荐）
+
+将 benchmark 定义放在 `rl-smith/benchmarks/<name>/` 下，RD-Agent 启动时自动发现并注册为 `smith-<name>` 任务。
+
+**自动生成**（给一个 GitHub URL，AI agent 自动生成全部文件）：
+
+```bash
+cd /path/to/rl-smith
+python generate_benchmark.py https://github.com/suzgunmirac/BIG-Bench-Hard --name my_bbh
+
+# 生成后直接可用
+cd /path/to/RD-Agent
+python -m rdagent.scenarios.rl.autorl_bench.run --task smith-my_bbh --agent openhands --model Qwen/Qwen2.5-0.5B
+```
+
+**手动创建** `rl-smith/benchmarks/<name>/` 目录，需要：
+
+| 文件 | 必须 | 说明 |
+|------|------|------|
+| `config.yaml` | 是 | `name`, `eval_mode`(`per_sample`/`opencompass`), `expose_files` |
+| `eval.py` | 是 | 导出 `evaluate(question, model_answer, reference_answer, **kwargs) -> float` |
+| `data/train.jsonl` | 是 | 每行 `{"question": "...", "answer": "..."}` |
+| `download_data.py` | 否 | 数据下载脚本（幂等） |
+| `description.md` | 否 | 任务说明（挂载到 workspace） |
+
+发现机制：`discover_smith_benchmarks()` 扫描 `$SMITH_BENCH_DIR/*/config.yaml`（默认 `../rl-smith/benchmarks/`），按 `eval_mode` 选择评测器（`per_sample` → `PerSampleEvaluator`，`opencompass` → `OpenCompassEvaluator`）。
+
+详见 [rl-smith README](../../../../../../../rl-smith/README.md)。
+
+#### 方式二：在 RD-Agent 内手动注册
 
 新建 `benchmarks/new_task/` 目录，需要 3 个文件：
 

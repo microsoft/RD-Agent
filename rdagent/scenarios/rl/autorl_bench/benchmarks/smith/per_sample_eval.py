@@ -101,19 +101,12 @@ class PerSampleEvaluator(BaseEvaluator):
         except Exception as e:
             # Clean up vLLM GPU memory even on failure
             if 'llm' in locals():
-                try:
-                    del llm
-                    import gc; gc.collect()
-                    import torch; torch.cuda.empty_cache()
-                except Exception:
-                    pass
+                _cleanup_vllm(llm)
             result["error"] = f"vLLM inference failed: {e}"
             return result
 
         # Release vLLM GPU memory to avoid OOM for subsequent evaluations
-        del llm
-        import gc; gc.collect()
-        import torch; torch.cuda.empty_cache()
+        _cleanup_vllm(llm)
 
         # Score each sample
         total = 0
@@ -144,6 +137,39 @@ class PerSampleEvaluator(BaseEvaluator):
 
         logger.info(f"[{self.benchmark_id}] Score: {accuracy:.2f}% ({correct}/{total})")
         return result
+
+
+def _cleanup_vllm(llm) -> None:
+    """Release vLLM GPU memory without initializing CUDA in the main process.
+
+    We delete the LLM object and run torch.cuda.empty_cache() inside a
+    *spawned* subprocess so that the main process never touches CUDA directly.
+    This avoids the 'Cannot re-initialize CUDA in forked subprocess' error
+    that OpenCompass would hit later when it forks inference workers.
+    """
+    import multiprocessing as mp
+
+    def _gpu_cleanup():
+        try:
+            import gc, torch
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except Exception:
+            pass
+
+    try:
+        del llm
+    except Exception:
+        pass
+
+    try:
+        ctx = mp.get_context("spawn")
+        p = ctx.Process(target=_gpu_cleanup)
+        p.start()
+        p.join(timeout=30)
+    except Exception:
+        pass
 
 
 def _apply_range(data: list, test_range: str) -> list:

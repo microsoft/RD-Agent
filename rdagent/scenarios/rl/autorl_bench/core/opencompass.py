@@ -3,6 +3,8 @@ OpenCompass Evaluator
 
 用于所有使用 OpenCompass 评测的 benchmark（gsm8k, math 等）。
 """
+import os
+import signal
 import subprocess
 from pathlib import Path
 from typing import Any, Dict
@@ -89,20 +91,27 @@ class OpenCompassEvaluator(BaseEvaluator):
         
         # 运行 OpenCompass
         cmd = ["opencompass", str(config_path), "--work-dir", str(work_dir)]
-        
+
+        # Record existing vLLM pids so we only clean up ones we spawned
+        pre_pids = _get_vllm_pids()
+
         try:
             proc = subprocess.run(cmd, capture_output=True, text=True, timeout=7200)
         except subprocess.TimeoutExpired:
+            _kill_new_vllm(pre_pids)
             result["error"] = "OpenCompass timeout (7200s)"
             return result
-        
+
+        # Wait for OpenCompass inference/eval workers to finish, then clean up
+        _wait_and_kill_vllm(pre_pids)
+
         if proc.returncode != 0:
             error_msg = proc.stderr[:1000] if proc.stderr else proc.stdout[:1000] if proc.stdout else "No output"
             logger.warning(f"OpenCompass failed: {error_msg}")
             result["error"] = f"OpenCompass exit code: {proc.returncode}"
             result["raw_output"] = error_msg
             return result
-        
+
         # 解析结果
         result = self._parse_results(work_dir, result)
         logger.info(f"Benchmark score: {result['score']}")
@@ -159,6 +168,14 @@ class OpenCompassEvaluator(BaseEvaluator):
         score_col = [c for c in df.columns if c not in ["dataset", "version", "metric", "mode"]]
 
         if not score_col:
+            result["error"] = "No score column in results CSV"
+            return result
+
+        # Check if all values are '-' (OpenCompass writes '-' when inference fails)
+        col = score_col[0]
+        non_dash = [v for v in df[col].dropna().values if str(v).strip() != "-"]
+        if not non_dash:
+            result["error"] = "All scores are '-' (inference likely failed)"
             return result
 
         col = score_col[0]
@@ -190,3 +207,50 @@ class OpenCompassEvaluator(BaseEvaluator):
                 logger.warning(f"OpenCompass returned non-numeric score: {raw!r}, skipping")
 
         return result
+
+
+def _get_vllm_pids() -> set:
+    """Return PIDs of current user's vLLM engine processes."""
+    pids = set()
+    uid = os.getuid()
+    try:
+        for entry in os.listdir("/proc"):
+            if not entry.isdigit():
+                continue
+            try:
+                if os.stat(f"/proc/{entry}").st_uid != uid:
+                    continue
+                cmdline = open(f"/proc/{entry}/cmdline", "rb").read()
+                if b"VLLM::EngineCore" in cmdline or b"openicl_infer" in cmdline:
+                    pids.add(int(entry))
+            except (OSError, ValueError):
+                continue
+    except OSError:
+        pass
+    return pids
+
+
+def _kill_new_vllm(pre_pids: set) -> None:
+    """Kill vLLM / OpenCompass inference processes that were NOT in pre_pids."""
+    current = _get_vllm_pids()
+    new_pids = current - pre_pids
+    for pid in new_pids:
+        try:
+            os.kill(pid, signal.SIGKILL)
+            logger.info(f"Killed orphaned vLLM/infer process {pid}")
+        except OSError:
+            pass
+
+
+def _wait_and_kill_vllm(pre_pids: set, timeout: int = 7200) -> None:
+    """Wait for new vLLM/infer processes to finish, then force-kill any stragglers."""
+    import time
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        current = _get_vllm_pids()
+        new_pids = current - pre_pids
+        if not new_pids:
+            return
+        time.sleep(5)
+    # Timeout — kill remaining
+    _kill_new_vllm(pre_pids)

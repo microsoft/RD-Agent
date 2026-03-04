@@ -15,24 +15,6 @@ from typing_extensions import TypedDict, NotRequired
 # 数据结构定义（Schema）
 # ============================================================
 
-class EvalInput(TypedDict):
-    """
-    评测输入参数
-    
-    Attributes:
-        model_path: 训练后的模型路径（本地目录）
-        workspace_path: 工作目录路径
-        model_name: 模型名称（用于配置推理参数）
-        gpu_count: 可用 GPU 数量
-        test_range: 测试数据范围，如 "[:]" 或 "[:100]"
-    """
-    model_path: str
-    workspace_path: str
-    model_name: NotRequired[str]
-    gpu_count: NotRequired[int]
-    test_range: NotRequired[str]
-
-
 class EvalResult(TypedDict):
     """
     评测输出结果
@@ -130,16 +112,22 @@ class BaseEvaluator(ABC):
         self,
         model_path: str,
         workspace_path: str,
-        **kwargs
+        model_name: str = "",
+        gpu_count: int = 1,
+        test_range: str = "[:]",
+        **kwargs,
     ) -> EvalResult:
         """
         执行评测
-        
+
         Args:
             model_path: 训练后的模型路径（本地目录）
             workspace_path: 工作目录路径
-            **kwargs: 其他评测参数（见 EvalInput）
-            
+            model_name: 模型名称（用于配置推理参数）
+            gpu_count: 可用 GPU 数量
+            test_range: 测试数据范围，如 "[:]" 或 "[:100]"
+            **kwargs: 其他评测参数
+
         Returns:
             EvalResult: 评测结果
         """

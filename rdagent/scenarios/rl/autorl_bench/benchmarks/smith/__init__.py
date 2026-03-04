@@ -15,7 +15,8 @@ from rdagent.scenarios.rl.autorl_bench.benchmarks import BenchmarkConfig
 logger = logging.getLogger(__name__)
 
 # Default: rl-smith/benchmarks as a sibling of the repo root
-_REPO_ROOT = Path(__file__).resolve().parents[6]  # .../RD-Agent
+import rdagent
+_REPO_ROOT = Path(rdagent.__path__[0]).resolve().parent  # rdagent pkg dir → RD-Agent/
 _SMITH_BENCH_DIR = Path(
     os.environ.get("SMITH_BENCH_DIR", str(_REPO_ROOT.parent / "rl-smith" / "benchmarks"))
 )
