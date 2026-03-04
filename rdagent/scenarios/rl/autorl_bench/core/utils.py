@@ -177,19 +177,23 @@ def get_baseline_score(
     )
     
     score = result.get("score", 0.0)
+    error = result.get("error")
     logger.info(f"Baseline score: {score}")
-    
-    # 保存缓存
-    cache_file.parent.mkdir(parents=True, exist_ok=True)
-    cache_data = {
-        "task": task,
-        "model_name": model_name,
-        "score": score,
-        "test_range": test_range,
-        "timestamp": datetime.now().isoformat(),
-    }
-    cache_file.write_text(json.dumps(cache_data, indent=2, ensure_ascii=False))
-    
+
+    # Only cache successful evaluations — failed ones should be retried next time
+    if not error:
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        cache_data = {
+            "task": task,
+            "model_name": model_name,
+            "score": score,
+            "test_range": test_range,
+            "timestamp": datetime.now().isoformat(),
+        }
+        cache_file.write_text(json.dumps(cache_data, indent=2, ensure_ascii=False))
+    else:
+        logger.warning(f"Baseline evaluation failed ({error}), result NOT cached")
+
     return score
 
 

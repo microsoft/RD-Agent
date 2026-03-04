@@ -99,8 +99,21 @@ class PerSampleEvaluator(BaseEvaluator):
 
             outputs = llm.generate(prompts, sampling_params)
         except Exception as e:
+            # Clean up vLLM GPU memory even on failure
+            if 'llm' in locals():
+                try:
+                    del llm
+                    import gc; gc.collect()
+                    import torch; torch.cuda.empty_cache()
+                except Exception:
+                    pass
             result["error"] = f"vLLM inference failed: {e}"
             return result
+
+        # Release vLLM GPU memory to avoid OOM for subsequent evaluations
+        del llm
+        import gc; gc.collect()
+        import torch; torch.cuda.empty_cache()
 
         # Score each sample
         total = 0

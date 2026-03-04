@@ -2,4 +2,4 @@
 echo "=== Example Agent ==="
 echo "Task: $TASK"
 echo "Model: $BASE_MODEL"
-python "$(dirname "$0")/train.py"
+python3 "$(dirname "$0")/train.py"

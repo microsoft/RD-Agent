@@ -100,9 +100,9 @@ def main():
 
         config = GRPOConfig(
             output_dir=OUTPUT_DIR,
-            num_train_epochs=1,
-            per_device_train_batch_size=4,       # 小 batch 避免 OOM
-            gradient_accumulation_steps=16,      # 梯度累积保持有效batch=64
+            max_steps=20,                        # 固定步数，避免小数据集报错
+            per_device_train_batch_size=2,       # 小 batch 避免 OOM
+            gradient_accumulation_steps=4,       # 梯度累积
             learning_rate=1e-5,
             max_completion_length=256,
             num_generations=4,
