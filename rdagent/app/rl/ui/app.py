@@ -20,14 +20,16 @@ from rdagent.app.rl.ui.rl_summary import render_job_summary
 DEFAULT_LOG_BASE = "log/"
 
 
-def _safe_resolve(user_input: str, safe_root: Path) -> Path:
-    """Resolve user path relative to safe_root and ensure it stays within it."""
+def _safe_resolve(user_input: str | None, safe_root: Path) -> Path:
+    """Resolve user path relative to safe_root; raise ValueError if it escapes."""
+    if not user_input:
+        return safe_root
     try:
-        candidate = (safe_root / Path(user_input).expanduser()).resolve()
+        candidate = (safe_root / Path(user_input).expanduser()).resolve(strict=False)
         candidate.relative_to(safe_root)
         return candidate
-    except (OSError, ValueError):
-        return safe_root
+    except (OSError, ValueError) as exc:
+        raise ValueError(f"Invalid path outside of allowed root: {user_input}") from exc
 
 
 def get_job_options(base_path: Path) -> list[str]:
@@ -75,7 +77,11 @@ def main():
         if view_mode == "Job Summary":
             st.header("Job")
             base_folder = st.text_input("Base Folder", value=default_log, key="base_folder_input")
-            base_path = _safe_resolve(base_folder, safe_root)
+            try:
+                base_path = _safe_resolve(base_folder, safe_root)
+            except ValueError as e:
+                st.error(str(e))
+                return
 
             job_options = get_job_options(base_path)
             if job_options:
@@ -96,7 +102,11 @@ def main():
             st.header("Session")
             default_path = getattr(state, "selected_job_folder", default_log)
             log_folder = st.text_input("Log Folder", value=default_path)
-            log_path = _safe_resolve(log_folder, safe_root)
+            try:
+                log_path = _safe_resolve(log_folder, safe_root)
+            except ValueError as e:
+                st.error(str(e))
+                return
 
             sessions = get_valid_sessions(log_path)
             if not sessions:
@@ -153,4 +163,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
