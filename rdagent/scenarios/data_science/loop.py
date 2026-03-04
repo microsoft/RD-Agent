@@ -88,6 +88,7 @@ class DataScienceRDLoop(RDLoop):
     # NOTE: we move the DataScienceRDLoop here to be easier to be imported
     skip_loop_error = (CoderError, RunnerError)
     withdraw_loop_error = (PolicyError,)
+    skip_loop_error_stepname = "record"
 
     # when using more advanced proposals(merged, parallel, etc.), we provide a default exp_gen for convinience.
     default_exp_gen: type[ExpGen] = DSProposalV2ExpGen

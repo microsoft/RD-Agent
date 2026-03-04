@@ -25,7 +25,7 @@ echo "LLM Model: $LLM_MODEL"
 if [ -z "$TRAINING_PYTHON" ]; then
     echo "WARNING: TRAINING_PYTHON not set in .env, trying conda fallback..."
     source "$(conda info --base 2>/dev/null || echo /root/miniconda3)/etc/profile.d/conda.sh" 2>/dev/null
-    conda activate "${CONDA_ENV_TRAINING:-cwy-rl}" 2>/dev/null
+    conda activate "${CONDA_ENV_TRAINING:-autorl}" 2>/dev/null
     export TRAINING_PYTHON="$(which python)"
     conda activate "${CONDA_ENV_OPENHANDS:-openhands}" 2>/dev/null
 fi

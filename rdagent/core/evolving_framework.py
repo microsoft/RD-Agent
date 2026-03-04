@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import copy
 from abc import ABC, abstractmethod
+from collections.abc import Generator
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Generator, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from rdagent.core.evaluation import EvaluableObj, Evaluator
 from rdagent.core.knowledge_base import KnowledgeBase
@@ -61,11 +62,12 @@ class EvolvingStrategy(ABC, Generic[ASpecificEvolvableSubjects]):
     def __init__(self, scen: Scenario) -> None:
         self.scen = scen
 
+    @abstractmethod
     def evolve_iter(
         self,
         evo: ASpecificEvolvableSubjects,
-        queried_knowledge: QueriedKnowledge = None,
-        evolving_trace: list[EvoStep] = [],
+        queried_knowledge: QueriedKnowledge | None = None,
+        evolving_trace: list[EvoStep] | None = None,
     ) -> Generator[ASpecificEvolvableSubjects, None, None]:
         """
         The evolving trace is a list of (evolvable_subjects, feedback) ordered
@@ -95,6 +97,19 @@ class IterEvaluator(Evaluator):
 
     According to that strategy, we have iterative evaluation
     """
+
+    def evaluate(self, eo: EvaluableObj) -> Feedback:
+        """
+        Default implementation that runs evaluate_iter to completion.
+        Iterative evaluators can override this for custom behavior,
+        or just implement evaluate_iter for standard iteration.
+        """
+        gen = self.evaluate_iter()
+        next(gen)  # Kick off the generator
+        try:
+            return gen.send(eo)
+        except StopIteration as e:
+            return e.value  # type: ignore[no-any-return]
 
     @abstractmethod
     def evaluate_iter(self) -> Generator[Feedback, EvaluableObj | None, Feedback]:

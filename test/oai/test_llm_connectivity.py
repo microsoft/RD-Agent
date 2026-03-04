@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Test LLM connectivity for multiple models in parallel."""
+
 import concurrent.futures
 import os
 

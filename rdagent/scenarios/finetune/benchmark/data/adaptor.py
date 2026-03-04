@@ -123,7 +123,7 @@ BENCHMARK_CONFIG_DICT: Dict[str, BenchmarkConfig] = {
     ),
     # Native OpenCompass benchmarks
     "FinanceIQ_gen": BenchmarkConfig(
-        dataset="opencompass.configs.datasets.FinanceIQ.FinanceIQ_llmjudge_gen",
+        dataset="opencompass.configs.datasets.FinanceIQ.FinanceIQ_gen_e0e6b5",
         download=financeiq_gen.download_financeiq_dataset,
     ),
 }

@@ -44,7 +44,7 @@ class CoSTEERSingleFeedback(Feedback):
     return_checking: str | None  # including every check in the testing (constraints about the generated value)
     # value_feedback, shape_feedback, value_generated_flag
     code: str
-    final_decision: bool
+    final_decision: bool | None = None
     raw_execution: str = ""  # Full raw stdout for UI display
     source_feedback: Dict[str, bool] = field(
         default_factory=dict
@@ -135,6 +135,7 @@ class CoSTEERSingleFeedbackDeprecated(CoSTEERSingleFeedback):
         final_feedback: str = None,
         value_generated_flag: bool = None,
         final_decision_based_on_gt: bool = None,
+        source_feedback: dict = None,
     ) -> None:
         self.execution_feedback = execution_feedback
         self.code_feedback = code_feedback
@@ -143,6 +144,7 @@ class CoSTEERSingleFeedbackDeprecated(CoSTEERSingleFeedback):
         self.final_feedback = final_feedback
         self.value_generated_flag = value_generated_flag
         self.final_decision_based_on_gt = final_decision_based_on_gt
+        self.source_feedback = source_feedback if source_feedback is not None else {}
 
         # TODO:
         # Not general enough. So we should not put them in the general costeer feedback

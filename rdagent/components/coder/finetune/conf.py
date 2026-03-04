@@ -330,7 +330,7 @@ def get_benchmark_env(
     benchmark_volumes = {}
     # Setup finetune share folder mount for models
     (FT_RD_SETTING.file_path / "benchmarks").mkdir(parents=True, exist_ok=True)
-    # NOTE: we choose a folder in the workspace as the mount point due to we may run multiple instances in same 
+    # NOTE: we choose a folder in the workspace as the mount point due to we may run multiple instances in same
     # host machine. If conda env is used, the mount point will conflict with each other.
     benchmark_volumes[str((FT_RD_SETTING.file_path / "benchmarks").resolve())] = {
         "bind": "./benchmarks",
@@ -365,35 +365,6 @@ def get_benchmark_env(
     return env
 
 
-def parse_estimation_from_stdout(stdout: str) -> dict:
-    """Parse estimation info from script SUMMARY output.
-
-    Expected format in stdout:
-    ========== SUMMARY ==========
-    Total output samples: 10
-    Raw samples processed: 100
-    Raw samples total: 50000
-    Estimated full output: ~5000
-    =============================
-    """
-    estimation = {}
-    if not stdout:
-        return estimation
-
-    patterns = {
-        "output_samples": r"Total output samples:\s*(\d+)",
-        "raw_processed": r"Raw samples processed:\s*(\d+)",
-        "raw_total": r"Raw samples total:\s*(\d+)",
-        "estimated_full": r"Estimated full output:\s*~?(\d+)",
-    }
-    for key, pattern in patterns.items():
-        match = re.search(pattern, stdout)
-        if match:
-            estimation[key] = int(match.group(1))
-
-    return estimation
-
-
 def inject_data_stats(implementation: FBWorkspace, data: list, stdout: str) -> None:
     """Compute token statistics and inject data_stats.json.
 
@@ -405,12 +376,11 @@ def inject_data_stats(implementation: FBWorkspace, data: list, stdout: str) -> N
         stdout: The stdout from process_data.py execution
     """
     token_stats = _compute_column_stats(data)
-    estimation = parse_estimation_from_stdout(stdout)
 
     data_stats = {
         "total_samples": len(data),
         "token_stats": token_stats,
-        "estimation": estimation,
+        "stdout_summary": stdout,
     }
 
     implementation.inject_files(**{"data_stats.json": json.dumps(data_stats, indent=2)})

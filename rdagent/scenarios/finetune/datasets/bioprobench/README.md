@@ -90,6 +90,50 @@ Generate concise, single-level, numbered protocol steps from prompts.
 - Train: use the non-`_test.json` files per task.
 - Test: each task provides a held-out set of 1,000 examples.
 
+## Training Data Guidelines (CRITICAL for Fine-tuning)
+
+### ERR — Error Correction
+
+**CRITICAL: Answer Semantics**
+
+The benchmark prompt says: "If you find anything wrong, answer False."
+
+| Condition | `is_correct` field | Correct training output |
+|-----------|-------------------|------------------------|
+| Protocol step is CORRECT | `True` | `[ANSWER_START]True[ANSWER_END]` |
+| Protocol step HAS ERRORS | `False` | `[ANSWER_START]False[ANSWER_END]` |
+
+**Important**: The training data generation script MUST use this logic:
+```python
+def gold_answer_from_is_correct(is_correct: bool) -> str:
+    # True = step is correct, False = step has errors
+    return ANSWER_TRUE if is_correct else ANSWER_FALSE
+```
+
+Do NOT invert this logic - the benchmark evaluator compares model output directly with `is_correct` field.
+
+### ORD — Step Ordering
+
+**Output Format (CRITICAL)**
+- Answer MUST be a valid Python list: `[0, 2, 1, 3]`
+- NOT space-separated: `0 2 1 3` (WRONG)
+- NOT comma-separated without brackets: `0, 2, 1, 3` (WRONG)
+
+**Training Data Format**
+- Can include brief reasoning (1-2 sentences)
+- Final answer MUST be in format: `[ANSWER_START][list][ANSWER_END]`
+- Example: `[ANSWER_START][2, 0, 1, 3][ANSWER_END]`
+
+### GEN — Protocol Generation
+
+**Output Format**
+- Step-by-step protocol wrapped in `[ANSWER_START]...[ANSWER_END]`
+- CoT (Chain-of-Thought) format is acceptable for this task
+
+### Common Notes
+- All tasks support `<think>...</think>` tags for CoT reasoning (evaluator will strip them)
+- Answer MUST be wrapped in `[ANSWER_START]` and `[ANSWER_END]` tags
+
 ## License
 - CC BY 4.0 — see https://creativecommons.org/licenses/by/4.0/
 

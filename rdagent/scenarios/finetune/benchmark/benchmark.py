@@ -31,7 +31,6 @@ from rdagent.components.coder.finetune.conf import (
     get_workspace_prefix,
     is_docker_env,
 )
-from rdagent.components.benchmark.utils import build_dataset_imports_explicit
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
@@ -59,8 +58,7 @@ def get_model_inference_config(base_model_name: str, gpu_count: int) -> dict:
         dict: Merged configuration (model-specific overrides default)
               Uses exact match first, then longest prefix match, finally default only.
     """
-    from rdagent.components.benchmark import BENCHMARK_CONFIGS_DIR
-    config_data = yaml.safe_load(open(BENCHMARK_CONFIGS_DIR / "models.yaml", "r"))
+    config_data = yaml.safe_load(open(Path(__file__).parent / "configs" / "models.yaml", "r"))
 
     default_config = config_data.get("default", {})
     models_config = config_data.get("models", {})
@@ -151,8 +149,6 @@ def run_benchmark(
     benchmark_cfg: BenchmarkConfig = BENCHMARK_CONFIG_DICT[benchmark_name]
     dataset_imports = benchmark_cfg.dataset
 
-    dataset_imports_explicit = build_dataset_imports_explicit(dataset_imports)
-
     # Auto download dependent data if configured on this benchmark
     if benchmark_cfg.download is not None:
         benchmark_cfg.download()
@@ -211,7 +207,7 @@ def run_benchmark(
         "is_lora": model_is_lora,
         "lora_path": lora_path_in_env,
         # Dataset configuration
-        "dataset_imports": dataset_imports_explicit,
+        "dataset_imports": [dataset_imports],
         "test_range": test_range,
         "num_runs": num_runs,
         "pass_k": pass_k,
@@ -226,7 +222,7 @@ def run_benchmark(
         template_vars["use_cot_postprocessor"] = False
 
     # Render Jinja2 template
-    config_content = T("rdagent.components.benchmark.configs.opencompass_template:template").r(**template_vars)
+    config_content = T("rdagent.scenarios.finetune.benchmark.configs.opencompass_template:template").r(**template_vars)
 
     # Note: env was already created above via get_benchmark_env()
 

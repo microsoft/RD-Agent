@@ -5,6 +5,8 @@ Pipfile
 public
 release-notes.md
 typescript*
+tmp/
+.ai/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -185,10 +187,3 @@ static/
 AGENTS.md
 
 scripts/
-
-# AutoRL-Bench (legacy)
-rdagent/scenarios/rl/eval/autorl_bench/runs/
-rdagent/scenarios/rl/eval/autorl_bench/example_workspace/
-
-# Temporary files
-tmp/

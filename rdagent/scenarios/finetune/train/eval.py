@@ -1,11 +1,11 @@
 import json
 from typing import Any, Dict, List, Optional
 
+from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
 )
-from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.components.coder.finetune.conf import (
     FT_DATA_FILE_NAME,
     FT_DATA_SCRIPT_NAME,
@@ -51,17 +51,21 @@ def extract_loss_history(output_path) -> Dict[str, List[Dict[str, Any]]]:
         log_history = trainer_state.get("log_history", [])
         for entry in log_history:
             if "loss" in entry:
-                result["train"].append({
-                    "step": entry.get("step"),
-                    "epoch": entry.get("epoch"),
-                    "loss": entry.get("loss"),
-                })
+                result["train"].append(
+                    {
+                        "step": entry.get("step"),
+                        "epoch": entry.get("epoch"),
+                        "loss": entry.get("loss"),
+                    }
+                )
             if "eval_loss" in entry:
-                result["eval"].append({
-                    "step": entry.get("step"),
-                    "epoch": entry.get("epoch"),
-                    "eval_loss": entry.get("eval_loss"),
-                })
+                result["eval"].append(
+                    {
+                        "step": entry.get("step"),
+                        "epoch": entry.get("epoch"),
+                        "eval_loss": entry.get("eval_loss"),
+                    }
+                )
 
         logger.info(f"Extracted {len(result['train'])} train + {len(result['eval'])} eval entries")
 
@@ -276,7 +280,11 @@ class FTRunnerEvaluator(CoSTEEREvaluator):
             benchmark_result=(
                 json.dumps(benchmark_result, indent=2) if benchmark_result else "N/A (not executed or failed)"
             ),
-            loss_history=json.dumps(loss_history, indent=2) if (loss_history and (loss_history.get("train") or loss_history.get("eval"))) else "N/A",
+            loss_history=(
+                json.dumps(loss_history, indent=2)
+                if (loss_history and (loss_history.get("train") or loss_history.get("eval")))
+                else "N/A"
+            ),
             failed_stage=failed_stage,
             timeout_seconds=timeout_seconds,
         )

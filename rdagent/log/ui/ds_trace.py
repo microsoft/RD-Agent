@@ -189,13 +189,11 @@ def task_win(task):
             st.markdown(f"**:blue[Package Info:]**")
             st.code(task.package_info)
         if hasattr(task, "architecture"):  # model task
-            st.markdown(
-                f"""
+            st.markdown(f"""
     | Model_type | Architecture | hyperparameters |
     |------------|--------------|-----------------|
     | {task.model_type} | {task.architecture} | {task.hyperparameters} |
-    """
-            )
+    """)
 
 
 def workspace_win(workspace, cmp_workspace=None, cmp_name="last code."):
@@ -1168,8 +1166,7 @@ with st.sidebar:
     st.toggle("**Show LLM Log**", key="show_llm_log")
     st.toggle("*Show stdout*", key="show_stdout")
     st.toggle("*Show save workspace*", key="show_save_input")
-    st.markdown(
-        f"""
+    st.markdown(f"""
 - [Summary](#summary)
 - [Exp Gen](#exp-gen)
 - [Coding](#coding)
@@ -1177,8 +1174,7 @@ with st.sidebar:
 - [Feedback](#feedback)
 - [Record](#record)
     - [SOTA Experiment](#sota-exp)
-"""
-    )
+""")
 
 
 def get_state_data_range(state_data):

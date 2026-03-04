@@ -33,7 +33,7 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 SYSTEM_MANAGED_PARAMS = {
     "overwrite_cache": True,  # Avoid HF datasets cache lock contention
     "save_only_model": True,  # Save disk space
-    "save_total_limit": 1,  # Limit checkpoint count to save disk space
+    # "save_total_limit": 1,  # Limit checkpoint count to save disk space
     "output_dir": "./output",  # Standardize model output location
     "per_device_eval_batch_size": 1,  # Prevent OOM during evaluation
 }

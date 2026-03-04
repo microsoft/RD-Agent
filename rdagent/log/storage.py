@@ -1,4 +1,3 @@
-import dataclasses
 import json
 import pickle
 import re
@@ -10,57 +9,6 @@ from .base import Message, Storage
 from .utils import gen_datetime
 
 LOG_LEVEL = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-
-try:
-    import numpy as np
-except Exception:  # pragma: no cover - optional
-    np = None
-
-
-def _to_jsonable(obj: object, seen: set[int] | None = None) -> object:
-    if seen is None:
-        seen = set()
-    obj_id = id(obj)
-    if obj_id in seen:
-        return "<recursion>"
-    seen.add(obj_id)
-
-    if obj is None or isinstance(obj, (str, int, float, bool)):
-        return obj
-    if isinstance(obj, bytes):
-        try:
-            return obj.decode("utf-8")
-        except Exception:
-            return obj.decode("utf-8", errors="replace")
-    if isinstance(obj, Path):
-        return str(obj)
-    if isinstance(obj, datetime):
-        return obj.isoformat()
-    if dataclasses.is_dataclass(obj):
-        return {f.name: _to_jsonable(getattr(obj, f.name), seen) for f in dataclasses.fields(obj)}
-    if hasattr(obj, "model_dump"):
-        try:
-            return _to_jsonable(obj.model_dump(mode="json"), seen)
-        except Exception:
-            try:
-                return _to_jsonable(obj.model_dump(), seen)
-            except Exception:
-                pass
-    if isinstance(obj, dict):
-        return {str(k): _to_jsonable(v, seen) for k, v in obj.items()}
-    if isinstance(obj, (list, tuple, set)):
-        return [_to_jsonable(v, seen) for v in obj]
-    if np is not None:
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        if isinstance(obj, np.generic):
-            try:
-                return obj.item()
-            except Exception:
-                pass
-    if hasattr(obj, "__dict__"):
-        return {"__type__": type(obj).__name__, "__dict__": _to_jsonable(obj.__dict__, seen)}
-    return {"__type__": type(obj).__name__, "__repr__": repr(obj)}
 
 
 def _remove_empty_dir(path: Path) -> None:
@@ -105,21 +53,16 @@ class FileStorage(Storage):
 
         if save_type == "json":
             path = path.with_suffix(".json")
-            with path.open("w", encoding="utf-8") as f:
-                json.dump(_to_jsonable(obj), f, ensure_ascii=False, indent=2)
+            with path.open("w") as f:
+                try:
+                    json.dump(obj, f)
+                except TypeError:
+                    json.dump(json.loads(str(obj)), f)
             return path
         elif save_type == "pkl":
             path = path.with_suffix(".pkl")
             with path.open("wb") as f:
                 pickle.dump(obj, f)
-            # TODO: save_type: list[Literal["json", "text", "pkl"]]  = ["pkl", "json"]
-            # for save_type in save_type:
-            try:
-                json_path = path.with_suffix(".json")
-                with json_path.open("w", encoding="utf-8") as f:
-                    json.dump(_to_jsonable(obj), f, ensure_ascii=False, indent=2)
-            except Exception:
-                pass
             return path
         elif save_type == "text":
             obj = str(obj)

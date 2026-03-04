@@ -112,13 +112,13 @@
   },
   "bioprobench_ord": {
     "category": "biology",
-    "scenario": "Improve the model's ability to arrange shuffled experimental procedure steps in correct logical and temporal sequence by understanding procedural dependencies and scientific workflow logic.",
-    "benchmark_description": "Step Ordering - Arrange shuffled experimental procedure steps in correct logical and temporal sequence. Requires understanding procedural dependencies: which steps must precede others, timing constraints, and scientific logic of experimental workflows. Expected Output Format: Return [ANSWER_START][0, 2, 1, 3][ANSWER_END] with indices as a Python list. Evaluated using Exact Match and Kendall's Tau."
+    "scenario": "Improve the model's ability to arrange shuffled experimental steps in correct sequence. Output MUST be a valid Python list format: [ANSWER_START][0, 2, 1, 3][ANSWER_END]. Use brackets and commas, NOT space-separated indices.",
+    "benchmark_description": "Step Ordering - Arrange shuffled experimental procedure steps in correct logical and temporal sequence. Requires understanding procedural dependencies: which steps must precede others, timing constraints, and scientific logic of experimental workflows. CRITICAL OUTPUT FORMAT: Answer MUST be a valid Python list with brackets and commas, e.g., [ANSWER_START][2, 0, 1, 3][ANSWER_END]. NOT space-separated (0 2 1 3 is WRONG), NOT without brackets (0, 2, 1, 3 is WRONG). Evaluated using Exact Match and Kendall's Tau."
   },
   "bioprobench_err": {
     "category": "biology",
-    "scenario": "Improve the model's ability to identify and correct errors in biological protocol text including incorrect temperatures, concentrations, reagents, missing steps, and procedural mistakes.",
-    "benchmark_description": "Error Correction - Identify and correct errors in biological protocol text. Errors include: incorrect temperatures (e.g., 37°C vs 4°C), wrong concentrations, inappropriate reagents, missing steps, or procedural mistakes. Requires domain expertise to spot scientifically incorrect instructions. Expected Output Format: Return [ANSWER_START]True[ANSWER_END] if protocol has errors, or [ANSWER_START]False[ANSWER_END] if correct."
+    "scenario": "Improve the model's ability to identify errors in biological protocol text. CRITICAL SEMANTICS: True = step is CORRECT (no errors), False = step HAS ERRORS. This matches the benchmark prompt: 'If you find anything wrong, answer False.' Output format: [ANSWER_START]True or False[ANSWER_END].",
+    "benchmark_description": "Error Correction - Identify errors in biological protocol text including incorrect temperatures, concentrations, reagents, or procedural mistakes. CRITICAL: The benchmark expects True if the protocol step is CORRECT (no errors), and False if it HAS ERRORS. This follows the prompt: 'If you find anything wrong, answer False.' Do NOT invert this logic. Expected Output Format: [ANSWER_START]True[ANSWER_END] for correct steps, [ANSWER_START]False[ANSWER_END] for erroneous steps."
   },
   "bioprobench_pqa": {
     "category": "biology",

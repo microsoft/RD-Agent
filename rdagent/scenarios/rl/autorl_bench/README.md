@@ -22,8 +22,8 @@ git clone git@github.com:microsoft/RD-Agent.git ~/RD-Agent
 cd ~/RD-Agent
 
 # --- 1b. 基础 conda 环境 ---
-conda create -n cwy-rl python=3.10 -y
-conda activate cwy-rl
+conda create -n autorl python=3.10 -y
+conda activate autorl
 pip install -e .
 
 # 全局依赖（trl, vllm, torch, opencompass 等）
@@ -34,9 +34,8 @@ pip install -r rdagent/scenarios/rl/autorl_bench/requirements.txt
 pip install -r rdagent/scenarios/rl/autorl_bench/benchmarks/alfworld/requirements.txt
 # GSM8K：无额外依赖
 # HumanEval
-git clone git@github.com:XianBW/human-eval.git ~/human-eval
-cd ~/human-eval
-pip install -e .
+git clone https://github.com/XianBW/human-eval.git ~/human-eval
+cd ~/human-eval && pip install -e .
 cd ~/RD-Agent
 
 # --- 1d. OpenHands Agent（如需使用）---
@@ -69,7 +68,7 @@ CHAT_MODEL=gpt-5.2
 
 ```bash
 cd /path/to/RD-Agent
-conda activate cwy-rl
+conda activate autorl
 
 # Example Agent（简单 GRPO 训练，验证流程）
 python -m rdagent.scenarios.rl.autorl_bench.run \

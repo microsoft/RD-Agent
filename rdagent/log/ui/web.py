@@ -171,11 +171,9 @@ class HypothesisWindow(StWindow):
         h: Hypothesis = msg.content if isinstance(msg, Message) else msg
 
         self.container.markdown("#### **Hypothesis💡**")
-        self.container.markdown(
-            f"""
+        self.container.markdown(f"""
 - **Hypothesis**: {h.hypothesis}
-- **Reason**: {h.reason}"""
-        )
+- **Reason**: {h.reason}""")
 
 
 class HypothesisFeedbackWindow(StWindow):
@@ -183,14 +181,12 @@ class HypothesisFeedbackWindow(StWindow):
         h: HypothesisFeedback = msg.content if isinstance(msg, Message) else msg
 
         self.container.markdown("#### **Hypothesis Feedback🔍**")
-        self.container.markdown(
-            f"""
+        self.container.markdown(f"""
 - **Observations**: {h.observations}
 - **Hypothesis Evaluation**: {h.hypothesis_evaluation}
 - **New Hypothesis**: {h.new_hypothesis}
 - **Decision**: {h.decision}
-- **Reason**: {h.reason}"""
-        )
+- **Reason**: {h.reason}""")
 
 
 class FactorTaskWindow(StWindow):
@@ -225,8 +221,7 @@ class FactorFeedbackWindow(StWindow):
     def consume_msg(self, msg: Message | FactorSingleFeedback):
         fb: FactorSingleFeedback = msg.content if isinstance(msg, Message) else msg
 
-        self.container.markdown(
-            f"""### :blue[Factor Execution Feedback]
+        self.container.markdown(f"""### :blue[Factor Execution Feedback]
 {fb.execution_feedback}
 ### :blue[Factor Code Feedback]
 {fb.code_feedback}
@@ -236,16 +231,14 @@ class FactorFeedbackWindow(StWindow):
 {fb.final_feedback}
 ### :blue[Factor Final Decision]
 This implementation is {'SUCCESS' if fb.final_decision else 'FAIL'}.
-"""
-        )
+""")
 
 
 class ModelFeedbackWindow(StWindow):
     def consume_msg(self, msg: Message | ModelSingleFeedback):
         mb: ModelSingleFeedback = msg.content if isinstance(msg, Message) else msg
 
-        self.container.markdown(
-            f"""### :blue[Model Execution Feedback]
+        self.container.markdown(f"""### :blue[Model Execution Feedback]
 {mb.execution_feedback}
 ### :blue[Model Shape Feedback]
 {mb.shape_feedback}
@@ -257,8 +250,7 @@ class ModelFeedbackWindow(StWindow):
 {mb.final_feedback}
 ### :blue[Model Final Decision]
 This implementation is {'SUCCESS' if mb.final_decision else 'FAIL'}.
-"""
-        )
+""")
 
 
 class WorkspaceWindow(StWindow):

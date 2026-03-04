@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+from pandas.io.formats.style import Styler
 
 from rdagent.app.finetune.llm.ui.benchmarks import get_core_metric_score
 
@@ -140,7 +141,9 @@ def extract_baseline_scores(task_path: Path) -> dict[str, tuple[str, float, bool
     return {"validation": None, "test": None}
 
 
-def get_loop_status(task_path: Path, loop_id: int) -> tuple[str, float | None, float | None, str | None, bool | None, bool]:
+def get_loop_status(
+    task_path: Path, loop_id: int
+) -> tuple[str, float | None, float | None, str | None, bool | None, bool]:
     """
     Get loop status, validation score, test score, metric name with direction arrow, feedback decision, and direction.
     Returns: (status_str, val_score_or_none, test_score_or_none, metric_display_or_none, feedback_decision, higher_is_better)
@@ -185,9 +188,9 @@ def get_loop_status(task_path: Path, loop_id: int) -> tuple[str, float | None, f
         metric_display = f"{metric_name} {arrow}"
         # Format: "val/test" or just "val" if no test
         if test_score is not None:
-            status_str = f"{val_score:.1f}/{test_score:.1f}"
+            status_str = f"{val_score:.2f}/{test_score:.2f}"
         else:
-            status_str = f"{val_score:.1f}"
+            status_str = f"{val_score:.2f}"
         return status_str, val_score, test_score, metric_display, feedback_decision, higher_is_better
 
     # Check feedback stage (no benchmark result, use feedback decision directly)
@@ -254,15 +257,17 @@ def get_job_summary_df(job_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
         val_baseline = baseline_scores.get("validation")
         test_baseline = baseline_scores.get("test")
         if val_baseline and test_baseline:
-            row["Baseline"] = f"{val_baseline[1]:.1f}/{test_baseline[1]:.1f}"
+            row["Baseline"] = f"{val_baseline[1]:.2f}/{test_baseline[1]:.2f}"
         elif val_baseline:
-            row["Baseline"] = f"{val_baseline[1]:.1f}"
+            row["Baseline"] = f"{val_baseline[1]:.2f}"
         else:
             row["Baseline"] = "-"
         decision_row["Baseline"] = None
 
         for i in range(max_loops):
-            status, val_score, test_score, metric_name, feedback_decision, higher_is_better = get_loop_status(task_path, i)
+            status, val_score, test_score, metric_name, feedback_decision, higher_is_better = get_loop_status(
+                task_path, i
+            )
             row[f"L{i}"] = status
             decision_row[f"L{i}"] = feedback_decision
             if val_score is not None:
@@ -271,8 +276,9 @@ def get_job_summary_df(job_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
                     best_val_score = val_score
                     best_higher_is_better = higher_is_better
                     best_metric = metric_name
-                elif (higher_is_better and val_score > best_val_score) or \
-                     (not higher_is_better and val_score < best_val_score):
+                elif (higher_is_better and val_score > best_val_score) or (
+                    not higher_is_better and val_score < best_val_score
+                ):
                     best_val_score = val_score
                     best_higher_is_better = higher_is_better
                     best_metric = metric_name
@@ -280,15 +286,16 @@ def get_job_summary_df(job_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
                 # Use same direction as validation score for consistency
                 if best_test_score is None:
                     best_test_score = test_score
-                elif (best_higher_is_better and test_score > best_test_score) or \
-                     (not best_higher_is_better and test_score < best_test_score):
+                elif (best_higher_is_better and test_score > best_test_score) or (
+                    not best_higher_is_better and test_score < best_test_score
+                ):
                     best_test_score = test_score
 
         # Show best validation and test scores
         if best_val_score is not None and best_test_score is not None:
-            row["Best"] = f"{best_val_score:.1f}/{best_test_score:.1f}"
+            row["Best"] = f"{best_val_score:.2f}/{best_test_score:.2f}"
         elif best_val_score is not None:
-            row["Best"] = f"{best_val_score:.1f}"
+            row["Best"] = f"{best_val_score:.2f}"
         else:
             row["Best"] = "-"
         row["Metric"] = best_metric if best_metric else "-"
@@ -354,7 +361,7 @@ def style_status_cell(val: str, decision: bool | None = None) -> str:
     return ""
 
 
-def style_df_with_decisions(df: pd.DataFrame, decisions_df: pd.DataFrame) -> pd.io.formats.style.Styler:
+def style_df_with_decisions(df: pd.DataFrame, decisions_df: pd.DataFrame) -> Styler:
     """Apply styling to dataframe based on decision data
 
     Args:

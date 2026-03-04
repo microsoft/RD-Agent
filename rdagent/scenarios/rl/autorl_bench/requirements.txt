@@ -1,5 +1,5 @@
 # AutoRL-Bench 依赖
-# conda 环境: cwy-rl (Python 3.10)
+# conda 环境: (Python 3.10)
 
 # RL 训练（核心）
 trl>=0.27.0

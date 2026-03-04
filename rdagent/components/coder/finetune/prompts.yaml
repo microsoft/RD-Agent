@@ -110,6 +110,7 @@ data_coder:
     Total output samples: {actual_output}
     Sampled data size from raw: {sampled_count} / {raw_count}
     Debug samples processed: {debug_processed_count}
+    Estimated full output: ~{int(actual_output / debug_processed_count * sampled_count)}
     Output file: {{ workspace_path }}data.json
     =============================
 
@@ -318,11 +319,14 @@ finetune_coder:
     5. **Adaptive Logging Configuration (CRITICAL)**:
        - Set `logging_strategy` to 'steps' for consistent monitoring
        - Calculate `logging_steps` adaptively:
-         * Estimate total_steps = (num_samples × num_epochs) / (batch_size × gradient_accumulation_steps × num_gpus)
+         * Check `stdout_summary` in data_stats for `Estimated full output` (NOT `total_samples` which is debug mode count)
+         * total_steps = estimated_full × num_epochs / (batch_size × gradient_accumulation_steps × num_gpus)
          * Target 20-50 log entries total
     6. **Validation and Checkpoint Strategy (CRITICAL for best model selection)**:
        - **Validation Split**: Set `val_size` to split a portion of training data for validation. Choose ratio based on dataset size and task needs.
        - **Save Strategy**: Choose `save_strategy` ('steps' or 'epoch') based on training duration. MUST ensure `eval_strategy` == `save_strategy`.
+        - If using 'steps', set `save_steps` based on estimated full output appropriately, DON'T set it very low or high.
+        - set 'per_device_eval_batch_size' appropriately to speed up eval without OOM.
        - **Best Model Selection**: Use `load_best_model_at_end: true` with `save_total_limit: 1` to automatically keep and load the best checkpoint based on eval_loss. Note: `save_total_limit` will be force-injected to 1.
     7. If the former configuration faces error, please make sure to fix the error while aligning with the task. If these two goals conflict, please prioritize fixing the error.
 
@@ -387,15 +391,14 @@ finetune_coder:
     ## Processed Data Statistics (from debug mode)
     {{ data_stats }}
 
-    **Configuration Guidelines based on memory estimates:**
-    - `per_device_train_batch_size`: Use the recommended value from Scenario's Memory Estimates table
-      - For long CoT training (>8K tokens), prefer batch_size=1
-      - **IMPORTANT**: Smaller batch = can fit longer sequences = better reasoning quality
-    - `gradient_accumulation_steps`: Adjust to achieve effective batch of 16-64 (batch × accum × num_gpus)
-    - `cutoff_len`: Must accommodate your CoT length target
-      - Check data p99 and ensure cutoff_len > p99
-      - For reasoning tasks, aim for cutoff_len >= 8192
-    - `num_train_epochs` / `max_steps`: **If the task description specifies a specific value, use that value.** Otherwise, for small datasets (<1000), use 3-5 epochs; for large datasets (>10000), use 1-2 epochs.
+    **Your Task**: Implement the training configuration specified in the task description.
+    
+    - Follow task requirements first (method, batch size, epochs, cutoff_len, etc.)
+    - Apply technical constraints only when task doesn't specify:
+      - `cutoff_len`: ≤ min(max_position_embeddings, memory limit, data p99)
+      - `per_device_train_batch_size`: Choose based on Memory Estimates table
+      - `gradient_accumulation_steps`: Adjust for stable training (effective_batch = batch × accum × gpus)
+    - Validation setup: `val_size`, `eval_strategy` == `save_strategy`, `load_best_model_at_end: true`
     {% endif %}
 
     {% if latest_code %}
@@ -458,18 +461,8 @@ finetune_eval:
     3. Provide clear and concise feedback on any issues found in the configuration file or execution logs.
     4. Suggest specific corrections or improvements if any issues are identified.
 
-    ## Task Parameter Alignment Verification
-    You MUST verify that train.yaml parameters match task description requirements.
-
-    **IMPORTANT EXCEPTIONS - System-Managed Parameters**:
-    These parameters are automatically set by the system and should NOT be checked for alignment:
-    - {{ system_managed_params | join(", ") }}
-
-    If a parameter from task description is missing because LlamaFactory doesn't support it, this is expected, not a mismatch.
-
-    You must give a false final decision in following cases:
+    You must give a false final decision only if:
     - The execution fails with non-zero exit code.
-    - Configuration parameters (excluding system-managed ones) do NOT match task description requirements.
     
     {% if queried_similar_successful_knowledge|length != 0 %}
     ### Similar Successful Implementations to help training config Improvement
@@ -559,18 +552,6 @@ data_eval:
     - **Duplicates**: High duplicate ratio indicates data quality issues
     - **Semantic**: instruction should be a question/task, output should be an answer/response
     - **Alignment**: Data should match the task's training objective
-
-    ## CRITICAL: Task Requirement Alignment Verification
-    You MUST verify that the data processing script and output match task description requirements:
-    1. EXTRACT all data processing requirements from task description
-       - Look for data format specifications (e.g., "Alpaca format", "ShareGPT format")
-       - Look for content requirements (e.g., "add system prompt", "include few-shot examples")
-       - Look for filtering criteria (e.g., "filter by answer consistency", "remove samples longer than X")
-       - Look for CoT/reasoning requirements (e.g., "generate step-by-step reasoning")
-    2. COMPARE with actual implementation and generated data samples
-    3. If ANY mismatch found between task requirements and actual output:
-       - Report the mismatch in "return_checking" field
-       - Set final_decision to FALSE
 
     ## CoT Quality Evaluation (Task-Adaptive)
     **IMPORTANT: CoT quality ≠ CoT length. Adapt criteria based on task type from README metadata.**

@@ -674,6 +674,14 @@ class APIBackend(ABC):
                 **kwargs,
             )
             all_response += response
+
+            # Handle litellm bug: finish_reason='stop' but code block not closed
+            # TODO: this is a temporary solution, and should be removed when litellm is fixed.
+            if finish_reason == "stop" and code_block_language:
+                if all_response.count("```") % 2 == 1:  # Odd count = unclosed code block
+                    logger.warning("Detected unclosed code block with finish_reason='stop', treating as truncated")
+                    finish_reason = "length"
+
             if finish_reason is None or finish_reason != "length":
                 break  # we get a full response now.
             new_messages.append({"role": "assistant", "content": response})

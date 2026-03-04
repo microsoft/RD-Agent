@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generic, List, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
@@ -242,7 +242,7 @@ class FBWorkspace(Workspace):
                 target_file_path.parent.mkdir(parents=True, exist_ok=True)
                 target_file_path.write_text(v)
 
-    def remove_files(self, file_names: str | List[str]) -> None:
+    def remove_files(self, file_names: str | list[str]) -> None:
         """
         Remove specified files from the workspace.
         """

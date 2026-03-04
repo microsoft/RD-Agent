@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Generator
 from contextlib import nullcontext
-from typing import Any, Generic, TypeVar
+from typing import Generic, TypeVar, cast
 
 from filelock import FileLock
 from tqdm import tqdm
@@ -16,6 +16,7 @@ from rdagent.core.evolving_framework import (
     IterEvaluator,
     RAGStrategy,
 )
+from rdagent.core.exception import EvaluatorDidNotTerminateError
 from rdagent.log import rdagent_logger as logger
 
 ASpecificEvaluator = TypeVar("ASpecificEvaluator", bound=Evaluator)
@@ -43,7 +44,9 @@ class RAGEvaluator(IterEvaluator):
 
     @abstractmethod
     def evaluate_iter(
-        self, queried_knowledge: object = None, evolving_trace: list[EvoStep] = []
+        self,
+        queried_knowledge: object | None = None,
+        evolving_trace: list[EvoStep] | None = None,
     ) -> Generator[Feedback, EvaluableObj | None, Feedback]:
         """
 
@@ -115,20 +118,24 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
         self.stop_eval_chain_on_fail = stop_eval_chain_on_fail
 
     def _get_overall_feedback(
-        self, eva_iter: Generator[Any, Any, Feedback], evo: EvolvableSubjects, eval_failed_happened: bool
+        self,
+        eva_iter: Generator[Feedback, EvaluableObj | None, Feedback],
+        evo: EvolvableSubjects,
+        eval_failed_happened: bool,
     ) -> Feedback:
         """get overall feedback from eva_iter"""
         try:
             if self.stop_eval_chain_on_fail and eval_failed_happened:
                 fb = eva_iter.send(
-                    None
+                    None,
                 )  # send the signal to skip the rest partial evaluation and return the overall feedback directly
             else:
                 fb = eva_iter.send(evo)
                 if not fb:
                     eval_failed_happened = True
+            raise EvaluatorDidNotTerminateError
         except StopIteration as e:
-            return e.value
+            return cast("Feedback", e.value)
 
     def multistep_evolve(
         self,
@@ -159,16 +166,16 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
                 )
                 next(eva_iter)  # kick off the first iteration
                 eval_failed_happened = False
-                for evo in evo_iter:
-                    step_feedback = eva_iter.send(evo)
+                for evolved_evo in evo_iter:
+                    step_feedback = eva_iter.send(evolved_evo)
                     if not step_feedback:
                         eval_failed_happened = True
                         if self.stop_eval_chain_on_fail:
                             break
-                overall_feedback = self._get_overall_feedback(eva_iter, evo, eval_failed_happened)
+                overall_feedback = self._get_overall_feedback(eva_iter, evolved_evo, eval_failed_happened)
 
                 # 3. Pack evolve results
-                es = EvoStep[ASpecificEvolvableSubjects](evo, queried_knowledge, overall_feedback)
+                es = EvoStep[ASpecificEvolvableSubjects](evolved_evo, queried_knowledge, overall_feedback)
 
                 # 4. Evaluation
                 logger.log_object(es.feedback, tag="evolving feedback")
@@ -186,6 +193,6 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
                 yield evo  # yield the control to caller for process control and logging.
 
                 # 7. check if all tasks are completed
-                if es.feedback.finished():
+                if es.feedback is not None and es.feedback.finished():
                     logger.info("All tasks in evolving subject have been completed.")
                     break
