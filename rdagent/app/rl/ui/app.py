@@ -25,7 +25,11 @@ def _safe_resolve(user_input: str | None, safe_root: Path) -> Path:
     if not user_input:
         return safe_root
     try:
-        candidate = (safe_root / Path(user_input).expanduser()).resolve(strict=False)
+        normalized = os.path.normpath(user_input)
+        path_obj = Path(normalized).expanduser()
+        if path_obj.is_absolute():
+            raise ValueError("Absolute paths are not allowed")
+        candidate = (safe_root / path_obj).resolve(strict=False)
         candidate.relative_to(safe_root)
         return candidate
     except (OSError, ValueError) as exc:
