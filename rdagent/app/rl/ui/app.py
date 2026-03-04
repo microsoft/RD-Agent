@@ -21,15 +21,12 @@ DEFAULT_LOG_BASE = "log/"
 
 
 def _safe_resolve(user_input: str, safe_root: Path) -> Path:
-    """Resolve user path and ensure it stays within safe_root."""
+    """Resolve user path relative to safe_root and ensure it stays within it."""
     try:
-        candidate = Path(user_input).expanduser().resolve()
-    except OSError:
-        return safe_root
-    try:
+        candidate = (safe_root / Path(user_input).expanduser()).resolve()
         candidate.relative_to(safe_root)
         return candidate
-    except ValueError:
+    except (OSError, ValueError):
         return safe_root
 
 
