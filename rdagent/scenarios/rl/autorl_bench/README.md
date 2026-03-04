@@ -30,13 +30,21 @@ pip install -e .
 pip install -r rdagent/scenarios/rl/autorl_bench/requirements.txt
 
 # --- 1c. 按需安装 benchmark 额外依赖 ---
-# ALFWorld（alfworld, textworld, openai）
+
+# ALFWorld
 pip install -r rdagent/scenarios/rl/autorl_bench/benchmarks/alfworld/requirements.txt
+
 # GSM8K：无额外依赖
+
 # HumanEval
 git clone https://github.com/XianBW/human-eval.git ~/human-eval
 cd ~/human-eval && pip install -e .
 cd ~/RD-Agent
+
+# WebShop（需要 Java 11+）
+conda install -c conda-forge openjdk=11 faiss-cpu -y
+pip install -r rdagent/scenarios/rl/autorl_bench/benchmarks/webshop/requirements.txt
+python -c "from spacy.cli.download import download; download('en_core_web_sm')"
 
 # --- 1d. OpenHands Agent（如需使用）---
 git clone git@github.com:couragec/openhands-rl.git ~/openhands-rl

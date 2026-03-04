@@ -63,6 +63,18 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
         },
         expose_files=["eval.py", "react_prompts.json"],
     ),
+    "webshop": BenchmarkConfig(
+        id="webshop",
+        evaluator_class="rdagent.scenarios.rl.autorl_bench.benchmarks.webshop.eval.WebShopEvaluator",
+        data_module="rdagent.scenarios.rl.autorl_bench.benchmarks.webshop.data",
+        description="WebShop - 在线购物网站交互环境（ReAct agent，支持 vLLM/API）",
+        eval_config={
+            "max_steps": 50,
+            "num_instructions": 100,
+            "webshop_port": 8080,
+        },
+        expose_files=["eval.py"],
+    ),
 }
 
 
