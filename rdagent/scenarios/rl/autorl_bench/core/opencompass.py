@@ -157,16 +157,36 @@ class OpenCompassEvaluator(BaseEvaluator):
         
         df = pd.read_csv(csv_files[0])
         score_col = [c for c in df.columns if c not in ["dataset", "version", "metric", "mode"]]
-        
-        if score_col:
-            numeric = []
-            for raw in df[score_col[0]].dropna().values:
-                try:
-                    numeric.append(float(raw))
-                except (ValueError, TypeError):
-                    logger.warning(f"OpenCompass returned non-numeric score: {raw!r}, skipping")
-            if numeric:
-                result["score"] = sum(numeric) / len(numeric)
-                result["accuracy_summary"] = {"accuracy": result["score"], "num_subdatasets": len(numeric)}
-        
+
+        if not score_col:
+            return result
+
+        col = score_col[0]
+
+        # If CSV has a 'metric' column, pick only the primary metric rows
+        # (avoids averaging in pass/timeout/failed counters)
+        if "metric" in df.columns:
+            for m in ("accuracy", "score"):
+                rows = df[df["metric"] == m]
+                if not rows.empty:
+                    vals = []
+                    for raw in rows[col].dropna().values:
+                        try:
+                            vals.append(float(raw))
+                        except (ValueError, TypeError):
+                            pass
+                    if vals:
+                        result["score"] = sum(vals) / len(vals)
+                        result["accuracy_summary"] = {"accuracy": result["score"], "num_subdatasets": len(vals)}
+                        return result
+
+        # Fallback: take the first numeric value
+        for raw in df[col].dropna().values:
+            try:
+                result["score"] = float(raw)
+                result["accuracy_summary"] = {"accuracy": result["score"], "num_subdatasets": 1}
+                return result
+            except (ValueError, TypeError):
+                logger.warning(f"OpenCompass returned non-numeric score: {raw!r}, skipping")
+
         return result
