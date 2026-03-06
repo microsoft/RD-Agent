@@ -75,16 +75,17 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
         },
         expose_files=["eval.py"],
     ),
-        "deepsearchqa": BenchmarkConfig(
+    "deepsearchqa": BenchmarkConfig(
         id="deepsearchqa",
         evaluator_class="rdagent.scenarios.rl.autorl_bench.benchmarks.deepsearchqa.eval.DeepSearchQAEvaluator",
-        data_source="google/deepsearchqa",
+        data_module="rdagent.scenarios.rl.autorl_bench.benchmarks.deepsearchqa.data",
         description="DeepSearchQA - Google DeepMind 多步信息检索基准（900题，17领域）",
         eval_config={
             "num_samples": 100,    # 快速评测用 100，完整评测用 900
             "max_steps": 6,        # ReAct 最大搜索轮次
             # api_key": "...", # 可选，不填则用 DuckDuckGo
         },
+        expose_files = ["eval.py"],
     ),
 }
 

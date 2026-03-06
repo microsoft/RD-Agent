@@ -16,7 +16,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 from datasets import load_dataset
-from vllm import LLM, SamplingParams
 
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.rl.autorl_bench.core.evaluator import BaseEvaluator

@@ -26,3 +26,7 @@ Action: answer[Country A, Country B]
 - 答案由 LLM Judge 打分（推荐 gemini-2.5-flash）
 - Set Answer 需包含 gold 中的所有项目
 - 最终分数 = 正确数 / 总题数 × 100
+
+## 搜索后端配置
+- 默认使用 `duckduckgo-search` 包（无需配置，但可能有频率限制）
+- 推荐配置 `SERPAPI_KEY` 环境变量以获得更稳定的搜索结果
