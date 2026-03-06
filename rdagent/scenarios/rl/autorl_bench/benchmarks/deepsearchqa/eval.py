@@ -252,33 +252,19 @@ class DeepSearchQAEvaluator(BaseEvaluator):
         gold: str,
         answer_type: str,
     ) -> bool:
-        """
-        Use LLM Judge to judge if the answer is correct.
-        
-        Official recommendation is gemini-2.5-flash, here use rdagent's APIBackend 
-        call the configured LLM (usually GPT-4 or Gemini) to judge.
-        """
         from rdagent.oai.llm_utils import APIBackend
-
         judge_prompt = f"""You are an answer evaluator. Compare the predicted answer to the gold answer.
-
-Question answer type: {answer_type}
-
-Gold answer: {gold}
-Predicted answer: {predicted}
-
-For "Single Answer": The predicted answer is correct if it contains the same key information as the gold answer.
-For "Set Answer": The predicted answer is correct if it contains ALL items from the gold answer (order doesn't matter, minor wording variations are OK).
-
-Reply with ONLY "correct" or "incorrect". No explanation."""
+        Question answer type: {answer_type}
+        Gold answer: {gold}
+        Predicted answer: {predicted}
+        For "Single Answer": The predicted answer is correct if it contains the same key information as the gold answer.
+        For "Set Answer": The predicted answer is correct if it contains ALL items from the gold answer (order doesn't matter, minor wording variations are OK).
+        Reply with ONLY "correct" or "incorrect". No explanation."""
 
         try:
-            session = APIBackend().build_chat_session(
-                session_system_prompt="You are a strict answer evaluator."
-            )
-            response = session.build_chat_completion(
+            response = APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=judge_prompt,
-                json_mode=False,
+                system_prompt = "You are a strict answer evaluator.",
             ).strip().lower()
             return "correct" in response
         except Exception as e:
