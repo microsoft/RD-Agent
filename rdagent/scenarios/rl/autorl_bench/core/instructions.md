@@ -90,4 +90,5 @@ curl "$GRADING_SERVER_URL/health"
 ## 注意
 - 可多次提交不同版本的模型，系统自动跟踪最高分
 - 合理利用时间，根据 score 反馈迭代优化
+- **必须提交完整模型**：评测系统不支持 LoRA adapter 目录。如果用 LoRA/PEFT 训练，保存前必须合并：`model = model.merge_and_unload(); model.save_pretrained(output_path); tokenizer.save_pretrained(output_path)`
 - trl 保存模型后，`tokenizer_config.json` 中的 `extra_special_tokens` 会被保存为 list 格式，但 vLLM/transformers 加载时需要 dict 格式。保存模型后需删除该字段，否则评测会失败。

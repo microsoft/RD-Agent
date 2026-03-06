@@ -3,7 +3,6 @@ OpenCompass Evaluator
 
 用于所有使用 OpenCompass 评测的 benchmark（gsm8k, math 等）。
 """
-import json
 import subprocess
 from pathlib import Path
 from typing import Any, Dict
@@ -67,24 +66,17 @@ class OpenCompassEvaluator(BaseEvaluator):
         
         dataset_imports_explicit = build_dataset_imports_explicit(dataset_import)
 
-        # B1 fix: 自动检测 LoRA adapter，启用 vLLM LoRA 模式
-        is_lora = False
-        lora_path = ""
+        # B1 fix: 拒绝 LoRA adapter，提示 agent 合并后再提交
         adapter_cfg_file = Path(model_path) / "adapter_config.json"
         if adapter_cfg_file.exists():
-            adapter_cfg = json.loads(adapter_cfg_file.read_text())
-            base_model_path = adapter_cfg.get("base_model_name_or_path", "")
-            if base_model_path and Path(base_model_path).exists():
-                logger.info(f"LoRA adapter detected, base model: {base_model_path}")
-                is_lora = True
-                lora_path = model_path
-                model_path = str(Path(base_model_path).resolve())
-            else:
-                result["error"] = (
-                    f"LoRA adapter detected but base model not found: {base_model_path!r}. "
-                    "Please save a full merged model instead of a LoRA adapter."
-                )
-                return result
+            result["error"] = (
+                "LoRA adapter detected — the evaluation system requires a full merged model. "
+                "Please merge before saving: "
+                "model = model.merge_and_unload(); "
+                "model.save_pretrained(output_path); "
+                "tokenizer.save_pretrained(output_path)"
+            )
+            return result
 
         # 生成 OpenCompass 配置
         template_vars = {
@@ -95,8 +87,6 @@ class OpenCompassEvaluator(BaseEvaluator):
             "num_runs": 1,
             "pass_k": None,
             "work_dir": str(work_dir),
-            "is_lora": is_lora,
-            "lora_path": lora_path,
             **inference_config,
         }
         
