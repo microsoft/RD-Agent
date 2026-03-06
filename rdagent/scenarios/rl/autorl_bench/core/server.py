@@ -54,6 +54,8 @@ class GradingServer:
         self.scores_file = self.workspace / "scores.json"
         self.baseline_score: Optional[float] = None
         self.available_gpus: Set[str] = _get_available_gpus()
+        self._eval_lock = threading.Lock()
+        self._eval_cache: dict[str, dict] = {}
     
     def load_scores(self) -> list[dict]:
         if self.scores_file.exists():
@@ -91,41 +93,58 @@ class GradingServer:
                 if err:
                     raise ValueError(err)
         
+        # B3 fix: 同一 model_path 去重，直接返回缓存结果
+        resolved_path = str(Path(model_path).resolve())
+        if resolved_path in self._eval_cache:
+            cached = self._eval_cache[resolved_path]
+            logger.info(f"[SUBMIT] Cache hit for {model_path}, score={cached.get('score')}")
+            return cached
+
         start_time = time.time()
-        scores = self.load_scores()
-        submission_id = len(scores) + 1
-        
-        logger.info(f"[SUBMIT #{submission_id}] Started | model_path={model_path} | gpu={gpu}")
-        
-        old_cuda = os.environ.get("CUDA_VISIBLE_DEVICES")
-        if gpu is not None:
-            os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
-        
-        try:
-            evaluator = self.get_evaluator()
-            gpu_count = len(self.available_gpus) if self.available_gpus else 1
-            result = evaluator.run_eval(
-                model_path=model_path,
-                workspace_path=str(self.workspace),
-                model_name=self.base_model,
-                gpu_count=gpu_count,
-            )
-        finally:
-            if old_cuda is not None:
-                os.environ["CUDA_VISIBLE_DEVICES"] = old_cuda
-            elif "CUDA_VISIBLE_DEVICES" in os.environ:
-                del os.environ["CUDA_VISIBLE_DEVICES"]
-        
+
+        # B2 fix: 串行化评测，防止多个 vLLM 实例同时抢 GPU
+        with self._eval_lock:
+            # Double-check: 等锁期间可能已被其他线程评完
+            if resolved_path in self._eval_cache:
+                cached = self._eval_cache[resolved_path]
+                logger.info(f"[SUBMIT] Cache hit (after lock) for {model_path}, score={cached.get('score')}")
+                return cached
+
+            scores = self.load_scores()
+            submission_id = len(scores) + 1
+
+            logger.info(f"[SUBMIT #{submission_id}] Started | model_path={model_path} | gpu={gpu}")
+
+            old_cuda = os.environ.get("CUDA_VISIBLE_DEVICES")
+            if gpu is not None:
+                os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
+
+            try:
+                evaluator = self.get_evaluator()
+                gpu_count = len(self.available_gpus) if self.available_gpus else 1
+                result = evaluator.run_eval(
+                    model_path=model_path,
+                    workspace_path=str(self.workspace),
+                    model_name=self.base_model,
+                    gpu_count=gpu_count,
+                )
+            finally:
+                if old_cuda is not None:
+                    os.environ["CUDA_VISIBLE_DEVICES"] = old_cuda
+                elif "CUDA_VISIBLE_DEVICES" in os.environ:
+                    del os.environ["CUDA_VISIBLE_DEVICES"]
+
         elapsed_seconds = time.time() - start_time
-        
+
         # 解析分数
         score = result.get("score", 0.0)
-        
+        error = result.get("error")
+
         # 计算 improvement
         improvement = None
         if self.baseline_score is not None:
             improvement = round(score - self.baseline_score, 6)
-        
+
         # 构建结果
         entry = {
             "submission_id": submission_id,
@@ -136,20 +155,29 @@ class GradingServer:
             "improvement": improvement,
             "elapsed_seconds": round(elapsed_seconds, 2),
         }
-        
+        # B4 fix: 透传 error 字段
+        if error:
+            entry["error"] = error
+
         scores.append(entry)
         self.save_scores(scores)
-        
+
         # 查找最高分
         best_entry = max(scores, key=lambda x: x.get("score", 0))
-        
+
         logger.info(f"[SUBMIT #{submission_id}] Done | score={score}, best={best_entry['score']}")
-        
-        return {
+
+        response = {
             **entry,
             "best": best_entry,
             "total_submissions": len(scores),
         }
+
+        # 只缓存成功的评测结果（失败的不缓存，允许重试）
+        if not error:
+            self._eval_cache[resolved_path] = response
+
+        return response
     
     def set_baseline(self, score: float):
         """设置 baseline 分数"""
