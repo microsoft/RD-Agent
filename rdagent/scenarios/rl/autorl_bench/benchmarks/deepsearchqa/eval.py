@@ -13,6 +13,7 @@ import json
 import re
 import time
 from typing import Any, Dict, List, Optional, Tuple
+from vllm import LLM, SamplingParams
 
 import requests
 from datasets import load_dataset
@@ -27,7 +28,7 @@ You must follow this format strictly:
 Thought: [your reasoning]
 Action: search[your search query]   <- to search the web
   OR
-Action: answer[your final answer]   <- to give final answer
+Action: answer[Paris]   <- to give final answer
 
 Rules:
 - Always start with a Thought
@@ -160,23 +161,69 @@ class DeepSearchQAEvaluator(BaseEvaluator):
         )
         full_prompt = f"{REACT_SYSTEM_PROMPT}\n\n{conversation}"
 
+        # for step in range(max_steps):
+        #     outputs = llm.generate([full_prompt], sampling_params)
+        #     generated = outputs[0].outputs[0].text.strip()
+        #     full_prompt += f" {generated}"
+
+        #     # parse Action
+        #     action_match = re.search(r"Action:\s*(search|answer)\[(.+?)\]", full_prompt, re.DOTALL)
+        #     if not action_match:
+        #         # force append an answer
+        #         full_prompt += "\nAction: answer["
+        #         outputs2 = llm.generate([full_prompt], SamplingParams(temperature=0, max_tokens=128, stop=["]"]))
+        #         return outputs2[0].outputs[0].text.strip()
+
+        #     action_type = action_match.group(1)
+        #     action_content = action_match.group(2).strip()
+
+        #     if action_type == "answer":
+        #         return action_content
+
+        #     # execute search
+        #     observation = search_fn(action_content)
+        #     logger.info(f"  Step {step+1} | Search: {action_content[:60]}")
+        #     logger.info(f"  Observation: {observation[:120]}")
+
+        #     full_prompt += (
+        #         f"\nObservation: {observation}\n"
+        #         "Thought:"
+        #     )
+        # exceed max steps, extract last answer
+        # last_answer = re.findall(r"Action:\s*answer\[(.+?)\]", full_prompt, re.DOTALL)
+        # return last_answer[-1].strip() if last_answer else "I don't know"
+
+        # ...existing code...
+        model_trace = ""
+
         for step in range(max_steps):
             outputs = llm.generate([full_prompt], sampling_params)
             generated = outputs[0].outputs[0].text.strip()
+            model_trace += ("\n" + generated) if model_trace else generated
             full_prompt += f" {generated}"
 
-            # parse Action
-            action_match = re.search(r"Action:\s*(search|answer)\[(.+?)\]", full_prompt, re.DOTALL)
+            # parse Action ONLY from current model output
+            action_match = re.search(r"Action:\s*(search|answer)\[(.+?)\]", generated, re.DOTALL)
             if not action_match:
                 # force append an answer
                 full_prompt += "\nAction: answer["
                 outputs2 = llm.generate([full_prompt], SamplingParams(temperature=0, max_tokens=128, stop=["]"]))
-                return outputs2[0].outputs[0].text.strip()
+                generated2 = outputs2[0].outputs[0].text.strip()
+                model_trace += ("\n" + generated2) if generated2 else ""
+                # reject template placeholder
+                if generated2.strip().lower() == "your final answer":
+                    continue
+                return generated2.strip()
 
             action_type = action_match.group(1)
             action_content = action_match.group(2).strip()
 
             if action_type == "answer":
+                # reject template placeholder
+                if action_content.lower() == "your final answer":
+                    # treat as no valid action, let loop continue
+                    full_prompt += "\nThat is not a valid answer. Please think again.\nThought:"
+                    continue
                 return action_content
 
             # execute search
@@ -189,9 +236,12 @@ class DeepSearchQAEvaluator(BaseEvaluator):
                 "Thought:"
             )
 
-        # exceed max steps, extract last answer
-        last_answer = re.findall(r"Action:\s*answer\[(.+?)\]", full_prompt, re.DOTALL)
-        return last_answer[-1].strip() if last_answer else "I don't know"
+        # exceed max steps, extract last answer from model output only
+        last_answer = re.findall(r"Action:\s*answer\[(.+?)\]", model_trace, re.DOTALL)
+        # filter out template placeholder
+        real_answers = [a.strip() for a in last_answer if a.strip().lower() != "your final answer"]
+        return real_answers[-1] if real_answers else "I don't know"
+
 
     # ----------------------------------------------------------
     # search tool
