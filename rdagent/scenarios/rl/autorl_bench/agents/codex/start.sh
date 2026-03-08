@@ -101,7 +101,7 @@ echo "Running Codex CLI..."
 # JSON trace goes to agent.jsonl; original text log is still agent.log (via run.py stdout redirect)
 JSONL_LOG="$WORKSPACE/agent.jsonl"
 
-timeout "${CODEX_TIMEOUT}" codex exec \
+timeout "${CODEX_TIMEOUT}" codex --search exec \
     --json \
     -m "${CODEX_MODEL}" \
     -c "model_provider=\"${CODEX_PROVIDER}\"" \
@@ -128,6 +128,14 @@ echo "gpu_memory:"
 nvidia-smi --query-gpu=index,memory.used,memory.total --format=csv,noheader 2>/dev/null || echo "  nvidia-smi not available"
 echo "disk_workspace: $(du -sh "$WORKSPACE" 2>/dev/null | cut -f1)"
 echo "--- END DIAGNOSTICS ---"
+
+# Parse JSONL trace into human-readable format
+TRACE_PARSER="$(cd "$(dirname "$0")" && pwd)/human_readable_trace.py"
+if [ -f "$TRACE_PARSER" ] && [ -f "$JSONL_LOG" ]; then
+    python "$TRACE_PARSER" "$JSONL_LOG" -o "$WORKSPACE/agent_trace.txt" 2>/dev/null && \
+        echo "trace_parsed: yes ($(wc -l < "$WORKSPACE/agent_trace.txt") lines)" || \
+        echo "trace_parsed: no (parser failed)"
+fi
 
 echo "Codex CLI exited with code: $EXIT_CODE"
 exit $EXIT_CODE
