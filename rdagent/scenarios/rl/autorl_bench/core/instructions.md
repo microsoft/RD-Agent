@@ -88,6 +88,7 @@ curl "$GRADING_SERVER_URL/health"
 ```
 
 ## 注意
+- **不要直接复制/symlink 基座模型提交**——未经训练的基座模型只会得到 baseline 分数（improvement = 0），这是浪费提交机会。必须先训练再提交。
 - 可多次提交不同版本的模型，系统自动跟踪最高分
 - 合理利用时间，根据 score 反馈迭代优化
 - **必须提交完整模型**：评测系统不支持 LoRA adapter 目录。如果用 LoRA/PEFT 训练，保存前必须合并：`model = model.merge_and_unload(); model.save_pretrained(output_path); tokenizer.save_pretrained(output_path)`
