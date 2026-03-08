@@ -1,0 +1,6 @@
+name: "Gemini CLI Agent"
+description: "One-shot agent：给完整 prompt，Gemini CLI 自主完成代码编写、训练、评测提交"
+start: "start.sh"
+env_vars:
+  GEMINI_MODEL: "gemini-2.5-pro"
+  GEMINI_TIMEOUT: "36000"
