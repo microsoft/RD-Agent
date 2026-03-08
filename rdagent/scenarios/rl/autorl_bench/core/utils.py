@@ -262,6 +262,12 @@ def setup_workspace(
     for fname in benchmark.expose_files:
         ensure_symlink(bench_dir / fname, workspace / fname)
 
+    # AGENTS.md — Codex CLI 自动读取的项目级指令（summary 维护等）
+    agents_md_src = Path(__file__).parent / "AGENTS.md"
+    if agents_md_src.exists():
+        import shutil
+        shutil.copy2(agents_md_src, workspace / "AGENTS.md")
+
     return workspace
 
 

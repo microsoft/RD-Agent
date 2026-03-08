@@ -1,0 +1,7 @@
+name: "Codex CLI Agent"
+description: "One-shot agent：给完整 prompt，Codex CLI 自主完成代码编写、训练、评测提交"
+start: "start.sh"
+env_vars:
+  CODEX_MODEL: "gpt-5.1-codex-max_2025-12-04"
+  CODEX_TIMEOUT: "36000"           # Codex CLI 总超时（秒）= 10小时
+  CODEX_PROVIDER: "trapi"
