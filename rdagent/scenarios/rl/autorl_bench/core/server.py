@@ -56,7 +56,23 @@ class GradingServer:
         self.available_gpus: Set[str] = _get_available_gpus()
         self._eval_lock = threading.Lock()
         self._eval_cache: dict[str, dict] = {}
-    
+
+    @staticmethod
+    def _make_cache_key(resolved_path: str) -> str:
+        """用路径 + safetensors/bin 文件最新 mtime 组合作为 cache key。
+        模型被覆盖后 mtime 变化，cache 自动失效。"""
+        p = Path(resolved_path)
+        mtime = 0.0
+        if p.is_dir():
+            for f in p.rglob("*"):
+                if f.suffix in (".safetensors", ".bin", ".json") and f.is_file():
+                    mt = f.stat().st_mtime
+                    if mt > mtime:
+                        mtime = mt
+        elif p.is_file():
+            mtime = p.stat().st_mtime
+        return f"{resolved_path}@{mtime}"
+
     def load_scores(self) -> list[dict]:
         if self.scores_file.exists():
             return json.loads(self.scores_file.read_text())
@@ -93,10 +109,12 @@ class GradingServer:
                 if err:
                     raise ValueError(err)
         
-        # B3 fix: 同一 model_path 去重，直接返回缓存结果
+        # B3 fix: 同一 model_path + 同一内容去重，直接返回缓存结果
+        # 用路径 + 模型文件最新 mtime 作为 cache key，模型文件被覆盖后自动失效
         resolved_path = str(Path(model_path).resolve())
-        if resolved_path in self._eval_cache:
-            cached = self._eval_cache[resolved_path]
+        cache_key = self._make_cache_key(resolved_path)
+        if cache_key in self._eval_cache:
+            cached = self._eval_cache[cache_key]
             logger.info(f"[SUBMIT] Cache hit for {model_path}, score={cached.get('score')}")
             return cached
 
@@ -105,8 +123,9 @@ class GradingServer:
         # B2 fix: 串行化评测，防止多个 vLLM 实例同时抢 GPU
         with self._eval_lock:
             # Double-check: 等锁期间可能已被其他线程评完
-            if resolved_path in self._eval_cache:
-                cached = self._eval_cache[resolved_path]
+            cache_key = self._make_cache_key(resolved_path)
+            if cache_key in self._eval_cache:
+                cached = self._eval_cache[cache_key]
                 logger.info(f"[SUBMIT] Cache hit (after lock) for {model_path}, score={cached.get('score')}")
                 return cached
 
@@ -175,7 +194,7 @@ class GradingServer:
 
         # 只缓存成功的评测结果（失败的不缓存，允许重试）
         if not error:
-            self._eval_cache[resolved_path] = response
+            self._eval_cache[self._make_cache_key(resolved_path)] = response
 
         return response
     
