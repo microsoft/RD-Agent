@@ -7,16 +7,23 @@ echo "Model: $BASE_MODEL"
 echo "Workspace: $WORKSPACE"
 echo "Grading Server: $GRADING_SERVER_URL"
 
-# TRAPI token (az login must be done beforehand)
-export TRAPI_API_KEY=$(az account get-access-token --resource "api://trapi" --query accessToken --output tsv 2>/dev/null)
-if [ -z "$TRAPI_API_KEY" ]; then
-    echo "ERROR: Failed to get TRAPI token. Run 'az login' first."
-    exit 1
-fi
-echo "TRAPI token: ${#TRAPI_API_KEY} chars"
+# Provider setup: litellm (default, 3x TPM via load balancing) or trapi (direct)
+CODEX_PROVIDER="${CODEX_PROVIDER:-litellm}"
+CODEX_MODEL="${CODEX_MODEL:-gpt-5.2}"
 
-CODEX_MODEL="${CODEX_MODEL:-gpt-5.1-codex-max_2025-12-04}"
-CODEX_PROVIDER="${CODEX_PROVIDER:-trapi}"
+if [ "$CODEX_PROVIDER" = "litellm" ]; then
+    export LITELLM_API_KEY="${LITELLM_API_KEY:-sk-1234}"
+    echo "Provider: litellm (load-balanced across TRAPI regions)"
+    echo "Model: $CODEX_MODEL"
+else
+    export TRAPI_API_KEY=$(az account get-access-token --resource "api://trapi" --query accessToken --output tsv 2>/dev/null)
+    if [ -z "$TRAPI_API_KEY" ]; then
+        echo "ERROR: Failed to get TRAPI token. Run 'az login' first."
+        exit 1
+    fi
+    echo "Provider: trapi (direct)"
+    echo "TRAPI token: ${#TRAPI_API_KEY} chars"
+fi
 CODEX_TIMEOUT="${CODEX_TIMEOUT:-36000}"
 START_EPOCH=$(date +%s)
 
@@ -75,23 +82,20 @@ ${DATA_SAMPLE}
 
 ## Your Mission
 1. Read all files in the workspace to understand the task
-2. Write training code in code/train.py (use GRPO, PPO, SFT, or any effective method)
-3. Run the training: python code/train.py
-4. Save the trained model to ${OUTPUT_DIR}/v1
-5. IMPORTANT: If you use LoRA/PEFT, you MUST merge before saving:
+2. Implement your training approach (method, code structure, filenames are all up to you)
+3. Run training and save the trained model to ${OUTPUT_DIR}/ (e.g. output/v1)
+4. IMPORTANT: If you use LoRA/PEFT, you MUST merge before saving:
    model = model.merge_and_unload()
    model.save_pretrained(output_path)
    tokenizer.save_pretrained(output_path)
-6. Fix tokenizer_config.json if needed (remove extra_special_tokens list format)
-7. Submit for evaluation:
-   curl -X POST ${GRADING_SERVER_URL}/submit -H 'Content-Type: application/json' -d '{\"model_path\": \"${OUTPUT_DIR}/v1\"}'
-8. Based on the score, iterate: improve your approach and submit again as v2, v3, etc.
-9. Keep iterating until you achieve the best possible score or run out of time.
+5. Fix tokenizer_config.json if needed (remove extra_special_tokens list format)
+6. Submit for evaluation:
+   curl -X POST ${GRADING_SERVER_URL}/submit -H 'Content-Type: application/json' -d '{\\\"model_path\\\": \\\"${OUTPUT_DIR}/v1\\\"}'
+7. Based on the score, iterate: improve your approach and submit again as v2, v3, etc.
+8. Keep iterating until you achieve the best possible score or run out of time.
 
 ## Time Budget
 You have ${CODEX_TIMEOUT} seconds total. Run \`bash timer.sh\` at any time to check remaining time.
-- If > 2 hours remain: try ambitious methods (GRPO, PPO)
-- If < 30 min remain: submit your best model immediately
 
 IMPORTANT: Work efficiently. Start with a simple approach, get a baseline score, then iterate."
 
