@@ -98,7 +98,7 @@ IMPORTANT: Work efficiently. Start with a simple approach, get a baseline score,
 echo "Prompt length: ${#PROMPT} chars"
 echo "Running Codex CLI..."
 
-# JSON trace goes to agent.jsonl; original text log is still agent.log (via run.py stdout redirect)
+# JSON trace goes to agent.jsonl AND stdout (captured as agent.log by run.py)
 JSONL_LOG="$WORKSPACE/agent.jsonl"
 
 timeout "${CODEX_TIMEOUT}" codex --search exec \
@@ -110,7 +110,7 @@ timeout "${CODEX_TIMEOUT}" codex --search exec \
     --skip-git-repo-check \
     -C "$WORKSPACE" \
     "$PROMPT" \
-    > "$JSONL_LOG" 2>&1
+    2>&1 | tee "$JSONL_LOG"
 
 EXIT_CODE=$?
 
