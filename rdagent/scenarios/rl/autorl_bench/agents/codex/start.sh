@@ -20,6 +20,13 @@ CODEX_PROVIDER="${CODEX_PROVIDER:-trapi}"
 CODEX_TIMEOUT="${CODEX_TIMEOUT:-36000}"
 START_EPOCH=$(date +%s)
 
+# Copy AGENTS.md into workspace (Codex CLI auto-reads it)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -f "$SCRIPT_DIR/AGENTS.md" ]; then
+    cp "$SCRIPT_DIR/AGENTS.md" "$WORKSPACE/AGENTS.md"
+    echo "AGENTS.md copied to workspace"
+fi
+
 # Generate timer.sh in workspace so agent can query remaining time
 cat > "$WORKSPACE/timer.sh" << TIMER
 #!/bin/bash
@@ -95,7 +102,6 @@ echo "Running Codex CLI..."
 JSONL_LOG="$WORKSPACE/agent.jsonl"
 
 timeout "${CODEX_TIMEOUT}" codex exec \
-    --search \
     --json \
     -m "${CODEX_MODEL}" \
     -c "model_provider=\"${CODEX_PROVIDER}\"" \
