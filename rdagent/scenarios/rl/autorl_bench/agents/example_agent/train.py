@@ -13,6 +13,8 @@ from trl import GRPOConfig, GRPOTrainer
 
 
 def extract_answer(text):
+    if not isinstance(text, str):
+        text = str(text)
     match = re.search(r"####\s*([-+]?\d[\d,]*\.?\d*)", text)
     if match:
         try:

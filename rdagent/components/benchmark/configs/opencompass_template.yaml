@@ -58,15 +58,7 @@ template: |-
                 trust_remote_code=True,
                 dtype='{{ dtype }}',
                 max_model_len={{ max_seq_len }},
-    {% if is_lora %}
-                enable_lora=True,
-                max_lora_rank=64,
-                max_cpu_loras=1,
-    {% endif %}
             ),
-    {% if is_lora %}
-            lora_path='{{ lora_path }}',
-    {% endif %}
             max_seq_len={{ max_seq_len }},
             max_out_len={{ max_out_len }},
             batch_size={{ batch_size }},

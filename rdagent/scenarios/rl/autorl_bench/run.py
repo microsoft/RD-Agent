@@ -99,6 +99,7 @@ def run(
         logger.info(f"Running agent: {agent.name}")
 
         env = {
+            **agent.env_vars,
             **os.environ,
             "TASK": task,
             "BASE_MODEL": base_model,
@@ -107,7 +108,6 @@ def run(
             "DATA_PATH": str(workspace / "data"),
             "OUTPUT_DIR": str(workspace / "output"),
             "GRADING_SERVER_URL": f"http://localhost:{port}",
-            **agent.env_vars,
         }
 
         agent_log = workspace / "agent.log"

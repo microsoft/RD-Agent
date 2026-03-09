@@ -185,5 +185,6 @@ static/
 .cursor/
 .claude/
 AGENTS.md
+!rdagent/**/AGENTS.md
 
 scripts/

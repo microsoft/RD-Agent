@@ -84,6 +84,7 @@ if len(filtered) > 1:
         .agg(
             runs=("agent", "size"),
             success=("success", "sum"),
+            baseline=("baseline", "first"),
             best=("best_score", "max"),
             best_improve=("improvement", "max"),
             subs=("submissions", "sum"),
@@ -92,7 +93,7 @@ if len(filtered) > 1:
         .reset_index()
         .sort_values("best", ascending=False)
     )
-    summary.columns = ["Agent", "Task", "Base Model", "Runs", "Success", "Best", "Best Impr.", "Submissions"]
+    summary.columns = ["Agent", "Task", "Base Model", "Runs", "Success", "Baseline", "Best", "Best Impr.", "Submissions"]
     st.dataframe(summary, use_container_width=True, hide_index=True)
 
 st.divider()

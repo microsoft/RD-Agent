@@ -35,18 +35,15 @@
 务必先探索工作区，了解可用资源后再编写代码。
 
 **说明**：
-- `code/`：在此编写和执行训练脚本（如 `code/train.py`）
+- `code/`：在此编写代码（文件名和结构自由组织）
 - `output/`：训练产出的模型存放处。可存放多个版本（如 `output/v1/`、`output/v2/`），提交时指定具体路径
 
 ## 任务流程
-1. `ls` 查看当前目录所有可用文件
-2. 阅读 `description.md` 了解任务目标
-3. 如果有 `eval.py`，**仔细阅读**——它包含环境交互逻辑、模型推理方式和评测流程
-4. 探索 `data/` 了解训练数据格式
-5. 在 `code/` 下编写训练脚本（SFT、GRPO、PPO 等均可，最终目标是 RL post-training）
-6. 保存模型到 $OUTPUT_DIR
-7. 提交评测：POST $GRADING_SERVER_URL/submit
-8. 根据返回的 score 调整策略，重复 5-7
+1. 探索工作区，阅读 `description.md`、`instructions.md` 和相关文件（如有 `eval.py` 务必仔细阅读），了解任务目标和可用资源
+2. 在 `code/` 下编写代码，训练模型（SFT、GRPO、PPO 等均可）
+3. 保存模型到 $OUTPUT_DIR（如 `output/v1`）
+4. 提交评测：POST $GRADING_SERVER_URL/submit
+5. 根据返回的 score 调整策略，迭代改进
 
 ## API
 ```bash
@@ -88,6 +85,8 @@ curl "$GRADING_SERVER_URL/health"
 ```
 
 ## 注意
+- **不要直接复制/symlink 基座模型提交**——未经训练的基座模型只会得到 baseline 分数（improvement = 0），这是浪费提交机会。必须先训练再提交。
 - 可多次提交不同版本的模型，系统自动跟踪最高分
 - 合理利用时间，根据 score 反馈迭代优化
+- **必须提交完整模型**：评测系统不支持 LoRA adapter 目录。如果用 LoRA/PEFT 训练，保存前必须合并：`model = model.merge_and_unload(); model.save_pretrained(output_path); tokenizer.save_pretrained(output_path)`
 - trl 保存模型后，`tokenizer_config.json` 中的 `extra_special_tokens` 会被保存为 list 格式，但 vLLM/transformers 加载时需要 dict 格式。保存模型后需删除该字段，否则评测会失败。

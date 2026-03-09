@@ -66,6 +66,18 @@ class OpenCompassEvaluator(BaseEvaluator):
         
         dataset_imports_explicit = build_dataset_imports_explicit(dataset_import)
 
+        # B1 fix: 拒绝 LoRA adapter，提示 agent 合并后再提交
+        adapter_cfg_file = Path(model_path) / "adapter_config.json"
+        if adapter_cfg_file.exists():
+            result["error"] = (
+                "LoRA adapter detected — the evaluation system requires a full merged model. "
+                "Please merge before saving: "
+                "model = model.merge_and_unload(); "
+                "model.save_pretrained(output_path); "
+                "tokenizer.save_pretrained(output_path)"
+            )
+            return result
+
         # 生成 OpenCompass 配置
         template_vars = {
             "model_abbr": f"rl-{self.benchmark_id}",
@@ -75,8 +87,6 @@ class OpenCompassEvaluator(BaseEvaluator):
             "num_runs": 1,
             "pass_k": None,
             "work_dir": str(work_dir),
-            "is_lora": False,
-            "lora_path": "",
             **inference_config,
         }
         
@@ -157,16 +167,41 @@ class OpenCompassEvaluator(BaseEvaluator):
         
         df = pd.read_csv(csv_files[0])
         score_col = [c for c in df.columns if c not in ["dataset", "version", "metric", "mode"]]
-        
-        if score_col:
-            numeric = []
-            for raw in df[score_col[0]].dropna().values:
-                try:
-                    numeric.append(float(raw))
-                except (ValueError, TypeError):
-                    logger.warning(f"OpenCompass returned non-numeric score: {raw!r}, skipping")
-            if numeric:
-                result["score"] = sum(numeric) / len(numeric)
-                result["accuracy_summary"] = {"accuracy": result["score"], "num_subdatasets": len(numeric)}
-        
+
+        if not score_col:
+            return result
+
+        col = score_col[0]
+
+        # If CSV has a 'metric' column, pick only the primary metric rows
+        # (avoids averaging in pass/timeout/failed counters)
+        if "metric" in df.columns:
+            for m in ("accuracy", "score"):
+                rows = df[df["metric"] == m]
+                if not rows.empty:
+                    vals = []
+                    for raw in rows[col].dropna().values:
+                        try:
+                            vals.append(float(raw))
+                        except (ValueError, TypeError):
+                            pass
+                    if vals:
+                        result["score"] = sum(vals) / len(vals)
+                        result["accuracy_summary"] = {"accuracy": result["score"], "num_subdatasets": len(vals)}
+                        return result
+
+        # Fallback: take the first numeric value
+        non_numeric_values = []
+        for raw in df[col].dropna().values:
+            try:
+                result["score"] = float(raw)
+                result["accuracy_summary"] = {"accuracy": result["score"], "num_subdatasets": 1}
+                return result
+            except (ValueError, TypeError):
+                non_numeric_values.append(str(raw))
+                logger.warning(f"OpenCompass returned non-numeric score: {raw!r}, skipping")
+
+        if non_numeric_values:
+            result["error"] = f"Evaluation failed: OpenCompass returned non-numeric scores {non_numeric_values}. This usually means vLLM failed to load the model (missing config.json, GPU OOM, or engine crash)."
+
         return result
