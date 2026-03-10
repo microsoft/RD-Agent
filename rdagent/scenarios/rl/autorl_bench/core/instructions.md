@@ -2,6 +2,13 @@
 
 你是一个强化学习训练 Agent，目标是通过 RL Post-Training 提升模型表现。
 
+**核心目标**：在固定时间内（默认 12 小时）尽可能提高分数，可多次提交并利用反馈迭代。
+
+## 关键信息（先读）
+- **工作区限制**：当前目录就是工作区，只用相对路径，禁止 `cd` 到外部
+- **时间单一事实源**：优先读取 `./run_meta.json`
+- **评测入口**：`POST $GRADING_SERVER_URL/submit`
+
 ## 环境变量
 - TASK: 任务名称
 - BASE_MODEL: 基础模型名称
@@ -10,13 +17,26 @@
 - OUTPUT_DIR: 模型输出目录（提交评测时指定此目录下的模型路径）
 - GRADING_SERVER_URL: 评测服务地址
 
-## 工作区隔离
+## 时间与预算信号（单一事实源）
+默认预算 **12 小时（43200 秒）**，以 `run_meta.json` 为准。
+
+`run_meta.json` 字段：
+- start_time: 任务开始时间（unix timestamp, 秒）
+- timeout_s: 总时长上限（秒）
+- last_submit_time: 最后一次提交时间（unix timestamp, 秒）
+- end_time: 任务结束时间（unix timestamp, 秒）
+
+可选 API：
+- GET $GRADING_SERVER_URL/time
+  - 返回字段：`start_time / timeout_s / last_submit_time / end_time / now / remaining`
+
+## 工作区与目录
 **你的当前目录就是工作区。所有需要的文件都在当前目录下。**
 - **禁止 `cd` 到当前目录之外**（不要访问父目录或其他路径）
 - **只使用相对路径**（如 `./code/train.py`，而非绝对路径）
 - 如果看到 symlink 指向外部路径，忽略它——直接用相对路径访问即可
 
-## 目录结构
+目录结构：
 ```
 ./
 ├── code/               # 你的代码区（所有自行编写的代码放在此处）
@@ -25,6 +45,7 @@
 ├── output/             # 模型输出（训练好的模型保存在此）
 ├── description.md      # 任务描述（必读）
 ├── instructions.md     # 本文件
+├── run_meta.json       # 时间与预算信号（单一事实源）
 └── ...                 # benchmark 特有文件（用 ls 查看完整列表）
 ```
 
@@ -32,18 +53,16 @@
 - **交互式环境类**（如 ALFWorld）：会提供 `eval.py`（环境交互 + 评测逻辑）、prompt 模板、配置文件等——这些是编写训练代码的关键参考
 - **静态数据集类**（如 GSM8K）：主要通过 `data/` 下的数据文件提供训练样本
 
-务必先探索工作区，了解可用资源后再编写代码。
-
 **说明**：
 - `code/`：在此编写代码（文件名和结构自由组织）
 - `output/`：训练产出的模型存放处。可存放多个版本（如 `output/v1/`、`output/v2/`），提交时指定具体路径
 
-## 任务流程
+## 任务流程（固定时间内刷分）
 1. 探索工作区，阅读 `description.md`、`instructions.md` 和相关文件（如有 `eval.py` 务必仔细阅读），了解任务目标和可用资源
 2. 在 `code/` 下编写代码，训练模型（SFT、GRPO、PPO 等均可）
 3. 保存模型到 $OUTPUT_DIR（如 `output/v1`）
 4. 提交评测：POST $GRADING_SERVER_URL/submit
-5. 根据返回的 score 调整策略，迭代改进
+5. 根据返回的 score 调整策略，**在剩余时间内持续迭代并提交更高分模型**
 
 ## API
 ```bash
@@ -61,6 +80,9 @@ curl -X POST "$GRADING_SERVER_URL/submit" \
 curl -X POST "$GRADING_SERVER_URL/submit" \
     -H "Content-Type: application/json" \
     -d '{"model_path": "'$OUTPUT_DIR'/v1", "gpu": "2,3"}'
+
+# 查询时间与预算（优先使用 run_meta.json；此 API 仅做补充）
+curl "$GRADING_SERVER_URL/time"
 
 # 健康检查（返回可用 GPU 列表等信息）
 curl "$GRADING_SERVER_URL/health"

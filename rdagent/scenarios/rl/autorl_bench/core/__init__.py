@@ -39,6 +39,7 @@ from .evaluator import (
 )
 from .opencompass import OpenCompassEvaluator
 from .server import create_grading_server
+from .metrics import run_workspace_metrics
 from .utils import (
     ensure_symlink,
     download_model,
@@ -51,6 +52,9 @@ from .utils import (
     detect_driver_model,
     print_summary,
     kill_process_group,
+    init_run_meta,
+    update_run_meta,
+    read_run_meta,
 )
 
 __all__ = [
@@ -74,4 +78,8 @@ __all__ = [
     "detect_driver_model",
     "print_summary",
     "kill_process_group",
+    "init_run_meta",
+    "update_run_meta",
+    "read_run_meta",
+    "run_workspace_metrics",
 ]

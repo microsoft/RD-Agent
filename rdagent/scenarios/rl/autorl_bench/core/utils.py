@@ -228,6 +228,34 @@ def set_baseline_to_server(score: float, grading_url: Optional[str] = None) -> b
 # Workspace 搭建
 # ============================================================
 
+
+def init_run_meta(workspace: Path, timeout_s: int) -> Path:
+    """初始化 run_meta.json（单一事实源）。"""
+    run_meta = workspace / "run_meta.json"
+    payload = {
+        "start_time": int(datetime.now().timestamp()),
+        "timeout_s": int(timeout_s),
+        "last_submit_time": None,
+        "end_time": None,
+    }
+    run_meta.write_text(json.dumps(payload, indent=2, ensure_ascii=False))
+    return run_meta
+
+
+def update_run_meta(workspace: Path, **fields) -> Path:
+    """更新 run_meta.json 的部分字段。"""
+    run_meta = workspace / "run_meta.json"
+    data = json.loads(run_meta.read_text()) if run_meta.exists() else {}
+    data.update(fields)
+    run_meta.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+    return run_meta
+
+
+def read_run_meta(workspace: Path) -> dict:
+    """读取 run_meta.json。"""
+    run_meta = workspace / "run_meta.json"
+    return json.loads(run_meta.read_text()) if run_meta.exists() else {}
+
 def setup_workspace(
     run_id: str,
     agent_id: str,
@@ -245,6 +273,7 @@ def setup_workspace(
     workspace.mkdir(parents=True, exist_ok=True)
     (workspace / "code").mkdir(exist_ok=True)
     (workspace / "output").mkdir(exist_ok=True)
+    (workspace / "reports").mkdir(exist_ok=True)
 
     # 模型 & 数据 symlink
     model_link = workspace / "models" / base_model

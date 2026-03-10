@@ -16,6 +16,7 @@ from flask import Flask, jsonify, request
 from werkzeug.serving import make_server
 
 from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.rl.autorl_bench.core.utils import update_run_meta, read_run_meta
 
 app = Flask(__name__)
 
@@ -180,6 +181,7 @@ class GradingServer:
 
         scores.append(entry)
         self.save_scores(scores)
+        update_run_meta(self.workspace, last_submit_time=int(time.time()))
 
         # 查找最高分
         best_entry = max(scores, key=lambda x: x.get("score", 0))
@@ -274,6 +276,24 @@ def health():
         "task": server.task,
         "workspace": str(server.workspace),
         "available_gpus": sorted(server.available_gpus, key=int) if server.available_gpus else [],
+    })
+
+
+@app.route("/time", methods=["GET"])
+def time_status():
+    """时间与预算信号"""
+    server = get_server()
+    meta = read_run_meta(server.workspace)
+    now = int(time.time())
+    timeout_s = meta.get("timeout_s")
+    start_time = meta.get("start_time")
+    remaining = None
+    if isinstance(timeout_s, int) and isinstance(start_time, int):
+        remaining = max(timeout_s - (now - start_time), 0)
+    return jsonify({
+        **meta,
+        "now": now,
+        "remaining": remaining,
     })
 
 

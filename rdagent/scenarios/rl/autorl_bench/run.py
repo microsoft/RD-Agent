@@ -30,6 +30,9 @@ from rdagent.scenarios.rl.autorl_bench.core import (
     detect_driver_model,
     print_summary,
     kill_process_group,
+    init_run_meta,
+    update_run_meta,
+    run_workspace_metrics,
 )
 
 
@@ -86,6 +89,7 @@ def run(
     workspace = setup_workspace(
         run_id, agent_id, task, base_model, model_path, data_path, benchmark,
     )
+    init_run_meta(workspace, timeout)
 
     # 3. 启动 Grading Server + 运行 Agent
     with create_grading_server(benchmark, workspace, port, base_model) as grading:
@@ -133,6 +137,7 @@ def run(
 
     # 4. 保存结果
     end_time = datetime.now()
+    update_run_meta(workspace, end_time=int(end_time.timestamp()))
     best = max(scores, key=lambda x: x.get("score", 0)) if scores else None
 
     result = {
@@ -162,6 +167,15 @@ def run(
         "success": success,
         "workspace": str(workspace),
     })
+
+    try:
+        run_workspace_metrics(
+            workspace=workspace,
+            baseline=baseline,
+            base_model_path=str(workspace / "models" / base_model),
+        )
+    except Exception:
+        logger.exception("Failed to write workspace metrics")
 
     print_summary(baseline, best, scores, workspace)
 
