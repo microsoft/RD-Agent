@@ -127,6 +127,8 @@ class DeepSearchQAEvaluator(BaseEvaluator):
             logger.info(f"  Predicted: {predicted[:80]}")
             logger.info(f"  Gold:      {gold_answer[:80]}")
             logger.info(f"  Correct:   {score}")
+            running_acc = correct / (i + 1)
+            logger.info(f"  Running accuracy: {correct}/{i+1} = {running_acc:.2%}")
 
         accuracy = correct / len(samples) if samples else 0.0
         result["score"] = accuracy * 100
