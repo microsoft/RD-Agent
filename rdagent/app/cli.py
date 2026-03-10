@@ -19,8 +19,8 @@ from importlib.resources import path as rpath
 
 import typer
 
-from rdagent.app.data_science.loop import main as data_science
 from rdagent.app.crypto_signal_writer import btcusdt_15m_signal_writer_v1
+from rdagent.app.data_science.loop import main as data_science
 from rdagent.app.general_model.general_model import (
     extract_models_and_implement as general_model,
 )
