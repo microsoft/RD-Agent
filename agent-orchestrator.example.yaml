@@ -1,0 +1,35 @@
+# Example Agent Orchestrator (ao) config for this repo.
+#
+# Usage:
+#   cp agent-orchestrator.example.yaml agent-orchestrator.yaml
+#   # then edit paths / preferences
+#   ao start
+
+dataDir: ~/.agent-orchestrator
+worktreeDir: ~/.worktrees
+
+defaults:
+  runtime: tmux
+  workspace: worktree
+
+projects:
+  rd-agent:
+    name: RD-Agent
+    sessionPrefix: rdagent
+    repo: microsoft/RD-Agent
+    defaultBranch: main
+
+    # Optional: pin to an existing local worktree.
+    # path: /abs/path/to/your/worktree/rd-agent/rd-1
+
+    agentRules: |-
+      Keep PRs focused: one issue per PR.
+      Use conventional commits (feat:, fix:, chore:, docs:, refactor:, test:).
+      Keep changes minimal; follow existing repo conventions.
+
+      Before pushing, match CI locally when possible:
+      - make lint
+      - make docs-gen
+      - make test-offline
+
+      PR titles must pass commitlint (see .commitlintrc.js).
