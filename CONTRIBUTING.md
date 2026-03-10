@@ -47,4 +47,15 @@ If you encounter any issues or have suggestions for improvements, please open an
 - Update documentation as needed.
 - Test your changes thoroughly before submitting a pull request.
 
+## Agent Orchestrator (ao)
+
+If you use Agent Orchestrator to manage parallel AI coding sessions, this repo includes a starter config template:
+
+```sh
+cp agent-orchestrator.example.yaml agent-orchestrator.yaml
+ao start
+```
+
+The local `agent-orchestrator.yaml` file is gitignored.
+
 Thank you for contributing to RD-Agent!
