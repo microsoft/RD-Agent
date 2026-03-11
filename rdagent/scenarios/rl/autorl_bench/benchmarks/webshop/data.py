@@ -34,10 +34,28 @@ def _clone_webshop_repo() -> Path:
 
 
 def _ensure_repo_in_path():
-    """确保 webshop 仓库在 Python 路径中（优先于 PyPI 包）"""
+    """确保 webshop 仓库在 Python 路径中（优先于 PyPI 包）。
+
+    同时向 venv site-packages 写入 webshop.pth，使任何子进程（accelerate launch 等）
+    都能直接 import web_agent_site，无需手动设置 sys.path。
+    """
+    import site
+
     repo_str = str(WEBSHOP_REPO_DIR)
     if repo_str not in sys.path:
         sys.path.insert(0, repo_str)
+
+    # Write a .pth file so subprocesses inherit the path without extra setup.
+    pth_content = repo_str + "\n"
+    for sp in site.getsitepackages():
+        pth_file = Path(sp) / "webshop.pth"
+        try:
+            if not pth_file.exists() or pth_file.read_text() != pth_content:
+                pth_file.write_text(pth_content)
+                logger.info(f"Registered webshop path via {pth_file}")
+            break
+        except OSError:
+            continue
 
 
 def _download_webshop_data():
