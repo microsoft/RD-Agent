@@ -181,8 +181,12 @@ def run(
 
     logger.info(f"Log saved to: {log_file}")
 
-    # 移除本次 run 添加的 file sink
-    loguru_logger.remove(_sink_id)
+    # 移除本次 run 添加的 file sink（避免异常导致进程退出）
+    if _sink_id is not None:
+        try:
+            loguru_logger.remove(_sink_id)
+        except Exception:
+            logger.exception(f"Failed to remove log sink id={_sink_id}")
 
     return result
 

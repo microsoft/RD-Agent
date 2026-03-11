@@ -15,10 +15,20 @@ if [ -f .env ]; then
 fi
 
 # 映射环境变量（rdagent 用 OPENAI_API_KEY，openhands 用 LLM_API_KEY）
-export LLM_API_KEY="${OPENAI_API_KEY}"
+if [ -z "$OPENAI_API_KEY" ] && [ -n "$LLM_API_KEY" ]; then
+    export OPENAI_API_KEY="$LLM_API_KEY"
+fi
+if [ -z "$LLM_API_KEY" ] && [ -n "$OPENAI_API_KEY" ]; then
+    export LLM_API_KEY="$OPENAI_API_KEY"
+fi
+if [ -z "$LLM_API_KEY" ] && [ -z "$OPENAI_API_KEY" ]; then
+    echo "ERROR: LLM_API_KEY or OPENAI_API_KEY required"
+    exit 2
+fi
 # LLM_MODEL 优先从 config.yaml 传入，否则用 CHAT_MODEL，默认 gpt-5
 export LLM_MODEL="${LLM_MODEL:-${CHAT_MODEL:-gpt-5}}"
 export LLM_BASE_URL="${OPENAI_API_BASE}"
+echo "LLM API key length: ${#LLM_API_KEY}"
 echo "LLM Model: $LLM_MODEL"
 
 # 训练环境 Python 路径（.env 中设 TRAINING_PYTHON 即可，无需 conda）
