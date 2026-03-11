@@ -46,6 +46,9 @@ conda install -c conda-forge openjdk=11 faiss-cpu -y
 pip install -r rdagent/scenarios/rl/autorl_bench/benchmarks/webshop/requirements.txt
 python -c "from spacy.cli.download import download; download('en_core_web_sm')"
 
+# AlpacaEval 2.0
+pip install -r rdagent/scenarios/rl/autorl_bench/benchmarks/alpacaeval/requirements.txt
+
 # --- 1d. OpenHands Agent（如需使用）---
 git clone git@github.com:couragec/openhands-rl.git ~/openhands-rl
 # OpenHands 需要独立 conda 环境（Python 3.12）

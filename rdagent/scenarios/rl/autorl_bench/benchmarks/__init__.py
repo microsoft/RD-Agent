@@ -52,6 +52,19 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
             "test_range": "[82:]",
         },
     ),
+    "alpacaeval": BenchmarkConfig(
+        id="alpacaeval",
+        evaluator_class="rdagent.scenarios.rl.autorl_bench.benchmarks.alpacaeval.eval.AlpacaEvalEvaluator",
+        data_module="rdagent.scenarios.rl.autorl_bench.benchmarks.alpacaeval.data",
+        description="AlpacaEval 2.0 - 指令遵循与偏好评测（LLM Judge）",
+        eval_config={
+            "reference_file": "alpaca_eval_gpt4_baseline.json",
+            "annotators_config": "annotators_gpt52_fn",
+            "max_model_len": 4096,
+            "max_tokens": 512,
+        },
+        expose_files=["eval.py"],
+    ),
     "alfworld": BenchmarkConfig(
         id="alfworld",
         evaluator_class="rdagent.scenarios.rl.autorl_bench.benchmarks.alfworld.eval.ALFWorldEvaluator",
