@@ -131,7 +131,7 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
             self.user_request_q.put(hypo.__dict__)
             res_dict = self.user_response_q.get()
             modified_hypo = type(hypo)(**res_dict)
-        except (EOFError, OSError):
+        except (EOFError, OSError, TypeError):
             logger.info("User interaction failed, using original hypothesis.")
             return hypo
         logger.info("Received user interaction on hypothesis.")
@@ -146,7 +146,7 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
             self.user_request_q.put(feedback.__dict__)
             res_dict = self.user_response_q.get()
             modified_feedback = HypothesisFeedback(**res_dict)
-        except (EOFError, OSError):
+        except (EOFError, OSError, TypeError):
             logger.info("User interaction failed, using original feedback.")
             return feedback
         logger.info("Received user interaction on feedback.")

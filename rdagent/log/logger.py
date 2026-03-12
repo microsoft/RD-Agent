@@ -4,15 +4,12 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime
 from pathlib import Path
+from typing import IO
 from typing import Generator
 
 from loguru import logger
 
 from .conf import LOG_SETTINGS
-
-if LOG_SETTINGS.format_console is not None:
-    logger.remove()
-    logger.add(sys.stdout, format=LOG_SETTINGS.format_console)
 
 from psutil import Process
 
@@ -49,6 +46,15 @@ class RDAgentLog(SingletonBaseClass):
     # Thread-/coroutine-local tag;  In Linux forked subprocess, it will be copied to the subprocess.
     _tag_ctx: ContextVar[str] = ContextVar("_tag_ctx", default="")
 
+    @staticmethod
+    def _add_console_sink(stream: IO[str], *, raw: bool = False) -> None:
+        if raw:
+            logger.add(stream, format="{message}")
+        elif LOG_SETTINGS.format_console is not None:
+            logger.add(stream, format=LOG_SETTINGS.format_console)
+        else:
+            logger.add(stream)
+
     @property
     def _tag(self) -> str:  # Get current tag
         return self._tag_ctx.get()
@@ -58,6 +64,9 @@ class RDAgentLog(SingletonBaseClass):
         self._tag_ctx.set(value)
 
     def __init__(self) -> None:
+        logger.remove()
+        self._add_console_sink(sys.stdout)
+
         self.storage = FileStorage(LOG_SETTINGS.trace_path)
         self.other_storages: list[Storage] = []
         for storage, args in LOG_SETTINGS.storages.items():
@@ -65,6 +74,15 @@ class RDAgentLog(SingletonBaseClass):
             self.other_storages.append(storage_cls(*args))
 
         self.main_pid = os.getpid()
+
+    def rebind_console_to_current_streams(self) -> None:
+        """Rebind loguru sinks to the current stdio objects.
+
+        This is needed in forked/spawned subprocesses after stdout/stderr have been
+        redirected, because loguru keeps references to the original stream objects.
+        """
+        logger.remove()
+        self._add_console_sink(sys.stdout)
 
     @contextmanager
     def tag(self, tag: str) -> Generator[None, None, None]:
@@ -119,14 +137,13 @@ class RDAgentLog(SingletonBaseClass):
 
         if raw:
             logger.remove()
-            logger.add(sys.stderr, format=lambda r: "{message}")
+            self._add_console_sink(sys.stderr, raw=True)
 
         log_func = getattr(logger.patch(lambda r: r.update(caller_info)), level)
         log_func(msg)
 
         if raw:
-            logger.remove()
-            logger.add(sys.stderr)
+            self.rebind_console_to_current_streams()
 
     def info(self, msg: str, *, tag: str = "", raw: bool = False) -> None:
         self._log("info", msg, tag=tag, raw=raw)

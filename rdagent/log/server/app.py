@@ -12,7 +12,7 @@ from queue import Empty
 
 import randomname
 import typer
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_file, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
@@ -90,6 +90,11 @@ class RDAgentTask:
     def is_alive(self) -> bool:
         return self.process is not None and self.process.is_alive()
 
+    def get_end_code(self) -> int:
+        if self.process is None or self.process.exitcode is None:
+            return 0
+        return self.process.exitcode
+
     def stop(self) -> None:
         if self.process is not None and self.process.is_alive():
             self.process.terminate()
@@ -112,6 +117,7 @@ class RDAgentTask:
         Path(self.stdout_path).parent.mkdir(parents=True, exist_ok=True)
         with open(self.stdout_path, "w") as log_file:
             with redirect_stdout(log_file), redirect_stderr(log_file):
+                rdagent_logger.rebind_console_to_current_streams()
                 try:
                     # Only interactive targets should receive IPC queues.
                     if self.target_name not in _TARGETS_WITHOUT_USER_INTERACTION:
@@ -211,6 +217,26 @@ def _get_or_create_task(trace_id: str) -> RDAgentTask:
     return task
 
 
+def _resolve_stdout_path(trace_id: str) -> Path | None:
+    normalized_trace_id = str(trace_id or "").strip()
+    if not normalized_trace_id:
+        return None
+
+    task = rdagent_processes.get(str(log_folder_path / normalized_trace_id))
+    if task is None or not task.stdout_path:
+        return None
+
+    stdout_path = Path(task.stdout_path).resolve()
+
+    try:
+        if os.path.commonpath([str(stdout_path), str(log_folder_path)]) != str(log_folder_path):
+            return None
+    except ValueError:
+        return None
+
+    return stdout_path
+
+
 def read_trace(log_path: Path, id: str = "") -> None:
     fs = FileStorage(log_path)
     ws = WebStorage(port=1, path=log_path)
@@ -230,7 +256,13 @@ def read_trace(log_path: Path, id: str = "") -> None:
 
     now = datetime.now(timezone.utc)
     if last_timestamp and (now - last_timestamp).total_seconds() > 1800:
-        task.messages.append({"tag": "END", "timestamp": now.isoformat(), "content": {}})
+        task.messages.append(
+            {
+                "tag": "END",
+                "timestamp": now.isoformat(),
+                "content": {"error_msg": "Trace session has ended.", "end_code": 0},
+            }
+        )
 
 
 # load all traces from the log folder
@@ -245,7 +277,7 @@ def update_trace():
     return_all = data.get("all")
     reset = data.get("reset")
     msg_num = random.randint(1, 10)
-    app.logger.warning(data)
+    app.logger.info(data)
     log_folder_path = Path(UI_SETTING.trace_folder).absolute()
     if not trace_id:
         return jsonify({"error": "Trace ID is required"}), 400
@@ -259,7 +291,14 @@ def update_trace():
     if task.process is not None and not task.is_alive():
         if not task.messages or task.messages[-1].get("tag") != "END":
             task.messages.append(
-                {"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}}
+                {
+                    "tag": "END",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "content": {
+                        "error_msg": "RD-Agent process has completed.",
+                        "end_code": task.get_end_code(),
+                    },
+                }
             )
             app.logger.warning(f"Process for {trace_id} has ended.")
 
@@ -274,11 +313,28 @@ def update_trace():
         end_pointer = len(task.messages)
 
     returned_msgs = task.messages[start_pointer:end_pointer]
-    app.logger.warning(f"return msgs len: {len(returned_msgs)}")
     task.pointers[user_ip] = end_pointer
     if returned_msgs:
-        app.logger.warning([msg["tag"] for msg in returned_msgs])
+        app.logger.info([msg["tag"] for msg in returned_msgs])
     return jsonify(returned_msgs), 200
+
+
+@app.route("/stdout", methods=["GET"])
+def download_stdout_file():
+    trace_id = request.args.get("id", "")
+    stdout_path = _resolve_stdout_path(trace_id)
+
+    if stdout_path is None:
+        return jsonify({"error": "Trace ID is required or invalid"}), 400
+    if not stdout_path.exists() or not stdout_path.is_file():
+        return jsonify({"error": "Stdout file not found"}), 404
+
+    return send_file(
+        stdout_path,
+        as_attachment=True,
+        download_name=stdout_path.name,
+        mimetype="text/plain",
+    )
 
 
 @app.route("/upload", methods=["POST"])
@@ -300,7 +356,7 @@ def upload_file():
     trace_files_path = log_folder_path / "uploads" / scenario / trace_name
 
     log_trace_path = (log_folder_path / scenario / trace_name).absolute()
-    stdout_path = log_folder_path / scenario / f"{trace_name}.stdout"
+    stdout_path = log_folder_path / scenario / f"{trace_name}.log"
     if not stdout_path.exists():
         stdout_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -454,7 +510,11 @@ def control_process():
 
         if not task.messages or task.messages[-1].get("tag") != "END":
             task.messages.append(
-                {"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}}
+                {
+                    "tag": "END",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "content": {"error_msg": "RD-Agent process was stopped by user.", "end_code": -1},
+                }
             )
             app.logger.warning(f"Process for {id} has been stopped.")
         return jsonify({"status": "stopped"}), 200

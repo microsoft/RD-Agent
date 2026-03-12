@@ -10,6 +10,63 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 
+
+def _build_base_feature_workspaces(exp: QlibFactorExperiment) -> list[FactorFBWorkspace]:
+    workspaces: list[FactorFBWorkspace] = []
+    for file_name, code in exp.base_feature_codes.items():
+        workspace = FactorFBWorkspace(
+            target_task=FactorTask(
+                factor_name=file_name,
+                factor_description=f"Base feature from {file_name}",
+                factor_formulation="",
+            )
+        )
+        workspace.inject_files(**{"factor.py": code})
+        workspaces.append(workspace)
+    return workspaces
+
+
+def _build_execute_calls(
+    exp: QlibFactorExperiment, base_feature_workspaces: list[FactorFBWorkspace]
+) -> list[tuple]:
+    execute_calls = []
+
+    if exp.sub_tasks:
+        assert isinstance(exp.prop_dev_feedback, CoSTEERMultiFeedback)
+        execute_calls.extend(
+            (implementation.execute, ("All",))
+            for implementation, feedback in zip(exp.sub_workspace_list, exp.prop_dev_feedback)
+            if implementation and feedback
+        )
+
+    execute_calls.extend((workspace.execute, ("All",)) for workspace in base_feature_workspaces)
+    return execute_calls
+
+
+def _resolve_index_level_values(df: pd.DataFrame, level_name: str) -> pd.Index | None:
+    matching_levels = [idx for idx, name in enumerate(df.index.names) if name == level_name]
+    if not matching_levels:
+        return None
+
+    if len(matching_levels) == 1:
+        return df.index.get_level_values(matching_levels[0])
+
+    candidate_values = [df.index.get_level_values(idx) for idx in matching_levels]
+    first_values = candidate_values[0]
+    if all(first_values.equals(values) for values in candidate_values[1:]):
+        logger.warning(
+            f"Factor dataframe has duplicated '{level_name}' index levels at positions {matching_levels}; "
+            "their values are identical, so the first one is used."
+        )
+        return first_values
+
+    logger.warning(
+        f"Skip factor dataframe because index has ambiguous duplicated '{level_name}' levels at positions "
+        f"{matching_levels}. index names={list(df.index.names)}"
+    )
+    return None
+
+
 def _normalize_factor_index(df: pd.DataFrame) -> pd.DataFrame | None:
     """Normalize factor index to a 2-level MultiIndex: (datetime, instrument)."""
     if df is None or df.empty:
@@ -25,8 +82,11 @@ def _normalize_factor_index(df: pd.DataFrame) -> pd.DataFrame | None:
         )
         return None
 
-    datetime_values = df.index.get_level_values("datetime")
-    instrument_values = df.index.get_level_values("instrument")
+    datetime_values = _resolve_index_level_values(df, "datetime")
+    instrument_values = _resolve_index_level_values(df, "instrument")
+    if datetime_values is None or instrument_values is None:
+        return None
+
     normalized = df.copy()
     normalized.index = pd.MultiIndex.from_arrays(
         [datetime_values, instrument_values],
@@ -39,6 +99,39 @@ def _format_index_info(df: pd.DataFrame | None) -> str:
     if df is None:
         return "df is None"
     return f"index_type={type(df.index).__name__}, nlevels={df.index.nlevels}, names={list(df.index.names)}"
+
+
+def _process_message_and_df(
+    source_name: str,
+    message: str,
+    df: pd.DataFrame | None,
+    factor_dfs: list[pd.DataFrame],
+    error_message: str,
+) -> str:
+    index_info = _format_index_info(df)
+    if df is None or "datetime" not in df.index.names:
+        logger.warning(f"Factor data from {source_name} has invalid execution output or index: {index_info}")
+        logger.warning(f"Factor data from {source_name} is not generated because of {message}")
+        return (
+            f"{error_message}Factor data from {source_name} is not generated because of {message}. "
+            f"index_info={index_info}. "
+        )
+
+    normalized_df = _normalize_factor_index(df)
+    if normalized_df is None:
+        logger.warning(f"Factor data from {source_name} is skipped due to invalid index structure: {index_info}")
+        return (
+            f"{error_message}Factor data from {source_name} is skipped due to invalid index: {index_info}. "
+        )
+
+    time_diff = df.index.get_level_values("datetime").to_series().diff().dropna().unique()
+    if pd.Timedelta(minutes=1) in time_diff:
+        logger.warning(f"Factor data from {source_name} is not generated.")
+        return error_message
+
+    factor_dfs.append(normalized_df)
+    logger.info(f"Factor data from {source_name} is successfully generated.")
+    return error_message
 
 
 def process_factor_data(exp_or_list: List[QlibFactorExperiment] | QlibFactorExperiment) -> pd.DataFrame:
@@ -58,71 +151,18 @@ def process_factor_data(exp_or_list: List[QlibFactorExperiment] | QlibFactorExpe
 
     # Collect all exp's dataframes
     for exp in exp_or_list:
-        if isinstance(exp, QlibFactorExperiment):
-            base_feature_workspaces = []
-            source_name = exp.hypothesis.concise_justification if exp.hypothesis else "BASE factor files"
-            # Build runnable workspaces from externally provided base feature code files.
-            for file_name, code in exp.base_feature_codes.items():
-                ws = FactorFBWorkspace(
-                    target_task=FactorTask(
-                        factor_name=file_name,
-                        factor_description=f"Base feature from {file_name}",
-                        factor_formulation="",
-                    )
-                )
-                ws.inject_files(**{"factor.py": code})
-                base_feature_workspaces.append(ws)
+        if not isinstance(exp, QlibFactorExperiment):
+            continue
 
-            execute_calls = []
-            if len(exp.sub_tasks) > 0:
-                # if it has no sub_tasks, the experiment is results from template project.
-                # otherwise, it is developed with designed task. So it should have feedback.
-                assert isinstance(exp.prop_dev_feedback, CoSTEERMultiFeedback)
-                # Iterate over sub-implementations and execute them to get each factor data
-                execute_calls.extend(
-                    [
-                        (implementation.execute, ("All",))
-                        for implementation, fb in zip(exp.sub_workspace_list, exp.prop_dev_feedback)
-                        if implementation and fb
-                    ]
-                )  # only execute successfully feedback
-            execute_calls.extend((workspace.execute, ("All",)) for workspace in base_feature_workspaces)
+        source_name = exp.hypothesis.concise_justification if exp.hypothesis else "BASE factor files"
+        base_feature_workspaces = _build_base_feature_workspaces(exp)
+        execute_calls = _build_execute_calls(exp, base_feature_workspaces)
+        if not execute_calls:
+            continue
 
-            if execute_calls:
-                message_and_df_list = multiprocessing_wrapper(execute_calls, n=RD_AGENT_SETTINGS.multi_proc_n)
-                for message, df in message_and_df_list:
-                    # Check if factor generation was successful
-                    if df is not None and "datetime" in df.index.names:
-                        normalized_df = _normalize_factor_index(df)
-                        if normalized_df is None:
-                            logger.warning(
-                                f"Factor data from {source_name} is skipped due to invalid index structure: {_format_index_info(df)}"
-                            )
-                            error_message += (
-                                "Factor data from "
-                                f"{source_name} is skipped due to invalid index: "
-                                f"{_format_index_info(df)}. "
-                            )
-                            continue
-                        time_diff = df.index.get_level_values("datetime").to_series().diff().dropna().unique()
-                        if pd.Timedelta(minutes=1) not in time_diff:
-                            factor_dfs.append(normalized_df)
-                            logger.info(
-                                f"Factor data from {source_name} is successfully generated."
-                            )
-                        else:
-                            logger.warning(f"Factor data from {source_name} is not generated.")
-                    else:
-                        logger.warning(
-                            f"Factor data from {source_name} has invalid execution output or index: {_format_index_info(df)}"
-                        )
-                        error_message += (
-                            f"Factor data from {source_name} is not generated because of "
-                            f"{message}. index_info={_format_index_info(df)}. "
-                        )
-                        logger.warning(
-                            f"Factor data from {source_name} is not generated because of {message}"
-                        )
+        message_and_df_list = multiprocessing_wrapper(execute_calls, n=RD_AGENT_SETTINGS.multi_proc_n)
+        for message, df in message_and_df_list:
+            error_message = _process_message_and_df(source_name, message, df, factor_dfs, error_message)
 
     # Combine all successful factor data
     if factor_dfs:
