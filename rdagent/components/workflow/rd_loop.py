@@ -4,6 +4,8 @@ It is from `rdagent/app/qlib_rd_loop/model.py` and try to replace `rdagent/app/q
 """
 
 import asyncio
+import json
+from pathlib import Path
 from typing import Any
 from multiprocessing import Queue
 
@@ -36,7 +38,10 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
 
         self.hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.hypothesis2experiment)()
-        self.plan: ExperimentPlan = {"features": ALPHA20} # for user interaction
+        self.plan: ExperimentPlan = {
+            "features": ALPHA20,
+            "feature_codes": {},
+        } # for user interaction
 
         self.coder: Developer = import_class(PROP_SETTING.coder)(scen)
         self.runner: Developer = import_class(PROP_SETTING.runner)(scen)
@@ -50,6 +55,37 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         self.user_request_q = user_request_q
         self.user_response_q = user_response_q
     
+    def _init_base_features(self, base_features_path: str | None):
+        if base_features_path is not None:
+            try:
+                base_dir = Path(base_features_path)
+                base_factors_file = base_dir / "base_factors.json"
+
+                feature_codes: dict[str, str] = {}
+                for py_file in sorted(base_dir.glob("*.py")):
+                    feature_codes[py_file.name] = py_file.read_text()
+                self.plan["feature_codes"] = feature_codes
+
+                if not base_factors_file.exists():
+                    logger.info(f"No base_factors.json found under {base_dir}. Keeping default base features.")
+                    logger.info(f"{len(feature_codes)} feature code files loaded from {base_dir}.")
+                else:
+                    with base_factors_file.open("r") as f:
+                        features = json.load(f)
+
+                    if not isinstance(features, dict):
+                        raise ValueError("`base_factors.json` must contain a JSON object of feature_name -> expression.")
+
+                    if validate_qlib_features(list(features.values())):
+                        self.plan["features"] = features
+                        logger.info(f"Loaded base features from {base_factors_file}. {len(features)} features loaded and {len(feature_codes)} feature code files loaded.")
+                    else:
+                        logger.warning(f"Base feature validation failed for features loaded from {base_factors_file}. Using default features.")
+            except Exception as e:
+                logger.warning(f"Failed to load base features from {base_features_path}: {e}. Using default features.")
+        else:
+            logger.info("No base features path provided. Using default features.")
+
     def _interact_init_params(self) -> None:
         if not (hasattr(self, "user_request_q") and hasattr(self, "user_response_q")):
             return
@@ -63,6 +99,8 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
             logger.info("Received user instruction response.")
             self.plan.update(res_dict)
             
+            if "feature_codes" not in self.plan:
+                self.plan["user_instruction"] += f"\n\n{str(list(self.plan['feature_codes'].keys()))} has been configured as the base factor; do not generate duplicate factors."
             fea_valid_msg = ""
             while True:
                 logger.info("Requesting base feature configuration from user.")
@@ -135,8 +173,10 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
                 hypo = self._propose()
                 exp = self._exp_gen(hypo)
                 exp.base_features = self.plan["features"]
+                exp.base_feature_codes = self.plan["feature_codes"]
                 if exp.based_experiments:
                     exp.based_experiments[-1].base_features = self.plan["features"]
+                    exp.based_experiments[-1].base_feature_codes = self.plan["feature_codes"]
                 return {"propose": hypo, "exp_gen": exp}
             await asyncio.sleep(1)
 

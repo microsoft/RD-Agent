@@ -21,7 +21,7 @@ from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.storage import WebStorage
 from rdagent.log.utils import is_valid_session
 
-app = Flask(__name__, static_folder=UI_SETTING.static_path)
+app = Flask(__name__, static_folder=str(Path(UI_SETTING.static_path).resolve()))
 CORS(app)
 
 _YELLOW = "\033[33m"
@@ -45,6 +45,9 @@ def _configure_app_logger() -> None:
 
 
 _configure_app_logger()
+
+
+_TARGETS_WITHOUT_USER_INTERACTION = {"general_model", "fin_factor_report"}
 
 class RDAgentTask:
     def __init__(
@@ -110,12 +113,12 @@ class RDAgentTask:
         with open(self.stdout_path, "w") as log_file:
             with redirect_stdout(log_file), redirect_stderr(log_file):
                 try:
-                    # Inject queues into kwargs as a tuple so downstream code can:
-                    # (user_request_q, user_response_q)
-                    self.kwargs.setdefault(
-                        "user_interaction_queues",
-                        (self.user_request_q, self.user_response_q),
-                    )
+                    # Only interactive targets should receive IPC queues.
+                    if self.target_name not in _TARGETS_WITHOUT_USER_INTERACTION:
+                        self.kwargs.setdefault(
+                            "user_interaction_queues",
+                            (self.user_request_q, self.user_response_q),
+                        )
 
                     if self.target_name == "data_science":
                         from rdagent.app.data_science.loop import main as data_science
@@ -185,6 +188,13 @@ def favicon():
     return send_from_directory(app.static_folder, "favicon.ico", mimetype="image/vnd.microsoft.icon")
 
 
+def _normalize_static_request_path(fn: str) -> str:
+    static_prefix = UI_SETTING.static_path.strip("./")
+    if static_prefix and fn.startswith(f"{static_prefix}/"):
+        return fn[len(static_prefix) + 1 :]
+    return fn
+
+
 def _get_or_create_task(trace_id: str) -> RDAgentTask:
     task = rdagent_processes.get(trace_id)
     if task is None:
@@ -224,9 +234,8 @@ def read_trace(log_path: Path, id: str = "") -> None:
 
 
 # load all traces from the log folder
-for p in log_folder_path.glob("*/*/"):
-    if is_valid_session(p):
-        read_trace(p, id=str(p))
+# for p in log_folder_path.glob("*/*/"):
+#     read_trace(p, id=str(p))
 
 
 @app.route("/trace", methods=["POST"])
@@ -236,7 +245,7 @@ def update_trace():
     return_all = data.get("all")
     reset = data.get("reset")
     msg_num = random.randint(1, 10)
-    app.logger.info(data)
+    app.logger.warning(data)
     log_folder_path = Path(UI_SETTING.trace_folder).absolute()
     if not trace_id:
         return jsonify({"error": "Trace ID is required"}), 400
@@ -265,10 +274,10 @@ def update_trace():
         end_pointer = len(task.messages)
 
     returned_msgs = task.messages[start_pointer:end_pointer]
-
+    app.logger.warning(f"return msgs len: {len(returned_msgs)}")
     task.pointers[user_ip] = end_pointer
     if returned_msgs:
-        app.logger.info([msg["tag"] for msg in returned_msgs])
+        app.logger.warning([msg["tag"] for msg in returned_msgs])
     return jsonify(returned_msgs), 200
 
 
@@ -288,7 +297,7 @@ def upload_file():
         trace_name = f"{competition}-{randomname.get_name()}"
     else:
         trace_name = randomname.get_name()
-    trace_files_path = log_folder_path / scenario / "uploads" / trace_name
+    trace_files_path = log_folder_path / "uploads" / scenario / trace_name
 
     log_trace_path = (log_folder_path / scenario / trace_name).absolute()
     stdout_path = log_folder_path / scenario / f"{trace_name}.stdout"
@@ -298,11 +307,9 @@ def upload_file():
     # save files
     for file in files:
         if file:
-            p = (log_folder_path / scenario / "uploads" / trace_name).resolve()
+            p = (log_folder_path / "uploads" / scenario / trace_name).resolve()
             sanitized_filename = secure_filename(file.filename)  # Sanitize filename
             target_path = (p / sanitized_filename).resolve()  # Normalize target path
-            if not sanitized_filename.lower().endswith(".pdf"):
-                return jsonify({"error": "Invalid file type"}), 400
             # Ensure target_path is within the allowed base directory
             if os.path.commonpath([str(target_path), str(p)]) == str(p) and target_path.is_file() == False:
                 if not p.exists():
@@ -318,13 +325,25 @@ def upload_file():
 
     if scenario == "Finance Data Building":
         target_name = "fin_factor"
-        kwargs = {"loop_n": loop_n_val, "all_duration": all_duration_val}
+        kwargs = {
+            "loop_n": loop_n_val,
+            "all_duration": all_duration_val,
+            "base_features_path": str(trace_files_path),
+        }
     if scenario == "Finance Model Implementation":
         target_name = "fin_model"
-        kwargs = {"loop_n": loop_n_val, "all_duration": all_duration_val}
+        kwargs = {
+            "loop_n": loop_n_val,
+            "all_duration": all_duration_val,
+            "base_features_path": str(trace_files_path),
+        }
     if scenario == "Finance Whole Pipeline":
         target_name = "fin_quant"
-        kwargs = {"loop_n": loop_n_val, "all_duration": all_duration_val}
+        kwargs = {
+            "loop_n": loop_n_val,
+            "all_duration": all_duration_val,
+            "base_features_path": str(trace_files_path),
+        }
     if scenario == "Finance Data Building (Reports)":
         target_name = "fin_factor_report"
         kwargs = {"report_folder": str(trace_files_path), "all_duration": all_duration_val}
@@ -418,6 +437,9 @@ def control_process():
     id = str(log_folder_path / data["id"])
     action = data["action"]
 
+    if action != "stop":
+        return jsonify({"error": "Only 'stop' action is supported"}), 400
+
     if id not in rdagent_processes or rdagent_processes[id] is None:
         return jsonify({"error": "No running process for given id"}), 400
 
@@ -426,24 +448,16 @@ def control_process():
     if task.process is None:
         return jsonify({"error": "No running process for given id"}), 400
 
-    if not task.is_alive():
-        task.messages.append({"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}})
-        return jsonify({"error": "Process has already terminated"}), 400
-
     try:
-        if action == "pause":
-            return jsonify({"error": "pause is not supported for multiprocessing.Process"}), 400
-        elif action == "resume":
-            return jsonify({"error": "resume is not supported for multiprocessing.Process"}), 400
-        elif action == "stop":
+        if task.is_alive():
             task.stop()
-            del rdagent_processes[id]
+
+        if not task.messages or task.messages[-1].get("tag") != "END":
             task.messages.append(
                 {"tag": "END", "timestamp": datetime.now(timezone.utc).isoformat(), "content": {}}
             )
-            return jsonify({"status": "stopped"}), 200
-        else:
-            return jsonify({"error": "Unknown action"}), 400
+            app.logger.warning(f"Process for {id} has been stopped.")
+        return jsonify({"status": "stopped"}), 200
     except Exception as e:
         return jsonify({"error": f"Failed to {action} process, {e}"}), 500
 
@@ -465,7 +479,7 @@ def index():
 
 @app.route("/<path:fn>", methods=["GET"])
 def server_static_files(fn):
-    return send_from_directory(app.static_folder, fn)
+    return send_from_directory(app.static_folder, _normalize_static_request_path(fn))
 
 
 def main(port: int = 19899):

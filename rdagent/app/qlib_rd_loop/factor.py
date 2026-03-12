@@ -35,6 +35,7 @@ def main(
     all_duration: str | None = None,
     checkout: Annotated[bool, typer.Option("--checkout/--no-checkout", "-c/-C")] = True,
     checkout_path: Optional[str] = None,
+    base_features_path: Optional[str] = None,
     **kwargs
 ):
     """
@@ -51,14 +52,15 @@ def main(
         checkout = Path(checkout_path)
 
     if path is None:
-        model_loop = FactorRDLoop(FACTOR_PROP_SETTING)
+        factor_loop = FactorRDLoop(FACTOR_PROP_SETTING)
     else:
-        model_loop = FactorRDLoop.load(path, checkout=checkout)
+        factor_loop = FactorRDLoop.load(path, checkout=checkout)
     
+    factor_loop._init_base_features(base_features_path)
     if "user_interaction_queues" in kwargs and kwargs["user_interaction_queues"] is not None:
-        model_loop._set_interactor(*kwargs["user_interaction_queues"])
-        model_loop._interact_init_params()
-    asyncio.run(model_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration))
+        factor_loop._set_interactor(*kwargs["user_interaction_queues"])
+        factor_loop._interact_init_params()
+    asyncio.run(factor_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration))
 
 
 if __name__ == "__main__":

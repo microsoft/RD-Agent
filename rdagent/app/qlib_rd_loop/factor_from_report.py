@@ -126,6 +126,9 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
                 ]
                 exp.sub_workspace_list = exp.sub_workspace_list[: FACTOR_FROM_REPORT_PROP_SETTING.max_factors_per_exp]
                 exp.sub_tasks = exp.sub_tasks[: FACTOR_FROM_REPORT_PROP_SETTING.max_factors_per_exp]
+                exp.base_features = self.plan["features"]
+                if exp.based_experiments:
+                    exp.based_experiments[-1].base_features = self.plan["features"]
                 logger.log_object(exp.hypothesis, tag="hypothesis generation")
                 logger.log_object(exp.sub_tasks, tag="experiment generation")
                 return exp

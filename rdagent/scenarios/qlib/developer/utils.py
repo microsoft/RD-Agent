@@ -7,8 +7,8 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.exception import FactorEmptyError
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
+from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
-
 
 def _normalize_factor_index(df: pd.DataFrame) -> pd.DataFrame | None:
     """Normalize factor index to a 2-level MultiIndex: (datetime, instrument)."""
@@ -59,30 +59,48 @@ def process_factor_data(exp_or_list: List[QlibFactorExperiment] | QlibFactorExpe
     # Collect all exp's dataframes
     for exp in exp_or_list:
         if isinstance(exp, QlibFactorExperiment):
+            base_feature_workspaces = []
+            source_name = exp.hypothesis.concise_justification if exp.hypothesis else "BASE factor files"
+            # Build runnable workspaces from externally provided base feature code files.
+            for file_name, code in exp.base_feature_codes.items():
+                ws = FactorFBWorkspace(
+                    target_task=FactorTask(
+                        factor_name=file_name,
+                        factor_description=f"Base feature from {file_name}",
+                        factor_formulation="",
+                    )
+                )
+                ws.inject_files(**{"factor.py": code})
+                base_feature_workspaces.append(ws)
+
+            execute_calls = []
             if len(exp.sub_tasks) > 0:
                 # if it has no sub_tasks, the experiment is results from template project.
                 # otherwise, it is developed with designed task. So it should have feedback.
                 assert isinstance(exp.prop_dev_feedback, CoSTEERMultiFeedback)
                 # Iterate over sub-implementations and execute them to get each factor data
-                message_and_df_list = multiprocessing_wrapper(
+                execute_calls.extend(
                     [
                         (implementation.execute, ("All",))
                         for implementation, fb in zip(exp.sub_workspace_list, exp.prop_dev_feedback)
                         if implementation and fb
-                    ],  # only execute successfully feedback
-                    n=RD_AGENT_SETTINGS.multi_proc_n,
-                )
+                    ]
+                )  # only execute successfully feedback
+            execute_calls.extend((workspace.execute, ("All",)) for workspace in base_feature_workspaces)
+
+            if execute_calls:
+                message_and_df_list = multiprocessing_wrapper(execute_calls, n=RD_AGENT_SETTINGS.multi_proc_n)
                 for message, df in message_and_df_list:
                     # Check if factor generation was successful
                     if df is not None and "datetime" in df.index.names:
                         normalized_df = _normalize_factor_index(df)
                         if normalized_df is None:
                             logger.warning(
-                                f"Factor data from {exp.hypothesis.concise_justification} is skipped due to invalid index structure: {_format_index_info(df)}"
+                                f"Factor data from {source_name} is skipped due to invalid index structure: {_format_index_info(df)}"
                             )
                             error_message += (
                                 "Factor data from "
-                                f"{exp.hypothesis.concise_justification} is skipped due to invalid index: "
+                                f"{source_name} is skipped due to invalid index: "
                                 f"{_format_index_info(df)}. "
                             )
                             continue
@@ -90,20 +108,20 @@ def process_factor_data(exp_or_list: List[QlibFactorExperiment] | QlibFactorExpe
                         if pd.Timedelta(minutes=1) not in time_diff:
                             factor_dfs.append(normalized_df)
                             logger.info(
-                                f"Factor data from {exp.hypothesis.concise_justification} is successfully generated."
+                                f"Factor data from {source_name} is successfully generated."
                             )
                         else:
-                            logger.warning(f"Factor data from {exp.hypothesis.concise_justification} is not generated.")
+                            logger.warning(f"Factor data from {source_name} is not generated.")
                     else:
                         logger.warning(
-                            f"Factor data from {exp.hypothesis.concise_justification} has invalid execution output or index: {_format_index_info(df)}"
+                            f"Factor data from {source_name} has invalid execution output or index: {_format_index_info(df)}"
                         )
                         error_message += (
-                            f"Factor data from {exp.hypothesis.concise_justification} is not generated because of "
+                            f"Factor data from {source_name} is not generated because of "
                             f"{message}. index_info={_format_index_info(df)}. "
                         )
                         logger.warning(
-                            f"Factor data from {exp.hypothesis.concise_justification} is not generated because of {message}"
+                            f"Factor data from {source_name} is not generated because of {message}"
                         )
 
     # Combine all successful factor data

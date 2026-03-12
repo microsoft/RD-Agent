@@ -33,7 +33,8 @@ class WebStorage(Storage):
     def log(self, obj: object, tag: str, timestamp: datetime | None = None, **kwargs: Any) -> str | Path:
         timestamp = gen_datetime(timestamp)
         if "pdf_image" in tag or "load_pdf_screenshot" in tag:
-            obj.save(f"{UI_SETTING.static_path}/{timestamp.isoformat()}.jpg")
+            Path(f"{UI_SETTING.static_path}/pdf_images").mkdir(parents=True, exist_ok=True)
+            obj.save(f"{UI_SETTING.static_path}/pdf_images/{timestamp.isoformat()}.jpg")
 
         try:
             data = self._obj_to_json(obj=obj, tag=tag, id=str(self.path), timestamp=timestamp.isoformat())
@@ -100,7 +101,7 @@ class WebStorage(Storage):
                     "tag": "research.pdf_image",
                     "timestamp": timestamp,
                     "loop_id": li,
-                    "content": {"image": f"{timestamp}.jpg"},
+                    "content": {"image": f"pdf_images/{timestamp}.jpg"},
                 },
             }
         elif "experiment generation" in tag or "load_experiment" in tag:

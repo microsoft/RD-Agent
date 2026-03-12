@@ -19,19 +19,7 @@ from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperime
 DIRNAME = Path(__file__).absolute().resolve().parent
 DIRNAME_local = Path.cwd()
 
-# class QlibFactorExpWorkspace:
-
-#     def prepare():
-#         # create a folder;
-#         # copy template
-#         # place data inside the folder `combined_factors`
-#         #
-#     def execute():
-#         de = DockerEnv()
-#         de.run(local_path=self.ws_path, entry="qrun conf_baseline.yaml")
-
 # TODO: supporting multiprocessing and keep previous results
-
 
 class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
     """
@@ -105,8 +93,8 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
                 logger.info(f"SOTA factor processing ...")
                 SOTA_factor = process_factor_data(sota_factor_experiments_list)
 
-            logger.info(f"New factor processing ...")
             # Process the new factors data
+            logger.info(f"New factor processing ...")
             new_factors = process_factor_data(exp)
 
             if new_factors.empty:
@@ -128,8 +116,9 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             combined_factors = combined_factors.loc[:, ~combined_factors.columns.duplicated(keep="last")]
             new_columns = pd.MultiIndex.from_product([["feature"], combined_factors.columns])
             combined_factors.columns = new_columns
-            num_features = len(exp.base_features) + len(combined_factors.columns)
             logger.info(f"Factor data processing completed.")
+
+            num_features = len(exp.base_features) + len(combined_factors.columns)
 
             # Due to the rdagent and qlib docker image in the numpy version of the difference,
             # the `combined_factors_df.pkl` file could not be loaded correctly in qlib dokcer,
@@ -177,19 +166,30 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             else:
                 # LGBM + combined factors
                 result, stdout = exp.experiment_workspace.execute(
-                    qlib_config_name=(
-                        f"conf_baseline.yaml" if len(exp.based_experiments) == 0 else "conf_combined_factors.yaml"
-                    ),
+                    qlib_config_name="conf_combined_factors.yaml",
                     run_env=env_to_use,
                 )
         else:
             logger.info(f"Experiment execution ...")
-            result, stdout = exp.experiment_workspace.execute(
-                qlib_config_name=(
-                    f"conf_baseline.yaml" if len(exp.based_experiments) == 0 else "conf_combined_factors.yaml"
-                ),
-                run_env=env_to_use,
-            )
+            if exp.base_feature_codes:
+                factors = process_factor_data(exp)
+                factors = factors.sort_index()
+                factors = factors.loc[:, ~factors.columns.duplicated(keep="last")]
+                new_columns = pd.MultiIndex.from_product([["feature"], factors.columns])
+                factors.columns = new_columns
+                target_path = exp.experiment_workspace.workspace_path / "combined_factors_df.parquet"
+                # Save the combined factors to the workspace
+                factors.to_parquet(target_path, engine="pyarrow")
+                logger.info(f"Factor data processing completed.")
+                result, stdout = exp.experiment_workspace.execute(
+                    qlib_config_name="conf_combined_factors.yaml",
+                    run_env=env_to_use,
+                )
+            else:
+                result, stdout = exp.experiment_workspace.execute(
+                    qlib_config_name="conf_baseline.yaml",
+                    run_env=env_to_use,
+                )
 
         if result is None:
             logger.error(f"Failed to run this experiment, because {stdout}")
