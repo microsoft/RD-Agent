@@ -117,17 +117,14 @@ class QuantRDLoop(RDLoop):
                 reason="",
                 decision=False,
             )
-            feedback = self._interact_feedback(feedback)
-            logger.log_object(feedback, tag="feedback")
-            self.trace.hist.append((prev_out["direct_exp_gen"]["exp_gen"], feedback))
         else:
             if prev_out["direct_exp_gen"]["propose"].action == "factor":
                 feedback = self.factor_summarizer.generate_feedback(prev_out["running"], self.trace)
             elif prev_out["direct_exp_gen"]["propose"].action == "model":
                 feedback = self.model_summarizer.generate_feedback(prev_out["running"], self.trace)
-            feedback = self._interact_feedback(feedback)
-            logger.log_object(feedback, tag="feedback")
-            self.trace.hist.append((prev_out["running"], feedback))
+        feedback = self._interact_feedback(feedback)
+        logger.log_object(feedback, tag="feedback")
+        return feedback
 
 
 def main(

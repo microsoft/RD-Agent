@@ -184,5 +184,4 @@ static/
 .claude/
 AGENTS.md
 
-# api server logs
-traces/
+scripts/

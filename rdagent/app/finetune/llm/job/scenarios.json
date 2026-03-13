@@ -1,0 +1,128 @@
+{
+  "_comment": "Benchmark scenarios for FT tasks. Used by run_ft_job.sh and UI.",
+
+  "aime24": {
+    "category": "math",
+    "scenario": "Improve the model's ability to solve advanced competition math problems through multi-step reasoning, including number theory, combinatorics, geometry, and algebraic manipulation, with answers expressed as integers from 0 to 999.",
+    "benchmark_description": "AIME 2024 (American Invitational Mathematics Examination) - Advanced high school math competition problems requiring creative problem-solving. Each answer is an integer 0-999. Topics include number theory, algebra, geometry, trigonometry, probability, and combinatorics. Problems require multi-step reasoning and often have elegant solutions. Expected Output Format: Put final answer within \\boxed{}, e.g., \\boxed{42}."
+  },
+  "aime25": {
+    "category": "math",
+    "scenario": "Improve the model's ability to solve advanced competition math problems through multi-step reasoning, including number theory, combinatorics, geometry, and algebraic manipulation, with answers expressed as integers from 0 to 999.",
+    "benchmark_description": "AIME 2025 (American Invitational Mathematics Examination) - Advanced high school math competition problems requiring creative problem-solving. Each answer is an integer 0-999. Topics include number theory, algebra, geometry, trigonometry, probability, and combinatorics. Problems require multi-step reasoning and often have elegant solutions. Expected Output Format: Put final answer within \\boxed{}, e.g., \\boxed{42}."
+  },
+  "panorama": {
+    "category": "patent",
+    "scenario": "Improve the model's patent examination capabilities including prior art retrieval, paragraph identification, and novelty/obviousness classification based on USPTO standards.",
+    "benchmark_description": "PANORAMA tests patent examination capabilities based on real USPTO Office Actions. Tasks include: retrieving relevant prior art patents, identifying specific paragraphs in prior art that relate to claims, and classifying claims as allowable, lacking novelty (102), or obvious (103). Requires understanding patent law, technical document analysis, and legal reasoning. Expected Output Format: Return JSON with task-specific format (see subtask descriptions)."
+  },
+  "panorama_par4pc": {
+    "category": "patent",
+    "scenario": "Improve the model's ability to retrieve relevant prior art patents given a patent claim, by understanding claim scope, identifying technical similarities, and ranking patents by relevance for rejection analysis.",
+    "benchmark_description": "PAR4PC (Prior Art Retrieval for Patent Claims) - Given a patent claim, retrieve the most relevant prior art patents from a candidate pool. Requires understanding claim scope, identifying technical similarities, and ranking patents by relevance for potential 35 USC 102/103 rejections. Expected Output Format: Return JSON: {\"answer\": \"A\"} for single patent or {\"answer\": [\"A\", \"C\"]} for multiple patents (codes A-H)."
+  },
+  "panorama_pi4pc": {
+    "category": "patent",
+    "scenario": "Improve the model's ability to identify specific paragraphs in prior art patents that are most relevant for evaluating a claim's novelty and obviousness through element-by-element analysis.",
+    "benchmark_description": "PI4PC (Paragraph Identification for Patent Claims) - Given a patent claim and cited prior art patent, identify specific paragraphs most relevant for evaluating novelty and obviousness. Requires detailed technical reading, element-by-element claim analysis, and understanding how prior art teachings map to claim limitations. Expected Output Format: Return JSON: {\"answer\": \"<paragraph_id>\"}."
+  },
+  "panorama_noc4pc": {
+    "category": "patent",
+    "scenario": "Improve the model's ability to classify patent claims as allowable, anticipated, or obvious by applying patent law standards to analyze claim limitations against prior art.",
+    "benchmark_description": "NOC4PC (Novelty/Obviousness Classification) - Classify patent claims as ALLOW (patentable), 102 (anticipated/lacks novelty), or 103 (obvious). Requires applying patent law standards: 102 when single reference discloses all elements, 103 when combination of references with motivation makes claim obvious to skilled artisan. Expected Output Format: Return JSON: {\"code\": \"ALLOW\"} or {\"code\": \"102\"} or {\"code\": \"103\"}."
+  },
+  "panorama_par4pc_cot": {
+    "category": "patent",
+    "scenario": "Improve the model's ability to retrieve relevant prior art patents while providing explicit chain-of-thought reasoning explaining which claim elements each patent teaches and how it supports a rejection.",
+    "benchmark_description": "PAR4PC with chain-of-thought - Retrieve relevant prior art while providing explicit reasoning. Explain why each retrieved patent is relevant: which claim elements it teaches, what technical problems it addresses, and how it could support a rejection. Expected Output Format: Provide reasoning first, then return JSON: {\"answer\": \"A\"} or {\"answer\": [\"A\", \"C\"]}."
+  },
+  "panorama_pi4pc_cot": {
+    "category": "patent",
+    "scenario": "Improve the model's ability to identify relevant prior art paragraphs while providing element-by-element mapping showing how specific paragraph teachings correspond to claim limitations.",
+    "benchmark_description": "PI4PC with chain-of-thought - Identify relevant prior art paragraphs while explaining the technical connections. Provide element-by-element mapping showing how specific paragraph teachings correspond to claim limitations. Expected Output Format: Provide reasoning first, then return JSON: {\"answer\": \"<paragraph_id>\"}."
+  },
+  "panorama_noc4pc_cot": {
+    "category": "patent",
+    "scenario": "Improve the model's ability to classify patent claims with examiner-style rationale, explaining how references anticipate limitations or how combinations with motivation render claims obvious.",
+    "benchmark_description": "NOC4PC with chain-of-thought - Classify claims with examiner-style rationale. For 102: explain how reference anticipates each limitation. For 103: identify references, explain motivation to combine, and show how combination renders claim obvious. Use proper USPTO citation format. Expected Output Format: Return JSON: {\"reason\": \"<Office Action analysis>\", \"code\": \"ALLOW\"|\"102\"|\"103\"}."
+  },
+
+  "chemcotbench": {
+    "category": "chemistry",
+    "scenario": "Improve the model's chemical reasoning capabilities on molecular structures including understanding molecular features, editing molecules, optimizing properties, and predicting reaction outcomes.",
+    "benchmark_description": "ChemCoTBench tests step-wise chemical reasoning on SMILES molecular structures. Tasks include molecule understanding (identify functional groups, ring systems), molecule editing (add/delete/substitute groups while maintaining validity), molecule optimization (modify for desired properties), and reaction prediction (products, mechanisms, conditions). Contains subtasks with different output requirements. Expected Output Format: Return JSON: {\"output\": \"<answer>\"} where answer format depends on subtask - SMILES string for molecular tasks, numeric count for counting tasks, or Yes/No for equivalence tasks."
+  },
+  "chemcotbench_mol_und": {
+    "category": "chemistry",
+    "scenario": "Improve the model's ability to analyze molecular structures and identify structural features including functional groups (hydroxyl, carboxyl, amine), ring systems (aromatic, aliphatic), and molecular scaffolds.",
+    "benchmark_description": "Molecule Understanding - Analyze SMILES strings for structural features. Subtasks: (1) fg_count/ring_count: return integer count, (2) equivalence/ring_system_scaffold: return Yes or No, (3) Murcko_scaffold: return SMILES string. Requires parsing SMILES notation and applying organic chemistry knowledge. Expected Output Format: Return JSON: {\"output\": \"<answer>\"} where answer is integer/Yes/No/SMILES depending on subtask."
+  },
+  "chemcotbench_mol_edit": {
+    "category": "chemistry",
+    "scenario": "Improve the model's ability to perform precise structural modifications on molecules (add, delete, substitute functional groups) while maintaining chemical validity and molecule integrity.",
+    "benchmark_description": "Molecule Editing - Perform structural modifications on SMILES. Subtasks: add (add functional group), delete (remove group), sub (substitute group). Output must be valid SMILES representing chemically feasible molecules. Expected Output Format: Return JSON: {\"output\": \"<valid SMILES>\"}. SMILES validity is verified using RDKit."
+  },
+  "chemcotbench_mol_opt": {
+    "category": "chemistry",
+    "scenario": "Improve the model's ability to modify molecular structures to achieve target properties such as improved solubility, drug-likeness, or binding affinity to specific biological targets.",
+    "benchmark_description": "Molecule Optimization - Modify structures to achieve target properties. Subtasks: drd/gsk/jnk (binding affinity to DRD2/GSK3β/JNK3 targets), logp (lipophilicity), qed (drug-likeness), solubility. Requires understanding structure-property relationships. Expected Output Format: Return JSON: {\"output\": \"<optimized SMILES>\"}."
+  },
+  "chemcotbench_reaction": {
+    "category": "chemistry",
+    "scenario": "Improve the model's ability to predict chemical reaction outcomes including forward synthesis, retrosynthesis, mechanism selection, and reaction conditions based on functional group transformations.",
+    "benchmark_description": "Reaction Prediction - Predict reaction outcomes. Subtasks: fs (forward synthesis: reactants→products), retro (retrosynthesis: products→reactants), rcr (reaction condition recommendation), nepp (named reaction prediction), mechsel (mechanism selection). Requires understanding reaction types and functional group transformations. Expected Output Format: Return JSON: {\"output\": \"<SMILES or text answer>\"}."
+  },
+
+  "tablebench_data_analysis": {
+    "category": "table_qa",
+    "scenario": "Improve the model's ability to analyze tabular data for complex questions including trend identification, correlation analysis, statistical computation, and data-driven forecasting.",
+    "benchmark_description": "Table Data Analysis - Analyze tabular data to answer complex questions. Subtask types with different evaluation: (1) CorrelationAnalysis/TrendForecasting/StatisticalAnalysis: numeric answers with ±10% relative error tolerance, (2) ImpactAnalysis: exact match required, (3) Other analysis types: evaluated using ROUGE-L. Requires reading tables accurately and applying analytical reasoning. Expected Output Format: End response with \"Final Answer: <value>\"."
+  },
+  "tablebench_fact_checking": {
+    "category": "table_qa",
+    "scenario": "Improve the model's ability to verify factual claims against tabular data through accurate data extraction, implicit relationship understanding, and multi-hop reasoning across table cells.",
+    "benchmark_description": "Table Fact Checking - Answer table-based factual questions accurately. Questions may ask for specific information (numbers, names, dates) or verification (Yes/No, True/False). Uses Exact Match evaluation. Expected Output Format: End response with \"Final Answer: <value>\" where value is the precise answer to the question."
+  },
+  "tablebench_numerical_reasoning": {
+    "category": "table_qa",
+    "scenario": "Improve the model's ability to perform mathematical operations on table data including arithmetic, aggregations (sum, average, count), comparisons, percentages, and multi-step calculations.",
+    "benchmark_description": "Table Numerical Reasoning - Perform mathematical operations on table data: arithmetic (sum, difference, product), aggregations (average, count, max/min), comparisons, percentages, and multi-step calculations. Requires accurate number extraction and correct mathematical computation. Expected Output Format: End response with \"Final Answer: <numeric value>\"."
+  },
+  "tablebench_visualization": {
+    "category": "table_qa",
+    "scenario": "Improve the model's ability to generate Python code that creates appropriate visualizations (bar, line, pie, scatter charts) from tabular data with correct chart type selection and data mapping.",
+    "benchmark_description": "Table Visualization - Generate Python code to create appropriate visualizations from tabular data: bar charts, line charts, pie charts, scatter plots. Select correct chart type for data, map columns correctly to axes, and produce executable matplotlib/pandas code. Expected Output Format: Return Python code in ```python code block using matplotlib/pandas. Code will be executed to verify correctness."
+  },
+  "tablebench_gen": {
+    "category": "table_qa",
+    "scenario": "Improve the model's overall table question answering capabilities across fact checking, numerical reasoning, data analysis, and visualization by understanding table structure and generating accurate answers.",
+    "benchmark_description": "TableBench General - Comprehensive table QA covering fact checking, numerical reasoning, data analysis, and visualization. Questions require understanding table structure, extracting relevant data, performing reasoning or computation, and generating accurate answers or code. Expected Output Format: End response with \"Final Answer: <answer>\"."
+  },
+
+  "FinanceIQ_gen": {
+    "category": "finance",
+    "scenario": "Improve the model's financial domain knowledge and reasoning capabilities across Chinese financial certification exams including CPA, banking, securities, fund, futures, insurance, tax, and actuarial qualifications through multiple-choice question answering.",
+    "benchmark_description": "FinanceIQ tests financial domain knowledge through multiple-choice questions (A/B/C/D). Covers 10 Chinese financial certification exams: CPA (注册会计师), banking qualification, securities qualification, fund qualification, futures qualification, insurance qualification (CICE), tax advisor, economist, financial planner, and actuary. Uses LLM Judge for evaluation with 5-shot in-context learning. Evaluation metric: accuracy."
+  },
+
+  "bioprobench_gen": {
+    "category": "biology",
+    "scenario": "Improve the model's ability to generate complete, detailed experimental protocol steps from research context, including specific reagent concentrations, temperatures, incubation times, and equipment settings.",
+    "benchmark_description": "Protocol Generation - Generate complete experimental protocol steps given research context and objectives. Output detailed, actionable instructions: specify reagent concentrations, temperatures, incubation times, equipment settings. Protocols must be scientifically valid and reproducible. Expected Output Format: Wrap protocol steps in [ANSWER_START]Step 1: ... Step 2: ...[ANSWER_END]. Evaluated using BLEU, ROUGE, and step matching metrics."
+  },
+  "bioprobench_ord": {
+    "category": "biology",
+    "scenario": "Improve the model's ability to arrange shuffled experimental steps in correct sequence. Output MUST be a valid Python list format: [ANSWER_START][0, 2, 1, 3][ANSWER_END]. Use brackets and commas, NOT space-separated indices.",
+    "benchmark_description": "Step Ordering - Arrange shuffled experimental procedure steps in correct logical and temporal sequence. Requires understanding procedural dependencies: which steps must precede others, timing constraints, and scientific logic of experimental workflows. CRITICAL OUTPUT FORMAT: Answer MUST be a valid Python list with brackets and commas, e.g., [ANSWER_START][2, 0, 1, 3][ANSWER_END]. NOT space-separated (0 2 1 3 is WRONG), NOT without brackets (0, 2, 1, 3 is WRONG). Evaluated using Exact Match and Kendall's Tau."
+  },
+  "bioprobench_err": {
+    "category": "biology",
+    "scenario": "Improve the model's ability to identify errors in biological protocol text. CRITICAL SEMANTICS: True = step is CORRECT (no errors), False = step HAS ERRORS. This matches the benchmark prompt: 'If you find anything wrong, answer False.' Output format: [ANSWER_START]True or False[ANSWER_END].",
+    "benchmark_description": "Error Correction - Identify errors in biological protocol text including incorrect temperatures, concentrations, reagents, or procedural mistakes. CRITICAL: The benchmark expects True if the protocol step is CORRECT (no errors), and False if it HAS ERRORS. This follows the prompt: 'If you find anything wrong, answer False.' Do NOT invert this logic. Expected Output Format: [ANSWER_START]True[ANSWER_END] for correct steps, [ANSWER_START]False[ANSWER_END] for erroneous steps."
+  },
+  "bioprobench_pqa": {
+    "category": "biology",
+    "scenario": "Improve the model's ability to extract specific factual information from experimental protocols including temperatures, concentrations, incubation times, reagent quantities, and procedural details.",
+    "benchmark_description": "Protocol QA - Extract specific factual information from experimental protocols: temperatures, concentrations, incubation times, reagent quantities, equipment specifications, and procedural details. Requires careful reading and accurate information extraction from technical text. Expected Output Format: Return [ANSWER_START]<answer text> & <confidence 0-100>%[ANSWER_END], e.g., [ANSWER_START]Option A & 95%[ANSWER_END]. Evaluated using accuracy and Brier Score."
+  }
+}

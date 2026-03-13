@@ -1,8 +1,5 @@
-import json
-import re
 from pathlib import Path
 
-from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
@@ -13,7 +10,6 @@ from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
-from rdagent.utils.fmt import shrink_text
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -69,7 +65,7 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
             workflow_code=implementation.all_codes,
         )
         user_prompt = T(".prompts:feature_eval.user").r(
-            stdout=result.get_truncated_stdout(),
+            stdout=result.stdout,
             workflow_stdout=workflow_stdout,
         )
 

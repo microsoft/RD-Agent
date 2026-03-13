@@ -1,0 +1,141 @@
+scenario_description: |-
+  The user is targeting a fine-tuned model best for specific scenarios based on the provided dataset.
+  The user has decided to fine-tune the model using LLaMA-Factory framework. Make sure your hypothesis and task align with LLaMA-Factory's capabilities and best practices.
+
+  # User objectives
+  By Fine-tuning the model, the user aims to achieve the following objectives:
+  {% if user_target_scenario is not none %}
+  The user described their target scenario as: {{ user_target_scenario }}
+  {% endif %}
+  {% if target_benchmark is not none and benchmark_description is not none %}
+  The user aims to excel in the following benchmark(s): {{ target_benchmark }}.
+  The benchmark can be described as: {{ benchmark_description }}.
+  {% endif %}
+
+  # Device Information
+  The device available for fine-tuning has the following specifications:
+  {{ device_info }}
+  The hardware constraints might limit certain choices, so consider them carefully.
+
+  {% if memory_report %}
+  {{ memory_report }}
+  {% endif %}
+
+  {% if chosen_model %}
+  # Base Model Details
+  The user has decided the base model to fine-tune: {{ base_model }}.
+  ## Model Details
+  {{ model_info }}
+  {% else %}
+  The user has not yet decided the base model to fine-tune.
+  {% endif %}
+
+  {%- if enable_dataset_description %}
+  # Dataset Configuration
+  {%- for ds_name, ds_info in dataset_config.items() %}
+  ## Dataset: {{ ds_name }}
+  - **total_samples**: {{ ds_info.total_samples }}
+  - **total_size_mb**: {{ ds_info.total_size_mb }}
+  {%- if ds_info.file_tree %}
+  - **file_tree**:
+    ```
+    {{ ds_info.file_tree }}
+    ```
+  {%- endif %}
+  {%- if ds_info.tasks %}
+  - **tasks**:
+    {%- for task_name, task_info in ds_info.tasks.items() %}
+    ### {{ "(root)" if task_name == "_root" else task_name }}
+    - files: {{ task_info.files }}
+    - sample_count: {{ task_info.sample_count }}
+    {%- if task_info.column_stats %}
+    - column_stats:
+      {%- for col, col_stats in task_info.column_stats.items() %}
+      - {{ col }}: empty={{ col_stats.empty_count }}, min_tokens={{ col_stats.min_tokens }}, max_tokens={{ col_stats.max_tokens }}, p50_tokens={{ col_stats.p50_tokens }}, p99_tokens={{ col_stats.p99_tokens }}
+      {%- endfor %}
+    {%- endif %}
+    {%- if task_info.samples and task_info.samples | length > 0 %}
+    - first_sample:
+      ```json
+      {{ task_info.samples[0] | tojson }}
+      ```
+    {%- endif %}
+    {%- endfor %}
+  {%- endif %}
+  {%- if ds_info.readme %}
+  - **readme**: {{ ds_info.readme | tojson }}
+  {%- endif %}
+  {%- endfor %}
+
+  ## Timeout Constraints
+  - Full Training Timeout: {{ full_timeout }}
+  - Data Processing Timeout: {{ data_processing_timeout }}
+  {% endif %}
+
+  ## (Very important!)Sample Size Control (Code-Based, No LLM)
+  To avoid unlimited training cost, we have a strict upper limit on the number of training samples fed into LLM fine-tuning. You should sample the data with some rule which does not including feeding all the data into LLM because going through all data may exceed budget or time limits.
+  The upper limit is {{ upper_data_size_limit }} samples.
+
+  You can choose one of the following strategies to control the sample size(all strategies should be code based, no LLM calls):
+  1. Quality-first: Prefer samples with complete fields, reasonable length, and clear structure
+  2. Diversity: 
+      - If dataset has categories/sources, sample proportionally to preserve distribution
+      - **Difficulty-aware**: If difficulty metadata exists, use stratified sampling to maintain difficulty distribution of target benchmark/test set to ensure training coverage across all evaluation scenarios during initial training stage. For the subsequent training stages, 
+      adjust difficulty proportions based on base model capability, training objectives and previous experiment results - focus more on the model's capability boundary for maximum learning efficiency.
+
+  The hypothesis should specify which sampling strategy to use based on dataset info. The data processing script will implement it.
+
+dataset_selection:
+  system: |-
+    You are a dataset selection expert. Your task is to select relevant datasets for a specific fine-tuning goal.
+
+    ## User Goal
+    {{ user_target_scenario }}
+    {% if target_benchmark %}
+
+    ## Target Benchmark
+    {{ target_benchmark }}
+    {{ benchmark_description }}
+    {% endif %}
+
+    ## Selection Guidelines
+    - Select datasets that are directly relevant to the user's target scenario
+    - Consider domain alignment (e.g., math datasets for math reasoning tasks)
+    - Consider task type alignment (e.g., reasoning datasets for reasoning tasks)
+    - When uncertain, include the dataset (better to have false positives than miss relevant data)
+
+    ## Output Format
+    Return a JSON object:
+    ```json
+    {
+      "selected_datasets": ["dataset1", "dataset2"],
+      "reasoning": "Brief explanation of why these datasets were selected"
+    }
+    ```
+
+  user: |-
+    ## Available Datasets
+    {% for ds in datasets %}
+    ### {{ ds.name }}
+    - **total_samples**: {{ ds.total_samples }}
+    - **total_size_mb**: {{ ds.total_size_mb }}
+    {%- if ds.tasks %}
+    - **tasks**:
+      {%- for task_name, task_info in ds.tasks.items() %}
+      #### {{ "(root)" if task_name == "_root" else task_name }}
+      - sample_count: {{ task_info.sample_count }}
+      {%- if task_info.column_stats %}
+      - column_stats:
+        {%- for col, col_stats in task_info.column_stats.items() %}
+        - {{ col }}: p50={{ col_stats.p50_tokens }}, p99={{ col_stats.p99_tokens }}
+        {%- endfor %}
+      {%- endif %}
+      {%- endfor %}
+    {%- endif %}
+    {%- if ds.readme %}
+    - **readme**: {{ ds.readme }}
+    {%- endif %}
+
+    {% endfor %}
+
+    Please select the datasets most relevant to the user's fine-tuning goal.

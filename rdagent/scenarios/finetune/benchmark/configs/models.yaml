@@ -1,0 +1,86 @@
+# Model Inference Parameters Configuration
+# Used by benchmark.py to determine inference settings for different models
+
+# Default configuration (used when model is not explicitly listed)
+default:
+  temperature: 0.6
+  top_p: 0.95
+  top_k: 20
+  max_seq_len: 32768
+  max_out_len: 8192
+  batch_size: 16
+  tensor_parallel_size: auto  # Will be auto-determined based on GPU count
+  gpu_memory_utilization: 0.9
+  repetition_penalty: 1.0
+  dtype: bfloat16
+  enable_thinking: false
+  use_cot_postprocessor: true  # Enable CoT postprocessor to extract answer from <think>...</think>answer format
+
+# Model-specific configurations (override default values)
+models:
+  # Qwen3 series - support thinking mode and longer sequences
+  "Qwen/Qwen3-8B":
+    temperature: 0.6
+    top_p: 0.95
+    top_k: 20
+    max_seq_len: 40960
+    max_out_len: 38912
+    enable_thinking: true  # Qwen3-specific feature
+
+  "Qwen/Qwen3-32B":
+    temperature: 0.6
+    top_p: 0.95
+    top_k: 20
+    max_seq_len: 40960
+    max_out_len: 38912
+    enable_thinking: true
+
+  "Qwen/Qwen3-1.7B":
+    temperature: 0.6
+    top_p: 0.95
+    top_k: 20
+    max_seq_len: 40960
+    max_out_len: 38912
+    enable_thinking: true
+    gpu_memory_utilization: 0.7  # It does not use too much GPU memory. But it is worth 
+
+  # Qwen2.5 series - standard configuration with CoT postprocessor for fine-tuned models
+  "Qwen/Qwen2.5-7B-Instruct":
+    temperature: 0.0  # Greedy decoding for consistency
+    top_p: 1.0
+    top_k: 1
+    max_seq_len: 32768
+    max_out_len: 8192
+    use_cot_postprocessor: true  # Extract answer from CoT format after fine-tuning
+
+  "Qwen/Qwen2.5-32B-Instruct":
+    temperature: 0.0
+    top_p: 1.0
+    top_k: 1
+    max_seq_len: 32768
+    max_out_len: 8192
+
+  # Llama 3.1 series (128K context, 4K max output)
+  "meta-llama/Llama-3.1-8B-Instruct":
+    temperature: 0.7
+    top_p: 0.95
+    top_k: 40
+    max_seq_len: 32768 # 131072
+    max_out_len: 4096
+
+
+  # Mistral series
+  "mistralai/Mistral-7B-Instruct-v0.3":
+    temperature: 0.7
+    top_p: 0.95
+    top_k: 50
+    max_seq_len: 32768
+    max_out_len: 8192
+
+  # DeepSeek series
+  "deepseek-ai/deepseek-coder-33b-instruct":
+    temperature: 0.0
+    top_p: 1.0
+    top_k: 1
+    max_seq_len: 16384
+    max_out_len: 4096
