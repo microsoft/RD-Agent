@@ -429,6 +429,10 @@ class MultiEvaluator(Evaluator):
 
 
 class CIEvoStr(EvolvingStrategy):
+    def __init__(self) -> None:
+        # CI scenario does not require a Scenario instance
+        self.scen = None
+
     def evolve(  # noqa: C901, PLR0912, PLR0915
         self,
         evo: Repo,
