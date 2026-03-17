@@ -12,8 +12,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from huggingface_hub import hf_hub_download
-from transformers import AutoTokenizer
-from vllm import LLM, SamplingParams
 
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.rl.autorl_bench.core.evaluator import BaseEvaluator
@@ -138,6 +136,9 @@ class AlpacaEvalEvaluator(BaseEvaluator):
         reference_outputs: List[dict],
         gpu_count: int,
     ) -> List[dict]:
+        from transformers import AutoTokenizer
+        from vllm import LLM, SamplingParams
+
         max_model_len = int(self.eval_config.get("max_model_len", 4096))
         max_tokens = int(self.eval_config.get("max_tokens", 512))
 

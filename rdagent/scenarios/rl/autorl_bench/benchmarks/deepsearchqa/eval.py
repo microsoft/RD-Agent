@@ -17,7 +17,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 from datasets import load_dataset
-from vllm import LLM, SamplingParams
 
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.rl.autorl_bench.core.evaluator import BaseEvaluator
@@ -56,6 +55,8 @@ class DeepSearchQAEvaluator(BaseEvaluator):
         self.eval_config = config.eval_config or {}
 
     def run_eval(self, model_path: str, workspace_path: str, **kwargs) -> Dict[str, Any]:
+        from vllm import LLM, SamplingParams
+
         result = self.get_default_result(self.benchmark_id, model_path)
         result["eval_type"] = "deepsearchqa"
 

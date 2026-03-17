@@ -94,11 +94,16 @@ class GradingServer:
             raise ValueError("Invalid model_path")
 
         workspace_root = self.workspace.expanduser().resolve()
-        model_path_obj = Path(model_path).expanduser()
-        if not model_path_obj.is_absolute():
-            model_path_obj = workspace_root / model_path_obj
+        normalized = os.path.normpath(model_path)
+        if os.path.splitdrive(normalized)[0]:
+            raise ValueError("Invalid model_path")
 
-        resolved_path = model_path_obj.resolve(strict=False)
+        if os.path.isabs(normalized):
+            candidate = normalized
+        else:
+            candidate = os.path.join(str(workspace_root), normalized)
+
+        resolved_path = Path(candidate).expanduser().resolve(strict=False)
         try:
             resolved_path.relative_to(workspace_root)
         except ValueError as exc:
