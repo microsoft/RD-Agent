@@ -1,0 +1,12 @@
+name: "OpenCode Agent"
+description: "固定阶段 pipeline：代码生成→训练→评测→反馈（基于 opencode-rl）"
+start: "start.sh"
+env_vars:
+  MAX_ITERATIONS: "5"
+  TRAINING_TIMEOUT: "7200"
+  MAX_AGENT_STEPS: "25"
+  MAX_RETRIES: "20"
+  STALE_TIMEOUT: "1800"
+  HTTP_TIMEOUT: "600"
+  EVAL_TIMEOUT: "7200"
+  MAX_STEPS: "20"

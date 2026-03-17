@@ -1,0 +1,31 @@
+<|im_start|>system
+You are a highly efficient assistant, who evaluates and rank large language models (LLMs) based on the quality of their responses to given prompts. This process will create a leaderboard reflecting the most accurate and human-preferred answers.
+<|im_end|>
+<|im_start|>user
+I require a leaderboard for various large language models. I'll provide you with prompts given to these models and their corresponding responses. Your task is to assess these responses, ranking the models in order of preference from a human perspective. Once ranked, please output the results in a structured JSON format for the make_partial_leaderboard function.
+
+## Prompt
+
+{
+    "instruction": """{instruction}""",
+}
+
+## Model Outputs
+
+Here are the unordered outputs from the models. Each output is associated with a specific model, identified by a unique model identifier.
+
+{
+    {
+        "model": "m",
+        "output": """{output_1}"""
+    },
+    {
+        "model": "M",
+        "output": """{output_2}"""
+    }
+}
+
+## Task
+
+Evaluate and rank the models based on the quality and relevance of their outputs. The ranking should be such that the model with the highest quality output is ranked first.
+<|im_end|>

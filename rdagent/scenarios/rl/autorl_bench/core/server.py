@@ -1,0 +1,449 @@
+"""
+AutoRL-Bench Grading Server (Simplified)
+
+精简的评测服务，主要提供 submit 接口。
+"""
+
+import json
+import os
+import threading
+import time
+from datetime import datetime
+from pathlib import Path
+from typing import Optional, Set
+
+import requests
+from flask import Flask, jsonify, request
+from werkzeug.serving import make_server
+
+from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.rl.autorl_bench.core.utils import read_run_meta, update_run_meta
+
+app = Flask(__name__)
+
+
+def _get_available_gpus() -> Set[str]:
+    """从 CUDA_VISIBLE_DEVICES 获取可用 GPU 集合"""
+    cuda_env = os.environ.get("CUDA_VISIBLE_DEVICES", "")
+    if not cuda_env.strip():
+        return set()
+    return {g.strip() for g in cuda_env.split(",") if g.strip()}
+
+
+def _validate_gpu(gpu: str, available: Set[str]) -> Optional[str]:
+    """校验 gpu 参数，返回错误信息或 None（合法）"""
+    requested = {g.strip() for g in gpu.split(",") if g.strip()}
+    if not requested:
+        return "gpu parameter is empty"
+    invalid = requested - available
+    if invalid:
+        return f"GPU {invalid} not in available GPUs {sorted(available)} (from CUDA_VISIBLE_DEVICES)"
+    return None
+
+
+class GradingServer:
+    """评测服务器"""
+
+    def __init__(
+        self,
+        task: str,
+        base_model: str,
+        workspace: Path,
+    ):
+        self.task = task
+        self.base_model = base_model
+        self.workspace = Path(workspace)
+        self.scores_file = self.workspace / "scores.json"
+        self.baseline_score: Optional[float] = None
+        self.available_gpus: Set[str] = _get_available_gpus()
+        self._eval_lock = threading.Lock()
+        self._eval_cache: dict[str, dict] = {}
+
+    @staticmethod
+    def _make_cache_key(resolved_path: Path) -> str:
+        """用路径 + safetensors/bin 文件最新 mtime 组合作为 cache key。
+        模型被覆盖后 mtime 变化，cache 自动失效。"""
+        mtime = 0.0
+        if resolved_path.is_dir():
+            for f in resolved_path.rglob("*"):
+                if f.suffix in (".safetensors", ".bin", ".json") and f.is_file():
+                    mt = f.stat().st_mtime
+                    if mt > mtime:
+                        mtime = mt
+        elif resolved_path.is_file():
+            mtime = resolved_path.stat().st_mtime
+        return f"{resolved_path}@{mtime}"
+
+    def load_scores(self) -> list[dict]:
+        if self.scores_file.exists():
+            return json.loads(self.scores_file.read_text())
+        return []
+
+    def save_scores(self, scores: list[dict]):
+        self.scores_file.write_text(json.dumps(scores, indent=2, ensure_ascii=False))
+
+    def get_evaluator(self):
+        """获取当前 task 的评测器"""
+        from rdagent.scenarios.rl.autorl_bench.benchmarks import get_evaluator
+
+        return get_evaluator(self.task)
+
+    def resolve_model_path(self, model_path: str) -> Path:
+        """将模型路径约束在 workspace 下，防止访问任意文件系统路径。"""
+        if "\x00" in model_path:
+            raise ValueError("Invalid model_path")
+
+        workspace_root = self.workspace.expanduser().resolve()
+        normalized = os.path.normpath(model_path)
+        if os.path.splitdrive(normalized)[0]:
+            raise ValueError("Invalid model_path")
+
+        if os.path.isabs(normalized):
+            candidate = normalized
+        else:
+            candidate = os.path.join(str(workspace_root), normalized)
+
+        resolved_path = Path(candidate).expanduser().resolve(strict=False)
+        try:
+            resolved_path.relative_to(workspace_root)
+        except ValueError as exc:
+            raise ValueError("Invalid model_path") from exc
+        return resolved_path
+
+    def submit(self, model_path: str, gpu: Optional[str] = None) -> dict:
+        """
+        提交模型评测
+
+        Args:
+            model_path: 模型路径
+            gpu: 指定 GPU（如 "0", "1", "0,1"），必须是 CUDA_VISIBLE_DEVICES 中的子集。
+                 None 则使用 CUDA_VISIBLE_DEVICES 中的第一个 GPU。
+
+        Returns:
+            包含 score、best、improvement 等完整信息的结果
+
+        Raises:
+            ValueError: gpu 不在 CUDA_VISIBLE_DEVICES 范围内，或 model_path 非法
+        """
+        if self.available_gpus:
+            if gpu is None:
+                gpu = sorted(self.available_gpus, key=int)[0]
+            else:
+                err = _validate_gpu(gpu, self.available_gpus)
+                if err:
+                    raise ValueError(err)
+
+        # B3 fix: 同一 model_path + 同一内容去重，直接返回缓存结果
+        # 用路径 + 模型文件最新 mtime 作为 cache key，模型文件被覆盖后自动失效
+        resolved_path = self.resolve_model_path(model_path)
+        cache_key = self._make_cache_key(resolved_path)
+        if cache_key in self._eval_cache:
+            cached = self._eval_cache[cache_key]
+            logger.info(f"[SUBMIT] Cache hit for {model_path}, score={cached.get('score')}")
+            return cached
+
+        start_time = time.time()
+
+        # B2 fix: 串行化评测，防止多个 vLLM 实例同时抢 GPU
+        with self._eval_lock:
+            # Double-check: 等锁期间可能已被其他线程评完
+            cache_key = self._make_cache_key(resolved_path)
+            if cache_key in self._eval_cache:
+                cached = self._eval_cache[cache_key]
+                logger.info(f"[SUBMIT] Cache hit (after lock) for {model_path}, score={cached.get('score')}")
+                return cached
+
+            scores = self.load_scores()
+            submission_id = len(scores) + 1
+
+            logger.info(f"[SUBMIT #{submission_id}] Started | model_path={model_path} | gpu={gpu}")
+
+            old_cuda = os.environ.get("CUDA_VISIBLE_DEVICES")
+            if gpu is not None:
+                os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
+
+            try:
+                evaluator = self.get_evaluator()
+                gpu_count = len(self.available_gpus) if self.available_gpus else 1
+                result = evaluator.run_eval(
+                    model_path=str(resolved_path),
+                    workspace_path=str(self.workspace),
+                    model_name=self.base_model,
+                    gpu_count=gpu_count,
+                )
+            finally:
+                if old_cuda is not None:
+                    os.environ["CUDA_VISIBLE_DEVICES"] = old_cuda
+                elif "CUDA_VISIBLE_DEVICES" in os.environ:
+                    del os.environ["CUDA_VISIBLE_DEVICES"]
+
+        elapsed_seconds = time.time() - start_time
+
+        # 解析分数
+        score = result.get("score", 0.0)
+        error = result.get("error")
+
+        # 计算 improvement
+        improvement = None
+        if self.baseline_score is not None:
+            improvement = round(score - self.baseline_score, 6)
+
+        # 构建结果
+        entry = {
+            "submission_id": submission_id,
+            "timestamp": datetime.now().isoformat(),
+            "model_path": model_path,
+            "score": score,
+            "baseline_score": self.baseline_score,
+            "improvement": improvement,
+            "elapsed_seconds": round(elapsed_seconds, 2),
+        }
+        # B4 fix: 透传 error 字段
+        if error:
+            entry["error"] = error
+
+        scores.append(entry)
+        self.save_scores(scores)
+        update_run_meta(self.workspace, last_submit_time=int(time.time()))
+
+        # 查找最高分
+        best_entry = max(scores, key=lambda x: x.get("score", 0))
+
+        logger.info(f"[SUBMIT #{submission_id}] Done | score={score}, best={best_entry['score']}")
+
+        response = {
+            **entry,
+            "best": best_entry,
+            "total_submissions": len(scores),
+        }
+
+        # 只缓存成功的评测结果（失败的不缓存，允许重试）
+        if not error:
+            self._eval_cache[self._make_cache_key(resolved_path)] = response
+
+        return response
+
+    def set_baseline(self, score: float):
+        """设置 baseline 分数"""
+        self.baseline_score = score
+        logger.info(f"[BASELINE] Set to {score}")
+
+
+# 全局服务器实例
+_server: Optional[GradingServer] = None
+
+
+def get_server() -> GradingServer:
+    global _server
+    if _server is None:
+        raise RuntimeError("Server not initialized. Call init_server() first.")
+    return _server
+
+
+def init_server(task: str, base_model: str, workspace: str) -> GradingServer:
+    """初始化服务器"""
+    global _server
+    _server = GradingServer(task, base_model, Path(workspace))
+    return _server
+
+
+# Flask 路由
+@app.route("/submit", methods=["POST"])
+def submit():
+    """
+    提交模型评测
+
+    Request:
+        {"model_path": "/path/to/model"}
+
+    Response:
+        {
+            "submission_id": 1,
+            "score": 85.0,
+            "improvement": 5.0,
+            "best": {...},
+            "total_submissions": 10
+        }
+    """
+    data = request.get_json() or {}
+    model_path = data.get("model_path")
+    gpu = data.get("gpu")
+
+    if not model_path:
+        return jsonify({"error": "Missing model_path"}), 400
+
+    server = get_server()
+    if gpu is not None:
+        gpu = str(gpu)
+        err = _validate_gpu(gpu, server.available_gpus)
+        if err:
+            return (
+                jsonify(
+                    {
+                        "error": err,
+                        "available_gpus": sorted(server.available_gpus, key=int),
+                    }
+                ),
+                400,
+            )
+
+    try:
+        result = server.submit(model_path, gpu=gpu)
+        return jsonify(result)
+    except ValueError:
+        logger.warning("[SUBMIT] Invalid request", exc_info=True)
+        return jsonify({"error": "Invalid request"}), 400
+    except (RuntimeError, OSError):
+        logger.exception("[SUBMIT] Internal server error")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    """健康检查"""
+    server = get_server()
+    return jsonify(
+        {
+            "status": "ok",
+            "task": server.task,
+            "workspace": str(server.workspace),
+            "available_gpus": sorted(server.available_gpus, key=int) if server.available_gpus else [],
+        }
+    )
+
+
+@app.route("/time", methods=["GET"])
+def time_status():
+    """时间与预算信号"""
+    server = get_server()
+    meta = read_run_meta(server.workspace)
+    now = int(time.time())
+    timeout_s = meta.get("timeout_s")
+    start_time = meta.get("start_time")
+    remaining = None
+    if isinstance(timeout_s, int) and isinstance(start_time, int):
+        remaining = max(timeout_s - (now - start_time), 0)
+    return jsonify(
+        {
+            **meta,
+            "now": now,
+            "remaining": remaining,
+        }
+    )
+
+
+@app.route("/set_baseline", methods=["POST"])
+def set_baseline():
+    """设置 baseline 分数"""
+    data = request.get_json() or {}
+    score = data.get("score")
+
+    if score is None:
+        return jsonify({"error": "Missing score"}), 400
+
+    server = get_server()
+    server.set_baseline(float(score))
+    return jsonify({"baseline_score": score, "status": "set"})
+
+
+def run_server(task: str, base_model: str, workspace: str, host: str = "0.0.0.0", port: int = 5000):
+    """启动服务器"""
+    init_server(task, base_model, workspace)
+    logger.info(f"Grading Server | task={task} | {host}:{port}")
+    app.run(host=host, port=port, debug=False, threaded=True)
+
+
+# ============================================================
+# Grading Server 上下文管理器
+# ============================================================
+
+
+class GradingServerContext:
+    """Grading Server 基类"""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        pass
+
+    def get_baseline(self, task: str, model_name: str, model_path: str, workspace_path: str) -> float:
+        raise NotImplementedError
+
+    def load_scores(self) -> list:
+        raise NotImplementedError
+
+
+class LocalServerContext(GradingServerContext):
+    """本地 Flask Server"""
+
+    def __init__(self, task: str, base_model: str, workspace: str, port: int):
+        self.task = task
+        self.base_model = base_model
+        self.workspace = workspace
+        self.port = port
+        self.server = None
+        self._http_server = None
+        self._thread = None
+
+    def __enter__(self):
+        logger.info(f"[Local Mode] Starting evaluation server on port {self.port}...")
+        self.server = init_server(self.task, self.base_model, self.workspace)
+
+        self._http_server = make_server("0.0.0.0", self.port, app, threaded=True)
+        self._thread = threading.Thread(target=self._http_server.serve_forever, daemon=True)
+        self._thread.start()
+
+        # Poll /health for up to 15 seconds instead of blind sleep(2)
+        deadline = time.time() + 15
+        while time.time() < deadline:
+            try:
+                resp = requests.get(f"http://localhost:{self.port}/health", timeout=2)
+                if resp.status_code == 200:
+                    break
+            except requests.ConnectionError:
+                pass
+            time.sleep(0.5)
+        else:
+            raise RuntimeError(f"Grading server failed to start on port {self.port}")
+
+        return self
+
+    def __exit__(self, *args):
+        if self._http_server:
+            self._http_server.shutdown()
+            self._http_server = None
+
+    def get_baseline(self, task: str, model_name: str, model_path: str, workspace_path: str) -> float:
+        from rdagent.scenarios.rl.autorl_bench.core.utils import get_baseline_score
+
+        baseline = get_baseline_score(task, model_name, model_path, workspace_path)
+        self.server.set_baseline(baseline)
+        return baseline
+
+    def load_scores(self) -> list:
+        return self.server.load_scores() if self.server else []
+
+
+def create_grading_server(benchmark, workspace: Path, port: int, base_model: str) -> GradingServerContext:
+    """创建 Grading Server 上下文"""
+    return LocalServerContext(
+        task=benchmark.id,
+        base_model=base_model,
+        workspace=str(workspace),
+        port=port,
+    )
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--task", type=str, required=True)
+    parser.add_argument("--base-model", type=str, default="")
+    parser.add_argument("--workspace", type=str, default=".")
+    parser.add_argument("--port", type=int, default=5000)
+    parser.add_argument("--host", type=str, default="0.0.0.0")
+    args = parser.parse_args()
+
+    run_server(args.task, args.base_model, args.workspace, args.host, args.port)

@@ -1,0 +1,6 @@
+name: "RD-Agent"
+description: "RD-Agent RL Post-training Loop (自动假设生成 + 代码生成 + 验证迭代)"
+start: "start.sh"
+env_vars:
+  STEP_N: "200"
+  LOOP_N: "40"

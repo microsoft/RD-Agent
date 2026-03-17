@@ -1,0 +1,6 @@
+name: "Claude CLI Agent"
+description: "One-shot agent：给完整 prompt，Claude Code CLI 自主完成代码编写、训练、评测提交"
+start: "start.sh"
+env_vars:
+  CLAUDE_MODEL: "claude-sonnet-4-6"
+  CLAUDE_TIMEOUT: "36000"

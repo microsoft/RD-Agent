@@ -1,0 +1,5 @@
+# ALFWorld benchmark 额外依赖
+# pip install -r benchmarks/alfworld/requirements.txt
+alfworld
+textworld
+openai

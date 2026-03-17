@@ -71,7 +71,13 @@ log_cli = true
 log_cli_level = "info"
 log_date_format = "%Y-%m-%d %H:%M:%S"
 log_format = "%(asctime)s %(levelname)s %(message)s"
+markers = [
+  "offline: tests that do not require external API calls",
+]
 minversion = "6.0"
+norecursedirs = [
+  "workspace",
+]
 
 [tool.ruff]
 fix = true

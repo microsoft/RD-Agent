@@ -5,6 +5,8 @@ Pipfile
 public
 release-notes.md
 typescript*
+tmp/
+.ai/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -183,5 +185,6 @@ static/
 .cursor/
 .claude/
 AGENTS.md
+!rdagent/**/AGENTS.md
 
 scripts/

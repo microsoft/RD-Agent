@@ -1,0 +1,44 @@
+alpaca_eval_gpt5_2_fn:
+  prompt_template: "annotators_gpt52_fn/alpaca_eval_fn.txt"
+  fn_completions: "openai_completions"
+  completions_kwargs:
+    model_name: "gpt-5.2"
+    max_tokens: 100
+    temperature: 0
+    tool_choice:
+      type: function
+      function:
+        name: "make_partial_leaderboard"
+    tools:
+      - type: function
+        function:
+          name: "make_partial_leaderboard"
+          description: "Make a leaderboard of models given a list of the models ordered by the preference of their outputs."
+          strict: true
+          parameters:
+            type: "object"
+            properties:
+              ordered_models:
+                type: "array"
+                description: "A list of models ordered by the preference of their outputs. The first model in the list has the best output."
+                items:
+                  type: "object"
+                  properties:
+                    model:
+                      type: "string"
+                      description: "The name of the model"
+                    rank:
+                      type: "number"
+                      description: "Order of preference of the model, 1 has the best output"
+                  additionalProperties: false
+                  required: ["model", "rank"]
+            additionalProperties: false
+            required: ["ordered_models"]
+  fn_completion_parser: "pipeline_meta_parser"
+  completion_parser_kwargs:
+    parsers_to_kwargs:
+      json_parser:
+        annotation_key: "ordered_models"
+      ranking_parser:
+        model_1_name: "m"
+  batch_size: 1

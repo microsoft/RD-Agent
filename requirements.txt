@@ -81,3 +81,6 @@ prefect
 
 # HuggingFace datasets
 datasets
+
+# DuckDuckGo search
+duckduckgo-search
