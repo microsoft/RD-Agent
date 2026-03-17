@@ -1,6 +1,5 @@
 import os
 import random
-import signal
 import logging
 import traceback
 from collections import defaultdict
@@ -19,10 +18,10 @@ from werkzeug.utils import secure_filename
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.storage import WebStorage
-from rdagent.log.utils import is_valid_session
 
 app = Flask(__name__, static_folder=str(Path(UI_SETTING.static_path).resolve()))
 CORS(app)
+app.config["UI_SERVER_PORT"] = 19899
 
 _YELLOW = "\033[33m"
 _RESET = "\033[0m"
@@ -58,6 +57,7 @@ class RDAgentTask:
         log_trace_path: str,
         scenario: str,
         trace_name: str,
+        ui_server_port: int | None = None,
         create_process: bool = True,
     ) -> None:
         self.target_name = target_name
@@ -66,6 +66,7 @@ class RDAgentTask:
         self.log_trace_path = log_trace_path
         self.scenario = scenario
         self.trace_name = trace_name
+        self.ui_server_port = ui_server_port
         self.process: Process | None = None
 
         # Two IPC queues for user interaction.
@@ -112,7 +113,13 @@ class RDAgentTask:
                 pass
 
     def _run(self) -> None:
+        from rdagent.log.conf import LOG_SETTINGS
+
+        LOG_SETTINGS.set_ui_server_port(self.ui_server_port)
+
         from rdagent.log import rdagent_logger
+
+        rdagent_logger.refresh_storages_from_settings()
         rdagent_logger.set_storages_path(self.log_trace_path)
         Path(self.stdout_path).parent.mkdir(parents=True, exist_ok=True)
         with open(self.stdout_path, "w") as log_file:
@@ -159,7 +166,6 @@ class RDAgentTask:
 
 
 rdagent_processes: dict[str, RDAgentTask] = {}
-server_port = 19899
 log_folder_path = Path(UI_SETTING.trace_folder).absolute()
 
 
@@ -211,6 +217,7 @@ def _get_or_create_task(trace_id: str) -> RDAgentTask:
             log_trace_path=trace_id,
             scenario="",
             trace_name="",
+            ui_server_port=None,
             create_process=False,
         )
         rdagent_processes[trace_id] = task
@@ -340,7 +347,7 @@ def download_stdout_file():
 @app.route("/upload", methods=["POST"])
 def upload_file():
     # 获取请求体中的字段
-    global rdagent_processes, server_port
+    global rdagent_processes
     scenario = request.form.get("scenario")
     files = request.files.getlist("files")
     competition = request.form.get("competition")
@@ -425,6 +432,7 @@ def upload_file():
         log_trace_path=str(log_trace_path),
         scenario=scenario,
         trace_name=trace_name,
+        ui_server_port=app.config["UI_SERVER_PORT"],
     )
     task.start()
     app.logger.warning(f"Task {log_trace_path} started.")
@@ -543,6 +551,7 @@ def server_static_files(fn):
 
 
 def main(port: int = 19899):
+    app.config["UI_SERVER_PORT"] = port
     app.run(debug=False, host="0.0.0.0", port=port)
 
 

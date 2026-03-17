@@ -71,11 +71,15 @@ class RDAgentLog(SingletonBaseClass):
 
         self.storage = FileStorage(LOG_SETTINGS.trace_path)
         self.other_storages: list[Storage] = []
+        self.refresh_storages_from_settings()
+
+        self.main_pid = os.getpid()
+
+    def refresh_storages_from_settings(self) -> None:
+        self.other_storages = []
         for storage, args in LOG_SETTINGS.storages.items():
             storage_cls = import_class(storage)
             self.other_storages.append(storage_cls(*args))
-
-        self.main_pid = os.getpid()
 
     def rebind_console_to_current_streams(self) -> None:
         """Rebind loguru sinks to the current stdio objects.
