@@ -4,6 +4,7 @@ AlpacaEval 训练数据准备
 使用独立指令数据作为训练集（避免与评测集泄漏）。
 默认使用 tatsu-lab/alpaca 的前 N 条样本。
 """
+
 import json
 import os
 from pathlib import Path
@@ -39,9 +40,7 @@ def download_train_data(target_dir: Path) -> None:
         if line_count == TRAIN_SAMPLES:
             logger.info(f"AlpacaEval train data exists: {output_file} ({line_count} samples)")
             return
-        logger.warning(
-            f"AlpacaEval train data has {line_count} samples, expected {TRAIN_SAMPLES}. Rebuilding..."
-        )
+        logger.warning(f"AlpacaEval train data has {line_count} samples, expected {TRAIN_SAMPLES}. Rebuilding...")
 
     target_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Downloading {DATASET_REPO} (first {TRAIN_SAMPLES} samples)...")

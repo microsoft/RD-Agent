@@ -42,8 +42,8 @@ class Loop:
 
     loop_id: int
     proposal: list[Event] = field(default_factory=list)  # hypothesis generation
-    coding: list[Event] = field(default_factory=list)    # code generation
-    running: list[Event] = field(default_factory=list)   # docker training + benchmark
+    coding: list[Event] = field(default_factory=list)  # code generation
+    running: list[Event] = field(default_factory=list)  # docker training + benchmark
     feedback: list[Event] = field(default_factory=list)  # feedback
 
 
@@ -237,7 +237,7 @@ def parse_event(tag: str, content: Any, timestamp: datetime) -> Event | None:
 def load_session(log_path: Path) -> Session:
     """Load events into hierarchical session structure"""
     session = Session()
-    
+
     # 手动遍历 pkl 文件，跳过无法加载的
     events = []
     pkl_files = sorted(log_path.rglob("*.pkl"))
@@ -307,4 +307,3 @@ def get_summary(session: Session) -> dict:
         "docker_success": sum(1 for e in docker_execs if e.success is True),
         "docker_fail": sum(1 for e in docker_execs if e.success is False),
     }
-

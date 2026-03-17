@@ -9,18 +9,18 @@ DeepSearchQA Evaluator
 数据集: https://huggingface.co/datasets/google/deepsearchqa
 评测方式: LLM Judge (推荐 gemini-2.5-flash)
 """
+
 import json
 import re
 import time
 from typing import Any, Dict, List, Optional, Tuple
-from vllm import LLM, SamplingParams
 
 import requests
 from datasets import load_dataset
+from vllm import LLM, SamplingParams
 
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.rl.autorl_bench.core.evaluator import BaseEvaluator
-
 
 REACT_SYSTEM_PROMPT = """You are a research assistant that answers questions by searching the web.
 
@@ -42,7 +42,7 @@ Rules:
 class DeepSearchQAEvaluator(BaseEvaluator):
     """
     DeepSearchQA 评测器
-    
+
     流程：
     1. 从 HuggingFace 加载数据集
     2. 对每道题运行 ReAct 循环（模型 + 搜索工具）
@@ -55,12 +55,7 @@ class DeepSearchQAEvaluator(BaseEvaluator):
         self.benchmark_id = config.id
         self.eval_config = config.eval_config or {}
 
-    def run_eval(
-        self,
-        model_path: str,
-        workspace_path: str,
-        **kwargs
-    ) -> Dict[str, Any]:
+    def run_eval(self, model_path: str, workspace_path: str, **kwargs) -> Dict[str, Any]:
         result = self.get_default_result(self.benchmark_id, model_path)
         result["eval_type"] = "deepsearchqa"
 
@@ -108,8 +103,11 @@ class DeepSearchQAEvaluator(BaseEvaluator):
 
             # ReAct loop
             predicted = self._react_loop(
-                llm, sampling_params, search_fn,
-                question, answer_type,
+                llm,
+                sampling_params,
+                search_fn,
+                question,
+                answer_type,
             )
 
             # LLM Judge score
@@ -117,13 +115,15 @@ class DeepSearchQAEvaluator(BaseEvaluator):
             if score:
                 correct += 1
 
-            results_detail.append({
-                "question": question[:100],
-                "gold": gold_answer,
-                "predicted": predicted,
-                "answer_type": answer_type,
-                "correct": score,
-            })
+            results_detail.append(
+                {
+                    "question": question[:100],
+                    "gold": gold_answer,
+                    "predicted": predicted,
+                    "answer_type": answer_type,
+                    "correct": score,
+                }
+            )
             logger.info(f"  Predicted: {predicted[:80]}")
             logger.info(f"  Gold:      {gold_answer[:80]}")
             logger.info(f"  Correct:   {score}")
@@ -156,11 +156,7 @@ class DeepSearchQAEvaluator(BaseEvaluator):
         """ReAct multi-step reasoning loop, return final answer string"""
         max_steps = self.eval_config.get("max_steps", 6)
 
-        conversation = (
-            f"Question: {question}\n"
-            f"Answer type: {answer_type}\n\n"
-            "Thought:"
-        )
+        conversation = f"Question: {question}\n" f"Answer type: {answer_type}\n\n" "Thought:"
         full_prompt = f"{REACT_SYSTEM_PROMPT}\n\n{conversation}"
 
         # for step in range(max_steps):
@@ -233,17 +229,13 @@ class DeepSearchQAEvaluator(BaseEvaluator):
             logger.info(f"  Step {step+1} | Search: {action_content[:60]}")
             logger.info(f"  Observation: {observation[:120]}")
 
-            full_prompt += (
-                f"\nObservation: {observation}\n"
-                "Thought:"
-            )
+            full_prompt += f"\nObservation: {observation}\n" "Thought:"
 
         # exceed max steps, extract last answer from model output only
         last_answer = re.findall(r"Action:\s*answer\[(.+?)\]", model_trace, re.DOTALL)
         # filter out template placeholder
         real_answers = [a.strip() for a in last_answer if a.strip().lower() != "your final answer"]
         return real_answers[-1] if real_answers else "I don't know"
-
 
     # ----------------------------------------------------------
     # search tool
@@ -252,6 +244,7 @@ class DeepSearchQAEvaluator(BaseEvaluator):
     def _get_search_function(self):
         """返回搜索函数，优先使用 SerpAPI，降级到 DuckDuckGo"""
         import os
+
         serpapi_key = os.environ.get("SERPAPI_KEY") or self.eval_config.get("serpapi_key")
 
         if serpapi_key:
@@ -285,10 +278,7 @@ class DeepSearchQAEvaluator(BaseEvaluator):
             )
             data = resp.json()
             abstract = data.get("AbstractText", "")
-            related = " | ".join(
-                r.get("Text", "") for r in data.get("RelatedTopics", [])[:2]
-                if isinstance(r, dict)
-            )
+            related = " | ".join(r.get("Text", "") for r in data.get("RelatedTopics", [])[:2] if isinstance(r, dict))
             return abstract or related or "No results found."
         except Exception as e:
             return f"Search error: {e}"
@@ -304,6 +294,7 @@ class DeepSearchQAEvaluator(BaseEvaluator):
         answer_type: str,
     ) -> bool:
         from rdagent.oai.llm_utils import APIBackend
+
         judge_prompt = f"""You are an answer evaluator. Compare the predicted answer to the gold answer.
         Question answer type: {answer_type}
         Gold answer: {gold}
@@ -313,10 +304,15 @@ class DeepSearchQAEvaluator(BaseEvaluator):
         Reply with ONLY "correct" or "incorrect". No explanation."""
 
         try:
-            response = APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=judge_prompt,
-                system_prompt = "You are a strict answer evaluator.",
-            ).strip().lower()
+            response = (
+                APIBackend()
+                .build_messages_and_create_chat_completion(
+                    user_prompt=judge_prompt,
+                    system_prompt="You are a strict answer evaluator.",
+                )
+                .strip()
+                .lower()
+            )
             return "correct" in response
         except Exception as e:
             logger.warning(f"Judge failed: {e}, falling back to string match")

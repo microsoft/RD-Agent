@@ -117,9 +117,11 @@ class RLPostTrainingRunner(Developer):
             )
             result = resp.json()
             exp.result["benchmark"] = result
-            logger.info(f"  Score: {result.get('score')}, "
-                        f"Improvement: {result.get('improvement')}, "
-                        f"Best: {result.get('best', {}).get('score')}")
+            logger.info(
+                f"  Score: {result.get('score')}, "
+                f"Improvement: {result.get('improvement')}, "
+                f"Best: {result.get('best', {}).get('score')}"
+            )
         except Exception as e:
             logger.error(f"Grading server submission failed: {e}")
 

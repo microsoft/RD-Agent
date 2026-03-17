@@ -6,6 +6,7 @@
         --model-path /path/to/model \
         --task gsm8k
 """
+
 import argparse
 import json
 import sys
@@ -39,23 +40,24 @@ def main():
 
     # 使用固定 workspace
     from rdagent.scenarios.rl.autorl_bench.conf import get_workspace_dir
+
     workspace = get_workspace_dir() / args.task
     workspace.mkdir(parents=True, exist_ok=True)
     print(f"Workspace: {workspace}")
 
     # 启动 grading_server
-    from rdagent.scenarios.rl.autorl_bench.core.server import init_server, app
     import threading
-    
+
+    from rdagent.scenarios.rl.autorl_bench.core.server import app, init_server
+
     server = init_server(args.task, model_name, str(workspace))
-    
+
     print(f"Starting grading server on port {args.port}...")
     server_thread = threading.Thread(
-        target=lambda: app.run(host="0.0.0.0", port=args.port, debug=False, threaded=False),
-        daemon=True
+        target=lambda: app.run(host="0.0.0.0", port=args.port, debug=False, threaded=False), daemon=True
     )
     server_thread.start()
-    
+
     # 等待 server 启动
     for i in range(10):
         time.sleep(0.5)
@@ -74,7 +76,7 @@ def main():
     print("-" * 50)
     print("Submitting model for evaluation...")
     print(f"POST {grading_url}/submit")
-    
+
     start_time = time.time()
     resp = requests.post(
         f"{grading_url}/submit",
@@ -87,7 +89,7 @@ def main():
     print(f"Response status: {resp.status_code}")
     print(f"Elapsed: {elapsed:.2f}s")
     print("Result:")
-    
+
     if resp.status_code == 200:
         result = resp.json()
         print(json.dumps(result, indent=2, ensure_ascii=False))

@@ -51,16 +51,18 @@ def build_dataset_imports_explicit(dataset_imports: str | Iterable[str]) -> List
                 guessed = _guess_dataset_var(mod_path)
                 logger.warning(
                     "No dataset variables found in %s, guessing '%s'",
-                    mod_path, guessed,
+                    mod_path,
+                    guessed,
                 )
                 names = [guessed]
             explicit.append({"module": mod_path, "names": names})
         except Exception as e:
             guessed = _guess_dataset_var(mod_path)
             logger.warning(
-                "Failed to import %s for explicit name resolution: %s. "
-                "Guessing variable name '%s'.",
-                mod_path, e, guessed,
+                "Failed to import %s for explicit name resolution: %s. " "Guessing variable name '%s'.",
+                mod_path,
+                e,
+                guessed,
             )
             explicit.append({"module": mod_path, "names": [guessed]})
     return explicit

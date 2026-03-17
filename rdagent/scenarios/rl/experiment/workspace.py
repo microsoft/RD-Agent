@@ -23,9 +23,9 @@ class RLWorkspace(FBWorkspace):
         """在环境中执行命令"""
         self.prepare()
         self.inject_files(**self.file_dict)
-        
+
         result = env.run(entry, str(self.workspace_path))
-        
+
         tag_prefix = "docker_run" if isinstance(env, DockerEnv) else "env_run"
         logger.log_object(
             {
@@ -37,6 +37,5 @@ class RLWorkspace(FBWorkspace):
             },
             tag=f"{tag_prefix}.RLWorkspace",
         )
-        
-        return result
 
+        return result

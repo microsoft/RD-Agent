@@ -3,6 +3,7 @@
 Loads a model via vLLM, runs inference on each test sample, then uses the
 benchmark's eval.py to score each prediction individually.
 """
+
 from __future__ import annotations
 
 import importlib
@@ -100,7 +101,7 @@ class PerSampleEvaluator(BaseEvaluator):
             outputs = llm.generate(prompts, sampling_params)
         except Exception as e:
             # Clean up vLLM GPU memory even on failure
-            if 'llm' in locals():
+            if "llm" in locals():
                 _cleanup_vllm(llm)
             result["error"] = f"vLLM inference failed: {e}"
             return result
@@ -151,7 +152,10 @@ def _cleanup_vllm(llm) -> None:
 
     def _gpu_cleanup():
         try:
-            import gc, torch
+            import gc
+
+            import torch
+
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()

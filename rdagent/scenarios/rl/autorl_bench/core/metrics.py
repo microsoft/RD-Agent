@@ -3,6 +3,7 @@ AutoRL-Bench Metrics
 
 计算 run 级别过程指标，并生成可视化。
 """
+
 import json
 from datetime import datetime
 from pathlib import Path
@@ -65,9 +66,7 @@ def compute_metrics(
 
     monotonic_ratio = None
     if len(score_values) >= 2:
-        increases = sum(
-            1 for prev, cur in zip(score_values, score_values[1:]) if cur > prev
-        )
+        increases = sum(1 for prev, cur in zip(score_values, score_values[1:]) if cur > prev)
         monotonic_ratio = _safe_div(increases, len(score_values) - 1)
 
     copy_model_count = None
@@ -141,6 +140,7 @@ def plot_score_trajectory(workspace: Path, metrics: dict[str, Any]) -> Optional[
     plt.savefig(target)
     plt.close()
     return target
+
 
 def run_workspace_metrics(
     workspace: Path,

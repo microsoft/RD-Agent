@@ -1,9 +1,11 @@
 """
 Agent Registry
 """
-import yaml
+
 from dataclasses import dataclass
 from pathlib import Path
+
+import yaml
 
 AGENTS_DIR = Path(__file__).parent
 
@@ -14,7 +16,7 @@ class Agent:
     name: str
     start: Path
     env_vars: dict = None
-    
+
     def __post_init__(self):
         self.env_vars = self.env_vars or {}
 
@@ -22,12 +24,12 @@ class Agent:
 def get_agent(agent_id: str) -> Agent:
     agent_dir = AGENTS_DIR / agent_id
     config_file = agent_dir / "config.yaml"
-    
+
     if not config_file.exists():
         raise ValueError(f"Agent not found: {agent_id}")
-    
+
     data = yaml.safe_load(config_file.read_text())
-    
+
     return Agent(
         id=agent_id,
         name=data.get("name", agent_id),

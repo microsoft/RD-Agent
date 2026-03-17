@@ -8,6 +8,7 @@ ALFWorld Evaluator - 交互式文本游戏环境
 
 ReAct 官方代码: https://github.com/ysymyth/ReAct/blob/main/alfworld.ipynb
 """
+
 import json
 import os
 import sys
@@ -15,6 +16,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List
+
 from rdagent.scenarios.rl.autorl_bench.core.evaluator import BaseEvaluator
 
 # 日志目录
@@ -23,18 +25,23 @@ LOG_DIR = Path(__file__).resolve().parent.parent.parent / "log"
 
 class _Tee:
     """同时输出到终端和日志文件"""
+
     def __init__(self, filepath):
         self.terminal = sys.__stdout__
         self.log = open(filepath, "w", encoding="utf-8")
+
     def write(self, message):
         self.terminal.write(message)
         self.log.write(message)
         self.log.flush()
+
     def flush(self):
         self.terminal.flush()
         self.log.flush()
+
     def isatty(self):
         return False
+
     def fileno(self):
         return self.terminal.fileno()
 
@@ -102,6 +109,7 @@ def alfworld_run(llm_fn: Callable, env, prompt: str, ob: str, max_steps: int = 5
 # LLM 后端工厂
 # ============================================================
 
+
 def create_llm_fn(backend: str, model_path: str, **kwargs) -> tuple:
     """
     创建统一的 llm(prompt, stop) 函数。
@@ -116,7 +124,9 @@ def create_llm_fn(backend: str, model_path: str, **kwargs) -> tuple:
         from vllm import LLM, SamplingParams
         from vllm.distributed.parallel_state import destroy_model_parallel
 
-        llm_engine = LLM(model=model_path, tensor_parallel_size=kwargs.get("tensor_parallel_size", 1), trust_remote_code=True)
+        llm_engine = LLM(
+            model=model_path, tensor_parallel_size=kwargs.get("tensor_parallel_size", 1), trust_remote_code=True
+        )
 
         def vllm_fn(prompt: str, stop: List[str] = None) -> str:
             params = SamplingParams(temperature=0, max_tokens=100, stop=stop or ["\n"])
@@ -126,7 +136,9 @@ def create_llm_fn(backend: str, model_path: str, **kwargs) -> tuple:
         def cleanup():
             nonlocal llm_engine
             import gc
+
             import torch
+
             destroy_model_parallel()
             llm_engine = None
             gc.collect()
@@ -179,6 +191,7 @@ def create_llm_fn(backend: str, model_path: str, **kwargs) -> tuple:
 # ============================================================
 # Evaluator
 # ============================================================
+
 
 class ALFWorldEvaluator(BaseEvaluator):
     """
@@ -249,7 +262,10 @@ class ALFWorldEvaluator(BaseEvaluator):
         # --- 初始化 ALFWorld 环境 ---
         workspace = Path(workspace_path)
 
-        from rdagent.scenarios.rl.autorl_bench.benchmarks.alfworld.data import _ensure_alfworld_data
+        from rdagent.scenarios.rl.autorl_bench.benchmarks.alfworld.data import (
+            _ensure_alfworld_data,
+        )
+
         alfworld_data = str(_ensure_alfworld_data())
         os.environ["ALFWORLD_DATA"] = alfworld_data
 
@@ -257,6 +273,7 @@ class ALFWorldEvaluator(BaseEvaluator):
         config_yaml = Path(__file__).parent / "base_config.yaml"
         with open(config_yaml) as f:
             import yaml
+
             env_config = yaml.safe_load(f)
         env_config = self._expand_env_vars(env_config)
 
@@ -337,6 +354,7 @@ class ALFWorldEvaluator(BaseEvaluator):
     def _ensure_alfworld_data():
         """检查 ALFWorld 游戏数据（~2.1GB），没有就自动下载"""
         import subprocess
+
         cache_dir = Path.home() / ".cache" / "alfworld"
         if (cache_dir / "json_2.1.1").exists():
             return

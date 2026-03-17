@@ -8,6 +8,7 @@ Usage:
     python -m rdagent.scenarios.rl.autorl_bench.run \
         --agent example_agent --task gsm8k --model Qwen/Qwen2.5-0.5B
 """
+
 import argparse
 import os
 import signal
@@ -22,17 +23,17 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.rl.autorl_bench.agents import get_agent
 from rdagent.scenarios.rl.autorl_bench.benchmarks import get_benchmark
 from rdagent.scenarios.rl.autorl_bench.core import (
-    download_model,
-    download_data,
-    create_grading_server,
-    setup_workspace,
     append_result,
+    create_grading_server,
     detect_driver_model,
-    print_summary,
-    kill_process_group,
+    download_data,
+    download_model,
     init_run_meta,
-    update_run_meta,
+    kill_process_group,
+    print_summary,
     run_workspace_metrics,
+    setup_workspace,
+    update_run_meta,
 )
 
 
@@ -87,7 +88,13 @@ def run(
 
     # 2. 搭建 workspace（补充 symlink 挂载）
     workspace = setup_workspace(
-        run_id, agent_id, task, base_model, model_path, data_path, benchmark,
+        run_id,
+        agent_id,
+        task,
+        base_model,
+        model_path,
+        data_path,
+        benchmark,
     )
     init_run_meta(workspace, timeout)
 
@@ -95,7 +102,10 @@ def run(
     with create_grading_server(benchmark, workspace, port, base_model) as grading:
         logger.info("Evaluating baseline...")
         baseline = grading.get_baseline(
-            task, base_model, str(workspace / "models" / base_model), str(workspace),
+            task,
+            base_model,
+            str(workspace / "models" / base_model),
+            str(workspace),
         )
         logger.info(f"Baseline Score: {baseline}")
 
@@ -152,21 +162,23 @@ def run(
     }
 
     # 追加到全局 results.csv
-    append_result({
-        "run_id": run_id,
-        "timestamp": start_time.strftime("%Y-%m-%d %H:%M:%S"),
-        "task": task,
-        "agent": agent_id,
-        "driver_model": detect_driver_model(env),
-        "base_model": base_model,
-        "baseline": baseline,
-        "best_score": best.get("score", 0) if best else 0,
-        "improvement": best.get("improvement") if best else None,
-        "submissions": len(scores),
-        "duration_s": round((end_time - start_time).total_seconds()),
-        "success": success,
-        "workspace": str(workspace),
-    })
+    append_result(
+        {
+            "run_id": run_id,
+            "timestamp": start_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "task": task,
+            "agent": agent_id,
+            "driver_model": detect_driver_model(env),
+            "base_model": base_model,
+            "baseline": baseline,
+            "best_score": best.get("score", 0) if best else 0,
+            "improvement": best.get("improvement") if best else None,
+            "submissions": len(scores),
+            "duration_s": round((end_time - start_time).total_seconds()),
+            "success": success,
+            "workspace": str(workspace),
+        }
+    )
 
     try:
         run_workspace_metrics(

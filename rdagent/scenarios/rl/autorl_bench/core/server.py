@@ -3,6 +3,7 @@ AutoRL-Bench Grading Server (Simplified)
 
 精简的评测服务，主要提供 submit 接口。
 """
+
 import json
 import os
 import threading
@@ -16,7 +17,7 @@ from flask import Flask, jsonify, request
 from werkzeug.serving import make_server
 
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.rl.autorl_bench.core.utils import update_run_meta, read_run_meta
+from rdagent.scenarios.rl.autorl_bench.core.utils import read_run_meta, update_run_meta
 
 app = Flask(__name__)
 
@@ -42,7 +43,7 @@ def _validate_gpu(gpu: str, available: Set[str]) -> Optional[str]:
 
 class GradingServer:
     """评测服务器"""
-    
+
     def __init__(
         self,
         task: str,
@@ -78,27 +79,28 @@ class GradingServer:
         if self.scores_file.exists():
             return json.loads(self.scores_file.read_text())
         return []
-    
+
     def save_scores(self, scores: list[dict]):
         self.scores_file.write_text(json.dumps(scores, indent=2, ensure_ascii=False))
-    
+
     def get_evaluator(self):
         """获取当前 task 的评测器"""
         from rdagent.scenarios.rl.autorl_bench.benchmarks import get_evaluator
+
         return get_evaluator(self.task)
-    
+
     def submit(self, model_path: str, gpu: Optional[str] = None) -> dict:
         """
         提交模型评测
-        
+
         Args:
             model_path: 模型路径
             gpu: 指定 GPU（如 "0", "1", "0,1"），必须是 CUDA_VISIBLE_DEVICES 中的子集。
                  None 则使用 CUDA_VISIBLE_DEVICES 中的第一个 GPU。
-            
+
         Returns:
             包含 score、best、improvement 等完整信息的结果
-            
+
         Raises:
             ValueError: gpu 不在 CUDA_VISIBLE_DEVICES 范围内
         """
@@ -109,7 +111,7 @@ class GradingServer:
                 err = _validate_gpu(gpu, self.available_gpus)
                 if err:
                     raise ValueError(err)
-        
+
         # B3 fix: 同一 model_path + 同一内容去重，直接返回缓存结果
         # 用路径 + 模型文件最新 mtime 作为 cache key，模型文件被覆盖后自动失效
         resolved_path = str(Path(model_path).resolve())
@@ -199,7 +201,7 @@ class GradingServer:
             self._eval_cache[self._make_cache_key(resolved_path)] = response
 
         return response
-    
+
     def set_baseline(self, score: float):
         """设置 baseline 分数"""
         self.baseline_score = score
@@ -229,10 +231,10 @@ def init_server(task: str, base_model: str, workspace: str) -> GradingServer:
 def submit():
     """
     提交模型评测
-    
+
     Request:
         {"model_path": "/path/to/model"}
-        
+
     Response:
         {
             "submission_id": 1,
@@ -245,7 +247,7 @@ def submit():
     data = request.get_json() or {}
     model_path = data.get("model_path")
     gpu = data.get("gpu")
-    
+
     if not model_path:
         return jsonify({"error": "Missing model_path"}), 400
 
@@ -254,10 +256,15 @@ def submit():
         gpu = str(gpu)
         err = _validate_gpu(gpu, server.available_gpus)
         if err:
-            return jsonify({
-                "error": err,
-                "available_gpus": sorted(server.available_gpus, key=int),
-            }), 400
+            return (
+                jsonify(
+                    {
+                        "error": err,
+                        "available_gpus": sorted(server.available_gpus, key=int),
+                    }
+                ),
+                400,
+            )
 
     try:
         result = server.submit(model_path, gpu=gpu)
@@ -271,12 +278,14 @@ def submit():
 def health():
     """健康检查"""
     server = get_server()
-    return jsonify({
-        "status": "ok",
-        "task": server.task,
-        "workspace": str(server.workspace),
-        "available_gpus": sorted(server.available_gpus, key=int) if server.available_gpus else [],
-    })
+    return jsonify(
+        {
+            "status": "ok",
+            "task": server.task,
+            "workspace": str(server.workspace),
+            "available_gpus": sorted(server.available_gpus, key=int) if server.available_gpus else [],
+        }
+    )
 
 
 @app.route("/time", methods=["GET"])
@@ -290,11 +299,13 @@ def time_status():
     remaining = None
     if isinstance(timeout_s, int) and isinstance(start_time, int):
         remaining = max(timeout_s - (now - start_time), 0)
-    return jsonify({
-        **meta,
-        "now": now,
-        "remaining": remaining,
-    })
+    return jsonify(
+        {
+            **meta,
+            "now": now,
+            "remaining": remaining,
+        }
+    )
 
 
 @app.route("/set_baseline", methods=["POST"])
@@ -302,10 +313,10 @@ def set_baseline():
     """设置 baseline 分数"""
     data = request.get_json() or {}
     score = data.get("score")
-    
+
     if score is None:
         return jsonify({"error": "Missing score"}), 400
-    
+
     server = get_server()
     server.set_baseline(float(score))
     return jsonify({"baseline_score": score, "status": "set"})
@@ -321,6 +332,7 @@ def run_server(task: str, base_model: str, workspace: str, host: str = "0.0.0.0"
 # ============================================================
 # Grading Server 上下文管理器
 # ============================================================
+
 
 class GradingServerContext:
     """Grading Server 基类"""
@@ -380,6 +392,7 @@ class LocalServerContext(GradingServerContext):
 
     def get_baseline(self, task: str, model_name: str, model_path: str, workspace_path: str) -> float:
         from rdagent.scenarios.rl.autorl_bench.core.utils import get_baseline_score
+
         baseline = get_baseline_score(task, model_name, model_path, workspace_path)
         self.server.set_baseline(baseline)
         return baseline
@@ -400,7 +413,7 @@ def create_grading_server(benchmark, workspace: Path, port: int, base_model: str
 
 if __name__ == "__main__":
     import argparse
-    
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", type=str, required=True)
     parser.add_argument("--base-model", type=str, default="")
@@ -408,5 +421,5 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=5000)
     parser.add_argument("--host", type=str, default="0.0.0.0")
     args = parser.parse_args()
-    
+
     run_server(args.task, args.base_model, args.workspace, args.host, args.port)

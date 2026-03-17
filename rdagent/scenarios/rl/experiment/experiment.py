@@ -9,6 +9,7 @@ class RLTask(Task):
 
     仅用于 rdagent 框架内部流转，和 autorl_bench 的 benchmark 无关。
     """
+
     pass
 
 

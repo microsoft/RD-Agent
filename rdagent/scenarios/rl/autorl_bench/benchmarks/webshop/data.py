@@ -4,6 +4,7 @@ WebShop 数据准备
 注意：WebShop PyPI 包不完整（缺少 web_agent_site 模块），需要从 GitHub 克隆完整仓库。
 为避免 setup.sh 破坏当前环境依赖，我们手动下载数据。
 """
+
 import subprocess
 import sys
 from pathlib import Path
@@ -23,11 +24,10 @@ def _clone_webshop_repo() -> Path:
     WEBSHOP_CACHE_DIR.mkdir(parents=True, exist_ok=True)
     logger.info("Cloning WebShop repository...")
 
-    subprocess.run([
-        "git", "clone", "--depth", "1",
-        "https://github.com/princeton-nlp/webshop.git",
-        str(WEBSHOP_REPO_DIR)
-    ], check=True)
+    subprocess.run(
+        ["git", "clone", "--depth", "1", "https://github.com/princeton-nlp/webshop.git", str(WEBSHOP_REPO_DIR)],
+        check=True,
+    )
 
     logger.info(f"WebShop repo cloned to: {WEBSHOP_REPO_DIR}")
     return WEBSHOP_REPO_DIR
@@ -81,10 +81,7 @@ def _download_webshop_data():
         filepath = data_dir / filename
         if not filepath.exists():
             try:
-                subprocess.run(
-                    ["gdown", file_id, "-O", str(filepath)],
-                    check=True, timeout=120
-                )
+                subprocess.run(["gdown", file_id, "-O", str(filepath)], check=True, timeout=120)
                 logger.info(f"Downloaded {filename}")
             except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
                 logger.warning(f"Failed to download {filename}: {e}")
@@ -114,18 +111,12 @@ def _build_search_index():
         # 转换产品文件格式
         convert_script = search_engine_dir / "convert_product_file_format.py"
         if convert_script.exists():
-            subprocess.run(
-                [sys.executable, str(convert_script)],
-                cwd=search_engine_dir, check=True, timeout=60
-            )
+            subprocess.run([sys.executable, str(convert_script)], cwd=search_engine_dir, check=True, timeout=60)
 
         # 构建索引
         index_script = search_engine_dir / "run_indexing.sh"
         if index_script.exists():
-            subprocess.run(
-                ["bash", str(index_script)],
-                cwd=search_engine_dir, check=True, timeout=120
-            )
+            subprocess.run(["bash", str(index_script)], cwd=search_engine_dir, check=True, timeout=120)
 
         marker.touch()
         logger.info("Search index built successfully")

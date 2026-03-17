@@ -40,11 +40,11 @@ def render_loop(loop: Loop, show_types: list[str]) -> None:
     # Get status indicators
     docker_success = None
     feedback_decision = None
-    
+
     for event in loop.running:
         if event.type == "docker_exec" and event.success is not None:
             docker_success = event.success
-    
+
     for event in loop.feedback:
         if event.type == "feedback" and event.success is not None:
             feedback_decision = event.success
@@ -55,7 +55,7 @@ def render_loop(loop: Loop, show_types: list[str]) -> None:
         parts.append("🐳✓" if docker_success else "🐳✗")
     if feedback_decision is not None:
         parts.append("✅" if feedback_decision else "❌")
-    
+
     result_str = " ".join(parts) if parts else ""
 
     with st.expander(f"🔄 **Loop {loop.loop_id}** {result_str}", expanded=False):
@@ -313,4 +313,3 @@ def render_summary(summary: dict) -> None:
         success = summary.get("docker_success", 0)
         fail = summary.get("docker_fail", 0)
         st.metric("Docker", f"{success}✓ / {fail}✗")
-

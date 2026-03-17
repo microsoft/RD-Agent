@@ -4,9 +4,11 @@ AutoRL-Bench Results Dashboard
 Usage:
     streamlit run rdagent/scenarios/rl/autorl_bench/core/ui.py --server.port=8510 --server.address=0.0.0.0
 """
+
+from pathlib import Path
+
 import pandas as pd
 import streamlit as st
-from pathlib import Path
 
 # ---------- 页面配置 ----------
 st.set_page_config(page_title="AutoRL-Bench", page_icon="🧪", layout="wide")
@@ -14,7 +16,8 @@ st.set_page_config(page_title="AutoRL-Bench", page_icon="🧪", layout="wide")
 CSV_PATH = Path(__file__).resolve().parent.parent / "results.csv"
 
 # ---------- 自定义样式 ----------
-st.markdown("""
+st.markdown(
+    """
 <style>
     /* 指标卡片 */
     div[data-testid="stMetric"] {
@@ -39,7 +42,9 @@ st.markdown("""
         font-size: 0.9rem;
     }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # ---------- 标题 ----------
 st.markdown("# 🧪 AutoRL-Bench Results")
@@ -65,10 +70,7 @@ with st.sidebar:
 
     st.divider()
     st.markdown("### About")
-    st.markdown(
-        "Evaluating LLM-driven agents that optimize smaller LLMs "
-        "via RL post-training."
-    )
+    st.markdown("Evaluating LLM-driven agents that optimize smaller LLMs " "via RL post-training.")
 
 filtered = df.copy()
 if sel_agent != "All":
@@ -93,23 +95,53 @@ if len(filtered) > 1:
         .reset_index()
         .sort_values("best", ascending=False)
     )
-    summary.columns = ["Agent", "Task", "Base Model", "Runs", "Success", "Baseline", "Best", "Best Impr.", "Submissions"]
+    summary.columns = [
+        "Agent",
+        "Task",
+        "Base Model",
+        "Runs",
+        "Success",
+        "Baseline",
+        "Best",
+        "Best Impr.",
+        "Submissions",
+    ]
     st.dataframe(summary, use_container_width=True, hide_index=True)
 
 st.divider()
 
 # ---------- 结果表格 ----------
 st.markdown("#### Run History")
-display = filtered[[
-    "timestamp", "agent", "driver_model", "base_model", "task",
-    "baseline", "best_score", "improvement", "submissions",
-    "duration_min", "success", "workspace",
-]].sort_values("timestamp", ascending=False)
+display = filtered[
+    [
+        "timestamp",
+        "agent",
+        "driver_model",
+        "base_model",
+        "task",
+        "baseline",
+        "best_score",
+        "improvement",
+        "submissions",
+        "duration_min",
+        "success",
+        "workspace",
+    ]
+].sort_values("timestamp", ascending=False)
 
 display.columns = [
-    "Time", "Agent", "Driver LLM", "Base Model", "Task",
-    "Baseline", "Best Score", "Improvement", "Submissions",
-    "Duration(min)", "Success", "Workspace",
+    "Time",
+    "Agent",
+    "Driver LLM",
+    "Base Model",
+    "Task",
+    "Baseline",
+    "Best Score",
+    "Improvement",
+    "Submissions",
+    "Duration(min)",
+    "Success",
+    "Workspace",
 ]
 
 st.dataframe(

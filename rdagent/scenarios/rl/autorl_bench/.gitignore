@@ -2,6 +2,7 @@
 workspace/
 results.csv
 log/
+logs/
 doc/
 
 # Python

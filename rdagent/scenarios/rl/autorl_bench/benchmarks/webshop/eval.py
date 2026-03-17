@@ -8,6 +8,7 @@ WebShop Evaluator - 电商网站交互环境
 
 WebShop 官方代码: https://github.com/princeton-nlp/webshop
 """
+
 import json
 import os
 import sys
@@ -15,8 +16,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Tuple
 
-from rdagent.scenarios.rl.autorl_bench.core.evaluator import BaseEvaluator
 from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.rl.autorl_bench.core.evaluator import BaseEvaluator
 
 from .data import WEBSHOP_REPO_DIR, _clone_webshop_repo, _ensure_repo_in_path
 
@@ -26,18 +27,23 @@ LOG_DIR = Path(__file__).resolve().parent.parent.parent / "log"
 
 class _Tee:
     """同时输出到终端和日志文件"""
+
     def __init__(self, filepath):
         self.terminal = sys.__stdout__
         self.log = open(filepath, "w", encoding="utf-8")
+
     def write(self, message):
         self.terminal.write(message)
         self.log.write(message)
         self.log.flush()
+
     def flush(self):
         self.terminal.flush()
         self.log.flush()
+
     def isatty(self):
         return False
+
     def fileno(self):
         return self.terminal.fileno()
 
@@ -50,6 +56,7 @@ def _log(msg: str):
 # ============================================================
 # LLM 后端工厂
 # ============================================================
+
 
 def create_llm_fn(backend: str, model_path: str, **kwargs) -> Tuple[Callable, Callable]:
     """
@@ -66,9 +73,7 @@ def create_llm_fn(backend: str, model_path: str, **kwargs) -> Tuple[Callable, Ca
         from vllm.distributed.parallel_state import destroy_model_parallel
 
         llm_engine = LLM(
-            model=model_path,
-            tensor_parallel_size=kwargs.get("tensor_parallel_size", 1),
-            trust_remote_code=True
+            model=model_path, tensor_parallel_size=kwargs.get("tensor_parallel_size", 1), trust_remote_code=True
         )
 
         _vllm_sys_msg = (
@@ -91,7 +96,9 @@ def create_llm_fn(backend: str, model_path: str, **kwargs) -> Tuple[Callable, Ca
         def cleanup():
             nonlocal llm_engine
             import gc
+
             import torch
+
             destroy_model_parallel()
             llm_engine = None
             gc.collect()
@@ -141,6 +148,7 @@ def create_llm_fn(backend: str, model_path: str, **kwargs) -> Tuple[Callable, Ca
 # ============================================================
 # ReAct Agent 核心逻辑
 # ============================================================
+
 
 def _format_available_actions(avail: dict) -> str:
     """将环境返回的 available_actions 格式化为文本列表"""
@@ -219,7 +227,9 @@ def webshop_run(
         avail_text = _format_available_actions(avail)
 
         prompt = build_react_prompt(
-            instruction, history, observation,
+            instruction,
+            history,
+            observation,
             available_actions=avail_text,
             history_window=history_window,
         )
@@ -251,6 +261,7 @@ def webshop_run(
 # ============================================================
 # Evaluator
 # ============================================================
+
 
 class WebShopEvaluator(BaseEvaluator):
     """
@@ -369,6 +380,7 @@ class WebShopEvaluator(BaseEvaluator):
                 except Exception as e:
                     _log(f"  ERROR: {e}")
                     import traceback
+
                     _log(traceback.format_exc())
                     continue
 
@@ -396,15 +408,16 @@ class WebShopEvaluator(BaseEvaluator):
             result["error"] = str(e)
             _log(f"ERROR: {e}")
             import traceback
+
             _log(traceback.format_exc())
 
         finally:
             # --- 清理 ---
-            if 'env' in locals():
+            if "env" in locals():
                 env.close()
 
             # 释放 LLM 资源
-            if 'llm_cleanup' in locals():
+            if "llm_cleanup" in locals():
                 llm_cleanup()
 
             # 恢复 stdout

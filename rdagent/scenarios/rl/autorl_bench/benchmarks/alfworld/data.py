@@ -4,6 +4,7 @@ ALFWorld 数据准备
 官方 alfworld-download 一次性下载所有数据（json + pddl + game.tw-pddl + logic）
 到 ~/.cache/alfworld/，然后只把训练数据 symlink 给 agent。
 """
+
 import sys
 from pathlib import Path
 

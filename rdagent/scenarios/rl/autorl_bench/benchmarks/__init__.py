@@ -4,13 +4,13 @@ AutoRL-Bench Benchmarks Registry
 注册表，管理所有可用的 benchmark 评测器。
 添加新 benchmark 时，在此注册。
 """
+
 import importlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional, Type
 
 from rdagent.scenarios.rl.autorl_bench.core.evaluator import BaseEvaluator
-
 
 BENCHMARKS_DIR = Path(__file__).parent
 
@@ -22,12 +22,15 @@ class BenchmarkConfig:
     每个 benchmark 的数据下载/处理逻辑写在各自目录的 data.py 里，
     不在这里统一处理。这样新增 benchmark 时只需在自己目录下实现即可。
     """
+
     id: str
     evaluator_class: str  # 评测器类的完整路径
     data_module: str = ""  # 数据模块路径（实现 download_train_data 函数）
     description: str = ""
     eval_config: Optional[Dict[str, Any]] = field(default=None)
-    expose_files: list = field(default_factory=list)  # benchmark 特有的额外文件（description.md 和 instructions.md 由 run.py 统一挂载）
+    expose_files: list = field(
+        default_factory=list
+    )  # benchmark 特有的额外文件（description.md 和 instructions.md 由 run.py 统一挂载）
     bench_dir: Optional[str] = None  # 自定义 benchmark 目录路径（默认 None 则用 BENCHMARKS_DIR / id）
 
 
@@ -94,16 +97,17 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
         data_module="rdagent.scenarios.rl.autorl_bench.benchmarks.deepsearchqa.data",
         description="DeepSearchQA - Google DeepMind 多步信息检索基准（900题，17领域）",
         eval_config={
-            "num_samples": 100,    # 快速评测用 100，完整评测用 900
-            "max_steps": 6,        # ReAct 最大搜索轮次
+            "num_samples": 100,  # 快速评测用 100，完整评测用 900
+            "max_steps": 6,  # ReAct 最大搜索轮次
             # api_key": "...", # 可选，不填则用 DuckDuckGo
         },
-        expose_files = ["eval.py"],
+        expose_files=["eval.py"],
     ),
 }
 
 
 from rdagent.scenarios.rl.autorl_bench.benchmarks.smith import discover_smith_benchmarks
+
 BENCHMARKS.update(discover_smith_benchmarks())
 
 
@@ -118,12 +122,12 @@ def get_benchmark(benchmark_id: str) -> BenchmarkConfig:
 def get_evaluator(benchmark_id: str) -> BaseEvaluator:
     """获取 benchmark 的评测器实例"""
     config = get_benchmark(benchmark_id)
-    
+
     # 动态导入评测器类
     module_path, class_name = config.evaluator_class.rsplit(".", 1)
     module = importlib.import_module(module_path)
     evaluator_class: Type[BaseEvaluator] = getattr(module, class_name)
-    
+
     return evaluator_class(config)
 
 

@@ -5,6 +5,7 @@ HumanEval 官方数据只有 test split，这里固定按 1:1 划分：
 - 前半（82 条）导出到 train.jsonl，给 agent 训练使用
 - 后半（82 条）留给评测使用（由 evaluator 通过 test_range 控制）
 """
+
 import json
 from pathlib import Path
 
@@ -35,9 +36,7 @@ def download_train_data(target_dir: Path) -> None:
         if line_count == _TRAIN_SAMPLES:
             logger.info(f"HumanEval train data exists: {output_file} ({line_count} samples)")
             return
-        logger.warning(
-            f"HumanEval train data has {line_count} samples, expected {_TRAIN_SAMPLES}. Rebuilding..."
-        )
+        logger.warning(f"HumanEval train data has {line_count} samples, expected {_TRAIN_SAMPLES}. Rebuilding...")
 
     target_dir.mkdir(parents=True, exist_ok=True)
     logger.info("Downloading HumanEval split...")

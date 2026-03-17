@@ -135,6 +135,7 @@ def style_status_cell(val: str, decision: bool | None = None) -> str:
 
 def style_df_with_decisions(df: pd.DataFrame, decisions_df: pd.DataFrame):
     """Apply styling to dataframe"""
+
     def apply_styles(row_idx: int, col: str) -> str:
         val = df.iloc[row_idx][col]
         decision = decisions_df.iloc[row_idx][col] if col in decisions_df.columns else None
@@ -180,4 +181,3 @@ def render_job_summary(job_path: Path, is_root: bool = False) -> None:
     with col3:
         total_loops = sum(1 for _, row in decisions_df.iterrows() for c in loop_cols if row[c] is not None)
         st.metric("Total Loops", total_loops)
-

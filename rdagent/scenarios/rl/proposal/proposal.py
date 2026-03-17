@@ -5,10 +5,8 @@ from rdagent.core.proposal import ExpGen, Hypothesis, Trace
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.rl.experiment.experiment import RLTask
-from rdagent.scenarios.rl.experiment.experiment import RLExperiment
+from rdagent.scenarios.rl.experiment.experiment import RLExperiment, RLTask
 from rdagent.utils.agent.tpl import T
-
 
 
 class RLPostTrainingExpGen(ExpGen):
@@ -47,7 +45,7 @@ class RLPostTrainingExpGen(ExpGen):
         """Build summary of historical experiments."""
         if not trace or not trace.hist:
             return ""
-        
+
         summaries = []
         for i, (exp, feedback) in enumerate(trace.hist[-3:]):  # 最近3个实验
             status = "成功" if feedback is not None and feedback.decision else "失败"
@@ -56,11 +54,11 @@ class RLPostTrainingExpGen(ExpGen):
             summaries.append(f"- 结果: {status}")
             # 添加失败原因和建议
             if feedback is not None:
-                if getattr(feedback, 'reason', None):
+                if getattr(feedback, "reason", None):
                     summaries.append(f"- 原因: {feedback.reason}")
-                if getattr(feedback, 'code_change_summary', None):
+                if getattr(feedback, "code_change_summary", None):
                     summaries.append(f"- 建议: {feedback.code_change_summary}")
-        
+
         return "\n".join(summaries)
 
     def _gen_hypothesis_with_llm(self, trace_summary: str) -> dict:

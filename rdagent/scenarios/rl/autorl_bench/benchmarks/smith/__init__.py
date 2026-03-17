@@ -4,11 +4,12 @@ Scans SMITH_BENCH_DIR/*/config.yaml and builds BenchmarkConfig entries
 automatically. The actual benchmark code/data lives outside the repo;
 default location is ``<repo-root>/../rl-smith/benchmarks/``.
 """
+
 import logging
 import os
+from pathlib import Path
 
 import yaml
-from pathlib import Path
 
 from rdagent.scenarios.rl.autorl_bench.benchmarks import BenchmarkConfig
 
@@ -16,10 +17,9 @@ logger = logging.getLogger(__name__)
 
 # Default: rl-smith/benchmarks as a sibling of the repo root
 import rdagent
+
 _REPO_ROOT = Path(rdagent.__path__[0]).resolve().parent  # rdagent pkg dir → RD-Agent/
-_SMITH_BENCH_DIR = Path(
-    os.environ.get("SMITH_BENCH_DIR", str(_REPO_ROOT.parent / "rl-smith" / "benchmarks"))
-)
+_SMITH_BENCH_DIR = Path(os.environ.get("SMITH_BENCH_DIR", str(_REPO_ROOT.parent / "rl-smith" / "benchmarks")))
 _PKG = "rdagent.scenarios.rl.autorl_bench"
 
 

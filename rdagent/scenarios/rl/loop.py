@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.exception import CoderError

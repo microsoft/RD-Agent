@@ -1,6 +1,7 @@
 """
 GRPO Training Loop
 """
+
 import json
 import os
 import re
@@ -74,7 +75,7 @@ def main():
     GRADING_SERVER_URL = os.environ.get("GRADING_SERVER_URL", "")
     TRAIN_RATIO = float(os.environ.get("TRAIN_RATIO", "0.05"))
     NUM_EPOCHS = int(os.environ.get("NUM_EPOCHS", "3"))
-    
+
     if not MODEL_PATH or not DATA_PATH:
         raise ValueError("MODEL_PATH and DATA_PATH required")
 
@@ -102,9 +103,9 @@ def main():
 
         config = GRPOConfig(
             output_dir=OUTPUT_DIR,
-            max_steps=20,                        # 固定步数，避免小数据集报错
-            per_device_train_batch_size=2,       # 小 batch 避免 OOM
-            gradient_accumulation_steps=4,       # 梯度累积
+            max_steps=20,  # 固定步数，避免小数据集报错
+            per_device_train_batch_size=2,  # 小 batch 避免 OOM
+            gradient_accumulation_steps=4,  # 梯度累积
             learning_rate=1e-5,
             max_completion_length=256,
             num_generations=4,
@@ -129,7 +130,7 @@ def main():
         checkpoint_dir = f"{OUTPUT_DIR}/checkpoint-epoch{epoch + 1}"
         trainer.save_model(checkpoint_dir)
         tokenizer.save_pretrained(checkpoint_dir)
-        
+
         # 下一个 epoch 从这个 checkpoint 继续训练
         current_model_path = checkpoint_dir
 

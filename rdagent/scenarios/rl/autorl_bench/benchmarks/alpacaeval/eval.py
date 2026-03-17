@@ -6,6 +6,7 @@ AlpacaEval 2.0 Evaluator
 2. 用 vLLM 生成模型输出
 3. 调用 alpaca_eval 进行 head-to-head 评测（Length-Controlled Win Rate）
 """
+
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -16,7 +17,6 @@ from vllm import LLM, SamplingParams
 
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.rl.autorl_bench.core.evaluator import BaseEvaluator
-
 
 DEFAULT_REFERENCE_FILE = "alpaca_eval_gpt4_baseline.json"
 DEFAULT_ANNOTATORS_CONFIG = "weighted_alpaca_eval_gpt4_turbo"
@@ -71,9 +71,7 @@ class AlpacaEvalEvaluator(BaseEvaluator):
             gpu_count=gpu_count,
         )
         try:
-            (work_dir / "model_outputs.json").write_text(
-                json.dumps(model_outputs, ensure_ascii=False, indent=2)
-            )
+            (work_dir / "model_outputs.json").write_text(json.dumps(model_outputs, ensure_ascii=False, indent=2))
         except Exception:
             logger.warning("Failed to save AlpacaEval model outputs")
 
@@ -128,9 +126,7 @@ class AlpacaEvalEvaluator(BaseEvaluator):
         if hasattr(tokenizer, "apply_chat_template"):
             messages = [{"role": "user", "content": instruction}]
             try:
-                return tokenizer.apply_chat_template(
-                    messages, tokenize=False, add_generation_prompt=True
-                )
+                return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
             except Exception:
                 pass
         return instruction

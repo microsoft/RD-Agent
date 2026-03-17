@@ -31,14 +31,14 @@ class RLExperiment2Feedback(Experiment2Feedback):
                 benchmark_summary = json.dumps(benchmark, ensure_ascii=False, indent=2)
             except TypeError:
                 benchmark_summary = str(benchmark)
-        
+
         # 获取假设和任务描述
         hypothesis = str(exp.hypothesis) if exp.hypothesis else "N/A"
         task_desc = exp.sub_tasks[0].get_task_information() if exp.sub_tasks else "N/A"
-        
+
         if exception is not None:
             return self._gen_error_feedback(hypothesis, str(exception))
-        
+
         return self._gen_feedback_with_llm(
             hypothesis=hypothesis,
             task_desc=task_desc,
