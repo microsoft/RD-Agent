@@ -4,10 +4,8 @@ import socket
 import docker
 import fire
 import litellm
-import typer
 from litellm import completion, embedding
 from litellm.utils import ModelResponse
-from typing_extensions import Annotated
 
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import cleanup_container
@@ -135,9 +133,9 @@ def env_check():
 
 
 def health_check(
-    check_env: Annotated[bool, typer.Option("--check-env/--no-check-env", "-e/-E")] = True,
-    check_docker: Annotated[bool, typer.Option("--check-docker/--no-check-docker", "-d/-D")] = True,
-    check_ports: Annotated[bool, typer.Option("--check-ports/--no-check-ports", "-p/-P")] = True,
+    check_env: bool = True,
+    check_docker: bool = True,
+    check_ports: bool = True,
 ):
     """
     Run the RD-Agent health check:
@@ -167,4 +165,4 @@ def health_check(
 
 
 if __name__ == "__main__":
-    typer.run(health_check)
+    fire.Fire(health_check)

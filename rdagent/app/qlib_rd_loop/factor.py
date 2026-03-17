@@ -7,8 +7,6 @@ from pathlib import Path
 from typing import Any, Optional
 
 import fire
-import typer
-from typing_extensions import Annotated
 
 from rdagent.app.qlib_rd_loop.conf import FACTOR_PROP_SETTING
 from rdagent.components.workflow.rd_loop import RDLoop
@@ -34,7 +32,7 @@ def main(
     step_n: Optional[int] = None,
     loop_n: Optional[int] = None,
     all_duration: str | None = None,
-    checkout: Annotated[bool, typer.Option("--checkout/--no-checkout", "-c/-C")] = True,
+    checkout: bool = True,
     checkout_path: Optional[str] = None,
     base_features_path: Optional[str] = None,
     **kwargs
