@@ -7,7 +7,7 @@
 | 角色 | 实例 | 职责 |
 |------|------|------|
 | **Benchmark** | GSM8K、HumanEval、ALFWorld 等 | 提供任务环境、自动评分 |
-| **小模型** | Qwen2.5-0.5B/7B | 被 RL 训练的 Agent |
+| **小模型** | Qwen2.5-1.5B/7B | 被 RL 训练的 Agent |
 | **大模型** | GPT-5.2 等 | 离线驱动 RL 优化（生成 reward、调超参等） |
 
 ---
@@ -86,23 +86,23 @@ conda activate autorl
 
 # Example Agent（简单 GRPO 训练，验证流程）
 python -m rdagent.scenarios.rl.autorl_bench.run \
-    --agent example_agent --task gsm8k --model Qwen/Qwen2.5-0.5B --timeout 7200
+    --agent example_agent --task gsm8k --model Qwen/Qwen2.5-1.5B --timeout 7200
 
 # OpenHands Agent + GSM8K
 python -m rdagent.scenarios.rl.autorl_bench.run \
-    --agent openhands --task gsm8k --model Qwen/Qwen2.5-0.5B --timeout 41600
+    --agent openhands --task gsm8k --model Qwen/Qwen2.5-1.5B --timeout 41600
 
 # OpenHands Agent + ALFWorld（首次运行自动下载 ~2GB 游戏数据）
 python -m rdagent.scenarios.rl.autorl_bench.run \
-    --agent openhands --task alfworld --model Qwen/Qwen2.5-0.5B-Instruct --timeout 41600
+    --agent openhands --task alfworld --model Qwen/Qwen2.5-1.5B-Instruct --timeout 41600
 
 # Smith benchmark（来自 rl-smith，自动发现，无需手动注册）
 python -m rdagent.scenarios.rl.autorl_bench.run \
-    --agent openhands --task smith-bbh --model Qwen/Qwen2.5-0.5B --timeout 7200
+    --agent openhands --task smith-bbh --model Qwen/Qwen2.5-1.5B --timeout 7200
 
 # 后台运行（推荐）
 nohup python -m rdagent.scenarios.rl.autorl_bench.run \
-    --agent openhands --task alfworld --model Qwen/Qwen2.5-0.5B-Instruct \
+    --agent openhands --task alfworld --model Qwen/Qwen2.5-1.5B-Instruct \
     --timeout 41600 > /dev/null 2>&1 &
 ```
 
@@ -133,7 +133,7 @@ streamlit run rdagent/scenarios/rl/autorl_bench/core/ui.py --server.port 8511
 |------|------|------|
 | `--agent` | Agent 类型 | `example_agent`、`rdagent`、`openhands` |
 | `--task` | Benchmark 任务名（内置或 `smith-*`） | `gsm8k`、`alfworld`、`smith-bbh` |
-| `--model` | HuggingFace 模型 repo_id，首次自动下载 | `Qwen/Qwen2.5-0.5B` |
+| `--model` | HuggingFace 模型 repo_id，首次自动下载 | `Qwen/Qwen2.5-1.5B` |
 | `--timeout` | Agent 最大运行时长（秒） | `41600`（~11.5h） |
 | `--port` | Grading Server 端口（默认 5000） | `5000` |
 
@@ -160,12 +160,12 @@ run.py 启动
 
 ```
 git_ignore_folder/rl_files/
-├── models/Qwen/Qwen2.5-0.5B/    # 模型权重（snapshot_download）
+├── models/Qwen/Qwen2.5-1.5B/    # 模型权重（snapshot_download）
 ├── datasets/
 │   ├── gsm8k/train.jsonl         # 训练数据（agent 可见）
 │   └── alfworld/train → ...      # 训练游戏数据（agent 可见，评估数据不在这）
 └── baseline_workspace/           # baseline 分数缓存
-    └── gsm8k_Qwen_Qwen2.5-0.5B.json
+    └── gsm8k_Qwen_Qwen2.5-1.5B.json
 ```
 
 ### Workspace（每次运行隔离）
@@ -181,7 +181,7 @@ workspace/gsm8k/
 │   ├── output/                       # 模型输出（$OUTPUT_DIR）
 │   │   ├── v1/                       # 第一版模型
 │   │   └── v2/                       # 第二版模型（迭代优化）
-│   ├── models/Qwen/Qwen2.5-0.5B →   # 软链接 → rl_files/models/...（只读）
+│   ├── models/Qwen/Qwen2.5-1.5B →   # 软链接 → rl_files/models/...（只读）
 │   ├── data →                        # 软链接 → rl_files/datasets/gsm8k/（只读）
 │   ├── description.md →              # 软链接 → benchmarks/gsm8k/description.md
 │   ├── instructions.md →             # 软链接 → core/instructions.md
@@ -201,8 +201,8 @@ workspace/gsm8k/
 
 ```csv
 run_id,timestamp,task,agent,base_model,baseline,best_score,improvement,submissions,duration_s,success,workspace
-20260211T143000,2026-02-11 14:30:00,gsm8k,openhands,Qwen/Qwen2.5-0.5B,21.61,22.37,0.76,3,3600,True,workspace/gsm8k/...
-20260211T160000,2026-02-11 16:00:00,gsm8k,rdagent,Qwen/Qwen2.5-0.5B,21.61,23.12,1.51,7,3600,True,workspace/gsm8k/...
+20260211T143000,2026-02-11 14:30:00,gsm8k,openhands,Qwen/Qwen2.5-1.5B,21.61,22.37,0.76,3,3600,True,workspace/gsm8k/...
+20260211T160000,2026-02-11 16:00:00,gsm8k,rdagent,Qwen/Qwen2.5-1.5B,21.61,23.12,1.51,7,3600,True,workspace/gsm8k/...
 ```
 
 每行记录一次独立实验的结果，方便对比不同 agent 在相同条件下的表现。
@@ -216,9 +216,9 @@ Agent 启动时（`start.sh`）可用的环境变量：
 | 变量 | 说明 | 示例 |
 |------|------|------|
 | `TASK` | 任务名 | `gsm8k` |
-| `BASE_MODEL` | 模型名 | `Qwen/Qwen2.5-0.5B` |
+| `BASE_MODEL` | 模型名 | `Qwen/Qwen2.5-1.5B` |
 | `WORKSPACE` | 工作根目录 | `workspace/gsm8k/20260211T143000` |
-| `MODEL_PATH` | 模型路径（只读） | `$WORKSPACE/models/Qwen/Qwen2.5-0.5B` |
+| `MODEL_PATH` | 模型路径（只读） | `$WORKSPACE/models/Qwen/Qwen2.5-1.5B` |
 | `DATA_PATH` | 数据路径（只读） | `$WORKSPACE/data` |
 | `OUTPUT_DIR` | 输出目录 | `$WORKSPACE/output` |
 | `GRADING_SERVER_URL` | 评测服务地址 | `http://localhost:5000` |
@@ -302,7 +302,7 @@ python generate_benchmark.py https://github.com/suzgunmirac/BIG-Bench-Hard --nam
 
 # 生成后直接可用
 cd /path/to/RD-Agent
-python -m rdagent.scenarios.rl.autorl_bench.run --task smith-my_bbh --agent openhands --model Qwen/Qwen2.5-0.5B
+python -m rdagent.scenarios.rl.autorl_bench.run --task smith-my_bbh --agent openhands --model Qwen/Qwen2.5-1.5B
 ```
 
 **手动创建** `rl-smith/benchmarks/<name>/` 目录，需要：

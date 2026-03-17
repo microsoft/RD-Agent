@@ -60,19 +60,18 @@ class GradingServer:
         self._eval_cache: dict[str, dict] = {}
 
     @staticmethod
-    def _make_cache_key(resolved_path: str) -> str:
+    def _make_cache_key(resolved_path: Path) -> str:
         """用路径 + safetensors/bin 文件最新 mtime 组合作为 cache key。
         模型被覆盖后 mtime 变化，cache 自动失效。"""
-        p = Path(resolved_path)
         mtime = 0.0
-        if p.is_dir():
-            for f in p.rglob("*"):
+        if resolved_path.is_dir():
+            for f in resolved_path.rglob("*"):
                 if f.suffix in (".safetensors", ".bin", ".json") and f.is_file():
                     mt = f.stat().st_mtime
                     if mt > mtime:
                         mtime = mt
-        elif p.is_file():
-            mtime = p.stat().st_mtime
+        elif resolved_path.is_file():
+            mtime = resolved_path.stat().st_mtime
         return f"{resolved_path}@{mtime}"
 
     def load_scores(self) -> list[dict]:
@@ -89,6 +88,23 @@ class GradingServer:
 
         return get_evaluator(self.task)
 
+    def resolve_model_path(self, model_path: str) -> Path:
+        """将模型路径约束在 workspace 下，防止访问任意文件系统路径。"""
+        if "\x00" in model_path:
+            raise ValueError("Invalid model_path")
+
+        workspace_root = self.workspace.expanduser().resolve()
+        model_path_obj = Path(model_path).expanduser()
+        if not model_path_obj.is_absolute():
+            model_path_obj = workspace_root / model_path_obj
+
+        resolved_path = model_path_obj.resolve(strict=False)
+        try:
+            resolved_path.relative_to(workspace_root)
+        except ValueError as exc:
+            raise ValueError("Invalid model_path") from exc
+        return resolved_path
+
     def submit(self, model_path: str, gpu: Optional[str] = None) -> dict:
         """
         提交模型评测
@@ -102,7 +118,7 @@ class GradingServer:
             包含 score、best、improvement 等完整信息的结果
 
         Raises:
-            ValueError: gpu 不在 CUDA_VISIBLE_DEVICES 范围内
+            ValueError: gpu 不在 CUDA_VISIBLE_DEVICES 范围内，或 model_path 非法
         """
         if self.available_gpus:
             if gpu is None:
@@ -114,7 +130,7 @@ class GradingServer:
 
         # B3 fix: 同一 model_path + 同一内容去重，直接返回缓存结果
         # 用路径 + 模型文件最新 mtime 作为 cache key，模型文件被覆盖后自动失效
-        resolved_path = str(Path(model_path).resolve())
+        resolved_path = self.resolve_model_path(model_path)
         cache_key = self._make_cache_key(resolved_path)
         if cache_key in self._eval_cache:
             cached = self._eval_cache[cache_key]
@@ -145,7 +161,7 @@ class GradingServer:
                 evaluator = self.get_evaluator()
                 gpu_count = len(self.available_gpus) if self.available_gpus else 1
                 result = evaluator.run_eval(
-                    model_path=model_path,
+                    model_path=str(resolved_path),
                     workspace_path=str(self.workspace),
                     model_name=self.base_model,
                     gpu_count=gpu_count,
@@ -269,9 +285,12 @@ def submit():
     try:
         result = server.submit(model_path, gpu=gpu)
         return jsonify(result)
-    except (RuntimeError, ValueError, OSError) as e:
-        logger.error(f"[SUBMIT] Error: {e}")
-        return jsonify({"error": str(e)}), 500
+    except ValueError:
+        logger.warning("[SUBMIT] Invalid request", exc_info=True)
+        return jsonify({"error": "Invalid request"}), 400
+    except (RuntimeError, OSError):
+        logger.exception("[SUBMIT] Internal server error")
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @app.route("/health", methods=["GET"])

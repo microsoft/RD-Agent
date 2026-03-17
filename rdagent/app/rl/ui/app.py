@@ -22,10 +22,17 @@ DEFAULT_LOG_BASE = "log/"
 
 def _safe_resolve(user_input: str | None, safe_root: Path) -> Path:
     """Resolve user path relative to safe_root; raise ValueError if it escapes."""
+    safe_root = safe_root.expanduser().resolve()
     if not user_input:
         return safe_root
+
+    if "\x00" in user_input:
+        raise ValueError("Invalid path: contains null byte")
+
     try:
         normalized = os.path.normpath(user_input)
+        if os.path.splitdrive(normalized)[0]:
+            raise ValueError("Absolute paths with drive letters are not allowed")
         path_obj = Path(normalized).expanduser()
         if path_obj.is_absolute():
             raise ValueError("Absolute paths are not allowed")

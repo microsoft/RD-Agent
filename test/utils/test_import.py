@@ -21,6 +21,8 @@ class TestRDAgentImports(unittest.TestCase):
                 continue
             if "meta_tpl" in fstr:
                 continue
+            if "autorl_bench/workspace/" in fstr:
+                continue
             if "template" in fstr or "tpl" in fstr:
                 continue
             if "model_coder" in fstr:
