@@ -132,6 +132,7 @@ class LoopBase:
         self.step_n: Optional[int] = None  # remain step count
 
         self.semaphores: dict[str, asyncio.Semaphore] = {}
+        self._step_n_lock: asyncio.Lock = asyncio.Lock()
 
     def get_unfinished_loop_cnt(self, next_loop: int) -> int:
         n = 0
@@ -168,7 +169,7 @@ class LoopBase:
             self._pbar.close()
             del self._pbar
 
-    def _check_exit_conditions_on_step(self, loop_id: Optional[int] = None, step_id: Optional[int] = None) -> None:
+    async def _check_exit_conditions_on_step(self, loop_id: Optional[int] = None, step_id: Optional[int] = None) -> None:
         """Check if the loop should continue or terminate.
 
         Raises
@@ -176,11 +177,12 @@ class LoopBase:
         LoopTerminationException
             When conditions indicate that the loop should terminate
         """
-        # Check step count limitation
-        if self.step_n is not None:
-            if self.step_n <= 0:
-                raise self.LoopTerminationError("Step count reached")
-            self.step_n -= 1
+        # Check step count limitation — guarded by lock to prevent race under parallel steps
+        async with self._step_n_lock:
+            if self.step_n is not None:
+                if self.step_n <= 0:
+                    raise self.LoopTerminationError("Step count reached")
+                self.step_n -= 1
 
         # Check timer timeout
         if self.timer.started:
@@ -305,7 +307,7 @@ class LoopBase:
                             # it has been executed successfully
                             self.dump(self.session_folder / f"{li}" / f"{si}_{name}")
 
-                        self._check_exit_conditions_on_step(loop_id=li, step_id=si)
+                        await self._check_exit_conditions_on_step(loop_id=li, step_id=si)
                     else:
                         logger.warning(f"Step forward {si} of loop {li} is skipped.")
 
@@ -528,7 +530,7 @@ class LoopBase:
     def __getstate__(self) -> dict[str, Any]:
         res = {}
         for k, v in self.__dict__.items():
-            if k not in ["queue", "semaphores", "_pbar"]:
+            if k not in ["queue", "semaphores", "_pbar", "_step_n_lock"]:
                 res[k] = v
         return res
 
@@ -536,6 +538,7 @@ class LoopBase:
         self.__dict__.update(state)
         self.queue = asyncio.Queue()
         self.semaphores = {}
+        self._step_n_lock = asyncio.Lock()
 
 
 def kill_subprocesses() -> None:

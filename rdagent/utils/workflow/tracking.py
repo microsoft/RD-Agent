@@ -85,10 +85,10 @@ class WorkflowTracker:
             if self.loop_base.timer.started:
                 remain_time = self.loop_base.timer.remain_time()
                 assert remain_time is not None
-                mlflow.log_metric("remain_time", remain_time.total_seconds())
+                mlflow.log_metric("remain_time", max(remain_time.total_seconds(), 0.0))
                 mlflow.log_metric(
                     "remain_percent",
-                    remain_time / self.loop_base.timer.all_duration * 100,
+                    max(remain_time / self.loop_base.timer.all_duration * 100, 0.0),
                 )
 
         # Keep only the log_workflow_state method as it's the primary entry point now

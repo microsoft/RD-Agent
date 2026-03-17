@@ -56,13 +56,12 @@ class RDAgentTimer:
     def is_timeout(self) -> bool:
         if self.started and self.target_time is not None:
             self.update_remain_time()
-            if datetime.now() > self.target_time:
-                return True
+            return self._remain_time_duration == timedelta(0)
         return False
 
     def update_remain_time(self) -> None:
         if self.started and self.target_time is not None:
-            self._remain_time_duration = self.target_time - datetime.now()
+            self._remain_time_duration = max(self.target_time - datetime.now(), timedelta(0))
         return None
 
     def remain_time(self) -> timedelta | None:
