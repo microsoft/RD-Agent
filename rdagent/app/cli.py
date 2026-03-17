@@ -64,9 +64,11 @@ def ui(port=19899, log_dir="", debug: bool = False, data_science: bool = False):
 
 def server_ui(port=19899):
     """
-    start web app to show the log traces in real time
+    start the Flask log server in real time
     """
-    subprocess.run(["python", "rdagent/log/server/app.py", f"--port={port}"])
+    from rdagent.log.server.app import main as log_server_main
+
+    log_server_main(port=port)
 
 
 def ds_user_interact(port=19900):
