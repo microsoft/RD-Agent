@@ -77,7 +77,7 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
             "max_steps": 50,
             "env_num": 134,  # 完整评测集（valid_unseen），之前调试时设为 1
         },
-        expose_files=["eval.py", "react_prompts.json"],
+        expose_files=["eval.py"],
     ),
     "webshop": BenchmarkConfig(
         id="webshop",
