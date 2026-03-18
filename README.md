@@ -31,6 +31,7 @@
 # 📰 News
 | 🗞️ News        | 📝 Description                 |
 | --            | ------      |
+| Web UI Release | We release a new frontend that can be built and served by `rdagent server_ui` for real-time interaction and trace viewing, currently excluding the `data_science` scenario. |
 | NeurIPS 2025 Acceptance | We are thrilled to announce that our paper [R&D-Agent-Quant](https://arxiv.org/abs/2505.15155) has been accepted to NeurIPS 2025 | 
 | [Technical Report Release](#overall-technical-report) | Overall framework description and results on MLE-bench | 
 | [R&D-Agent-Quant Release](#deep-application-in-diverse-scenarios) | Apply R&D-Agent to quant trading | 
@@ -344,6 +345,8 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   ```
 
 - We also provide a web frontend in `web/` that works with the Flask backend started by `server_ui`.
+
+  **NOTE:** The current web UI does not support the `data_science` scenario yet. It currently supports other scenarios served by `rdagent server_ui`. For the `data_science` scenario, please continue to use `rdagent ui --data-science`.
 
   ```sh
   cd web
