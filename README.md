@@ -343,6 +343,30 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   rdagent ui --port 19899 --log-dir <your log folder like "log/"> --data-science
   ```
 
+- We also provide a web frontend in `web/` that works with the Flask backend started by `server_ui`.
+
+  ```sh
+  cd web
+  npm install
+  ```
+
+- To build the frontend for the Flask backend, generate the static assets into the default directory used by `server_ui`:
+
+  ```sh
+  cd web
+  npm run build:flask
+  ```
+
+  By default, `server_ui` serves static files from `./git_ignore_folder/static`. If you need a different location, set the `UI_STATIC_PATH` environment variable before starting the backend.
+
+- Start the Flask backend and serve the built frontend together with the real-time APIs:
+
+  ```sh
+  rdagent server_ui --port 19899
+  ```
+
+  After that, open `http://127.0.0.1:19899` in your browser.
+
 - About the `data_science` parameter: If you want to see the logs of the data science scenario, set the `data_science` parameter to `True`; otherwise set it to `False`.
  
 - Although port 19899 is not commonly used, but before you run this demo, you need to check if port 19899 is occupied. If it is, please change it to another port that is not occupied.
