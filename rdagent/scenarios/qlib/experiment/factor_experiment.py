@@ -21,8 +21,11 @@ class QlibFactorExperiment(FactorExperiment[FactorTask, QlibFBWorkspace, FactorF
         super().__init__(*args, **kwargs)
         self.experiment_workspace = QlibFBWorkspace(template_folder_path=Path(__file__).parent / "factor_template")
         self.stdout = ""
-        self.base_features: dict[str, str] = {}         # Qlib features in operator form, e.g., "RESI5": "Resi($close, 5)/$close"
-        self.base_feature_codes: dict[str, str] = {}    # Qlib features in code form
+        self.base_features: dict[str, str] = (
+            {}
+        )  # Qlib features in operator form, e.g., "RESI5": "Resi($close, 5)/$close"
+        self.base_feature_codes: dict[str, str] = {}  # Qlib features in code form
+
 
 class QlibFactorScenario(Scenario):
     def __init__(self) -> None:

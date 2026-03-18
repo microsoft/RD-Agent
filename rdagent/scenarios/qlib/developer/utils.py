@@ -3,11 +3,11 @@ from typing import List
 import pandas as pd
 
 from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiFeedback
+from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.exception import FactorEmptyError
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
-from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 
 
@@ -26,9 +26,7 @@ def _build_base_feature_workspaces(exp: QlibFactorExperiment) -> list[FactorFBWo
     return workspaces
 
 
-def _build_execute_calls(
-    exp: QlibFactorExperiment, base_feature_workspaces: list[FactorFBWorkspace]
-) -> list[tuple]:
+def _build_execute_calls(exp: QlibFactorExperiment, base_feature_workspaces: list[FactorFBWorkspace]) -> list[tuple]:
     execute_calls = []
 
     if exp.sub_tasks:
@@ -77,9 +75,7 @@ def _normalize_factor_index(df: pd.DataFrame) -> pd.DataFrame | None:
         return None
 
     if "instrument" not in index_names:
-        logger.warning(
-            f"Skip factor dataframe because index misses 'instrument'. index names={index_names}"
-        )
+        logger.warning(f"Skip factor dataframe because index misses 'instrument'. index names={index_names}")
         return None
 
     datetime_values = _resolve_index_level_values(df, "datetime")
@@ -120,9 +116,7 @@ def _process_message_and_df(
     normalized_df = _normalize_factor_index(df)
     if normalized_df is None:
         logger.warning(f"Factor data from {source_name} is skipped due to invalid index structure: {index_info}")
-        return (
-            f"{error_message}Factor data from {source_name} is skipped due to invalid index: {index_info}. "
-        )
+        return f"{error_message}Factor data from {source_name} is skipped due to invalid index: {index_info}. "
 
     time_diff = df.index.get_level_values("datetime").to_series().diff().dropna().unique()
     if pd.Timedelta(minutes=1) in time_diff:
@@ -169,9 +163,7 @@ def process_factor_data(exp_or_list: List[QlibFactorExperiment] | QlibFactorExpe
         try:
             return pd.concat(factor_dfs, axis=1)
         except Exception as concat_error:
-            concat_index_info = " | ".join(
-                [f"df#{i}: {_format_index_info(df)}" for i, df in enumerate(factor_dfs)]
-            )
+            concat_index_info = " | ".join([f"df#{i}: {_format_index_info(df)}" for i, df in enumerate(factor_dfs)])
             logger.warning(
                 f"Failed to concat factor data due to index misalignment. concat_error={concat_error}; collected_index_info={concat_index_info}"
             )

@@ -1,6 +1,6 @@
+import logging
 import os
 import random
-import logging
 import traceback
 from collections import defaultdict
 from contextlib import redirect_stderr, redirect_stdout
@@ -47,6 +47,7 @@ _configure_app_logger()
 
 
 _TARGETS_WITHOUT_USER_INTERACTION = {"general_model", "fin_factor_report"}
+
 
 class RDAgentTask:
     def __init__(
@@ -148,7 +149,9 @@ class RDAgentTask:
 
                         fin_factor(**self.kwargs)
                     elif self.target_name == "fin_factor_report":
-                        from rdagent.app.qlib_rd_loop.factor_from_report import main as fin_factor_report
+                        from rdagent.app.qlib_rd_loop.factor_from_report import (
+                            main as fin_factor_report,
+                        )
 
                         fin_factor_report(**self.kwargs)
                     elif self.target_name == "fin_model":

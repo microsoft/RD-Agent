@@ -21,7 +21,7 @@ ALPHA20 = {
     "CORD60": "Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), 60)",
     "CORD10": "Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), 10)",
     "CORR20": "Corr($close, Log($volume+1), 20)",
-    "KLOW": "(Less($open, $close)-$low)/$open"
+    "KLOW": "(Less($open, $close)-$low)/$open",
 }
 
 ALPHA158 = {
@@ -182,10 +182,10 @@ ALPHA158 = {
     "VSUMD10": "(Sum(Greater($volume-Ref($volume, 1), 0), 10)-Sum(Greater(Ref($volume, 1)-$volume, 0), 10))/(Sum(Abs($volume-Ref($volume, 1)), 10)+1e-12)",
     "VSUMD20": "(Sum(Greater($volume-Ref($volume, 1), 0), 20)-Sum(Greater(Ref($volume, 1)-$volume, 0), 20))/(Sum(Abs($volume-Ref($volume, 1)), 20)+1e-12)",
     "VSUMD30": "(Sum(Greater($volume-Ref($volume, 1), 0), 30)-Sum(Greater(Ref($volume, 1)-$volume, 0), 30))/(Sum(Abs($volume-Ref($volume, 1)), 30)+1e-12)",
-    "VSUMD60": "(Sum(Greater($volume-Ref($volume, 1), 0), 60)-Sum(Greater(Ref($volume, 1)-$volume, 0), 60))/(Sum(Abs($volume-Ref($volume, 1)), 60)+1e-12)"
+    "VSUMD60": "(Sum(Greater($volume-Ref($volume, 1), 0), 60)-Sum(Greater(Ref($volume, 1)-$volume, 0), 60))/(Sum(Abs($volume-Ref($volume, 1)), 60)+1e-12)",
 }
 
-_TFW = FBWorkspace() # test feature workspace
+_TFW = FBWorkspace()  # test feature workspace
 TEST_FEATURE_CODE = """
 import qlib  
 from qlib.data import D  
@@ -195,10 +195,9 @@ expressions = {experessions}
 df = D.features(["SH600000"], expressions, start_time="2008-01-01", end_time="2020-08-31")
 """
 
+
 def validate_qlib_features(expressions: list[str]) -> bool:
-    _TFW.inject_files(**{
-        "test_fea.py": TEST_FEATURE_CODE.format(experessions=str(expressions))
-    })
+    _TFW.inject_files(**{"test_fea.py": TEST_FEATURE_CODE.format(experessions=str(expressions))})
 
     qlib_env = QlibCondaEnv(conf=QlibCondaConf())
     qlib_env.prepare()

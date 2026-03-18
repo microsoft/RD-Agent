@@ -14,8 +14,8 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
 from rdagent.core.exception import FactorEmptyError, ModelEmptyError
 from rdagent.core.proposal import (
-    ExperimentPlan,
     Experiment2Feedback,
+    ExperimentPlan,
     Hypothesis2Experiment,
     HypothesisFeedback,
     HypothesisGen,
@@ -25,6 +25,7 @@ from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.qlib.proposal.quant_proposal import QuantTrace
 from rdagent.utils.qlib import ALPHA20
+
 
 class QuantRDLoop(RDLoop):
     skip_loop_error = (
@@ -66,7 +67,7 @@ class QuantRDLoop(RDLoop):
         self.plan: ExperimentPlan = {
             "features": ALPHA20,
             "feature_codes": {},
-        } # for user interaction
+        }  # for user interaction
         self.trace = QuantTrace(scen=scen)
         super(RDLoop, self).__init__()
 
@@ -134,7 +135,7 @@ def main(
     all_duration: str | None = None,
     checkout: bool = True,
     base_features_path: str | None = None,
-    **kwargs
+    **kwargs,
 ):
     """
     Auto R&D Evolving loop for fintech factors.
@@ -150,7 +151,7 @@ def main(
     if "user_interaction_queues" in kwargs and kwargs["user_interaction_queues"] is not None:
         quant_loop._set_interactor(*kwargs["user_interaction_queues"])
         quant_loop._interact_init_params()
-        
+
     asyncio.run(quant_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration))
 
 

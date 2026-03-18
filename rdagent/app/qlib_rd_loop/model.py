@@ -22,7 +22,7 @@ def main(
     all_duration: str | None = None,
     checkout: bool = True,
     base_features_path: str | None = None,
-    **kwargs
+    **kwargs,
 ):
     """
     Auto R&D Evolving loop for fintech models

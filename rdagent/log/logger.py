@@ -7,14 +7,12 @@ from pathlib import Path
 from typing import Generator
 
 from loguru import logger
-
-from .conf import LOG_SETTINGS
-
 from psutil import Process
 
 from rdagent.core.utils import SingletonBaseClass, import_class
 
 from .base import Storage
+from .conf import LOG_SETTINGS
 from .storage import FileStorage
 from .utils import get_caller_info
 

@@ -5,16 +5,16 @@ It is from `rdagent/app/qlib_rd_loop/model.py` and try to replace `rdagent/app/q
 
 import asyncio
 import json
+from multiprocessing import Queue
 from pathlib import Path
 from typing import Any
-from multiprocessing import Queue
 
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
 from rdagent.core.proposal import (
-    ExperimentPlan,
     Experiment2Feedback,
+    ExperimentPlan,
     Hypothesis,
     Hypothesis2Experiment,
     HypothesisFeedback,
@@ -24,8 +24,8 @@ from rdagent.core.proposal import (
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-from rdagent.utils.workflow import LoopBase, LoopMeta
 from rdagent.utils.qlib import ALPHA20, validate_qlib_features
+from rdagent.utils.workflow import LoopBase, LoopMeta
 
 
 class RDLoop(LoopBase, metaclass=LoopMeta):
@@ -44,8 +44,8 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         self.plan: ExperimentPlan = {
             "features": ALPHA20,
             "feature_codes": {},
-        } # for user interaction
-        
+        }  # for user interaction
+
         self.hypothesis2experiment: Hypothesis2Experiment = (
             import_class(PROP_SETTING.hypothesis2experiment)()
             if hasattr(PROP_SETTING, "hypothesis2experiment") and PROP_SETTING.hypothesis2experiment
@@ -71,7 +71,7 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
     def _set_interactor(self, user_request_q: Queue, user_response_q: Queue):
         self.user_request_q = user_request_q
         self.user_response_q = user_response_q
-    
+
     def _init_base_features(self, base_features_path: str | None):
         if base_features_path is not None:
             try:
@@ -91,13 +91,19 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
                         features = json.load(f)
 
                     if not isinstance(features, dict):
-                        raise ValueError("`base_factors.json` must contain a JSON object of feature_name -> expression.")
+                        raise ValueError(
+                            "`base_factors.json` must contain a JSON object of feature_name -> expression."
+                        )
 
                     if validate_qlib_features(list(features.values())):
                         self.plan["features"] = features
-                        logger.info(f"Loaded base features from {base_factors_file}. {len(features)} features loaded and {len(feature_codes)} feature code files loaded.")
+                        logger.info(
+                            f"Loaded base features from {base_factors_file}. {len(features)} features loaded and {len(feature_codes)} feature code files loaded."
+                        )
                     else:
-                        logger.warning(f"Base feature validation failed for features loaded from {base_factors_file}. Using default features.")
+                        logger.warning(
+                            f"Base feature validation failed for features loaded from {base_factors_file}. Using default features."
+                        )
             except Exception as e:
                 logger.warning(f"Failed to load base features from {base_features_path}: {e}. Using default features.")
         else:
@@ -109,22 +115,28 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
 
         logger.info("Waiting for user interaction on initial parameters...")
         try:
-            self.user_request_q.put({
-                "user_instruction": None,
-            })
+            self.user_request_q.put(
+                {
+                    "user_instruction": None,
+                }
+            )
             res_dict = self.user_response_q.get()
             logger.info("Received user instruction response.")
             self.plan.update(res_dict)
-            
+
             if "feature_codes" not in self.plan:
-                self.plan["user_instruction"] += f"\n\n{str(list(self.plan['feature_codes'].keys()))} has been configured as the base factor; do not generate duplicate factors."
+                self.plan[
+                    "user_instruction"
+                ] += f"\n\n{str(list(self.plan['feature_codes'].keys()))} has been configured as the base factor; do not generate duplicate factors."
             fea_valid_msg = ""
             while True:
                 logger.info("Requesting base feature configuration from user.")
-                self.user_request_q.put({
-                    "features": self.plan["features"],
-                    "feature_validation_msg": fea_valid_msg,
-                })
+                self.user_request_q.put(
+                    {
+                        "features": self.plan["features"],
+                        "feature_validation_msg": fea_valid_msg,
+                    }
+                )
                 self.plan["features"] = self.user_response_q.get()
                 logger.info("Received base feature configuration response.")
                 if validate_qlib_features(list(self.plan["features"].values())):
@@ -133,7 +145,7 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
                 else:
                     logger.info("Base feature validation failed. Asking user to revise.")
                     fea_valid_msg = "Some features are invalid, please revise."
-            
+
         except (EOFError, OSError):
             logger.info("User interaction failed, using default initial parameters.")
             return

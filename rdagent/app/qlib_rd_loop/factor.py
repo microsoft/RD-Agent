@@ -35,7 +35,7 @@ def main(
     checkout: bool = True,
     checkout_path: Optional[str] = None,
     base_features_path: Optional[str] = None,
-    **kwargs
+    **kwargs,
 ):
     """
     Auto R&D Evolving loop for fintech factors.
@@ -54,7 +54,7 @@ def main(
         factor_loop = FactorRDLoop(FACTOR_PROP_SETTING)
     else:
         factor_loop = FactorRDLoop.load(path, checkout=checkout)
-    
+
     factor_loop._init_base_features(base_features_path)
     if "user_interaction_queues" in kwargs and kwargs["user_interaction_queues"] is not None:
         factor_loop._set_interactor(*kwargs["user_interaction_queues"])
