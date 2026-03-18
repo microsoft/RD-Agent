@@ -19,7 +19,7 @@
         "jszip": "^3.10.1",
         "jquery": "^3.7.1",
         "katex": "^0.16.22",
-        "markdown-it": "^14.1.0",
+        "markdown-it": "^14.1.1",
         "markdown-it-texmath": "^1.0.0",
         "marked": "^15.0.4",
         "prismjs": "^1.29.0",
