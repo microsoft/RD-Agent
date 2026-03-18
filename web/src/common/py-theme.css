@@ -1,0 +1,137 @@
+/** 
+ * prism.js tomorrow night eighties for JavaScript, CoffeeScript, CSS and HTML
+ * Based on https://github.com/chriskempson/tomorrow-theme
+ * @author Rose Pritchard
+ */
+
+code[class*="language-"],
+pre[class*="language-"] {
+    color: #333;
+    /* 更改为深灰色，便于白色背景下的阅读 */
+    background: none;
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    font-size: 1em;
+    text-align: left;
+    white-space: pre;
+    word-spacing: normal;
+    word-break: normal;
+    word-wrap: normal;
+    line-height: 1.5;
+    -moz-tab-size: 4;
+    -o-tab-size: 4;
+    tab-size: 4;
+    -webkit-hyphens: none;
+    -moz-hyphens: none;
+    -ms-hyphens: none;
+    hyphens: none;
+    font-weight: 500;
+}
+
+
+/* Code blocks */
+
+pre[class*="language-"] {
+    padding: 1em;
+    margin: .5em 0;
+    overflow: auto;
+}
+
+:not(pre)>code[class*="language-"],
+pre[class*="language-"] {
+    background: #ffffff;
+    /* 修改背景为白色 */
+}
+
+
+/* Inline code */
+
+:not(pre)>code[class*="language-"] {
+    padding: .1em;
+    border-radius: .3em;
+    white-space: normal;
+}
+
+.token.comment,
+.token.block-comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+    color: #6a737d;
+    /* 调整注释为更深的灰色，增加可读性 */
+}
+
+.token.punctuation {
+    color: #555;
+    /* 调整标点符号为更深的灰色 */
+}
+
+.token.tag,
+.token.attr-name,
+.token.namespace,
+.token.deleted {
+    color: #e2777a;
+    /* 仍保留删除标签的红色 */
+}
+
+.token.function-name {
+    color: #3d5a80;
+    /* 修改函数名为蓝色系 */
+}
+
+.token.boolean,
+.token.number,
+.token.function {
+    color: #f08d49;
+    /* 保持橙色用于布尔值和数字 */
+}
+
+.token.property,
+.token.class-name,
+.token.constant,
+.token.symbol {
+    color: #f8c555;
+    /* 修改为金黄色系，以便突出 */
+}
+
+.token.selector,
+.token.important,
+.token.atrule,
+.token.keyword,
+.token.builtin {
+    color: #6fa3f2;
+    /* 将关键词、选择器等修改为浅蓝色 */
+}
+
+.token.string,
+.token.char,
+.token.attr-value,
+.token.regex,
+.token.variable {
+    color: #7ec699;
+    /* 修改字符串为绿色 */
+}
+
+.token.operator,
+.token.entity,
+.token.url {
+    color: #67cdcc;
+    /* 将运算符和URL改为青绿色 */
+}
+
+.token.important,
+.token.bold {
+    font-weight: bold;
+}
+
+.token.italic {
+    font-style: italic;
+}
+
+.token.entity {
+    cursor: help;
+}
+
+.token.inserted {
+    color: #28a745;
+    /* 插入内容为绿色 */
+}
