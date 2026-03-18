@@ -1,5 +1,5 @@
-azure-identity==1.17.1
-dill==0.3.9
-pillow==10.4.0
-psutil==6.1.0
-scipy==1.14.1
+azure-identity==1.25.3
+dill==0.4.1
+pillow==12.1.1
+psutil==7.2.2
+scipy==1.15.3
