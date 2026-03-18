@@ -338,47 +338,53 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   ```
 
 ### 🖥️ Monitor the Application Results
-- You can run the following command for our demo program to see the run logs.
+#### Streamlit UI
 
-  ```sh
-  rdagent ui --port 19899 --log-dir <your log folder like "log/"> --data-science
-  ```
+Use the Streamlit UI to view run logs, especially for the `data_science` scenario.
 
-- We also provide a web frontend in `web/` that works with the Flask backend started by `server_ui`.
+```sh
+rdagent ui --port 19899 --log-dir <your log folder like "log/"> --data-science
+```
 
-  **NOTE:** The current web UI does not support the `data_science` scenario yet. It currently supports other scenarios served by `rdagent server_ui`. For the `data_science` scenario, please continue to use `rdagent ui --data-science`.
+About the `data_science` parameter: If you want to see the logs of the data science scenario, set the `data_science` parameter to `True`; otherwise set it to `False`.
 
-  ```sh
-  cd web
-  npm install
-  ```
+#### Web UI
 
-- To build the frontend for the Flask backend, generate the static assets into the default directory used by `server_ui`:
+We also provide a separate web frontend in `web/` for the Flask backend started by `server_ui`.
 
-  ```sh
-  cd web
-  npm run build:flask
-  ```
+**NOTE:** This web UI is different from `rdagent ui`. The current web UI does not support the `data_science` scenario yet. For the `data_science` scenario, please continue to use `rdagent ui --data-science`.
 
-  By default, `server_ui` serves static files from `./git_ignore_folder/static`. If you need a different location, set the `UI_STATIC_PATH` environment variable before starting the backend.
+```sh
+cd web
+npm install
+```
 
-- Start the Flask backend and serve the built frontend together with the real-time APIs:
+To build the frontend for the Flask backend, generate the static assets into the default directory used by `server_ui`:
 
-  ```sh
-  rdagent server_ui --port 19899
-  ```
+```sh
+cd web
+npm run build:flask
+```
 
-  After that, open `http://127.0.0.1:19899` in your browser.
+By default, `server_ui` serves static files from `./git_ignore_folder/static`. If you need a different location, set the `UI_STATIC_PATH` environment variable before starting the backend.
 
-- About the `data_science` parameter: If you want to see the logs of the data science scenario, set the `data_science` parameter to `True`; otherwise set it to `False`.
- 
-- Although port 19899 is not commonly used, but before you run this demo, you need to check if port 19899 is occupied. If it is, please change it to another port that is not occupied.
+Start the Flask backend and serve the built frontend together with the real-time APIs:
 
-  You can check if a port is occupied by running the following command.
+```sh
+rdagent server_ui --port 19899
+```
 
-  ```sh
-  rdagent health_check --no-check-env --no-check-docker
-  ```
+After that, open `http://127.0.0.1:19899` in your browser.
+
+#### Common Notes
+
+Port `19899` is used in the examples above. Before starting either UI, check whether this port is already occupied. If it is, please change it to another available port.
+
+You can check whether the port is occupied by running:
+
+```sh
+rdagent health_check --no-check-env --no-check-docker
+```
 
 # 🏭 Scenarios
 
