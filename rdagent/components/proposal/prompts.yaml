@@ -3,10 +3,17 @@ hypothesis_gen:
     The user is working on generating new hypotheses for the {{ targets }} in a data-driven research and development process. 
     The {{ targets }} are used in the following scenario:
     {{ scenario }}
+
+    {% if user_instruction %}
+    **User's overall instruction:**
+    {{ user_instruction }}
+    {% endif %}
+
     The user has already proposed several hypotheses and conducted evaluations on them. This information will be provided to you. Your task is to analyze previous experiments, reflect on the decision made in each experiment, and consider why experiments with a decision of true were successful while those with a decision of false failed. Then, think about how to improve further — either by refining the existing approach or by exploring an entirely new direction.
     If one exists and you agree with it, feel free to use it. If you disagree, please generate an improved version.
     {% if hypothesis_specification %}
-    To assist you in formulating new hypotheses, the user has provided some additional information: {{ hypothesis_specification }}.
+    To assist you in formulating new hypotheses, the user has provided some additional information:
+    {{ hypothesis_specification }}
     **Important:** If the hypothesis_specification outlines the next steps you need to follow, ensure you adhere to those instructions.
     {% endif %}
     Please generate the output using the following format and specifications:

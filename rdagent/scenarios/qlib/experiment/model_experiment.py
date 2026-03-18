@@ -20,6 +20,7 @@ class QlibModelExperiment(ModelExperiment[ModelTask, QlibFBWorkspace, ModelFBWor
         super().__init__(*args, **kwargs)
         self.experiment_workspace = QlibFBWorkspace(template_folder_path=Path(__file__).parent / "model_template")
         self.stdout = ""
+        self.base_features: dict[str, str] = {}
 
 
 class QlibModelScenario(Scenario):

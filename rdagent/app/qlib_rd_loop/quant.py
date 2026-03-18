@@ -15,6 +15,7 @@ from rdagent.core.developer import Developer
 from rdagent.core.exception import FactorEmptyError, ModelEmptyError
 from rdagent.core.proposal import (
     Experiment2Feedback,
+    ExperimentPlan,
     Hypothesis2Experiment,
     HypothesisFeedback,
     HypothesisGen,
@@ -23,6 +24,7 @@ from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.qlib.proposal.quant_proposal import QuantTrace
+from rdagent.utils.qlib import ALPHA20
 
 
 class QuantRDLoop(RDLoop):
@@ -62,6 +64,10 @@ class QuantRDLoop(RDLoop):
         self.model_summarizer: Experiment2Feedback = import_class(PROP_SETTING.model_summarizer)(scen)
         logger.log_object(self.model_summarizer, tag="model summarizer")
 
+        self.plan: ExperimentPlan = {
+            "features": ALPHA20,
+            "feature_codes": {},
+        }  # for user interaction
         self.trace = QuantTrace(scen=scen)
         super(RDLoop, self).__init__()
 
@@ -75,6 +81,11 @@ class QuantRDLoop(RDLoop):
                 else:
                     exp = self.model_hypothesis2experiment.convert(hypo, self.trace)
                 logger.log_object(exp.sub_tasks, tag="experiment generation")
+                exp.base_features = self.plan["features"]
+                exp.base_feature_codes = self.plan["feature_codes"]
+                if exp.based_experiments:
+                    exp.based_experiments[-1].base_features = self.plan["features"]
+                    exp.based_experiments[-1].base_feature_codes = self.plan["feature_codes"]
                 return {"propose": hypo, "exp_gen": exp}
             await asyncio.sleep(1)
 
@@ -112,6 +123,7 @@ class QuantRDLoop(RDLoop):
                 feedback = self.factor_summarizer.generate_feedback(prev_out["running"], self.trace)
             elif prev_out["direct_exp_gen"]["propose"].action == "model":
                 feedback = self.model_summarizer.generate_feedback(prev_out["running"], self.trace)
+        feedback = self._interact_feedback(feedback)
         logger.log_object(feedback, tag="feedback")
         return feedback
 
@@ -122,6 +134,8 @@ def main(
     loop_n: int | None = None,
     all_duration: str | None = None,
     checkout: bool = True,
+    base_features_path: str | None = None,
+    **kwargs,
 ):
     """
     Auto R&D Evolving loop for fintech factors.
@@ -133,6 +147,10 @@ def main(
         quant_loop = QuantRDLoop(QUANT_PROP_SETTING)
     else:
         quant_loop = QuantRDLoop.load(path, checkout=checkout)
+    quant_loop._init_base_features(base_features_path)
+    if "user_interaction_queues" in kwargs and kwargs["user_interaction_queues"] is not None:
+        quant_loop._set_interactor(*kwargs["user_interaction_queues"])
+        quant_loop._interact_init_params()
 
     asyncio.run(quant_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration))
 

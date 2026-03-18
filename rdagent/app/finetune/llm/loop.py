@@ -7,8 +7,7 @@ Standard RDLoop entry point for LLM fine-tuning, consistent with data science im
 import asyncio
 from typing import Optional, cast
 
-import typer
-from typing_extensions import Annotated
+import fire
 
 from rdagent.app.finetune.llm.conf import FT_RD_SETTING
 from rdagent.log import rdagent_logger as logger
@@ -17,7 +16,7 @@ from rdagent.scenarios.finetune.loop import LLMFinetuneRDLoop
 
 def main(
     path: Optional[str] = None,
-    checkout: Annotated[bool, typer.Option("--checkout/--no-checkout", "-c/-C")] = True,
+    checkout: bool = True,
     user_target_scenario: Optional[str] = None,
     benchmark: Optional[str] = None,
     benchmark_description: Optional[str] = None,
@@ -98,4 +97,4 @@ def main(
 
 
 if __name__ == "__main__":
-    typer.run(main)
+    fire.Fire(main)
