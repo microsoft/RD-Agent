@@ -22,7 +22,7 @@
         "markdown-it": "^14.1.1",
         "markdown-it-texmath": "^1.0.0",
         "marked": "^15.0.4",
-        "prismjs": "^1.29.0",
+        "prismjs": "^1.30.0",
         "vue": "^3.4.21",
         "vue-echarts": "^7.0.3",
         "vue-router": "^4.3.0"
