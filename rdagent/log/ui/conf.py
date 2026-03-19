@@ -16,7 +16,7 @@ class UIBasePropSetting(ExtendedBaseSettings):
 
     static_path: str = "./git_ignore_folder/static"
 
-    trace_folder: str = "./traces"
+    trace_folder: str = "./git_ignore_folder/traces"
 
     enable_cache: bool = True
 

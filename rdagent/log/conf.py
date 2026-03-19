@@ -19,9 +19,16 @@ class LogSettings(ExtendedBaseSettings):
 
     storages: dict[str, list[int | str]] = {}
 
+    def set_ui_server_port(self, port: int | None) -> None:
+        self.ui_server_port = port
+        if port is None:
+            self.storages.pop("rdagent.log.ui.storage.WebStorage", None)
+            return
+
+        self.storages["rdagent.log.ui.storage.WebStorage"] = [port, self.trace_path]
+
     def model_post_init(self, _context: Any, /) -> None:
-        if self.ui_server_port is not None:
-            self.storages["rdagent.log.ui.storage.WebStorage"] = [self.ui_server_port, self.trace_path]
+        self.set_ui_server_port(self.ui_server_port)
 
 
 LOG_SETTINGS = LogSettings()

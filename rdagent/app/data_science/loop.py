@@ -3,8 +3,6 @@ from pathlib import Path
 from typing import Optional
 
 import fire
-import typer
-from typing_extensions import Annotated
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.utils import import_class
@@ -14,7 +12,7 @@ from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 
 def main(
     path: Optional[str] = None,
-    checkout: Annotated[bool, typer.Option("--checkout/--no-checkout", "-c/-C")] = True,
+    checkout: bool = True,
     checkout_path: Optional[str] = None,
     step_n: Optional[int] = None,
     loop_n: Optional[int] = None,

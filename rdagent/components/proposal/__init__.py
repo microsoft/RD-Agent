@@ -42,6 +42,7 @@ class LLMHypothesisGen(HypothesisGen):
             ),
             hypothesis_output_format=context_dict["hypothesis_output_format"],
             hypothesis_specification=context_dict["hypothesis_specification"],
+            user_instruction=plan.get("user_instruction", None) if plan is not None else None,
         )
         user_prompt = T(".prompts:hypothesis_gen.user_prompt").r(
             targets=self.targets,

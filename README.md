@@ -31,6 +31,7 @@
 # 📰 News
 | 🗞️ News        | 📝 Description                 |
 | --            | ------      |
+| Web UI Release | We release a new frontend that can be built and served by `rdagent server_ui` for real-time interaction and trace viewing, currently excluding the `data_science` scenario. |
 | NeurIPS 2025 Acceptance | We are thrilled to announce that our paper [R&D-Agent-Quant](https://arxiv.org/abs/2505.15155) has been accepted to NeurIPS 2025 | 
 | [Technical Report Release](#overall-technical-report) | Overall framework description and results on MLE-bench | 
 | [R&D-Agent-Quant Release](#deep-application-in-diverse-scenarios) | Apply R&D-Agent to quant trading | 
@@ -337,21 +338,53 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   ```
 
 ### 🖥️ Monitor the Application Results
-- You can run the following command for our demo program to see the run logs.
+#### Streamlit UI
 
-  ```sh
-  rdagent ui --port 19899 --log-dir <your log folder like "log/"> --data-science
-  ```
+Use the Streamlit UI to view run logs, especially for the `data_science` scenario.
 
-- About the `data_science` parameter: If you want to see the logs of the data science scenario, set the `data_science` parameter to `True`; otherwise set it to `False`.
- 
-- Although port 19899 is not commonly used, but before you run this demo, you need to check if port 19899 is occupied. If it is, please change it to another port that is not occupied.
+```sh
+rdagent ui --port 19899 --log-dir <your log folder like "log/"> --data-science
+```
 
-  You can check if a port is occupied by running the following command.
+About the `data_science` parameter: If you want to see the logs of the data science scenario, set the `data_science` parameter to `True`; otherwise set it to `False`.
 
-  ```sh
-  rdagent health_check --no-check-env --no-check-docker
-  ```
+#### Web UI
+
+We also provide a separate web frontend in `web/` for the Flask backend started by `server_ui`.
+
+**NOTE:** This web UI is different from `rdagent ui`. The current web UI does not support the `data_science` scenario yet. For the `data_science` scenario, please continue to use `rdagent ui --data-science`.
+
+```sh
+cd web
+npm install
+```
+
+To build the frontend for the Flask backend, generate the static assets into the default directory used by `server_ui`:
+
+```sh
+cd web
+npm run build:flask
+```
+
+By default, `server_ui` serves static files from `./git_ignore_folder/static`. If you need a different location, set the `UI_STATIC_PATH` environment variable before starting the backend.
+
+Start the Flask backend and serve the built frontend together with the real-time APIs:
+
+```sh
+rdagent server_ui --port 19899
+```
+
+After that, open `http://127.0.0.1:19899` in your browser.
+
+#### Common Notes
+
+Port `19899` is used in the examples above. Before starting either UI, check whether this port is already occupied. If it is, please change it to another available port.
+
+You can check whether the port is occupied by running:
+
+```sh
+rdagent health_check --no-check-env --no-check-docker
+```
 
 # 🏭 Scenarios
 

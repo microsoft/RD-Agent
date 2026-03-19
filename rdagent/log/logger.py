@@ -7,18 +7,12 @@ from pathlib import Path
 from typing import Generator
 
 from loguru import logger
-
-from .conf import LOG_SETTINGS
-
-if LOG_SETTINGS.format_console is not None:
-    logger.remove()
-    logger.add(sys.stdout, format=LOG_SETTINGS.format_console)
-
 from psutil import Process
 
 from rdagent.core.utils import SingletonBaseClass, import_class
 
 from .base import Storage
+from .conf import LOG_SETTINGS
 from .storage import FileStorage
 from .utils import get_caller_info
 
@@ -48,6 +42,18 @@ class RDAgentLog(SingletonBaseClass):
 
     # Thread-/coroutine-local tag;  In Linux forked subprocess, it will be copied to the subprocess.
     _tag_ctx: ContextVar[str] = ContextVar("_tag_ctx", default="")
+    _raw_log_key = "_rdagent_raw"
+
+    @classmethod
+    def _configure_console_sinks(cls) -> None:
+        raw_filter = lambda record: bool(record["extra"].get(cls._raw_log_key, False))
+        normal_filter = lambda record: not raw_filter(record)
+
+        if LOG_SETTINGS.format_console is not None:
+            logger.add(sys.stdout, format=LOG_SETTINGS.format_console, filter=normal_filter)
+        else:
+            logger.add(sys.stdout, filter=normal_filter)
+        logger.add(sys.stdout, format="{message}", filter=raw_filter)
 
     @property
     def _tag(self) -> str:  # Get current tag
@@ -58,13 +64,29 @@ class RDAgentLog(SingletonBaseClass):
         self._tag_ctx.set(value)
 
     def __init__(self) -> None:
+        logger.remove()
+        self._configure_console_sinks()
+
         self.storage = FileStorage(LOG_SETTINGS.trace_path)
         self.other_storages: list[Storage] = []
+        self.refresh_storages_from_settings()
+
+        self.main_pid = os.getpid()
+
+    def refresh_storages_from_settings(self) -> None:
+        self.other_storages = []
         for storage, args in LOG_SETTINGS.storages.items():
             storage_cls = import_class(storage)
             self.other_storages.append(storage_cls(*args))
 
-        self.main_pid = os.getpid()
+    def rebind_console_to_current_streams(self) -> None:
+        """Rebind loguru sinks to the current stdio objects.
+
+        This is needed in forked/spawned subprocesses after stdout/stderr have been
+        redirected, because loguru keeps references to the original stream objects.
+        """
+        logger.remove()
+        self._configure_console_sinks()
 
     @contextmanager
     def tag(self, tag: str) -> Generator[None, None, None]:
@@ -82,6 +104,8 @@ class RDAgentLog(SingletonBaseClass):
             self._tag_ctx.reset(token)
 
     def set_storages_path(self, path: str | Path) -> None:
+        if isinstance(path, str):
+            path = Path(path)
         for storage in [self.storage] + self.other_storages:
             if hasattr(storage, "path"):
                 storage.path = path
@@ -115,16 +139,9 @@ class RDAgentLog(SingletonBaseClass):
         caller_info = get_caller_info(level=3)
         tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
 
-        if raw:
-            logger.remove()
-            logger.add(sys.stderr, format=lambda r: "{message}")
-
-        log_func = getattr(logger.patch(lambda r: r.update(caller_info)), level)
+        patched_logger = logger.patch(lambda r: r.update(caller_info)).bind(**{self._raw_log_key: raw}).opt(raw=raw)
+        log_func = getattr(patched_logger, level)
         log_func(msg)
-
-        if raw:
-            logger.remove()
-            logger.add(sys.stderr)
 
     def info(self, msg: str, *, tag: str = "", raw: bool = False) -> None:
         self._log("info", msg, tag=tag, raw=raw)

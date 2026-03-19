@@ -47,7 +47,7 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
                 combined_factors = combined_factors.loc[:, ~combined_factors.columns.duplicated(keep="last")]
                 new_columns = pd.MultiIndex.from_product([["feature"], combined_factors.columns])
                 combined_factors.columns = new_columns
-                num_features = str(RD_AGENT_SETTINGS.initial_fator_library_size + len(combined_factors.columns))
+                num_features = str(len(exp.base_features) + len(combined_factors.columns))
 
                 target_path = exp.experiment_workspace.workspace_path / "combined_factors_df.parquet"
 
@@ -67,6 +67,8 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
             "valid_start": mbps.valid_start,
             "valid_end": mbps.valid_end,
             "test_start": mbps.test_start,
+            "feature_names": str(list(exp.base_features.keys())),
+            "feature_expressions": str(list(exp.base_features.values())),
         }
         if mbps.test_end is not None:
             env_to_use.update({"test_end": mbps.test_end})
