@@ -9,8 +9,9 @@ DATASET_NAME = "google/deepsearchqa"
 SOURCE_SPLIT = "eval"
 SPLIT_SEED = 42
 TRAIN_SIZE = 100
+DEFAULT_EVAL_SIZE = 200
 TOTAL_SIZE = 900
-EVAL_SIZE = TOTAL_SIZE - TRAIN_SIZE
+UNUSED_SIZE = TOTAL_SIZE - TRAIN_SIZE - DEFAULT_EVAL_SIZE
 
 
 def load_source_dataset() -> Dataset:
@@ -19,10 +20,12 @@ def load_source_dataset() -> Dataset:
 
 
 def split_dataset(dataset: Dataset) -> tuple[Dataset, Dataset]:
-    """Create a deterministic 100/800 train/eval split from the 900-item eval set."""
+    """Create a deterministic 100/200 train/eval split from the 900-item eval set."""
     shuffled = dataset.shuffle(seed=SPLIT_SEED)
     train = shuffled.select(range(min(TRAIN_SIZE, len(shuffled))))
-    eval_set = shuffled.select(range(min(TRAIN_SIZE, len(shuffled)), len(shuffled)))
+    eval_start = min(TRAIN_SIZE, len(shuffled))
+    eval_end = min(TRAIN_SIZE + DEFAULT_EVAL_SIZE, len(shuffled))
+    eval_set = shuffled.select(range(eval_start, eval_end))
     return train, eval_set
 
 
@@ -44,6 +47,7 @@ def download_train_data(target_dir: Path):
         "shuffle_seed": SPLIT_SEED,
         "train_size": len(train),
         "eval_size": len(eval_set),
+        "unused_size": max(0, len(dataset) - len(train) - len(eval_set)),
         "total_size": len(dataset),
     }
     (target_dir / "split_meta.json").write_text(json.dumps(split_meta, indent=2), encoding="utf-8")
