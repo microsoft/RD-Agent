@@ -4,10 +4,8 @@ import socket
 import docker
 import fire
 import litellm
-import typer
 from litellm import completion, embedding
 from litellm.utils import ModelResponse
-from typing_extensions import Annotated
 
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import cleanup_container
@@ -44,10 +42,10 @@ def check_and_list_free_ports(start_port=19899, max_ports=10) -> None:
             if not is_port_in_use(port):
                 free_ports.append(port)
         logger.warning(
-            f"Port 19899 is occupied, please replace it with an available port when running the `rdagent ui` command. Available ports: {free_ports}"
+            f"Port 19899 is occupied, please replace it with an available port when running the `rdagent ui/server_ui` command. Available ports: {free_ports}"
         )
     else:
-        logger.info(f"Port 19899 is not occupied, you can run the `rdagent ui` command")
+        logger.info(f"Port 19899 is not occupied, you can run the `rdagent ui/server_ui` command")
 
 
 def test_chat(chat_model, chat_api_key, chat_api_base):
@@ -135,9 +133,9 @@ def env_check():
 
 
 def health_check(
-    check_env: Annotated[bool, typer.Option("--check-env/--no-check-env", "-e/-E")] = True,
-    check_docker: Annotated[bool, typer.Option("--check-docker/--no-check-docker", "-d/-D")] = True,
-    check_ports: Annotated[bool, typer.Option("--check-ports/--no-check-ports", "-p/-P")] = True,
+    check_env: bool = True,
+    check_docker: bool = True,
+    check_ports: bool = True,
 ):
     """
     Run the RD-Agent health check:
@@ -167,4 +165,4 @@ def health_check(
 
 
 if __name__ == "__main__":
-    typer.run(health_check)
+    fire.Fire(health_check)

@@ -1,0 +1,139 @@
+:root {
+    font-family: "Segoe UI";
+    line-height: 1.5;
+    font-weight: 400;
+    --text-color: #2B2B2B;
+    --nav-hover-color: #9E9E9E;
+    --nav-default-color: #C3CEDC;
+    --sub-text-color: #3B3B3B;
+    --intro-text-color: #626C80;
+    --no-active-text-color: #626C80;
+    --footer-text-color: rgba(37, 37, 37, 0.78);
+    --btn-color: #353535;
+    --text-white-color: #fff;
+    --bg-white: #FFFFFF;
+    --bg-grey: #F6FAFF;
+    --bg-white-blue-color: #f8f9ff;
+    --bg-black: #2B2B2B;
+    --border-color: #2B2B2B;
+    --step-default-color: #C5D2E6;
+    --step-current-color: #4361EE;
+    --step-active-color: #626C80;
+    --blue-border-color: #4895EF;
+    --card-border-color: #2667FF;
+    --card-bg-hover-color: #EEEFFF;
+    --wg-shadow-color: #EDF0FF;
+    --border-width: 1px;
+}
+
+html {
+    font-size: 16px;
+}
+
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    background: var(--bg-white);
+    overflow: hidden;
+}
+
+.component {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+button:focus,
+button:focus-visible {
+    outline: none;
+}
+
+.card {
+    padding: 2em;
+}
+
+#app {
+    width: 100%;
+    height: 100%;
+    margin: 0 auto;
+    font-family: Segoe UI;
+}
+
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    box-sizing: border-box;
+}
+
+.gradient-border {
+    --border-width: 2px;
+    --border-radius: 11px;
+    position: relative;
+    background: #fff;
+    border-radius: calc(var(--border-radius) - 2px);
+    &::after {
+        position: absolute;
+        content: "";
+        top: calc(-1 * var(--border-width));
+        left: calc(-1 * var(--border-width));
+        z-index: -1;
+        width: calc(100% + var(--border-width) * 2);
+        height: calc(100% + var(--border-width) * 2);
+        background: linear-gradient( to bottom, #2768FF, #9D42FF);
+        background-position: 0 50%;
+        border-radius: var(--border-radius);
+        box-shadow: 8px 11px 30px 0px var(--wg-shadow-color);
+    }
+}
+
+.gradient-big-border {
+    --border-width: 2px;
+    --border-radius: 20px;
+    position: relative;
+    background: #fff;
+    border-radius: calc(var(--border-radius) - 2px);
+    &::after {
+        position: absolute;
+        content: "";
+        top: calc(-1 * var(--border-width));
+        left: calc(-1 * var(--border-width));
+        z-index: -1;
+        width: calc(100% + var(--border-width) * 2);
+        height: calc(100% + var(--border-width) * 2);
+        background: linear-gradient( to bottom, #2768FF, #9D42FF);
+        background-position: 0 50%;
+        border-radius: var(--border-radius);
+        box-shadow: 8px 11px 30px 0px var(--wg-shadow-color);
+    }
+}
+
+.el-popper__arrow,
+.el-popper__arrow:before {
+    width: 15px !important;
+    height: 15px !important;
+}
+
+.el-popper[data-popper-placement^=bottom]>.el-popper__arrow {
+    top: -8px !important;
+}
+
+.el-popper[data-popper-placement^=left]>.el-popper__arrow {
+    right: -8px !important;
+}
+
+.el-popper {
+    border-radius: 11px !important;
+}
+.markdown-body li {
+    list-style: unset;
+  }
+
+
+/* .process-popper {
+    border-radius: 4px !important;
+} */

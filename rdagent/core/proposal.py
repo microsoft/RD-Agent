@@ -105,12 +105,14 @@ class HypothesisFeedback(ExperimentFeedback):
         new_hypothesis: str | None = None,
         eda_improvement: str | None = None,
         acceptable: bool | None = None,
+        exception: Exception | None = None,
     ) -> None:
         super().__init__(
             reason,
             decision=decision,
             code_change_summary=code_change_summary,
             eda_improvement=eda_improvement,
+            exception=exception,
         )
         self.observations = observations
         self.hypothesis_evaluation = hypothesis_evaluation

@@ -45,7 +45,7 @@ class ModelBasePropSetting(BasePropSetting):
     test_start: str = "2017-01-01"
     """Start date of the test / backtest segment"""
 
-    test_end: Optional[str] = None
+    test_end: Optional[str] = "2020-08-01"
     """End date of the test / backtest segment"""
 
 
@@ -89,7 +89,7 @@ class FactorBasePropSetting(BasePropSetting):
     test_start: str = "2017-01-01"
     """Start date of the test / backtest segment"""
 
-    test_end: Optional[str] = None
+    test_end: Optional[str] = "2020-08-01"
     """End date of the test / backtest segment"""
 
 
@@ -102,10 +102,10 @@ class FactorFromReportPropSetting(FactorBasePropSetting):
     report_result_json_file_path: str = "git_ignore_folder/report_list.json"
     """Path to the JSON file listing research reports for factor extraction"""
 
-    max_factors_per_exp: int = 10000
+    max_factors_per_exp: int = 6
     """Maximum number of factors implemented per experiment"""
 
-    report_limit: int = 10000
+    report_limit: int = 20
     """Maximum number of reports to process"""
 
 
@@ -166,7 +166,7 @@ class QuantBasePropSetting(BasePropSetting):
     test_start: str = "2017-01-01"
     """Start date of the test / backtest segment"""
 
-    test_end: Optional[str] = None
+    test_end: Optional[str] = "2020-08-01"
     """End date of the test / backtest segment"""
 
 
