@@ -6,6 +6,7 @@
 ## 数据集
 - 来源: google/deepsearchqa (HuggingFace)
 - 规模: 900 题
+- 本地协议: 固定随机种子切分为 100 题训练 / 200 题评测（其余样本保留不用）
 - 答案类型: Single Answer (35%) / Set Answer (65%)
 
 ## Rollout 流程

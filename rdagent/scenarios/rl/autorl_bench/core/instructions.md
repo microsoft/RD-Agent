@@ -1,100 +1,100 @@
-# AutoRL-Bench 任务说明
+# AutoRL-Bench Task Instructions
 
-你是一个强化学习训练 Agent，目标是通过 RL Post-Training 提升模型表现。
+You are an RL training agent. Your goal is to improve the model through RL post-training.
 
-**核心目标**：在固定时间内（默认 12 小时）尽可能提高分数，可多次提交并利用反馈迭代。
+**Core objective**: maximize the score within the fixed time budget (12 hours by default). You may submit multiple times and iterate based on feedback.
 
-## 关键信息（先读）
-- **工作区限制**：当前目录就是工作区，只用相对路径，禁止 `cd` 到外部
-- **时间单一事实源**：优先读取 `./run_meta.json`
-- **评测入口**：`POST $GRADING_SERVER_URL/submit`
+## Key Information (Read First)
+- **Workspace restriction**: the current directory is the workspace. Use only relative paths and do not `cd` outside it.
+- **Single source of truth for time**: read `./run_meta.json` first.
+- **Evaluation endpoint**: `POST $GRADING_SERVER_URL/submit`
 
-## 环境变量
-- TASK: 任务名称
-- BASE_MODEL: 基础模型名称
-- MODEL_PATH: 基础模型路径（只读）
-- DATA_PATH: 训练数据路径（只读）
-- OUTPUT_DIR: 模型输出目录（提交评测时指定此目录下的模型路径）
-- GRADING_SERVER_URL: 评测服务地址
+## Environment Variables
+- TASK: task name
+- BASE_MODEL: base model name
+- MODEL_PATH: base model path (read-only)
+- DATA_PATH: training data path (read-only)
+- OUTPUT_DIR: model output directory (submit a model path under this directory)
+- GRADING_SERVER_URL: grading service URL
 
-## 时间与预算信号（单一事实源）
-默认预算 **12 小时（43200 秒）**，以 `run_meta.json` 为准。
+## Time and Budget Signals (Single Source of Truth)
+The default budget is **12 hours (43200 seconds)**. Always trust `run_meta.json`.
 
-`run_meta.json` 字段：
-- start_time: 任务开始时间（unix timestamp, 秒）
-- timeout_s: 总时长上限（秒）
-- last_submit_time: 最后一次提交时间（unix timestamp, 秒）
-- end_time: 任务结束时间（unix timestamp, 秒）
+Fields in `run_meta.json`:
+- start_time: task start time (Unix timestamp in seconds)
+- timeout_s: total time limit (seconds)
+- last_submit_time: last submission time (Unix timestamp in seconds)
+- end_time: task end time (Unix timestamp in seconds)
 
-可选 API：
-- GET $GRADING_SERVER_URL/time
-  - 返回字段：`start_time / timeout_s / last_submit_time / end_time / now / remaining`
+Optional API:
+- GET `$GRADING_SERVER_URL/time`
+  - Returns: `start_time / timeout_s / last_submit_time / end_time / now / remaining`
 
-## 工作区与目录
-**你的当前目录就是工作区。所有需要的文件都在当前目录下。**
-- **禁止 `cd` 到当前目录之外**（不要访问父目录或其他路径）
-- **只使用相对路径**（如 `./code/train.py`，而非绝对路径）
-- 如果看到 symlink 指向外部路径，忽略它——直接用相对路径访问即可
+## Workspace and Directory Layout
+**Your current directory is the workspace. All required files are located under the current directory.**
+- **Do not `cd` outside the current directory**. Do not access parent directories or unrelated paths.
+- **Use only relative paths** such as `./code/train.py`, not absolute paths.
+- If you see a symlink pointing outside, ignore that fact and access it through the relative path here.
 
-目录结构：
-```
+Directory structure:
+```text
 ./
-├── code/               # 你的代码区（所有自行编写的代码放在此处）
-├── data/               # 训练数据（只读）
-├── models/             # 基础模型（只读）
-├── output/             # 模型输出（训练好的模型保存在此）
-├── description.md      # 任务描述（必读）
-├── instructions.md     # 本文件
-├── run_meta.json       # 时间与预算信号（单一事实源）
-└── ...                 # benchmark 特有文件（用 ls 查看完整列表）
+├── code/               # Your code area (put all self-written code here)
+├── data/               # Training data (read-only)
+├── models/             # Base model (read-only)
+├── output/             # Model outputs (save trained models here)
+├── description.md      # Task description (required reading)
+├── instructions.md     # This file
+├── run_meta.json       # Time and budget signals (single source of truth)
+└── ...                 # Benchmark-specific files (use ls to see the full list)
 ```
 
-**先 `ls` 查看当前目录所有可用文件。** 不同类型的 benchmark 会提供不同的额外文件：
-- **交互式环境类**（如 ALFWorld）：会提供 `eval.py`（环境交互 + 评测逻辑）、prompt 模板、配置文件等——这些是编写训练代码的关键参考
-- **静态数据集类**（如 GSM8K）：主要通过 `data/` 下的数据文件提供训练样本
+**Run `ls` first to inspect all available files in the current directory.** Different benchmark types may provide different extra files:
+- **Interactive environments** (such as ALFWorld): may provide `eval.py` (environment interaction plus evaluation logic), prompt templates, config files, and similar artifacts. These are critical references for writing training code.
+- **Static datasets** (such as GSM8K): usually expose training samples mainly through files under `data/`.
 
-**说明**：
-- `code/`：在此编写代码（文件名和结构自由组织）
-- `output/`：训练产出的模型存放处。可存放多个版本（如 `output/v1/`、`output/v2/`），提交时指定具体路径
+**Notes**:
+- `code/`: write your code here. You may organize filenames and structure freely.
+- `output/`: store trained model artifacts here. You may keep multiple versions such as `output/v1/` and `output/v2/`, and specify the exact path at submission time.
 
-## 任务流程（固定时间内刷分）
-1. 探索工作区，阅读 `description.md`、`instructions.md` 和相关文件（如有 `eval.py` 务必仔细阅读），了解任务目标和可用资源
-2. 在 `code/` 下编写代码，训练模型（SFT、GRPO、PPO 等均可）
-3. 保存模型到 $OUTPUT_DIR（如 `output/v1`）
-4. 提交评测：POST $GRADING_SERVER_URL/submit
-5. 根据返回的 score 调整策略，**在剩余时间内持续迭代并提交更高分模型**
+## Task Loop (Improve Score Within the Budget)
+1. Explore the workspace. Read `description.md`, `instructions.md`, and other relevant files. If `eval.py` is present, read it carefully.
+2. Write code under `code/` and train a model. SFT, GRPO, PPO, and other methods are all allowed.
+3. Save the resulting model to `$OUTPUT_DIR` such as `output/v1`.
+4. Submit it for evaluation through `POST $GRADING_SERVER_URL/submit`.
+5. Adjust your strategy based on the returned score and **keep iterating toward a better model within the remaining time**.
 
 ## API
 ```bash
-# 提交评测（指定模型路径，返回 score、improvement、best）
+# Submit a model for evaluation (returns score, improvement, and best)
 curl -X POST "$GRADING_SERVER_URL/submit" \
     -H "Content-Type: application/json" \
     -d '{"model_path": "'$OUTPUT_DIR'/v1"}'
 
-# 指定 GPU 评测（可选，默认使用 GPU 0）
+# Evaluate on a specific GPU (optional; GPU 0 is used by default)
 curl -X POST "$GRADING_SERVER_URL/submit" \
     -H "Content-Type: application/json" \
     -d '{"model_path": "'$OUTPUT_DIR'/v1", "gpu": "0"}'
 
-# 多卡评测
+# Multi-GPU evaluation
 curl -X POST "$GRADING_SERVER_URL/submit" \
     -H "Content-Type: application/json" \
     -d '{"model_path": "'$OUTPUT_DIR'/v1", "gpu": "2,3"}'
 
-# 查询时间与预算（优先使用 run_meta.json；此 API 仅做补充）
+# Query time and budget (prefer run_meta.json; this API is supplementary)
 curl "$GRADING_SERVER_URL/time"
 
-# 健康检查（返回可用 GPU 列表等信息）
+# Health check (returns available GPU list and related status)
 curl "$GRADING_SERVER_URL/health"
 ```
 
-### /submit 参数
-| 参数 | 类型 | 必填 | 说明 |
+### `/submit` Parameters
+| Parameter | Type | Required | Description |
 |------|------|------|------|
-| model_path | string | 是 | 模型路径 |
-| gpu | string | 否 | 指定 GPU（如 "0"、"1"、"0,1"），必须是可用 GPU 之一。不传则默认使用第一个可用 GPU。可通过 /health 查看可用列表 |
+| model_path | string | Yes | Model path |
+| gpu | string | No | Requested GPU(s), such as `"0"`, `"1"`, or `"0,1"`. Must be chosen from the available GPU list. If omitted, the first available GPU is used by default. You can inspect the available list through `/health`. |
 
-### /submit 响应示例
+### `/submit` Response Example
 ```json
 {
   "submission_id": 3,
@@ -106,9 +106,9 @@ curl "$GRADING_SERVER_URL/health"
 }
 ```
 
-## 注意
-- **不要直接复制/symlink 基座模型提交**——未经训练的基座模型只会得到 baseline 分数（improvement = 0），这是浪费提交机会。必须先训练再提交。
-- 可多次提交不同版本的模型，系统自动跟踪最高分
-- 合理利用时间，根据 score 反馈迭代优化
-- **必须提交完整模型**：评测系统不支持 LoRA adapter 目录。如果用 LoRA/PEFT 训练，保存前必须合并：`model = model.merge_and_unload(); model.save_pretrained(output_path); tokenizer.save_pretrained(output_path)`
-- trl 保存模型后，`tokenizer_config.json` 中的 `extra_special_tokens` 会被保存为 list 格式，但 vLLM/transformers 加载时需要 dict 格式。保存模型后需删除该字段，否则评测会失败。
+## Important Notes
+- **Do not directly submit a copied or symlinked base model**. An untrained base model only receives the baseline score (`improvement = 0`), which wastes a submission. You must train before submitting.
+- You may submit multiple model versions. The system automatically tracks the best score.
+- Use the remaining time carefully and iterate based on score feedback.
+- **You must submit a full model**. The evaluation system does not support a LoRA adapter directory alone. If you train with LoRA/PEFT, merge before saving: `model = model.merge_and_unload(); model.save_pretrained(output_path); tokenizer.save_pretrained(output_path)`.
+- After saving a model with `trl`, the `extra_special_tokens` field in `tokenizer_config.json` may be stored as a list, while vLLM/transformers expects a dict during loading. Remove that field after saving, or evaluation may fail.

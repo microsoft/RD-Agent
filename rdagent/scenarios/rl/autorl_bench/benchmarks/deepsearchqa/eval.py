@@ -13,12 +13,20 @@ DeepSearchQA Evaluator
 import json
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
-from datasets import load_dataset
 
 from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.rl.autorl_bench.benchmarks.deepsearchqa.data import (
+    DATASET_NAME,
+    DEFAULT_EVAL_SIZE,
+    SOURCE_SPLIT,
+    TRAIN_SIZE,
+    load_source_dataset,
+    split_dataset,
+)
 from rdagent.scenarios.rl.autorl_bench.core.evaluator import BaseEvaluator
 
 REACT_SYSTEM_PROMPT = """You are a research assistant that answers questions by searching the web.
@@ -64,15 +72,15 @@ class DeepSearchQAEvaluator(BaseEvaluator):
             result["error"] = f"Model not found: {model_path}"
             return result
 
-        # load datasets
-        num_samples = self.eval_config.get("num_samples", 100)
-        dataset = load_dataset(
-            "google/deepsearchqa",
-            split="eval",
-            # 如果已下载到本地可用 data_dir 参数
+        # Deterministic held-out evaluation split: 100 train / 800 eval.
+        num_samples = self.eval_config.get("num_samples", DEFAULT_EVAL_SIZE)
+        dataset = load_source_dataset()
+        _, eval_dataset = split_dataset(dataset)
+        samples = list(eval_dataset.select(range(min(num_samples, len(eval_dataset)))))
+        logger.info(
+            f"DeepSearchQA held-out eval: {len(samples)} samples "
+            f"(train={TRAIN_SIZE}, eval={len(eval_dataset)}, source={DATASET_NAME}/{SOURCE_SPLIT})"
         )
-        samples = list(dataset.select(range(min(num_samples, len(dataset)))))
-        logger.info(f"DeepSearchQA: {len(samples)} samples")
 
         # load model (vLLM)
         logger.info(f"Loading model: {model_path}")
@@ -92,8 +100,7 @@ class DeepSearchQAEvaluator(BaseEvaluator):
         search_fn = self._get_search_function()
 
         # evaluation loop
-        correct = 0
-        results_detail = []
+        generated_records = []
 
         for i, sample in enumerate(samples):
             question = sample["problem"]
@@ -111,25 +118,54 @@ class DeepSearchQAEvaluator(BaseEvaluator):
                 answer_type,
             )
 
-            # LLM Judge score
-            score = self._judge_answer(predicted, gold_answer, answer_type)
-            if score:
-                correct += 1
-
-            results_detail.append(
+            generated_records.append(
                 {
+                    "idx": i,
                     "question": question[:100],
                     "gold": gold_answer,
                     "predicted": predicted,
                     "answer_type": answer_type,
-                    "correct": score,
                 }
             )
             logger.info(f"  Predicted: {predicted[:80]}")
             logger.info(f"  Gold:      {gold_answer[:80]}")
-            logger.info(f"  Correct:   {score}")
-            running_acc = correct / (i + 1)
-            logger.info(f"  Running accuracy: {correct}/{i+1} = {running_acc:.2%}")
+
+        judge_workers = int(self.eval_config.get("judge_workers", 8))
+        logger.info(f"Running parallel answer judging with {judge_workers} workers")
+
+        results_detail = [None] * len(generated_records)
+        correct = 0
+        completed = 0
+
+        with ThreadPoolExecutor(max_workers=max(1, judge_workers)) as executor:
+            future_to_record = {
+                executor.submit(
+                    self._judge_answer,
+                    record["predicted"],
+                    record["gold"],
+                    record["answer_type"],
+                ): record
+                for record in generated_records
+            }
+
+            for future in as_completed(future_to_record):
+                record = future_to_record[future]
+                score = future.result()
+                if score:
+                    correct += 1
+                completed += 1
+
+                results_detail[record["idx"]] = {
+                    "question": record["question"],
+                    "gold": record["gold"],
+                    "predicted": record["predicted"],
+                    "answer_type": record["answer_type"],
+                    "correct": score,
+                }
+                logger.info(
+                    f"  Judge {completed}/{len(generated_records)} | "
+                    f"Correct={score} | Running accuracy: {correct}/{completed} = {correct / completed:.2%}"
+                )
 
         accuracy = correct / len(samples) if samples else 0.0
         result["score"] = accuracy * 100
@@ -155,6 +191,8 @@ class DeepSearchQAEvaluator(BaseEvaluator):
         answer_type: str,
     ) -> str:
         """ReAct multi-step reasoning loop, return final answer string"""
+        from vllm import SamplingParams
+
         max_steps = self.eval_config.get("max_steps", 6)
 
         conversation = f"Question: {question}\n" f"Answer type: {answer_type}\n\n" "Thought:"
@@ -314,7 +352,8 @@ class DeepSearchQAEvaluator(BaseEvaluator):
                 .strip()
                 .lower()
             )
-            return "correct" in response
+            normalized = response.splitlines()[0].strip().strip(".!,;: \t\r\n").lower()
+            return normalized == "correct"
         except Exception as e:
             logger.warning(f"Judge failed: {e}, falling back to string match")
             return self._string_match(predicted, gold, answer_type)

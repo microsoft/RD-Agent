@@ -77,7 +77,7 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
             "max_steps": 50,
             "env_num": 134,  # 完整评测集（valid_unseen），之前调试时设为 1
         },
-        expose_files=["eval.py", "react_prompts.json"],
+        expose_files=["eval.py"],
     ),
     "webshop": BenchmarkConfig(
         id="webshop",
@@ -97,7 +97,7 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
         data_module="rdagent.scenarios.rl.autorl_bench.benchmarks.deepsearchqa.data",
         description="DeepSearchQA - Google DeepMind 多步信息检索基准（900题，17领域）",
         eval_config={
-            "num_samples": 100,  # 快速评测用 100，完整评测用 900
+            "num_samples": 200,  # fixed held-out evaluation split after 100/200 train/eval partition
             "max_steps": 6,  # ReAct 最大搜索轮次
             # api_key": "...", # 可选，不填则用 DuckDuckGo
         },
