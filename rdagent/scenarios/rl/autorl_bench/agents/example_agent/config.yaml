@@ -1,5 +1,5 @@
 name: "Example Agent"
-description: "GRPO 训练 + 评测"
+description: "GRPO training + evaluation"
 start: "start.sh"
 env_vars:
   TRAIN_RATIO: "0.1"

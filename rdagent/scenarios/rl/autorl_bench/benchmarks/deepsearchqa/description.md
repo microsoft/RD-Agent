@@ -1,17 +1,17 @@
-# DeepSearchQA 任务
+# DeepSearchQA Task
 
-## 目标
-回答需要多步网络搜索的复杂问题，涵盖 17 个领域。
+## Objective
+Answer complex questions that require multi-step web search, spanning 17 domains.
 
-## 数据集
-- 来源: google/deepsearchqa (HuggingFace)
-- 规模: 900 题
-- 本地协议: 固定随机种子切分为 100 题训练 / 200 题评测（其余样本保留不用）
-- 答案类型: Single Answer (35%) / Set Answer (65%)
+## Dataset
+- Source: google/deepsearchqa (HuggingFace)
+- Size: 900 questions
+- Local protocol: split with a fixed random seed into 100 training questions / 200 evaluation questions (remaining samples unused)
+- Answer type: Single Answer (35%) / Set Answer (65%)
 
-## Rollout 流程
+## Rollout process
 
-模型通过 ReAct 格式交替搜索和推理：
+The model alternates search and inference via the ReAct format:
 
 Question: "Which countries had GDP > X and..."
 Thought: I need to find GDP data first.
@@ -23,11 +23,11 @@ Observation: [search result summarization]
 Thought: I have enough information.
 Action: answer[Country A, Country B]
 
-## 评测指标
-- 答案由 LLM Judge 打分（推荐 gemini-2.5-flash）
-- Set Answer 需包含 gold 中的所有项目
-- 最终分数 = 正确数 / 总题数 × 100
+## Evaluation indicators
+- Answers are scored by LLM Judge (recommended gemini-2.5-flash)
+- Set Answer must contain all items in gold
+- Final score = number of correct answers / total number of questions × 100
 
-## 搜索后端配置
-- 默认使用 `duckduckgo-search` 包（无需配置，但可能有频率限制）
-- 推荐配置 `SERPAPI_KEY` 环境变量以获得更稳定的搜索结果
+## Search backend configuration
+- Uses `duckduckgo-search` package by default (no configuration required, but there may be frequency limits)
+- It is recommended to configure the `SERPAPI_KEY` environment variable for more stable search results

@@ -1,8 +1,8 @@
 name: "OpenHands Agent"
-description: "固定阶段 pipeline：每轮 代码生成→训练→评测→反馈（参考 openhands-magic）"
+description: "Fixed-stage pipeline: each iteration runs code generation -> training -> evaluation -> feedback (inspired by openhands-magic)"
 start: "start.sh"
 env_vars:
-  MAX_ITERATIONS: "30"           # Pipeline 迭代次数（每轮=写代码+训练+评测）
-  TRAINING_TIMEOUT: "36000"      # 每轮训练超时（秒）= 10小时
-  MAX_AGENT_STEPS: "20"         # 每轮代码生成 agent 最大步数
+  MAX_ITERATIONS: "30"           # Pipeline iterations (each iteration = coding + training + evaluation)
+  TRAINING_TIMEOUT: "36000"      # Per-iteration training timeout (seconds) = 10 hours
+  MAX_AGENT_STEPS: "20"         # Max code-generation agent steps per iteration
   LLM_MODEL: "gpt-5.2"

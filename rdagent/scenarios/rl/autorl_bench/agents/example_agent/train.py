@@ -95,7 +95,7 @@ def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     start_time = time.time()
 
-    # 第一个 epoch 使用原始模型，后续 epoch 使用上一个 checkpoint
+# The first epoch uses the original model, subsequent epochs use the previous checkpoint
     current_model_path = MODEL_PATH
 
     for epoch in range(NUM_EPOCHS):
@@ -103,9 +103,9 @@ def main():
 
         config = GRPOConfig(
             output_dir=OUTPUT_DIR,
-            max_steps=20,  # 固定步数，避免小数据集报错
-            per_device_train_batch_size=2,  # 小 batch 避免 OOM
-            gradient_accumulation_steps=4,  # 梯度累积
+max_steps=20, # Fixed number of steps to avoid errors for small data sets
+per_device_train_batch_size=2, # Small batch to avoid OOM
+gradient_accumulation_steps=4, # Gradient accumulation
             learning_rate=1e-5,
             max_completion_length=256,
             num_generations=4,
@@ -115,8 +115,8 @@ def main():
             bf16=True,
         )
 
-        # 直接传模型路径，让 GRPOTrainer 自己管理模型加载
-        # 避免 vLLM colocate 模式下模型被加载两次导致 OOM
+# Directly pass the model path and let GRPOTrainer manage the model loading by itself
+# Avoid OOM caused by loading the model twice in vLLM colocate mode
         trainer = GRPOTrainer(
             model=current_model_path,
             reward_funcs=gsm8k_reward_func,
@@ -131,7 +131,7 @@ def main():
         trainer.save_model(checkpoint_dir)
         tokenizer.save_pretrained(checkpoint_dir)
 
-        # 下一个 epoch 从这个 checkpoint 继续训练
+# Continue training from this checkpoint in the next epoch
         current_model_path = checkpoint_dir
 
         result = submit_for_grading(GRADING_SERVER_URL, checkpoint_dir)

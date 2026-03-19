@@ -1,8 +1,8 @@
 """
-GSM8K 数据下载
+GSM8K data download
 
-Agent 只能看到 train split。
-评估（OpenCompass）用 test split，由 OpenCompass 自己内部加载。
+The Agent can only see the train split.
+Evaluation (OpenCompass) uses test split, which is loaded internally by OpenCompass itself.
 """
 
 import json
@@ -13,7 +13,7 @@ from loguru import logger
 
 
 def download_train_data(target_dir: Path) -> None:
-    """下载 GSM8K 训练数据（agent 可见）"""
+"""Download GSM8K training data (visible to agent)"""
     output_file = target_dir / "train.jsonl"
     if output_file.exists():
         logger.info(f"GSM8K train data exists: {output_file}")

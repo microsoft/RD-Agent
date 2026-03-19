@@ -1,4 +1,4 @@
-# ALFWorld benchmark 额外依赖
+# ALFWorld benchmark additional dependencies
 # pip install -r benchmarks/alfworld/requirements.txt
 alfworld
 textworld

@@ -1,7 +1,7 @@
 """
-AutoRL-Bench 配置
+AutoRL-Bench configuration
 
-独立配置，不依赖 RL_RD_SETTING，只复用 rdagent 基类。
+Independent configuration, does not rely on RL_RD_SETTING, and only reuses the rdagent base class.
 """
 
 from pathlib import Path
@@ -12,16 +12,16 @@ from rdagent.core.conf import ExtendedBaseSettings
 
 
 class AutoRLBenchSettings(ExtendedBaseSettings):
-    """AutoRL-Bench 配置
+    """AutoRL-Bench configuration
 
-    环境变量前缀: AUTORL_
-    例如: AUTORL_FILE_PATH=/data/autorl_bench
+    Environment variable prefix: AUTORL_
+    For example: AUTORL_FILE_PATH=/data/autorl_bench
     """
 
     model_config = SettingsConfigDict(env_prefix="AUTORL_", protected_namespaces=())
 
     file_path: Path = Path.cwd() / "git_ignore_folder" / "rl_files"
-    rdagent_root: Path = Path.cwd()  # Docker 挂载用，可通过 AUTORL_RDAGENT_ROOT 覆盖
+    rdagent_root: Path = Path.cwd() # Used for Docker mounting, can be overridden by AUTORL_RDAGENT_ROOT
 
 
 AUTORL_BENCH_SETTING = AutoRLBenchSettings()

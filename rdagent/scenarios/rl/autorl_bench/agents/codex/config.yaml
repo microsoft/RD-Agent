@@ -1,7 +1,7 @@
 name: "Codex CLI Agent"
-description: "One-shot agent：给完整 prompt，Codex CLI 自主完成代码编写、训练、评测提交"
+description: "One-shot agent: receives a full prompt and uses Codex CLI to complete coding, training, and evaluation submission autonomously"
 start: "start.sh"
 env_vars:
-  CODEX_MODEL: "gpt-5.2"            # 默认 LLM（可被环境变量覆盖）
-  CODEX_PROVIDER: "litellm"         # 默认走 litellm proxy（可被环境变量覆盖）
-  CODEX_TIMEOUT: "36000"            # Codex CLI 总超时（秒）= 10小时
+CODEX_MODEL: "gpt-5.2" #Default LLM (can be overridden by environment variables)
+CODEX_PROVIDER: "litellm" # The default is litellm proxy (can be overridden by environment variables)
+CODEX_TIMEOUT: "36000" # Codex CLI total timeout (seconds) = 10 hours

@@ -1,36 +1,36 @@
 """
 AutoRL-Bench Core Module
 
-主干代码，定义统一的评测接口和服务。
-开发新 benchmark 或 agent 时不需要修改此模块。
+Backbone code defines unified evaluation interfaces and services.
+There is no need to modify this module when developing new benchmarks or agents.
 
 ================================================================================
-面向开发者的接口约定
+Interface conventions for developers
 ================================================================================
 
-评测器基类: BaseEvaluator (evaluator.py)
-    所有 benchmark 评测器继承此类并实现 run_eval 方法。
+Evaluator base class: BaseEvaluator (evaluator.py)
+All benchmark evaluators inherit this class and implement the run_eval method.
 
     def run_eval(
         self,
-        model_path: str,          # 训练后的模型路径（本地目录）
-        workspace_path: str,       # 工作目录路径
-        model_name: str = "",      # 模型名称（用于配置推理参数）
-        gpu_count: int = 1,        # 可用 GPU 数量
-        test_range: str = "[:]",   # 测试数据范围
+model_path: str, # trained model path (local directory)
+workspace_path: str, # Working directory path
+model_name: str = "", # Model name (used to configure inference parameters)
+gpu_count: int = 1, # Number of available GPUs
+test_range: str = "[:]", # Test data range
         **kwargs,
     ) -> EvalResult
 
-评测结果: EvalResult (evaluator.py)
-    TypedDict，必须字段: benchmark, model_path, score, accuracy_summary
+Evaluation results: EvalResult (evaluator.py)
+TypedDict, required fields: benchmark, model_path, score, accuracy_summary
 
-具体实现:
-    - OpenCompassEvaluator (opencompass.py)  — 基于 OpenCompass 的评测
-    - PerSampleEvaluator (benchmarks/smith/) — 逐样本评测
+Specific implementation:
+- OpenCompassEvaluator (opencompass.py) — OpenCompass-based evaluation
+- PerSampleEvaluator (benchmarks/smith/) — sample-by-sample evaluation
 
-服务:
-    - GradingServer (server.py)              — 评测服务器
-    - create_grading_server (server.py)      — 创建服务上下文管理器
+Serve:
+- GradingServer (server.py) — Grading server
+- create_grading_server (server.py) — Create a service context manager
 ================================================================================
 """
 
@@ -59,14 +59,14 @@ from .utils import (
 )
 
 __all__ = [
-    # 数据结构
+# Data structure
     "EvalResult",
-    # 评测器
+# evaluator
     "BaseEvaluator",
     "OpenCompassEvaluator",
-    # 服务
+# Serve
     "create_grading_server",
-    # 工具函数
+# Utility function
     "ensure_symlink",
     "download_model",
     "download_data",

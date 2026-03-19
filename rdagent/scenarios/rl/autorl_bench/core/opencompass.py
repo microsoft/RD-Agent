@@ -1,7 +1,7 @@
 """
 OpenCompass Evaluator
 
-用于所有使用 OpenCompass 评测的 benchmark（gsm8k, math 等）。
+Used for all benchmarks measured using OpenCompass (gsm8k, math, etc.).
 """
 
 import subprocess
@@ -20,9 +20,9 @@ from rdagent.utils.agent.tpl import T
 
 class OpenCompassEvaluator(BaseEvaluator):
     """
-    OpenCompass 通用评测器
+OpenCompass universal evaluator
 
-    适用于所有使用 OpenCompass 评测的 benchmark。
+Applies to all benchmarks measured using OpenCompass.
     """
 
     def __init__(self, config):
@@ -39,7 +39,7 @@ class OpenCompassEvaluator(BaseEvaluator):
         test_range: str = "[:]",
         **kwargs,
     ) -> Dict[str, Any]:
-        """使用 OpenCompass 评测"""
+"""Evaluating using OpenCompass"""
         result = self.get_default_result(self.benchmark_id, model_path)
         result["eval_type"] = "opencompass"
 
@@ -52,19 +52,19 @@ class OpenCompassEvaluator(BaseEvaluator):
         work_dir = workspace / "benchmark_results"
         work_dir.mkdir(parents=True, exist_ok=True)
 
-        # 获取评测配置
+# Get evaluation configuration
         dataset_import = self.eval_config.get("dataset", f"opencompass.configs.datasets.{self.benchmark_id}")
-        # 允许 benchmark 在配置中声明默认评测切片（例如 HumanEval 仅评后半）
+# Allow benchmark to declare default evaluation slices in the configuration (for example, HumanEval only evaluates the second half)
         effective_test_range = test_range
         if test_range == "[:]" and self.eval_config.get("test_range"):
             effective_test_range = self.eval_config["test_range"]
 
-        # 从 models.yaml 获取模型推理配置
+# Get model inference configuration from models.yaml
         inference_config = self._get_model_inference_config(model_name, gpu_count)
 
         dataset_imports_explicit = build_dataset_imports_explicit(dataset_import)
 
-        # B1 fix: 拒绝 LoRA adapter，提示 agent 合并后再提交
+# B1 fix: Reject LoRA adapter, prompt agent to merge before submitting
         adapter_cfg_file = Path(model_path) / "adapter_config.json"
         if adapter_cfg_file.exists():
             result["error"] = (
@@ -76,7 +76,7 @@ class OpenCompassEvaluator(BaseEvaluator):
             )
             return result
 
-        # 生成 OpenCompass 配置
+# Generate OpenCompass configuration
         template_vars = {
             "model_abbr": f"rl-{self.benchmark_id}",
             "model_path": model_path,
@@ -95,7 +95,7 @@ class OpenCompassEvaluator(BaseEvaluator):
         logger.info(f"Running OpenCompass benchmark: {self.benchmark_id}")
         logger.info(f"Model: {model_path}")
 
-        # 运行 OpenCompass
+# Run OpenCompass
         cmd = ["opencompass", str(config_path), "--work-dir", str(work_dir)]
 
         try:
@@ -111,13 +111,13 @@ class OpenCompassEvaluator(BaseEvaluator):
             result["raw_output"] = error_msg
             return result
 
-        # 解析结果
+# Parse results
         result = self._parse_results(work_dir, result)
         logger.info(f"Benchmark score: {result['score']}")
         return result
 
     def _get_model_inference_config(self, model_name: str, gpu_count: int) -> dict:
-        """从 models.yaml 加载模型推理配置"""
+"""Load model inference configuration from models.yaml"""
         config_data = yaml.safe_load(open(BENCHMARK_CONFIGS_DIR / "models.yaml", "r"))
 
         default_config = config_data.get("default", {})
@@ -133,7 +133,7 @@ class OpenCompassEvaluator(BaseEvaluator):
 
         final_config = {**default_config, **model_specific}
 
-        # 处理 auto tensor_parallel_size
+# Process auto tensor_parallel_size
         if final_config.get("tensor_parallel_size") == "auto":
             if gpu_count <= 0:
                 final_config["tensor_parallel_size"] = 1
@@ -146,7 +146,7 @@ class OpenCompassEvaluator(BaseEvaluator):
         return final_config
 
     def _parse_results(self, work_dir: Path, result: dict) -> dict:
-        """解析 OpenCompass 输出结果"""
+"""Parsing OpenCompass output results"""
         timestamped_dirs = sorted([d for d in work_dir.glob("202*_*") if d.is_dir()], reverse=True)
 
         if not timestamped_dirs:

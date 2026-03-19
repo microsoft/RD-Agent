@@ -14,14 +14,14 @@ CSV_PATH = Path(__file__).resolve().parent.parent / "results.csv"
 
 
 def main() -> None:
-    # ---------- 页面配置 ----------
+# ---------- Page configuration ----------
     st.set_page_config(page_title="AutoRL-Bench", page_icon="🧪", layout="wide")
 
-    # ---------- 自定义样式 ----------
+# ---------- Custom style ----------
     st.markdown(
         """
     <style>
-        /* 指标卡片 */
+/* Indicator card */
         div[data-testid="stMetric"] {
             background: linear-gradient(135deg, #667eea11, #764ba211);
             border: 1px solid #e0e0e0;
@@ -39,7 +39,7 @@ def main() -> None:
             font-size: 1.3rem;
             font-weight: 700;
         }
-        /* 表格行高亮 */
+/* Table row highlighting */
         .stDataFrame td {
             font-size: 0.9rem;
         }
@@ -48,11 +48,11 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    # ---------- 标题 ----------
+# ---------- Title ----------
     st.markdown("# 🧪 AutoRL-Bench Results")
     st.divider()
 
-    # ---------- 加载数据 ----------
+# ---------- Load data ----------
     if not CSV_PATH.exists():
         st.info("No results yet. Run an experiment first.")
         st.stop()
@@ -61,7 +61,7 @@ def main() -> None:
     df["timestamp"] = pd.to_datetime(df["timestamp"])
     df["duration_min"] = (df["duration_s"] / 60).round(1)
 
-    # ---------- 侧栏 ----------
+# ---------- Sidebar ----------
     with st.sidebar:
         st.markdown("### Filters")
         agents = ["All"] + sorted(df["agent"].unique().tolist())
@@ -80,7 +80,7 @@ def main() -> None:
     if sel_task != "All":
         filtered = filtered[filtered["task"] == sel_task]
 
-    # ---------- Agent 对比 ----------
+# ---------- Agent comparison ----------
     if len(filtered) > 1:
         st.markdown("#### Agent Summary")
         summary = (
@@ -112,7 +112,7 @@ def main() -> None:
 
     st.divider()
 
-    # ---------- 结果表格 ----------
+# ---------- Result table ----------
     st.markdown("#### Run History")
     display = filtered[
         [

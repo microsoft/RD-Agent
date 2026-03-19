@@ -1,12 +1,12 @@
 """
-WebShop Evaluator - 电商网站交互环境
+WebShop Evaluator - E-commerce website interactive environment
 
-使用 ReAct agent 在 WebShop 环境中评测 LLM。
-支持两种后端：
-  - vllm: 本地模型推理
-  - api:  OpenAI 兼容 API
+Evaluating LLM in WebShop environment using ReAct agent.
+Two backends are supported:
+- vllm: local model inference
+- api: OpenAI compatible API
 
-WebShop 官方代码: https://github.com/princeton-nlp/webshop
+WebShop official code: https://github.com/princeton-nlp/webshop
 """
 
 import json
@@ -21,12 +21,12 @@ from rdagent.scenarios.rl.autorl_bench.core.evaluator import BaseEvaluator
 
 from .data import WEBSHOP_REPO_DIR, _clone_webshop_repo, _ensure_repo_in_path
 
-# 日志目录
+# Log directory
 LOG_DIR = Path(__file__).resolve().parent.parent.parent / "log"
 
 
 class _Tee:
-    """同时输出到终端和日志文件"""
+"""Output to both terminal and log file"""
 
     def __init__(self, filepath):
         self.terminal = sys.__stdout__
@@ -49,24 +49,24 @@ class _Tee:
 
 
 def _log(msg: str):
-    """简单的 print 日志（会被 Tee 同时写入文件）"""
+"""Simple print log (will be written to the file by Tee at the same time)"""
     print(msg, flush=True)
 
 
 # ============================================================
-# LLM 后端工厂
+# LLM backend factory
 # ============================================================
 
 
 def create_llm_fn(backend: str, model_path: str, **kwargs) -> Tuple[Callable, Callable]:
     """
-    创建统一的 llm(prompt, stop) 函数。
+Create a unified llm(prompt, stop) function.
 
-    backend="vllm": 本地模型，text completion
-    backend="api":  OpenAI 兼容 chat API
+backend="vllm": local model, text completion
+backend="api": OpenAI compatible chat API
 
     Returns:
-        (llm_fn, cleanup_fn): cleanup_fn 释放资源
+(llm_fn, cleanup_fn): cleanup_fn releases resources
     """
     if backend == "vllm":
         from vllm import LLM, SamplingParams
@@ -146,12 +146,12 @@ def create_llm_fn(backend: str, model_path: str, **kwargs) -> Tuple[Callable, Ca
 
 
 # ============================================================
-# ReAct Agent 核心逻辑
+# ReAct Agent core logic
 # ============================================================
 
 
 def _format_available_actions(avail: dict) -> str:
-    """将环境返回的 available_actions 格式化为文本列表"""
+"""Format the available_actions returned by the environment into a text list"""
     lines = []
     if avail.get("has_search_bar"):
         lines.append("search[<your query>]")
@@ -167,7 +167,7 @@ def build_react_prompt(
     available_actions: str = "",
     history_window: int = 5,
 ) -> str:
-    """构建 ReAct 风格的提示词，包含 available_actions 和有限历史窗口"""
+"""Build ReAct style prompts with available_actions and limited history window"""
     prompt = f"""You are shopping on an e-commerce website. Find and purchase a product matching the user's instruction.
 
 Instruction: {instruction}
@@ -207,18 +207,18 @@ def webshop_run(
     history_window: int = 5,
 ) -> Tuple[float, int, bool]:
     """
-    单轮 WebShop 评测逻辑。
+Single-round WebShop evaluation logic.
 
     Args:
         llm_fn: llm(prompt, stop) -> str
-        env: WebShop 环境实例
-        instruction: 用户指令
-        observation: 初始观察
-        max_steps: 最大步数
-        history_window: prompt 中保留的最近历史步数
+env: WebShop environment instance
+instruction: user instruction
+observation: initial observation
+max_steps: maximum number of steps
+history_window: the number of recent historical steps retained in prompt
 
     Returns:
-        (reward, steps, success): reward为最终奖励, steps为实际步数, success是否成功
+(reward, steps, success): reward is the final reward, steps is the actual number of steps, success is whether it is successful or not
     """
     history = []
 
@@ -236,7 +236,7 @@ def webshop_run(
 
         action = llm_fn(prompt, stop=["\n"]).strip()
 
-        # 清理动作前缀
+# Clean action prefix
         if action.startswith("Action:"):
             action = action[7:].strip()
         if action.startswith("choose["):
@@ -265,15 +265,15 @@ def webshop_run(
 
 class WebShopEvaluator(BaseEvaluator):
     """
-    WebShop 评测器（ReAct agent）
+WebShop Evaluator (ReAct agent)
 
-    eval_config 字段：
-        max_steps:        每任务最大步数（默认 50）
-        num_instructions: 评测指令数量（默认 100）
-        backend:          "vllm" 或 "api"（默认自动判断）
-        api_key:          API 密钥（backend=api 时）
-        api_base:         API 地址（backend=api 时）
-        num_products:     加载的产品数量（默认 1000，可选 1000 或全部）
+eval_config field:
+max_steps: Maximum number of steps per task (default 50)
+num_instructions: Number of evaluation instructions (default 100)
+backend: "vllm" or "api" (automatically determined by default)
+api_key: API key (when backend=api)
+api_base: API address (when backend=api)
+num_products: Number of products loaded (default 1000, optional 1000 or all)
     """
 
     def __init__(self, config):
@@ -287,17 +287,17 @@ class WebShopEvaluator(BaseEvaluator):
         workspace_path: str,
         **kwargs,
     ) -> Dict[str, Any]:
-        """运行 WebShop 评测"""
+"""Run WebShop Review"""
         result = self.get_default_result(self.benchmark_id, model_path)
         result["eval_type"] = "webshop"
 
-        # 合并 kwargs 到 eval_config
+# Merge kwargs into eval_config
         cfg = {**self.eval_config, **kwargs}
         max_steps = cfg.get("max_steps", 50)
         num_instructions = cfg.get("num_instructions", 100)
         num_products = cfg.get("num_products", 1000)
 
-        # --- 设置日志 Tee ---
+# --- Set up log Tee ---
         LOG_DIR.mkdir(parents=True, exist_ok=True)
         model_safe = model_path.replace("/", "_").replace("\\", "_")
         log_file = LOG_DIR / f"webshop_{model_safe}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
@@ -307,17 +307,17 @@ class WebShopEvaluator(BaseEvaluator):
         try:
             _log(f"Log: {log_file}")
 
-            # --- 确保 WebShop 仓库可用 ---
+# --- Make sure the WebShop repository is available ---
             _clone_webshop_repo()
             _ensure_repo_in_path()
 
-            # --- 判断 backend ---
+# --- Judgment backend ---
             backend = cfg.get("backend")
             if backend is None:
                 backend = "api" if not Path(model_path).exists() else "vllm"
             _log(f"WebShop eval: backend={backend}, model={model_path}")
 
-            # --- 创建 LLM 函数 ---
+# --- Create LLM function ---
             llm_fn, llm_cleanup = create_llm_fn(
                 backend=backend,
                 model_path=model_path,
@@ -326,7 +326,7 @@ class WebShopEvaluator(BaseEvaluator):
                 tensor_parallel_size=cfg.get("tensor_parallel_size", 1),
             )
 
-            # --- 初始化 WebShop 环境 ---
+# --- Initialize WebShop environment ---
             try:
                 from web_agent_site.envs.web_agent_text_env import WebAgentTextEnv
             except ImportError as e:
@@ -339,25 +339,25 @@ class WebShopEvaluator(BaseEvaluator):
                 num_products=num_products,
             )
 
-            # --- 加载评测指令 ---
+# --- Load evaluation instructions ---
             instruction_idxs = list(range(min(num_instructions, 12000)))
 
             _log(f"WebShop: {len(instruction_idxs)} instructions, max {max_steps} steps each")
 
-            # --- 评测循环 ---
+# --- Evaluation loop ---
             total_reward = 0.0
             success_count = 0
             total_steps = 0
 
             for idx, instr_idx in enumerate(instruction_idxs):
                 try:
-                    # 重置环境
+# Reset environment
                     observation, _ = env.reset(session=instr_idx)
                     instruction = env.get_instruction_text()
 
                     _log(f"\n[Task {idx + 1}/{len(instruction_idxs)}] {instruction[:80]}...")
 
-                    # 运行 agent
+# run agent
                     reward, steps, success = webshop_run(
                         llm_fn=llm_fn,
                         env=env,
@@ -373,7 +373,7 @@ class WebShopEvaluator(BaseEvaluator):
 
                     _log(f"  Result: {'SUCCESS' if success else 'FAIL'} (reward={reward:.2f}, steps={steps})")
 
-                    # 打印进度
+# Print progress
                     current_success_rate = success_count / (idx + 1)
                     _log(f"  Running: {success_count}/{idx + 1} = {current_success_rate:.1%}")
 
@@ -384,13 +384,13 @@ class WebShopEvaluator(BaseEvaluator):
                     _log(traceback.format_exc())
                     continue
 
-            # --- 汇总结果 ---
+# --- Summary results ---
             total_count = len(instruction_idxs)
             success_rate = success_count / total_count if total_count > 0 else 0.0
             avg_reward = total_reward / total_count if total_count > 0 else 0.0
             avg_steps = total_steps / total_count if total_count > 0 else 0.0
 
-            result["score"] = success_rate * 100  # 转为百分比
+result["score"] = success_rate * 100 # Convert to percentage
             result["accuracy_summary"] = {
                 "success_count": success_count,
                 "total_count": total_count,
@@ -412,15 +412,15 @@ class WebShopEvaluator(BaseEvaluator):
             _log(traceback.format_exc())
 
         finally:
-            # --- 清理 ---
+# --- Cleanup ---
             if "env" in locals():
                 env.close()
 
-            # 释放 LLM 资源
+# Release LLM resources
             if "llm_cleanup" in locals():
                 llm_cleanup()
 
-            # 恢复 stdout
+#Restore stdout
             sys.stdout = old_stdout
 
         return result

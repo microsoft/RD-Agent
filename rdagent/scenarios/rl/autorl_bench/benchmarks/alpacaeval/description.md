@@ -1,17 +1,17 @@
-# AlpacaEval 2.0 任务
+#AlpacaEval 2.0 Task
 
-## 目标
-评估模型的指令遵循与回答偏好表现（LLM Judge）。
+## Target
+Evaluate the model's instruction following and answer preference performance (LLM Judge).
 
-## 评测集
+## Evaluation set
 - AlpacaEval 2.0（`tatsu-lab/alpaca_eval` / `alpaca_eval_gpt4_baseline.json`）
-- 规模：805 条
-- 评测指标：Length-Controlled Win Rate（默认）
+- Size: 805 items
+- Evaluation indicator: Length-Controlled Win Rate (default)
 
-## 训练数据（agent 可见）
-- 默认使用 `tatsu-lab/alpaca` 前 2000 条指令样本
-- 可通过环境变量 `ALPACAEVAL_TRAIN_SAMPLES` 调整样本数
+## Training data (visible to agent)
+- Use the first 2000 instruction samples of `tatsu-lab/alpaca` by default
+- The number of samples can be adjusted through the environment variable `ALPACAEVAL_TRAIN_SAMPLES`
 
-## 说明
-- 评测使用 GPT-4 Turbo 作为裁判（需配置 `OPENAI_API_KEY` / `OPENAI_API_BASE`）
-- 评测集与训练集独立，避免泄漏
+## illustrate
+- The evaluation uses GPT-4 Turbo as the referee (needs to configure `OPENAI_API_KEY` / `OPENAI_API_BASE`)
+- The evaluation set is independent from the training set to avoid leakage

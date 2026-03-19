@@ -1,8 +1,8 @@
 """
-WebShop 数据准备
+WebShop data preparation
 
-注意：WebShop PyPI 包不完整（缺少 web_agent_site 模块），需要从 GitHub 克隆完整仓库。
-为避免 setup.sh 破坏当前环境依赖，我们手动下载数据。
+Note: The WebShop PyPI package is incomplete (missing the web_agent_site module), and the complete repository needs to be cloned from GitHub.
+To avoid setup.sh destroying current environment dependencies, we download the data manually.
 """
 
 import subprocess
@@ -16,7 +16,7 @@ WEBSHOP_REPO_DIR = WEBSHOP_CACHE_DIR / "repo"
 
 
 def _clone_webshop_repo() -> Path:
-    """克隆 WebShop 仓库到缓存目录"""
+"""Clone the WebShop repository to the cache directory"""
     if WEBSHOP_REPO_DIR.exists() and (WEBSHOP_REPO_DIR / ".git").exists():
         logger.info(f"WebShop repo exists: {WEBSHOP_REPO_DIR}")
         return WEBSHOP_REPO_DIR
@@ -34,10 +34,10 @@ def _clone_webshop_repo() -> Path:
 
 
 def _ensure_repo_in_path():
-    """确保 webshop 仓库在 Python 路径中（优先于 PyPI 包）。
+"""Make sure the webshop repository is in the Python path (preferring the PyPI package).
 
-    同时向 venv site-packages 写入 webshop.pth，使任何子进程（accelerate launch 等）
-    都能直接 import web_agent_site，无需手动设置 sys.path。
+Also write webshop.pth to venv site-packages to enable any child processes (accelerate launch, etc.)
+You can import web_agent_site directly without manually setting sys.path.
     """
     import site
 
@@ -59,7 +59,7 @@ def _ensure_repo_in_path():
 
 
 def _download_webshop_data():
-    """下载 WebShop 数据（手动下载，避免 setup.sh 破坏环境依赖）"""
+"""Download WebShop data (manual download to avoid setup.sh damaging environment dependencies)"""
     data_dir = WEBSHOP_REPO_DIR / "data"
     marker = data_dir / ".download_complete"
 
@@ -70,7 +70,7 @@ def _download_webshop_data():
     logger.info("Downloading WebShop data (~500MB, first time only)...")
     data_dir.mkdir(parents=True, exist_ok=True)
 
-    # 使用 gdown 下载 Google Drive 文件（small 数据集，1000个产品）
+# Use gdown to download Google Drive files (small data set, 1000 products)
     files = [
         ("1EgHdxQ_YxqIQlvvq5iKlCrkEKR6-j0Ib", "items_shuffle_1000.json"),
         ("1IduG0xl544V_A_jv3tHXC0kyFi7PnyBu", "items_ins_v2_1000.json"),
@@ -86,7 +86,7 @@ def _download_webshop_data():
             except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
                 logger.warning(f"Failed to download {filename}: {e}")
 
-    # 构建搜索引擎索引
+# Build search engine index
     _build_search_index()
 
     marker.touch()
@@ -94,7 +94,7 @@ def _download_webshop_data():
 
 
 def _build_search_index():
-    """构建 WebShop 搜索引擎索引"""
+"""Build WebShop search engine index"""
     search_engine_dir = WEBSHOP_REPO_DIR / "search_engine"
     marker = search_engine_dir / ".index_built"
 
@@ -103,17 +103,17 @@ def _build_search_index():
 
     logger.info("Building WebShop search index...")
 
-    # 创建 convert_product_file_format.py 需要的所有目录
+#Create all directories needed by convert_product_file_format.py
     for d in ["resources_100", "resources", "resources_1k", "resources_100k", "indexes"]:
         (search_engine_dir / d).mkdir(parents=True, exist_ok=True)
 
     try:
-        # 转换产品文件格式
+# Convert product file format
         convert_script = search_engine_dir / "convert_product_file_format.py"
         if convert_script.exists():
             subprocess.run([sys.executable, str(convert_script)], cwd=search_engine_dir, check=True, timeout=60)
 
-        # 构建索引
+# Build index
         index_script = search_engine_dir / "run_indexing.sh"
         if index_script.exists():
             subprocess.run(["bash", str(index_script)], cwd=search_engine_dir, check=True, timeout=120)
@@ -125,12 +125,12 @@ def _build_search_index():
 
 
 def download_train_data(target_dir: Path) -> None:
-    """准备 WebShop 训练数据（agent 可见）
+"""Prepare WebShop training data (visible to agent)
 
-    流程：
-    1. 克隆 WebShop 仓库（如果不存在）
-    2. 下载产品数据（手动方式，避免 setup.sh 破坏依赖）
-    3. 将训练数据链接到 target_dir
+process:
+1. Clone the WebShop repository (if it does not exist)
+2. Download product data (manual method to avoid setup.sh destroying dependencies)
+3. Link the training data to target_dir
     """
     marker = target_dir / ".downloaded"
     if marker.exists():
@@ -143,7 +143,7 @@ def download_train_data(target_dir: Path) -> None:
     _ensure_repo_in_path()
     _download_webshop_data()
 
-    # 链接训练数据给 agent
+# Link training data to agent
     human_traj_src = WEBSHOP_REPO_DIR / "data" / "human_trajectories"
     if human_traj_src.exists():
         human_traj_dst = target_dir / "human_trajectories"

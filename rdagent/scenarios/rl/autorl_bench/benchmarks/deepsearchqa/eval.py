@@ -3,11 +3,11 @@
 """
 DeepSearchQA Evaluator
 
-使用 vLLM 加载本地模型，结合 Web Search 工具，
-在 DeepSearchQA 数据集上评测模型的多步信息检索能力。
+Use vLLM to load local models, combined with Web Search tools,
+Evaluate the model's multi-step information retrieval capabilities on the DeepSearchQA dataset.
 
-数据集: https://huggingface.co/datasets/google/deepsearchqa
-评测方式: LLM Judge (推荐 gemini-2.5-flash)
+Dataset: https://huggingface.co/datasets/google/deepsearchqa
+Evaluation method: LLM Judge (recommended gemini-2.5-flash)
 """
 
 import json
@@ -48,13 +48,13 @@ Rules:
 
 class DeepSearchQAEvaluator(BaseEvaluator):
     """
-    DeepSearchQA 评测器
+DeepSearchQA Evaluator
 
-    流程：
-    1. 从 HuggingFace 加载数据集
-    2. 对每道题运行 ReAct 循环（模型 + 搜索工具）
-    3. 用 LLM Judge 对比模型答案与 gold answer
-    4. 返回 F1/EM 分数
+process:
+1. Load the dataset from HuggingFace
+2. Run ReAct loop (model + search tool) for each question
+3. Use LLM Judge to compare the model answer with the gold answer
+4. Return F1/EM score
     """
 
     def __init__(self, config):
@@ -281,7 +281,7 @@ class DeepSearchQAEvaluator(BaseEvaluator):
     # ----------------------------------------------------------
 
     def _get_search_function(self):
-        """返回搜索函数，优先使用 SerpAPI，降级到 DuckDuckGo"""
+"""Return to search function, use SerpAPI first, downgrade to DuckDuckGo"""
         import os
 
         serpapi_key = os.environ.get("SERPAPI_KEY") or self.eval_config.get("serpapi_key")
@@ -294,7 +294,7 @@ class DeepSearchQAEvaluator(BaseEvaluator):
             return self._duckduckgo_search
 
     def _serpapi_search(self, query: str, api_key: str) -> str:
-        """SerpAPI 搜索，返回摘要文本"""
+"""SerpAPI search, return summary text"""
         try:
             resp = requests.get(
                 "https://serpapi.com/search",
@@ -308,7 +308,7 @@ class DeepSearchQAEvaluator(BaseEvaluator):
             return f"Search error: {e}"
 
     def _duckduckgo_search(self, query: str) -> str:
-        """DuckDuckGo 即时答案 API（免费，但结果较少）"""
+"""DuckDuckGo Instant Answers API (Free, but fewer results)"""
         try:
             resp = requests.get(
                 "https://api.duckduckgo.com/",

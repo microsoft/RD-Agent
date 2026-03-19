@@ -8,13 +8,13 @@ echo "Workspace: $WORKSPACE"
 echo "Grading Server: $GRADING_SERVER_URL"
 echo "Output Dir: $OUTPUT_DIR"
 
-# 加载 .env 配置（启动时已在 RD-Agent 目录）
+# Load .env configuration (already in the RD-Agent directory at startup)
 if [ -f .env ]; then
     export $(grep -v '^#' .env | xargs)
     echo "Loaded .env"
 fi
 
-# 映射环境变量（rdagent 用 OPENAI_API_KEY，openhands 用 LLM_API_KEY）
+# Mapping environment variables (rdagent uses OPENAI_API_KEY, openhands uses LLM_API_KEY)
 if [ -z "$OPENAI_API_KEY" ] && [ -n "$LLM_API_KEY" ]; then
     export OPENAI_API_KEY="$LLM_API_KEY"
 fi
@@ -25,13 +25,13 @@ if [ -z "$LLM_API_KEY" ] && [ -z "$OPENAI_API_KEY" ]; then
     echo "ERROR: LLM_API_KEY or OPENAI_API_KEY required"
     exit 2
 fi
-# LLM_MODEL 优先从 config.yaml 传入，否则用 CHAT_MODEL，默认 gpt-5
+# LLM_MODEL is passed in from config.yaml first, otherwise CHAT_MODEL is used, the default is gpt-5
 export LLM_MODEL="${LLM_MODEL:-${CHAT_MODEL:-gpt-5}}"
 export LLM_BASE_URL="${OPENAI_API_BASE}"
 echo "LLM API key length: ${#LLM_API_KEY}"
 echo "LLM Model: $LLM_MODEL"
 
-# 训练环境 Python 路径（.env 中设 TRAINING_PYTHON 即可，无需 conda）
+#Training environment Python path (just set TRAINING_PYTHON in .env, no need for conda)
 if [ -z "$TRAINING_PYTHON" ]; then
     echo "WARNING: TRAINING_PYTHON not set in .env, trying conda fallback..."
     source "$(conda info --base 2>/dev/null || echo /root/miniconda3)/etc/profile.d/conda.sh" 2>/dev/null
@@ -41,7 +41,7 @@ if [ -z "$TRAINING_PYTHON" ]; then
 fi
 echo "Training Python: $TRAINING_PYTHON"
 
-# 运行 openhands-rl pipeline
+# Run openhands-rl pipeline
 cd "${OPENHANDS_RL_ROOT:-$HOME/openhands-rl}"
 OPENHANDS_PYTHON="${OPENHANDS_PYTHON:-python}"
 

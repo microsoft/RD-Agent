@@ -1,13 +1,13 @@
 """
-测试 B1-B4 修复
+Test B1-B4 fixes
 
-验证:
-  B1: LoRA adapter 自动检测
-  B2: 评测锁（串行化 GPU 访问）
-  B3: model_path 去重缓存
-  B4: error 字段透传
+verify:
+  B1: LoRA adapter automatic detection
+  B2: Evaluation lock (serialized GPU access)
+  B3: model_path deduplication cache
+  B4: error field transparent transmission
 
-运行: python -m rdagent.scenarios.rl.autorl_bench.test.test_fixes
+Run: python -m rdagent.scenarios.rl.autorl_bench.test.test_fixes
 """
 
 import json
@@ -34,7 +34,7 @@ def report(name: str, ok: bool, detail: str = ""):
 
 
 # ============================================================
-# B1: LoRA adapter 自动检测
+# B1: LoRA adapter automatic detection
 # ============================================================
 def test_b1_lora_detection():
     print("\n=== B1: LoRA adapter detection ===")
@@ -47,7 +47,7 @@ def test_b1_lora_detection():
         base_model_dir.mkdir()
         (base_model_dir / "config.json").write_text("{}")
 
-        # Case 1: adapter_config.json 存在且 base model 存在
+        # Case 1: adapter_config.json exists and base model exists
         (adapter_dir / "adapter_config.json").write_text(json.dumps({"base_model_name_or_path": str(base_model_dir)}))
 
         config = MagicMock()
@@ -163,7 +163,7 @@ def test_b1_lora_detection():
 
 
 # ============================================================
-# B2+B3: 评测锁 + 去重缓存
+# B2+B3: Evaluation lock + deduplication cache
 # ============================================================
 def test_b2b3_lock_and_cache():
     print("\n=== B2+B3: Eval lock + dedup cache ===")
@@ -249,7 +249,7 @@ def test_b2b3_lock_and_cache():
 
 
 # ============================================================
-# B4: error 字段透传
+# B4: error field transparent transmission
 # ============================================================
 def test_b4_error_passthrough():
     print("\n=== B4: Error field passthrough ===")

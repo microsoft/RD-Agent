@@ -1,8 +1,8 @@
 """
-ALFWorld 数据准备
+ALFWorld data preparation
 
-官方 alfworld-download 一次性下载所有数据（json + pddl + game.tw-pddl + logic）
-到 ~/.cache/alfworld/，然后只把训练数据 symlink 给 agent。
+Official alfworld-download downloads all data at once (json + pddl + game.tw-pddl + logic)
+Go to ~/.cache/alfworld/ and symlink only the training data to the agent.
 """
 
 import sys
@@ -12,7 +12,7 @@ from loguru import logger
 
 
 def _run_alfworld_download() -> None:
-    """调用 alfworld-download，兼容 conda env PATH 问题"""
+"""Call alfworld-download, compatible with conda env PATH issue"""
     import subprocess
 
     bin_dir = Path(sys.executable).parent
@@ -24,9 +24,9 @@ def _run_alfworld_download() -> None:
 
 
 def _ensure_alfworld_data() -> Path:
-    """确保 alfworld 完整数据已下载，返回数据根目录
+"""Make sure alfworld complete data has been downloaded and return to the data root directory
 
-    alfworld-download 下载三个 zip 到 ~/.cache/alfworld/:
+alfworld-download downloads three zips to ~/.cache/alfworld/:
       - json_2.1.1_json.zip  -> traj_data.json
       - json_2.1.1_pddl.zip  -> initial_state.pddl
       - json_2.1.3_tw-pddl.zip -> game.tw-pddl
@@ -56,7 +56,7 @@ def _ensure_alfworld_data() -> Path:
 
 
 def download_train_data(target_dir: Path) -> None:
-    """准备 ALFWorld 训练数据（agent 可见）"""
+"""Prepare ALFWorld training data (visible to agent)"""
     marker = target_dir / ".downloaded"
     if marker.exists():
         logger.info(f"ALFWorld train data exists: {target_dir}")

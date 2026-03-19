@@ -1,10 +1,10 @@
 """
 AlpacaEval 2.0 Evaluator
 
-流程：
-1. 读取 AlpacaEval 2.0 参考输出（gpt4 baseline）
-2. 用 vLLM 生成模型输出
-3. 调用 alpaca_eval 进行 head-to-head 评测（Length-Controlled Win Rate）
+process:
+1. Read AlpacaEval 2.0 reference output (gpt4 baseline)
+2. Use vLLM to generate model output
+3. Call alpaca_eval for head-to-head evaluation (Length-Controlled Win Rate)
 """
 
 import json
@@ -21,7 +21,7 @@ DEFAULT_ANNOTATORS_CONFIG = "weighted_alpaca_eval_gpt4_turbo"
 
 
 class AlpacaEvalEvaluator(BaseEvaluator):
-    """AlpacaEval 2.0 评测器（LLM Judge）"""
+"""AlpacaEval 2.0 Evaluator (LLM Judge)"""
 
     def __init__(self, config):
         self.config = config

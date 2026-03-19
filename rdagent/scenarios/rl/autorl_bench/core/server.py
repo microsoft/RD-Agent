@@ -1,7 +1,7 @@
 """
 AutoRL-Bench Grading Server (Simplified)
 
-精简的评测服务，主要提供 submit 接口。
+A streamlined evaluation service that mainly provides the submit interface.
 """
 
 import json
@@ -23,7 +23,7 @@ app = Flask(__name__)
 
 
 def _get_available_gpus() -> Set[str]:
-    """从 CUDA_VISIBLE_DEVICES 获取可用 GPU 集合"""
+"""Get the available GPU collection from CUDA_VISIBLE_DEVICES"""
     cuda_env = os.environ.get("CUDA_VISIBLE_DEVICES", "")
     if not cuda_env.strip():
         return set()
@@ -31,7 +31,7 @@ def _get_available_gpus() -> Set[str]:
 
 
 def _validate_gpu(gpu: str, available: Set[str]) -> Optional[str]:
-    """校验 gpu 参数，返回错误信息或 None（合法）"""
+"""Verify gpu parameters, return error message or None (legal)"""
     requested = {g.strip() for g in gpu.split(",") if g.strip()}
     if not requested:
         return "gpu parameter is empty"
@@ -42,7 +42,7 @@ def _validate_gpu(gpu: str, available: Set[str]) -> Optional[str]:
 
 
 class GradingServer:
-    """评测服务器"""
+"""Evaluation server"""
 
     def __init__(
         self,
@@ -61,8 +61,8 @@ class GradingServer:
 
     @staticmethod
     def _make_cache_key(resolved_path: Path) -> str:
-        """用路径 + safetensors/bin 文件最新 mtime 组合作为 cache key。
-        模型被覆盖后 mtime 变化，cache 自动失效。"""
+"""Use the path + the latest mtime combination of the safetensors/bin file as the cache key.
+If the mtime changes after the model is overwritten, the cache will automatically expire. """
         mtime = 0.0
         if resolved_path.is_dir():
             for f in resolved_path.rglob("*"):
@@ -83,13 +83,13 @@ class GradingServer:
         self.scores_file.write_text(json.dumps(scores, indent=2, ensure_ascii=False))
 
     def get_evaluator(self):
-        """获取当前 task 的评测器"""
+"""Get the evaluator of the current task"""
         from rdagent.scenarios.rl.autorl_bench.benchmarks import get_evaluator
 
         return get_evaluator(self.task)
 
     def resolve_model_path(self, model_path: str) -> Path:
-        """将模型路径约束在 workspace 下，防止访问任意文件系统路径。"""
+"""Constrain the model path to the workspace to prevent access to arbitrary file system paths."""
         if "\x00" in model_path:
             raise ValueError("Invalid model_path")
 
@@ -112,18 +112,18 @@ class GradingServer:
 
     def submit(self, model_path: str, gpu: Optional[str] = None) -> dict:
         """
-        提交模型评测
+Submit model review
 
         Args:
-            model_path: 模型路径
-            gpu: 指定 GPU（如 "0", "1", "0,1"），必须是 CUDA_VISIBLE_DEVICES 中的子集。
-                 None 则使用 CUDA_VISIBLE_DEVICES 中的第一个 GPU。
+model_path: model path
+gpu: Specifies the GPU (such as "0", "1", "0,1"), which must be a subset of CUDA_VISIBLE_DEVICES.
+None uses the first GPU in CUDA_VISIBLE_DEVICES.
 
         Returns:
-            包含 score、best、improvement 等完整信息的结果
+Results containing complete information such as score, best, improvement, etc.
 
         Raises:
-            ValueError: gpu 不在 CUDA_VISIBLE_DEVICES 范围内，或 model_path 非法
+ValueError: gpu is not in the range of CUDA_VISIBLE_DEVICES, or model_path is illegal
         """
         if self.available_gpus:
             if gpu is None:
@@ -133,8 +133,8 @@ class GradingServer:
                 if err:
                     raise ValueError(err)
 
-        # B3 fix: 同一 model_path + 同一内容去重，直接返回缓存结果
-        # 用路径 + 模型文件最新 mtime 作为 cache key，模型文件被覆盖后自动失效
+# B3 fix: Same model_path + same content, deduplication, return cached results directly
+# Use the path + the latest mtime of the model file as the cache key. The model file will automatically expire after being overwritten.
         resolved_path = self.resolve_model_path(model_path)
         cache_key = self._make_cache_key(resolved_path)
         if cache_key in self._eval_cache:
@@ -144,9 +144,9 @@ class GradingServer:
 
         start_time = time.time()
 
-        # B2 fix: 串行化评测，防止多个 vLLM 实例同时抢 GPU
+# B2 fix: Serialized evaluation to prevent multiple vLLM instances from grabbing the GPU at the same time
         with self._eval_lock:
-            # Double-check: 等锁期间可能已被其他线程评完
+# Double-check: The review may have been completed by other threads while waiting for the lock.
             cache_key = self._make_cache_key(resolved_path)
             if cache_key in self._eval_cache:
                 cached = self._eval_cache[cache_key]
@@ -179,16 +179,16 @@ class GradingServer:
 
         elapsed_seconds = time.time() - start_time
 
-        # 解析分数
+# Parse scores
         score = result.get("score", 0.0)
         error = result.get("error")
 
-        # 计算 improvement
+# Calculate improvement
         improvement = None
         if self.baseline_score is not None:
             improvement = round(score - self.baseline_score, 6)
 
-        # 构建结果
+# Build results
         entry = {
             "submission_id": submission_id,
             "timestamp": datetime.now().isoformat(),
@@ -198,7 +198,7 @@ class GradingServer:
             "improvement": improvement,
             "elapsed_seconds": round(elapsed_seconds, 2),
         }
-        # B4 fix: 透传 error 字段
+# B4 fix: transparent transmission of error field
         if error:
             entry["error"] = error
 
@@ -206,7 +206,7 @@ class GradingServer:
         self.save_scores(scores)
         update_run_meta(self.workspace, last_submit_time=int(time.time()))
 
-        # 查找最高分
+# Find the highest score
         best_entry = max(scores, key=lambda x: x.get("score", 0))
 
         logger.info(f"[SUBMIT #{submission_id}] Done | score={score}, best={best_entry['score']}")
@@ -217,19 +217,19 @@ class GradingServer:
             "total_submissions": len(scores),
         }
 
-        # 只缓存成功的评测结果（失败的不缓存，允许重试）
+# Only cache successful evaluation results (failed ones are not cached and retry is allowed)
         if not error:
             self._eval_cache[self._make_cache_key(resolved_path)] = response
 
         return response
 
     def set_baseline(self, score: float):
-        """设置 baseline 分数"""
+"""Set baseline score"""
         self.baseline_score = score
         logger.info(f"[BASELINE] Set to {score}")
 
 
-# 全局服务器实例
+# Global server instance
 _server: Optional[GradingServer] = None
 
 
@@ -241,17 +241,17 @@ def get_server() -> GradingServer:
 
 
 def init_server(task: str, base_model: str, workspace: str) -> GradingServer:
-    """初始化服务器"""
+"""Initialize server"""
     global _server
     _server = GradingServer(task, base_model, Path(workspace))
     return _server
 
 
-# Flask 路由
+# Flask routing
 @app.route("/submit", methods=["POST"])
 def submit():
     """
-    提交模型评测
+Submit model review
 
     Request:
         {"model_path": "/path/to/model"}
@@ -300,7 +300,7 @@ def submit():
 
 @app.route("/health", methods=["GET"])
 def health():
-    """健康检查"""
+"""Health Check"""
     server = get_server()
     return jsonify(
         {
@@ -314,7 +314,7 @@ def health():
 
 @app.route("/time", methods=["GET"])
 def time_status():
-    """时间与预算信号"""
+"""Time and budget signals"""
     server = get_server()
     meta = read_run_meta(server.workspace)
     now = int(time.time())
@@ -334,7 +334,7 @@ def time_status():
 
 @app.route("/set_baseline", methods=["POST"])
 def set_baseline():
-    """设置 baseline 分数"""
+"""Set baseline score"""
     data = request.get_json() or {}
     score = data.get("score")
 
@@ -347,19 +347,19 @@ def set_baseline():
 
 
 def run_server(task: str, base_model: str, workspace: str, host: str = "0.0.0.0", port: int = 5000):
-    """启动服务器"""
+"""Start the server"""
     init_server(task, base_model, workspace)
     logger.info(f"Grading Server | task={task} | {host}:{port}")
     app.run(host=host, port=port, debug=False, threaded=True)
 
 
 # ============================================================
-# Grading Server 上下文管理器
+# Grading Server context manager
 # ============================================================
 
 
 class GradingServerContext:
-    """Grading Server 基类"""
+"""Grading Server base class"""
 
     def __enter__(self):
         return self
@@ -375,7 +375,7 @@ class GradingServerContext:
 
 
 class LocalServerContext(GradingServerContext):
-    """本地 Flask Server"""
+"""Local Flask Server"""
 
     def __init__(self, task: str, base_model: str, workspace: str, port: int):
         self.task = task
@@ -426,7 +426,7 @@ class LocalServerContext(GradingServerContext):
 
 
 def create_grading_server(benchmark, workspace: Path, port: int, base_model: str) -> GradingServerContext:
-    """创建 Grading Server 上下文"""
+"""Create Grading Server context"""
     return LocalServerContext(
         task=benchmark.id,
         base_model=base_model,

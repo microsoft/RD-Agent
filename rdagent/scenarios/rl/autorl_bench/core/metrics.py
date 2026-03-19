@@ -1,7 +1,7 @@
 """
 AutoRL-Bench Metrics
 
-计算 run 级别过程指标，并生成可视化。
+Calculate run-level process metrics and generate visualizations.
 """
 
 import json

@@ -1,8 +1,8 @@
 """
 AutoRL-Bench Benchmarks Registry
 
-注册表，管理所有可用的 benchmark 评测器。
-添加新 benchmark 时，在此注册。
+A registry that manages all available benchmark evaluators.
+When adding a new benchmark, register it here.
 """
 
 import importlib
@@ -17,30 +17,30 @@ BENCHMARKS_DIR = Path(__file__).parent
 
 @dataclass
 class BenchmarkConfig:
-    """Benchmark 配置
+"""Benchmark configuration
 
-    每个 benchmark 的数据下载/处理逻辑写在各自目录的 data.py 里，
-    不在这里统一处理。这样新增 benchmark 时只需在自己目录下实现即可。
+The data download/processing logic of each benchmark is written in data.py in the respective directory.
+It is not dealt with uniformly here. In this way, when adding a benchmark, you only need to implement it in your own directory.
     """
 
     id: str
-    evaluator_class: str  # 评测器类的完整路径
-    data_module: str = ""  # 数据模块路径（实现 download_train_data 函数）
+evaluator_class: str # Full path to evaluator class
+data_module: str = "" #Data module path (implement download_train_data function)
     description: str = ""
     eval_config: Optional[Dict[str, Any]] = field(default=None)
     expose_files: list = field(
         default_factory=list
-    )  # benchmark 特有的额外文件（description.md 和 instructions.md 由 run.py 统一挂载）
-    bench_dir: Optional[str] = None  # 自定义 benchmark 目录路径（默认 None 则用 BENCHMARKS_DIR / id）
+) # Benchmark-specific additional files (description.md and instructions.md are mounted uniformly by run.py)
+bench_dir: Optional[str] = None # Customize the benchmark directory path (default None, use BENCHMARKS_DIR/id)
 
 
-# Benchmark 注册表
+#Benchmark Registry
 BENCHMARKS: Dict[str, BenchmarkConfig] = {
     "gsm8k": BenchmarkConfig(
         id="gsm8k",
         evaluator_class="rdagent.scenarios.rl.autorl_bench.core.opencompass.OpenCompassEvaluator",
         data_module="rdagent.scenarios.rl.autorl_bench.benchmarks.gsm8k.data",
-        description="Grade School Math 8K - 小学数学推理",
+description="Grade School Math 8K - Elementary Mathematical Reasoning",
         eval_config={
             "dataset": "opencompass.configs.datasets.gsm8k.gsm8k_gen_1d7fe4",
         },
@@ -49,7 +49,7 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
         id="humaneval",
         evaluator_class="rdagent.scenarios.rl.autorl_bench.core.opencompass.OpenCompassEvaluator",
         data_module="rdagent.scenarios.rl.autorl_bench.benchmarks.humaneval.data",
-        description="HumanEval - Python 代码生成",
+description="HumanEval - Python code generation",
         eval_config={
             "dataset": "opencompass.configs.datasets.humaneval.humaneval_gen",
             "test_range": "[82:]",
@@ -59,7 +59,7 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
         id="alpacaeval",
         evaluator_class="rdagent.scenarios.rl.autorl_bench.benchmarks.alpacaeval.eval.AlpacaEvalEvaluator",
         data_module="rdagent.scenarios.rl.autorl_bench.benchmarks.alpacaeval.data",
-        description="AlpacaEval 2.0 - 指令遵循与偏好评测（LLM Judge）",
+description="AlpacaEval 2.0 - Instruction Compliance and Preference Evaluation (LLM Judge)",
         eval_config={
             "reference_file": "alpaca_eval_gpt4_baseline.json",
             "annotators_config": "annotators_gpt52_fn",
@@ -72,10 +72,10 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
         id="alfworld",
         evaluator_class="rdagent.scenarios.rl.autorl_bench.benchmarks.alfworld.eval.ALFWorldEvaluator",
         data_module="rdagent.scenarios.rl.autorl_bench.benchmarks.alfworld.data",
-        description="ALFWorld - 文本游戏交互环境（ReAct agent，支持 vLLM/API）",
+description="ALFWorld - text game interactive environment (ReAct agent, supports vLLM/API)",
         eval_config={
             "max_steps": 50,
-            "env_num": 134,  # 完整评测集（valid_unseen），之前调试时设为 1
+"env_num": 134, # Complete evaluation set (valid_unseen), set to 1 during previous debugging
         },
         expose_files=["eval.py"],
     ),
@@ -83,7 +83,7 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
         id="webshop",
         evaluator_class="rdagent.scenarios.rl.autorl_bench.benchmarks.webshop.eval.WebShopEvaluator",
         data_module="rdagent.scenarios.rl.autorl_bench.benchmarks.webshop.data",
-        description="WebShop - 在线购物网站交互环境（ReAct agent，支持 vLLM/API）",
+description="WebShop - Online shopping website interactive environment (ReAct agent, supports vLLM/API)",
         eval_config={
             "max_steps": 50,
             "num_instructions": 100,
@@ -95,11 +95,11 @@ BENCHMARKS: Dict[str, BenchmarkConfig] = {
         id="deepsearchqa",
         evaluator_class="rdagent.scenarios.rl.autorl_bench.benchmarks.deepsearchqa.eval.DeepSearchQAEvaluator",
         data_module="rdagent.scenarios.rl.autorl_bench.benchmarks.deepsearchqa.data",
-        description="DeepSearchQA - Google DeepMind 多步信息检索基准（900题，17领域）",
+description="DeepSearchQA - Google DeepMind multi-step information retrieval benchmark (900 questions, 17 domains)",
         eval_config={
             "num_samples": 200,  # fixed held-out evaluation split after 100/200 train/eval partition
-            "max_steps": 6,  # ReAct 最大搜索轮次
-            # api_key": "...", # 可选，不填则用 DuckDuckGo
+"max_steps": 6, # ReAct maximum search rounds
+# api_key": "...", # Optional, if left blank, use DuckDuckGo
         },
         expose_files=["eval.py"],
     ),
@@ -112,7 +112,7 @@ BENCHMARKS.update(discover_smith_benchmarks())
 
 
 def get_benchmark(benchmark_id: str) -> BenchmarkConfig:
-    """获取 benchmark 配置"""
+"""Get benchmark configuration"""
     if benchmark_id not in BENCHMARKS:
         available = list(BENCHMARKS.keys())
         raise ValueError(f"Unknown benchmark: {benchmark_id}. Available: {available}")
@@ -120,10 +120,10 @@ def get_benchmark(benchmark_id: str) -> BenchmarkConfig:
 
 
 def get_evaluator(benchmark_id: str) -> BaseEvaluator:
-    """获取 benchmark 的评测器实例"""
+"""Get the evaluator instance of benchmark"""
     config = get_benchmark(benchmark_id)
 
-    # 动态导入评测器类
+# Dynamically import evaluator class
     module_path, class_name = config.evaluator_class.rsplit(".", 1)
     module = importlib.import_module(module_path)
     evaluator_class: Type[BaseEvaluator] = getattr(module, class_name)
@@ -132,5 +132,5 @@ def get_evaluator(benchmark_id: str) -> BaseEvaluator:
 
 
 def list_benchmarks() -> list[str]:
-    """列出所有可用的 benchmark"""
+"""List all available benchmarks"""
     return list(BENCHMARKS.keys())

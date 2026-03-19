@@ -1,5 +1,5 @@
 name: "OpenCode Agent"
-description: "固定阶段 pipeline：代码生成→训练→评测→反馈（基于 opencode-rl）"
+description: "Fixed-stage pipeline: code generation -> training -> evaluation -> feedback (based on opencode-rl)"
 start: "start.sh"
 env_vars:
   MAX_ITERATIONS: "5"

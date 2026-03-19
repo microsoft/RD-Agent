@@ -1,16 +1,16 @@
-# GSM8K 任务
+#GSM8K task
 
-## 目标
-训练模型在 GSM8K 数学问题上获得更高准确率。
+## Target
+Train the model to achieve higher accuracy on GSM8K math problems.
 
-## 数据格式
+## Data format
 ```json
 {"question": "...", "answer": "... #### 42"}
 ```
 
-## 评测指标
-- 答案准确率（exact match）
+## Evaluation indicators
+- Answer accuracy (exact match)
 
-## 提示
-- 答案格式: `#### 数字`
-- 使用 GRPO/PPO 等 RL 方法训练
+## hint
+- Answer format: `#### number`
+- Training using RL methods such as GRPO/PPO

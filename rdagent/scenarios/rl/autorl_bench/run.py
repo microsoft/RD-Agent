@@ -2,7 +2,7 @@
 """
 AutoRL-Bench Runner
 
-入口脚本。
+Entry script.
 
 Usage:
     python -m rdagent.scenarios.rl.autorl_bench.run \
@@ -44,7 +44,7 @@ def run(
     timeout: int = 3600,
     port: int = 5000,
 ) -> dict:
-    """运行 Agent 评测"""
+    """Run Agent Evaluation"""
     from rdagent.scenarios.rl.autorl_bench.conf import get_workspace_dir
 
     start_time = datetime.now()
@@ -53,16 +53,16 @@ def run(
         run_id = f"{run_id}_p{port}"
     benchmark = get_benchmark(task)
 
-    # 每次 run 独立 workspace + 独立日志文件
+    # Independent workspace + independent log file for each run
     workspace = get_workspace_dir() / task / f"{run_id}_{agent_id}"
     workspace.mkdir(parents=True, exist_ok=True)
     log_file = workspace / "run.log"
     _sink_id = loguru_logger.add(log_file, format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}", level="DEBUG")
 
-    # 用 mutable 容器让闭包能访问后续赋值的 agent 子进程
+    # Use a mutable container to allow closures to access subsequently assigned agent subprocesses
     _agent_proc = [None]
 
-    # 收到 SIGTERM/SIGINT 时杀掉整棵进程树再退出
+    # When receiving SIGTERM/SIGINT, kill the entire process tree and exit.
     def _on_signal(signum, frame):
         sig_name = signal.Signals(signum).name
         logger.warning(f"Received {sig_name}, terminating...")
@@ -81,12 +81,12 @@ def run(
     logger.info(f"Workspace: {workspace}")
     logger.info(f"Start: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
-    # 1. 准备资源（已有则跳过下载）
+    # 1. Prepare resources (skip downloading if you already have them)
     logger.info("Preparing resources...")
     model_path = download_model(base_model)
     data_path = download_data(task)
 
-    # 2. 搭建 workspace（补充 symlink 挂载）
+    # 2. Build workspace (supplement symlink mounting)
     workspace = setup_workspace(
         run_id,
         agent_id,
@@ -98,7 +98,7 @@ def run(
     )
     init_run_meta(workspace, timeout)
 
-    # 3. 启动 Grading Server + 运行 Agent
+    # 3. Start Grading Server + run Agent
     with create_grading_server(benchmark, workspace, port, base_model) as grading:
         logger.info("Evaluating baseline...")
         baseline = grading.get_baseline(
@@ -145,7 +145,7 @@ def run(
 
         scores = grading.load_scores()
 
-    # 4. 保存结果
+    # 4. Save results
     end_time = datetime.now()
     update_run_meta(workspace, end_time=int(end_time.timestamp()))
     best = max(scores, key=lambda x: x.get("score", 0)) if scores else None
@@ -161,7 +161,7 @@ def run(
         "duration_seconds": (end_time - start_time).total_seconds(),
     }
 
-    # 追加到全局 results.csv
+    # Append to global results.csv
     append_result(
         {
             "run_id": run_id,
@@ -193,7 +193,7 @@ def run(
 
     logger.info(f"Log saved to: {log_file}")
 
-    # 移除本次 run 添加的 file sink（避免异常导致进程退出）
+    # Remove the file sink added by this run (to avoid exceptions causing the process to exit)
     if _sink_id is not None:
         try:
             loguru_logger.remove(_sink_id)

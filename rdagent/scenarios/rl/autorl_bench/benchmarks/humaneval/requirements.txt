@@ -1,4 +1,4 @@
-# HumanEval benchmark 额外依赖
-# 安装方式：
+# HumanEval benchmark additional dependencies
+# Installation method:
 #   git clone https://github.com/XianBW/human-eval.git ~/human-eval
 #   cd ~/human-eval && pip install -e .

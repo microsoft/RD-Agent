@@ -1,12 +1,12 @@
 """
-ALFWorld Evaluator - 交互式文本游戏环境
+ALFWorld Evaluator - Interactive text gaming environment
 
-使用 ReAct agent（few-shot + 完整历史）在 ALFWorld 中评测 LLM。
-支持两种后端：
-  - vllm: 本地模型推理（text completion，和 ReAct 原版一致）
-  - api:  OpenAI 兼容 API（chat completion）
+Evaluating LLM in ALFWorld using the ReAct agent (few-shot + full history).
+Two backends are supported:
+- vllm: local model reasoning (text completion, consistent with the original version of ReAct)
+- api: OpenAI compatible API (chat completion)
 
-ReAct 官方代码: https://github.com/ysymyth/ReAct/blob/main/alfworld.ipynb
+ReAct official code: https://github.com/ysymyth/ReAct/blob/main/alfworld.ipynb
 """
 
 import json
@@ -19,12 +19,12 @@ from typing import Any, Callable, Dict, List
 
 from rdagent.scenarios.rl.autorl_bench.core.evaluator import BaseEvaluator
 
-# 日志目录
+# Log directory
 LOG_DIR = Path(__file__).resolve().parent.parent.parent / "log"
 
 
 class _Tee:
-    """同时输出到终端和日志文件"""
+"""Output to both terminal and log file"""
 
     def __init__(self, filepath):
         self.terminal = sys.__stdout__
@@ -47,15 +47,15 @@ class _Tee:
 
 
 def _log(msg: str):
-    """简单的 print 日志（会被 Tee 同时写入文件）"""
+"""Simple print log (will be written to the file by Tee at the same time)"""
     print(msg, flush=True)
 
 
 # ============================================================
-# ReAct agent 核心逻辑（来自官方 alfworld.ipynb）
+# ReAct agent core logic (from official alfworld.ipynb)
 # ============================================================
 
-# 任务类型 → few-shot prompt key 的映射
+# Task type → mapping of few-shot prompt key
 TASK_PREFIXES = {
     "pick_and_place": "put",
     "pick_clean_then_place": "clean",
@@ -67,7 +67,7 @@ TASK_PREFIXES = {
 
 
 def process_ob(ob: str) -> str:
-    """官方 ReAct 的 observation 清洗"""
+"""Official ReAct observation cleaning"""
     if ob.startswith("You arrive at loc "):
         ob = ob[ob.find(". ") + 2 :]
     return ob
@@ -75,17 +75,17 @@ def process_ob(ob: str) -> str:
 
 def alfworld_run(llm_fn: Callable, env, prompt: str, ob: str, max_steps: int = 50) -> tuple:
     """
-    ReAct 官方的单局评测逻辑。
+ReAct’s official single-game evaluation logic.
 
     Args:
         llm_fn: llm(prompt, stop) -> str
-        env: ALFWorld 环境实例
-        prompt: few-shot prompt（含 2 个示例）
-        ob: 初始 observation
-        max_steps: 最大步数
+env: ALFWorld environment instance
+prompt: few-shot prompt (2 examples included)
+ob: initial observation
+max_steps: maximum number of steps
 
     Returns:
-        (reward, steps): reward=1 表示成功，steps 为实际步数
+(reward, steps): reward=1 indicates success, steps is the actual number of steps
     """
     init_prompt = prompt + ob + "\n>"
     history = ""
@@ -106,19 +106,19 @@ def alfworld_run(llm_fn: Callable, env, prompt: str, ob: str, max_steps: int = 5
 
 
 # ============================================================
-# LLM 后端工厂
+# LLM backend factory
 # ============================================================
 
 
 def create_llm_fn(backend: str, model_path: str, **kwargs) -> tuple:
     """
-    创建统一的 llm(prompt, stop) 函数。
+Create a unified llm(prompt, stop) function.
 
-    backend="vllm": 本地模型，text completion（和 ReAct 原版行为一致）
-    backend="api":  OpenAI 兼容 chat API
+backend="vllm": local model, text completion (consistent with ReAct original behavior)
+backend="api": OpenAI compatible chat API
 
     Returns:
-        (llm_fn, cleanup_fn): cleanup_fn 释放 GPU 显存
+(llm_fn, cleanup_fn): cleanup_fn releases GPU memory
     """
     if backend == "vllm":
         from vllm import LLM, SamplingParams
@@ -195,15 +195,15 @@ def create_llm_fn(backend: str, model_path: str, **kwargs) -> tuple:
 
 class ALFWorldEvaluator(BaseEvaluator):
     """
-    ALFWorld 评测器（ReAct agent）
+ALFWorld evaluator (ReAct agent)
 
-    eval_config 字段：
-        max_steps:    每局最大步数（默认 50）
-        env_num:      评测局数（默认 134）
-        react_prompts: ReAct few-shot prompts 文件路径
-        backend:      "vllm" 或 "api"（默认自动判断）
-        api_key:      API 密钥（backend=api 时）
-        api_base:     API 地址（backend=api 时）
+eval_config field:
+max_steps: Maximum number of steps per round (default 50)
+env_num: Number of evaluation games (default 134)
+react_prompts: ReAct few-shot prompts file path
+backend: "vllm" or "api" (automatically determined by default)
+api_key: API key (when backend=api)
+api_base: API address (when backend=api)
     """
 
     def __init__(self, config):
@@ -217,29 +217,29 @@ class ALFWorldEvaluator(BaseEvaluator):
         workspace_path: str,
         **kwargs,
     ) -> Dict[str, Any]:
-        """运行 ALFWorld 评测"""
+"""Run the ALFWorld review"""
         result = self.get_default_result(self.benchmark_id, model_path)
         result["eval_type"] = "alfworld"
 
-        # 合并 kwargs 到 eval_config
+# Merge kwargs into eval_config
         cfg = {**self.eval_config, **kwargs}
         max_steps = cfg.get("max_steps", 50)
         env_num = cfg.get("env_num", 134)
 
-        # --- 设置日志 Tee ---
+# --- Set up log Tee ---
         LOG_DIR.mkdir(parents=True, exist_ok=True)
         model_safe = model_path.replace("/", "_")
         log_file = LOG_DIR / f"alfworld_{model_safe}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
         sys.stdout = _Tee(log_file)
 
-        # --- 判断 backend ---
+# --- Judgment backend ---
         backend = cfg.get("backend")
         if backend is None:
             backend = "api" if not Path(model_path).exists() else "vllm"
         _log(f"Log: {log_file}")
         _log(f"ALFWorld eval: backend={backend}, model={model_path}")
 
-        # --- 创建 LLM 函数 ---
+# --- Create LLM function ---
         llm_fn, llm_cleanup = create_llm_fn(
             backend=backend,
             model_path=model_path,
@@ -248,18 +248,18 @@ class ALFWorldEvaluator(BaseEvaluator):
             tensor_parallel_size=cfg.get("tensor_parallel_size", 1),
         )
 
-        # --- 加载 ReAct few-shot prompts ---
+# --- Load ReAct few-shot prompts ---
         prompts_path = cfg.get("react_prompts")
         if prompts_path is None:
-            # 默认路径：和 eval.py 同目录下的 react_prompts.json
+#Default path: react_prompts.json in the same directory as eval.py
             prompts_path = Path(__file__).parent / "react_prompts.json"
         with open(prompts_path) as f:
             react_prompts = json.load(f)
 
-        # --- 确保 ALFWorld 游戏数据已下载 ---
+# --- Make sure ALFWorld game data is downloaded ---
         self._ensure_alfworld_data()
 
-        # --- 初始化 ALFWorld 环境 ---
+# --- Initialize ALFWorld environment ---
         workspace = Path(workspace_path)
 
         from rdagent.scenarios.rl.autorl_bench.benchmarks.alfworld.data import (
@@ -269,7 +269,7 @@ class ALFWorldEvaluator(BaseEvaluator):
         alfworld_data = str(_ensure_alfworld_data())
         os.environ["ALFWORLD_DATA"] = alfworld_data
 
-        # env_config: 读同目录下官方 base_config.yaml，展开 $ALFWORLD_DATA
+# env_config: Read the official base_config.yaml in the same directory and expand $ALFWORLD_DATA
         config_yaml = Path(__file__).parent / "base_config.yaml"
         with open(config_yaml) as f:
             import yaml
@@ -287,7 +287,7 @@ class ALFWorldEvaluator(BaseEvaluator):
         num_games = min(env_num, alfred_env.num_games)
         _log(f"ALFWorld: {num_games} games, max {max_steps} steps, split={split}")
 
-        # --- 评测循环（ReAct 官方逻辑） ---
+# --- Evaluation loop (ReAct official logic) ---
         cnts = [0] * 6
         rs = [0] * 6
 
@@ -323,7 +323,7 @@ class ALFWorldEvaluator(BaseEvaluator):
         env.close()
         llm_cleanup()
 
-        # --- 汇总结果 ---
+# --- Summary results ---
         total_success = sum(rs)
         total_count = sum(cnts)
         success_rate = total_success / total_count if total_count > 0 else 0.0
@@ -345,14 +345,14 @@ class ALFWorldEvaluator(BaseEvaluator):
         for prefix, stats in per_task.items():
             _log(f"  {prefix:30s} {stats['success']}/{stats['total']} = {stats['rate']:.0%}")
 
-        # 恢复 stdout
+#Restore stdout
         sys.stdout = sys.__stdout__
 
         return result
 
     @staticmethod
     def _ensure_alfworld_data():
-        """检查 ALFWorld 游戏数据（~2.1GB），没有就自动下载"""
+"""Check ALFWorld game data (~2.1GB), if not, download it automatically"""
         import subprocess
 
         cache_dir = Path.home() / ".cache" / "alfworld"
@@ -363,7 +363,7 @@ class ALFWorldEvaluator(BaseEvaluator):
         _log(f"ALFWorld data downloaded to {cache_dir}")
 
     def _expand_env_vars(self, obj):
-        """递归展开 $ENV_VAR"""
+"""Recursively expand $ENV_VAR"""
         if isinstance(obj, str):
             return os.path.expandvars(obj)
         elif isinstance(obj, dict):

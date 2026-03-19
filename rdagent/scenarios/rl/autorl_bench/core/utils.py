@@ -1,7 +1,7 @@
 """
 AutoRL-Bench Core Utilities
 
-统一的工具函数：下载、baseline、grading client、workspace、results
+Unified tool functions: download, baseline, grading client, workspace, results
 """
 
 import csv
@@ -25,7 +25,7 @@ from rdagent.scenarios.rl.autorl_bench.conf import (
 
 
 def kill_process_group(proc: "subprocess.Popen") -> None:
-    """尽力杀掉进程组：SIGTERM → SIGKILL → proc.kill()"""
+"""Try to kill the process group: SIGTERM → SIGKILL → proc.kill()"""
     import signal as _signal
 
     if proc.poll() is not None:
@@ -46,12 +46,12 @@ def kill_process_group(proc: "subprocess.Popen") -> None:
 
 
 # ============================================================
-# 文件工具
+#File tool
 # ============================================================
 
 
 def ensure_symlink(src: Path, dst: Path):
-    """创建软链接（已存在则跳过，并发安全）"""
+"""Create a soft link (skip if it already exists, safe for concurrency)"""
     if not src.exists():
         return
     try:
@@ -61,12 +61,12 @@ def ensure_symlink(src: Path, dst: Path):
 
 
 # ============================================================
-# 下载相关
+# Download related
 # ============================================================
 
 
 def download_model(model_name: str, model_dir: Optional[str] = None) -> str:
-    """下载模型（已存在则跳过）"""
+"""Download the model (skip if it already exists)"""
     base_dir = Path(model_dir) if model_dir else get_models_dir()
     target_dir = base_dir / model_name
 
@@ -82,11 +82,11 @@ def download_model(model_name: str, model_dir: Optional[str] = None) -> str:
 
 
 def download_data(task: str, data_dir: Optional[str] = None) -> str:
-    """下载训练数据（agent 可见部分）
+"""Download training data (visible part to agent)
 
-    支持两种模式：
-    1. data_module 模式（传统）：调用 data.py 中的 download_train_data()
-    2. download_data.py 脚本模式（smith benchmarks）：直接运行脚本
+Two modes are supported:
+1. data_module mode (traditional): call download_train_data() in data.py
+2. download_data.py script mode (smith benchmarks): run the script directly
     """
     import importlib
     import shutil
@@ -102,11 +102,11 @@ def download_data(task: str, data_dir: Optional[str] = None) -> str:
     target_dir = base_dir / task
 
     if config.data_module:
-        # 传统方式（gsm8k、alfworld 等）
+# Traditional method (gsm8k, alfworld, etc.)
         module = importlib.import_module(config.data_module)
         module.download_train_data(target_dir)
     else:
-        # 脚本方式（所有 smith benchmarks）
+# Script mode (all smith benchmarks)
         bench_dir = Path(config.bench_dir) if config.bench_dir else BENCHMARKS_DIR / task
         script = bench_dir / "download_data.py"
         if script.exists():
@@ -116,7 +116,7 @@ def download_data(task: str, data_dir: Optional[str] = None) -> str:
                 cwd=str(bench_dir),
                 check=True,
             )
-            # 脚本输出到 bench_dir/data/train.jsonl，拷贝到 target_dir
+# Script output to bench_dir/data/train.jsonl, copy to target_dir
             src = bench_dir / "data" / "train.jsonl"
             dst = target_dir / "train.jsonl"
             if src.exists() and not dst.exists():
@@ -136,12 +136,12 @@ def download_data(task: str, data_dir: Optional[str] = None) -> str:
 
 
 # ============================================================
-# Baseline 相关
+#Baseline related
 # ============================================================
 
 
 def _safe_model_name(model_name: str) -> str:
-    """将模型名转为安全的文件名"""
+"""Convert the model name to a safe file name"""
     return re.sub(r"[/\\:*?\"<>|]", "_", model_name)
 
 
@@ -154,18 +154,18 @@ def get_baseline_score(
     test_range: str = "[:]",
     force_rerun: bool = False,
 ) -> float:
-    """获取 baseline score（有缓存则读缓存，没有则评测）"""
+"""Get the baseline score (read the cache if there is a cache, and evaluate if there is no cache)"""
     safe_name = _safe_model_name(model_name)
     cache_file = get_baseline_cache_dir() / f"{task}_{safe_name}.json"
 
-    # 检查缓存
+# Check cache
     if not force_rerun and cache_file.exists():
         data = json.loads(cache_file.read_text())
         score = data.get("score", 0.0)
         logger.info(f"Baseline cache hit: {cache_file.name}, score={score}")
         return score
 
-    # 执行评测
+# Execute evaluation
     logger.info(f"Running baseline evaluation: task={task}, model={model_name}")
     from rdagent.scenarios.rl.autorl_bench.benchmarks import get_evaluator
 
@@ -209,7 +209,7 @@ def submit_to_grading_server(
     grading_url: Optional[str] = None,
     timeout: int = 600,
 ) -> dict | None:
-    """提交模型到 grading server 评测"""
+"""Submit the model to the grading server for evaluation"""
     url = grading_url or os.environ.get("GRADING_SERVER_URL")
     if not url:
         return None
@@ -223,7 +223,7 @@ def submit_to_grading_server(
 
 
 def set_baseline_to_server(score: float, grading_url: Optional[str] = None) -> bool:
-    """设置 baseline score 到 grading server"""
+"""Set baseline score to grading server"""
     url = grading_url or os.environ.get("GRADING_SERVER_URL")
     if not url:
         return False
@@ -234,12 +234,12 @@ def set_baseline_to_server(score: float, grading_url: Optional[str] = None) -> b
 
 
 # ============================================================
-# Workspace 搭建
+# Workspace setup
 # ============================================================
 
 
 def init_run_meta(workspace: Path, timeout_s: int) -> Path:
-    """初始化 run_meta.json（单一事实源）。"""
+"""Initialize run_meta.json (single source of truth)."""
     run_meta = workspace / "run_meta.json"
     payload = {
         "start_time": int(datetime.now().timestamp()),
@@ -252,7 +252,7 @@ def init_run_meta(workspace: Path, timeout_s: int) -> Path:
 
 
 def update_run_meta(workspace: Path, **fields) -> Path:
-    """更新 run_meta.json 的部分字段。"""
+"""Update some fields of run_meta.json."""
     run_meta = workspace / "run_meta.json"
     data = json.loads(run_meta.read_text()) if run_meta.exists() else {}
     data.update(fields)
@@ -261,7 +261,7 @@ def update_run_meta(workspace: Path, **fields) -> Path:
 
 
 def read_run_meta(workspace: Path) -> dict:
-    """读取 run_meta.json。"""
+"""Read run_meta.json."""
     run_meta = workspace / "run_meta.json"
     return json.loads(run_meta.read_text()) if run_meta.exists() else {}
 
@@ -275,7 +275,7 @@ def setup_workspace(
     data_path: str,
     benchmark,
 ) -> Path:
-    """创建隔离的 workspace 目录并挂载资源文件，返回 workspace 路径。"""
+"""Create an isolated workspace directory and mount resource files, returning the workspace path."""
     from rdagent.scenarios.rl.autorl_bench.benchmarks import BENCHMARKS_DIR
     from rdagent.scenarios.rl.autorl_bench.conf import (
         get_instructions_file,
@@ -288,7 +288,7 @@ def setup_workspace(
     (workspace / "output").mkdir(exist_ok=True)
     (workspace / "reports").mkdir(exist_ok=True)
 
-    # 模型 & 数据 symlink
+# model & data symlink
     model_link = workspace / "models" / base_model
     data_link = workspace / "data"
     model_link.parent.mkdir(parents=True, exist_ok=True)
@@ -296,7 +296,7 @@ def setup_workspace(
     ensure_symlink(Path(model_path), model_link)
     ensure_symlink(Path(data_path), data_link)
 
-    # 挂载文件：任务描述 + 通用说明 + benchmark 特有文件
+#Mount files: task description + general instructions + benchmark-specific files
     bench_dir = Path(benchmark.bench_dir) if benchmark.bench_dir else BENCHMARKS_DIR / task
     ensure_symlink(bench_dir / "description.md", workspace / "description.md")
     ensure_symlink(get_instructions_file(), workspace / "instructions.md")
@@ -308,7 +308,7 @@ def setup_workspace(
 
 
 # ============================================================
-# Results CSV 记录
+# Results CSV record
 # ============================================================
 
 RESULTS_CSV_COLUMNS = [
@@ -329,12 +329,12 @@ RESULTS_CSV_COLUMNS = [
 
 
 def detect_driver_model(env: dict) -> str:
-    """从环境变量检测驱动 agent 的 LLM 模型名。"""
+"""Detect the LLM model name of the driver agent from environment variables."""
     return env.get("LLM_MODEL") or os.environ.get("CHAT_MODEL") or os.environ.get("OPENAI_MODEL") or "unknown"
 
 
 def append_result(row: dict) -> Path:
-    """追加一行到全局 results.csv，返回文件路径。"""
+"""Append a line to global results.csv and return the file path."""
     from rdagent.scenarios.rl.autorl_bench.conf import get_autorl_bench_dir
 
     results_csv = get_autorl_bench_dir() / "results.csv"
@@ -348,7 +348,7 @@ def append_result(row: dict) -> Path:
 
 
 # ============================================================
-# 运行摘要
+# Run summary
 # ============================================================
 
 
@@ -358,7 +358,7 @@ def print_summary(
     scores: list,
     workspace,
 ) -> None:
-    """打印运行摘要。"""
+"""Print the run summary."""
     logger.info("=" * 60)
     logger.info(f"Baseline: {baseline}")
     if best:
