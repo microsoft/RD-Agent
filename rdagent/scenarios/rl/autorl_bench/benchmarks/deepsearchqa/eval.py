@@ -16,9 +16,16 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
-from datasets import load_dataset
 
 from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.rl.autorl_bench.benchmarks.deepsearchqa.data import (
+    DATASET_NAME,
+    EVAL_SIZE,
+    SOURCE_SPLIT,
+    TRAIN_SIZE,
+    load_source_dataset,
+    split_dataset,
+)
 from rdagent.scenarios.rl.autorl_bench.core.evaluator import BaseEvaluator
 
 REACT_SYSTEM_PROMPT = """You are a research assistant that answers questions by searching the web.
@@ -64,15 +71,15 @@ class DeepSearchQAEvaluator(BaseEvaluator):
             result["error"] = f"Model not found: {model_path}"
             return result
 
-        # load datasets
-        num_samples = self.eval_config.get("num_samples", 100)
-        dataset = load_dataset(
-            "google/deepsearchqa",
-            split="eval",
-            # 如果已下载到本地可用 data_dir 参数
+        # Deterministic held-out evaluation split: 100 train / 800 eval.
+        num_samples = self.eval_config.get("num_samples", EVAL_SIZE)
+        dataset = load_source_dataset()
+        _, eval_dataset = split_dataset(dataset)
+        samples = list(eval_dataset.select(range(min(num_samples, len(eval_dataset)))))
+        logger.info(
+            f"DeepSearchQA held-out eval: {len(samples)} samples "
+            f"(train={TRAIN_SIZE}, eval={len(eval_dataset)}, source={DATASET_NAME}/{SOURCE_SPLIT})"
         )
-        samples = list(dataset.select(range(min(num_samples, len(dataset)))))
-        logger.info(f"DeepSearchQA: {len(samples)} samples")
 
         # load model (vLLM)
         logger.info(f"Loading model: {model_path}")
@@ -155,6 +162,8 @@ class DeepSearchQAEvaluator(BaseEvaluator):
         answer_type: str,
     ) -> str:
         """ReAct multi-step reasoning loop, return final answer string"""
+        from vllm import SamplingParams
+
         max_steps = self.eval_config.get("max_steps", 6)
 
         conversation = f"Question: {question}\n" f"Answer type: {answer_type}\n\n" "Thought:"
