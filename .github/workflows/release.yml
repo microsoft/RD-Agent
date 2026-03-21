@@ -26,7 +26,7 @@ jobs:
           fetch-depth: 0
       - name: Set up Python
         if: ${{ steps.release_please.outputs.release_created }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           cache: pip
           python-version: '3.10'
