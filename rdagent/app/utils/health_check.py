@@ -110,6 +110,13 @@ def env_check():
             chat_api_base = os.getenv("OPENAI_API_BASE")
         else:
             chat_api_base = None
+    elif "NOVITA_API_KEY" in os.environ:
+        chat_api_key = os.getenv("NOVITA_API_KEY")
+        chat_api_base = os.getenv("OPENAI_API_BASE", "https://api.novita.ai/openai")
+        chat_model = os.getenv("CHAT_MODEL")
+        embedding_model = os.getenv("EMBEDDING_MODEL")
+        embedding_api_key = os.getenv("LITELLM_PROXY_API_KEY", chat_api_key)
+        embedding_api_base = os.getenv("LITELLM_PROXY_API_BASE", chat_api_base)
     elif "OPENAI_API_KEY" in os.environ:
         chat_api_key = os.getenv("OPENAI_API_KEY")
         chat_api_base = os.getenv("OPENAI_API_BASE")

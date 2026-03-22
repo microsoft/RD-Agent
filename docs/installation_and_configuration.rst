@@ -159,6 +159,31 @@ If your `Azure OpenAI API Key`` supports `embedding model`, you can refer to the
       AZURE_API_BASE=<your_unified_api_base>
       AZURE_API_VERSION=<azure api version>
 
+Configuration Example 3: Novita AI Setup
+-----------------------------------------
+
+`Novita AI <https://novita.ai>`_ provides an OpenAI-compatible API with a range of models.
+
+Here is a complete working example using Novita AI for both chat and embeddings:
+
+   .. code-block:: Properties
+
+      # CHAT MODEL: Novita AI via OpenAI-compatible endpoint
+      NOVITA_API_KEY=<replace_with_your_novita_api_key>
+      OPENAI_API_BASE=https://api.novita.ai/openai
+      CHAT_MODEL=openai/moonshotai/kimi-k2.5
+
+      # EMBEDDING MODEL: Novita AI embedding via litellm_proxy
+      # Note: embedding requires litellm_proxy prefix
+      LITELLM_PROXY_API_KEY=<replace_with_your_novita_api_key>
+      LITELLM_PROXY_API_BASE=https://api.novita.ai/openai
+      EMBEDDING_MODEL=litellm_proxy/qwen/qwen3-embedding-0.6b
+
+Other available Novita AI chat models:
+
+- ``openai/zai-org/glm-5``
+- ``openai/minimax/minimax-m2.5``
+
 Execution Environment Configuration
 ===================================
 

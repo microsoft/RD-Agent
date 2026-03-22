@@ -21,6 +21,7 @@ EMBEDDING_MODEL_LIMITS = {
     "bce-embedding-base_v1": 511,
     "bge-large-zh-v1.5": 511,
     "bge-large-en-v1.5": 511,
+    "qwen3-embedding-0.6b": 8192,
 }
 
 
