@@ -2,7 +2,7 @@ FROM node:20-bookworm-slim AS frontend-builder
 
 WORKDIR /app/web
 COPY web/package.json web/package-lock.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 COPY web/ ./
 RUN npm run build:flask
 
