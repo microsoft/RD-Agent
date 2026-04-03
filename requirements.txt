@@ -22,6 +22,7 @@ matplotlib
 langchain
 langchain-community
 tiktoken
+requests
 pymupdf  # Extract shotsreens from pdf
 
 # PDF related
