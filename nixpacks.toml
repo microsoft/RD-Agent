@@ -3,6 +3,7 @@ nixPkgs = ["python311", "nodejs_20"]
 
 [phases.install]
 cmds = [
+  "python3 -m ensurepip --upgrade",
   "python3 -m pip install --upgrade pip setuptools wheel",
   "python3 -m pip install .",
   "cd web && npm ci"
