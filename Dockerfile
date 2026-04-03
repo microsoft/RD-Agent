@@ -12,7 +12,8 @@ FROM python:3.11-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    SETUPTOOLS_SCM_PRETEND_VERSION_FOR_RDAGENT=0.0.0
+    SETUPTOOLS_SCM_PRETEND_VERSION_FOR_RDAGENT=0.0.0 \
+    PYTHONPATH=/app
 
 WORKDIR /app
 
@@ -29,4 +30,4 @@ RUN python -m pip install --upgrade pip setuptools wheel && \
 
 EXPOSE 19899
 
-CMD sh -c 'rdagent server_ui --port "${PORT:-19899}"'
+CMD sh -c 'python -m rdagent.app.cli server_ui --port "${PORT:-19899}"'
