@@ -81,12 +81,16 @@ dependencies:
       - datasets>=3.0.0
       - huggingface_hub>=0.20.0
       - tokenizers
+      - verl==0.7.0
+      - vllm
+      - mixture-of-depth
 
       # === 传统 ML ===
       - catboost
       - xgboost
-      - lightgbm
+      - lightgbm==3.3.5
       - optuna
+      - sparse
 
       # === 实验追踪 ===
       - mlflow
@@ -148,6 +152,10 @@ dependencies:
       - alfworld
       - textworld
       - alpaca-eval
+      - miniwob
+      - math-verify
+      - latex2sympy2-extended
+      - ogb
 
       # === WebShop ===
       - webshop
@@ -170,6 +178,9 @@ dependencies:
       - genson
       - networkx
       - nbformat
+      - mle-bench
+      - llama-factory
+      - opencompass
 
       # === 类型定义 ===
       - types-pytz
