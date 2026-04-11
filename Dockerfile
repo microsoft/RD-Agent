@@ -105,6 +105,7 @@ RUN set -eux; \
     && pip install --no-cache-dir tables
 
 # Clone qlib repository for fin_quant scenario (needs specific commit)
+# If this fails, fin_quant will build its own image from rdagent/scenarios/qlib/docker/Dockerfile
 RUN set -eux; \
     for proxy_var in http_proxy https_proxy HTTP_PROXY HTTPS_PROXY; do \
         proxy_value=$(printenv "$proxy_var" || true); \
@@ -114,13 +115,23 @@ RUN set -eux; \
                 ;; \
         esac; \
     done; \
+    git config --global http.postBuffer 524288000 && \
     (git clone --depth 1 https://github.com/microsoft/qlib.git /opt/qlib_repo && \
      cd /opt/qlib_repo && \
      git fetch && \
      git reset 2fb9380b342556ddb50a4b24e4fe8655d548b2b8 --hard && \
      pip install --no-cache-dir -e . && \
-     echo "Qlib repository cloned and installed successfully") || \
-    echo "WARNING: Failed to clone qlib repository, basic fin_factor will still work via pyqlib package"
+     echo "✓ Qlib repository cloned and installed successfully") || \
+    (echo "" && \
+     echo "⚠️ WARNING: Failed to clone qlib repository from GitHub." && \
+     echo "   fin_factor scenario will still work via pyqlib package." && \
+     echo "   For fin_quant scenario, the application will build its own qlib image at runtime." && \
+     echo "   To fix this, manually clone qlib after build:" && \
+     echo "     git clone https://github.com/microsoft/qlib.git /opt/qlib_repo" && \
+     echo "" && \
+     echo "   Or configure Docker proxy mirrors before building:" && \
+     echo "     https://github.com/microsoft/RD-Agent?tab=readme-ov-file#troubleshooting" && \
+     echo "")
 
 # Install RD-Agent in development mode
 COPY pyproject.toml .
