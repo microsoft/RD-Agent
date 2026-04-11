@@ -125,29 +125,56 @@ Ensure the current user can run Docker commands **without using sudo**. You can 
 
 #### 🐳 Using Docker (Recommended)
 
-We provide an official Dockerfile for containerized deployment:
+We provide a unified Dockerfile for all scenarios (fin_factor, fin_quant, kaggle, data_science, RL, finetune):
 
+**Build the unified Docker image:**
 ```bash
-# Build the Docker image
-docker build -t rdagent:latest .
+# CPU only (default)
+docker build -f .devcontainer/Dockerfile -t rdagent:latest .
 
-# Run RD-Agent with Docker
+# With GPU support
+docker build -f .devcontainer/Dockerfile --build-arg GPU_SUPPORT=true -t rdagent:gpu .
+```
+
+**Run RD-Agent with Docker:**
+```bash
+# General usage (all scenarios)
 docker run -it --rm \
   -v $(pwd)/.env:/app/.env \
   -v $(pwd)/workspace:/app/workspace \
   -v $(pwd)/log:/app/log \
   -v /var/run/docker.sock:/var/run/docker.sock \
   rdagent:latest health_check
+
+# fin_factor scenario
+docker run -it --rm \
+  -v $(pwd)/.env:/app/.env \
+  -v $(pwd)/workspace:/app/workspace \
+  rdagent:latest fin_factor
+
+# fin_quant scenario
+docker run -it --rm \
+  -v $(pwd)/.env:/app/.env \
+  -v $(pwd)/workspace:/app/workspace \
+  rdagent:latest fin_quant
 ```
 
 **Docker Build Arguments:**
-- `PYTHON_VERSION`: Python version (default: 3.10)
-- `GPU_SUPPORT`: Enable GPU support with PyTorch CUDA image (default: false)
 
-**Example with GPU support:**
-```bash
-docker build --build-arg GPU_SUPPORT=true -t rdagent-gpu:latest .
-```
+| Argument    | Default | Description                                      |
+|-------------|---------|--------------------------------------------------|
+| `GPU_SUPPORT` | `false` | Set to `true` to use PyTorch CUDA image        |
+
+**What's included in the unified image:**
+- **Base:** PyTorch 2.2.1 CUDA 12.1 (GPU) or Python 3.10-slim (CPU)
+- **System:** curl, vim, git, build-essential, docker.io, Chrome/ChromeDriver
+- **fin_factor/fin_quant:** pyqlib, catboost, xgboost, tables, qlib repo
+- **RL:** torch_geometric, pytorch_lightning, ogb, lightgbm, optuna
+- **MLE-Bench:** conda environment with mle-bench
+- **finetune:** trl, peft, verl, transformers, bitsandbytes
+- **RD-Agent:** Installed in development mode from source
+
+**Note:** The qlib repository clone may fail due to network issues. If it fails, the fin_quant scenario will build its own image at runtime from `rdagent/scenarios/qlib/docker/Dockerfile`.
 
 ### 🐍 Create a Conda Environment
 - Create a new conda environment with Python (3.10 and 3.11 are well-tested in our CI):
