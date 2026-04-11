@@ -1,0 +1,13 @@
+# RD-Agent Configuration
+# Copy this file to settings.yaml and customize as needed
+
+qlib:
+  # ==========================================
+  # Data Path Configuration
+  # ==========================================
+  # Direct path to qlib data directory (relative to project root)
+  data_path: ../data/qlib_data/cn_data_20260411
+
+  # Region setting
+  region: cn
+
