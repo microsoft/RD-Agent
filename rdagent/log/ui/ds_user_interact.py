@@ -1,8 +1,8 @@
 import json
-import pickle
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 
 import streamlit as st
 from streamlit import session_state as state
@@ -16,6 +16,48 @@ if "sessions" not in state:
     state.sessions = {}
 if "selected_session_name" not in state:
     state.selected_session_name = None
+
+
+def _load_session_json(path: Path) -> dict | None:
+    """Load a session JSON file and parse datetime fields.
+
+    Returns ``None`` when the file cannot be decoded.
+    """
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return None
+
+    # Restore datetime from ISO-format string
+    if "expired_datetime" in data and isinstance(data["expired_datetime"], str):
+        data["expired_datetime"] = datetime.fromisoformat(data["expired_datetime"])
+
+    # Wrap plain dicts so that attribute access (e.g. .hypothesis, .description)
+    # works transparently in the rendering code.
+    if isinstance(data.get("target_hypothesis"), dict):
+        data["target_hypothesis"] = SimpleNamespace(**data["target_hypothesis"])
+    if isinstance(data.get("task"), dict):
+        data["task"] = SimpleNamespace(**data["task"])
+
+    return data
+
+
+def _save_session_json(path: Path, data: dict) -> None:
+    """Persist session *data* as JSON, converting datetimes to ISO strings."""
+    serialisable = dict(data)
+
+    if isinstance(serialisable.get("expired_datetime"), datetime):
+        serialisable["expired_datetime"] = serialisable["expired_datetime"].isoformat()
+
+    # Unwrap SimpleNamespace back to dict for serialisation
+    for key in ("target_hypothesis", "task"):
+        val = serialisable.get(key)
+        if isinstance(val, SimpleNamespace):
+            serialisable[key] = vars(val)
+
+    with open(path, "w") as f:
+        json.dump(serialisable, f)
 
 
 def render_main_content():
@@ -108,7 +150,7 @@ def render_main_content():
                             DS_RD_SETTING.user_interaction_mid_folder / f"{state.selected_session_name}_RET.json", "w"
                         ),
                     )
-                    Path(DS_RD_SETTING.user_interaction_mid_folder / f"{state.selected_session_name}.pkl").unlink(
+                    Path(DS_RD_SETTING.user_interaction_mid_folder / f"{state.selected_session_name}.json").unlink(
                         missing_ok=True
                     )
                     st.success("Your feedback has been submitted. Thank you!")
@@ -116,14 +158,11 @@ def render_main_content():
                     state.selected_session_name = None
 
             if st.button("Extend expiration by 60s"):
-                session_data = pickle.load(
-                    open(DS_RD_SETTING.user_interaction_mid_folder / f"{state.selected_session_name}.pkl", "rb")
-                )
-                session_data["expired_datetime"] = session_data["expired_datetime"] + timedelta(seconds=60)
-                pickle.dump(
-                    session_data,
-                    open(DS_RD_SETTING.user_interaction_mid_folder / f"{state.selected_session_name}.pkl", "wb"),
-                )
+                session_path = DS_RD_SETTING.user_interaction_mid_folder / f"{state.selected_session_name}.json"
+                session_data = _load_session_json(session_path)
+                if session_data is not None:
+                    session_data["expired_datetime"] = session_data["expired_datetime"] + timedelta(seconds=60)
+                    _save_session_json(session_path, session_data)
     else:
         st.warning("Please select a session from the sidebar.")
 
@@ -133,9 +172,13 @@ def render_main_content():
 def update_sessions():
     log_folder = Path(DS_RD_SETTING.user_interaction_mid_folder)
     state.sessions = {}
-    for session_file in log_folder.glob("*.pkl"):
+    for session_file in log_folder.glob("*.json"):
+        if session_file.stem.endswith("_RET"):
+            continue
         try:
-            session_data = pickle.load(open(session_file, "rb"))
+            session_data = _load_session_json(session_file)
+            if session_data is None:
+                continue
             if session_data["expired_datetime"] > datetime.now():
                 state.sessions[session_file.stem] = session_data
             else:
