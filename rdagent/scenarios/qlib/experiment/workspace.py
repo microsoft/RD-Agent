@@ -3,11 +3,13 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+import yaml
 
 from rdagent.components.coder.model_coder.conf import MODEL_COSTEER_SETTINGS
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import QlibCondaConf, QlibCondaEnv, QTDockerEnv
+from rdagent.utils.qlib import get_qlib_data_path
 
 
 class QlibFBWorkspace(FBWorkspace):
@@ -15,7 +17,17 @@ class QlibFBWorkspace(FBWorkspace):
         super().__init__(*args, **kwargs)
         self.inject_code_from_folder(template_folder_path)
 
+    def _get_qlib_env_dict(self) -> dict:
+        """Build environment dict for qlib with data path from config/settings.yaml."""
+        env = {}
+        data_path = get_qlib_data_path()
+        env["QLIB_DATA_PATH"] = str(data_path)
+        return env
+
     def execute(self, qlib_config_name: str = "conf.yaml", run_env: dict = {}, *args, **kwargs) -> str:
+        # Build environment with QLIB_DATA_PATH
+        env_dict = {**run_env, **self._get_qlib_env_dict()}
+
         if MODEL_COSTEER_SETTINGS.env_type == "docker":
             qtde = QTDockerEnv()
         elif MODEL_COSTEER_SETTINGS.env_type == "conda":
@@ -29,14 +41,14 @@ class QlibFBWorkspace(FBWorkspace):
         execute_qlib_log = qtde.check_output(
             local_path=str(self.workspace_path),
             entry=f"qrun {qlib_config_name}",
-            env=run_env,
+            env=env_dict,
         )
         logger.log_object(execute_qlib_log, tag="Qlib_execute_log")
 
         execute_log = qtde.check_output(
             local_path=str(self.workspace_path),
             entry="python read_exp_res.py",
-            env=run_env,
+            env=env_dict,
         )
 
         quantitative_backtesting_chart_path = self.workspace_path / "ret.pkl"

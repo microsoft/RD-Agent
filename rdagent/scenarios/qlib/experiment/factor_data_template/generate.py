@@ -1,6 +1,8 @@
 import qlib
 
-qlib.init(provider_uri="~/.qlib/qlib_data/cn_data")
+from rdagent.utils.qlib import get_qlib_data_path
+
+qlib.init(provider_uri=get_qlib_data_path())
 
 from qlib.data import D
 

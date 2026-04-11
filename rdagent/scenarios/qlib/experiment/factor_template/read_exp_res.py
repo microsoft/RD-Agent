@@ -6,7 +6,9 @@ import qlib
 from mlflow.entities import ViewType
 from mlflow.tracking import MlflowClient
 
-qlib.init()
+from rdagent.utils.qlib import get_qlib_data_path
+
+qlib.init(provider_uri=get_qlib_data_path())
 
 from qlib.workflow import R
 
