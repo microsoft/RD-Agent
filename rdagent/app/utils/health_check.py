@@ -82,7 +82,8 @@ def test_embedding(embedding_model, embedding_api_key, embedding_api_base):
             model=embedding_model,
             api_key=embedding_api_key,
             api_base=embedding_api_base,
-            input="Hello world!",
+            input=["Hello world!"],  # Array format required by SiliconFlow
+            encoding_format="float",  # FIX: Explicit encoding format for SiliconFlow (2026-04-11)
         )
         logger.info("✅ Embedding test passed.")
         return True
@@ -98,7 +99,15 @@ def env_check():
             f"You can run a command like this: `dotenv set BACKEND rdagent.oai.backend.LiteLLMAPIBackend`"
         )
 
-    if "DEEPSEEK_API_KEY" in os.environ:
+    if "LITELLM_PROXY_API_KEY" in os.environ and "OPENAI_API_KEY" in os.environ:
+        # Separate configuration for chat and embedding
+        chat_api_key = os.getenv("OPENAI_API_KEY")
+        chat_api_base = os.getenv("OPENAI_API_BASE")
+        chat_model = os.getenv("CHAT_MODEL")
+        embedding_api_key = os.getenv("LITELLM_PROXY_API_KEY")
+        embedding_api_base = os.getenv("LITELLM_PROXY_API_BASE")
+        embedding_model = os.getenv("EMBEDDING_MODEL")
+    elif "DEEPSEEK_API_KEY" in os.environ:
         chat_api_key = os.getenv("DEEPSEEK_API_KEY")
         chat_model = os.getenv("CHAT_MODEL")
         embedding_model = os.getenv("EMBEDDING_MODEL")
