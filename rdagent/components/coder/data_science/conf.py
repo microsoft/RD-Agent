@@ -4,11 +4,8 @@ from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
 from rdagent.utils.env import (
     CondaConf,
-    DockerEnv,
-    DSDockerConf,
     Env,
     LocalEnv,
-    MLEBDockerConf,
     MLECondaConf,
 )
 
@@ -20,7 +17,7 @@ class DSCoderCoSTEERSettings(CoSTEERSettings):
         env_prefix = "DS_Coder_CoSTEER_"
 
     max_seconds_multiplier: int = 4
-    env_type: str = "docker"
+    env_type: str = "conda"  # Changed from "docker" to "conda" in v0.0.1
     # TODO: extract a function for env and conf.
     extra_evaluator: list[str] = []
     """Extra evaluators to use"""
@@ -48,7 +45,7 @@ def get_ds_env(
     Retrieve the appropriate environment configuration based on the env_type setting.
 
     Returns:
-        Env: An instance of the environment configured either as DockerEnv or LocalEnv.
+        Env: An instance of the environment configured as LocalEnv with conda.
 
     Raises:
         ValueError: If the env_type is not recognized.
@@ -56,17 +53,28 @@ def get_ds_env(
     conf = DSCoderCoSTEERSettings()
     assert conf_type in ["kaggle", "mlebench"], f"Unknown conf_type: {conf_type}"
 
-    if conf.env_type == "docker":
-        env_conf = DSDockerConf() if conf_type == "kaggle" else MLEBDockerConf()
-        env = DockerEnv(conf=env_conf)
-    elif conf.env_type == "conda":
-        env = LocalEnv(
-            conf=(
-                CondaConf(conda_env_name=conf_type) if conf_type == "kaggle" else MLECondaConf(conda_env_name=conf_type)
-            )
+    ###### conda-only since v0.0.1 (2026-04-11) - Use conda environment directly ######
+    # Original Docker support code (deprecated):
+    # if conf.env_type == "docker":
+    #     env_conf = DSDockerConf() if conf_type == "kaggle" else MLEBDockerConf()
+    #     env = DockerEnv(conf=env_conf)
+    # elif conf.env_type == "conda":
+    #     env = LocalEnv(
+    #         conf=(
+    #             CondaConf(conda_env_name=conf_type) if conf_type == "kaggle" else MLECondaConf(conda_env_name=conf_type)
+    #         )
+    #     )
+    # else:
+    #     raise ValueError(f"Unknown env type: {conf.env_type}")
+
+    # conda-only implementation since v0.0.1 - Use unified rdagent conda env
+    env = LocalEnv(
+        conf=(
+            CondaConf(conda_env_name="rdagent") if conf_type == "kaggle" else MLECondaConf(conda_env_name="rdagent")
         )
-    else:
-        raise ValueError(f"Unknown env type: {conf.env_type}")
+    )
+    ###### END conda-only since v0.0.1 (2026-04-11) ######
+
     env.conf.extra_volumes = extra_volumes.copy()
     env.conf.running_timeout_period = running_timeout_period
     if enable_cache is not None:

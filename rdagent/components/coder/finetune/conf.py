@@ -14,19 +14,18 @@ from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import (
     BenchmarkCondaConf,
     BenchmarkCondaEnv,
-    BenchmarkDockerConf,
-    BenchmarkDockerEnv,
-    DockerEnv,
     Env,
     FTCondaConf,
     FTCondaEnv,
-    FTDockerEnv,
 )
 
 
 def is_docker_env(env: Env) -> bool:
     """Check if the environment is Docker-based."""
-    return isinstance(env, DockerEnv)
+    ###### conda-only since v0.0.1 (2026-04-11) - Always returns False as we use conda directly ######
+    # Original implementation (deprecated):
+    # return isinstance(env, DockerEnv)
+    return False  # Always False since we use conda directly
 
 
 def get_workspace_prefix(env: Env) -> str:
@@ -34,7 +33,10 @@ def get_workspace_prefix(env: Env) -> str:
 
     Docker uses /workspace as mount point, conda uses current directory.
     """
-    return "/workspace" if is_docker_env(env) else "."
+    ###### conda-only since v0.0.1 (2026-04-11) - Always use local path ######
+    # Original implementation (deprecated):
+    # return "/workspace" if is_docker_env(env) else "."
+    return "."  # Always use local path since we use conda directly
 
 
 FT_YAML_FILE_NAME = "train.yaml"
@@ -84,28 +86,36 @@ class FTPathConfig:
     @property
     def is_docker(self) -> bool:
         """Check if current environment is Docker-based."""
-        # FIXME: the env should work in same way for docker and conda env.
-        # We should not expose the env type everywhere.
-        return FTCoderCoSTEERSettings().env_type == "docker"
+        ###### conda-only since v0.0.1 (2026-04-11) - Always returns False as we use conda directly ######
+        # Original implementation (deprecated):
+        # return FTCoderCoSTEERSettings().env_type == "docker"
+        return False  # Always False since we use conda directly
 
     @property
     def models(self) -> str:
         """Model directory path (with trailing slash)."""
-        if self.is_docker:
-            return FT_MODEL_PATH + "/"
-        return str(FT_RD_SETTING.file_path / "models") + "/"
+        ###### conda-only since v0.0.1 (2026-04-11) - Always use local path ######
+        # Original implementation (deprecated):
+        # if self.is_docker:
+        #     return FT_MODEL_PATH + "/"
+        return str(FT_RD_SETTING.file_path / "models") + "/"  # Always local path
 
     @property
     def datasets(self) -> str:
         """Dataset directory path for raw datasets (with trailing slash)."""
-        if self.is_docker:
-            return FT_DATASET_PATH + "/"
-        return str(FT_RD_SETTING.file_path / "datasets") + "/"
+        ###### conda-only since v0.0.1 (2026-04-11) - Always use local path ######
+        # Original implementation (deprecated):
+        # if self.is_docker:
+        #     return FT_DATASET_PATH + "/"
+        return str(FT_RD_SETTING.file_path / "datasets") + "/"  # Always local path
 
     @property
     def workspace(self) -> str:
         """Workspace path prefix for prompts (with trailing slash)."""
-        return "/workspace/" if self.is_docker else "./"
+        ###### conda-only since v0.0.1 (2026-04-11) - Always use local path ######
+        # Original implementation (deprecated):
+        # return "/workspace/" if self.is_docker else "./"
+        return "./"  # Always use local path since we use conda directly
 
     @property
     def deepspeed(self) -> str:
@@ -132,7 +142,7 @@ class FTCoderCoSTEERSettings(CoSTEERSettings):
     max_seconds_multiplier: int = 8
     """LLM training takes longer, use higher multiplier"""
 
-    env_type: str = "docker"
+    env_type: str = "conda"  # Changed from "docker" to "conda" in v0.0.1
     """Environment type for LLM fine-tuning (docker/conda)"""
 
     extra_eval: list[str] = []
@@ -207,20 +217,25 @@ def get_ft_env(
     if enable_cache is None:
         enable_cache = FT_RD_SETTING.docker_enable_cache
 
-    # Use dedicated LLM docker or conda env based on config
-    if conf.env_type == "docker":
-        env = FTDockerEnv()
-        # Docker mode: setup volume mounts for models/datasets
-        standard_volumes = _get_standard_ft_volumes()
-        combined_volumes = standard_volumes.copy()
-        combined_volumes.update(extra_volumes)
-        env.conf.extra_volumes = combined_volumes
-    elif conf.env_type == "conda":
-        env = FTCondaEnv(conf=FTCondaConf())  # Auto-installs dependencies if env doesn't exist
-        # Conda mode: no volume mounts needed, use local paths directly
-        # extra_volumes are ignored in conda mode
-    else:
-        raise ValueError(f"Unknown env type: {conf.env_type}")
+    ###### conda-only since v0.0.1 (2026-04-11) - Use conda environment directly ######
+    # Original Docker support code (deprecated):
+    # if conf.env_type == "docker":
+    #     env = FTDockerEnv()
+    #     # Docker mode: setup volume mounts for models/datasets
+    #     standard_volumes = _get_standard_ft_volumes()
+    #     combined_volumes = standard_volumes.copy()
+    #     combined_volumes.update(extra_volumes)
+    #     env.conf.extra_volumes = combined_volumes
+    # elif conf.env_type == "conda":
+    #     env = FTCondaEnv(conf=FTCondaConf())  # Auto-installs dependencies if env doesn't exist
+    #     # Conda mode: no volume mounts needed, use local paths directly
+    #     # extra_volumes are ignored in conda mode
+    # else:
+    #     raise ValueError(f"Unknown env type: {conf.env_type}")
+
+    # conda-only implementation since v0.0.1 - Use unified rdagent conda env
+    env = FTCondaEnv(conf=FTCondaConf(conda_env_name="rdagent"))  # Auto-installs dependencies if env doesn't exist
+    ###### END conda-only since v0.0.1 (2026-04-11) ######
 
     env.conf.running_timeout_period = running_timeout_period
     env.conf.enable_cache = enable_cache
@@ -343,23 +358,30 @@ def get_benchmark_env(
         benchmark_volumes[str(models_path.resolve())] = {"bind": FT_MODEL_PATH, "mode": "ro"}
     benchmark_volumes.update(extra_volumes)
 
-    if conf.env_type == "docker":
-        docker_conf = BenchmarkDockerConf()
-        docker_conf.running_timeout_period = timeout
-        docker_conf.extra_volumes = benchmark_volumes
-        docker_conf.env_dict = env_dict
-        env = BenchmarkDockerEnv(conf=docker_conf)
-    elif conf.env_type == "conda":
-        # NOTE:
-        # We assume user has the permissions to create the softlink in the target directory.
-        # If we have requirements in the future, we suggest make the target directory configurable in BenchmarkCondaConf.
-        conda_conf = BenchmarkCondaConf()
-        conda_conf.running_timeout_period = timeout
-        conda_conf.extra_volumes = benchmark_volumes
-        conda_conf.env_dict = env_dict
-        env = BenchmarkCondaEnv(conf=conda_conf)  # Auto-installs dependencies if env doesn't exist
-    else:
-        raise ValueError(f"Unknown env type: {conf.env_type}")
+    ###### conda-only since v0.0.1 (2026-04-11) - Use conda environment directly ######
+    # Original Docker support code (deprecated):
+    # if conf.env_type == "docker":
+    #     docker_conf = BenchmarkDockerConf()
+    #     docker_conf.running_timeout_period = timeout
+    #     docker_conf.extra_volumes = benchmark_volumes
+    #     docker_conf.env_dict = env_dict
+    #     env = BenchmarkDockerEnv(conf=docker_conf)
+    # elif conf.env_type == "conda":
+    #     conda_conf = BenchmarkCondaConf()
+    #     conda_conf.running_timeout_period = timeout
+    #     conda_conf.extra_volumes = benchmark_volumes
+    #     conda_conf.env_dict = env_dict
+    #     env = BenchmarkCondaEnv(conf=conda_conf)
+    # else:
+    #     raise ValueError(f"Unknown env type: {conf.env_type}")
+
+    # conda-only implementation since v0.0.1 - Use unified rdagent conda env
+    conda_conf = BenchmarkCondaConf(conda_env_name="rdagent")
+    conda_conf.running_timeout_period = timeout
+    conda_conf.extra_volumes = benchmark_volumes
+    conda_conf.env_dict = env_dict
+    env = BenchmarkCondaEnv(conf=conda_conf)
+    ###### END conda-only since v0.0.1 (2026-04-11) ######
 
     env.prepare()
     return env

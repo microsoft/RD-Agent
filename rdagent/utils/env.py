@@ -933,7 +933,7 @@ class FTCondaConf(CondaConf):
 
     model_config = SettingsConfigDict(env_prefix="FT_CONDA_")
 
-    conda_env_name: str = "llm_finetune"
+    conda_env_name: str = "rdagent"  # Changed from "llm_finetune" to "rdagent" in v0.0.1
     default_entry: str = "llamafactory-cli version"
     enable_cache: bool = False
 
@@ -978,7 +978,7 @@ class BenchmarkCondaConf(CondaConf):
 
     model_config = SettingsConfigDict(env_prefix="BENCHMARK_CONDA_")
 
-    conda_env_name: str = "opencompass"
+    conda_env_name: str = "rdagent"  # Changed from "opencompass" to "rdagent" in v0.0.1
     default_entry: str = "opencompass --help"
     enable_cache: bool = False
     env_dict: dict = {"COMPASS_DATA_CACHE": "/benchmarks/opencompass_data"}

@@ -179,7 +179,7 @@ docker run -it --rm \
 ### 🐍 Create a Conda Environment
 - Create a new conda environment with Python (3.10 and 3.11 are well-tested in our CI):
   ```sh
-  conda create -n rdagent python=3.10
+  conda env create -f environment.yml
   ```
 - Activate the environment:
   ```sh
