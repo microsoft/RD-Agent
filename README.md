@@ -184,6 +184,7 @@ docker run -it --rm \
 - Activate the environment:
   ```sh
   conda activate rdagent
+  pip install pyqlib
   ```
 
 ### 🛠️ Install the R&D-Agent

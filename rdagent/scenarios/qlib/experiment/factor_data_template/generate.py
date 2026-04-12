@@ -1,8 +1,7 @@
 import qlib
-
 from rdagent.utils.qlib import get_qlib_data_path
 
-qlib.init(provider_uri=get_qlib_data_path())
+qlib.init(provider_uri=str(get_qlib_data_path()))
 
 from qlib.data import D
 

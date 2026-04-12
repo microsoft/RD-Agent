@@ -751,16 +751,37 @@ class CondaConf(LocalConf):
         to ensure bin_path is set correctly even if the conda env was just created.
         """
         conda_path_result = subprocess.run(
-            f"conda run -n {self.conda_env_name} --no-capture-output env | grep '^PATH='",
+            f"{CONDA_PATH} run -n {self.conda_env_name} --no-capture-output env | grep '^PATH='",
             capture_output=True,
             text=True,
             shell=True,
         )
-        self.bin_path = conda_path_result.stdout.strip().split("=")[1] if conda_path_result.returncode == 0 else ""
+        if conda_path_result.returncode == 0 and "=" in conda_path_result.stdout:
+            self.bin_path = conda_path_result.stdout.strip().split("=")[1]
+        else:
+            # Fallback: construct bin_path from conda installation
+            conda_bin_path = Path(self.conda_env_name).parent.parent / "envs" / self.conda_env_name / "bin"
+            if conda_bin_path.exists():
+                self.bin_path = str(conda_bin_path)
+            else:
+                self.bin_path = ""
 
 
 class MLECondaConf(CondaConf):
+    conda_env_name: str = "rdagent"
     enable_cache: bool = False  # aligning with the docker settings.
+
+
+class KGCondaConf(CondaConf):
+    """Kaggle Competition Conda Configuration"""
+    conda_env_name: str = "rdagent"
+    enable_cache: bool = False
+
+
+class MLEBCondaConf(CondaConf):
+    """MLEBench Conda Configuration"""
+    conda_env_name: str = "rdagent"
+    enable_cache: bool = False
 
 
 ## Docker Environment -----
@@ -836,32 +857,64 @@ class QlibCondaConf(CondaConf):
     # extra_volumes: dict = {str(Path("~/.qlib/").expanduser().resolve().absolute()): "/root/.qlib/"}
 
 
+# conda 安装路径常量
+CONDA_PATH = "/opt/miniconda3/bin/conda"
+
+
 class QlibCondaEnv(LocalEnv[QlibCondaConf]):
     def prepare(self) -> None:
         """Prepare the conda environment if not already created."""
         try:
-            envs = subprocess.run("conda env list", capture_output=True, text=True, shell=True)
+            # 使用 conda 完整路径检查环境是否存在
+            envs = subprocess.run(f"{CONDA_PATH} env list", capture_output=True, text=True, shell=True)
             if self.conf.conda_env_name not in envs.stdout:
                 print(f"[yellow]Conda env '{self.conf.conda_env_name}' not found, creating...[/yellow]")
                 subprocess.check_call(
-                    f"conda create -y -n {self.conf.conda_env_name} python=3.10",
+                    f"{CONDA_PATH} create -y -n {self.conf.conda_env_name} python=3.10",
                     shell=True,
                 )
                 subprocess.check_call(
-                    f"conda run -n {self.conf.conda_env_name} pip install --upgrade pip cython",
+                    f"{CONDA_PATH} run -n {self.conf.conda_env_name} pip install --upgrade pip cython",
                     shell=True,
                 )
                 subprocess.check_call(
-                    f"conda run -n {self.conf.conda_env_name} pip install git+https://github.com/microsoft/qlib.git@2fb9380b342556ddb50a4b24e4fe8655d548b2b8",
+                    f"{CONDA_PATH} run -n {self.conf.conda_env_name} pip install git+https://github.com/microsoft/qlib.git@2fb9380b342556ddb50a4b24e4fe8655d548b2b8",
                     shell=True,
                 )
                 subprocess.check_call(
-                    f"conda run -n {self.conf.conda_env_name} pip install catboost xgboost tables torch",
+                    f"{CONDA_PATH} run -n {self.conf.conda_env_name} pip install catboost xgboost tables torch",
                     shell=True,
                 )
+            else:
+                print(f"[green]Conda env '{self.conf.conda_env_name}' already exists.[/green]")
 
         except Exception as e:
             print(f"[red]Failed to prepare conda env: {e}[/red]")
+
+
+# ========== Kaggle Competition Conda Environment ==========
+class KGCondaEnv(LocalEnv[KGCondaConf]):
+    """Kaggle Competition Conda Environment.
+
+    Uses the unified 'rdagent' conda environment.
+    Competition data is stored in kg_workspace/kaggle_data/{competition_name}/
+    """
+
+    def __init__(self, competition: str | None = None, conf: KGCondaConf = KGCondaConf()):
+        super().__init__(conf)
+        self.competition = competition
+
+
+# ========== MLEBench Conda Environment ==========
+class MLEBCondaEnv(LocalEnv[MLEBCondaConf]):
+    """MLEBench Conda Environment.
+
+    Uses the unified 'rdagent' conda environment.
+    MLEBench data is stored in mlebench_workspace/mlebench_data/
+    """
+
+    def __init__(self, conf: MLEBCondaConf = MLEBCondaConf()):
+        super().__init__(conf)
 
 
 # ========== Conda Environment Configuration Loader ==========
@@ -933,7 +986,7 @@ class FTCondaConf(CondaConf):
 
     model_config = SettingsConfigDict(env_prefix="FT_CONDA_")
 
-    conda_env_name: str = "rdagent"  # Changed from "llm_finetune" to "rdagent" in v0.0.1
+    conda_env_name: str = "rdagent"
     default_entry: str = "llamafactory-cli version"
     enable_cache: bool = False
 
@@ -978,7 +1031,7 @@ class BenchmarkCondaConf(CondaConf):
 
     model_config = SettingsConfigDict(env_prefix="BENCHMARK_CONDA_")
 
-    conda_env_name: str = "rdagent"  # Changed from "opencompass" to "rdagent" in v0.0.1
+    conda_env_name: str = "rdagent"
     default_entry: str = "opencompass --help"
     enable_cache: bool = False
     env_dict: dict = {"COMPASS_DATA_CACHE": "/benchmarks/opencompass_data"}

@@ -1,13 +1,32 @@
 # RD-Agent Configuration
-# Copy this file to settings.yaml and customize as needed
+# All paths are relative to the project root (this config file's parent directory)
+
+project_root: "."
+
+workspace:
+  base_path: "./workspace"
 
 qlib:
-  # ==========================================
-  # Data Path Configuration
-  # ==========================================
-  # Direct path to qlib data directory (relative to project root)
-  data_path: ../data/qlib_data/cn_data_20260411
-
-  # Region setting
+  qlib_workspace: "./rdagent/workspace/qlib_workspace"
+  data_path: "./rdagent/workspace/qlib_workspace/qlib_data/cn_data"
   region: cn
 
+kaggle:
+  kg_workspace: "./rdagent/workspace/kg_workspace"
+  data_path: "./rdagent/workspace/kg_workspace/kaggle_data"
+
+finetune:
+  finetune_workspace: "./rdagent/workspace/finetune_workspace"
+  data_path: "./rdagent/workspace/finetune_workspace/finetune_data"
+
+mlebench:
+  mlebench_workspace: "./rdagent/workspace/mlebench_workspace"
+  data_path: "./rdagent/workspace/mlebench_workspace/mlebench_data"
+
+ds:
+  ds_workspace: "./rdagent/workspace/ds_workspace"
+  data_path: "./rdagent/workspace/ds_workspace/ds_data"
+
+environment:
+  type: "conda"
+  conda_env_name: "rdagent"

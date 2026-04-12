@@ -82,7 +82,8 @@ def test_embedding(embedding_model, embedding_api_key, embedding_api_base):
             model=embedding_model,
             api_key=embedding_api_key,
             api_base=embedding_api_base,
-            input=["Hello world!"],  # Array format required by SiliconFlow
+            # input=["Hello world!"],  # Array format required by SiliconFlow
+            input="Hello world!",  # Array format required by SiliconFlow
             encoding_format="float",  # FIX: Explicit encoding format for SiliconFlow (2026-04-11)
         )
         logger.info("✅ Embedding test passed.")
