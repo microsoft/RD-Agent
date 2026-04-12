@@ -179,12 +179,12 @@ docker run -it --rm \
 ### 🐍 Create a Conda Environment
 - Create a new conda environment with Python (3.10 and 3.11 are well-tested in our CI):
   ```sh
-  conda env create -f environment.yml
+  conda create -n rdagent python=3.10
+  pip install -r requirements.txt
   ```
 - Activate the environment:
   ```sh
   conda activate rdagent
-  pip install pyqlib
   ```
 
 ### 🛠️ Install the R&D-Agent
