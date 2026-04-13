@@ -1,6 +1,34 @@
+from pathlib import Path
+
+import yaml
 from pydantic_settings import SettingsConfigDict
 
 from rdagent.core.conf import ExtendedBaseSettings
+
+
+def _load_config_value(key: str, default: str = "") -> str:
+    """Load a value from config/settings.yaml.
+
+    Args:
+        key: Dot-separated key path, e.g., 'kaggle.data_path'
+        default: Default value if key not found
+    """
+    config_path = Path(__file__).parent.parent.parent.parent / "config" / "settings.yaml"
+    if not config_path.exists():
+        return default
+
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+
+    keys = key.split(".")
+    value = config
+    for k in keys:
+        if isinstance(value, dict) and k in value:
+            value = value[k]
+        else:
+            return default
+
+    return str(value) if value is not None else default
 
 
 class KaggleBasePropSetting(ExtendedBaseSettings):
@@ -43,7 +71,7 @@ class KaggleBasePropSetting(ExtendedBaseSettings):
     template_path: str = "rdagent/scenarios/kaggle/experiment/templates"
     """Kaggle competition base templates path"""
 
-    local_data_path: str = ""
+    local_data_path: str = _load_config_value("kaggle.data_path", "")
     """Folder storing Kaggle competition data"""
 
     # Evaluation on Test related

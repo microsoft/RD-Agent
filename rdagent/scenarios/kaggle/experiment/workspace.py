@@ -8,7 +8,7 @@ import pandas as pd
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
-from rdagent.utils.env import KGDockerEnv
+from rdagent.utils.env import KGCondaEnv
 
 KG_FEATURE_PREPROCESS_SCRIPT = """import pickle
 
@@ -42,10 +42,10 @@ class KGFBWorkspace(FBWorkspace):
     def generate_preprocess_data(
         self,
     ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, pd.DataFrame, Any]:
-        kgde = KGDockerEnv(KAGGLE_IMPLEMENT_SETTING.competition)
-        kgde.prepare()
+        kgce = KGCondaEnv(competition=KAGGLE_IMPLEMENT_SETTING.competition)
+        kgce.prepare()
 
-        execute_log, results = kgde.dump_python_code_run_and_get_results(
+        execute_log, results = kgce.dump_python_code_run_and_get_results(
             code=KG_FEATURE_PREPROCESS_SCRIPT,
             local_path=str(self.workspace_path),
             dump_file_names=[
@@ -56,11 +56,6 @@ class KGFBWorkspace(FBWorkspace):
                 "X_test.pkl",
                 "others.pkl",
             ],
-            running_extra_volume=(
-                {KAGGLE_IMPLEMENT_SETTING.local_data_path + "/" + KAGGLE_IMPLEMENT_SETTING.competition: "/kaggle/input"}
-                if KAGGLE_IMPLEMENT_SETTING.competition
-                else None
-            ),
         )
         if len(results) == 0:
             logger.error("Feature preprocess failed.")
@@ -72,21 +67,12 @@ class KGFBWorkspace(FBWorkspace):
     def execute(self, run_env: dict = {}, *args, **kwargs) -> str:
         logger.info(f"Running the experiment in {self.workspace_path}")
 
-        kgde = KGDockerEnv(KAGGLE_IMPLEMENT_SETTING.competition)
-        kgde.prepare()
+        kgce = KGCondaEnv(competition=KAGGLE_IMPLEMENT_SETTING.competition)
+        kgce.prepare()
 
-        running_extra_volume = {}
-        if KAGGLE_IMPLEMENT_SETTING.competition:
-            running_extra_volume = {
-                KAGGLE_IMPLEMENT_SETTING.local_data_path + "/" + KAGGLE_IMPLEMENT_SETTING.competition: "/kaggle/input"
-            }
-        else:
-            running_extra_volume = {}
-
-        execute_log = kgde.check_output(
+        execute_log = kgce.check_output(
             local_path=str(self.workspace_path),
             env=run_env,
-            running_extra_volume=running_extra_volume,
         )
 
         csv_path = self.workspace_path / "submission_score.csv"

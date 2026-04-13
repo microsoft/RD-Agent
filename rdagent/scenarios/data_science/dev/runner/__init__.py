@@ -33,7 +33,7 @@ class DSRunnerCoSTEERSettings(CoSTEERSettings):
         env_prefix = "DS_Runner_CoSTEER_"
 
     max_seconds_multiplier: int = 1
-    env_type: str = "docker"
+    env_type: str = "conda"  # Changed from "docker" to "conda" in v0.0.1
     diff_mode: bool = False
     dump_stdout_type: Literal["full", "truncated"] = "truncated"
     # TODO: extract a function for env and conf.

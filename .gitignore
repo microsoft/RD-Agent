@@ -188,3 +188,7 @@ AGENTS.md
 !rdagent/**/AGENTS.md
 
 scripts/
+
+# Local data and test files
+data/qlib_data/
+test/test_*.py

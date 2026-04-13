@@ -82,6 +82,7 @@ class LiteLLMAPIBackend(APIBackend):
         response = embedding(
             model=model_name,
             input=input_content_list,
+            encoding_format="float",  # FIX: Explicit encoding format for SiliconFlow (2026-04-11)
         )
         response_list = [data["embedding"] for data in response.data]
         return response_list

@@ -123,10 +123,64 @@ You can try above demos by running the following command:
 Users must ensure Docker is installed before attempting most scenarios. Please refer to the [official 🐳Docker page](https://docs.docker.com/engine/install/) for installation instructions.
 Ensure the current user can run Docker commands **without using sudo**. You can verify this by executing `docker run hello-world`.
 
+#### 🐳 Using Docker (Recommended)
+
+We provide a unified Dockerfile for all scenarios (fin_factor, fin_quant, kaggle, data_science, RL, finetune):
+
+**Build the unified Docker image:**
+```bash
+# CPU only (default)
+docker build -f .devcontainer/Dockerfile -t rdagent:latest .
+
+# With GPU support
+docker build -f .devcontainer/Dockerfile --build-arg GPU_SUPPORT=true -t rdagent:gpu .
+```
+
+**Run RD-Agent with Docker:**
+```bash
+# General usage (all scenarios)
+docker run -it --rm \
+  -v $(pwd)/.env:/app/.env \
+  -v $(pwd)/workspace:/app/workspace \
+  -v $(pwd)/log:/app/log \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  rdagent:latest health_check
+
+# fin_factor scenario
+docker run -it --rm \
+  -v $(pwd)/.env:/app/.env \
+  -v $(pwd)/workspace:/app/workspace \
+  rdagent:latest fin_factor
+
+# fin_quant scenario
+docker run -it --rm \
+  -v $(pwd)/.env:/app/.env \
+  -v $(pwd)/workspace:/app/workspace \
+  rdagent:latest fin_quant
+```
+
+**Docker Build Arguments:**
+
+| Argument    | Default | Description                                      |
+|-------------|---------|--------------------------------------------------|
+| `GPU_SUPPORT` | `false` | Set to `true` to use PyTorch CUDA image        |
+
+**What's included in the unified image:**
+- **Base:** PyTorch 2.2.1 CUDA 12.1 (GPU) or Python 3.10-slim (CPU)
+- **System:** curl, vim, git, build-essential, docker.io, Chrome/ChromeDriver
+- **fin_factor/fin_quant:** pyqlib, catboost, xgboost, tables, qlib repo
+- **RL:** torch_geometric, pytorch_lightning, ogb, lightgbm, optuna
+- **MLE-Bench:** conda environment with mle-bench
+- **finetune:** trl, peft, verl, transformers, bitsandbytes
+- **RD-Agent:** Installed in development mode from source
+
+**Note:** The qlib repository clone may fail due to network issues. If it fails, the fin_quant scenario will build its own image at runtime from `rdagent/scenarios/qlib/docker/Dockerfile`.
+
 ### 🐍 Create a Conda Environment
 - Create a new conda environment with Python (3.10 and 3.11 are well-tested in our CI):
   ```sh
   conda create -n rdagent python=3.10
+  pip install -r requirements.txt
   ```
 - Activate the environment:
   ```sh
@@ -385,6 +439,69 @@ You can check whether the port is occupied by running:
 ```sh
 rdagent health_check --no-check-env --no-check-docker
 ```
+
+---
+
+# 🔧 Troubleshooting
+
+## SiliconFlow Embedding API Error (2026-04-11)
+
+### Problem
+When using SiliconFlow as the embedding provider, the `health_check` command fails with:
+```text
+Error code: 400 - {'code': 20015, 'message': 'The parameter is invalid. Please check again.', 'data': None}
+```
+
+### Root Cause
+LiteLLM's `embedding()` function does not set the `encoding_format` parameter by default when calling the API, sending `None` instead. SiliconFlow API requires this parameter to be explicitly set to either `"float"` or `"base64"`.
+
+### Solution
+Two files need to be patched to explicitly set `encoding_format="float"`:
+
+**1. `rdagent/app/utils/health_check.py`** (Line ~82-88)
+```python
+response = embedding(
+    model=embedding_model,
+    api_key=embedding_api_key,
+    api_base=embedding_api_base,
+    input=["Hello world!"],  # Array format required by SiliconFlow
+    encoding_format="float",  # FIX: Explicit encoding format for SiliconFlow
+)
+```
+
+**2. `rdagent/oai/backend/litellm.py`** (Line ~82-86)
+```python
+response = embedding(
+    model=model_name,
+    input=input_content_list,
+    encoding_format="float",  # FIX: Explicit encoding format for SiliconFlow
+)
+```
+
+### Verification
+After applying the fix, run:
+
+```bash
+rdagent health_check
+```
+
+Expected output:
+```text
+✅ Embedding test passed.
+✅ Chat test passed.
+✅ All tests completed.
+```
+
+### Additional Configuration
+Ensure your `.env` file has the correct `litellm_proxy/` prefix for the embedding model:
+
+```bash
+EMBEDDING_MODEL="litellm_proxy/BAAI/bge-large-zh-v1.5"
+LITELLM_PROXY_API_KEY="sk-your-siliconflow-api-key"
+LITELLM_PROXY_API_BASE="https://api.siliconflow.cn/v1"
+```
+
+---
 
 # 🏭 Scenarios
 

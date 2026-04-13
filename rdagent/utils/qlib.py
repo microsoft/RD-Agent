@@ -1,3 +1,6 @@
+import yaml
+from pathlib import Path
+
 from rdagent.core.experiment import FBWorkspace
 from rdagent.utils.env import QlibCondaConf, QlibCondaEnv
 
@@ -196,10 +199,62 @@ df = D.features(["SH600000"], expressions, start_time="2008-01-01", end_time="20
 """
 
 
+# def validate_qlib_features(expressions: list[str]) -> bool:
+#     _TFW.inject_files(**{"test_fea.py": TEST_FEATURE_CODE.format(experessions=str(expressions))})
+
+#     qlib_env = QlibCondaEnv(conf=QlibCondaConf())
+#     qlib_env.prepare()
+#     res = _TFW.run(
+#         env=qlib_env,
+#         entry="python test_fea.py",
+#     )
+#     return res.exit_code == 0
+
+
+# 获得qlib数据路径的函数，优先从config/settings.yaml中读取，如果没有则使用默认路径
+def get_qlib_data_path() -> Path:
+    """Get Qlib data path from config/settings.yaml.
+
+    Resolution order:
+    1. Read data_path from config/settings.yaml
+    2. Resolve relative paths against project root (config file's parent directory)
+    3. Fallback to project_root/workspace/qlib_workspace/qlib_data/cn_data
+
+    Returns:
+        Absolute Path to qlib data directory
+    """
+    # Path hierarchy: qlib.py is in rdagent/utils/, config is in rdagent/config/
+    # - __file__: rdagent/utils/qlib.py
+    # - .parent: rdagent/utils/
+    # - .parent.parent: rdagent/
+    # - .parent.parent.parent: RD-Agent/ (project root)
+    project_root = Path(__file__).parent.parent.parent  # RD-Agent/
+    rdagent_root = Path(__file__).parent.parent  # rdagent/
+    config_path = rdagent_root / "config" / "settings.yaml"
+
+    if config_path.exists():
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+
+        # Read data_path from config (e.g., "./rdagent/workspace/qlib_workspace/qlib_data/cn_data")
+        data_path = config.get("qlib", {}).get("data_path", "")
+        if data_path:
+            # data_path is relative to project root (RD-Agent/), not rdagent/
+            if not Path(data_path).is_absolute():
+                return (project_root / data_path.lstrip("./")).resolve()
+            else:
+                return Path(data_path).resolve()
+
+    # Fallback: use default path relative to project root
+    default_path = (project_root / "rdagent" / "workspace" / "qlib_workspace" / "qlib_data" / "cn_data").resolve()
+    return default_path
+
+
 def validate_qlib_features(expressions: list[str]) -> bool:
     _TFW.inject_files(**{"test_fea.py": TEST_FEATURE_CODE.format(experessions=str(expressions))})
 
-    qlib_env = QlibCondaEnv(conf=QlibCondaConf())
+    qlib_data_path = get_qlib_data_path()
+    qlib_env = QlibCondaEnv(conf=QlibCondaConf(extra_volumes={str(qlib_data_path): "/root/.qlib/qlib_data/cn_data"}))
     qlib_env.prepare()
     res = _TFW.run(
         env=qlib_env,
