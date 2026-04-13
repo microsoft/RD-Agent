@@ -275,12 +275,13 @@ def read_trace(log_path: Path, id: str = "") -> None:
         )
 
 
-def _load_existing_traces(trace_root: Path) -> None:
-    """Load persisted traces into memory so the UI survives a server restart."""
+def _collect_existing_trace_ids(trace_root: Path) -> list[str]:
+    """Return trace ids that should be visible in the UI history panel."""
 
     if not trace_root.exists():
-        return
+        return []
 
+    trace_ids: list[str] = []
     for trace_dir in sorted(trace_root.glob("*/*"), key=lambda p: str(p)):
         if not trace_dir.is_dir():
             continue
@@ -288,6 +289,17 @@ def _load_existing_traces(trace_root: Path) -> None:
             continue
         if not any(trace_dir.rglob("*.pkl")):
             continue
+
+        trace_ids.append(trace_dir.relative_to(trace_root).as_posix())
+
+    return trace_ids
+
+
+def _load_existing_traces(trace_root: Path) -> None:
+    """Load persisted traces into memory so the UI survives a server restart."""
+
+    for trace_id in _collect_existing_trace_ids(trace_root):
+        trace_dir = trace_root / trace_id
 
         try:
             read_trace(trace_dir, id=str(trace_dir))
@@ -360,6 +372,14 @@ def download_stdout_file():
         download_name=stdout_path.name,
         mimetype="text/plain",
     )
+
+
+@app.route("/traces", methods=["GET"])
+def list_traces():
+    """Return trace ids that are available for history browsing."""
+
+    trace_ids = _collect_existing_trace_ids(log_folder_path)
+    return jsonify(trace_ids), 200
 
 
 @app.route("/upload", methods=["POST"])

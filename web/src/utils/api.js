@@ -29,6 +29,13 @@ export function trace(data) {
     })
 }
 
+export function getHistoryTraceIds() {
+    return request({
+        url: url + "traces",
+        method: 'get'
+    })
+}
+
 export function control(data) {
     return request({
         url: url + "control",

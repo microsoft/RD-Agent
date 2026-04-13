@@ -372,7 +372,7 @@
 <script setup>
 import { computed, ref, watch, reactive, onMounted, onUnmounted, nextTick } from "vue";
 import { ElMessage } from "element-plus";
-import { uploadFile } from "../utils/api";
+import { getHistoryTraceIds, uploadFile } from "../utils/api";
 import selectComponent from "../components/select-component.vue";
 import smSelectComponent from "../components/sm-select-component.vue";
 import loadingSvg from "../components/loading-dot.vue";
@@ -830,39 +830,53 @@ const Back = () => {
 
 function getCompletedIdList() {
   const data = localStorage.getItem(completedTraceStorageKey);
-  return data ? JSON.parse(data) : [];
+  if (!data) {
+    return [];
+  }
+
+  try {
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
 }
 
-function buildHistoryTraceList() {
+function appendTraceId(groupedTraceMap, traceId) {
+  const normalizedTraceId = String(traceId || "").trim();
+
+  if (!normalizedTraceId) {
+    return;
+  }
+
+  const separatorIndex = normalizedTraceId.indexOf("/");
+  const scenario =
+    separatorIndex === -1
+      ? normalizedTraceId
+      : normalizedTraceId.slice(0, separatorIndex);
+  const traceName =
+    separatorIndex === -1
+      ? normalizedTraceId
+      : normalizedTraceId.slice(separatorIndex + 1);
+
+  if (!groupedTraceMap.has(scenario)) {
+    groupedTraceMap.set(scenario, new Map());
+  }
+
+  groupedTraceMap.get(scenario).set(traceName, {
+    name: traceName,
+    id: normalizedTraceId,
+  });
+}
+
+async function buildHistoryTraceList() {
   const groupedTraceMap = new Map();
   const completedIdList = getCompletedIdList();
+  const backendTraceIds = await getHistoryTraceIds().then((response) =>
+    Array.isArray(response) ? response : []
+  ).catch(() => []);
 
-  completedIdList.forEach((traceId) => {
-    const normalizedTraceId = String(traceId || "").trim();
-
-    if (!normalizedTraceId) {
-      return;
-    }
-
-    const separatorIndex = normalizedTraceId.indexOf("/");
-    const scenario =
-      separatorIndex === -1
-        ? normalizedTraceId
-        : normalizedTraceId.slice(0, separatorIndex);
-    const traceName =
-      separatorIndex === -1
-        ? normalizedTraceId
-        : normalizedTraceId.slice(separatorIndex + 1);
-
-    if (!groupedTraceMap.has(scenario)) {
-      groupedTraceMap.set(scenario, new Map());
-    }
-
-    groupedTraceMap.get(scenario).set(traceName, {
-      name: traceName,
-      id: normalizedTraceId,
-    });
-  });
+  const traceIdList = [...new Set([...completedIdList, ...backendTraceIds])];
+  traceIdList.forEach((traceId) => appendTraceId(groupedTraceMap, traceId));
 
   historyScenarioList.value = Array.from(groupedTraceMap.entries()).map(
     ([scenario, traceMap]) => ({
@@ -924,8 +938,8 @@ const viewTracePage = () => {
   showPlayground.value = true;
 };
 
-const openHistoryPanel = () => {
-  buildHistoryTraceList();
+const openHistoryPanel = async () => {
+  await buildHistoryTraceList();
   showPanel.value = 3;
   showPlayground.value = false;
 };
@@ -979,7 +993,7 @@ function moveSlider(index) {
 }
 
 onMounted(() => {
-  buildHistoryTraceList();
+  void buildHistoryTraceList();
 });
 </script>
 
