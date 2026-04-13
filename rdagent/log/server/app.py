@@ -275,9 +275,24 @@ def read_trace(log_path: Path, id: str = "") -> None:
         )
 
 
-# load all traces from the log folder
-# for p in log_folder_path.glob("*/*/"):
-#     read_trace(p, id=str(p))
+def _load_existing_traces(trace_root: Path) -> None:
+    """Load persisted traces into memory so the UI survives a server restart."""
+
+    if not trace_root.exists():
+        return
+
+    for trace_dir in sorted(trace_root.glob("*/*"), key=lambda p: str(p)):
+        if not trace_dir.is_dir():
+            continue
+        if "uploads" in trace_dir.relative_to(trace_root).parts:
+            continue
+        if not any(trace_dir.rglob("*.pkl")):
+            continue
+
+        try:
+            read_trace(trace_dir, id=str(trace_dir))
+        except Exception:
+            app.logger.exception("Failed to load trace from %s", trace_dir)
 
 
 @app.route("/trace", methods=["POST"])
@@ -555,6 +570,7 @@ def server_static_files(fn):
 
 def main(port: int = 19899):
     app.config["UI_SERVER_PORT"] = port
+    _load_existing_traces(log_folder_path)
     app.run(debug=False, host="0.0.0.0", port=port)
 
 
