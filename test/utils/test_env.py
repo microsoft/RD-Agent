@@ -23,7 +23,7 @@ class QlibLocalEnv(LocalEnv):
     def prepare(self) -> None:
         if not (Path("~/.qlib/qlib_data/cn_data").expanduser().resolve().exists()):
             self.check_output(
-                entry="python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn",
+                entry="python -m qlib.cli.data qlib_data --name qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn",
             )
         else:
             print("Data already exists. Download skipped.")
