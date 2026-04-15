@@ -1,10 +1,12 @@
 import logging
 import os
 import random
+import secrets
 import traceback
 from collections import defaultdict
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime, timezone
+from functools import wraps
 from multiprocessing import Process, Queue
 from pathlib import Path
 from queue import Empty
@@ -22,6 +24,19 @@ from rdagent.log.ui.storage import WebStorage
 app = Flask(__name__, static_folder=str(Path(UI_SETTING.static_path).resolve()))
 CORS(app)
 app.config["UI_SERVER_PORT"] = 19899
+
+# --- Authentication -----------------------------------------------------------
+# The API token is read from the UI_API_TOKEN environment variable.
+# When set, all mutating endpoints require an ``Authorization: Bearer <token>``
+# header.  When *not* set, a random token is generated at startup and printed to
+# the console so the operator can still authenticate.
+_configured_token = os.environ.get("UI_API_TOKEN", "").strip()
+if _configured_token:
+    app.config["API_TOKEN"] = _configured_token
+else:
+    _auto_token = secrets.token_urlsafe(32)
+    app.config["API_TOKEN"] = _auto_token
+    # Will be printed once ``main()`` starts the server.
 
 _YELLOW = "\033[33m"
 _RESET = "\033[0m"
@@ -44,6 +59,49 @@ def _configure_app_logger() -> None:
 
 
 _configure_app_logger()
+
+
+# ---------------------------------------------------------------------------
+# Authentication helpers
+# ---------------------------------------------------------------------------
+
+def _check_api_token() -> bool:
+    """Return True if the request carries a valid Bearer token."""
+    token = app.config.get("API_TOKEN", "")
+    if not token:
+        return True  # no token configured → open (legacy behaviour)
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        return secrets.compare_digest(auth_header[7:], token)
+    return False
+
+
+def require_auth(f):
+    """Decorator that rejects requests without a valid API token."""
+
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not _check_api_token():
+            return jsonify({"error": "Unauthorized – provide a valid Bearer token via the Authorization header."}), 401
+        return f(*args, **kwargs)
+
+    return decorated
+
+
+# ---------------------------------------------------------------------------
+# Allowed scenarios (whitelist)
+# ---------------------------------------------------------------------------
+
+_VALID_SCENARIOS = frozenset(
+    {
+        "Finance Data Building",
+        "Finance Model Implementation",
+        "Finance Whole Pipeline",
+        "Finance Data Building (Reports)",
+        "General Model Implementation",
+        "Data Science",
+    }
+)
 
 
 _TARGETS_WITHOUT_USER_INTERACTION = {"general_model", "fin_factor_report"}
@@ -383,6 +441,7 @@ def list_traces():
 
 
 @app.route("/upload", methods=["POST"])
+@require_auth
 def upload_file():
     # 获取请求体中的字段
     global rdagent_processes
@@ -391,6 +450,10 @@ def upload_file():
     competition = request.form.get("competition")
     loop_n = request.form.get("loops")
     all_duration = request.form.get("all_duration")
+
+    # Validate scenario against the allowlist before any processing.
+    if scenario not in _VALID_SCENARIOS:
+        return jsonify({"error": "Unknown scenario"}), 400
 
     # scenario = "Data Science Loop"
     if scenario == "Data Science":
@@ -486,6 +549,7 @@ def upload_file():
 
 
 @app.route("/receive", methods=["POST"])
+@require_auth
 def receive_msgs():
     try:
         data = request.get_json()
@@ -506,6 +570,7 @@ def receive_msgs():
 
 
 @app.route("/user_interaction/submit", methods=["POST"])
+@require_auth
 def submit_user_interaction_response():
     """Frontend submits a user response; server forwards it to the rdagent subprocess via IPC queue."""
     data = request.get_json(silent=True) or {}
@@ -529,6 +594,7 @@ def submit_user_interaction_response():
 
 
 @app.route("/control", methods=["POST"])
+@require_auth
 def control_process():
     global rdagent_processes
     data = request.get_json()
@@ -588,10 +654,19 @@ def server_static_files(fn):
     return send_from_directory(app.static_folder, _normalize_static_request_path(fn))
 
 
-def main(port: int = 19899):
+def main(port: int = 19899, host: str = "127.0.0.1"):
     app.config["UI_SERVER_PORT"] = port
+
+    if not _configured_token:
+        app.logger.warning(
+            "No UI_API_TOKEN set — a random token has been generated for this session.\n"
+            "  Authorization: Bearer %s\n"
+            "Set the UI_API_TOKEN environment variable to use a persistent token.",
+            app.config["API_TOKEN"],
+        )
+
     _load_existing_traces(log_folder_path)
-    app.run(debug=False, host="0.0.0.0", port=port)
+    app.run(debug=False, host=host, port=port)
 
 
 if __name__ == "__main__":
