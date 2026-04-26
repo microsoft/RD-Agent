@@ -31,6 +31,7 @@
 # 📰 News
 | 🗞️ News        | 📝 Description                 |
 | --            | ------      |
+| ACL 2026 Findings Acceptance | We are thrilled to announce that our paper [Reasoning as Gradient](https://arxiv.org/abs/2603.01692) has been accepted to ACL 2026 Findings. Execution traces are available at [Gome GPT-5 Traces](https://huggingface.co/datasets/amstrongzyf/Gome-GPT5-Traces) |
 | Web UI Release | We release a new frontend that can be built and served by `rdagent server_ui` for real-time interaction and trace viewing, currently excluding the `data_science` scenario. |
 | NeurIPS 2025 Acceptance | We are thrilled to announce that our paper [R&D-Agent-Quant](https://arxiv.org/abs/2505.15155) has been accepted to NeurIPS 2025 | 
 | [Technical Report Release](#overall-technical-report) | Overall framework description and results on MLE-bench | 
@@ -513,6 +514,18 @@ For more detail, please refer to our **[🖥️ Live Demo page](https://rdagent.
 ```
 ![image](https://github.com/user-attachments/assets/3186f67a-c2f8-4b6b-8bb9-a9b959c13866)
 
+- [Reasoning as Gradient: Scaling MLE Agents Beyond Tree Search](https://arxiv.org/abs/2603.01692)
+
+```BibTeX
+@article{zhang2026reasoning,
+  title={Reasoning as Gradient: Scaling MLE Agents Beyond Tree Search},
+  author={Zhang, Yifei and Yang, Xu and Yang, Xiao and Xian, Bowen and Li, Qizheng and Fang, Shikai and Li, Jingyuan and Wang, Jian and Xu, Mingrui and Liu, Weiqing and others},
+  journal={arXiv preprint arXiv:2603.01692},
+  year={2026}
+}
+```
+
+You can check the detailed execution traces online at [Gome GPT-5 Traces](https://huggingface.co/datasets/amstrongzyf/Gome-GPT5-Traces).
 
 # 🤝 Contributing
 
