@@ -208,7 +208,9 @@ def test_baseline_integrity():
 
 def test_alfworld_prompt_truncation():
     print("\n=== ALFWorld prompt truncation ===")
-    from rdagent.scenarios.rl.autorl_bench.benchmarks.alfworld.eval import _truncate_prompt_to_fit
+    from rdagent.scenarios.rl.autorl_bench.benchmarks.alfworld.eval import (
+        _truncate_prompt_to_fit,
+    )
 
     class ToyTokenizer:
         def encode(self, text):
@@ -339,6 +341,7 @@ def test_b4_error_passthrough():
 
     # Test _parse_results with non-numeric values (B4 in opencompass)
     import pandas as pd
+
     from rdagent.scenarios.rl.autorl_bench.core.opencompass import OpenCompassEvaluator
 
     config = MagicMock()
