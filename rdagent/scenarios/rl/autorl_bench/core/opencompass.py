@@ -118,8 +118,7 @@ class OpenCompassEvaluator(BaseEvaluator):
             error_msg = proc.stderr[:1000] if proc.stderr else proc.stdout[:1000] if proc.stdout else "No output"
             logger.warning(f"OpenCompass failed: {error_msg}")
             result["error"] = (
-                f"OpenCompass exit code: {proc.returncode} "
-                f"(stdout: {stdout_log}, stderr: {stderr_log})"
+                f"OpenCompass exit code: {proc.returncode} " f"(stdout: {stdout_log}, stderr: {stderr_log})"
             )
             result["raw_output"] = error_msg
             return result
