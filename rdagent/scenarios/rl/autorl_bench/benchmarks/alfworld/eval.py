@@ -12,7 +12,6 @@ ReAct 官方代码: https://github.com/ysymyth/ReAct/blob/main/alfworld.ipynb
 import json
 import os
 import sys
-import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List
@@ -45,10 +44,24 @@ class _Tee:
     def fileno(self):
         return self.terminal.fileno()
 
+    def close(self):
+        self.log.close()
+
 
 def _log(msg: str):
     """简单的 print 日志（会被 Tee 同时写入文件）"""
     print(msg, flush=True)
+
+
+def _truncate_prompt_to_fit(prompt: str, tokenizer, max_context_tokens: int, max_output_tokens: int) -> str:
+    """Trim old ReAct history when it no longer fits the vLLM context."""
+
+    prompt_token_ids = tokenizer.encode(prompt)
+    if len(prompt_token_ids) + max_output_tokens <= max_context_tokens:
+        return prompt
+
+    keep_tokens = max(max_context_tokens - max_output_tokens - 1, 1)
+    return tokenizer.decode(prompt_token_ids[-keep_tokens:])
 
 
 # ============================================================
@@ -125,11 +138,19 @@ def create_llm_fn(backend: str, model_path: str, **kwargs) -> tuple:
         from vllm.distributed.parallel_state import destroy_model_parallel
 
         llm_engine = LLM(
-            model=model_path, tensor_parallel_size=kwargs.get("tensor_parallel_size", 1), trust_remote_code=True
+            model=model_path,
+            tensor_parallel_size=kwargs.get("tensor_parallel_size", 1),
+            trust_remote_code=True,
+            max_model_len=kwargs.get("max_model_len", 4096),
+            enforce_eager=kwargs.get("enforce_eager", os.getenv("VLLM_ENFORCE_EAGER", "0") == "1"),
         )
+        tokenizer = llm_engine.get_tokenizer()
+        max_context_tokens = kwargs.get("max_model_len", 4096)
 
         def vllm_fn(prompt: str, stop: List[str] = None) -> str:
-            params = SamplingParams(temperature=0, max_tokens=100, stop=stop or ["\n"])
+            max_output_tokens = 100
+            prompt = _truncate_prompt_to_fit(prompt, tokenizer, max_context_tokens, max_output_tokens)
+            params = SamplingParams(temperature=0, max_tokens=max_output_tokens, stop=stop or ["\n"])
             outputs = llm_engine.generate([prompt], params)
             return outputs[0].outputs[0].text
 
@@ -230,125 +251,140 @@ class ALFWorldEvaluator(BaseEvaluator):
         LOG_DIR.mkdir(parents=True, exist_ok=True)
         model_safe = model_path.replace("/", "_")
         log_file = LOG_DIR / f"alfworld_{model_safe}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-        sys.stdout = _Tee(log_file)
+        old_stdout = sys.stdout
+        tee = _Tee(log_file)
+        sys.stdout = tee
+        env = None
+        llm_cleanup = None
 
-        # --- 判断 backend ---
-        backend = cfg.get("backend")
-        if backend is None:
-            backend = "api" if not Path(model_path).exists() else "vllm"
-        _log(f"Log: {log_file}")
-        _log(f"ALFWorld eval: backend={backend}, model={model_path}")
+        try:
+            # --- 判断 backend ---
+            backend = cfg.get("backend")
+            if backend is None:
+                backend = "api" if not Path(model_path).exists() else "vllm"
+            _log(f"Log: {log_file}")
+            _log(f"ALFWorld eval: backend={backend}, model={model_path}")
 
-        # --- 创建 LLM 函数 ---
-        llm_fn, llm_cleanup = create_llm_fn(
-            backend=backend,
-            model_path=model_path,
-            api_key=cfg.get("api_key"),
-            api_base=cfg.get("api_base"),
-            tensor_parallel_size=cfg.get("tensor_parallel_size", 1),
-        )
+            # --- 创建 LLM 函数 ---
+            llm_fn, llm_cleanup = create_llm_fn(
+                backend=backend,
+                model_path=model_path,
+                api_key=cfg.get("api_key"),
+                api_base=cfg.get("api_base"),
+                tensor_parallel_size=cfg.get("tensor_parallel_size", 1),
+                max_model_len=cfg.get("max_model_len", 4096),
+                enforce_eager=cfg.get("enforce_eager", os.getenv("VLLM_ENFORCE_EAGER", "0") == "1"),
+            )
 
-        # --- 加载 ReAct few-shot prompts ---
-        prompts_path = cfg.get("react_prompts")
-        if prompts_path is None:
-            # 默认路径：和 eval.py 同目录下的 react_prompts.json
-            prompts_path = Path(__file__).parent / "react_prompts.json"
-        with open(prompts_path) as f:
-            react_prompts = json.load(f)
+            # --- 加载 ReAct few-shot prompts ---
+            prompts_path = cfg.get("react_prompts")
+            if prompts_path is None:
+                # 默认路径：和 eval.py 同目录下的 react_prompts.json
+                prompts_path = Path(__file__).parent / "react_prompts.json"
+            with open(prompts_path) as f:
+                react_prompts = json.load(f)
 
-        # --- 确保 ALFWorld 游戏数据已下载 ---
-        self._ensure_alfworld_data()
+            # --- 确保 ALFWorld 游戏数据已下载 ---
+            self._ensure_alfworld_data()
 
-        # --- 初始化 ALFWorld 环境 ---
-        workspace = Path(workspace_path)
+            from rdagent.scenarios.rl.autorl_bench.benchmarks.alfworld.data import (
+                _ensure_alfworld_data,
+            )
 
-        from rdagent.scenarios.rl.autorl_bench.benchmarks.alfworld.data import (
-            _ensure_alfworld_data,
-        )
+            alfworld_data = str(_ensure_alfworld_data())
+            os.environ["ALFWORLD_DATA"] = alfworld_data
 
-        alfworld_data = str(_ensure_alfworld_data())
-        os.environ["ALFWORLD_DATA"] = alfworld_data
+            # env_config: 读同目录下官方 base_config.yaml，展开 $ALFWORLD_DATA
+            config_yaml = Path(__file__).parent / "base_config.yaml"
+            with open(config_yaml) as f:
+                import yaml
 
-        # env_config: 读同目录下官方 base_config.yaml，展开 $ALFWORLD_DATA
-        config_yaml = Path(__file__).parent / "base_config.yaml"
-        with open(config_yaml) as f:
-            import yaml
+                env_config = yaml.safe_load(f)
+            env_config = self._expand_env_vars(env_config)
 
-            env_config = yaml.safe_load(f)
-        env_config = self._expand_env_vars(env_config)
+            from alfworld.agents.environment import get_environment
 
-        from alfworld.agents.environment import get_environment
+            split = cfg.get("split", "eval_out_of_distribution")
+            env_type = env_config.get("env", {}).get("type", "AlfredTWEnv")
+            alfred_env = get_environment(env_type)(env_config, train_eval=split)
+            env = alfred_env.init_env(batch_size=1)
 
-        split = cfg.get("split", "eval_out_of_distribution")
-        env_type = env_config.get("env", {}).get("type", "AlfredTWEnv")
-        alfred_env = get_environment(env_type)(env_config, train_eval=split)
-        env = alfred_env.init_env(batch_size=1)
+            num_games = min(env_num, alfred_env.num_games)
+            _log(f"ALFWorld: {num_games} games, max {max_steps} steps, split={split}")
 
-        num_games = min(env_num, alfred_env.num_games)
-        _log(f"ALFWorld: {num_games} games, max {max_steps} steps, split={split}")
+            # --- 评测循环（ReAct 官方逻辑） ---
+            cnts = [0] * 6
+            rs = [0] * 6
 
-        # --- 评测循环（ReAct 官方逻辑） ---
-        cnts = [0] * 6
-        rs = [0] * 6
+            for game_no in range(num_games):
+                ob, info = env.reset()
+                ob = "\n".join(ob[0].split("\n\n")[1:])
+                name = "/".join(info["extra.gamefile"][0].split("/")[-3:-1])
+                _log(f"\n[Game {game_no + 1}/{num_games}] {name}")
 
-        for game_no in range(num_games):
-            ob, info = env.reset()
-            ob = "\n".join(ob[0].split("\n\n")[1:])
-            name = "/".join(info["extra.gamefile"][0].split("/")[-3:-1])
-            _log(f"\n[Game {game_no + 1}/{num_games}] {name}")
+                matched = False
+                for i, (prefix, prompt_key) in enumerate(TASK_PREFIXES.items()):
+                    if name.startswith(prefix):
+                        prompt = (
+                            "Interact with a household to solve a task. Here are two examples.\n"
+                            + react_prompts[f"react_{prompt_key}_1"]
+                            + react_prompts[f"react_{prompt_key}_0"]
+                            + "\nHere is the task.\n"
+                        )
+                        reward, steps = alfworld_run(llm_fn, env, prompt, ob, max_steps)
+                        rs[i] += reward
+                        cnts[i] += 1
+                        matched = True
+                        _log(f"  Result: {'WON' if reward else 'LOST'} ({steps} steps)")
+                        break
 
-            matched = False
-            for i, (prefix, prompt_key) in enumerate(TASK_PREFIXES.items()):
-                if name.startswith(prefix):
-                    prompt = (
-                        "Interact with a household to solve a task. Here are two examples.\n"
-                        + react_prompts[f"react_{prompt_key}_1"]
-                        + react_prompts[f"react_{prompt_key}_0"]
-                        + "\nHere is the task.\n"
-                    )
-                    reward, steps = alfworld_run(llm_fn, env, prompt, ob, max_steps)
-                    rs[i] += reward
-                    cnts[i] += 1
-                    matched = True
-                    _log(f"  Result: {'WON' if reward else 'LOST'} ({steps} steps)")
-                    break
+                if not matched:
+                    _log(f"  WARNING: Unknown task type: {name}, skipping")
+                    continue
 
-            if not matched:
-                _log(f"  WARNING: Unknown task type: {name}, skipping")
-                continue
+                total_r, total_c = sum(rs), sum(cnts)
+                _log(f"  Running: {total_r}/{total_c} = {total_r / max(total_c, 1):.1%}")
 
-            total_r, total_c = sum(rs), sum(cnts)
-            _log(f"  Running: {total_r}/{total_c} = {total_r / max(total_c, 1):.1%}")
+            # --- 汇总结果 ---
+            total_success = sum(rs)
+            total_count = sum(cnts)
+            success_rate = total_success / total_count if total_count > 0 else 0.0
 
-        env.close()
-        llm_cleanup()
+            per_task = {}
+            for (prefix, _), s, c in zip(TASK_PREFIXES.items(), rs, cnts):
+                if c > 0:
+                    per_task[prefix] = {"success": s, "total": c, "rate": s / c}
 
-        # --- 汇总结果 ---
-        total_success = sum(rs)
-        total_count = sum(cnts)
-        success_rate = total_success / total_count if total_count > 0 else 0.0
+            result["score"] = success_rate * 100
+            result["accuracy_summary"] = {
+                "success_count": total_success,
+                "total_count": total_count,
+                "success_rate": success_rate,
+                "per_task": per_task,
+            }
 
-        per_task = {}
-        for (prefix, _), s, c in zip(TASK_PREFIXES.items(), rs, cnts):
-            if c > 0:
-                per_task[prefix] = {"success": s, "total": c, "rate": s / c}
+            _log(f"\nALFWorld done: {total_success}/{total_count} = {success_rate:.2%}")
+            for prefix, stats in per_task.items():
+                _log(f"  {prefix:30s} {stats['success']}/{stats['total']} = {stats['rate']:.0%}")
 
-        result["score"] = success_rate * 100
-        result["accuracy_summary"] = {
-            "success_count": total_success,
-            "total_count": total_count,
-            "success_rate": success_rate,
-            "per_task": per_task,
-        }
-
-        _log(f"\nALFWorld done: {total_success}/{total_count} = {success_rate:.2%}")
-        for prefix, stats in per_task.items():
-            _log(f"  {prefix:30s} {stats['success']}/{stats['total']} = {stats['rate']:.0%}")
-
-        # 恢复 stdout
-        sys.stdout = sys.__stdout__
-
-        return result
+            return result
+        except Exception as e:
+            result["error"] = f"ALFWorld eval failed: {e}"
+            _log(result["error"])
+            return result
+        finally:
+            if env is not None:
+                try:
+                    env.close()
+                except Exception as e:
+                    _log(f"Failed to close ALFWorld env: {e}")
+            if llm_cleanup is not None:
+                try:
+                    llm_cleanup()
+                except Exception as e:
+                    _log(f"Failed to release ALFWorld LLM backend: {e}")
+            sys.stdout = old_stdout
+            tee.close()
 
     @staticmethod
     def _ensure_alfworld_data():
@@ -366,8 +402,8 @@ class ALFWorldEvaluator(BaseEvaluator):
         """递归展开 $ENV_VAR"""
         if isinstance(obj, str):
             return os.path.expandvars(obj)
-        elif isinstance(obj, dict):
+        if isinstance(obj, dict):
             return {k: self._expand_env_vars(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
+        if isinstance(obj, list):
             return [self._expand_env_vars(x) for x in obj]
         return obj

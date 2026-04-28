@@ -58,6 +58,7 @@ template: |-
                 trust_remote_code=True,
                 dtype='{{ dtype }}',
                 max_model_len={{ max_seq_len }},
+                enforce_eager=True,
             ),
             max_seq_len={{ max_seq_len }},
             max_out_len={{ max_out_len }},

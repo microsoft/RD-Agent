@@ -1,17 +1,16 @@
 """
-测试 B1-B4 修复
+测试 AutoRL-Bench RL 修复
 
 验证:
-  B1: LoRA adapter 自动检测
-  B2: 评测锁（串行化 GPU 访问）
-  B3: model_path 去重缓存
-  B4: error 字段透传
+  - LoRA adapter 拒绝与 OpenCompass vLLM 环境变量
+  - baseline 失败不再变成 0.0
+  - ALFWorld prompt 截断
+  - 评测锁、model_path 去重缓存、error 字段透传
 
 运行: python -m rdagent.scenarios.rl.autorl_bench.test.test_fixes
 """
 
 import json
-import os
 import sys
 import tempfile
 import threading
@@ -34,10 +33,10 @@ def report(name: str, ok: bool, detail: str = ""):
 
 
 # ============================================================
-# B1: LoRA adapter 自动检测
+# B1: LoRA adapter 拒绝 + OpenCompass env 透传
 # ============================================================
 def test_b1_lora_detection():
-    print("\n=== B1: LoRA adapter detection ===")
+    print("\n=== B1: LoRA rejection + OpenCompass env ===")
     from rdagent.scenarios.rl.autorl_bench.core.opencompass import OpenCompassEvaluator
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -82,33 +81,18 @@ def test_b1_lora_detection():
                 workspace_path=tmpdir,
                 model_name="test-model",
             )
-            if mock_run.called:
-                config_path = Path(tmpdir) / "opencompass_config.py"
-                if config_path.exists():
-                    content = config_path.read_text()
-                    report(
-                        "LoRA detected → is_lora=True in config",
-                        "enable_lora=True" in content,
-                        f"config has enable_lora={'enable_lora=True' in content}",
-                    )
-                    report(
-                        "lora_path set in config", "lora_path=" in content, f"lora_path found={'lora_path=' in content}"
-                    )
-                    report(
-                        "model_path points to base model",
-                        str(base_model_dir) in content,
-                        f"base_model in config={str(base_model_dir) in content}",
-                    )
-                else:
-                    report("OpenCompass config generated", False, "config file not found")
-            else:
-                report("OpenCompass was called", False, "subprocess.run not called")
+            report(
+                "LoRA adapter rejected",
+                "error" in result and "LoRA adapter detected" in result["error"],
+                result.get("error", "no error"),
+            )
+            report("OpenCompass not called for adapter", not mock_run.called)
 
         # Case 2: adapter_config.json with missing base model
         bad_adapter_dir = Path(tmpdir) / "bad_lora"
         bad_adapter_dir.mkdir()
         (bad_adapter_dir / "adapter_config.json").write_text(
-            json.dumps({"base_model_name_or_path": "/nonexistent/model"})
+            json.dumps({"base_model_name_or_path": "/nonexistent/model"}),
         )
         result = evaluator.run_eval(
             model_path=str(bad_adapter_dir),
@@ -116,12 +100,12 @@ def test_b1_lora_detection():
             model_name="test-model",
         )
         report(
-            "Missing base model → returns error",
-            "error" in result and "not found" in result["error"],
+            "Bad LoRA adapter rejected before evaluation",
+            "error" in result and "LoRA adapter detected" in result["error"],
             result.get("error", "no error"),
         )
 
-        # Case 3: normal model (no adapter_config.json) — should NOT set is_lora
+        # Case 3: normal model (no adapter_config.json) — should run OpenCompass with vLLM env
         normal_dir = Path(tmpdir) / "normal_model"
         normal_dir.mkdir()
         (normal_dir / "config.json").write_text("{}")
@@ -160,6 +144,83 @@ def test_b1_lora_detection():
                     "enable_lora" not in content,
                     f"enable_lora absent={'enable_lora' not in content}",
                 )
+                report(
+                    "OpenCompass template sets enforce_eager=True",
+                    "enforce_eager=True" in content,
+                    f"enforce_eager found={'enforce_eager=True' in content}",
+                )
+            else:
+                report("OpenCompass config generated", False, "config file not found")
+
+            env = mock_run.call_args.kwargs.get("env", {}) if mock_run.call_args else {}
+            report("OpenCompass env VLLM_ENFORCE_EAGER=1", env.get("VLLM_ENFORCE_EAGER") == "1")
+            report("OpenCompass env worker method=spawn", env.get("VLLM_WORKER_MULTIPROC_METHOD") == "spawn")
+
+
+def test_baseline_integrity():
+    print("\n=== Baseline integrity ===")
+    from rdagent.scenarios.rl.autorl_bench.core.evaluator import validate_eval_result
+    from rdagent.scenarios.rl.autorl_bench.core.utils import get_baseline_score
+
+    report(
+        "validate_eval_result accepts completed result",
+        validate_eval_result({"score": 1.0, "accuracy_summary": {"accuracy": 1.0}})[0],
+    )
+    ok, error = validate_eval_result({"score": 0.0, "accuracy_summary": {}})
+    report("validate_eval_result rejects empty summary", not ok and "missing accuracy_summary" in error, str(error))
+    ok, error = validate_eval_result({"score": 0.0, "error": "GPU OOM", "accuracy_summary": {}})
+    report("validate_eval_result rejects top-level error", not ok and "GPU OOM" in error, str(error))
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_dir = Path(tmpdir) / "cache"
+        mock_evaluator = MagicMock()
+        mock_evaluator.run_eval.return_value = {
+            "score": 12.5,
+            "accuracy_summary": {"accuracy": 12.5},
+        }
+        with (
+            patch("rdagent.scenarios.rl.autorl_bench.core.utils.get_baseline_cache_dir", return_value=cache_dir),
+            patch("rdagent.scenarios.rl.autorl_bench.benchmarks.get_evaluator", return_value=mock_evaluator),
+        ):
+            score = get_baseline_score("gsm8k", "test/model", "/tmp/model", tmpdir, force_rerun=True)
+            report("Successful baseline is cached", score == 12.5 and any(cache_dir.glob("*.json")))
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_dir = Path(tmpdir) / "cache"
+        mock_evaluator = MagicMock()
+        mock_evaluator.run_eval.return_value = {
+            "score": 0.0,
+            "error": "GPU OOM",
+            "accuracy_summary": {},
+        }
+        with (
+            patch("rdagent.scenarios.rl.autorl_bench.core.utils.get_baseline_cache_dir", return_value=cache_dir),
+            patch("rdagent.scenarios.rl.autorl_bench.benchmarks.get_evaluator", return_value=mock_evaluator),
+        ):
+            try:
+                get_baseline_score("gsm8k", "test/model", "/tmp/model", tmpdir, force_rerun=True)
+                raised = False
+            except RuntimeError:
+                raised = True
+            report("Failed baseline raises instead of returning 0.0", raised)
+            report("Failed baseline is not cached", not any(cache_dir.glob("*.json")))
+
+
+def test_alfworld_prompt_truncation():
+    print("\n=== ALFWorld prompt truncation ===")
+    from rdagent.scenarios.rl.autorl_bench.benchmarks.alfworld.eval import _truncate_prompt_to_fit
+
+    class ToyTokenizer:
+        def encode(self, text):
+            return text.split()
+
+        def decode(self, token_ids):
+            return " ".join(token_ids)
+
+    tokenizer = ToyTokenizer()
+    prompt = " ".join(str(i) for i in range(10))
+    truncated = _truncate_prompt_to_fit(prompt, tokenizer, max_context_tokens=6, max_output_tokens=2)
+    report("Prompt is trimmed from the left", truncated == "7 8 9", truncated)
 
 
 # ============================================================
@@ -200,7 +261,6 @@ def test_b2b3_lock_and_cache():
             (model_a / "config.json").write_text("{}")
             (model_b / "config.json").write_text("{}")
 
-            threads = []
             results = []
 
             def submit_wrapper(mp):
@@ -240,7 +300,7 @@ def test_b2b3_lock_and_cache():
             fail_model.mkdir()
             (fail_model / "config.json").write_text("{}")
 
-            r1 = server.submit(str(fail_model))
+            server.submit(str(fail_model))
             report(
                 "B3: failed eval not cached",
                 str(fail_model.resolve()) not in server._eval_cache,
@@ -279,7 +339,6 @@ def test_b4_error_passthrough():
 
     # Test _parse_results with non-numeric values (B4 in opencompass)
     import pandas as pd
-
     from rdagent.scenarios.rl.autorl_bench.core.opencompass import OpenCompassEvaluator
 
     config = MagicMock()
@@ -306,6 +365,8 @@ def test_b4_error_passthrough():
 
 def main():
     test_b1_lora_detection()
+    test_baseline_integrity()
+    test_alfworld_prompt_truncation()
     test_b2b3_lock_and_cache()
     test_b4_error_passthrough()
 

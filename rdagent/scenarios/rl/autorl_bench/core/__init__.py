@@ -37,6 +37,7 @@ AutoRL-Bench Core Module
 from .evaluator import (
     BaseEvaluator,
     EvalResult,
+    validate_eval_result,
 )
 from .metrics import run_workspace_metrics
 from .opencompass import OpenCompassEvaluator
@@ -50,6 +51,7 @@ from .utils import (
     get_baseline_score,
     init_run_meta,
     kill_process_group,
+    kill_process_tree,
     print_summary,
     read_run_meta,
     set_baseline_to_server,
@@ -63,6 +65,7 @@ __all__ = [
     "EvalResult",
     # 评测器
     "BaseEvaluator",
+    "validate_eval_result",
     "OpenCompassEvaluator",
     # 服务
     "create_grading_server",
@@ -79,6 +82,7 @@ __all__ = [
     "detect_driver_model",
     "print_summary",
     "kill_process_group",
+    "kill_process_tree",
     "init_run_meta",
     "update_run_meta",
     "read_run_meta",

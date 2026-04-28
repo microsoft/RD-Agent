@@ -22,27 +22,62 @@ from rdagent.scenarios.rl.autorl_bench.conf import (
     get_data_dir,
     get_models_dir,
 )
+from rdagent.scenarios.rl.autorl_bench.core.evaluator import validate_eval_result
 
 
-def kill_process_group(proc: "subprocess.Popen") -> None:
-    """尽力杀掉进程组：SIGTERM → SIGKILL → proc.kill()"""
+def kill_process_tree(proc: "subprocess.Popen") -> None:
+    """Kill a process session first, then its process group as a fallback."""
     import signal as _signal
 
     if proc.poll() is not None:
         return
+
+    try:
+        sid = os.getsid(proc.pid)
+    except OSError:
+        sid = None
+
     for sig in (_signal.SIGTERM, _signal.SIGKILL):
+        if sid:
+            try:
+                ps_output = subprocess.check_output(["ps", "-eo", "pid=,sid="], text=True)
+                for line in ps_output.splitlines():
+                    parts = line.split()
+                    if len(parts) != 2:
+                        continue
+                    pid_s, sid_s = parts
+                    if int(sid_s) == sid:
+                        try:
+                            os.kill(int(pid_s), sig)
+                        except (ProcessLookupError, OSError):
+                            pass
+            except (OSError, subprocess.SubprocessError, ValueError):
+                pass
+
+            try:
+                os.killpg(sid, sig)
+            except (ProcessLookupError, OSError):
+                pass
+
         try:
             os.killpg(os.getpgid(proc.pid), sig)
+        except (ProcessLookupError, OSError):
+            pass
+
+        try:
             proc.wait(timeout=10)
-            return
-        except ProcessLookupError:
             return
         except subprocess.TimeoutExpired:
             continue
-        except OSError:
-            break
-    proc.kill()
+
+    try:
+        proc.kill()
+    except (ProcessLookupError, OSError):
+        pass
     proc.wait()
+
+
+kill_process_group = kill_process_tree
 
 
 # ============================================================
@@ -178,23 +213,24 @@ def get_baseline_score(
         test_range=test_range,
     )
 
+    ok, error = validate_eval_result(result)
     score = result.get("score", 0.0)
-    error = result.get("error")
     logger.info(f"Baseline score: {score}")
 
-    # Only cache successful evaluations — failed ones should be retried next time
-    if not error:
-        cache_file.parent.mkdir(parents=True, exist_ok=True)
-        cache_data = {
-            "task": task,
-            "model_name": model_name,
-            "score": score,
-            "test_range": test_range,
-            "timestamp": datetime.now().isoformat(),
-        }
-        cache_file.write_text(json.dumps(cache_data, indent=2, ensure_ascii=False))
-    else:
+    if not ok:
         logger.warning(f"Baseline evaluation failed ({error}), result NOT cached")
+        raise RuntimeError(f"Baseline evaluation failed for {task}: {error}")
+
+    score = float(score)
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    cache_data = {
+        "task": task,
+        "model_name": model_name,
+        "score": score,
+        "test_range": test_range,
+        "timestamp": datetime.now().isoformat(),
+    }
+    cache_file.write_text(json.dumps(cache_data, indent=2, ensure_ascii=False))
 
     return score
 

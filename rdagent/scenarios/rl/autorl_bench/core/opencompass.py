@@ -4,6 +4,7 @@ OpenCompass Evaluator
 用于所有使用 OpenCompass 评测的 benchmark（gsm8k, math 等）。
 """
 
+import os
 import subprocess
 from pathlib import Path
 from typing import Any, Dict
@@ -97,17 +98,29 @@ class OpenCompassEvaluator(BaseEvaluator):
 
         # 运行 OpenCompass
         cmd = ["opencompass", str(config_path), "--work-dir", str(work_dir)]
+        oc_env = os.environ.copy()
+        oc_env.setdefault("FLASHINFER_DISABLE_VERSION_CHECK", "1")
+        oc_env.setdefault("VLLM_ENFORCE_EAGER", "1")
+        oc_env.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
+        stdout_log = work_dir / "opencompass_stdout.log"
+        stderr_log = work_dir / "opencompass_stderr.log"
 
         try:
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=7200)
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=7200, env=oc_env)
         except subprocess.TimeoutExpired:
             result["error"] = "OpenCompass timeout (7200s)"
             return result
 
+        stdout_log.write_text(proc.stdout or "", encoding="utf-8", errors="replace")
+        stderr_log.write_text(proc.stderr or "", encoding="utf-8", errors="replace")
+
         if proc.returncode != 0:
             error_msg = proc.stderr[:1000] if proc.stderr else proc.stdout[:1000] if proc.stdout else "No output"
             logger.warning(f"OpenCompass failed: {error_msg}")
-            result["error"] = f"OpenCompass exit code: {proc.returncode}"
+            result["error"] = (
+                f"OpenCompass exit code: {proc.returncode} "
+                f"(stdout: {stdout_log}, stderr: {stderr_log})"
+            )
             result["raw_output"] = error_msg
             return result
 

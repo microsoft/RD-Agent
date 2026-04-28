@@ -7,6 +7,7 @@ AutoRL-Bench Evaluator Base Class
 """
 
 from abc import ABC, abstractmethod
+from numbers import Real
 from pathlib import Path
 from typing import Any, Dict
 
@@ -149,3 +150,25 @@ class BaseEvaluator(ABC):
             "score": 0.0,
             "accuracy_summary": {},
         }
+
+
+def validate_eval_result(result: Dict[str, Any]) -> tuple[bool, str | None]:
+    """Return whether an evaluator result represents a completed evaluation."""
+
+    error = result.get("error")
+    if error:
+        return False, str(error)
+
+    score = result.get("score")
+    if not isinstance(score, Real) or isinstance(score, bool):
+        return False, f"non-numeric score: {score!r}"
+
+    summary = result.get("accuracy_summary")
+    if not isinstance(summary, dict) or not summary:
+        return False, "missing accuracy_summary for completed evaluation"
+
+    nested_error = summary.get("error")
+    if nested_error:
+        return False, str(nested_error)
+
+    return True, None
