@@ -95,6 +95,54 @@ class FactorFBWorkspace(FBWorkspace):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.raise_exception = raise_exception
+        self._data_type_for_symlink = "Debug"
+
+    def before_execute(self) -> None:
+        super().before_execute()
+
+        if self.file_dict is None or "factor.py" not in self.file_dict:
+            return
+
+        if self.target_task.version == 1:
+            source_data_path = (
+                Path(FACTOR_COSTEER_SETTINGS.data_folder_debug)
+                if self._data_type_for_symlink == "Debug"
+                else Path(FACTOR_COSTEER_SETTINGS.data_folder)
+            )
+            source_data_path.mkdir(exist_ok=True, parents=True)
+            self.link_all_files_in_folder_to_workspace(source_data_path, self.workspace_path)
+
+    def _ensure_symlinks(self, data_type: str = "Debug") -> None:
+        """
+        Ensure symlinks to source data exist in workspace.
+        This is called both before execution and when cache is hit.
+        """
+        if self.file_dict is None or "factor.py" not in self.file_dict:
+            return
+
+        if self.target_task.version == 1:
+            source_data_path = (
+                Path(FACTOR_COSTEER_SETTINGS.data_folder_debug)
+                if data_type == "Debug"
+                else Path(FACTOR_COSTEER_SETTINGS.data_folder)
+            )
+        elif self.target_task.version == 2:
+            source_data_path = Path(KAGGLE_IMPLEMENT_SETTING.local_data_path) / KAGGLE_IMPLEMENT_SETTING.competition
+        else:
+            return
+
+        source_data_path.mkdir(exist_ok=True, parents=True)
+        self.link_all_files_in_folder_to_workspace(source_data_path, self.workspace_path)
+
+    def _post_process_cached_execute(
+        self, data_type: str = "Debug", *, cached_res: Tuple[str, pd.DataFrame]
+    ) -> Tuple[str, pd.DataFrame]:
+        """
+        Post-process function for cached execute results.
+        Ensures symlinks are created even when cache is hit.
+        """
+        self._ensure_symlinks(data_type)
+        return cached_res
 
     def hash_func(self, data_type: str = "Debug") -> str:
         return (
@@ -103,7 +151,7 @@ class FactorFBWorkspace(FBWorkspace):
             else None
         )
 
-    @cache_with_pickle(hash_func)
+    @cache_with_pickle(hash_func, post_process_func=_post_process_cached_execute)
     def execute(self, data_type: str = "Debug") -> Tuple[str, pd.DataFrame]:
         """
         execute the implementation and get the factor value by the following steps:

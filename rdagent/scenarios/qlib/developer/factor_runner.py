@@ -8,7 +8,7 @@ from rdagent.core.utils import cache_with_pickle
 
 pandarallel.initialize(verbose=1)
 
-from rdagent.app.qlib_rd_loop.conf import FactorBasePropSetting
+from rdagent.app.qlib_rd_loop.conf import FACTOR_PROP_SETTING
 from rdagent.components.runner import CachedRunner
 from rdagent.core.exception import FactorEmptyError
 from rdagent.log import rdagent_logger as logger
@@ -70,7 +70,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             logger.info(f"Baseline experiment execution ...")
             exp.based_experiments[-1] = self.develop(exp.based_experiments[-1])
 
-        fbps = FactorBasePropSetting()
+        fbps = FACTOR_PROP_SETTING
         env_to_use = {
             "PYTHONPATH": "./",
             "train_start": fbps.train_start,

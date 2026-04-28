@@ -1,7 +1,12 @@
 import copyreg
+import re
 from typing import Any, Literal, Optional, Type, TypedDict, Union, cast
 
+import litellm
 import numpy as np
+
+# ANSI escape code pattern for stripping terminal color codes from streaming responses
+ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*m|\[0m|\[\d+m")
 from litellm import (
     completion,
     completion_cost,
@@ -33,7 +38,6 @@ for cls in [BadRequestError, Timeout]:
 
 
 class LiteLLMSettings(LLMSettings):
-
     class Config:
         env_prefix = "LITELLM_"
         """Use `LITELLM_` as prefix for environment variables"""
@@ -51,6 +55,11 @@ class LiteLLMAPIBackend(APIBackend):
     _has_logged_settings: bool = False
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        # Set litellm request timeout from settings
+        litellm.request_timeout = LITELLM_SETTINGS.request_timeout
+        # Set custom headers (e.g., for OpenRouter: HTTP-Referer, X-Title)
+        if LITELLM_SETTINGS.extra_headers:
+            litellm.headers = LITELLM_SETTINGS.extra_headers
         if not self.__class__._has_logged_settings:
             logger.info(f"{LITELLM_SETTINGS}")
             logger.log_object(LITELLM_SETTINGS.model_dump(), tag="LITELLM_SETTINGS")
@@ -92,37 +101,50 @@ class LiteLLMAPIBackend(APIBackend):
         max_tokens: int | None
         reasoning_effort: Literal["low", "medium", "high"] | None
 
-    def get_complete_kwargs(self) -> CompleteKwargs:
+    class CompleteKwargsWithApi(TypedDict, total=False):
+        model: str
+        temperature: float
+        max_tokens: int | None
+        reasoning_effort: Literal["low", "medium", "high"] | None
+        api_base: str
+        api_key: str
+
+    def get_complete_kwargs(self) -> CompleteKwargsWithApi:
         """
         return several key settings for completion
         getting these values from settings makes it easier to adapt to backend calls in agent systems.
         """
-        # Call LiteLLM completion
         model = LITELLM_SETTINGS.chat_model
         temperature = LITELLM_SETTINGS.chat_temperature
         max_tokens = LITELLM_SETTINGS.chat_max_tokens
         reasoning_effort = LITELLM_SETTINGS.reasoning_effort
 
+        result: dict[str, Any] = {
+            "model": model,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "reasoning_effort": reasoning_effort,
+        }
+
         if LITELLM_SETTINGS.chat_model_map:
             for t, mc in LITELLM_SETTINGS.chat_model_map.items():
                 if t in logger._tag:
-                    model = mc["model"]
+                    result["model"] = mc.get("model", model)
                     if "temperature" in mc:
-                        temperature = float(mc["temperature"])
+                        result["temperature"] = float(mc["temperature"])
                     if "max_tokens" in mc:
-                        max_tokens = int(mc["max_tokens"])
+                        result["max_tokens"] = int(mc["max_tokens"])
                     if "reasoning_effort" in mc:
                         if mc["reasoning_effort"] in ["low", "medium", "high"]:
-                            reasoning_effort = cast(Literal["low", "medium", "high"], mc["reasoning_effort"])
+                            result["reasoning_effort"] = cast(Literal["low", "medium", "high"], mc["reasoning_effort"])
                         else:
-                            reasoning_effort = None
+                            result["reasoning_effort"] = None
+                    if "api_base" in mc:
+                        result["api_base"] = mc["api_base"]
+                    if "api_key" in mc:
+                        result["api_key"] = mc["api_key"]
                     break
-        return self.CompleteKwargs(
-            model=model,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            reasoning_effort=reasoning_effort,
-        )
+        return cast(self.CompleteKwargsWithApi, result)
 
     def _create_chat_completion_inner_function(  # type: ignore[no-untyped-def] # noqa: C901, PLR0912, PLR0915
         self,
@@ -173,10 +195,11 @@ class LiteLLMAPIBackend(APIBackend):
                 if "content" in message["choices"][0]["delta"]:
                     chunk = (
                         message["choices"][0]["delta"]["content"] or ""
-                    )  # when finish_reason is "stop", content is None
+                    )
                     content += chunk
                     if LITELLM_SETTINGS.log_llm_chat_content:
                         logger.info(LogColors.CYAN + chunk + LogColors.END, raw=True, tag="llm_messages")
+            content = ANSI_ESCAPE_RE.sub("", content)
             if LITELLM_SETTINGS.log_llm_chat_content:
                 logger.info("\n", raw=True, tag="llm_messages")
         else:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field
 
@@ -48,6 +48,13 @@ class LLMSettings(ExtendedBaseSettings):
     max_past_message_include: int = 10
     timeout_fail_limit: int = 10
     violation_fail_limit: int = 1
+
+    # LiteLLM timeout settings (in seconds)
+    request_timeout: int = 600  # 10 minutes default timeout for LLM API calls
+
+    # Custom HTTP headers for LLM API calls (e.g., OpenRouter requires HTTP-Referer, X-Title)
+    # Example: {"HTTP-Referer": "https://your-site.com", "X-Title": "YourApp"}
+    extra_headers: dict = {}
 
     # Behavior of returning answers to the same question when caching is enabled
     use_auto_chat_cache_seed_gen: bool = False
@@ -127,7 +134,7 @@ class LLMSettings(ExtendedBaseSettings):
     chat_azure_deepseek_endpoint: str = ""
     chat_azure_deepseek_key: str = ""
 
-    chat_model_map: dict[str, dict[str, str]] = {}
+    chat_model_map: dict[str, dict[str, Any]] = {}
 
 
 LLM_SETTINGS = LLMSettings()

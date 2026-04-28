@@ -86,8 +86,16 @@ def fin_factor_cli(
     loop_n: Optional[int] = None,
     all_duration: Optional[str] = None,
     checkout: CheckoutOption = True,
+    base_features_path: Optional[str] = None,
 ):
-    fin_factor(path=path, step_n=step_n, loop_n=loop_n, all_duration=all_duration, checkout=checkout)
+    fin_factor(
+        path=path,
+        step_n=step_n,
+        loop_n=loop_n,
+        all_duration=all_duration,
+        checkout=checkout,
+        base_features_path=base_features_path,
+    )
 
 
 @app.command(name="fin_model")

@@ -1,5 +1,5 @@
 qlib_init:
-    provider_uri: "~/.qlib/qlib_data/cn_data"
+    provider_uri: "~/.qlib/qlib_data/qlib_bin"
     region: cn
 market: &market csi300
 benchmark: &benchmark SH000300
@@ -73,8 +73,8 @@ task:
             GPU: 0
             pt_model_uri: "model.model_cls"
             pt_model_kwargs: {
-                "num_features": 20,
-                {% if num_timesteps %}num_timesteps: {{ num_timesteps }}{% endif %}
+                "num_features": {{ num_features }},
+                {% if num_timesteps %}"num_timesteps": {{ num_timesteps }}{% endif %}
             }                    
     dataset:
         class: {{ dataset_cls | default("DatasetH") }}

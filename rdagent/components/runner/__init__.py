@@ -11,6 +11,13 @@ class CachedRunner(Developer[ASpecificExp]):
         all_tasks.extend(exp.sub_tasks)
         task_info_list = [task.get_task_information() for task in all_tasks]
         task_info_str = "\n".join(task_info_list)
+        
+        # Include base_features and base_feature_codes for QlibFactorExperiment
+        if hasattr(exp, 'base_features') and exp.base_features:
+            task_info_str += "\nBASE_FEATURES:" + str(sorted(exp.base_features.keys()))
+        if hasattr(exp, 'base_feature_codes') and exp.base_feature_codes:
+            task_info_str += "\nBASE_CODES:" + str(sorted(exp.base_feature_codes.keys()))
+        
         return md5_hash(task_info_str)
 
     def assign_cached_result(self, exp: Experiment, cached_res: Experiment) -> Experiment:

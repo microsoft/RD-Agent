@@ -1,5 +1,7 @@
+import os
+
 from rdagent.core.experiment import FBWorkspace
-from rdagent.utils.env import QlibCondaConf, QlibCondaEnv
+from rdagent.utils.env import QlibCondaConf, QlibCondaEnv, QTDockerEnv
 
 ALPHA20 = {
     "RESI5": "Resi($close, 5)/$close",
@@ -190,7 +192,7 @@ TEST_FEATURE_CODE = """
 import qlib  
 from qlib.data import D  
 
-qlib.init()  
+qlib.init(provider_uri='/root/.qlib/qlib_data/qlib_bin/')  
 expressions = {experessions}
 df = D.features(["SH600000"], expressions, start_time="2008-01-01", end_time="2020-08-31")
 """
@@ -199,7 +201,11 @@ df = D.features(["SH600000"], expressions, start_time="2008-01-01", end_time="20
 def validate_qlib_features(expressions: list[str]) -> bool:
     _TFW.inject_files(**{"test_fea.py": TEST_FEATURE_CODE.format(experessions=str(expressions))})
 
-    qlib_env = QlibCondaEnv(conf=QlibCondaConf())
+    env_type = os.environ.get("MODEL_COSTEER_ENV_TYPE", "conda")
+    if env_type == "docker":
+        qlib_env = QTDockerEnv()
+    else:
+        qlib_env = QlibCondaEnv(conf=QlibCondaConf())
     qlib_env.prepare()
     res = _TFW.run(
         env=qlib_env,

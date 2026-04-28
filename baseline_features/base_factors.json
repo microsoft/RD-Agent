@@ -1,0 +1,22 @@
+{
+  "RESI5": "Resi($close, 5)/$close",
+  "WVMA5": "Std(Abs($close/Ref($close, 1)-1)*$volume, 5)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 5)+1e-12)",
+  "RSQR5": "Rsquare($close, 5)",
+  "KLEN": "($high-$low)/$open",
+  "RSQR10": "Rsquare($close, 10)",
+  "CORR5": "Corr($close, Log($volume+1), 5)",
+  "CORD5": "Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), 5)",
+  "CORR10": "Corr($close, Log($volume+1), 10)",
+  "ROC60": "Ref($close, 60)/$close",
+  "RESI10": "Resi($close, 10)/$close",
+  "VSTD5": "Std($volume, 5)/($volume+1e-12)",
+  "RSQR60": "Rsquare($close, 60)",
+  "CORR60": "Corr($close, Log($volume+1), 60)",
+  "WVMA60": "Std(Abs($close/Ref($close, 1)-1)*$volume, 60)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 60)+1e-12)",
+  "STD5": "Std($close, 5)/$close",
+  "RSQR20": "Rsquare($close, 20)",
+  "CORD60": "Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), 60)",
+  "CORD10": "Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), 10)",
+  "CORR20": "Corr($close, Log($volume+1), 20)",
+  "KLOW": "(Less($open, $close)-$low)/$open"
+}

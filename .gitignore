@@ -184,7 +184,17 @@ static/
 # AI assistant
 .cursor/
 .claude/
+.sisyphus/
 AGENTS.md
 !rdagent/**/AGENTS.md
 
+# Custom scripts
 scripts/
+
+# Factor analysis outputs
+factor_analysis_output/
+selected_backtest_results.json
+top_factors_performance.csv
+
+# Documentation drafts
+docs/FIN_FACTOR_*.md

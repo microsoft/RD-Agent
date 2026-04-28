@@ -30,6 +30,7 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
             exp.based_experiments[-1] = self.develop(exp.based_experiments[-1])
 
         exist_sota_factor_exp = False
+        num_features = str(len(exp.base_features))
         if exp.based_experiments:
             SOTA_factor = None
             # Filter and retain only QlibFactorExperiment instances
@@ -95,7 +96,7 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
                     qlib_config_name="conf_sota_factors_model.yaml", run_env=env_to_use
                 )
             else:
-                env_to_use.update({"dataset_cls": "TSDatasetH", "step_len": 20, "num_timesteps": 20})
+                env_to_use.update({"dataset_cls": "TSDatasetH", "num_features": num_features, "step_len": 20, "num_timesteps": 20})
                 result, stdout = exp.experiment_workspace.execute(
                     qlib_config_name="conf_baseline_factors_model.yaml", run_env=env_to_use
                 )
@@ -106,7 +107,7 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
                     qlib_config_name="conf_sota_factors_model.yaml", run_env=env_to_use
                 )
             else:
-                env_to_use.update({"dataset_cls": "DatasetH"})
+                env_to_use.update({"dataset_cls": "DatasetH", "num_features": num_features})
                 result, stdout = exp.experiment_workspace.execute(
                     qlib_config_name="conf_baseline_factors_model.yaml", run_env=env_to_use
                 )
