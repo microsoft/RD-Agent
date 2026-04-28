@@ -355,6 +355,7 @@ class CoSTEERRAGStrategyV2(CoSTEERRAGStrategy):
     def __init__(self, settings: CoSTEERSettings, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.current_generated_trace_count = 0
+        self._generated_trace_identity: int | None = None
         self.settings = settings
 
     def generate_knowledge(
@@ -363,6 +364,18 @@ class CoSTEERRAGStrategyV2(CoSTEERRAGStrategy):
         *,
         return_knowledge: bool = False,
     ) -> Knowledge | None:
+        # The cursor is bound to the identity of the trace it was advanced
+        # against. A fresh ``evolving_trace`` (different ``develop()`` call)
+        # or a truncated trace must reset the cursor so that ingestion is
+        # not skipped when the new trace happens to match the stale length.
+        trace_identity = id(evolving_trace)
+        if (
+            getattr(self, "_generated_trace_identity", None) != trace_identity
+            or self.current_generated_trace_count > len(evolving_trace)
+        ):
+            self._generated_trace_identity = trace_identity
+            self.current_generated_trace_count = 0
+
         if len(evolving_trace) == self.current_generated_trace_count:
             return None
 
