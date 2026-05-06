@@ -85,7 +85,7 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     # LLM-specific fields
     user_target_scenario: str | None = None
     target_benchmark: str | None = None
-    """Benchmark dataset to evaluate on. Supported: aime25, aime24, mmlu, gsm8k, math, etc."""
+    """Benchmark dataset to evaluate on. Supported: aime25, aime24, math, mmlu, etc."""
     benchmark_description: str | None = None
     base_model: str | None = None
     dataset: str | None = None
@@ -108,7 +108,7 @@ class LLMFinetunePropSetting(ExtendedBaseSettings):
     data_sample_count: int = 3
 
     # API concurrency for data processing
-    api_max_workers: int = 1000
+    api_max_workers: int = 8
     """Max concurrent workers for LLM API calls in data processing scripts (env: FT_API_MAX_WORKERS)"""
 
     # Coder settings

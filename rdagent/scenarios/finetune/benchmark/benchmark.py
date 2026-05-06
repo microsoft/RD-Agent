@@ -3,17 +3,18 @@ Benchmark Evaluation using OpenCompass
 
 Evaluator that runs OpenCompass in Docker to evaluate fine-tuned models on standard benchmarks.
 
-Configure benchmark behavior via editting .env to cover default settings in conf.py:
+Configure benchmark behavior by editing .env to override default settings in conf.py:
 ```
-FT_BENCHMARK_DATASETS='["aime25", "gsm8k"]'
+FT_TARGET_BENCHMARK="aime25"
 FT_BENCHMARK_NUM_RUNS=4
 FT_JUDGE_MODEL="gpt-4"
-FT_JUDGE_API_KEY="sk-xxx"
+FT_JUDGE_API_KEY="<your_api_key>"
 FT_JUDGE_API_BASE="https://api.openai.com/v1"
 ```
 """
 
 import json
+import os
 import random
 import shutil
 import subprocess
@@ -131,7 +132,7 @@ def run_benchmark(
         workspace_path: Path to workspace directory
         model_path: Path to fine-tuned model (supports full/LoRA auto-detection)
         model_name: HuggingFace model name
-        benchmark_name: Benchmark dataset name (e.g., "aime25", "gsm8k")
+        benchmark_name: Benchmark dataset name (e.g., "aime25", "chemcotbench_mol_edit")
         gpu_count: GPU count for tensor_parallel_size (from scenario.device_info)
         test_range: Python slice string for dataset sampling (e.g., "[:100]", "[-100:]").
                     Negative indexing allows automatic adaptation to varying subset sizes.
@@ -347,11 +348,11 @@ def get_benchmark_ranges() -> tuple[str, str]:
 
 if __name__ == "__main__":
     """Test benchmark evaluation on Qwen3-1.7B with LoRA adapter."""
-    # Configuration - Fill in your LoRA adapter path and model name
-    LORA_ADAPTER_PATH = "/home/v-qizhengli/workspace/FT_workspace/gitignore_folder/B200/B200_FT_workspace/limo/train/b200_sweep_yamls/saves/qwen3-1.7b/lora_b200_lr1e-4_acc4/checkpoint-100"
-    MODEL_NAME = "Qwen/Qwen3-1.7B"
-    BENCHMARK = "aime25"
-    GPU_COUNT = 1
+    # Configuration - set these environment variables before running this module directly.
+    LORA_ADAPTER_PATH = os.environ.get("FT_TEST_LORA_ADAPTER_PATH", "/path/to/your/lora_or_full_model")
+    MODEL_NAME = os.environ.get("FT_TEST_MODEL_NAME", "Qwen/Qwen3-1.7B")
+    BENCHMARK = os.environ.get("FT_TEST_BENCHMARK", "aime25")
+    GPU_COUNT = int(os.environ.get("FT_TEST_GPU_COUNT", "1"))
 
     print("=" * 80)
     print("Benchmark Evaluation Test")

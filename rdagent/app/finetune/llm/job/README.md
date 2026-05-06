@@ -1,131 +1,80 @@
 # FT Job Runner
 
-批量并行运行多个 LLM 微调任务的脚本。
+`run_ft_job.sh` launches multiple FT-Agent runs in parallel under one job directory. It is a convenience helper for multi-GPU machines; for a single run, prefer the command in `../README.md`.
 
-## 快速开始
+## Quick Start
 
-```bash
-# 1. 准备环境配置
-cp .env.template .env
-# 编辑 .env，填入 API key 等配置
-
-# 2. 准备任务配置
-cp tasks.json.example tasks.json
-# 编辑 tasks.json，定义要运行的任务
-
-# 3. 运行
-./run_ft_job.sh
-```
-
-## 用法
+From the RD-Agent repository root:
 
 ```bash
-./run_ft_job.sh [tasks.json]
+# 1. Prepare the normal FT-Agent config first.
+# See rdagent/app/finetune/llm/README.md for required values.
+cp .env rdagent/app/finetune/llm/job/.env
+
+# 2. Prepare task definitions.
+cp rdagent/app/finetune/llm/job/tasks.json.example rdagent/app/finetune/llm/job/tasks.json
+
+# 3. Run the job.
+bash rdagent/app/finetune/llm/job/run_ft_job.sh rdagent/app/finetune/llm/job/tasks.json
 ```
 
-| 参数 | 说明 |
-|------|------|
-| `tasks.json` | 任务配置文件路径（可选，默认使用同目录下的 `tasks.json`） |
-| `-h, --help` | 显示帮助信息 |
+The script opens one tmux window per task and writes logs under `log/<job_id>/`.
 
-### 示例
+## Requirements
+
+- `jq`
+- `tmux`
+- `conda`
+- an RD-Agent conda environment, named `rdagent` by default
+
+If your RD-Agent environment has a different name, set `CONDA_ENV_NAME` before running the script or add it to `job/.env`:
 
 ```bash
-# 使用默认配置
-./run_ft_job.sh
-
-# 指定自定义配置文件
-./run_ft_job.sh /path/to/my_tasks.json
+CONDA_ENV_NAME=my-rdagent-env bash rdagent/app/finetune/llm/job/run_ft_job.sh
 ```
 
-## 配置文件
+The FT training/evaluation backend is still controlled by `FT_Coder_CoSTEER_env_type` in `job/.env`. In `docker` mode, the job runner skips conda readiness checks for the training and OpenCompass environments. In `conda` mode, it waits for the `llm_finetune` and `opencompass` environments after the first task initializes them.
 
-### tasks.json
+## Task Config
 
-定义要并行运行的任务列表：
+`tasks.json` contains a list of independent runs:
 
 ```json
 {
   "tasks": [
     {
-      "model": "Qwen/Qwen3-8B",
+      "model": "Qwen/Qwen2.5-7B-Instruct",
       "benchmark": "aime25",
-      "gpus": "0,1"
+      "gpus": "0,1",
+      "timeout": "12h"
     },
     {
-      "model": "Qwen/Qwen3-8B",
-      "benchmark": "gsm8k",
+      "model": "Qwen/Qwen2.5-7B-Instruct",
+      "benchmark": "chemcotbench_mol_edit",
       "gpus": "2,3",
-      "scenario": "自定义优化目标"
+      "benchmark_description": "Molecule Editing - perform valid SMILES edits and return JSON: {\"output\": \"<valid SMILES>\"}."
     }
   ]
 }
 ```
 
-| 字段 | 必填 | 默认值 | 说明 |
-|------|:----:|--------|------|
-| `model` | ✅ | - | HuggingFace 模型路径 |
-| `benchmark` | ✅ | - | 评估基准（如 `aime25`, `gsm8k`） |
-| `gpus` | ❌ | `"0"` | 使用的 GPU 编号 |
-| `scenario` | ❌ | `"Improve model performance on {benchmark}"` | 优化目标描述 |
+| Field | Required | Default | Description |
+| --- | --- | --- | --- |
+| `model` | Yes | - | Hugging Face model id. |
+| `benchmark` | Yes | - | Benchmark key, such as `aime25` or `chemcotbench_mol_edit`. |
+| `gpus` | No | `"0"` | Value for `CUDA_VISIBLE_DEVICES`. |
+| `timeout` | No | `"12h"` | Wall-clock budget passed to the FT-Agent loop. |
+| `port` | No | - | Optional local API port; writes `OPENAI_API_BASE=http://localhost:<port>` for that task. |
+| `benchmark_description` | No | from `scenarios.json` | Task and output-format description. |
 
-### .env
+If `benchmark_description` is omitted, the runner looks it up in `scenarios.json`.
 
-环境配置文件，包含 API 密钥、模型设置等。从 `.env.template` 复制并修改：
-
-```bash
-cp .env.template .env
-```
-
-主要配置项：
-
-| 配置 | 说明 |
-|------|------|
-| `OPENAI_API_KEY` | OpenAI API 密钥 |
-| `OPENAI_API_BASE` | API 地址 |
-| `FT_Coder_CoSTEER_env_type` | 环境类型：`docker` 或 `conda` |
-| `HF_TOKEN` | HuggingFace Token |
-
-## 输出
-
-运行后会在 `log/` 目录下创建 job 文件夹：
-
-```
-log/2025-12-23/
-├── aime25_Qwen3-8B.log      # 任务日志
-├── gsm8k_Qwen3-8B.log
-└── aime25_Qwen3-8B/         # 任务 trace（Loop 数据）
-    ├── Loop_0/
-    └── ...
-```
-
-## 监控
-
-### 命令行
+## Monitoring
 
 ```bash
-# 查看所有任务日志
-tail -f log/2025-12-23/*.log
-
-# 查看特定任务
-tail -f log/2025-12-23/aime25_Qwen3-8B.log
-```
-
-### Web UI
-
-```bash
+tmux attach -t rdagent
+tail -f log/<job_id>/*.log
 streamlit run rdagent/app/finetune/llm/ui/app.py
 ```
 
-在 UI 中选择 Job Folder 为对应的日志目录即可查看运行状态。
-
-## 依赖
-
-- `jq`：JSON 解析工具
-- `conda` 环境：`rdagent`
-
-## 注意事项
-
-1. 任务启动间隔默认为 60 秒（`STAGGER_DELAY`），避免同时启动造成资源竞争
-2. 确保指定的 GPU 编号不冲突
-3. 如果同一天多次运行，会自动创建 `log/2025-12-23_1/`、`log/2025-12-23_2/` 等目录
+In the Streamlit UI, select the generated job folder as the log source.

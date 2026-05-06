@@ -1,20 +1,23 @@
 {
   "tasks": [
     {
-      "model": "Qwen/Qwen3-8B",
+      "model": "Qwen/Qwen2.5-7B-Instruct",
       "benchmark": "aime25",
-      "gpus": "0,1"
+      "gpus": "0,1",
+      "timeout": "12h"
     },
     {
-      "model": "Qwen/Qwen3-8B",
-      "benchmark": "gsm8k",
-      "gpus": "2,3"
+      "model": "Qwen/Qwen2.5-7B-Instruct",
+      "benchmark": "chemcotbench_mol_edit",
+      "gpus": "2,3",
+      "timeout": "12h"
     },
     {
-      "model": "meta-llama/Llama-3-8B",
-      "benchmark": "aime25",
+      "model": "Qwen/Qwen2.5-7B-Instruct",
+      "benchmark": "tablebench_visualization",
       "gpus": "4,5",
-      "scenario": "Improve AIME 2025 math reasoning with custom approach"
+      "timeout": "12h",
+      "benchmark_description": "Table Visualization - generate executable Python code to create the requested chart from tabular data. Expected Output Format: return Python code in a ```python code block using matplotlib or pandas."
     }
   ]
 }

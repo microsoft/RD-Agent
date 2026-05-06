@@ -178,12 +178,12 @@ data_coder:
 
     ## 5.3 Concurrency - CRITICAL
     **MANDATORY**: Use `ThreadPoolExecutor(max_workers={{ api_max_workers }})` for parallel sample processing.
-    - DO NOT use `os.cpu_count()` - it limits parallelism unnecessarily
-    - The value {{ api_max_workers }} is intentional for maximizing API throughput
+    - DO NOT use `os.cpu_count()` - API concurrency should follow endpoint quota, not local CPU count
+    - The value {{ api_max_workers }} comes from `FT_API_MAX_WORKERS`; do not hard-code a larger value
     - Pass `start_idx=sample_index % len(models)` to distribute load evenly
 
     ```python
-    with ThreadPoolExecutor(max_workers={{ api_max_workers }}) as executor:  # NOT os.cpu_count()!
+    with ThreadPoolExecutor(max_workers={{ api_max_workers }}) as executor:
         futures = {executor.submit(process_sample, i, sample, i % len(STRONG_MODELS)): i
                    for i, sample in enumerate(samples)}
     ```

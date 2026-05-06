@@ -64,8 +64,9 @@ def main(
     if upper_data_size_limit:
         FT_RD_SETTING.upper_data_size_limit = upper_data_size_limit
         logger.info(f"Set upper_data_size_limit to {FT_RD_SETTING.upper_data_size_limit}")
-    if benchmark and benchmark_description:
+    if benchmark:
         FT_RD_SETTING.target_benchmark = benchmark
+    if benchmark_description:
         FT_RD_SETTING.benchmark_description = benchmark_description
     assert FT_RD_SETTING.user_target_scenario or (
         FT_RD_SETTING.target_benchmark and FT_RD_SETTING.benchmark_description

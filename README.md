@@ -31,6 +31,7 @@
 # 📰 News
 | 🗞️ News        | 📝 Description                 |
 | --            | ------      |
+| ICML 2026 Acceptance | We are thrilled to announce that our paper [FT-Dojo: Towards Autonomous LLM Fine-Tuning with Language Agents](https://arxiv.org/abs/2603.01712) has been accepted to ICML 2026. The FT-Agent implementation is available in the [LLM fine-tuning guide](rdagent/app/finetune/llm/README.md). |
 | ACL 2026 Findings Acceptance | We are thrilled to announce that our paper [Reasoning as Gradient](https://arxiv.org/abs/2603.01692) has been accepted to ACL 2026 Findings. Execution traces are available at [Gome GPT-5 Traces](https://huggingface.co/datasets/amstrongzyf/Gome-GPT5-Traces) |
 | Web UI Release | We release a new frontend that can be built and served by `rdagent server_ui` for real-time interaction and trace viewing, currently excluding the `data_science` scenario. |
 | NeurIPS 2025 Acceptance | We are thrilled to announce that our paper [R&D-Agent-Quant](https://arxiv.org/abs/2505.15155) has been accepted to NeurIPS 2025 | 
@@ -101,6 +102,7 @@ R&D is a very general scenario. The advent of R&D-Agent can be your
 - 🤖 **Data Mining Agent:** Iteratively proposing data & models ([🎥Demo Video 1](https://rdagent.azurewebsites.net/model_loop)|[▶️YouTube](https://www.youtube.com/watch?v=dm0dWL49Bc0&t=104s)) ([🎥Demo Video 2](https://rdagent.azurewebsites.net/dmm)|[▶️YouTube](https://www.youtube.com/watch?v=VIaSTZuoZg4))  and implementing them by gaining knowledge from data.
 - 🦾 **Research Copilot:** Auto read research papers ([🎥Demo Video](https://rdagent.azurewebsites.net/report_model)|[▶️YouTube](https://www.youtube.com/watch?v=BiA2SfdKQ7o)) / financial reports ([🎥Demo Video](https://rdagent.azurewebsites.net/report_factor)|[▶️YouTube](https://www.youtube.com/watch?v=ECLTXVcSx-c)) and implement model structures or building datasets.
 - 🤖 **Kaggle Agent:** Auto Model Tuning and Feature Engineering([🎥Demo Video Coming Soon...]()) and implementing them to achieve more in competitions.
+- 🧪 **FT-Agent:** Autonomous LLM fine-tuning for benchmark-driven domain adaptation. See the [LLM fine-tuning guide](rdagent/app/finetune/llm/README.md).
 - ...
 
 You can click the links above to view the demo. We're continuously adding more methods and scenarios to the project to enhance your R&D processes and boost productivity. 
@@ -338,6 +340,14 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   rdagent data_science --competition tabular-playground-series-dec-2021
   ```
 
+- Run **FT-Agent for Autonomous LLM Fine-Tuning**: an ICML 2026 LLM fine-tuning scenario for benchmark-driven data processing, training, evaluation, and feedback-guided refinement.
+  ```bash
+  # See the full setup, benchmark descriptions, dataset notes, and examples:
+  # rdagent/app/finetune/llm/README.md
+  # Configure FT_TARGET_BENCHMARK and FT_BENCHMARK_DESCRIPTION before running.
+  rdagent llm_finetune --base-model Qwen/Qwen2.5-7B-Instruct
+  ```
+
 ### 🖥️ Monitor the Application Results
 #### Streamlit UI
 
@@ -499,6 +509,22 @@ For more detail, please refer to our **[🖥️ Live Demo page](https://rdagent.
 ![image](https://github.com/user-attachments/assets/75d9769b-0edd-4caf-9d45-57d1e577054b)
 
 ## Deep Application in Diverse Scenarios
+
+- [FT-Dojo: Towards Autonomous LLM Fine-Tuning with Language Agents](https://arxiv.org/abs/2603.01712)
+
+```BibTeX
+@misc{li2026ftdojo,
+  title={FT-Dojo: Towards Autonomous LLM Fine-Tuning with Language Agents},
+  author={Qizheng Li and Yifei Zhang and Xiao Yang and Xu Yang and Zhuo Wang and Weiqing Liu and Jiang Bian},
+  year={2026},
+  eprint={2603.01712},
+  archivePrefix={arXiv},
+  primaryClass={cs.AI},
+  url={https://arxiv.org/abs/2603.01712}
+}
+```
+
+FT-Agent, the autonomous LLM fine-tuning scenario from this paper, is available through the [LLM fine-tuning guide](rdagent/app/finetune/llm/README.md).
 
 - [R&D-Agent-Quant: A Multi-Agent Framework for Data-Centric Factors and Model Joint Optimization](https://arxiv.org/abs/2505.15155)
 ```BibTeX

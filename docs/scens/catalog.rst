@@ -29,6 +29,7 @@ The supported scenarios are listed below:
     * - 🏭 General
       - :ref:`🦾Auto paper reading & implementation <model_copilot_general>`  
         
+        :ref:`🧪FT-Agent for LLM fine-tuning <finetune_agent>`
       - :ref:`🤖 Data Science <data_science_agent>`
 
 
