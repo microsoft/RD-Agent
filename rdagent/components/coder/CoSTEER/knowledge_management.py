@@ -355,6 +355,13 @@ class CoSTEERRAGStrategyV2(CoSTEERRAGStrategy):
     def __init__(self, settings: CoSTEERSettings, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.current_generated_trace_count = 0
+        # Identity of the ``evolving_trace`` object the cursor was last advanced
+        # against.  ``CoSTEER.develop()`` can pass a fresh trace on every run,
+        # so the cursor MUST be rebound when a new trace object is observed,
+        # otherwise a stale cursor that happens to equal the new trace's length
+        # would cause ``generate_knowledge`` to return early and silently skip
+        # ingesting the latest repair feedback (issue #1398).
+        self._generated_trace_identity: int | None = None
         self.settings = settings
 
     def generate_knowledge(
@@ -363,6 +370,14 @@ class CoSTEERRAGStrategyV2(CoSTEERRAGStrategy):
         *,
         return_knowledge: bool = False,
     ) -> Knowledge | None:
+        trace_identity = id(evolving_trace)
+        if self._generated_trace_identity != trace_identity or self.current_generated_trace_count > len(evolving_trace):
+            # A new trace was supplied, or the cursor is past the end of the
+            # current trace (e.g. after truncation).  Reset so we re-ingest
+            # from the start of this trace.
+            self._generated_trace_identity = trace_identity
+            self.current_generated_trace_count = 0
+
         if len(evolving_trace) == self.current_generated_trace_count:
             return None
 
