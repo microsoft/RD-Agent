@@ -46,7 +46,7 @@ class LoopMeta(type):
         steps = []
         for base in bases:
             for step in LoopMeta._get_steps(base.__bases__) + getattr(base, "steps", []):
-                if step not in steps and step not in ["load", "dump"]:  # incase user override the load/dump method
+                if step not in steps and step not in ["load", "dump"]:  # in case user overrides the load/dump method
                     steps.append(step)
         return steps
 
@@ -66,7 +66,7 @@ class LoopMeta(type):
         for name, attr in attrs.items():
             if not name.startswith("_") and callable(attr) and not isinstance(attr, type):
                 # NOTE: `not isinstance(attr, type)` is trying to exclude class type attribute
-                if name not in steps and name not in ["load", "dump"]:  # incase user override the load/dump method
+                if name not in steps and name not in ["load", "dump"]:  # in case user overrides the load/dump method
                     # NOTE: if we override the step in the subclass
                     # Then it is not the new step. So we skip it.
                     steps.append(name)
@@ -148,7 +148,7 @@ class LoopBase:
         # NOTE:
         # (1) we assume the record step is always the last step to modify the global environment,
         #     so we set the limit to 1 to avoid race condition
-        # (2) Because we support (-1,) as local selection; So it is hard to align a) the comparision target in `feedbck`
+        # (2) Because we support (-1,) as local selection; So it is hard to align a) the comparison target in `feedback`
         #     and b) parent node in `record`; So we prevent parallelism in `feedback` and `record` to avoid inconsistency
         if step_name in ("record", "feedback"):
             limit = 1

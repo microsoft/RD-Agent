@@ -104,7 +104,7 @@ class RDAT:
 
             the loaded content will be saved in `self.template`
 
-        Content loading prioirties:
+        Content loading priorities:
         -.a.b.c has the highest priority
         - <current directory>/a/b/c.yaml via a.b.c  (So you can make customization under current directory)
         - <RD-Agent pack directory>/a/b/c.yaml via a.b.c  (RD-Agent provides the default template)
