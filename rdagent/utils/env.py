@@ -22,7 +22,7 @@ from abc import abstractmethod
 from collections import deque
 from dataclasses import dataclass
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from types import MappingProxyType
 from typing import (
     Any,
@@ -113,26 +113,35 @@ def cleanup_container(container: docker.models.containers.Container | None, cont
             logger.warning(f"Failed to cleanup{context_str} container {container.id}: {cleanup_error}")
 
 
-# Normalize all bind paths in volumes to absolute paths using the workspace (working_dir).
+# Normalize all bind paths in volumes to absolute paths.
+# Host keys are resolved to native absolute paths so Docker on Windows
+# receives `C:\...` rather than a POSIX-style key, while container-side
+# paths are forced to POSIX so they don't get rewritten as `C:\workspace\...`
+# on Windows (which produced "too many colons" mount errors — see #1064).
 def normalize_volumes(vols: dict[str, str | dict[str, str]], working_dir: str) -> dict:
     abs_vols: dict[str, str | dict[str, str]] = {}
 
-    def to_abs(path: str) -> str:
-        # Converts a relative path to an absolute path using the workspace (working_dir).
-        return os.path.abspath(os.path.join(working_dir, path)) if not os.path.isabs(path) else path
+    def to_abs_host(path: str) -> str:
+        return os.path.abspath(path)
+
+    def to_abs_posix_container(path: str) -> str:
+        # Container paths are always POSIX. Absolute → keep, relative → resolve
+        # against the container-side working directory.
+        if os.path.isabs(path):
+            return str(PurePosixPath(path))
+        return str(PurePosixPath(working_dir) / path)
 
     for lp, vinfo in vols.items():
         # Support both:
         # 1. {'host_path': {'bind': 'container_path', ...}}
         # 2. {'host_path': 'container_path'}
+        abs_host = to_abs_host(lp)
         if isinstance(vinfo, dict):
-            # abs_vols = cast(dict[str, dict[str, str]], abs_vols)
             vinfo = vinfo.copy()
-            vinfo["bind"] = to_abs(vinfo["bind"])
-            abs_vols[lp] = vinfo
+            vinfo["bind"] = to_abs_posix_container(vinfo["bind"])
+            abs_vols[abs_host] = vinfo
         else:
-            # abs_vols = cast(dict[str, str], abs_vols)
-            abs_vols[lp] = to_abs(vinfo)
+            abs_vols[abs_host] = to_abs_posix_container(vinfo)
     return abs_vols
 
 
