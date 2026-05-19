@@ -78,11 +78,17 @@ def test_chat(chat_model, chat_api_key, chat_api_base):
 def test_embedding(embedding_model, embedding_api_key, embedding_api_base):
     logger.info(f"🧪 Testing embedding model: {embedding_model}")
     try:
+        model = embedding_model
+        extra: dict = {}
+        if model.startswith("litellm_proxy/") and embedding_api_base and embedding_api_key:
+            model = model.split("litellm_proxy/", 1)[1]
+            extra["custom_llm_provider"] = "openai"
         response = embedding(
-            model=embedding_model,
+            model=model,
             api_key=embedding_api_key,
             api_base=embedding_api_base,
             input="Hello world!",
+            **extra,
         )
         logger.info("✅ Embedding test passed.")
         return True
@@ -99,17 +105,26 @@ def env_check():
         )
 
     if "DEEPSEEK_API_KEY" in os.environ:
-        chat_api_key = os.getenv("DEEPSEEK_API_KEY")
         chat_model = os.getenv("CHAT_MODEL")
         embedding_model = os.getenv("EMBEDDING_MODEL")
-        embedding_api_key = os.getenv("LITELLM_PROXY_API_KEY")
-        embedding_api_base = os.getenv("LITELLM_PROXY_API_BASE")
-        if "DEEPSEEK_API_BASE" in os.environ:
-            chat_api_base = os.getenv("DEEPSEEK_API_BASE")
-        elif "OPENAI_API_BASE" in os.environ:
-            chat_api_base = os.getenv("OPENAI_API_BASE")
+        emb = embedding_model or ""
+        if emb.startswith("litellm_proxy/"):
+            embedding_api_key = os.getenv("LITELLM_PROXY_API_KEY")
+            embedding_api_base = os.getenv("LITELLM_PROXY_API_BASE")
         else:
-            chat_api_base = None
+            embedding_api_key = os.getenv("OPENAI_API_KEY")
+            embedding_api_base = os.getenv("OPENAI_API_BASE") or "https://api.openai.com/v1"
+        if chat_model and chat_model.startswith("openrouter/"):
+            chat_api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+            chat_api_base = os.getenv("OPENROUTER_API_BASE") or os.getenv("OPENAI_API_BASE")
+        else:
+            chat_api_key = os.getenv("DEEPSEEK_API_KEY")
+            if "DEEPSEEK_API_BASE" in os.environ:
+                chat_api_base = os.getenv("DEEPSEEK_API_BASE")
+            elif "OPENAI_API_BASE" in os.environ:
+                chat_api_base = os.getenv("OPENAI_API_BASE")
+            else:
+                chat_api_base = None
     elif "OPENAI_API_KEY" in os.environ:
         chat_api_key = os.getenv("OPENAI_API_KEY")
         chat_api_base = os.getenv("OPENAI_API_BASE")
@@ -119,6 +134,7 @@ def env_check():
         embedding_api_base = chat_api_base
     else:
         logger.error("No valid configuration was found, please check your .env file.")
+        return
 
     logger.info("🚀 Starting test...\n")
     result_embedding = test_embedding(
