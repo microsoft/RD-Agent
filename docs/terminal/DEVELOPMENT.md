@@ -91,7 +91,12 @@ Ensure gateway `cors_origins` includes `http://localhost:5173`.
 ### Bybit 502 errors
 Upstream Bybit API may be rate-limited or unavailable. Retry after a few seconds.
 
-## Related Docs
+## Phase 2 — Agent Console + Research Lab
 
-- [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)
-- [PROMPT_SEQUENCE.md](./PROMPT_SEQUENCE.md)
+Requires `pip install -e .` from repo root so gateway can import `rdagent`.
+
+Agent runs are orchestrated by gateway (`/api/v1/agent/*`) with WebSocket trace streaming.
+Research metrics are read from trace pickles via `/api/v1/research/*`.
+
+Legacy Vue UI (`web/`, `rdagent server_ui`) remains available but terminal is the primary UI for Phase 2.
+
