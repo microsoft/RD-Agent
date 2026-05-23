@@ -7,8 +7,8 @@ async function request<T>(path: string): Promise<T> {
   if (!response.ok) {
     let message = `Request failed: ${response.status}`;
     try {
-      const payload = (await response.json()) as { detail?: string };
-      if payload.detail) message = payload.detail;
+      const payload = (await response.json()) as Record<string, unknown>;
+      if (typeof payload.detail === "string") message = payload.detail;
     } catch {
       // ignore parse errors
     }

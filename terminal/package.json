@@ -20,6 +20,7 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-grid-layout": "^1.5.2",
+    "react-resizable": "^3.2.0",
     "react-router-dom": "^7.9.1",
     "tailwind-merge": "^3.3.1",
     "zustand": "^5.0.8"
