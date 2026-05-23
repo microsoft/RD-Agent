@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0a0e17;
+  --color-surface: #111827;
+  --color-border: #1f2937;
+  --color-accent: #f59e0b;
+  --color-positive: #22c55e;
+  --color-negative: #ef4444;
+  --color-muted: #9ca3af;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: #e5e7eb;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
