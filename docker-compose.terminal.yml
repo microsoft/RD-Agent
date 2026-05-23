@@ -1,0 +1,17 @@
+services:
+  gateway:
+    build:
+      context: ./gateway
+    ports:
+      - "6900:6900"
+    env_file:
+      - .env
+    environment:
+      BYBIT_TESTNET: "${BYBIT_TESTNET:-true}"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    profiles:
+      - cache

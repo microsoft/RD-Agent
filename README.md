@@ -387,6 +387,23 @@ rdagent server_ui --port 19899
 
 After that, open `http://127.0.0.1:19899` in your browser.
 
+#### RD-Agent Terminal (PR #1)
+
+A new React terminal-style UI lives in `terminal/` with a FastAPI gateway in `gateway/` for Bybit market data and charts.
+
+See [docs/terminal/DEVELOPMENT.md](docs/terminal/DEVELOPMENT.md) for setup. Quick start:
+
+```sh
+# Terminal 1 — gateway
+cd gateway && pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 6900 --reload
+
+# Terminal 2 — frontend
+cd terminal && npm install && npm run dev
+```
+
+Open `http://localhost:5173`. Legacy Vue UI in `web/` remains unchanged.
+
 #### Common Notes
 
 Port `19899` is used in the examples above. Before starting either UI, check whether this port is already occupied. If it is, please change it to another available port.
