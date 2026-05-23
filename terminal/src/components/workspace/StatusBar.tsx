@@ -29,7 +29,7 @@ export function StatusBar({ health, healthError, symbol, ticker }: StatusBarProp
           </span>
         ) : null}
       </div>
-      <span>RD-Agent Terminal v0.1.0</span>
+      <span>RD-Agent Terminal v0.2.0</span>
     </footer>
   );
 }
