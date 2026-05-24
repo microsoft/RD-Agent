@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { CandlestickChart } from "@/components/charts/CandlestickChart";
 import {
   Select,
@@ -11,22 +10,23 @@ import { StatusBar } from "@/components/workspace/StatusBar";
 import { WorkspaceShell } from "@/components/workspace/WorkspaceShell";
 import { useHealth, useKlines, useSymbols, useTicker } from "@/hooks/useMarket";
 import { formatPercent, formatPrice, formatVolume } from "@/lib/format";
+import type { CommandCenterTab } from "@/lib/executionTypes";
 import { INTERVAL_OPTIONS } from "@/lib/types";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import AgentConsole from "@/pages/AgentConsole";
+import ExecutionDesk from "@/pages/ExecutionDesk";
 import ResearchLab from "@/pages/ResearchLab";
 
-const TABS = [
+const TABS: { id: CommandCenterTab; label: string }[] = [
   { id: "market", label: "Market" },
   { id: "agent", label: "Agent Console" },
   { id: "research", label: "Research Lab" },
-] as const;
-
-type TabId = (typeof TABS)[number]["id"];
+  { id: "execution", label: "Execution Desk" },
+];
 
 export default function CommandCenter() {
-  const [tab, setTab] = useState<TabId>("market");
-  const { activeSymbol, activeInterval, setActiveSymbol, setActiveInterval } = useWorkspaceStore();
+  const { activeSymbol, activeInterval, activeTab, setActiveSymbol, setActiveInterval, setActiveTab } =
+    useWorkspaceStore();
   const healthQuery = useHealth();
   const symbolsQuery = useSymbols();
   const klinesQuery = useKlines(activeSymbol, activeInterval);
@@ -44,9 +44,9 @@ export default function CommandCenter() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-semibold tracking-tight">RD-Agent Terminal</h1>
-            <p className="text-sm text-[var(--color-muted)]">Market • Agent • Research — Phase 2</p>
+            <p className="text-sm text-[var(--color-muted)]">Market • Agent • Research • Execution — Phase 3</p>
           </div>
-          {tab === "market" ? (
+          {activeTab === "market" || activeTab === "execution" ? (
             <div className="flex items-center gap-3">
               <Select value={activeSymbol} onValueChange={setActiveSymbol}>
                 <SelectTrigger className="w-[140px]">
@@ -60,18 +60,20 @@ export default function CommandCenter() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={activeInterval} onValueChange={setActiveInterval}>
-                <SelectTrigger className="w-[100px]">
-                  <SelectValue placeholder="Interval" />
-                </SelectTrigger>
-                <SelectContent>
-                  {INTERVAL_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {activeTab === "market" ? (
+                <Select value={activeInterval} onValueChange={setActiveInterval}>
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue placeholder="Interval" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INTERVAL_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -80,9 +82,11 @@ export default function CommandCenter() {
             <button
               key={item.id}
               type="button"
-              onClick={() => setTab(item.id)}
+              onClick={() => setActiveTab(item.id)}
               className={`rounded px-3 py-1.5 text-sm ${
-                tab === item.id ? "bg-[var(--color-accent)] text-black" : "bg-[var(--color-surface)] text-[var(--color-muted)]"
+                activeTab === item.id
+                  ? "bg-[var(--color-accent)] text-black"
+                  : "bg-[var(--color-surface)] text-[var(--color-muted)]"
               }`}
             >
               {item.label}
@@ -92,7 +96,7 @@ export default function CommandCenter() {
       </header>
 
       <main className="min-h-0 flex-1">
-        {tab === "market" ? (
+        {activeTab === "market" ? (
           <WorkspaceShell
             chart={
               <CandlestickChart
@@ -140,14 +144,19 @@ export default function CommandCenter() {
             }
           />
         ) : null}
-        {tab === "agent" ? (
+        {activeTab === "agent" ? (
           <div className="p-4">
             <AgentConsole />
           </div>
         ) : null}
-        {tab === "research" ? (
+        {activeTab === "research" ? (
           <div className="p-4">
             <ResearchLab />
+          </div>
+        ) : null}
+        {activeTab === "execution" ? (
+          <div className="p-4">
+            <ExecutionDesk />
           </div>
         ) : null}
       </main>

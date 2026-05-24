@@ -84,8 +84,15 @@ def get_returns(trace_id: str, loop_id: int | None = None) -> dict[str, Any]:
                     "excess": float(row.get("cum_ex_return_w_cost", row.get("cum_ex_return_wo_cost", 0))),
                 }
             )
-        if len(report.index) > 1:
-            markers.append({"time": str(report.index[-1]), "type": "rebalance"})
+        # Rebalance markers: first, periodic, and last period in backtest report
+        index_list = list(report.index)
+        marker_indices = {0, len(index_list) - 1}
+        if len(index_list) > 5:
+            step = max(1, len(index_list) // 5)
+            marker_indices.update(range(0, len(index_list), step))
+        for i in sorted(marker_indices):
+            if i < len(index_list):
+                markers.append({"time": str(index_list[i]), "type": "rebalance"})
         break
 
     return {"traceId": trace_id, "loopId": loop_id, "points": points, "markers": markers}

@@ -6,6 +6,7 @@ from pybit.unified_trading import HTTP
 from app.brokers.base import register_broker
 from app.brokers.errors import BrokerNotFoundError, BrokerUpstreamError
 from app.config import settings
+from app.models.execution import OrderRequest, OrderResponse, OrderSide, OrderType, Position
 from app.models.market import OHLCVBar, Symbol, Ticker
 
 
@@ -109,3 +110,69 @@ class BybitAdapter:
         if ret_code in {10001, 10002, 10003, 10004, 10005, 10006, 10007, 10017}:
             raise BrokerNotFoundError(ret_msg or f"Symbol not found: {symbol}")
         raise BrokerUpstreamError(ret_msg)
+
+    async def place_order(self, order: OrderRequest, category: str | None = None) -> OrderResponse:
+        cat = category or order.category
+        payload: dict[str, Any] = {
+            "category": cat,
+            "symbol": order.symbol,
+            "side": order.side.value,
+            "orderType": order.order_type.value,
+            "qty": str(order.qty),
+        }
+        if order.order_type == OrderType.LIMIT and order.price is not None:
+            payload["price"] = str(order.price)
+
+        response = await asyncio.to_thread(self._client.place_order, **payload)
+        self._ensure_success(response, symbol=order.symbol)
+        result = response.get("result", {})
+        order_id = result.get("orderId", "")
+        return OrderResponse(
+            order_id=order_id,
+            symbol=order.symbol,
+            side=order.side,
+            order_type=order.order_type,
+            qty=order.qty,
+            price=order.price,
+            fill_price=order.price,
+            status="Submitted",
+            mode="live",
+        )
+
+    async def cancel_order(self, symbol: str, order_id: str, category: str = "linear") -> dict[str, str]:
+        response = await asyncio.to_thread(
+            self._client.cancel_order,
+            category=category,
+            symbol=symbol,
+            orderId=order_id,
+        )
+        self._ensure_success(response, symbol=symbol)
+        return {"status": "cancelled", "order_id": order_id}
+
+    async def get_positions(self, category: str = "linear", symbol: str | None = None) -> list[Position]:
+        params: dict[str, Any] = {"category": category}
+        if symbol:
+            params["symbol"] = symbol
+        response = await asyncio.to_thread(self._client.get_positions, **params)
+        self._ensure_success(response, symbol=symbol)
+        rows = response.get("result", {}).get("list", [])
+        positions: list[Position] = []
+        for row in rows:
+            size = float(row.get("size", 0) or 0)
+            if size <= 0:
+                continue
+            avg_price = float(row.get("avgPrice", 0) or 0)
+            mark_price = float(row.get("markPrice", avg_price) or avg_price)
+            upnl = float(row.get("unrealisedPnl", 0) or 0)
+            positions.append(
+                Position(
+                    symbol=row.get("symbol", symbol or ""),
+                    side=row.get("side", "Buy"),
+                    size=size,
+                    avg_price=avg_price,
+                    mark_price=mark_price,
+                    unrealized_pnl=upnl,
+                    notional_usd=size * mark_price,
+                )
+            )
+        return positions

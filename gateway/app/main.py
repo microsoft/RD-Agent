@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import app.brokers.bybit  # noqa: F401 — register broker adapters
 from app.config import settings
-from app.routers import agent, health, market, research
+from app.routers import agent, execution, health, market, research
 from app.services.agent_runner import agent_runner
 
 
@@ -38,6 +38,7 @@ def create_app() -> FastAPI:
     app.include_router(market.router, prefix="/api/v1")
     app.include_router(agent.router, prefix="/api/v1")
     app.include_router(research.router, prefix="/api/v1")
+    app.include_router(execution.router, prefix="/api/v1")
 
     @app.get("/")
     async def root() -> dict[str, str]:

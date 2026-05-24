@@ -8,6 +8,10 @@ services:
       - .env
     environment:
       BYBIT_TESTNET: "${BYBIT_TESTNET:-true}"
+      EXECUTION_MODE: "${EXECUTION_MODE:-paper}"
+      MAX_ORDER_NOTIONAL: "${MAX_ORDER_NOTIONAL:-1000}"
+      MAX_POSITION_USD: "${MAX_POSITION_USD:-5000}"
+      DAILY_LOSS_LIMIT: "${DAILY_LOSS_LIMIT:-500}"
 
   redis:
     image: redis:7-alpine

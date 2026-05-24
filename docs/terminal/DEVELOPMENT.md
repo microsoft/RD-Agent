@@ -51,9 +51,25 @@ GATEWAY_PORT=6900
 BYBIT_TESTNET=true
 BYBIT_API_KEY=
 BYBIT_API_SECRET=
+
+# Phase 3 — Execution (paper by default)
+EXECUTION_MODE=paper
+MAX_ORDER_NOTIONAL=1000
+MAX_POSITION_USD=5000
+DAILY_LOSS_LIMIT=500
 ```
 
 Public klines/tickers work **without** API keys on Bybit testnet.
+
+### Bybit testnet keys (live execution)
+
+For `EXECUTION_MODE=live` on testnet:
+
+1. Create API key at [Bybit testnet](https://testnet.bybit.com/) with **Contract Trade** permissions
+2. Set `BYBIT_API_KEY` and `BYBIT_API_SECRET` in `.env`
+3. Keep `BYBIT_TESTNET=true` — mainnet is blocked in Phase 3 gateway
+
+Paper mode (`EXECUTION_MODE=paper`, default) simulates fills at mid price with no keys required.
 
 ## Docker (gateway only)
 
@@ -98,5 +114,22 @@ Requires `pip install -e .` from repo root so gateway can import `rdagent`.
 Agent runs are orchestrated by gateway (`/api/v1/agent/*`) with WebSocket trace streaming.
 Research metrics are read from trace pickles via `/api/v1/research/*`.
 
-Legacy Vue UI (`web/`, `rdagent server_ui`) remains available but terminal is the primary UI for Phase 2.
+Legacy Vue UI (`web/`, `rdagent server_ui`) remains available but terminal is the primary UI for Phase 2+.
+
+## Phase 3 — Execution Desk
+
+Paper trading by default (`EXECUTION_MODE=paper`). Orders flow:
+
+1. Terminal **Execution Desk** → `POST /api/v1/execution/orders`
+2. Gateway **RiskManager** validates notional, position, daily loss, kill switch
+3. **PaperAdapter** (default) or **BybitAdapter** (live testnet) executes
+
+Endpoints:
+
+- `GET /api/v1/execution/status` — mode and risk limits
+- `GET /api/v1/execution/positions` — open positions
+- `GET /api/v1/execution/pnl` — P&L snapshot
+- `WS /api/v1/execution/ws/pnl` — live P&L stream
+
+Research Lab **Use as signal** prefills Execution Desk (manual confirm only).
 
