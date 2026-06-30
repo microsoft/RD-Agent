@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
@@ -31,6 +32,19 @@ if TYPE_CHECKING:
     from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
     from rdagent.scenarios.data_science.proposal.exp_gen.base import DSTrace, Experiment
     from rdagent.utils.workflow.loop import LoopBase
+
+
+@contextmanager
+def _disable_auto_recovery():
+    prev_t = DS_RD_SETTING.coding_fail_reanalyze_threshold
+    prev_e = DS_RD_SETTING.consecutive_errors
+    DS_RD_SETTING.coding_fail_reanalyze_threshold = 100000
+    DS_RD_SETTING.consecutive_errors = 100000
+    try:
+        yield
+    finally:
+        DS_RD_SETTING.coding_fail_reanalyze_threshold = prev_t
+        DS_RD_SETTING.consecutive_errors = prev_e
 
 
 class ParallelMultiTraceExpGen(ExpGen):
@@ -115,10 +129,9 @@ class ParallelMultiTraceExpGen(ExpGen):
                     and timer.remain_time() < timedelta(hours=DS_RD_SETTING.merge_hours)
                     and len(leaves) >= 2
                 ):
-                    DS_RD_SETTING.coding_fail_reanalyze_threshold = 100000
-                    DS_RD_SETTING.consecutive_errors = 100000
-                    exp = self.merge_exp_gen.gen(trace, plan=ds_plan)
-                    exp_gen_type = type(self.merge_exp_gen).__name__
+                    with _disable_auto_recovery():
+                        exp = self.merge_exp_gen.gen(trace, plan=ds_plan)
+                        exp_gen_type = type(self.merge_exp_gen).__name__
                 else:
                     # If there is a sota experiment in the sub-trace and not in merge time, we use default exp_gen
                     exp = self.exp_gen.gen(trace, plan=ds_plan)
