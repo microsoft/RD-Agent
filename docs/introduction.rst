@@ -10,7 +10,7 @@ In modern industry, research and development (R&D) is crucial for the enhancemen
    :alt: Our focused scenario
 
 
-Our RDAgent is designed to automate the most critical industrial R&D processes, focusing first on data-driven scenarios, to greatly boost the development productivity of models and data. 
+Our RDAgent is designed to automate the most critical industrial R&D processes, focusing first on data-driven scenarios, to greatly boost the development productivity of models and data.
 
 Methodologically, we propose an autonomous agent framework that consists of two key parts: (R)esearch stands for actively exploring by proposing new ideas, and (D)evelopment stands for realizing these ideas. The effectiveness of these two components will ultimately get feedbacks through practice, and both research and development capabilities can continuously learn and grow in the process.
 

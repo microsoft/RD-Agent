@@ -1,6 +1,6 @@
 <h4 align="center">
   <img src="docs/_static/logo.png" alt="RA-Agent logo" style="width:70%; ">
-  
+
   <a href="https://rdagent.azurewebsites.net" target="_blank">🖥️ Live Demo</a> |
   <a href="https://rdagent.azurewebsites.net/factor_loop" target="_blank">🎥 Demo Video</a> <a href="https://www.youtube.com/watch?v=JJ4JYO3HscM&list=PLALmKB0_N3_i52fhUmPQiL4jsO354uopR" target="_blank">▶️YouTube</a>   |
   <a href="https://rdagent.readthedocs.io/en/latest/index.html" target="_blank">📖 Documentation</a> |
@@ -24,7 +24,7 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Chat](https://img.shields.io/badge/chat-discord-blue)](https://discord.gg/ybQ97B6Jjy)
 [![Documentation Status](https://readthedocs.org/projects/rdagent/badge/?version=latest)](https://rdagent.readthedocs.io/en/latest/?badge=latest)
-[![Readthedocs Preview](https://github.com/microsoft/RD-Agent/actions/workflows/readthedocs-preview.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/readthedocs-preview.yml) <!-- this badge is too long, please place it in the last one to make it pretty --> 
+[![Readthedocs Preview](https://github.com/microsoft/RD-Agent/actions/workflows/readthedocs-preview.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/readthedocs-preview.yml) <!-- this badge is too long, please place it in the last one to make it pretty -->
 [![arXiv](https://img.shields.io/badge/arXiv-2505.14738-00ff00.svg)](https://arxiv.org/abs/2505.14738)
 
 
@@ -34,9 +34,9 @@
 | ICML 2026 Acceptance | We are thrilled to announce that our paper [FT-Dojo: Towards Autonomous LLM Fine-Tuning with Language Agents](https://arxiv.org/abs/2603.01712) has been accepted to ICML 2026. The FT-Agent implementation is available in the [LLM fine-tuning guide](rdagent/app/finetune/llm/README.md). |
 | ACL 2026 Findings Acceptance | We are thrilled to announce that our paper [Reasoning as Gradient](https://arxiv.org/abs/2603.01692) has been accepted to ACL 2026 Findings. Execution traces are available at [Gome GPT-5 Traces](https://huggingface.co/datasets/amstrongzyf/Gome-GPT5-Traces) |
 | Web UI Release | We release a new frontend that can be built and served by `rdagent server_ui` for real-time interaction and trace viewing, currently excluding the `data_science` scenario. |
-| NeurIPS 2025 Acceptance | We are thrilled to announce that our paper [R&D-Agent-Quant](https://arxiv.org/abs/2505.15155) has been accepted to NeurIPS 2025 | 
-| [Technical Report Release](#overall-technical-report) | Overall framework description and results on MLE-bench | 
-| [R&D-Agent-Quant Release](#deep-application-in-diverse-scenarios) | Apply R&D-Agent to quant trading | 
+| NeurIPS 2025 Acceptance | We are thrilled to announce that our paper [R&D-Agent-Quant](https://arxiv.org/abs/2505.15155) has been accepted to NeurIPS 2025 |
+| [Technical Report Release](#overall-technical-report) | Overall framework description and results on MLE-bench |
+| [R&D-Agent-Quant Release](#deep-application-in-diverse-scenarios) | Apply R&D-Agent to quant trading |
 | MLE-Bench Results Released | R&D-Agent currently leads as the [top-performing machine learning engineering agent](#-the-best-machine-learning-engineering-agent) on MLE-bench |
 | Support LiteLLM Backend | We now fully support **[LiteLLM](https://github.com/BerriAI/litellm)** as our default backend for integration with multiple LLM providers. |
 | General Data Science Agent | [Data Science Agent](https://rdagent.readthedocs.io/en/latest/scens/data_science.html) |
@@ -91,7 +91,7 @@ https://github.com/user-attachments/assets/3eccbecb-34a4-4c81-bce4-d3f8862f7305
       <img src="docs/_static/scen.png" alt="Our focused scenario" style="width:80%; ">
 </div>
 
-R&D-Agent aims to automate the most critical and valuable aspects of the industrial R&D process, and we begin with focusing on the data-driven scenarios to streamline the development of models and data. 
+R&D-Agent aims to automate the most critical and valuable aspects of the industrial R&D process, and we begin with focusing on the data-driven scenarios to streamline the development of models and data.
 Methodologically, we have identified a framework with two key components: 'R' for proposing new ideas and 'D' for implementing them.
 We believe that the automatic evolution of R&D will lead to solutions of significant industrial value.
 
@@ -105,7 +105,7 @@ R&D is a very general scenario. The advent of R&D-Agent can be your
 - 🧪 **FT-Agent:** Autonomous LLM fine-tuning for benchmark-driven domain adaptation. See the [LLM fine-tuning guide](rdagent/app/finetune/llm/README.md).
 - ...
 
-You can click the links above to view the demo. We're continuously adding more methods and scenarios to the project to enhance your R&D processes and boost productivity. 
+You can click the links above to view the demo. We're continuously adding more methods and scenarios to the project to enhance your R&D processes and boost productivity.
 
 Additionally, you can take a closer look at the examples in our **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)**.
 
@@ -182,7 +182,7 @@ More details can be found in the [development setup](https://rdagent.readthedocs
   ```bash
   cat << EOF  > .env
   # Set to any model supported by LiteLLM.
-  CHAT_MODEL=gpt-4o 
+  CHAT_MODEL=gpt-4o
   EMBEDDING_MODEL=text-embedding-3-small
   # Configure unified API base
   OPENAI_API_BASE=<your_unified_api_base>
@@ -207,9 +207,9 @@ More details can be found in the [development setup](https://rdagent.readthedocs
   cat << EOF  > .env
   # Set to any model supported by LiteLLM.
   # Configure separate API bases for chat and embedding
-  
+
   # CHAT MODEL:
-  CHAT_MODEL=gpt-4o 
+  CHAT_MODEL=gpt-4o
   OPENAI_API_BASE=<your_chat_api_base>
   OPENAI_API_KEY=<replace_with_your_openai_api_key>
 
@@ -227,7 +227,7 @@ More details can be found in the [development setup](https://rdagent.readthedocs
   ```bash
   cat << EOF  > .env
   # CHAT MODEL: Using DeepSeek Official API
-  CHAT_MODEL=deepseek/deepseek-chat 
+  CHAT_MODEL=deepseek/deepseek-chat
   DEEPSEEK_API_KEY=<replace_with_your_deepseek_api_key>
 
   # EMBEDDING MODEL: Using SiliconFlow for embedding since deepseek has no embedding model.
@@ -242,7 +242,7 @@ More details can be found in the [development setup](https://rdagent.readthedocs
   REASONING_THINK_RM=True
   ```
 
-  You can also use a deprecated backend if you only use `OpenAI API` or `Azure OpenAI` directly. For this deprecated setting and more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html). 
+  You can also use a deprecated backend if you only use `OpenAI API` or `Azure OpenAI` directly. For this deprecated setting and more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html).
 
 
 
@@ -414,8 +414,8 @@ In this project, we are aiming to build an Agent to automate Data-Driven R\&D th
 
 ## 📈 Scenarios/Demos
 
-In the two key areas of data-driven scenarios, model implementation and data building, our system aims to serve two main roles: 🦾Copilot and 🤖Agent. 
-- The 🦾Copilot follows human instructions to automate repetitive tasks. 
+In the two key areas of data-driven scenarios, model implementation and data building, our system aims to serve two main roles: 🦾Copilot and 🤖Agent.
+- The 🦾Copilot follows human instructions to automate repetitive tasks.
 - The 🤖Agent, being more autonomous, actively proposes ideas for better results in the future.
 
 The supported scenarios are listed below:
@@ -460,13 +460,13 @@ More documents can be found in the **[📖 readthedocs](https://rdagent.readthed
 - [R&D-Agent: An LLM-Agent Framework Towards Autonomous Data Science](https://arxiv.org/abs/2505.14738)
 ```BibTeX
 @misc{yang2025rdagentllmagentframeworkautonomous,
-      title={R&D-Agent: An LLM-Agent Framework Towards Autonomous Data Science}, 
+      title={R&D-Agent: An LLM-Agent Framework Towards Autonomous Data Science},
       author={Xu Yang and Xiao Yang and Shikai Fang and Yifei Zhang and Jian Wang and Bowen Xian and Qizheng Li and Jingyuan Li and Minrui Xu and Yuante Li and Haoran Pan and Yuge Zhang and Weiqing Liu and Yelong Shen and Weizhu Chen and Jiang Bian},
       year={2025},
       eprint={2505.14738},
       archivePrefix={arXiv},
       primaryClass={cs.AI},
-      url={https://arxiv.org/abs/2505.14738}, 
+      url={https://arxiv.org/abs/2505.14738},
 }
 ```
 ![image](https://github.com/user-attachments/assets/28b0488d-a546-4fef-8dc5-563ed64a9b4d)
@@ -529,13 +529,13 @@ FT-Agent, the autonomous LLM fine-tuning scenario from this paper, is available 
 - [R&D-Agent-Quant: A Multi-Agent Framework for Data-Centric Factors and Model Joint Optimization](https://arxiv.org/abs/2505.15155)
 ```BibTeX
 @misc{li2025rdagentquantmultiagentframeworkdatacentric,
-      title={R&D-Agent-Quant: A Multi-Agent Framework for Data-Centric Factors and Model Joint Optimization}, 
+      title={R&D-Agent-Quant: A Multi-Agent Framework for Data-Centric Factors and Model Joint Optimization},
       author={Yuante Li and Xu Yang and Xiao Yang and Minrui Xu and Xisen Wang and Weiqing Liu and Jiang Bian},
       year={2025},
       eprint={2505.15155},
       archivePrefix={arXiv},
       primaryClass={q-fin.CP},
-      url={https://arxiv.org/abs/2505.15155}, 
+      url={https://arxiv.org/abs/2505.15155},
 }
 ```
 ![image](https://github.com/user-attachments/assets/3186f67a-c2f8-4b6b-8bb9-a9b959c13866)

@@ -25,7 +25,7 @@ Option 1: Unified API base for both models
    .. code-block:: Properties
 
       # Set to any model supported by LiteLLM.
-      CHAT_MODEL=gpt-4o 
+      CHAT_MODEL=gpt-4o
       EMBEDDING_MODEL=text-embedding-3-small
       # Configure unified API base
       # The backend api_key fully follows the convention of litellm.
@@ -38,9 +38,9 @@ Option 2: Separate API bases for Chat and Embedding models
    .. code-block:: Properties
 
       # Set to any model supported by LiteLLM.
-      
+
       # CHAT MODEL:
-      CHAT_MODEL=gpt-4o 
+      CHAT_MODEL=gpt-4o
       OPENAI_API_BASE=<your_chat_api_base>
       OPENAI_API_KEY=<replace_with_your_openai_api_key>
 
@@ -59,7 +59,7 @@ Many users encounter configuration errors when setting up DeepSeek. Here's a com
    .. code-block:: Properties
 
       # CHAT MODEL: Using DeepSeek Official API
-      CHAT_MODEL=deepseek/deepseek-chat 
+      CHAT_MODEL=deepseek/deepseek-chat
       DEEPSEEK_API_KEY=<replace_with_your_deepseek_api_key>
 
       # EMBEDDING MODEL: Using SiliconFlow for embedding since DeepSeek has no embedding model.
@@ -85,7 +85,7 @@ Optional parameters (required if your embedding model is provided by a different
 **Note:** If you are using an embedding model from a provider different from the chat model, remember to add the `litellm_proxy/` prefix to the `EMBEDDING_MODEL` name.
 
 
-The `CHAT_MODEL` and `EMBEDDING_MODEL` parameters will be passed into LiteLLM's completion function. 
+The `CHAT_MODEL` and `EMBEDDING_MODEL` parameters will be passed into LiteLLM's completion function.
 
 Therefore, when utilizing models provided by different providers, first review the interface configuration of LiteLLM. The model names must match those allowed by LiteLLM.
 
@@ -100,9 +100,9 @@ For example, if you are using a DeepSeek model, you need to set as follows:
       DEEPSEEK_API_KEY=<replace_with_your_deepseek_api_key>
 
 Besides, when you are using reasoning models, the response might include the thought process. For this case, you need to set the following environment variable:
-   
+
    .. code-block:: Properties
-      
+
       REASONING_THINK_RM=True
 
 For more details on LiteLLM requirements, refer to the `official LiteLLM documentation <https://docs.litellm.ai/docs>`_.
@@ -117,12 +117,12 @@ If you're using Azure OpenAI, below is a working example using the Python SDK, f
 
       from litellm import completion
       import os
-      
+
       # Set Azure OpenAI environment variables
       os.environ["AZURE_API_KEY"] = "<your_azure_api_key>"
       os.environ["AZURE_API_BASE"] = "<your_azure_api_base>"
       os.environ["AZURE_API_VERSION"] = "<version>"
-      
+
       # Make a request to your Azure deployment
       response = completion(
         "azure/<your_deployment_name>",
@@ -139,7 +139,7 @@ To align with the Python SDK example above, you can configure the `CHAT_MODEL` b
       AZURE_API_BASE=https://<your_azure_base>.openai.azure.com/
       AZURE_API_KEY=<your_azure_api_key>
       AZURE_API_VERSION=<version>
-      
+
       # EMBEDDING MODEL: Using SiliconFlow via litellm_proxy
       EMBEDDING_MODEL=litellm_proxy/BAAI/bge-large-en-v1.5
       LITELLM_PROXY_API_KEY=<your_siliconflow_api_key>
@@ -332,7 +332,7 @@ The following environment variables are standard configuration options for the u
 Use Azure Token Provider
 ------------------------
 
-If you are using the Azure token provider, you need to set the `CHAT_USE_AZURE_TOKEN_PROVIDER` and `EMBEDDING_USE_AZURE_TOKEN_PROVIDER` environment variable to `True`. then 
+If you are using the Azure token provider, you need to set the `CHAT_USE_AZURE_TOKEN_PROVIDER` and `EMBEDDING_USE_AZURE_TOKEN_PROVIDER` environment variable to `True`. then
 use the environment variables provided in the `Azure Configuration section <installation_and_configuration.html#azure-openai>`_.
 
 
@@ -441,6 +441,6 @@ However, this feature is not enabled by default for other scripts. We recommend 
       .. code-block:: sh
 
           export $(grep -v '^#' .env | xargs)
-    
+
     - If you want to change the default environment variables, you can refer to the above configuration and edith the `.env` file.
 
