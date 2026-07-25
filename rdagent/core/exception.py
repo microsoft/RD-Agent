@@ -1,3 +1,6 @@
+#  Copyright (c) Microsoft Corporation.
+#  Licensed under the MIT License.
+
 class WorkflowError(Exception):
     """
     Exception indicating an error that the current loop cannot handle, preventing further progress.
