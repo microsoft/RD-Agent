@@ -1,6 +1,3 @@
-#  Copyright (c) Microsoft Corporation.
-#  Licensed under the MIT License.
-
 from pathlib import Path
 
 import dill as pickle  # type: ignore[import-untyped]

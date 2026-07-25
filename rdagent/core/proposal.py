@@ -1,6 +1,3 @@
-#  Copyright (c) Microsoft Corporation.
-#  Licensed under the MIT License.
-
 # TODO: remove `self.scen` if traces will be passed into the instance.
 
 from __future__ import annotations
