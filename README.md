@@ -31,7 +31,7 @@
 # 📰 News
 | 🗞️ News        | 📝 Description                 |
 | --            | ------      |
-| Search Agent Post-Training | We applied the R&D-Agent method to the search-agent setting, covering the full pipeline end to end. The open-sourced building blocks are [axrl](https://github.com/XYZ-AI-Lab/axrl) for infra and [AxisAgentic](https://github.com/XYZ-AI-Lab/AxisAgentic) for the harness. |
+| Search Agent Post-Training | Together with [XYZ AI Lab](https://xyz-lab.ai/), we applied the R&D-Agent method to the search-agent setting, covering the full pipeline end to end. The open-sourced building blocks are [axrl](https://github.com/XYZ-AI-Lab/axrl) for infra and [AxisAgentic](https://github.com/XYZ-AI-Lab/AxisAgentic) for the harness. |
 | ICML 2026 Acceptance | We are thrilled to announce that our paper [FT-Dojo: Towards Autonomous LLM Fine-Tuning with Language Agents](https://arxiv.org/abs/2603.01712) has been accepted to ICML 2026. The FT-Agent implementation is available in the [LLM fine-tuning guide](rdagent/app/finetune/llm/README.md). |
 | ACL 2026 Findings Acceptance | We are thrilled to announce that our paper [Reasoning as Gradient](https://arxiv.org/abs/2603.01692) has been accepted to ACL 2026 Findings. Execution traces are available at [Gome GPT-5 Traces](https://huggingface.co/datasets/amstrongzyf/Gome-GPT5-Traces) |
 | Web UI Release | We release a new frontend that can be built and served by `rdagent server_ui` for real-time interaction and trace viewing, currently excluding the `data_science` scenario. |
@@ -74,13 +74,19 @@ For running R&D-Agent on MLE-bench, refer to **[MLE-bench Guide: Running ML Engi
 
 # 🔎 Search Agent Post-Training
 
-We applied the R&D-Agent method to the search-agent setting and extended it to cover the full pipeline end to end.
-The two open-sourced building blocks are:
+<p align="center">
+  <a href="https://xyz-lab.ai/">
+    <img src="https://xyz-lab.ai/assets/logo-sources/derivatives/logo-derived-014-transparent-bg-black-text-xyz-ai-lab-wordmark.svg" alt="XYZ AI Lab" width="260">
+  </a>
+</p>
+
+Together with [XYZ AI Lab](https://xyz-lab.ai/), we applied the R&D-Agent method to the search-agent setting and extended it to cover the full post-training pipeline end to end.
+The stack is now open through two complementary projects:
 
 - [axrl](https://github.com/XYZ-AI-Lab/axrl) for the infra layer
 - [AxisAgentic](https://github.com/XYZ-AI-Lab/AxisAgentic) for the harness layer
 
-Together, they carry RD-Agent into the post-training stage of search agents.
+Together, they bring RD-Agent into search-agent post-training with a more complete path from experimentation to evaluation.
 
 # 🥇 The First Data-Centric Quant Multi-Agent Framework!
 
