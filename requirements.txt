@@ -72,7 +72,7 @@ azureml-mlflow
 types-pytz
 
 # Agent
-pydantic-ai-slim[mcp,openai,prefect]<2.0
+pydantic-ai-slim[mcp,openai,prefect]==1.66.0
 nest-asyncio
 
 # visualize SFT train
