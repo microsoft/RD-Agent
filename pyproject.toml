@@ -88,6 +88,7 @@ src = ["rdagent"]
 ignore = [
   # https://docs.astral.sh/ruff/rules/#pydocstyle-d
   "ANN401",
+  "CPY001",
   "D",
   "ERA001",
   "EXE002",
@@ -95,6 +96,7 @@ ignore = [
   "INP001",
   "PGH",
   "PLR0913",
+  "PLR0917",
   "S101",
   "S301",
   "T20",

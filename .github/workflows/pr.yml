@@ -24,7 +24,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-
       - name: Install commitlint
         run: npm install --save-dev @commitlint/{config-conventional,cli}
 
