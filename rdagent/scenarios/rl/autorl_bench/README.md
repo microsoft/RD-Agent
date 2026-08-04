@@ -1,4 +1,10 @@
-# AutoRL-Bench
+# Agent² RL-Bench / AutoRL-Bench
+
+> **Paper:** [Agent² RL-Bench: Can LLM Agents Engineer Agentic RL Post-Training?](https://arxiv.org/abs/2604.10547)
+>
+> **Project page:** [agent2-rlbench](https://wanyichen06.github.io/agent2-rlbench/)
+>
+> **Status:** arXiv preprint; this directory contains the released benchmark implementation.
 
 让大模型（如 GPT-5.2）自主驱动 RL 训练流程，提升小模型（如 Qwen2.5-7B）在各类 Benchmark 上的表现，并评测"大模型驱动 RL"的增益效果。
 

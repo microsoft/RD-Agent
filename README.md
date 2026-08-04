@@ -31,6 +31,7 @@
 # 📰 News
 | 🗞️ News        | 📝 Description                 |
 | --            | ------      |
+| [Agent² RL-Bench Preprint](https://arxiv.org/abs/2604.10547) | A benchmark for evaluating LLM agents on end-to-end post-training engineering. See the [project page](https://wanyichen06.github.io/agent2-rlbench/) and [code](rdagent/scenarios/rl/autorl_bench/README.md). |
 | ICML 2026 Acceptance | We are thrilled to announce that our paper [FT-Dojo: Towards Autonomous LLM Fine-Tuning with Language Agents](https://arxiv.org/abs/2603.01712) has been accepted to ICML 2026. The FT-Agent implementation is available in the [LLM fine-tuning guide](rdagent/app/finetune/llm/README.md). |
 | ACL 2026 Findings Acceptance | We are thrilled to announce that our paper [Reasoning as Gradient](https://arxiv.org/abs/2603.01692) has been accepted to ACL 2026 Findings. Execution traces are available at [Gome GPT-5 Traces](https://huggingface.co/datasets/amstrongzyf/Gome-GPT5-Traces) |
 | Web UI Release | We release a new frontend that can be built and served by `rdagent server_ui` for real-time interaction and trace viewing, currently excluding the `data_science` scenario. |
@@ -45,6 +46,17 @@
 | Official Discord release  | We launch our first chatting channel in Discord (🗪[![Chat](https://img.shields.io/badge/chat-discord-blue)](https://discord.gg/ybQ97B6Jjy)) |
 | First release | **R&D-Agent** is released on GitHub |
 
+
+# 🧪 Agent² RL-Bench
+
+<p align="center">
+  <a href="https://wanyichen06.github.io/agent2-rlbench/"><b>Project Page</b></a> ·
+  <a href="https://arxiv.org/abs/2604.10547"><b>Paper</b></a> ·
+  <a href="rdagent/scenarios/rl/autorl_bench/README.md"><b>Code & Quick Start</b></a> ·
+  <a href="https://www.microsoft.com/en-us/research/publication/agent2-rl-bench-can-llm-agents-engineer-agentic-rl-post-training/"><b>Microsoft Research</b></a>
+</p>
+
+**Agent² RL-Bench** evaluates whether LLM agents can autonomously engineer end-to-end post-training pipelines, spanning static optimization and stateful online RL.
 
 
 # 🏆 The Best Machine Learning Engineering Agent!
@@ -472,6 +484,19 @@ More documents can be found in the **[📖 readthedocs](https://rdagent.readthed
 ![image](https://github.com/user-attachments/assets/28b0488d-a546-4fef-8dc5-563ed64a9b4d)
 
 ## 📊 Benchmark
+- [Agent² RL-Bench: Can LLM Agents Engineer Agentic RL Post-Training?](https://arxiv.org/abs/2604.10547) ([Project Page](https://wanyichen06.github.io/agent2-rlbench/) · [Code](rdagent/scenarios/rl/autorl_bench/README.md))
+```BibTeX
+@misc{chen2026agent2rlbench,
+      title={Agent$^2$ RL-Bench: Can LLM Agents Engineer Agentic RL Post-Training?},
+      author={Wanyi Chen and Xiao Yang and Xu Yang and Tianming Sha and Qizheng Li and Zhuo Wang and Bowen Xian and Fang Kong and Weiqing Liu and Jiang Bian},
+      year={2026},
+      eprint={2604.10547},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2604.10547}
+}
+```
+
 - [Towards Data-Centric Automatic R&D](https://arxiv.org/abs/2404.11276)
 ```BibTeX
 @misc{chen2024datacentric,
