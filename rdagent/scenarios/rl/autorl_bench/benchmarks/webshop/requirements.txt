@@ -25,5 +25,5 @@ thefuzz==0.19.0
 spacy==3.7.2
 
 # 注意：Flask/Werkzeug 固定为 2.x（Flask 3.x 与 WebShop 不兼容）
-flask==2.2.5
+flask==3.1.3
 Werkzeug==2.2.3
