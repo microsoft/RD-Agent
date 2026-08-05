@@ -188,3 +188,10 @@ AGENTS.md
 !rdagent/**/AGENTS.md
 
 scripts/
+
+# RD-Agent Terminal (PR #1)
+terminal/node_modules/
+terminal/dist/
+gateway/.venv/
+gateway/**/__pycache__/
+!terminal/src/lib/

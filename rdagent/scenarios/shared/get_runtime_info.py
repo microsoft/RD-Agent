@@ -1,5 +1,7 @@
 import json
+import os
 import re
+import sys
 from pathlib import Path
 
 from rdagent.core.experiment import FBWorkspace
@@ -10,9 +12,14 @@ def get_runtime_environment_by_env(env: Env) -> str:
     implementation = FBWorkspace()
     fname = "runtime_info.py"
     implementation.inject_files(**{fname: (Path(__file__).absolute().resolve().parent / "runtime_info.py").read_text()})
-    stdout = implementation.execute(env=env, entry=f"python {fname}")
+    py = f'"{sys.executable}"' if os.name == "nt" else "python"
+    stdout = implementation.execute(env=env, entry=f"{py} {fname}")
     # Extract JSON from stdout (skip CUDA/container warnings)
     json_match = re.search(r"\{.*\}", stdout, re.DOTALL)
+    if json_match is None:
+        raise RuntimeError(
+            f"runtime_info.py did not print JSON. stdout (truncated): {stdout[:2000]!r}",
+        )
     return json.dumps(json.loads(json_match.group()), indent=2)
 
 

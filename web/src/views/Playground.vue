@@ -1,5 +1,9 @@
 <template>
   <div class="page-content">
+    <div class="terminal-deprecation-banner">
+      <strong>RD-Agent Terminal (React)</strong> is the primary UI for market data, agent runs, and research.
+      <a href="http://localhost:5173" target="_blank" rel="noopener noreferrer">Open Terminal →</a>
+    </div>
     <div class="nav-bar">
       <span :class="{ active: !showPlayground && showPanel == 1 }" @click="Back"
         >Start</span
@@ -1005,6 +1009,26 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
+  .terminal-deprecation-banner {
+    flex-shrink: 0;
+    padding: 0.6em 1.2em;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 0.9em;
+    border-bottom: 1px solid #fcd34d;
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    flex-wrap: wrap;
+
+    a {
+      color: #b45309;
+      font-weight: 600;
+      text-decoration: underline;
+    }
+  }
+
   .nav-bar {
     padding: 1.05em 1.8em;
     box-sizing: border-box;

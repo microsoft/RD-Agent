@@ -11,10 +11,12 @@ import contextlib
 import json
 import os
 import pickle
+import posixpath
 import re
 import select
 import shutil
 import subprocess
+import tempfile
 import time
 import uuid
 import zipfile
@@ -42,7 +44,7 @@ import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
 import docker.models.containers  # type: ignore[import-untyped]
 import docker.types  # type: ignore[import-untyped]
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 from pydantic_settings import SettingsConfigDict
 from rich import print
 from rich.console import Console
@@ -116,9 +118,14 @@ def cleanup_container(container: docker.models.containers.Container | None, cont
 # Normalize all bind paths in volumes to absolute paths using the workspace (working_dir).
 def normalize_volumes(vols: dict[str, str | dict[str, str]], working_dir: str) -> dict:
     abs_vols: dict[str, str | dict[str, str]] = {}
+    linux_container_workspace = working_dir.startswith("/")
 
-    def to_abs(path: str) -> str:
-        # Converts a relative path to an absolute path using the workspace (working_dir).
+    def to_abs_bind(path: str) -> str:
+        # Linux containers use POSIX paths; os.path on Windows turns "/foo" into "C:\foo" and breaks Docker bind parsing.
+        if linux_container_workspace:
+            if path.startswith("/"):
+                return posixpath.normpath(path)
+            return posixpath.normpath(posixpath.join(working_dir.rstrip("/"), path))
         return os.path.abspath(os.path.join(working_dir, path)) if not os.path.isabs(path) else path
 
     for lp, vinfo in vols.items():
@@ -128,12 +135,23 @@ def normalize_volumes(vols: dict[str, str | dict[str, str]], working_dir: str) -
         if isinstance(vinfo, dict):
             # abs_vols = cast(dict[str, dict[str, str]], abs_vols)
             vinfo = vinfo.copy()
-            vinfo["bind"] = to_abs(vinfo["bind"])
+            vinfo["bind"] = to_abs_bind(vinfo["bind"])
             abs_vols[lp] = vinfo
         else:
             # abs_vols = cast(dict[str, str], abs_vols)
-            abs_vols[lp] = to_abs(vinfo)
+            abs_vols[lp] = to_abs_bind(vinfo)
     return abs_vols
+
+
+def _docker_workspace_cache_host_path(*, sample: bool) -> str:
+    """Directory on the host bind-mounted as the data-science workspace cache inside Docker.
+
+    Using ``/tmp/...`` as the host source breaks Docker Desktop on Windows (invalid bind source / colon parsing).
+    """
+    sub = "sample" if sample else "full"
+    path = Path(tempfile.gettempdir()) / "rdagent_docker_workspace_cache" / sub
+    path.mkdir(parents=True, exist_ok=True)
+    return str(path.resolve())
 
 
 def pull_image_with_progress(image: str) -> None:
@@ -423,22 +441,29 @@ class Env(Generic[ASpecificEnvConf]):
 
         if self.conf.running_timeout_period is None:
             timeout_cmd = entry
-        else:
+        elif isinstance(self.conf, DockerConf) or os.name != "nt":
             timeout_cmd = f"timeout --kill-after=10 {self.conf.running_timeout_period} {entry}"
-        entry_add_timeout = (
-            f"/bin/sh -c '"  # start of the sh command
-            + f"{timeout_cmd}; entry_exit_code=$?; "
-            + (
-                f"{_get_chmod_cmd(self.conf.mount_path)}; "
-                # We don't have to change the permission of the cache and input folder to remove it
-                # + f"if [ -d {self.conf.mount_path}/cache ]; then chmod 777 {self.conf.mount_path}/cache; fi; " +
-                #     f"if [ -d {self.conf.mount_path}/input ]; then chmod 777 {self.conf.mount_path}/input; fi; "
-                if isinstance(self.conf, DockerConf)
-                else ""
+        else:
+            # Windows has no GNU `timeout` in the same form; run entry directly (LocalEnv only).
+            timeout_cmd = entry
+
+        if isinstance(self.conf, DockerConf):
+            entry_add_timeout = (
+                f"/bin/sh -c '"  # start of the sh command
+                + f"{timeout_cmd}; entry_exit_code=$?; "
+                + f"{_get_chmod_cmd(self.conf.mount_path)}; "
+                + "exit $entry_exit_code"
+                + "'"  # end of the sh command
             )
-            + "exit $entry_exit_code"
-            + "'"  # end of the sh command
-        )
+        elif os.name == "nt":
+            entry_add_timeout = timeout_cmd
+        else:
+            entry_add_timeout = (
+                f"/bin/sh -c '"  # start of the sh command
+                + f"{timeout_cmd}; entry_exit_code=$?; "
+                + "exit $entry_exit_code"
+                + "'"  # end of the sh command
+            )
 
         if self.conf.enable_cache:
             result = self.cached_run(
@@ -604,8 +629,8 @@ class LocalEnv(Env[ASpecificLocalConf]):
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
                 volumes[lp] = rp["bind"] if isinstance(rp, dict) else rp
-            cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
-            Path(cache_path).mkdir(parents=True, exist_ok=True)
+            sample_cache = "/sample/" in "".join(self.conf.extra_volumes.keys())
+            cache_path = _docker_workspace_cache_host_path(sample=sample_cache)
             volumes[cache_path] = T("scenarios.data_science.share:scen.cache_path").r()
         for lp, rp in running_extra_volume.items():
             volumes[lp] = rp
@@ -640,17 +665,25 @@ class LocalEnv(Env[ASpecificLocalConf]):
             if env is None:
                 env = {}
 
+            merged_preview = {**os.environ, **env}
+
             # Auto-propagate CUDA_VISIBLE_DEVICES for proper GPU isolation
             if "CUDA_VISIBLE_DEVICES" in os.environ and "CUDA_VISIBLE_DEVICES" not in env:
                 env["CUDA_VISIBLE_DEVICES"] = os.environ["CUDA_VISIBLE_DEVICES"]
 
-            path = [
-                *self.conf.bin_path.split(":"),
-                "/bin/",
-                "/usr/bin/",
-                *env.get("PATH", "").split(":"),
-            ]
-            env["PATH"] = ":".join(path)
+            _bin = self.conf.bin_path or ""
+            if os.name == "nt":
+                extra_bins = [p for p in re.split(r"[;:]", _bin) if p]
+                path_parts = extra_bins + [p for p in (merged_preview.get("PATH", "") or "").split(os.pathsep) if p]
+                env["PATH"] = os.pathsep.join(path_parts)
+            else:
+                path = [
+                    *_bin.split(":"),
+                    "/bin/",
+                    "/usr/bin/",
+                    *merged_preview.get("PATH", "").split(":"),
+                ]
+                env["PATH"] = ":".join(path)
 
             if entry is None:
                 entry = self.conf.default_entry
@@ -675,6 +708,8 @@ class LocalEnv(Env[ASpecificLocalConf]):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 shell=True,
                 bufsize=1,
                 universal_newlines=True,
@@ -684,7 +719,8 @@ class LocalEnv(Env[ASpecificLocalConf]):
             if process.stdout is None or process.stderr is None:
                 raise RuntimeError("The subprocess did not correctly create stdout/stderr pipes")
 
-            if self.conf.live_output:
+            # Windows CPython has no select.poll(); use batched read via communicate().
+            if self.conf.live_output and hasattr(select, "poll"):
                 stdout_fd = process.stdout.fileno()
                 stderr_fd = process.stderr.fileno()
 
@@ -725,9 +761,9 @@ class LocalEnv(Env[ASpecificLocalConf]):
             else:
                 # Sacrifice real-time output to avoid possible standard I/O hangs
                 out, err = process.communicate()
-                Console().print(out, end="", markup=False)
-                Console().print(err, end="", markup=False)
-                combined_output = out + err
+                Console().print(out or "", end="", markup=False)
+                Console().print(err or "", end="", markup=False)
+                combined_output = (out or "") + (err or "")
 
             return_code = process.returncode
             print(Rule("[bold green]LocalEnv Logs End[/bold green]", style="dark_orange"))
@@ -751,12 +787,20 @@ class CondaConf(LocalConf):
         to ensure bin_path is set correctly even if the conda env was just created.
         """
         conda_path_result = subprocess.run(
-            f"conda run -n {self.conda_env_name} --no-capture-output env | grep '^PATH='",
+            ["conda", "run", "-n", self.conda_env_name, "--no-capture-output", "env"],
             capture_output=True,
             text=True,
-            shell=True,
+            shell=False,
+            encoding="utf-8",
+            errors="replace",
         )
-        self.bin_path = conda_path_result.stdout.strip().split("=")[1] if conda_path_result.returncode == 0 else ""
+        self.bin_path = ""
+        if conda_path_result.returncode != 0:
+            return
+        for line in conda_path_result.stdout.splitlines():
+            if line.startswith("PATH="):
+                self.bin_path = line.split("=", 1)[1].strip()
+                break
 
 
 class MLECondaConf(CondaConf):
@@ -1023,10 +1067,30 @@ class QlibDockerConf(DockerConf):
             "mode": "rw",
         }
     }
+    local_qlib_repo_path: str | None = Field(
+        default=None,
+        description=(
+            "Host path to your Qlib repo (directory with setup.py), mounted at /workspace/qlib. "
+            "Replaces the image's pre-built Qlib; the mount must contain Linux-built C extensions "
+            "(e.g. run `pip install -e /workspace/qlib` inside the container), otherwise "
+            "`qlib.data._libs` imports fail. Omit for the default Qlib from the image. "
+            "Env: QLIB_DOCKER_local_qlib_repo_path."
+        ),
+    )
     shm_size: str | None = "16g"
     enable_gpu: bool = True
     enable_cache: bool = False
     save_logs_to_file: bool = True  # Explicitly inherit from DockerConf for compatibility
+
+    @model_validator(mode="after")
+    def _mount_local_qlib_repo(self) -> "QlibDockerConf":
+        if not self.local_qlib_repo_path:
+            return self
+        host_path = str(Path(self.local_qlib_repo_path).expanduser().resolve(strict=False))
+        merged = dict(self.extra_volumes)
+        merged[host_path] = {"bind": "/workspace/qlib", "mode": "rw"}
+        self.extra_volumes = merged
+        return self
 
 
 class KGDockerConf(DockerConf):
@@ -1432,8 +1496,8 @@ class DockerEnv(Env[DockerConf]):
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
                 volumes[lp] = rp if isinstance(rp, dict) else {"bind": rp, "mode": self.conf.extra_volume_mode}
-            cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
-            Path(cache_path).mkdir(parents=True, exist_ok=True)
+            sample_cache = "/sample/" in "".join(self.conf.extra_volumes.keys())
+            cache_path = _docker_workspace_cache_host_path(sample=sample_cache)
             volumes[cache_path] = {
                 "bind": T("scenarios.data_science.share:scen.cache_path").r(),
                 "mode": "rw",
@@ -1511,16 +1575,30 @@ class DockerEnv(Env[DockerConf]):
 class QTDockerEnv(DockerEnv):
     """Qlib Torch Docker"""
 
-    def __init__(self, conf: DockerConf = QlibDockerConf()):
-        super().__init__(conf)
+    def __init__(self, conf: DockerConf | None = None):
+        super().__init__(conf if conf is not None else QlibDockerConf())
+
+    @staticmethod
+    def _host_path_for_bind_root_qlib(extra_volumes: dict | None) -> Path | None:
+        if not extra_volumes:
+            return None
+        for host_path, spec in extra_volumes.items():
+            bind = spec.get("bind", spec) if isinstance(spec, dict) else spec
+            bind_norm = str(bind).rstrip("/")
+            if bind_norm == "/root/.qlib":
+                return Path(host_path)
+        return Path(next(iter(extra_volumes.keys())))
 
     def prepare(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
         """
         Download image & data if it doesn't exist
         """
         super().prepare()
-        qlib_data_path = next(iter(self.conf.extra_volumes.keys()))
-        if not (Path(qlib_data_path) / "qlib_data" / "cn_data").exists():
+        qlib_data_path = self._host_path_for_bind_root_qlib(self.conf.extra_volumes)
+        if qlib_data_path is None:
+            logger.warning("Qlib Docker: extra_volumes empty; skipping bundled data check/download.")
+            return
+        if not (qlib_data_path / "qlib_data" / "cn_data").exists():
             logger.info("We are downloading!")
             cmd = "python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn --interval 1d --delete_old False"
             self.check_output(entry=cmd)

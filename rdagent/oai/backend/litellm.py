@@ -1,4 +1,5 @@
 import copyreg
+import os
 from typing import Any, Literal, Optional, Type, TypedDict, Union, cast
 
 import numpy as np
@@ -79,9 +80,25 @@ class LiteLLMAPIBackend(APIBackend):
                 f"{LogColors.MAGENTA}Creating embedding{LogColors.END} for: {input_content_list}",
                 tag="debug_litellm_emb",
             )
+        # SiliconFlow litellm_proxy workaround (invalid upstream params).
+        emb_kwargs: dict[str, Any] = {}
+        proxy_base = os.getenv("LITELLM_PROXY_API_BASE")
+        proxy_key = os.getenv("LITELLM_PROXY_API_KEY")
+        if model_name.startswith("litellm_proxy/") and proxy_base and proxy_key:
+            model_name = model_name.split("litellm_proxy/", 1)[1]
+            emb_kwargs["api_base"] = proxy_base
+            emb_kwargs["api_key"] = proxy_key
+            emb_kwargs["custom_llm_provider"] = "openai"
+        elif model_name.startswith("openrouter/") and not emb_kwargs:
+            or_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+            or_base = os.getenv("OPENROUTER_API_BASE") or os.getenv("OPENAI_API_BASE")
+            if or_key and or_base:
+                emb_kwargs["api_key"] = or_key
+                emb_kwargs["api_base"] = or_base
         response = embedding(
             model=model_name,
             input=input_content_list,
+            **emb_kwargs,
         )
         response_list = [data["embedding"] for data in response.data]
         return response_list

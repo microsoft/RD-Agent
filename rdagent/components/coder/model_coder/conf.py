@@ -27,7 +27,9 @@ def get_model_env(
     else:
         raise ValueError(f"Unknown env type: {conf.env_type}")
 
-    env.conf.extra_volumes = extra_volumes.copy()
+    base_vols = dict(getattr(env.conf, "extra_volumes", None) or {})
+    base_vols.update(extra_volumes)
+    env.conf.extra_volumes = base_vols
     env.conf.running_timeout_period = running_timeout_period
     if enable_cache is not None:
         env.conf.enable_cache = enable_cache

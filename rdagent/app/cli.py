@@ -48,11 +48,11 @@ def ui(port=19899, log_dir="", debug: bool = False, data_science: bool = False):
     """
     if data_science:
         with rpath("rdagent.log.ui", "dsapp.py") as app_path:
-            cmds = ["streamlit", "run", app_path, f"--server.port={port}"]
+            cmds = [sys.executable, "-m", "streamlit", "run", str(app_path), f"--server.port={port}"]
             subprocess.run(cmds)
         return
     with rpath("rdagent.log.ui", "app.py") as app_path:
-        cmds = ["streamlit", "run", app_path, f"--server.port={port}"]
+        cmds = [sys.executable, "-m", "streamlit", "run", str(app_path), f"--server.port={port}"]
         if log_dir or debug:
             cmds.append("--")
         if log_dir:
@@ -75,7 +75,14 @@ def ds_user_interact(port=19900):
     """
     start web app to show the log traces in real time
     """
-    commands = ["streamlit", "run", "rdagent/log/ui/ds_user_interact.py", f"--server.port={port}"]
+    commands = [
+        sys.executable,
+        "-m",
+        "streamlit",
+        "run",
+        "rdagent/log/ui/ds_user_interact.py",
+        f"--server.port={port}",
+    ]
     subprocess.run(commands)
 
 
