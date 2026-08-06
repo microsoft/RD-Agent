@@ -399,6 +399,10 @@ rdagent server_ui --port 19899
 
 After that, open `http://127.0.0.1:19899` in your browser.
 
+#### Railway Deployment
+
+The repository now includes `nixpacks.toml` and `railway.json` for deploying `rdagent server_ui` on Railway. If you want uploads, trace artifacts, and stdout logs to survive container replacement, enable the Supabase-backed persistence settings documented in [docs/deployment/railway.md](docs/deployment/railway.md).
+
 #### Common Notes
 
 Port `19899` is used in the examples above. Before starting either UI, check whether this port is already occupied. If it is, please change it to another available port.

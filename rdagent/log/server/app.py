@@ -15,6 +15,12 @@ from flask import Flask, jsonify, request, send_file, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
+from rdagent.log.server.persistence import (
+    SupabaseStorageClient,
+    stdout_object_path,
+    trace_object_prefix,
+    upload_object_path,
+)
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.storage import WebStorage
@@ -22,6 +28,9 @@ from rdagent.log.ui.storage import WebStorage
 app = Flask(__name__, static_folder=str(Path(UI_SETTING.static_path).resolve()))
 CORS(app)
 app.config["UI_SERVER_PORT"] = 19899
+
+SUPABASE_STORAGE = SupabaseStorageClient()
+TRACE_SYNC_INTERVAL_SECONDS = 15
 
 _YELLOW = "\033[33m"
 _RESET = "\033[0m"
@@ -76,6 +85,7 @@ class RDAgentTask:
         # NOTE: Use multiprocessing.Queue because rdagent is started as a separate process.
         self.user_request_q: Queue = Queue(maxsize=1024)
         self.user_response_q: Queue = Queue(maxsize=1024)
+        self.last_synced_at: datetime | None = None
 
         if create_process:
             self.process = Process(
@@ -172,6 +182,76 @@ rdagent_processes: dict[str, RDAgentTask] = {}
 log_folder_path = Path(UI_SETTING.trace_folder).absolute()
 
 
+def _trace_root() -> Path:
+    return Path(UI_SETTING.trace_folder).absolute()
+
+
+def _relative_trace_id(trace_id: str | Path) -> str:
+    trace_value = Path(str(trace_id).strip())
+    trace_root = _trace_root()
+    if trace_value.is_absolute():
+        try:
+            return trace_value.relative_to(trace_root).as_posix()
+        except ValueError:
+            return trace_value.as_posix().strip("/")
+    return trace_value.as_posix().strip("/")
+
+
+def _stdout_path_from_trace_id(trace_id: str) -> Path | None:
+    trace_parts = Path(trace_id).parts
+    if len(trace_parts) < 2:
+        return None
+    return _trace_root() / trace_parts[0] / f"{trace_parts[-1]}.log"
+
+
+def _sync_task_artifacts(task: RDAgentTask, *, force: bool = False) -> None:
+    if not SUPABASE_STORAGE.is_enabled():
+        return
+
+    now = datetime.now(timezone.utc)
+    if (
+        not force
+        and task.last_synced_at is not None
+        and (now - task.last_synced_at).total_seconds() < TRACE_SYNC_INTERVAL_SECONDS
+    ):
+        return
+
+    relative_trace_id = _relative_trace_id(task.log_trace_path)
+    trace_path = Path(task.log_trace_path)
+    stdout_path = Path(task.stdout_path)
+
+    if trace_path.exists():
+        SUPABASE_STORAGE.upload_directory(trace_path, trace_object_prefix(relative_trace_id))
+    if stdout_path.exists():
+        SUPABASE_STORAGE.upload_file(stdout_path, stdout_object_path(relative_trace_id))
+
+    task.last_synced_at = now
+
+
+def _hydrate_trace_dir(trace_path: Path, trace_id: str) -> bool:
+    if not SUPABASE_STORAGE.is_enabled():
+        return False
+
+    relative_trace_id = _relative_trace_id(trace_id)
+    if not relative_trace_id:
+        return False
+
+    SUPABASE_STORAGE.download_directory(trace_object_prefix(relative_trace_id), trace_path)
+    return True
+
+
+def _hydrate_stdout_file(trace_id: str, stdout_path: Path) -> bool:
+    if not SUPABASE_STORAGE.is_enabled():
+        return False
+
+    relative_trace_id = _relative_trace_id(trace_id)
+    if not relative_trace_id:
+        return False
+
+    SUPABASE_STORAGE.download_file(stdout_object_path(relative_trace_id), stdout_path)
+    return True
+
+
 def _drain_user_requests_into_messages(task: RDAgentTask) -> None:
     """Move a single pending user-interaction request into `task.messages`.
 
@@ -233,10 +313,13 @@ def _resolve_stdout_path(trace_id: str) -> Path | None:
         return None
 
     task = rdagent_processes.get(str(log_folder_path / normalized_trace_id))
-    if task is None or not task.stdout_path:
+    stdout_path = (
+        Path(task.stdout_path).resolve()
+        if task is not None and task.stdout_path
+        else _stdout_path_from_trace_id(normalized_trace_id)
+    )
+    if stdout_path is None:
         return None
-
-    stdout_path = Path(task.stdout_path).resolve()
 
     try:
         if os.path.commonpath([str(stdout_path), str(log_folder_path)]) != str(log_folder_path):
@@ -248,6 +331,12 @@ def _resolve_stdout_path(trace_id: str) -> Path | None:
 
 
 def read_trace(log_path: Path, id: str = "") -> None:
+    if not log_path.exists():
+        try:
+            _hydrate_trace_dir(log_path, id or str(log_path))
+        except requests.RequestException as e:
+            app.logger.warning(f"Failed to hydrate trace '{id}': {e}")
+
     fs = FileStorage(log_path)
     ws = WebStorage(port=1, path=log_path)
     task = _get_or_create_task(id)
@@ -321,11 +410,23 @@ def update_trace():
     trace_id = str(log_folder_path / trace_id)
 
     task = _get_or_create_task(trace_id)
+    if not task.messages and task.process is None:
+        read_trace(Path(trace_id), id=trace_id)
 
     # Make sure any pending user-interaction requests are visible to the frontend.
     _drain_user_requests_into_messages(task)
 
+    if task.process is not None and task.is_alive():
+        try:
+            _sync_task_artifacts(task)
+        except requests.RequestException as e:
+            app.logger.warning(f"Failed to sync running task '{trace_id}' to Supabase: {e}")
+
     if task.process is not None and not task.is_alive():
+        try:
+            _sync_task_artifacts(task, force=True)
+        except requests.RequestException as e:
+            app.logger.warning(f"Failed to sync completed task '{trace_id}' to Supabase: {e}")
         if not task.messages or task.messages[-1].get("tag") != "END":
             task.messages.append(
                 {
@@ -364,7 +465,12 @@ def download_stdout_file():
     if stdout_path is None:
         return jsonify({"error": "Trace ID is required or invalid"}), 400
     if not stdout_path.exists() or not stdout_path.is_file():
-        return jsonify({"error": "Stdout file not found"}), 404
+        try:
+            _hydrate_stdout_file(trace_id, stdout_path)
+        except requests.RequestException as e:
+            app.logger.warning(f"Failed to hydrate stdout for '{trace_id}': {e}")
+        if not stdout_path.exists() or not stdout_path.is_file():
+            return jsonify({"error": "Stdout file not found"}), 404
 
     return send_file(
         stdout_path,
@@ -416,6 +522,15 @@ def upload_file():
                 if not p.exists():
                     p.mkdir(parents=True, exist_ok=True)
                 file.save(target_path)
+                if SUPABASE_STORAGE.is_enabled():
+                    try:
+                        SUPABASE_STORAGE.upload_file(
+                            target_path,
+                            upload_object_path(scenario, trace_name, sanitized_filename),
+                        )
+                    except requests.RequestException as e:
+                        app.logger.warning(f"Failed to sync upload '{target_path}' to Supabase: {e}")
+                        return jsonify({"error": f"Failed to persist upload to Supabase: {e}"}), 500
             else:
                 return jsonify({"error": "Invalid file path"}), 400
 
@@ -553,6 +668,10 @@ def control_process():
     try:
         if task.is_alive():
             task.stop()
+            try:
+                _sync_task_artifacts(task, force=True)
+            except requests.RequestException as e:
+                app.logger.warning(f"Failed to sync stopped task '{id}' to Supabase: {e}")
 
         if not task.messages or task.messages[-1].get("tag") != "END":
             task.messages.append(
