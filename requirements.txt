@@ -72,7 +72,7 @@ azureml-mlflow
 types-pytz
 
 # Agent
-pydantic-ai-slim[mcp,openai,prefect]==1.66.0
+pydantic-ai-slim[mcp,openai,prefect]==1.107.4  # keep <2: MCP API reworked in 2.x (see #1432)
 nest-asyncio
 
 # visualize SFT train
