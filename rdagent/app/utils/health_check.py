@@ -42,10 +42,11 @@ def check_and_list_free_ports(start_port=19899, max_ports=10) -> None:
             if not is_port_in_use(port):
                 free_ports.append(port)
         logger.warning(
-            f"Port 19899 is occupied, please replace it with an available port when running the `rdagent ui/server_ui` command. Available ports: {free_ports}"
+            f"Port {start_port} is occupied, please replace it with an available port when running "
+            f"the `rdagent ui/server_ui` command. Available ports: {free_ports}"
         )
     else:
-        logger.info(f"Port 19899 is not occupied, you can run the `rdagent ui/server_ui` command")
+        logger.info(f"Port {start_port} is not occupied, you can run the `rdagent ui/server_ui` command")
 
 
 def test_chat(chat_model, chat_api_key, chat_api_base):
@@ -119,6 +120,22 @@ def env_check():
         embedding_api_base = chat_api_base
     else:
         logger.error("No valid configuration was found, please check your .env file.")
+        return
+
+    missing_settings = [
+        name
+        for name, value in {
+            "CHAT_MODEL": chat_model,
+            "EMBEDDING_MODEL": embedding_model,
+        }.items()
+        if not value
+    ]
+    if missing_settings:
+        logger.error(
+            f"Missing required model configuration: {', '.join(missing_settings)}. "
+            "Please set them in your .env file before running `rdagent health_check --check-env`."
+        )
+        return
 
     logger.info("🚀 Starting test...\n")
     result_embedding = test_embedding(
