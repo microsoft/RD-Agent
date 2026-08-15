@@ -73,6 +73,29 @@ def test_env_check_returns_without_credentials(monkeypatch):
     assert calls == []
 
 
+def test_env_check_returns_with_empty_credentials(monkeypatch):
+    calls = []
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "")
+    monkeypatch.setenv("OPENAI_API_KEY", "")
+    monkeypatch.setenv("CHAT_MODEL", "test-chat")
+    monkeypatch.setenv("EMBEDDING_MODEL", "test-embedding")
+    monkeypatch.setattr(
+        health_check,
+        "test_chat",
+        lambda *args, **kwargs: calls.append("chat"),
+    )
+    monkeypatch.setattr(
+        health_check,
+        "test_embedding",
+        lambda *args, **kwargs: calls.append("embedding"),
+    )
+
+    health_check.env_check()
+
+    assert calls == []
+
+
 def test_env_check_returns_when_required_models_missing(monkeypatch):
     calls = []
 
