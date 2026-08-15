@@ -99,7 +99,7 @@ def env_check():
             f"You can run a command like this: `dotenv set BACKEND rdagent.oai.backend.LiteLLMAPIBackend`"
         )
 
-    if "DEEPSEEK_API_KEY" in os.environ:
+    if os.getenv("DEEPSEEK_API_KEY"):
         chat_api_key = os.getenv("DEEPSEEK_API_KEY")
         chat_model = os.getenv("CHAT_MODEL")
         embedding_model = os.getenv("EMBEDDING_MODEL")
@@ -111,7 +111,7 @@ def env_check():
             chat_api_base = os.getenv("OPENAI_API_BASE")
         else:
             chat_api_base = None
-    elif "OPENAI_API_KEY" in os.environ:
+    elif os.getenv("OPENAI_API_KEY"):
         chat_api_key = os.getenv("OPENAI_API_KEY")
         chat_api_base = os.getenv("OPENAI_API_BASE")
         chat_model = os.getenv("CHAT_MODEL")
