@@ -189,7 +189,9 @@ class DSCoSTEERRunner(CoSTEER):
                 return False
             if s1 is None:
                 return True
-            return (s2 > s1) == self.scen.metric_direction
+            # A tie is not an improvement in either direction. Comparing the ">" result
+            # against metric_direction would make minimization accept "not greater than".
+            return s2 > s1 if self.scen.metric_direction else s2 < s1
 
         return compare_scores(base_fb.score, new_fb.score)
 
