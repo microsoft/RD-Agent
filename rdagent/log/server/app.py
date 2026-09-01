@@ -426,8 +426,8 @@ def upload_file():
     global rdagent_processes
     try:
         scenario = validate_scenario(request.form.get("scenario"))
-    except ValueError as exc:
-        return jsonify({"error": str(exc)}), 400
+    except ValueError:
+        return jsonify({"error": "Invalid scenario"}), 400
     files = request.files.getlist("files")
     competition = request.form.get("competition")
     loop_n = request.form.get("loops")
@@ -437,8 +437,8 @@ def upload_file():
     if scenario == "Data Science":
         try:
             competition = parse_competition(competition)
-        except ValueError as exc:
-            return jsonify({"error": str(exc)}), 400
+        except ValueError:
+            return jsonify({"error": "Invalid competition"}), 400
         trace_name = f"{competition}-{randomname.get_name()}"
     else:
         trace_name = randomname.get_name()
@@ -446,8 +446,8 @@ def upload_file():
         trace_files_path = resolve_within(upload_folder_path, scenario, trace_name)
         log_trace_path = resolve_within(log_folder_path, scenario, trace_name)
         stdout_path = resolve_within(log_folder_path, scenario, f"{trace_name}.log")
-    except ValueError as exc:
-        return jsonify({"error": str(exc)}), 400
+    except ValueError:
+        return jsonify({"error": "Invalid destination path"}), 400
     if not stdout_path.exists():
         stdout_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -457,8 +457,8 @@ def upload_file():
             try:
                 sanitized_filename = validate_upload_filename(secure_filename(file.filename or ""))
                 target_path = resolve_within(trace_files_path, sanitized_filename)
-            except ValueError as exc:
-                return jsonify({"error": str(exc)}), 400
+            except ValueError:
+                return jsonify({"error": "Invalid upload file"}), 400
             if target_path.exists():
                 return jsonify({"error": "Upload file already exists"}), 409
             trace_files_path.mkdir(parents=True, exist_ok=True)
@@ -558,8 +558,9 @@ def submit_user_interaction_response():
 
     try:
         task.user_response_q.put(payload, block=False)
-    except Exception as e:
-        return jsonify({"error": f"Failed to enqueue user response: {e}"}), 500
+    except Exception:
+        app.logger.exception("Failed to enqueue a user response")
+        return jsonify({"error": "Failed to enqueue user response"}), 500
 
     return jsonify({"status": "success"}), 200
 
@@ -600,8 +601,9 @@ def control_process():
             )
             app.logger.warning(f"Process for {id} has been stopped.")
         return jsonify({"status": "stopped"}), 200
-    except Exception as e:
-        return jsonify({"error": f"Failed to {action} process, {e}"}), 500
+    except Exception:
+        app.logger.exception("Failed to stop process %s", id)
+        return jsonify({"error": "Failed to stop process"}), 500
 
 
 @app.route("/test", methods=["GET"])

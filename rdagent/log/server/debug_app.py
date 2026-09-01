@@ -79,8 +79,8 @@ def upload_file():
     global rdagent_processes, server_port, msgs_for_frontend
     try:
         scenario = validate_scenario(request.form.get("scenario"))
-    except ValueError as exc:
-        return jsonify({"error": str(exc)}), 400
+    except ValueError:
+        return jsonify({"error": "Invalid scenario"}), 400
     files = request.files.getlist("files")
     competition = request.form.get("competition")
     loop_n = request.form.get("loops")
@@ -91,8 +91,8 @@ def upload_file():
     if scenario == "Data Science":
         try:
             competition = parse_competition(competition)
-        except ValueError as exc:
-            return jsonify({"error": str(exc)}), 400
+        except ValueError:
+            return jsonify({"error": "Invalid competition"}), 400
         trace_path = resolve_within(log_folder_path, "o1-preview", f"{competition}.1")
     else:
         trace_path = resolve_within(log_folder_path, scenario)
@@ -177,7 +177,7 @@ def server_static_files(fn):
 def main(port: int = 19899):
     global server_port
     server_port = port
-    app.run(debug=True, host="127.0.0.1", port=port)
+    app.run(debug=False, host="127.0.0.1", port=port)
 
 
 if __name__ == "__main__":
