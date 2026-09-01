@@ -12,12 +12,11 @@ from pathlib import Path
 import randomname
 import typer
 from flask import Flask, jsonify, request, send_from_directory
-from flask_cors import CORS
 
+from rdagent.log.server.security import parse_competition, resolve_within, validate_scenario
 from rdagent.log.ui.conf import UI_SETTING
 
 app = Flask(__name__, static_folder=UI_SETTING.static_path)
-CORS(app)
 
 rdagent_processes = defaultdict()
 server_port = 19899
@@ -74,7 +73,10 @@ def update_trace():
 def upload_file():
     # 获取请求体中的字段
     global rdagent_processes, server_port, msgs_for_frontend
-    scenario = request.form.get("scenario")
+    try:
+        scenario = validate_scenario(request.form.get("scenario"))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
     files = request.files.getlist("files")
     competition = request.form.get("competition")
     loop_n = request.form.get("loops")
@@ -83,9 +85,13 @@ def upload_file():
     log_folder_path = Path("/home/bowen/workspace/new_traces").absolute()
 
     if scenario == "Data Science":
-        trace_path = log_folder_path / "o1-preview" / f"{competition[10:]}.1"
+        try:
+            competition = parse_competition(competition)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        trace_path = resolve_within(log_folder_path, "o1-preview", f"{competition}.1")
     else:
-        trace_path = log_folder_path / scenario
+        trace_path = resolve_within(log_folder_path, scenario)
     id = f"{scenario}/{randomname.get_name()}"
 
     def read_trace(log_path: Path, t: float = 0.2, id: str = "") -> None:
@@ -167,7 +173,7 @@ def server_static_files(fn):
 def main(port: int = 19899):
     global server_port
     server_port = port
-    app.run(debug=True, host="0.0.0.0", port=port)
+    app.run(debug=True, host="127.0.0.1", port=port)
 
 
 if __name__ == "__main__":

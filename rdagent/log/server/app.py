@@ -1,3 +1,4 @@
+import hmac
 import logging
 import os
 import random
@@ -11,20 +12,45 @@ from queue import Empty
 
 import randomname
 import typer
-from flask import Flask, jsonify, request, send_file, send_from_directory
+from flask import Flask, Response, jsonify, make_response, redirect, request, send_file, send_from_directory, url_for
 from flask_cors import CORS
-from werkzeug.utils import secure_filename
-
+from rdagent.log.server.security import (
+    SCENARIO_TARGETS,
+    parse_competition,
+    resolve_within,
+    validate_scenario,
+    validate_upload_filename,
+)
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.storage import WebStorage
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__, static_folder=str(Path(UI_SETTING.static_path).resolve()))
-CORS(app)
+if UI_SETTING.cors_allowed_origins:
+    CORS(app, origins=UI_SETTING.cors_allowed_origins, supports_credentials=True)
 app.config["UI_SERVER_PORT"] = 19899
+app.config["MAX_CONTENT_LENGTH"] = UI_SETTING.max_upload_mb * 1024 * 1024
+app.config["AUTH_TOKEN"] = UI_SETTING.server_auth_token
 
 _YELLOW = "\033[33m"
 _RESET = "\033[0m"
+
+_PUBLIC_ENDPOINTS = {"favicon", "index", "server_static_files", "static"}
+
+
+@app.before_request
+def _require_authentication() -> Response | tuple[Response, int] | None:
+    token = app.config.get("AUTH_TOKEN", "")
+    if not token or request.method == "OPTIONS" or request.endpoint in _PUBLIC_ENDPOINTS:
+        return None
+
+    authorization = request.headers.get("Authorization", "")
+    header_token = authorization.removeprefix("Bearer ") if authorization.startswith("Bearer ") else ""
+    provided_token = header_token or request.cookies.get("rdagent_auth", "")
+    if not provided_token or not hmac.compare_digest(provided_token, token):
+        return jsonify({"error": "Authentication required"}), 401
+    return None
 
 
 class _YellowWarningFormatter(logging.Formatter):
@@ -169,7 +195,8 @@ class RDAgentTask:
 
 
 rdagent_processes: dict[str, RDAgentTask] = {}
-log_folder_path = Path(UI_SETTING.trace_folder).absolute()
+log_folder_path = Path(UI_SETTING.trace_folder).resolve()
+upload_folder_path = Path(UI_SETTING.upload_folder).resolve()
 
 
 def _drain_user_requests_into_messages(task: RDAgentTask) -> None:
@@ -386,7 +413,10 @@ def list_traces():
 def upload_file():
     # 获取请求体中的字段
     global rdagent_processes
-    scenario = request.form.get("scenario")
+    try:
+        scenario = validate_scenario(request.form.get("scenario"))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
     files = request.files.getlist("files")
     competition = request.form.get("competition")
     loop_n = request.form.get("loops")
@@ -394,73 +424,68 @@ def upload_file():
 
     # scenario = "Data Science Loop"
     if scenario == "Data Science":
-        competition = competition[10:]  # Eg. MLE-Bench:aerial-cactus-competition
+        try:
+            competition = parse_competition(competition)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
         trace_name = f"{competition}-{randomname.get_name()}"
     else:
         trace_name = randomname.get_name()
-    trace_files_path = log_folder_path / "uploads" / scenario / trace_name
-
-    log_trace_path = (log_folder_path / scenario / trace_name).absolute()
-    stdout_path = log_folder_path / scenario / f"{trace_name}.log"
+    try:
+        trace_files_path = resolve_within(upload_folder_path, scenario, trace_name)
+        log_trace_path = resolve_within(log_folder_path, scenario, trace_name)
+        stdout_path = resolve_within(log_folder_path, scenario, f"{trace_name}.log")
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
     if not stdout_path.exists():
         stdout_path.parent.mkdir(parents=True, exist_ok=True)
 
     # save files
     for file in files:
         if file:
-            p = (log_folder_path / "uploads" / scenario / trace_name).resolve()
-            sanitized_filename = secure_filename(file.filename)  # Sanitize filename
-            target_path = (p / sanitized_filename).resolve()  # Normalize target path
-            # Ensure target_path is within the allowed base directory
-            if os.path.commonpath([str(target_path), str(p)]) == str(p) and target_path.is_file() == False:
-                if not p.exists():
-                    p.mkdir(parents=True, exist_ok=True)
-                file.save(target_path)
-            else:
-                return jsonify({"error": "Invalid file path"}), 400
+            try:
+                sanitized_filename = validate_upload_filename(secure_filename(file.filename or ""))
+                target_path = resolve_within(trace_files_path, sanitized_filename)
+            except ValueError as exc:
+                return jsonify({"error": str(exc)}), 400
+            if target_path.exists():
+                return jsonify({"error": "Upload file already exists"}), 409
+            trace_files_path.mkdir(parents=True, exist_ok=True)
+            file.save(target_path)
 
-    target_name = None
+    target_name = SCENARIO_TARGETS[scenario]
     kwargs = {}
     loop_n_val = int(loop_n) if loop_n else None
     all_duration_val = f"{all_duration}h" if all_duration else None
 
     if scenario == "Finance Data Building":
-        target_name = "fin_factor"
         kwargs = {
             "loop_n": loop_n_val,
             "all_duration": all_duration_val,
             "base_features_path": str(trace_files_path),
         }
     if scenario == "Finance Model Implementation":
-        target_name = "fin_model"
         kwargs = {
             "loop_n": loop_n_val,
             "all_duration": all_duration_val,
             "base_features_path": str(trace_files_path),
         }
     if scenario == "Finance Whole Pipeline":
-        target_name = "fin_quant"
         kwargs = {
             "loop_n": loop_n_val,
             "all_duration": all_duration_val,
             "base_features_path": str(trace_files_path),
         }
     if scenario == "Finance Data Building (Reports)":
-        target_name = "fin_factor_report"
         kwargs = {"report_folder": str(trace_files_path), "all_duration": all_duration_val}
     if scenario == "General Model Implementation":
         if len(files) == 0:  # files is one link
-            rfp = request.form.get("files")[0]
+            rfp = request.form.get("files", "")
         else:  # one file is uploaded
-            rfp = str(trace_files_path / files[0].filename)
-        target_name = "general_model"
+            rfp = str(resolve_within(trace_files_path, validate_upload_filename(secure_filename(files[0].filename))))
         kwargs = {"report_file_path": rfp}
     if scenario == "Data Science":
-        target_name = "data_science"
         kwargs = {"competition": competition, "loop_n": loop_n_val, "timeout": all_duration_val}
-
-    if target_name is None:
-        return jsonify({"error": "Unknown scenario"}), 400
 
     app.logger.info(f"Started process for {log_trace_path} with target: {target_name}, kwargs: {kwargs}")
     task = RDAgentTask(
@@ -578,8 +603,12 @@ def test():
 
 @app.route("/", methods=["GET"])
 def index():
-    # return 'Hello, World!'
-    # return {k: [i["tag"] for i in v] for k, v in msgs_for_frontend.items()}
+    token = app.config.get("AUTH_TOKEN", "")
+    supplied_token = request.args.get("token", "")
+    if token and supplied_token and hmac.compare_digest(supplied_token, token):
+        response = make_response(redirect(url_for("index")))
+        response.set_cookie("rdagent_auth", token, httponly=True, samesite="Strict")
+        return response
     return send_from_directory(app.static_folder, "index.html")
 
 
@@ -588,10 +617,16 @@ def server_static_files(fn):
     return send_from_directory(app.static_folder, _normalize_static_request_path(fn))
 
 
-def main(port: int = 19899):
+def main(port: int = 19899, host: str = UI_SETTING.server_host) -> None:
+    if host not in {"127.0.0.1", "::1", "localhost"} and not app.config.get("AUTH_TOKEN"):
+        raise ValueError("UI_SERVER_AUTH_TOKEN is required when binding the log server beyond localhost")
     app.config["UI_SERVER_PORT"] = port
-    _load_existing_traces(log_folder_path)
-    app.run(debug=False, host="0.0.0.0", port=port)
+    if app.config.get("AUTH_TOKEN"):
+        app.logger.info("Authentication enabled. Open /?token=<UI_SERVER_AUTH_TOKEN> to establish a secure session.")
+    if UI_SETTING.load_legacy_pickle_traces:
+        app.logger.warning("Loading legacy pickle traces. Only enable this for fully trusted trace directories.")
+        _load_existing_traces(log_folder_path)
+    app.run(debug=False, host=host, port=port)
 
 
 if __name__ == "__main__":
