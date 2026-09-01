@@ -13,7 +13,11 @@ import randomname
 import typer
 from flask import Flask, jsonify, request, send_from_directory
 
-from rdagent.log.server.security import parse_competition, resolve_within, validate_scenario
+from rdagent.log.server.security import (
+    parse_competition,
+    resolve_within,
+    validate_scenario,
+)
 from rdagent.log.ui.conf import UI_SETTING
 
 app = Flask(__name__, static_folder=UI_SETTING.static_path)

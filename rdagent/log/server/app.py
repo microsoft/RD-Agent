@@ -12,8 +12,20 @@ from queue import Empty
 
 import randomname
 import typer
-from flask import Flask, Response, jsonify, make_response, redirect, request, send_file, send_from_directory, url_for
+from flask import (
+    Flask,
+    Response,
+    jsonify,
+    make_response,
+    redirect,
+    request,
+    send_file,
+    send_from_directory,
+    url_for,
+)
 from flask_cors import CORS
+from werkzeug.utils import secure_filename
+
 from rdagent.log.server.security import (
     SCENARIO_TARGETS,
     parse_competition,
@@ -24,7 +36,6 @@ from rdagent.log.server.security import (
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.storage import WebStorage
-from werkzeug.utils import secure_filename
 
 app = Flask(__name__, static_folder=str(Path(UI_SETTING.static_path).resolve()))
 if UI_SETTING.cors_allowed_origins:
