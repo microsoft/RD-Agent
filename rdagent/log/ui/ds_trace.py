@@ -1186,10 +1186,7 @@ def get_state_data_range(state_data):
 
 # UI - Main
 if "competition" in state.data:
-    st.title(
-        state.data["competition"]
-        + f" ([share_link](/ds_trace?selection={state.log_path}))"
-    )
+    st.title(state.data["competition"] + f" ([share_link](/ds_trace?selection={state.log_path}))")
     summarize_win()
     min_id, max_id = get_state_data_range(state.data)
     if max_id > min_id:
