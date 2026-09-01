@@ -1,5 +1,4 @@
 import math
-import pickle
 import re
 from collections import defaultdict, deque
 from datetime import datetime, timedelta
@@ -16,6 +15,7 @@ from matplotlib import pyplot as plt
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.core.proposal import Trace
+from rdagent.core.serialization import load as secure_pickle_load
 from rdagent.core.utils import cache_with_pickle
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
@@ -452,7 +452,8 @@ def get_summary_df(log_folder: str | Path, hours: int | None = None) -> tuple[di
     log_folder = Path(log_folder)
     sn = "summary.pkl" if hours is None else f"summary_{hours}h.pkl"
     if (log_folder / sn).exists():
-        summary: dict = pd.read_pickle(log_folder / sn)
+        with (log_folder / sn).open("rb") as f:
+            summary: dict = secure_pickle_load(f)
     else:
         return {}, pd.DataFrame()
 

@@ -1,7 +1,6 @@
 import json
 import math
 import os
-import pickle
 import re
 import shutil
 import time
@@ -18,6 +17,7 @@ from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback, SOTAexpSelector, Trace
+from rdagent.core.serialization import load as secure_pickle_load
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log.storage import FileStorage
 from rdagent.log.utils import extract_json
@@ -730,7 +730,7 @@ def evaluate_one_trace(
                 sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{loop_id}/running/mle_score/**/*.pkl")]
                 if len(sota_mle_score_paths):
                     with sota_mle_score_paths[0].open("rb") as f:
-                        sota_mle_score = extract_json(pickle.load(f))
+                        sota_mle_score = extract_json(secure_pickle_load(f))
                         if sota_mle_score.get("any_medal", False):
                             pool_hit = True
                             break
@@ -762,7 +762,7 @@ def evaluate_one_trace(
         sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{loop_id}/running/mle_score/**/*.pkl")]
         if len(sota_mle_score_paths):
             with sota_mle_score_paths[0].open("rb") as f:
-                sota_mle_score = extract_json(pickle.load(f))
+                sota_mle_score = extract_json(secure_pickle_load(f))
                 hit = sota_mle_score.get("any_medal", False)
                 if hit:
                     if sota_mle_score["gold_medal"]:
@@ -822,7 +822,8 @@ def select_on_existing_trace(
                 if competition is not None and not competition in str(trace_pkl_path):
                     continue
                 sota_result = {}
-                trace = pickle.load(trace_pkl_path.open("rb"))
+                with trace_pkl_path.open("rb") as f:
+                    trace = secure_pickle_load(f)
                 try:
                     sota_loops_file = trace_folder / f"{trace_pkl_path.stem.split('_')[0]}_loops.json"
                     with open(sota_loops_file, "r") as f:
