@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-import pandas as pd
-from sklearn.preprocessing import LabelEncoder
+import pandas as pd  # type: ignore[import-untyped]
+from sklearn.preprocessing import LabelEncoder  # type: ignore[import-untyped]
 
 ARTIFACT_DUMP_CODE = r"""
 import json
