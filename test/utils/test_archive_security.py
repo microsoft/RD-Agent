@@ -4,6 +4,7 @@ import zipfile
 from pathlib import Path
 
 import pytest
+
 from rdagent.scenarios.kaggle.security import validate_competition_slug
 from rdagent.utils.archive import safe_extract_tar, safe_extract_zip
 

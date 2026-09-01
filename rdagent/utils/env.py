@@ -44,6 +44,15 @@ import docker.models.containers  # type: ignore[import-untyped]
 import docker.types  # type: ignore[import-untyped]
 from pydantic import BaseModel, model_validator
 from pydantic_settings import SettingsConfigDict
+from rich import print
+from rich.console import Console
+from rich.live import Live
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.rule import Rule
+from rich.table import Table
+from rich.text import Text
+from tqdm import tqdm
+
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.experiment import RD_AGENT_SETTINGS
 from rdagent.core.utils import cache_with_pickle
@@ -53,14 +62,6 @@ from rdagent.utils import filter_redundant_text
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.fmt import shrink_text
 from rdagent.utils.workflow import wait_retry
-from rich import print
-from rich.console import Console
-from rich.live import Live
-from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich.rule import Rule
-from rich.table import Table
-from rich.text import Text
-from tqdm import tqdm
 
 CacheKeyFunc = Callable[[str | Path], list[list[str]]]
 

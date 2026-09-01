@@ -10,6 +10,12 @@ from itertools import chain
 from pathlib import Path
 
 import nbformat
+from rich import print
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
+
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.exception import KaggleError
 from rdagent.core.utils import cache_with_pickle
@@ -20,11 +26,6 @@ from rdagent.scenarios.kaggle.security import validate_competition_slug
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.archive import safe_extract_tar, safe_extract_zip
 from rdagent.utils.env import MLEBDockerEnv
-from rich import print
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
 
 # %%
 options = webdriver.ChromeOptions()
