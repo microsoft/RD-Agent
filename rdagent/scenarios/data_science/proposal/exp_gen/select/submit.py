@@ -1,9 +1,9 @@
 import json
+import math
 import os
 import pickle
 import re
 import shutil
-import tarfile
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -13,7 +13,6 @@ import numpy as np
 import pandas as pd
 import yaml
 from loguru import logger
-
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.experiment import FBWorkspace
@@ -26,6 +25,7 @@ from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.utils.agent.ret import PythonAgentOut
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.archive import safe_extract_tar
 from rdagent.utils.fmt import shrink_text
 from rdagent.utils.workflow import wait_retry
 
@@ -582,19 +582,14 @@ def _parsing_score(grade_stdout: str) -> Optional[float]:
             continue
         json_str = m.group(0)
         try:
-            # Priority 1: JSON parsing
-            return float(json.loads(json_str)["score"])
-        except:
-            pass
-        try:
-            # Priority 2: Eval dict
-            return float(eval(json_str)["score"])
-        except:
-            pass
-        try:
-            # Priority 3: Regex for the last number in the string
-            return float(re.findall(r"[-+]?\d*\.\d+|\d+", json_str)[-1])
-        except:
+            score = json.loads(json_str)["score"]
+            if isinstance(score, bool) or not isinstance(score, (int, float)):
+                continue
+            score = float(score)
+            if not math.isfinite(score):
+                continue
+            return score
+        except (KeyError, TypeError, ValueError):
             pass
     return None
 
@@ -626,9 +621,8 @@ def try_get_loop_id(trace: Trace, exp: DSExperiment):
     return index
 
 
-def extract_tar(tar_path: str, to_dir: str = "log") -> str:
-    with tarfile.open(tar_path, mode="r:*") as tar:
-        tar.extractall(path=to_dir)
+def extract_tar(tar_path: str, to_dir: str = "log") -> None:
+    safe_extract_tar(tar_path, to_dir)
 
 
 # ==============================================================================

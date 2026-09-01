@@ -44,15 +44,6 @@ import docker.models.containers  # type: ignore[import-untyped]
 import docker.types  # type: ignore[import-untyped]
 from pydantic import BaseModel, model_validator
 from pydantic_settings import SettingsConfigDict
-from rich import print
-from rich.console import Console
-from rich.live import Live
-from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich.rule import Rule
-from rich.table import Table
-from rich.text import Text
-from tqdm import tqdm
-
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.experiment import RD_AGENT_SETTINGS
 from rdagent.core.utils import cache_with_pickle
@@ -62,6 +53,14 @@ from rdagent.utils import filter_redundant_text
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.fmt import shrink_text
 from rdagent.utils.workflow import wait_retry
+from rich import print
+from rich.console import Console
+from rich.live import Live
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.rule import Rule
+from rich.table import Table
+from rich.text import Text
+from tqdm import tqdm
 
 CacheKeyFunc = Callable[[str | Path], list[list[str]]]
 
@@ -872,16 +871,17 @@ FT_CONDA_CONFIG_DIR = Path(__file__).parent.parent / "scenarios" / "finetune" / 
 # Track which conda environments have been prepared in this process
 # This avoids redundant pip install checks that produce verbose output
 _CONDA_ENV_PREPARED: set[str] = set()
+_CONDA_ENV_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
+_PYTHON_VERSION_RE = re.compile(r"^\d+\.\d+(?:\.\d+)?$")
 
 
 def _sync_conda_cache_with_real_envs() -> None:
     """Ensure the prepared cache includes environments that already exist on disk."""
     try:
         result = subprocess.run(
-            "conda env list",
+            ["conda", "env", "list"],
             capture_output=True,
             text=True,
-            shell=True,
             check=False,
         )
     except Exception as exc:  # pragma: no cover - best-effort helper
@@ -913,15 +913,22 @@ def _prepare_conda_env(env_name: str, requirements_file: Path, python_version: s
         requirements_file: Path to requirements.txt file
         python_version: Python version for the environment
     """
-    # 1. Create conda environment if not exists
-    result = subprocess.run(f"conda env list | grep -q '^{env_name} '", shell=True)
-    if result.returncode != 0:
+    if not _CONDA_ENV_NAME_RE.fullmatch(env_name):
+        message = f"Invalid conda environment name: {env_name}"
+        raise ValueError(message)
+    if not _PYTHON_VERSION_RE.fullmatch(python_version):
+        message = f"Invalid Python version: {python_version}"
+        raise ValueError(message)
+
+    requirements_file = requirements_file.resolve()
+    _sync_conda_cache_with_real_envs()
+    if env_name not in _CONDA_ENV_PREPARED:
         print(f"[yellow]Creating conda env '{env_name}' (Python {python_version})...[/yellow]")
-        subprocess.check_call(f"conda create -y -n {env_name} python={python_version}", shell=True)
-        subprocess.check_call(f"conda run -n {env_name} pip install --upgrade pip", shell=True)
+        subprocess.check_call(["conda", "create", "-y", "-n", env_name, f"python={python_version}"])
+        subprocess.check_call(["conda", "run", "-n", env_name, "pip", "install", "--upgrade", "pip"])
 
     print(f"[yellow]Installing dependencies from {requirements_file.name}...[/yellow]")
-    subprocess.check_call(f"conda run -n {env_name} pip install -r {requirements_file}", shell=True)
+    subprocess.check_call(["conda", "run", "-n", env_name, "pip", "install", "-r", str(requirements_file)])
     print(f"[green]Conda env '{env_name}' ready[/green]")
 
     _CONDA_ENV_PREPARED.add(env_name)
@@ -961,8 +968,17 @@ class FTCondaEnv(LocalEnv[FTCondaConf]):
             # Note: flash-attn>=2.8 is required for B200 (sm_100) support
             print("[yellow]Installing flash-attn (compiling, may take a few minutes)...[/yellow]")
             subprocess.check_call(
-                f"conda run -n {self.conf.conda_env_name} pip install 'flash-attn>=2.8' --no-build-isolation --no-cache-dir",
-                shell=True,
+                [
+                    "conda",
+                    "run",
+                    "-n",
+                    self.conf.conda_env_name,
+                    "pip",
+                    "install",
+                    "flash-attn>=2.8",
+                    "--no-build-isolation",
+                    "--no-cache-dir",
+                ],
             )
 
             # Re-update bin_path after prepare() in case the conda env was just created

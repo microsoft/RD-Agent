@@ -6,6 +6,7 @@ Two-step validation:
 2. Micro-batch testing - Runtime validation with small dataset
 """
 
+import ast
 import json
 import re
 import time
@@ -14,7 +15,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set
 
 import yaml
-
 from rdagent.components.coder.finetune.conf import (
     FT_DEBUG_YAML_FILE_NAME,
     FT_TEST_PARAMS_FILE_NAME,
@@ -226,10 +226,10 @@ class LLMConfigValidator:
                 result["num_epochs"] = int(num_epochs.group(1).replace(",", ""))
 
             # Extract final metrics (JSON format from trainer output)
-            final_metrics = re.search(r"\{'train_runtime':[^}]+\}", stdout)
+            final_metrics = re.search(r"\{[\"']train_runtime[\"']:[^}]+\}", stdout)
             if final_metrics:
                 try:
-                    metrics = eval(final_metrics.group(0))  # Safe: only numbers and strings
+                    metrics = ast.literal_eval(final_metrics.group(0))
                     result["final_metrics"] = {
                         "train_loss": metrics.get("train_loss"),
                         "train_runtime": metrics.get("train_runtime"),

@@ -10,20 +10,21 @@ from itertools import chain
 from pathlib import Path
 
 import nbformat
-from rich import print
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
-
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.exception import KaggleError
 from rdagent.core.utils import cache_with_pickle
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.debug.data import create_debug_data
+from rdagent.scenarios.kaggle.security import validate_competition_slug
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.archive import safe_extract_tar, safe_extract_zip
 from rdagent.utils.env import MLEBDockerEnv
+from rich import print
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
 
 # %%
 options = webdriver.ChromeOptions()
@@ -35,6 +36,7 @@ options.add_argument("--headless")
 def crawl_descriptions(
     competition: str, local_data_path: str, wait: float = 3.0, force: bool = False
 ) -> dict[str, str] | str:
+    competition = validate_competition_slug(competition)
     if (fp := Path(f"{local_data_path}/{competition}/description.md")).exists() and not force:
         logger.info(f"Found {competition}/description.md, loading from it.")
         return fp.read_text()
@@ -108,6 +110,7 @@ def crawl_descriptions(
 
 
 def download_data(competition: str, settings: ExtendedBaseSettings, enable_create_debug_data: bool = True) -> None:
+    competition = validate_competition_slug(competition)
     local_path = settings.local_data_path
     if settings.if_using_mle_data:
         zipfile_path = f"{local_path}/zip_files"
@@ -135,33 +138,17 @@ def download_data(competition: str, settings: ExtendedBaseSettings, enable_creat
 
             for zip_path in competition_local_path.rglob("*.zip"):
                 with zipfile.ZipFile(zip_path, "r") as zip_ref:
-                    if len(zip_ref.namelist()) == 1:
-                        mleb_env.check_output(
-                            f"unzip -o ./{zip_path.relative_to(competition_local_path)} -d {zip_path.parent.relative_to(competition_local_path)}",
-                            local_path=competition_local_path,
-                        )
-                    else:
-                        mleb_env.check_output(
-                            f"mkdir -p ./{zip_path.parent.relative_to(competition_local_path)}/{zip_path.stem}; unzip -o ./{zip_path.relative_to(competition_local_path)} -d ./{zip_path.parent.relative_to(competition_local_path)}/{zip_path.stem}",
-                            local_path=competition_local_path,
-                        )
+                    extract_dir = zip_path.parent if len(zip_ref.namelist()) == 1 else zip_path.parent / zip_path.stem
+                safe_extract_zip(zip_path, extract_dir)
             for tar_path in competition_local_path.rglob("*.tar*"):
                 if not tarfile.is_tarfile(tar_path):
                     logger.error(f"{tar_path} is not a valid tar file.")
                     continue
-                is_gzip_file = open(tar_path, "rb").read(2) == b"\x1f\x8b"
-                with tarfile.open(tar_path, "r:gz") if is_gzip_file else tarfile.open(tar_path, "r") as tar_ref:
-                    if len(tar_ref.getmembers()) == 1:
-                        mleb_env.check_output(
-                            f"tar -{'xzf' if is_gzip_file else 'xf'} ./{tar_path.relative_to(competition_local_path)} -C {tar_path.parent.relative_to(competition_local_path)}",
-                            local_path=competition_local_path,
-                        )
-                    else:
-                        folder_name = tar_path.name.replace(".tar", "").replace(".gz", "")
-                        mleb_env.check_output(
-                            f"mkdir -p ./{tar_path.parent.relative_to(competition_local_path)}/{folder_name}; tar -{'xzf' if is_gzip_file else 'xf'} ./{tar_path.relative_to(competition_local_path)} -C ./{tar_path.parent.relative_to(competition_local_path)}/{folder_name}",
-                            local_path=competition_local_path,
-                        )
+                with tarfile.open(tar_path, "r:*") as tar_ref:
+                    member_count = len(tar_ref.getmembers())
+                folder_name = tar_path.name.replace(".tar", "").replace(".gz", "")
+                extract_dir = tar_path.parent if member_count == 1 else tar_path.parent / folder_name
+                safe_extract_tar(tar_path, extract_dir)
             # NOTE:
             # Patching:  due to mle has special renaming mechanism for different competition;
             # We have to switch the schema back to a uniform one;
@@ -201,12 +188,12 @@ def download_data(competition: str, settings: ExtendedBaseSettings, enable_creat
 
 
 def unzip_data(unzip_file_path: str, unzip_target_path: str) -> None:
-    with zipfile.ZipFile(unzip_file_path, "r") as zip_ref:
-        zip_ref.extractall(unzip_target_path)
+    safe_extract_zip(unzip_file_path, unzip_target_path)
 
 
 @cache_with_pickle(hash_func=lambda x: x, force=True)
 def leaderboard_scores(competition: str) -> list[float]:
+    competition = validate_competition_slug(competition)
     from kaggle.api.kaggle_api_extended import KaggleApi
 
     api = KaggleApi()
@@ -250,6 +237,7 @@ def score_rank(competition: str, score: float) -> tuple[int, float]:
 
 
 def download_notebooks(competition: str, local_path: str, num: int = 15) -> None:
+    competition = validate_competition_slug(competition)
     data_path = Path(f"{local_path}/{competition}")
     from kaggle.api.kaggle_api_extended import KaggleApi
 
@@ -285,6 +273,7 @@ def notebook_to_knowledge(notebook_text: str) -> str:
 
 
 def convert_notebooks_to_text(competition: str, local_path: str) -> None:
+    competition = validate_competition_slug(competition)
     data_path = Path(f"{local_path}/{competition}")
     converted_num = 0
 
