@@ -46,6 +46,8 @@ class WebStorage(Storage):
             else:
                 self.msgs.append(data)
             headers = {"Content-Type": "application/json"}
+            if UI_SETTING.server_auth_token:
+                headers["Authorization"] = f"Bearer {UI_SETTING.server_auth_token}"
             resp = requests.post(f"{self.url}/receive", json=data, headers=headers, timeout=1)
             return f"{resp.status_code} {resp.text}"
         except (requests.ConnectionError, requests.Timeout) as e:

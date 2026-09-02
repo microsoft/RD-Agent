@@ -5,12 +5,18 @@ from pathlib import Path
 import pytest
 
 import rdagent.log.server.app as server
+import rdagent.log.ui.storage as web_storage
 from rdagent.log.server.security import (
     parse_competition,
     resolve_within,
     validate_scenario,
     validate_upload_filename,
 )
+
+
+class _Response:
+    status_code = HTTPStatus.OK
+    text = "ok"
 
 
 @pytest.mark.offline
@@ -50,6 +56,38 @@ def test_log_server_requires_authentication_when_configured(monkeypatch: pytest.
     assert client.get("/traces").status_code == HTTPStatus.UNAUTHORIZED
     response = client.get("/traces", headers={"Authorization": "Bearer secret-token"})
     assert response.status_code == HTTPStatus.OK
+
+
+@pytest.mark.offline
+@pytest.mark.parametrize(
+    ("token", "expected_authorization"),
+    [("secret-token", "Bearer secret-token"), ("", None)],
+)
+def test_web_storage_authenticates_internal_receive_requests(
+    monkeypatch: pytest.MonkeyPatch,
+    token: str,
+    expected_authorization: str | None,
+) -> None:
+    request_headers: dict[str, str] = {}
+
+    def fake_post(url: str, *, json: object, headers: dict[str, str], timeout: int) -> _Response:
+        assert url == "http://localhost:19899/receive"
+        assert json == {"id": "trace", "msg": {"tag": "test"}}
+        assert timeout == 1
+        request_headers.update(headers)
+        return _Response()
+
+    monkeypatch.setattr(web_storage.UI_SETTING, "server_auth_token", token)
+    monkeypatch.setattr(web_storage.requests, "post", fake_post)
+    storage = web_storage.WebStorage(port=19899, path="trace")
+    monkeypatch.setattr(
+        storage,
+        "_obj_to_json",
+        lambda **_kwargs: {"id": "trace", "msg": {"tag": "test"}},
+    )
+
+    assert storage.log("message", "test") == "200 ok"
+    assert request_headers.get("Authorization") == expected_authorization
 
 
 @pytest.mark.offline
