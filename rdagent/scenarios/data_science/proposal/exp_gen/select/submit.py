@@ -1,9 +1,9 @@
 import json
+import math
 import os
 import pickle
 import re
 import shutil
-import tarfile
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -26,6 +26,7 @@ from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.utils.agent.ret import PythonAgentOut
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.archive import safe_extract_tar
 from rdagent.utils.fmt import shrink_text
 from rdagent.utils.workflow import wait_retry
 
@@ -350,6 +351,34 @@ class ValidationSelector(SOTAexpSelector):
         print(grade_py_code)
         print("======== code end ========")
 
+    def _validate_grade_script(self, grade_py_code: str, reference_exp: DSExperiment, mock_folder: str) -> None:
+        """Run a reusable grade script and verify its output contract."""
+        input_folder = T("scenarios.data_science.share:scen.input_path").r()
+        submission_path = Path(mock_folder) / "submission.csv"
+        if not submission_path.exists():
+            message = f"Cannot validate grade.py because {submission_path} does not exist."
+            raise RuntimeError(message)
+
+        ws = FBWorkspace()
+        ws.inject_code_from_file_dict(reference_exp.experiment_workspace)
+        ws.inject_files(**{"grade.py": grade_py_code})
+        shutil.copy(str(submission_path), str(ws.workspace_path / "submission.csv"))
+        env = get_ds_env(extra_volumes={str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"}})
+        result = ws.run(env=env, entry=f"python grade.py --cache-buster={time.time()}")
+        stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
+
+        if result.exit_code != 0:
+            output = shrink_text(stdout, context_lines=20, line_len=500)
+            message = f"grade.py validation failed with exit code {result.exit_code}: {output}"
+            raise RuntimeError(message)
+        if _parsing_score(stdout) is None:
+            output = shrink_text(stdout, context_lines=20, line_len=500)
+            message = (
+                "grade.py must print a valid JSON object whose 'score' is a finite numeric value; "
+                f"received stdout: {output}"
+            )
+            raise RuntimeError(message)
+
     def _prepare_validation_scripts(
         self, reference_exp: DSExperiment, competition: str, mock_folder: str
     ) -> Tuple[str, str]:
@@ -361,6 +390,7 @@ class ValidationSelector(SOTAexpSelector):
         data_py_path = Path(mock_folder) / "data.py"
         grade_py_path = Path(mock_folder) / "grade.py"
         label_path = Path(mock_folder) / "workspace_input/label.csv"
+        submission_path = Path(mock_folder) / "submission.csv"
         reference_code = reference_exp.experiment_workspace.file_dict.get("main.py", "")
         if not reference_code:
             raise RuntimeError("ValidationSelector: No code found in the reference experiment.")
@@ -370,7 +400,7 @@ class ValidationSelector(SOTAexpSelector):
             shutil.copy(self.sample_code_path / competition / "grade.py", grade_py_path)
             data_py_code = data_py_path.read_text()
             grade_py_code = grade_py_path.read_text()
-            if not label_path.exists():
+            if not label_path.exists() or not submission_path.exists():
                 ws = FBWorkspace()
                 if self.sample_rate != 0.8:
                     data_py_code = data_py_code.replace("0.8", str(self.sample_rate)).replace(
@@ -390,10 +420,11 @@ class ValidationSelector(SOTAexpSelector):
                 )  # Do not cache the result
                 if result.exit_code == 0:
                     self.print_code(data_py_code, grade_py_code)
+            self._validate_grade_script(grade_py_code, reference_exp, mock_folder)
             return data_py_code, grade_py_code
 
         # --- Generate data.py if needed ---
-        if not data_py_path.exists() or not label_path.exists():
+        if not data_py_path.exists() or not label_path.exists() or not submission_path.exists():
             logger.info(f"Generating synthetic data script: {data_py_path}")
             data_py_code = self._generate_and_run_script(
                 script_type="data",
@@ -408,23 +439,31 @@ class ValidationSelector(SOTAexpSelector):
         data_py_code = data_py_path.read_text()
 
         # --- Generate grade.py if needed ---
-        if not grade_py_path.exists():
-            logger.info(f"Generating grading script: {grade_py_path}")
-            grade_py_code = self._generate_and_run_script(
-                script_type="grade",
-                prompt_template_key="grade",
-                reference_exp=reference_exp,
-                competition=competition,
-                mock_folder=mock_folder,
-                prompt_kwargs={
-                    "reference_code": reference_code,
-                    "sample_code": data_py_code,
-                    "input_folder": input_folder,
-                },
-            )
-            grade_py_path.write_text(grade_py_code)
-            self.print_code(data_py_code, grade_py_code)
-        return data_py_code, grade_py_path.read_text()
+        if grade_py_path.exists():
+            grade_py_code = grade_py_path.read_text()
+            try:
+                self._validate_grade_script(grade_py_code, reference_exp, mock_folder)
+            except RuntimeError as exc:
+                logger.warning(f"Cached grade.py is incompatible and will be regenerated: {exc}")
+            else:
+                return data_py_code, grade_py_code
+
+        logger.info(f"Generating grading script: {grade_py_path}")
+        grade_py_code = self._generate_and_run_script(
+            script_type="grade",
+            prompt_template_key="grade",
+            reference_exp=reference_exp,
+            competition=competition,
+            mock_folder=mock_folder,
+            prompt_kwargs={
+                "reference_code": reference_code,
+                "sample_code": data_py_code,
+                "input_folder": input_folder,
+            },
+        )
+        grade_py_path.write_text(grade_py_code)
+        self.print_code(data_py_code, grade_py_code)
+        return data_py_code, grade_py_code
 
     def _generate_and_run_script(
         self,
@@ -582,19 +621,14 @@ def _parsing_score(grade_stdout: str) -> Optional[float]:
             continue
         json_str = m.group(0)
         try:
-            # Priority 1: JSON parsing
-            return float(json.loads(json_str)["score"])
-        except:
-            pass
-        try:
-            # Priority 2: Eval dict
-            return float(eval(json_str)["score"])
-        except:
-            pass
-        try:
-            # Priority 3: Regex for the last number in the string
-            return float(re.findall(r"[-+]?\d*\.\d+|\d+", json_str)[-1])
-        except:
+            score = json.loads(json_str)["score"]
+            if isinstance(score, bool) or not isinstance(score, (int, float)):
+                continue
+            score = float(score)
+            if not math.isfinite(score):
+                continue
+            return score
+        except (KeyError, TypeError, ValueError):
             pass
     return None
 
@@ -626,9 +660,8 @@ def try_get_loop_id(trace: Trace, exp: DSExperiment):
     return index
 
 
-def extract_tar(tar_path: str, to_dir: str = "log") -> str:
-    with tarfile.open(tar_path, mode="r:*") as tar:
-        tar.extractall(path=to_dir)
+def extract_tar(tar_path: str, to_dir: str = "log") -> None:
+    safe_extract_tar(tar_path, to_dir)
 
 
 # ==============================================================================
