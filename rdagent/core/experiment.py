@@ -220,6 +220,17 @@ class FBWorkspace(Workspace):
 
     DEL_KEY = "__DEL__"
 
+    def _resolve_workspace_path(self, file_name: str) -> Path:
+        """Resolve a caller-provided file name without allowing workspace escape."""
+        workspace_root = self.workspace_path.resolve()
+        target_file_path = (workspace_root / file_name).resolve()
+        try:
+            target_file_path.relative_to(workspace_root)
+        except ValueError as exc:
+            message = f"File path escapes workspace: {file_name}"
+            raise ValueError(message) from exc
+        return target_file_path
+
     def inject_files(self, **files: str) -> None:
         """
         Inject the code into the folder.
@@ -232,7 +243,7 @@ class FBWorkspace(Workspace):
         """
         self.prepare()
         for k, v in files.items():
-            target_file_path = self.workspace_path / k  # Define target_file_path before using it
+            target_file_path = self._resolve_workspace_path(k)
             if v == self.DEL_KEY:  # Use self.DEL_KEY to access the class variable
                 if target_file_path.exists():
                     target_file_path.unlink()  # Unlink the file if it exists
@@ -249,7 +260,7 @@ class FBWorkspace(Workspace):
         if isinstance(file_names, str):
             file_names = [file_names]
         for file_name in file_names:
-            target_file_path = self.workspace_path / file_name
+            target_file_path = self._resolve_workspace_path(file_name)
             if target_file_path.exists():
                 target_file_path.unlink()  # Unlink the file if it exists
             self.file_dict.pop(file_name, None)  # Safely remove the key from file_dict
