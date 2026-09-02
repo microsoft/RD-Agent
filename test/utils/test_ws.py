@@ -74,3 +74,35 @@ class TestFBWorkspace(unittest.TestCase):
         ws.create_ws_ckp()
         ws.recover_ws_ckp()
         self.assertFalse((ws.workspace_path / "large.bin").exists())
+
+    def test_inject_files_rejects_paths_outside_workspace(self) -> None:
+        """
+        `inject_files` must never create, overwrite, or delete a file outside
+        `workspace_path`, for either the write or the DEL_KEY delete branch.
+        """
+        ws = FBWorkspace()
+        ws.workspace_path = self.tmp_path / "ws"
+        ws.prepare()
+
+        ws.inject_files(**{"file.py": "a", "subdir/file.py": "b"})
+        self.assertEqual((ws.workspace_path / "file.py").read_text(), "a")
+        self.assertEqual((ws.workspace_path / "subdir" / "file.py").read_text(), "b")
+        self.assertEqual(ws.file_dict["file.py"], "a")
+
+        outside = self.tmp_path / "escape.txt"
+        with self.assertRaises(ValueError):
+            ws.inject_files(**{"../escape.txt": "escaped"})
+        self.assertFalse(outside.exists())
+        self.assertNotIn("../escape.txt", ws.file_dict)
+
+        absolute_outside = self.tmp_path / "abs_escape.txt"
+        with self.assertRaises(ValueError):
+            ws.inject_files(**{str(absolute_outside): "escaped"})
+        self.assertFalse(absolute_outside.exists())
+
+        preexisting_outside = self.tmp_path / "preexisting.txt"
+        preexisting_outside.write_text("still here")
+        with self.assertRaises(ValueError):
+            ws.inject_files(**{"../preexisting.txt": FBWorkspace.DEL_KEY})
+        self.assertTrue(preexisting_outside.exists())
+        self.assertEqual(preexisting_outside.read_text(), "still here")

@@ -231,8 +231,12 @@ class FBWorkspace(Workspace):
         }
         """
         self.prepare()
+        workspace_root = self.workspace_path.resolve()
         for k, v in files.items():
-            target_file_path = self.workspace_path / k  # Define target_file_path before using it
+            target_file_path = (workspace_root / k).resolve()
+            if not target_file_path.is_relative_to(workspace_root):
+                escape_msg = f"File path escapes workspace: {k}"
+                raise ValueError(escape_msg)
             if v == self.DEL_KEY:  # Use self.DEL_KEY to access the class variable
                 if target_file_path.exists():
                     target_file_path.unlink()  # Unlink the file if it exists
