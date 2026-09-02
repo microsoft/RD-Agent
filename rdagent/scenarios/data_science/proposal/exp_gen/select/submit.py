@@ -351,6 +351,38 @@ class ValidationSelector(SOTAexpSelector):
         print(grade_py_code)
         print("======== code end ========")
 
+    def _validate_grade_script(
+        self, grade_py_code: str, reference_exp: DSExperiment, mock_folder: str
+    ) -> None:
+        """Run a reusable grade script and verify its output contract."""
+        input_folder = T("scenarios.data_science.share:scen.input_path").r()
+        submission_path = Path(mock_folder) / "submission.csv"
+        if not submission_path.exists():
+            message = f"Cannot validate grade.py because {submission_path} does not exist."
+            raise RuntimeError(message)
+
+        ws = FBWorkspace()
+        ws.inject_code_from_file_dict(reference_exp.experiment_workspace)
+        ws.inject_files(**{"grade.py": grade_py_code})
+        shutil.copy(str(submission_path), str(ws.workspace_path / "submission.csv"))
+        env = get_ds_env(
+            extra_volumes={str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"}}
+        )
+        result = ws.run(env=env, entry=f"python grade.py --cache-buster={time.time()}")
+        stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
+
+        if result.exit_code != 0:
+            output = shrink_text(stdout, context_lines=20, line_len=500)
+            message = f"grade.py validation failed with exit code {result.exit_code}: {output}"
+            raise RuntimeError(message)
+        if _parsing_score(stdout) is None:
+            output = shrink_text(stdout, context_lines=20, line_len=500)
+            message = (
+                "grade.py must print a valid JSON object whose 'score' is a finite numeric value; "
+                f"received stdout: {output}"
+            )
+            raise RuntimeError(message)
+
     def _prepare_validation_scripts(
         self, reference_exp: DSExperiment, competition: str, mock_folder: str
     ) -> Tuple[str, str]:
@@ -391,6 +423,7 @@ class ValidationSelector(SOTAexpSelector):
                 )  # Do not cache the result
                 if result.exit_code == 0:
                     self.print_code(data_py_code, grade_py_code)
+            self._validate_grade_script(grade_py_code, reference_exp, mock_folder)
             return data_py_code, grade_py_code
 
         # --- Generate data.py if needed ---
@@ -409,23 +442,31 @@ class ValidationSelector(SOTAexpSelector):
         data_py_code = data_py_path.read_text()
 
         # --- Generate grade.py if needed ---
-        if not grade_py_path.exists():
-            logger.info(f"Generating grading script: {grade_py_path}")
-            grade_py_code = self._generate_and_run_script(
-                script_type="grade",
-                prompt_template_key="grade",
-                reference_exp=reference_exp,
-                competition=competition,
-                mock_folder=mock_folder,
-                prompt_kwargs={
-                    "reference_code": reference_code,
-                    "sample_code": data_py_code,
-                    "input_folder": input_folder,
-                },
-            )
-            grade_py_path.write_text(grade_py_code)
-            self.print_code(data_py_code, grade_py_code)
-        return data_py_code, grade_py_path.read_text()
+        if grade_py_path.exists():
+            grade_py_code = grade_py_path.read_text()
+            try:
+                self._validate_grade_script(grade_py_code, reference_exp, mock_folder)
+            except RuntimeError as exc:
+                logger.warning(f"Cached grade.py is incompatible and will be regenerated: {exc}")
+            else:
+                return data_py_code, grade_py_code
+
+        logger.info(f"Generating grading script: {grade_py_path}")
+        grade_py_code = self._generate_and_run_script(
+            script_type="grade",
+            prompt_template_key="grade",
+            reference_exp=reference_exp,
+            competition=competition,
+            mock_folder=mock_folder,
+            prompt_kwargs={
+                "reference_code": reference_code,
+                "sample_code": data_py_code,
+                "input_folder": input_folder,
+            },
+        )
+        grade_py_path.write_text(grade_py_code)
+        self.print_code(data_py_code, grade_py_code)
+        return data_py_code, grade_py_code
 
     def _generate_and_run_script(
         self,

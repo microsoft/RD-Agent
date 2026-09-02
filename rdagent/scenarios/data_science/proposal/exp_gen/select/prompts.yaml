@@ -107,7 +107,10 @@ grade:
     Write a Python script named `grade.py` to evaluate `submission.csv` produced by a model.
     Input files (relative to current working directory):
     - `{{ input_folder }}/label.csv` and `submission.csv`
-    Output format: `{'score': float, 'metric': str}`
+    Output exactly one valid JSON object on one line, for example:
+    `{"score": 0.75, "metric": "auc"}`
+    Use `json.dumps(...)` to produce the output. Do not print a Python dictionary representation.
+    `score` must be a finite JSON number, not a string, boolean, NaN, or Infinity.
     {% if error %} 
     {{ error }}
     {% endif %}
