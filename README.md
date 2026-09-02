@@ -399,6 +399,65 @@ rdagent server_ui --port 19899
 
 After that, open `http://127.0.0.1:19899` in your browser.
 
+##### Web UI security and remote access
+
+The Flask backend listens on `127.0.0.1` by default. This keeps its process-control, upload, and trace APIs accessible only from the local machine. No authentication token is required while the server is bound to localhost.
+
+To access the Web UI from another machine, explicitly bind it to a non-local address and configure an authentication token:
+
+```sh
+export UI_SERVER_AUTH_TOKEN='<a-long-random-token>'
+rdagent server_ui --port 19899 --host 0.0.0.0
+```
+
+Then open the following URL once to establish an authenticated browser session:
+
+```text
+http://<server-host>:19899/?token=<a-long-random-token>
+```
+
+The server removes the token from the address bar by redirecting to `/` and stores it in an HTTP-only, same-site cookie. API clients can instead send it in the request header:
+
+```text
+Authorization: Bearer <a-long-random-token>
+```
+
+The server refuses to bind to a non-local address unless `UI_SERVER_AUTH_TOKEN` is set. When exposing it outside a trusted development machine, put it behind an HTTPS reverse proxy and avoid recording token-bearing query strings in proxy logs. The `--host` option controls the address when the server is started through the CLI; `UI_SERVER_HOST` is the corresponding default for direct use of the backend entry point.
+
+Cross-origin browser access is disabled by default. If the frontend and backend are served from different origins, configure an explicit JSON allowlist rather than enabling every origin:
+
+```sh
+export UI_CORS_ALLOWED_ORIGINS='["https://ui.example.com"]'
+```
+
+##### Web UI storage and compatibility settings
+
+The Flask backend uses the following environment variables. Uploaded input files are deliberately kept outside the trace directory so that they cannot be discovered and deserialized as persisted traces.
+
+| Environment variable | Default | Description |
+| --- | --- | --- |
+| `UI_STATIC_PATH` | `./git_ignore_folder/static` | Directory containing the built Web UI assets. |
+| `UI_TRACE_FOLDER` | `./git_ignore_folder/traces` | Directory containing generated trace data and process logs. |
+| `UI_UPLOAD_FOLDER` | `./git_ignore_folder/uploads` | Isolated directory for uploaded input files. Mount, back up, and clean it separately from the trace directory. |
+| `UI_SERVER_HOST` | `127.0.0.1` | Default host used by the backend entry point. Use `server_ui --host` when starting it through the CLI. |
+| `UI_SERVER_AUTH_TOKEN` | empty | Bearer/cookie authentication token. Required for any non-localhost binding. |
+| `UI_CORS_ALLOWED_ORIGINS` | `[]` | JSON list of allowed browser origins. CORS is disabled when the list is empty. |
+| `UI_MAX_UPLOAD_MB` | `20` | Maximum size in MiB of an entire HTTP request, including all uploaded files and form data. |
+| `UI_LOAD_LEGACY_PICKLE_TRACES` | `false` | Whether to deserialize persisted pickle traces when the server starts. Enable only for a fully trusted trace directory. |
+
+Uploads whose filenames end in `.dill`, `.pickle`, `.pkl`, `.py`, `.pyc`, or `.pyo` are rejected. Existing workflows that use these formats as uploaded inputs must convert them to a non-executable data format or provide them through another trusted mechanism.
+
+Legacy pickle trace loading is disabled by default because pickle deserialization can execute code. Consequently, after a server restart, an existing trace may still appear in the history list but its saved messages will not be loaded into the Web UI. If compatibility with trusted historical traces is required, opt in explicitly:
+
+```sh
+export UI_LOAD_LEGACY_PICKLE_TRACES=true
+rdagent server_ui --port 19899
+```
+
+Only enable this setting when every file under `UI_TRACE_FOLDER` is trusted and the directory is not writable by untrusted users or services.
+
+Data-science trace share links no longer accept a URL-controlled `log_folder`. A link can preserve the selected trace, but the recipient must have the corresponding log folder configured or select it in the UI.
+
 #### Common Notes
 
 Port `19899` is used in the examples above. Before starting either UI, check whether this port is already occupied. If it is, please change it to another available port.
