@@ -50,6 +50,19 @@ def test_safe_extract_zip_extracts_regular_files(tmp_path: Path) -> None:
 
 
 @pytest.mark.offline
+def test_safe_extract_zip_enforces_member_and_size_limits(tmp_path: Path) -> None:
+    archive_path = tmp_path / "limited.zip"
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        archive.writestr("first.txt", "12")
+        archive.writestr("second.txt", "34")
+
+    with pytest.raises(ValueError, match="exceeds configured extraction limits"):
+        safe_extract_zip(archive_path, tmp_path / "members", max_members=1)
+    with pytest.raises(ValueError, match="exceeds configured extraction limits"):
+        safe_extract_zip(archive_path, tmp_path / "size", max_uncompressed_bytes=3)
+
+
+@pytest.mark.offline
 def test_safe_extract_tar_rejects_links(tmp_path: Path) -> None:
     archive_path = tmp_path / "payload.tar"
     with tarfile.open(archive_path, "w") as archive:
@@ -74,3 +87,18 @@ def test_safe_extract_tar_extracts_regular_files(tmp_path: Path) -> None:
     output = tmp_path / "output"
     safe_extract_tar(archive_path, output)
     assert (output / "nested" / "result.txt").read_bytes() == content
+
+
+@pytest.mark.offline
+def test_safe_extract_tar_enforces_member_and_size_limits(tmp_path: Path) -> None:
+    archive_path = tmp_path / "limited.tar"
+    with tarfile.open(archive_path, "w") as archive:
+        for name in ("first.txt", "second.txt"):
+            member = tarfile.TarInfo(name)
+            member.size = 2
+            archive.addfile(member, io.BytesIO(b"12"))
+
+    with pytest.raises(ValueError, match="exceeds configured extraction limits"):
+        safe_extract_tar(archive_path, tmp_path / "members", max_members=1)
+    with pytest.raises(ValueError, match="exceeds configured extraction limits"):
+        safe_extract_tar(archive_path, tmp_path / "size", max_uncompressed_bytes=3)

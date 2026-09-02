@@ -351,9 +351,7 @@ class ValidationSelector(SOTAexpSelector):
         print(grade_py_code)
         print("======== code end ========")
 
-    def _validate_grade_script(
-        self, grade_py_code: str, reference_exp: DSExperiment, mock_folder: str
-    ) -> None:
+    def _validate_grade_script(self, grade_py_code: str, reference_exp: DSExperiment, mock_folder: str) -> None:
         """Run a reusable grade script and verify its output contract."""
         input_folder = T("scenarios.data_science.share:scen.input_path").r()
         submission_path = Path(mock_folder) / "submission.csv"
@@ -365,9 +363,7 @@ class ValidationSelector(SOTAexpSelector):
         ws.inject_code_from_file_dict(reference_exp.experiment_workspace)
         ws.inject_files(**{"grade.py": grade_py_code})
         shutil.copy(str(submission_path), str(ws.workspace_path / "submission.csv"))
-        env = get_ds_env(
-            extra_volumes={str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"}}
-        )
+        env = get_ds_env(extra_volumes={str(Path(mock_folder) / input_folder): {"bind": input_folder, "mode": "rw"}})
         result = ws.run(env=env, entry=f"python grade.py --cache-buster={time.time()}")
         stdout = re.sub(r"^chmod:.*\n?", "", result.stdout, flags=re.MULTILINE)
 
@@ -394,6 +390,7 @@ class ValidationSelector(SOTAexpSelector):
         data_py_path = Path(mock_folder) / "data.py"
         grade_py_path = Path(mock_folder) / "grade.py"
         label_path = Path(mock_folder) / "workspace_input/label.csv"
+        submission_path = Path(mock_folder) / "submission.csv"
         reference_code = reference_exp.experiment_workspace.file_dict.get("main.py", "")
         if not reference_code:
             raise RuntimeError("ValidationSelector: No code found in the reference experiment.")
@@ -403,7 +400,7 @@ class ValidationSelector(SOTAexpSelector):
             shutil.copy(self.sample_code_path / competition / "grade.py", grade_py_path)
             data_py_code = data_py_path.read_text()
             grade_py_code = grade_py_path.read_text()
-            if not label_path.exists():
+            if not label_path.exists() or not submission_path.exists():
                 ws = FBWorkspace()
                 if self.sample_rate != 0.8:
                     data_py_code = data_py_code.replace("0.8", str(self.sample_rate)).replace(
@@ -427,7 +424,7 @@ class ValidationSelector(SOTAexpSelector):
             return data_py_code, grade_py_code
 
         # --- Generate data.py if needed ---
-        if not data_py_path.exists() or not label_path.exists():
+        if not data_py_path.exists() or not label_path.exists() or not submission_path.exists():
             logger.info(f"Generating synthetic data script: {data_py_path}")
             data_py_code = self._generate_and_run_script(
                 script_type="data",

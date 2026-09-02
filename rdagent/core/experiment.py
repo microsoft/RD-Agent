@@ -220,16 +220,26 @@ class FBWorkspace(Workspace):
 
     DEL_KEY = "__DEL__"
 
-    def _resolve_workspace_path(self, file_name: str) -> Path:
+    def _resolve_workspace_path(self, file_name: str, *, follow_leaf_symlink: bool = True) -> Path:
         """Resolve a caller-provided file name without allowing workspace escape."""
+        relative_path = Path(file_name)
+        if relative_path.is_absolute() or ".." in relative_path.parts:
+            message = f"File path must be relative and contained in the workspace: {file_name}"
+            raise ValueError(message)
+
         workspace_root = self.workspace_path.resolve()
-        target_file_path = (workspace_root / file_name).resolve()
+        target_file_path = workspace_root / relative_path
+        resolved_path = (
+            target_file_path.resolve()
+            if follow_leaf_symlink
+            else target_file_path.parent.resolve() / target_file_path.name
+        )
         try:
-            target_file_path.relative_to(workspace_root)
+            resolved_path.relative_to(workspace_root)
         except ValueError as exc:
             message = f"File path escapes workspace: {file_name}"
             raise ValueError(message) from exc
-        return target_file_path
+        return resolved_path if follow_leaf_symlink else target_file_path
 
     def inject_files(self, **files: str) -> None:
         """
@@ -243,12 +253,13 @@ class FBWorkspace(Workspace):
         """
         self.prepare()
         for k, v in files.items():
-            target_file_path = self._resolve_workspace_path(k)
             if v == self.DEL_KEY:  # Use self.DEL_KEY to access the class variable
-                if target_file_path.exists():
+                target_file_path = self._resolve_workspace_path(k, follow_leaf_symlink=False)
+                if target_file_path.exists() or target_file_path.is_symlink():
                     target_file_path.unlink()  # Unlink the file if it exists
                 self.file_dict.pop(k, None)  # Safely remove the key from file_dict
             else:
+                target_file_path = self._resolve_workspace_path(k)
                 self.file_dict[k] = v
                 target_file_path.parent.mkdir(parents=True, exist_ok=True)
                 target_file_path.write_text(v)
@@ -260,8 +271,8 @@ class FBWorkspace(Workspace):
         if isinstance(file_names, str):
             file_names = [file_names]
         for file_name in file_names:
-            target_file_path = self._resolve_workspace_path(file_name)
-            if target_file_path.exists():
+            target_file_path = self._resolve_workspace_path(file_name, follow_leaf_symlink=False)
+            if target_file_path.exists() or target_file_path.is_symlink():
                 target_file_path.unlink()  # Unlink the file if it exists
             self.file_dict.pop(file_name, None)  # Safely remove the key from file_dict
 
