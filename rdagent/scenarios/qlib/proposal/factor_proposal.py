@@ -1,5 +1,4 @@
 import json
-from typing import List, Tuple
 
 from rdagent.components.coder.factor_coder.factor import FactorExperiment, FactorTask
 from rdagent.components.proposal import FactorHypothesis2Experiment, FactorHypothesisGen
@@ -12,11 +11,61 @@ from rdagent.utils.agent.tpl import T
 QlibFactorHypothesis = Hypothesis
 
 
+def _generate_dynamic_rag(trace: Trace) -> str:
+    """Generate RAG advice based on exploration history."""
+    direction_keywords = {
+        "momentum": ["momentum", "roc", "return", "price change"],
+        "volatility": ["volatility", "std", "variance", "risk"],
+        "volume": ["volume", "vwap", "turnover", "flow"],
+        "correlation": ["correlation", "corr", "cord"],
+        "distribution": ["kurtosis", "skewness", "zscore", "distribution"],
+        "ml": ["machine learning", "neural", "transform", "predict"],
+        "liquidity": ["liquidity", "bid", "ask", "spread"],
+        "sentiment": ["sentiment", "news", "analyst", "emotion"],
+        "tail_risk": ["tail", "extreme", "var", "drawdown"],
+    }
+
+    if len(trace.hist) == 0:
+        return (
+            "Start with high-quality factors from underexplored directions: "
+            "liquidity risk, order flow imbalances, sentiment proxies, tail risk measures. "
+            "Avoid duplicating existing baseline factors."
+        )
+
+    explored = set()
+    for exp, _ in trace.hist:
+        if hasattr(exp, "hypothesis") and hasattr(exp.hypothesis, "hypothesis"):
+            hypothesis_text = exp.hypothesis.hypothesis.lower()
+            for direction, keywords in direction_keywords.items():
+                if any(kw in hypothesis_text for kw in keywords):
+                    explored.add(direction)
+
+    underexplored = ["liquidity", "sentiment", "tail_risk", "order_flow"]
+    recommendations = [d for d in underexplored if d not in explored]
+
+    if len(trace.hist) < 5:
+        return (
+            "Focus on simple, interpretable factors. "
+            "Start with underexplored directions: liquidity risk, order flow imbalances."
+        )
+
+    if recommendations:
+        return (
+            f"Focus on underexplored directions: {', '.join(recommendations[:3])}. "
+            "These have high potential for alpha generation."
+        )
+
+    return (
+        "Consider machine learning-based factors or enhancing existing directions "
+        "with better normalization techniques."
+    )
+
+
 class QlibFactorHypothesisGen(FactorHypothesisGen):
-    def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
+    def __init__(self, scen: Scenario) -> tuple[dict, bool]:
         super().__init__(scen)
 
-    def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
+    def prepare_context(self, trace: Trace) -> tuple[dict, bool]:
         hypothesis_and_feedback = (
             T("scenarios.qlib.prompts:hypothesis_and_feedback").r(
                 trace=trace,
@@ -26,7 +75,7 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
         )
         last_hypothesis_and_feedback = (
             T("scenarios.qlib.prompts:last_hypothesis_and_feedback").r(
-                experiment=trace.hist[-1][0], feedback=trace.hist[-1][1]
+                experiment=trace.hist[-1][0], feedback=trace.hist[-1][1],
             )
             if len(trace.hist) > 0
             else "No previous hypothesis and feedback available since it's the first round."
@@ -35,11 +84,8 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
-            "RAG": (
-                "Try the easiest and fastest factors to experiment with from various perspectives first."
-                if len(trace.hist) < 15
-                else "Now, you need to try factors that can achieve high IC (e.g., machine learning-based factors)."
-            ),
+            "baseline_context": T("scenarios.qlib.prompts:baseline_context").r(),
+            "RAG": _generate_dynamic_rag(trace),
             "hypothesis_output_format": T("scenarios.qlib.prompts:factor_hypothesis_output_format").r(),
             "hypothesis_specification": T("scenarios.qlib.prompts:factor_hypothesis_specification").r(),
         }
@@ -59,7 +105,7 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
 
 
 class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
-    def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict | bool]:
+    def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> tuple[dict | bool]:
         if isinstance(trace.scen, QlibQuantScenario):
             scenario = trace.scen.get_scenario_all_desc(action="factor")
         else:
@@ -105,7 +151,7 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
                     factor_description=description,
                     factor_formulation=formulation,
                     variables=variables,
-                )
+                ),
             )
 
         exp = QlibFactorExperiment(tasks, hypothesis=hypothesis)
